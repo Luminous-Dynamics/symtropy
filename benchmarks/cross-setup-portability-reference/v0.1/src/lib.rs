@@ -859,6 +859,74 @@ mod tests {
     }
 
     #[test]
+    fn incomplete_common_task_policy_matrix_is_rejected() {
+        let source = make_eval(
+            setup("sim-a", "lab-a", "robot-a", "franka", "mujoco", SetupKind::Simulation),
+            [20, 10, 0],
+        );
+        let mut target = make_eval(
+            setup("real-a", "lab-a", "robot-a", "franka", "real-hardware", SetupKind::Physical),
+            [20, 10, 0],
+        );
+        target.outcomes.retain(|outcome| {
+            !(outcome.task_id == "task-0" && outcome.policy.policy_id == "policy-c")
+        });
+        assert_eq!(
+            compare_setup_portability(
+                &source,
+                &target,
+                ComparisonTier::MatchedSimulatorTwin,
+                BootstrapConfig::default()
+            ),
+            Err(PortabilityError::IncompletePolicyTaskMatrix)
+        );
+    }
+
+    #[test]
+    fn cross_engine_tier_requires_two_distinct_simulators() {
+        let source = make_eval(
+            setup("sim-mujoco", "lab-a", "robot-a", "franka", "mujoco", SetupKind::Simulation),
+            [20, 10, 0],
+        );
+        let target = make_eval(
+            setup("sim-physx", "lab-a", "robot-a", "franka", "physx", SetupKind::Simulation),
+            [20, 10, 0],
+        );
+        let report = compare_setup_portability(
+            &source,
+            &target,
+            ComparisonTier::CrossEngine,
+            BootstrapConfig::default(),
+        )
+        .expect("cross-engine");
+        assert_eq!(report.comparison_tier, ComparisonTier::CrossEngine);
+        assert_eq!(report.winner_agreement_rate, Some(1.0));
+    }
+
+    #[test]
+    fn cross_embodiment_tier_requires_a_different_robot_form() {
+        let source = make_eval(
+            setup("sim-franka", "lab-a", "franka-a", "franka", "mujoco", SetupKind::Simulation),
+            [20, 10, 0],
+        );
+        let target = make_eval(
+            setup("sim-widowx", "lab-a", "widowx-a", "widowx", "mujoco", SetupKind::Simulation),
+            [20, 10, 0],
+        );
+        assert_eq!(
+            compare_setup_portability(
+                &source,
+                &target,
+                ComparisonTier::CrossEmbodiment,
+                BootstrapConfig::default()
+            )
+            .expect("cross embodiment")
+            .comparison_tier,
+            ComparisonTier::CrossEmbodiment
+        );
+    }
+
+    #[test]
     fn duplicate_outcomes_and_invalid_counts_are_rejected() {
         let mut evaluation = make_eval(
             setup("sim-a", "lab-a", "robot-a", "franka", "mujoco", SetupKind::Simulation),
