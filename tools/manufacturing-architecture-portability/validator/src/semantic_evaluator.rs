@@ -108,6 +108,13 @@ mod tests {
         "projection_schema_version",
         "adapter_profile_id",
         "source_schema_version",
+        "evidence_class",
+        "calibration_disposition",
+        "calibration_reference_id",
+        "calibration_reference_sha256",
+        "measurement_uncertainty_disposition",
+        "measurement_uncertainty_reference_id",
+        "measurement_uncertainty_reference_sha256",
         "source_document_id",
         "source_document_sha256",
         "schema_identifier",
@@ -138,6 +145,13 @@ mod tests {
             "projection_schema_version": "0.1.0",
             "adapter_profile_id": "urn:luminous:symtropy:mfg-arch:uns-mqtt-synthetic-v0.1",
             "source_schema_version": "2.8",
+            "evidence_class": "synthetic",
+            "calibration_disposition": "unknown",
+            "calibration_reference_id": null,
+            "calibration_reference_sha256": null,
+            "measurement_uncertainty_disposition": "unknown",
+            "measurement_uncertainty_reference_id": null,
+            "measurement_uncertainty_reference_sha256": null,
             "source_document_id": "MT-DOC-0001",
             "source_document_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             "schema_identifier": "https://schemas.mtconnect.org/schemas/MTConnectStreams_2.8.schema.json",
@@ -191,6 +205,35 @@ mod tests {
         let mut unknown = candidate();
         unknown["unmapped_raw_value"] = json!("must not be discarded");
         assert!(!validator.is_valid(&unknown));
+    }
+
+
+    #[test]
+    fn qualified_calibration_requires_exact_evidence_reference() {
+        let schema: Value =
+            serde_json::from_str(PROJECTION_SCHEMA).expect("projection schema JSON must parse");
+        let validator = jsonschema::draft202012::options()
+            .should_validate_formats(true)
+            .build(&schema)
+            .expect("projection validator must build");
+        let mut actual = candidate();
+        actual["calibration_disposition"] = json!("qualified_reference");
+        assert!(!validator.is_valid(&actual));
+
+        actual["calibration_reference_id"] = json!("CAL-001");
+        actual["calibration_reference_sha256"] =
+            json!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        assert!(validator.is_valid(&actual));
+    }
+
+    #[test]
+    fn unknown_calibration_and_uncertainty_remain_explicit_not_qualified() {
+        let actual = candidate();
+        assert_eq!(actual["evidence_class"], json!("synthetic"));
+        assert_eq!(actual["calibration_disposition"], json!("unknown"));
+        assert_eq!(actual["measurement_uncertainty_disposition"], json!("unknown"));
+        let result = compare_required_fields(&oracle(), &actual, FIELDS).unwrap();
+        assert!(result.equivalent_on_required_fields);
     }
 
     #[test]
