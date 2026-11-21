@@ -54,7 +54,17 @@ pub fn diagnose_horseshoe_coefficient(
             "sampler_diagnostics_require_at_least_eight_draws_per_chain",
         ));
     }
+    let mut seeds = Vec::with_capacity(chains.len());
     for chain in chains {
+        if seeds.contains(&chain.seed) {
+            return Err(ModelError::InvalidParameter(
+                "sampler_diagnostics_require_unique_chain_seeds",
+            ));
+        }
+        seeds.push(chain.seed);
+        if chain.draws.len() != minimum_draws {
+            return Err(ModelError::MismatchedDataLengths);
+        }
         if chain.draws.iter().any(|draw| {
             coefficient_index >= draw.coefficients.len()
                 || !draw.hamiltonian_energy.is_finite()
@@ -393,7 +403,7 @@ fn energy_bfmi(energies: &[f64]) -> f64 {
 mod tests {
     use super::*;
 
-    fn synthetic_chain(values: &[f64], energy_values: &[f64]) -> HorseshoeHmcChain {
+    fn synthetic_chain(seed: u64, values: &[f64], energy_values: &[f64]) -> HorseshoeHmcChain {
         let draws = values.iter().zip(energy_values.iter())
             .map(|(value, energy)| crate::HorseshoeHmcDraw {
                 coefficients: vec![*value],
@@ -404,6 +414,7 @@ mod tests {
             })
             .collect();
         HorseshoeHmcChain {
+            seed,
             draws,
             transitions: values.len(),
             accepted_transitions: values.len(),
@@ -450,6 +461,7 @@ mod tests {
             })
             .collect();
         HorseshoeHmcChain {
+            seed,
             draws,
             transitions: count,
             accepted_transitions: count,
@@ -478,12 +490,28 @@ mod tests {
         let values: Vec<f64> = (0..20).map(|index| (index as f64).sin()).collect();
         let energies = vec![1.0; 20];
         let chains = vec![
-            synthetic_chain(&values, &energies),
+            synthetic_chain(1000 + chain_index as u64, &values, &energies),
             synthetic_chain(&values, &energies),
         ];
         assert_eq!(
             diagnose_horseshoe_coefficient(&chains, 0),
             Err(ModelError::InvalidParameter("sampler_diagnostics_require_at_least_four_chains"))
+        );
+    }
+
+    #[test]
+    fn modern_diagnostics_reject_duplicate_chain_seeds() {
+        let values: Vec<f64> = (0..20).map(|index| (index as f64).sin()).collect();
+        let energies: Vec<f64> = (0..20).map(|index| (index as f64).cos()).collect();
+        let chains = vec![
+            synthetic_chain(7, &values, &energies),
+            synthetic_chain(7, &values, &energies),
+            synthetic_chain(8, &values, &energies),
+            synthetic_chain(9, &values, &energies),
+        ];
+        assert_eq!(
+            diagnose_horseshoe_coefficient(&chains, 0),
+            Err(ModelError::InvalidParameter("sampler_diagnostics_require_unique_chain_seeds"))
         );
     }
 
@@ -530,7 +558,7 @@ mod tests {
             let values: Vec<f64> = (0..80)
                 .map(|index| ((index * 13 + chain_index * 7) as f64).sin())
                 .collect();
-            chains.push(synthetic_chain(&values, &vec![3.0; 80]));
+            chains.push(synthetic_chain(2000 + chain_index as u64, &values, &vec![3.0; 80]));
         }
         let summary = diagnose_horseshoe_coefficient(&chains, 0).expect("diagnostics");
         assert_eq!(summary.minimum_energy_bfmi, 0.0);
