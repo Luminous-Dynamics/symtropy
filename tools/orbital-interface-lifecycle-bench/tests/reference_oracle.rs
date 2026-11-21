@@ -117,7 +117,7 @@ fn independent_reference(case: &LifecycleCase) -> (Disposition, &'static str) {
 fn independent_oracle_matches_all_frozen_expected_dispositions() {
     let raw = include_str!("../fixtures/v0.1/cases.json");
     let corpus: Corpus = serde_json::from_str(raw).expect("fixture corpus parses");
-    assert_eq!(corpus.cases.len(), 42);
+    assert_eq!(corpus.cases.len(), 43);
 
     for case in &corpus.cases {
         let (status, reason) = independent_reference(case);
@@ -137,7 +137,8 @@ fn product_evaluator_matches_the_independent_oracle_on_the_frozen_corpus() {
     assert_eq!(report.summary.expected_result_mismatches, 0);
     assert!(!report.authority_granted);
     assert!(
-        report.summary.requalification_required > 0
+        report.summary.restricted > 0
+            && report.summary.requalification_required > 0
             && report.summary.withdrawn > 0
             && report.summary.rejected > 0
             && report.summary.indeterminate > 0
