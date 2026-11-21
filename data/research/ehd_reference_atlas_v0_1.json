@@ -1,0 +1,1308 @@
+{
+  "schema": "luminous.ehd_reference_atlas",
+  "schema_version": "0.1.0",
+  "created_date": "2026-11-21",
+  "status": "source_transcribed_benchmark_atlas_not_independently_reproduced",
+  "comparability_policy": [
+    "Never merge atmospheric air corona, reduced-pressure air corona, CO2 DBD, wind-tunnel flight-flow, and RF-CCP into one unqualified cohort.",
+    "Keep maximum values from different electrode configurations as separate records.",
+    "Separate absolute thrust, per-span thrust, thrust density, thrust-to-power, thrust-to-weight, and net effective thrust after frame drag.",
+    "A source figure export or interpolating pickle is not a raw instrument time-series.",
+    "Unknown values are null, not zero; absent source conditions remain explicit.",
+    "Power boundary and system-mass boundary are required before cross-study ranking."
+  ],
+  "metric_ontology": {
+    "thrust_absolute": {
+      "unit": "N",
+      "definition": "Direct force measurement or derived force; method must be explicit."
+    },
+    "thrust_per_span": {
+      "unit": "N/m",
+      "definition": "Force normalized by active span; not interchangeable with total thrust."
+    },
+    "thrust_density": {
+      "unit": "N/m^2",
+      "definition": "Force divided by declared reference frontal/active area; area definition is mandatory."
+    },
+    "thrust_to_power": {
+      "unit": "N/kW",
+      "equivalent_unit": "mN/W",
+      "definition": "Thrust divided by declared power boundary; numeric equivalence is only after correct SI conversion."
+    },
+    "thrust_to_weight": {
+      "unit": "1",
+      "definition": "Thrust/weight with exact mass included; collector-only mass is not aircraft system T/W."
+    },
+    "effective_thrust": {
+      "unit": "N or N/m",
+      "definition": "Net force after declared frame/electrode aerodynamic drag; separate from ionic thrust."
+    },
+    "real_ac_power": {
+      "unit": "W",
+      "definition": "Cycle-mean real power from simultaneous u(t), i(t) using the declared time integration window."
+    },
+    "electrical_terminal_power": {
+      "unit": "W",
+      "definition": "Simultaneous measured terminal V·I for DC; not automatically wall-plug power."
+    },
+    "system_wall_power": {
+      "unit": "W",
+      "definition": "Complete supply input including converter and auxiliary loads where measured."
+    }
+  },
+  "source_records": [
+    {
+      "source_id": "TROVATO_2025_WIND_TUNNEL",
+      "title": "Wind tunnel testing and performance modeling of an atmospheric ion thruster",
+      "citation": "Trovato et al., Journal of Physics D: Applied Physics 58 (2025) 015201",
+      "doi": "10.1088/1361-6463/ad7d9c",
+      "cohort": "ambient_air_corona_wind_tunnel",
+      "operating_envelope": {
+        "principal_test_gap_mm": 20,
+        "wind_speed_range_m_s": [
+          0,
+          12
+        ],
+        "corona_voltage_range_kv": [
+          0,
+          20
+        ],
+        "separate_ignition_breakdown_gap_mm": 10,
+        "ambient_temperature_c": 21,
+        "temperature_tolerance_c": 1,
+        "relative_humidity_percent": 45,
+        "relative_humidity_tolerance_percent": 5,
+        "pressure_pa": null
+      },
+      "method": {
+        "force_measurement": "wind-tunnel load-cell force; source distinguishes ionic thrust from effective thrust after frame drag",
+        "model": "steady 1D incompressible drift-region EHD model",
+        "model_limitations": [
+          "does not resolve the ionisation region",
+          "source introduces a fitted field-scaling parameter eta",
+          "effective thrust depends on collector/frame aerodynamic drag"
+        ],
+        "results_summary": {
+          "reported_maximum_ionic_thrust_increase_percent_over_tested_velocity_range": 80,
+          "maximum_effective_thrust": null,
+          "note": "~80% is the paper's estimated maximum ionic thrust as the ignition-to-breakdown operating envelope expands; do not treat as a universal measured flight improvement."
+        }
+      },
+      "public_data": {
+        "current_figure_data_record_doi": "10.5281/zenodo.13627210",
+        "earlier_record_doi": "10.5281/zenodo.12582554",
+        "contents": "small figure-reproduction pickle files",
+        "raw_instrument_timeseries_available_in_record": false,
+        "readme_note": "The interpolating functions for figures 11, 13 and 15 are quadratic."
+      },
+      "comparability": {
+        "same_rig_required": true,
+        "separate_from": "static atmospheric EHD and low-pressure cohorts",
+        "notes": "Use this cohort to test flow-speed, frame-drag and operating-voltage-envelope models."
+      }
+    },
+    {
+      "source_id": "USUELLI_2025_GRID_PRESSURE_DATA_V2",
+      "title": "Atmospheric EAD grid thruster performance: a theoretical–experimental approach on geometry and pressure effects",
+      "citation": "Usuelli, Trovato, Terenzi and Belan, Zenodo dataset v2 (2025-11-27)",
+      "doi": "10.5281/zenodo.17737404",
+      "cohort": "low_pressure_air_grid_ignition_breakdown_and_altitude_projection",
+      "evidence_class": "figure_data_export_not_raw_acquisition",
+      "dataset_files": {
+        "Figure3_txt_md5": "9a3f43c93be5a16641ae3c3824bd0ccc",
+        "Figure4_txt_md5": "dbf72cbc47bb571de942a921ac9e932b",
+        "Figure5_txt_md5": "28b593ec2ca5357532a192121819b177",
+        "Figure12_txt_md5": "78c8455b145f1b9aa0aacef2cd2a251a",
+        "Figure8_txt_md5": "2314f7139102d0cfeb536a50122ab672",
+        "Figure9_txt_md5": "90ec7a26c39db3be2424e99cb81c405e",
+        "Readme_txt_md5": "89581edf4e320b2443a22f14fda07afb"
+      },
+      "extracted_figure_data": {
+        "figure3_ignition_voltage": {
+          "units": {
+            "gap": "mm",
+            "pressure": "Pa",
+            "ignition_voltage": "kV"
+          },
+          "rows": [
+            {
+              "gap_mm": 20,
+              "pressure_pa": 100,
+              "ignition_voltage_kv": 7.29
+            },
+            {
+              "gap_mm": 20,
+              "pressure_pa": 90,
+              "ignition_voltage_kv": 6.78
+            },
+            {
+              "gap_mm": 20,
+              "pressure_pa": 80,
+              "ignition_voltage_kv": 6.2
+            },
+            {
+              "gap_mm": 20,
+              "pressure_pa": 70,
+              "ignition_voltage_kv": 5.76
+            },
+            {
+              "gap_mm": 20,
+              "pressure_pa": 60,
+              "ignition_voltage_kv": 5.2
+            },
+            {
+              "gap_mm": 20,
+              "pressure_pa": 50,
+              "ignition_voltage_kv": 4.63
+            },
+            {
+              "gap_mm": 20,
+              "pressure_pa": 40,
+              "ignition_voltage_kv": 4.18
+            },
+            {
+              "gap_mm": 20,
+              "pressure_pa": 30,
+              "ignition_voltage_kv": 3.62
+            },
+            {
+              "gap_mm": 20,
+              "pressure_pa": 20,
+              "ignition_voltage_kv": 3.02
+            },
+            {
+              "gap_mm": 30,
+              "pressure_pa": 100,
+              "ignition_voltage_kv": 8.245
+            },
+            {
+              "gap_mm": 30,
+              "pressure_pa": 90,
+              "ignition_voltage_kv": 7.749
+            },
+            {
+              "gap_mm": 30,
+              "pressure_pa": 80,
+              "ignition_voltage_kv": 7.186
+            },
+            {
+              "gap_mm": 30,
+              "pressure_pa": 70,
+              "ignition_voltage_kv": 6.48
+            },
+            {
+              "gap_mm": 30,
+              "pressure_pa": 60,
+              "ignition_voltage_kv": 6.123
+            },
+            {
+              "gap_mm": 30,
+              "pressure_pa": 50,
+              "ignition_voltage_kv": 5.446
+            },
+            {
+              "gap_mm": 30,
+              "pressure_pa": 40,
+              "ignition_voltage_kv": 4.904
+            },
+            {
+              "gap_mm": 30,
+              "pressure_pa": 30,
+              "ignition_voltage_kv": 4.375
+            },
+            {
+              "gap_mm": 30,
+              "pressure_pa": 20,
+              "ignition_voltage_kv": 3.578
+            },
+            {
+              "gap_mm": 40,
+              "pressure_pa": 100,
+              "ignition_voltage_kv": 9.2
+            },
+            {
+              "gap_mm": 40,
+              "pressure_pa": 90,
+              "ignition_voltage_kv": 8.64
+            },
+            {
+              "gap_mm": 40,
+              "pressure_pa": 80,
+              "ignition_voltage_kv": 8.07
+            },
+            {
+              "gap_mm": 40,
+              "pressure_pa": 70,
+              "ignition_voltage_kv": 7.44
+            },
+            {
+              "gap_mm": 40,
+              "pressure_pa": 60,
+              "ignition_voltage_kv": 6.78
+            },
+            {
+              "gap_mm": 40,
+              "pressure_pa": 50,
+              "ignition_voltage_kv": 6.01
+            },
+            {
+              "gap_mm": 40,
+              "pressure_pa": 40,
+              "ignition_voltage_kv": 5.43
+            },
+            {
+              "gap_mm": 40,
+              "pressure_pa": 30,
+              "ignition_voltage_kv": 4.66
+            },
+            {
+              "gap_mm": 40,
+              "pressure_pa": 20,
+              "ignition_voltage_kv": 4.03
+            },
+            {
+              "gap_mm": 50,
+              "pressure_pa": 100,
+              "ignition_voltage_kv": 10.29
+            },
+            {
+              "gap_mm": 50,
+              "pressure_pa": 90,
+              "ignition_voltage_kv": 9.595
+            },
+            {
+              "gap_mm": 50,
+              "pressure_pa": 80,
+              "ignition_voltage_kv": 8.855
+            },
+            {
+              "gap_mm": 50,
+              "pressure_pa": 70,
+              "ignition_voltage_kv": 8.175
+            },
+            {
+              "gap_mm": 50,
+              "pressure_pa": 60,
+              "ignition_voltage_kv": 7.41
+            },
+            {
+              "gap_mm": 50,
+              "pressure_pa": 50,
+              "ignition_voltage_kv": 6.625
+            },
+            {
+              "gap_mm": 50,
+              "pressure_pa": 40,
+              "ignition_voltage_kv": 6.08
+            },
+            {
+              "gap_mm": 50,
+              "pressure_pa": 30,
+              "ignition_voltage_kv": 5.28
+            },
+            {
+              "gap_mm": 50,
+              "pressure_pa": 20,
+              "ignition_voltage_kv": 4.65
+            },
+            {
+              "gap_mm": 60,
+              "pressure_pa": 100,
+              "ignition_voltage_kv": 11.1
+            },
+            {
+              "gap_mm": 60,
+              "pressure_pa": 90,
+              "ignition_voltage_kv": 10.43
+            },
+            {
+              "gap_mm": 60,
+              "pressure_pa": 80,
+              "ignition_voltage_kv": 9.76
+            },
+            {
+              "gap_mm": 60,
+              "pressure_pa": 70,
+              "ignition_voltage_kv": 8.91
+            },
+            {
+              "gap_mm": 60,
+              "pressure_pa": 60,
+              "ignition_voltage_kv": 8.16
+            },
+            {
+              "gap_mm": 60,
+              "pressure_pa": 50,
+              "ignition_voltage_kv": 7.44
+            },
+            {
+              "gap_mm": 60,
+              "pressure_pa": 40,
+              "ignition_voltage_kv": 6.79
+            },
+            {
+              "gap_mm": 60,
+              "pressure_pa": 30,
+              "ignition_voltage_kv": 6.03
+            },
+            {
+              "gap_mm": 60,
+              "pressure_pa": 20,
+              "ignition_voltage_kv": 5.12
+            }
+          ],
+          "row_count": 45
+        },
+        "figure4_breakdown_voltage": {
+          "units": {
+            "pressure_gap_product": "Pa m",
+            "breakdown_voltage": "kV"
+          },
+          "rows": [
+            {
+              "pressure_gap_pa_m": 400,
+              "breakdown_voltage_kv": 7.5395
+            },
+            {
+              "pressure_gap_pa_m": 600,
+              "breakdown_voltage_kv": 9.13287
+            },
+            {
+              "pressure_gap_pa_m": 800,
+              "breakdown_voltage_kv": 11.235
+            },
+            {
+              "pressure_gap_pa_m": 1000,
+              "breakdown_voltage_kv": 13.2278
+            },
+            {
+              "pressure_gap_pa_m": 1200,
+              "breakdown_voltage_kv": 15.6552
+            },
+            {
+              "pressure_gap_pa_m": 1400,
+              "breakdown_voltage_kv": 17.7725
+            },
+            {
+              "pressure_gap_pa_m": 1600,
+              "breakdown_voltage_kv": 19.422
+            },
+            {
+              "pressure_gap_pa_m": 1800,
+              "breakdown_voltage_kv": 21.5148
+            },
+            {
+              "pressure_gap_pa_m": 600,
+              "breakdown_voltage_kv": 8.48207
+            },
+            {
+              "pressure_gap_pa_m": 900,
+              "breakdown_voltage_kv": 10.5641
+            },
+            {
+              "pressure_gap_pa_m": 1200,
+              "breakdown_voltage_kv": 12.8741
+            },
+            {
+              "pressure_gap_pa_m": 1500,
+              "breakdown_voltage_kv": 15.80101
+            },
+            {
+              "pressure_gap_pa_m": 1800,
+              "breakdown_voltage_kv": 18.4025
+            },
+            {
+              "pressure_gap_pa_m": 2100,
+              "breakdown_voltage_kv": 20.7039
+            },
+            {
+              "pressure_gap_pa_m": 2400,
+              "breakdown_voltage_kv": 23.5123
+            },
+            {
+              "pressure_gap_pa_m": 2700,
+              "breakdown_voltage_kv": 25.5457
+            },
+            {
+              "pressure_gap_pa_m": 800,
+              "breakdown_voltage_kv": 8.79432
+            },
+            {
+              "pressure_gap_pa_m": 1200,
+              "breakdown_voltage_kv": 11.2324
+            },
+            {
+              "pressure_gap_pa_m": 1600,
+              "breakdown_voltage_kv": 14.685
+            },
+            {
+              "pressure_gap_pa_m": 2000,
+              "breakdown_voltage_kv": 17.1165
+            },
+            {
+              "pressure_gap_pa_m": 2400,
+              "breakdown_voltage_kv": 19.948
+            },
+            {
+              "pressure_gap_pa_m": 2800,
+              "breakdown_voltage_kv": 22.4407
+            },
+            {
+              "pressure_gap_pa_m": 3200,
+              "breakdown_voltage_kv": 26.4971
+            },
+            {
+              "pressure_gap_pa_m": 1000,
+              "breakdown_voltage_kv": 9.5594
+            },
+            {
+              "pressure_gap_pa_m": 1200,
+              "breakdown_voltage_kv": 10.5484
+            },
+            {
+              "pressure_gap_pa_m": 1500,
+              "breakdown_voltage_kv": 12.9956
+            },
+            {
+              "pressure_gap_pa_m": 2000,
+              "breakdown_voltage_kv": 16.296
+            },
+            {
+              "pressure_gap_pa_m": 2500,
+              "breakdown_voltage_kv": 19.1477
+            },
+            {
+              "pressure_gap_pa_m": 3000,
+              "breakdown_voltage_kv": 21.5279
+            },
+            {
+              "pressure_gap_pa_m": 3500,
+              "breakdown_voltage_kv": 24.7899
+            }
+          ],
+          "row_count": 30
+        },
+        "figure5_ignition_to_breakdown_voltage_delta": {
+          "units": {
+            "gap": "mm",
+            "pressure": "Pa",
+            "delta_voltage": "kV"
+          },
+          "rows": [
+            {
+              "gap_mm": 20,
+              "pressure_pa": 20000,
+              "delta_voltage_kv": 4.5195
+            },
+            {
+              "gap_mm": 20,
+              "pressure_pa": 30000,
+              "delta_voltage_kv": 5.51287
+            },
+            {
+              "gap_mm": 20,
+              "pressure_pa": 40000,
+              "delta_voltage_kv": 7.055
+            },
+            {
+              "gap_mm": 20,
+              "pressure_pa": 50000,
+              "delta_voltage_kv": 8.5978
+            },
+            {
+              "gap_mm": 20,
+              "pressure_pa": 60000,
+              "delta_voltage_kv": 10.4552
+            },
+            {
+              "gap_mm": 20,
+              "pressure_pa": 70000,
+              "delta_voltage_kv": 12.0125
+            },
+            {
+              "gap_mm": 20,
+              "pressure_pa": 80000,
+              "delta_voltage_kv": 13.222
+            },
+            {
+              "gap_mm": 20,
+              "pressure_pa": 90000,
+              "delta_voltage_kv": 14.677
+            },
+            {
+              "gap_mm": 30,
+              "pressure_pa": 20000,
+              "delta_voltage_kv": 4.694836
+            },
+            {
+              "gap_mm": 30,
+              "pressure_pa": 30000,
+              "delta_voltage_kv": 6.188568
+            },
+            {
+              "gap_mm": 30,
+              "pressure_pa": 40000,
+              "delta_voltage_kv": 7.971558
+            },
+            {
+              "gap_mm": 30,
+              "pressure_pa": 50000,
+              "delta_voltage_kv": 10.351548
+            },
+            {
+              "gap_mm": 30,
+              "pressure_pa": 60000,
+              "delta_voltage_kv": 12.276224
+            },
+            {
+              "gap_mm": 30,
+              "pressure_pa": 70000,
+              "delta_voltage_kv": 14.218794
+            },
+            {
+              "gap_mm": 30,
+              "pressure_pa": 80000,
+              "delta_voltage_kv": 16.318
+            },
+            {
+              "gap_mm": 30,
+              "pressure_pa": 90000,
+              "delta_voltage_kv": 17.7857
+            },
+            {
+              "gap_mm": 40,
+              "pressure_pa": 20000,
+              "delta_voltage_kv": 4.96432
+            },
+            {
+              "gap_mm": 40,
+              "pressure_pa": 30000,
+              "delta_voltage_kv": 6.5724
+            },
+            {
+              "gap_mm": 40,
+              "pressure_pa": 40000,
+              "delta_voltage_kv": 9.255
+            },
+            {
+              "gap_mm": 40,
+              "pressure_pa": 50000,
+              "delta_voltage_kv": 11.1065
+            },
+            {
+              "gap_mm": 40,
+              "pressure_pa": 60000,
+              "delta_voltage_kv": 13.168
+            },
+            {
+              "gap_mm": 40,
+              "pressure_pa": 70000,
+              "delta_voltage_kv": 14.9927
+            },
+            {
+              "gap_mm": 40,
+              "pressure_pa": 80000,
+              "delta_voltage_kv": 18.4271
+            },
+            {
+              "gap_mm": 50,
+              "pressure_pa": 20000,
+              "delta_voltage_kv": 5.1094
+            },
+            {
+              "gap_mm": 50,
+              "pressure_pa": 30000,
+              "delta_voltage_kv": 7.7156
+            },
+            {
+              "gap_mm": 50,
+              "pressure_pa": 40000,
+              "delta_voltage_kv": 10.216
+            },
+            {
+              "gap_mm": 50,
+              "pressure_pa": 50000,
+              "delta_voltage_kv": 12.5227
+            },
+            {
+              "gap_mm": 50,
+              "pressure_pa": 60000,
+              "delta_voltage_kv": 14.1179
+            },
+            {
+              "gap_mm": 50,
+              "pressure_pa": 70000,
+              "delta_voltage_kv": 16.6149
+            }
+          ],
+          "row_count": 29
+        },
+        "figure12_altitude_projection": {
+          "units": {
+            "altitude": "km",
+            "percentage_variation": "%"
+          },
+          "thrust_density_variation": [
+            {
+              "altitude_km": 0.11090105,
+              "percentage_variation": 0
+            },
+            {
+              "altitude_km": 0.54041764,
+              "percentage_variation": -5.0211202
+            },
+            {
+              "altitude_km": 0.98864656,
+              "percentage_variation": -10.04224041
+            },
+            {
+              "altitude_km": 1.45751409,
+              "percentage_variation": -15.06336061
+            },
+            {
+              "altitude_km": 1.94927303,
+              "percentage_variation": -20.08448081
+            },
+            {
+              "altitude_km": 2.46658266,
+              "percentage_variation": -25.10560102
+            },
+            {
+              "altitude_km": 3.012615,
+              "percentage_variation": -30.12672122
+            },
+            {
+              "altitude_km": 3.5911989,
+              "percentage_variation": -35.14784143
+            },
+            {
+              "altitude_km": 4.20701915,
+              "percentage_variation": -40.16896163
+            },
+            {
+              "altitude_km": 4.86589864,
+              "percentage_variation": -45.19008183
+            },
+            {
+              "altitude_km": 5.57520904,
+              "percentage_variation": -50.21120204
+            },
+            {
+              "altitude_km": 6.34448849,
+              "percentage_variation": -55.23232224
+            },
+            {
+              "altitude_km": 7.186407,
+              "percentage_variation": -60.25344244
+            },
+            {
+              "altitude_km": 8.11834811,
+              "percentage_variation": -65.27456265
+            },
+            {
+              "altitude_km": 9.16515558,
+              "percentage_variation": -70.29568285
+            },
+            {
+              "altitude_km": 10.36427348,
+              "percentage_variation": -75.31680306
+            },
+            {
+              "altitude_km": 11.7763701,
+              "percentage_variation": -80.33792326
+            }
+          ],
+          "thrust_to_power_variation": [
+            {
+              "altitude_km": 0.11090105,
+              "percentage_variation": 0
+            },
+            {
+              "altitude_km": 0.54041764,
+              "percentage_variation": -11.08780091
+            },
+            {
+              "altitude_km": 0.98864656,
+              "percentage_variation": -21.331113
+            },
+            {
+              "altitude_km": 1.45751409,
+              "percentage_variation": -30.73429923
+            },
+            {
+              "altitude_km": 1.94927303,
+              "percentage_variation": -39.30139771
+            },
+            {
+              "altitude_km": 2.46658266,
+              "percentage_variation": -47.03598602
+            },
+            {
+              "altitude_km": 3.012615,
+              "percentage_variation": -53.94099355
+            },
+            {
+              "altitude_km": 3.5911989,
+              "percentage_variation": -60.01843823
+            },
+            {
+              "altitude_km": 4.20701915,
+              "percentage_variation": -65.2690504
+            },
+            {
+              "altitude_km": 4.86589864,
+              "percentage_variation": -69.69172432
+            },
+            {
+              "altitude_km": 5.57520904,
+              "percentage_variation": -73.28269781
+            },
+            {
+              "altitude_km": 6.34448849,
+              "percentage_variation": -76.03428805
+            },
+            {
+              "altitude_km": 7.186407,
+              "percentage_variation": -77.93287112
+            },
+            {
+              "altitude_km": 8.11834811,
+              "percentage_variation": -78.95550467
+            },
+            {
+              "altitude_km": 9.16515558,
+              "percentage_variation": -79.06395515
+            },
+            {
+              "altitude_km": 10.36427348,
+              "percentage_variation": -78.19333716
+            },
+            {
+              "altitude_km": 11.7763701,
+              "percentage_variation": -78.04621025
+            }
+          ],
+          "row_count_per_curve": 17,
+          "evidence_class": "source figure data / derived altitude curve, not direct flight measurement"
+        }
+      },
+      "provenance": {
+        "source_readme": "Figure 6 and 7 repeat Figure 3/4/5 data; Figures 10 and 11 are generated from Figures 3/4/5.",
+        "limitations": [
+          "Not raw instrument acquisition",
+          "Figure 12 is a source-derived ISA altitude projection",
+          "Do not count repeated figure data as independent samples"
+        ]
+      },
+      "comparability": {
+        "same_cohort_only": true,
+        "notes": "Use as exact source figure-data reconstruction and pressure/gap operating-envelope tests, not as a raw thrust benchmark."
+      }
+    },
+    {
+      "source_id": "TERENZI_2025_GRID_COLLECTOR",
+      "title": "Atmospheric electroaerodynamic thrusters with grid collectors",
+      "citation": "Terenzi et al., Scientific Reports 15, 41513 (2025), article corrected 2026-04-03",
+      "doi": "10.1038/s41598-025-25308-6",
+      "cohort": "ambient_air_corona_grid_collector",
+      "apparatus": {
+        "frontal_area_mm": [
+          100,
+          175
+        ],
+        "gap_mm": 20,
+        "applied_voltage_kv": 20,
+        "voltage_supply_tolerance_kv": 0.03,
+        "electrode_plane": "grid collector / emitter arrangement",
+        "corona_current_measurement": "series shunt resistor"
+      },
+      "measurement": {
+        "thrust": "directly read from a balance",
+        "electrical_acquisition_seconds": 2,
+        "electrical_sampling_rate_samples_s": 50000,
+        "acquisitions_per_test": 20,
+        "uncertainty_method": "RSS combination across acquisitions"
+      },
+      "reported_configuration_specific_results": {
+        "maximum_thrust_density_n_m2": {
+          "value": 7.03,
+          "configuration": "III",
+          "emitter_spacing_mm": 15,
+          "collector_spacing_mm": 2.5
+        },
+        "maximum_thrust_to_power_n_kw": {
+          "value": 6.52,
+          "configuration": "I",
+          "emitter_spacing_mm": 15,
+          "collector_spacing_mm": 2.5
+        },
+        "maximum_thrust_to_weight": {
+          "value": 9.513,
+          "configuration": "III with 0.03 mm emitter and 0.03 mm collector"
+        },
+        "configuration_i_reference": {
+          "thrust_density_n_m2": 6.4,
+          "collector_density_rho_c_approx": 0.04,
+          "emitter_density_rho_e": 0.003,
+          "thrust_to_power_n_kw": 6.52
+        }
+      },
+      "mass_boundary": {
+        "included": "collector mass only",
+        "excluded": [
+          "emitter mass (treated as negligible)",
+          "structural supports",
+          "frame",
+          "high-voltage converter",
+          "battery",
+          "airframe"
+        ],
+        "consequence": "Reported maximum T/W is a collector-level comparison, not integrated vehicle T/W."
+      },
+      "physical_interpretation": {
+        "low_collector_density": "reverse corona increases current without proportionate useful thrust",
+        "high_collector_density": "collector aerodynamic resistance reduces thrust",
+        "optimum_tradeoff": "electric field asymmetry and collector-wire drag produce different T/A and T/P optima"
+      },
+      "public_data": {
+        "dataset_doi": "10.5281/zenodo.17398243",
+        "version": "v2",
+        "files": {
+          "Figure4a_pkl_md5": "6afe4f18f4a48c2edcdbf616ffde5467",
+          "Figure4b_pkl_md5": "56ee76c00ec3286ba6d8e7e530a4d2a2",
+          "Figure4c_pkl_md5": "42699d56fd461c14df1a6d4a67f981d2",
+          "Figure5_pkl_md5": "06e50b60ff26ce12a6a2a75ee77619e3",
+          "Figure6_pkl_md5": "eaf86df5904512ff6b54252c994a43cc",
+          "Figure7a_pkl_md5": "e89782cef497e071fe91a516043407c3",
+          "Figure7b_pkl_md5": "925bffb70565727162d78d5969cc7ee3",
+          "Figure8a_pkl_md5": "87ae381534457344c723a389ff7dc66f",
+          "Figure8b_pkl_md5": "526bfb7ed169d4078ab7d59a961d9353",
+          "Figure9a_pkl_md5": "bd0d224ec6a15878ee7c184985dc9222",
+          "Figure9b_pkl_md5": "900603665185f1ffd48c8cc8b212e65d"
+        },
+        "data_kind": "figure pickle assets, not disclosed raw instrument time-series"
+      },
+      "ip_boundary": {
+        "patent_application": "102025000013762",
+        "status_reported_in_paper": "submitted",
+        "scope_reported": "mesh-grid collector geometry",
+        "note": "Freedom-to-operate review required before commercial use of this particular geometry."
+      },
+      "comparability": {
+        "maxima_must_remain_split": true,
+        "notes": "T/A max, T/P max and T/W max occur in different tested configurations or have different mass boundaries; do not create a composite best point."
+      }
+    },
+    {
+      "source_id": "MENG_2026_AUXILIARY_ELECTRODE",
+      "title": "Study on the effect of auxiliary electrode materials on the performance of wire-to-plate ionic wind thrusters",
+      "citation": "Meng, Lai and Ke, Plasma Science and Technology 28(8), 085504 (2026)",
+      "doi": "10.1088/2058-6272/ae795a",
+      "cohort": "ambient_air_corona_wire_to_plate_auxiliary_electrode",
+      "test_voltage_kv": 60,
+      "auxiliary_materials": [
+        "aluminium foil",
+        "carbon fibre",
+        "wood",
+        "glass fibre"
+      ],
+      "reported_comparative_gain_percent": {
+        "thrust": 31.2,
+        "thrust_to_power": 72.5
+      },
+      "leading_configuration": "upstream aluminium-foil rod",
+      "mechanism_reported_by_authors": "floating equipotential / shielding and downstream charge redirection; reduced reverse drag",
+      "missing_operating_point_fields": [
+        "exact electrode geometry",
+        "ambient conditions",
+        "baseline absolute thrust",
+        "absolute current/power",
+        "system mass",
+        "uncertainties"
+      ],
+      "comparability": {
+        "same_paper_relative_comparison_only": true,
+        "notes": "Do not rank against grid-collector or Mars-CO2 data until full methods/tables are transcribed and the same power/force boundaries are matched."
+      }
+    },
+    {
+      "source_id": "LIU_2026_MARS_CO2_DBD",
+      "title": "Investigation on Discharge Characteristics and Dynamic Performance of Ion-Wind Propulsion in Martian Atmosphere",
+      "citation": "Liu et al., first published 2026-09-11",
+      "doi": "10.3233/ATDE260579",
+      "cohort": "low_pressure_co2_dbd",
+      "apparatus": {
+        "electrode_length_mm": 100,
+        "exposed_electrode_thickness_mm": 0.5,
+        "dielectric": "FEP",
+        "dielectric_thickness_mm": 1,
+        "grounded_electrode": "5 mm diameter copper tube",
+        "adjustable_gap_mm": [
+          0,
+          20
+        ],
+        "waveform": "sinusoidal AC",
+        "frequency_khz": 30,
+        "voltage_amplitude_max_kv": 30
+      },
+      "measurement": {
+        "thrust": "direct balance measurement",
+        "force_resolution_mn": 0.01,
+        "sensor_response_hz": 10,
+        "power": "mean real power from integral of u(t)*i(t) over one cycle",
+        "repeated_runs": true
+      },
+      "reported_results": {
+        "at_600_pa_co2": {
+          "thrust_per_span_mn_m": 5.498,
+          "thrust_to_power_mn_kw": 39.287
+        },
+        "at_600_pa_air": {
+          "thrust_per_span_mn_m": 1.451,
+          "thrust_to_power_mn_kw": 24.109
+        },
+        "at_10000_pa_co2": {
+          "overall_max_thrust_per_span_mn_m": 18.454,
+          "overall_max_thrust_to_power_mn_kw": 93.897
+        }
+      },
+      "comparability": {
+        "not_vacuum_propellantless": true,
+        "separate_gas_pressure_gap_cohort": true,
+        "notes": "A CO2 working-gas DBD experiment in a low-pressure chamber. Per-span metrics and real-AC-power boundary must remain explicit."
+      }
+    }
+  ],
+  "solver_profiles": [
+    {
+      "solver_id": "MERLINO2D",
+      "source_url": "https://github.com/PTL-Unibo/Merlino2D",
+      "dataset_doi": "10.17632/4cvdr57t2n.1",
+      "journal_doi": "10.1016/j.cpc.2026.110463",
+      "code_release_date": "2026-11-01 dataset available",
+      "journal_issue_date": "2027-01",
+      "language": "MATLAB",
+      "license": "GPL-3.0",
+      "mesh": "2D structured and unstructured triangular meshes (Gmsh)",
+      "formulation": "monolithic drift-diffusion species equations coupled with Poisson as DAEs; fully implicit adaptive time integration",
+      "supported_examples": [
+        "atmospheric corona wire-grid",
+        "atmospheric point-plane corona",
+        "surface dielectric barrier discharge"
+      ],
+      "optional_dependencies": [
+        "LoKI-B for electron energy distribution and swarm coefficients"
+      ],
+      "capabilities": [
+        "species drift-diffusion",
+        "electrostatic Poisson fields",
+        "DC and AC discharge",
+        "photoionisation"
+      ],
+      "important_limits": [
+        "2D only in the described version",
+        "does not by itself solve the full neutral-gas Navier–Stokes and EHD thrust problem",
+        "GPL-3.0 and MATLAB toolchain require an explicit dependency/license decision",
+        "source paper journal issue is dated Jan 2027, after this atlas date; repository and dataset are already publicly available"
+      ],
+      "recommended_role": "external discharge-physics engine for matching atmospheric corona/DBD benchmark cases; couple to a separately qualified neutral-flow model and explicit momentum exchange"
+    },
+    {
+      "solver_id": "ZAPDOS",
+      "paper_doi": "10.1016/j.cpc.2023.108837",
+      "formulation": "MOOSE finite-element plasma fluid solver",
+      "published_validation_envelope": "1D/2D RF capacitively coupled plasma, 0.1–1 Torr",
+      "recommended_role": "RF-CCP cohort only unless separate verification/validation establishes suitability for another discharge regime",
+      "important_limit": "The 2023 published V&V focuses on 1D/2D RF capacitively coupled plasma at 0.1–1 Torr; a 2019 GEC meeting abstract also reports atmospheric-device comparisons such as the COST plasma jet. This is not automatic validation for atmospheric corona EHD thrusters, flight DBD, or a complete neutral-flow/thrust model."
+    },
+    {
+      "solver_id": "SYMTROPY_RIGID_BODY",
+      "role": "deterministic mechanics / scenario projection only",
+      "current_claim_boundary": "not a plasma, corona, ion-transport, Maxwell or EHD fluid solver"
+    },
+    {
+      "solver_id": "COMSOL_MULTIPHYSICS",
+      "vendor": "COMSOL",
+      "product_profiles": [
+        "Plasma Module 6.4",
+        "CFD Module 6.4",
+        "Electric Discharge Module 6.3"
+      ],
+      "license": "commercial",
+      "documentation_urls": [
+        "https://www.comsol.com/plasma-module",
+        "https://doc.comsol.com/6.4/doc/com.comsol.help.plasma/plasma_introduction.02.02.html",
+        "https://www.comsol.com/cfd-module",
+        "https://doc.comsol.com/6.3/doc/com.comsol.help.edis/edis_introduction.2.2.html"
+      ],
+      "capabilities": [
+        "0D/1D/2D/3D plasma interfaces (product/version dependent)",
+        "drift-diffusion charged species coupled with Poisson/electrostatics",
+        "heavy-species transport and plasma chemistry",
+        "DC, ICP, CCP, corona and dielectric barrier discharge interfaces (specific add-ons / interfaces required)",
+        "nonisothermal plasma flow and heat transfer coupling",
+        "CFD-module electrohydrodynamics multiphysics capability"
+      ],
+      "important_limits": [
+        "The simplified Corona Discharge interface models the transport region and omits the ionisation layer; electron dynamics are not solved in that simplified interface.",
+        "Use the full Plasma or Electric Discharge interface when the selected problem requires self-consistent discharge physics; exact interface capability depends on licensed modules and version.",
+        "Product feature availability does not qualify a particular EHD thruster geometry, mesh, chemistry, neutral-flow closure or force prediction.",
+        "Commercial license, module entitlement and reproducible model-file availability must be accounted for in any benchmark."
+      ],
+      "recommended_role": "commercial reference baseline for matched corona/DBD plus CFD/EHD cases; record exact COMSOL version, modules, interface, mesh and model files. Do not treat a product feature list as independent validation."
+    }
+  ],
+  "system_integration_references": [
+    {
+      "source_id": "TAO_2026_ION_MICROROBOT_CONTROLLED_HOVER",
+      "title": "Controlled flight of high-thrust ultralight ion-propelled microrobot with integrated sensing",
+      "citation": "Tao et al., Nature Communications 17, Article 9530 (published 2026-08-08)",
+      "doi": "10.1038/s41467-026-76462-y",
+      "cohort": "ambient_air_ion_wind_microrobot_tethered_flight_control",
+      "platform": {
+        "dimensions_mm": [
+          37.7,
+          37.7
+        ],
+        "reported_robot_mass_mg": 36.7,
+        "thruster_count": 4,
+        "arrangement": "cross-pattern",
+        "propulsion": "ion wind / EHD",
+        "sensing": "onboard IMU"
+      },
+      "control": {
+        "architecture": "IMU-based closed-loop attitude control",
+        "trajectory_tests": [
+          "square path",
+          "triangle path"
+        ],
+        "pitch_rmse_reduction_percent": 83.11,
+        "roll_rmse_reduction_percent": 89.21
+      },
+      "performance": {
+        "reported_thrust_to_weight_ratio": 5,
+        "payload_mass_mg": 146.8,
+        "payload_to_robot_mass_ratio": 4,
+        "reported_hover_duration_hours": 1
+      },
+      "operating_boundary": {
+        "hover_power_boundary": "tethered",
+        "self_powered_free_flight_demonstrated": false,
+        "notes": "One-hour hover is reported as tethered. Do not describe this as self-powered free flight or include an unreported onboard power-source mass."
+      },
+      "comparability": {
+        "leaderboard_eligible_against_bare_thrusters": false,
+        "reason": "Integrated system/control demonstration; robot mass, tethered power boundary, support conditions and bare-thruster force/power definitions differ.",
+        "allowed_comparison": "same-class integrated microrobot control and payload/trajectory demonstrations under matched support and power conditions"
+      }
+    }
+  ],
+  "solver_reference_cases": [
+    {
+      "case_id": "MERLINO2D_WIRE_CYLINDER_KIOUSIS_2014_IV",
+      "solver_id": "MERLINO2D",
+      "purpose": "source-pinned discharge I-V reproduction case; not a thrust/flow validation",
+      "upstream": {
+        "repository": "PTL-Unibo/Merlino2D",
+        "commit": "08f70dbeba5c9a8cccacbd21f5511896110581f8",
+        "license": "GPL-3.0",
+        "language": "MATLAB",
+        "data_doi": "10.17632/4cvdr57t2n.1",
+        "upstream_article_doi": "10.1016/j.cpc.2026.110463",
+        "article_issue_date": "2027-01",
+        "repository_snapshot_date": "2026-11-21"
+      },
+      "linked_experiment": {
+        "paper": "Kiousis, Moronis & Fruh, Electro-Hydrodynamic (EHD) Thrust Analysis in Wire-Cylinder Electrode Arrangement",
+        "citation": "Plasma Science and Technology 16(4), 363–369 (2014)",
+        "doi": "10.1088/1009-0630/16/4/11",
+        "relation": "The Merlino2D repository README and plotting script state that this case's I-V comparator is the Kiousis et al. experiment. The primary article metadata independently confirms the paper concerns wire-cylinder DC EHD and reports thrust/current and geometry trends; this exact CSV-to-paper data provenance has not yet been reconciled against the paper's full tables/figures.",
+        "primary_source_url": "https://doi.org/10.1088/1009-0630/16/4/11"
+      },
+      "pinned_files": {
+        "case_input": {
+          "path": "cases/CoronaWireCylinder_i.m",
+          "git_blob_sha": "ea79c71c93d14ab43b188b6b3afa5a56a9c2a03b"
+        },
+        "geometry": {
+          "path": "geo/WireCyl_50u_5m_30m.geo",
+          "git_blob_sha": "e02a77a117b4109a1693cc6733fc6cec8bb5456e"
+        },
+        "experimental_csv": {
+          "path": "data/Experimental_Results_50u_5m_30m.csv",
+          "git_blob_sha": "00d64d517ce18c1779477eb3a02ee8c55c4080d2"
+        },
+        "plotting_script": {
+          "path": "cases/CoronaWireCylinder_plot.m",
+          "git_blob_sha": "0eab870d227b3df46ab97a635309dcfb921b8fd2"
+        },
+        "default_parameters": {
+          "path": "+src/+run/DefaultMerlino2Dinput.m",
+          "git_blob_sha": "1fc79554d948d1df165e3d4d5158aff933dd7889"
+        },
+        "chemistry": {
+          "path": "kinetic/s_Parent.m",
+          "git_blob_sha": "f3e62c125ad4c90ce7c7152522ca8cf669765198"
+        },
+        "electron_temperature_table": {
+          "path": "data/Te_Air.csv",
+          "git_blob_sha": "a9e212511c0421a6a43cf5b7ebf2b901c91d6573"
+        },
+        "initialization": {
+          "path": "+src/+run/M2DInit.m",
+          "git_blob_sha": "bc0fd4b81b89d501c758ab26d6e093886a0757ca"
+        },
+        "dae_rhs": {
+          "path": "+src/+run/DaeFunc2D.m",
+          "git_blob_sha": "309037d90e2b1aabc78f268f3ed905649ddfe62d"
+        }
+      },
+      "geometry": {
+        "dimension": "2D Cartesian cross-section, half-domain represented above the symmetry plane",
+        "emitter_radius_um": 50,
+        "collector_radius_mm": 5,
+        "geo_distance_parameter_mm": 30,
+        "derived_minimum_electrode_surface_clearance_mm": 29.95,
+        "domain_width_mm": 100,
+        "domain_height_mm": 30,
+        "note": "The .geo file places the emitter centre at x=0 and collector near surface at x=30 mm; with a 50 µm emitter radius, the derived metal-surface clearance is 29.95 mm. The README describes the spacing as 30 mm. Preserve both the source parameter and geometric clearance; do not silently substitute one."
+      },
+      "operating_conditions": {
+        "pressure_pa": 101325,
+        "temperature_k": 300,
+        "gas": "air",
+        "nitrogen_mole_fraction": 0.7884,
+        "oxygen_mole_fraction": 0.2116,
+        "provenance": "DefaultMerlino2Dinput.m defaults; case input does not override PRESSURE or TEMPERATURE."
+      },
+      "model": {
+        "formulation": "2D drift-diffusion species equations coupled to electrostatic Poisson; DAE",
+        "species": [
+          "e",
+          "N2+",
+          "O2+",
+          "O2-"
+        ],
+        "chemistry_model": "s_Parent",
+        "electron_temperature": "Te_Air lookup table",
+        "transport": "case-specific analytic mobility expressions and diffusion coefficients",
+        "photoionization": "not configured in this input case",
+        "coordinates": "Cartesian",
+        "electrode_current_boundary": "external circuit includes R=0.001 ohm; this is the simulation's series resistance, not a measured thruster power boundary",
+        "resistor_ohms": 0.001,
+        "length_default_m": 1,
+        "anode_ids": [
+          1
+        ],
+        "applied_voltage_ramp_kv": [
+          7,
+          9,
+          11,
+          13,
+          15,
+          17,
+          19,
+          21
+        ],
+        "ode_solver": "IDAS",
+        "solver_note": "The Merlino2D paper states the IDAS MATLAB wrapper is available with MATLAB R2024a; its general solver also supports ode15s, but changing integrators is a separate controlled comparison.",
+        "default_abs_tolerance": 0.000001,
+        "default_rel_tolerance": 0.001
+      },
+      "experimental_comparator": {
+        "evidence_class": "repository_supplied_experimental_csv_linked_by_upstream_plot_script_to_Kiousis_2014",
+        "raw_columns": [
+          "voltage_kv",
+          "current_ma"
+        ],
+        "row_count": 10,
+        "plot_conversion": {
+          "experimental_current_ma_to_microamp": "multiply by 1000",
+          "simulated_integrated_current_to_microamp": "multiply by 2e6 because upstream plot script doubles the half-domain model current",
+          "voltage": "both model and experimental plotted in kV"
+        },
+        "source_rows": [
+          {
+            "voltage_kv": 10.99520219328307,
+            "current_ma": 0.04150943396226414,
+            "current_ua": 41.50943396226414
+          },
+          {
+            "voltage_kv": 12.002741603838246,
+            "current_ma": 0.06301886792452838,
+            "current_ua": 63.01886792452838
+          },
+          {
+            "voltage_kv": 12.996572995202197,
+            "current_ma": 0.08415094339622631,
+            "current_ua": 84.15094339622631
+          },
+          {
+            "voltage_kv": 14.004112405757368,
+            "current_ma": 0.11018867924528297,
+            "current_ua": 110.18867924528297
+          },
+          {
+            "voltage_kv": 15.011651816312543,
+            "current_ma": 0.14037735849056598,
+            "current_ua": 140.377358490566
+          },
+          {
+            "voltage_kv": 16.00548320767649,
+            "current_ma": 0.17924528301886788,
+            "current_ua": 179.2452830188679
+          },
+          {
+            "voltage_kv": 17.013022618231666,
+            "current_ma": 0.22339622641509432,
+            "current_ua": 223.39622641509433
+          },
+          {
+            "voltage_kv": 18.006854009595614,
+            "current_ma": 0.2852830188679245,
+            "current_ua": 285.2830188679245
+          },
+          {
+            "voltage_kv": 19.01439342015079,
+            "current_ma": 0.33886792452830183,
+            "current_ua": 338.86792452830184
+          },
+          {
+            "voltage_kv": 20.021932830705964,
+            "current_ma": 0.40452830188679245,
+            "current_ua": 404.52830188679246
+          }
+        ],
+        "endpoint_expectations": {
+          "first": {
+            "voltage_kv": 10.99520219328307,
+            "current_ma": 0.04150943396226414
+          },
+          "last": {
+            "voltage_kv": 20.021932830705964,
+            "current_ma": 0.40452830188679245
+          }
+        },
+        "derived_descriptive_fit": {
+          "equation": "I_uA = -430.09834486751816 + 39.79796994772902 * V_kV",
+          "r_squared": 0.9610442828504613,
+          "claim_ceiling": "Descriptive fit of the 10 repository CSV rows only; not a physical law, not a solver result, and not an independent replication."
+        },
+        "limitations": [
+          "The CSV is bundled in the Merlino2D repository, not independently traced row-by-row to the primary article's raw measurement files.",
+          "No measurement uncertainty, instrument calibration, exact pressure/humidity or raw time-series are present in the CSV.",
+          "This benchmark checks discharge I-V response only; it contains no thrust, gas velocity, neutral momentum or energy-efficiency measurement.",
+          "The model comparison's factor-of-two current scaling must be preserved and explicitly justified by the half-domain symmetry before reporting error."
+        ]
+      },
+      "qualification_gates": {
+        "preflight": "Pin source commit, license, MATLAB version, Gmsh version, IDAS availability, Te_Air.csv, s_Parent chemistry, exact .geo and case input.",
+        "first_reproduction": "Run exact upstream input unchanged, retain raw output and solver statistics, and reproduce the repository's plotted model curve from out.yout.",
+        "data_gate": "Verify the 10 experimental CSV points, units and factor-of-two model-current convention; obtain the primary article's full table/figure or author data to reconcile provenance and uncertainty.",
+        "numerical_gate": "Mesh refinement of .geo scales and DAE tolerance sweeps; report I-V changes, mesh counts, IDAS steps/failures and runtime.",
+        "transfer_gate": "Only after exact reproduction, compare against one changed geometry or pressure as an out-of-cohort test; do not treat it as validated."
+      },
+      "claim_boundary": "Source-pinned candidate for reproducing a published/repository-linked atmospheric corona discharge I-V curve. No Merlino2D run has been executed by Luminous; no solver accuracy, thrust prediction, EHD flow coupling or SOTA claim is established."
+    }
+  ]
+}

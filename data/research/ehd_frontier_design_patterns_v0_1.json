@@ -1,0 +1,574 @@
+{
+  "schema_version": "0.1.0",
+  "artifact_id": "EHD-FRONTIER-DESIGN-PATTERNS-2026",
+  "as_of": "2026-11-21",
+  "status": "literature_transcription_and_benchmark_proposal",
+  "claim_ceiling": "No Luminous simulation, physical measurement, prototype, solver validation, or SOTA improvement is claimed.",
+  "records": [
+    {
+      "id": "jiang-2026-sub-unit-electrode",
+      "title": "Performance enhancement of electrohydrodynamic thruster using sub unit electrode configuration",
+      "authors": [
+        "Xin Jiang",
+        "Hiroyuki Tsubata",
+        "Soya Shimizu",
+        "Takahiro Nozaki"
+      ],
+      "venue": "Scientific Reports",
+      "published": "2026-11-07",
+      "accepted": "2026-10-29",
+      "doi": "10.1038/s41598-026-78941-0",
+      "url": "https://doi.org/10.1038/s41598-026-78941-0",
+      "evidence_class": "peer_reviewed_early_article_abstract_transcription",
+      "regime": "atmospheric_corona_ehd",
+      "geometry_family": "sub_unit_electrode",
+      "reported_operating_point": {
+        "voltage_kv": 22
+      },
+      "reported_values": {
+        "baseline_thrust_mn": 50.23,
+        "sub_unit_thrust_mn": 64.09,
+        "sub_unit_plus_thrust_mn": 68.7,
+        "sub_unit_gain_pct_recomputed": 27.59,
+        "sub_unit_plus_increment_over_sub_unit_pct_recomputed": 7.19,
+        "sub_unit_plus_gain_over_baseline_pct_recomputed": 36.77
+      },
+      "reported_tradeoff": "The article abstract explicitly reports a trade-off between absolute thrust and thrust-to-power ratio; absolute T/P values are not transcribed here.",
+      "missing_or_unverified": [
+        "complete electrode dimensions and tolerances",
+        "gas composition, humidity, pressure and temperature",
+        "current waveform and wall-plug power values",
+        "force measurement uncertainty and raw time series",
+        "integrated mass boundary",
+        "full article and supplementary-data transcription"
+      ],
+      "comparability": "Source-local comparison only. Do not combine its percentage gain with another paper or rank it against grid/guide/auxiliary-electrode studies without matched conditions."
+    },
+    {
+      "id": "nonaka-2026-guide-electrode",
+      "title": "Use of Guide Electrode for Increasing Thrust and Thrust-to-Power Ratio in Electroaerodynamic Propulsion Systems",
+      "authors": [
+        "Ryotaro Nonaka",
+        "Hiroaki Katagiri",
+        "Shigeki Yashita",
+        "Tomoya Kitamura",
+        "Hiroyuki Tsubata",
+        "Takahiro Nozaki"
+      ],
+      "venue": "IEEJ Journal of Industry Applications",
+      "volume": 15,
+      "issue": 4,
+      "pages": "675-682",
+      "published": "2026-07-01",
+      "doi": "10.1541/ieejjia.20250124",
+      "url": "https://doi.org/10.1541/ieejjia.20250124",
+      "evidence_class": "peer_reviewed_abstract_transcription",
+      "regime": "atmospheric_corona_ead",
+      "geometry_family": "cylindrical_guide_electrode",
+      "configuration_change": "A cylindrical guide electrode is placed above the emitter at the same potential.",
+      "reported_mechanism": "The guide electrode reshapes the field toward the collector and suppresses ion leakage.",
+      "reported_values": {
+        "maximum_thrust_improvement_pct": 36.6,
+        "maximum_thrust_to_power_direction": "improved_vs_own_baseline",
+        "absolute_thrust_mn": null,
+        "absolute_thrust_to_power": null
+      },
+      "missing_or_unverified": [
+        "exact voltage/current operating point for the maximum",
+        "absolute thrust and T/P values",
+        "full geometry and tolerance table",
+        "gas state and force uncertainty",
+        "full article tables and raw/supplementary data transcription"
+      ],
+      "comparability": "Source-local relative gain only. Do not infer absolute performance or combine with sub-unit/auxiliary/grid gains."
+    },
+    {
+      "id": "tao-2026-controlled-microrobot",
+      "title": "Controlled flight of high-thrust ultralight ion-propelled microrobot with integrated sensing",
+      "authors": [
+        "Qiannan Tao",
+        "Yang Gu",
+        "Xinshuai Wang",
+        "Zhi Chen",
+        "Fei Lv",
+        "Fu Xu",
+        "Tahir Bashir",
+        "Yu Zheng",
+        "Yunqi Cao",
+        "Xianfa Cai",
+        "Khadga Thakuri",
+        "Bin Han",
+        "Wei Li"
+      ],
+      "venue": "Nature Communications",
+      "volume": 17,
+      "article_number": "9530",
+      "published": "2026-08-08",
+      "doi": "10.1038/s41467-026-76462-y",
+      "url": "https://doi.org/10.1038/s41467-026-76462-y",
+      "evidence_class": "peer_reviewed_integrated_system_demonstration",
+      "regime": "atmospheric_ion_wind_microrobot",
+      "geometry_family": "four_unit_cross_platform",
+      "reported_values": {
+        "platform_dimensions_mm": [
+          37.7,
+          37.7
+        ],
+        "robot_mass_mg": 36.7,
+        "reported_thrust_to_weight": 5,
+        "payload_mg": 146.8,
+        "hover_duration_hours": 1,
+        "hover_is_tethered": true,
+        "measured_or_reported_power_w": 0.45,
+        "voltage_kv": 4.5,
+        "current_ma": 0.1,
+        "thrust_to_power_mn_per_w": 2.8,
+        "thrust_density_n_per_m3": 538,
+        "pitch_rmse_reduction_pct": 83.11,
+        "roll_rmse_reduction_pct": 89.21,
+        "independent_ion_thruster_units": 4
+      },
+      "system_boundary": "The demonstrated one-hour hover is tethered; the article discusses external/carrier power because the sub-gram platform cannot carry an adequate onboard power system. Do not classify this as self-powered free flight.",
+      "missing_or_unverified": [
+        "complete onboard high-voltage conversion mass and energy budget",
+        "self-powered free-flight endurance",
+        "cross-lab replication"
+      ],
+      "comparability": "Integrated-system/control cohort; not a bare-thruster T/A or T/P comparator. Preserve tether and power-system boundaries."
+    },
+    {
+      "id": "dong-2026-ion-mobility-regulation",
+      "title": "Mechanism-guided prediction of energy efficiency enhancement in ion wind propulsion through ion mobility regulation",
+      "authors": [
+        "Guangyu Dong",
+        "Jishui Jiang",
+        "Yanxiong Zhou",
+        "Liguang Li",
+        "Zhijun Wu",
+        "Dunhui Xiao"
+      ],
+      "venue": "International Journal of Heat and Mass Transfer",
+      "volume": 271,
+      "issue_date": "2026-12-15",
+      "doi": "10.1016/j.ijheatmasstransfer.2026.129334",
+      "url": "https://doi.org/10.1016/j.ijheatmasstransfer.2026.129334",
+      "evidence_class": "online_early_source_modelled_prediction_not_ranked",
+      "regime": "wire_cylinder_ion_wind_cfd",
+      "geometry_family": "wire_cylinder",
+      "reported_values": {
+        "ion_mobility_reduction_factor": 100,
+        "downstream_weighted_average_velocity_initial_m_per_s": 0.0161,
+        "downstream_weighted_average_velocity_predicted_m_per_s": 0.469,
+        "velocity_increase_factor_approx": 29.1,
+        "calculated_energy_efficiency_initial_pct": 0.000327,
+        "calculated_energy_efficiency_predicted_pct": 8.07,
+        "prescribed_scaled_current_condition": true
+      },
+      "interpretation_guard": "The issue date is after the 2026-11-21 atlas date. Treat this as an accessible early/online source, not a final issue-date benchmark. The 100x mobility change is a model coordinate under a prescribed scaled-current condition, not an experimentally demonstrated independent control knob or propulsion improvement.",
+      "missing_or_unverified": [
+        "final issue publication as of the atlas date",
+        "independent replication",
+        "experimental validation of the predicted 100x mobility change under matched current and discharge conditions",
+        "full raw CFD and measurement data audit"
+      ],
+      "comparability": "Research watchlist only; do not put on a performance leaderboard."
+    },
+    {
+      "id": "shibata-2026-multistage-ducted-optimization",
+      "title": "Multi-objective exploration of multistaged ducted thrusters",
+      "authors": [
+        "H. Shibata",
+        "S. Shimizu",
+        "X. Jiang",
+        "H. I. Krebs",
+        "T. Nozaki"
+      ],
+      "venue": "AIP Advances",
+      "volume": 16,
+      "article_number": "015101",
+      "published": "2026-01-02",
+      "doi": "10.1063/5.0300448",
+      "url": "https://doi.org/10.1063/5.0300448",
+      "evidence_class": "peer_reviewed_numerical_optimization_not_experimental_validation",
+      "regime": "atmospheric_air_corona_ssep",
+      "geometry_family": "multistaged_ducted_collector_airfoil",
+      "method": {
+        "optimizer": "CMA-ES",
+        "simulator": "ANEMONE-lite",
+        "plasma_model": "2D corona discharge with Poisson space-charge extension",
+        "neutral_flow": "2D unsteady incompressible Navier-Stokes with SUPG-FEM",
+        "mesh": "hierarchical Cartesian/quadtree grid",
+        "latent_design_variables": 4,
+        "population_per_generation": 7,
+        "operating_regime": "stationary zero-freestream",
+        "air_density_kg_m3": 1.2,
+        "kinematic_viscosity_m2_s": 0.000015,
+        "single_stage_collector_count": 9,
+        "two_stage_collector_count": 18,
+        "collector_chord_cm": 1,
+        "emitter_collector_gap_cm": 2,
+        "duct_cross_section_length_cm": 18
+      },
+      "reported_values": {
+        "thrust_per_span_gain_vs_initial_design_approx_factor": 6,
+        "thrust_to_power_ratio_vs_initial_design_approx_factor": 0.5,
+        "metric_name_in_paper": "thrust density",
+        "metric_unit_n_per_m": "N/m",
+        "note": "The article defines thrust density per unit span. It is not area-normalized N/m^2 thrust density."
+      },
+      "thrust_estimation": {
+        "included": [
+          "duct inlet/outlet static-pressure difference",
+          "electrode pressure drag"
+        ],
+        "excluded": [
+          "friction drag on electrodes",
+          "friction drag on duct"
+        ],
+        "force_measurement": "numerical pressure/flow estimate",
+        "physical_force_measurement_performed": false
+      },
+      "design_search_limitations": [
+        "2D simulation only",
+        "zero freestream velocity",
+        "stationary operating conditions for target design",
+        "collector airfoil shapes restricted to NACA four-digit parameterisation",
+        "four latent design variables",
+        "individual collectors not independently parameterised",
+        "duct geometry not jointly optimised",
+        "constant air density and kinematic viscosity",
+        "no physical validation in the article; experiments described as future work"
+      ],
+      "data_availability": "Underlying data available from corresponding author on reasonable request, not a fully open benchmark dataset.",
+      "comparability": "Computational optimisation comparator. Its N/m thrust-per-span measure must not be compared directly to area-normalized N/m^2. Reported gains are relative to the paper's initial design plan, not independently measured SOTA gains."
+    },
+    {
+      "id": "wakimoto-2025-booster-electrode",
+      "title": "Thrust density enhancement by booster electrodes in solid-state propulsion systems",
+      "authors": [
+        "Reina Wakimoto",
+        "Hisaichi Shibata",
+        "Soya Shimizu",
+        "Hiroyuki Tsubata",
+        "Xin Jiang",
+        "Tomoya Kitamura",
+        "Hermano Igo Krebs",
+        "Takahiro Nozaki"
+      ],
+      "venue": "AIP Advances",
+      "volume": 15,
+      "issue": 12,
+      "article_number": "125107",
+      "published": "2025-12-01",
+      "doi": "10.1063/5.0293433",
+      "url": "https://doi.org/10.1063/5.0293433",
+      "evidence_class": "peer_reviewed_two_dimensional_model_with_experimental_validation",
+      "regime": "atmospheric_solid_state_electroaerodynamic_propulsion",
+      "geometry_family": "booster_electrode_ssep",
+      "method": {
+        "plasma_model": "two-dimensional three-species plasma-fluid model",
+        "experimental_validation": true
+      },
+      "reported_values": {
+        "thrust_density_gain_vs_no_booster_at_15_kv_approx_factor": 4.46,
+        "thrust_density_gain_vs_no_booster_at_20_kv_approx_factor": 2.22,
+        "thrust_density_gain_vs_no_booster_at_25_kv_approx_factor": 1.84,
+        "metric_unit": null
+      },
+      "missing_or_unverified": [
+        "exact unit and denominator for the reported thrust-density metric in the abstract transcription",
+        "absolute thrust density values",
+        "full voltage/current/power curves",
+        "uncertainty and raw instrument time series",
+        "cross-rig and independent-laboratory replication"
+      ],
+      "comparability": "Experimentally validated, but the improvement ratios are relative to the paper's own no-booster configuration at each voltage. Do not compare these ratios directly with guide/sub-unit or area-normalized thrust-density records."
+    },
+    {
+      "id": "shibata-2025-anemone-3d",
+      "title": "ANEMONE: A framework for three-dimensional simulations of solid-state electroaerodynamic propulsion systems",
+      "authors": [
+        "Hisaichi Shibata",
+        "Soya Shimizu",
+        "Takahiro Nozaki"
+      ],
+      "venue": "Computer Physics Communications",
+      "volume": 315,
+      "article_number": "109749",
+      "published": "2025-10",
+      "doi": "10.1016/j.cpc.2025.109749",
+      "url": "https://doi.org/10.1016/j.cpc.2025.109749",
+      "software_data_doi": "10.17632/2sxsg2pmyp.1",
+      "software_data_url": "https://doi.org/10.17632/2sxsg2pmyp.1",
+      "evidence_class": "open_source_three_dimensional_specialist_solver_validated_against_prior_theory",
+      "regime": "atmospheric_pressure_corona_ssep",
+      "geometry_family": "three_dimensional_solid_state_electroaerodynamic_system",
+      "method": {
+        "program_name": "ANEMONE",
+        "language": "C++",
+        "license": "MIT",
+        "charged_species": [
+          "electrons",
+          "positive_ions",
+          "negative_ions"
+        ],
+        "spatial_method": "three-dimensional hierarchical Cartesian grid with adaptive mesh refinement",
+        "temporal_method": "method of characteristics combined with perturbation method",
+        "claimed_outputs": [
+          "corona inception voltage",
+          "energy conversion efficiency"
+        ],
+        "spatial_scale_range": "device scale of metres to electrode scale of micrometres",
+        "temporal_scale_range": "ion transit of milliseconds to dielectric relaxation of nanoseconds",
+        "data_release": "Mendeley Data version 1 published 2025-07-21; source code archive"
+      },
+      "validation_boundary": "The paper states that predictions were checked against theoretical results in a previous study. This record does not claim independent validation of complete neutral flow, net thrust, or a flight vehicle.",
+      "missing_or_unverified": [
+        "held-out experimental validation of neutral-flow profile and net thrust",
+        "direct comparison to Trovato wind-tunnel data",
+        "full end-to-end coupling to a qualified neutral Navier-Stokes solver"
+      ],
+      "comparability": "A 3D plasma solver and code comparator. It is not equivalent to the 2D ANEMONE-lite optimization paper and should be benchmarked on its stated inception-voltage/energy-efficiency observables before extending scope."
+    },
+    {
+      "id": "shibata-2025-integral-three-component-plasma",
+      "title": "On the integral form of a three-component plasma fluid model",
+      "authors": [
+        "Hisaichi Shibata",
+        "Takahiro Nozaki"
+      ],
+      "venue": "Physics of Plasmas",
+      "volume": 32,
+      "issue": 6,
+      "article_number": "063903",
+      "published": "2025-06-01",
+      "doi": "10.1063/5.0270475",
+      "url": "https://doi.org/10.1063/5.0270475",
+      "evidence_class": "peer_reviewed_three_component_plasma_model_compared_with_experiments",
+      "regime": "negative_corona_air_discharge",
+      "geometry_family": "coaxial_cylinder_point_to_plate_and_single_stage_ssep",
+      "method": {
+        "charged_species": [
+          "electrons",
+          "positive_ions",
+          "negative_ions"
+        ],
+        "numerical_reduction": "method of characteristics converts the plasma PDE system into ODE subproblems, then derives integral forms to improve cost and numerical stability",
+        "experimental_comparison_geometries": [
+          "coaxial cylinder electrode negative corona",
+          "point-to-plate negative corona",
+          "negative corona around a single-stage thruster"
+        ]
+      },
+      "validation_boundary": "Source reports comparison of model prediction with experiments in the listed discharge configurations. Do not promote this to a validated full neutral-flow or complete vehicle thrust model without separately checking those observables.",
+      "missing_or_unverified": [
+        "full raw experimental dataset",
+        "held-out geometry-family error table",
+        "integral mapping to a separate neutral-flow solver"
+      ],
+      "comparability": "A key three-species discharge-model reference for ANEMONE/ANEMONE-lite and Merlino2D comparison. Keep its physical and observable envelope explicit."
+    },
+    {
+      "id": "kitamura-2023-multianode-force-vector",
+      "title": "Verification of Anode Position and Generated Force Vector of EHD at Wire-cylinder Electrode",
+      "authors": [
+        "Tomoya Kitamura",
+        "Hiroaki Katagiri",
+        "Shigeki Yashita",
+        "Yuki Saito",
+        "Hiroshi Asai",
+        "Kouhei Ohnishi",
+        "Takahiro Nozaki"
+      ],
+      "venue": "2023 IEEE 32nd International Symposium on Industrial Electronics (ISIE)",
+      "published": "2023-06",
+      "doi": "10.1109/ISIE51358.2023.10228184",
+      "url": "https://doi.org/10.1109/ISIE51358.2023.10228184",
+      "evidence_class": "peer_reviewed_conference_experiment_force_vector_interaction",
+      "regime": "atmospheric_wire_cylinder_ehd_actuation",
+      "geometry_family": "paired_anode_orientation_interaction",
+      "reported_values": {
+        "orthogonal_anodes_force_superposition": false,
+        "orthogonal_anodes_resultant_direction_degrees_approx": 45,
+        "horizontal_anodes_force_superposition": true
+      },
+      "missing_or_unverified": [
+        "absolute force-vector magnitudes and full uncertainty table",
+        "spacing and voltage operating envelope",
+        "generalisation beyond the tested wire-cylinder layouts"
+      ],
+      "comparability": "A source-specific experimental warning that actuator interactions are orientation-dependent. Do not assume either non-additivity or additivity for untested geometries."
+    },
+    {
+      "id": "yashita-2025-switched-corona-thrust-control",
+      "title": "Thrust Control with Switching in Electrodynamic Propulsion Systems with Corona Discharge",
+      "authors": [
+        "Shigeki Yashita",
+        "Hiroaki Katagiri",
+        "Tomoya Kitamura",
+        "Takahiro Nozaki"
+      ],
+      "venue": "2025 IEEE International Conference on Mechatronics (ICM 2025)",
+      "published": "2025-02",
+      "doi": "10.1109/ICM62621.2025.10934861",
+      "url": "https://doi.org/10.1109/ICM62621.2025.10934861",
+      "evidence_class": "peer_reviewed_conference_experimental_switching_control",
+      "regime": "corona_discharge_electroaerodynamic_actuation",
+      "geometry_family": "resistive_switching_corona_drive",
+      "method": {
+        "circuit_topology": "resistor in series with electrode and switching element in parallel with resistor",
+        "demonstrated_control": "thrust controlled by changing switching duty ratio",
+        "experiments_reported": 2
+      },
+      "missing_or_unverified": [
+        "full thrust transient and bandwidth curves",
+        "switching loss and wall-plug efficiency across duty ratios",
+        "long-duration corona stability and EMC envelope"
+      ],
+      "comparability": "A switching/control demonstration, not a full multi-electrode flight-control benchmark. Include switching losses and measured electrode waveform in future comparisons."
+    }
+  ],
+  "proposed_design_factors": [
+    {
+      "id": "guide_electrode",
+      "levels": [
+        "absent",
+        "present"
+      ],
+      "response_targets": [
+        "field_concentration",
+        "collector_capture_fraction",
+        "leakage_current",
+        "thrust",
+        "wall_plug_power"
+      ]
+    },
+    {
+      "id": "sub_unit_geometry",
+      "levels": [
+        "absent",
+        "present",
+        "plus_variant"
+      ],
+      "response_targets": [
+        "thrust",
+        "flow_obstruction",
+        "collector_drag",
+        "thrust_to_power"
+      ]
+    },
+    {
+      "id": "auxiliary_electrode",
+      "levels": [
+        "absent",
+        "conductive",
+        "dielectric"
+      ],
+      "response_targets": [
+        "reverse_drag",
+        "charge_routing",
+        "thrust",
+        "thrust_to_power"
+      ]
+    },
+    {
+      "id": "collector_topology",
+      "levels": [
+        "plate",
+        "grid",
+        "segmented_grid"
+      ],
+      "response_targets": [
+        "charge_capture",
+        "drag",
+        "thrust_density",
+        "breakdown_margin"
+      ]
+    },
+    {
+      "id": "drive_architecture",
+      "levels": [
+        "fixed",
+        "independent_zones",
+        "health_aware_allocation"
+      ],
+      "response_targets": [
+        "attitude_control",
+        "failure_tolerance",
+        "wall_plug_power",
+        "latency"
+      ]
+    },
+    {
+      "id": "multistage_duct_geometry",
+      "levels": [
+        "single_stage",
+        "two_stage",
+        "jointly_optimised_multistage"
+      ],
+      "response_targets": [
+        "thrust_per_span_n_per_m",
+        "thrust_to_power",
+        "pressure_drop",
+        "friction_drag",
+        "freestream_response"
+      ]
+    },
+    {
+      "id": "booster_electrode",
+      "levels": [
+        "absent",
+        "present"
+      ],
+      "response_targets": [
+        "corona_inception",
+        "ion_generation",
+        "thrust_density",
+        "power"
+      ]
+    },
+    {
+      "id": "array_orientation_and_spacing",
+      "levels": [
+        "parallel",
+        "orthogonal",
+        "general_angle_and_spacing"
+      ],
+      "response_targets": [
+        "force_vector",
+        "cross_coupling_matrix",
+        "additivity_residual",
+        "actuator_authority"
+      ]
+    },
+    {
+      "id": "switching_duty_ratio",
+      "levels": [
+        "fixed_dc",
+        "switched_low_duty",
+        "switched_high_duty"
+      ],
+      "response_targets": [
+        "force_transient",
+        "electrode_waveform",
+        "switching_loss",
+        "discharge_stability"
+      ]
+    }
+  ],
+  "comparability_rules": [
+    "Do not sum or multiply source-local percentage improvements.",
+    "Keep thrust, thrust-to-power, thrust density and thrust-to-weight as separate metrics with explicit units.",
+    "Keep bare thruster, integrated platform and tethered system boundaries separate.",
+    "Keep article abstract transcriptions separate from full-article/raw-data transcriptions.",
+    "A missing condition remains null; do not infer it from another paper.",
+    "Treat online-ahead-of-issue modelling as a watchlist entry until publication status and model/measurement provenance are reconciled.",
+    "The Shibata 2026 multistage ducted optimization reports thrust per span in N/m; do not equate this with area-normalized thrust density in N/m^2.",
+    "Numerically optimized geometry is not an experimentally validated propulsion improvement; retain simulation and physical evidence classes.",
+    "ANEMONE 3D is a C++/MIT plasma solver for corona inception voltage and energy conversion efficiency; do not promote those outputs to complete neutral-flow or net-thrust validation.",
+    "Shibata and Nozaki's integral three-component plasma model has experimental comparisons for specified negative-corona geometries; retain the discharge-only validation boundary.",
+    "Booster-electrode thrust-density gains are voltage-specific comparisons against the same paper's no-booster baseline; the abstract transcription does not supply a metric unit.",
+    "Paired-anode force superposition is configuration-dependent; the orthogonal and horizontal results from one wire-cylinder study are not a universal array interaction law.",
+    "Switching-duty thrust control requires terminal-waveform, switching-loss and transient-response accounting before system efficiency or stability claims."
+  ]
+}

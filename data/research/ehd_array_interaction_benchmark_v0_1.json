@@ -1,0 +1,185 @@
+{
+  "schema": "luminous.ehd_array_interaction_benchmark",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-ARRAY-INTERACTION-001",
+  "as_of": "2026-11-21",
+  "status": "measurement_protocol_only_no_luminous_array_measurements",
+  "physical_scope": [
+    "atmospheric_wire_cylinder_ehd",
+    "atmospheric_solid_state_ead"
+  ],
+  "source_anchor": {
+    "source_id": "kitamura-2023-multianode-force-vector",
+    "doi": "10.1109/ISIE51358.2023.10228184",
+    "evidence_boundary": "Configuration-specific experiment: tested orthogonal pair was non-additive; tested horizontal/parallel pair superposed. Neither result is a universal array law."
+  },
+  "experiment_hierarchy": [
+    {
+      "stage": "isolated_cell_baseline",
+      "purpose": "Measure each cell's vector force, current, waveform, power and uncertainty independently under a common reference environment."
+    },
+    {
+      "stage": "paired_cell_interaction",
+      "purpose": "Measure pair force and compare it with the vector sum of matched isolated-cell baselines for controlled angle and spacing."
+    },
+    {
+      "stage": "small_array_transfer",
+      "purpose": "Test whether the local pairwise model predicts three-or-more-cell arrangements or whether higher-order interaction terms are material."
+    },
+    {
+      "stage": "dynamic_drive_interaction",
+      "purpose": "Measure cross-coupling under switched or duty-ratio commands, including transients and switching losses."
+    },
+    {
+      "stage": "holdout_transfer",
+      "purpose": "Hold out complete orientation/spacing families and an independent session to test transfer."
+    }
+  ],
+  "measured_configuration_fields": [
+    "configuration_id",
+    "geometry_hash",
+    "cell_ids",
+    "cell_positions_m",
+    "cell_axis_unit_vectors",
+    "orientation_angles_deg",
+    "pairwise_spacing_m",
+    "polarity_by_cell",
+    "drive_waveform_hash_by_cell",
+    "voltage_waveform_by_cell",
+    "current_waveform_by_cell",
+    "terminal_power_by_cell",
+    "gas_composition",
+    "pressure_pa",
+    "temperature_k",
+    "relative_humidity_fraction",
+    "freestream_velocity_m_s",
+    "force_balance_calibration_id",
+    "instrument_bandwidth_hz",
+    "session_id",
+    "run_order",
+    "repeat_index"
+  ],
+  "observation_fields": [
+    "measured_total_force_vector_n",
+    "isolated_cell_force_vectors_n",
+    "measured_pairwise_or_array_force_vector_n",
+    "force_vector_covariance_n2",
+    "flow_field_observation_ref",
+    "terminal_electrical_energy_j",
+    "electrode_surface_temperature_k",
+    "discharge_stability_observation_ref",
+    "ozone_nox_observation_ref_or_null"
+  ],
+  "derived_metrics": {
+    "additivity_residual_vector": "r_ij = F_pair,measured - (F_i,isolated + F_j,isolated), for matched boundary conditions and common frame",
+    "additivity_residual_norm": "||r_ij|| with combined uncertainty",
+    "direction_error_deg": "Angular difference between measured array resultant and vector sum prediction, with uncertainty near zero-force cases handled explicitly",
+    "magnitude_relative_error": "Relative error only where reference force magnitude is resolved above the declared detection threshold",
+    "local_command_to_force_jacobian": "J = d(F_x,F_y,F_z)/d(u_1,...,u_N) estimated locally around a declared operating point and envelope",
+    "cross_coupling_ratio": "A declared off-diagonal influence metric normalised to a declared diagonal reference; exact definition must be frozen before analysis",
+    "matrix_condition_number": "Condition number of the appropriately scaled local command-to-force Jacobian; report scaling and singular values",
+    "higher_order_residual": "Measured N-cell force less the prediction of the calibrated pairwise or local linear model"
+  },
+  "model_contract": {
+    "model_name": "local_configuration_conditioned_force_map",
+    "model_form": "F = f(u, geometry, gas_state, pressure, temperature, humidity, freestream, discharge_state)",
+    "optional_local_linearization": "delta_F = J(configuration, operating_point) * delta_u",
+    "linearity_scope": "A local linearization is valid only in an empirically identified envelope. It must not be extrapolated across corona onset/extinction, mode transitions, actuator saturation, materially changed flow topology, or geometry families without new qualification.",
+    "isolated_cell_additivity_is_default": false,
+    "required_model_outputs": [
+      "predicted_force_vector_n",
+      "prediction_covariance_n2",
+      "validity_envelope",
+      "abstention_reason_or_null"
+    ],
+    "training_holdouts": [
+      "orientation_family",
+      "spacing_family",
+      "environmental_block",
+      "experimental_session"
+    ]
+  },
+  "design_factors": [
+    {
+      "id": "anode_orientation",
+      "levels": [
+        "parallel",
+        "orthogonal",
+        "intermediate_angles"
+      ]
+    },
+    {
+      "id": "inter_cell_spacing",
+      "levels": [
+        "near",
+        "nominal",
+        "far",
+        "continuous_sweep"
+      ]
+    },
+    {
+      "id": "polarity",
+      "levels": [
+        "same",
+        "opposed"
+      ]
+    },
+    {
+      "id": "voltage_and_duty",
+      "levels": [
+        "matched_static",
+        "independent_static",
+        "switched_duty"
+      ]
+    },
+    {
+      "id": "freestream",
+      "levels": [
+        "zero",
+        "forward_flow",
+        "cross_flow"
+      ]
+    },
+    {
+      "id": "cell_count",
+      "levels": [
+        "one",
+        "two",
+        "three_or_more"
+      ]
+    }
+  ],
+  "uncertainty_and_controls": [
+    "calibrate balance and force-vector axes before and after randomized blocks",
+    "measure isolated-cell baselines in the same session and environmental block as paired runs",
+    "include no-discharge and matched-dummy-load controls",
+    "reverse orientation and polarity where apparatus permits",
+    "measure per-channel voltage and current waveforms rather than inferring them from supply setpoints",
+    "record lead, feedthrough, support, thermal, vibration and magnetic parasitic channels",
+    "randomize geometry/run order and replicate baseline configurations throughout the block",
+    "retain raw timestamps and do not interpolate away switching transients",
+    "preregister exclusion, outlier, holdout and multiple-comparison policies"
+  ],
+  "proposed_acceptance_gates": {
+    "force_direction_error_degrees_max": 5,
+    "force_magnitude_relative_error_max": 0.1,
+    "holdout_requirements": [
+      "at least one complete orientation family",
+      "at least one complete spacing family",
+      "at least one independent experimental session"
+    ],
+    "linear_map_gate": "Only use a local linearized map where held-out residuals, uncertainty calibration and conditioning stay within preregistered limits.",
+    "array_fault_gate": "Demonstrate safe bounded force/attitude response after one cell is disabled or derated, within the separately qualified platform envelope.",
+    "switching_power_gate": "Include per-channel switching, converter and terminal losses in wall-plug input power.",
+    "all_targets_prospective": true
+  },
+  "exclusion_rules": [
+    "Do not assume isolated-cell force vectors superpose.",
+    "Do not infer a global coupling matrix from one voltage, spacing, orientation, gas state or session.",
+    "Do not train and test on neighbouring samples from the same geometry/session and call that geometry transfer.",
+    "Do not use a static force map as a transient switching model.",
+    "Do not compare bare-actuator force with an integrated platform result without matching system boundaries.",
+    "Do not mark a local linearization valid outside its empirically qualified envelope."
+  ],
+  "claim_ceiling": "This benchmark specifies measurements, data fields and prospective gates only. No Luminous multi-anode force map, switching model, array controller, physical result, or SOTA improvement is claimed."
+}
