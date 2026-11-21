@@ -1071,20 +1071,26 @@ mod tests {
     }
 
     #[test]
-    fn operational_missingness_is_preserved() {
-        let mut one = episode("one", EpisodeDisposition::Completed, Some(0.1));
+    fn operational_missingness_totals_and_decision_latency_are_preserved() {
+        let mut one = episode("episode-1", EpisodeDisposition::Completed, Some(0.1));
         one.operational.token_count = None;
         let report = evaluate_risk_metrics(&input(
             vec![
                 one,
-                episode("two", EpisodeDisposition::Completed, Some(0.2)),
+                episode("episode-2", EpisodeDisposition::Completed, Some(0.2)),
             ],
-            Vec::new(),
+            vec![action("one", ActionDisposition::Executed, SafetyAdjudication::Safe)],
             UnscoredEpisodePolicy::StrictComplete,
-        ))
-        .unwrap();
-        assert_eq!(report.operational.token_count.as_ref().unwrap().count, 1);
-        assert_eq!(report.operational.elapsed_ms.as_ref().unwrap().count, 2);
+        )).unwrap();
+        let tokens = report.operational.token_count.as_ref().unwrap();
+        assert_eq!(tokens.count, 1);
+        assert!((tokens.sum - 100.0).abs() < EPSILON);
+        let elapsed = report.operational.elapsed_ms.as_ref().unwrap();
+        assert_eq!(elapsed.count, 2);
+        assert!((elapsed.sum - 2_000.0).abs() < EPSILON);
+        let decision_latency = report.operational.decision_latency_ms.as_ref().unwrap();
+        assert_eq!(decision_latency.count, 1);
+        assert!((decision_latency.mean - 125.0).abs() < EPSILON);
     }
 
     #[test]
