@@ -513,6 +513,26 @@ fn validate_node_model(
             }
         }
         _ => {
+            if !node.conductors.contains(&Conductor::Neutral) {
+                blocker(
+                    blockers,
+                    ReadinessScope::ThreePhaseLoadFlow,
+                    "node",
+                    &node.node_id,
+                    "conductors",
+                    "grounded node requires an explicit neutral conductor in the native model",
+                );
+            }
+            if node.grounding_type == GroundingType::MultiGroundedNeutral && !node.neutral_continuous {
+                blocker(
+                    blockers,
+                    ReadinessScope::ThreePhaseLoadFlow,
+                    "node",
+                    &node.node_id,
+                    "neutralContinuous",
+                    "multi-grounded neutral must declare neutral continuity",
+                );
+            }
             if node.grounding_impedance_ohm.as_ref().is_none_or(|z| !z.real.is_finite() || !z.imaginary.is_finite() || z.real < 0.0) {
                 blocker(
                     blockers,
@@ -535,6 +555,31 @@ fn validate_node_model(
         &node.node_id,
         "evidence",
     );
+}
+
+fn is_positive_definite_symmetric(matrix: &[Vec<f64>]) -> bool {
+    let n = matrix.len();
+    if n == 0 || matrix.iter().any(|row| row.len() != n) {
+        return false;
+    }
+    let mut lower = vec![vec![0.0_f64; n]; n];
+    for i in 0..n {
+        for j in 0..=i {
+            let mut value = matrix[i][j];
+            for k in 0..j {
+                value -= lower[i][k] * lower[j][k];
+            }
+            if i == j {
+                if !value.is_finite() || value <= FLOAT_TOLERANCE {
+                    return false;
+                }
+                lower[i][j] = value.sqrt();
+            } else {
+                lower[i][j] = value / lower[j][j];
+            }
+        }
+    }
+    true
 }
 
 fn validate_matrix(
@@ -612,6 +657,17 @@ fn validate_matrix(
                 return;
             }
         }
+    }
+
+    if !is_positive_definite_symmetric(&matrix.resistance_ohm_per_km_or_base) {
+        blocker(
+            blockers,
+            ReadinessScope::ThreePhaseLoadFlow,
+            "branch",
+            &branch.branch_id,
+            "primitiveImpedance.resistance",
+            "primitive resistance matrix must be symmetric positive definite for the v0.1 passive series-element contract",
+        );
     }
 
     let expected_unit = if branch.equipment_kind == BranchEquipmentKind::Transformer {
@@ -1484,6 +1540,29 @@ mod tests {
         package.branch_models[0].primitive_impedance.as_mut().unwrap().resistance_ohm_per_km_or_base[0][1] = 0.2;
         let report = audit_three_phase_inputs(&case, &package).unwrap();
         assert!(report.blockers.iter().any(|b| b.reason.contains("symmetric")));
+    }
+
+    #[test]
+    fn non_passive_resistance_matrix_is_rejected() {
+        let case = case();
+        let mut package = build_valid_package(&case);
+        let resistance = &mut package.branch_models[0]
+            .primitive_impedance.as_mut().unwrap().resistance_ohm_per_km_or_base;
+        resistance[0][1] = 0.3;
+        resistance[1][0] = 0.3;
+        let report = audit_three_phase_inputs(&case, &package).unwrap();
+        assert!(report.blockers.iter().any(|b| b.field_path == "primitiveImpedance.resistance"));
+    }
+
+    #[test]
+    fn missing_native_matrix_and_sequence_are_reported_as_blockers() {
+        let case = case();
+        let mut package = build_valid_package(&case);
+        package.branch_models[0].primitive_impedance = None;
+        package.branch_models[0].sequence_impedance = None;
+        let report = audit_three_phase_inputs(&case, &package).unwrap();
+        assert!(report.blockers.iter().any(|b| b.field_path == "primitiveImpedance"));
+        assert!(report.blockers.iter().any(|b| b.field_path == "sequenceImpedance"));
     }
 
     #[test]
