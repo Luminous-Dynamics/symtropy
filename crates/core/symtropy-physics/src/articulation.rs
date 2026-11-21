@@ -291,6 +291,16 @@ mod tests {
     }
 
     #[test]
+    fn invalid_link_lengths_are_rejected() {
+        for invalid_length in [0.0, -0.1, f64::INFINITY, f64::NEG_INFINITY, f64::NAN] {
+            assert_eq!(
+                compute_link_placements(&[invalid_length]),
+                Err(ChainBuildError::InvalidLinkLength { index: 0 })
+            );
+        }
+    }
+
+    #[test]
     fn invalid_link_length_fails_before_world_mutation() {
         let mut world = world_with_gravity();
         let result = ChainBuilder::new()
@@ -304,7 +314,10 @@ mod tests {
             })
             .try_build(&mut world);
 
-        assert_eq!(result, Err(ChainBuildError::InvalidLinkLength { index: 1 }));
+        assert!(matches!(
+            result,
+            Err(ChainBuildError::InvalidLinkLength { index: 1 })
+        ));
         assert!(world.bodies.is_empty());
         assert!(world.constraints.is_empty());
     }
