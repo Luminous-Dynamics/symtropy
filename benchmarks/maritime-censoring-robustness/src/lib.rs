@@ -541,14 +541,17 @@ fn generate_scenario(
     scenario: ScenarioKind,
     count: usize,
 ) -> (Vec<LatentCall>, Vec<ObservedCall>) {
-    let mut rng = SplitMix64::new(scenario.seed());
+    // Separate deterministic streams prevent event-dependent PRNG draw
+    // counts from coupling the latent event and censoring processes.
+    let mut latent_rng = SplitMix64::new(scenario.seed() ^ 0xA076_1D64_78BD_642F);
+    let mut censor_rng = SplitMix64::new(scenario.seed() ^ 0xE703_7ED1_A0B4_28DB);
     let mut latent = Vec::with_capacity(count);
     let mut observed = Vec::with_capacity(count);
 
     for index in 0..count {
         let stratum = (index % 2) as u8;
-        let truth = sample_latent_event(stratum, &mut rng);
-        let record = observe_call(scenario, truth, &mut rng);
+        let truth = sample_latent_event(stratum, &mut latent_rng);
+        let record = observe_call(scenario, truth, &mut censor_rng);
         latent.push(truth);
         observed.push(record);
     }
