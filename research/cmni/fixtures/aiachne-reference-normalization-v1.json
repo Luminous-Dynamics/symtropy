@@ -23,9 +23,9 @@
   "totals": {
     "experiment_count": 21,
     "observation_count": 1030,
-    "included_trapezoid_segments": 2,
-    "skipped_left_out_of_domain_segments": 0,
-    "upper_endpoint_nan_segments": 9.886145702090344
+    "included_trapezoid_segments": 1007,
+    "skipped_left_out_of_domain_segments": 2,
+    "upper_endpoint_nan_segments": 0
   },
   "experiments": [
     {
