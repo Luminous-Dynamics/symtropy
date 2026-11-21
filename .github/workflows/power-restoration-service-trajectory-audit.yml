@@ -1,0 +1,71 @@
+name: Power restoration service trajectory audit
+
+on:
+  pull_request:
+    paths:
+      - "tools/power-restoration-service-trajectory-audit/**"
+      - "tools/power-restoration-benchmark-case/**"
+      - "tools/power-restoration-run-receipt/**"
+      - ".github/workflows/power-restoration-service-trajectory-audit.yml"
+  push:
+    paths:
+      - "tools/power-restoration-service-trajectory-audit/**"
+      - ".github/workflows/power-restoration-service-trajectory-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  service-trajectory-audit:
+    name: Reconcile service evidence and weighted delivered kWh
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.26.0
+      - name: Validate service trajectory schema
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          schema_paths = [
+              Path("tools/power-restoration-service-trajectory-audit/fixtures/service-trajectory-v0.1.schema.json"),
+              Path("tools/power-restoration-service-trajectory-audit/fixtures/cascade-endpoint-mapping-v0.1.schema.json"),
+          ]
+          for schema_path in schema_paths:
+              schema = json.loads(schema_path.read_text())
+              Draft202012Validator.check_schema(schema)
+              print(f"PASS: {schema_path} is valid")
+          PY
+      - name: Format first-party crate on same-repository PR branch
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          set -euo pipefail
+          git fetch origin "${GITHUB_HEAD_REF}"
+          git checkout -B "${GITHUB_HEAD_REF}" "origin/${GITHUB_HEAD_REF}"
+          cargo fmt --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml --package power-restoration-service-trajectory-audit
+          if ! git diff --quiet -- tools/power-restoration-service-trajectory-audit; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add tools/power-restoration-service-trajectory-audit
+            git commit -m "style(power-restoration): format service trajectory audit"
+            git push origin "HEAD:refs/heads/${GITHUB_HEAD_REF}"
+          fi
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml --package power-restoration-service-trajectory-audit -- --check
+      - name: Resolve dependency graph
+        run: cargo generate-lockfile --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml --all-targets -- -D warnings
+      - name: Run Rust tests
+        run: cargo test --locked --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml --all-targets
