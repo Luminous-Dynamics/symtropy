@@ -78,6 +78,7 @@ pub enum ChainFailure {
     InvalidHandoff,
     MissingEvidenceReference,
     FinalReceiverWithoutReceipt,
+    OpeningNotIndependent,
     NotAtExpectedReceiver,
     UnknownBox,
 }
@@ -325,6 +326,9 @@ fn validate_open(event: &CustodyEvent, expectation: &CustodyExpectation) -> Opti
     if event.evidence_id.trim().is_empty() || event.location_id.trim().is_empty() {
         return Some(ChainFailure::MissingEvidenceReference);
     }
+    if event.evidence_kind != EvidenceKind::IndependentObservation {
+        return Some(ChainFailure::OpeningNotIndependent);
+    }
     None
 }
 
@@ -484,6 +488,7 @@ fn evaluate_box(
                     );
                     return;
                 }
+                receiver_receipt_time = None;
                 pending = Some(event);
             }
             EventKind::Accept => {
@@ -520,11 +525,13 @@ fn evaluate_box(
                 }
                 custodian = Some(event.to_party.clone());
                 pending = None;
-                if event.to_party == expectation.expected_receiver
+                receiver_receipt_time = if event.to_party == expectation.expected_receiver
                     && event.evidence_kind == EvidenceKind::ReceiverReceipt
                 {
-                    receiver_receipt_time = Some(event.event_time);
-                }
+                    Some(event.event_time)
+                } else {
+                    None
+                };
             }
         }
     }
@@ -538,25 +545,25 @@ fn evaluate_box(
         );
         return;
     }
-    if let Some(received_at) = receiver_receipt_time {
-        report.complete_box_ids.insert(expectation.box_id.clone());
-        report.outcomes.insert(
-            expectation.box_id.clone(),
-            ChainOutcome {
-                status: ChainStatus::Complete,
-                failure: None,
-                receiver_receipt_time: Some(received_at),
-            },
-        );
-        return;
-    }
     if custodian.as_deref() == Some(expectation.expected_receiver.as_str()) {
-        record_failure(
-            report,
-            &expectation.box_id,
-            ChainFailure::FinalReceiverWithoutReceipt,
-            ChainStatus::Rejected,
-        );
+        if let Some(received_at) = receiver_receipt_time {
+            report.complete_box_ids.insert(expectation.box_id.clone());
+            report.outcomes.insert(
+                expectation.box_id.clone(),
+                ChainOutcome {
+                    status: ChainStatus::Complete,
+                    failure: None,
+                    receiver_receipt_time: Some(received_at),
+                },
+            );
+        } else {
+            record_failure(
+                report,
+                &expectation.box_id,
+                ChainFailure::FinalReceiverWithoutReceipt,
+                ChainStatus::Rejected,
+            );
+        }
     } else {
         record_failure(
             report,
@@ -816,6 +823,40 @@ mod tests {
             report
                 .failure_counts
                 .get(&ChainFailure::FinalReceiverWithoutReceipt),
+            Some(&1)
+        );
+        assert_eq!(report.complete_chains(), 0);
+    }
+
+    #[test]
+    fn receiver_receipt_is_invalidated_by_later_release() {
+        let (expectations, mut events) = fixtures();
+        let mut later_release = event_mut(&mut events, "B1-R3").clone();
+        later_release.source_event_id = "B1-R4".to_string();
+        later_release.event_time = 50;
+        later_release.published_at = 50;
+        later_release.handoff_id = "H4".to_string();
+        later_release.from_party = "INLAND_RECEIVER".to_string();
+        later_release.to_party = "NEXT_CARRIER".to_string();
+        later_release.location_id = "GAUTENG_DEPOT".to_string();
+        later_release.transport_leg_id = "LAST_MILE_02".to_string();
+        events.push(later_release);
+
+        let report = evaluate(&expectations, &events, 200).unwrap();
+        assert_eq!(report.complete_chains(), 0);
+        assert_eq!(
+            report.failure_counts.get(&ChainFailure::PendingHandoff),
+            Some(&2)
+        );
+    }
+
+    #[test]
+    fn opening_custody_requires_independent_observation() {
+        let (expectations, mut events) = fixtures();
+        event_mut(&mut events, "B1-OPEN").evidence_kind = EvidenceKind::ProviderEvent;
+        let report = evaluate(&expectations, &events, 200).unwrap();
+        assert_eq!(
+            report.failure_counts.get(&ChainFailure::OpeningNotIndependent),
             Some(&1)
         );
         assert_eq!(report.complete_chains(), 0);
