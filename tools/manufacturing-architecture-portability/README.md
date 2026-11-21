@@ -272,7 +272,7 @@ These are comparator designs and proposed Foundry metrics, not reproduced result
 ## Executable FoundryBench metrics
 
 The Rust validator exposes `bench_metrics`:
-- `measure_feature_subset_stability` reports pairwise feature-set Jaccard across selector runs, mean Kuncheva for equal-cardinality pairs, mean selected-feature count and its population standard deviation. It rejects duplicate run IDs, duplicate feature IDs, unknown feature IDs and empty feature sets.
+- `measure_feature_subset_stability` reports pairwise feature-set Jaccard across selector runs, mean Kuncheva for equal-cardinality pairs, mean selected-feature count and its population standard deviation. It rejects duplicate run IDs, duplicate feature IDs, unknown/non-canonical feature IDs and empty feature sets.
 - `inspect_run_partition_leakage` verifies the train/validation/test simulation-run ID sets do not overlap. Apply it before generating sample windows so the same trajectory cannot leak across splits.
 
 The adversarial unit test `equal_subset_size_can_hide_identity_instability` proves that zero selected-feature-count variance does not imply stable feature identities. These are metric primitives only; the current test fixtures are synthetic and no TEP data is included.
