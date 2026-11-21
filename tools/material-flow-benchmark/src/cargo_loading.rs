@@ -225,7 +225,9 @@ fn access_corridor(package: Aabb, bay: [u32; 3], face: AccessFace) -> Aabb {
 
 fn canonical_input_digest(input: &CargoLoadingInput) -> Result<String, String> {
     let mut canonical = input.clone();
-    canonical.packages.sort_by(|left, right| left.package_id.cmp(&right.package_id));
+    canonical
+        .packages
+        .sort_by(|left, right| left.package_id.cmp(&right.package_id));
     for package in &mut canonical.packages {
         package.allowed_orientations.sort();
     }
@@ -263,16 +265,11 @@ fn structural_errors(input: &CargoLoadingInput) -> Vec<String> {
         errors.push("vehicle tare and cargo/gross mass limits are invalid".into());
     }
     let cg = &bay.combined_cg_bounds_mm;
-    if cg.x_min_mm > cg.x_max_mm
-        || cg.y_min_mm > cg.y_max_mm
-        || cg.z_min_mm > cg.z_max_mm
-    {
+    if cg.x_min_mm > cg.x_max_mm || cg.y_min_mm > cg.y_max_mm || cg.z_min_mm > cg.z_max_mm {
         errors.push("combined CG bounds are inverted".into());
     }
     if input.packages.is_empty() || input.packages.len() > MAX_PACKAGES_V1 {
-        errors.push(format!(
-            "packages: expected 1..={MAX_PACKAGES_V1} packages"
-        ));
+        errors.push(format!("packages: expected 1..={MAX_PACKAGES_V1} packages"));
     }
     let mut package_ids = BTreeSet::new();
     for (index, package) in input.packages.iter().enumerate() {
@@ -304,7 +301,10 @@ fn structural_errors(input: &CargoLoadingInput) -> Vec<String> {
                 ));
             }
         }
-        if !package.allowed_orientations.contains(&package.placement.orientation) {
+        if !package
+            .allowed_orientations
+            .contains(&package.placement.orientation)
+        {
             errors.push(format!(
                 "packages[{index}].placement.orientation: selected orientation is not permitted"
             ));
@@ -321,9 +321,7 @@ fn weighted_cg(
     // Doubled coordinates preserve half-millimetre package centres while
     // signed arithmetic permits the vehicle tare CG below the cargo floor.
     let mut weighted = [0_i128; 3];
-    for (weighted_axis, tare_cg_mm) in
-        weighted.iter_mut().zip(bay.vehicle_tare_cg_mm.iter())
-    {
+    for (weighted_axis, tare_cg_mm) in weighted.iter_mut().zip(bay.vehicle_tare_cg_mm.iter()) {
         let doubled_tare_cg = i128::from(*tare_cg_mm)
             .checked_mul(2)
             .ok_or_else(|| "tare CG doubled-coordinate overflow".to_string())?;
@@ -400,8 +398,7 @@ pub fn evaluate_cargo_loading(
     if !errors.is_empty() {
         return Err(errors);
     }
-    let input_digest_sha256 =
-        canonical_input_digest(input).map_err(|error| vec![error])?;
+    let input_digest_sha256 = canonical_input_digest(input).map_err(|error| vec![error])?;
 
     let mut findings = Vec::new();
     let mut known_infeasible = false;
@@ -409,7 +406,10 @@ pub fn evaluate_cargo_loading(
 
     for (label, status) in [
         ("cargo bay geometry", input.bay.bay_geometry_evidence),
-        ("vehicle mass / CG envelope", input.bay.vehicle_mass_cg_evidence),
+        (
+            "vehicle mass / CG envelope",
+            input.bay.vehicle_mass_cg_evidence,
+        ),
     ] {
         if !evidence_is_current(status) {
             indeterminate = true;
@@ -509,7 +509,10 @@ pub fn evaluate_cargo_loading(
         known_infeasible = true;
         findings.push("INFEASIBLE: cargo payload exceeds vehicle limit".into());
     }
-    let gross_vehicle_mass_g = input.bay.vehicle_tare_mass_g.checked_add(total_cargo_mass_g);
+    let gross_vehicle_mass_g = input
+        .bay
+        .vehicle_tare_mass_g
+        .checked_add(total_cargo_mass_g);
     let gross_vehicle_mass_g = match gross_vehicle_mass_g {
         Some(gross) => Some(gross),
         None => {
@@ -518,8 +521,8 @@ pub fn evaluate_cargo_loading(
             None
         }
     };
-    let gross_vehicle_mass_margin_g =
-        gross_vehicle_mass_g.and_then(|gross| input.bay.maximum_gross_vehicle_mass_g.checked_sub(gross));
+    let gross_vehicle_mass_margin_g = gross_vehicle_mass_g
+        .and_then(|gross| input.bay.maximum_gross_vehicle_mass_g.checked_sub(gross));
     if gross_vehicle_mass_margin_g.is_none() {
         known_infeasible = true;
         findings.push("INFEASIBLE: gross vehicle mass exceeds vehicle limit".into());
@@ -570,7 +573,8 @@ pub fn evaluate_cargo_loading(
         .maximum_cargo_payload_g
         .checked_sub(total_cargo_mass_g);
     if findings.is_empty() {
-        findings.push("FEASIBLE: declared 3D placements, access, mass and CG envelopes pass".into());
+        findings
+            .push("FEASIBLE: declared 3D placements, access, mass and CG envelopes pass".into());
     }
     findings.sort();
     let verdict = if known_infeasible {
@@ -814,7 +818,10 @@ mod tests {
         }
         let first_report = evaluate_cargo_loading(&first).expect("first input");
         let second_report = evaluate_cargo_loading(&second).expect("permuted input");
-        assert_eq!(first_report.input_digest_sha256, second_report.input_digest_sha256);
+        assert_eq!(
+            first_report.input_digest_sha256,
+            second_report.input_digest_sha256
+        );
         assert_eq!(first_report, second_report);
         assert_eq!(first_report.verdict, CargoFeasibilityVerdict::Infeasible);
     }
