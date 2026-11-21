@@ -53,7 +53,13 @@ pub enum Uncertainty {
     NotQuantified { reason: String },
     ScalarStdDev { standard_deviation: f64 },
     Interval { lower: f64, upper: f64 },
-    Covariance3 { matrix: [[f64; 3]; 3] },
+    Covariance3 {
+        matrix: [[f64; 3]; 3],
+        /// Product unit of the vector component units, e.g. m^2 or m^2/s^2.
+        unit: String,
+        /// Coordinate frame in which this covariance is expressed.
+        frame_id: String,
+    },
     EmpiricalSamples { values: Vec<f64> },
 }
 
@@ -84,7 +90,19 @@ impl Uncertainty {
                     ));
                 }
             }
-            Self::Covariance3 { matrix } => validate_symmetric_psd3(matrix, path)?,
+            Self::Covariance3 {
+                matrix,
+                unit,
+                frame_id,
+            } => {
+                if unit.trim().is_empty() || frame_id.trim().is_empty() {
+                    return Err(ValidationError::new(
+                        path,
+                        "covariance requires an explicit unit and coordinate frame",
+                    ));
+                }
+                validate_symmetric_psd3(matrix, path)?;
+            }
             Self::EmpiricalSamples { values } => {
                 if values.len() < 2 || values.iter().any(|value| !value.is_finite()) {
                     return Err(ValidationError::new(
@@ -259,6 +277,38 @@ impl FieldMetadata {
             ));
         }
         self.provenance.validate(self.status, path)?;
+        if let Some(Uncertainty::Covariance3 {
+            unit,
+            frame_id,
+            ..
+        }) = &self.uncertainty
+        {
+            let expected_unit = match self.unit.as_str() {
+                "m" => "m^2",
+                "m/s" => "m^2/s^2",
+                "rad/s" => "rad^2/s^2",
+                "m/s^2" => "m^2/s^4",
+                "rad" => "rad^2",
+                other => {
+                    return Err(ValidationError::new(
+                        path,
+                        format!("Covariance3 is not defined for field unit {other:?} in v0.1"),
+                    ));
+                }
+            };
+            if unit != expected_unit {
+                return Err(ValidationError::new(
+                    path,
+                    format!("covariance unit must be {expected_unit:?} for field unit {:?}", self.unit),
+                ));
+            }
+            if self.frame_id.as_deref() != Some(frame_id.as_str()) {
+                return Err(ValidationError::new(
+                    path,
+                    "covariance frame must match the field frame",
+                ));
+            }
+        }
         match self.status {
             FieldStatus::Unavailable => {
                 if self.unavailable_reason.as_deref().is_none_or(str::is_empty) {
@@ -1167,9 +1217,11 @@ mod tests {
         }
     }
 
-    fn zero_covariance() -> Uncertainty {
+    fn zero_covariance(unit: &str) -> Uncertainty {
         Uncertainty::Covariance3 {
             matrix: [[0.0; 3]; 3],
+            unit: unit.to_owned(),
+            frame_id: "world".to_owned(),
         }
     }
 
@@ -1183,7 +1235,7 @@ mod tests {
                     [0.0, 0.0, 0.0],
                     "m",
                     Some("world"),
-                    zero_covariance(),
+                    zero_covariance("m^2"),
                 ),
                 rotation_xyzw: available(
                     [0.0, 0.0, 0.0, 1.0],
@@ -1200,7 +1252,7 @@ mod tests {
                 [0.0, 0.0, 0.0],
                 "m/s",
                 Some("world"),
-                zero_covariance(),
+                zero_covariance("m^2/s^2"),
             ),
             angular_velocity_rad_s: unavailable("rad/s", Some("world")),
             linear_acceleration_m_s2: unavailable("m/s^2", Some("world")),
@@ -1296,7 +1348,9 @@ mod tests {
         );
         assert!(
             Uncertainty::Covariance3 {
-                matrix: [[1.0, 2.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+                matrix: [[1.0, 2.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
+                unit: "m^2".to_owned(),
+                frame_id: "world".to_owned(),
             }
             .validate("covariance")
             .is_err()
