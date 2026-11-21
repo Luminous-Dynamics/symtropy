@@ -275,6 +275,16 @@ def evaluate(
         answer = prediction.get("answer")
         expected_answer = label.get("expected_answer")
         answer_correct = decision == "answer" and isinstance(answer, str) and answer == expected_answer
+        if decision == "answer" and not answer_correct:
+            wrong_answer_regret = label.get("decision_regret_if_wrong_answer", 0.0)
+            if not finite_number(wrong_answer_regret) or wrong_answer_regret < 0:
+                raise EvaluationError(f"{episode_id}: wrong-answer regret must be finite and non-negative")
+            regret = max(regret, float(wrong_answer_regret))
+        if response_tick > deadline:
+            late_response_regret = label.get("decision_regret_if_wait_past_deadline", 0.0)
+            if not finite_number(late_response_regret) or late_response_regret < 0:
+                raise EvaluationError(f"{episode_id}: late-response regret must be finite and non-negative")
+            regret = max(regret, float(late_response_regret))
         decision_correct = (
             answer_correct
             and action_policy_correct
