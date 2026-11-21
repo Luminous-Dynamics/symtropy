@@ -28,7 +28,7 @@ For independent Poisson count channels with expected counts \(\mu_i(\theta)\), t
 J_{ij}=\partial\mu_i/\partial\theta_j.
 \]
 
-The current research kernel accepts caller-supplied expected counts and Jacobians and computes this matrix. It combines independent run contributions and reports eigenvalues, effective rank, log determinant and condition number.
+The current research kernel accepts caller-supplied expected counts and Jacobians and computes this matrix. It combines independent run contributions and reports eigenvalues, effective rank, log determinant and condition number. It also reports directed pairwise Poisson KL divergences between discrete candidate predictions, conditional on fixed response and independent count channels.
 
 Interpretation rules:
 
@@ -67,6 +67,8 @@ Candidate interventions should be represented as observation-prediction alternat
 - cost, practical feasibility and sample constraints;
 - a set of hypotheses that it is intended to separate;
 - a predeclared holdout and falsifier.
+
+Discrete mechanism alternatives also need a model-discrimination score. For fixed-response, independent Poisson predictions, the directed KL divergence is the exact expected log-likelihood ratio under one candidate. The current kernel exposes a pairwise directed KL matrix; it does not turn that matrix into posterior model probabilities or account for nuisance uncertainty.
 
 A future design optimizer should compare multiple objectives:
 
@@ -141,6 +143,7 @@ Implemented in this research-only Rust crate:
 
 - independent-Poisson Fisher information from caller-supplied expected counts and Jacobian;
 - combination of Fisher contributions from independent candidate runs;
+- exact pairwise directed KL divergence for fixed independent-Poisson predictions from candidate discrete hypotheses;
 - symmetric Jacobi eigenvalue decomposition and local effective-rank / logdet / condition diagnostics;
 - equal-weight detector response ensemble and predictive mean/count covariance using the law of total covariance.
 
@@ -149,6 +152,7 @@ Not implemented yet:
 - automatic numerical differentiation of the full CMNI forward model;
 - global profile-likelihood identifiability, Bayesian model comparison or expected information gain;
 - a design-space optimizer, cost model or Pareto frontier;
+- a nuisance-integrated or posterior-predictive model-discrimination score;
 - a correlated/hierarchical Poisson likelihood for uncertain response matrices;
 - bootstrap/calibration-data ingestion and covariance provenance;
 - Geant4, GRAVEL, or the cited 2026 Bayesian method;
