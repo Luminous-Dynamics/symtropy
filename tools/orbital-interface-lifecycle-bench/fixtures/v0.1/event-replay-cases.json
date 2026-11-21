@@ -291,7 +291,7 @@
         }
       ],
       "expected_status": "indeterminate",
-      "expected_reason": "event_time_order_not_proven",
+      "expected_reason": "event_observation_ingestion_time_order_invalid",
       "expected_cycle_count": 0,
       "expected_duplicate_count": 0
     },
