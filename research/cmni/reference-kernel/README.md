@@ -141,3 +141,12 @@ See [IDENTIFIABILITY_AND_DESIGN.md](../../../docs/research/cmni/IDENTIFIABILITY_
 - Synthetic fixture: `research/cmni/fixtures/spectrum-shape-covariance-synthetic.json`.
 - Eight tests cover exact shape recovery, normalization invariance, covariance sensitivity, malformed covariance, and invalid inputs. The total is now **108 authored Rust tests** (37 root, 12 detector, 7 measurement, 8 material-state, 14 experiment-design, 11 response-uncertainty, 11 multifidelity-design, 8 spectrum-metrics). These are not executed in the current environment.
 - Reference-spectrum versions are data, not immutable truth. The 2025 AIACHNE re-evaluation of the 252Cf PFNS documents missing historical 1987 input/covariance records and a changed evaluation below 300 keV; use versioned spectrum and covariance artifacts.
+
+
+## Feature-conditioned measurement-bias forward layer
+
+- `apply_feature_conditioned_multiplicative_bias` applies caller-supplied log-linear experiment-feature coefficients to physical expected counts using a channel-specific multiplicative factor `exp(X beta)`.
+- The function keeps measurement-feature coefficients outside physical-yield parameters and never alters source observations.
+- It does not estimate coefficients, apply a sparse prior, infer causality, or provide correction uncertainty; those require a separate model-fitting and holdout process.
+- Synthetic fixture: `research/cmni/fixtures/feature-conditioned-measurement-bias-synthetic.json`.
+- Seven additional tests cover zero-bias identity, multiplicative factors, channel-specific coefficients, malformed dimensions, nonpositive predictions and invalid/overflowing inputs. The total is now **115 authored Rust tests** (37 root, 12 detector, 7 measurement, 8 material-state, 14 experiment-design, 11 response-uncertainty, 11 multifidelity-design, 8 spectrum-metrics, 7 measurement-bias). Not executed in this environment.
