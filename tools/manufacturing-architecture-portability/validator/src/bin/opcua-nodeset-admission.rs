@@ -17,7 +17,7 @@ fn read_json(path: &PathBuf) -> Result<Value, String> {
 
 fn usage() -> ExitCode {
     eprintln!(
-        "usage:\n  opcua-nodeset-admission verify <standard-reference.json> <NodeSet2.xml>\n  opcua-nodeset-admission bundle <reference-a.json> <reference-b.json>...\n  opcua-nodeset-admission server <standard-reference.json> <namespace-metadata.json> [--require-full]"
+        "usage:\n  opcua-nodeset-admission verify <standard-reference.json> <NodeSet2.xml>\n  opcua-nodeset-admission bundle <reference-a.json> <reference-b.json>...\n  opcua-nodeset-admission server <standard-reference.json> <snapshot.schema.json> <namespace-snapshot.json> [--require-full]"
     );
     ExitCode::from(2)
 }
@@ -115,7 +115,7 @@ fn main() -> ExitCode {
             // A discovered skew is a successful analysis result, not a parser error.
             ExitCode::SUCCESS
         }
-        "server" if rest.len() == 2 || rest.len() == 3 => {
+        "server" if rest.len() == 3 || rest.len() == 4 => {
             let manifest = match read_json(&rest[0]) {
                 Ok(value) => value,
                 Err(error) => {
@@ -123,17 +123,49 @@ fn main() -> ExitCode {
                     return ExitCode::FAILURE;
                 }
             };
-            let observed = match read_json(&rest[1]) {
+            let schema = match read_json(&rest[1]) {
                 Ok(value) => value,
                 Err(error) => {
                     eprintln!("{error}");
                     return ExitCode::FAILURE;
                 }
             };
-            let require_full = rest.len() == 3
-                && rest[2].to_string_lossy().as_ref() == "--require-full";
-            if rest.len() == 3 && !require_full {
+            let observed = match read_json(&rest[2]) {
+                Ok(value) => value,
+                Err(error) => {
+                    eprintln!("{error}");
+                    return ExitCode::FAILURE;
+                }
+            };
+            let require_full = rest.len() == 4
+                && rest[3].to_string_lossy().as_ref() == "--require-full";
+            if rest.len() == 4 && !require_full {
                 return usage();
+            }
+            if let Err(error) = jsonschema::draft202012::meta::validate(&schema) {
+                eprintln!("invalid NamespaceSnapshot schema: {error}");
+                return ExitCode::FAILURE;
+            }
+            let validator = match jsonschema::draft202012::options()
+                .should_validate_formats(true)
+                .build(&schema)
+            {
+                Ok(value) => value,
+                Err(error) => {
+                    eprintln!("cannot build NamespaceSnapshot validator: {error}");
+                    return ExitCode::FAILURE;
+                }
+            };
+            let schema_errors: Vec<String> = validator.iter_errors(&observed)
+                .map(|error| format!("{}: {error}",error.instance_path()))
+                .collect();
+            if !schema_errors.is_empty() {
+                println!("{}",serde_json::to_string_pretty(&json!({
+                    "schema_valid":false,
+                    "schema_errors":schema_errors,
+                    "metadata_matches":false
+                })).expect("schema report serializes"));
+                return ExitCode::FAILURE;
             }
             match evaluate_server_namespace_metadata(&manifest, &observed) {
                 Ok(report) => {
