@@ -1,6 +1,6 @@
 use nav_observation_toy_fim::decision_value::{
-    select_action, ActionCost, BinaryBelief, DiagnosticAction, ObservationOutcome, ResourceBudget,
-    SelectionCriterion,
+    select_action, select_action_with_loss, ActionCost, BinaryBelief, DecisionLoss,
+    DiagnosticAction, ObservationOutcome, ResourceBudget, SelectionCriterion,
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -71,6 +71,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             ),
             None => println!("criterion={criterion:?} selected=none"),
         }
+    }
+    // Illustrate that a false-safe claim can carry a larger cost than
+    // unnecessary degradation. This changes the decision-value ranking while
+    // leaving the mutual-information metric unchanged.
+    let asymmetric_loss = DecisionLoss::new(10.0, 1.0)?;
+    let asymmetric = select_action_with_loss(
+        &actions,
+        belief,
+        budget,
+        SelectionCriterion::ExpectedDecisionValue,
+        asymmetric_loss,
+    )?;
+    if let Some(result) = asymmetric {
+        println!(
+            "criterion=AsymmetricDecisionValue(false_safe=10,false_degraded=1) selected={} expected_decision_value={:.6} expected_information_bits={:.6}",
+            result.action_id,
+            result.expected_decision_value,
+            result.expected_mutual_information_bits
+        );
     }
     println!("scope=finite_one_step_synthetic_oracle_not_navigation_qualification");
     Ok(())
