@@ -200,27 +200,6 @@
           "operation": "set",
           "path": "frame_id",
           "value": "JOINT-FRAME-OTHER"
-        },
-        {
-          "target": "provider",
-          "operation": "set",
-          "path": "load_cases",
-          "value": [
-            {
-              "case_id": "COMBINED-ULTIMATE-001",
-              "interaction_profile_ref": "LOAD-INTERACTION-PROFILE-001",
-              "frame_id": "JOINT-FRAME-OTHER",
-              "limits": {
-                "axial_n": 100000,
-                "shear_y_n": 30000,
-                "shear_z_n": 30000,
-                "bending_y_nm": 12000,
-                "bending_z_nm": 12000,
-                "torsion_nm": 8000
-              },
-              "evidence_ref": "EV-STRUCT"
-            }
-          ]
         }
       ],
       "expected": {
