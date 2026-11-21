@@ -99,3 +99,14 @@ The published apparatus describes one EJ-309 detector. Do not call its response 
 - Chen et al. (2025): https://doi.org/10.1038/s41586-025-09042-7
 - Supplementary Information: https://assets-eu.researchsquare.com/files/rs-5046357/v1/267adeeb10150099b6fa9938.pdf
 - Zenodo source/CAD archive record: https://zenodo.org/records/14752388
+
+
+## 10. Machine-readable metadata fixture and Rust gate scaffold
+
+The published apparatus/PSD metadata is encoded in:
+
+`research/cmni/fixtures/chen-2025-ej309-detector-published-metadata.json`
+
+The Rust reference kernel includes a pure `neutron_psd_gate_accepts` helper. It receives one calibrated light-output slice and evaluates the source-described gamma-tail gate and threshold. It is a deterministic selection-rule scaffold, **not** a reconstruction of waveforms, detector response, or the full MCNP/Geant4/GRAVEL chain.
+
+The fixture contains published-summary metadata only. It has no raw waveforms or calibration spectra.
