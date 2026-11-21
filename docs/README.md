@@ -1,3 +1,7 @@
+## Orbital Service, ISAM, and Physical Ground Verification
+
+- [Orbital Service Ground Test Cell v0.1](./tech/ORBITAL_SERVICE_GROUND_TEST_CELL_V0_1.md) — uncrewed inert-fluid capture, retention, independent metrology, receiver acceptance and structural inspection demonstrator.
+
 ## v2.6 Firstlight First 40 Hours Playable Realization
 
 - [First 40 Hours Player Love and Retention Contract](./canon/FIRST_40_HOURS_PLAYER_LOVE_AND_RETENTION_CONTRACT_V0_1.md)
