@@ -1,0 +1,114 @@
+name: Physical Transformation Reference
+
+on:
+  push:
+    branches: ["research/physical-transformation-kernel-v0-1"]
+    paths:
+      - "research/physical-transformation-reference/**"
+      - "docs/research/PHYSICAL_TRANSFORMATION_SCORECARD_V0_1.md"
+      - ".github/workflows/physical-transformation-reference.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "research/physical-transformation-reference/**"
+      - "docs/research/PHYSICAL_TRANSFORMATION_SCORECARD_V0_1.md"
+      - ".github/workflows/physical-transformation-reference.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: physical-transformation-reference-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reference-kernel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/physical-transformation-reference/Cargo.toml --all -- --check
+
+      - name: Run unit and independent oracle tests
+        run: cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
+
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
+
+      - name: Verify metamorphic test mutation sensitivity
+        shell: bash
+        run: bash research/physical-transformation-reference/scripts/verify_mechanics_mutations.sh
+
+      - name: Re-verify production tree after mutation audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD -- \
+            research/physical-transformation-reference/src/mechanics.rs \
+            research/physical-transformation-reference/tests/metamorphic.rs
+          cargo fmt --manifest-path research/physical-transformation-reference/Cargo.toml --all -- --check
+          cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
+          cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
+
+      - name: Run frozen fixture and verify exact-head receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml -- \
+            --source-commit "$source_commit" > physical-transformation-reference-receipt.json
+          jq -e --arg source_commit "$source_commit" '
+            .schema_version == "physical-transform-receipt-v0.1"
+            and .benchmark_id == "PHYS-TRANSFORM-001"
+            and .source_commit == $source_commit
+            and .evidence_class == "synthetic"
+            and .result == "pass"
+            and .fixtures.topology_replay == "pass"
+            and .fixtures.transactional_rejection == "pass"
+            and .fixtures.balanced_mass_ledger == "pass"
+            and .fixtures.imbalanced_mass_negative_control == "pass"
+            and .fixtures.analytical_mechanics == "pass"
+            and .summary.component_count == 3
+            and .summary.connection_count == 2
+            and .summary.recovered_component_count == 1
+            and .summary.recovered_mass_mg == 1000
+            and .summary.deconstruction_step_count == 3
+            and .summary.deconstruction_recovered_component_count == 2
+            and .summary.deconstruction_recovered_mass_mg == 3000
+            and .summary.axial_bar_stress_pa > 99999
+            and .summary.axial_bar_stress_pa < 100001
+            and .summary.axial_bar_extension_m > 0
+            and .summary.cantilever_tip_deflection_m > 0
+            and .summary.cantilever_maximum_bending_stress_pa > 2499999
+            and .summary.simply_supported_midspan_deflection_m > 0.00208
+            and .summary.simply_supported_midspan_deflection_m < 0.00209
+            and .summary.simply_supported_maximum_bending_stress_pa > 24999999
+            and .summary.simply_supported_maximum_bending_stress_pa < 25000001
+            and .summary.connected_components_before_cut == 1
+            and .summary.connected_components_after_cut == 2
+            and .summary.connected_components_after_reconnect == 1
+            and (.claim_ceiling | contains("not_structural_or_collapse_prediction"))
+          ' physical-transformation-reference-receipt.json
+
+      - name: Upload deterministic reference receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: physical-transformation-reference-receipts
+          path: |
+            physical-transformation-reference-receipt.json
+            mutation-sensitivity-receipt.json
+          if-no-files-found: error
+          retention-days: 90

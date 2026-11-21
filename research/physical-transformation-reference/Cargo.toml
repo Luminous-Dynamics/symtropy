@@ -1,0 +1,16 @@
+[package]
+name = "physical-transformation-reference"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Dependency-free reference kernel for causal structural graph transitions and material accounting"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "physical-transformation-reference"
+path = "src/main.rs"
+
+[workspace]
