@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "5d_egb_spin2_MP_horizon_indicial_control",
+  "status": "exact_lambda_zero_reduced_horizon_residue_derived",
+  "lambda": "0",
+  "input_equation_json_sha256": "b4b9d891c47e91d1e1e2541a1be39c005ed77b840b1f02874c599085f1200dba",
+  "first_order_state": ["Bhat2", "Bhat2_prime", "Hhat2", "Hhat2_prime"],
+  "principal_M0": [
+    ["3/4", "-1/4"],
+    ["-1/4", "1/12"]
+  ],
+  "lower_coefficient_C0": [
+    ["0", "9/4", "-2", "5/4"],
+    ["0", "-3/4", "-10/3", "1/4"]
+  ],
+  "source_s0": ["-12", "28/3"],
+  "residue_A0": [
+    ["0", "0", "0", "0"],
+    ["0", "0", "2", "-1/3"],
+    ["0", "0", "0", "0"],
+    ["0", "0", "6", "-1"]
+  ],
+  "inhomogeneous_g0": ["0", "-8/3", "0", "-8"],
+  "indicial_polynomial": "s**3*(s+1)",
+  "indicial_exponents": {"0": 3, "-1": 1},
+  "residue_rank": 1,
+  "residue_trace": "-1",
+  "minimal_polynomial": "s*(s+1)",
+  "diagonalizable": true,
+  "regular_horizon_compatibility": "6*Hhat2(1)-Hhat2_prime(1)-8=0",
+  "equivalent_horizon_jet": "Hhat2_prime(1)=6*Hhat2(1)-8",
+  "compatibility_is_same_as_Eg_minus_2Eh_cubic_at_lambda_zero": true,
+  "resonance": {
+    "difference": 1,
+    "status": "logarithmic compatibility of the singular exponent requires the next Frobenius recurrence"
+  },
+  "controls": {
+    "all_four_source_equation_lengths_and_hashes_match_public_metadata": true,
+    "scaled_reduced_coefficients_vanish_below_row_valuations": true,
+    "row_valuations": {"E_b": 4, "E_h": 3, "E_f_algebraic": 0},
+    "reduced_M0_matches_general_lambda_fixture_at_lambda_zero": true,
+    "indicial_polynomial_exact": true,
+    "Noether_constraint_remains_separate_full_domain_gate": true
+  },
+  "execution": {
+    "python": "3.13.5",
+    "sympy": "1.14.0",
+    "elapsed_seconds": 2.122255,
+    "arithmetic": "exact rational Taylor-series algebra"
+  },
+  "provenance": {
+    "local_development_script_sha256": "02482fa91a6e429771e6a6a16884b9d847ee0f3c9eb1495c9bbb681f03285b37",
+    "equation_generator_provenance": "Input JSON was emitted by a local action-level SymPy reconstruction whose four equation lengths, symbolic fingerprints, and emitted text SHA-256 values match public metadata. It is not a byte-for-byte clean-checkout replay of the public generator.",
+    "public_committed_script_exact_blob_replay": "pending"
+  },
+  "claim_ceiling": "Exact Einstein-limit horizon residue and indicial polynomial only. This does not establish finite-lambda exponents, logarithmic compatibility of the singular branch, infinity modes, boundary index, finite-coupling BVP, interval validation, or physical hyperbolicity."
+}
