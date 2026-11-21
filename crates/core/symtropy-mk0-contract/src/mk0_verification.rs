@@ -637,5 +637,4 @@ mod tests {
                 .contains(&Mk0VerificationViolation::ReportCountersMismatch)
         );
     }
-
 }
