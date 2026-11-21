@@ -9,6 +9,13 @@ fn digest(byte: u8) -> Digest {
     Digest([byte; 32])
 }
 
+fn has_duplicates(values: &[String]) -> bool {
+    values
+        .iter()
+        .enumerate()
+        .any(|(index, value)| values[..index].contains(value))
+}
+
 fn ticket() -> ActionTicket {
     ActionTicket {
         ticket_commitment: digest(1),
@@ -226,7 +233,7 @@ fn policy() -> OutcomePolicy {
             "vehicle-bus".into(),
             "vehicle-power".into(),
         ],
-        approved_observer_failure_domains: vec![
+        expected_observer_failure_domains: vec![
             "camera-sensor".into(),
             "camera-processor".into(),
             "observer-power".into(),
@@ -254,14 +261,15 @@ fn independent_outcome_oracle(
         || policy.observer_independence_policy_digest
             != ticket.observer_independence_policy_digest
         || policy.execution_failure_domains.is_empty()
-        || policy.approved_observer_failure_domains.is_empty()
+        || policy.expected_observer_failure_domains.is_empty()
         || observed.observer_failure_domains.is_empty()
         || policy.execution_failure_domains.iter().any(|domain| domain.trim().is_empty())
-        || policy.approved_observer_failure_domains.iter().any(|domain| domain.trim().is_empty())
+        || policy.expected_observer_failure_domains.iter().any(|domain| domain.trim().is_empty())
         || observed.observer_failure_domains.iter().any(|domain| domain.trim().is_empty())
-        || observed.observer_failure_domains.iter().any(|domain| {
-            !policy.approved_observer_failure_domains.contains(domain)
-        })
+        || has_duplicates(&policy.execution_failure_domains)
+        || has_duplicates(&policy.expected_observer_failure_domains)
+        || has_duplicates(&observed.observer_failure_domains)
+        || observed.observer_failure_domains != policy.expected_observer_failure_domains
         || observed.observer_failure_domains.iter().any(|domain| {
             policy.execution_failure_domains.contains(domain)
         })
@@ -461,6 +469,10 @@ fn physical_outcome_validator_matches_independent_oracle_under_fault_mutations()
     let mut x = e.clone();
     x.observer_failure_domains.push("unknown-domain".into());
     cases.push(("unapproved-observer-domain", x, p.clone()));
+
+    let mut x = e.clone();
+    x.observer_failure_domains.push("camera-sensor".into());
+    cases.push(("duplicate-observer-domain-label", x, p.clone()));
 
     let mut x = e.clone();
     x.observer_failure_domains.clear();
