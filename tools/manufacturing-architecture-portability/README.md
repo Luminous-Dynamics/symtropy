@@ -216,3 +216,36 @@ cargo run --locked --bin opcua-nodeset-admission -- bundle \
 ```
 
 These checks prove exact artifact identity and declared metadata only. They do not import a model into a server, prove server NodeId coverage, perform UA server/client conformance, authenticate a server, validate cybersecurity, call methods, or establish physical-machine behavior.
+
+## OPC UA NodeSet admission and server snapshot boundary
+
+The Machinery 1.04.2 and Robotics 1.02 profiles now pin both the normative model declaration and the actual UANodeSet XML artifact:
+- repository `OPCFoundation/UA-Nodeset`;
+- exact source commit, source path, Git blob SHA-1, raw-byte SHA-256 and byte length;
+- exact NamespaceUris table;
+- UANodeSet Model URI, Version, ModelVersion and Model PublicationDate;
+- complete RequiredModel URI/version/publication-date set.
+
+The offline Rust parser uses `quick-xml 0.42.0`, disables optional features, prohibits DTD/DOCTYPE, and has no network capability. It verifies both raw SHA-256 and Git's canonical `blob <length>\\0` SHA-1. It parses Model / RequiredModel metadata, checks duplicate namespace/dependency URIs and validates namespace indexes used by supported NodeId, ParentNodeId, DataType and BrowseName attributes. Namespace index 0 denotes the OPC UA core namespace; nonzero NodeSet indexes are checked against the artifact NamespaceUris table.
+
+The CLI has three independent operations:
+- `verify`: admit the local XML bytes against one pinned reference manifest;
+- `bundle`: report conflicting RequiredModel versions across multiple NodeSet manifests;
+- `server`: validate a strict read-only NamespaceArray/NamespaceMetadata snapshot and report whether the server declares a namespace subset.
+
+For this exact Machinery/Robotics pair, the RequiredModel sets reveal a core model version skew: Machinery requires OPC UA core 1.05.07 (2026-07-30); Robotics requires core 1.05.03 (2023-12-15). Both require DI 1.04.0 and IA 1.01.4. The bundle analyzer reports `requires_explicit_dependency_resolution`; it does not silently select or upgrade a dependency.
+
+Important date distinction: Machinery normative NamespaceMetadata publication date is 2026-11-01, but its pinned UANodeSet Model PublicationDate is 2026-11-02. Those fields are not collapsed into one date. Machinery ModelVersion is 1.4.2 even though its companion specification Version is 1.04.2.
+
+The synthetic server snapshot declares only the two read services `Read NamespaceArray` and `Read NamespaceMetadata`, zero mutation service calls and `physical_qualification=false`. A matching `IsNamespaceSubset=true` is reported as a subset, not complete support. `IsNamespaceSubset=false` is only a full-namespace declaration; required NodeId coverage and semantic correctness still require an address-space comparison.
+
+### Industry benchmark comparator: OPC Foundation UACTT Lite
+
+The OPC Foundation announced UACTT Lite in June 2026 as a free information-model gap-analysis tool. It compares an expected companion-spec NodeSet against a connected server's address space, checking expected node presence, references, attributes, data types and type definitions, including mandatory and optional nodes. It does **not** test the full functional behavior of a companion specification; full OPC UA CTT covers broader services, security, core functionality, client and PubSub interfaces.
+
+Foundry must not duplicate or claim to replace UACTT Lite. The direct comparison is:
+- UACTT Lite: connected-server NodeSet/address-space gap analysis.
+- Foundry M0/M0.1: source artifact provenance, offline NodeSet admission, RequiredModel dependency conflict reporting, portable NamespaceArray/NodeId identity and explicit subset-state reporting.
+- Future Foundry endpoint tournament: run UACTT Lite on the same isolated read-only server snapshots where possible, then add cross-backend manufacturing identity, QIF join, calibration/uncertainty, time/units, evidence provenance and task-grounding metrics that API/model conformance alone does not establish.
+
+Any live OPC UA endpoint experiment remains read-only and isolated. No methods, writes, PLC operations or product release calls are permitted.
