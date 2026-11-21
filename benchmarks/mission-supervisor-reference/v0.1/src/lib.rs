@@ -88,10 +88,16 @@ impl Display for SupervisorError {
             Self::ActionIdReused => write!(formatter, "action IDs must be unique within a mission"),
             Self::InvalidActionId => write!(formatter, "action ID must not be empty"),
             Self::ActionIdMismatch => {
-                write!(formatter, "receipt action ID does not match the active action")
+                write!(
+                    formatter,
+                    "receipt action ID does not match the active action"
+                )
             }
             Self::ActionAttemptMismatch => {
-                write!(formatter, "receipt attempt does not match the active attempt")
+                write!(
+                    formatter,
+                    "receipt attempt does not match the active attempt"
+                )
             }
             Self::UntrustedObserver => write!(
                 formatter,
@@ -1313,7 +1319,6 @@ mod tests {
         assert_ne!(first.action_id, second.action_id);
     }
 
-
     #[test]
     fn delayed_goal_evidence_from_prior_action_attempt_is_rejected() {
         let mut supervisor = MissionSupervisor::new(plan());
@@ -1386,10 +1391,7 @@ mod tests {
             supervisor.observe_goal(stale_attempt),
             Err(SupervisorError::ActionAttemptMismatch)
         );
-        assert_eq!(
-            supervisor.phase("pick"),
-            Ok(SubgoalPhase::AwaitingEvidence)
-        );
+        assert_eq!(supervisor.phase("pick"), Ok(SubgoalPhase::AwaitingEvidence));
         assert_eq!(supervisor.active_subgoal(), Some("pick"));
     }
 
@@ -1517,10 +1519,7 @@ mod tests {
             }),
             Err(SupervisorError::ActionIdMismatch)
         );
-        assert_eq!(
-            supervisor.phase("pick"),
-            Ok(SubgoalPhase::RecoveryRequired)
-        );
+        assert_eq!(supervisor.phase("pick"), Ok(SubgoalPhase::RecoveryRequired));
     }
 
     #[test]
