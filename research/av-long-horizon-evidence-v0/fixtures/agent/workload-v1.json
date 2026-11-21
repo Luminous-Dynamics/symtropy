@@ -818,6 +818,229 @@
         "query_text": "At this pre-revocation checkpoint, is the earlier private audio observation still eligible evidence?",
         "response_deadline_tick": 1230
       }
+    },
+    {
+      "episode_id": "lh-012-multisegment-15-source-chain",
+      "horizon_seconds": 7200,
+      "memory_budget_bytes": 524288,
+      "stream_events": [
+        {
+          "event_id": "ev-chain-01",
+          "kind": "observation",
+          "availability_tick": 0,
+          "observation_ref": "obs-chain-01",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 0,
+          "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "source_dependency_group": "root-chain-01",
+          "clock_domain_id": "clock-chain-room",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-chain-02",
+          "kind": "observation",
+          "availability_tick": 300,
+          "observation_ref": "obs-chain-02",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 300,
+          "artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "source_dependency_group": "root-chain-02",
+          "clock_domain_id": "clock-chain-room",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-chain-03",
+          "kind": "observation",
+          "availability_tick": 600,
+          "observation_ref": "obs-chain-03",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 600,
+          "artifact_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "source_dependency_group": "root-chain-03",
+          "clock_domain_id": "clock-chain-room",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-chain-04",
+          "kind": "observation",
+          "availability_tick": 900,
+          "observation_ref": "obs-chain-04",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 900,
+          "artifact_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "source_dependency_group": "root-chain-04",
+          "clock_domain_id": "clock-chain-room",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-chain-05",
+          "kind": "observation",
+          "availability_tick": 1200,
+          "observation_ref": "obs-chain-05",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 1200,
+          "artifact_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "source_dependency_group": "root-chain-05",
+          "clock_domain_id": "clock-chain-room",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-chain-06",
+          "kind": "observation",
+          "availability_tick": 1500,
+          "observation_ref": "obs-chain-06",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 1500,
+          "artifact_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+          "source_dependency_group": "root-chain-06",
+          "clock_domain_id": "clock-chain-room",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-chain-07",
+          "kind": "observation",
+          "availability_tick": 1800,
+          "observation_ref": "obs-chain-07",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 1800,
+          "artifact_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "source_dependency_group": "root-chain-07",
+          "clock_domain_id": "clock-chain-room",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-chain-08",
+          "kind": "observation",
+          "availability_tick": 2100,
+          "observation_ref": "obs-chain-08",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 2100,
+          "artifact_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "source_dependency_group": "root-chain-08",
+          "clock_domain_id": "clock-chain-room",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-chain-09",
+          "kind": "observation",
+          "availability_tick": 2400,
+          "observation_ref": "obs-chain-09",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 2400,
+          "artifact_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+          "source_dependency_group": "root-chain-09",
+          "clock_domain_id": "clock-chain-room",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-chain-10",
+          "kind": "observation",
+          "availability_tick": 2700,
+          "observation_ref": "obs-chain-10",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 2700,
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_dependency_group": "root-chain-10",
+          "clock_domain_id": "clock-chain-room",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-chain-11",
+          "kind": "observation",
+          "availability_tick": 3000,
+          "observation_ref": "obs-chain-11",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 3000,
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_dependency_group": "root-chain-11",
+          "clock_domain_id": "clock-chain-room",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-chain-12",
+          "kind": "observation",
+          "availability_tick": 3300,
+          "observation_ref": "obs-chain-12",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 3300,
+          "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_dependency_group": "root-chain-12",
+          "clock_domain_id": "clock-chain-room",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-chain-13",
+          "kind": "observation",
+          "availability_tick": 3600,
+          "observation_ref": "obs-chain-13",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 3600,
+          "artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "source_dependency_group": "root-chain-13",
+          "clock_domain_id": "clock-chain-room",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-chain-14",
+          "kind": "observation",
+          "availability_tick": 3900,
+          "observation_ref": "obs-chain-14",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 3900,
+          "artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "source_dependency_group": "root-chain-14",
+          "clock_domain_id": "clock-chain-room",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-chain-15",
+          "kind": "observation",
+          "availability_tick": 4200,
+          "observation_ref": "obs-chain-15",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 4200,
+          "artifact_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "source_dependency_group": "root-chain-15",
+          "clock_domain_id": "clock-chain-room",
+          "clock_generation": 0
+        }
+      ],
+      "query": {
+        "query_id": "q-lh012",
+        "query_tick": 7200,
+        "query_text": "Reconstruct the 15-stage maintenance sequence in order. Return the complete sequence and cite every distinct source observation, not just the beginning and end.",
+        "response_deadline_tick": 7230
+      }
     }
   ]
 }
