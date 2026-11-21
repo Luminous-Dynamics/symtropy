@@ -67,7 +67,8 @@
         "purge_receipt_count",
         "purge_receipt_coverage",
         "policy_ineligibility_claim_coverage",
-        "claimed_storage_erasure_complete_count"
+        "claimed_storage_erasure_complete_count",
+        "in_scope_derived_item_count"
       ],
       "properties": {
         "episode_count": {
@@ -145,6 +146,10 @@
         "claimed_storage_erasure_complete_count": {
           "type": "integer",
           "minimum": 0
+        },
+        "in_scope_derived_item_count": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     },
@@ -165,7 +170,8 @@
           "purge_receipt_coverage",
           "policy_ineligibility_claim_coverage",
           "claimed_storage_erasure_complete",
-          "violations"
+          "violations",
+          "in_scope_derived_item_count"
         ],
         "properties": {
           "episode_id": {
@@ -222,6 +228,10 @@
             "items": {
               "type": "string"
             }
+          },
+          "in_scope_derived_item_count": {
+            "type": "integer",
+            "minimum": 0
           }
         }
       }
