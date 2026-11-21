@@ -715,6 +715,45 @@ pub fn evaluate_server_namespace_metadata(
         .get("is_namespace_subset")
         .and_then(Value::as_bool)
         .ok_or_else(|| "observed NamespaceMetadata missing boolean is_namespace_subset".to_owned())?;
+
+    if observed.get("read_only_probe").and_then(Value::as_bool) != Some(true) {
+        mismatches.push("snapshot is not declared read-only".to_owned());
+    }
+    if observed.get("mutation_service_calls").and_then(Value::as_u64) != Some(0) {
+        mismatches.push("snapshot reports a non-zero mutation service-call count".to_owned());
+    }
+    if !matches!(observed.get("evidence_class").and_then(Value::as_str), Some("synthetic" | "recorded")) {
+        mismatches.push("snapshot evidence_class must be synthetic or recorded".to_owned());
+    }
+    let namespace_array = observed.get("namespace_array").and_then(Value::as_array)
+        .ok_or_else(|| "snapshot missing namespace_array".to_owned())?;
+    let namespace_values: Vec<&str> = namespace_array.iter().filter_map(Value::as_str).collect();
+    if namespace_values.len() != namespace_array.len()
+        || namespace_values.first().copied() != Some(OPC_UA_CORE_NAMESPACE)
+    {
+        mismatches.push("NamespaceArray must contain strings and index 0 must be OPC UA core".to_owned());
+    }
+    let unique_namespace_values: BTreeSet<&str> = namespace_values.iter().copied().collect();
+    if unique_namespace_values.len() != namespace_values.len() {
+        mismatches.push("NamespaceArray contains duplicate namespace URIs".to_owned());
+    }
+    if namespace_values.iter().filter(|uri| **uri == expected_uri).count() != 1 {
+        mismatches.push("NamespaceArray must contain the expected namespace URI exactly once".to_owned());
+    }
+
+    let service_calls = observed.get("service_calls").and_then(Value::as_array)
+        .ok_or_else(|| "snapshot missing service_calls".to_owned())?;
+    let mut expected_calls = BTreeSet::from(["Read NamespaceArray", "Read NamespaceMetadata"]);
+    for call in service_calls {
+        let call = call.as_str().ok_or_else(|| "service_calls entries must be strings".to_owned())?;
+        if !expected_calls.remove(call) {
+            mismatches.push(format!("unexpected or duplicate OPC UA service call {call:?}"));
+        }
+    }
+    if !expected_calls.is_empty() {
+        mismatches.push("snapshot did not include both read-only metadata services".to_owned());
+    }
+
     if !mismatches.is_empty() {
         return Ok(NamespaceMetadataDisposition {
             metadata_matches: false,
@@ -918,13 +957,54 @@ mod tests {
             "namespace_publication_date":"2026-11-01"
         }});
         let observed = json!({
+            "evidence_class":"synthetic",
+            "endpoint_id":"urn:luminous:test:opcua:machinery-server-001",
             "namespace_uri":"http://opcfoundation.org/UA/Machinery/",
             "namespace_version":"1.04.2",
             "namespace_publication_date":"2026-11-01",
-            "is_namespace_subset":true
+            "is_namespace_subset":true,
+            "namespace_array":[
+                OPC_UA_CORE_NAMESPACE,
+                "http://opcfoundation.org/UA/Machinery/",
+                "http://opcfoundation.org/UA/DI/",
+                "http://opcfoundation.org/UA/IA/"
+            ],
+            "captured_at":"2026-11-21T00:00:00Z",
+            "read_only_probe":true,
+            "service_calls":["Read NamespaceArray","Read NamespaceMetadata"],
+            "mutation_service_calls":0,
+            "physical_qualification":false
         });
         let result = evaluate_server_namespace_metadata(&expected,&observed).unwrap();
         assert_eq!(result.disposition,"matching_declared_subset");
+    }
+
+    #[test]
+    fn rejects_namespace_array_substitution_and_any_mutation_probe() {
+        let expected: Value = json!({"namespace_metadata":{
+            "namespace_uri":"http://opcfoundation.org/UA/Machinery/",
+            "namespace_version":"1.04.2",
+            "namespace_publication_date":"2026-11-01"
+        }});
+        let mut observed = json!({
+            "evidence_class":"synthetic",
+            "namespace_uri":"http://opcfoundation.org/UA/Machinery/",
+            "namespace_version":"1.04.2",
+            "namespace_publication_date":"2026-11-01",
+            "is_namespace_subset":false,
+            "namespace_array":[
+                OPC_UA_CORE_NAMESPACE,
+                "http://opcfoundation.org/UA/Machinery/"
+            ],
+            "read_only_probe":true,
+            "service_calls":["Read NamespaceArray","Read NamespaceMetadata"],
+            "mutation_service_calls":0
+        });
+        observed["namespace_array"][1] = json!("urn:vendor:wrong-namespace");
+        assert!(!evaluate_server_namespace_metadata(&expected,&observed).unwrap().metadata_matches);
+        observed["namespace_array"][1] = json!("http://opcfoundation.org/UA/Machinery/");
+        observed["mutation_service_calls"] = json!(1);
+        assert!(!evaluate_server_namespace_metadata(&expected,&observed).unwrap().metadata_matches);
     }
 
     #[test]
@@ -935,10 +1015,21 @@ mod tests {
             "namespace_publication_date":"2026-11-01"
         }});
         let observed = json!({
+            "evidence_class":"synthetic",
+            "endpoint_id":"urn:luminous:test:opcua:machinery-server-full",
             "namespace_uri":"http://opcfoundation.org/UA/Machinery/",
             "namespace_version":"1.04.2",
             "namespace_publication_date":"2026-11-01",
-            "is_namespace_subset":false
+            "is_namespace_subset":false,
+            "namespace_array":[
+                OPC_UA_CORE_NAMESPACE,
+                "http://opcfoundation.org/UA/Machinery/"
+            ],
+            "captured_at":"2026-11-21T00:00:00Z",
+            "read_only_probe":true,
+            "service_calls":["Read NamespaceArray","Read NamespaceMetadata"],
+            "mutation_service_calls":0,
+            "physical_qualification":false
         });
         let result = evaluate_server_namespace_metadata(&expected,&observed).unwrap();
         assert_eq!(result.disposition,"matching_full_namespace_claim_node_coverage_unverified");
