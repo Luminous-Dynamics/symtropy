@@ -11,7 +11,9 @@
 use bevy::prelude::*;
 
 mod mk0;
+mod mk0_verification;
 pub use mk0::*;
+pub use mk0_verification::*;
 
 // Re-export Mycelix types for game systems to use via symtropy_sim_bridge::
 pub use feldman_dkg::participant::ParticipantId;
