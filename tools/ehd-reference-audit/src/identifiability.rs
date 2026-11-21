@@ -61,7 +61,8 @@ impl fmt::Display for IdentifiabilityError {
 impl Error for IdentifiabilityError {}
 
 fn weakest_eigenvector(a: f64, b: f64, d: f64, lambda_min: f64) -> [f64; 2] {
-    let (mut x, mut y) = if b.abs() > f64::EPSILON * a.abs().max(d.abs()).max(1.0) {
+    let scale = a.abs().max(d.abs()).max(b.abs());
+    let (mut x, mut y) = if scale > 0.0 && b.abs() > f64::EPSILON * scale {
         (b, lambda_min - a)
     } else if a <= d {
         (1.0, 0.0)
@@ -166,12 +167,20 @@ pub fn analyse_two_parameter_design(
 
     let (condition_number, disposition, parameter_estimate, weighted_residual_sum_squares) =
         if numerical_rank == 2 {
-            let determinant = g00.mul_add(g11, -(g01 * g01));
-            if !determinant.is_finite() || determinant <= 0.0 {
+            // Solve in the symmetric eigensystem rather than invert the Gram
+            // matrix by determinant subtraction, which loses precision near
+            // the declared rank threshold.
+            if lambda_min <= 0.0 || lambda_max <= 0.0 {
                 return Err(IdentifiabilityError::SingularSolveAfterRankCheck);
             }
-            let phi0 = (r0 * g11 - r1 * g01) / determinant;
-            let phi1 = (r1 * g00 - r0 * g01) / determinant;
+            let v_min = weakest_parameter_direction_scaled;
+            let v_max = [-v_min[1], v_min[0]];
+            let projection_min = v_min[0] * r0 + v_min[1] * r1;
+            let projection_max = v_max[0] * r0 + v_max[1] * r1;
+            let phi0 = v_min[0] * (projection_min / lambda_min)
+                + v_max[0] * (projection_max / lambda_max);
+            let phi1 = v_min[1] * (projection_min / lambda_min)
+                + v_max[1] * (projection_max / lambda_max);
             let estimate = [
                 parameter_scales[0] * phi0,
                 parameter_scales[1] * phi1,
