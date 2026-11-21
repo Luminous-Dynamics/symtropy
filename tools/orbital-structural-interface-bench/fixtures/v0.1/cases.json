@@ -64,7 +64,11 @@
         "evidence_class": "scoped_test_or_validated_analysis",
         "status": "current",
         "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "dependency_group": "STRUCT-LAB-A"
+        "dependency_group": "STRUCT-LAB-A",
+        "subject_ref": "article://JOINT-ARTICLE-001",
+        "configuration_id": "JOINT-ASSEMBLY-CFG-001",
+        "icd_id": "PROJECT-ICD-001",
+        "icd_revision": "R1"
       },
       {
         "evidence_id": "EV-MATERIAL",
@@ -72,7 +76,11 @@
         "evidence_class": "process_conditioned_material_characterization",
         "status": "current",
         "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "dependency_group": "MAT-LAB-B"
+        "dependency_group": "MAT-LAB-B",
+        "subject_ref": "material-lineage://LOT-001",
+        "configuration_id": "JOINT-ASSEMBLY-CFG-001",
+        "icd_id": "PROJECT-ICD-001",
+        "icd_revision": "R1"
       },
       {
         "evidence_id": "EV-INSPECTION",
@@ -80,7 +88,11 @@
         "evidence_class": "method_specific_inspection_report",
         "status": "current",
         "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-        "dependency_group": "NDE-LAB-C"
+        "dependency_group": "NDE-LAB-C",
+        "subject_ref": "article://JOINT-ARTICLE-001",
+        "configuration_id": "JOINT-ASSEMBLY-CFG-001",
+        "icd_id": "PROJECT-ICD-001",
+        "icd_revision": "R1"
       },
       {
         "evidence_id": "EV-VERIFY",
@@ -88,9 +100,14 @@
         "evidence_class": "independent_engagement_verification",
         "status": "current",
         "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "dependency_group": "VERIFY-LAB-D"
+        "dependency_group": "VERIFY-LAB-D",
+        "subject_ref": "article://JOINT-ARTICLE-001",
+        "configuration_id": "JOINT-ASSEMBLY-CFG-001",
+        "icd_id": "PROJECT-ICD-001",
+        "icd_revision": "R1"
       }
-    ]
+    ],
+    "article_subject_ref": "article://JOINT-ARTICLE-001"
   },
   "base_client": {
     "profile_id": "CLIENT-JOINT-A",
@@ -147,7 +164,8 @@
     "assembled_path_evidence_ref": null,
     "requires_independent_evidence": true,
     "uncertainty_basis": "hard_bound",
-    "evidence": []
+    "evidence": [],
+    "article_subject_ref": "assembly-design://JOINT-REQUIREMENT-001"
   },
   "cases": [
     {
@@ -906,6 +924,105 @@
         "disposition": "malformed_or_stale",
         "reasons": [
           "EVIDENCE_DIGEST_INVALID"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-041",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set_evidence",
+          "evidence_id": "EV-STRUCT",
+          "field": "configuration_id",
+          "value": "JOINT-ASSEMBLY-CFG-OLD"
+        }
+      ],
+      "expected": {
+        "disposition": "malformed_or_stale",
+        "reasons": [
+          "EVIDENCE_SCOPE_MISMATCH"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-042",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set_evidence",
+          "evidence_id": "EV-INSPECTION",
+          "field": "subject_ref",
+          "value": "article://WRONG-ARTICLE"
+        }
+      ],
+      "expected": {
+        "disposition": "malformed_or_stale",
+        "reasons": [
+          "EVIDENCE_SCOPE_MISMATCH"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-043",
+      "mutations": [
+        {
+          "target": "provider",
+          "operation": "set",
+          "path": "load_cases",
+          "value": [
+            {
+              "case_id": "COMBINED-ULTIMATE-001",
+              "interaction_profile_ref": "LOAD-INTERACTION-PROFILE-001",
+              "frame_id": "JOINT-FRAME-001",
+              "limits": {
+                "axial_n": 100000,
+                "shear_y_n": 30000,
+                "shear_z_n": 30000,
+                "bending_y_nm": 12000,
+                "bending_z_nm": 12000,
+                "torsion_nm": 8000
+              },
+              "evidence_ref": "EV-STRUCT"
+            },
+            {
+              "case_id": "COMBINED-ULTIMATE-001",
+              "interaction_profile_ref": "LOAD-INTERACTION-PROFILE-001",
+              "frame_id": "JOINT-FRAME-001",
+              "limits": {
+                "axial_n": 100000,
+                "shear_y_n": 30000,
+                "shear_z_n": 30000,
+                "bending_y_nm": 12000,
+                "bending_z_nm": 12000,
+                "torsion_nm": 8000
+              },
+              "evidence_ref": "EV-STRUCT"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "disposition": "malformed_or_stale",
+        "reasons": [
+          "LOAD_CASE_ID_DUPLICATE_OR_EMPTY"
+        ]
+      }
+    },
+    {
+      "case_id": "SI-044",
+      "mutations": [
+        {
+          "target": "client",
+          "operation": "set",
+          "path": "load_cases",
+          "value": []
+        }
+      ],
+      "expected": {
+        "disposition": "indeterminate",
+        "reasons": [
+          "LOAD_REQUIREMENT_SET_EMPTY"
         ]
       }
     }
