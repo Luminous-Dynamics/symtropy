@@ -331,7 +331,7 @@ mod tests {
     fn a_valid_candidate_is_eligible_when_every_hard_budget_is_met() {
         let option = candidate("gripper-camera", 400, 100, 5_000, 2_000, "camera-a");
         assert_eq!(
-            select_observation_frontier(&context(), budget(), &[option.clone()]),
+            select_observation_frontier(&context(), budget(), std::slice::from_ref(&option)),
             Ok(AssuranceDecision::AcquireObservation {
                 pareto_frontier: vec![option],
                 filtered_out_candidates: vec![],
