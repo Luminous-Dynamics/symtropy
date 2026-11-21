@@ -1,0 +1,317 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/MARITIME_ENGINEERING_HEALTH_CASE_V0_1.schema.json",
+  "title": "Maritime engineering-health synthetic case corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "corpus_id",
+    "corpus_version",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "corpus_id": {
+      "const": "luminous.symtropy.maritime-engineering-health"
+    },
+    "corpus_version": {
+      "const": "0.1.0"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 40
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 30,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "sourceRole": {
+      "enum": [
+        "measured_sensor",
+        "native_equipment_alarm",
+        "operator_report",
+        "maintenance_record",
+        "model_residual",
+        "external_diagnostic",
+        "simulator_only"
+      ]
+    },
+    "quality": {
+      "enum": [
+        "current",
+        "stale",
+        "wrong_configuration",
+        "wrong_unit",
+        "calibration_expired",
+        "unauthenticated",
+        "conflicted",
+        "simulator_only",
+        "missing_lineage"
+      ]
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observation_id",
+        "after_ms",
+        "signal",
+        "source_role",
+        "quality",
+        "config_revision",
+        "dependency_group",
+        "source_ref",
+        "unit",
+        "calibration_ref",
+        "clock_domain",
+        "clock_quality",
+        "max_age_ms",
+        "validity_profile_ref",
+        "uncertainty_ref",
+        "observed_at_ms"
+      ],
+      "properties": {
+        "observation_id": {
+          "type": "string",
+          "minLength": 3
+        },
+        "after_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "signal": {
+          "type": "string",
+          "minLength": 2
+        },
+        "source_role": {
+          "$ref": "#/$defs/sourceRole"
+        },
+        "quality": {
+          "$ref": "#/$defs/quality"
+        },
+        "config_revision": {
+          "type": "string",
+          "minLength": 2
+        },
+        "dependency_group": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_ref": {
+          "type": "string",
+          "minLength": 4
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_ref": {
+          "type": "string",
+          "minLength": 4
+        },
+        "clock_domain": {
+          "type": "string",
+          "minLength": 2
+        },
+        "clock_quality": {
+          "enum": [
+            "monotonic_and_utc_bound",
+            "utc_only",
+            "conflicted",
+            "unknown"
+          ]
+        },
+        "max_age_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "validity_profile_ref": {
+          "type": "string",
+          "minLength": 4
+        },
+        "uncertainty_ref": {
+          "type": "string",
+          "minLength": 4
+        },
+        "observed_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "case_class",
+        "description",
+        "asset",
+        "observations",
+        "fault_hypotheses",
+        "unknown_domain",
+        "recovery",
+        "expected",
+        "decision_time_ms",
+        "decision_clock_domain"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{5,80}$"
+        },
+        "case_class": {
+          "enum": [
+            "positive",
+            "negative",
+            "ambiguity",
+            "common_cause",
+            "recovery",
+            "metamorphic"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 12
+        },
+        "asset": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "vessel_id",
+            "asset_id",
+            "component_id",
+            "config_revision",
+            "capability"
+          ],
+          "properties": {
+            "vessel_id": {
+              "type": "string",
+              "minLength": 3
+            },
+            "asset_id": {
+              "type": "string",
+              "minLength": 3
+            },
+            "component_id": {
+              "type": "string",
+              "minLength": 3
+            },
+            "config_revision": {
+              "type": "string",
+              "minLength": 2
+            },
+            "capability": {
+              "type": "string",
+              "minLength": 3
+            }
+          }
+        },
+        "observations": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/observation"
+          }
+        },
+        "fault_hypotheses": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 3
+          },
+          "uniqueItems": true
+        },
+        "unknown_domain": {
+          "type": "boolean"
+        },
+        "recovery": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "attempted",
+            "repair_record",
+            "inspection",
+            "proof_test",
+            "authorization",
+            "configuration_reconciled"
+          ],
+          "properties": {
+            "attempted": {
+              "type": "boolean"
+            },
+            "repair_record": {
+              "type": "boolean"
+            },
+            "inspection": {
+              "type": "boolean"
+            },
+            "proof_test": {
+              "type": "boolean"
+            },
+            "authorization": {
+              "type": "boolean"
+            },
+            "configuration_reconciled": {
+              "type": "boolean"
+            }
+          }
+        },
+        "expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "admitted_observations",
+            "decision_evidence_observations",
+            "distinct_declared_dependency_groups",
+            "disposition",
+            "capability_remains_restricted",
+            "restoration_evidence_complete"
+          ],
+          "properties": {
+            "admitted_observations": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "decision_evidence_observations": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "distinct_declared_dependency_groups": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "disposition": {
+              "enum": [
+                "restrict_capability",
+                "continue_with_watch",
+                "unknown_escalate",
+                "restoration_blocked",
+                "restoration_evidence_complete"
+              ]
+            },
+            "capability_remains_restricted": {
+              "type": "boolean"
+            },
+            "restoration_evidence_complete": {
+              "type": "boolean"
+            }
+          }
+        },
+        "decision_time_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "decision_clock_domain": {
+          "type": "string",
+          "minLength": 2
+        }
+      }
+    }
+  }
+}

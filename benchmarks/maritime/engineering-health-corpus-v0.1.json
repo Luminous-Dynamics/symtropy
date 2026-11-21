@@ -1,0 +1,2395 @@
+{
+  "corpus_id": "luminous.symtropy.maritime-engineering-health",
+  "corpus_version": "0.1.0",
+  "claim_ceiling": "Synthetic contract conformance only. No diagnostic accuracy, physical machinery health, safety, seaworthiness, certification, maintenance authorization or permission to operate is established.",
+  "cases": [
+    {
+      "case_id": "positive-propulsion-nominal",
+      "case_class": "positive",
+      "description": "Nominal propulsion has a current sensor observation.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
+        "config_revision": "vessel-config-r7",
+        "capability": "propulsion-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "shaft-speed",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "shaft-pickup",
+          "source_ref": "synthetic-source:positive-propulsion-nominal:o1",
+          "unit": "rev/min",
+          "calibration_ref": "synthetic-calibration:shaft-speed:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 1,
+        "decision_evidence_observations": 1,
+        "distinct_declared_dependency_groups": 1,
+        "disposition": "continue_with_watch",
+        "capability_remains_restricted": false,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "negative-main-engine-derate",
+      "case_class": "negative",
+      "description": "Main engine derating is supported by two separate declared signal dependencies.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
+        "config_revision": "vessel-config-r7",
+        "capability": "propulsion-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "engine-output",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "dep-a",
+          "source_ref": "synthetic-source:negative-main-engine-derate:o1",
+          "unit": "enum:state",
+          "calibration_ref": "synthetic-calibration:engine-output:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        },
+        {
+          "observation_id": "o2",
+          "after_ms": 100,
+          "signal": "fuel-index",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "fuel-meter",
+          "source_ref": "synthetic-source:negative-main-engine-derate:o2",
+          "unit": "1",
+          "calibration_ref": "synthetic-calibration:fuel-index:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [
+        "main-engine-derate"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 2,
+        "decision_evidence_observations": 2,
+        "distinct_declared_dependency_groups": 2,
+        "disposition": "restrict_capability",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "common-cause-shaft-rpm",
+      "case_class": "common_cause",
+      "description": "Shaft and engine channels share one controller and cannot count as two dependency groups.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
+        "config_revision": "vessel-config-r7",
+        "capability": "propulsion-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "shaft-speed",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "propulsion-plc",
+          "source_ref": "synthetic-source:common-cause-shaft-rpm:o1",
+          "unit": "rev/min",
+          "calibration_ref": "synthetic-calibration:shaft-speed:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        },
+        {
+          "observation_id": "o2",
+          "after_ms": 200,
+          "signal": "engine-rpm",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "propulsion-plc",
+          "source_ref": "synthetic-source:common-cause-shaft-rpm:o2",
+          "unit": "rev/min",
+          "calibration_ref": "synthetic-calibration:engine-rpm:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [
+        "propulsion-output-disagreement"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 2,
+        "decision_evidence_observations": 2,
+        "distinct_declared_dependency_groups": 1,
+        "disposition": "restrict_capability",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "negative-steering-feedback",
+      "case_class": "negative",
+      "description": "Steering command and rudder feedback disagree across declared input groups.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-steering-gear",
+        "component_id": "component-steering-gear",
+        "config_revision": "vessel-config-r7",
+        "capability": "steering-control-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "rudder-command",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "steering-controller",
+          "source_ref": "synthetic-source:negative-steering-feedback:o1",
+          "unit": "deg",
+          "calibration_ref": "synthetic-calibration:rudder-command:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        },
+        {
+          "observation_id": "o2",
+          "after_ms": 200,
+          "signal": "rudder-angle",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "rudder-encoder",
+          "source_ref": "synthetic-source:negative-steering-feedback:o2",
+          "unit": "deg",
+          "calibration_ref": "synthetic-calibration:rudder-angle:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [
+        "steering-command-readback-disagreement"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 2,
+        "decision_evidence_observations": 2,
+        "distinct_declared_dependency_groups": 2,
+        "disposition": "restrict_capability",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "negative-generator-start",
+      "case_class": "negative",
+      "description": "A native generator start-failure alarm is current.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-generator-set",
+        "component_id": "component-auxiliary-generator",
+        "config_revision": "vessel-config-r7",
+        "capability": "electrical-generation-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "start-failure",
+          "source_role": "native_equipment_alarm",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "generator-controller",
+          "source_ref": "synthetic-source:negative-generator-start:o1",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:native_equipment_alarm:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [
+        "generator-start-failure"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 1,
+        "decision_evidence_observations": 1,
+        "distinct_declared_dependency_groups": 1,
+        "disposition": "restrict_capability",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "negative-bus-undervoltage",
+      "case_class": "negative",
+      "description": "Switchboard bus undervoltage is observed on a current channel.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-electrical-system",
+        "component_id": "component-switchboard-or-battery",
+        "config_revision": "vessel-config-r7",
+        "capability": "electrical-distribution-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "bus-voltage",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "switchboard-meter",
+          "source_ref": "synthetic-source:negative-bus-undervoltage:o1",
+          "unit": "V",
+          "calibration_ref": "synthetic-calibration:bus-voltage:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [
+        "bus-undervoltage"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 1,
+        "decision_evidence_observations": 1,
+        "distinct_declared_dependency_groups": 1,
+        "disposition": "restrict_capability",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "negative-battery-bms",
+      "case_class": "negative",
+      "description": "Battery management reports a current unavailable state.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-electrical-system",
+        "component_id": "component-switchboard-or-battery",
+        "config_revision": "vessel-config-r7",
+        "capability": "electrical-distribution-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "bms-availability",
+          "source_role": "native_equipment_alarm",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "battery-bms",
+          "source_ref": "synthetic-source:negative-battery-bms:o1",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:native_equipment_alarm:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [
+        "battery-management-unavailable"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 1,
+        "decision_evidence_observations": 1,
+        "distinct_declared_dependency_groups": 1,
+        "disposition": "restrict_capability",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "negative-cooling-anomaly",
+      "case_class": "ambiguity",
+      "description": "Cooling channels conflict and neither conflicted sample is admitted.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-engine-auxiliaries",
+        "component_id": "component-cooling-or-lubrication",
+        "config_revision": "vessel-config-r7",
+        "capability": "machinery-thermal-management-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "coolant-temperature",
+          "source_role": "measured_sensor",
+          "quality": "conflicted",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "cooling-controller",
+          "source_ref": "synthetic-source:negative-cooling-anomaly:o1",
+          "unit": "Cel",
+          "calibration_ref": "synthetic-calibration:coolant-temperature:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        },
+        {
+          "observation_id": "o2",
+          "after_ms": 200,
+          "signal": "coolant-flow",
+          "source_role": "measured_sensor",
+          "quality": "conflicted",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "cooling-controller",
+          "source_ref": "synthetic-source:negative-cooling-anomaly:o2",
+          "unit": "m3/s",
+          "calibration_ref": "synthetic-calibration:coolant-flow:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [
+        "cooling-circuit-anomaly"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 0,
+        "decision_evidence_observations": 0,
+        "distinct_declared_dependency_groups": 0,
+        "disposition": "unknown_escalate",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "negative-lubrication-residual",
+      "case_class": "negative",
+      "description": "A current model residual is retained as model-derived evidence, not a direct sensor.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-engine-auxiliaries",
+        "component_id": "component-cooling-or-lubrication",
+        "config_revision": "vessel-config-r7",
+        "capability": "machinery-thermal-management-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "lubrication-residual",
+          "source_role": "model_residual",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "lube-model-inputs",
+          "source_ref": "synthetic-source:negative-lubrication-residual:o1",
+          "unit": "1",
+          "calibration_ref": "not-applicable:model_residual:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [
+        "lubrication-anomaly"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 1,
+        "decision_evidence_observations": 1,
+        "distinct_declared_dependency_groups": 1,
+        "disposition": "restrict_capability",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "positive-steering-nominal",
+      "case_class": "positive",
+      "description": "Steering has valid measured feedback and no active fault hypothesis.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-steering-gear",
+        "component_id": "component-steering-gear",
+        "config_revision": "vessel-config-r7",
+        "capability": "steering-control-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "rudder-angle",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "rudder-encoder",
+          "source_ref": "synthetic-source:positive-steering-nominal:o1",
+          "unit": "deg",
+          "calibration_ref": "synthetic-calibration:rudder-angle:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 1,
+        "decision_evidence_observations": 1,
+        "distinct_declared_dependency_groups": 1,
+        "disposition": "continue_with_watch",
+        "capability_remains_restricted": false,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "negative-fuel-stale",
+      "case_class": "negative",
+      "description": "A stale fuel-system observation cannot support a current restriction decision.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-fuel-system",
+        "component_id": "component-fuel-supply",
+        "config_revision": "vessel-config-r7",
+        "capability": "fuel-delivery-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "fuel-pressure",
+          "source_role": "measured_sensor",
+          "quality": "stale",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "fuel-rail",
+          "source_ref": "synthetic-source:negative-fuel-stale:o1",
+          "unit": "kPa",
+          "calibration_ref": "synthetic-calibration:fuel-pressure:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [
+        "fuel-system-anomaly"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 0,
+        "decision_evidence_observations": 0,
+        "distinct_declared_dependency_groups": 0,
+        "disposition": "unknown_escalate",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "negative-wrong-unit",
+      "case_class": "negative",
+      "description": "A wrong-unit pressure observation is excluded from decision evidence.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
+        "config_revision": "vessel-config-r7",
+        "capability": "propulsion-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "fuel-pressure",
+          "source_role": "measured_sensor",
+          "quality": "wrong_unit",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "fuel-rail",
+          "source_ref": "synthetic-source:negative-wrong-unit:o1",
+          "unit": "kPa",
+          "calibration_ref": "synthetic-calibration:fuel-pressure:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [
+        "fuel-system-anomaly"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 0,
+        "decision_evidence_observations": 0,
+        "distinct_declared_dependency_groups": 0,
+        "disposition": "unknown_escalate",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "negative-wrong-config",
+      "case_class": "negative",
+      "description": "An observation from an older installed configuration is excluded.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
+        "config_revision": "vessel-config-r7",
+        "capability": "propulsion-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "pump-speed",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r6",
+          "dependency_group": "pump-sensor",
+          "source_ref": "synthetic-source:negative-wrong-config:o1",
+          "unit": "rev/min",
+          "calibration_ref": "synthetic-calibration:pump-speed:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [
+        "pump-degradation"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 0,
+        "decision_evidence_observations": 0,
+        "distinct_declared_dependency_groups": 0,
+        "disposition": "unknown_escalate",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "negative-calibration-expired",
+      "case_class": "negative",
+      "description": "An expired-calibration vibration channel cannot establish current health.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
+        "config_revision": "vessel-config-r7",
+        "capability": "propulsion-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "vibration",
+          "source_role": "measured_sensor",
+          "quality": "calibration_expired",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "pump-vibration",
+          "source_ref": "synthetic-source:negative-calibration-expired:o1",
+          "unit": "mm/s",
+          "calibration_ref": "synthetic-calibration:vibration:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [
+        "pump-bearing-anomaly"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 0,
+        "decision_evidence_observations": 0,
+        "distinct_declared_dependency_groups": 0,
+        "disposition": "unknown_escalate",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "negative-unauthenticated",
+      "case_class": "negative",
+      "description": "An unauthenticated remote diagnostic is not admitted.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
+        "config_revision": "vessel-config-r7",
+        "capability": "propulsion-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "bearing-status",
+          "source_role": "external_diagnostic",
+          "quality": "unauthenticated",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "vendor-gateway",
+          "source_ref": "synthetic-source:negative-unauthenticated:o1",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:external_diagnostic:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [
+        "bearing-anomaly"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 0,
+        "decision_evidence_observations": 0,
+        "distinct_declared_dependency_groups": 0,
+        "disposition": "unknown_escalate",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "negative-simulator-only",
+      "case_class": "negative",
+      "description": "Simulator-only state is never admitted as deployment evidence.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
+        "config_revision": "vessel-config-r7",
+        "capability": "propulsion-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "fire-state",
+          "source_role": "simulator_only",
+          "quality": "simulator_only",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "sim-truth",
+          "source_ref": "synthetic-source:negative-simulator-only:o1",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:simulator_only:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [
+        "fire-condition"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 0,
+        "decision_evidence_observations": 0,
+        "distinct_declared_dependency_groups": 0,
+        "disposition": "unknown_escalate",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "negative-bilge-pump",
+      "case_class": "negative",
+      "description": "High bilge level and pump unavailability are both current observations.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-bilge-system",
+        "component_id": "component-bilge-or-flood-detection",
+        "config_revision": "vessel-config-r7",
+        "capability": "bilge-flood-protection-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "bilge-level",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "bilge-level-sensor",
+          "source_ref": "synthetic-source:negative-bilge-pump:o1",
+          "unit": "mm",
+          "calibration_ref": "synthetic-calibration:bilge-level:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        },
+        {
+          "observation_id": "o2",
+          "after_ms": 200,
+          "signal": "pump-availability",
+          "source_role": "native_equipment_alarm",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "bilge-pump-controller",
+          "source_ref": "synthetic-source:negative-bilge-pump:o2",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:native_equipment_alarm:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [
+        "bilge-pump-unavailable"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 2,
+        "decision_evidence_observations": 2,
+        "distinct_declared_dependency_groups": 2,
+        "disposition": "restrict_capability",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "negative-flood-corroborated",
+      "case_class": "negative",
+      "description": "Flood ingress is supported by current level and detector channels.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-bilge-system",
+        "component_id": "component-bilge-or-flood-detection",
+        "config_revision": "vessel-config-r7",
+        "capability": "bilge-flood-protection-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "compartment-level",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "level-probe",
+          "source_ref": "synthetic-source:negative-flood-corroborated:o1",
+          "unit": "mm",
+          "calibration_ref": "synthetic-calibration:compartment-level:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        },
+        {
+          "observation_id": "o2",
+          "after_ms": 200,
+          "signal": "flood-alarm",
+          "source_role": "native_equipment_alarm",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "flood-panel",
+          "source_ref": "synthetic-source:negative-flood-corroborated:o2",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:native_equipment_alarm:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [
+        "possible-water-ingress"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 2,
+        "decision_evidence_observations": 2,
+        "distinct_declared_dependency_groups": 2,
+        "disposition": "restrict_capability",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "negative-fire-detection",
+      "case_class": "negative",
+      "description": "Fire detection has current native alarm evidence.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-fire-safety-system",
+        "component_id": "component-fire-detection-or-suppression",
+        "config_revision": "vessel-config-r7",
+        "capability": "fire-safety-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "smoke-alarm",
+          "source_role": "native_equipment_alarm",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "fire-panel",
+          "source_ref": "synthetic-source:negative-fire-detection:o1",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:native_equipment_alarm:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [
+        "fire-detection-activation"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 1,
+        "decision_evidence_observations": 1,
+        "distinct_declared_dependency_groups": 1,
+        "disposition": "restrict_capability",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "ambiguity-fire-suppression-unknown",
+      "case_class": "ambiguity",
+      "description": "Suppression availability remains unknown despite an otherwise current observation.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-fire-safety-system",
+        "component_id": "component-fire-detection-or-suppression",
+        "config_revision": "vessel-config-r7",
+        "capability": "fire-safety-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "suppression-ready",
+          "source_role": "native_equipment_alarm",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "fire-panel",
+          "source_ref": "synthetic-source:ambiguity-fire-suppression-unknown:o1",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:native_equipment_alarm:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [],
+      "unknown_domain": true,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 1,
+        "decision_evidence_observations": 1,
+        "distinct_declared_dependency_groups": 1,
+        "disposition": "unknown_escalate",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "negative-ballast-pump",
+      "case_class": "negative",
+      "description": "Ballast pump failure has current alarm evidence.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-ballast-system",
+        "component_id": "component-ballast-pump-or-valve",
+        "config_revision": "vessel-config-r7",
+        "capability": "ballast-management-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "ballast-pump-state",
+          "source_role": "native_equipment_alarm",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "ballast-controller",
+          "source_ref": "synthetic-source:negative-ballast-pump:o1",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:native_equipment_alarm:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [
+        "ballast-pump-failure"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 1,
+        "decision_evidence_observations": 1,
+        "distinct_declared_dependency_groups": 1,
+        "disposition": "restrict_capability",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "negative-hvac-electronics-cooling",
+      "case_class": "negative",
+      "description": "HVAC failure affects a declared electronics-cooling capability.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-hvac-system",
+        "component_id": "component-electronics-cooling",
+        "config_revision": "vessel-config-r7",
+        "capability": "electronics-cooling-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "cooling-unit-state",
+          "source_role": "native_equipment_alarm",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "hvac-controller",
+          "source_ref": "synthetic-source:negative-hvac-electronics-cooling:o1",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:native_equipment_alarm:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [
+        "electronics-cooling-loss"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 1,
+        "decision_evidence_observations": 1,
+        "distinct_declared_dependency_groups": 1,
+        "disposition": "restrict_capability",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "common-cause-multiple-alarms",
+      "case_class": "common_cause",
+      "description": "Three current alarms share one power dependency; they are not three independent sources.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-electrical-system",
+        "component_id": "component-switchboard-or-battery",
+        "config_revision": "vessel-config-r7",
+        "capability": "electrical-distribution-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "cooling-alarm",
+          "source_role": "native_equipment_alarm",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "aux-power",
+          "source_ref": "synthetic-source:common-cause-multiple-alarms:o1",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:native_equipment_alarm:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        },
+        {
+          "observation_id": "o2",
+          "after_ms": 200,
+          "signal": "pump-alarm",
+          "source_role": "native_equipment_alarm",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "aux-power",
+          "source_ref": "synthetic-source:common-cause-multiple-alarms:o2",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:native_equipment_alarm:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        },
+        {
+          "observation_id": "o3",
+          "after_ms": 300,
+          "signal": "controller-reset",
+          "source_role": "native_equipment_alarm",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "aux-power",
+          "source_ref": "synthetic-source:common-cause-multiple-alarms:o3",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:native_equipment_alarm:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [
+        "auxiliary-power-common-cause"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 3,
+        "decision_evidence_observations": 3,
+        "distinct_declared_dependency_groups": 1,
+        "disposition": "restrict_capability",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "positive-three-separated-inputs",
+      "case_class": "positive",
+      "description": "Three current signals have distinct declared dependency groups and no fault hypothesis.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
+        "config_revision": "vessel-config-r7",
+        "capability": "propulsion-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "engine-temp",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "engine-temp-probe",
+          "source_ref": "synthetic-source:positive-three-separated-inputs:o1",
+          "unit": "Cel",
+          "calibration_ref": "synthetic-calibration:engine-temp:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        },
+        {
+          "observation_id": "o2",
+          "after_ms": 200,
+          "signal": "coolant-flow",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "flow-meter",
+          "source_ref": "synthetic-source:positive-three-separated-inputs:o2",
+          "unit": "m3/s",
+          "calibration_ref": "synthetic-calibration:coolant-flow:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        },
+        {
+          "observation_id": "o3",
+          "after_ms": 300,
+          "signal": "shaft-speed",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "shaft-pickup",
+          "source_ref": "synthetic-source:positive-three-separated-inputs:o3",
+          "unit": "rev/min",
+          "calibration_ref": "synthetic-calibration:shaft-speed:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 3,
+        "decision_evidence_observations": 3,
+        "distinct_declared_dependency_groups": 3,
+        "disposition": "continue_with_watch",
+        "capability_remains_restricted": false,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "ambiguity-maintenance-note-only",
+      "case_class": "ambiguity",
+      "description": "A maintenance record is admitted as supporting evidence but is not direct telemetry.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
+        "config_revision": "vessel-config-r7",
+        "capability": "propulsion-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "inspection-note",
+          "source_role": "maintenance_record",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "unknown",
+          "source_ref": "synthetic-source:ambiguity-maintenance-note-only:o1",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:maintenance_record:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [
+        "bearing-condition-uncertain"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 1,
+        "decision_evidence_observations": 0,
+        "distinct_declared_dependency_groups": 0,
+        "disposition": "unknown_escalate",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "ambiguity-operator-report-only",
+      "case_class": "ambiguity",
+      "description": "An operator report remains a report and cannot be promoted into a measured channel.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
+        "config_revision": "vessel-config-r7",
+        "capability": "propulsion-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "engine-sound-report",
+          "source_role": "operator_report",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "unknown",
+          "source_ref": "synthetic-source:ambiguity-operator-report-only:o1",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:operator_report:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [
+        "possible-engine-anomaly"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 1,
+        "decision_evidence_observations": 0,
+        "distinct_declared_dependency_groups": 0,
+        "disposition": "unknown_escalate",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "ambiguity-unknown-model-domain",
+      "case_class": "ambiguity",
+      "description": "A model output outside its declared domain remains unknown.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
+        "config_revision": "vessel-config-r7",
+        "capability": "propulsion-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "model-residual",
+          "source_role": "model_residual",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "residual-model",
+          "source_ref": "synthetic-source:ambiguity-unknown-model-domain:o1",
+          "unit": "1",
+          "calibration_ref": "not-applicable:model_residual:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [],
+      "unknown_domain": true,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 1,
+        "decision_evidence_observations": 1,
+        "distinct_declared_dependency_groups": 1,
+        "disposition": "unknown_escalate",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "negative-common-clock-fault",
+      "case_class": "common_cause",
+      "description": "Multiple observations share a clock dependency and cannot establish independent timing.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-time-system",
+        "component_id": "component-clock-source",
+        "config_revision": "vessel-config-r7",
+        "capability": "time-integrity-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "engine-event",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "clock-source",
+          "source_ref": "synthetic-source:negative-common-clock-fault:o1",
+          "unit": "enum:state",
+          "calibration_ref": "synthetic-calibration:engine-event:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        },
+        {
+          "observation_id": "o2",
+          "after_ms": 200,
+          "signal": "steering-event",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "clock-source",
+          "source_ref": "synthetic-source:negative-common-clock-fault:o2",
+          "unit": "enum:state",
+          "calibration_ref": "synthetic-calibration:steering-event:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [
+        "timebase-integrity-uncertain"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 2,
+        "decision_evidence_observations": 2,
+        "distinct_declared_dependency_groups": 1,
+        "disposition": "restrict_capability",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "negative-missing-lineage",
+      "case_class": "negative",
+      "description": "Missing lineage excludes an otherwise plausible machinery signal.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
+        "config_revision": "vessel-config-r7",
+        "capability": "propulsion-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "shaft-vibration",
+          "source_role": "measured_sensor",
+          "quality": "missing_lineage",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "unknown",
+          "source_ref": "synthetic-source:negative-missing-lineage:o1",
+          "unit": "mm/s",
+          "calibration_ref": "synthetic-calibration:shaft-vibration:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [
+        "shaft-bearing-anomaly"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 0,
+        "decision_evidence_observations": 0,
+        "distinct_declared_dependency_groups": 0,
+        "disposition": "unknown_escalate",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "positive-native-alarm-clear",
+      "case_class": "positive",
+      "description": "A valid native equipment state is available with no active fault hypothesis.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
+        "config_revision": "vessel-config-r7",
+        "capability": "propulsion-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "pump-ready",
+          "source_role": "native_equipment_alarm",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "pump-controller",
+          "source_ref": "synthetic-source:positive-native-alarm-clear:o1",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:native_equipment_alarm:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 1,
+        "decision_evidence_observations": 1,
+        "distinct_declared_dependency_groups": 1,
+        "disposition": "continue_with_watch",
+        "capability_remains_restricted": false,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "recovery-missing-inspection",
+      "case_class": "recovery",
+      "description": "A repair record exists but inspection and proof-test evidence are incomplete.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
+        "config_revision": "vessel-config-r7",
+        "capability": "propulsion-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "post-repair-state",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "repair-test-sensor",
+          "source_ref": "synthetic-source:recovery-missing-inspection:o1",
+          "unit": "enum:state",
+          "calibration_ref": "synthetic-calibration:post-repair-state:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": true,
+        "repair_record": true,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": true,
+        "configuration_reconciled": true
+      },
+      "expected": {
+        "admitted_observations": 1,
+        "decision_evidence_observations": 1,
+        "distinct_declared_dependency_groups": 1,
+        "disposition": "restoration_blocked",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "recovery-no-authorization",
+      "case_class": "recovery",
+      "description": "Technical recovery records exist but scoped authorization is absent.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
+        "config_revision": "vessel-config-r7",
+        "capability": "propulsion-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "post-repair-state",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "repair-test-sensor",
+          "source_ref": "synthetic-source:recovery-no-authorization:o1",
+          "unit": "enum:state",
+          "calibration_ref": "synthetic-calibration:post-repair-state:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": true,
+        "repair_record": true,
+        "inspection": true,
+        "proof_test": true,
+        "authorization": false,
+        "configuration_reconciled": true
+      },
+      "expected": {
+        "admitted_observations": 1,
+        "decision_evidence_observations": 1,
+        "distinct_declared_dependency_groups": 1,
+        "disposition": "restoration_blocked",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "recovery-config-unreconciled",
+      "case_class": "recovery",
+      "description": "Repair evidence exists but the installed configuration has not been reconciled.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
+        "config_revision": "vessel-config-r7",
+        "capability": "propulsion-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "post-repair-state",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "repair-test-sensor",
+          "source_ref": "synthetic-source:recovery-config-unreconciled:o1",
+          "unit": "enum:state",
+          "calibration_ref": "synthetic-calibration:post-repair-state:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": true,
+        "repair_record": true,
+        "inspection": true,
+        "proof_test": true,
+        "authorization": true,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 1,
+        "decision_evidence_observations": 1,
+        "distinct_declared_dependency_groups": 1,
+        "disposition": "restoration_blocked",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "recovery-stale-test-evidence",
+      "case_class": "recovery",
+      "description": "The only post-repair test observation is stale.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
+        "config_revision": "vessel-config-r7",
+        "capability": "propulsion-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "post-repair-state",
+          "source_role": "measured_sensor",
+          "quality": "stale",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "repair-test-sensor",
+          "source_ref": "synthetic-source:recovery-stale-test-evidence:o1",
+          "unit": "enum:state",
+          "calibration_ref": "synthetic-calibration:post-repair-state:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": true,
+        "repair_record": true,
+        "inspection": true,
+        "proof_test": true,
+        "authorization": true,
+        "configuration_reconciled": true
+      },
+      "expected": {
+        "admitted_observations": 0,
+        "decision_evidence_observations": 0,
+        "distinct_declared_dependency_groups": 0,
+        "disposition": "restoration_blocked",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "recovery-active-fault-remains",
+      "case_class": "recovery",
+      "description": "A current post-repair observation still carries an unresolved active fault hypothesis.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
+        "config_revision": "vessel-config-r7",
+        "capability": "propulsion-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "post-repair-state",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "repair-test-sensor",
+          "source_ref": "synthetic-source:recovery-active-fault-remains:o1",
+          "unit": "enum:state",
+          "calibration_ref": "synthetic-calibration:post-repair-state:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [
+        "fault-still-present"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": true,
+        "repair_record": true,
+        "inspection": true,
+        "proof_test": true,
+        "authorization": true,
+        "configuration_reconciled": true
+      },
+      "expected": {
+        "admitted_observations": 1,
+        "decision_evidence_observations": 1,
+        "distinct_declared_dependency_groups": 1,
+        "disposition": "restoration_blocked",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "recovery-evidence-complete",
+      "case_class": "recovery",
+      "description": "Repair, inspection, proof test, authorization and configuration reconciliation are present for independent review.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
+        "config_revision": "vessel-config-r7",
+        "capability": "propulsion-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "post-repair-state",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "repair-test-sensor",
+          "source_ref": "synthetic-source:recovery-evidence-complete:o1",
+          "unit": "enum:state",
+          "calibration_ref": "synthetic-calibration:post-repair-state:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": true,
+        "repair_record": true,
+        "inspection": true,
+        "proof_test": true,
+        "authorization": true,
+        "configuration_reconciled": true
+      },
+      "expected": {
+        "admitted_observations": 1,
+        "decision_evidence_observations": 1,
+        "distinct_declared_dependency_groups": 1,
+        "disposition": "restoration_evidence_complete",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": true
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "negative-age-exceeds-validity",
+      "case_class": "negative",
+      "description": "A nominal quality label cannot override observation age exceeding the bound validity profile.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
+        "config_revision": "vessel-config-r7",
+        "capability": "propulsion-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "shaft-speed",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "shaft-pickup",
+          "source_ref": "synthetic-source:negative-age-exceeds-validity:o1",
+          "unit": "rev/min",
+          "calibration_ref": "synthetic-calibration:shaft-speed:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 1000
+        }
+      ],
+      "fault_hypotheses": [
+        "propulsion-condition-uncertain"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 0,
+        "decision_evidence_observations": 0,
+        "distinct_declared_dependency_groups": 0,
+        "disposition": "unknown_escalate",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "negative-clock-unqualified",
+      "case_class": "ambiguity",
+      "description": "A current-looking sensor observation with conflicted clock quality cannot support a current disposition.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-time-system",
+        "component_id": "component-clock-source",
+        "config_revision": "vessel-config-r7",
+        "capability": "time-integrity-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "shaft-speed",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "shaft-pickup",
+          "source_ref": "synthetic-source:negative-clock-unqualified:o1",
+          "unit": "rev/min",
+          "calibration_ref": "synthetic-calibration:shaft-speed:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "conflicted",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [
+        "propulsion-condition-uncertain"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 0,
+        "decision_evidence_observations": 0,
+        "distinct_declared_dependency_groups": 0,
+        "disposition": "unknown_escalate",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "metamorphic-age-boundary-inclusive",
+      "case_class": "metamorphic",
+      "description": "An observation exactly at its declared maximum age remains admissible; age above the bound is rejected.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
+        "config_revision": "vessel-config-r7",
+        "capability": "propulsion-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "shaft-speed",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "shaft-pickup",
+          "source_ref": "synthetic-source:metamorphic-age-boundary-inclusive:o1",
+          "unit": "rev/min",
+          "calibration_ref": "synthetic-calibration:shaft-speed:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 5000
+        }
+      ],
+      "fault_hypotheses": [],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 1,
+        "decision_evidence_observations": 1,
+        "distinct_declared_dependency_groups": 1,
+        "disposition": "continue_with_watch",
+        "capability_remains_restricted": false,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "negative-observation-from-future",
+      "case_class": "negative",
+      "description": "An observation timestamp later than the decision time is excluded even when labelled current.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
+        "config_revision": "vessel-config-r7",
+        "capability": "propulsion-service"
+      },
+      "observations": [
+        {
+          "observation_id": "future-o1",
+          "after_ms": 100,
+          "signal": "shaft-speed",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "shaft-pickup",
+          "source_ref": "synthetic-source:negative-observation-from-future:future-o1",
+          "unit": "rev/min",
+          "calibration_ref": "synthetic-calibration:shaft-speed:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 10001
+        }
+      ],
+      "fault_hypotheses": [
+        "future-dated-equipment-observation"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 0,
+        "decision_evidence_observations": 0,
+        "distinct_declared_dependency_groups": 0,
+        "disposition": "unknown_escalate",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "negative-observation-different-clock",
+      "case_class": "negative",
+      "description": "An otherwise valid sample on a different clock domain cannot be compared to the decision timestamp.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-time-system",
+        "component_id": "component-clock-source",
+        "config_revision": "vessel-config-r7",
+        "capability": "time-integrity-service"
+      },
+      "observations": [
+        {
+          "observation_id": "clock-mismatch-o1",
+          "after_ms": 100,
+          "signal": "shaft-speed",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "shaft-pickup",
+          "source_ref": "synthetic-source:negative-observation-different-clock:clock-mismatch-o1",
+          "unit": "rev/min",
+          "calibration_ref": "synthetic-calibration:shaft-speed:v1",
+          "clock_domain": "independent-unbound-clock-2",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [
+        "clock-domain-mismatch"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 0,
+        "decision_evidence_observations": 0,
+        "distinct_declared_dependency_groups": 0,
+        "disposition": "unknown_escalate",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    }
+  ]
+}

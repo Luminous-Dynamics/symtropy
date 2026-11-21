@@ -1,0 +1,454 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/MARITIME_ENGINE_FAULT_DATASET_MANIFEST_V0_1.schema.json",
+  "title": "External marine engine fault dataset manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest_id",
+    "manifest_version",
+    "status",
+    "dataset",
+    "experimental_platform",
+    "public_record_metadata",
+    "fault_scenarios",
+    "evaluation_constraints",
+    "claim_ceiling",
+    "source_references"
+  ],
+  "properties": {
+    "manifest_id": {
+      "const": "luminous.symtropy.external-dataset.marine-engine-fault.v1"
+    },
+    "manifest_version": {
+      "const": "0.1.0"
+    },
+    "status": {
+      "enum": [
+        "metadata_verified_payload_not_yet_audited",
+        "payload_audited",
+        "reproduced"
+      ]
+    },
+    "dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "zenodo_record",
+        "doi",
+        "version",
+        "associated_preprint",
+        "publisher",
+        "license",
+        "attribution_required",
+        "creators"
+      ],
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 10
+        },
+        "zenodo_record": {
+          "type": "string",
+          "format": "uri"
+        },
+        "doi": {
+          "type": "string",
+          "pattern": "^10\\."
+        },
+        "version": {
+          "type": "string"
+        },
+        "associated_preprint": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "title",
+            "url",
+            "submitted",
+            "status"
+          ],
+          "properties": {
+            "title": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string",
+              "format": "uri"
+            },
+            "submitted": {
+              "type": "string",
+              "format": "date"
+            },
+            "status": {
+              "type": "string"
+            }
+          }
+        },
+        "publisher": {
+          "type": "string"
+        },
+        "license": {
+          "const": "CC-BY-4.0"
+        },
+        "attribution_required": {
+          "const": true
+        },
+        "creators": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "experimental_platform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "engine_manufacturer",
+        "engine_model",
+        "configuration",
+        "environment",
+        "measurement_scope",
+        "deployment_scope"
+      ],
+      "properties": {
+        "engine_manufacturer": {
+          "type": "string"
+        },
+        "engine_model": {
+          "type": "string"
+        },
+        "configuration": {
+          "type": "string"
+        },
+        "environment": {
+          "type": "string"
+        },
+        "measurement_scope": {
+          "type": "string"
+        },
+        "deployment_scope": {
+          "type": "string"
+        }
+      }
+    },
+    "public_record_metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "csv_files",
+        "baseline_reference_files",
+        "fault_scenario_files",
+        "approximate_timestamped_samples",
+        "approximate_measured_and_derived_channels",
+        "scenario_file_columns",
+        "baseline_file_columns",
+        "header_rows",
+        "encoding",
+        "scenario_label",
+        "missing_channel_notes",
+        "missing_channel_runs",
+        "included_metadata_files",
+        "archive"
+      ],
+      "properties": {
+        "csv_files": {
+          "type": "integer",
+          "const": 16
+        },
+        "baseline_reference_files": {
+          "type": "integer",
+          "const": 1
+        },
+        "fault_scenario_files": {
+          "type": "integer",
+          "const": 15
+        },
+        "approximate_timestamped_samples": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "approximate_measured_and_derived_channels": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "scenario_file_columns": {
+          "type": "integer",
+          "const": 73
+        },
+        "baseline_file_columns": {
+          "type": "integer",
+          "const": 70
+        },
+        "header_rows": {
+          "type": "integer",
+          "const": 3
+        },
+        "encoding": {
+          "const": "UTF-8"
+        },
+        "scenario_label": {
+          "type": "object",
+          "required": [
+            "column",
+            "encoding",
+            "applies_to"
+          ],
+          "properties": {
+            "column": {
+              "const": "Anomaly State"
+            },
+            "encoding": {
+              "type": "object",
+              "required": [
+                "0",
+                "1"
+              ],
+              "properties": {
+                "0": {
+                  "const": "pre_anomaly"
+                },
+                "1": {
+                  "const": "anomaly"
+                }
+              }
+            },
+            "applies_to": {
+              "type": "string"
+            },
+            "interpretation": {
+              "type": "string",
+              "minLength": 20
+            }
+          }
+        },
+        "missing_channel_notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "missing_channel_runs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "included_metadata_files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "archive": {
+          "type": "object",
+          "required": [
+            "filename",
+            "reported_size_mb",
+            "source_published_md5",
+            "md5_verified_against_downloaded_payload",
+            "sha256",
+            "sha256_verified",
+            "downloaded"
+          ],
+          "properties": {
+            "filename": {
+              "type": "string"
+            },
+            "reported_size_mb": {
+              "type": "number"
+            },
+            "source_published_md5": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{32}$"
+            },
+            "md5_verified_against_downloaded_payload": {
+              "type": "boolean"
+            },
+            "sha256": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "sha256_verified": {
+              "type": "boolean"
+            },
+            "downloaded": {
+              "type": "boolean"
+            },
+            "preview_url": {
+              "type": "string",
+              "format": "uri"
+            },
+            "preview_tree_verified": {
+              "type": "boolean"
+            },
+            "file_inventory": {
+              "type": "array",
+              "minItems": 22,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "path",
+                  "reported_size",
+                  "role"
+                ],
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "reported_size": {
+                    "type": "string",
+                    "pattern": "^[0-9.]+ (MB|kB)$"
+                  },
+                  "role": {
+                    "enum": [
+                      "scenario_csv",
+                      "baseline_csv",
+                      "metadata",
+                      "license"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "record_statistics": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "reported_data_volume",
+            "displayed_context",
+            "interpretation",
+            "note"
+          ],
+          "properties": {
+            "reported_data_volume": {
+              "type": "string",
+              "const": "37.7 GB"
+            },
+            "displayed_context": {
+              "type": "string",
+              "minLength": 10
+            },
+            "interpretation": {
+              "const": "not_assumed_to_be_archive_payload_size"
+            },
+            "note": {
+              "type": "string",
+              "minLength": 80
+            }
+          }
+        }
+      }
+    },
+    "fault_scenarios": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "required": [
+          "family",
+          "load_percent",
+          "fault_realization"
+        ],
+        "properties": {
+          "family": {
+            "type": "string"
+          },
+          "load_percent": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            }
+          },
+          "fault_realization": {
+            "type": "string"
+          },
+          "label_scope": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "evaluation_constraints": {
+      "type": "object",
+      "required": [
+        "raw_dataset_committed",
+        "archive_payload_audit_status",
+        "channel_dictionary_audit_status",
+        "file_index_audit_status",
+        "no_row_random_split",
+        "group_key",
+        "preprocessing_fit_scope",
+        "missingness_policy",
+        "baseline_scope",
+        "anomaly_only_scope",
+        "load_transfer_scope",
+        "severity_transfer_scope",
+        "final_split_assignments"
+      ],
+      "properties": {
+        "raw_dataset_committed": {
+          "const": false
+        },
+        "archive_payload_audit_status": {
+          "type": "string"
+        },
+        "channel_dictionary_audit_status": {
+          "type": "string"
+        },
+        "file_index_audit_status": {
+          "type": "string"
+        },
+        "no_row_random_split": {
+          "const": true
+        },
+        "group_key": {
+          "type": "string"
+        },
+        "preprocessing_fit_scope": {
+          "type": "string"
+        },
+        "missingness_policy": {
+          "type": "string"
+        },
+        "baseline_scope": {
+          "type": "string"
+        },
+        "anomaly_only_scope": {
+          "type": "string"
+        },
+        "load_transfer_scope": {
+          "type": "string"
+        },
+        "severity_transfer_scope": {
+          "type": "string"
+        },
+        "final_split_assignments": {
+          "type": "string"
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 80
+    },
+    "source_references": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "string",
+        "format": "uri"
+      }
+    }
+  }
+}
