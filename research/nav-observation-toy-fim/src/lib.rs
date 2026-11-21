@@ -1,3 +1,12 @@
+pub mod correlated;
+pub mod correlation_envelope;
+pub mod correlation_audit;
+pub mod correlation_planning;
+pub mod observability_3d;
+pub mod correlated_3d;
+pub mod geometry_outcome;
+pub mod robust;
+
 use std::cmp::Ordering;
 use std::collections::BTreeSet;
 use std::fmt;
