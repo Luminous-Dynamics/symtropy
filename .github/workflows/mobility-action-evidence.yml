@@ -22,6 +22,11 @@ jobs:
         with:
           toolchain: 1.96.0
           components: clippy, rustfmt
+      - name: Validate CDAAB protocol schemas
+        run: |
+          jq empty research/mobility-action-evidence/protocol/scenario_manifest.schema.json
+          jq empty research/mobility-action-evidence/protocol/evaluation_plan.schema.json
+          jq empty research/mobility-action-evidence/protocol/run_receipt.schema.json
       - name: Check formatting
         run: cargo fmt --manifest-path research/mobility-action-evidence/Cargo.toml -- --check
       - name: Run contract tests
