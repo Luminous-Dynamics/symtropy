@@ -104,7 +104,9 @@ fn split_row<'a>(line: &'a str, line_number: usize) -> Result<Vec<&'a str>, Stri
         ));
     }
     if fields.iter().any(|field| field.is_empty()) {
-        return Err(format!("line {line_number}: blank fields are not permitted"));
+        return Err(format!(
+            "line {line_number}: blank fields are not permitted"
+        ));
     }
     Ok(fields)
 }
@@ -123,7 +125,9 @@ fn parse_observations(csv: &str) -> Result<Vec<Observation>, String> {
     for (index, line) in lines.enumerate() {
         let line_number = index + 2;
         if line.trim().is_empty() {
-            return Err(format!("line {line_number}: blank records are not permitted"));
+            return Err(format!(
+                "line {line_number}: blank records are not permitted"
+            ));
         }
         let f = split_row(line, line_number)?;
         observations.push(Observation {
@@ -204,8 +208,12 @@ fn resolve_call(observation: &Observation) -> Result<ResolvedCall, String> {
     let duration = end_tick
         .checked_sub(observation.entry_tick)
         .ok_or_else(|| format!("call {:?} duration overflow", observation.call_id))?;
-    let duration_ticks = u64::try_from(duration)
-        .map_err(|_| format!("call {:?} has a negative queue duration", observation.call_id))?;
+    let duration_ticks = u64::try_from(duration).map_err(|_| {
+        format!(
+            "call {:?} has a negative queue duration",
+            observation.call_id
+        )
+    })?;
 
     Ok(ResolvedCall {
         entry_tick: observation.entry_tick,
@@ -491,10 +499,28 @@ mod tests {
                 + s01_last.cancellation_cumulative_incidence,
             1.0,
         );
-        close(s01.risk_steps.last().unwrap().event_free_survival, 1.0 / 6.0);
-        close(s01.risk_steps.last().unwrap().berth_cumulative_incidence, 0.5);
-        close(s01.risk_steps.last().unwrap().diversion_cumulative_incidence, 1.0 / 6.0);
-        close(s01.risk_steps.last().unwrap().cancellation_cumulative_incidence, 1.0 / 6.0);
+        close(
+            s01.risk_steps.last().unwrap().event_free_survival,
+            1.0 / 6.0,
+        );
+        close(
+            s01.risk_steps.last().unwrap().berth_cumulative_incidence,
+            0.5,
+        );
+        close(
+            s01.risk_steps
+                .last()
+                .unwrap()
+                .diversion_cumulative_incidence,
+            1.0 / 6.0,
+        );
+        close(
+            s01.risk_steps
+                .last()
+                .unwrap()
+                .cancellation_cumulative_incidence,
+            1.0 / 6.0,
+        );
 
         let s02 = cohort(&report, "S02");
         assert_eq!(
@@ -513,9 +539,24 @@ mod tests {
         assert_eq!(s02.reporting_lag_censored_count, 0);
         assert_eq!(s02.p50_berth_incidence_tick, None);
         close(s02.risk_steps.last().unwrap().event_free_survival, 0.2);
-        close(s02.risk_steps.last().unwrap().berth_cumulative_incidence, 0.4);
-        close(s02.risk_steps.last().unwrap().diversion_cumulative_incidence, 0.2);
-        close(s02.risk_steps.last().unwrap().cancellation_cumulative_incidence, 0.2);
+        close(
+            s02.risk_steps.last().unwrap().berth_cumulative_incidence,
+            0.4,
+        );
+        close(
+            s02.risk_steps
+                .last()
+                .unwrap()
+                .diversion_cumulative_incidence,
+            0.2,
+        );
+        close(
+            s02.risk_steps
+                .last()
+                .unwrap()
+                .cancellation_cumulative_incidence,
+            0.2,
+        );
 
         let s03 = cohort(&report, "S03");
         assert_eq!(
@@ -534,7 +575,10 @@ mod tests {
         assert_eq!(s03.reporting_lag_censored_count, 0);
         assert_eq!(s03.p50_berth_incidence_tick, None);
         close(s03.risk_steps.last().unwrap().event_free_survival, 1.0);
-        close(s03.risk_steps.last().unwrap().berth_cumulative_incidence, 0.0);
+        close(
+            s03.risk_steps.last().unwrap().berth_cumulative_incidence,
+            0.0,
+        );
 
         let s04 = cohort(&report, "S04");
         assert_eq!(
@@ -553,9 +597,24 @@ mod tests {
         assert_eq!(s04.reporting_lag_censored_count, 0);
         assert_eq!(s04.p50_berth_incidence_tick, None);
         close(s04.risk_steps.last().unwrap().event_free_survival, 0.2);
-        close(s04.risk_steps.last().unwrap().berth_cumulative_incidence, 0.4);
-        close(s04.risk_steps.last().unwrap().diversion_cumulative_incidence, 0.2);
-        close(s04.risk_steps.last().unwrap().cancellation_cumulative_incidence, 0.2);
+        close(
+            s04.risk_steps.last().unwrap().berth_cumulative_incidence,
+            0.4,
+        );
+        close(
+            s04.risk_steps
+                .last()
+                .unwrap()
+                .diversion_cumulative_incidence,
+            0.2,
+        );
+        close(
+            s04.risk_steps
+                .last()
+                .unwrap()
+                .cancellation_cumulative_incidence,
+            0.2,
+        );
 
         let s05 = cohort(&report, "S05");
         assert_eq!(
@@ -574,9 +633,24 @@ mod tests {
         assert_eq!(s05.reporting_lag_censored_count, 1);
         assert_eq!(s05.p50_berth_incidence_tick, None);
         close(s05.risk_steps.last().unwrap().event_free_survival, 0.4);
-        close(s05.risk_steps.last().unwrap().berth_cumulative_incidence, 0.2);
-        close(s05.risk_steps.last().unwrap().diversion_cumulative_incidence, 0.2);
-        close(s05.risk_steps.last().unwrap().cancellation_cumulative_incidence, 0.2);
+        close(
+            s05.risk_steps.last().unwrap().berth_cumulative_incidence,
+            0.2,
+        );
+        close(
+            s05.risk_steps
+                .last()
+                .unwrap()
+                .diversion_cumulative_incidence,
+            0.2,
+        );
+        close(
+            s05.risk_steps
+                .last()
+                .unwrap()
+                .cancellation_cumulative_incidence,
+            0.2,
+        );
     }
 
     #[test]
@@ -601,7 +675,9 @@ mod tests {
                     step.cancelled_events,
                     step.censored
                 ),
-                (expected.0, expected.1, expected.2, expected.3, expected.4, expected.5)
+                (
+                    expected.0, expected.1, expected.2, expected.3, expected.4, expected.5
+                )
             );
             close(step.event_free_survival, expected.6);
             close(step.berth_cumulative_incidence, expected.7);
@@ -665,14 +741,15 @@ mod tests {
 
     #[test]
     fn duplicate_calls_and_inconsistent_cutoffs_reject() {
-        let duplicate = format!(
-            "{COHORTS_HEADER}\nS,1,0,5,CENSORED,5,5\nS,1,0,5,CENSORED,5,5\n"
+        let duplicate = format!("{COHORTS_HEADER}\nS,1,0,5,CENSORED,5,5\nS,1,0,5,CENSORED,5,5\n");
+        assert!(
+            evaluate_cohorts(&duplicate)
+                .unwrap_err()
+                .contains("duplicate call ID")
         );
-        assert!(evaluate_cohorts(&duplicate).unwrap_err().contains("duplicate call ID"));
 
-        let mixed_cutoff = format!(
-            "{COHORTS_HEADER}\nS,1,0,5,CENSORED,5,5\nS,2,0,6,CENSORED,6,6\n"
-        );
+        let mixed_cutoff =
+            format!("{COHORTS_HEADER}\nS,1,0,5,CENSORED,5,5\nS,2,0,6,CENSORED,6,6\n");
         assert!(
             evaluate_cohorts(&mixed_cutoff)
                 .unwrap_err()
@@ -683,11 +760,17 @@ mod tests {
     #[test]
     fn malformed_rows_and_time_inversions_fail_closed() {
         let blank = format!("{COHORTS_HEADER}\n\nS,1,0,5,CENSORED,5,5\n");
-        assert!(evaluate_cohorts(&blank).unwrap_err().contains("blank records"));
-
-        let inverted = format!(
-            "{COHORTS_HEADER}\nS,1,3,5,BERTH,2,2\n"
+        assert!(
+            evaluate_cohorts(&blank)
+                .unwrap_err()
+                .contains("blank records")
         );
-        assert!(evaluate_cohorts(&inverted).unwrap_err().contains("outcome precedes queue entry"));
+
+        let inverted = format!("{COHORTS_HEADER}\nS,1,3,5,BERTH,2,2\n");
+        assert!(
+            evaluate_cohorts(&inverted)
+                .unwrap_err()
+                .contains("outcome precedes queue entry")
+        );
     }
 }
