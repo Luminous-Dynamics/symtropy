@@ -144,7 +144,8 @@ fn declared_evidence_bindings(case: &CaptureCase) -> DeclaredEvidenceBindings {
     let derived_reference_event_rate_per_second = if case.test_window_seconds.is_finite()
         && case.test_window_seconds > 0.0
     {
-        Some(case.reference_events.len() as f64 / case.test_window_seconds)
+        let rate = case.reference_events.len() as f64 / case.test_window_seconds;
+        rate.is_finite().then_some(rate)
     } else {
         None
     };
