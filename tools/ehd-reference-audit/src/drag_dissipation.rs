@@ -475,6 +475,21 @@ mod tests {
     }
 
     #[test]
+    fn rejects_negative_frictional_work_even_when_impulse_residual_is_within_its_tolerance() {
+        let mut item = event(1, 0.0, [1.0, 0.0, 0.0]);
+        item.neutral_impulse_ns = [-0.25, 0.0, 0.0];
+        item.charged_reaction_impulse_ns = [0.25, 0.0, 0.0];
+        let relaxed_impulse = DragTolerance {
+            impulse_relative: 1.0,
+            ..tolerance()
+        };
+        assert!(matches!(
+            validate_drag_dissipation(&[item], relaxed_impulse).unwrap_err(),
+            DragError::NegativeFrictionalHeating { event_id: 1, .. }
+        ));
+    }
+
+    #[test]
     fn rejects_equal_opposite_but_wrong_drag_magnitude() {
         let mut item = event(1, 1.0, [2.0, 0.0, 0.0]);
         item.neutral_impulse_ns = [1.0, 0.0, 0.0];
