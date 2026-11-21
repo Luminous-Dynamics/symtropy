@@ -541,7 +541,28 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
         summary.ofat_false_coverage_obligations += decision.ofat_false_coverage_count;
         summary.pairwise_false_coverage_obligations += decision.pairwise_false_coverage_count;
 
+        let mut missing_ids = Vec::new();
+        for obligation in &case.obligations {
+            if obligation.criticality == Criticality::Informational
+                || (obligation.not_applicable_approved
+                    && obligation.not_applicable_reason.is_some())
+            {
+                continue;
+            }
+            let fail_closed = matches!(
+                decision.disposition,
+                Disposition::Rejected | Disposition::Disputed
+            );
+            let groups = strict_groups(obligation, &case.runs);
+            if fail_closed || groups.len() < obligation.minimum_independent_groups {
+                missing_ids.push(obligation.id.clone());
+            }
+        }
+        missing_ids.sort();
+
         let expected = &case.expected;
+        let mut expected_missing = expected.missing_obligation_ids.clone();
+        expected_missing.sort();
         let matched = decision.disposition == expected.disposition
             && decision.covered == expected.covered_obligations
             && decision.eligible_runs == expected.eligible_runs
@@ -554,41 +575,11 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
             && decision.cycle_count_baseline_pass == expected.cycle_count_baseline_pass
             && decision.ofat_false_coverage_count == expected.ofat_false_coverage_count
             && decision.pairwise_false_coverage_count == expected.pairwise_false_coverage_count
-            && decision.missing == expected.missing_obligation_ids.len()
-            && {
-                let mut actual = expected.missing_obligation_ids.clone();
-                actual.sort();
-                let mut required_missing = Vec::new();
-                for obligation in &case.obligations {
-                    if obligation.criticality != Criticality::Informational
-                        && !(obligation.not_applicable_approved
-                            && obligation.not_applicable_reason.is_some())
-                    {
-                        let groups = strict_groups(obligation, &case.runs);
-                        if groups.len() < obligation.minimum_independent_groups {
-                            required_missing.push(obligation.id.clone());
-                        }
-                    }
-                }
-                required_missing.sort();
-                actual == required_missing
-            };
+            && decision.missing == expected_missing.len()
+            && missing_ids == expected_missing;
         if !matched {
             summary.expected_result_mismatches += 1;
         }
-        let mut missing_ids = Vec::new();
-        for obligation in &case.obligations {
-            if obligation.criticality != Criticality::Informational
-                && !(obligation.not_applicable_approved
-                    && obligation.not_applicable_reason.is_some())
-            {
-                let groups = strict_groups(obligation, &case.runs);
-                if groups.len() < obligation.minimum_independent_groups {
-                    missing_ids.push(obligation.id.clone());
-                }
-            }
-        }
-        missing_ids.sort();
 
         results.push(CaseResult {
             case_id: case.case_id.clone(),
