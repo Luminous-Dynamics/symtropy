@@ -129,6 +129,119 @@ impl DetectorResponseMatrix {
         Ok(measured_rate)
     }
 
+    /// Nonnegative Poisson expectation-maximization (Richardson-Lucy-style)
+    /// unfolding baseline.
+    ///
+    /// This is an independent comparator, **not GRAVEL**. It maximizes the
+    /// unregularized Poisson likelihood for the supplied response matrix and
+    /// fixed background expectation. Finite iteration count is an explicit
+    /// early-stopping regularization choice; noisy/ill-conditioned problems
+    /// can overfit as iterations increase.
+    ///
+    /// observed_counts and background_expected_counts are measured-bin counts.
+    /// initial_true_counts is a strictly positive starting spectrum in incident
+    /// neutron counts per true-energy bin. Every true-energy column must have
+    /// nonzero detection efficiency; otherwise that bin is unobservable and
+    /// the method fails closed rather than manufacturing an estimate.
+    pub fn poisson_em_unfold(
+        &self,
+        observed_counts: &[f64],
+        background_expected_counts: &[f64],
+        initial_true_counts: &[f64],
+        iterations: usize,
+    ) -> Result<Vec<f64>, ModelError> {
+        if observed_counts.len() != self.measured_bins
+            || background_expected_counts.len() != self.measured_bins
+            || initial_true_counts.len() != self.true_energy_bins
+        {
+            return Err(ModelError::MismatchedDataLengths);
+        }
+        if iterations == 0 {
+            return Err(ModelError::InvalidParameter(
+                "poisson_em_iterations_must_be_positive",
+            ));
+        }
+        for (values, name) in [
+            (observed_counts, "observed_pulse_height_counts"),
+            (background_expected_counts, "background_expected_counts"),
+            (initial_true_counts, "initial_true_spectrum_counts"),
+        ] {
+            for value in values {
+                if !value.is_finite() {
+                    return Err(ModelError::NonFiniteValue(name));
+                }
+                if *value < 0.0 {
+                    return Err(ModelError::InvalidParameter(
+                        "poisson_em_inputs_must_be_nonnegative",
+                    ));
+                }
+            }
+        }
+        if initial_true_counts.iter().any(|value| *value == 0.0) {
+            return Err(ModelError::InvalidParameter(
+                "poisson_em_initial_true_spectrum_must_be_strictly_positive",
+            ));
+        }
+        if self.column_efficiencies.iter().any(|value| *value <= 0.0) {
+            return Err(ModelError::InvalidParameter(
+                "poisson_em_true_energy_bin_is_unobservable",
+            ));
+        }
+
+        let mut estimate = initial_true_counts.to_vec();
+        for _ in 0..iterations {
+            let mut predicted = vec![0.0; self.measured_bins];
+            for (measured_bin, row) in self.probabilities.iter().enumerate() {
+                predicted[measured_bin] = background_expected_counts[measured_bin]
+                    + row
+                        .iter()
+                        .zip(estimate.iter())
+                        .map(|(probability, count)| probability * count)
+                        .sum::<f64>();
+            }
+
+            let mut ratio = vec![0.0; self.measured_bins];
+            for measured_bin in 0..self.measured_bins {
+                let expected = predicted[measured_bin];
+                let observed = observed_counts[measured_bin];
+                if !expected.is_finite() {
+                    return Err(ModelError::InvalidParameter(
+                        "poisson_em_expected_counts_nonfinite",
+                    ));
+                }
+                if expected <= 0.0 {
+                    if observed > 0.0 {
+                        return Err(ModelError::InvalidParameter(
+                            "poisson_em_observation_has_zero_predicted_support",
+                        ));
+                    }
+                    ratio[measured_bin] = 0.0;
+                } else {
+                    ratio[measured_bin] = observed / expected;
+                }
+            }
+
+            let mut next = vec![0.0; self.true_energy_bins];
+            for true_bin in 0..self.true_energy_bins {
+                let backprojected = self
+                    .probabilities
+                    .iter()
+                    .zip(ratio.iter())
+                    .map(|(row, measured_ratio)| row[true_bin] * measured_ratio)
+                    .sum::<f64>();
+                next[true_bin] = estimate[true_bin] * backprojected
+                    / self.column_efficiencies[true_bin];
+                if !next[true_bin].is_finite() || next[true_bin] < 0.0 {
+                    return Err(ModelError::InvalidParameter(
+                        "poisson_em_update_produced_invalid_spectrum",
+                    ));
+                }
+            }
+            estimate = next;
+        }
+        Ok(estimate)
+    }
+
     /// Expected measured-bin counts for a finite acquisition.
     ///
     /// Background is supplied as a separate measured-bin rate in counts/s.
@@ -176,6 +289,61 @@ impl DetectorResponseMatrix {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn poisson_em_unfold_recovers_identity_response_counts() {
+        let response = DetectorResponseMatrix::new(vec![
+            vec![1.0, 0.0],
+            vec![0.0, 1.0],
+        ]).expect("identity");
+        let result = response.poisson_em_unfold(&[10.0, 20.0], &[0.0, 0.0], &[1.0, 1.0], 1)
+            .expect("identity unfolding");
+        assert_eq!(result, vec![10.0, 20.0]);
+    }
+
+    #[test]
+    fn poisson_em_unfold_recovers_a_migrated_synthetic_spectrum() {
+        let response = DetectorResponseMatrix::new(vec![
+            vec![0.8, 0.2],
+            vec![0.2, 0.8],
+        ]).expect("response");
+        let result = response.poisson_em_unfold(&[90.0, 60.0], &[0.0, 0.0], &[75.0, 75.0], 50)
+            .expect("Poisson EM");
+        assert!((result[0] - 100.0).abs() < 1.0e-5);
+        assert!((result[1] - 50.0).abs() < 1.0e-5);
+    }
+
+    #[test]
+    fn poisson_em_unfold_accounts_for_known_background() {
+        let response = DetectorResponseMatrix::new(vec![
+            vec![1.0, 0.0],
+            vec![0.0, 1.0],
+        ]).expect("identity");
+        let result = response.poisson_em_unfold(&[10.0, 20.0], &[2.0, 4.0], &[1.0, 1.0], 100)
+            .expect("background-aware EM");
+        assert!((result[0] - 8.0).abs() < 1.0e-5);
+        assert!((result[1] - 16.0).abs() < 1.0e-5);
+    }
+
+    #[test]
+    fn poisson_em_unfold_rejects_unobservable_true_energy_bins() {
+        let response = DetectorResponseMatrix::new(vec![
+            vec![1.0, 0.0],
+            vec![0.0, 0.0],
+        ]).expect("matrix with unobservable bin");
+        assert_eq!(
+            response.poisson_em_unfold(&[5.0, 0.0], &[0.0, 0.0], &[1.0, 1.0], 5),
+            Err(ModelError::InvalidParameter("poisson_em_true_energy_bin_is_unobservable"))
+        );
+    }
+
+    #[test]
+    fn poisson_em_unfold_rejects_zero_iterations_and_bad_initial_spectrum() {
+        let response = DetectorResponseMatrix::new(vec![vec![1.0, 0.0], vec![0.0, 1.0]])
+            .expect("identity");
+        assert!(response.poisson_em_unfold(&[1.0, 1.0], &[0.0, 0.0], &[1.0, 1.0], 0).is_err());
+        assert!(response.poisson_em_unfold(&[1.0, 1.0], &[0.0, 0.0], &[0.0, 1.0], 5).is_err());
+    }
 
     #[test]
     fn identity_response_recovers_true_spectrum() {
