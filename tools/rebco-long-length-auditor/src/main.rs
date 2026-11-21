@@ -698,7 +698,11 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
                 "width_end_mm",
                 "face",
             ],
-            &["spatial_resolution_mm", "registration_uncertainty_mm"],
+            &[
+                "spatial_resolution_mm",
+                "registration_uncertainty_mm",
+                "sampling_spacing_mm",
+            ],
             &format!("{path}.coordinate_footprint"),
         )?;
         let footprint_interval = Interval {
@@ -760,6 +764,16 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
                 .ok_or_else(|| fail(&path, "spatial_resolution_mm must be finite"))?;
             if !value.is_finite() || value <= 0.0 {
                 return Err(fail(&path, "spatial_resolution_mm must be positive"));
+            }
+        }
+        if let Some(spacing) = object(footprint, &format!("{path}.coordinate_footprint"))?
+            .get("sampling_spacing_mm")
+        {
+            let value = spacing
+                .as_f64()
+                .ok_or_else(|| fail(&path, "sampling_spacing_mm must be finite"))?;
+            if !value.is_finite() || value <= 0.0 {
+                return Err(fail(&path, "sampling_spacing_mm must be positive"));
             }
         }
         if let Some(uncertainty) = object(footprint, &format!("{path}.coordinate_footprint"))?
