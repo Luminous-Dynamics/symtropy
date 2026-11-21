@@ -83,7 +83,7 @@ impl Uncertainty {
                     ));
                 }
             }
-            Self::Covariance3 { matrix } => validate_covariance3(matrix, path)?,
+            Self::Covariance3 { matrix } => validate_symmetric_psd3(matrix, path)?,
             Self::EmpiricalSamples { values } => {
                 if values.len() < 2 || values.iter().any(|value| !value.is_finite()) {
                     return Err(ValidationError::new(
@@ -97,7 +97,7 @@ impl Uncertainty {
     }
 }
 
-fn validate_covariance3(
+fn validate_symmetric_psd3(
     matrix: &[[f64; 3]; 3],
     path: &str,
 ) -> Result<(), ValidationError> {
@@ -105,7 +105,7 @@ fn validate_covariance3(
         if row.iter().any(|value| !value.is_finite()) {
             return Err(ValidationError::new(
                 path,
-                "covariance entries must be finite",
+                "matrix entries must be finite",
             ));
         }
     }
@@ -113,21 +113,21 @@ fn validate_covariance3(
         if matrix[i][i] < -COVARIANCE_TOLERANCE {
             return Err(ValidationError::new(
                 path,
-                "covariance diagonal must be non-negative",
+                "matrix diagonal must be non-negative",
             ));
         }
         for j in (i + 1)..3 {
             if (matrix[i][j] - matrix[j][i]).abs() > COVARIANCE_TOLERANCE {
                 return Err(ValidationError::new(
                     path,
-                    "covariance matrix must be symmetric",
+                    "matrix must be symmetric",
                 ));
             }
             let minor = matrix[i][i] * matrix[j][j] - matrix[i][j] * matrix[j][i];
             if minor < -COVARIANCE_TOLERANCE {
                 return Err(ValidationError::new(
                     path,
-                    "covariance matrix must be positive semidefinite",
+                    "matrix must be positive semidefinite",
                 ));
             }
         }
@@ -141,7 +141,7 @@ fn validate_covariance3(
     if determinant < -COVARIANCE_TOLERANCE {
         return Err(ValidationError::new(
             path,
-            "covariance matrix must be positive semidefinite",
+            "matrix must be positive semidefinite",
         ));
     }
     Ok(())
@@ -190,14 +190,43 @@ impl Provenance {
                 "available values require source, model, fixture or derivation provenance",
             ));
         }
-        if status == FieldStatus::Measured
-            && self.source_sha256.is_none()
-            && self.synthetic_fixture_id.is_none()
-        {
-            return Err(ValidationError::new(
-                path,
-                "MEASURED values require a source digest or explicit synthetic fixture ID",
-            ));
+        match status {
+            FieldStatus::Measured
+                if self.source_sha256.is_none() && self.synthetic_fixture_id.is_none() =>
+            {
+                return Err(ValidationError::new(
+                    path,
+                    "MEASURED values require a source digest or explicit synthetic fixture ID",
+                ));
+            }
+            FieldStatus::Predicted
+                if self.model_build_sha256.is_none() && self.synthetic_fixture_id.is_none() =>
+            {
+                return Err(ValidationError::new(
+                    path,
+                    "PREDICTED values require a model build digest or explicit synthetic fixture ID",
+                ));
+            }
+            FieldStatus::Estimated
+                if self.derivation.is_none()
+                    || (self.source_sha256.is_none()
+                        && self.model_build_sha256.is_none()
+                        && self.synthetic_fixture_id.is_none()) =>
+            {
+                return Err(ValidationError::new(
+                    path,
+                    "ESTIMATED values require a derivation and source/model/fixture provenance",
+                ));
+            }
+            FieldStatus::Assumed
+                if self.derivation.is_none() && self.synthetic_fixture_id.is_none() =>
+            {
+                return Err(ValidationError::new(
+                    path,
+                    "ASSUMED values require a derivation or explicit synthetic fixture ID",
+                ));
+            }
+            _ => {}
         }
         Ok(())
     }
@@ -360,14 +389,24 @@ impl<T: FiniteValue> FieldValue<T> {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Pose3 {
-    /// Translation in metres in the declared frame.
+    /// Translation in metres in the parent/world frame.
     pub translation_m: FieldValue<[f64; 3]>,
     /// Unit quaternion in x, y, z, w order.
     pub rotation_xyzw: FieldValue<[f64; 4]>,
+    /// Explicit child frame represented by this transform.
+    pub child_frame_id: String,
+    /// Contract v0.1 uses the world-from-entity transform direction.
+    pub direction: TransformDirection,
 }
 
 impl Pose3 {
     fn validate(&self, path: &str, expected_frame: &str) -> Result<(), ValidationError> {
+        if self.child_frame_id.trim().is_empty() || self.child_frame_id == expected_frame {
+            return Err(ValidationError::new(
+                path,
+                "child frame must be non-empty and distinct from the parent/world frame",
+            ));
+        }
         self.translation_m
             .validate_expected_unit(&format!("{path}.translation"), "m")?;
         self.translation_m
@@ -517,7 +556,17 @@ impl EntityState {
         self.inertia_kg_m2
             .validate_expected_unit(&format!("{path}.inertia"), "kg*m^2")?;
         self.inertia_kg_m2
+            .validate_frame(&format!("{path}.inertia"), &self.pose.child_frame_id)?;
+        self.inertia_kg_m2
             .validate_finite(&format!("{path}.inertia"))?;
+        if let Some(values) = &self.inertia_kg_m2.value {
+            let matrix = [
+                [values[0], values[1], values[2]],
+                [values[3], values[4], values[5]],
+                [values[6], values[7], values[8]],
+            ];
+            validate_symmetric_psd3(&matrix, &format!("{path}.inertia"))?;
+        }
         self.contact
             .validate(&format!("{path}.contact"), &self.entity_id)?;
         Ok(())
@@ -527,6 +576,11 @@ impl EntityState {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TransformConvention {
     RightHandedXyzw,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum TransformDirection {
+    WorldFromEntity,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -732,10 +786,10 @@ impl StateQuery {
             .iter()
             .map(|entity| entity.entity_id.clone())
             .collect::<BTreeSet<_>>();
-        if returned != requested {
+        if !returned.is_superset(&requested) {
             return Err(ValidationError::new(
                 "query.result.entities",
-                "result must contain exactly the requested entity IDs",
+                "result must include every requested entity; parent/contact context entities may also be returned",
             ));
         }
         Ok(())
@@ -900,6 +954,8 @@ mod tests {
                         reason: "orientation covariance not supplied by fixture".to_owned(),
                     },
                 ),
+                child_frame_id: format!("{entity_id}/frame"),
+                direction: TransformDirection::WorldFromEntity,
             },
             linear_velocity_m_s: available(
                 [0.0, 0.0, 0.0],
@@ -917,7 +973,7 @@ mod tests {
                     standard_deviation: 0.01,
                 },
             ),
-            inertia_kg_m2: unavailable("kg*m^2", Some("world")),
+            inertia_kg_m2: unavailable("kg*m^2", Some(&format!("{entity_id}/frame"))),
             contact: ContactObservation {
                 status: ContactStatus::NoContact,
                 partner_entity_ids: Vec::new(),
@@ -1055,6 +1111,16 @@ mod tests {
         assert!(query.validate_result(&result).is_err());
         query.entity_ids = vec!["body-1".to_owned()];
         assert!(query.validate_result(&result).is_ok());
+
+        let mut context_result = valid_snapshot(0, 0);
+        let partner = valid_entity("partner-1");
+        context_result.entities.push(partner);
+        context_result.entities[0].contact = ContactObservation {
+            status: ContactStatus::InContact,
+            partner_entity_ids: vec!["partner-1".to_owned()],
+            impulse_ns: None,
+        };
+        assert!(query.validate_result(&context_result).is_ok());
     }
 
     #[test]
