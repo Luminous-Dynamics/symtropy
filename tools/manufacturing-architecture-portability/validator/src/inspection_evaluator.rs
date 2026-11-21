@@ -40,16 +40,52 @@ pub fn evaluate_inspection_join(candidate: &Value) -> InspectionJoinEvaluation {
     let mut violations = Vec::new();
     let equalities = [
         ("cycle_part_id", "qif_part_id", "PART_ID_MISMATCH"),
-        ("cycle_id", "association_cycle_id", "ASSOCIATION_CYCLE_ID_MISMATCH"),
-        ("qif_result_id", "association_qif_result_id", "ASSOCIATION_QIF_RESULT_ID_MISMATCH"),
-        ("cycle_part_id", "association_part_id", "ASSOCIATION_PART_ID_MISMATCH"),
-        ("cycle_lot_id", "association_lot_id", "ASSOCIATION_LOT_ID_MISMATCH"),
-        ("cycle_operation_id", "association_operation_id", "ASSOCIATION_OPERATION_ID_MISMATCH"),
-        ("cycle_source_document_sha256", "association_cycle_source_document_sha256", "ASSOCIATION_CYCLE_DOCUMENT_MISMATCH"),
-        ("mtconnect_document_sha256", "association_mtconnect_document_sha256", "ASSOCIATION_MTCONNECT_DOCUMENT_MISMATCH"),
-        ("qif_document_sha256", "association_qif_document_sha256", "ASSOCIATION_QIF_DOCUMENT_MISMATCH"),
+        (
+            "cycle_id",
+            "association_cycle_id",
+            "ASSOCIATION_CYCLE_ID_MISMATCH",
+        ),
+        (
+            "qif_result_id",
+            "association_qif_result_id",
+            "ASSOCIATION_QIF_RESULT_ID_MISMATCH",
+        ),
+        (
+            "cycle_part_id",
+            "association_part_id",
+            "ASSOCIATION_PART_ID_MISMATCH",
+        ),
+        (
+            "cycle_lot_id",
+            "association_lot_id",
+            "ASSOCIATION_LOT_ID_MISMATCH",
+        ),
+        (
+            "cycle_operation_id",
+            "association_operation_id",
+            "ASSOCIATION_OPERATION_ID_MISMATCH",
+        ),
+        (
+            "cycle_source_document_sha256",
+            "association_cycle_source_document_sha256",
+            "ASSOCIATION_CYCLE_DOCUMENT_MISMATCH",
+        ),
+        (
+            "mtconnect_document_sha256",
+            "association_mtconnect_document_sha256",
+            "ASSOCIATION_MTCONNECT_DOCUMENT_MISMATCH",
+        ),
+        (
+            "qif_document_sha256",
+            "association_qif_document_sha256",
+            "ASSOCIATION_QIF_DOCUMENT_MISMATCH",
+        ),
         ("cycle_lot_id", "qif_lot_id", "LOT_ID_MISMATCH"),
-        ("cycle_operation_id", "qif_operation_id", "OPERATION_ID_MISMATCH"),
+        (
+            "cycle_operation_id",
+            "qif_operation_id",
+            "OPERATION_ID_MISMATCH",
+        ),
         (
             "qif_characteristic_id",
             "association_characteristic_id",
@@ -95,9 +131,18 @@ pub fn evaluate_inspection_join(candidate: &Value) -> InspectionJoinEvaluation {
     let association_start = integer_at(candidate, "association_valid_from_ns");
     let association_end = integer_at(candidate, "association_valid_until_ns");
     let decision_time = integer_at(candidate, "decision_time_ns");
-    match (association_start, association_end, measured_at, decision_time) {
+    match (
+        association_start,
+        association_end,
+        measured_at,
+        decision_time,
+    ) {
         (Some(start), Some(end), Some(measured), Some(decision))
-            if start <= end && start <= measured && measured <= end && start <= decision && decision <= end => {}
+            if start <= end
+                && start <= measured
+                && measured <= end
+                && start <= decision
+                && decision <= end => {}
         _ => violations.push(JoinViolation {
             code: "ASSOCIATION_NOT_VALID_AT_MEASUREMENT_AND_DECISION",
             field: "association_valid_from_ns",
@@ -145,14 +190,14 @@ pub fn evaluate_inspection_join(candidate: &Value) -> InspectionJoinEvaluation {
         });
     }
 
-    let calibration_reference_present =
-        text_at(candidate, "instrument_calibration_disposition") == Some("qualified_reference")
-            && text_at(candidate, "calibration_attestation_id").is_some()
-            && text_at(candidate, "calibration_attestation_sha256").is_some();
-    let uncertainty_reference_present =
-        text_at(candidate, "measurement_uncertainty_disposition") == Some("qualified_reference")
-            && text_at(candidate, "uncertainty_budget_id").is_some()
-            && text_at(candidate, "uncertainty_budget_sha256").is_some();
+    let calibration_reference_present = text_at(candidate, "instrument_calibration_disposition")
+        == Some("qualified_reference")
+        && text_at(candidate, "calibration_attestation_id").is_some()
+        && text_at(candidate, "calibration_attestation_sha256").is_some();
+    let uncertainty_reference_present = text_at(candidate, "measurement_uncertainty_disposition")
+        == Some("qualified_reference")
+        && text_at(candidate, "uncertainty_budget_id").is_some()
+        && text_at(candidate, "uncertainty_budget_sha256").is_some();
     let calibration_applies = if calibration_reference_present {
         let interval_valid = integer_at(candidate, "calibration_valid_from_ns")
             .zip(integer_at(candidate, "calibration_valid_until_ns"))
@@ -202,8 +247,8 @@ pub fn evaluate_inspection_join(candidate: &Value) -> InspectionJoinEvaluation {
             });
         let characteristic_matches = text_at(candidate, "uncertainty_characteristic_id")
             == text_at(candidate, "qif_characteristic_id");
-        let unit_matches = text_at(candidate, "uncertainty_original_unit")
-            == text_at(candidate, "original_unit");
+        let unit_matches =
+            text_at(candidate, "uncertainty_original_unit") == text_at(candidate, "original_unit");
         let clock_matches = text_at(candidate, "uncertainty_validity_clock_id")
             == text_at(candidate, "qif_reference_clock_id");
         if !interval_valid {
@@ -260,11 +305,10 @@ pub fn evaluate_inspection_join(candidate: &Value) -> InspectionJoinEvaluation {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::{json, Value};
+    use serde_json::{Value, json};
 
     const SCHEMA: &str = include_str!("../../inspection-join.schema.json");
-    const CANDIDATE: &str =
-        include_str!("../tests/fixtures/qif-cycle-join.candidate.json");
+    const CANDIDATE: &str = include_str!("../tests/fixtures/qif-cycle-join.candidate.json");
 
     fn schema() -> Value {
         serde_json::from_str(SCHEMA).expect("join schema JSON must parse")
@@ -323,7 +367,10 @@ mod tests {
         assert!(validate_schema(&actual));
         let result = evaluate_inspection_join(&actual);
         assert!(result.admissible_for_declared_synthetic_join);
-        assert_eq!(result.metrology_reference_state, "applicability_matched_references_not_authenticated");
+        assert_eq!(
+            result.metrology_reference_state,
+            "applicability_matched_references_not_authenticated"
+        );
         assert!(!result.physical_metrology_qualified);
     }
 
@@ -344,12 +391,13 @@ mod tests {
         actual["measurement_evidence_class"] = json!("physical_observation");
         let result = evaluate_inspection_join(&actual);
         assert!(!result.admissible_for_declared_synthetic_join);
-        assert!(result.violations.iter().any(|v| {
-            v.code == "NON_SYNTHETIC_EVIDENCE_OUTSIDE_THIS_FIXTURE_PROFILE"
-        }));
+        assert!(
+            result
+                .violations
+                .iter()
+                .any(|v| { v.code == "NON_SYNTHETIC_EVIDENCE_OUTSIDE_THIS_FIXTURE_PROFILE" })
+        );
     }
-
-
 
     #[test]
     fn qualified_references_must_match_exact_instrument_characteristic_unit_and_time() {
@@ -383,46 +431,64 @@ mod tests {
 
         actual["calibration_subject_instrument_id"] = json!("OTHER-CMM");
         let wrong_instrument = evaluate_inspection_join(&actual);
-        assert!(wrong_instrument.violations.iter().any(|v| {
-            v.code == "CALIBRATION_ATTESTATION_WRONG_INSTRUMENT"
-        }));
+        assert!(
+            wrong_instrument
+                .violations
+                .iter()
+                .any(|v| { v.code == "CALIBRATION_ATTESTATION_WRONG_INSTRUMENT" })
+        );
 
         actual["calibration_subject_instrument_id"] = json!("CMM-01");
         actual["uncertainty_characteristic_id"] = json!("OTHER-CHAR");
         let wrong_characteristic = evaluate_inspection_join(&actual);
-        assert!(wrong_characteristic.violations.iter().any(|v| {
-            v.code == "UNCERTAINTY_BUDGET_WRONG_CHARACTERISTIC"
-        }));
+        assert!(
+            wrong_characteristic
+                .violations
+                .iter()
+                .any(|v| { v.code == "UNCERTAINTY_BUDGET_WRONG_CHARACTERISTIC" })
+        );
 
         actual["uncertainty_characteristic_id"] = json!("SHAFT-DIAMETER-01");
 
         actual["calibration_validity_clock_id"] = json!("CMM-LOCAL-BOOT-7");
         let wrong_calibration_clock = evaluate_inspection_join(&actual);
-        assert!(wrong_calibration_clock.violations.iter().any(|v| {
-            v.code == "CALIBRATION_VALIDITY_CLOCK_MISMATCH"
-        }));
+        assert!(
+            wrong_calibration_clock
+                .violations
+                .iter()
+                .any(|v| { v.code == "CALIBRATION_VALIDITY_CLOCK_MISMATCH" })
+        );
 
         actual["calibration_validity_clock_id"] = json!("PLANT-UTC-001");
         actual["uncertainty_validity_clock_id"] = json!("CMM-LOCAL-BOOT-7");
         let wrong_uncertainty_clock = evaluate_inspection_join(&actual);
-        assert!(wrong_uncertainty_clock.violations.iter().any(|v| {
-            v.code == "UNCERTAINTY_VALIDITY_CLOCK_MISMATCH"
-        }));
+        assert!(
+            wrong_uncertainty_clock
+                .violations
+                .iter()
+                .any(|v| { v.code == "UNCERTAINTY_VALIDITY_CLOCK_MISMATCH" })
+        );
 
         actual["uncertainty_validity_clock_id"] = json!("PLANT-UTC-001");
 
         actual["uncertainty_original_unit"] = json!("um");
         let wrong_unit = evaluate_inspection_join(&actual);
-        assert!(wrong_unit.violations.iter().any(|v| {
-            v.code == "UNCERTAINTY_BUDGET_WRONG_UNIT"
-        }));
+        assert!(
+            wrong_unit
+                .violations
+                .iter()
+                .any(|v| { v.code == "UNCERTAINTY_BUDGET_WRONG_UNIT" })
+        );
 
         actual["uncertainty_original_unit"] = json!("mm");
         actual["calibration_valid_until_ns"] = json!(1750000480_u64);
         let expired = evaluate_inspection_join(&actual);
-        assert!(expired.violations.iter().any(|v| {
-            v.code == "CALIBRATION_ATTESTATION_OUTSIDE_EFFECTIVITY"
-        }));
+        assert!(
+            expired
+                .violations
+                .iter()
+                .any(|v| { v.code == "CALIBRATION_ATTESTATION_OUTSIDE_EFFECTIVITY" })
+        );
     }
 
     #[test]
@@ -433,7 +499,10 @@ mod tests {
         actual["calibration_attestation_sha256"] =
             json!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
         let result = evaluate_inspection_join(&actual);
-        assert_eq!(result.metrology_reference_state, "partial_or_inapplicable_metrology_references");
+        assert_eq!(
+            result.metrology_reference_state,
+            "partial_or_inapplicable_metrology_references"
+        );
         assert!(!result.physical_metrology_qualified);
     }
 
@@ -467,7 +536,12 @@ mod tests {
         let mut actual = candidate();
         actual["inspection_result_status"] = json!("NOT_MEASURED");
         let result = evaluate_inspection_join(&actual);
-        assert!(result.violations.iter().any(|v| v.code == "INSPECTION_RESULT_NOT_MEASURED"));
+        assert!(
+            result
+                .violations
+                .iter()
+                .any(|v| v.code == "INSPECTION_RESULT_NOT_MEASURED")
+        );
     }
 
     #[test]
@@ -475,7 +549,12 @@ mod tests {
         let mut actual = candidate();
         actual["measured_at_reference_ns"] = json!(1750000700_u64);
         let result = evaluate_inspection_join(&actual);
-        assert!(result.violations.iter().any(|v| v.code == "MEASUREMENT_OUTSIDE_CYCLE"));
+        assert!(
+            result
+                .violations
+                .iter()
+                .any(|v| v.code == "MEASUREMENT_OUTSIDE_CYCLE")
+        );
     }
 
     #[test]
@@ -483,9 +562,12 @@ mod tests {
         let mut actual = candidate();
         actual["association_valid_until_ns"] = json!(1750000500_u64);
         let result = evaluate_inspection_join(&actual);
-        assert!(result.violations.iter().any(|v| {
-            v.code == "ASSOCIATION_NOT_VALID_AT_MEASUREMENT_AND_DECISION"
-        }));
+        assert!(
+            result
+                .violations
+                .iter()
+                .any(|v| { v.code == "ASSOCIATION_NOT_VALID_AT_MEASUREMENT_AND_DECISION" })
+        );
     }
 
     #[test]
@@ -493,7 +575,12 @@ mod tests {
         let mut actual = candidate();
         actual["qif_reference_clock_id"] = json!("CMM-LOCAL-BOOT-7");
         let result = evaluate_inspection_join(&actual);
-        assert!(result.violations.iter().any(|v| v.code == "REFERENCE_CLOCK_MISMATCH"));
+        assert!(
+            result
+                .violations
+                .iter()
+                .any(|v| v.code == "REFERENCE_CLOCK_MISMATCH")
+        );
     }
 
     #[test]
@@ -522,9 +609,18 @@ mod tests {
         for (field, wrong) in [
             ("association_cycle_id", "CYCLE-OTHER"),
             ("association_qif_result_id", "QIF-RESULT-OTHER"),
-            ("association_cycle_source_document_sha256", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
-            ("association_mtconnect_document_sha256", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
-            ("association_qif_document_sha256", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+            (
+                "association_cycle_source_document_sha256",
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            ),
+            (
+                "association_mtconnect_document_sha256",
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            ),
+            (
+                "association_qif_document_sha256",
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            ),
         ] {
             let mut actual = candidate();
             actual[field] = json!(wrong);
@@ -538,15 +634,21 @@ mod tests {
         let mut actual = candidate();
         actual.as_object_mut().unwrap().remove("original_unit");
         let result = evaluate_inspection_join(&actual);
-        assert!(result.violations.iter().any(|v| {
-            v.code == "ORIGINAL_OR_DERIVED_MEASUREMENT_PROVENANCE_MISSING"
-        }));
+        assert!(
+            result
+                .violations
+                .iter()
+                .any(|v| { v.code == "ORIGINAL_OR_DERIVED_MEASUREMENT_PROVENANCE_MISSING" })
+        );
     }
 
     #[test]
     fn projection_schema_rejects_missing_receipt_digest_and_unknown_root_fields() {
         let mut missing_digest = candidate();
-        missing_digest.as_object_mut().unwrap().remove("association_receipt_sha256");
+        missing_digest
+            .as_object_mut()
+            .unwrap()
+            .remove("association_receipt_sha256");
         assert!(!validate_schema(&missing_digest));
 
         let mut unknown = candidate();
@@ -559,9 +661,12 @@ mod tests {
         let mut actual = candidate();
         actual["decision_time_ns"] = json!(1800000001_u64);
         let result = evaluate_inspection_join(&actual);
-        assert!(result.violations.iter().any(|v| {
-            v.code == "ASSOCIATION_NOT_VALID_AT_MEASUREMENT_AND_DECISION"
-        }));
+        assert!(
+            result
+                .violations
+                .iter()
+                .any(|v| { v.code == "ASSOCIATION_NOT_VALID_AT_MEASUREMENT_AND_DECISION" })
+        );
     }
 
     #[test]
@@ -570,6 +675,11 @@ mod tests {
         actual["cycle_start_ns"] = json!(1750000700_u64);
         actual["cycle_end_ns"] = json!(1750000600_u64);
         let result = evaluate_inspection_join(&actual);
-        assert!(result.violations.iter().any(|v| v.code == "INVALID_CYCLE_INTERVAL"));
+        assert!(
+            result
+                .violations
+                .iter()
+                .any(|v| v.code == "INVALID_CYCLE_INTERVAL")
+        );
     }
 }

@@ -54,7 +54,10 @@ fn main() -> ExitCode {
         match validate_profile(&schema, &profile) {
             Ok(summary) => println!(
                 "PASS {}: {} layers; scope={}; source={}",
-                summary.profile_id, summary.layer_count, summary.execution_scope, summary.source_class
+                summary.profile_id,
+                summary.layer_count,
+                summary.execution_scope,
+                summary.source_class
             ),
             Err(errors) => {
                 eprintln!("FAIL {label}:");

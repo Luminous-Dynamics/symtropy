@@ -56,7 +56,9 @@ pub fn compare_required_fields(
             return Err("required_fields contains an empty field name".to_owned());
         }
         if !seen.insert(*field) {
-            return Err(format!("required_fields contains duplicate field {field:?}"));
+            return Err(format!(
+                "required_fields contains duplicate field {field:?}"
+            ));
         }
     }
 
@@ -98,14 +100,12 @@ pub fn compare_required_fields(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::{json, Value};
+    use serde_json::{Value, json};
 
-    const CANDIDATE: &str =
-        include_str!("../tests/fixtures/mtconnect-observation.candidate.json");
+    const CANDIDATE: &str = include_str!("../tests/fixtures/mtconnect-observation.candidate.json");
     const PROJECTION_SCHEMA: &str = include_str!("../../portable-observation.schema.json");
     const ASSET_SCHEMA: &str = include_str!("../../portable-asset.schema.json");
-    const ASSET_CANDIDATE: &str =
-        include_str!("../tests/fixtures/mtconnect-asset.candidate.json");
+    const ASSET_CANDIDATE: &str = include_str!("../tests/fixtures/mtconnect-asset.candidate.json");
 
     const FIELDS: &[&str] = &[
         "projection_schema_version",
@@ -210,7 +210,6 @@ mod tests {
         assert!(!validator.is_valid(&unknown));
     }
 
-
     #[test]
     fn qualified_calibration_requires_exact_evidence_reference() {
         let schema: Value =
@@ -234,7 +233,10 @@ mod tests {
         let actual = candidate();
         assert_eq!(actual["evidence_class"], json!("synthetic"));
         assert_eq!(actual["calibration_disposition"], json!("unknown"));
-        assert_eq!(actual["measurement_uncertainty_disposition"], json!("unknown"));
+        assert_eq!(
+            actual["measurement_uncertainty_disposition"],
+            json!("unknown")
+        );
         let result = compare_required_fields(&oracle(), &actual, FIELDS).unwrap();
         assert!(result.equivalent_on_required_fields);
     }
@@ -249,8 +251,7 @@ mod tests {
             .should_validate_formats(true)
             .build(&asset_schema)
             .expect("asset schema validator must build");
-        let asset: Value =
-            serde_json::from_str(ASSET_CANDIDATE).expect("asset fixture must parse");
+        let asset: Value = serde_json::from_str(ASSET_CANDIDATE).expect("asset fixture must parse");
         assert!(asset_validator.is_valid(&asset));
 
         let stream_schema: Value =
@@ -266,7 +267,6 @@ mod tests {
         assert!(!stream_validator.is_valid(&invalid_stream));
     }
 
-
     fn stream_variant(kind: &str) -> Value {
         let mut value = candidate();
         value["native_kind"] = json!(kind);
@@ -279,7 +279,8 @@ mod tests {
                 value["reference_timestamp_ns"] = json!(1750000200_u64);
                 value["native_unit"] = json!("");
                 value["value_text"] = json!("CYCLE_ACTIVE");
-                value["source_locator"] = json!("/MTConnectStreams/Streams/ComponentStream/Observations/Observation[1]");
+                value["source_locator"] =
+                    json!("/MTConnectStreams/Streams/ComponentStream/Observations/Observation[1]");
             }
             "CONDITION" => {
                 value["data_item_id"] = json!("DID-002");
@@ -289,7 +290,8 @@ mod tests {
                 value["reference_timestamp_ns"] = json!(1750000300_u64);
                 value["native_unit"] = json!("");
                 value["value_text"] = json!("level=NORMAL;code=OK;description=No fault");
-                value["source_locator"] = json!("/MTConnectStreams/Streams/ComponentStream/Observations/Observation[2]");
+                value["source_locator"] =
+                    json!("/MTConnectStreams/Streams/ComponentStream/Observations/Observation[2]");
             }
             _ => panic!("unsupported test stream kind"),
         }
@@ -309,7 +311,8 @@ mod tests {
                 value["native_kind"] = json!("EVENT");
                 value["native_unit"] = json!("");
                 value["value_text"] = json!("CYCLE_ACTIVE");
-                value["source_locator"] = json!("/MTConnectStreams/Streams/ComponentStream/Observations/Observation[1]");
+                value["source_locator"] =
+                    json!("/MTConnectStreams/Streams/ComponentStream/Observations/Observation[1]");
             }
             "CONDITION" => {
                 value["data_item_id"] = json!("DID-002");
@@ -320,7 +323,8 @@ mod tests {
                 value["native_kind"] = json!("CONDITION");
                 value["native_unit"] = json!("");
                 value["value_text"] = json!("level=NORMAL;code=OK;description=No fault");
-                value["source_locator"] = json!("/MTConnectStreams/Streams/ComponentStream/Observations/Observation[2]");
+                value["source_locator"] =
+                    json!("/MTConnectStreams/Streams/ComponentStream/Observations/Observation[2]");
             }
             _ => panic!("unsupported test stream kind"),
         }
@@ -348,7 +352,8 @@ mod tests {
     fn event_and_condition_cannot_be_coerced_to_each_other() {
         let event_as_condition = stream_variant("EVENT");
         let condition_truth = stream_variant_oracle("CONDITION");
-        let result = compare_required_fields(&condition_truth, &event_as_condition, FIELDS).unwrap();
+        let result =
+            compare_required_fields(&condition_truth, &event_as_condition, FIELDS).unwrap();
         assert!(!result.equivalent_on_required_fields);
     }
 
@@ -359,9 +364,12 @@ mod tests {
         assert!(result.equivalent_on_required_fields);
         assert_eq!(result.compared_fields, FIELDS.len());
         assert_eq!(result.matched_fields, FIELDS.len());
-        assert!(result.results.iter().all(|field| {
-            field.disposition == FieldDisposition::Match
-        }));
+        assert!(
+            result
+                .results
+                .iter()
+                .all(|field| { field.disposition == FieldDisposition::Match })
+        );
     }
 
     #[test]
@@ -372,7 +380,12 @@ mod tests {
         assert!(!result.equivalent_on_required_fields);
         assert_eq!(result.matched_fields, FIELDS.len() - 1);
         assert_eq!(
-            result.results.iter().find(|field| field.field == "device_uuid").unwrap().disposition,
+            result
+                .results
+                .iter()
+                .find(|field| field.field == "device_uuid")
+                .unwrap()
+                .disposition,
             FieldDisposition::Mismatch
         );
     }
@@ -384,7 +397,12 @@ mod tests {
         let result = compare_required_fields(&oracle(), &actual, FIELDS).unwrap();
         assert!(!result.equivalent_on_required_fields);
         assert_eq!(
-            result.results.iter().find(|field| field.field == "sequence").unwrap().disposition,
+            result
+                .results
+                .iter()
+                .find(|field| field.field == "sequence")
+                .unwrap()
+                .disposition,
             FieldDisposition::MissingFromCandidate
         );
     }
@@ -400,7 +418,8 @@ mod tests {
     #[test]
     fn changed_clock_mapping_is_a_semantic_mismatch() {
         let mut actual = candidate();
-        actual["clock_mapping_sha256"] = json!("7000000000000000000000000000000000000000000000000000000000000000");
+        actual["clock_mapping_sha256"] =
+            json!("7000000000000000000000000000000000000000000000000000000000000000");
         let result = compare_required_fields(&oracle(), &actual, FIELDS).unwrap();
         assert!(!result.equivalent_on_required_fields);
     }
@@ -440,7 +459,12 @@ mod tests {
         let result = compare_required_fields(&expected, &candidate(), FIELDS).unwrap();
         assert!(!result.equivalent_on_required_fields);
         assert_eq!(
-            result.results.iter().find(|field| field.field == "data_item_id").unwrap().disposition,
+            result
+                .results
+                .iter()
+                .find(|field| field.field == "data_item_id")
+                .unwrap()
+                .disposition,
             FieldDisposition::MissingFromOracle
         );
     }
@@ -468,7 +492,12 @@ mod tests {
         let result = compare_required_fields(&oracle(), &actual, FIELDS).unwrap();
         assert!(!result.equivalent_on_required_fields);
         assert_eq!(
-            result.results.iter().find(|field| field.field == "source_locator").unwrap().disposition,
+            result
+                .results
+                .iter()
+                .find(|field| field.field == "source_locator")
+                .unwrap()
+                .disposition,
             FieldDisposition::MissingFromCandidate
         );
     }
@@ -480,5 +509,4 @@ mod tests {
         let result = compare_required_fields(&oracle(), &actual, FIELDS).unwrap();
         assert!(!result.equivalent_on_required_fields);
     }
-
 }

@@ -4,8 +4,12 @@
 //! Read-only validator for a machine-cycle to QIF inspection association projection.
 
 use mfg_architecture_profile_validator::inspection_evaluator::evaluate_inspection_join;
-use serde_json::{json, Value};
-use std::{env, fs, path::{Path, PathBuf}, process::ExitCode};
+use serde_json::{Value, json};
+use std::{
+    env, fs,
+    path::{Path, PathBuf},
+    process::ExitCode,
+};
 
 fn read_json(path: &Path) -> Result<Value, String> {
     let bytes = fs::read(path).map_err(|error| format!("{}: {error}", path.display()))?;
@@ -16,9 +20,7 @@ fn read_json(path: &Path) -> Result<Value, String> {
 fn main() -> ExitCode {
     let args: Vec<PathBuf> = env::args_os().skip(1).map(PathBuf::from).collect();
     if args.len() != 2 {
-        eprintln!(
-            "usage: validate-inspection-join <inspection-join.schema.json> <candidate.json>"
-        );
+        eprintln!("usage: validate-inspection-join <inspection-join.schema.json> <candidate.json>");
         return ExitCode::from(2);
     }
 

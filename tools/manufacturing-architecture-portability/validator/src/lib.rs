@@ -33,7 +33,9 @@ pub fn validate_profile(schema: &Value, profile: &Value) -> Result<ProfileSummar
     }
 
     if let Err(error) = draft202012::meta::validate(schema) {
-        return Err(vec![format!("schema: invalid Draft 2020-12 schema: {error}")]);
+        return Err(vec![format!(
+            "schema: invalid Draft 2020-12 schema: {error}"
+        )]);
     }
 
     let validator = draft202012::options()
@@ -144,7 +146,10 @@ fn validate_semantics(profile: &Value) -> Vec<String> {
                         .to_owned(),
                 );
             }
-            if matches!(evaluation_status, "conformance_tested" | "independently_evaluated") {
+            if matches!(
+                evaluation_status,
+                "conformance_tested" | "independently_evaluated"
+            ) {
                 errors.push(
                     "synthetic_fixture: cannot claim conformance_tested or independently_evaluated"
                         .to_owned(),
@@ -168,10 +173,7 @@ fn validate_semantics(profile: &Value) -> Vec<String> {
 
     let mut reference_roles = BTreeMap::new();
     let mut reference_ids = BTreeSet::new();
-    if let Some(references) = profile
-        .get("standard_references")
-        .and_then(Value::as_array)
-    {
+    if let Some(references) = profile.get("standard_references").and_then(Value::as_array) {
         for (index, reference) in references.iter().enumerate() {
             let id = string_at(reference, "/standard_ref_id").unwrap_or_default();
             let role = string_at(reference, "/role").unwrap_or_default();
@@ -195,15 +197,13 @@ fn validate_semantics(profile: &Value) -> Vec<String> {
 
             require_read_only(layer, "/access_contract", &mut errors);
 
-            let standard_ref_id =
-                string_at(layer, "/standard_ref_id").unwrap_or_default();
+            let standard_ref_id = string_at(layer, "/standard_ref_id").unwrap_or_default();
             match reference_roles.get(standard_ref_id) {
                 None => errors.push(format!(
                     "{base}/standard_ref_id: unresolved reference {standard_ref_id:?}"
                 )),
                 Some(role) => {
-                    let layer_kind =
-                        string_at(layer, "/layer_kind").unwrap_or_default();
+                    let layer_kind = string_at(layer, "/layer_kind").unwrap_or_default();
                     if role != layer_kind {
                         errors.push(format!(
                             "{base}/layer_kind: {layer_kind:?} does not match standard reference role {role:?}"
@@ -214,14 +214,10 @@ fn validate_semantics(profile: &Value) -> Vec<String> {
 
             let implementation_status =
                 string_at(layer, "/implementation/implementation_status").unwrap_or_default();
-            let admission_status =
-                string_at(layer, "/admission/status").unwrap_or_default();
-            let preserved =
-                strings_at(layer, "/semantic_contract/preserved_fields");
-            let required =
-                strings_at(layer, "/semantic_contract/required_fields_to_preserve");
-            let unsupported =
-                strings_at(layer, "/semantic_contract/unsupported_fields");
+            let admission_status = string_at(layer, "/admission/status").unwrap_or_default();
+            let preserved = strings_at(layer, "/semantic_contract/preserved_fields");
+            let required = strings_at(layer, "/semantic_contract/required_fields_to_preserve");
+            let unsupported = strings_at(layer, "/semantic_contract/unsupported_fields");
 
             if !preserved.is_subset(&required) {
                 errors.push(format!(
@@ -293,8 +289,7 @@ mod tests {
     const I3X: &str = include_str!("../../profiles/i3x-1.0.reference.json");
     const OPC_MACHINERY: &str =
         include_str!("../../profiles/opcua-machinery-1.04.2.reference.json");
-    const OPC_ROBOTICS: &str =
-        include_str!("../../profiles/opcua-robotics-1.02.reference.json");
+    const OPC_ROBOTICS: &str = include_str!("../../profiles/opcua-robotics-1.02.reference.json");
 
     fn schema() -> Value {
         serde_json::from_str(SCHEMA).expect("schema JSON must parse")
@@ -312,8 +307,8 @@ mod tests {
     }
 
     fn assert_invalid(profile: &Value, expected_fragment: &str) {
-        let errors = validate_profile(&schema(), profile)
-            .expect_err("mutated profile must fail validation");
+        let errors =
+            validate_profile(&schema(), profile).expect_err("mutated profile must fail validation");
         let joined = errors.join("\n");
         assert!(
             joined.contains(expected_fragment),
@@ -397,8 +392,7 @@ mod tests {
     #[test]
     fn rejects_reference_profile_claiming_implementation() {
         let mut profile = parse_profile(I3X);
-        profile["layers"][0]["implementation"]["implementation_status"] =
-            json!("implemented");
+        profile["layers"][0]["implementation"]["implementation_status"] = json!("implemented");
         assert_invalid(&profile, "reference_only profiles require");
     }
 
@@ -415,16 +409,17 @@ mod tests {
     fn rejects_synthetic_profile_promotion_to_conformance() {
         let mut profile = parse_profile(MQTT);
         profile["evaluation_status"] = json!("conformance_tested");
-        profile["layers"][0]["admission"]["status"] =
-            json!("official_conformance_tested");
-        assert_invalid(&profile, "synthetic_fixture: cannot claim conformance_tested");
+        profile["layers"][0]["admission"]["status"] = json!("official_conformance_tested");
+        assert_invalid(
+            &profile,
+            "synthetic_fixture: cannot claim conformance_tested",
+        );
     }
 
     #[test]
     fn rejects_preserved_fields_not_declared_as_required() {
         let mut profile = parse_profile(MQTT);
-        profile["layers"][0]["semantic_contract"]["required_fields_to_preserve"] =
-            json!([]);
+        profile["layers"][0]["semantic_contract"]["required_fields_to_preserve"] = json!([]);
         assert_invalid(
             &profile,
             "preserved_fields: a preserved field is not declared",
@@ -436,7 +431,10 @@ mod tests {
         let mut profile = parse_profile(MQTT);
         let mut second = profile["standard_references"][0].clone();
         second["name"] = json!("Duplicated MQTT reference");
-        profile["standard_references"].as_array_mut().unwrap().push(second);
+        profile["standard_references"]
+            .as_array_mut()
+            .unwrap()
+            .push(second);
         assert_invalid(&profile, "duplicate ID");
     }
 
@@ -447,7 +445,6 @@ mod tests {
         assert_invalid(&profile, "cannot claim implementation conformance");
     }
 }
-
 
 pub mod semantic_evaluator;
 
