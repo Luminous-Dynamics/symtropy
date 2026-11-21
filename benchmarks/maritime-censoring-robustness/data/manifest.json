@@ -48,7 +48,7 @@
     "conditional inverse-probability-of-censoring Horvitz-Thompson incidence reference using the known synthetic G(t|X)"
   ],
   "non_identification_outputs": [
-    "NOT_IDENTIFIED",
+    "SENSITIVITY_REQUIRED_NOT_IDENTIFIED",
     "NOT_EVALUABLE"
   ],
   "claim_ceiling": "The simulator falsifies estimator assumptions against synthetic known truth only. It does not authenticate port data or estimate real maritime waiting times.",
@@ -80,5 +80,10 @@
     }
   },
   "tie_convention": "If event time and administrative censor time are equal, the event is observed before censoring.",
-  "bounds_note": "Lower cause incidence is observed cause share; upper is observed cause share plus the unresolved fraction. This is a broad finite-cohort bound, not a confidence interval or a certified sharp bound."
+  "bounds_note": "Lower cause incidence is observed cause share; upper is observed cause share plus the unresolved fraction. This is a broad finite-cohort bound, not a confidence interval or a certified sharp bound.",
+  "random_streams": {
+    "latent_event_seed": "scenario_seed XOR 0xA0761D6478BD642F",
+    "administrative_censor_seed": "scenario_seed XOR 0xE7037ED1A0B428DB",
+    "note": "Separate deterministic SplitMix64 streams prevent variable latent-event draw counts from coupling event-time and administrative-censor sequences."
+  }
 }
