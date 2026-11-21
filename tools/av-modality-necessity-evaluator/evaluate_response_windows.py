@@ -116,23 +116,29 @@ def evaluate(workload: dict[str, Any], truth: dict[str, Any], submission: dict[s
             raise EvaluationError(f"{episode_id}: duplicate actions")
 
         violations: list[str] = []
+        invalid_action_ids: set[str] = set()
         action_rows = list(action_by_id.values())
         for action in action_rows:
             trigger = action.get("trigger_event_id")
             if trigger not in event_by_id:
+                invalid_action_ids.add(action["action_id"])
                 violations.append(f"{action.get('action_id')}:unknown_trigger_event")
                 continue
             trigger_tick = event_by_id[trigger].get("tick")
             decision_tick = action.get("decision_tick")
             if not isinstance(decision_tick, int) or isinstance(decision_tick, bool):
+                invalid_action_ids.add(action["action_id"])
                 violations.append(f"{action.get('action_id')}:invalid_decision_tick")
             elif isinstance(trigger_tick, int) and decision_tick < trigger_tick:
+                invalid_action_ids.add(action["action_id"])
                 violations.append(f"{action.get('action_id')}:decision_precedes_trigger")
             output_tick = action.get("output_start_tick")
             if output_tick is not None:
                 if not isinstance(output_tick, int) or isinstance(output_tick, bool):
+                    invalid_action_ids.add(action["action_id"])
                     violations.append(f"{action.get('action_id')}:invalid_output_start_tick")
                 elif isinstance(trigger_tick, int) and output_tick < trigger_tick:
+                    invalid_action_ids.add(action["action_id"])
                     violations.append(f"{action.get('action_id')}:output_precedes_trigger")
             if action.get("output_end_tick") is not None and isinstance(output_tick, int):
                 if action["output_end_tick"] < output_tick:
@@ -196,7 +202,7 @@ def evaluate(workload: dict[str, Any], truth: dict[str, Any], submission: dict[s
                 response_windows += 1
                 candidate_action = expected_match
                 output_tick = candidate_action.get("output_start_tick") if candidate_action else None
-                if candidate_action is None or output_tick is None:
+                if candidate_action is None or candidate_action["action_id"] in invalid_action_ids or output_tick is None:
                     missed += 1
                 elif output_tick < decision.get("window_start_tick", 0):
                     early += 1
@@ -211,7 +217,7 @@ def evaluate(workload: dict[str, Any], truth: dict[str, Any], submission: dict[s
                         decision_ok = False
             elif expected_action in {"yield", "stop"}:
                 candidate_action = expected_match
-                if candidate_action is not None and in_window(
+                if candidate_action is not None and candidate_action["action_id"] not in invalid_action_ids and in_window(
                     candidate_action.get("decision_tick"),
                     decision.get("window_start_tick"),
                     decision.get("window_end_tick"),
@@ -235,7 +241,7 @@ def evaluate(workload: dict[str, Any], truth: dict[str, Any], submission: dict[s
                         stop_failures += 1
             elif expected_action in {"cancel", "deescalate", "abstain"}:
                 candidate_action = expected_match
-                if candidate_action is not None and in_window(
+                if candidate_action is not None and candidate_action["action_id"] not in invalid_action_ids and in_window(
                     candidate_action.get("decision_tick"),
                     decision.get("window_start_tick"),
                     decision.get("window_end_tick"),
