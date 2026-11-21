@@ -136,6 +136,7 @@ pub struct ActionTicket {
     pub expected_calibration_id: String,
     pub expected_effect_digest: Digest,
     /// Digest of the approved observer-vs-executor failure-domain policy.
+    /// This is an opaque upstream commitment, not authenticated by this crate.
     pub observer_independence_policy_digest: Digest,
 }
 
@@ -428,7 +429,8 @@ pub struct PhysicalOutcomeEvidence {
     pub source_id: String,
     pub executing_controller_id: String,
     /// Canonical dependency domains declared for the observing source.
-    /// These must come from an authenticated upstream inventory.
+    /// The upstream inventory and source binding must be authenticated before
+    /// this receipt reaches the validator; these labels alone prove nothing.
     pub observer_failure_domains: Vec<String>,
     pub observer_role: ObserverRole,
     pub source_sequence: u64,
@@ -464,8 +466,10 @@ pub struct OutcomePolicy {
     pub last_source_sequence: u64,
     pub minimum_confidence_basis_points: u16,
     /// Dependency domains of the executor/platform path for this action.
+    /// Must be supplied by the authenticated platform configuration owner.
     pub execution_failure_domains: Vec<String>,
-    /// Approved observer dependency domains under the ticket-bound policy.
+    /// Exact observer dependency path under the ticket-bound policy.
+    /// Must be supplied by the authenticated trust/platform policy owner.
     pub expected_observer_failure_domains: Vec<String>,
     pub observer_independence_policy_digest: Digest,
 }
