@@ -36,6 +36,10 @@
       "common_denominator": "2*Q**2*rho**3*(Q + rho**2)**6",
       "equivalent_multiplier": "Delta_bar^4/(Qbar+rho^2)^2",
       "horizon_row_value": "identically zero coefficient-by-coefficient",
+      "horizon_valuation": {
+        "first_derivative": "all coefficient/source slopes vanish",
+        "first_nonzero_order_at_least": 2
+      },
       "jet_monomial_count": 7,
       "jet_polynomial_degree": 1,
       "myers_perry_exact_zero": true,
@@ -61,6 +65,10 @@
       "common_denominator": "Q**4*rho**5*(Q + rho**2)**8",
       "equivalent_multiplier": "Delta_bar^3/(Qbar+rho^2)^2",
       "horizon_row_value": "identically zero coefficient-by-coefficient",
+      "horizon_valuation": {
+        "all_other_first_coefficient_terms": "zero",
+        "first_nonzero_coefficient": "4*(lambda+2)/(lambda+1)^2*(Fhat2(1)-Bhat2(1))"
+      },
       "jet_monomial_count": 9,
       "jet_polynomial_degree": 1,
       "myers_perry_exact_zero": true,
@@ -86,6 +94,9 @@
       "common_denominator": "2*Q**3*rho**5*(Q + rho**2)**7",
       "equivalent_multiplier": "Delta_bar^3/(Qbar+rho^2)^2",
       "horizon_row_value": "identically zero coefficient-by-coefficient",
+      "horizon_valuation": {
+        "first_derivative": "not yet derived"
+      },
       "jet_monomial_count": 7,
       "jet_polynomial_degree": 1,
       "myers_perry_exact_zero": true,
@@ -126,6 +137,8 @@
   },
   "status": "all_four_even_equations_have_analytic_horizon_row_forms",
   "validation": {
+    "eb_first_horizon_derivative_vanishes_exactly": true,
+    "eg_first_horizon_coefficient_exact": true,
     "exact_myers_perry_controls_for_b_g_h": true,
     "exact_positive_denominators": true,
     "full_scaled_rows_affine_degree_one": true,
