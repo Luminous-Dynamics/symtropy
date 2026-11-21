@@ -163,9 +163,12 @@ fn cholesky(
     for i in 0..n {
         for j in 0..=i {
             let mut value = matrix[i][j];
-            for k in 0..j {
-                value -= lower[i][k] * lower[j][k];
-            }
+            let correction = lower[i][..j]
+                .iter()
+                .zip(lower[j][..j].iter())
+                .map(|(left, right)| left * right)
+                .sum::<f64>();
+            value -= correction;
             if i == j {
                 if !value.is_finite() || value <= 1.0e-12 {
                     return Err(CorrelationEnvelopeError::CovarianceNotPositiveDefinite(
