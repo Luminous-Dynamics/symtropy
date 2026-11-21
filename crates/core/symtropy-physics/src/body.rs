@@ -245,22 +245,12 @@ impl<const D: usize> RigidBody<D> {
     }
 }
 
-
 #[cfg(test)]
 mod dimensioned_sphere_inertia_tests {
     use super::*;
 
-    fn assert_isotropic_sphere_inertia<const D: usize>(
-        mass: f64,
-        radius: f64,
-        expected: f64,
-    ) {
-        let body = RigidBody::<D>::dynamic_sphere(
-            BodyHandle(1),
-            Point::origin(),
-            radius,
-            mass,
-        );
+    fn assert_isotropic_sphere_inertia<const D: usize>(mass: f64, radius: f64, expected: f64) {
+        let body = RigidBody::<D>::dynamic_sphere(BodyHandle(1), Point::origin(), radius, mass);
         for (axis, actual) in body.inertia.iter().enumerate() {
             assert!(
                 (*actual - expected).abs() < 1.0e-12,
@@ -288,24 +278,10 @@ mod dimensioned_sphere_inertia_tests {
 
     #[test]
     fn solid_ball_inertia_scales_linearly_with_mass_and_quadratically_with_radius() {
-        let body = RigidBody::<3>::dynamic_sphere(
-            BodyHandle(1),
-            Point::origin(),
-            2.0,
-            3.0,
-        );
-        let doubled_mass = RigidBody::<3>::dynamic_sphere(
-            BodyHandle(2),
-            Point::origin(),
-            2.0,
-            6.0,
-        );
-        let doubled_radius = RigidBody::<3>::dynamic_sphere(
-            BodyHandle(3),
-            Point::origin(),
-            4.0,
-            3.0,
-        );
+        let body = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 2.0, 3.0);
+        let doubled_mass = RigidBody::<3>::dynamic_sphere(BodyHandle(2), Point::origin(), 2.0, 6.0);
+        let doubled_radius =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(3), Point::origin(), 4.0, 3.0);
         for ((mass_value, original), radius_value) in doubled_mass
             .inertia
             .iter()
@@ -319,12 +295,7 @@ mod dimensioned_sphere_inertia_tests {
 
     #[test]
     fn three_dimensional_sphere_preserves_legacy_solid_sphere_value() {
-        let body = RigidBody::<3>::dynamic_sphere(
-            BodyHandle(1),
-            Point::origin(),
-            0.5,
-            2.0,
-        );
+        let body = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 2.0);
         let expected = 0.4 * 2.0 * 0.5 * 0.5;
         for actual in body.inertia.iter() {
             assert!((actual - expected).abs() < 1.0e-12);
