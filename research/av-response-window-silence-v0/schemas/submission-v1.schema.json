@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/av-response-window-submission-v1.schema.json",
+  "title": "AV Response Window Candidate Submission v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "policy_id",
+    "run_id",
+    "measurement_status",
+    "predictions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "const": "av-response-window-silence-v0"
+    },
+    "policy_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "measurement_status": {
+      "const": "synthetic_reference"
+    },
+    "predictions": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "$ref": "#/$defs/prediction"
+      }
+    }
+  },
+  "$defs": {
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_id",
+        "trigger_event_id",
+        "action_type",
+        "decision_tick",
+        "turn_epoch",
+        "evidence_refs"
+      ],
+      "properties": {
+        "action_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "trigger_event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action_type": {
+          "enum": [
+            "respond",
+            "clarify",
+            "yield",
+            "stop",
+            "deescalate",
+            "cancel",
+            "abstain",
+            "defer"
+          ]
+        },
+        "decision_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "output_start_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "output_end_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "output_stop_ack_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "turn_epoch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_action_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "prediction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_id",
+        "actions"
+      ],
+      "properties": {
+        "episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/action"
+          }
+        }
+      }
+    }
+  }
+}
