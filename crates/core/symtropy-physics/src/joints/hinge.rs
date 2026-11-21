@@ -179,8 +179,15 @@ impl<const D: usize> Constraint<D> for HingeJoint<D> {
             let normal = joint_dir / dist;
             let rel_vel = body_b.linear_velocity - body_a.linear_velocity;
             let vel_along = rel_vel.dot(&normal);
-            let total_inv = (if body_a.is_dynamic() { body_a.inv_mass } else { 0.0 })
-                + (if body_b.is_dynamic() { body_b.inv_mass } else { 0.0 });
+            let total_inv = (if body_a.is_dynamic() {
+                body_a.inv_mass
+            } else {
+                0.0
+            }) + (if body_b.is_dynamic() {
+                body_b.inv_mass
+            } else {
+                0.0
+            });
             if total_inv > 1e-15 {
                 let impulse_mag = -vel_along * self.stiffness / total_inv;
                 let impulse = normal * impulse_mag;
@@ -264,27 +271,26 @@ impl<const D: usize> Constraint<D> for HingeJoint<D> {
                 let effective_inv_inertia = inv_i_a + inv_i_b;
 
                 if effective_inv_inertia.is_finite() && effective_inv_inertia > 1e-15 {
-                    let target_velocity = if let Some(target) =
-                        motor_state.target_relative_velocity()
-                    {
-                        Some(target)
-                    } else {
-                        // Evaluate and integrate the PD torque command once per
-                        // world step. Later iterations solve only the residual.
-                        let torque_command = (motor.kp * (motor.target_vel - rel_angular_vel)
-                            - rel_angular_vel * motor.kd)
-                            .clamp(-motor.max_force, motor.max_force);
-                        motor_state.initialize_velocity_target(
-                            rel_angular_vel,
-                            torque_command * dt,
-                            effective_inv_inertia,
-                        )
-                    };
+                    let target_velocity =
+                        if let Some(target) = motor_state.target_relative_velocity() {
+                            Some(target)
+                        } else {
+                            // Evaluate and integrate the PD torque command once per
+                            // world step. Later iterations solve only the residual.
+                            let torque_command = (motor.kp * (motor.target_vel - rel_angular_vel)
+                                - rel_angular_vel * motor.kd)
+                                .clamp(-motor.max_force, motor.max_force);
+                            motor_state.initialize_velocity_target(
+                                rel_angular_vel,
+                                torque_command * dt,
+                                effective_inv_inertia,
+                            )
+                        };
                     if let Some(target_velocity) = target_velocity {
                         let desired_impulse_increment =
                             (target_velocity - rel_angular_vel) / effective_inv_inertia;
-                        if let Some((delta_impulse, _velocity_after)) =
-                            motor_state.apply_impulse_increment(
+                        if let Some((delta_impulse, _velocity_after)) = motor_state
+                            .apply_impulse_increment(
                                 desired_impulse_increment,
                                 motor.max_force * dt,
                                 rel_angular_vel,
@@ -513,7 +519,6 @@ mod proptests {
     }
 }
 
-
 #[cfg(test)]
 mod motor_step_tests {
     use super::*;
@@ -538,10 +543,9 @@ mod motor_step_tests {
             Point::origin(),
             Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
         );
-        let mut moving =
-            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 1.0, 1.0);
-        let joint = HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1)
-            .with_motor(velocity_motor());
+        let mut moving = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 1.0, 1.0);
+        let joint =
+            HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1).with_motor(velocity_motor());
         let mut state = MotorStepState::default();
 
         joint.solve_velocity_with_state(&mut anchor, &mut moving, 0.1, None, &mut state);
@@ -557,12 +561,10 @@ mod motor_step_tests {
 
     #[test]
     fn hinge_motor_weights_angular_impulse_by_inverse_inertia() {
-        let mut a =
-            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
-        let mut b =
-            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 1.0, 1.0);
-        let joint = HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1)
-            .with_motor(velocity_motor());
+        let mut a = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
+        let mut b = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 1.0, 1.0);
+        let joint =
+            HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1).with_motor(velocity_motor());
         let mut state = MotorStepState::default();
 
         joint.solve_velocity_with_state(&mut a, &mut b, 0.1, None, &mut state);
@@ -575,13 +577,10 @@ mod motor_step_tests {
         assert!((state.accumulated_impulse() - 0.1).abs() < 1.0e-12);
     }
 
-
     #[test]
     fn hinge_motor_rejects_negative_effort_without_mutating_angular_velocity() {
-        let mut a =
-            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
-        let mut b =
-            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        let mut a = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
+        let mut b = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
         let motor = MotorDrive {
             target_pos: 0.0,
             target_vel: 1.0,
@@ -599,7 +598,6 @@ mod motor_step_tests {
         assert_eq!(state.take_work_receipt(), None);
     }
 
-
     #[test]
     fn hinge_motor_accumulates_velocity_feedback_impulse_increments() {
         let mut a = RigidBody::<3>::static_body(
@@ -607,8 +605,7 @@ mod motor_step_tests {
             Point::origin(),
             Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
         );
-        let mut b =
-            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 1.0, 1.0);
+        let mut b = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 1.0, 1.0);
         let motor = MotorDrive {
             target_pos: 0.0,
             target_vel: 1.0,
@@ -624,7 +621,8 @@ mod motor_step_tests {
         // A passive constraint perturbs relative angular velocity after the
         // motor's first impulse. Subsequent iterations restore only the
         // residual using the remaining step budget.
-        b.angular_velocity.set(0, 1, b.angular_velocity.get(0, 1) - 0.05);
+        b.angular_velocity
+            .set(0, 1, b.angular_velocity.get(0, 1) - 0.05);
         for _ in 0..7 {
             joint.solve_velocity_with_state(&mut a, &mut b, 0.1, None, &mut state);
         }
@@ -636,10 +634,8 @@ mod motor_step_tests {
 
     #[test]
     fn hinge_motor_impulse_never_exceeds_the_single_step_cap() {
-        let mut a =
-            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
-        let mut b =
-            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        let mut a = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
+        let mut b = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
         let motor = MotorDrive {
             target_pos: 0.0,
             target_vel: 100.0,
