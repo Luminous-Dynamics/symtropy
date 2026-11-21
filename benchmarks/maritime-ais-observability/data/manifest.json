@@ -57,7 +57,7 @@
       "call_reference_id",
       "event_kind"
     ],
-    "matching_method": "deterministic one-to-one minimum distance between ground-truth event tick and inferred source-event interval",
+    "matching_method": "maximum-cardinality then minimum-total-interval-distance one-to-one bipartite matching using residual min-cost flow",
     "outputs": [
       "true_positive",
       "false_positive",
@@ -74,6 +74,7 @@
       "AIS_INVALID_POSITION_FIX",
       "AIS_ZONE_SPEED_INCONSISTENCY"
     ],
-    "claim_ceiling": "Synthetic known-truth event scoring only; no field detection accuracy claim."
+    "claim_ceiling": "Synthetic known-truth event scoring only; no field detection accuracy claim.",
+    "tie_break": "deterministic for a fixed input ordering"
   }
 }
