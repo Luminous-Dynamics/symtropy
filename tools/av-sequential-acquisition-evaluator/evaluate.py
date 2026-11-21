@@ -83,6 +83,22 @@ def validate_episode(episode: dict[str, Any]) -> tuple[list[str], dict[str, dict
             raise EvaluationError(f"{episode_id}: decision loss must be finite for every state")
     if not isinstance(actions, list) or len(actions) > MAX_ACTIONS_FOR_EXACT_ORACLE:
         raise EvaluationError(f"{episode_id}: actions must be a list with at most {MAX_ACTIONS_FOR_EXACT_ORACLE} items")
+    deadline = episode.get("deadline_tick")
+    if isinstance(deadline, bool) or not isinstance(deadline, int) or deadline < 1:
+        raise EvaluationError(f"{episode_id}: deadline_tick must be a positive integer")
+    granted = episode.get("granted_permissions")
+    if not isinstance(granted, list) or any(not isinstance(x, str) or not x for x in granted):
+        raise EvaluationError(f"{episode_id}: malformed granted_permissions")
+    budget = episode.get("budget")
+    required_budget = (
+        "max_acquisition_cost_units", "max_audio_bytes", "max_video_frames",
+        "max_input_tokens", "max_energy_joules",
+    )
+    if not isinstance(budget, dict) or any(not finite_nonnegative(budget.get(key)) for key in required_budget):
+        raise EvaluationError(f"{episode_id}: malformed resource budget")
+    for key in ("max_audio_bytes", "max_video_frames", "max_input_tokens"):
+        if not isinstance(budget[key], int):
+            raise EvaluationError(f"{episode_id}: {key} must be an integer")
 
     indexed: dict[str, dict[str, Any]] = {}
     for action in actions:
@@ -244,7 +260,7 @@ def check_plan(episode: dict[str, Any], hidden: dict[str, Any], prediction: dict
     states, actions = validate_episode(episode)
     episode_id = episode["episode_id"]
     hidden_state = hidden.get("hidden_state")
-    if hidden_state not in states:
+    if not isinstance(hidden_state, str) or hidden_state not in states:
         raise EvaluationError(f"{episode_id}: hidden state is not in workload")
     hidden_outcomes = hidden.get("realized_outcomes")
     if not isinstance(hidden_outcomes, dict):
@@ -316,7 +332,7 @@ def check_plan(episode: dict[str, Any], hidden: dict[str, Any], prediction: dict
     posterior = posterior_after_observations(episode, observed)
     best_decision, posterior_risk = bayes_decision(posterior, episode["decision_loss_by_state"])
     decision = prediction.get("decision")
-    if decision not in episode["decision_loss_by_state"]:
+    if not isinstance(decision, str) or decision not in episode["decision_loss_by_state"]:
         raise EvaluationError(f"{episode_id}: decision outside action space")
     if decision != best_decision:
         raise EvaluationError(f"{episode_id}: decision is not Bayes-optimal for admitted evidence")
@@ -346,6 +362,8 @@ def evaluate(workload: dict[str, Any], truth: dict[str, Any], submission: dict[s
     def index(rows, label):
         result = {}
         for row in rows:
+            if not isinstance(row, dict):
+                raise EvaluationError(f"{label}: every episode row must be an object")
             key = row.get("episode_id")
             if not isinstance(key, str) or not key or key in result:
                 raise EvaluationError(f"{label}: invalid or duplicate episode ID")
