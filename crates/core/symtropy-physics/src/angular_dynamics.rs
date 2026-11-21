@@ -567,6 +567,8 @@ mod tests {
         let mut rotation = Rotor::<3>::identity();
         let initial_body_omega = SVector::from([0.01, 1.0, 0.02]);
         let mut angular_velocity = angular_vector_to_bivector(&initial_body_omega);
+        let mut conserved_world_momentum =
+            world_angular_momentum(&rotation, &angular_velocity, inertia).unwrap();
         let initial_transverse =
             (initial_body_omega[0].powi(2) + initial_body_omega[2].powi(2)).sqrt();
         let dt = 0.001;
@@ -574,9 +576,9 @@ mod tests {
         let mut maximum_transverse = initial_transverse;
 
         for _ in 0..steps {
-            let step = step_principal_inertia(
+            let step = step_principal_inertia_from_world_momentum(
                 &rotation,
-                &angular_velocity,
+                &conserved_world_momentum,
                 inertia,
                 &SVector::zeros(),
                 dt,
@@ -584,6 +586,7 @@ mod tests {
             .unwrap();
             rotation = step.rotation;
             angular_velocity = step.angular_velocity;
+            conserved_world_momentum = step.world_angular_momentum;
 
             let omega_world = bivector_to_angular_vector(&angular_velocity);
             let omega_body = rotation.reverse().rotate_vector(&omega_world);
@@ -593,7 +596,7 @@ mod tests {
 
         assert!(
             maximum_transverse > initial_transverse * 20.0,
-            "middle-axis perturbation should grow strongly: \
+            "middle-axis perturbation should grow strongly: \\
              initial={initial_transverse:e}, max={maximum_transverse:e}"
         );
         let final_momentum = world_angular_momentum(&rotation, &angular_velocity, inertia).unwrap();
@@ -603,10 +606,10 @@ mod tests {
             inertia,
         )
         .unwrap();
+        assert!(vec_close(&conserved_world_momentum, &initial_momentum, 1.0e-14));
         assert!(vec_close(&final_momentum, &initial_momentum, 2.0e-9));
         assert!(rotation.is_proper_rotation(1.0e-9));
     }
-
     #[test]
     fn torque_changes_world_momentum_by_exact_angular_impulse() {
         let inertia = PrincipalInertia3::new([1.2, 2.3, 3.4]).unwrap();
