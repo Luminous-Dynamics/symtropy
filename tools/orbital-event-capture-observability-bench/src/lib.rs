@@ -234,7 +234,7 @@ pub fn zero_miss_upper_bound_95(trials: usize) -> Result<f64, String> {
         return Err("trial count must be between 1 and the v0.1 maximum".to_owned());
     }
     // Numerically stable form of 1 - 0.05^(1/N).
-    Ok(-((-0.05_f64.ln() / trials as f64).exp_m1()))
+    Ok(-((0.05_f64.ln() / trials as f64).exp_m1()))
 }
 
 fn validate_reference_events(events: &[ReferenceEvent]) -> Result<(), String> {
