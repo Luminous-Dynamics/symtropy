@@ -1,0 +1,40 @@
+name: Mission Supervisor Reference
+
+on:
+  pull_request:
+    paths:
+      - 'benchmarks/mission-supervisor-reference/v0.1/**'
+      - '.github/workflows/mission-supervisor-reference.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'benchmarks/mission-supervisor-reference/v0.1/**'
+      - '.github/workflows/mission-supervisor-reference.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mission-supervisor-reference-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Validate evidence schema JSON syntax
+        run: |
+          jq empty benchmarks/mission-supervisor-reference/v0.1/receipt_envelope.schema.json
+          jq empty benchmarks/mission-supervisor-reference/v0.1/mission_evidence.schema.json
+      - name: Check formatting
+        run: cargo fmt --manifest-path benchmarks/mission-supervisor-reference/v0.1/Cargo.toml -- --check
+      - name: Run state-machine and negative-control tests
+        run: cargo test --manifest-path benchmarks/mission-supervisor-reference/v0.1/Cargo.toml --locked
+      - name: Run Clippy
+        run: cargo clippy --manifest-path benchmarks/mission-supervisor-reference/v0.1/Cargo.toml --all-targets --locked -- -D warnings

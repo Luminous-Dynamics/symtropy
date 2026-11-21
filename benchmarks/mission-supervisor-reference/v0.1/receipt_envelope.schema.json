@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/symtropy/mission-supervisor/receipt-envelope/v0.1",
+  "title": "Mission Supervisor receipt envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "content_digest",
+    "source_id",
+    "source_sequence",
+    "observed_at_ms",
+    "time_qualification",
+    "observer_role",
+    "confidence_basis_points"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "content_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "source_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_sequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "observed_at_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "time_qualification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_clock_id",
+        "source_boot_epoch_id",
+        "comparison_clock_id",
+        "comparison_boot_epoch_id",
+        "normalization_commitment"
+      ],
+      "properties": {
+        "source_clock_id": { "type": "string", "minLength": 1 },
+        "source_boot_epoch_id": { "type": "string", "minLength": 1 },
+        "comparison_clock_id": { "type": "string", "minLength": 1 },
+        "comparison_boot_epoch_id": { "type": "string", "minLength": 1 },
+        "normalization_commitment": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "observer_role": {
+      "enum": [
+        "independent_sensor",
+        "independent_evaluator",
+        "agent_self_report"
+      ]
+    },
+    "confidence_basis_points": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10000
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "schema_version": "0.1.0",
+  "mission_id": "pick-and-place-two-object-demo",
+  "min_confidence_basis_points": 9000,
+  "subgoals": [
+    {
+      "id": "pick-object-1",
+      "predicate_id": "object-1-in-gripper",
+      "depends_on": [],
+      "approved_recovery_plan_digests": [
+        "5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a"
+      ]
+    },
+    {
+      "id": "place-object-1",
+      "predicate_id": "object-1-on-target",
+      "depends_on": [
+        "pick-object-1"
+      ],
+      "approved_recovery_plan_digests": [
+        "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b"
+      ]
+    },
+    {
+      "id": "pick-object-2",
+      "predicate_id": "object-2-in-gripper",
+      "depends_on": [
+        "place-object-1"
+      ],
+      "approved_recovery_plan_digests": [
+        "5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c"
+      ]
+    },
+    {
+      "id": "place-object-2",
+      "predicate_id": "object-2-on-target",
+      "depends_on": [
+        "pick-object-2"
+      ],
+      "approved_recovery_plan_digests": [
+        "5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d"
+      ]
+    }
+  ],
+  "protocol_notes": [
+    "Acknowledged transport is not task success.",
+    "Only independent observer evidence can complete a predicate.",
+    "Unknown action outcome locks mutation until reconciled.",
+    "Recovery requires an allowlisted plan digest and independent safety permit.",
+    "This fixture defines no robot-specific action commands or safety limits."
+  ]
+}
