@@ -39,7 +39,8 @@ pub mod world;
 pub use angular_dynamics::{
     AngularDynamicsError, AngularStep3, PrincipalInertia3, angular_vector_to_bivector,
     angular_velocity_at_offset, angular_velocity_from_world_momentum, bivector_to_angular_vector,
-    rotational_kinetic_energy, step_principal_inertia, world_angular_momentum,
+    rotational_kinetic_energy, step_principal_inertia, step_principal_inertia_from_world_momentum,
+    world_angular_momentum,
 };
 pub use articulation::{ArticulatedChain, ChainBuilder, LinkSpec};
 pub use bivector_inertia::{BivectorInertia, RotationalInertiaError};
