@@ -25,6 +25,16 @@ A useful independent product-performance cohort is the 2026 REBCO anisotropy stu
 
 The initial benchmark should preserve model, architecture, sample, source batch, substrate, REBCO thickness, stabilizer, field orientation, criterion and test lab. It must not average or rank across mismatched conditions.
 
+## Condition-profile-specific spatial coverage
+
+The follow-on correction in [SC-IC-CONDITION-PROFILES-001 #6601](https://github.com/Luminous-Dynamics/symtropy/issues/6601) partitions every Ic coverage union by a deterministic condition-profile identity. The identity is computed from the exact operating-condition fields and measurement unit, including temperature, field magnitude/vector/orientation, current criterion, test current, electric-field criterion, strain and frequency where present. Geometry is retained on each source observation but is not part of the operating-condition identity because transport and non-contact proxy methods can have different measurement geometries while targeting the same operating condition.
+
+The auditor requires at least temperature, field magnitude or vector, field orientation or vector, current criterion, geometry and unit for any measured/inferred Ic observation that contributes to a coverage profile. Direct transport, calibrated proxy, inferred, calibration-unqualified and proxy-unqualified intervals are unioned separately *within each condition profile*. The report no longer emits one reel-wide Ic coverage fraction across unlike conditions.
+
+This matters because 77 K self-field Ic and 20 K / 5 T Ic are different engineering operating points. Their spatial footprints cannot be combined into one qualified coverage number. Explicitly unmeasured length remains a separate unscoped spatial quantity when no test-condition tuple is declared.
+
+The synthetic negative controls duplicate the same physical footprint at 77 K and 20 K and vary the current criterion. They require separate profile IDs and separate interval unions. This validates condition partitioning only; it does not interpolate Ic between temperatures or fields, infer an application envelope, or authorize product acceptance.
+
 ## Industry observability comparator: direct transport vs calibrated proxy
 
 SuperPower's public process description states that it measures transport critical current at 3 m intervals along conductor and also uses a calibrated non-contact magnetization system ("TapeStar") to produce a lengthwise Ic trace. The same page illustrates a transport measurement on approximately 630 m of 4 mm tape and a TapeStar trace of that same length. This is unusually useful because it documents a real industrial metrology architecture, rather than merely a product headline: https://www.superpower-inc.com/Technology.aspx
