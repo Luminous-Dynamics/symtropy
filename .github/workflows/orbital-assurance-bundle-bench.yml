@@ -78,7 +78,7 @@ jobs:
             and .result == "pass"
             and .report.evidence_class == "synthetic"
             and .report.claim_ceiling == "synthetic-assurance-graph-structure-only"
-            and .report.summary.case_count == 56
+            and .report.summary.case_count == 60
             and .report.summary.expected_result_mismatches == 0
             and .report.summary.review_bundle_complete >= 1
             and .report.summary.authority_grants == 0
