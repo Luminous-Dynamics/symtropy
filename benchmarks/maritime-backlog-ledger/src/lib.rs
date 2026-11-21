@@ -587,6 +587,63 @@ mod tests {
     }
 
     #[test]
+    fn independent_golden_results_pin_every_case_and_rejection_class() {
+        // This oracle is intentionally separate from the CSV expected_outcome
+        // column. It pins both accepted closing stock and rejected reason class.
+        let expected: [(&str, &str, &str); 32] = [
+            ("V01", "ACCEPT", "closing stock = 5"),
+            ("V02", "ACCEPT", "closing stock = 4"),
+            ("V03", "ACCEPT", "closing stock = 5"),
+            ("V04", "ACCEPT", "closing stock = 0"),
+            ("V05", "ACCEPT", "closing stock = 4"),
+            ("V06", "ACCEPT", "closing stock = 1"),
+            ("V07", "ACCEPT", "closing stock = 1"),
+            ("V08", "ACCEPT", "closing stock = 1"),
+            ("V09", "ACCEPT", "closing stock = 1"),
+            ("C10", "ACCEPT", "closing stock = 115"),
+            ("C11", "ACCEPT", "closing stock = 45"),
+            ("C12", "ACCEPT", "closing stock = 20"),
+            ("C13", "ACCEPT", "closing stock = 12"),
+            ("C14", "ACCEPT", "closing stock = 90"),
+            ("V15", "ACCEPT", "closing stock = 2"),
+            ("V16", "REJECT", "stock underflow"),
+            ("C17", "REJECT", "stock underflow"),
+            ("V18", "REJECT", "unsupported for this ledger"),
+            ("C19", "REJECT", "unsupported for this ledger"),
+            ("V20", "REJECT", "outside the case time window"),
+            ("V21", "REJECT", "outside the case time window"),
+            ("V22", "REJECT", "observed before it occurred"),
+            ("V23", "REJECT", "changed source, terminal or unit identity"),
+            ("V24", "REJECT", "reused with different content"),
+            ("V25", "REJECT", "visible revision gap"),
+            ("V26", "REJECT", "does not match case terminal"),
+            ("V27", "REJECT", "cannot mutate physical stock"),
+            ("V28", "REJECT", "has zero quantity"),
+            ("V29", "REJECT", "has zero quantity"),
+            ("C30", "REJECT", "stock-flow mismatch"),
+            ("C31", "REJECT", "does not match case stock unit"),
+            ("V32", "ACCEPT", "closing stock = 0"),
+        ];
+
+        let report = evaluate_reference_corpus().expect("reference corpus");
+        assert_eq!(report.cases.len(), expected.len());
+
+        for (observed, (case_id, disposition, detail)) in report.cases.iter().zip(expected) {
+            assert_eq!(observed.case_id, case_id, "case ordering changed");
+            assert_eq!(observed.actual, disposition, "wrong disposition for {case_id}");
+            if disposition == "ACCEPT" {
+                assert_eq!(observed.detail, detail, "wrong closing stock for {case_id}");
+            } else {
+                assert!(
+                    observed.detail.contains(detail),
+                    "wrong rejection class for {case_id}: {}",
+                    observed.detail
+                );
+            }
+        }
+    }
+
+    #[test]
     fn malformed_schema_is_not_guessed() {
         let error = evaluate_corpus(
             &CASES_CSV.replace("opening_stock", "opening_quantity"),
