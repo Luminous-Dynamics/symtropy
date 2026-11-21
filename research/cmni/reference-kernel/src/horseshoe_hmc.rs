@@ -171,7 +171,6 @@ fn hmc_transition(
     let dimension = current.len();
     let mut position = current.clone();
     let mut momentum: Vec<f64> = (0..dimension).map(|_| rng.normal()).collect();
-    let initial_momentum = momentum.clone();
     let initial_hamiltonian = -current_target.log_posterior + kinetic_energy(&momentum);
 
     let current_gradient = flatten_gradient(current_target);
@@ -199,6 +198,10 @@ fn hmc_transition(
         }
     }
 
+    // Momentum reversal makes the deterministic leapfrog proposal involutive.
+    for value in &mut momentum {
+        *value = -*value;
+    }
     let proposal_hamiltonian = -proposal_target.log_posterior + kinetic_energy(&momentum);
     let energy_error = proposal_hamiltonian - initial_hamiltonian;
     if !energy_error.is_finite()
@@ -215,9 +218,6 @@ fn hmc_transition(
         };
         (next_state, proposal_target, true, false)
     } else {
-        // Momentum reversal is not needed because a fresh momentum is drawn
-        // independently at the start of every transition.
-        let _ = initial_momentum;
         (current_state.clone(), current_target.clone(), false, false)
     }
 }
