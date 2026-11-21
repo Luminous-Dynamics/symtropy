@@ -7,3 +7,5 @@ license = "MIT"
 description = "Evidence-stage and replay qualification for maritime recovery interventions"
 
 [dependencies]
+
+[workspace]
