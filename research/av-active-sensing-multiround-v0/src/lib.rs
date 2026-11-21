@@ -1062,7 +1062,7 @@ mod tests {
             .any(|observation| observation.observation_ref == "obs-machine-state"));
         assert!(accepted_view.visible_events.iter().any(|event| matches!(
             &event.payload,
-            TranscriptPayloadV1::ActionAccepted { .. }
+            &TranscriptPayloadV1::ActionAccepted { .. }
         )));
 
         let after_first_delivery = executor
@@ -1308,8 +1308,8 @@ mod tests {
             .iter()
             .any(|observation| observation.observation_ref == "obs-machine-state"));
         assert!(cancelled.visible_events.iter().any(|event| matches!(
-            event.payload,
-            TranscriptPayloadV1::ActionOutcome {
+            &event.payload,
+            &TranscriptPayloadV1::ActionOutcome {
                 status: VisibleOutcomeStatusV1::Cancelled,
                 ..
             }
