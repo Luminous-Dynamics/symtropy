@@ -1,5 +1,3 @@
-pub mod model_set_design;
-
 //! GAUGE-specific model-discrimination reference for fixed-angle slope sliding.
 //!
 //! M0 is a constant-acceleration model (constant Coulomb friction plus an
@@ -11,6 +9,8 @@ pub mod model_set_design;
 //!
 //! Each input row is one independent, preregistered trial-level aggregate.
 //! Adjacent trajectory frames are not independent observations.
+
+pub mod model_set_design;
 
 use std::error::Error;
 use std::fmt::{Display, Formatter};
