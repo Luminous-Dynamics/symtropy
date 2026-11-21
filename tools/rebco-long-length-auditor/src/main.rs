@@ -766,8 +766,8 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
                 return Err(fail(&path, "spatial_resolution_mm must be positive"));
             }
         }
-        if let Some(spacing) = object(footprint, &format!("{path}.coordinate_footprint"))?
-            .get("sampling_spacing_mm")
+        if let Some(spacing) =
+            object(footprint, &format!("{path}.coordinate_footprint"))?.get("sampling_spacing_mm")
         {
             let value = spacing
                 .as_f64()
@@ -1111,8 +1111,7 @@ mod tests {
     #[test]
     fn noncontact_proxy_never_counts_as_direct_transport_coverage() {
         let mut value = fixture();
-        value["observations"][0]["measurement_basis"] =
-            json!("noncontact_magnetization_proxy");
+        value["observations"][0]["measurement_basis"] = json!("noncontact_magnetization_proxy");
         let report = validate_document(&value).expect("record remains inspectable");
         assert_eq!(report.ic_direct_transport_qualified_length_mm, 0.0);
         assert_eq!(report.ic_calibrated_proxy_length_mm, 700.0);
