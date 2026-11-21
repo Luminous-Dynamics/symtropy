@@ -103,9 +103,7 @@ pub enum NavigationTimeEvidence {
     },
     /// A source timestamp exists but has no qualified time basis/correlation,
     /// or its semantics do not permit a safe comparison.
-    Unqualified {
-        source_clock: Option<ClockBinding>,
-    },
+    Unqualified { source_clock: Option<ClockBinding> },
     /// The provider supplied no usable source-time qualification.
     Unknown,
 }
@@ -350,8 +348,8 @@ pub fn validate_ticket_applicability(
             if source_clock != comparison_clock && normalization_commitment.is_none() {
                 return Err(AdmissionError::NavigationTimeCorrelationMissing);
             }
-            let observed_at = normalized_observed_at_ticks
-                .ok_or(AdmissionError::NavigationTimeMissing)?;
+            let observed_at =
+                normalized_observed_at_ticks.ok_or(AdmissionError::NavigationTimeMissing)?;
             if observed_at > live.now_ticks {
                 return Err(AdmissionError::NavigationObservationFromFuture);
             }
