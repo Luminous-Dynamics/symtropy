@@ -1994,3 +1994,35 @@ mod moving_gcl_contract_tests {
         }));
     }
 }
+
+#[cfg(test)]
+mod exchange_event_receipt_contract_tests {
+    use super::*;
+
+    #[test]
+    fn event_level_exchange_receipt_contract_passes() {
+        let value: Value = serde_json::from_str(EMBEDDED_EXCHANGE_RECEIPT)
+            .expect("embedded exchange receipt contract must be valid JSON");
+        assert!(audit_exchange_receipt_contract(&value).is_empty());
+    }
+
+    #[test]
+    fn event_level_exchange_receipt_cannot_claim_durable_exactly_once() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_EXCHANGE_RECEIPT).unwrap();
+        value["acceptance"]["durable_exactly_once_not_implemented"] = Value::Bool(false);
+        assert!(audit_exchange_receipt_contract(&value).iter().any(|finding| {
+            finding.starts_with("EXCHANGE_RECEIPT_ACCEPTANCE")
+        }));
+    }
+
+    #[test]
+    fn event_level_exchange_receipt_must_check_per_event_balance() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_EXCHANGE_RECEIPT).unwrap();
+        value["required_invariants"] = Value::Array(vec![
+            Value::String("aggregate_impulse_balance".into())
+        ]);
+        assert!(audit_exchange_receipt_contract(&value).iter().any(|finding| {
+            finding.starts_with("EXCHANGE_RECEIPT_INVARIANTS")
+        }));
+    }
+}
