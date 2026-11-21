@@ -1,0 +1,48 @@
+name: Maritime Censoring Robustness
+
+on:
+  pull_request:
+    paths:
+      - "benchmarks/maritime-censoring-robustness/**"
+      - ".github/workflows/maritime-censoring-robustness.yml"
+  push:
+    paths:
+      - "benchmarks/maritime-censoring-robustness/**"
+      - ".github/workflows/maritime-censoring-robustness.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-head:
+    name: Verify exact source revision
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact source revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc # master at 2026-11-14
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        working-directory: benchmarks/maritime-censoring-robustness
+        run: cargo fmt --all --check
+
+      - name: Run offline tests
+        working-directory: benchmarks/maritime-censoring-robustness
+        run: cargo test --offline --locked
+
+      - name: Run strict Clippy
+        working-directory: benchmarks/maritime-censoring-robustness
+        run: cargo clippy --offline --locked --all-targets -- -D warnings
+
+      - name: Execute deterministic simulator
+        working-directory: benchmarks/maritime-censoring-robustness
+        run: cargo run --offline --locked
