@@ -145,7 +145,11 @@ pub struct InterfaceFinding {
     pub status: CompatibilityStatus,
     pub findings: Vec<String>,
     pub vehicle_evidence_id: Option<String>,
+    pub vehicle_evidence_source_reference: Option<String>,
+    pub vehicle_evidence_report_digest_sha256: Option<String>,
     pub module_evidence_id: String,
+    pub module_evidence_source_reference: String,
+    pub module_evidence_report_digest_sha256: String,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -394,7 +398,15 @@ fn evaluate_interface(
             status: missing_status,
             findings,
             vehicle_evidence_id: None,
+            vehicle_evidence_source_reference: None,
+            vehicle_evidence_report_digest_sha256: None,
             module_evidence_id: first_evidence_id(&module_port.evidence).unwrap_or_default(),
+            module_evidence_source_reference: module_port.evidence.first()
+                .map(|receipt| receipt.source_reference.clone())
+                .unwrap_or_default(),
+            module_evidence_report_digest_sha256: module_port.evidence.first()
+                .map(|receipt| receipt.report_digest_sha256.clone())
+                .unwrap_or_default(),
         };
     };
 
@@ -494,6 +506,8 @@ fn evaluate_interface(
     if vehicle_qualified_evidence.is_none() || module_qualified_evidence.is_none() {
         add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Indeterminate, "independent_exact_configuration_qualification_not_present_on_both_ports");
     }
+    let vehicle_receipt = vehicle_qualified_evidence.or_else(|| vehicle_port.evidence.first());
+    let module_receipt = module_qualified_evidence.or_else(|| module_port.evidence.first());
 
     findings.sort();
     findings.dedup();
@@ -503,9 +517,20 @@ fn evaluate_interface(
         family: module_port.family,
         status,
         findings,
-        vehicle_evidence_id: vehicle_qualified_evidence.map(|receipt| receipt.evidence_id.clone())
-            .or_else(|| first_evidence_id(&vehicle_port.evidence)),
-        module_evidence_id: first_evidence_id(&module_port.evidence).unwrap_or_default(),
+        vehicle_evidence_id: vehicle_receipt.map(|receipt| receipt.evidence_id.clone()),
+        vehicle_evidence_source_reference: vehicle_receipt
+            .map(|receipt| receipt.source_reference.clone()),
+        vehicle_evidence_report_digest_sha256: vehicle_receipt
+            .map(|receipt| receipt.report_digest_sha256.clone()),
+        module_evidence_id: module_receipt
+            .map(|receipt| receipt.evidence_id.clone())
+            .unwrap_or_default(),
+        module_evidence_source_reference: module_receipt
+            .map(|receipt| receipt.source_reference.clone())
+            .unwrap_or_default(),
+        module_evidence_report_digest_sha256: module_receipt
+            .map(|receipt| receipt.report_digest_sha256.clone())
+            .unwrap_or_default(),
     }
 }
 
@@ -579,7 +604,25 @@ pub fn evaluate_compatibility(
                         &port.mate_port_id,
                     )
                     .and_then(|vehicle_port| first_evidence_id(&vehicle_port.evidence)),
+                    vehicle_evidence_source_reference: find_vehicle_port(
+                        &canonical.vehicle,
+                        &port.mate_port_id,
+                    )
+                    .and_then(|vehicle_port| vehicle_port.evidence.first())
+                    .map(|receipt| receipt.source_reference.clone()),
+                    vehicle_evidence_report_digest_sha256: find_vehicle_port(
+                        &canonical.vehicle,
+                        &port.mate_port_id,
+                    )
+                    .and_then(|vehicle_port| vehicle_port.evidence.first())
+                    .map(|receipt| receipt.report_digest_sha256.clone()),
                     module_evidence_id: first_evidence_id(&port.evidence).unwrap_or_default(),
+                    module_evidence_source_reference: port.evidence.first()
+                        .map(|receipt| receipt.source_reference.clone())
+                        .unwrap_or_default(),
+                    module_evidence_report_digest_sha256: port.evidence.first()
+                        .map(|receipt| receipt.report_digest_sha256.clone())
+                        .unwrap_or_default(),
                 };
                 duplicate.findings.sort();
                 interfaces.push(duplicate);
