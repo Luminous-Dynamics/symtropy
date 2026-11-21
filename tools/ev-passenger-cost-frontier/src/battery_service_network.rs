@@ -162,12 +162,15 @@ fn add_finding(
     reason: &str,
 ) {
     findings.push(reason.to_string());
-    match (status, next) {
-        (EligibilityStatus::Blocked, _) => {}
-        (_, EligibilityStatus::Blocked) => *status = EligibilityStatus::Blocked,
-        (EligibilityStatus::Indeterminate, _) => {}
-        (_, EligibilityStatus::Indeterminate) => *status = EligibilityStatus::Indeterminate,
-        _ => {}
+    if *status == EligibilityStatus::Blocked {
+        return;
+    }
+    if next == EligibilityStatus::Blocked {
+        *status = EligibilityStatus::Blocked;
+    } else if next == EligibilityStatus::Indeterminate
+        && *status == EligibilityStatus::Eligible
+    {
+        *status = EligibilityStatus::Indeterminate;
     }
 }
 
