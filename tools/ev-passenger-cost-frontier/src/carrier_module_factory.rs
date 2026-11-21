@@ -1014,7 +1014,10 @@ fn evaluate_shared_cell_pair(
         Status::Indeterminate
     } else if mapping.evidence_class == EvidenceClass::Synthetic {
         Status::PassesSyntheticScreen
-    } else if base.production_release_ready && base.evidence_gaps.is_empty() {
+    } else if base.production_release_ready
+        && base.evidence_gaps.is_empty()
+        && module_result.status == Status::PassesEvidenceBackedScreen
+    {
         Status::PassesEvidenceBackedScreen
     } else {
         Status::Indeterminate
