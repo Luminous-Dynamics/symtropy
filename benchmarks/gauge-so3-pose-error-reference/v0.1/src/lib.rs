@@ -364,8 +364,8 @@ mod tests {
 
     #[test]
     fn common_world_rigid_transform_preserves_pose_difference() {
-        let real = pose([0.3, -0.2, 1.1], [0.8, 0.2, -0.3, 0.4], QuaternionOrder::Wxyz);
-        let simulated = pose([0.4, -0.1, 1.0], [0.7, 0.1, -0.4, 0.5], QuaternionOrder::Wxyz);
+        let real = pose([0.3, -0.2, 1.1], [0.8, 0.2, -0.4, 0.4], QuaternionOrder::Wxyz);
+        let simulated = pose([0.4, -0.1, 1.0], [0.7, 0.1, -0.5, 0.5], QuaternionOrder::Wxyz);
         let original = compare_poses(&real, &simulated).expect("same frames");
 
         let global_half = (0.63_f64 / 2.0).cos();
