@@ -35,7 +35,7 @@ This standalone Rust 2024 crate implements a deterministic synthetic reconciliat
 - calibration validity and scope matching;
 - clock synchronization, monotonicity and measured-vs-allowed error;
 - reference/acquisition failure-domain declarations;
-- a declared operating event-rate envelope.
+- a declared operating event-rate envelope; the tested rate is derived as independent reference-event count divided by the declared test-window duration, rather than trusted as a caller-supplied rate.
 
 It reports one of:
 - \`RECONCILED_FIXTURE_ONLY\` — every known reference injection is matched one-to-one, with no positive loss counter or observed conflict; synthetic test fixture only.
