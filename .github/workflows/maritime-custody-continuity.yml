@@ -31,8 +31,8 @@ jobs:
           components: rustfmt, clippy
 
       - name: Verify fixture digests
-        working-directory: benchmarks/maritime-custody-continuity/data
-        run: sha256sum --check SHA256SUMS
+        working-directory: benchmarks/maritime-custody-continuity
+        run: sha256sum --check data/SHA256SUMS
 
       - name: Check formatting
         working-directory: benchmarks/maritime-custody-continuity
