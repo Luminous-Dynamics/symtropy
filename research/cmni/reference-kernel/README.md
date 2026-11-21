@@ -132,3 +132,12 @@ See [IDENTIFIABILITY_AND_DESIGN.md](../../../docs/research/cmni/IDENTIFIABILITY_
 - Synthetic fixture: `research/cmni/fixtures/multifidelity-design-synthetic.json`.
 - Eleven additional tests cover the nested estimator, variance identity, malformed inputs, finite-scenario maximin selection and cost/error handling. The total is now **100 authored Rust tests** (37 root, 12 detector, 7 measurement, 8 material-state, 14 experiment-design, 11 response-uncertainty, 11 multifidelity-design). They remain unexecuted in this environment.
 - This is not a full multifidelity EIG method, ACV budget optimizer or robust Bayesian design engine. It does not learn beta, bound fidelity discrepancy, or establish continuous worst-case guarantees.
+
+
+## Covariance-aware reference-spectrum comparison
+
+- `covariance_profiled_spectrum_shape_chi_square` compares nonnegative reference and predicted spectra with a full positive-definite covariance matrix and analytically profiles one nonnegative multiplicative scale.
+- The output includes the profiled scale, chi-square, degrees of freedom and reduced chi-square. The scale is a nuisance term for shape comparison; absolute fluence must be scored separately.
+- Synthetic fixture: `research/cmni/fixtures/spectrum-shape-covariance-synthetic.json`.
+- Eight tests cover exact shape recovery, normalization invariance, covariance sensitivity, malformed covariance, and invalid inputs. The total is now **108 authored Rust tests** (37 root, 12 detector, 7 measurement, 8 material-state, 14 experiment-design, 11 response-uncertainty, 11 multifidelity-design, 8 spectrum-metrics). These are not executed in the current environment.
+- Reference-spectrum versions are data, not immutable truth. The 2025 AIACHNE re-evaluation of the 252Cf PFNS documents missing historical 1987 input/covariance records and a changed evaluation below 300 keV; use versioned spectrum and covariance artifacts.
