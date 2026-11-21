@@ -1,0 +1,211 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/orbital-interface-intensity-corpus-v0.1.json",
+  "title": "Orbital interface constant failure-intensity corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "evidence_class",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-interface-intensity.corpus.v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic-constant-failure-intensity-only"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "preregistration_ref",
+        "sampling_frame_ref",
+        "dependence_assessment_ref",
+        "assumption_assessment_ref",
+        "population_id",
+        "lot_id",
+        "configuration_id",
+        "operating_mode_id",
+        "restoration_policy_id",
+        "failure_definition_id",
+        "sampling_design",
+        "target_failure_intensity_per_million_hours",
+        "confidence",
+        "articles",
+        "expected"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "preregistration_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sampling_frame_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dependence_assessment_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "assumption_assessment_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "population_id": {
+          "type": "string"
+        },
+        "lot_id": {
+          "type": "string"
+        },
+        "configuration_id": {
+          "type": "string"
+        },
+        "operating_mode_id": {
+          "type": "string"
+        },
+        "restoration_policy_id": {
+          "type": "string"
+        },
+        "failure_definition_id": {
+          "type": "string"
+        },
+        "sampling_design": {
+          "type": "string"
+        },
+        "target_failure_intensity_per_million_hours": {
+          "type": "number"
+        },
+        "confidence": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "articles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/article"
+          }
+        },
+        "expected": {
+          "type": "object"
+        }
+      }
+    },
+    "article": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "record_id",
+        "article_serial",
+        "sampling_cluster_id",
+        "population_id",
+        "lot_id",
+        "configuration_id",
+        "operating_mode_id",
+        "restoration_policy_id",
+        "failure_definition_id",
+        "exposure_seconds",
+        "failure_events",
+        "raw_artifact_sha256",
+        "evidence_complete",
+        "operating_time_verified",
+        "event_capture_complete",
+        "intervention_during_exposure",
+        "censoring"
+      ],
+      "properties": {
+        "record_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "article_serial": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sampling_cluster_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "population_id": {
+          "type": "string"
+        },
+        "lot_id": {
+          "type": "string"
+        },
+        "configuration_id": {
+          "type": "string"
+        },
+        "operating_mode_id": {
+          "type": "string"
+        },
+        "restoration_policy_id": {
+          "type": "string"
+        },
+        "failure_definition_id": {
+          "type": "string"
+        },
+        "exposure_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failure_events": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "raw_artifact_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "evidence_complete": {
+          "type": "boolean"
+        },
+        "operating_time_verified": {
+          "type": "boolean"
+        },
+        "event_capture_complete": {
+          "type": "boolean"
+        },
+        "intervention_during_exposure": {
+          "type": "boolean"
+        },
+        "censoring": {
+          "enum": [
+            "administrative_end",
+            "failure_terminated",
+            "intervention",
+            "informative_withdrawal",
+            "unknown"
+          ]
+        }
+      }
+    }
+  }
+}
