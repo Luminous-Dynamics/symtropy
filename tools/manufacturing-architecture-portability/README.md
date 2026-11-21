@@ -84,3 +84,18 @@ The validator's `semantic_evaluator` compares candidate projections against eval
 The negative controls cover wrong machine identity, missing sequence, altered unit, changed clock mapping, dropped opaque extension, and additional candidate fields. Additional fields are surfaced in the evaluator report rather than silently discarded. The candidate projection schema separately rejects undeclared root fields; unknown source-standard extensions belong in the explicit opaque-extension manifest.
 
 The observation timestamp numbers in this fixture are synthetic and are not admitted as real plant-clock or physical measurement values. Time-unit and clock-domain claims still require source-specific clock and unit qualification. The exact comparator intentionally does not invent tolerances.
+
+## Explicit cycle-to-inspection association referee
+
+`inspection-join.schema.json` and the test-only `inspection_evaluator` extend the projection check to an explicit manufacturing-cycle ↔ QIF-result relationship. The strict record binds:
+- exact cycle, QIF result, part, lot, operation and characteristic identities;
+- cycle source, MTConnect source and QIF source document digests repeated inside the association evidence;
+- association receipt identity, authority label, digest and validity interval;
+- QIF result status, source measurement value/unit, derived value/unit and transform revision;
+- source/reference timestamps, both clock-map digests, reference-clock identity and measurement window.
+
+The evaluator independently compares the association's bound source digests, cycle and QIF result IDs against the candidate's cycle and QIF records. It checks measurement and decision times against both cycle and association effectivity.
+
+For the finite fixture, combined timestamp uncertainty is recomputed as the **sum of the absolute cycle and QIF clock uncertainty bounds**. This is deliberately conservative when dependence/correlation has not been qualified; it does not assume statistical independence and does not use root-sum-square. The supplied combined value must exactly equal this reconstruction and remain below the declared maximum.
+
+Important claim ceiling: all values and hashes are synthetic. The evaluator verifies structure and internal consistency; it does not cryptographically authenticate the association authority, prove that its clock mappings are correct, qualify the CMM, recompute metrology uncertainty, interpret the QIF spec, assess conformity, or authorize product release. The production receipt/authority owners must independently admit those claims.
