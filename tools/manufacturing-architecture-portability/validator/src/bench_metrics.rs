@@ -117,10 +117,16 @@ pub fn measure_feature_subset_stability(
         }
         let subset: BTreeSet<String> = run.selected_features.iter().cloned().collect();
         if subset.is_empty() {
-            return Err(format!("selector run {:?} returned an empty feature set", run.run_id));
+            return Err(format!(
+                "selector run {:?} returned an empty feature set",
+                run.run_id
+            ));
         }
         if subset.len() != run.selected_features.len() {
-            return Err(format!("selector run {:?} contains duplicate features", run.run_id));
+            return Err(format!(
+                "selector run {:?} contains duplicate features",
+                run.run_id
+            ));
         }
         if let Some(unknown) = subset.difference(feature_universe).next() {
             return Err(format!(
@@ -284,33 +290,38 @@ mod tests {
     #[test]
     fn rejects_duplicate_run_ids_duplicate_features_and_unknown_features() {
         let universe = set(&["x1", "x2", "x3"]);
-        assert!(measure_feature_subset_stability(
-            &universe,
-            &[run("same", &["x1"]), run("same", &["x2"])]
-        )
-        .unwrap_err()
-        .contains("duplicate selector run ID"));
-        assert!(measure_feature_subset_stability(
-            &universe,
-            &[run("a", &["x1", "x1"]), run("b", &["x2"])]
-        )
-        .unwrap_err()
-        .contains("duplicate features"));
-        assert!(measure_feature_subset_stability(
-            &universe,
-            &[run("a", &["x4"]), run("b", &["x2"])]
-        )
-        .unwrap_err()
-        .contains("unknown feature"));
+        assert!(
+            measure_feature_subset_stability(
+                &universe,
+                &[run("same", &["x1"]), run("same", &["x2"])]
+            )
+            .unwrap_err()
+            .contains("duplicate selector run ID")
+        );
+        assert!(
+            measure_feature_subset_stability(
+                &universe,
+                &[run("a", &["x1", "x1"]), run("b", &["x2"])]
+            )
+            .unwrap_err()
+            .contains("duplicate features")
+        );
+        assert!(
+            measure_feature_subset_stability(&universe, &[run("a", &["x4"]), run("b", &["x2"])])
+                .unwrap_err()
+                .contains("unknown feature")
+        );
     }
 
     #[test]
     fn rejects_empty_feature_universe_or_single_selector_run() {
-        assert!(measure_feature_subset_stability(
-            &BTreeSet::new(),
-            &[run("a", &["x1"]), run("b", &["x1"])]
-        )
-        .is_err());
+        assert!(
+            measure_feature_subset_stability(
+                &BTreeSet::new(),
+                &[run("a", &["x1"]), run("b", &["x1"])]
+            )
+            .is_err()
+        );
         assert!(measure_feature_subset_stability(&set(&["x1"]), &[run("a", &["x1"])]).is_err());
     }
 
@@ -334,7 +345,11 @@ mod tests {
             validation_run_ids: set(&["validation-1"]),
             test_run_ids: set(&["test-1", "test-2"]),
         };
-        assert!(inspect_run_partition_leakage(&partitions).unwrap().is_empty());
+        assert!(
+            inspect_run_partition_leakage(&partitions)
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]
