@@ -58,7 +58,7 @@ jobs:
           ids = [x["episode_id"] for x in workload["episodes"]]
           assert ids == [x["episode_id"] for x in truth["episodes"]]
           assert ids == [x["episode_id"] for x in expected["episodes"]]
-          assert len(ids) == 11
+          assert len(ids) == 12
           forbidden = {"expected_answer", "required_observation_refs", "expected_decision", "superseded_refs", "revoked_refs", "absent_event_class"}
           def scan(value):
               if isinstance(value, dict):
@@ -170,8 +170,8 @@ jobs:
           assert actual["memory_condition"] == expected["memory_condition"]
           for key, value in expected["totals"].items():
               assert actual["totals"][key] == value, (key, actual["totals"][key], value)
-          assert actual["totals"]["answer_correct_count"] == 10
-          assert actual["totals"]["decision_correct_count"] == 11
+          assert actual["totals"]["answer_correct_count"] == 11
+          assert actual["totals"]["decision_correct_count"] == 12
           assert actual["totals"]["hard_violation_count"] == 0
           PY
 
