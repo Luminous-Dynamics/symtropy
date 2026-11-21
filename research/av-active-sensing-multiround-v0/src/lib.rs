@@ -170,7 +170,7 @@ pub struct ActionOutcomeFixtureV1 {
 }
 
 /// Evaluator fixture outcome before deadline qualification.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum FixtureOutcomeStatusV1 {
     /// Requested observation was acquired.
@@ -414,7 +414,11 @@ impl ActiveSensingExecutorV1 {
         config: EpisodeConfigV1,
         fixtures: Vec<ActionOutcomeFixtureV1>,
     ) -> Result<Self, ExecutorError> {
+        let mut config = config;
         validate_config(&config)?;
+        for observation in &mut config.initial_observations {
+            observation.eligible_for_decision = observation.available_tick <= config.deadline_tick;
+        }
         let mut fixture_map = BTreeMap::new();
         for fixture in fixtures {
             if fixture_map.insert(fixture.action_id.clone(), fixture).is_some() {
@@ -431,18 +435,28 @@ impl ActiveSensingExecutorV1 {
                 "action catalogue and evaluator fixture identities must match exactly",
             ));
         }
+        let mut fixture_observation_refs = BTreeSet::new();
+        for observation in &config.initial_observations {
+            fixture_observation_refs.insert(observation.observation_ref.clone());
+        }
         for action in &config.action_catalogue {
             let fixture = fixture_map
                 .get(&action.action_id)
                 .ok_or_else(|| ExecutorError::new("missing action fixture"))?;
-            validate_fixture(action, fixture)?;
+            validate_fixture(fixture)?;
+            if let Some(reference) = &fixture.observation_ref {
+                if !fixture_observation_refs.insert(reference.clone()) {
+                    return Err(ExecutorError::new(
+                        "action fixtures reuse an initial or another action observation identity",
+                    ));
+                }
+            }
         }
 
         let current_tick = config.query_tick;
         let mut observations = BTreeMap::new();
         for observation in &config.initial_observations {
-            let mut initial = observation.clone();
-            initial.eligible_for_decision = initial.available_tick <= config.deadline_tick;
+            let initial = observation.clone();
             if observations
                 .insert(initial.observation_ref.clone(), initial)
                 .is_some()
@@ -910,10 +924,7 @@ fn validate_config(config: &EpisodeConfigV1) -> Result<(), ExecutorError> {
     Ok(())
 }
 
-fn validate_fixture(
-    action: &ActionSpecV1,
-    fixture: &ActionOutcomeFixtureV1,
-) -> Result<(), ExecutorError> {
+fn validate_fixture(fixture: &ActionOutcomeFixtureV1) -> Result<(), ExecutorError> {
     if !fixture.consumed_cost.fits_within(action.reserve_cost) {
         return Err(ExecutorError::new(
             "fixture consumption exceeds the action reservation",
@@ -942,7 +953,6 @@ fn validate_fixture(
             }
         }
     }
-    let _ = action;
     Ok(())
 }
 
@@ -1051,7 +1061,7 @@ mod tests {
             .iter()
             .any(|observation| observation.observation_ref == "obs-machine-state"));
         assert!(accepted_view.visible_events.iter().any(|event| matches!(
-            event.payload,
+            &event.payload,
             TranscriptPayloadV1::ActionAccepted { .. }
         )));
 
