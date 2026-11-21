@@ -13,6 +13,8 @@ pub enum ClaimType {
     EventHistoryIntegrity,
     MissionSuccessProbability,
     ConstantFailureIntensity,
+    PowerLawRecurrentIntensity,
+    WeibullFirstFailureLife,
     PhysicalTestObservation,
     MeasurementCalibration,
     ModelCredibility,
@@ -234,6 +236,16 @@ fn claim_model_is_typed(claim: &Claim) -> bool {
             claim.estimand.as_deref() == Some("constant_failure_intensity")
                 && claim.unit.as_deref() == Some("events_per_million_operating_hours")
                 && claim.model_profile.as_deref() == Some("homogeneous_poisson_constant_intensity")
+        }
+        ClaimType::PowerLawRecurrentIntensity => {
+            claim.estimand.as_deref() == Some("power_law_recurrent_failure_intensity")
+                && claim.unit.as_deref() == Some("events_per_operating_second")
+                && claim.model_profile.as_deref() == Some("power_law_nhpp_minimal_repair_v0_1")
+        }
+        ClaimType::WeibullFirstFailureLife => {
+            claim.estimand.as_deref() == Some("first_failure_life_distribution")
+                && claim.unit.as_deref() == Some("operating_seconds")
+                && claim.model_profile.as_deref() == Some("weibull_first_failure_life_v0_1")
         }
         _ => true,
     }
@@ -635,16 +647,18 @@ fn evaluate_case(case: &Case) -> CaseResult {
                 );
             }
             Relation::DerivedFrom => {
-                let incompatible = matches!(
-                    (from.claim_type, to.claim_type),
-                    (
-                        ClaimType::MissionSuccessProbability,
-                        ClaimType::ConstantFailureIntensity
-                    ) | (
-                        ClaimType::ConstantFailureIntensity,
+                let statistical_profiles = |claim_type| {
+                    matches!(
+                        claim_type,
                         ClaimType::MissionSuccessProbability
+                            | ClaimType::ConstantFailureIntensity
+                            | ClaimType::PowerLawRecurrentIntensity
+                            | ClaimType::WeibullFirstFailureLife
                     )
-                );
+                };
+                let incompatible = from.claim_type != to.claim_type
+                    && statistical_profiles(from.claim_type)
+                    && statistical_profiles(to.claim_type);
                 if incompatible {
                     add_blocker(
                         &mut blockers,
