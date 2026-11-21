@@ -489,7 +489,11 @@ mod tests {
         let omega_body = rotation
             .reverse()
             .rotate_vector(&bivector_to_angular_vector(&omega));
-        let precession_rate = (2.0_f64 - 1.0) / 1.0 * 0.7;
+        let transverse_moment = 1.0_f64;
+        let axial_moment = 2.0_f64;
+        let axial_spin = 0.7_f64;
+        let precession_rate =
+            (axial_moment - transverse_moment) / transverse_moment * axial_spin;
         let phase = precession_rate * duration;
         let expected = SVector::from([0.8 * phase.cos(), 0.8 * phase.sin(), 0.7]);
         (omega_body - expected).norm()
