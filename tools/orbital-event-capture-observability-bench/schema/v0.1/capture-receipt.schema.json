@@ -305,8 +305,7 @@
                       "number",
                       "null"
                     ],
-                    "minimum": 0,
-                    "maximum": 1000000000
+                    "minimum": 0
                   },
                   "reference": {
                     "type": "object",
