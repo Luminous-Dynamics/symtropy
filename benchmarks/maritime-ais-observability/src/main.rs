@@ -88,7 +88,8 @@ fn main() {
         std::process::exit(2);
     });
     println!(
-        "Synthetic event score: TP={} FP={} FN={} precision={:?} recall={:?} mean_interval_error={:?} mean_interval_width={:?}",
+        "Synthetic event score: TP={} FP={} FN={} precision={:?} recall={:?} \
+         mean_interval_error={:?} mean_interval_width={:?}",
         score.overall.true_positive,
         score.overall.false_positive,
         score.overall.false_negative,
