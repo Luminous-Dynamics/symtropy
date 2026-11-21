@@ -102,6 +102,26 @@
         "obs-rare-vibration"
       ],
       "query_as_of_tick": 5400
+    },
+    {
+      "episode_id": "lh-010-correction-before-arrival",
+      "expected_decision": "answer",
+      "expected_answer": "initial_machine_state",
+      "required_observation_refs": [
+        "obs-machine-state-v1"
+      ],
+      "superseded_refs": [],
+      "query_as_of_tick": 300
+    },
+    {
+      "episode_id": "lh-011-revocation-before-effect",
+      "expected_decision": "answer",
+      "expected_answer": "private_utterance_still_eligible",
+      "required_observation_refs": [
+        "obs-private-utterance-pre-revoke"
+      ],
+      "revoked_refs": [],
+      "query_as_of_tick": 1200
     }
   ]
 }
