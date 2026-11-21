@@ -1041,6 +1041,66 @@ mod tests {
     use super::*;
 
     #[test]
+    fn prepared_grouped_model_matches_unprepared_posterior_and_gradients() {
+        let observed = [12.0, 18.0];
+        let baseline = [10.0, 20.0];
+        let design = vec![vec![1.0, 0.3, -0.2], vec![0.2, -0.5, 0.4]];
+        let coefficients = [0.001, -0.002, 0.003];
+        let log_local = [0.8_f64.ln(), 1.1_f64.ln(), 0.9_f64.ln()];
+        let log_global = [0.6_f64.ln(), 1.0_f64.ln(), 0.8_f64.ln()];
+        let groups = [0, 1, 2];
+        let log_experiment = [1.02_f64.ln()];
+        let experiment_map = [0, 0];
+        let covariance = vec![vec![0.04, 0.005], vec![0.005, 0.09]];
+        let prior = GlobalScalePrior::HalfNormal { scale: 1.0 };
+
+        let prepared = PreparedGroupedRawScaleHorseshoeModel::new(
+            &observed,
+            &baseline,
+            &design,
+            &covariance,
+        )
+        .expect("prepared grouped model");
+        let prepared_result = prepared
+            .evaluate(
+                &coefficients,
+                &log_local,
+                &log_global,
+                &groups,
+                &log_experiment,
+                &experiment_map,
+                1.0e-2,
+                prior,
+            )
+            .expect("prepared posterior");
+        let unprepared_result = grouped_raw_scale_horseshoe_log_posterior(
+            GroupedHorseshoePosteriorInput {
+                observed: &observed,
+                baseline_mean: &baseline,
+                design_matrix: &design,
+                coefficients: &coefficients,
+                log_local_scales: &log_local,
+                log_global_scales: &log_global,
+                global_scale_index_by_coefficient: &groups,
+                log_experiment_scales: &log_experiment,
+                experiment_scale_index_by_observation: &experiment_map,
+                relative_covariance: &covariance,
+                fixed_coefficient_scale: 1.0e-2,
+                global_scale_prior: prior,
+            },
+        )
+        .expect("unprepared grouped target");
+
+        assert!((prepared_result.log_likelihood - unprepared_result.log_likelihood).abs() < 1.0e-10);
+        assert!((prepared_result.log_posterior - unprepared_result.log_posterior).abs() < 1.0e-10);
+        assert_eq!(prepared_result.biased_prediction, unprepared_result.biased_prediction);
+        assert_eq!(prepared_result.coefficient_gradient, unprepared_result.coefficient_gradient);
+        assert_eq!(prepared_result.log_local_scale_gradient, unprepared_result.log_local_scale_gradient);
+        assert_eq!(prepared_result.log_global_scale_gradients, unprepared_result.log_global_scale_gradients);
+        assert_eq!(prepared_result.log_experiment_scale_gradients, unprepared_result.log_experiment_scale_gradients);
+    }
+
+    #[test]
     fn grouped_target_matches_single_global_scale_target_for_one_group() {
         let (observed, baseline, design, coefficients, log_local, covariance) = base_args();
         let log_global = 0.37_f64.ln();
