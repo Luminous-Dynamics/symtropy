@@ -48,7 +48,7 @@ jobs:
               "code_not_executed": data.get("reproduction_status", {}).get("code_executed_by_symtropy") is False,
               "paper_not_reproduced": data.get("reproduction_status", {}).get("paper_experiment_reproduced") is False,
               "full_pipeline_not_reproduced": data.get("reproduction_status", {}).get("full_robot_policy_pipeline_reproduced") is False,
-              "reduced_scope_claim": len(data.get("scope", {}).get("not_implemented", [])) >= 5,
+              "reduced_scope_claim": len(data.get("symtropy_comparator_scope", {}).get("not_implemented", [])) >= 5,
           }
           for name, passed in checks.items():
               print(f"{name}: {'PASS' if passed else 'FAIL'}")
