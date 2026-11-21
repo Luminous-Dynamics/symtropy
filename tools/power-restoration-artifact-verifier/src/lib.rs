@@ -158,7 +158,10 @@ impl VerifiedBundle {
         artifact_uri: &str,
         max_artifact_bytes: u64,
     ) -> Result<Vec<u8>, Vec<String>> {
-        let Some(artifact) = self.report.verified_artifacts.iter()
+        let Some(artifact) = self
+            .report
+            .verified_artifacts
+            .iter()
             .find(|artifact| artifact.artifact_uri == artifact_uri)
         else {
             return Err(vec![format!(
@@ -176,7 +179,9 @@ impl VerifiedBundle {
         let root_metadata = fs::symlink_metadata(bundle_root)
             .map_err(|error| vec![format!("cannot inspect bundle root: {error}")])?;
         if root_metadata.file_type().is_symlink() || !root_metadata.is_dir() {
-            return Err(vec!["bundle root must be a real directory, not a symlink".to_string()]);
+            return Err(vec![
+                "bundle root must be a real directory, not a symlink".to_string(),
+            ]);
         }
         let canonical_root = fs::canonicalize(bundle_root)
             .map_err(|error| vec![format!("cannot canonicalize bundle root: {error}")])?;
@@ -184,29 +189,41 @@ impl VerifiedBundle {
         let components: Vec<_> = relative_path.components().collect();
         for (index, component) in components.iter().enumerate() {
             current.push(component.as_os_str());
-            let metadata = fs::symlink_metadata(&current)
-                .map_err(|error| vec![format!("verified artifact path component is missing: {error}")])?;
+            let metadata = fs::symlink_metadata(&current).map_err(|error| {
+                vec![format!(
+                    "verified artifact path component is missing: {error}"
+                )]
+            })?;
             if metadata.file_type().is_symlink() {
-                return Err(vec!["verified artifact paths may not traverse symlinks".to_string()]);
+                return Err(vec![
+                    "verified artifact paths may not traverse symlinks".to_string(),
+                ]);
             }
             if index + 1 < components.len() && !metadata.is_dir() {
-                return Err(vec!["non-final verified artifact path component is not a directory".to_string()]);
+                return Err(vec![
+                    "non-final verified artifact path component is not a directory".to_string(),
+                ]);
             }
             if index + 1 == components.len() && !metadata.is_file() {
-                return Err(vec!["verified artifact target must be a regular file".to_string()]);
+                return Err(vec![
+                    "verified artifact target must be a regular file".to_string(),
+                ]);
             }
         }
-        let canonical_target = fs::canonicalize(&current)
-            .map_err(|error| vec![format!("cannot canonicalize verified artifact path: {error}")])?;
+        let canonical_target = fs::canonicalize(&current).map_err(|error| {
+            vec![format!(
+                "cannot canonicalize verified artifact path: {error}"
+            )]
+        })?;
         if !canonical_target.starts_with(&canonical_root) {
-            return Err(vec!["verified artifact path escapes the bundle root".to_string()]);
+            return Err(vec![
+                "verified artifact path escapes the bundle root".to_string(),
+            ]);
         }
 
         let bytes = fs::read(&canonical_target)
             .map_err(|error| vec![format!("cannot re-read verified artifact bytes: {error}")])?;
-        if bytes.len() as u64 != artifact.byte_length
-            || sha256_hex(&bytes) != artifact.sha256
-        {
+        if bytes.len() as u64 != artifact.byte_length || sha256_hex(&bytes) != artifact.sha256 {
             return Err(vec![format!(
                 "artifact {artifact_uri} changed after bundle verification"
             )]);
@@ -270,8 +287,7 @@ fn validate_trust_root(
     {
         errors.push("trust-root identity, version or validity interval is invalid".to_string());
     }
-    if now_unix_ms < trust_root.valid_from_unix_ms
-        || now_unix_ms >= trust_root.valid_until_unix_ms
+    if now_unix_ms < trust_root.valid_from_unix_ms || now_unix_ms >= trust_root.valid_until_unix_ms
     {
         errors.push("trust root is not valid at the verification time".to_string());
     }
@@ -295,7 +311,10 @@ fn validate_trust_root(
             || key.not_before_unix_ms >= key.not_after_unix_ms
             || key.roles.is_empty()
         {
-            errors.push(format!("trusted key {} has invalid identity, key, role or time bounds", key.key_id));
+            errors.push(format!(
+                "trusted key {} has invalid identity, key, role or time bounds",
+                key.key_id
+            ));
         }
         if !key_ids.insert(key.key_id.as_str()) {
             errors.push(format!("duplicate trust-root key ID {}", key.key_id));
@@ -330,15 +349,14 @@ fn validate_payload_shape(payload: &AttestationPayload) -> Result<(), Vec<String
     {
         errors.push("attestation payload has invalid identity or digest fields".to_string());
     }
-    if payload.issued_at_unix_ms == 0
-        || payload.expires_at_unix_ms <= payload.issued_at_unix_ms
-    {
+    if payload.issued_at_unix_ms == 0 || payload.expires_at_unix_ms <= payload.issued_at_unix_ms {
         errors.push("attestation issue/expiry interval is invalid".to_string());
     }
     let mut parents = BTreeSet::new();
     for parent in &payload.parent_artifact_sha256 {
         if !is_lower_hex(parent, 64) || !parents.insert(parent.as_str()) {
-            errors.push("attestation has an invalid or duplicate parent artifact digest".to_string());
+            errors
+                .push("attestation has an invalid or duplicate parent artifact digest".to_string());
         }
     }
     if errors.is_empty() {
@@ -445,8 +463,11 @@ pub fn verify_no_actuation_witness(
         "power-fabric://actuation-witness/{}",
         expected.command_sha256
     );
-    let artifact_sha256 = canonical_sha256(receipt)
-        .map_err(|error| vec![format!("actuation witness canonicalization failed: {error}")])?;
+    let artifact_sha256 = canonical_sha256(receipt).map_err(|error| {
+        vec![format!(
+            "actuation witness canonicalization failed: {error}"
+        )]
+    })?;
     let attestation_uri = artifact_envelope_uri(envelope)
         .map_err(|error| vec![format!("attestation canonicalization failed: {error}")])?;
     let attestation_sha256 = canonical_sha256(envelope)
@@ -455,9 +476,11 @@ pub fn verify_no_actuation_witness(
         (artifact_uri.as_str(), artifact_sha256.as_str()),
         (attestation_uri.as_str(), attestation_sha256.as_str()),
     ] {
-        let verified = verified_bundle.report().verified_artifacts.iter().any(|artifact| {
-            artifact.artifact_uri == uri && artifact.sha256 == digest
-        });
+        let verified = verified_bundle
+            .report()
+            .verified_artifacts
+            .iter()
+            .any(|artifact| artifact.artifact_uri == uri && artifact.sha256 == digest);
         if !verified {
             errors.push(format!(
                 "actuation witness artifact {uri} is not present with exact bytes in the verified bundle"
@@ -486,8 +509,7 @@ pub fn verify_no_actuation_witness(
         || receipt.output_transition_observed
         || matches!(
             receipt.hardware_feedback,
-            ActuationHardwareFeedback::MovementObserved
-                | ActuationHardwareFeedback::Conflicting
+            ActuationHardwareFeedback::MovementObserved | ActuationHardwareFeedback::Conflicting
         )
         || !is_lower_hex(&receipt.case_sha256, 64)
         || !is_lower_hex(&receipt.proposal_sha256, 64)
@@ -533,7 +555,9 @@ pub fn verify_no_actuation_witness(
     if envelope.payload.issued_at_unix_ms != receipt.observed_at_unix_ms
         || envelope.payload.expires_at_unix_ms != receipt.expires_at_unix_ms
     {
-        errors.push("actuation witness receipt time window differs from its signed envelope".to_string());
+        errors.push(
+            "actuation witness receipt time window differs from its signed envelope".to_string(),
+        );
     }
 
     if !errors.is_empty() {
@@ -614,7 +638,8 @@ pub fn verify_attestation(
         errors.push("attestation key ID is empty".to_string());
     }
     if !is_lower_hex(&envelope.signature_hex, 128) {
-        errors.push("attestation signature must be 128 lowercase hexadecimal characters".to_string());
+        errors
+            .push("attestation signature must be 128 lowercase hexadecimal characters".to_string());
     }
 
     let payload = &envelope.payload;
@@ -634,9 +659,7 @@ pub fn verify_attestation(
         errors.push("attestation subject/run/case/epoch/proposal/tool/parent binding does not match the expected run context".to_string());
     }
 
-    if payload.issued_at_unix_ms > now_unix_ms
-        || payload.expires_at_unix_ms <= now_unix_ms
-    {
+    if payload.issued_at_unix_ms > now_unix_ms || payload.expires_at_unix_ms <= now_unix_ms {
         errors.push("attestation is not currently valid (future-issued or expired)".to_string());
     }
 
@@ -648,18 +671,26 @@ pub fn verify_attestation(
     let trusted_key = match matching_keys.as_slice() {
         [key] => Some(*key),
         [] => {
-            errors.push(format!("attestation key {} is not in the pinned trust root", envelope.key_id));
+            errors.push(format!(
+                "attestation key {} is not in the pinned trust root",
+                envelope.key_id
+            ));
             None
         }
         _ => {
-            errors.push(format!("trust root has ambiguous key ID {}", envelope.key_id));
+            errors.push(format!(
+                "trust root has ambiguous key ID {}",
+                envelope.key_id
+            ));
             None
         }
     };
 
     if let Some(key) = trusted_key {
         if key.producer_id != payload.issuer_id || !key.roles.contains(&payload.signer_role) {
-            errors.push("attestation issuer or signer role is not authorized by the trust root".to_string());
+            errors.push(
+                "attestation issuer or signer role is not authorized by the trust root".to_string(),
+            );
         }
         if now_unix_ms < key.not_before_unix_ms || now_unix_ms >= key.not_after_unix_ms {
             errors.push("attestation signing key is outside its validity interval".to_string());
@@ -668,28 +699,38 @@ pub fn verify_attestation(
             || payload.expires_at_unix_ms > key.not_after_unix_ms
             || payload.expires_at_unix_ms > trust_root.valid_until_unix_ms
         {
-            errors.push("attestation validity interval exceeds the trusted key or root validity window".to_string());
+            errors.push(
+                "attestation validity interval exceeds the trusted key or root validity window"
+                    .to_string(),
+            );
         }
-        if key.revoked_at_unix_ms.is_some_and(|revoked| revoked <= now_unix_ms) {
+        if key
+            .revoked_at_unix_ms
+            .is_some_and(|revoked| revoked <= now_unix_ms)
+        {
             errors.push("attestation signing key is revoked at the verification time".to_string());
         }
 
         match decode_hex::<32>(&key.public_key_hex, "Ed25519 public key") {
             Ok(public_key_bytes) => match VerifyingKey::from_bytes(&public_key_bytes) {
-                Ok(verifying_key) => match decode_hex::<64>(&envelope.signature_hex, "Ed25519 signature") {
-                    Ok(signature_bytes) => {
-                        let signature = Signature::from_bytes(&signature_bytes);
-                        match canonical_bytes(payload) {
-                            Ok(message) => {
-                                if verifying_key.verify_strict(&message, &signature).is_err() {
-                                    errors.push("Ed25519 signature verification failed".to_string());
+                Ok(verifying_key) => {
+                    match decode_hex::<64>(&envelope.signature_hex, "Ed25519 signature") {
+                        Ok(signature_bytes) => {
+                            let signature = Signature::from_bytes(&signature_bytes);
+                            match canonical_bytes(payload) {
+                                Ok(message) => {
+                                    if verifying_key.verify_strict(&message, &signature).is_err() {
+                                        errors.push(
+                                            "Ed25519 signature verification failed".to_string(),
+                                        );
+                                    }
                                 }
+                                Err(error) => errors.push(error),
                             }
-                            Err(error) => errors.push(error),
                         }
+                        Err(error) => errors.push(error),
                     }
-                    Err(error) => errors.push(error),
-                },
+                }
                 Err(_) => errors.push("trusted Ed25519 public key encoding is invalid".to_string()),
             },
             Err(error) => errors.push(error),
@@ -725,7 +766,9 @@ fn validate_relative_path(relative_path: &str) -> Result<PathBuf, String> {
     }
     let components: Vec<Component<'_>> = path.components().collect();
     if components.is_empty()
-        || components.iter().any(|component| !matches!(component, Component::Normal(_)))
+        || components
+            .iter()
+            .any(|component| !matches!(component, Component::Normal(_)))
     {
         return Err("artifact path may contain only normal relative path components".to_string());
     }
@@ -752,11 +795,17 @@ pub fn validate_role_separation(
         let key = match matching_keys.as_slice() {
             [key] => *key,
             [] => {
-                errors.push(format!("attestation key {} is not trusted", envelope.key_id));
+                errors.push(format!(
+                    "attestation key {} is not trusted",
+                    envelope.key_id
+                ));
                 continue;
             }
             _ => {
-                errors.push(format!("trust root has ambiguous key ID {}", envelope.key_id));
+                errors.push(format!(
+                    "trust root has ambiguous key ID {}",
+                    envelope.key_id
+                ));
                 continue;
             }
         };
@@ -775,10 +824,9 @@ pub fn validate_role_separation(
             }
         };
         let fingerprint = sha256_hex(&public_key);
-        if let Some(existing_issuer) = fingerprint_issuers.insert(
-            fingerprint.clone(),
-            envelope.payload.issuer_id.clone(),
-        ) {
+        if let Some(existing_issuer) =
+            fingerprint_issuers.insert(fingerprint.clone(), envelope.payload.issuer_id.clone())
+        {
             if existing_issuer != envelope.payload.issuer_id {
                 errors.push(format!(
                     "one public key fingerprint cannot authenticate multiple producer identities ({existing_issuer} and {})",
@@ -799,8 +847,12 @@ pub fn validate_role_separation(
         for right_index in (left_index + 1)..roles.len() {
             let left = roles[left_index];
             let right = roles[right_index];
-            let left_keys = role_key_fingerprints.get(&left).expect("role key set exists");
-            let right_keys = role_key_fingerprints.get(&right).expect("role key set exists");
+            let left_keys = role_key_fingerprints
+                .get(&left)
+                .expect("role key set exists");
+            let right_keys = role_key_fingerprints
+                .get(&right)
+                .expect("role key set exists");
             for fingerprint in left_keys.intersection(right_keys) {
                 errors.push(format!(
                     "public key fingerprint {fingerprint} cannot satisfy both {left:?} and {right:?} roles"
@@ -828,7 +880,9 @@ pub fn verify_artifact_bytes(
         || artifact.byte_length == 0
         || artifact.byte_length > max_artifact_bytes
     {
-        errors.push("artifact manifest entry has invalid identity, digest, length or size".to_string());
+        errors.push(
+            "artifact manifest entry has invalid identity, digest, length or size".to_string(),
+        );
     }
     let relative_path = match validate_relative_path(&artifact.relative_path) {
         Ok(value) => value,
@@ -844,7 +898,9 @@ pub fn verify_artifact_bytes(
     let root_metadata = fs::symlink_metadata(bundle_root)
         .map_err(|error| vec![format!("cannot inspect bundle root: {error}")])?;
     if root_metadata.file_type().is_symlink() || !root_metadata.is_dir() {
-        return Err(vec!["bundle root must be a real directory, not a symlink".to_string()]);
+        return Err(vec![
+            "bundle root must be a real directory, not a symlink".to_string(),
+        ]);
     }
     let canonical_root = fs::canonicalize(bundle_root)
         .map_err(|error| vec![format!("cannot canonicalize bundle root: {error}")])?;
@@ -859,7 +915,9 @@ pub fn verify_artifact_bytes(
             return Err(vec!["artifact paths may not traverse symlinks".to_string()]);
         }
         if index + 1 < components.len() && !metadata.is_dir() {
-            return Err(vec!["non-final artifact path component is not a directory".to_string()]);
+            return Err(vec![
+                "non-final artifact path component is not a directory".to_string(),
+            ]);
         }
         if index + 1 == components.len() && !metadata.is_file() {
             return Err(vec!["artifact target must be a regular file".to_string()]);
@@ -908,15 +966,15 @@ pub fn verify_attestation_set(
     let mut errors = Vec::new();
     let manifest_report = verified_bundle.report();
     if requirements.is_empty() || requirements.len() != envelopes.len() {
-        errors.push("attestation count must exactly match the non-empty caller-declared requirement set".to_string());
+        errors.push(
+            "attestation count must exactly match the non-empty caller-declared requirement set"
+                .to_string(),
+        );
     }
 
     let mut requirement_keys = BTreeSet::new();
     for requirement in requirements {
-        if !requirement_keys.insert((
-            requirement.artifact_uri.as_str(),
-            requirement.signer_role,
-        )) {
+        if !requirement_keys.insert((requirement.artifact_uri.as_str(), requirement.signer_role)) {
             errors.push(format!(
                 "duplicate attestation requirement for {} and {:?}",
                 requirement.artifact_uri, requirement.signer_role
@@ -1027,7 +1085,10 @@ pub fn verify_bundle_manifest(
             errors.push(format!("duplicate artifact URI {}", artifact.artifact_uri));
         }
         if !paths.insert(artifact.relative_path.as_str()) {
-            errors.push(format!("duplicate artifact path {}", artifact.relative_path));
+            errors.push(format!(
+                "duplicate artifact path {}",
+                artifact.relative_path
+            ));
         }
     }
     if manifest.artifacts.is_empty() {
@@ -1064,7 +1125,6 @@ pub fn verify_bundle_manifest(
     })
 }
 
-
 // -----------------------------------------------------------------------------
 // End-to-end restoration claim evidence gate
 // -----------------------------------------------------------------------------
@@ -1077,9 +1137,8 @@ use power_restoration_observation_evidence::{
     EvidenceArtifact, EvidenceBatch, EvidenceQuality, SourceProvenance, validate_evidence_batch,
 };
 use power_restoration_run_receipt::{
-    RunReceipt, RunStatus, ServiceOutcome, StepDisposition, TerminalReason,
-    TransitionOutcome, canonical_sha256 as receipt_canonical_sha256,
-    qualify as qualify_run_receipt,
+    RunReceipt, RunStatus, ServiceOutcome, StepDisposition, TerminalReason, TransitionOutcome,
+    canonical_sha256 as receipt_canonical_sha256, qualify as qualify_run_receipt,
 };
 use power_restoration_service_trajectory_audit::{
     ServiceTrajectoryAuditReport, ServiceTrajectoryRecord, audit_service_trajectory,
@@ -1139,10 +1198,7 @@ fn proposal_set_sha256(receipt: &RunReceipt) -> Result<String, String> {
     let mut proposals = Vec::new();
     for step in &receipt.decision_steps {
         if let Some(proposal) = &step.proposal {
-            proposals.push((
-                step.decision_step,
-                canonical_sha256(proposal)?,
-            ));
+            proposals.push((step.decision_step, canonical_sha256(proposal)?));
         }
     }
     canonical_sha256(&proposals)
@@ -1159,7 +1215,9 @@ fn profile_for_role<'a>(
     match matching.as_slice() {
         [profile] => Ok(*profile),
         [] => Err(format!("no pinned producer profile for role {role:?}")),
-        _ => Err(format!("multiple pinned producer profiles for singular role {role:?}")),
+        _ => Err(format!(
+            "multiple pinned producer profiles for singular role {role:?}"
+        )),
     }
 }
 
@@ -1334,12 +1392,17 @@ fn verify_final_service_trajectory_bundle(
         })?;
     if sha256_hex(&trajectory_bytes) != final_trajectory_ref.sha256 {
         return Err(vec![
-            "final service trajectory bytes do not match the run receipt artifact digest".to_string()
+            "final service trajectory bytes do not match the run receipt artifact digest"
+                .to_string(),
         ]);
     }
 
-    let trajectory: ServiceTrajectoryRecord = serde_json::from_slice(&trajectory_bytes)
-        .map_err(|error| vec![format!("final service trajectory JSON decode error: {error}")])?;
+    let trajectory: ServiceTrajectoryRecord =
+        serde_json::from_slice(&trajectory_bytes).map_err(|error| {
+            vec![format!(
+                "final service trajectory JSON decode error: {error}"
+            )]
+        })?;
     let service_profile = profile_for_role(producer_profiles, SignerRole::ServiceProvider)
         .map_err(|error| vec![format!("service producer profile: {error}")])?;
     if trajectory.producer.producer_id != service_profile.issuer_id
@@ -1351,8 +1414,8 @@ fn verify_final_service_trajectory_bundle(
         ]);
     }
 
-    let service_report = audit_service_trajectory(&trajectory, receipt, case)
-        .map_err(|service_errors| {
+    let service_report =
+        audit_service_trajectory(&trajectory, receipt, case).map_err(|service_errors| {
             service_errors
                 .into_iter()
                 .map(|error| format!("service trajectory: {error}"))
@@ -1362,8 +1425,7 @@ fn verify_final_service_trajectory_bundle(
     if receipt.run_status == RunStatus::Completed
         && !matches!(
             service_report.result_status.as_str(),
-            "modelled_service_and_score_reconciled"
-                | "measured_service_and_score_reconciled"
+            "modelled_service_and_score_reconciled" | "measured_service_and_score_reconciled"
         )
     {
         return Err(vec![format!(
@@ -1385,9 +1447,11 @@ fn verify_final_service_trajectory_bundle(
                 "service source artifact {} bytes do not match the trajectory's declared digest",
                 source.artifact_ref
             )),
-            Err(source_errors) => missing_sources.extend(source_errors.into_iter().map(|error| {
-                format!("service source artifact {}: {error}", source.artifact_ref)
-            })),
+            Err(source_errors) => {
+                missing_sources.extend(source_errors.into_iter().map(|error| {
+                    format!("service source artifact {}: {error}", source.artifact_ref)
+                }))
+            }
         }
     }
     if !missing_sources.is_empty() {
@@ -1423,10 +1487,7 @@ fn add_service_source_attestations(
             return;
         }
     };
-    let service_profile = match profile_for_role(
-        producer_profiles,
-        SignerRole::ServiceProvider,
-    ) {
+    let service_profile = match profile_for_role(producer_profiles, SignerRole::ServiceProvider) {
         Ok(profile) => profile,
         Err(error) => {
             errors.push(format!("service trajectory producer profile: {error}"));
@@ -1503,7 +1564,10 @@ fn add_service_source_attestations(
     }) {
         let mut service_parents = requirement.parent_artifact_sha256.clone();
         service_parents.extend(
-            trajectory.source_artifacts.iter().map(|source| source.sha256.clone())
+            trajectory
+                .source_artifacts
+                .iter()
+                .map(|source| source.sha256.clone()),
         );
         requirement.parent_artifact_sha256 = canonical_parent_digests(service_parents);
     } else {
@@ -1563,8 +1627,12 @@ pub fn verify_restoration_claim_evidence(
 
     let case_sha256 = canonical_case_sha256(case)
         .map_err(|error| vec![format!("case canonicalization failed: {error}")])?;
-    qualify_run_receipt(receipt, case)
-        .map_err(|receipt_errors| receipt_errors.into_iter().map(|error| format!("run receipt: {error}")).collect::<Vec<_>>())?;
+    qualify_run_receipt(receipt, case).map_err(|receipt_errors| {
+        receipt_errors
+            .into_iter()
+            .map(|error| format!("run receipt: {error}"))
+            .collect::<Vec<_>>()
+    })?;
     let receipt_sha256 = receipt_canonical_sha256(receipt)
         .map_err(|error| vec![format!("run receipt canonicalization failed: {error}")])?;
     let proposal_set_sha = proposal_set_sha256(receipt)
@@ -1614,10 +1682,7 @@ pub fn verify_restoration_claim_evidence(
     }
 
     // The exact canonical run receipt itself must be present and signed.
-    let recorder = match profile_for_role(
-        producer_profiles,
-        SignerRole::RunRecorder,
-    ) {
+    let recorder = match profile_for_role(producer_profiles, SignerRole::RunRecorder) {
         Ok(profile) => Some(profile),
         Err(error) => {
             errors.push(error);
@@ -1651,7 +1716,11 @@ pub fn verify_restoration_claim_evidence(
             continue;
         }
         if let Some(proposal) = &step.proposal {
-            if proposal.actions.iter().any(|action| is_information_request(action.action_kind)) {
+            if proposal
+                .actions
+                .iter()
+                .any(|action| is_information_request(action.action_kind))
+            {
                 if expected_batch_proposals
                     .insert(proposal.proposal_id.clone(), (proposal, step.decision_step))
                     .is_some()
@@ -1667,7 +1736,10 @@ pub fn verify_restoration_claim_evidence(
 
     let mut actual_batches = BTreeMap::<String, &EvidenceBatch>::new();
     for batch in observation_batches {
-        if actual_batches.insert(batch.proposal_id.clone(), batch).is_some() {
+        if actual_batches
+            .insert(batch.proposal_id.clone(), batch)
+            .is_some()
+        {
             errors.push(format!(
                 "duplicate observation result batch for proposal {}",
                 batch.proposal_id
@@ -1707,8 +1779,8 @@ pub fn verify_restoration_claim_evidence(
         match validate_evidence_batch(batch, proposal, case) {
             Ok(report) => {
                 observation_request_count += report.request_count;
-                unsuccessful_observation_request_count += report.unsuccessful_request_count
-                    + report.pending_request_count;
+                unsuccessful_observation_request_count +=
+                    report.unsuccessful_request_count + report.pending_request_count;
                 evidence_item_count += report.evidence_count;
                 stale_observation_count += report.stale_at_presentation_count;
                 conflicting_observation_count += report.conflicting_evidence_count;
@@ -1774,7 +1846,11 @@ pub fn verify_restoration_claim_evidence(
 
         for result in &batch.results {
             for item in &result.evidence {
-                let source = match batch.sources.iter().find(|source| source.source_id == item.source_id) {
+                let source = match batch
+                    .sources
+                    .iter()
+                    .find(|source| source.source_id == item.source_id)
+                {
                     Some(source) => source,
                     None => continue,
                 };
@@ -1791,15 +1867,17 @@ pub fn verify_restoration_claim_evidence(
                 };
                 let evidence_uri = format!("power-fabric://evidence/{}", item.evidence_id);
                 for evidence_key in [item.evidence_id.clone(), evidence_uri.clone()] {
-                    if let Some(previous) = evidence_by_ref.insert(evidence_key.clone(), item.clone()) {
+                    if let Some(previous) =
+                        evidence_by_ref.insert(evidence_key.clone(), item.clone())
+                    {
                         if previous != *item {
                             errors.push(format!(
                                 "evidence key {evidence_key} changes content or timing across batches"
                             ));
                         }
                     }
-                    if let Some(previous_step) =
-                        evidence_presentation_step.insert(evidence_key.clone(), batch.presentation_step)
+                    if let Some(previous_step) = evidence_presentation_step
+                        .insert(evidence_key.clone(), batch.presentation_step)
                     {
                         if previous_step != batch.presentation_step {
                             errors.push(format!(
@@ -1840,7 +1918,9 @@ pub fn verify_restoration_claim_evidence(
     // Every source snapshot has its own provider attestation, and its declared
     // ancestry is preserved as the parent list of that signed snapshot claim.
     for source in all_sources.values() {
-        if source.lineage_completeness != power_restoration_observation_evidence::LineageCompleteness::Complete {
+        if source.lineage_completeness
+            != power_restoration_observation_evidence::LineageCompleteness::Complete
+        {
             errors.push(format!(
                 "source {} has incomplete declared provenance lineage",
                 source.source_id
@@ -1868,21 +1948,19 @@ pub fn verify_restoration_claim_evidence(
             })
             .collect();
         match matching_source_attestations.as_slice() {
-            [envelope] => {
-                match (artifact_envelope_uri(envelope), canonical_sha256(envelope)) {
-                    (Ok(expected_uri), Ok(expected_sha)) => {
-                        if source.producer_attestation_ref != expected_uri
-                            || source.producer_attestation_sha256 != expected_sha
-                        {
-                            errors.push(format!(
+            [envelope] => match (artifact_envelope_uri(envelope), canonical_sha256(envelope)) {
+                (Ok(expected_uri), Ok(expected_sha)) => {
+                    if source.producer_attestation_ref != expected_uri
+                        || source.producer_attestation_sha256 != expected_sha
+                    {
+                        errors.push(format!(
                                 "source {} producer-attestation reference/digest does not bind the supplied signed envelope",
                                 source.source_id
                             ));
-                        }
                     }
-                    (Err(error), _) | (_, Err(error)) => errors.push(error),
                 }
-            }
+                (Err(error), _) | (_, Err(error)) => errors.push(error),
+            },
             [] => errors.push(format!(
                 "source {} has no EvidenceProvider attestation for its snapshot",
                 source.source_id
@@ -1928,7 +2006,11 @@ pub fn verify_restoration_claim_evidence(
     };
 
     let mut service_trajectory_digests = Vec::new();
-    for step in receipt.decision_steps.iter().filter(|step| step.disposition == StepDisposition::Executed) {
+    for step in receipt
+        .decision_steps
+        .iter()
+        .filter(|step| step.disposition == StepDisposition::Executed)
+    {
         let proposal_sha = match &step.proposal {
             Some(proposal) => match canonical_sha256(proposal) {
                 Ok(value) => value,
@@ -1980,7 +2062,10 @@ pub fn verify_restoration_claim_evidence(
                     if evidence.quality != EvidenceQuality::Current {
                         errors.push(format!(
                             "decision {} action {} cites {:?} evidence {}",
-                            step.decision_step, action.action_id, evidence.quality, precondition.evidence_ref
+                            step.decision_step,
+                            action.action_id,
+                            evidence.quality,
+                            precondition.evidence_ref
                         ));
                     }
                     observation_parents.push(evidence.evidence_sha256.clone());
@@ -2244,7 +2329,12 @@ pub fn verify_restoration_claim_evidence(
     // receives only bytes re-read and re-hashed through this verified-bundle
     // boundary, never caller-provided JSON or a success-shaped metadata report.
     let verified_bundle = verify_bundle_manifest(bundle_root, manifest, max_artifact_bytes)
-        .map_err(|bundle_errors| bundle_errors.into_iter().map(|error| format!("bundle: {error}")).collect::<Vec<_>>())?;
+        .map_err(|bundle_errors| {
+            bundle_errors
+                .into_iter()
+                .map(|error| format!("bundle: {error}"))
+                .collect::<Vec<_>>()
+        })?;
 
     if let Some(final_trajectory_ref) = &receipt.final_service_trajectory {
         match verify_final_service_trajectory_bundle(
@@ -2296,12 +2386,16 @@ pub fn verify_restoration_claim_evidence(
             Some(_) => errors.push(format!(
                 "manifest digest for required artifact {uri} does not match its typed record"
             )),
-            None => errors.push(format!("required artifact {uri} is absent from the bundle manifest")),
+            None => errors.push(format!(
+                "required artifact {uri} is absent from the bundle manifest"
+            )),
         }
     }
     for uri in manifest_map.keys() {
         if !expected_artifacts.contains_key(*uri) {
-            errors.push(format!("unexpected unreferenced artifact {uri} is present in the bundle"));
+            errors.push(format!(
+                "unexpected unreferenced artifact {uri} is present in the bundle"
+            ));
         }
     }
 
@@ -2311,10 +2405,11 @@ pub fn verify_restoration_claim_evidence(
 
     // Every producer envelope must use the deterministic artifact URI above.
     for envelope in attestations {
-        let uri = artifact_envelope_uri(envelope)
-            .map_err(|error| vec![error])?;
+        let uri = artifact_envelope_uri(envelope).map_err(|error| vec![error])?;
         if !expected_artifacts.contains_key(&uri) {
-            errors.push(format!("attestation envelope {uri} is not committed in the verified artifact set"));
+            errors.push(format!(
+                "attestation envelope {uri} is not committed in the verified artifact set"
+            ));
         }
     }
 
@@ -2326,7 +2421,12 @@ pub fn verify_restoration_claim_evidence(
         &requirements,
         attestations,
     )
-    .map_err(|attestation_errors| attestation_errors.into_iter().map(|error| format!("attestation: {error}")).collect::<Vec<_>>())?;
+    .map_err(|attestation_errors| {
+        attestation_errors
+            .into_iter()
+            .map(|error| format!("attestation: {error}"))
+            .collect::<Vec<_>>()
+    })?;
 
     if !errors.is_empty() {
         return Err(errors);
@@ -2375,11 +2475,15 @@ mod tests {
     const TRUST_ROOT_SHA256: &str =
         "973efb60a07f0a0d49d50e0ee40ff42eaf0bc50a406c483fce39325f01c9cbd3";
 
-    fn fixtures() -> (TrustRoot, AttestationEnvelope, ExpectedAttestationBinding, BundleManifest) {
-        let trust: TrustRoot = serde_json::from_str(include_str!(
-            "../fixtures/synthetic-trust-root-v0.1.json"
-        ))
-        .expect("trust root fixture must parse");
+    fn fixtures() -> (
+        TrustRoot,
+        AttestationEnvelope,
+        ExpectedAttestationBinding,
+        BundleManifest,
+    ) {
+        let trust: TrustRoot =
+            serde_json::from_str(include_str!("../fixtures/synthetic-trust-root-v0.1.json"))
+                .expect("trust root fixture must parse");
         let envelope: AttestationEnvelope = serde_json::from_str(include_str!(
             "../fixtures/synthetic-validator-attestation-v0.1.json"
         ))
@@ -2392,7 +2496,8 @@ mod tests {
             predicate_type: "power-restoration/electrical-validation/v1".to_string(),
             issuer_id: "synthetic-independent-validator".to_string(),
             artifact_uri: "bundle://validator/decision-0.json".to_string(),
-            artifact_sha256: "4ac0258529aca07bcc9c5c45cf0c23f05eb8176212b6af732f80c9bd8ad5f987".to_string(),
+            artifact_sha256: "4ac0258529aca07bcc9c5c45cf0c23f05eb8176212b6af732f80c9bd8ad5f987"
+                .to_string(),
             run_id: "synthetic-run-0001".to_string(),
             case_sha256: "a".repeat(64),
             decision_step: 0,
@@ -2416,7 +2521,8 @@ mod tests {
 
         let signing_key = SigningKey::from_bytes(&[7_u8; 32]);
         let public_key = signing_key.verifying_key().to_bytes();
-        let public_key_hex = public_key.iter()
+        let public_key_hex = public_key
+            .iter()
             .map(|byte| format!("{byte:02x}"))
             .collect::<String>();
 
@@ -2510,7 +2616,9 @@ mod tests {
             parent_artifact_sha256: parents,
         };
         let signature = signing_key.sign(&canonical_bytes(&payload).unwrap());
-        let signature_hex = signature.to_bytes().iter()
+        let signature_hex = signature
+            .to_bytes()
+            .iter()
             .map(|byte| format!("{byte:02x}"))
             .collect::<String>();
         let envelope = AttestationEnvelope {
@@ -2519,7 +2627,13 @@ mod tests {
             signature_hex,
         };
         let pinned_root_sha256 = canonical_sha256(&trust_root).unwrap();
-        (trust_root, receipt, command_binding, envelope, pinned_root_sha256)
+        (
+            trust_root,
+            receipt,
+            command_binding,
+            envelope,
+            pinned_root_sha256,
+        )
     }
 
     fn actuation_witness_bundle_fixture(
@@ -2536,8 +2650,16 @@ mod tests {
         );
         let envelope_uri = artifact_envelope_uri(envelope).unwrap();
 
-        fs::write(root.join("artifacts/actuation/witness.json"), &receipt_bytes).unwrap();
-        fs::write(root.join("artifacts/actuation/attestation.json"), &envelope_bytes).unwrap();
+        fs::write(
+            root.join("artifacts/actuation/witness.json"),
+            &receipt_bytes,
+        )
+        .unwrap();
+        fs::write(
+            root.join("artifacts/actuation/attestation.json"),
+            &envelope_bytes,
+        )
+        .unwrap();
 
         let manifest = BundleManifest {
             schema_version: "0.1.0".to_string(),
@@ -2564,17 +2686,20 @@ mod tests {
     }
 
     fn service_provider_profiles() -> Vec<ClaimProducerProfile> {
-        vec![ClaimProducerProfile {
-            signer_role: SignerRole::ServiceProvider,
-            issuer_id: "synthetic-metering-system".to_string(),
-            tool_source_commit: "1".repeat(40),
-            tool_configuration_sha256: "2".repeat(64),
-        }, ClaimProducerProfile {
-            signer_role: SignerRole::EvidenceProvider,
-            issuer_id: "synthetic-meter-data-source".to_string(),
-            tool_source_commit: "3".repeat(40),
-            tool_configuration_sha256: "4".repeat(64),
-        }]
+        vec![
+            ClaimProducerProfile {
+                signer_role: SignerRole::ServiceProvider,
+                issuer_id: "synthetic-metering-system".to_string(),
+                tool_source_commit: "1".repeat(40),
+                tool_configuration_sha256: "2".repeat(64),
+            },
+            ClaimProducerProfile {
+                signer_role: SignerRole::EvidenceProvider,
+                issuer_id: "synthetic-meter-data-source".to_string(),
+                tool_source_commit: "3".repeat(40),
+                tool_configuration_sha256: "4".repeat(64),
+            },
+        ]
     }
 
     fn final_service_bundle_fixture(
@@ -2588,7 +2713,8 @@ mod tests {
     ) {
         let case: BenchmarkCase = serde_json::from_str(include_str!(
             "../../power-restoration-benchmark-case/fixtures/synthetic-restoration-case-v0.1.json"
-        )).unwrap();
+        ))
+        .unwrap();
         let mut receipt: RunReceipt = serde_json::from_str(include_str!(
             "../../power-restoration-run-receipt/fixtures/synthetic-restoration-run-receipt-v0.1.json"
         )).unwrap();
@@ -2609,38 +2735,41 @@ mod tests {
         let mut samples = Vec::new();
         for step in 0..case.timebase.horizon_steps {
             for load in &case.network.loads {
-                let demand_kwh = load.active_power_kw
-                    * f64::from(interval_duration_seconds) / 3_600.0;
-                samples.push(
-                    power_restoration_service_trajectory_audit::ServiceSample {
-                        sample_id: format!("sample-{}-{step}", load.load_id),
-                        load_id: load.load_id.clone(),
-                        step,
-                        interval_start_unix_ms: first_start
-                            + u64::from(step) * interval_duration_ms,
-                        utc_offset_minutes: 0,
-                        demand_kwh,
-                        delivered_kwh: Some(demand_kwh),
-                        status: power_restoration_service_trajectory_audit::ServiceSampleStatus::Known,
-                        evidence_ref: Some(meter_uri.clone()),
-                        evidence_sha256: Some(meter_sha.clone()),
-                        uncertainty_kwh: Some(0.01),
-                        unknown_reason: None,
-                        conflict_reason: None,
-                        conflict_evidence: Vec::new(),
-                    }
-                );
+                let demand_kwh =
+                    load.active_power_kw * f64::from(interval_duration_seconds) / 3_600.0;
+                samples.push(power_restoration_service_trajectory_audit::ServiceSample {
+                    sample_id: format!("sample-{}-{step}", load.load_id),
+                    load_id: load.load_id.clone(),
+                    step,
+                    interval_start_unix_ms: first_start + u64::from(step) * interval_duration_ms,
+                    utc_offset_minutes: 0,
+                    demand_kwh,
+                    delivered_kwh: Some(demand_kwh),
+                    status: power_restoration_service_trajectory_audit::ServiceSampleStatus::Known,
+                    evidence_ref: Some(meter_uri.clone()),
+                    evidence_sha256: Some(meter_sha.clone()),
+                    uncertainty_kwh: Some(0.01),
+                    unknown_reason: None,
+                    conflict_reason: None,
+                    conflict_evidence: Vec::new(),
+                });
             }
         }
 
-        let mut parents = receipt.decision_steps.iter()
-            .filter(|step| step.disposition == StepDisposition::Executed
-                && step.service_outcome == ServiceOutcome::Scored)
-            .filter_map(|step| step.service_trajectory.as_ref())
-            .map(|artifact| power_restoration_service_trajectory_audit::ServiceSourceArtifact {
-                artifact_ref: artifact.artifact_ref.clone(),
-                sha256: artifact.sha256.clone(),
+        let mut parents = receipt
+            .decision_steps
+            .iter()
+            .filter(|step| {
+                step.disposition == StepDisposition::Executed
+                    && step.service_outcome == ServiceOutcome::Scored
             })
+            .filter_map(|step| step.service_trajectory.as_ref())
+            .map(
+                |artifact| power_restoration_service_trajectory_audit::ServiceSourceArtifact {
+                    artifact_ref: artifact.artifact_ref.clone(),
+                    sha256: artifact.sha256.clone(),
+                },
+            )
             .collect::<Vec<_>>();
         parents.sort_by(|left, right| left.artifact_ref.cmp(&right.artifact_ref));
 
@@ -2651,7 +2780,8 @@ mod tests {
             run_id: receipt.run_id.clone(),
             case_ref: receipt.case.case_ref.clone(),
             case_sha256: case_sha.clone(),
-            stream_kind: power_restoration_service_trajectory_audit::ServiceStreamKind::MeasuredService,
+            stream_kind:
+                power_restoration_service_trajectory_audit::ServiceStreamKind::MeasuredService,
             service_id: "electricity-service".to_string(),
             service_type: "electricity".to_string(),
             service_boundary_id: "load-terminal".to_string(),
@@ -2691,12 +2821,19 @@ mod tests {
             parent_service_artifacts: parents,
         };
 
-        let weighted_delivered = trajectory.samples.iter().map(|sample| {
-            let load = case.network.loads.iter()
-                .find(|load| load.load_id == sample.load_id)
-                .unwrap();
-            sample.delivered_kwh.unwrap() * load.priority_weight
-        }).sum::<f64>();
+        let weighted_delivered = trajectory
+            .samples
+            .iter()
+            .map(|sample| {
+                let load = case
+                    .network
+                    .loads
+                    .iter()
+                    .find(|load| load.load_id == sample.load_id)
+                    .unwrap();
+                sample.delivered_kwh.unwrap() * load.priority_weight
+            })
+            .sum::<f64>();
         receipt.objective.metric = case.objective.metric.clone();
         receipt.objective.unit = "weighted_kWh".to_string();
         let score = receipt.aggregate_score.as_mut().unwrap();
@@ -2724,7 +2861,11 @@ mod tests {
 
         if include_source_artifacts {
             fs::write(root.join("artifacts/service/meter.bin"), meter_bytes).unwrap();
-            fs::write(root.join("artifacts/service/calibration.bin"), calibration_bytes).unwrap();
+            fs::write(
+                root.join("artifacts/service/calibration.bin"),
+                calibration_bytes,
+            )
+            .unwrap();
             artifacts.push(ArtifactRecord {
                 artifact_uri: meter_uri,
                 relative_path: "artifacts/service/meter.bin".to_string(),
@@ -2787,8 +2928,7 @@ mod tests {
 
     #[test]
     fn service_sources_require_distinct_evidence_provider_attestations() {
-        let (root, bundle, case, receipt, final_ref) =
-            final_service_bundle_fixture(true);
+        let (root, bundle, case, receipt, final_ref) = final_service_bundle_fixture(true);
         let (trajectory, report) = verify_final_service_trajectory_bundle(
             &root,
             &bundle,
@@ -2797,15 +2937,14 @@ mod tests {
             &case,
             &service_provider_profiles(),
             8 * 1024 * 1024,
-        ).unwrap();
+        )
+        .unwrap();
         let mut expected_artifacts = BTreeMap::new();
         let mut requirements = Vec::new();
         let mut errors = Vec::new();
         let service_profiles = service_provider_profiles();
-        let service_profile = profile_for_role(
-            &service_profiles,
-            SignerRole::ServiceProvider,
-        ).unwrap();
+        let service_profile =
+            profile_for_role(&service_profiles, SignerRole::ServiceProvider).unwrap();
         let case_sha = canonical_case_sha256(&case).unwrap();
         let proposals_sha = proposal_set_sha256(&receipt).unwrap();
         add_attested_artifact(
@@ -2837,34 +2976,51 @@ mod tests {
         );
         assert!(errors.is_empty(), "{errors:?}");
         assert_eq!(
-            requirements.iter()
+            requirements
+                .iter()
                 .filter(|requirement| requirement.signer_role == SignerRole::EvidenceProvider)
                 .count(),
             trajectory.source_artifacts.len()
         );
-        assert!(requirements.iter().filter(|requirement| {
-            requirement.signer_role == SignerRole::EvidenceProvider
-        }).all(|requirement| {
-            requirement.issuer_id == "synthetic-meter-data-source"
-                && requirement.predicate_type == "power-restoration/service-source-evidence/v1"
-                && requirement.parent_artifact_sha256.contains(&canonical_case_sha256(&case).unwrap())
-                && requirement.parent_artifact_sha256.contains(&proposal_set_sha256(&receipt).unwrap())
-        }));
-        let service_requirement = requirements.iter()
+        assert!(
+            requirements
+                .iter()
+                .filter(|requirement| { requirement.signer_role == SignerRole::EvidenceProvider })
+                .all(|requirement| {
+                    requirement.issuer_id == "synthetic-meter-data-source"
+                        && requirement.predicate_type
+                            == "power-restoration/service-source-evidence/v1"
+                        && requirement
+                            .parent_artifact_sha256
+                            .contains(&canonical_case_sha256(&case).unwrap())
+                        && requirement
+                            .parent_artifact_sha256
+                            .contains(&proposal_set_sha256(&receipt).unwrap())
+                })
+        );
+        let service_requirement = requirements
+            .iter()
             .find(|requirement| {
                 requirement.artifact_uri == trajectory.artifact_uri
                     && requirement.signer_role == SignerRole::ServiceProvider
-            }).unwrap();
+            })
+            .unwrap();
         for source in &trajectory.source_artifacts {
-            assert!(service_requirement.parent_artifact_sha256.contains(&source.sha256));
+            assert!(
+                service_requirement
+                    .parent_artifact_sha256
+                    .contains(&source.sha256)
+            );
         }
-        assert_eq!(expected_artifacts.len(), trajectory.source_artifacts.len() + 1);
+        assert_eq!(
+            expected_artifacts.len(),
+            trajectory.source_artifacts.len() + 1
+        );
     }
 
     #[test]
     fn service_sources_reuse_matching_existing_evidence_provider_attestation() {
-        let (root, bundle, case, receipt, final_ref) =
-            final_service_bundle_fixture(true);
+        let (root, bundle, case, receipt, final_ref) = final_service_bundle_fixture(true);
         let (trajectory, report) = verify_final_service_trajectory_bundle(
             &root,
             &bundle,
@@ -2873,7 +3029,8 @@ mod tests {
             &case,
             &service_provider_profiles(),
             8 * 1024 * 1024,
-        ).unwrap();
+        )
+        .unwrap();
         let profiles = service_provider_profiles();
         let evidence_profile = profile_for_role(&profiles, SignerRole::EvidenceProvider).unwrap();
         let service_profile = profile_for_role(&profiles, SignerRole::ServiceProvider).unwrap();
@@ -2931,13 +3088,20 @@ mod tests {
         );
 
         assert!(errors.is_empty(), "{errors:?}");
-        let first = requirements.iter().find(|requirement| {
-            requirement.artifact_uri == source.artifact_ref
-                && requirement.signer_role == SignerRole::EvidenceProvider
-        }).unwrap();
-        assert_eq!(first.predicate_type, "power-restoration/observation-evidence/v1");
+        let first = requirements
+            .iter()
+            .find(|requirement| {
+                requirement.artifact_uri == source.artifact_ref
+                    && requirement.signer_role == SignerRole::EvidenceProvider
+            })
+            .unwrap();
         assert_eq!(
-            requirements.iter()
+            first.predicate_type,
+            "power-restoration/observation-evidence/v1"
+        );
+        assert_eq!(
+            requirements
+                .iter()
                 .filter(|requirement| requirement.signer_role == SignerRole::EvidenceProvider)
                 .count(),
             trajectory.source_artifacts.len()
@@ -2946,8 +3110,7 @@ mod tests {
 
     #[test]
     fn service_sources_reject_missing_evidence_provider_profile() {
-        let (root, bundle, case, receipt, final_ref) =
-            final_service_bundle_fixture(true);
+        let (root, bundle, case, receipt, final_ref) = final_service_bundle_fixture(true);
         let (trajectory, _) = verify_final_service_trajectory_bundle(
             &root,
             &bundle,
@@ -2956,8 +3119,10 @@ mod tests {
             &case,
             &service_provider_profiles(),
             8 * 1024 * 1024,
-        ).unwrap();
-        let profiles = service_provider_profiles().into_iter()
+        )
+        .unwrap();
+        let profiles = service_provider_profiles()
+            .into_iter()
             .filter(|profile| profile.signer_role == SignerRole::ServiceProvider)
             .collect::<Vec<_>>();
         let mut expected_artifacts = BTreeMap::new();
@@ -2973,14 +3138,17 @@ mod tests {
             &mut requirements,
             &mut errors,
         );
-        assert!(errors.iter().any(|error| error.contains("no pinned producer profile")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("no pinned producer profile"))
+        );
         assert!(requirements.is_empty());
     }
 
     #[test]
     fn service_sources_reject_same_producer_identity_for_service_and_evidence() {
-        let (root, bundle, case, receipt, final_ref) =
-            final_service_bundle_fixture(true);
+        let (root, bundle, case, receipt, final_ref) = final_service_bundle_fixture(true);
         let (mut trajectory, _) = verify_final_service_trajectory_bundle(
             &root,
             &bundle,
@@ -2989,10 +3157,12 @@ mod tests {
             &case,
             &service_provider_profiles(),
             8 * 1024 * 1024,
-        ).unwrap();
+        )
+        .unwrap();
         trajectory.producer.evidence_provider_id = Some("synthetic-metering-system".to_string());
         let mut profiles = service_provider_profiles();
-        let source_profile = profiles.iter_mut()
+        let source_profile = profiles
+            .iter_mut()
             .find(|profile| profile.signer_role == SignerRole::EvidenceProvider)
             .unwrap();
         source_profile.issuer_id = "synthetic-metering-system".to_string();
@@ -3009,14 +3179,17 @@ mod tests {
             &mut requirements,
             &mut errors,
         );
-        assert!(errors.iter().any(|error| error.contains("must be distinct producer identities")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("must be distinct producer identities"))
+        );
         assert!(requirements.is_empty());
     }
 
     #[test]
     fn final_service_trajectory_passes_only_with_every_source_byte_in_verified_bundle() {
-        let (root, bundle, case, receipt, final_ref) =
-            final_service_bundle_fixture(true);
+        let (root, bundle, case, receipt, final_ref) = final_service_bundle_fixture(true);
         let (trajectory, report) = verify_final_service_trajectory_bundle(
             &root,
             &bundle,
@@ -3025,19 +3198,23 @@ mod tests {
             &case,
             &service_provider_profiles(),
             8 * 1024 * 1024,
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(trajectory.artifact_uri, final_ref.artifact_ref);
-        assert_eq!(report.result_status, "measured_service_and_score_reconciled");
+        assert_eq!(
+            report.result_status,
+            "measured_service_and_score_reconciled"
+        );
     }
 
     #[test]
     fn final_service_trajectory_rejects_source_bytes_changed_after_bundle_verification() {
-        let (root, bundle, case, receipt, final_ref) =
-            final_service_bundle_fixture(true);
+        let (root, bundle, case, receipt, final_ref) = final_service_bundle_fixture(true);
         fs::write(
             root.join("artifacts/service/meter.bin"),
             b"substituted meter capture bytes",
-        ).unwrap();
+        )
+        .unwrap();
         let errors = verify_final_service_trajectory_bundle(
             &root,
             &bundle,
@@ -3046,14 +3223,18 @@ mod tests {
             &case,
             &service_provider_profiles(),
             8 * 1024 * 1024,
-        ).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("changed after bundle verification")));
+        )
+        .unwrap_err();
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("changed after bundle verification"))
+        );
     }
 
     #[test]
     fn final_service_trajectory_fails_when_source_bytes_are_omitted() {
-        let (root, bundle, case, receipt, final_ref) =
-            final_service_bundle_fixture(false);
+        let (root, bundle, case, receipt, final_ref) = final_service_bundle_fixture(false);
         let errors = verify_final_service_trajectory_bundle(
             &root,
             &bundle,
@@ -3062,19 +3243,22 @@ mod tests {
             &case,
             &service_provider_profiles(),
             8 * 1024 * 1024,
-        ).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("missing from the byte-verified bundle")));
+        )
+        .unwrap_err();
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("missing from the byte-verified bundle"))
+        );
     }
 
     #[test]
     fn verified_bundle_re_reads_exact_service_artifact_bytes() {
         let bytes = br#"{"status":"synthetic"}"#;
         let (root, bundle) = verified_single_artifact_fixture(bytes);
-        let read = bundle.read_verified_artifact_bytes(
-            &root,
-            "service://trajectory/final",
-            1024 * 1024,
-        ).unwrap();
+        let read = bundle
+            .read_verified_artifact_bytes(&root, "service://trajectory/final", 1024 * 1024)
+            .unwrap();
         assert_eq!(read, bytes);
     }
 
@@ -3085,42 +3269,55 @@ mod tests {
         fs::write(
             root.join("artifacts/service/trajectory.json"),
             br#"{"status":"substituted"}"#,
-        ).unwrap();
-        assert!(bundle.read_verified_artifact_bytes(
-            &root,
-            "service://trajectory/final",
-            1024 * 1024,
-        ).is_err());
+        )
+        .unwrap();
+        assert!(
+            bundle
+                .read_verified_artifact_bytes(&root, "service://trajectory/final", 1024 * 1024,)
+                .is_err()
+        );
     }
 
     #[test]
     fn verified_bundle_does_not_read_artifacts_outside_its_manifest() {
         let bytes = br#"{"status":"synthetic"}"#;
         let (root, bundle) = verified_single_artifact_fixture(bytes);
-        assert!(bundle.read_verified_artifact_bytes(
-            &root,
-            "service://trajectory/other",
-            1024 * 1024,
-        ).is_err());
+        assert!(
+            bundle
+                .read_verified_artifact_bytes(&root, "service://trajectory/other", 1024 * 1024,)
+                .is_err()
+        );
     }
 
     #[test]
     fn fresh_command_bound_actuation_witness_verifies_and_consumes_nonce() {
-        let (trust, receipt, binding, envelope, root_sha256) =
-            actuation_witness_fixtures();
-        let (_bundle_root, verified_bundle) =
-            actuation_witness_bundle_fixture(&receipt, &envelope);
+        let (trust, receipt, binding, envelope, root_sha256) = actuation_witness_fixtures();
+        let (_bundle_root, verified_bundle) = actuation_witness_bundle_fixture(&receipt, &envelope);
         let mut replay = ActuationWitnessReplayState::default();
         let verified = verify_no_actuation_witness(
-            &verified_bundle, &receipt, &binding, &envelope, &trust, &root_sha256, 2_000, 5_000, &mut replay,
-        ).unwrap();
+            &verified_bundle,
+            &receipt,
+            &binding,
+            &envelope,
+            &trust,
+            &root_sha256,
+            2_000,
+            5_000,
+            &mut replay,
+        )
+        .unwrap();
         assert_eq!(
             verified.result_status,
             "no_actuation_witness_signature_and_command_binding_verified"
         );
-        assert!(replay.used_challenge_nonces.contains(&binding.challenge_nonce));
+        assert!(
+            replay
+                .used_challenge_nonces
+                .contains(&binding.challenge_nonce)
+        );
         assert_eq!(
-            replay.last_sequence_by_controller_device
+            replay
+                .last_sequence_by_controller_device
                 .get("controller-substation-1/switch-T56"),
             Some(&41)
         );
@@ -3128,43 +3325,79 @@ mod tests {
 
     #[test]
     fn actuation_witness_challenge_replay_is_rejected() {
-        let (trust, receipt, binding, envelope, root_sha256) =
-            actuation_witness_fixtures();
-        let (_bundle_root, verified_bundle) =
-            actuation_witness_bundle_fixture(&receipt, &envelope);
+        let (trust, receipt, binding, envelope, root_sha256) = actuation_witness_fixtures();
+        let (_bundle_root, verified_bundle) = actuation_witness_bundle_fixture(&receipt, &envelope);
         let mut replay = ActuationWitnessReplayState::default();
         verify_no_actuation_witness(
-            &verified_bundle, &receipt, &binding, &envelope, &trust, &root_sha256, 2_000, 5_000, &mut replay,
-        ).unwrap();
-        assert!(verify_no_actuation_witness(
-            &verified_bundle, &receipt, &binding, &envelope, &trust, &root_sha256, 2_000, 5_000, &mut replay,
-        ).is_err());
+            &verified_bundle,
+            &receipt,
+            &binding,
+            &envelope,
+            &trust,
+            &root_sha256,
+            2_000,
+            5_000,
+            &mut replay,
+        )
+        .unwrap();
+        assert!(
+            verify_no_actuation_witness(
+                &verified_bundle,
+                &receipt,
+                &binding,
+                &envelope,
+                &trust,
+                &root_sha256,
+                2_000,
+                5_000,
+                &mut replay,
+            )
+            .is_err()
+        );
     }
 
     #[test]
     fn actuation_witness_cannot_be_replayed_for_another_command() {
-        let (trust, receipt, mut binding, envelope, root_sha256) =
-            actuation_witness_fixtures();
+        let (trust, receipt, mut binding, envelope, root_sha256) = actuation_witness_fixtures();
         binding.command_id = "cmd-substituted".to_string();
-        let (_bundle_root, verified_bundle) =
-            actuation_witness_bundle_fixture(&receipt, &envelope);
+        let (_bundle_root, verified_bundle) = actuation_witness_bundle_fixture(&receipt, &envelope);
         let mut replay = ActuationWitnessReplayState::default();
-        assert!(verify_no_actuation_witness(
-            &verified_bundle, &receipt, &binding, &envelope, &trust, &root_sha256, 2_000, 5_000, &mut replay,
-        ).is_err());
+        assert!(
+            verify_no_actuation_witness(
+                &verified_bundle,
+                &receipt,
+                &binding,
+                &envelope,
+                &trust,
+                &root_sha256,
+                2_000,
+                5_000,
+                &mut replay,
+            )
+            .is_err()
+        );
     }
 
     #[test]
     fn actuation_witness_rejects_contradictory_output_feedback() {
-        let (trust, mut receipt, binding, envelope, root_sha256) =
-            actuation_witness_fixtures();
+        let (trust, mut receipt, binding, envelope, root_sha256) = actuation_witness_fixtures();
         receipt.output_transition_observed = true;
-        let (_bundle_root, verified_bundle) =
-            actuation_witness_bundle_fixture(&receipt, &envelope);
+        let (_bundle_root, verified_bundle) = actuation_witness_bundle_fixture(&receipt, &envelope);
         let mut replay = ActuationWitnessReplayState::default();
-        assert!(verify_no_actuation_witness(
-            &verified_bundle, &receipt, &binding, &envelope, &trust, &root_sha256, 2_000, 5_000, &mut replay,
-        ).is_err());
+        assert!(
+            verify_no_actuation_witness(
+                &verified_bundle,
+                &receipt,
+                &binding,
+                &envelope,
+                &trust,
+                &root_sha256,
+                2_000,
+                5_000,
+                &mut replay,
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -3184,12 +3417,15 @@ mod tests {
 
     #[test]
     fn actuation_witness_receipt_must_be_in_verified_bundle() {
-        let (trust, receipt, binding, envelope, root_sha256) =
-            actuation_witness_fixtures();
+        let (trust, receipt, binding, envelope, root_sha256) = actuation_witness_fixtures();
         let root = test_bundle_root();
         fs::create_dir_all(root.join("artifacts/actuation")).unwrap();
         let envelope_bytes = canonical_bytes(&envelope).unwrap();
-        fs::write(root.join("artifacts/actuation/attestation.json"), &envelope_bytes).unwrap();
+        fs::write(
+            root.join("artifacts/actuation/attestation.json"),
+            &envelope_bytes,
+        )
+        .unwrap();
         let manifest = BundleManifest {
             schema_version: "0.1.0".to_string(),
             bundle_id: "attestation-only-bundle".to_string(),
@@ -3204,24 +3440,45 @@ mod tests {
         let bundle = verify_bundle_manifest(&root, &manifest, 1024 * 1024).unwrap();
         let mut replay = ActuationWitnessReplayState::default();
         let errors = verify_no_actuation_witness(
-            &bundle, &receipt, &binding, &envelope, &trust, &root_sha256,
-            2_000, 5_000, &mut replay,
-        ).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("not present with exact bytes")));
+            &bundle,
+            &receipt,
+            &binding,
+            &envelope,
+            &trust,
+            &root_sha256,
+            2_000,
+            5_000,
+            &mut replay,
+        )
+        .unwrap_err();
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("not present with exact bytes"))
+        );
     }
 
     #[test]
     fn actuation_witness_rejects_stale_sequence_and_expired_window() {
-        let (trust, mut receipt, binding, envelope, root_sha256) =
-            actuation_witness_fixtures();
+        let (trust, mut receipt, binding, envelope, root_sha256) = actuation_witness_fixtures();
         receipt.monotonic_sequence = 40;
         receipt.expires_at_unix_ms = 1_999;
-        let (_bundle_root, verified_bundle) =
-            actuation_witness_bundle_fixture(&receipt, &envelope);
+        let (_bundle_root, verified_bundle) = actuation_witness_bundle_fixture(&receipt, &envelope);
         let mut replay = ActuationWitnessReplayState::default();
-        assert!(verify_no_actuation_witness(
-            &verified_bundle, &receipt, &binding, &envelope, &trust, &root_sha256, 2_000, 5_000, &mut replay,
-        ).is_err());
+        assert!(
+            verify_no_actuation_witness(
+                &verified_bundle,
+                &receipt,
+                &binding,
+                &envelope,
+                &trust,
+                &root_sha256,
+                2_000,
+                5_000,
+                &mut replay,
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -3229,7 +3486,8 @@ mod tests {
         let (mut batch, proposal, case) = {
             let batch: EvidenceBatch = serde_json::from_str(include_str!(
                 "../fixtures/synthetic-observation-evidence-batch-v0.1.json"
-            )).unwrap();
+            ))
+            .unwrap();
             let proposal: power_restoration_action_proposal::ActionProposal = serde_json::from_str(include_str!(
                 "../../power-restoration-action-proposal/fixtures/synthetic-information-request-proposal-v0.1.json"
             )).unwrap();
@@ -3250,14 +3508,14 @@ mod tests {
         let mut case: power_restoration_benchmark_case::BenchmarkCase = serde_json::from_str(include_str!(
             "../../power-restoration-benchmark-case/fixtures/synthetic-restoration-case-v0.1.json"
         )).unwrap();
-        case.provenance.source_artifacts.push(
-            power_restoration_benchmark_case::SourceArtifact {
+        case.provenance
+            .source_artifacts
+            .push(power_restoration_benchmark_case::SourceArtifact {
                 path: "feeders/feeder.dss".to_string(),
                 vcs_object_id: "a".repeat(40),
                 vcs_object_format: power_restoration_benchmark_case::VcsObjectFormat::GitSha1,
                 raw_sha256: None,
-            }
-        );
+            });
         let receipt: power_restoration_run_receipt::RunReceipt = serde_json::from_str(include_str!(
             "../../power-restoration-run-receipt/fixtures/synthetic-restoration-run-receipt-v0.1.json"
         )).unwrap();
@@ -3294,9 +3552,12 @@ mod tests {
             2_000,
             1024,
         );
-        assert!(result.unwrap_err().iter().any(|error| {
-            error.contains("lacks a raw SHA-256 digest")
-        }));
+        assert!(
+            result
+                .unwrap_err()
+                .iter()
+                .any(|error| { error.contains("lacks a raw SHA-256 digest") })
+        );
     }
 
     #[test]
@@ -3342,9 +3603,12 @@ mod tests {
             1024,
         );
         assert!(result.is_err());
-        assert!(result.unwrap_err().iter().any(|error| {
-            error.contains("absent from all acquired observation results")
-        }));
+        assert!(
+            result
+                .unwrap_err()
+                .iter()
+                .any(|error| { error.contains("absent from all acquired observation results") })
+        );
     }
 
     #[test]
@@ -3383,21 +3647,23 @@ mod tests {
             1024,
         );
         assert!(result.is_err());
-        assert!(result.unwrap_err().iter().any(|error| error.contains("RunRecorder")));
+        assert!(
+            result
+                .unwrap_err()
+                .iter()
+                .any(|error| error.contains("RunRecorder"))
+        );
     }
 
     #[test]
     fn pinned_trust_root_and_strict_ed25519_signature_verify() {
         let (trust, envelope, expected, _) = fixtures();
-        let report = verify_attestation(
-            &envelope,
-            &trust,
-            TRUST_ROOT_SHA256,
-            2_000,
-            &expected,
-        )
-        .unwrap();
-        assert_eq!(report.signature_status, "strict_ed25519_verified_against_pinned_trust_root");
+        let report =
+            verify_attestation(&envelope, &trust, TRUST_ROOT_SHA256, 2_000, &expected).unwrap();
+        assert_eq!(
+            report.signature_status,
+            "strict_ed25519_verified_against_pinned_trust_root"
+        );
         assert_eq!(report.signer_role, SignerRole::ElectricalValidator);
     }
 
@@ -3405,20 +3671,26 @@ mod tests {
     fn changed_signed_payload_is_rejected() {
         let (trust, mut envelope, expected, _) = fixtures();
         envelope.payload.run_id = "attacker-substituted-run".to_string();
-        assert!(verify_attestation(&envelope, &trust, TRUST_ROOT_SHA256, 2_000, &expected).is_err());
+        assert!(
+            verify_attestation(&envelope, &trust, TRUST_ROOT_SHA256, 2_000, &expected).is_err()
+        );
     }
 
     #[test]
     fn untrusted_key_is_rejected() {
         let (trust, mut envelope, expected, _) = fixtures();
         envelope.key_id = "attacker-key".to_string();
-        assert!(verify_attestation(&envelope, &trust, TRUST_ROOT_SHA256, 2_000, &expected).is_err());
+        assert!(
+            verify_attestation(&envelope, &trust, TRUST_ROOT_SHA256, 2_000, &expected).is_err()
+        );
     }
 
     #[test]
     fn expired_attestation_is_rejected() {
         let (trust, envelope, expected, _) = fixtures();
-        assert!(verify_attestation(&envelope, &trust, TRUST_ROOT_SHA256, 9_000, &expected).is_err());
+        assert!(
+            verify_attestation(&envelope, &trust, TRUST_ROOT_SHA256, 9_000, &expected).is_err()
+        );
     }
 
     #[test]
@@ -3441,31 +3713,41 @@ mod tests {
     fn caller_pinned_trust_root_prevents_root_substitution() {
         let (mut trust, envelope, expected, _) = fixtures();
         trust.root_id = "attacker-root".to_string();
-        assert!(verify_attestation(&envelope, &trust, TRUST_ROOT_SHA256, 2_000, &expected).is_err());
+        assert!(
+            verify_attestation(&envelope, &trust, TRUST_ROOT_SHA256, 2_000, &expected).is_err()
+        );
     }
 
     #[test]
     fn wrong_issuer_is_rejected_even_with_a_trusted_key() {
         let (trust, envelope, mut expected, _) = fixtures();
         expected.issuer_id = "different-producer".to_string();
-        assert!(verify_attestation(&envelope, &trust, TRUST_ROOT_SHA256, 2_000, &expected).is_err());
+        assert!(
+            verify_attestation(&envelope, &trust, TRUST_ROOT_SHA256, 2_000, &expected).is_err()
+        );
     }
 
     #[test]
     fn wrong_role_or_wrong_case_binding_is_rejected() {
         let (trust, envelope, mut expected, _) = fixtures();
         expected.signer_role = SignerRole::Scorer;
-        assert!(verify_attestation(&envelope, &trust, TRUST_ROOT_SHA256, 2_000, &expected).is_err());
+        assert!(
+            verify_attestation(&envelope, &trust, TRUST_ROOT_SHA256, 2_000, &expected).is_err()
+        );
         expected.signer_role = SignerRole::ElectricalValidator;
         expected.case_sha256 = "c".repeat(64);
-        assert!(verify_attestation(&envelope, &trust, TRUST_ROOT_SHA256, 2_000, &expected).is_err());
+        assert!(
+            verify_attestation(&envelope, &trust, TRUST_ROOT_SHA256, 2_000, &expected).is_err()
+        );
     }
 
     #[test]
     fn wrong_predicate_type_is_rejected_even_with_a_trusted_signer() {
         let (trust, envelope, mut expected, _) = fixtures();
         expected.predicate_type = "power-restoration/service-scoring/v1".to_string();
-        assert!(verify_attestation(&envelope, &trust, TRUST_ROOT_SHA256, 2_000, &expected).is_err());
+        assert!(
+            verify_attestation(&envelope, &trust, TRUST_ROOT_SHA256, 2_000, &expected).is_err()
+        );
     }
 
     #[test]
@@ -3511,15 +3793,12 @@ mod tests {
         let (trust, envelope, expected, manifest) = fixtures();
         let result = verify_bundle_manifest(&root, &manifest, 1024).unwrap();
         assert_eq!(result.report().artifact_count, 1);
-        let verified = verify_attestation(
-            &envelope,
-            &trust,
-            TRUST_ROOT_SHA256,
-            2_000,
-            &expected,
-        )
-        .unwrap();
-        assert_eq!(verified.subject_sha256, result.report().verified_artifacts[0].sha256);
+        let verified =
+            verify_attestation(&envelope, &trust, TRUST_ROOT_SHA256, 2_000, &expected).unwrap();
+        assert_eq!(
+            verified.subject_sha256,
+            result.report().verified_artifacts[0].sha256
+        );
         fs::remove_dir_all(root).expect("remove test bundle");
     }
 
@@ -3539,25 +3818,31 @@ mod tests {
         .unwrap();
         assert_eq!(verified.len(), 1);
 
-        assert!(verify_attestation_set(
-            &manifest_report,
-            &trust,
-            TRUST_ROOT_SHA256,
-            2_000,
-            &[expected.clone()],
-            &[],
-        ).is_err());
+        assert!(
+            verify_attestation_set(
+                &manifest_report,
+                &trust,
+                TRUST_ROOT_SHA256,
+                2_000,
+                &[expected.clone()],
+                &[],
+            )
+            .is_err()
+        );
 
         let mut missing_subject = expected;
         missing_subject.artifact_uri = "bundle://validator/missing.json".to_string();
-        assert!(verify_attestation_set(
-            &manifest_report,
-            &trust,
-            TRUST_ROOT_SHA256,
-            2_000,
-            &[missing_subject],
-            &[envelope],
-        ).is_err());
+        assert!(
+            verify_attestation_set(
+                &manifest_report,
+                &trust,
+                TRUST_ROOT_SHA256,
+                2_000,
+                &[missing_subject],
+                &[envelope],
+            )
+            .is_err()
+        );
         fs::remove_dir_all(root).expect("remove test bundle");
     }
 
@@ -3566,25 +3851,31 @@ mod tests {
         let root = test_bundle_root();
         let (trust, envelope, expected, manifest) = fixtures();
         let manifest_report = verify_bundle_manifest(&root, &manifest, 1024).unwrap();
-        assert!(verify_attestation_set(
-            &manifest_report,
-            &trust,
-            TRUST_ROOT_SHA256,
-            2_000,
-            &[expected.clone()],
-            &[envelope.clone(), envelope.clone()],
-        ).is_err());
+        assert!(
+            verify_attestation_set(
+                &manifest_report,
+                &trust,
+                TRUST_ROOT_SHA256,
+                2_000,
+                &[expected.clone()],
+                &[envelope.clone(), envelope.clone()],
+            )
+            .is_err()
+        );
 
         let mut unexpected = envelope.clone();
         unexpected.payload.subject_uri = "bundle://validator/other.json".to_string();
-        assert!(verify_attestation_set(
-            &manifest_report,
-            &trust,
-            TRUST_ROOT_SHA256,
-            2_000,
-            &[expected],
-            &[unexpected],
-        ).is_err());
+        assert!(
+            verify_attestation_set(
+                &manifest_report,
+                &trust,
+                TRUST_ROOT_SHA256,
+                2_000,
+                &[expected],
+                &[unexpected],
+            )
+            .is_err()
+        );
         fs::remove_dir_all(root).expect("remove test bundle");
     }
 
@@ -3638,6 +3929,8 @@ mod tests {
     fn invalid_signature_hex_is_rejected() {
         let (trust, mut envelope, expected, _) = fixtures();
         envelope.signature_hex = "not-a-signature".to_string();
-        assert!(verify_attestation(&envelope, &trust, TRUST_ROOT_SHA256, 2_000, &expected).is_err());
+        assert!(
+            verify_attestation(&envelope, &trust, TRUST_ROOT_SHA256, 2_000, &expected).is_err()
+        );
     }
 }
