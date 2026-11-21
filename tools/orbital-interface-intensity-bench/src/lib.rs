@@ -403,6 +403,8 @@ fn evaluate_case(case: &IntensityCase) -> Result<Decision, String> {
             || !article.operating_time_verified
             || !article.event_capture_complete
             || article.intervention_during_exposure
+            || (article.censoring == CensoringDisposition::FailureTerminated
+                && article.failure_events == 0)
             || matches!(
                 article.censoring,
                 CensoringDisposition::Intervention
