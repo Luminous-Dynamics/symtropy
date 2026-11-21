@@ -113,6 +113,7 @@ impl EventKind {
 pub struct DwellProfile {
     pub version: String,
     pub max_observation_gap_ticks: i64,
+    pub max_receive_gap_ticks: i64,
     pub anchorage_dwell_ticks: i64,
     pub approach_dwell_ticks: i64,
     pub berth_dwell_ticks: i64,
@@ -129,6 +130,7 @@ impl Default for DwellProfile {
         Self {
             version: "edge-port-fsm-v0.1".to_string(),
             max_observation_gap_ticks: 2,
+            max_receive_gap_ticks: 2,
             anchorage_dwell_ticks: 2,
             approach_dwell_ticks: 1,
             berth_dwell_ticks: 3,
@@ -148,6 +150,7 @@ impl DwellProfile {
             return Err("profile version must be non-empty".to_string());
         }
         if self.max_observation_gap_ticks <= 0
+            || self.max_receive_gap_ticks <= 0
             || self.anchorage_dwell_ticks <= 0
             || self.approach_dwell_ticks <= 0
             || self.berth_dwell_ticks <= 0
@@ -179,6 +182,7 @@ pub struct AisFix {
     pub geofence_digest: String,
     pub spatial_reference_id: String,
     pub tick: i64,
+    pub received_tick: i64,
     pub zone: Zone,
     pub speed_milli_knots: u32,
     pub position_valid: bool,
@@ -191,6 +195,9 @@ pub struct InferredEvent {
     pub lower_tick: i64,
     pub upper_tick: i64,
     pub confirmation_tick: i64,
+    pub confirmation_received_tick: i64,
+    pub event_gap_ticks: Option<i64>,
+    pub receive_gap_ticks: Option<i64>,
     pub supporting_fix_count: usize,
     pub profile_version: String,
 }
@@ -323,6 +330,7 @@ pub fn evaluate_call_with_initial_state(
     let mut state = initial_state;
     let mut candidate: Option<Candidate> = None;
     let mut last_tick: Option<i64> = None;
+    let mut last_received_tick: Option<i64> = None;
     let mut accepted_fix_count = 0;
     let mut duplicate_fix_count = 0;
     let mut invalid_fix_count = 0;
@@ -382,34 +390,61 @@ pub fn evaluate_call_with_initial_state(
             }
         }
 
-        if let Some(previous_tick) = last_tick {
+        let event_gap_ticks = if let Some(previous_tick) = last_tick {
             if fix.tick < previous_tick {
                 return Err(format!(
-                    "out-of-order AIS tick {} follows {}",
+                    "out-of-order AIS event tick {} follows {}",
                     fix.tick, previous_tick
                 ));
             }
+            Some(
+                fix.tick
+                    .checked_sub(previous_tick)
+                    .ok_or_else(|| "AIS event-tick difference overflow".to_string())?,
+            )
+        } else {
+            None
+        };
 
-            let gap = fix
-                .tick
-                .checked_sub(previous_tick)
-                .ok_or_else(|| "AIS tick difference overflow".to_string())?;
-            if gap > profile.max_observation_gap_ticks {
-                observability_gap_count += 1;
-                candidate = None;
-                state = ServiceState::Indeterminate;
-                events.push(InferredEvent {
-                    kind: EventKind::ObservabilityGap,
-                    lower_tick: previous_tick,
-                    upper_tick: fix.tick,
-                    confirmation_tick: fix.tick,
-                    supporting_fix_count: 0,
-                    profile_version: profile.version.clone(),
-                });
+        let receive_gap_ticks = if let Some(previous_received_tick) = last_received_tick {
+            if fix.received_tick < previous_received_tick {
+                return Err(format!(
+                    "out-of-order receiver tick {} follows {}",
+                    fix.received_tick, previous_received_tick
+                ));
             }
+            Some(
+                fix.received_tick
+                    .checked_sub(previous_received_tick)
+                    .ok_or_else(|| "AIS receiver-tick difference overflow".to_string())?,
+            )
+        } else {
+            None
+        };
+
+        let event_gap_exceeded = event_gap_ticks
+            .is_some_and(|gap| gap > profile.max_observation_gap_ticks);
+        let receive_gap_exceeded = receive_gap_ticks
+            .is_some_and(|gap| gap > profile.max_receive_gap_ticks);
+        if event_gap_exceeded || receive_gap_exceeded {
+            observability_gap_count += 1;
+            candidate = None;
+            state = ServiceState::Indeterminate;
+            events.push(InferredEvent {
+                kind: EventKind::ObservabilityGap,
+                lower_tick: last_tick.unwrap_or(fix.tick),
+                upper_tick: fix.tick,
+                confirmation_tick: fix.tick,
+                confirmation_received_tick: fix.received_tick,
+                event_gap_ticks,
+                receive_gap_ticks,
+                supporting_fix_count: 0,
+                profile_version: profile.version.clone(),
+            });
         }
 
         last_tick = Some(fix.tick);
+        last_received_tick = Some(fix.received_tick);
         accepted_fix_count += 1;
 
         if !fix.position_valid {
@@ -421,6 +456,9 @@ pub fn evaluate_call_with_initial_state(
                 lower_tick: fix.tick,
                 upper_tick: fix.tick,
                 confirmation_tick: fix.tick,
+                confirmation_received_tick: fix.received_tick,
+                event_gap_ticks: None,
+                receive_gap_ticks: None,
                 supporting_fix_count: 0,
                 profile_version: profile.version.clone(),
             });
@@ -447,6 +485,9 @@ pub fn evaluate_call_with_initial_state(
                 lower_tick: fix.tick,
                 upper_tick: fix.tick,
                 confirmation_tick: fix.tick,
+                confirmation_received_tick: fix.received_tick,
+                event_gap_ticks: None,
+                receive_gap_ticks: None,
                 supporting_fix_count: 1,
                 profile_version: profile.version.clone(),
             });
@@ -515,6 +556,9 @@ pub fn evaluate_call_with_initial_state(
             lower_tick: current.first_tick,
             upper_tick: current.last_tick,
             confirmation_tick: current.last_tick,
+            confirmation_received_tick: fix.received_tick,
+            event_gap_ticks: None,
+            receive_gap_ticks: None,
             supporting_fix_count: current.supporting_fix_count,
             profile_version: profile.version.clone(),
         });
@@ -561,6 +605,7 @@ mod tests {
             geofence_digest: "sha256:fixture-geofence-v1".to_string(),
             spatial_reference_id: "EPSG:4326".to_string(),
             tick,
+            received_tick: 100 + tick,
             zone,
             speed_milli_knots,
             position_valid: true,
@@ -675,6 +720,36 @@ mod tests {
         .expect_err("conflicting replay must reject");
 
         assert!(error.contains("conflicting content"));
+    }
+
+    #[test]
+    fn receiver_time_gap_breaks_dwell_even_when_event_ticks_are_contiguous() {
+        let fixes = [
+            fix(0, "m0", Zone::Outside, 0),
+            fix(1, "m1", Zone::Approach, 5_000),
+            fix(2, "m2", Zone::Approach, 5_000),
+            {
+                let mut next = fix(3, "m3", Zone::Approach, 5_000);
+                next.received_tick = 120;
+                next
+            },
+            {
+                let mut next = fix(4, "m4", Zone::Approach, 5_000);
+                next.received_tick = 121;
+                next
+            },
+        ];
+        let report = evaluate_from_baselined_outside(&fixes, &default_profile());
+
+        assert_eq!(report.observability_gap_count, 1);
+        let gap = report
+            .events
+            .iter()
+            .find(|event| event.kind == EventKind::ObservabilityGap)
+            .expect("receiver gap recorded");
+        assert_eq!(gap.event_gap_ticks, Some(1));
+        assert_eq!(gap.receive_gap_ticks, Some(18));
+        assert!(report.events.iter().any(|event| event.kind == EventKind::ZoneReacquired));
     }
 
     #[test]
