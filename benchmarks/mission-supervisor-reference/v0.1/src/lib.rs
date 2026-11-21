@@ -459,13 +459,24 @@ pub enum ReceiptDisposition {
 /// Single-writer deterministic state machine. It allows at most one unresolved
 /// external mutation across the mission at any time.
 #[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct SourceCursor {
+    sequence: u64,
+    observed_at_ms: u64,
+    source_clock_id: String,
+    source_boot_epoch_id: String,
+    comparison_clock_id: String,
+    comparison_boot_epoch_id: String,
+    normalization_commitment: Digest,
+}
+
 pub struct MissionSupervisor {
     plan: MissionPlan,
     states: BTreeMap<String, SubgoalRuntime>,
     active_subgoal: Option<String>,
     used_action_ids: BTreeSet<String>,
     seen_events: BTreeMap<String, Digest>,
-    source_cursors: BTreeMap<String, (u64, u64, String, String, String, String, Digest)>,
+    source_cursors: BTreeMap<String, SourceCursor>,
     decisions: Vec<Decision>,
     halted: bool,
 }
@@ -944,29 +955,20 @@ impl MissionSupervisor {
             return Err(SupervisorError::EventIdConflict);
         }
 
-        if let Some((
-            last_sequence,
-            last_timestamp,
-            last_source_clock,
-            last_source_epoch,
-            last_comparison_clock,
-            last_comparison_epoch,
-            last_normalization_commitment,
-        )) = self.source_cursors.get(&envelope.source_id)
-        {
-            if envelope.source_sequence <= *last_sequence {
+        if let Some(cursor) = self.source_cursors.get(&envelope.source_id) {
+            if envelope.source_sequence <= cursor.sequence {
                 return Err(SupervisorError::StaleSourceSequence);
             }
             let time = &envelope.time_qualification;
-            if time.source_clock_id != *last_source_clock
-                || time.source_boot_epoch_id != *last_source_epoch
-                || time.comparison_clock_id != *last_comparison_clock
-                || time.comparison_boot_epoch_id != *last_comparison_epoch
-                || time.normalization_commitment != *last_normalization_commitment
+            if time.source_clock_id != cursor.source_clock_id
+                || time.source_boot_epoch_id != cursor.source_boot_epoch_id
+                || time.comparison_clock_id != cursor.comparison_clock_id
+                || time.comparison_boot_epoch_id != cursor.comparison_boot_epoch_id
+                || time.normalization_commitment != cursor.normalization_commitment
             {
                 return Err(SupervisorError::SourceTimeBasisMismatch);
             }
-            if envelope.observed_at_ms < *last_timestamp {
+            if envelope.observed_at_ms < cursor.observed_at_ms {
                 return Err(SupervisorError::SourceTimestampRegression);
             }
         }
@@ -975,15 +977,15 @@ impl MissionSupervisor {
             .insert(envelope.event_id.clone(), envelope.content_digest);
         self.source_cursors.insert(
             envelope.source_id.clone(),
-            (
-                envelope.source_sequence,
-                envelope.observed_at_ms,
-                envelope.time_qualification.source_clock_id.clone(),
-                envelope.time_qualification.source_boot_epoch_id.clone(),
-                envelope.time_qualification.comparison_clock_id.clone(),
-                envelope.time_qualification.comparison_boot_epoch_id.clone(),
-                envelope.time_qualification.normalization_commitment,
-            ),
+            SourceCursor {
+                sequence: envelope.source_sequence,
+                observed_at_ms: envelope.observed_at_ms,
+                source_clock_id: envelope.time_qualification.source_clock_id.clone(),
+                source_boot_epoch_id: envelope.time_qualification.source_boot_epoch_id.clone(),
+                comparison_clock_id: envelope.time_qualification.comparison_clock_id.clone(),
+                comparison_boot_epoch_id: envelope.time_qualification.comparison_boot_epoch_id.clone(),
+                normalization_commitment: envelope.time_qualification.normalization_commitment,
+            },
         );
         Ok(ReceiptDisposition::Applied)
     }
