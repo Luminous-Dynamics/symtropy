@@ -14,7 +14,7 @@ fn main() {
     println!("Synthetic ticks only; do not interpret ticks as real hours.");
     for cohort in &report.cohorts {
         println!(
-            "{} as_of={} calls={} berth={} diverted={} cancelled={} censored={} vessel_ticks={} mean_exposure_ticks={:.4}",
+            "{} as_of={} calls={} berth={} diverted={} cancelled={} censored={} vessel_ticks={} integrated_queue_ticks={} mean_exposure_ticks={:.4}",
             cohort.scenario_id,
             cohort.as_of_tick,
             cohort.call_count,
@@ -23,6 +23,7 @@ fn main() {
             cohort.cancellation_count,
             cohort.censored_count,
             cohort.total_vessel_ticks,
+            cohort.integrated_queue_vessel_ticks,
             cohort.mean_observed_queue_ticks
         );
         println!(
