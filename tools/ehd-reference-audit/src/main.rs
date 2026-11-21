@@ -1398,19 +1398,21 @@ pub fn audit_exchange_receipt_contract(root: &Value) -> Vec<String> {
     let invariants = at(root, &["required_invariants"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        invariants.is_some_and(|rows| rows.len() == 7
+        invariants.is_some_and(|rows| rows.len() == 8
             && rows.iter().any(|row| row.as_str() == Some("equal_and_opposite_impulse_per_event"))
             && rows.iter().any(|row| row.as_str() == Some("one_transfer_method_per_physical_path"))
-            && rows.iter().any(|row| row.as_str() == Some("matching_coordinate_frame_per_event"))),
+            && rows.iter().any(|row| row.as_str() == Some("matching_coordinate_frame_per_event"))
+            && rows.iter().any(|row| row.as_str() == Some("stable_solver_and_frame_identity_per_transfer_path"))),
         "EXCHANGE_RECEIPT_INVARIANTS",
         "event-local balance, path method exclusivity and frame identity are mandatory",
     );
     let tests = at(root, &["tests"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        tests.is_some_and(|rows| rows.len() == 11
+        tests.is_some_and(|rows| rows.len() == 12
             && rows.iter().any(|row| row.as_str() == Some("reject_event_residuals_that_cancel_globally"))
-            && rows.iter().any(|row| row.as_str() == Some("reject_duplicate_event_ids"))),
+            && rows.iter().any(|row| row.as_str() == Some("reject_duplicate_event_ids"))
+            && rows.iter().any(|row| row.as_str() == Some("reject_solver_or_frame_identity_changes_within_path"))),
         "EXCHANGE_RECEIPT_TEST_MATRIX",
         "event receipt must retain all eleven authored test families",
     );
