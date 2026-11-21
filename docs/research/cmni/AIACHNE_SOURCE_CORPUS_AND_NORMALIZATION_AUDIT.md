@@ -150,6 +150,27 @@ For the pinned 72-point evaluation grid (0.0005 to 25.01 MeV), this gives 0.0004
 
 The kernel therefore has separate, explicit reproduction helpers for the upstream energy-grid normalization and the 160-column bias basis. Both remain research code until the independent SciPy/Stan parity checks below pass.
 
+## 4B. Grouped horseshoe and experiment-scale posterior target
+
+The original selected Stan model has separate short-, medium-, and long-range global scales for each feature level, rather than one global scale for the entire 160-column block. CMNI now has a grouped raw-scale horseshoe posterior target with an explicit coefficient-to-global-scale index mapping. For each feature group, its flattened coefficient order is:
+- 100 short-range (B_s) coefficients;
+- 50 medium-range (B_m) coefficients;
+- 10 long-range (B_l) coefficients.
+
+The posterior target accepts one log-global-scale value per group, half-normal or half-Cauchy global priors, half-Cauchy local scales, and a fixed coefficient-scale multiplier corresponding to AIACHNE's `tau_scale`. The helper `aiachne_global_scale_index_by_coefficient` emits the group-major three-scale mapping. The one-group case is regression-tested against the existing scalar-global-scale target.
+
+The target also accepts optional per-experiment scale parameters. When supplied, they:
+- are represented in log coordinates;
+- have the original AIACHNE Normal(1, 0.01) prior on the physical scale;
+- are restricted to [0.5, 1.5];
+- include the log-coordinate Jacobian;
+- affect the predicted mean;
+- leave the likelihood covariance anchored to the unscaled baseline mean, as in the inspected Stan likelihood.
+
+The target rescales its internal relative covariance representation so that the raw-scale covariance remains invariant to the experiment scale. It uses the likelihood derivative with respect to log mean to compute the per-experiment scale gradient. Authored finite-difference tests cover coefficient, local-scale, global-scale, and experiment-scale gradients, plus a rejection test outside the original scale bounds.
+
+**Remaining parity boundary:** the target still receives the baseline interpolation mean as a fixed vector. The original Stan model samples the positive interpolation-grid mean coefficients (the `beta_mean` / `sigma` vector) with its own prior. Their joint posterior and gradient—including the dependence of the relative-error covariance on that mean—are not yet implemented here. The current prepared HMC chain still has one global-scale coordinate and must not be used to sample the grouped target. Tracking issue: Symtropy #6644.
+
 ## 5. Next parity experiments
 
 1. Reconstruct the upstream notebook's exact trapezoidal weights and linear interpolation projection on each experimental energy grid.
