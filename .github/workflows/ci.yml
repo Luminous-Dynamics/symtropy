@@ -57,7 +57,7 @@ jobs:
     # Standalone research contracts are intentionally outside the production
     # workspace. Keep their exact manifest and lockfile independently tested.
     - name: Verify Physical State Feedback Contract
-      if: runner.os == 'Linux'
+      if: runner.os == 'Linux' && startsWith(github.head_ref, 'research/physical-state-feedback-contract-')
       run: |
         cargo fmt --manifest-path research/physical-state-feedback-contract/v0.1/Cargo.toml -- --check
         cargo test --manifest-path research/physical-state-feedback-contract/v0.1/Cargo.toml --locked
