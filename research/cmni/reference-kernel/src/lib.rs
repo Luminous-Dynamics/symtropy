@@ -37,6 +37,9 @@ pub use raw_scale_bias_likelihood::{
     raw_scale_gaussian_multiplicative_bias_log_likelihood, RawScaleGaussianBiasLikelihood,
 };
 
+mod grouped_horseshoe_hmc;
+pub use grouped_horseshoe_hmc::{run_grouped_horseshoe_hmc_chain, GroupedHmcChain, GroupedHmcDraw};
+
 mod horseshoe_posterior;
 pub use horseshoe_posterior::{
     grouped_raw_scale_horseshoe_log_posterior, raw_scale_horseshoe_log_posterior,
@@ -47,7 +50,7 @@ pub use horseshoe_posterior::{
 mod prepared_horseshoe;
 pub use prepared_horseshoe::PreparedRawScaleHorseshoeModel;
 
-mod horseshoe_hmc;
+pub(crate) mod horseshoe_hmc;
 pub use horseshoe_hmc::{
     run_horseshoe_hmc_chain, split_rhat_for_coefficient, HorseshoeHmcChain, HorseshoeHmcConfig,
     HorseshoeHmcDraw,
