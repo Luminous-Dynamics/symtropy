@@ -687,14 +687,347 @@
       "then": {
         "properties": {
           "native_metrics": {
+            "allOf": [
+              {
+                "contains": {
+                  "properties": {
+                    "metric_name": {
+                      "const": "SR"
+                    }
+                  },
+                  "required": [
+                    "metric_name"
+                  ]
+                },
+                "minContains": 1
+              },
+              {
+                "contains": {
+                  "properties": {
+                    "metric_name": {
+                      "const": "LSCR"
+                    }
+                  },
+                  "required": [
+                    "metric_name"
+                  ]
+                },
+                "minContains": 1
+              },
+              {
+                "contains": {
+                  "properties": {
+                    "metric_name": {
+                      "const": "Eff"
+                    }
+                  },
+                  "required": [
+                    "metric_name"
+                  ]
+                },
+                "minContains": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "outcomes": {
             "contains": {
               "properties": {
-                "metric_name": {
-                  "const": "LSCR"
+                "evaluation_mode": {
+                  "const": "one_reset_sequence"
+                }
+              },
+              "required": [
+                "evaluation_mode"
+              ]
+            }
+          }
+        },
+        "required": [
+          "outcomes"
+        ]
+      },
+      "then": {
+        "properties": {
+          "outcomes": {
+            "items": {
+              "if": {
+                "properties": {
+                  "evaluation_mode": {
+                    "const": "one_reset_sequence"
+                  }
+                },
+                "required": [
+                  "evaluation_mode"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "inter_stage_reset_count": {
+                    "const": 0
+                  }
                 }
               }
-            },
-            "minContains": 1
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "outcomes": {
+            "contains": {
+              "properties": {
+                "evaluation_mode": {
+                  "const": "inherited_handoff"
+                }
+              },
+              "required": [
+                "evaluation_mode"
+              ]
+            }
+          }
+        },
+        "required": [
+          "outcomes"
+        ]
+      },
+      "then": {
+        "properties": {
+          "outcomes": {
+            "items": {
+              "if": {
+                "properties": {
+                  "evaluation_mode": {
+                    "const": "inherited_handoff"
+                  }
+                },
+                "required": [
+                  "evaluation_mode"
+                ]
+              },
+              "then": {
+                "required": [
+                  "predecessor_skill_id",
+                  "predecessor_transition_id",
+                  "predecessor_terminal_state_digest"
+                ],
+                "properties": {
+                  "predecessor_skill_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "predecessor_transition_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "predecessor_terminal_state_digest": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "outcomes": {
+            "contains": {
+              "properties": {
+                "evaluation_mode": {
+                  "const": "local_restored"
+                }
+              },
+              "required": [
+                "evaluation_mode"
+              ]
+            }
+          }
+        },
+        "required": [
+          "outcomes"
+        ]
+      },
+      "then": {
+        "properties": {
+          "outcomes": {
+            "items": {
+              "if": {
+                "properties": {
+                  "evaluation_mode": {
+                    "const": "local_restored"
+                  }
+                },
+                "required": [
+                  "evaluation_mode"
+                ]
+              },
+              "then": {
+                "required": [
+                  "start_state_digest"
+                ],
+                "properties": {
+                  "start_state_digest": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "outcomes": {
+            "contains": {
+              "properties": {
+                "outcome_status": {
+                  "const": "success"
+                }
+              },
+              "required": [
+                "outcome_status"
+              ]
+            }
+          }
+        },
+        "required": [
+          "outcomes"
+        ]
+      },
+      "then": {
+        "properties": {
+          "outcomes": {
+            "items": {
+              "if": {
+                "properties": {
+                  "outcome_status": {
+                    "const": "success"
+                  }
+                },
+                "required": [
+                  "outcome_status"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "native_success": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "outcomes": {
+            "contains": {
+              "properties": {
+                "outcome_status": {
+                  "const": "failure"
+                }
+              },
+              "required": [
+                "outcome_status"
+              ]
+            }
+          }
+        },
+        "required": [
+          "outcomes"
+        ]
+      },
+      "then": {
+        "properties": {
+          "outcomes": {
+            "items": {
+              "if": {
+                "properties": {
+                  "outcome_status": {
+                    "const": "failure"
+                  }
+                },
+                "required": [
+                  "outcome_status"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "native_success": {
+                    "const": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "outcomes": {
+            "contains": {
+              "properties": {
+                "outcome_status": {
+                  "enum": [
+                    "ambiguous",
+                    "not_attempted"
+                  ]
+                }
+              },
+              "required": [
+                "outcome_status"
+              ]
+            }
+          }
+        },
+        "required": [
+          "outcomes"
+        ]
+      },
+      "then": {
+        "properties": {
+          "outcomes": {
+            "items": {
+              "if": {
+                "properties": {
+                  "outcome_status": {
+                    "enum": [
+                      "ambiguous",
+                      "not_attempted"
+                    ]
+                  }
+                },
+                "required": [
+                  "outcome_status"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "native_success": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
           }
         }
       }
