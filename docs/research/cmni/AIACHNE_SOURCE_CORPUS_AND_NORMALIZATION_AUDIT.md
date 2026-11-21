@@ -171,6 +171,18 @@ The target rescales its internal relative covariance representation so that the 
 
 **Remaining parity boundary:** the target still receives the baseline interpolation mean as a fixed vector. The original Stan model samples the positive interpolation-grid mean coefficients (the `beta_mean` / `sigma` vector) with its own prior. Their joint posterior and gradient—including the dependence of the relative-error covariance on that mean—are not yet implemented here. The current prepared HMC chain still has one global-scale coordinate and must not be used to sample the grouped target. Tracking issue: Symtropy #6644.
 
+## 4C. Independent methodological evidence for shared-reference dependence
+
+Fukutani et al., “When normalization induces correlation: shared and unstable references can create hidden dependencies,” *npj Systems Biology and Applications* 12, 90 (published 2026-04-21; DOI 10.1038/s41540-026-00722-2), analytically derives that subtracting the same uncertain reference from two otherwise independent variables induces covariance. Their expression for the induced correlation increases with the variance of the shared reference, and their simulations show that the artifact does not disappear merely by increasing sample size. Sequential ratio transformations can be still more unstable when denominators fluctuate.
+
+This is a different application domain, but the statistical mechanism is directly relevant to AIACHNE's shared-reference normalization. It supports treating the evaluation reference as a common uncertainty source, not as independent per-experiment noise. It does not establish that the LANL/AIACHNE analysis is wrong: the original notebook can be interpreted conditionally on a fixed reference. CMNI's obligation is to make that conditioning explicit and quantify the difference when reference uncertainty is included.
+
+CMNI now includes an authored regression test in which two otherwise independent spectra are independently normalized using the same uncertain reference; the cross-experiment covariance computed from the actual reference Jacobians must be nonzero. The test is not yet reported as executed.
+
+Source:
+- https://doi.org/10.1038/s41540-026-00722-2
+- https://pmc.ncbi.nlm.nih.gov/articles/PMC13287743/
+
 ## 5. Next parity experiments
 
 1. Reconstruct the upstream notebook's exact trapezoidal weights and linear interpolation projection on each experimental energy grid.
