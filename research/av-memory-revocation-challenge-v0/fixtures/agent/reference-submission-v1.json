@@ -49,7 +49,8 @@
             "obs-rev-002"
           ],
           "retrieved_memory_item_refs": [
-            "mem-rev-002-summary"
+            "mem-rev-002-summary",
+            "mem-rev-002-embedding"
           ]
         },
         {
@@ -71,7 +72,8 @@
       ],
       "reported_policy_ineligible_refs": [
         "obs-rev-002",
-        "mem-rev-002-summary"
+        "mem-rev-002-summary",
+        "mem-rev-002-embedding"
       ],
       "claimed_storage_erasure_complete": false
     },
