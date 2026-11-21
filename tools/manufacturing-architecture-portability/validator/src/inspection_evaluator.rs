@@ -19,6 +19,7 @@ pub struct JoinViolation {
 pub struct InspectionJoinEvaluation {
     pub admissible_for_declared_synthetic_join: bool,
     pub metrology_reference_state: &'static str,
+    pub physical_metrology_qualified: bool,
     pub violations: Vec<JoinViolation>,
 }
 
@@ -145,22 +146,26 @@ pub fn evaluate_inspection_join(candidate: &Value) -> InspectionJoinEvaluation {
     }
 
     let calibration_reference_present =
-        text_at(candidate, "calibration_disposition") == Some("qualified_reference")
-            && text_at(candidate, "calibration_reference_id").is_some()
-            && text_at(candidate, "calibration_reference_sha256").is_some();
+        text_at(candidate, "instrument_calibration_disposition") == Some("qualified_reference")
+            && text_at(candidate, "calibration_attestation_id").is_some()
+            && text_at(candidate, "calibration_attestation_sha256").is_some();
     let uncertainty_reference_present =
-        text_at(candidate, "uncertainty_disposition") == Some("qualified_reference")
-            && text_at(candidate, "uncertainty_reference_id").is_some()
-            && text_at(candidate, "uncertainty_reference_sha256").is_some();
-    let metrology_reference_state = if calibration_reference_present && uncertainty_reference_present {
-        "references_present_not_authenticated"
-    } else {
-        "unknown_or_unqualified"
+        text_at(candidate, "measurement_uncertainty_disposition") == Some("qualified_reference")
+            && text_at(candidate, "uncertainty_budget_id").is_some()
+            && text_at(candidate, "uncertainty_budget_sha256").is_some();
+    let metrology_reference_state = match (calibration_reference_present, uncertainty_reference_present) {
+        (true, true) => "references_present_not_authenticated",
+        (false, false) => "unknown_or_unqualified",
+        _ => "partial_metrology_reference_set",
     };
 
     InspectionJoinEvaluation {
         admissible_for_declared_synthetic_join: violations.is_empty(),
         metrology_reference_state,
+        // This evaluator checks source-reference structure only. It never
+        // authenticates the attester, calibration scope, uncertainty budget,
+        // instrument applicability or independent qualification.
+        physical_metrology_qualified: false,
         violations,
     }
 }
@@ -204,34 +209,36 @@ mod tests {
         let result = evaluate_inspection_join(&candidate());
         assert!(result.admissible_for_declared_synthetic_join);
         assert_eq!(result.metrology_reference_state, "unknown_or_unqualified");
+        assert!(!result.physical_metrology_qualified);
         assert!(result.violations.is_empty());
     }
 
     #[test]
     fn qualified_metrology_references_are_reported_but_never_authenticated() {
         let mut actual = candidate();
-        actual["calibration_disposition"] = json!("qualified_reference");
-        actual["calibration_reference_id"] = json!("CAL-001");
-        actual["calibration_reference_sha256"] =
+        actual["instrument_calibration_disposition"] = json!("qualified_reference");
+        actual["calibration_attestation_id"] = json!("CAL-001");
+        actual["calibration_attestation_sha256"] =
             json!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-        actual["uncertainty_disposition"] = json!("qualified_reference");
-        actual["uncertainty_reference_id"] = json!("MSA-001");
-        actual["uncertainty_reference_sha256"] =
+        actual["measurement_uncertainty_disposition"] = json!("qualified_reference");
+        actual["uncertainty_budget_id"] = json!("MSA-001");
+        actual["uncertainty_budget_sha256"] =
             json!("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
         assert!(validate_schema(&actual));
         let result = evaluate_inspection_join(&actual);
         assert!(result.admissible_for_declared_synthetic_join);
         assert_eq!(result.metrology_reference_state, "references_present_not_authenticated");
+        assert!(!result.physical_metrology_qualified);
     }
 
     #[test]
     fn missing_metrology_reference_for_qualified_claim_fails_schema() {
         let mut actual = candidate();
-        actual["calibration_disposition"] = json!("qualified_reference");
+        actual["instrument_calibration_disposition"] = json!("qualified_reference");
         assert!(!validate_schema(&actual));
 
         let mut uncertainty_missing = candidate();
-        uncertainty_missing["uncertainty_disposition"] = json!("qualified_reference");
+        uncertainty_missing["measurement_uncertainty_disposition"] = json!("qualified_reference");
         assert!(!validate_schema(&uncertainty_missing));
     }
 
