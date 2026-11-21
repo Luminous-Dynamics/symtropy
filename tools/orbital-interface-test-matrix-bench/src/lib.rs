@@ -334,25 +334,6 @@ fn evaluate_case(case: &CampaignCase) -> Result<Decision, String> {
                 });
             }
         }
-        if obligation.not_applicable_review_ref.is_some()
-            && obligation.not_applicable_reason.is_none()
-        {
-            return Ok(Decision {
-                disposition: Disposition::Rejected,
-                covered: 0,
-                missing: case.obligations.len(),
-                eligible_runs: 0,
-                failed_runs: 0,
-                aborted_runs: 0,
-                invalid_runs: 0,
-                planned_runs: 0,
-                duplicate_runs: 0,
-                budget_exceeded: false,
-                cycle_count_baseline_pass: false,
-                ofat_false_coverage_count: 0,
-                pairwise_false_coverage_count: 0,
-            });
-        }
     }
 
     let mut by_id: HashMap<&str, &TestRun> = HashMap::new();
