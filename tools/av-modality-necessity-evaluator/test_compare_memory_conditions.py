@@ -202,6 +202,8 @@ class MemoryTournamentTests(unittest.TestCase):
         self.assertIn("current_observation_order_mismatch", results["episodic_retrieval"]["violations"])
         self.assertFalse(results["recent_window"]["answer_correct"])
         self.assertTrue(results["recent_window"]["abstained"])
+        self.assertTrue(results["recent_window"]["evidence_compliant"])
+        self.assertNotIn("current_observation_order_mismatch", results["recent_window"]["violations"])
 
     def test_future_correction_checkpoint_preserves_old_state_in_all_conditions(self):
         report = comparator.compare_memory_conditions(self.workload,self.truth,self.runs)
