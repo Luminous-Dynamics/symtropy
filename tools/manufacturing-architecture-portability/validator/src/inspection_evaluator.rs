@@ -319,6 +319,7 @@ mod tests {
         actual["uncertainty_original_unit"] = json!("mm");
         actual["uncertainty_valid_from_ns"] = json!(1750000000_u64);
         actual["uncertainty_valid_until_ns"] = json!(1750001000_u64);
+        actual["uncertainty_validity_clock_id"] = json!("PLANT-UTC-001");
         assert!(validate_schema(&actual));
         let result = evaluate_inspection_join(&actual);
         assert!(result.admissible_for_declared_synthetic_join);
@@ -360,6 +361,7 @@ mod tests {
         actual["calibration_subject_instrument_id"] = json!("CMM-01");
         actual["calibration_valid_from_ns"] = json!(1750000000_u64);
         actual["calibration_valid_until_ns"] = json!(1750001000_u64);
+        actual["calibration_validity_clock_id"] = json!("PLANT-UTC-001");
 
         actual["measurement_uncertainty_disposition"] = json!("qualified_reference");
         actual["uncertainty_budget_id"] = json!("MSA-001");
