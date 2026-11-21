@@ -265,6 +265,50 @@ Use enough independent replicates to make the requested confidence interval mean
 
 ## 7. Status boundary
 
-The 2026 AIACHNE process and 2025 PARADIGM portfolio are published external baselines. The original LANL source repository is public. CMNI has research primitives for Poisson Fisher information, model KL separation, response-mixture moments, sparse bias inference, and a scalar approximate-control-variate estimator. The nuisance-profiled Fisher routine and tests have just been authored.
+The 2026 AIACHNE process and 2025 PARADIGM portfolio are published external baselines. The original LANL source repository is public. CMNI has research primitives for Poisson Fisher information, model KL separation, response-mixture moments, sparse bias inference, scalar approximate-control-variate estimation, shared-reference normalization, common-cause covariance, grouped horseshoe posterior evaluation, grouped fixed-step HMC and deterministic blind-attribution data generation.
 
-The AIACHNE reproduction, full MF-EIG implementation, blind generator, independent experiment-lineage benchmark, NMF-90 parity, and physical validation are not yet complete. The latest standalone CI run failed Clippy before the test step; new code is therefore unverified until the exact-head checks pass.
+### Status addendum — 2026-11-21
+
+This addendum supersedes any earlier status wording in this document where it conflicts with the exact-head evidence below.
+
+**Committed public increments on `research/cmni-symtropy-v0`:**
+
+- The pinned LANL AIACHNE source manifest and normalization audit are committed. The manifest records 22 verified source objects; the audit covers 21 experiment records. The candidate scale-factor fixture is reconstructed but still requires independent SciPy/original-helper parity.
+- Shared-reference normalization now includes observation/reference Jacobians, separate covariance contributions, cross-experiment covariance and AIACHNE overlap geometry.
+- The grouped three-scale horseshoe posterior, prepared evaluator and deterministic grouped fixed-step HMC/multi-chain diagnostics are authored in the standalone research kernel. This is not NUTS and is not a reproduction of the original AIACHNE Bayesian Monte Carlo algorithm.
+- The blind causal-attribution generator is committed. The sealed-label harness, benchmark scoring, lineage-aware holdouts and calibration report remain outstanding.
+- Common-cause covariance assembly is committed, including repeated source-definition checks and an explicit lineage-completeness qualification bit.
+- A closed-form common-cause batch-design adversarial oracle is committed in `COMMON_CAUSE_BATCH_DESIGN_ORACLE_V1.md` and `research/cmni/fixtures/common-cause-batch-design-oracle-v1.json`. It is a synthetic analytical fixture, not a validated portfolio optimizer or a PFNS result.
+
+**Exact-head CI evidence:**
+
+- At commit `4e219329595fb3678958257c0ee0eed929d11c8a`, the Ubuntu, macOS and Windows workflow jobs completed with failure because `cargo fmt --check` found formatting differences across nine research-kernel source files.
+- The logged test steps themselves reported 212/212 passing on Ubuntu, 114/114 on macOS and 142 passing / 1 ignored on Windows. These results do not turn the failed workflow into a passing qualification.
+- Commit `368c39ae7a204071c6bc3a0ab5b5fd436162dc88` applies the formatter's expected changes to those nine files without changing logic, tests or gates.
+- The common-cause oracle documentation and fixture were then committed at `ad1c7aa87e54fbab45cae7031cd7a38a23ec258d`.
+- At the time of this addendum, the three new-head workflow jobs for `ad1c7aa87e54fbab45cae7031cd7a38a23ec258d` were in progress. Their conclusions are therefore **pending**, not green. Clippy, exact-head test, formatting and all-target build qualification must be recorded against a final immutable head before claiming a pass.
+
+The research branch is currently unprotected. A commit on this branch is a public research artifact, not a protected release.
+
+**Still not scientifically qualified:**
+
+- Independent SciPy execution of all 21 normalization scale factors and overlap arrays.
+- Joint inference of the interpolation-mean coefficients and exact matched Stan posterior parity.
+- Simulation-based calibration and independently qualified multi-chain sampling; no claim of NUTS or original BMC reproduction.
+- Delta-method versus Monte Carlo shared-reference propagation on nonlinear and tail-sensitive cases.
+- A sealed blind attribution harness with null/positive controls, exact aliases, and held-out detector, campaign and reference lineages.
+- An executable batch optimizer compared to exhaustive small-set oracles, greedy selection and the published measure-relaxed design method.
+- Full reproduction of the published Coons–Huan multifidelity EIG estimator; the scalar ACV primitive is not that estimator.
+- NMF-90 parity, independent detector-response validation and real experimental validation.
+
+**Immediate execution order:**
+
+1. Finish format, Clippy, build and test qualification on one final exact commit; preserve every existing gate.
+2. Independently reproduce the LANL SciPy normalization and Stan inputs/posterior targets.
+3. Qualify grouped inference with SBC, Stan comparisons, independent chains and ESS/MCSE for decision-relevant quantities.
+4. Compare shared-reference delta-method covariance with Monte Carlo propagation, including induced cross-experiment covariance and posterior-coverage impact.
+5. Implement the common-cause batch oracle as executable tests, then a discrete exhaustive oracle and greedy/joint portfolio baselines.
+6. Complete the blind-label harness and publish stratified abstention, false-attribution and coverage results.
+7. Extend to NMF-90 and independent detector-response benchmarks only after their matched inputs and reference codes are frozen.
+
+A research capability becomes a benchmark result only after the preregistered comparison is executed and its exact inputs, commit, configuration, seeds, software environment and outputs are preserved. No superiority claim is made by this status update.
