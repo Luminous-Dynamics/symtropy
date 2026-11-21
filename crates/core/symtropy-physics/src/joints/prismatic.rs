@@ -145,8 +145,16 @@ impl<const D: usize> Constraint<D> for PrismaticJoint<D> {
         _callback: Option<&mut dyn crate::world::PhysicsCallback<D>>,
         motor_state: &mut MotorStepState,
     ) {
-        let inv_mass_a = if body_a.is_dynamic() { body_a.inv_mass } else { 0.0 };
-        let inv_mass_b = if body_b.is_dynamic() { body_b.inv_mass } else { 0.0 };
+        let inv_mass_a = if body_a.is_dynamic() {
+            body_a.inv_mass
+        } else {
+            0.0
+        };
+        let inv_mass_b = if body_b.is_dynamic() {
+            body_b.inv_mass
+        } else {
+            0.0
+        };
         let total_inv = inv_mass_a + inv_mass_b;
         if !total_inv.is_finite() || total_inv <= 1e-15 {
             return;
@@ -187,24 +195,18 @@ impl<const D: usize> Constraint<D> for PrismaticJoint<D> {
                 && motor.max_force >= 0.0;
 
             if motor_inputs_valid {
-                let target_velocity = if let Some(target) =
-                    motor_state.target_relative_velocity()
-                {
+                let target_velocity = if let Some(target) = motor_state.target_relative_velocity() {
                     Some(target)
                 } else {
                     // Evaluate and integrate the PD force once per world step.
                     // Later iterations solve only the residual against this target.
                     let desired_step_impulse = motor.calculate_impulse(displacement, rel_vel, dt);
-                    motor_state.initialize_velocity_target(
-                        rel_vel,
-                        desired_step_impulse,
-                        total_inv,
-                    )
+                    motor_state.initialize_velocity_target(rel_vel, desired_step_impulse, total_inv)
                 };
                 if let Some(target_velocity) = target_velocity {
                     let desired_impulse_increment = (target_velocity - rel_vel) / total_inv;
-                    if let Some((delta_impulse, _velocity_after)) =
-                        motor_state.apply_impulse_increment(
+                    if let Some((delta_impulse, _velocity_after)) = motor_state
+                        .apply_impulse_increment(
                             desired_impulse_increment,
                             motor.max_force * dt,
                             rel_vel,
@@ -350,7 +352,6 @@ mod tests {
     }
 }
 
-
 #[cfg(test)]
 mod motor_step_tests {
     use super::*;
@@ -364,8 +365,7 @@ mod motor_step_tests {
             Point::origin(),
             Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
         );
-        let mut b =
-            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        let mut b = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
         let motor = MotorDrive {
             target_pos: 1.0,
             target_vel: 0.0,
@@ -380,7 +380,9 @@ mod motor_step_tests {
             joint.solve_velocity_with_state(&mut a, &mut b, 0.1, None, &mut state);
         }
 
-        let receipt = state.take_work_receipt().expect("one aggregated work receipt");
+        let receipt = state
+            .take_work_receipt()
+            .expect("one aggregated work receipt");
         assert_eq!(state.take_work_receipt(), None);
         (state.accumulated_impulse(), b.linear_velocity[0], receipt)
     }
@@ -406,8 +408,7 @@ mod motor_step_tests {
             Point::origin(),
             Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
         );
-        let mut moving =
-            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 2.0);
+        let mut moving = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 2.0);
         let motor = MotorDrive {
             target_pos: 1.0,
             target_vel: 0.0,
@@ -426,7 +427,6 @@ mod motor_step_tests {
         assert!((state.accumulated_impulse() - 0.2).abs() < 1.0e-12);
     }
 
-
     #[test]
     fn prismatic_motor_rejects_negative_effort_without_mutating_velocity() {
         let mut a = RigidBody::<3>::static_body(
@@ -434,8 +434,7 @@ mod motor_step_tests {
             Point::origin(),
             Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
         );
-        let mut b =
-            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        let mut b = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
         let motor = MotorDrive {
             target_pos: 1.0,
             target_vel: 0.0,
@@ -452,7 +451,6 @@ mod motor_step_tests {
         assert_eq!(state.take_work_receipt(), None);
     }
 
-
     #[test]
     fn prismatic_motor_accumulates_velocity_feedback_impulse_increments() {
         let mut a = RigidBody::<3>::static_body(
@@ -460,8 +458,7 @@ mod motor_step_tests {
             Point::origin(),
             Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
         );
-        let mut b =
-            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        let mut b = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
         let motor = MotorDrive {
             target_pos: 1.0,
             target_vel: 0.0,
@@ -493,8 +490,7 @@ mod motor_step_tests {
             Point::origin(),
             Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
         );
-        let mut b =
-            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        let mut b = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
         let motor = MotorDrive {
             target_pos: 100.0,
             target_vel: 0.0,
