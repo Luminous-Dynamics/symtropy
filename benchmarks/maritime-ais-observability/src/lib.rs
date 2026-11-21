@@ -284,7 +284,7 @@ pub fn evaluate_call_with_initial_state(
 ) -> Result<CallReport, String> {
     profile.validate()?;
     if initial_state != ServiceState::Indeterminate
-        && initial_state_evidence_id.is_none_or(str::is_empty)
+        && initial_state_evidence_id.is_none_or(|evidence_id| evidence_id.trim().is_empty())
     {
         return Err(
             "a non-indeterminate initial state requires an evidence reference".to_string(),
@@ -389,7 +389,10 @@ pub fn evaluate_call_with_initial_state(
                 ));
             }
 
-            let gap = fix.tick - previous_tick;
+            let gap = fix
+                .tick
+                .checked_sub(previous_tick)
+                .ok_or_else(|| "AIS tick difference overflow".to_string())?;
             if gap > profile.max_observation_gap_ticks {
                 observability_gap_count += 1;
                 candidate = None;
@@ -463,10 +466,21 @@ pub fn evaluate_call_with_initial_state(
             continue;
         }
 
+        let candidate_gap = match candidate.as_ref() {
+            Some(current) => Some(
+                fix.tick
+                    .checked_sub(current.last_tick)
+                    .ok_or_else(|| "candidate tick difference overflow".to_string())?,
+            ),
+            None => None,
+        };
+
         match candidate.as_mut() {
             Some(current)
                 if current.zone == fix.zone
-                    && fix.tick - current.last_tick <= profile.max_observation_gap_ticks =>
+                    && candidate_gap.is_some_and(|gap| {
+                        gap <= profile.max_observation_gap_ticks
+                    }) =>
             {
                 current.last_tick = fix.tick;
                 current.supporting_fix_count += 1;
@@ -485,9 +499,12 @@ pub fn evaluate_call_with_initial_state(
             continue;
         };
         let required_dwell = profile.required_dwell(state, current.zone);
-        if current.last_tick - current.first_tick < required_dwell
-            || current.supporting_fix_count < 2
-        {
+        let candidate_duration = current
+            .last_tick
+            .checked_sub(current.first_tick)
+            .ok_or_else(|| "candidate dwell duration overflow".to_string())?;
+        if candidate_duration < required_dwell || current.supporting_fix_count < 2 {
+
             continue;
         }
 
@@ -737,8 +754,14 @@ mod tests {
         let mut second = fix(1, "m1", Zone::Outside, 0);
         second.geofence_digest = "sha256:fixture-geofence-v2".to_string();
 
-        let error = evaluate_from_baselined_outside(&[first, second], &default_profile())
-            .expect_err("mixed geofence versions must reject");
+        let error = evaluate_call_with_initial_state(
+            "563123456",
+            ServiceState::Outside,
+            Some("SYNTHETIC_OUTSIDE_BASELINE_V0_1"),
+            &[first, second],
+            &default_profile(),
+        )
+        .expect_err("mixed geofence versions must reject");
         assert!(error.contains("geofence identity changed"));
     }
 
