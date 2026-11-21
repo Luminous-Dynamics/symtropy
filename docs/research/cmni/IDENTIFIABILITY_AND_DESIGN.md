@@ -174,6 +174,30 @@ A complementary public source is the IAEA Neutron Metrology File NMF-90: it incl
 
 The best published EJ-301 result identified in this audit remains a distinct detector benchmark: a 1-inch/2-inch EJ-301 Geant4 + calibrated response + MLEM/GRAVEL study reports 0.35-MeV lower threshold, below-4.28% average deviation and 1.42% best case against ISO 8529-1. It uses a different detector from EJ-309, and its paper says supporting data are unavailable publicly due to commercial-contract restrictions. The reported response matrices have 80 neutron groups over 0–16 MeV and 50 gamma groups over 0–3 MeV. This should be listed as an external result pending author data access, not as a reproducible benchmark in the current repository.
 
+### Layer G — feature-conditioned systematic-bias attribution
+
+A residual that follows detector technology, analysis method, geometry or calibration feature should not be absorbed automatically into a new physical parameter. The AIACHNE PFNS work is a relevant precedent: it develops a sparse Bayesian strategy for relating energy-dependent multiplicative discrepancies to experiment metadata, and its 2025 re-evaluation explicitly audits detector/analysis features, background, scattering, attenuation, response, deadtime and angular corrections.
+
+A candidate CMNI observation model is:
+
+[
+\log y_{e,k}=\log \mu_{e,k}(\theta)+x_e^T\beta_k+b_{e,k}+\epsilon_{e,k},
+]
+
+where e indexes experiments, k indexes energy / observation channels, x_e is a versioned experimental-feature vector, beta_k is a sparse energy-dependent feature-bias coefficient, b_e,k is a declared run-level random effect, and epsilon follows the measurement likelihood with its full covariance. A horseshoe or another predeclared shrinkage prior is a candidate for beta, not a default to be tuned after inspecting results.
+
+Qualification requirements:
+
+- Raw observations and source artifacts are immutable. A corrected dataset is a separate derived layer with a complete provenance receipt.
+- Physical parameters theta and feature-bias parameters beta remain distinct in the graph.
+- Collinear physical and measurement-feature effects must be reported as non-identifiable, not separated by an arbitrary prior.
+- Fit candidate bias features on a training set, then test the inferred correction on held-out experiments using predictive log score and interval coverage.
+- Include no-bias negative controls, planted sparse-bias synthetic controls, correlated-feature stress tests, and feature-label permutation controls.
+- Compare no-bias, run-specific bias and feature-conditioned sparse-bias models under identical covariance and holdout rules.
+- Require independent detector / measurement-lineage evidence before any corrected observations influence a physical-mechanism claim.
+
+Proposed synthetic qualification targets: at least 90% power for preregistered effect sizes, no more than 5% false discovery rate under no-bias controls, and calibrated 90/95% intervals. These are proposed thresholds, not achieved results. Symthaea tracking: https://github.com/Luminous-Dynamics/symthaea/issues/13074.
+
 ## Current implementation and limits
 
 Implemented in this research-only Rust crate:
