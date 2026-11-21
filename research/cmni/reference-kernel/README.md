@@ -53,3 +53,14 @@ There are **21 Rust tests authored** in the current source. They have not been e
 - Pure PSD gate helper: `neutron_psd_gate_accepts`, using caller-supplied 5-keVee slice calibration values, `mu_gamma + 5*sigma_gamma`, upper offset, and minimum light-output threshold.
 - The helper tests gate arithmetic and invalid calibration handling only. It does not model scintillation, PMT waveforms, detector efficiency, MCNP/Geant4 transport, or GRAVEL unfolding.
 - **26 Rust tests are authored but not executed** in this environment because `cargo`, `rustc`, and `nix` are not installed.
+
+
+## New statistical and spatial-model functions
+
+- shared_reference_log_covariance: constructs the common-denominator covariance for log relative yields, assuming independent numerator counts and one shared reference yield.
+- correlated_weighted_log_space_chi_square: generalized least-squares score using Cholesky factorization; rejects non-symmetric and non-positive-definite covariance.
+- total_deuteron_rate_per_second: converts a singly charged D+/D2+ ion-current mixture into deuteron arrival rate.
+- GaussianBeamFootprint: current-normalized axisymmetric Gaussian radial flux density, explicitly a baseline that must be replaced by a measured 2-D beam map when available.
+- Literal Eq. 16 sigmoid enhancement is implemented separately from the prose-direction sigmoid and Eq. 13 mixture.
+
+There are now **42 authored Rust tests** in the prototype. They remain unexecuted in the current environment because cargo, rustc, and nix are unavailable. Independent calculations in this session checked the shared-reference covariance algebra, diagonal GLS limit, Gaussian profile normalization and both sigmoid asymptotes; these checks are not a Rust test pass.
