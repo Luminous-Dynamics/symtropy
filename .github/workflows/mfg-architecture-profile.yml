@@ -52,10 +52,7 @@ jobs:
 
       - name: Evaluate the explicit QIF inspection join fixture
         working-directory: tools/manufacturing-architecture-portability/validator
-        run: |
-          cargo run --locked --bin validate-inspection-join -- \\
-            ../inspection-join.schema.json \\
-            tests/fixtures/qif-cycle-join.candidate.json
+        run: cargo run --locked --bin validate-inspection-join -- ../inspection-join.schema.json tests/fixtures/qif-cycle-join.candidate.json
 
       - name: Clippy
         working-directory: tools/manufacturing-architecture-portability/validator
