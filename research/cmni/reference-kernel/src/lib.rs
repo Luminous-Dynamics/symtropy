@@ -331,6 +331,55 @@ where
     Ok(observed / reference)
 }
 
+/// Weighted yield for a discrete measured or hypothesized incident spectrum.
+///
+/// Each entry is a component or energy bin with a center-of-mass energy and
+/// its fraction of total deuteron flux. Fractions must sum to one. This accepts
+/// arbitrary measured histograms/quadrature nodes; it does not assume a
+/// Gaussian energy distribution.
+pub fn weighted_beam_spectrum_yield<FS, FStop, FU>(
+    components: &[BeamEnergyComponent],
+    gamow_energy_cm: GamowEnergyKev,
+    target_density: TargetDensityPerCm3,
+    steps: usize,
+    s_factor_keV_barn: FS,
+    stopping_keV_cm_per_cm: FStop,
+    screening_keV: FU,
+) -> Result<f64, ModelError>
+where
+    FS: Fn(f64) -> f64,
+    FStop: Fn(f64) -> f64,
+    FU: Fn(f64) -> f64,
+{
+    if components.is_empty() {
+        return Err(ModelError::InvalidParameter("beam_spectrum_must_not_be_empty"));
+    }
+    let mut total = 0.0;
+    let mut weight_sum = 0.0;
+    for component in components {
+        let weight = checked_nonnegative(component.deuteron_flux_fraction, "deuteron_flux_fraction")?;
+        let energy = EnergyKev::new(component.energy_cm_kev)?;
+        let component_yield = homogeneous_thick_target_yield(
+            energy,
+            gamow_energy_cm,
+            target_density,
+            steps,
+            &s_factor_keV_barn,
+            &stopping_keV_cm_per_cm,
+            &screening_keV,
+        )?;
+        total += weight * component_yield;
+        weight_sum += weight;
+    }
+    if (weight_sum - 1.0).abs() > 1.0e-6 {
+        return Err(ModelError::InvalidParameter("deuteron_flux_fractions_must_sum_to_one"));
+    }
+    if !total.is_finite() || total < 0.0 {
+        return Err(ModelError::InvalidParameter("weighted_beam_yield_must_be_finite_and_nonnegative"));
+    }
+    Ok(total)
+}
+
 /// First-order thick-target yield for the two prompt-dissociation beam
 /// components. Both components use the same S-factor and stopping functions;
 /// production work should replace this with species/depth-specific transport
@@ -349,30 +398,15 @@ where
     FStop: Fn(f64) -> f64,
     FU: Fn(f64) -> f64,
 {
-    let mut total = 0.0;
-    let mut weight_sum = 0.0;
-    for component in components {
-        checked_nonnegative(component.deuteron_flux_fraction, "deuteron_flux_fraction")?;
-        let energy = EnergyKev::new(component.energy_cm_kev)?;
-        let component_yield = homogeneous_thick_target_yield(
-            energy,
-            gamow_energy_cm,
-            target_density,
-            steps,
-            &s_factor_keV_barn,
-            &stopping_keV_cm_per_cm,
-            &screening_keV,
-        )?;
-        total += component.deuteron_flux_fraction * component_yield;
-        weight_sum += component.deuteron_flux_fraction;
-    }
-    if (weight_sum - 1.0).abs() > 1.0e-6 {
-        return Err(ModelError::InvalidParameter("deuteron_flux_fractions_must_sum_to_one"));
-    }
-    if !total.is_finite() || total < 0.0 {
-        return Err(ModelError::InvalidParameter("weighted_beam_yield_must_be_finite_and_nonnegative"));
-    }
-    Ok(total)
+    weighted_beam_spectrum_yield(
+        &components,
+        gamow_energy_cm,
+        target_density,
+        steps,
+        s_factor_keV_barn,
+        stopping_keV_cm_per_cm,
+        screening_keV,
+    )
 }
 
 /// Homogeneous ALR enhancement E_scr(E; Ue) = Y_scr(E) / Y_bare(E),
@@ -570,6 +604,54 @@ mod tests {
     fn prompt_dissociation_rejects_invalid_ion_current_fractions() {
         assert!(prompt_dissociation_beam_components(1.0, 0.85, 0.10).is_err());
         assert!(prompt_dissociation_beam_components(1.0, 1.1, -0.1).is_err());
+    }
+
+    #[test]
+    fn arbitrary_measured_spectrum_is_weighted_by_deuteron_flux() {
+        let spectrum = [
+            BeamEnergyComponent { energy_cm_kev: 0.25, deuteron_flux_fraction: 0.25 },
+            BeamEnergyComponent { energy_cm_kev: 0.50, deuteron_flux_fraction: 0.50 },
+            BeamEnergyComponent { energy_cm_kev: 0.75, deuteron_flux_fraction: 0.25 },
+        ];
+        let actual = weighted_beam_spectrum_yield(
+            &spectrum,
+            GamowEnergyKev::new(986.0).expect("Gamow"),
+            TargetDensityPerCm3::new(5.0e22).expect("density"),
+            1024,
+            |_| 50.0,
+            |_| 1.0e8,
+            |_| 0.5,
+        ).expect("spectrum yield");
+        let expected = spectrum.iter().map(|component| {
+            component.deuteron_flux_fraction * homogeneous_thick_target_yield(
+                EnergyKev::new(component.energy_cm_kev).expect("energy"),
+                GamowEnergyKev::new(986.0).expect("Gamow"),
+                TargetDensityPerCm3::new(5.0e22).expect("density"),
+                1024,
+                |_| 50.0,
+                |_| 1.0e8,
+                |_| 0.5,
+            ).expect("component yield")
+        }).sum::<f64>();
+        assert!((actual-expected).abs()/expected < 1.0e-12);
+    }
+
+    #[test]
+    fn arbitrary_spectrum_rejects_un-normalized_weights() {
+        let spectrum = [
+            BeamEnergyComponent { energy_cm_kev: 0.25, deuteron_flux_fraction: 0.25 },
+            BeamEnergyComponent { energy_cm_kev: 0.50, deuteron_flux_fraction: 0.50 },
+        ];
+        let result = weighted_beam_spectrum_yield(
+            &spectrum,
+            GamowEnergyKev::new(986.0).expect("Gamow"),
+            TargetDensityPerCm3::new(5.0e22).expect("density"),
+            128,
+            |_| 50.0,
+            |_| 1.0e8,
+            |_| 0.5,
+        );
+        assert_eq!(result, Err(ModelError::InvalidParameter("deuteron_flux_fractions_must_sum_to_one")));
     }
 
     #[test]
