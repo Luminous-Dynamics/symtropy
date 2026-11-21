@@ -399,20 +399,8 @@ fn build_decision_nodes(
     Ok((nodes, indices))
 }
 
-fn add_policy_cost(
-    metrics: &mut WeightedMetrics,
-    cost: u128,
-    probability_bps: u16,
-) -> Result<(), String> {
-    let weighted = cost
-        .checked_mul(u128::from(probability_bps))
-        .ok_or_else(|| "weighted cost overflow".to_string())?;
-    checked_add(&mut metrics.total_cost, weighted, "expected total cost")
-}
-
 fn evaluate_policy_mask(
     input: &ModeOptionsInput,
-    nodes: &[DecisionNode],
     indices: &BTreeMap<DecisionKey, usize>,
     mask: u64,
 ) -> Result<WeightedMetrics, String> {
@@ -642,11 +630,11 @@ pub fn evaluate_mode_options(input: &ModeOptionsInput) -> Result<ModeOptionsRepo
         .ok_or_else(|| vec!["policy count overflows".into()])?;
     let mut best_mask = 0_u64;
     let mut best_metrics =
-        evaluate_policy_mask(input, &nodes, &indices, 0).map_err(|error| vec![error])?;
+        evaluate_policy_mask(input, &indices, 0).map_err(|error| vec![error])?;
 
     for mask in 1..policy_count {
         let metrics =
-            evaluate_policy_mask(input, &nodes, &indices, mask).map_err(|error| vec![error])?;
+            evaluate_policy_mask(input, &indices, mask).map_err(|error| vec![error])?;
         if metrics.total_cost < best_metrics.total_cost {
             best_mask = mask;
             best_metrics = metrics;
@@ -655,11 +643,11 @@ pub fn evaluate_mode_options(input: &ModeOptionsInput) -> Result<ModeOptionsRepo
 
     let all_enabled_mask = policy_count - 1;
     let static_off = public_outcome(
-        evaluate_policy_mask(input, &nodes, &indices, 0).map_err(|error| vec![error])?,
+        evaluate_policy_mask(input, &indices, 0).map_err(|error| vec![error])?,
     )
     .map_err(|error| vec![error])?;
     let static_on = public_outcome(
-        evaluate_policy_mask(input, &nodes, &indices, all_enabled_mask)
+        evaluate_policy_mask(input, &indices, all_enabled_mask)
             .map_err(|error| vec![error])?,
     )
     .map_err(|error| vec![error])?;
@@ -676,7 +664,7 @@ pub fn evaluate_mode_options(input: &ModeOptionsInput) -> Result<ModeOptionsRepo
         }
     }
     let threshold = public_outcome(
-        evaluate_policy_mask(input, &nodes, &indices, threshold_mask)
+        evaluate_policy_mask(input, &indices, threshold_mask)
             .map_err(|error| vec![error])?,
     )
     .map_err(|error| vec![error])?;
