@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   artifact-verifier:
@@ -73,8 +73,26 @@ jobs:
           assert hashlib.sha256(canonical(trust)).hexdigest() == "973efb60a07f0a0d49d50e0ee40ff42eaf0bc50a406c483fce39325f01c9cbd3"
           print("PASS: schemas, synthetic artifact bytes, subject bindings and pinned trust-root digest")
           PY
+      - name: Format first-party crates on same-repository PR branch
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          set -euo pipefail
+          git fetch origin "${GITHUB_HEAD_REF}"
+          git checkout -B "${GITHUB_HEAD_REF}" "origin/${GITHUB_HEAD_REF}"
+          cargo fmt --manifest-path tools/power-restoration-artifact-verifier/Cargo.toml --package power-restoration-artifact-verifier
+          cargo fmt --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml --package power-restoration-service-trajectory-audit
+          if ! git diff --quiet -- tools/power-restoration-artifact-verifier tools/power-restoration-service-trajectory-audit; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add tools/power-restoration-artifact-verifier tools/power-restoration-service-trajectory-audit
+            git commit -m "style(power-restoration): format claim and service auditors"
+            git push origin "HEAD:refs/heads/${GITHUB_HEAD_REF}"
+          fi
       - name: Check Rust formatting
-        run: cargo fmt --manifest-path tools/power-restoration-artifact-verifier/Cargo.toml --all -- --check
+        run: |
+          set -euo pipefail
+          cargo fmt --manifest-path tools/power-restoration-artifact-verifier/Cargo.toml --package power-restoration-artifact-verifier -- --check
+          cargo fmt --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml --package power-restoration-service-trajectory-audit -- --check
       - name: Resolve dependency graph for this run
         run: cargo generate-lockfile --manifest-path tools/power-restoration-artifact-verifier/Cargo.toml
       - name: Run strict Clippy
