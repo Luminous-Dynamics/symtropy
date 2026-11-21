@@ -228,3 +228,18 @@ The exact-head fixture workflow now allows future control events to remain in th
 The evidence-ledger reference known-answer score is now 10/11 answers, 11/11 safe decisions, 10/11 coverage, 11/11 complete provenance, zero false memories and zero hard evidence violations. The four-condition tournament reference summary has been updated for 11 matched episodes. All remain hand-authored synthetic policy checks, not model scores or blind-set results.
 
 The paired checkpoints make temporal qualification stricter: a system may neither apply a future correction too early nor retain a revoked source after the revocation becomes effective. Both error directions matter.
+
+
+## New spatial-instance memory comparison: EgoWitness (19 November 2026)
+
+The external long-horizon landscape now includes EgoWitness (arXiv:2611.25849), a new instance-level spatial-memory benchmark. It reports 8,453 human-verified questions across about 324 hours, seven abilities, more than one million reviewed masks, 34 registered landmarks and 21 movable-object labels. The paper reports a 46.97% direct open-weight VLM maximum, with no model above 35% on the “who last saw this object?” task. Its trained EgoClue 4B controller reports 72.65% on 1,320 held-out week-long questions; evidence-trace synthesis reports 74.85% on that same week-long slice and 80.56% on a separate 787-question cross-environment slice.
+
+These are separate task/system slices and must not be averaged or compared as one number. EgoWitness emphasizes stable physical-instance identity, cross-view and cross-wearer evidence, room anchors and visit reasoning. Our event-memory stream schema alone does not test those properties; a separate adapter and synthetic contract now lives in Symtropy issue #6574 / draft PR #6576.
+
+References:
+- EgoWitness paper: https://arxiv.org/abs/2611.25849
+- Existing related benchmark owner: Symtropy #4414 (RoboCasa-Mem; mobile-manipulation memory is complementary, not the same protocol)
+
+The EgoWitness media, masks and annotations are not imported by either PR. Exact upstream release revision, source-video rights, mask/annotation licence and derivative rights remain to be audited per artefact. Public paper facts do not authorize copying or training on the underlying recordings.
+
+The competitive path is now: (1) reproduce official EgoWitness and EgoMemReason scores under their own protocols where the datasets are lawfully accessible; (2) compare against direct VLM, recent-window, summary, retrieval and specialist-tool agents with matched budgets; and (3) add our independent provenance, as-known time, false-merge/split, correction, revocation and causal-evidence checks. The latter enrich the qualification profile but do not replace the official benchmark score.
