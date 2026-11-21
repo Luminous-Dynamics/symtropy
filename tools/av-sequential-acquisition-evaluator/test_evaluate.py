@@ -106,6 +106,18 @@ class SequentialAcquisitionTests(unittest.TestCase):
         with self.assertRaises(evaluator.EvaluationError):
             self.score(submission=candidate)
 
+    def test_hidden_realizations_must_cover_all_available_actions(self):
+        truth = copy.deepcopy(self.truth)
+        del truth["episodes"][0]["realized_outcomes"]["subtype_detail"]
+        with self.assertRaises(evaluator.EvaluationError):
+            self.score(truth=truth)
+
+    def test_hidden_realization_must_have_positive_likelihood(self):
+        truth = copy.deepcopy(self.truth)
+        truth["episodes"][0]["realized_outcomes"]["hazard_cue"] = "no_cue"
+        with self.assertRaises(evaluator.EvaluationError):
+            self.score(truth=truth)
+
     def test_unhashable_candidate_decision_fails_closed(self):
         candidate = copy.deepcopy(self.submission)
         self.prediction(candidate, "sa-001-eig-trap")["decision"] = []
