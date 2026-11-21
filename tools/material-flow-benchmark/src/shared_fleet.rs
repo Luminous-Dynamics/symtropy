@@ -1548,6 +1548,40 @@ mod tests {
     }
 
     #[test]
+    fn decision_visible_operational_change_splits_nonanticipative_histories() {
+        let fixture: SharedFleetInput = serde_json::from_str(include_str!(
+            "../fixtures/synthetic-two-region-shared-aircraft.json"
+        ))
+        .expect("shared-fleet fixture must deserialize");
+        let baseline = evaluate_shared_fleet(&fixture).expect("fixture must evaluate");
+        assert_eq!(baseline.nonanticipative_policy_node_count, 5);
+
+        let mut operational_variant = fixture.clone();
+        let changed = operational_variant
+            .scenarios
+            .iter_mut()
+            .find(|scenario| scenario.scenario_id == "rural-weather-block")
+            .and_then(|scenario| scenario.periods.first_mut())
+            .and_then(|period| {
+                period
+                    .observations
+                    .iter_mut()
+                    .find(|observation| observation.region_id == "urban")
+            })
+            .expect("initial urban observation exists");
+        changed.demand_units = changed
+            .demand_units
+            .checked_add(1)
+            .expect("synthetic demand increment fits u32");
+
+        let report = evaluate_shared_fleet(&operational_variant)
+            .expect("operational state change must remain evaluable");
+        assert_eq!(report.nonanticipative_policy_node_count, 6);
+        assert_eq!(report.exact_policy_count_evaluated, 729);
+        assert_ne!(report.input_digest_sha256, baseline.input_digest_sha256);
+    }
+
+    #[test]
     fn committed_two_region_fixture_matches_exact_search_contract() {
         let fixture: SharedFleetInput = serde_json::from_str(include_str!(
             "../fixtures/synthetic-two-region-shared-aircraft.json"
