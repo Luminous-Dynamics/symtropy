@@ -224,8 +224,7 @@ pub fn poisson_mean_upper_bound(events: u64, confidence: f64) -> Result<f64, Str
     let log_alpha = alpha.ln();
     let event_count = events as f64;
     let mut lower = 0.0;
-    let mut upper = (event_count + 12.0 * (event_count + 1.0).sqrt() + 10.0)
-        .max(-alpha.ln() + 1.0);
+    let mut upper = (event_count + 12.0 * (event_count + 1.0).sqrt() + 10.0).max(-alpha.ln() + 1.0);
 
     let mut bracketed = false;
     for _ in 0..128 {
@@ -439,11 +438,8 @@ fn evaluate_case(case: &IntensityCase) -> Result<Decision, String> {
         return Err("total failure-event count exceeds the v0.1 limit".to_owned());
     }
 
-    let upper_bound = failure_intensity_upper_bound(
-        failure_events,
-        total_exposure_seconds,
-        case.confidence,
-    )?;
+    let upper_bound =
+        failure_intensity_upper_bound(failure_events, total_exposure_seconds, case.confidence)?;
     let exposure_hours = total_exposure_seconds as f64 / 3_600.0;
     let observed_rate = failure_events as f64 / exposure_hours * 1_000_000.0;
     let target = case.target_failure_intensity_per_million_hours;
@@ -528,11 +524,14 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
         summary.naive_false_assurance_cases += usize::from(decision.naive_false_assurance);
 
         let expected = &case.expected;
-        let close = |actual: Option<f64>, expected: Option<f64>, tolerance: f64| match (actual, expected) {
-            (Some(left), Some(right)) => (left - right).abs() <= tolerance * left.abs().max(1.0),
-            (None, None) => true,
-            _ => false,
-        };
+        let close =
+            |actual: Option<f64>, expected: Option<f64>, tolerance: f64| match (actual, expected) {
+                (Some(left), Some(right)) => {
+                    (left - right).abs() <= tolerance * left.abs().max(1.0)
+                }
+                (None, None) => true,
+                _ => false,
+            };
         let matched = decision.disposition == expected.disposition
             && decision.unique_articles == expected.unique_articles
             && decision.total_exposure_seconds == expected.total_exposure_seconds
