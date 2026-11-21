@@ -253,6 +253,29 @@ mod tests {
         }));
     }
 
+
+    #[test]
+    fn partial_metrology_reference_set_is_not_complete() {
+        let mut actual = candidate();
+        actual["instrument_calibration_disposition"] = json!("qualified_reference");
+        actual["calibration_attestation_id"] = json!("CAL-001");
+        actual["calibration_attestation_sha256"] =
+            json!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        let result = evaluate_inspection_join(&actual);
+        assert_eq!(result.metrology_reference_state, "partial_metrology_reference_set");
+        assert!(!result.physical_metrology_qualified);
+    }
+
+    #[test]
+    fn unknown_or_missing_metrology_remains_visible_without_promoting_physical_claim() {
+        let mut actual = candidate();
+        actual["measurement_evidence_class"] = json!("recorded");
+        let result = evaluate_inspection_join(&actual);
+        assert!(!result.admissible_for_declared_synthetic_join);
+        assert_eq!(result.metrology_reference_state, "unknown_or_unqualified");
+        assert!(!result.physical_metrology_qualified);
+    }
+
     #[test]
     fn rejects_part_lot_operation_and_characteristic_mismatches() {
         for (field, wrong) in [
