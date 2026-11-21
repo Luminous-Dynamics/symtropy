@@ -654,8 +654,7 @@ mod tests {
         let a = compare_constant_vs_speed_dependent(&original).unwrap();
         let b = compare_constant_vs_speed_dependent(&permuted).unwrap();
         assert!(
-            (a.alternative_slope_m_s2_per_m_s - b.alternative_slope_m_s2_per_m_s).abs()
-                < 1.0e-12
+            (a.alternative_slope_m_s2_per_m_s - b.alternative_slope_m_s2_per_m_s).abs() < 1.0e-12
         );
         assert!((a.delta_chi_squared - b.delta_chi_squared).abs() < 1.0e-10);
     }
