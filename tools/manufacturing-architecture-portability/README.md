@@ -154,3 +154,9 @@ The QIF inspection join follows existing metrology owners rather than inventing 
 - Symtropy #4947 owns source/master clock transforms and multirate event-time uncertainty.
 
 The portability adapter carries only exact references and explicit evidence states. It does not recompute the MSA budget, authenticate an attestation, certify the instrument or classify the part. The synthetic fixture therefore labels measurement evidence as synthetic and calibration/uncertainty as unknown.
+
+A supplied `qualified_reference` must also declare its subject/applicability:
+- calibration attestation: exact instrument/resource ID and validity interval covering both measurement and decision time;
+- uncertainty budget: exact characteristic, original measurement unit and validity interval covering both measurement and decision time.
+
+The evaluator rejects wrong instrument, wrong characteristic, wrong unit, or expired/future calibration/uncertainty references. Even a structurally valid, correctly scoped reference pair is reported as `applicability_matched_references_not_authenticated`; `physical_metrology_qualified` remains false. Authentication, accreditation/authority scope, calibration-chain traceability, MSA budget reconstruction, covariance and conformity remain upstream owner responsibilities (#2995, Mycelix #4704/#6034).
