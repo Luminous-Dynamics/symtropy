@@ -13,7 +13,7 @@ Run from repository root:
       --submission research/av-long-horizon-evidence-v0/fixtures/agent/reference-submission-v1.json \
       --output /tmp/av-long-horizon-reference-scorecard.json
 
-The 11-case reference policy is expected to produce 10/11 answer correctness, 11/11 correct decisions (including correct abstention on the absent-event case and both as-known-before-change checkpoints), 10/11 coverage, 1.0 selective accuracy, 1.0 citation precision/recall, 11/11 complete provenance, zero false memories, zero evidence violations and zero deadline misses.
+The 12-case reference policy is expected to produce 11/12 answer correctness, 12/12 correct decisions (including correct abstention on the absent-event case and both as-known-before-change checkpoints), 11/12 coverage, 1.0 selective accuracy, 1.0 citation precision/recall, 12/12 complete provenance, zero false memories, zero evidence violations and zero deadline misses.
 
 These are authored synthetic known-answer checks. They do not measure memory retention, token usage, retrieval latency, energy or real model capability. Resource telemetry is intentionally absent, not zero.
 
