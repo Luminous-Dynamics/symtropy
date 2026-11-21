@@ -667,8 +667,18 @@ mod tests {
         assert!(zero_miss_upper_bound_95(2994).unwrap() > 0.001);
         assert!(zero_miss_upper_bound_95(29956).unwrap() < 0.0001);
         assert!(zero_miss_upper_bound_95(0).is_err());
-        assert!((miss_probability_upper_bound_95(1, 5).unwrap() - 0.6574083180011387).abs() < 1.0e-12);
-        assert!((miss_probability_upper_bound_95(2, 5).unwrap() - 0.8107446225622293).abs() < 1.0e-12);
+        assert!(
+            (miss_probability_upper_bound_95(1, 5).unwrap() - 0.6574083180011387).abs()
+                < 1.0e-12
+        );
+        assert!(
+            (miss_probability_upper_bound_95(2, 5).unwrap() - 0.8107446225622293).abs()
+                < 1.0e-12
+        );
+        assert!(
+            (miss_probability_upper_bound_95(1, 10).unwrap() - 0.3941633024365048).abs()
+                < 1.0e-12
+        );
         assert_eq!(miss_probability_upper_bound_95(5, 5).unwrap(), 1.0);
         assert!(miss_probability_upper_bound_95(6, 5).is_err());
     }
