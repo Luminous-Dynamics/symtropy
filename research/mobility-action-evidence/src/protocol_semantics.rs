@@ -4,7 +4,7 @@
 //! statistics.
 
 use super::Digest;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RunStatus {
@@ -33,7 +33,14 @@ pub struct ExpectedRunBinding {
     pub scenario_set_digest: Digest,
     pub expected_evaluator_identity: String,
     pub expected_evaluator_receipt_digest: Digest,
-    pub planned_episode_count: u32,
+    /// Exact episode IDs and scenario identities frozen by the plan.
+    pub planned_episodes: Vec<PlannedEpisode>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PlannedEpisode {
+    pub episode_id: String,
+    pub scenario_id: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -48,6 +55,7 @@ pub struct EpisodeReceipt {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ExcludedEpisode {
     pub episode_id: String,
+    pub scenario_id: String,
     pub reason: String,
 }
 
@@ -81,7 +89,12 @@ pub enum RunReceiptError {
     EmptyRunId,
     InvalidSourceCommit,
     EmptyEvaluatorIdentity,
-    PlannedEpisodeCountIsZero,
+    PlannedEpisodeSetIsEmpty,
+    EmptyPlannedEpisodeId,
+    EmptyPlannedScenarioId,
+    DuplicatePlannedEpisodeId,
+    UnplannedEpisodeId,
+    PlannedScenarioMismatch,
     PlanDigestMismatch,
     ManifestDigestMismatch,
     EvaluatorDigestMismatch,
@@ -140,8 +153,23 @@ pub fn validate_run_receipt(
     {
         return Err(RunReceiptError::EmptyEvaluatorIdentity);
     }
-    if expected.planned_episode_count == 0 {
-        return Err(RunReceiptError::PlannedEpisodeCountIsZero);
+    if expected.planned_episodes.is_empty() {
+        return Err(RunReceiptError::PlannedEpisodeSetIsEmpty);
+    }
+    let mut planned_by_id = BTreeMap::new();
+    for planned in &expected.planned_episodes {
+        if !nonempty(&planned.episode_id) {
+            return Err(RunReceiptError::EmptyPlannedEpisodeId);
+        }
+        if !nonempty(&planned.scenario_id) {
+            return Err(RunReceiptError::EmptyPlannedScenarioId);
+        }
+        if planned_by_id
+            .insert(planned.episode_id.as_str(), planned.scenario_id.as_str())
+            .is_some()
+        {
+            return Err(RunReceiptError::DuplicatePlannedEpisodeId);
+        }
     }
 
     if receipt.plan_digest != expected.plan_digest {
@@ -183,6 +211,12 @@ pub fn validate_run_receipt(
         if !nonempty(&episode.scenario_id) {
             return Err(RunReceiptError::EmptyScenarioId);
         }
+        let planned_scenario = planned_by_id
+            .get(episode.episode_id.as_str())
+            .ok_or(RunReceiptError::UnplannedEpisodeId)?;
+        if *planned_scenario != episode.scenario_id {
+            return Err(RunReceiptError::PlannedScenarioMismatch);
+        }
         if !episode_ids.insert(episode.episode_id.as_str()) {
             return Err(RunReceiptError::DuplicateEpisodeId);
         }
@@ -192,6 +226,15 @@ pub fn validate_run_receipt(
     for excluded in &receipt.excluded_episodes {
         if !nonempty(&excluded.episode_id) {
             return Err(RunReceiptError::EmptyEpisodeId);
+        }
+        if !nonempty(&excluded.scenario_id) {
+            return Err(RunReceiptError::EmptyScenarioId);
+        }
+        let planned_scenario = planned_by_id
+            .get(excluded.episode_id.as_str())
+            .ok_or(RunReceiptError::UnplannedEpisodeId)?;
+        if *planned_scenario != excluded.scenario_id {
+            return Err(RunReceiptError::PlannedScenarioMismatch);
         }
         if !nonempty(&excluded.reason) {
             return Err(RunReceiptError::EmptyExclusionReason);
@@ -205,7 +248,7 @@ pub fn validate_run_receipt(
     }
 
     let accounted = receipt.episode_receipts.len() + receipt.excluded_episodes.len();
-    if accounted > expected.planned_episode_count as usize {
+    if accounted > planned_by_id.len() {
         return Err(RunReceiptError::EpisodeCountExceedsPlan);
     }
 
@@ -229,7 +272,7 @@ pub fn validate_run_receipt(
     }
 
     if receipt.run_status == RunStatus::Complete {
-        if accounted != expected.planned_episode_count as usize {
+        if accounted != planned_by_id.len() {
             return Err(RunReceiptError::CompleteRunDoesNotAccountForPlan);
         }
         if receipt
@@ -268,7 +311,16 @@ mod tests {
             scenario_set_digest: digest(6),
             expected_evaluator_identity: "evaluator-v1".into(),
             expected_evaluator_receipt_digest: digest(7),
-            planned_episode_count: 2,
+            planned_episodes: vec![
+                PlannedEpisode {
+                    episode_id: "episode-001".into(),
+                    scenario_id: "scenario-001".into(),
+                },
+                PlannedEpisode {
+                    episode_id: "episode-002".into(),
+                    scenario_id: "scenario-002".into(),
+                },
+            ],
         }
     }
 
@@ -442,6 +494,7 @@ mod tests {
         let mut run = receipt();
         run.excluded_episodes.push(ExcludedEpisode {
             episode_id: "episode-001".into(),
+            scenario_id: "scenario-001".into(),
             reason: "excluded".into(),
         });
         assert_eq!(
@@ -453,7 +506,10 @@ mod tests {
     #[test]
     fn complete_run_must_account_for_every_planned_episode() {
         let mut binding = expected();
-        binding.planned_episode_count = 3;
+        binding.planned_episodes.push(PlannedEpisode {
+            episode_id: "episode-003".into(),
+            scenario_id: "scenario-003".into(),
+        });
         assert_eq!(
             validate_run_receipt(&binding, &receipt()),
             Err(RunReceiptError::CompleteRunDoesNotAccountForPlan)
@@ -475,6 +531,7 @@ mod tests {
         let mut run = receipt();
         run.excluded_episodes.push(ExcludedEpisode {
             episode_id: "episode-003".into(),
+            scenario_id: "scenario-003".into(),
             reason: "simulator reset failed before invocation".into(),
         });
         let result = validate_run_receipt(&binding, &run).expect("documented exclusion");
@@ -484,11 +541,48 @@ mod tests {
         let mut run = receipt();
         run.excluded_episodes.push(ExcludedEpisode {
             episode_id: "episode-003".into(),
+            scenario_id: "scenario-003".into(),
             reason: " ".into(),
         });
         assert_eq!(
             validate_run_receipt(&binding, &run),
             Err(RunReceiptError::EmptyExclusionReason)
+        );
+    }
+
+
+    #[test]
+    fn executed_and_excluded_episodes_must_match_preregistered_ids_and_scenarios() {
+        let mut run = receipt();
+        run.episode_receipts[0].episode_id = "unplanned-episode".into();
+        assert_eq!(
+            validate_run_receipt(&expected(), &run),
+            Err(RunReceiptError::UnplannedEpisodeId)
+        );
+
+        let mut run = receipt();
+        run.episode_receipts[0].scenario_id = "different-scenario".into();
+        assert_eq!(
+            validate_run_receipt(&expected(), &run),
+            Err(RunReceiptError::PlannedScenarioMismatch)
+        );
+
+        let mut binding = expected();
+        binding.planned_episodes[1].episode_id = binding.planned_episodes[0].episode_id.clone();
+        assert_eq!(
+            validate_run_receipt(&binding, &receipt()),
+            Err(RunReceiptError::DuplicatePlannedEpisodeId)
+        );
+
+        let mut run = receipt();
+        run.excluded_episodes.push(ExcludedEpisode {
+            episode_id: "unplanned-exclusion".into(),
+            scenario_id: "scenario-003".into(),
+            reason: "not in the frozen plan".into(),
+        });
+        assert_eq!(
+            validate_run_receipt(&expected(), &run),
+            Err(RunReceiptError::UnplannedEpisodeId)
         );
     }
 
