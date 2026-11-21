@@ -1,0 +1,24 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://luminousdynamics.io/schemas/power-restoration-actuation-command-binding-v0.1.schema.json",
+  "title":"Power restoration actuation command binding v0.1",
+  "type":"object","additionalProperties":false,
+  "required":["runId","caseSha256","decisionStep","proposalSha256","actionId","actionKind","commandId","commandSha256","challengeNonce","controllerId","deviceId","witnessIssuerId","witnessToolSourceCommit","witnessToolConfigurationSha256","minimumMonotonicSequence"],
+  "properties":{
+    "runId":{"type":"string","minLength":1},
+    "caseSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+    "decisionStep":{"type":"integer","minimum":0},
+    "proposalSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+    "actionId":{"type":"string","minLength":1},
+    "actionKind":{"type":"string","minLength":1},
+    "commandId":{"type":"string","minLength":1},
+    "commandSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+    "challengeNonce":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+    "controllerId":{"type":"string","minLength":1},
+    "deviceId":{"type":"string","minLength":1},
+    "witnessIssuerId":{"type":"string","minLength":1},
+    "witnessToolSourceCommit":{"type":"string","pattern":"^[0-9a-f]{40}$"},
+    "witnessToolConfigurationSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+    "minimumMonotonicSequence":{"type":"integer","minimum":0}
+  }
+}
