@@ -14,6 +14,51 @@ use std::fmt;
 
 const PROBABILITY_TOLERANCE: f64 = 1.0e-9;
 
+/// Asymmetric cost of the two wrong navigation-service decisions.
+///
+/// StateZero is the unsafe/out-of-envelope state; StateOne is the
+/// safe/in-envelope state. Claiming StateOne when StateZero is true incurs
+/// false_safe_loss. Claiming StateZero when StateOne is true incurs
+/// false_degraded_loss.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct DecisionLoss {
+    pub false_safe_loss: f64,
+    pub false_degraded_loss: f64,
+}
+
+impl DecisionLoss {
+    pub const fn zero_one() -> Self {
+        Self {
+            false_safe_loss: 1.0,
+            false_degraded_loss: 1.0,
+        }
+    }
+
+    pub fn new(
+        false_safe_loss: f64,
+        false_degraded_loss: f64,
+    ) -> Result<Self, DecisionValueError> {
+        let loss = Self {
+            false_safe_loss,
+            false_degraded_loss,
+        };
+        loss.validate()?;
+        Ok(loss)
+    }
+
+    pub fn validate(self) -> Result<(), DecisionValueError> {
+        if !self.false_safe_loss.is_finite()
+            || self.false_safe_loss < 0.0
+            || !self.false_degraded_loss.is_finite()
+            || self.false_degraded_loss < 0.0
+            || (self.false_safe_loss == 0.0 && self.false_degraded_loss == 0.0)
+        {
+            return Err(DecisionValueError::InvalidDecisionLoss);
+        }
+        Ok(())
+    }
+}
+
 /// Prior probability that the latent state is StateOne.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct BinaryBelief {
@@ -38,6 +83,17 @@ impl BinaryBelief {
     pub fn bayes_risk(self) -> f64 {
         self.probability_state_zero()
             .min(self.probability_state_one)
+    }
+
+    /// Minimum expected loss under an explicit asymmetric decision cost.
+    pub fn bayes_risk_with_loss(
+        self,
+        loss: DecisionLoss,
+    ) -> Result<f64, DecisionValueError> {
+        BinaryBelief::new(self.probability_state_one)?;
+        loss.validate()?;
+        Ok((self.probability_state_zero() * loss.false_safe_loss)
+            .min(self.probability_state_one * loss.false_degraded_loss))
     }
 }
 
@@ -90,6 +146,7 @@ pub struct DiagnosticAction {
 #[derive(Clone, Debug, PartialEq)]
 pub enum DecisionValueError {
     InvalidPriorProbability,
+    InvalidDecisionLoss,
     EmptyActionId,
     DuplicateActionId(String),
     InvalidAcquisitionProbability(String),
@@ -106,6 +163,9 @@ impl fmt::Display for DecisionValueError {
         match self {
             Self::InvalidPriorProbability => {
                 write!(f, "prior probability must be finite and within [0, 1]")
+            }
+            Self::InvalidDecisionLoss => {
+                write!(f, "decision losses must be finite, nonnegative, and not both zero")
             }
             Self::EmptyActionId => write!(f, "action ID must not be empty"),
             Self::DuplicateActionId(id) => write!(f, "duplicate action ID: {id}"),
@@ -223,13 +283,24 @@ pub fn evaluate_action(
     belief: BinaryBelief,
     budget: ResourceBudget,
 ) -> Result<ActionAssessment, DecisionValueError> {
+    evaluate_action_with_loss(action, belief, budget, DecisionLoss::zero_one())
+}
+
+/// Evaluate one candidate with explicit false-safe and false-degraded losses.
+pub fn evaluate_action_with_loss(
+    action: &DiagnosticAction,
+    belief: BinaryBelief,
+    budget: ResourceBudget,
+    loss: DecisionLoss,
+) -> Result<ActionAssessment, DecisionValueError> {
     // Revalidate even if the caller constructed the public structs directly.
     BinaryBelief::new(belief.probability_state_one)?;
+    loss.validate()?;
     validate_action(action)?;
 
     let p0 = belief.probability_state_zero();
     let p1 = belief.probability_state_one;
-    let baseline_bayes_risk = p0.min(p1);
+    let baseline_bayes_risk = belief.bayes_risk_with_loss(loss)?;
     let mut bayes_risk_after_success = 0.0;
     let mut mutual_information_bits_on_success = 0.0;
 
@@ -240,7 +311,9 @@ pub fn evaluate_action(
 
         // Bayes classification loss after this outcome is the smaller joint
         // mass. Summing it over outcomes gives expected posterior Bayes risk.
-        bayes_risk_after_success += joint_state_zero.min(joint_state_one);
+        bayes_risk_after_success +=
+            (joint_state_zero * loss.false_safe_loss)
+                .min(joint_state_one * loss.false_degraded_loss);
 
         // I(State; Outcome) = sum_s,o P(s,o) log2(P(o|s) / P(o)).
         // Zero-probability terms contribute exactly zero.
@@ -292,13 +365,24 @@ pub fn evaluate_actions(
     belief: BinaryBelief,
     budget: ResourceBudget,
 ) -> Result<Vec<ActionAssessment>, DecisionValueError> {
+    evaluate_actions_with_loss(actions, belief, budget, DecisionLoss::zero_one())
+}
+
+/// Evaluate every candidate under one shared decision-loss model.
+pub fn evaluate_actions_with_loss(
+    actions: &[DiagnosticAction],
+    belief: BinaryBelief,
+    budget: ResourceBudget,
+    loss: DecisionLoss,
+) -> Result<Vec<ActionAssessment>, DecisionValueError> {
+    loss.validate()?;
     let mut ids = BTreeSet::new();
     let mut assessments = Vec::with_capacity(actions.len());
     for action in actions {
         if !ids.insert(action.id.clone()) {
             return Err(DecisionValueError::DuplicateActionId(action.id.clone()));
         }
-        assessments.push(evaluate_action(action, belief, budget)?);
+        assessments.push(evaluate_action_with_loss(action, belief, budget, loss)?);
     }
     assessments.sort_by(|a, b| a.action_id.cmp(&b.action_id));
     Ok(assessments)
@@ -342,7 +426,24 @@ pub fn select_action(
     budget: ResourceBudget,
     criterion: SelectionCriterion,
 ) -> Result<Option<ActionAssessment>, DecisionValueError> {
-    let assessments = evaluate_actions(actions, belief, budget)?;
+    select_action_with_loss(
+        actions,
+        belief,
+        budget,
+        criterion,
+        DecisionLoss::zero_one(),
+    )
+}
+
+/// Select with a cost-sensitive navigation decision objective.
+pub fn select_action_with_loss(
+    actions: &[DiagnosticAction],
+    belief: BinaryBelief,
+    budget: ResourceBudget,
+    criterion: SelectionCriterion,
+    loss: DecisionLoss,
+) -> Result<Option<ActionAssessment>, DecisionValueError> {
+    let assessments = evaluate_actions_with_loss(actions, belief, budget, loss)?;
     Ok(assessments
         .into_iter()
         .filter(|assessment| {
@@ -587,6 +688,44 @@ mod tests {
         close(result.bayes_risk_after_success, 0.0);
         close(result.expected_decision_value, 0.1);
         close(result.expected_mutual_information_bits, 0.4689955935892812);
+    }
+
+    #[test]
+    fn asymmetric_false_safe_loss_changes_expected_decision_value() {
+        let belief = BinaryBelief::new(0.9).unwrap();
+        let action = demo_actions().remove(1);
+        let symmetric = evaluate_action(&action, belief, budget()).unwrap();
+        let asymmetric_loss = DecisionLoss::new(10.0, 1.0).unwrap();
+        let asymmetric =
+            evaluate_action_with_loss(&action, belief, budget(), asymmetric_loss).unwrap();
+
+        close(symmetric.expected_decision_value, 0.0272);
+        close(asymmetric.baseline_bayes_risk, 0.9);
+        close(asymmetric.bayes_risk_after_success, 0.336);
+        close(asymmetric.expected_bayes_risk, 0.4488);
+        close(asymmetric.expected_decision_value, 0.4512);
+        assert!(asymmetric.expected_decision_value > symmetric.expected_decision_value);
+    }
+
+    #[test]
+    fn invalid_asymmetric_decision_losses_are_rejected() {
+        assert!(DecisionLoss::new(-1.0, 1.0).is_err());
+        assert!(DecisionLoss::new(f64::NAN, 1.0).is_err());
+        assert!(DecisionLoss::new(0.0, 0.0).is_err());
+
+        let action = demo_actions().remove(1);
+        assert!(matches!(
+            evaluate_action_with_loss(
+                &action,
+                BinaryBelief::new(0.9).unwrap(),
+                budget(),
+                DecisionLoss {
+                    false_safe_loss: 1.0,
+                    false_degraded_loss: f64::INFINITY,
+                },
+            ),
+            Err(DecisionValueError::InvalidDecisionLoss)
+        ));
     }
 
     #[test]
