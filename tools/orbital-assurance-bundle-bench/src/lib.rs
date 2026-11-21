@@ -225,6 +225,16 @@ fn evidence_matches_pin(evidence: &EvidenceRef, pin: &ReceiptPin) -> bool {
         && evidence.receipt_sha256 == pin.receipt_sha256
 }
 
+fn is_statistical_profile_claim(claim_type: ClaimType) -> bool {
+    matches!(
+        claim_type,
+        ClaimType::MissionSuccessProbability
+            | ClaimType::ConstantFailureIntensity
+            | ClaimType::PowerLawRecurrentIntensity
+            | ClaimType::WeibullFirstFailureLife
+    )
+}
+
 fn claim_model_is_typed(claim: &Claim) -> bool {
     match claim.claim_type {
         ClaimType::MissionSuccessProbability => {
@@ -647,18 +657,9 @@ fn evaluate_case(case: &Case) -> CaseResult {
                 );
             }
             Relation::DerivedFrom => {
-                let statistical_profiles = |claim_type| {
-                    matches!(
-                        claim_type,
-                        ClaimType::MissionSuccessProbability
-                            | ClaimType::ConstantFailureIntensity
-                            | ClaimType::PowerLawRecurrentIntensity
-                            | ClaimType::WeibullFirstFailureLife
-                    )
-                };
                 let incompatible = from.claim_type != to.claim_type
-                    && statistical_profiles(from.claim_type)
-                    && statistical_profiles(to.claim_type);
+                    && is_statistical_profile_claim(from.claim_type)
+                    && is_statistical_profile_claim(to.claim_type);
                 if incompatible {
                     add_blocker(
                         &mut blockers,
@@ -860,6 +861,38 @@ mod tests {
             evidence: None,
         };
         assert!(claim_model_is_typed(&mission));
+    }
+
+    #[test]
+    fn power_law_and_weibull_profiles_are_separate_statistical_claims() {
+        assert!(is_statistical_profile_claim(ClaimType::PowerLawRecurrentIntensity));
+        assert!(is_statistical_profile_claim(ClaimType::WeibullFirstFailureLife));
+        assert!(!is_statistical_profile_claim(ClaimType::LifecycleQualification));
+
+        let power_law = Claim {
+            claim_id: "plp".to_owned(),
+            claim_type: ClaimType::PowerLawRecurrentIntensity,
+            state: ClaimState::Supported,
+            scope: Scope {
+                subject_id: "a".to_owned(),
+                configuration_id: "c".to_owned(),
+                operating_mode_id: "m".to_owned(),
+                mission_profile_id: "p".to_owned(),
+                environment_profile_id: "env".to_owned(),
+                valid_from: 0,
+                valid_until: 10,
+            },
+            estimand: Some("power_law_recurrent_failure_intensity".to_owned()),
+            unit: Some("events_per_operating_second".to_owned()),
+            model_profile: Some("power_law_nhpp_minimal_repair_v0_1".to_owned()),
+            validation_domain: Some("repairable-minimal-repair-domain".to_owned()),
+            mandatory: true,
+            evidence: None,
+        };
+        assert!(claim_model_is_typed(&power_law));
+        let mut mismatched = power_law.clone();
+        mismatched.model_profile = Some("homogeneous_poisson_constant_intensity".to_owned());
+        assert!(!claim_model_is_typed(&mismatched));
     }
 
     #[test]
