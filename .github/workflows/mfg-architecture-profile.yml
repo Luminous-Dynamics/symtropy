@@ -99,6 +99,13 @@ jobs:
           grep -F '"safe_deferral_count": 2' /tmp/tep-onset.json
           grep -F '"confident_wrong_count": 1' /tmp/tep-onset.json
 
+      - name: Evaluate binary probability calibration
+        working-directory: tools/manufacturing-architecture-portability/validator
+        run: |
+          cargo run --locked --bin foundrybench-metrics -- calibration ../benchmarks/binary-calibration-input.schema.json ../benchmarks/binary-calibration.synthetic.json > /tmp/binary-calibration.json
+          grep -F '"brier_score"' /tmp/binary-calibration.json
+          grep -F '"expected_calibration_error"' /tmp/binary-calibration.json
+
       - name: Verify run-level partition disjointness
         working-directory: tools/manufacturing-architecture-portability/validator
         run: |
