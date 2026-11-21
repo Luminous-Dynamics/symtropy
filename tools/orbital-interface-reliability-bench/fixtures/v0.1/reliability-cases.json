@@ -13333,6 +13333,42 @@
         "naive_cycle_lower_bound": null,
         "naive_cycle_false_assurance": false
       }
+    },
+    {
+      "case_id": "case-36-empty-evidence-cohort-is-indeterminate",
+      "preregistration_ref": "synthetic-prereg:case-36",
+      "population_id": "population-provider-client-v1",
+      "lot_id": "lot-A",
+      "configuration_id": "cfg-A",
+      "mission_profile_id": "mission-profile-1",
+      "failure_definition_id": "failure-definition-v1",
+      "sampling_design": "simple_random_single_lot_independent_articles",
+      "sampling_frame_ref": "synthetic-frame:lot-A",
+      "dependence_assessment_ref": "synthetic-dependence-review:lot-A",
+      "reliability_target": 0.9,
+      "confidence": 0.9,
+      "reported_cycle_successes": 0,
+      "reported_cycle_failures": 0,
+      "trials": [],
+      "expected": {
+        "disposition": "indeterminate",
+        "unique_trials": 0,
+        "successes": 0,
+        "failures": 0,
+        "restricted_outcomes": 0,
+        "invalid_trials": 0,
+        "aborted_trials": 0,
+        "withdrawn_trials": 0,
+        "censored_trials": 0,
+        "duplicate_trials": 0,
+        "lower_confidence_bound": null,
+        "meets_reliability_target": null,
+        "naive_success_fraction": null,
+        "naive_baseline_false_assurance": false,
+        "minimum_zero_failure_trials": null,
+        "naive_cycle_lower_bound": null,
+        "naive_cycle_false_assurance": false
+      }
     }
   ]
 }
