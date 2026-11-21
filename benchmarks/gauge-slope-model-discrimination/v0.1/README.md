@@ -7,7 +7,7 @@
 
 ## Research question
 
-Can a constant-Coulomb-friction model be rejected when the measured acceleration changes systematically with sliding speed, rather than allowing a solver to report a precise but structurally wrong constant coefficient?
+Can a constant-acceleration response be rejected when measured acceleration changes systematically with sliding speed, rather than allowing a solver to report a precise but structurally wrong constant-friction fit? A detected trend is evidence of speed-linked model discrepancy, not proof that friction is its unique cause.
 
 This small GAUGE-specific reference compares two local model families at one fixed incline/article/material:
 
@@ -16,7 +16,7 @@ This small GAUGE-specific reference compares two local model families at one fix
 
 For a fixed, admitted effective incline angle phi, the latter corresponds locally to mu(v) = mu0 + k_v v, with b1 = -g k_v cos(phi). The intercept is deliberately free: it absorbs the constant acceleration level, including the effect of a constant friction level or constant angle-registration offset. The discriminator therefore tests whether speed explains additional variation after the best constant model has been fitted.
 
-This is a local linear alternative, not a complete Stribeck/contact law.
+This is a local linear alternative, not a complete Stribeck/contact law. A non-zero slope is not uniquely attributable to friction: aerodynamic drag, speed-correlated geometry, changing contact patch, material heating/wear, camera-derived speed bias, release-condition confounding or an incorrect acceleration window can produce similar trends. Friction attribution requires additional independently varied interventions and appropriate competing models.
 
 ## Why this is a useful paradigm shift
 
@@ -34,7 +34,7 @@ The dependency-free Rust library provides:
 
 1. Inverse-variance weighted least squares for M0 and M1, using the supplied per-trial standard deviations as known measurement sigmas.
 2. Null and alternative weighted chi-square residuals.
-3. DeltaChi2 = Chi2(M0) - Chi2(M1).
+3. DeltaChi2 = Chi2(M0) - Chi2(M1). A positive result shows that the fitted linear-speed response explains more of these data under the declared likelihood; model complexity is penalized separately by BIC.
 4. DeltaBIC = BIC(M1) - BIC(M0) = ln(n) - DeltaChi2, for the declared known-sigma Gaussian likelihood.
 5. Residual degrees of freedom for the two-parameter alternative.
 6. A profiled design-separation score after eliminating the unknown constant intercept.
@@ -69,6 +69,9 @@ A prospective fixed-article campaign could vary release height while retaining t
 This is a proposed protocol, not a claim that the released GAUGE records already contain the necessary speed spread or initial-condition metadata. It must first pass rights, raw-record, sampling, geometry, measurement-noise and repeatability gates.
 
 The physical campaign should use:
+
+- a friction-attribution factorial arm that varies surface/material or controlled normal load independently of release speed, where physically feasible;
+- an air-drag / speed-measurement negative-control analysis where geometry and object scale make it relevant;
 
 - repeated-speed controls to verify the null design's lack of model-discrimination power;
 - low/mid/high speed strata selected within a safe and observable regime;
