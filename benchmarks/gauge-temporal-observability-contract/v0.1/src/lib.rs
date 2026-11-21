@@ -83,21 +83,32 @@ impl Display for TemporalError {
                 write!(formatter, "export sample rate must be finite and positive")
             }
             Self::InvalidSourceAcquisitionRate => {
-                write!(formatter, "source acquisition rate must be finite and positive")
+                write!(
+                    formatter,
+                    "source acquisition rate must be finite and positive"
+                )
             }
             Self::SourceRateBelowExportRate => {
-                write!(formatter, "source acquisition rate cannot be below export sample rate")
+                write!(
+                    formatter,
+                    "source acquisition rate cannot be below export sample rate"
+                )
             }
             Self::InvalidEventDuration => {
                 write!(formatter, "event duration must be finite and positive")
             }
             Self::InvalidMinimumSamples => {
-                write!(formatter, "minimum samples per event must be finite and positive")
+                write!(
+                    formatter,
+                    "minimum samples per event must be finite and positive"
+                )
             }
             Self::InvalidSignalBandwidth => {
                 write!(formatter, "signal bandwidth must be finite and positive")
             }
-            Self::NonFiniteDerivedValue => write!(formatter, "derived sampling value is non-finite"),
+            Self::NonFiniteDerivedValue => {
+                write!(formatter, "derived sampling value is non-finite")
+            }
         }
     }
 }
@@ -303,16 +314,26 @@ mod tests {
         let assessment =
             assess_temporal_observability(gauge_export_profile(), event_requirements())
                 .expect("valid sampling profile");
-        assert_eq!(assessment.coverage_disposition, CoverageDisposition::Undersampled);
+        assert_eq!(
+            assessment.coverage_disposition,
+            CoverageDisposition::Undersampled
+        );
         assert_eq!(assessment.samples_per_event, Some(0.9));
         assert_eq!(assessment.nyquist_frequency_hz, 15.0);
-        assert!(assessment
-            .coverage_failures
-            .contains(&CoverageFailure::InsufficientSamplesAcrossEvent));
-        assert!(assessment
-            .coverage_failures
-            .contains(&CoverageFailure::BandwidthExceedsNyquist));
-        assert_eq!(assessment.provenance_disposition, ProvenanceDisposition::Incomplete);
+        assert!(
+            assessment
+                .coverage_failures
+                .contains(&CoverageFailure::InsufficientSamplesAcrossEvent)
+        );
+        assert!(
+            assessment
+                .coverage_failures
+                .contains(&CoverageFailure::BandwidthExceedsNyquist)
+        );
+        assert_eq!(
+            assessment.provenance_disposition,
+            ProvenanceDisposition::Incomplete
+        );
         assert!(!assessment.is_fully_qualified_under_declared_contract());
     }
 
@@ -327,7 +348,10 @@ mod tests {
         );
         assert_eq!(assessment.samples_per_event, Some(5.4));
         assert_eq!(assessment.nyquist_frequency_hz, 90.0);
-        assert_eq!(assessment.provenance_disposition, ProvenanceDisposition::Complete);
+        assert_eq!(
+            assessment.provenance_disposition,
+            ProvenanceDisposition::Complete
+        );
         assert!(assessment.is_fully_qualified_under_declared_contract());
     }
 
@@ -340,13 +364,20 @@ mod tests {
         };
         let assessment = assess_temporal_observability(complete_profile(180.0), missing)
             .expect("valid profile with incomplete requirements");
-        assert_eq!(assessment.coverage_disposition, CoverageDisposition::Unassessable);
-        assert!(assessment
-            .missing_requirements
-            .contains(&MissingRequirement::EventDuration));
-        assert!(assessment
-            .missing_requirements
-            .contains(&MissingRequirement::MaximumSignalBandwidth));
+        assert_eq!(
+            assessment.coverage_disposition,
+            CoverageDisposition::Unassessable
+        );
+        assert!(
+            assessment
+                .missing_requirements
+                .contains(&MissingRequirement::EventDuration)
+        );
+        assert!(
+            assessment
+                .missing_requirements
+                .contains(&MissingRequirement::MaximumSignalBandwidth)
+        );
         assert!(!assessment.meets_declared_coverage());
     }
 
@@ -364,9 +395,11 @@ mod tests {
             CoverageDisposition::MeetsDeclaredThresholds
         );
         assert_eq!(assessment.provenance_disposition, ProvenanceDisposition::Incomplete);
-        assert!(assessment
-            .provenance_gaps
-            .contains(&ProvenanceGap::ResamplingFilter));
+        assert!(
+            assessment
+                .provenance_gaps
+                .contains(&ProvenanceGap::ResamplingFilter)
+        );
         assert!(!assessment.is_fully_qualified_under_declared_contract());
     }
 
