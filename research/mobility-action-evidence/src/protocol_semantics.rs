@@ -527,7 +527,10 @@ mod tests {
     #[test]
     fn transparent_exclusions_are_accounted_but_never_hidden() {
         let mut binding = expected();
-        binding.planned_episode_count = 3;
+        binding.planned_episodes.push(PlannedEpisode {
+            episode_id: "episode-003".into(),
+            scenario_id: "scenario-003".into(),
+        });
         let mut run = receipt();
         run.excluded_episodes.push(ExcludedEpisode {
             episode_id: "episode-003".into(),
@@ -550,6 +553,17 @@ mod tests {
         );
     }
 
+
+
+    #[test]
+    fn empty_planned_episode_set_is_rejected() {
+        let mut binding = expected();
+        binding.planned_episodes.clear();
+        assert_eq!(
+            validate_run_receipt(&binding, &receipt()),
+            Err(RunReceiptError::PlannedEpisodeSetIsEmpty)
+        );
+    }
 
     #[test]
     fn executed_and_excluded_episodes_must_match_preregistered_ids_and_scenarios() {
