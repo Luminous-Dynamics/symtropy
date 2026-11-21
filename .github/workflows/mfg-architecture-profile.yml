@@ -12,7 +12,7 @@ on:
       - ".github/workflows/mfg-architecture-profile.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: mfg-architecture-profile-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -36,21 +36,19 @@ jobs:
           workspaces: |
             tools/manufacturing-architecture-portability/validator -> target
 
-      # Temporary diagnostic export: format in the runner, upload normalized source,
-      # then restore the checkout so the real format gate still checks committed bytes.
-      - name: Export rustfmt-normalized validator sources
+      # One-time maintainer-only formatting repair. This guarded step is removed
+      # after the normalized source is committed; normal validation is read-only.
+      - name: One-time rustfmt repair on Foundry research branch
+        if: github.event_name == 'pull_request' && github.actor == 'Tristan-Stoltz-ERC' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'research/mfg-architecture-portability-v0-1'
         run: |
           cargo fmt --manifest-path tools/manufacturing-architecture-portability/validator/Cargo.toml
-          mkdir -p /tmp/mfg-architecture-rustfmt
-          cp -R tools/manufacturing-architecture-portability/validator/src /tmp/mfg-architecture-rustfmt/validator-src
-          tar -czf /tmp/mfg-architecture-rustfmt.tar.gz -C /tmp/mfg-architecture-rustfmt validator-src
-          git restore -- tools/manufacturing-architecture-portability/validator/src
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: mfg-architecture-rustfmt-export
-          path: /tmp/mfg-architecture-rustfmt.tar.gz
-          retention-days: 3
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/manufacturing-architecture-portability/validator/src
+          if ! git diff --cached --quiet; then
+            git commit -m "style(foundry): rustfmt portability validator"
+            git push origin HEAD:refs/heads/research/mfg-architecture-portability-v0-1
+          fi
 
       # Cargo.lock is committed and every dependency operation is locked.
       - name: Check formatting
