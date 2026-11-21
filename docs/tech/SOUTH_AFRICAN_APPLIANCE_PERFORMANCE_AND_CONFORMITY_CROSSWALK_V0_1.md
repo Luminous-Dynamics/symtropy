@@ -102,6 +102,12 @@ Sources:
 
 For any product class not shown above, do not invent a threshold. Identify the current local requirement, best independent product dataset, product-specific test method and a frozen competitor set before setting a numeric comparison claim.
 
+Add two international policy/market comparison layers to the source register:
+- CLASP, **World's Best MEPS 2023**, which compares minimum-efficiency policies for major appliances across multiple economies and identifies where national requirements lag model-regulation / best-available-technology levels: https://www.clasp.ngo/worlds-best-meps-2023/
+- IEA 4E Product Energy Efficiency Trends (PEET), which tracks standards, labels and product-efficiency trends across member economies: https://www.iea-4e.org/publications/peet/status-of-domestic-refrigerator-regulations/
+
+These are useful for setting an international ambition ladder and checking whether a foreign label is actually a frontier. They are not interchangeable test results: align product class, capacity, climate, duty profile, test edition and metric before transferring a threshold.
+
 ## 5. Shared benchmark contract: compare useful service, not label numbers
 
 ### 5.1 Freeze comparator identity
