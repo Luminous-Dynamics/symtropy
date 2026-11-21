@@ -1,0 +1,91 @@
+name: Navigation Research Isolated Rust Crates
+
+on:
+  pull_request:
+    paths:
+      - "research/nav-transition-validator/**"
+      - "research/nav-observation-toy-fim/**"
+      - "research/miluv-ingest/**"
+      - ".github/workflows/navigation-research-rust.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-rust:
+    name: Isolated navigation research crates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Format standalone crates in runner workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          for manifest in \
+            research/nav-transition-validator/Cargo.toml \
+            research/nav-observation-toy-fim/Cargo.toml \
+            research/miluv-ingest/Cargo.toml
+          do
+            if [[ -f "$manifest" ]]; then
+              cargo fmt --manifest-path "$manifest"
+            fi
+          done
+          git diff --check
+
+      - name: Clippy and tests for standalone crates
+        shell: bash
+        run: |
+          set -euo pipefail
+          for manifest in \
+            research/nav-transition-validator/Cargo.toml \
+            research/nav-observation-toy-fim/Cargo.toml \
+            research/miluv-ingest/Cargo.toml
+          do
+            if [[ -f "$manifest" ]]; then
+              echo "::group::cargo clippy --all-targets --manifest-path $manifest"
+              cargo clippy --all-targets --manifest-path "$manifest"
+              echo "::endgroup::"
+              echo "::group::cargo test --all-targets --manifest-path $manifest"
+              cargo test --all-targets --manifest-path "$manifest"
+              echo "::endgroup::"
+            fi
+          done
+
+      - name: Run schema and semantic validator CLI when corpus is present
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f research/nav-transition-validator/Cargo.toml \
+             && -f docs/research/navigation-transition-v0.1/nav_transition_case.schema.json \
+             && -f docs/research/navigation-transition-v0.1/fixtures/nav_transition_cases.v0.1.json \
+             && -f docs/research/navigation-transition-v0.1/manifest.v0.1.json ]]; then
+            cargo run --manifest-path research/nav-transition-validator/Cargo.toml --bin nav-transition-validate -- \
+              docs/research/navigation-transition-v0.1/nav_transition_case.schema.json \
+              docs/research/navigation-transition-v0.1/fixtures/nav_transition_cases.v0.1.json \
+              docs/research/navigation-transition-v0.1/manifest.v0.1.json
+          else
+            echo "Transition validator corpus is not part of this branch; CLI integration step skipped."
+          fi
+
+      - name: Run rights-gated dataset admission CLI when registry is present
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f docs/research/navigation-transition-v0.1/dataset-admission.schema.json \
+             && -f docs/research/navigation-transition-v0.1/datasets.v0.1.json ]]; then
+            cargo run --manifest-path research/nav-transition-validator/Cargo.toml --bin dataset_admission_validate -- \
+              docs/research/navigation-transition-v0.1/dataset-admission.schema.json \
+              docs/research/navigation-transition-v0.1/datasets.v0.1.json \
+              research_noncommercial
+            cargo run --manifest-path research/nav-transition-validator/Cargo.toml --bin dataset_admission_validate -- \
+              docs/research/navigation-transition-v0.1/dataset-admission.schema.json \
+              docs/research/navigation-transition-v0.1/datasets.v0.1.json \
+              commercial
+          else
+            echo "Dataset rights registry is not part of this branch; admission CLI skipped."
+          fi
