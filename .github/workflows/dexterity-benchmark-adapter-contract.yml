@@ -1,0 +1,83 @@
+name: Dexterity Benchmark Adapter Contract
+
+on:
+  pull_request:
+    paths:
+      - 'benchmarks/dexterity-benchmark-adapter-contract/v0.1/**'
+      - '.github/workflows/dexterity-benchmark-adapter-contract.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'benchmarks/dexterity-benchmark-adapter-contract/v0.1/**'
+      - '.github/workflows/dexterity-benchmark-adapter-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dexterity-benchmark-adapter-contract-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.24.0
+      - name: Validate synthetic manifests and semantic controls
+        run: |
+          python - <<'PY'
+          import copy, json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("benchmarks/dexterity-benchmark-adapter-contract/v0.1")
+          schema = json.loads((root / "run_manifest.schema.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          validator = Draft202012Validator(schema)
+          fixtures = [
+              json.loads((root / "synthetic_dexarena_manifest_v0.1.json").read_text()),
+              json.loads((root / "synthetic_bench2dex_manifest_v0.1.json").read_text()),
+          ]
+          for item in fixtures:
+              errors = list(validator.iter_errors(item))
+              if errors:
+                  raise SystemExit("; ".join(f"{e.json_path}: {e.message}" for e in errors))
+              assert item["evidence_kind"] == "synthetic_fixture"
+              assert item["run"]["status"] == "metadata_only"
+              assert item["coverage"]["completed_episode_count"] <= item["coverage"]["expected_episode_count"]
+              assert item["coverage"]["failed_episode_count"] <= item["coverage"]["completed_episode_count"]
+
+          def must_reject(name, record):
+              errors = list(validator.iter_errors(record))
+              if not errors:
+                  raise SystemExit(f"negative control unexpectedly passed: {name}")
+
+          # A one-reset DexArena sequence cannot insert a reset between stages.
+          bad = copy.deepcopy(fixtures[0])
+          bad["outcomes"][0]["inter_stage_reset_count"] = 1
+          must_reject("dexarena-inter-stage-reset", bad)
+
+          # A not-attempted stage cannot claim native success.
+          bad = copy.deepcopy(fixtures[1])
+          bad["outcomes"][0]["outcome_status"] = "not_attempted"
+          bad["outcomes"][0]["native_success"] = True
+          must_reject("not-attempted-native-success", bad)
+
+          # Bench2Dex native metric families are all required.
+          bad = copy.deepcopy(fixtures[1])
+          bad["native_metrics"] = [m for m in bad["native_metrics"] if m["metric_name"] != "LSCR"]
+          must_reject("missing-lscr", bad)
+
+          # An inherited handoff must bind its predecessor terminal state.
+          bad = copy.deepcopy(fixtures[0])
+          bad["outcomes"][0]["evaluation_mode"] = "inherited_handoff"
+          must_reject("handoff-without-predecessor", bad)
+
+          print(f"validated {len(fixtures)} synthetic suite manifests and 4 semantic negative controls")
+          PY
