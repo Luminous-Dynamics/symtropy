@@ -20,7 +20,9 @@ pub use sparse_bias_inference::{fit_sparse_bayesian_poisson_bias, SparseBayesian
 
 mod energy_bias_basis;
 pub use energy_bias_basis::{
-    build_grouped_energy_bias_design, project_grouped_energy_bias_field, GroupedEnergyBiasDesign,
+    aiachne_bias_basis_energy_domain, build_grouped_energy_bias_design,
+    project_grouped_energy_bias_field, GroupedEnergyBiasDesign,
+    AIACHNE_BIAS_DOMAIN_LOWER_SUBTRACTION_MEV, AIACHNE_BIAS_DOMAIN_UPPER_ADDITION_MEV,
     ENERGY_BIAS_BASIS_COLUMNS_PER_GROUP, ENERGY_BIAS_CENTRES_PER_SCALE,
     ENERGY_BIAS_LENGTH_SCALES_LOG10,
 };
