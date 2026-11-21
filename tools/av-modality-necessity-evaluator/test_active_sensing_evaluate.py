@@ -3,7 +3,7 @@ import importlib.util
 import unittest
 from pathlib import Path
 
-MODULE_PATH = Path(__file__).with_name("evaluate.py")
+MODULE_PATH = Path(__file__).with_name("active_sensing_evaluate.py")
 spec = importlib.util.spec_from_file_location("active_sensing_evaluator", MODULE_PATH)
 evaluator = importlib.util.module_from_spec(spec)
 assert spec.loader is not None
@@ -101,6 +101,9 @@ class ActiveSensingEvaluatorTests(unittest.TestCase):
 
     def test_budget_overrun_fails_closed(self):
         candidate = copy.deepcopy(self.submission)
+        workload = copy.deepcopy(self.workload)
+        episode = next(x for x in workload["episodes"] if x["episode_id"] == "as-002-low-eig-high-evsi")
+        episode["budget"]["max_audio_bytes"] = 4096
         row = self.prediction(candidate, "as-002-low-eig-high-evsi")
         row["action_requests"] = [
             {"request_id": f"req-{i}", "action_id": "inspect-hazard-tone",
@@ -108,7 +111,7 @@ class ActiveSensingEvaluatorTests(unittest.TestCase):
              "estimated_evsi": 1, "estimated_cost_joules": 0.4}
             for i in range(2)
         ]
-        result = self.result(self.score(candidate), "as-002-low-eig-high-evsi")
+        result = self.result(self.score(candidate, workload=workload), "as-002-low-eig-high-evsi")
         self.assertIn("max_actions_exceeded", result["budget_violations"])
         self.assertIn("audio_byte_budget_exceeded", result["budget_violations"])
 
