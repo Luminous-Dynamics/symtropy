@@ -668,7 +668,7 @@ mod tests {
 
     #[test]
     fn conditional_gof_rejects_excessive_draw_budget() {
-        let events = vec![10_000; 200];
+        let events = [10_000; 200];
         assert!(
             conditional_gof(&events, 100_000, 100_000, 123).is_err()
         );
