@@ -1,0 +1,67 @@
+name: Manufacturing Architecture Profile Integrity
+
+on:
+  pull_request:
+    paths:
+      - "tools/manufacturing-architecture-portability/**"
+      - ".github/workflows/mfg-architecture-profile.yml"
+  push:
+    branches: ["main", "research/mfg-architecture-portability-v0-1"]
+    paths:
+      - "tools/manufacturing-architecture-portability/**"
+      - ".github/workflows/mfg-architecture-profile.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mfg-architecture-profile-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Check out the PR head commit, not GitHub's synthetic pull_request merge commit.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            tools/manufacturing-architecture-portability/validator -> target
+
+      # Cargo.lock is committed and every dependency operation is locked.
+      - name: Check formatting
+        working-directory: tools/manufacturing-architecture-portability/validator
+        run: cargo fmt --all -- --check
+
+      - name: Validate Draft 2020-12 schema and profile fixtures
+        working-directory: tools/manufacturing-architecture-portability/validator
+        run: cargo test --locked
+
+      - name: Validate all committed profiles
+        working-directory: tools/manufacturing-architecture-portability/validator
+        run: |
+          cargo run --locked --bin mfg-architecture-profile-validator -- ../profile.schema.json \
+            ../profiles/uns-mqtt.synthetic.json \
+            ../profiles/i3x-1.0.reference.json \
+            ../profiles/opcua-machinery-1.04.2.reference.json \
+            ../profiles/opcua-robotics-1.02.reference.json
+
+      - name: Evaluate the explicit QIF inspection join fixture
+        working-directory: tools/manufacturing-architecture-portability/validator
+        run: cargo run --locked --bin validate-inspection-join -- ../inspection-join.schema.json tests/fixtures/qif-cycle-join.candidate.json
+
+      - name: Clippy
+        working-directory: tools/manufacturing-architecture-portability/validator
+        run: cargo clippy --locked --all-targets -- -D warnings
+

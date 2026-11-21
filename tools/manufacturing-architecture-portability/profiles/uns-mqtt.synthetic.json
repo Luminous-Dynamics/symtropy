@@ -1,0 +1,102 @@
+{
+  "schema_version": "0.1.0",
+  "profile_id": "urn:luminous:symtropy:mfg-arch:uns-mqtt-synthetic-v0.1",
+  "profile_name": "UNS over MQTT — synthetic event transport fixture",
+  "profile_version": "0.1.0",
+  "created_at": "2026-11-21T00:00:00Z",
+  "execution_scope": "synthetic_fixture",
+  "source_class": "synthetic",
+  "access_contract": {
+    "read": true,
+    "subscribe": true,
+    "write": false,
+    "command": false,
+    "product_release": false
+  },
+  "standard_references": [
+    {
+      "standard_ref_id": "mqtt-5.0",
+      "name": "MQTT",
+      "publisher": "OASIS",
+      "edition": "5.0",
+      "role": "event_transport",
+      "publication_state": "published_specification",
+      "reference_uri": "https://docs.oasis-open.org/mqtt/mqtt/v5.0/mqtt-v5.0.html"
+    }
+  ],
+  "layers": [
+    {
+      "layer_id": "event-transport",
+      "layer_kind": "event_transport",
+      "standard_ref_id": "mqtt-5.0",
+      "implementation": {
+        "implementation_id": "fixture:uns-mqtt-topic-events-v0.1",
+        "implementation_status": "fixture_only",
+        "name": "Synthetic UNS topic/event fixture",
+        "version": "0.1.0"
+      },
+      "access_contract": {
+        "read": true,
+        "subscribe": true,
+        "write": false,
+        "command": false,
+        "product_release": false
+      },
+      "semantic_contract": {
+        "preserved_fields": [
+          "source_system_id",
+          "asset_id",
+          "event_id",
+          "event_type",
+          "source_timestamp",
+          "source_sequence",
+          "schema_revision",
+          "payload_digest"
+        ],
+        "unsupported_fields": [
+          "broker_failover",
+          "wire_qos_delivery_semantics",
+          "live_authentication",
+          "live_authorization",
+          "physical_machine_state"
+        ],
+        "unknown_field_policy": "preserve_and_report",
+        "source_values_immutable": true,
+        "required_fields_to_preserve": [
+          "source_system_id",
+          "asset_id",
+          "event_id",
+          "event_type",
+          "source_timestamp",
+          "source_sequence",
+          "schema_revision",
+          "payload_digest"
+        ]
+      },
+      "admission": {
+        "status": "fixture_only",
+        "evidence_refs": [
+          "fixture-only:uns-mqtt-topic-events-v0.1"
+        ],
+        "claim_ceiling": [
+          "Synthetic topic and event semantics only; no MQTT broker, client, vendor endpoint, delivery guarantee, security configuration or protocol conformance has been tested."
+        ]
+      },
+      "intelligence_scope": "asset"
+    }
+  ],
+  "input_contract": {
+    "source_class": "synthetic",
+    "source_refs": [
+      "Symtropy MFG-ARCH-PORTABILITY-001 #6579; synthetic M0 transport fixture"
+    ],
+    "evaluator_truth_separate": true,
+    "observable_cutoff_policy": "exact_source_time_and_sequence"
+  },
+  "evaluation_status": "not_run",
+  "claim_ceiling": [
+    "This is a synthetic manifest fixture, not a broker implementation or an MQTT conformance result.",
+    "No live industrial endpoint, machine, robot, PLC, product-release or actuation interface is connected.",
+    "No safety, cybersecurity, physical measurement, manufacturing quality or process-capability claim is made."
+  ]
+}

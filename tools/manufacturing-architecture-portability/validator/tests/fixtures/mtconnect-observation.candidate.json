@@ -1,0 +1,36 @@
+{
+  "source_document_id": "MT-DOC-0001",
+  "source_document_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "schema_identifier": "https://schemas.mtconnect.org/schemas/MTConnectStreams_2.8.schema.json",
+  "device_uuid": "urn:uuid:machine-001",
+  "data_item_id": "DID-000",
+  "component_id": "SPINDLE-01",
+  "sequence": 10,
+  "source_timestamp_ns": 1750000100,
+  "reference_timestamp_ns": 1750000100,
+  "reference_clock_id": "PLANT-UTC-001",
+  "clock_mapping_sha256": "6000000000000000000000000000000000000000000000000000000000000000",
+  "clock_uncertainty_ns": 100,
+  "native_kind": "SAMPLE",
+  "native_unit": "rpm",
+  "value_text": "1.20000000000000000e3",
+  "source_locator": "/MTConnectStreams/Streams/ComponentStream/Observations/Observation[0]",
+  "opaque_extensions": [
+    {
+      "namespace": "urn:vendor:extension:v1",
+      "local_name": "VendorTrace",
+      "raw_payload_sha256": "3000000000000000000000000000000000000000000000000000000000000000",
+      "source_locator": "/Document/Extensions/VendorTrace[1]"
+    }
+  ],
+  "projection_schema_version": "0.1.0",
+  "adapter_profile_id": "urn:luminous:symtropy:mfg-arch:uns-mqtt-synthetic-v0.1",
+  "source_schema_version": "2.8",
+  "evidence_class": "synthetic",
+  "calibration_disposition": "unknown",
+  "calibration_reference_id": null,
+  "calibration_reference_sha256": null,
+  "measurement_uncertainty_disposition": "unknown",
+  "measurement_uncertainty_reference_id": null,
+  "measurement_uncertainty_reference_sha256": null
+}

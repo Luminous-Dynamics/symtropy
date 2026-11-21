@@ -1,0 +1,560 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous:symtropy:inspection-join-projection:0.1.0",
+  "title": "Portable Manufacturing Cycle-to-Inspection Join Projection",
+  "description": "Strict synthetic/read-only evidence projection linking one machine cycle to one QIF inspection result through explicit identity and time-qualified association evidence. It does not qualify the part or authorize release.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "projection_schema_version",
+    "cycle_id",
+    "cycle_part_id",
+    "cycle_lot_id",
+    "cycle_operation_id",
+    "cycle_start_ns",
+    "cycle_end_ns",
+    "cycle_reference_clock_id",
+    "cycle_clock_mapping_sha256",
+    "cycle_source_document_id",
+    "cycle_source_document_sha256",
+    "cycle_source_locator",
+    "mtconnect_document_sha256",
+    "mtconnect_schema_identifier",
+    "mtconnect_schema_bundle_sha256",
+    "mtconnect_validation_receipt_sha256",
+    "qif_document_uuid",
+    "qif_document_sha256",
+    "qif_schema_identifier",
+    "qif_schema_bundle_sha256",
+    "qif_validation_receipt_sha256",
+    "qif_result_id",
+    "qif_part_id",
+    "qif_lot_id",
+    "qif_operation_id",
+    "qif_characteristic_id",
+    "measurement_plan_id",
+    "feature_id",
+    "instrument_resource_id",
+    "specification_id",
+    "specification_revision",
+    "inspection_result_status",
+    "actual_value",
+    "original_unit",
+    "source_measured_at_ns",
+    "measured_at_reference_ns",
+    "qif_reference_clock_id",
+    "qif_clock_mapping_sha256",
+    "qif_clock_uncertainty_ns",
+    "combined_clock_uncertainty_ns",
+    "max_admitted_combined_clock_uncertainty_ns",
+    "uncertainty_decision_rule_id",
+    "association_characteristic_id",
+    "association_receipt_id",
+    "association_authority_id",
+    "association_receipt_sha256",
+    "association_valid_from_ns",
+    "association_valid_until_ns",
+    "decision_time_ns",
+    "derived_value",
+    "derived_unit",
+    "unit_transform_revision",
+    "qif_source_locator",
+    "cycle_clock_uncertainty_ns",
+    "association_cycle_id",
+    "association_qif_result_id",
+    "association_cycle_source_document_sha256",
+    "association_mtconnect_document_sha256",
+    "association_qif_document_sha256",
+    "association_part_id",
+    "association_lot_id",
+    "association_operation_id",
+    "measurement_evidence_class",
+    "instrument_calibration_disposition",
+    "calibration_attestation_id",
+    "calibration_attestation_sha256",
+    "measurement_uncertainty_disposition",
+    "uncertainty_budget_id",
+    "uncertainty_budget_sha256",
+    "calibration_subject_instrument_id",
+    "calibration_valid_from_ns",
+    "calibration_valid_until_ns",
+    "uncertainty_characteristic_id",
+    "uncertainty_original_unit",
+    "uncertainty_valid_from_ns",
+    "uncertainty_valid_until_ns",
+    "calibration_validity_clock_id",
+    "uncertainty_validity_clock_id"
+  ],
+  "properties": {
+    "projection_schema_version": {
+      "const": "0.1.0"
+    },
+    "cycle_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cycle_part_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cycle_lot_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cycle_operation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cycle_start_ns": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "cycle_end_ns": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "cycle_reference_clock_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cycle_clock_mapping_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "cycle_source_document_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cycle_source_document_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "cycle_source_locator": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mtconnect_document_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "mtconnect_schema_identifier": {
+      "type": "string",
+      "format": "uri"
+    },
+    "mtconnect_schema_bundle_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "mtconnect_validation_receipt_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "qif_document_uuid": {
+      "type": "string",
+      "minLength": 1
+    },
+    "qif_document_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "qif_schema_identifier": {
+      "type": "string",
+      "minLength": 1
+    },
+    "qif_schema_bundle_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "qif_validation_receipt_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "qif_result_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "qif_part_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "qif_lot_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "qif_operation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "qif_characteristic_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "measurement_plan_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "feature_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "instrument_resource_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "specification_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "specification_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "inspection_result_status": {
+      "enum": [
+        "MEASURED",
+        "NOT_MEASURED",
+        "INVALID",
+        "CANCELLED"
+      ]
+    },
+    "actual_value": {
+      "type": "number"
+    },
+    "original_unit": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_measured_at_ns": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "measured_at_reference_ns": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "qif_reference_clock_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "qif_clock_mapping_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "qif_clock_uncertainty_ns": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "combined_clock_uncertainty_ns": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "max_admitted_combined_clock_uncertainty_ns": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "uncertainty_decision_rule_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "association_characteristic_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "association_receipt_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "association_authority_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "association_receipt_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "association_valid_from_ns": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "association_valid_until_ns": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "decision_time_ns": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "derived_value": {
+      "type": "number"
+    },
+    "derived_unit": {
+      "type": "string",
+      "minLength": 1
+    },
+    "unit_transform_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "qif_source_locator": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cycle_clock_uncertainty_ns": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "association_cycle_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "association_qif_result_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "association_cycle_source_document_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "association_mtconnect_document_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "association_qif_document_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "association_part_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "association_lot_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "association_operation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "measurement_evidence_class": {
+      "enum": [
+        "synthetic",
+        "recorded",
+        "physical_observation"
+      ]
+    },
+    "instrument_calibration_disposition": {
+      "enum": [
+        "not_applicable",
+        "qualified_reference",
+        "missing",
+        "stale",
+        "unknown",
+        "unsupported"
+      ]
+    },
+    "calibration_attestation_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "calibration_attestation_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "measurement_uncertainty_disposition": {
+      "enum": [
+        "not_applicable",
+        "qualified_reference",
+        "missing",
+        "stale",
+        "unknown",
+        "unsupported"
+      ]
+    },
+    "uncertainty_budget_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "uncertainty_budget_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "calibration_subject_instrument_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "calibration_valid_from_ns": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "calibration_valid_until_ns": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "uncertainty_characteristic_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "uncertainty_original_unit": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "uncertainty_valid_from_ns": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "uncertainty_valid_until_ns": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "calibration_validity_clock_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "uncertainty_validity_clock_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "instrument_calibration_disposition": {
+            "const": "qualified_reference"
+          }
+        },
+        "required": [
+          "instrument_calibration_disposition"
+        ]
+      },
+      "then": {
+        "properties": {
+          "calibration_attestation_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "calibration_attestation_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "calibration_subject_instrument_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "calibration_valid_from_ns": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "calibration_valid_until_ns": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "calibration_validity_clock_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "calibration_attestation_id",
+          "calibration_attestation_sha256",
+          "calibration_subject_instrument_id",
+          "calibration_valid_from_ns",
+          "calibration_valid_until_ns",
+          "calibration_validity_clock_id"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "measurement_uncertainty_disposition": {
+            "const": "qualified_reference"
+          }
+        },
+        "required": [
+          "measurement_uncertainty_disposition"
+        ]
+      },
+      "then": {
+        "properties": {
+          "uncertainty_budget_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uncertainty_budget_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "uncertainty_characteristic_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uncertainty_original_unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uncertainty_valid_from_ns": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "uncertainty_valid_until_ns": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "uncertainty_validity_clock_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "uncertainty_budget_id",
+          "uncertainty_budget_sha256",
+          "uncertainty_characteristic_id",
+          "uncertainty_original_unit",
+          "uncertainty_valid_from_ns",
+          "uncertainty_valid_until_ns",
+          "uncertainty_validity_clock_id"
+        ]
+      }
+    }
+  ]
+}
