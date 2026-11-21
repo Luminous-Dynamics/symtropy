@@ -58,8 +58,9 @@ jobs:
           assert code["admission_state"] == "not_admitted"
           assert {item["path"] for item in code["source_files"]} == {"README.md", "LICENSE"}
           assert code["runner_paths_present"] == []
-          assert dataset["revision_full"] is None
+          assert dataset["revision_full"] == "f95bb06e7d11142f88ffd3b6b56c7258deb8fff6"
           assert dataset["revision_observed_short"] == "f95bb06"
+          assert any("only representative bouncing-ball and Newton's-cradle" in blocker for blocker in dataset["blockers"])
           assert dataset["admission_state"] == "not_admitted"
           assert dataset["artifact_manifest"] == []
           assert dataset["license"]["review_status"] == "declared_not_independently_reviewed"
@@ -81,7 +82,7 @@ jobs:
           if not list(validator.iter_errors(missing_source)):
               raise SystemExit("manifest without a dataset source unexpectedly validated")
 
-          print("Validated pinned code identity, unresolved dataset pin, explicit no-import state, blocked-admission and source-identity negative controls.")
+          print("Validated pinned code and dataset identities, explicit no-import state, blocked-admission and source-identity negative controls.")
           PY
       - name: Check formatting
         run: cargo fmt --manifest-path benchmarks/gauge-rigid-body-admission/v0.1/Cargo.toml -- --check
