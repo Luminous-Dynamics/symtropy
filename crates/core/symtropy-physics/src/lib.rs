@@ -53,4 +53,4 @@ pub use mass_properties::{
     SpatialRotationalInertiaView, rotational_dof_count,
 };
 pub use replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
-pub use world::{NoOpCallback, PhysicsCallback, PhysicsWorld};
+pub use world::{NoOpCallback, PhysicsCallback, PhysicsStepPreflightError, PhysicsWorld};
