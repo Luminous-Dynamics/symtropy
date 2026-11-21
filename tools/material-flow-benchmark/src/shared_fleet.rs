@@ -234,12 +234,16 @@ fn checked_add(target: &mut u128, value: u128, label: &str) -> Result<(), String
     Ok(())
 }
 
-fn weighted_average(value: u128, label: &str) -> Result<u64, String> {
-    let rounded = value
+fn weighted_average_u128(value: u128, label: &str) -> Result<u128, String> {
+    value
         .checked_add(u128::from(SHARED_FLEET_PROBABILITY_BPS / 2))
-        .ok_or_else(|| format!("{label} rounding overflow"))?
-        / u128::from(SHARED_FLEET_PROBABILITY_BPS);
-    u64::try_from(rounded).map_err(|_| format!("{label} exceeds report range"))
+        .map(|rounded| rounded / u128::from(SHARED_FLEET_PROBABILITY_BPS))
+        .ok_or_else(|| format!("{label} rounding overflow"))
+}
+
+fn weighted_average(value: u128, label: &str) -> Result<u64, String> {
+    u64::try_from(weighted_average_u128(value, label)?)
+        .map_err(|_| format!("{label} exceeds report range"))
 }
 
 fn canonicalize(input: &SharedFleetInput) -> SharedFleetInput {
@@ -817,7 +821,6 @@ struct PolicyEvaluation {
 
 fn evaluate_mask(
     input: &SharedFleetInput,
-    nodes: &[SharedDecisionNode],
     indices: &BTreeMap<SharedDecisionKey, usize>,
     mask: u64,
     aircraft_enabled: bool,
@@ -963,7 +966,7 @@ fn probability_ambiguity_expected_cost(
         }
     }
 
-    weighted_average(weighted_cost, "distributionally robust expected cost")
+    weighted_average_u128(weighted_cost, "distributionally robust expected cost")
 }
 
 fn worst_case_cost(scenario_costs: &[(u128, u16)]) -> Result<u128, String> {
@@ -1094,7 +1097,7 @@ pub fn evaluate_shared_fleet(input: &SharedFleetInput) -> Result<SharedFleetRepo
     let mut best_worst_case_mask = 0_u64;
     let mut best_service_robust_mask = 0_u64;
     let mut best_expected =
-        evaluate_mask(&canonical, &nodes, &indices, 0, true).map_err(|error| vec![error])?;
+        evaluate_mask(&canonical, &indices, 0, true).map_err(|error| vec![error])?;
     let mut best_cvar90 = best_expected.clone();
     let mut best_distributionally_robust = best_expected.clone();
     let mut best_worst_case = best_expected.clone();
@@ -1113,7 +1116,7 @@ pub fn evaluate_shared_fleet(input: &SharedFleetInput) -> Result<SharedFleetRepo
 
     for mask in 1..policy_count {
         let evaluation =
-            evaluate_mask(&canonical, &nodes, &indices, mask, true).map_err(|error| vec![error])?;
+            evaluate_mask(&canonical, &indices, mask, true).map_err(|error| vec![error])?;
         if evaluation.weighted.total_cost < best_expected.weighted.total_cost {
             best_expected_mask = mask;
             best_expected = evaluation.clone();
@@ -1158,7 +1161,7 @@ pub fn evaluate_shared_fleet(input: &SharedFleetInput) -> Result<SharedFleetRepo
     }
 
     let truck_only = outcome(
-        evaluate_mask(&canonical, &nodes, &indices, 0, false).map_err(|error| vec![error])?,
+        evaluate_mask(&canonical, &indices, 0, false).map_err(|error| vec![error])?,
     )
     .map_err(|error| vec![error])?;
 
@@ -1183,7 +1186,7 @@ pub fn evaluate_shared_fleet(input: &SharedFleetInput) -> Result<SharedFleetRepo
             .ok_or_else(|| vec!["fixed baseline multiplier overflow".into()])?;
     }
     let fixed = outcome(
-        evaluate_mask(&canonical, &nodes, &indices, fixed_mask, true)
+        evaluate_mask(&canonical, &indices, fixed_mask, true)
             .map_err(|error| vec![error])?,
     )
     .map_err(|error| vec![error])?;
