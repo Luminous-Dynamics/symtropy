@@ -1,0 +1,214 @@
+{
+  "schema": "luminous.ehd_plasma_neutral_exchange",
+  "schema_version": "0.1.0",
+  "contract_id": "EHD-PLASMA-NEUTRAL-EXCHANGE-001",
+  "as_of": "2026-11-21",
+  "status": "protocol_only_not_implemented_or_validated",
+  "system_units": "SI",
+  "reference_frame": "declared_inertial_lab_frame",
+  "physical_scope": [
+    "atmospheric_air_corona_ehd",
+    "electroaerodynamic_ion_wind"
+  ],
+  "excluded_or_separate_scopes": [
+    "low_pressure_co2_dbd",
+    "rf_ccp",
+    "dielectric_liquid_injected_charge",
+    "vacuum_electrostatic_force_search"
+  ],
+  "definitions": {
+    "charge_density": "rho_c = sum_s(q_s*n_s), summing the complete charged-species set",
+    "electric_field": "E = -grad(phi) for the electroquasistatic cases in this contract; inductive terms require a separate field model",
+    "species_momentum_transfer_to_neutral": "R_s_to_n = m_s*n_s*nu_sn*(u_s-u_n) for the declared drift/friction collision closure; other momentum-changing reactions must be represented as separately identified source terms",
+    "neutral_momentum_source": "S_n_momentum = sum_s(R_s_to_n) + explicitly declared reaction contributions",
+    "equal_opposite_plasma_source": "S_s_momentum_reaction = -R_s_to_n for each species and each exchange contribution",
+    "charge_continuity": "d(rho_c)/dt + div(J_c) = S_q, where net charge source S_q must be zero for charge-conserving reactions when all charged species are included",
+    "integrated_impulse": "I_exchange = integral_over_time integral_over_volume(S_n_momentum dV dt), units N*s"
+  },
+  "force_transfer_methods": [
+    {
+      "method_id": "explicit_species_collision_drag",
+      "intended_use": "Species-resolved or drift-diffusion closure with explicit ion-neutral momentum transfer.",
+      "neutral_source": "Sum the declared species-resolved momentum-transfer collision operators.",
+      "plasma_reaction": "Apply the exact equal-and-opposite integrated momentum exchange to the charged-species equations or their reduced momentum balance.",
+      "electric_force_ownership": "q_s*n_s*E acts on charged species; it is not separately applied as a second neutral momentum source.",
+      "forbidden_combination": "Do not also apply rho_c*E directly to the neutral flow for the same physical charge-to-neutral momentum transfer.",
+      "required_coefficients": [
+        "species_mass_kg",
+        "species_number_density_m3",
+        "momentum_transfer_frequency_per_s",
+        "species_velocity_m_s",
+        "neutral_velocity_m_s",
+        "coefficient_source_or_hash"
+      ]
+    },
+    {
+      "method_id": "reduced_coulomb_deposition",
+      "intended_use": "A documented reduced closure where charged-particle momentum storage, flux, pressure/stress and boundary terms are negligible or explicitly absorbed into the closure.",
+      "neutral_source": "Apply the declared reduced Coulomb-force deposition term only after the reduction assumptions and omitted-term bounds have been qualified.",
+      "plasma_reaction": "Account for the corresponding reaction through the reduced charged-phase / field / electrode momentum ledger.",
+      "electric_force_ownership": "rho_c*E may be used as the reduced neutral source only within the declared qualified closure.",
+      "forbidden_combination": "Do not also apply explicit species drag for the same physical momentum transfer.",
+      "required_coefficients": [
+        "rho_c_C_m3",
+        "electric_field_V_m",
+        "reduction_assumptions",
+        "omitted_term_bounds",
+        "closure_validation_receipt"
+      ]
+    }
+  ],
+  "run_manifest_required_fields": [
+    "run_id",
+    "selected_method_id",
+    "solver_names_versions",
+    "model_equation_identity",
+    "chemistry_and_transport_hashes",
+    "gas_composition",
+    "pressure_pa",
+    "temperature_k",
+    "relative_humidity_fraction",
+    "inlet_velocity_m_s",
+    "geometry_hash",
+    "electrode_boundary_conditions",
+    "drive_waveform_hash",
+    "plasma_mesh_identity",
+    "neutral_mesh_identity",
+    "plasma_time_grid_identity",
+    "neutral_time_grid_identity",
+    "coordinate_frame",
+    "space_time_transfer_operator",
+    "integrated_momentum_exchange_ns",
+    "momentum_closure_residual_ns",
+    "charge_ledger",
+    "energy_ledger",
+    "force_observables",
+    "uncertainty_budget",
+    "qualification_disposition"
+  ],
+  "exchange_mapping": {
+    "quantity_to_transfer": "space-time integrated impulse over matched control volumes",
+    "spatial_meshes_may_differ": true,
+    "temporal_grids_may_differ": true,
+    "preservation_requirement": "The mapping must preserve the global integral of each declared exchange contribution to a case-specific tolerance and report the residual.",
+    "record": [
+      "source_mesh_hash",
+      "destination_mesh_hash",
+      "source_time_grid_hash",
+      "destination_time_grid_hash",
+      "operator_identity",
+      "quadrature_identity",
+      "mapped_impulse_ns",
+      "source_impulse_ns",
+      "mapping_residual_ns"
+    ],
+    "interpolation_only_is_sufficient": false
+  },
+  "invariants": [
+    {
+      "id": "equal_opposite_momentum",
+      "statement": "For every explicitly transferred exchange contribution, the charged-phase and neutral-phase integrated impulses sum to zero within the declared numerical tolerance."
+    },
+    {
+      "id": "exclusive_force_closure",
+      "statement": "Exactly one momentum-transfer method is selected for each physical exchange path; explicit drag and reduced Coulomb deposition cannot be applied together for the same contribution."
+    },
+    {
+      "id": "global_charge_conservation",
+      "statement": "The integrated change in total charge plus boundary current and declared net charge sources closes over the complete charged-species set."
+    },
+    {
+      "id": "space_time_mapping_conservation",
+      "statement": "Conservative mapping preserves each exchange integral across nonmatching meshes and time grids."
+    },
+    {
+      "id": "dissipative_collision_sign",
+      "statement": "The declared drag closure must not create net collisional kinetic energy; energy removed from relative drift is accounted as heat or another explicit channel."
+    },
+    {
+      "id": "independent_thrust_observables",
+      "statement": "A calibrated force-balance result and a control-volume momentum-flux result are alternative observables for cross-checking, not additive thrust terms."
+    },
+    {
+      "id": "force_boundary_completeness",
+      "statement": "The declared control volume includes pressure traction, viscous traction, inlet/outlet momentum flux, electrode/frame drag and support reactions as applicable."
+    },
+    {
+      "id": "unknown_is_not_zero",
+      "statement": "Unmeasured or unmodelled energy, force and current contributions remain unknown and cannot be silently set to zero."
+    }
+  ],
+  "charge_ledger": {
+    "required_fields": [
+      "initial_total_charge_c",
+      "final_total_charge_c",
+      "integrated_boundary_current_c",
+      "integrated_net_chemical_charge_source_c",
+      "charge_closure_residual_c",
+      "uncertainty_c"
+    ],
+    "sign_convention": "Boundary current is positive outward from the declared control volume; volume source is positive net charge production."
+  },
+  "momentum_ledger": {
+    "required_fields": [
+      "initial_charged_momentum_ns",
+      "final_charged_momentum_ns",
+      "initial_neutral_momentum_ns",
+      "final_neutral_momentum_ns",
+      "boundary_momentum_flux_ns",
+      "electrode_and_support_impulse_ns",
+      "electromagnetic_field_stress_impulse_ns_or_declared_neglect_bound",
+      "interphase_exchange_impulse_ns",
+      "closure_residual_ns",
+      "uncertainty_ns"
+    ],
+    "sign_convention": "All vector quantities use the declared inertial frame and right-handed coordinates; neutral gain and charged loss have equal-and-opposite signs for each explicit exchange."
+  },
+  "energy_ledger": {
+    "required_fields": [
+      "terminal_electrical_input_j",
+      "change_field_energy_j",
+      "change_charged_kinetic_energy_j",
+      "change_neutral_kinetic_energy_j",
+      "joule_and_collisional_heating_j",
+      "chemical_excitation_ionization_energy_j",
+      "electrode_wall_heat_j",
+      "radiated_energy_j_or_declared_bound",
+      "outward_energy_flux_j",
+      "closure_residual_j",
+      "uncertainty_j"
+    ],
+    "missing_term_policy": "A term that is not measured or modelled is null with a reason; it is never silently interpreted as zero."
+  },
+  "thrust_observables": {
+    "force_balance": "Calibrated direct net force with balance calibration, bandwidth, drift, lead/feedthrough parasitics and uncertainty.",
+    "control_volume": "Net momentum-flux and traction balance across a declared control volume, with pressure and viscous traction, inlet/outlet momentum flux and frame/electrode forces.",
+    "comparison_rule": "Compare independent observables within combined uncertainty; never add them."
+  },
+  "verification_matrix": [
+    "equal_and_opposite_exchange",
+    "uniform_drift_analytic_transfer",
+    "zero_charge_zero_field_limit",
+    "polarity_reversal_force_sign",
+    "global_charge_and_boundary_current_closure",
+    "space_time_mapping_partition_invariance",
+    "time_grid_exchange_impulse_consistency",
+    "nonnegative_dissipative_collision_heating",
+    "alternative_thrust_observable_consistency",
+    "reject_double_counted_force_closure"
+  ],
+  "acceptance_policy": {
+    "universal_numeric_tolerance": null,
+    "case_specific_tolerance_required": true,
+    "thresholds_must_be_predeclared": true,
+    "calibration_and_uncertainty_required": true,
+    "unsupported_solver_scope_disposition": "not_evaluable",
+    "physical_validation_requires_independent_observables": true
+  },
+  "source_and_model_boundaries": {
+    "merlino2d_wire_cylinder_case": "Discharge I-V reference only; not a coupled neutral-flow or thrust validation case.",
+    "wind_tunnel_case": "Separate physical-flow and force validation cohort; must preserve its exact geometry, air state and force convention.",
+    "three_dimensional_dielectric_liquid_fem": "Numerical conservation and stability methods are a mathematical precedent only; its liquid-injection physics does not validate atmospheric air-corona transfer."
+  },
+  "claim_ceiling": "This is a protocol and data-contract proposal. No plasma-neutral solver coupling, numerical conservation result, physical measurement, thrust validation, or SOTA improvement is claimed."
+}
