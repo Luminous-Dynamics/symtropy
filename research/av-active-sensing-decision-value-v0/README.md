@@ -58,3 +58,72 @@ The finite fixtures are evaluator mechanics, not model results or SOTA compariso
 ## Ownership
 
 This benchmark reuses #6222/#6225 for EVSI, #6201/#6253 for replay and time eligibility, #6307 for modality ablations, #6359 for long-horizon memory and #12837 for the AV consumer. It does not add a scheduler, EVSI engine, clock service, sensor fusion engine or media producer.
+
+## Deterministic evaluator and reference policy (21 November 2026)
+
+The first evaluator implementation now lives at:
+
+\`tools/av-modality-necessity-evaluator/active_sensing_evaluate.py\`
+
+Run it from the repository root:
+
+    python3 tools/av-modality-necessity-evaluator/active_sensing_evaluate.py \
+      --workload research/av-active-sensing-decision-value-v0/fixtures/agent/workload-v1.json \
+      --truth research/av-active-sensing-decision-value-v0/fixtures/evaluator-only/action-truth-v1.json \
+      --submission research/av-active-sensing-decision-value-v0/fixtures/agent/reference-submission-v1.json \
+      --output /tmp/av-active-sensing-reference-scorecard.json
+
+The synthetic reference policy requests only three actions:
+- the low-EIG/high-EVSI hazard cue;
+- the non-speech machine audio needed for the machine state;
+- the cell B alarm cue under a one-action budget.
+
+It stops on high-EIG/zero-EVSI, common-cause redundancy, late-only evidence, partial/unavailable sensors and sufficient existing evidence.
+
+The frozen reference scorecard expects 8/8 correct answers, 8/8 correct acquisition/stop decisions, zero decision regret, three acquisitions, zero wasted/late acquisitions, zero budget/evidence violations, mean realized EVSI 1.875, and 16,384 catalogue audio bytes at 1.3 catalogue energy-cost units. The latter are **scenario catalogue costs**, not measured energy, and are not a real system resource result.
+
+The evaluator checks the candidate's actual requested action sequence against the evaluator-optimal action sequence, validates action request IDs and max-use caps, verifies outcome arrival against action latency, enforces budgets, admits only requested observations, rejects fabricated and post-deadline citations, requires action-derived evidence citations where truth specifies them, and rejects common-cause corroboration claims. A late observation preserves its identity but cannot support a timely decision. A partial/unavailable outcome cannot mint an observation reference.
+
+Candidate EIG/EVSI/cost estimates are checked for finite values and valid ranges but are **not** trusted as realized EVSI. Realized EVSI comes from evaluator truth and only counts distinct within-limit, delivered, on-time and independent evidence. A repeated over-limit request cannot multiply the realized value of one observation.
+
+The reference policy is hand-authored synthetic mechanics, not an ML model run or external benchmark result. The evaluator-only truth and action outcomes live in this public repository and are not a blind test set. A real blind test needs evaluator-controlled truth/media, process isolation and restricted credentials.
+
+## Comparators and research ladder
+
+Run matched baselines under identical observation availability, candidate action catalogue, initial state, deadlines, model/runtime revisions, random seeds, context and resource limits:
+
+1. passive always-on A+V;
+2. fixed-cadence sampling;
+3. random acquisition under the same budget;
+4. maximum expected information gain (EIG);
+5. myopic expected value of sample information (EVSI);
+6. deadline-aware net EVSI / stop policy;
+7. budget-aware multi-query value allocation;
+8. AVP-style iterative plan–observe–reflect;
+9. Symthaea native and hybrid evidence-qualified policies.
+
+The core scientific comparison is whether EVSI-aware policies improve *downstream decision quality and deadline correctness* at lower acquisition cost than EIG, fixed sampling and AVP-style baselines. Keep these dimensions separate:
+- decision accuracy and cost-weighted regret;
+- actual action sequence / stop correctness;
+- realized EVSI and candidate estimate calibration;
+- wasted/late acquisitions and missed response windows;
+- evidence citations and temporal admissibility;
+- audio bytes, frames, tokens, wall time and energy when measured.
+
+A future larger benchmark should add multi-step episodes where the system observes, re-estimates, chooses a second action, handles partial outcomes, changes its belief and stops. The current eight episodes are finite protocol scaffolding only. Reproduce AVP's official five-benchmark setup and the official DIVE response-window protocol before comparing published results; do not equate this synthetic scorecard with either benchmark.
+
+## Paradigm shifts to investigate
+
+- **Decision-value control, not uncertainty chasing:** request only evidence that can alter the action or reduce decision loss enough to justify cost.
+- **Active sensing with a stop action:** stop when marginal net EVSI is non-positive or remaining latency exceeds the response window.
+- **Causal sensor routing:** treat observations as interventions in an acquisition policy, with source dependencies and delivery/eligibility distinct from requests.
+- **Anytime evidence acquisition:** use a cheap native path for immediate safe decisions while bounded specialist requests complete in the background; never let late work retroactively justify an earlier action.
+- **Evidence-qualified control:** every decision-changing acquired cue must be cited and admissible; no answer may borrow hidden or undelivered outcomes.
+- **Pareto-efficient intelligence:** compare decision quality, deadline hit rate, energy, input bandwidth, compute and privacy/interruption cost instead of a single scalar score.
+
+Research targets (not achieved):
+- 100% finite action/outcome replay and zero fabricated delivery or future-evidence use.
+- Zero post-deadline evidence credit and common-cause overcounting.
+- No action for high-EIG/zero-EVSI and a timely action for low-EIG/high-EVSI.
+- At matched decision quality, eventually target at least 20% reduction in measured AV input/energy versus always-on full-fidelity A+V.
+- On a powered, rights-qualified held-out cohort, statistically supported regret or response-window gains over fixed, random, EIG and AVP baselines.
