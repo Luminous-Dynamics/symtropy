@@ -521,7 +521,9 @@ mod tests {
             part(2, [1.0e-170, 0.0, 0.0], Rotor::identity(), properties),
         ];
         let compound = CompoundMassProperties3::compose(&parts).unwrap();
-        let expected_transverse = 2.0e-40;
+        // Include each component's intrinsic 1e-50 transverse inertia as well
+        // as the two 1e-40 scale-safe parallel-axis contributions.
+        let expected_transverse = 2.0e-40 + 2.0e-50;
         assert!(
             (compound.inertia_tensor_body[(1, 1)] / expected_transverse - 1.0).abs() < 1.0e-12,
             "scale-safe parallel-axis term was lost: Iyy={:e}",
