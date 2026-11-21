@@ -138,3 +138,24 @@ Candidate-supplied EIG/EVSI estimates are not treated as ground truth. The evalu
 The finite synthetic reference requests three actions and stops in the other five episodes. Its expected known answer is 8/8 task answers, 8/8 optimal action/stop sequences, zero regret, three acquisitions, no wasted/late acquisitions, no budget/evidence violations, and mean realized EVSI 1.875. Scenario catalogue costs sum to 16,384 audio bytes and 1.3 energy-cost units; these are synthetic configured costs, not measured hardware telemetry.
 
 The evaluator and fixture now have adversarial tests for high-EIG/zero-EVSI waste, missing low-EIG/high-EVSI evidence, late delivery, fabricated observations, required action-evidence omission, common-cause dependence, resource overrun, partial sensor outcomes, duplicate request and EVSI over-credit. The exact-head Actions run is the qualification gate; no model result is claimed.
+
+
+## External active-perception comparison (21 November 2026)
+
+Two visual active-perception systems should be primary baselines, in addition to the general long-video suites:
+
+- **AVP (CVPR Findings 2026):** an iterative plan–observe–reflect loop. Its paper reports the best overall result across five long-video benchmarks and +5.7 percentage points average accuracy over the best agentic baseline, at 18.4% of inference time and 12.4% of input tokens in its reported comparison. Reproduce its official benchmark setup and compare under its original metric and cost definitions.
+- **VAP (May 2026):** training-free active keyframe acquisition using a text-conditioned video-generation prior. The paper reports zero-shot SOTA on EgoSchema, NExT-QA, ActivityNet-QA, IntentQA and CLEVRER, with up to 5.6× frame efficiency over the cited baselines. It is a strong visual-only keyframe-selection comparator, not a multimodal physical sensor-control result.
+- **Active Visual Perception review (15 October 2026):** recommends separating passive/fixed and random acquisition baselines, greedy versus horizon-aware policies, before/after observation quality, downstream task change, view/action count, time, energy, compute/communication, robustness to noise/delay/loss/occlusion and stopping quality.
+
+Sources:
+- AVP CVPR paper: https://openaccess.thecvf.com/content/CVPR2026F/html/Wang_Active_Video_Perception_Iterative_Evidence_Seeking_for_Agentic_Long_Video_CVPRF_2026_paper.html
+- AVP project: https://activevideoperception.github.io/
+- VAP paper: https://arxiv.org/abs/2605.01662
+- Active Visual Perception review: https://www.mdpi.com/1424-8220/26/20/6544
+
+### Current implementation boundary
+
+The v0 executable evaluator is a **single decision-round action-selection harness**. It scores one ordered list of action requests against synthetic action outcomes; it does not yet give the candidate an observation, wait for a replan, and then issue a second request in an interactive session. That multi-round event-sourced executor is tracked separately in [#6555](https://github.com/Luminous-Dynamics/symtropy/issues/6555). Do not describe PR #6549 by itself as a complete interactive AVP-like runtime.
+
+The first matched external evaluation should use AVP's five official long-video benchmarks and VAP's official keyframe-selection protocol, with identical backbone, candidate observation budget, prompt/context, decoding, hardware and repeated seeds where possible. Then add our orthogonal tests for action latency, physical modality availability, EVSI versus EIG, required evidence citations, common-cause dependence, deadline validity and audio/video acquisition. This makes the claim falsifiable: better decision quality at matched acquisition cost, or non-inferior quality with lower bytes/frames/tokens/energy—not a high score on eight synthetic cases.
