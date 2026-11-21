@@ -9,168 +9,364 @@
       "configuration_id": "uav-class-a",
       "state": "available",
       "usable_energy": {
-        "freshness": "fresh",
-        "evidence_class": "synthetic",
-        "evidence_reference": "urn:synthetic:pack-a-energy",
+        "evidence": {
+          "asset_id": "pack-a",
+          "configuration_digest": "urn:synthetic:configuration:uav-class-a",
+          "producer_id": "urn:synthetic:producer:testbench",
+          "method_id": "urn:synthetic:method:reference-test",
+          "evidence_reference": "urn:synthetic:evidence:pack-a-energy",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795219210000
+        },
         "value": 2000
       },
       "peak_power": {
-        "freshness": "fresh",
-        "evidence_class": "synthetic",
-        "evidence_reference": "urn:synthetic:pack-a-power",
+        "evidence": {
+          "asset_id": "pack-a",
+          "configuration_digest": "urn:synthetic:configuration:uav-class-a",
+          "producer_id": "urn:synthetic:producer:testbench",
+          "method_id": "urn:synthetic:method:reference-test",
+          "evidence_reference": "urn:synthetic:evidence:pack-a-power",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795219210000
+        },
         "value": 2000
       },
       "thermal": {
-        "freshness": "fresh",
-        "evidence_class": "synthetic",
-        "evidence_reference": "urn:synthetic:pack-a-thermal",
+        "evidence": {
+          "asset_id": "pack-a",
+          "configuration_digest": "urn:synthetic:configuration:uav-class-a",
+          "producer_id": "urn:synthetic:producer:testbench",
+          "method_id": "urn:synthetic:method:reference-test",
+          "evidence_reference": "urn:synthetic:evidence:pack-a-thermal",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795219210000
+        },
         "pack_temperature_c": 25,
         "qualified_max_temperature_c": 60
       },
       "identity_verification": {
-        "freshness": "fresh",
-        "evidence_class": "synthetic",
-        "evidence_reference": "urn:synthetic:pack-a-identity",
+        "evidence": {
+          "asset_id": "pack-a",
+          "configuration_digest": "urn:synthetic:configuration:uav-class-a",
+          "producer_id": "urn:synthetic:producer:testbench",
+          "method_id": "urn:synthetic:method:reference-test",
+          "evidence_reference": "urn:synthetic:evidence:pack-a-identity",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795219210000
+        },
         "value": true
       },
       "custody_resolution": {
-        "freshness": "fresh",
-        "evidence_class": "synthetic",
-        "evidence_reference": "urn:synthetic:pack-a-custody",
+        "evidence": {
+          "asset_id": "pack-a",
+          "configuration_digest": "urn:synthetic:configuration:uav-class-a",
+          "producer_id": "urn:synthetic:producer:testbench",
+          "method_id": "urn:synthetic:method:reference-test",
+          "evidence_reference": "urn:synthetic:evidence:pack-a-custody",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795219210000
+        },
         "value": true
       },
       "post_test": {
-        "freshness": "fresh",
-        "evidence_class": "synthetic",
-        "evidence_reference": "urn:synthetic:pack-a-post-test",
+        "evidence": {
+          "asset_id": "pack-a",
+          "configuration_digest": "urn:synthetic:configuration:uav-class-a",
+          "producer_id": "urn:synthetic:producer:testbench",
+          "method_id": "urn:synthetic:method:reference-test",
+          "evidence_reference": "urn:synthetic:evidence:pack-a-post-test",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795219210000
+        },
         "value": true
-      }
+      },
+      "configuration_digest": "urn:synthetic:configuration:uav-class-a"
     },
     {
       "pack_id": "pack-b",
       "configuration_id": "uav-class-a",
       "state": "available",
       "usable_energy": {
-        "freshness": "fresh",
-        "evidence_class": "synthetic",
-        "evidence_reference": "urn:synthetic:pack-b-energy",
+        "evidence": {
+          "asset_id": "pack-b",
+          "configuration_digest": "urn:synthetic:configuration:uav-class-a",
+          "producer_id": "urn:synthetic:producer:testbench",
+          "method_id": "urn:synthetic:method:reference-test",
+          "evidence_reference": "urn:synthetic:evidence:pack-b-energy",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795219210000
+        },
         "value": 1500
       },
       "peak_power": {
-        "freshness": "fresh",
-        "evidence_class": "synthetic",
-        "evidence_reference": "urn:synthetic:pack-b-power",
+        "evidence": {
+          "asset_id": "pack-b",
+          "configuration_digest": "urn:synthetic:configuration:uav-class-a",
+          "producer_id": "urn:synthetic:producer:testbench",
+          "method_id": "urn:synthetic:method:reference-test",
+          "evidence_reference": "urn:synthetic:evidence:pack-b-power",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795219210000
+        },
         "value": 1500
       },
       "thermal": {
-        "freshness": "fresh",
-        "evidence_class": "synthetic",
-        "evidence_reference": "urn:synthetic:pack-b-thermal",
+        "evidence": {
+          "asset_id": "pack-b",
+          "configuration_digest": "urn:synthetic:configuration:uav-class-a",
+          "producer_id": "urn:synthetic:producer:testbench",
+          "method_id": "urn:synthetic:method:reference-test",
+          "evidence_reference": "urn:synthetic:evidence:pack-b-thermal",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795219210000
+        },
         "pack_temperature_c": 26,
         "qualified_max_temperature_c": 55
       },
       "identity_verification": {
-        "freshness": "fresh",
-        "evidence_class": "synthetic",
-        "evidence_reference": "urn:synthetic:pack-b-identity",
+        "evidence": {
+          "asset_id": "pack-b",
+          "configuration_digest": "urn:synthetic:configuration:uav-class-a",
+          "producer_id": "urn:synthetic:producer:testbench",
+          "method_id": "urn:synthetic:method:reference-test",
+          "evidence_reference": "urn:synthetic:evidence:pack-b-identity",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795219210000
+        },
         "value": true
       },
       "custody_resolution": {
-        "freshness": "fresh",
-        "evidence_class": "synthetic",
-        "evidence_reference": "urn:synthetic:pack-b-custody",
+        "evidence": {
+          "asset_id": "pack-b",
+          "configuration_digest": "urn:synthetic:configuration:uav-class-a",
+          "producer_id": "urn:synthetic:producer:testbench",
+          "method_id": "urn:synthetic:method:reference-test",
+          "evidence_reference": "urn:synthetic:evidence:pack-b-custody",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795219210000
+        },
         "value": true
       },
       "post_test": {
-        "freshness": "fresh",
-        "evidence_class": "synthetic",
-        "evidence_reference": "urn:synthetic:pack-b-post-test",
+        "evidence": {
+          "asset_id": "pack-b",
+          "configuration_digest": "urn:synthetic:configuration:uav-class-a",
+          "producer_id": "urn:synthetic:producer:testbench",
+          "method_id": "urn:synthetic:method:reference-test",
+          "evidence_reference": "urn:synthetic:evidence:pack-b-post-test",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795219210000
+        },
         "value": true
-      }
+      },
+      "configuration_digest": "urn:synthetic:configuration:uav-class-a"
     },
     {
       "pack_id": "pack-c",
       "configuration_id": "uav-class-b",
       "state": "available",
       "usable_energy": {
-        "freshness": "fresh",
-        "evidence_class": "synthetic",
-        "evidence_reference": "urn:synthetic:pack-c-energy",
+        "evidence": {
+          "asset_id": "pack-c",
+          "configuration_digest": "urn:synthetic:configuration:uav-class-b",
+          "producer_id": "urn:synthetic:producer:testbench",
+          "method_id": "urn:synthetic:method:reference-test",
+          "evidence_reference": "urn:synthetic:evidence:pack-c-energy",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795219210000
+        },
         "value": 1200
       },
       "peak_power": {
-        "freshness": "fresh",
-        "evidence_class": "synthetic",
-        "evidence_reference": "urn:synthetic:pack-c-power",
+        "evidence": {
+          "asset_id": "pack-c",
+          "configuration_digest": "urn:synthetic:configuration:uav-class-b",
+          "producer_id": "urn:synthetic:producer:testbench",
+          "method_id": "urn:synthetic:method:reference-test",
+          "evidence_reference": "urn:synthetic:evidence:pack-c-power",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795219210000
+        },
         "value": 1800
       },
       "thermal": {
-        "freshness": "fresh",
-        "evidence_class": "synthetic",
-        "evidence_reference": "urn:synthetic:pack-c-thermal",
+        "evidence": {
+          "asset_id": "pack-c",
+          "configuration_digest": "urn:synthetic:configuration:uav-class-b",
+          "producer_id": "urn:synthetic:producer:testbench",
+          "method_id": "urn:synthetic:method:reference-test",
+          "evidence_reference": "urn:synthetic:evidence:pack-c-thermal",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795219210000
+        },
         "pack_temperature_c": 24,
         "qualified_max_temperature_c": 58
       },
       "identity_verification": {
-        "freshness": "fresh",
-        "evidence_class": "synthetic",
-        "evidence_reference": "urn:synthetic:pack-c-identity",
+        "evidence": {
+          "asset_id": "pack-c",
+          "configuration_digest": "urn:synthetic:configuration:uav-class-b",
+          "producer_id": "urn:synthetic:producer:testbench",
+          "method_id": "urn:synthetic:method:reference-test",
+          "evidence_reference": "urn:synthetic:evidence:pack-c-identity",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795219210000
+        },
         "value": true
       },
       "custody_resolution": {
-        "freshness": "fresh",
-        "evidence_class": "synthetic",
-        "evidence_reference": "urn:synthetic:pack-c-custody",
+        "evidence": {
+          "asset_id": "pack-c",
+          "configuration_digest": "urn:synthetic:configuration:uav-class-b",
+          "producer_id": "urn:synthetic:producer:testbench",
+          "method_id": "urn:synthetic:method:reference-test",
+          "evidence_reference": "urn:synthetic:evidence:pack-c-custody",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795219210000
+        },
         "value": true
       },
       "post_test": {
-        "freshness": "fresh",
-        "evidence_class": "synthetic",
-        "evidence_reference": "urn:synthetic:pack-c-post-test",
+        "evidence": {
+          "asset_id": "pack-c",
+          "configuration_digest": "urn:synthetic:configuration:uav-class-b",
+          "producer_id": "urn:synthetic:producer:testbench",
+          "method_id": "urn:synthetic:method:reference-test",
+          "evidence_reference": "urn:synthetic:evidence:pack-c-post-test",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795219210000
+        },
         "value": true
-      }
+      },
+      "configuration_digest": "urn:synthetic:configuration:uav-class-b"
     },
     {
       "pack_id": "pack-d",
       "configuration_id": "uav-class-a",
       "state": "quarantined",
       "usable_energy": {
-        "freshness": "fresh",
-        "evidence_class": "synthetic",
-        "evidence_reference": "urn:synthetic:pack-d-energy",
+        "evidence": {
+          "asset_id": "pack-d",
+          "configuration_digest": "urn:synthetic:configuration:uav-class-a",
+          "producer_id": "urn:synthetic:producer:testbench",
+          "method_id": "urn:synthetic:method:reference-test",
+          "evidence_reference": "urn:synthetic:evidence:pack-d-energy",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795219210000
+        },
         "value": 2500
       },
       "peak_power": {
-        "freshness": "fresh",
-        "evidence_class": "synthetic",
-        "evidence_reference": "urn:synthetic:pack-d-power",
+        "evidence": {
+          "asset_id": "pack-d",
+          "configuration_digest": "urn:synthetic:configuration:uav-class-a",
+          "producer_id": "urn:synthetic:producer:testbench",
+          "method_id": "urn:synthetic:method:reference-test",
+          "evidence_reference": "urn:synthetic:evidence:pack-d-power",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795219210000
+        },
         "value": 2500
       },
       "thermal": {
-        "freshness": "fresh",
-        "evidence_class": "synthetic",
-        "evidence_reference": "urn:synthetic:pack-d-thermal",
+        "evidence": {
+          "asset_id": "pack-d",
+          "configuration_digest": "urn:synthetic:configuration:uav-class-a",
+          "producer_id": "urn:synthetic:producer:testbench",
+          "method_id": "urn:synthetic:method:reference-test",
+          "evidence_reference": "urn:synthetic:evidence:pack-d-thermal",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795219210000
+        },
         "pack_temperature_c": 25,
         "qualified_max_temperature_c": 60
       },
       "identity_verification": {
-        "freshness": "fresh",
-        "evidence_class": "synthetic",
-        "evidence_reference": "urn:synthetic:pack-d-identity",
+        "evidence": {
+          "asset_id": "pack-d",
+          "configuration_digest": "urn:synthetic:configuration:uav-class-a",
+          "producer_id": "urn:synthetic:producer:testbench",
+          "method_id": "urn:synthetic:method:reference-test",
+          "evidence_reference": "urn:synthetic:evidence:pack-d-identity",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795219210000
+        },
         "value": true
       },
       "custody_resolution": {
-        "freshness": "fresh",
-        "evidence_class": "synthetic",
-        "evidence_reference": "urn:synthetic:pack-d-custody",
+        "evidence": {
+          "asset_id": "pack-d",
+          "configuration_digest": "urn:synthetic:configuration:uav-class-a",
+          "producer_id": "urn:synthetic:producer:testbench",
+          "method_id": "urn:synthetic:method:reference-test",
+          "evidence_reference": "urn:synthetic:evidence:pack-d-custody",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795219210000
+        },
         "value": true
       },
       "post_test": {
-        "freshness": "fresh",
-        "evidence_class": "synthetic",
-        "evidence_reference": "urn:synthetic:pack-d-post-test",
+        "evidence": {
+          "asset_id": "pack-d",
+          "configuration_digest": "urn:synthetic:configuration:uav-class-a",
+          "producer_id": "urn:synthetic:producer:testbench",
+          "method_id": "urn:synthetic:method:reference-test",
+          "evidence_reference": "urn:synthetic:evidence:pack-d-post-test",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795219210000
+        },
         "value": true
-      }
+      },
+      "configuration_digest": "urn:synthetic:configuration:uav-class-a"
     }
   ],
   "missions": [
@@ -179,28 +375,33 @@
       "configuration_id": "uav-class-a",
       "required_energy_with_reserve_wh": 1700,
       "required_peak_power_w": 1800,
-      "maximum_pack_temperature_c": 50
+      "maximum_pack_temperature_c": 50,
+      "configuration_digest": "urn:synthetic:configuration:uav-class-a"
     },
     {
       "mission_id": "mission-2",
       "configuration_id": "uav-class-a",
       "required_energy_with_reserve_wh": 1200,
       "required_peak_power_w": 1200,
-      "maximum_pack_temperature_c": 50
+      "maximum_pack_temperature_c": 50,
+      "configuration_digest": "urn:synthetic:configuration:uav-class-a"
     },
     {
       "mission_id": "mission-3",
       "configuration_id": "uav-class-b",
       "required_energy_with_reserve_wh": 1000,
       "required_peak_power_w": 1500,
-      "maximum_pack_temperature_c": 50
+      "maximum_pack_temperature_c": 50,
+      "configuration_digest": "urn:synthetic:configuration:uav-class-b"
     },
     {
       "mission_id": "mission-4",
       "configuration_id": "uav-class-a",
       "required_energy_with_reserve_wh": 900,
       "required_peak_power_w": 1000,
-      "maximum_pack_temperature_c": 50
+      "maximum_pack_temperature_c": 50,
+      "configuration_digest": "urn:synthetic:configuration:uav-class-a"
     }
-  ]
+  ],
+  "dispatch_time_unix_ms": 1795219200000
 }
