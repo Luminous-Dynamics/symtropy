@@ -93,11 +93,14 @@ def evaluate(
                 or isinstance(arrival, bool) or not isinstance(arrival, int) or arrival < 0
             ):
                 raise EvaluationError(f"{episode_id}: invalid action latency/outcome tick")
-            if outcome.get("status") == "delivered":
+            status = outcome.get("status")
+            if not isinstance(status, str) or status not in {"delivered", "late", "partial", "unavailable", "failed"}:
+                raise EvaluationError(f"{episode_id}: unsupported action outcome status")
+            if status in {"delivered", "late"}:
                 if not isinstance(outcome.get("observation_ref"), str) or not outcome["observation_ref"]:
-                    raise EvaluationError(f"{episode_id}: delivered outcome requires an observation reference")
+                    raise EvaluationError(f"{episode_id}: delivered/late outcome requires an observation reference")
             elif outcome.get("observation_ref") is not None:
-                raise EvaluationError(f"{episode_id}: non-delivered outcome cannot contain an observation reference")
+                raise EvaluationError(f"{episode_id}: partial/unavailable/failed outcome cannot contain an observation reference")
 
         requests = prediction.get("action_requests")
         if not isinstance(requests, list):
