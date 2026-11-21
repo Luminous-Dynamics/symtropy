@@ -42,6 +42,8 @@ pub enum PoseScoreError {
     InvalidIncompleteOutcome,
     InvalidIncompleteSentinel,
     InvalidBlockIdentity,
+    InvalidTrialSourceIdentity,
+    MixedBlockIdentity,
 }
 
 impl Display for PoseScoreError {
@@ -64,7 +66,9 @@ impl Display for PoseScoreError {
             Self::DuplicateTrialId => "trial identifiers must be unique within an exchangeability block",
             Self::InvalidIncompleteOutcome => "an incomplete horizon must have Failed or Aborted outcome",
             Self::InvalidIncompleteSentinel => "the incomplete-horizon sentinel and disposition disagree",
-            Self::InvalidBlockIdentity => "all calibration block identity fields must be non-empty",
+            Self::InvalidBlockIdentity => "calibration block identity fields must be valid SHA-256 digests",
+            Self::InvalidTrialSourceIdentity => "trial source, forecast, revision and model identities must be valid digests",
+            Self::MixedBlockIdentity => "trial score identities do not match the declared calibration block identity",
         };
         formatter.write_str(message)
     }
@@ -126,11 +130,47 @@ impl PoseScoreNormalization<'_> {
     }
 }
 
+/// Immutable source and predictor identity for one physical trial score.
+///
+/// The raw and prediction digests remain in the parallel calibration-block
+/// receipt because the conformal core stores only episode IDs and scores.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TrialScoreIdentity {
+    pub dataset_revision: String,
+    pub raw_trial_sha256: String,
+    pub prediction_sha256: String,
+    pub model_digest: String,
+    pub target_digest: String,
+    pub domain_digest: String,
+}
+
+impl TrialScoreIdentity {
+    fn validate(&self) -> Result<(), PoseScoreError> {
+        if self.dataset_revision.len() != 40
+            || !self.dataset_revision.bytes().all(|byte| byte.is_ascii_hexdigit())
+            || !is_sha256(&self.raw_trial_sha256)
+            || !is_sha256(&self.prediction_sha256)
+            || !is_sha256(&self.model_digest)
+            || !is_sha256(&self.target_digest)
+            || !is_sha256(&self.domain_digest)
+        {
+            return Err(PoseScoreError::InvalidTrialSourceIdentity);
+        }
+        Ok(())
+    }
+}
+
+fn is_sha256(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
 /// One scored trial. Exactly one maximum score is retained per physical trial;
-/// all body/frame diagnostics are consumed before producing this record.
+/// all body/frame diagnostics and source identities are bound before emitting.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TrialPoseScore {
     pub trial_id: String,
+    pub identity: TrialScoreIdentity,
+    pub score_definition_digest: String,
     pub outcome: EpisodeOutcome,
     pub maximum_nonconformity_score: u64,
     pub expected_body_count: usize,
@@ -146,6 +186,8 @@ impl TrialPoseScore {
     pub fn incomplete(
         trial_id: impl Into<String>,
         outcome: EpisodeOutcome,
+        identity: TrialScoreIdentity,
+        score_definition_digest: impl Into<String>,
     ) -> Result<Self, PoseScoreError> {
         let trial_id = trial_id.into();
         if trial_id.trim().is_empty() {
@@ -154,8 +196,15 @@ impl TrialPoseScore {
         if outcome == EpisodeOutcome::Completed {
             return Err(PoseScoreError::InvalidIncompleteOutcome);
         }
+        identity.validate()?;
+        let score_definition_digest = score_definition_digest.into();
+        if !is_sha256(&score_definition_digest) {
+            return Err(PoseScoreError::InvalidScoreDefinitionDigest);
+        }
         Ok(Self {
             trial_id,
+            identity,
+            score_definition_digest,
             outcome,
             maximum_nonconformity_score: INCOMPLETE_HORIZON_SCORE,
             expected_body_count: 0,
@@ -183,11 +232,13 @@ pub fn score_complete_trial(
     expected_bodies: &[ExpectedBodyFrames],
     samples: &[PoseErrorSample<'_>],
     normalization: PoseScoreNormalization<'_>,
+    identity: TrialScoreIdentity,
 ) -> Result<TrialPoseScore, PoseScoreError> {
     if trial_id.trim().is_empty() {
         return Err(PoseScoreError::EmptyIdentity);
     }
     normalization.validate()?;
+    identity.validate()?;
     if expected_bodies.is_empty() {
         return Err(PoseScoreError::EmptyExpectedBodyManifest);
     }
@@ -263,6 +314,8 @@ pub fn score_complete_trial(
 
     Ok(TrialPoseScore {
         trial_id: trial_id.to_owned(),
+        identity,
+        score_definition_digest: normalization.score_definition_sha256.to_owned(),
         outcome,
         maximum_nonconformity_score: score,
         expected_body_count: expected_bodies.len(),
@@ -282,6 +335,14 @@ pub struct CalibrationBlockIdentity {
     pub calibration_split_digest: String,
 }
 
+/// Complete adapter output: the exact #4147 block plus the source-bound trial
+/// score records needed to replay and audit the block maximum.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CalibrationBlockReceipt {
+    pub calibration_block: CalibrationBlock,
+    pub trial_score_records: Vec<TrialPoseScore>,
+}
+
 /// Build the existing #4147 block from all trial maxima in one independent
 /// session/article/trial exchangeability unit. Duplicate trial IDs are
 /// rejected. Failed and aborted records are retained with their outcomes.
@@ -289,36 +350,42 @@ pub fn build_calibration_block(
     exchangeability_unit_id: &str,
     trials: &[TrialPoseScore],
     identity: &CalibrationBlockIdentity,
-) -> Result<CalibrationBlock, PoseScoreError> {
+) -> Result<CalibrationBlockReceipt, PoseScoreError> {
     if exchangeability_unit_id.trim().is_empty() {
         return Err(PoseScoreError::EmptyIdentity);
     }
     if trials.is_empty() {
         return Err(PoseScoreError::EmptyTrialSet);
     }
-    if [
-        identity.model_digest.as_str(),
-        identity.target_digest.as_str(),
-        identity.domain_digest.as_str(),
-        identity.score_definition_digest.as_str(),
-        identity.calibration_split_digest.as_str(),
-    ]
-    .iter()
-    .any(|value| value.trim().is_empty())
+    if !is_sha256(&identity.model_digest)
+        || !is_sha256(&identity.target_digest)
+        || !is_sha256(&identity.domain_digest)
+        || !is_sha256(&identity.score_definition_digest)
+        || !is_sha256(&identity.calibration_split_digest)
     {
         return Err(PoseScoreError::InvalidBlockIdentity);
     }
 
+    let mut sorted_trials = trials.to_vec();
+    sorted_trials.sort_by(|left, right| left.trial_id.as_bytes().cmp(right.trial_id.as_bytes()));
     let mut trial_ids = BTreeSet::new();
-    let mut episodes = Vec::with_capacity(trials.len());
+    let mut episodes = Vec::with_capacity(sorted_trials.len());
     let mut maximum_nonconformity_score = 0u64;
-    for trial in trials {
+    for trial in &sorted_trials {
         if trial.trial_id.trim().is_empty() {
             return Err(PoseScoreError::EmptyIdentity);
         }
         if !trial_ids.insert(trial.trial_id.as_str()) {
             return Err(PoseScoreError::DuplicateTrialId);
         }
+        if trial.identity.model_digest != identity.model_digest
+            || trial.identity.target_digest != identity.target_digest
+            || trial.identity.domain_digest != identity.domain_digest
+            || trial.score_definition_digest != identity.score_definition_digest
+        {
+            return Err(PoseScoreError::MixedBlockIdentity);
+        }
+        trial.identity.validate()?;
         if trial.incomplete_horizon {
             if trial.outcome == EpisodeOutcome::Completed
                 || trial.maximum_nonconformity_score != INCOMPLETE_HORIZON_SCORE
@@ -336,15 +403,18 @@ pub fn build_calibration_block(
         });
     }
 
-    Ok(CalibrationBlock {
-        exchangeability_unit_id: exchangeability_unit_id.to_owned(),
-        episodes,
-        maximum_nonconformity_score,
-        model_digest: identity.model_digest.clone(),
-        target_digest: identity.target_digest.clone(),
-        domain_digest: identity.domain_digest.clone(),
-        score_definition_digest: identity.score_definition_digest.clone(),
-        calibration_split_digest: identity.calibration_split_digest.clone(),
+    Ok(CalibrationBlockReceipt {
+        calibration_block: CalibrationBlock {
+            exchangeability_unit_id: exchangeability_unit_id.to_owned(),
+            episodes,
+            maximum_nonconformity_score,
+            model_digest: identity.model_digest.clone(),
+            target_digest: identity.target_digest.clone(),
+            domain_digest: identity.domain_digest.clone(),
+            score_definition_digest: identity.score_definition_digest.clone(),
+            calibration_split_digest: identity.calibration_split_digest.clone(),
+        },
+        trial_score_records: sorted_trials,
     })
 }
 
