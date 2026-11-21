@@ -109,14 +109,14 @@ fn validate_symmetric_psd3(
             ));
         }
     }
-    for i in 0..3 {
-        if matrix[i][i] < -COVARIANCE_TOLERANCE {
+    for (i, row) in matrix.iter().enumerate() {
+        if row[i] < -COVARIANCE_TOLERANCE {
             return Err(ValidationError::new(
                 path,
                 "matrix diagonal must be non-negative",
             ));
         }
-        for j in (i + 1)..3 {
+        for (j, _) in row.iter().enumerate().skip(i + 1) {
             if (matrix[i][j] - matrix[j][i]).abs() > COVARIANCE_TOLERANCE {
                 return Err(ValidationError::new(
                     path,
@@ -476,11 +476,7 @@ impl ContactObservation {
                 "contact classification frame must match the world frame",
             ));
         }
-        let partners = self
-            .partner_entity_ids
-            .iter()
-            .cloned()
-            .collect::<BTreeSet<_>>();
+        let partners = self.partner_entity_ids.iter().collect::<BTreeSet<_>>();
         if partners.len() != self.partner_entity_ids.len()
             || self
                 .partner_entity_ids
@@ -802,8 +798,8 @@ impl StateQuery {
                 "at least one entity ID and field are required",
             ));
         }
-        let ids = self.entity_ids.iter().cloned().collect::<BTreeSet<_>>();
-        let fields = self.fields.iter().copied().collect::<BTreeSet<_>>();
+        let ids = self.entity_ids.iter().collect::<BTreeSet<_>>();
+        let fields = self.fields.iter().collect::<BTreeSet<_>>();
         if ids.len() != self.entity_ids.len() || fields.len() != self.fields.len() {
             return Err(ValidationError::new(
                 "query",
@@ -828,11 +824,11 @@ impl StateQuery {
                 "returned snapshot does not match the requested immutable snapshot",
             ));
         }
-        let requested = self.entity_ids.iter().cloned().collect::<BTreeSet<_>>();
+        let requested = self.entity_ids.iter().map(String::as_str).collect::<BTreeSet<_>>();
         let returned = result
             .entities
             .iter()
-            .map(|entity| entity.entity_id.clone())
+            .map(|entity| entity.entity_id.as_str())
             .collect::<BTreeSet<_>>();
         if !returned.is_superset(&requested) {
             return Err(ValidationError::new(
