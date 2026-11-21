@@ -20,7 +20,8 @@
         }
       },
       "optimal_final_decision": "proceed",
-      "decision_regret_if_request": 0.8
+      "decision_regret_if_request": 0.8,
+      "required_observation_refs": []
     },
     {
       "episode_id": "as-002-low-eig-high-evsi",
@@ -41,7 +42,10 @@
         }
       },
       "optimal_final_decision": "stop",
-      "decision_regret_if_no_request": 6
+      "decision_regret_if_no_request": 6,
+      "required_observation_refs": [
+        "obs-hazard-tone"
+      ]
     },
     {
       "episode_id": "as-003-audio-necessary",
@@ -62,7 +66,10 @@
         }
       },
       "optimal_final_decision": "alarm",
-      "decision_regret_if_no_request": 4
+      "decision_regret_if_no_request": 4,
+      "required_observation_refs": [
+        "obs-machine-audio"
+      ]
     },
     {
       "episode_id": "as-004-common-cause-duplicate",
@@ -82,7 +89,8 @@
         }
       },
       "optimal_final_decision": "one shared event",
-      "decision_regret_if_request": 0.2
+      "decision_regret_if_request": 0.2,
+      "required_observation_refs": []
     },
     {
       "episode_id": "as-005-deadline-late-observation",
@@ -101,7 +109,8 @@
         }
       },
       "optimal_final_decision": "insufficient evidence",
-      "decision_regret_if_wait_past_deadline": 2
+      "decision_regret_if_wait_past_deadline": 2,
+      "required_observation_refs": []
     },
     {
       "episode_id": "as-006-budget-allocation",
@@ -131,7 +140,10 @@
         }
       },
       "optimal_final_decision": "cell B",
-      "decision_regret_if_wrong_action": 5
+      "decision_regret_if_wrong_action": 5,
+      "required_observation_refs": [
+        "obs-cell-b-alarm"
+      ]
     },
     {
       "episode_id": "as-007-partial-unavailable-action",
@@ -150,7 +162,8 @@
         }
       },
       "optimal_final_decision": "insufficient evidence",
-      "decision_regret_if_fabricated_delivery": 3
+      "decision_regret_if_fabricated_delivery": 3,
+      "required_observation_refs": []
     },
     {
       "episode_id": "as-008-sufficient-stop",
@@ -169,7 +182,8 @@
         }
       },
       "optimal_final_decision": "clear",
-      "decision_regret_if_request": 0.5
+      "decision_regret_if_request": 0.5,
+      "required_observation_refs": []
     }
   ]
 }
