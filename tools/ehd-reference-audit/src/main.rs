@@ -2256,3 +2256,33 @@ mod polynomial_moment_contract_tests {
         }));
     }
 }
+
+#[cfg(test)]
+mod drag_dissipation_contract_tests {
+    use super::*;
+
+    #[test]
+    fn constant_drift_drag_dissipation_contract_passes() {
+        let value: Value = serde_json::from_str(EMBEDDED_DRAG_DISSIPATION)
+            .expect("embedded drag-dissipation contract must be valid JSON");
+        assert!(audit_drag_dissipation_contract(&value).is_empty());
+    }
+
+    #[test]
+    fn drag_dissipation_contract_rejects_time_varying_claim_without_quadrature() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_DRAG_DISSIPATION).unwrap();
+        value["limitations"] = Value::Array(Vec::new());
+        assert!(audit_drag_dissipation_contract(&value).iter().any(|finding| {
+            finding.starts_with("DRAG_DISSIPATION_CLAIM_BOUNDARY")
+        }));
+    }
+
+    #[test]
+    fn drag_dissipation_contract_requires_event_level_energy_checks() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_DRAG_DISSIPATION).unwrap();
+        value["acceptance"]["per_event_momentum_and_energy_checks_required"] = Value::Bool(false);
+        assert!(audit_drag_dissipation_contract(&value).iter().any(|finding| {
+            finding.starts_with("DRAG_DISSIPATION_ACCEPTANCE")
+        }));
+    }
+}
