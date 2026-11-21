@@ -3022,22 +3022,46 @@ mod constraint_outcome_report_tests {
                 legacy_calls: Arc::clone(legacy_calls),
             }));
         }
-        world.solver_iterations = 1;
+        world.solver_iterations = 2;
 
         let report = world.step_with_report(0.016);
 
-        assert_eq!(report.constraint_position_events.len(), 3);
-        assert_eq!(report.rejected_constraint_count(), 1);
-        assert_eq!(report.unreported_constraint_count(), 3);
+        assert_eq!(report.constraint_position_events.len(), 6);
+        assert_eq!(report.constraint_velocity_events.len(), 6);
+        assert_eq!(report.rejected_constraint_count(), 2);
+        assert_eq!(report.unreported_constraint_count(), 6);
         assert!(report.world_state_may_have_mutated_before_rejection);
-        for (index, outcome) in outcomes.into_iter().enumerate() {
-            let event = &report.constraint_position_events[index];
-            assert_eq!(event.constraint_index, index);
-            assert_eq!(event.iteration, 0);
-            assert_eq!(event.outcome, outcome);
-            assert_eq!(calls[index].0.load(std::sync::atomic::Ordering::SeqCst), 1);
-            assert_eq!(calls[index].1.load(std::sync::atomic::Ordering::SeqCst), 0);
+        for iteration in 0..2 {
+            for (constraint_index, outcome) in outcomes.iter().enumerate() {
+                let event = &report.constraint_position_events[iteration * 3 + constraint_index];
+                assert_eq!(event.constraint_index, constraint_index);
+                assert_eq!(event.iteration, iteration);
+                assert_eq!(event.outcome, *outcome);
+            }
         }
+        for (typed_calls, legacy_calls) in &calls {
+            assert_eq!(typed_calls.load(std::sync::atomic::Ordering::SeqCst), 2);
+            assert_eq!(legacy_calls.load(std::sync::atomic::Ordering::SeqCst), 0);
+        }
+    }
+
+
+    #[test]
+    fn missing_constraint_endpoint_produces_no_position_or_velocity_event() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let present = world.add_sphere(Point::origin(), 0.1, 1.0);
+        world.add_constraint(Box::new(DistanceConstraint {
+            body_a: present,
+            body_b: BodyHandle(usize::MAX),
+            rest_length: 1.0,
+            stiffness: 1.0,
+        }));
+        world.solver_iterations = 2;
+
+        let report = world.step_with_report(0.016);
+
+        assert!(report.constraint_position_events.is_empty());
+        assert!(report.constraint_velocity_events.is_empty());
     }
 
 }
