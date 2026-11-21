@@ -448,31 +448,62 @@ fn bench_contact_angular_effective_mass_strict_vs_legacy(c: &mut Criterion) {
 }
 fn bench_contact_pair_impulse_strict_vs_legacy(c: &mut Criterion) {
     let fixture = || {
-        let mut a = RigidBody::<3>::dynamic_sphere(BodyHandle(91), Point::origin(), 0.1, 1.0);
-        let mut b = RigidBody::<3>::dynamic_sphere(BodyHandle(92), Point::origin(), 0.1, 1.0);
-        a.inertia = SVector::from([2.0, 3.0, 4.0]); a.inv_inertia = SVector::from([0.5, 1.0 / 3.0, 0.25]);
-        b.inertia = SVector::from([3.0, 4.0, 5.0]); b.inv_inertia = SVector::from([1.0 / 3.0, 0.25, 0.2]);
+        let mut a =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(91), Point::origin(), 0.1, 1.0);
+        let mut b =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(92), Point::origin(), 0.1, 1.0);
+        a.inertia = SVector::from([2.0, 3.0, 4.0]);
+        a.inv_inertia = SVector::from([0.5, 1.0 / 3.0, 0.25]);
+        b.inertia = SVector::from([3.0, 4.0, 5.0]);
+        b.inv_inertia = SVector::from([1.0 / 3.0, 0.25, 0.2]);
         (a, b)
     };
-    let ra = SVector::from([0.7, -0.2, 0.4]);
-    let rb = SVector::from([-0.3, 0.1, 0.5]);
+    let lever_arm_a = SVector::from([0.7, -0.2, 0.4]);
+    let lever_arm_b = SVector::from([-0.3, 0.1, 0.5]);
     let impulse = SVector::from([0.2, 1.0, -0.4]);
+
     c.bench_function("contact_pair_impulse_legacy_3d", |bench| {
-        bench.iter_batched(fixture, |(mut a, mut b)| {
-            symtropy_physics::integrator::apply_impulse(&mut a, &(-impulse));
-            symtropy_physics::integrator::apply_impulse(&mut b, &impulse);
-            let ja = symtropy_physics::integrator::angular_impulse_from_point(&ra, &(-impulse));
-            let jb = symtropy_physics::integrator::angular_impulse_from_point(&rb, &impulse);
-            symtropy_physics::integrator::apply_angular_impulse(&mut a, &ja);
-            symtropy_physics::integrator::apply_angular_impulse(&mut b, &jb);
-            black_box((a.linear_velocity, a.angular_velocity, b.linear_velocity, b.angular_velocity));
-        }, criterion::BatchSize::SmallInput);
+        bench.iter_batched(
+            fixture,
+            |(mut a, mut b)| {
+                symtropy_physics::integrator::apply_impulse(&mut a, &(-impulse));
+                symtropy_physics::integrator::apply_impulse(&mut b, &impulse);
+                let angular_impulse_a =
+                    symtropy_physics::integrator::angular_impulse_from_point(
+                        &lever_arm_a, &(-impulse),
+                    );
+                let angular_impulse_b =
+                    symtropy_physics::integrator::angular_impulse_from_point(
+                        &lever_arm_b, &impulse,
+                    );
+                symtropy_physics::integrator::apply_angular_impulse(
+                    &mut a, &angular_impulse_a,
+                );
+                symtropy_physics::integrator::apply_angular_impulse(
+                    &mut b, &angular_impulse_b,
+                );
+                black_box((
+                    a.linear_velocity, a.angular_velocity,
+                    b.linear_velocity, b.angular_velocity,
+                ));
+            },
+            criterion::BatchSize::SmallInput,
+        );
     });
     c.bench_function("contact_pair_impulse_strict_3d", |bench| {
-        bench.iter_batched(fixture, |(mut a, mut b)| {
-            black_box(try_apply_contact_impulse_pair(&mut a, &mut b, &ra, &rb, &impulse));
-            black_box((a.linear_velocity, a.angular_velocity, b.linear_velocity, b.angular_velocity));
-        }, criterion::BatchSize::SmallInput);
+        bench.iter_batched(
+            fixture,
+            |(mut a, mut b)| {
+                black_box(try_apply_contact_impulse_pair(
+                    &mut a, &mut b, &lever_arm_a, &lever_arm_b, &impulse,
+                ));
+                black_box((
+                    a.linear_velocity, a.angular_velocity,
+                    b.linear_velocity, b.angular_velocity,
+                ));
+            },
+            criterion::BatchSize::SmallInput,
+        );
     });
 }
 fn bench_anisotropic_contact_world_step(c: &mut Criterion) {
