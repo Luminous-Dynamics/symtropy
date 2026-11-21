@@ -14,7 +14,7 @@
       "evidence_reference": "synthetic://shared-cell/pod-harness/contract-assembly-flex",
       "setup_minutes_per_changeover": 30,
       "changeovers_per_year": 24,
-      "maximum_supplemental_cells": 4,
+      "maximum_supplemental_cells": 64,
       "notes": [
         "Synthetic mapping tests arithmetic only.",
         "Physical HV work, protection, isolation, charger calibration and EOL equivalence remain independently unqualified."
@@ -31,7 +31,7 @@
       "evidence_reference": "synthetic://shared-cell/amr-eol/contract-assembly-flex",
       "setup_minutes_per_changeover": 45,
       "changeovers_per_year": 36,
-      "maximum_supplemental_cells": 3,
+      "maximum_supplemental_cells": 64,
       "notes": [
         "Synthetic mapping tests shared-station workload arithmetic only.",
         "AMR navigation, braking, functional safety and product EOL acceptance require separate qualified tests."
@@ -65,7 +65,7 @@
       "evidence_reference": "synthetic://shared-cell/pod-harness/modular-ckd-line",
       "setup_minutes_per_changeover": 30,
       "changeovers_per_year": 24,
-      "maximum_supplemental_cells": 4,
+      "maximum_supplemental_cells": 64,
       "notes": [
         "Synthetic mapping tests arithmetic only.",
         "Physical HV work, protection, isolation, charger calibration and EOL equivalence remain independently unqualified."
@@ -82,7 +82,7 @@
       "evidence_reference": "synthetic://shared-cell/amr-eol/modular-ckd-line",
       "setup_minutes_per_changeover": 45,
       "changeovers_per_year": 36,
-      "maximum_supplemental_cells": 3,
+      "maximum_supplemental_cells": 64,
       "notes": [
         "Synthetic mapping tests shared-station workload arithmetic only.",
         "AMR navigation, braking, functional safety and product EOL acceptance require separate qualified tests."
@@ -116,7 +116,7 @@
       "evidence_reference": "synthetic://shared-cell/pod-harness/integrated-flexible-plant",
       "setup_minutes_per_changeover": 30,
       "changeovers_per_year": 24,
-      "maximum_supplemental_cells": 4,
+      "maximum_supplemental_cells": 64,
       "notes": [
         "Synthetic mapping tests arithmetic only.",
         "Physical HV work, protection, isolation, charger calibration and EOL equivalence remain independently unqualified."
@@ -133,7 +133,7 @@
       "evidence_reference": "synthetic://shared-cell/amr-eol/integrated-flexible-plant",
       "setup_minutes_per_changeover": 45,
       "changeovers_per_year": 36,
-      "maximum_supplemental_cells": 3,
+      "maximum_supplemental_cells": 64,
       "notes": [
         "Synthetic mapping tests shared-station workload arithmetic only.",
         "AMR navigation, braking, functional safety and product EOL acceptance require separate qualified tests."
