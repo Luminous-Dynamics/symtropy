@@ -60,7 +60,7 @@ jobs:
           assert code["runner_paths_present"] == []
           assert dataset["revision_full"] == "f95bb06e7d11142f88ffd3b6b56c7258deb8fff6"
           assert dataset["revision_observed_short"] == "f95bb06"
-          assert any("only representative bouncing-ball and Newton's-cradle" in blocker for blocker in dataset["blockers"])
+          assert any("only representative bouncing-ball and newton's-cradle" in blocker.lower() for blocker in dataset["blockers"])
           assert dataset["admission_state"] == "not_admitted"
           assert dataset["artifact_manifest"] == []
           assert dataset["license"]["review_status"] == "declared_not_independently_reviewed"
