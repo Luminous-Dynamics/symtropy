@@ -12,12 +12,12 @@ The crate defines the type and validation layer only. It deliberately does not s
 
 - Snapshot identity: model/configuration SHA-256, world/episode/trajectory, monotonic step/time, clock source, world frame, transform convention and SI units.
 - Entity state: SE(3) pose with explicit world-from-entity direction and parent/child frame IDs, linear/angular velocity, acceleration, mass, inertia and contact readback. Contact classification carries its own provenance and uncertainty.
-- Field semantics: mandatory unit, epistemic status, source/model/fixture/derivation provenance, and quantified or explicitly NotQuantified uncertainty. Measured, estimated, predicted and assumed fields have status-specific provenance requirements.
+- Field semantics: mandatory unit, epistemic status, source/model/fixture/derivation provenance, and quantified or explicitly NotQuantified uncertainty. Measured, estimated, predicted and assumed fields have status-specific provenance requirements. A 3×3 covariance declares its squared SI unit and coordinate frame, which must match the associated field.
 - Fail-closed unavailable values: UNAVAILABLE requires value=None and a reason; it cannot silently encode zero.
 - Validation: finite numeric values, normalized quaternions, symmetric positive-semidefinite 3×3 covariance and inertia matrices, referentially valid entity/contact IDs, monotonic snapshot sequences and immutable query IDs.
 - Read-only query trait: methods borrow the provider immutably and requests name the exact snapshot digest. Results must include requested entities; related parent/contact context entities may also be returned.
 - Action-bound step contract: a step binds the pre-snapshot, model/configuration, world/episode/trajectory, action-stream digest, duration, clock/frame identity, and exact next snapshot time/index.
-- Replay receipts: exact digest bindings plus deterministic, bounded-stochastic or explicitly non-replayable classes.
+- Replay receipts: exact digest bindings plus deterministic, bounded-stochastic or explicitly non-replayable classes. A receipt can be validated against the exact StepRequest and returned snapshot.
 
 ## Build and test
 
