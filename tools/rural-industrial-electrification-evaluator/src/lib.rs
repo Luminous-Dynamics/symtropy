@@ -166,6 +166,8 @@ pub struct InterfaceFinding {
     pub vehicle_evidence_id: Option<String>,
     pub vehicle_evidence_source_reference: Option<String>,
     pub vehicle_evidence_report_digest_sha256: Option<String>,
+    pub vehicle_evidence_receipt: Option<QualificationEvidence>,
+    pub module_evidence_receipt: Option<QualificationEvidence>,
     pub module_evidence_id: String,
     pub module_evidence_source_reference: String,
     pub module_evidence_report_digest_sha256: String,
@@ -483,6 +485,8 @@ fn evaluate_interface(
             vehicle_evidence_id: None,
             vehicle_evidence_source_reference: None,
             vehicle_evidence_report_digest_sha256: None,
+            vehicle_evidence_receipt: None,
+            module_evidence_receipt: module_port.evidence.first().cloned(),
             module_evidence_id: first_evidence_id(&module_port.evidence).unwrap_or_default(),
             module_evidence_source_reference: module_port
                 .evidence
@@ -706,6 +710,8 @@ fn evaluate_interface(
             .map(|receipt| receipt.source_reference.clone()),
         vehicle_evidence_report_digest_sha256: vehicle_receipt
             .map(|receipt| receipt.report_digest_sha256.clone()),
+        vehicle_evidence_receipt: vehicle_receipt.cloned(),
+        module_evidence_receipt: module_receipt.cloned(),
         module_evidence_id: module_receipt
             .map(|receipt| receipt.evidence_id.clone())
             .unwrap_or_default(),
@@ -805,6 +811,13 @@ pub fn evaluate_compatibility(
                     )
                     .and_then(|vehicle_port| vehicle_port.evidence.first())
                     .map(|receipt| receipt.report_digest_sha256.clone()),
+                    vehicle_evidence_receipt: find_vehicle_port(
+                        &canonical.vehicle,
+                        &port.mate_port_id,
+                    )
+                    .and_then(|vehicle_port| vehicle_port.evidence.first())
+                    .cloned(),
+                    module_evidence_receipt: port.evidence.first().cloned(),
                     module_evidence_id: first_evidence_id(&port.evidence).unwrap_or_default(),
                     module_evidence_source_reference: port
                         .evidence
@@ -1218,6 +1231,12 @@ mod tests {
             Some(expected_digest.as_str())
         );
         assert_eq!(hv.module_evidence_report_digest_sha256, expected_digest);
+        let vehicle_receipt = hv.vehicle_evidence_receipt.as_ref().expect("vehicle receipt");
+        let module_receipt = hv.module_evidence_receipt.as_ref().expect("module receipt");
+        assert_eq!(vehicle_receipt.test_article_vehicle_serial, "TEST-VEH-carrier-ref-01-r1");
+        assert_eq!(module_receipt.test_article_module_serial, "TEST-MOD-detachable-pod-r1");
+        assert_eq!(vehicle_receipt.test_procedure_revision, "REV-A");
+        assert_eq!(module_receipt.test_result, QualificationTestResult::Passed);
     }
 
     #[test]
