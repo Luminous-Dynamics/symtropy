@@ -23,7 +23,9 @@ fn run() -> Result<ExitCode, String> {
     if args.next().as_deref() != Some("--source-commit") {
         return Err("expected --source-commit".to_owned());
     }
-    let source_commit = args.next().ok_or_else(|| "missing source commit value".to_owned())?;
+    let source_commit = args
+        .next()
+        .ok_or_else(|| "missing source commit value".to_owned())?;
     if source_commit.len() != 40
         || !source_commit
             .bytes()
@@ -35,8 +37,9 @@ fn run() -> Result<ExitCode, String> {
         return Err("unexpected trailing arguments".to_owned());
     }
 
-    let input = fs::read(&fixture_path)
-        .map_err(|error| format!("cannot read model-admissibility corpus {fixture_path}: {error}"))?;
+    let input = fs::read(&fixture_path).map_err(|error| {
+        format!("cannot read model-admissibility corpus {fixture_path}: {error}")
+    })?;
     let corpus: Corpus = serde_json::from_slice(&input)
         .map_err(|error| format!("invalid model-admissibility corpus JSON: {error}"))?;
     let report = evaluate(&corpus)?;
