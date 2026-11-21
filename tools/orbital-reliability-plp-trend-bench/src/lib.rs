@@ -302,8 +302,9 @@ fn evaluate_case(case: &TrendCase) -> Decision {
             blockers,
         };
     }
-    if !case.significance_level.is_finite()
-        || !(0.0 < case.significance_level && case.significance_level < 1.0)
+    if !(case.significance_level.is_finite()
+        && 0.0 < case.significance_level
+        && case.significance_level < 1.0)
     {
         push_blocker(&mut blockers, "invalid_significance_level");
         return Decision {
