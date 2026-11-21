@@ -9,7 +9,7 @@
   "runtime_revision": "synthetic-v1",
   "hardware_id": "synthetic-no-device",
   "seed": 0,
-  "workload_ref": "git-blob-sha1:e6607cb2de1ddb5327c2f94c631a710ef4820d6e",
+  "workload_ref": "git-blob-sha1:17dfedb940e2439c3e4e59c76e3ffc22f90ae917",
   "protocol_id": "long-horizon-memory-ablation-v1",
   "memory_budget_profile_id": "workload-per-episode-budget-v1",
   "measurement_status": "synthetic_reference",
