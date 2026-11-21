@@ -248,8 +248,6 @@ fn analytic_integrals(
     let mut impulse = [0.0; 3];
     let mut impulse_degree = 0_u32;
     let mut speed_squared = vec![0.0];
-    let mut drift_degree = 0_u32;
-
     for component in 0..3 {
         let velocity = case.relative_velocity_m_s[component];
         let product = multiply(&drag, &velocity);
