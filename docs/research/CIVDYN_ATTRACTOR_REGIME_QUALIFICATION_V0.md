@@ -432,6 +432,16 @@ Useful primary references:
 - [AnyLogic modeling methods](https://www.anylogic.com/use-of-simulation/) — agent-based, system-dynamics and discrete-event simulation.
 - [ODD protocol update](https://www.jasss.org/23/2/7.html) — structured description and replication of agent-based models.
 
+### 8.0.1 Competitive landscape update (2026-11-21)
+
+The comparison set must track the current versions, not static names:
+
+- **OpenSpiel 2.0:** the 14 July 2026 release announcement reports more than 120 games, 19 newly added games, structured state/action/observation and trajectory interfaces, JAX/AlphaZero work, language-model examples and an MCP example. The release materially raises the bar for strategic-environment coverage and LLM interoperability. We should use its documented game definitions and exact release revision as a differential reference rather than duplicate its algorithms. Reference: [Introducing OpenSpiel 2.0 (14 July 2026)](https://www.gcbgb.ca/introducing_open_spiel_2.0/); [current OpenSpiel documentation](https://openspiel.readthedocs.io/en/latest/intro.html).
+- **Social-network simulation literature:** a 25 October 2026 survey organizes 97 studies into five model families, catalogs 48 implementations, 21 benchmarks and 22 metrics, and identifies validation, multilevel representation and scalability as active challenges. This supports a benchmark design that crosses network structure, diffusion, opinion dynamics, rule-based ABM and LLM-agent simulation rather than evaluating only one family. Reference: [A survey of social network simulation in the LLM era](https://doi.org/10.1016/j.knosys.2026.116947).
+- **Operational validation of LLM-agent communities:** a 2026 study evaluates a Reddit-like technology forum with 30 replications and compares activity patterns, interaction-network structure and textual convergence to an empirical reference. We should adopt the multi-run and multi-construct discipline, while extending it to typed institutional relationships, causal pathways, rights/service floors, power/dependency and evidence lineage. Reference: [Towards operational validation of LLM-agent social simulations](https://doi.org/10.1140/epjds/s13688-026-00674-x).
+
+These references do not establish that any one benchmark is sufficient for civilizational modeling. The design consequence is that each capability family needs its own validation protocol and external reference. Dialogue similarity, aggregate fit, network-marginal fit, strategic performance and regime identification are different claims and must remain separate.
+
 ### 8.1 Fair-comparison protocol
 
 For each external comparison:
