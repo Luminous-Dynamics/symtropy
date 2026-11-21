@@ -214,6 +214,10 @@ pub struct RobustnessScorecard {
     pub episode_pair_count: usize,
 }
 
+fn success_count(success: bool) -> u64 {
+    if success { 1 } else { 0 }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct BootstrapConfig {
     pub replicates: usize,
@@ -303,8 +307,8 @@ pub fn evaluate_paired_comparison(
                 return Err(ScorecardError::DuplicateEpisodeId);
             }
             total_pairs += 1;
-            task_baseline += u64::from(episode.baseline_success);
-            task_candidate += u64::from(episode.candidate_success);
+            task_baseline += success_count(episode.baseline_success);
+            task_candidate += success_count(episode.candidate_success);
         }
         baseline_successes += task_baseline;
         candidate_successes += task_candidate;
