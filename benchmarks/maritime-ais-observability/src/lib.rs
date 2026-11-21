@@ -90,6 +90,7 @@ pub enum EventKind {
     ZoneReacquired,
     ObservabilityGap,
     InvalidPosition,
+    SpeedZoneConflict,
 }
 
 impl EventKind {
@@ -103,6 +104,7 @@ impl EventKind {
             Self::ZoneReacquired => "AIS_ZONE_REACQUIRED_AFTER_UNCERTAINTY",
             Self::ObservabilityGap => "AIS_OBSERVABILITY_GAP",
             Self::InvalidPosition => "AIS_INVALID_POSITION_FIX",
+            Self::SpeedZoneConflict => "AIS_ZONE_SPEED_INCONSISTENCY",
         }
     }
 }
@@ -173,6 +175,7 @@ pub struct AisFix {
     pub mmsi: String,
     pub message_id: String,
     pub source_id: String,
+    pub geofence_digest: String,
     pub tick: i64,
     pub zone: Zone,
     pub speed_milli_knots: u32,
@@ -194,6 +197,7 @@ pub struct InferredEvent {
 pub struct CallReport {
     pub mmsi: String,
     pub source_id: String,
+    pub geofence_digest: String,
     pub profile_version: String,
     pub final_state: ServiceState,
     pub accepted_fix_count: usize,
@@ -272,6 +276,10 @@ pub fn evaluate_call(
     }
 
     let source_id = first.source_id.clone();
+    if first.geofence_digest.trim().is_empty() {
+        return Err("geofence digest must be non-empty".to_string());
+    }
+    let geofence_digest = first.geofence_digest.clone();
     let mut seen_messages: BTreeMap<String, AisFix> = BTreeMap::new();
     let mut state = ServiceState::Outside;
     let mut candidate: Option<Candidate> = None;
@@ -280,6 +288,7 @@ pub fn evaluate_call(
     let mut duplicate_fix_count = 0;
     let mut invalid_fix_count = 0;
     let mut nav_status_conflict_count = 0;
+    let mut kinematic_conflict_count = 0;
     let mut observability_gap_count = 0;
     let mut events = Vec::new();
 
@@ -294,6 +303,12 @@ pub fn evaluate_call(
             return Err(format!(
                 "source identity changed from {source_id:?} to {:?}",
                 fix.source_id
+            ));
+        }
+        if fix.geofence_digest != geofence_digest {
+            return Err(format!(
+                "geofence identity changed from {geofence_digest:?} to {:?}",
+                fix.geofence_digest
             ));
         }
         if fix.message_id.trim().is_empty() {
@@ -362,13 +377,39 @@ pub fn evaluate_call(
             nav_status_conflict_count += 1;
         }
 
+        let speed_is_plausible =
+            fix.speed_milli_knots <= fix.zone.max_speed_milli_knots(profile);
+
         if state.is_stable_for(fix.zone) {
             candidate = None;
+            if speed_is_plausible {
+                continue;
+            }
+
+            kinematic_conflict_count += 1;
+            state = ServiceState::Indeterminate;
+            events.push(InferredEvent {
+                kind: EventKind::SpeedZoneConflict,
+                lower_tick: fix.tick,
+                upper_tick: fix.tick,
+                confirmation_tick: fix.tick,
+                supporting_fix_count: 1,
+                profile_version: profile.version.clone(),
+            });
             continue;
         }
 
-        if fix.speed_milli_knots > fix.zone.max_speed_milli_knots(profile) {
+        if !speed_is_plausible {
+            kinematic_conflict_count += 1;
             candidate = None;
+            events.push(InferredEvent {
+                kind: EventKind::SpeedZoneConflict,
+                lower_tick: fix.tick,
+                upper_tick: fix.tick,
+                confirmation_tick: fix.tick,
+                supporting_fix_count: 1,
+                profile_version: profile.version.clone(),
+            });
             continue;
         }
 
@@ -417,12 +458,14 @@ pub fn evaluate_call(
     Ok(CallReport {
         mmsi: expected_mmsi.to_string(),
         source_id,
+        geofence_digest,
         profile_version: profile.version.clone(),
         final_state: state,
         accepted_fix_count,
         duplicate_fix_count,
         invalid_fix_count,
         nav_status_conflict_count,
+        kinematic_conflict_count,
         observability_gap_count,
         events,
     })
@@ -442,6 +485,7 @@ mod tests {
             mmsi: "563123456".to_string(),
             message_id: message_id.to_string(),
             source_id: "RX_DURBAN_TEST_A".to_string(),
+            geofence_digest: "sha256:fixture-geofence-v1".to_string(),
             tick,
             zone,
             speed_milli_knots,
