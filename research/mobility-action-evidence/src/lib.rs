@@ -543,9 +543,7 @@ pub fn validate_physical_outcome(
     if evidence.ticket_commitment != ticket.ticket_commitment {
         return Err(OutcomeError::TicketCommitmentMismatch);
     }
-    if policy.observer_independence_policy_digest
-        != ticket.observer_independence_policy_digest
-    {
+    if policy.observer_independence_policy_digest != ticket.observer_independence_policy_digest {
         return Err(OutcomeError::IndependencePolicyMismatch);
     }
     if policy.execution_failure_domains.is_empty()
@@ -1121,7 +1119,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn observer_independence_requires_nonempty_declared_failure_domains() {
         let mut evidence = physical_evidence();
@@ -1142,7 +1139,9 @@ mod tests {
     #[test]
     fn common_cause_failure_domain_overlap_rejects_independent_observer() {
         let mut evidence = physical_evidence();
-        evidence.observer_failure_domains.push("vehicle-power".into());
+        evidence
+            .observer_failure_domains
+            .push("vehicle-power".into());
         assert_eq!(
             validate_physical_outcome(&ticket(), &evidence, outcome_policy()),
             Err(OutcomeError::CommonCauseFailureDomainOverlap)
@@ -1152,7 +1151,9 @@ mod tests {
     #[test]
     fn observer_failure_domains_must_exactly_match_ticket_bound_policy() {
         let mut evidence = physical_evidence();
-        evidence.observer_failure_domains.push("unregistered-clock".into());
+        evidence
+            .observer_failure_domains
+            .push("unregistered-clock".into());
         assert_eq!(
             validate_physical_outcome(&ticket(), &evidence, outcome_policy()),
             Err(OutcomeError::ObserverFailureDomainMismatch)
@@ -1172,7 +1173,9 @@ mod tests {
     #[test]
     fn duplicate_failure_domain_labels_are_rejected() {
         let mut evidence = physical_evidence();
-        evidence.observer_failure_domains.push("camera-sensor".into());
+        evidence
+            .observer_failure_domains
+            .push("camera-sensor".into());
         assert_eq!(
             validate_physical_outcome(&ticket(), &evidence, outcome_policy()),
             Err(OutcomeError::FailureDomainPolicyInvalid)
