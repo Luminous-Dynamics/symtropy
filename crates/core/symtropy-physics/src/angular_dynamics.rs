@@ -209,17 +209,13 @@ pub struct AngularStep3 {
     pub world_angular_momentum: SVector<f64, 3>,
 }
 
-/// Advance a 3D body using world angular momentum as the conserved state.
+/// Advance a 3D body from its angular-velocity representation.
 ///
-/// Torque is supplied as a conventional world-space axial vector in N*m:
-///
-/// 1. derive current world angular momentum from `(R, omega, I_body)`,
-/// 2. apply the angular impulse `tau * dt`,
-/// 3. derive `omega` from updated momentum and current orientation,
-/// 4. update orientation through Symtropy's SO(3) exponential,
-/// 5. re-derive `omega` from unchanged world momentum at the new orientation.
-///
-/// Every derived quantity is checked before it can become reference evidence.
+/// This convenience entry point reconstructs world angular momentum once,
+/// then delegates to [`step_principal_inertia_from_world_momentum`]. For long
+/// torque-free trajectories, callers should carry the returned momentum into
+/// the next step instead of repeatedly reconstructing it from rounded angular
+/// velocity.
 pub fn step_principal_inertia(
     rotation: &Rotor<3>,
     angular_velocity: &Bivector<3>,
@@ -227,9 +223,39 @@ pub fn step_principal_inertia(
     torque_world: &SVector<f64, 3>,
     dt_seconds: f64,
 ) -> Result<AngularStep3, AngularDynamicsError> {
+    let momentum_world = world_angular_momentum(rotation, angular_velocity, inertia)?;
+    step_principal_inertia_from_world_momentum(
+        rotation,
+        &momentum_world,
+        inertia,
+        torque_world,
+        dt_seconds,
+    )
+}
+
+/// Advance a 3D body with world angular momentum as an explicit conserved state.
+///
+/// Torque is supplied as a conventional world-space axial vector in N*m.
+/// The caller should retain `AngularStep3::world_angular_momentum` and pass
+/// it to the next call. This avoids accumulating roundoff by reconstructing
+/// the conserved quantity from the rounded angular-velocity representation.
+///
+/// 1. apply the angular impulse `tau * dt` to the supplied world momentum,
+/// 2. derive `omega` from updated momentum and current orientation,
+/// 3. update orientation through Symtropy's SO(3) exponential,
+/// 4. re-derive `omega` from unchanged world momentum at the new orientation.
+///
+/// Every derived quantity is checked before it can become reference evidence.
+pub fn step_principal_inertia_from_world_momentum(
+    rotation: &Rotor<3>,
+    momentum_world: &SVector<f64, 3>,
+    inertia: PrincipalInertia3,
+    torque_world: &SVector<f64, 3>,
+    dt_seconds: f64,
+) -> Result<AngularStep3, AngularDynamicsError> {
     validate_rotation(rotation)?;
-    if !angular_velocity.is_finite() {
-        return Err(AngularDynamicsError::NonFiniteAngularVelocity);
+    if !vector_is_finite(momentum_world) {
+        return Err(AngularDynamicsError::NonFiniteAngularMomentum);
     }
     if !vector_is_finite(torque_world) {
         return Err(AngularDynamicsError::NonFiniteTorque);
@@ -238,18 +264,17 @@ pub fn step_principal_inertia(
         return Err(AngularDynamicsError::InvalidTimestep);
     }
 
-    let mut momentum_world = world_angular_momentum(rotation, angular_velocity, inertia)?;
     let angular_impulse = torque_world * dt_seconds;
     if !vector_is_finite(&angular_impulse) {
         return Err(AngularDynamicsError::UnrepresentableAngularImpulse);
     }
-    momentum_world += angular_impulse;
-    if !vector_is_finite(&momentum_world) {
+    let next_momentum_world = momentum_world + angular_impulse;
+    if !vector_is_finite(&next_momentum_world) {
         return Err(AngularDynamicsError::UnrepresentableAngularMomentum);
     }
 
     let omega_before_rotation =
-        angular_velocity_from_world_momentum(rotation, &momentum_world, inertia)?;
+        angular_velocity_from_world_momentum(rotation, &next_momentum_world, inertia)?;
     let angular_displacement = omega_before_rotation.scale(dt_seconds);
     if !angular_displacement.is_finite() {
         return Err(AngularDynamicsError::UnrepresentableAngularDisplacement);
@@ -260,12 +285,12 @@ pub fn step_principal_inertia(
     let rotation_next = delta.compose(rotation);
     validate_rotation(&rotation_next)?;
     let angular_velocity_next =
-        angular_velocity_from_world_momentum(&rotation_next, &momentum_world, inertia)?;
+        angular_velocity_from_world_momentum(&rotation_next, &next_momentum_world, inertia)?;
 
     Ok(AngularStep3 {
         rotation: rotation_next,
         angular_velocity: angular_velocity_next,
-        world_angular_momentum: momentum_world,
+        world_angular_momentum: next_momentum_world,
     })
 }
 
