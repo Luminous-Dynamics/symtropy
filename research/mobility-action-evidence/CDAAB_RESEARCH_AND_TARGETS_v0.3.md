@@ -91,6 +91,7 @@ The latest public results available on 21 November 2026 provide useful but non-i
 | SafeVLA-Bench | 24 policies, 5 suites, 22,500 episodes and 8 safety specifications. Its RoboCasa-365 table includes a 81.9% native-success policy with 50.1% safety and 37.7% success-but-unsafe; the top safety-ranked policy has 53.1% safety and 58.4% success. | Task success separately from safety specification compliance and violation severity | Use safety and SBU as independent non-compensatory axes; add action authority, time-of-check/time-of-use, outcome integrity and recovery. |
 | Bench2Drive v0.0.4 | LEAD: 95.59 driving score and 87.28% success on the published 220-route validation set. | Closed-loop autonomous driving under the exact versioned route/evaluator setup | Add revocation, stale-map/navigation, clock discontinuity, delayed sensor, V2X common-cause and ambiguous actuator/vehicle outcome schedules. Recompute comfort using motion/distance-aware diagnostics and audit that navigation inputs are not overridden by the evaluation harness. |
 | PX4 engineering maturity | CI, SITL, bench hardware testing and HIL are separate stages. Bench tests expose boot ordering, USB/link lifecycle, storage, loop-rate drift and concurrency defects that desktop SITL may miss. | Embedded flight-stack testing and hardware integration | Preserve evidence levels: software contract != simulator != HIL != supervised physical operation. |
+| NASA runtime assurance / Simplex | A runtime monitor detects violation of a safety property and transfers control from an advanced controller to a trusted reversionary controller. | Runtime safety monitoring and safe fallback for autonomous UAS | CDAAB is complementary, not a replacement: it qualifies whether a particular action remains authorized and current at native application, and whether the subsequent physical effect is independently evidenced. Domain RTA and local safety interlocks remain authoritative. |
 
 Primary references:
 - LADDER research: https://ladderrobotics.ai/research
@@ -99,8 +100,9 @@ Primary references:
 - SafeVLA-Bench: https://safevla.org/leaderboard.html
 - Bench2Drive v0.0.4: https://github.com/Thinklab-SJTU/Bench2Drive/blob/0.0.4/docs/v004_update.md
 - PX4 bench testing: https://docs.px4.io/v1.18/en/test_and_ci/bench_testing
+- NASA runtime assurance framework for autonomous UAS: https://ntrs.nasa.gov/citations/20240007986
 
-These scores must not be averaged, ranked against one another or presented as if they shared task definitions. LADDER's 62.0/63.3 mismatch is an explicit baseline-reconciliation item, not a rounding adjustment.
+These scores must not be averaged, ranked against one another or presented as if they shared task definitions. Runtime assurance architectures such as Simplex address controller-level safety monitoring and fallback; they are an essential complementary layer, not a baseline that action-ticket checks can replace. LADDER's 62.0/63.3 mismatch is an explicit baseline-reconciliation item, not a rounding adjustment.
 
 ## 4. Benchmark the benchmark
 
