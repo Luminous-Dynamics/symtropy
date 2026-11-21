@@ -1,0 +1,34 @@
+{
+  "schema_version": "0.1.0",
+  "dataset_id": "maritime-wait-cohort-synthetic-v0.1",
+  "dataset_status": "synthetic_competing_risk_known_answer_fixtures",
+  "generated_on": "2026-11-21",
+  "publisher": "Luminous Dynamics",
+  "implementation_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/6525",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4007",
+  "data_file": "cohorts.csv",
+  "scenario_count": 5,
+  "call_observation_count": 25,
+  "outcomes": {
+    "BERTH": 8,
+    "DIVERTED": 4,
+    "CANCELLED": 4,
+    "CENSORED_EFFECTIVE": 9
+  },
+  "fixture_families": [
+    "competing berth/diversion/cancellation outcomes",
+    "ordinary right-censoring at as-of cutoff",
+    "all-censored cohort with no estimable berth quantile",
+    "tied competing outcome durations",
+    "late-observed berth excluded from earlier historical cutoff",
+    "event-free survival and cumulative incidence reconciliation",
+    "queue exposure equals integrated queue-count area"
+  ],
+  "time_semantics": {
+    "unit": "integer synthetic simulation tick",
+    "utc": false,
+    "hours": false
+  },
+  "rights": "All observations are original synthetic values; no vessel, carrier, operator, terminal or source-provider records are included.",
+  "claim_ceiling": "Synthetic estimator/cutoff conformance only; no port-performance or causal claim."
+}
