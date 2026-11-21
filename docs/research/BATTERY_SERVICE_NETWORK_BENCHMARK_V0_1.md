@@ -219,7 +219,7 @@ These papers are road-EV infrastructure comparators, not direct evidence for UAV
 - 15% to 95% per-battery recharge in 27 minutes at 25°C;
 - one aircraft accommodated, up to 2,000 W input and -40°C to +50°C specified operating temperature.
 
-These are controlled-environment manufacturer figures, not independent Luminous measurements. The two timing boundaries must remain separate. Sources: [DJI Dock 4 specifications](https://www.dji.com/support/product/dock-4) and [DJI Dock 4 product page](https://www.dji.com/dock-4).
+These are controlled-environment manufacturer figures, not independent Luminous measurements. The two timing boundaries must remain separate. DJI's aircraft battery is specified as 260 Wh, 21.42 V, 6S Li-ion NMC, 925 g and 400 cycles; the cycle figure has a storage-temperature condition (cumulative storage above 35°C no more than 100 days in a 12-month period). These are product-specific battery data, not generic lifetime assumptions. Sources: [DJI Dock 4 specifications](https://enterprise.dji.com/dock-4/specs) and [DJI Dock 4 support](https://www.dji.com/support/product/dock-4).
 
 **Hextronics Atlas — larger automated UAV battery inventory.** The public Atlas spec sheet lists DJI Matrice 300/350 compatibility, <2-minute swap, eight sequentially managed battery positions, charging 10%→100% in 45 minutes and 0%→100% in 70 minutes (charging in pairs), plus a supplier-stated >99.99% battery-swapping reliability. The sheet marks IP55 as pending. These are vendor-published data; the >99.99% claim has no visible test denominator/conditions in the sheet and cannot be used as a statistical failure rate until independently substantiated. Source: [Atlas spec sheet](https://docs.hextronics.cloud/product/spec-sheet-atlas.pdf).
 
