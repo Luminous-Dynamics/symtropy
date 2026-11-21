@@ -2,8 +2,10 @@
 //!
 //! M0 is a constant-acceleration model (constant Coulomb friction plus an
 //! unknown intercept). M1 adds a local linear acceleration-speed term. The
-//! intercept is profiled out analytically, so a constant friction level or a
-//! constant angle-registration offset cannot masquerade as speed dependence.
+//! intercept is profiled out analytically, so a constant acceleration offset
+//! cannot masquerade as speed dependence. A detected speed trend is not
+//! uniquely attributable to friction; other speed-correlated effects or
+//! measurement artifacts remain competing explanations.
 //!
 //! Each input row is one independent, preregistered trial-level aggregate.
 //! Adjacent trajectory frames are not independent observations.
@@ -342,7 +344,9 @@ pub fn score_speed_design(
 }
 
 /// Convert the fitted acceleration-speed slope to the local friction
-/// coefficient k_v in mu(v) = mu_0 + k_v * v.
+/// coefficient k_v in mu(v) = mu_0 + k_v * v, under an explicitly admitted
+/// fixed-angle Coulomb model. This conversion is conditional on that model;
+/// a trend alone does not prove friction is its causal source.
 ///
 /// The conversion is unavailable without explicitly supplied qualified
 /// geometry. k_v has units s/m and equals -b1/(g*cos(phi)).
