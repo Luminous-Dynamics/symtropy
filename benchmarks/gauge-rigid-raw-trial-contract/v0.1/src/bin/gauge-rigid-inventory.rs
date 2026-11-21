@@ -86,9 +86,13 @@ fn parse_arguments() -> Result<Option<Arguments>, String> {
     let dataset_revision =
         revision.ok_or_else(|| format!("--dataset-revision is required\n{}", usage()))?;
     if dataset_revision.len() != 40
-        || !dataset_revision.bytes().all(|byte| byte.is_ascii_hexdigit())
+        || !dataset_revision
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit())
     {
-        return Err("--dataset-revision must be an immutable 40-character hexadecimal commit".to_owned());
+        return Err(
+            "--dataset-revision must be an immutable 40-character hexadecimal commit".to_owned(),
+        );
     }
 
     Ok(Some(Arguments {
