@@ -154,3 +154,37 @@ The six violation count is not the same as the number of non-compliant episodes:
 
 
 A second exact-head scoring correction records the current episodic-retrieval reference as **3 hard-violation codes across 2 non-compliant episodes**, not 2 codes. The correction case contributes one code for marking the superseded observation as current. The revocation case contributes two distinct codes: post-revocation evidence/derived-memory reuse, and omission of the still-required eligible public-action observation. The episode count and violation-code count are deliberately different metrics. This correction aligns the expected fixture with the evaluator's fail-closed semantics; it does not alter the underlying policy fixture or convert its failures into passes.
+
+
+## Expanded long-horizon benchmark comparison (21 November 2026)
+
+The closest external comparison is no longer a short-context video-QA benchmark:
+
+| Benchmark | Scale / result | Relevance and limitation |
+|---|---|---|
+| **4DMemory / LongVideo (October 2026)** | About 900 video hours and 5,000+ manually reviewed questions; authors report a harness with four skills and 22+ specialist models that improves tested foundation-model results by over 50% | The most important scale reference for long-horizon visual/spatiotemporal memory; does not by itself evaluate our source revocation, clock admissibility or derived-memory lineage |
+| **EgoMemReason (May 2026)** | 500 questions over week-long egocentric video; about 25.9 hours average evidence backtracking; best reported overall accuracy 39.6% | Tests entity, event and behavior memory across days; useful external memory stress test, but visual-only and a different task protocol |
+| **StreamArena (2026)** | Long-horizon online perception, retrospection, proactive interaction and tool-use evaluations | A strong online agent comparison; keep its official task splits and scoring |
+| **OmniInteract (EMNLP 2026)** | 250 videos / 1,430 response slots; best reported continuous 1QnA IA-QTF1 0.052 | Measures sustained monitoring and interaction timing rather than only delayed factual recall |
+| **DIVE (October 2026)** | 525 AV samples / six task types; leading mean response-window rate 53.77% despite sub-second average latency | Measures full-duplex participation and response timing; not a long-term storage-erasure benchmark |
+
+Sources:
+- 4DMemory: https://arxiv.org/abs/2610.32332
+- EgoMemReason: https://arxiv.org/abs/2605.09874
+- StreamArena: https://github.com/JIA-Lab-research/StreamArena
+- OmniInteract: https://aclanthology.org/2026.emnlp-main.490/
+- DIVE: https://arxiv.org/abs/2610.28405
+
+### Competitive strategy
+
+Reproduce 4DMemory and EgoMemReason using their official data/protocols where rights and access permit. Compare:
+- standalone foundation models;
+- recent-window and long-context baselines;
+- summary-and-retrieve;
+- event/episodic retrieval;
+- specialist harnesses and model-specific RAG;
+- Symthaea memory owner with evidence-ledger qualification.
+
+Then apply our additional orthogonal challenge suite: source citations, exact as-of time, duplicate event identity, correction/supersession, clock-domain incomparability, common-cause dependence, revocation and post-revocation residual probes. Do not call this "better than 4DMemory" merely because a nine-case synthetic set measures additional properties. The claim requires official benchmark reproduction plus independent long-horizon adversarial evidence tests.
+
+A meaningful next result would be non-inferior answer/event recall on 4DMemory/EgoMemReason at materially lower measured retained-memory and retrieval cost, while passing provenance/correction/revocation gates that the external protocol does not currently score.
