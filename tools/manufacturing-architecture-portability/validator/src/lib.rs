@@ -443,3 +443,5 @@ mod tests {
 
 
 pub mod semantic_evaluator;
+
+pub mod inspection_evaluator;
