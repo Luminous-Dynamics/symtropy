@@ -79,6 +79,12 @@ pub use shared_reference_normalization::{
     SharedReferenceNormalizationInput, SharedReferenceNormalizationResult,
 };
 
+mod blind_attribution;
+pub use blind_attribution::{
+    generate_blind_attribution_dataset, AttributionConfounding, BlindAttributionConfig,
+    BlindAttributionDataset, BlindAttributionPublicData, BlindAttributionTruth,
+};
+
 mod common_cause_covariance;
 pub use common_cause_covariance::{
     assemble_joint_experiment_covariance, ExperimentNoiseModel, JointExperimentCovariance,
