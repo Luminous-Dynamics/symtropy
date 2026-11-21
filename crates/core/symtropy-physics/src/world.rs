@@ -3065,6 +3065,44 @@ mod constraint_outcome_report_tests {
         assert!(report.constraint_velocity_events.is_empty());
     }
 
+
+    #[test]
+    fn report_enabled_positional_solve_matches_ordinary_world_state() {
+        fn fixture() -> (PhysicsWorld<3>, BodyHandle, BodyHandle) {
+            let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+            let a = world.add_sphere(Point::origin(), 0.1, 1.0);
+            let b = world.add_sphere(Point::new([5.0, 0.0, 0.0]), 0.1, 1.0);
+            world.add_constraint(Box::new(DistanceConstraint {
+                body_a: a,
+                body_b: b,
+                rest_length: 3.0,
+                stiffness: 0.5,
+            }));
+            world.solver_iterations = 2;
+            (world, a, b)
+        }
+
+        let (mut ordinary, ordinary_a, ordinary_b) = fixture();
+        let (mut reported, reported_a, reported_b) = fixture();
+
+        ordinary.step(0.016);
+        let report = reported.step_with_report(0.016);
+
+        assert_eq!(report.constraint_position_events.len(), 2);
+        assert!(report.constraint_position_events.iter().all(|event| {
+            event.outcome == ConstraintSolveOutcome::Unreported
+        }));
+        for (ordinary_handle, reported_handle) in
+            [(ordinary_a, reported_a), (ordinary_b, reported_b)]
+        {
+            let ordinary_body = ordinary.body(ordinary_handle).expect("ordinary body exists");
+            let reported_body = reported.body(reported_handle).expect("reported body exists");
+            assert_eq!(ordinary_body.transform.translation, reported_body.transform.translation);
+            assert_eq!(ordinary_body.linear_velocity, reported_body.linear_velocity);
+            assert_eq!(ordinary_body.angular_velocity, reported_body.angular_velocity);
+        }
+    }
+
     struct CountingLegacyPositionConstraint {
         body_a: BodyHandle,
         body_b: BodyHandle,
