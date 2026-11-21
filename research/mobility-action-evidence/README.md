@@ -16,6 +16,7 @@ A mission action is not a timeless command. Its applicability is conditional on:
 
 - exact platform identity and physical configuration commitment;
 - mission identity and generation;
+- exact M1 subgoal ID, active action ID, monotonic attempt number and expected M1 predicate ID;
 - operational design domain and mode revisions;
 - authority identity, epoch, scope and revocation state;
 - monotonic clock and boot epoch;
@@ -32,7 +33,8 @@ The contract returns **applicability**, not permission to actuate. A domain-spec
 
 A transport acknowledgement is not physical completion. The physical-outcome validator requires a receipt bound to:
 
-- an externally computed ticket commitment;
+- an externally computed ticket commitment and caller-computed canonical outcome content digest;
+- exact M1 mission/subgoal/action/attempt/predicate identity inherited from the bound ticket;
 - exact platform configuration and expected effect predicate;
 - independent observer role and source identity distinct from the executing controller;
 - monotonic source sequence and same clock/boot epoch;
@@ -61,6 +63,8 @@ This crate references, but does not reimplement, the existing owners:
 
 The M1 mission supervisor remains the owner of subgoal transitions, ambiguity holds, reconciliation and approved recovery. This crate does not duplicate its mission state machine.
 
+The action ticket now carries the exact M1 subgoal ID, action ID, attempt and expected predicate ID, and the live context must match the active M1 ticket at dispatch. The observer receipt also carries its caller-computed canonical content digest so it can be projected into M1's receipt envelope without substituting the ticket commitment for the observation digest. A future adapter must not cast `observed_at_ticks` to M1's `observed_at_ms`: it must obtain a qualified unit/basis conversion from Mycelix Position #435, and preserve unknown/unqualified source time rather than fabricating a timestamp.
+
 ## Tests
 
 The unit-test corpus contains positive controls and table-driven negative controls for:
@@ -71,6 +75,7 @@ The unit-test corpus contains positive controls and table-driven negative contro
 - authority revocation, epoch and scope mismatch;
 - expiry and clock/boot discontinuity;
 - navigation profile, integrity, frame, freshness and sequence downgrade;
+- active M1 subgoal, action, attempt and expected-predicate mismatch;
 - unknown/unqualified/missing navigation source time, mismatched comparison clock and absent cross-clock correlation;
 - acknowledgement versus independent physical effect;
 - self-report and executor-as-observer rejection;
