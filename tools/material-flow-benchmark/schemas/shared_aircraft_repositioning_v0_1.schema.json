@@ -286,5 +286,56 @@
         }
       ]
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "probability_basis": {
+            "const": "calibrated_out_of_sample"
+          }
+        },
+        "required": [
+          "probability_basis"
+        ]
+      },
+      "then": {
+        "properties": {
+          "calibration_report_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "held_out_window_reference": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "probability_basis": {
+            "enum": [
+              "synthetic_fixture",
+              "uncalibrated_estimate"
+            ]
+          }
+        },
+        "required": [
+          "probability_basis"
+        ]
+      },
+      "then": {
+        "properties": {
+          "calibration_report_sha256": {
+            "type": "null"
+          },
+          "held_out_window_reference": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ]
 }
