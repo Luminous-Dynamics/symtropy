@@ -474,7 +474,7 @@ fn evaluate(provider: &Profile, client: &Profile) -> (String, Vec<String>) {
         &client.inspection_method_id,
     ] {
         if value.trim().is_empty() {
-            add_reason(&mut reasons, "IDENTITY_FIELD_EMPTY", Severity.Malformed);
+            add_reason(&mut reasons, "IDENTITY_FIELD_EMPTY", Severity::Malformed);
         }
     }
 
