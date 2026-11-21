@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/ego-witness-spatial-memory-workload-v1.schema.json",
+  "title": "EgoWitness Spatial Memory Workload v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "note",
+    "episodes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "const": "ego-witness-spatial-memory-v0"
+    },
+    "note": {
+      "type": "string"
+    },
+    "episodes": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "$ref": "#/$defs/episode"
+      }
+    }
+  },
+  "$defs": {
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observation_ref",
+        "availability_tick",
+        "capture_tick",
+        "wearer_ref",
+        "environment_ref",
+        "local_track_ref",
+        "category",
+        "room_observation_ref",
+        "clock_domain_id",
+        "clock_generation",
+        "artifact_sha256"
+      ],
+      "properties": {
+        "observation_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "availability_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "capture_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "wearer_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "environment_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "local_track_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1
+        },
+        "room_observation_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clock_generation": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "artifact_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "episode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_id",
+        "memory_budget_bytes",
+        "observations",
+        "query"
+      ],
+      "properties": {
+        "episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "memory_budget_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "observations": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/observation"
+          }
+        },
+        "query": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "query_id",
+            "query_tick",
+            "query_text",
+            "response_deadline_tick"
+          ],
+          "properties": {
+            "query_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "query_tick": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "query_text": {
+              "type": "string",
+              "minLength": 1
+            },
+            "response_deadline_tick": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    }
+  }
+}

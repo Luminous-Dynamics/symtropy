@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/ego-witness-spatial-submission-v1.schema.json",
+  "title": "EgoWitness Spatial Memory Candidate Submission v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "policy_id",
+    "run_id",
+    "predictions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "const": "ego-witness-spatial-memory-v0"
+    },
+    "policy_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "model_revision": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "runtime_revision": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "predictions": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "episode_id",
+          "decision",
+          "answer",
+          "confidence",
+          "cited_observation_refs",
+          "evidence_as_of_tick",
+          "response_tick",
+          "instance_pair_predictions",
+          "room_pair_predictions",
+          "last_seen_prediction"
+        ],
+        "properties": {
+          "episode_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "decision": {
+            "enum": [
+              "answer",
+              "abstain"
+            ]
+          },
+          "answer": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "cited_observation_refs": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "evidence_as_of_tick": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "response_tick": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "instance_pair_predictions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "left_observation_ref",
+                "right_observation_ref",
+                "same_instance"
+              ],
+              "properties": {
+                "left_observation_ref": {
+                  "type": "string"
+                },
+                "right_observation_ref": {
+                  "type": "string"
+                },
+                "same_instance": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "room_pair_predictions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "left_observation_ref",
+                "right_observation_ref",
+                "same_room"
+              ],
+              "properties": {
+                "left_observation_ref": {
+                  "type": "string"
+                },
+                "right_observation_ref": {
+                  "type": "string"
+                },
+                "same_room": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "last_seen_prediction": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": false,
+            "required": [
+              "target_observation_ref",
+              "selected_observation_ref",
+              "wearer_ref"
+            ],
+            "properties": {
+              "target_observation_ref": {
+                "type": "string"
+              },
+              "selected_observation_ref": {
+                "type": "string"
+              },
+              "wearer_ref": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

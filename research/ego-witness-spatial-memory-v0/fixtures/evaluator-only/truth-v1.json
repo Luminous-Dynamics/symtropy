@@ -1,0 +1,172 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "ego-witness-spatial-memory-v0",
+  "warning": "Evaluator-only stable instance and room identities; never expose to candidate runtime for blind evaluation.",
+  "episodes": [
+    {
+      "episode_id": "ew-001-cross-day-instance-reidentification",
+      "instance_identity_by_observation": {
+        "obs-ew1-anchor": "instance-mug-01",
+        "obs-ew1-same-instance": "instance-mug-01",
+        "obs-ew1-lookalike": "instance-mug-02"
+      },
+      "room_identity_by_observation": {
+        "obs-ew1-anchor": "room-living",
+        "obs-ew1-same-instance": "room-living",
+        "obs-ew1-lookalike": "room-kitchen"
+      },
+      "instance_pair_truth": [
+        {
+          "left_observation_ref": "obs-ew1-anchor",
+          "right_observation_ref": "obs-ew1-same-instance",
+          "same_instance": true
+        },
+        {
+          "left_observation_ref": "obs-ew1-anchor",
+          "right_observation_ref": "obs-ew1-lookalike",
+          "same_instance": false
+        },
+        {
+          "left_observation_ref": "obs-ew1-same-instance",
+          "right_observation_ref": "obs-ew1-lookalike",
+          "same_instance": false
+        }
+      ],
+      "room_pair_truth": [],
+      "last_seen_truth": null,
+      "expected_answer": "obs-ew1-same-instance",
+      "required_observation_refs": [
+        "obs-ew1-anchor",
+        "obs-ew1-same-instance",
+        "obs-ew1-lookalike"
+      ]
+    },
+    {
+      "episode_id": "ew-002-last-seen-wearer-attribution",
+      "instance_identity_by_observation": {
+        "obs-ew2-target-ada": "instance-bottle-01",
+        "obs-ew2-target-bob": "instance-bottle-01",
+        "obs-ew2-target-cia": "instance-bottle-01",
+        "obs-ew2-lookalike-ada": "instance-bottle-02"
+      },
+      "room_identity_by_observation": {},
+      "instance_pair_truth": [
+        {
+          "left_observation_ref": "obs-ew2-target-ada",
+          "right_observation_ref": "obs-ew2-target-bob",
+          "same_instance": true
+        },
+        {
+          "left_observation_ref": "obs-ew2-target-ada",
+          "right_observation_ref": "obs-ew2-target-cia",
+          "same_instance": true
+        },
+        {
+          "left_observation_ref": "obs-ew2-target-ada",
+          "right_observation_ref": "obs-ew2-lookalike-ada",
+          "same_instance": false
+        },
+        {
+          "left_observation_ref": "obs-ew2-target-bob",
+          "right_observation_ref": "obs-ew2-target-cia",
+          "same_instance": true
+        },
+        {
+          "left_observation_ref": "obs-ew2-target-bob",
+          "right_observation_ref": "obs-ew2-lookalike-ada",
+          "same_instance": false
+        },
+        {
+          "left_observation_ref": "obs-ew2-target-cia",
+          "right_observation_ref": "obs-ew2-lookalike-ada",
+          "same_instance": false
+        }
+      ],
+      "room_pair_truth": [],
+      "last_seen_truth": {
+        "target_observation_ref": "obs-ew2-target-ada",
+        "expected_observation_ref": "obs-ew2-target-cia",
+        "expected_wearer_ref": "wearer-cia"
+      },
+      "expected_answer": "wearer-cia|obs-ew2-target-cia",
+      "required_observation_refs": [
+        "obs-ew2-target-ada",
+        "obs-ew2-target-bob",
+        "obs-ew2-target-cia",
+        "obs-ew2-lookalike-ada"
+      ]
+    },
+    {
+      "episode_id": "ew-003-room-anchor-identity",
+      "instance_identity_by_observation": {},
+      "room_identity_by_observation": {
+        "obs-ew3-room-living-a": "room-living",
+        "obs-ew3-room-living-b": "room-living",
+        "obs-ew3-room-kitchen": "room-kitchen"
+      },
+      "instance_pair_truth": [],
+      "room_pair_truth": [
+        {
+          "left_observation_ref": "obs-ew3-room-living-a",
+          "right_observation_ref": "obs-ew3-room-living-b",
+          "same_room": true
+        },
+        {
+          "left_observation_ref": "obs-ew3-room-living-a",
+          "right_observation_ref": "obs-ew3-room-kitchen",
+          "same_room": false
+        },
+        {
+          "left_observation_ref": "obs-ew3-room-living-b",
+          "right_observation_ref": "obs-ew3-room-kitchen",
+          "same_room": false
+        }
+      ],
+      "last_seen_truth": null,
+      "expected_answer": "obs-ew3-room-living-a|obs-ew3-room-living-b",
+      "required_observation_refs": [
+        "obs-ew3-room-living-a",
+        "obs-ew3-room-living-b",
+        "obs-ew3-room-kitchen"
+      ]
+    },
+    {
+      "episode_id": "ew-004-same-category-distinct-instances",
+      "instance_identity_by_observation": {
+        "obs-ew4-toolbox-a": "instance-toolbox-01",
+        "obs-ew4-toolbox-b": "instance-toolbox-02",
+        "obs-ew4-toolbox-a-return": "instance-toolbox-01"
+      },
+      "room_identity_by_observation": {
+        "obs-ew4-toolbox-a": "room-workshop",
+        "obs-ew4-toolbox-b": "room-workshop",
+        "obs-ew4-toolbox-a-return": "room-workshop"
+      },
+      "instance_pair_truth": [
+        {
+          "left_observation_ref": "obs-ew4-toolbox-a",
+          "right_observation_ref": "obs-ew4-toolbox-b",
+          "same_instance": false
+        },
+        {
+          "left_observation_ref": "obs-ew4-toolbox-a",
+          "right_observation_ref": "obs-ew4-toolbox-a-return",
+          "same_instance": true
+        },
+        {
+          "left_observation_ref": "obs-ew4-toolbox-b",
+          "right_observation_ref": "obs-ew4-toolbox-a-return",
+          "same_instance": false
+        }
+      ],
+      "room_pair_truth": [],
+      "last_seen_truth": null,
+      "expected_answer": "different_instances|obs-ew4-toolbox-a-return",
+      "required_observation_refs": [
+        "obs-ew4-toolbox-a",
+        "obs-ew4-toolbox-b",
+        "obs-ew4-toolbox-a-return"
+      ]
+    }
+  ]
+}
