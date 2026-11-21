@@ -154,7 +154,9 @@ function evaluate(scenario) {
     uniqueEvents.map(event => event.operating_time_seconds),
     series.exposure_end_seconds,
   );
-  if (uniqueEvents.length >= 2 && estimates === null) {
+  if (series.exposure_end_seconds > 0 &&
+      uniqueEvents.length >= 2 &&
+      estimates === null) {
     add("power_law_estimator_rejected_event_times");
   }
 
