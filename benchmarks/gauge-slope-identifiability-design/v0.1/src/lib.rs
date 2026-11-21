@@ -109,15 +109,27 @@ impl Display for IdentifiabilityError {
             Self::InvalidRankTolerance => {
                 write!(formatter, "rank tolerance must be finite and positive")
             }
-            Self::EmptySegmentSet => write!(formatter, "decoupling coverage requires at least one segment"),
+            Self::EmptySegmentSet => write!(
+                formatter,
+                "decoupling coverage requires at least one segment"
+            ),
             Self::InvalidDecouplingPower => {
-                write!(formatter, "decoupling power must be finite and within [0, 1]")
+                write!(
+                    formatter,
+                    "decoupling power must be finite and within [0, 1]"
+                )
             }
             Self::InvalidRegularization => {
-                write!(formatter, "Schur regularization and log epsilon must be finite and positive")
+                write!(
+                    formatter,
+                    "Schur regularization and log epsilon must be finite and positive"
+                )
             }
             Self::InvalidFisherMatrix => {
-                write!(formatter, "Fisher information matrix must be positive semidefinite")
+                write!(
+                    formatter,
+                    "Fisher information matrix must be positive semidefinite"
+                )
             }
             Self::NonFiniteInformation => write!(formatter, "information matrix is non-finite"),
         }
@@ -473,8 +485,8 @@ pub fn idtd_style_decoupling_coverage(
         }
     }
 
-    let cost = -((friction_best_score + log_epsilon).ln()
-        + (angle_bias_best_score + log_epsilon).ln());
+    let cost =
+        -((friction_best_score + log_epsilon).ln() + (angle_bias_best_score + log_epsilon).ln());
     if !cost.is_finite() {
         return Err(IdentifiabilityError::NonFiniteInformation);
     }
@@ -724,12 +736,10 @@ mod tests {
         // D-optimality alone prefers the entangled segment because det=199 > 100.
         assert!(entangled.determinant() > decoupled.determinant());
 
-        let entangled_score =
-            idtd_style_decoupling_coverage(&[entangled], 1.0, 1.0e-6, 1.0e-6)
-                .expect("valid entangled FIM");
-        let decoupled_score =
-            idtd_style_decoupling_coverage(&[decoupled], 1.0, 1.0e-6, 1.0e-6)
-                .expect("valid decoupled FIM");
+        let entangled_score = idtd_style_decoupling_coverage(&[entangled], 1.0, 1.0e-6, 1.0e-6)
+            .expect("valid entangled FIM");
+        let decoupled_score = idtd_style_decoupling_coverage(&[decoupled], 1.0, 1.0e-6, 1.0e-6)
+            .expect("valid decoupled FIM");
 
         assert!(decoupled_score.cost < entangled_score.cost);
         close(decoupled_score.friction_best_score, 1.0, 1.0e-6);
@@ -748,13 +758,9 @@ mod tests {
             friction_angle_bias: 0.0,
             angle_bias_angle_bias: 100.0,
         };
-        let coverage = idtd_style_decoupling_coverage(
-            &[friction_segment, angle_segment],
-            1.0,
-            1.0e-6,
-            1.0e-6,
-        )
-        .expect("valid segment collection");
+        let coverage =
+            idtd_style_decoupling_coverage(&[friction_segment, angle_segment], 1.0, 1.0e-6, 1.0e-6)
+                .expect("valid segment collection");
 
         assert_eq!(coverage.friction_best_segment, 0);
         assert_eq!(coverage.angle_bias_best_segment, 1);
@@ -774,20 +780,10 @@ mod tests {
             friction_angle_bias: 0.0,
             angle_bias_angle_bias: 100.0,
         };
-        let alpha_one = idtd_style_decoupling_coverage(
-            &[weak, strong],
-            1.0,
-            1.0e-6,
-            1.0e-6,
-        )
-        .expect("valid alpha=1 coverage");
-        let alpha_half = idtd_style_decoupling_coverage(
-            &[weak, strong],
-            0.5,
-            1.0e-6,
-            1.0e-6,
-        )
-        .expect("valid alpha=0.5 coverage");
+        let alpha_one = idtd_style_decoupling_coverage(&[weak, strong], 1.0, 1.0e-6, 1.0e-6)
+            .expect("valid alpha=1 coverage");
+        let alpha_half = idtd_style_decoupling_coverage(&[weak, strong], 0.5, 1.0e-6, 1.0e-6)
+            .expect("valid alpha=0.5 coverage");
 
         // alpha=1 is scale-free, so the weak segment is sufficient; alpha<1
         // also rewards stronger absolute per-axis information.
@@ -802,21 +798,11 @@ mod tests {
             Err(IdentifiabilityError::EmptySegmentSet)
         );
         assert_eq!(
-            idtd_style_decoupling_coverage(
-                &[FisherInformation2::default()],
-                1.2,
-                1.0e-6,
-                1.0e-6,
-            ),
+            idtd_style_decoupling_coverage(&[FisherInformation2::default()], 1.2, 1.0e-6, 1.0e-6),
             Err(IdentifiabilityError::InvalidDecouplingPower)
         );
         assert_eq!(
-            idtd_style_decoupling_coverage(
-                &[FisherInformation2::default()],
-                1.0,
-                0.0,
-                1.0e-6,
-            ),
+            idtd_style_decoupling_coverage(&[FisherInformation2::default()], 1.0, 0.0, 1.0e-6),
             Err(IdentifiabilityError::InvalidRegularization)
         );
         assert_eq!(
