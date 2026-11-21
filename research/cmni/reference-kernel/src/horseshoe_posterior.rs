@@ -727,6 +727,8 @@ mod tests {
                     log_local_scales: &log_local,
                     log_global_scales: &[log_global],
                     global_scale_index_by_coefficient: &vec![0; coefficients.len()],
+                    log_experiment_scales: &[],
+                    experiment_scale_index_by_observation: &[],
                     relative_covariance: &covariance,
                     fixed_coefficient_scale: 1.0,
                     global_scale_prior: prior,
@@ -774,6 +776,8 @@ mod tests {
                 log_local_scales: local,
                 log_global_scales: global,
                 global_scale_index_by_coefficient: &groups,
+                log_experiment_scales: &[],
+                experiment_scale_index_by_observation: &[],
                 relative_covariance: &covariance,
                 fixed_coefficient_scale: 1.0e-2,
                 global_scale_prior: prior,
@@ -809,6 +813,49 @@ mod tests {
             - evaluate(&coefficients, &log_local, &global_minus).log_posterior)
             / (2.0 * epsilon);
         assert!((global_fd - base.log_global_scale_gradients[2]).abs() < 1.0e-4);
+    }
+
+    #[test]
+    fn experiment_scale_gradient_matches_finite_difference_and_prior_bounds() {
+        let observed = [12.0, 18.0];
+        let baseline = [10.0, 20.0];
+        let design = vec![vec![1.0, 0.3, -0.2], vec![0.2, -0.5, 0.4]];
+        let coefficients = [0.001, -0.002, 0.003];
+        let log_local = [0.8_f64.ln(), 1.1_f64.ln(), 0.9_f64.ln()];
+        let log_global = [0.6_f64.ln(), 1.0_f64.ln(), 0.8_f64.ln()];
+        let groups = [0, 1, 2];
+        let experiment_map = [0, 0];
+        let covariance = vec![vec![0.04, 0.005], vec![0.005, 0.09]];
+        let prior = GlobalScalePrior::HalfNormal { scale: 1.0 };
+        let evaluate = |log_scale: f64| {
+            grouped_raw_scale_horseshoe_log_posterior(GroupedHorseshoePosteriorInput {
+                observed: &observed,
+                baseline_mean: &baseline,
+                design_matrix: &design,
+                coefficients: &coefficients,
+                log_local_scales: &log_local,
+                log_global_scales: &log_global,
+                global_scale_index_by_coefficient: &groups,
+                log_experiment_scales: &[log_scale],
+                experiment_scale_index_by_observation: &experiment_map,
+                relative_covariance: &covariance,
+                fixed_coefficient_scale: 1.0e-2,
+                global_scale_prior: prior,
+            })
+            .expect("experiment scale target")
+        };
+        let log_scale = 1.02_f64.ln();
+        let result = evaluate(log_scale);
+        let epsilon = 1.0e-6;
+        let finite_difference =
+            (evaluate(log_scale + epsilon).log_posterior
+                - evaluate(log_scale - epsilon).log_posterior)
+                / (2.0 * epsilon);
+        assert!((finite_difference - result.log_experiment_scale_gradients[0]).abs() < 1.0e-4);
+        assert_eq!(
+            evaluate(0.4_f64.ln()).log_posterior.is_finite(),
+            false
+        );
     }
 
     fn base_args() -> BaseArgs {
