@@ -32,14 +32,6 @@ pub enum PackState {
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-pub enum EvidenceFreshness {
-    Fresh,
-    Stale,
-    Unknown,
-}
-
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
 pub enum EvidenceClass {
     Synthetic,
     Measured,
@@ -49,28 +41,36 @@ pub enum EvidenceClass {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-pub struct MetricEvidence {
-    pub freshness: EvidenceFreshness,
-    pub evidence_class: EvidenceClass,
+pub struct EvidenceEnvelope {
+    pub asset_id: String,
+    pub configuration_digest: String,
+    pub producer_id: String,
+    pub method_id: String,
     pub evidence_reference: String,
+    pub evidence_class: EvidenceClass,
+    pub observed_at_unix_ms: Option<u64>,
+    pub valid_from_unix_ms: Option<u64>,
+    pub valid_until_unix_ms: Option<u64>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct MetricEvidence {
+    pub evidence: EvidenceEnvelope,
     pub value: Option<u32>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct BooleanEvidence {
-    pub freshness: EvidenceFreshness,
-    pub evidence_class: EvidenceClass,
-    pub evidence_reference: String,
+    pub evidence: EvidenceEnvelope,
     pub value: Option<bool>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ThermalEvidence {
-    pub freshness: EvidenceFreshness,
-    pub evidence_class: EvidenceClass,
-    pub evidence_reference: String,
+    pub evidence: EvidenceEnvelope,
     pub pack_temperature_c: Option<i16>,
     pub qualified_max_temperature_c: Option<i16>,
 }
@@ -80,6 +80,7 @@ pub struct ThermalEvidence {
 pub struct BatteryPack {
     pub pack_id: String,
     pub configuration_id: String,
+    pub configuration_digest: String,
     pub state: PackState,
     pub identity_verification: BooleanEvidence,
     pub custody_resolution: BooleanEvidence,
@@ -94,6 +95,7 @@ pub struct BatteryPack {
 pub struct MissionDemand {
     pub mission_id: String,
     pub configuration_id: String,
+    pub configuration_digest: String,
     /// Includes the required operational and contingency reserve.
     pub required_energy_with_reserve_wh: u32,
     pub required_peak_power_w: u32,
@@ -106,6 +108,7 @@ pub struct BatteryServiceNetworkInput {
     pub schema_version: String,
     pub benchmark_id: String,
     pub dispatch_epoch_id: String,
+    pub dispatch_time_unix_ms: u64,
     pub packs: Vec<BatteryPack>,
     pub missions: Vec<MissionDemand>,
     pub claim_ceiling: String,
@@ -140,6 +143,7 @@ pub struct BatteryServiceNetworkReport {
     pub schema_version: String,
     pub benchmark_id: String,
     pub dispatch_epoch_id: String,
+    pub dispatch_time_unix_ms: u64,
     pub pack_count: usize,
     pub mission_count: usize,
     pub search_nodes: usize,
@@ -181,24 +185,55 @@ fn add_finding(
     }
 }
 
-fn evidence_is_fresh(
-    freshness: EvidenceFreshness,
-    evidence_class: EvidenceClass,
-    reference: &str,
+fn evidence_is_admissible(
+    evidence: &EvidenceEnvelope,
+    pack: &BatteryPack,
+    dispatch_time_unix_ms: u64,
     findings: &mut Vec<String>,
     status: &mut EligibilityStatus,
     name: &str,
 ) -> bool {
-    if freshness != EvidenceFreshness::Fresh {
+    let mut complete = true;
+    for (field, value) in [
+        ("asset_id", evidence.asset_id.as_str()),
+        ("configuration_digest", evidence.configuration_digest.as_str()),
+        ("producer_id", evidence.producer_id.as_str()),
+        ("method_id", evidence.method_id.as_str()),
+        ("evidence_reference", evidence.evidence_reference.as_str()),
+    ] {
+        if value.trim().is_empty() {
+            add_finding(
+                findings,
+                status,
+                EligibilityStatus::Indeterminate,
+                &format!("{name}_{field}_missing"),
+            );
+            complete = false;
+        }
+    }
+
+    if !complete {
+        return false;
+    }
+    if evidence.asset_id != pack.pack_id {
         add_finding(
             findings,
             status,
-            EligibilityStatus::Indeterminate,
-            &format!("{name}_evidence_not_fresh"),
+            EligibilityStatus::Blocked,
+            &format!("{name}_asset_identity_mismatch"),
         );
         return false;
     }
-    if evidence_class == EvidenceClass::Unknown {
+    if evidence.configuration_digest != pack.configuration_digest {
+        add_finding(
+            findings,
+            status,
+            EligibilityStatus::Blocked,
+            &format!("{name}_configuration_digest_mismatch"),
+        );
+        return false;
+    }
+    if evidence.evidence_class == EvidenceClass::Unknown {
         add_finding(
             findings,
             status,
@@ -207,12 +242,50 @@ fn evidence_is_fresh(
         );
         return false;
     }
-    if reference.trim().is_empty() {
+
+    let (observed_at, valid_from, valid_until) = match (
+        evidence.observed_at_unix_ms,
+        evidence.valid_from_unix_ms,
+        evidence.valid_until_unix_ms,
+    ) {
+        (Some(observed_at), Some(valid_from), Some(valid_until)) => {
+            (observed_at, valid_from, valid_until)
+        }
+        _ => {
+            add_finding(
+                findings,
+                status,
+                EligibilityStatus::Indeterminate,
+                &format!("{name}_evidence_time_window_incomplete"),
+            );
+            return false;
+        }
+    };
+
+    if valid_from > valid_until || observed_at < valid_from || observed_at > valid_until {
+        add_finding(
+            findings,
+            status,
+            EligibilityStatus::Blocked,
+            &format!("{name}_evidence_time_window_malformed"),
+        );
+        return false;
+    }
+    if observed_at > dispatch_time_unix_ms {
+        add_finding(
+            findings,
+            status,
+            EligibilityStatus::Blocked,
+            &format!("{name}_future_observation_not_admissible"),
+        );
+        return false;
+    }
+    if dispatch_time_unix_ms < valid_from || dispatch_time_unix_ms > valid_until {
         add_finding(
             findings,
             status,
             EligibilityStatus::Indeterminate,
-            &format!("{name}_evidence_reference_missing"),
+            &format!("{name}_evidence_outside_validity_window"),
         );
         return false;
     }
@@ -221,14 +294,16 @@ fn evidence_is_fresh(
 
 fn evaluate_boolean_evidence(
     evidence: &BooleanEvidence,
+    pack: &BatteryPack,
+    dispatch_time_unix_ms: u64,
     name: &str,
     findings: &mut Vec<String>,
     status: &mut EligibilityStatus,
 ) {
-    if !evidence_is_fresh(
-        evidence.freshness,
-        evidence.evidence_class,
-        &evidence.evidence_reference,
+    if !evidence_is_admissible(
+        &evidence.evidence,
+        pack,
+        dispatch_time_unix_ms,
         findings,
         status,
         name,
@@ -252,7 +327,7 @@ fn evaluate_boolean_evidence(
     }
 }
 
-fn evaluate_pair(mission: &MissionDemand, pack: &BatteryPack) -> PairEvaluation {
+fn evaluate_pair(\n    mission: &MissionDemand,\n    pack: &BatteryPack,\n    dispatch_time_unix_ms: u64,\n) -> PairEvaluation {
     let mut findings = Vec::new();
     let mut status = EligibilityStatus::Eligible;
 
@@ -274,24 +349,32 @@ fn evaluate_pair(mission: &MissionDemand, pack: &BatteryPack) -> PairEvaluation 
 
     evaluate_boolean_evidence(
         &pack.identity_verification,
+        pack,
+        dispatch_time_unix_ms,
         "pack_identity",
         &mut findings,
         &mut status,
     );
     evaluate_boolean_evidence(
         &pack.custody_resolution,
+        pack,
+        dispatch_time_unix_ms,
         "pack_custody",
         &mut findings,
         &mut status,
     );
     evaluate_boolean_evidence(
         &pack.post_test,
+        pack,
+        dispatch_time_unix_ms,
         "post_test",
         &mut findings,
         &mut status,
     );
 
-    if pack.configuration_id != mission.configuration_id {
+    if pack.configuration_id != mission.configuration_id
+        || pack.configuration_digest != mission.configuration_digest
+    {
         add_finding(
             &mut findings,
             &mut status,
@@ -300,26 +383,26 @@ fn evaluate_pair(mission: &MissionDemand, pack: &BatteryPack) -> PairEvaluation 
         );
     }
 
-    let energy_fresh = evidence_is_fresh(
-        pack.usable_energy.freshness,
-        pack.usable_energy.evidence_class,
-        &pack.usable_energy.evidence_reference,
+    let energy_fresh = evidence_is_admissible(
+        &pack.usable_energy.evidence,
+        pack,
+        dispatch_time_unix_ms,
         &mut findings,
         &mut status,
         "energy",
     );
-    let power_fresh = evidence_is_fresh(
-        pack.peak_power.freshness,
-        pack.peak_power.evidence_class,
-        &pack.peak_power.evidence_reference,
+    let power_fresh = evidence_is_admissible(
+        &pack.peak_power.evidence,
+        pack,
+        dispatch_time_unix_ms,
         &mut findings,
         &mut status,
         "peak_power",
     );
-    let thermal_fresh = evidence_is_fresh(
-        pack.thermal.freshness,
-        pack.thermal.evidence_class,
-        &pack.thermal.evidence_reference,
+    let thermal_fresh = evidence_is_admissible(
+        &pack.thermal.evidence,
+        pack,
+        dispatch_time_unix_ms,
         &mut findings,
         &mut status,
         "thermal",
@@ -501,6 +584,7 @@ pub fn evaluate_battery_service_network(
         || input.benchmark_id != "BATTERY-SERVICE-NETWORK-001"
         || input.claim_ceiling.trim().is_empty()
         || input.dispatch_epoch_id.trim().is_empty()
+        || input.dispatch_time_unix_ms == 0
     {
         errors.push("unsupported_identity_or_missing_dispatch_epoch".to_string());
     }
@@ -548,7 +632,8 @@ pub fn evaluate_battery_service_network(
     for mission in &missions {
         let mut mission_candidates = Vec::new();
         for (pack_index, pack) in packs.iter().enumerate() {
-            let evaluation = evaluate_pair(mission, pack);
+            let evaluation =
+                evaluate_pair(mission, pack, input.dispatch_time_unix_ms);
             if evaluation.status == EligibilityStatus::Eligible {
                 mission_candidates.push((
                     pack_index,
@@ -628,6 +713,7 @@ pub fn evaluate_battery_service_network(
         schema_version: "0.1.0".to_string(),
         benchmark_id: "BATTERY-SERVICE-NETWORK-001".to_string(),
         dispatch_epoch_id: input.dispatch_epoch_id.clone(),
+        dispatch_time_unix_ms: input.dispatch_time_unix_ms,
         pack_count: packs.len(),
         mission_count: missions.len(),
         search_nodes,
@@ -638,12 +724,12 @@ pub fn evaluate_battery_service_network(
         pair_evaluations,
         status: status.to_string(),
         all_pack_evidence_synthetic: packs.iter().all(|pack| {
-            pack.identity_verification.evidence_class == EvidenceClass::Synthetic
-                && pack.custody_resolution.evidence_class == EvidenceClass::Synthetic
-                && pack.post_test.evidence_class == EvidenceClass::Synthetic
-                && pack.usable_energy.evidence_class == EvidenceClass::Synthetic
-                && pack.peak_power.evidence_class == EvidenceClass::Synthetic
-                && pack.thermal.evidence_class == EvidenceClass::Synthetic
+            pack.identity_verification.evidence.evidence_class == EvidenceClass::Synthetic
+                && pack.custody_resolution.evidence.evidence_class == EvidenceClass::Synthetic
+                && pack.post_test.evidence.evidence_class == EvidenceClass::Synthetic
+                && pack.usable_energy.evidence.evidence_class == EvidenceClass::Synthetic
+                && pack.peak_power.evidence.evidence_class == EvidenceClass::Synthetic
+                && pack.thermal.evidence.evidence_class == EvidenceClass::Synthetic
         }),
         dispatch_authority_granted: false,
         return_to_service_authority_granted: false,
