@@ -7,14 +7,13 @@
 //! full-width Ic coverage. It is not a material-property predictor or product-release
 //! authority. The default fixture is explicitly synthetic.
 
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::fs;
 use std::process::ExitCode;
 
-const DEFAULT_FIXTURE: &str =
-    "docs/research/fixtures/rebco_long_length_synthetic_v0_1.json";
+const DEFAULT_FIXTURE: &str = "docs/research/fixtures/rebco_long_length_synthetic_v0_1.json";
 const CLAIM_CEILING: &str = "spatial-genealogy-and-evidence-semantics-only";
 
 #[derive(Debug, Clone)]
@@ -118,10 +117,7 @@ fn require_keys(
 fn enum_value(value: &Value, key: &str, allowed: &[&str], path: &str) -> Result<String, String> {
     let text = string_field(value, key, path)?;
     if !allowed.contains(&text) {
-        return Err(fail(
-            path,
-            format!("{key} has unsupported value {text:?}"),
-        ));
+        return Err(fail(path, format!("{key} has unsupported value {text:?}")));
     }
     Ok(text.to_string())
 }
@@ -161,7 +157,10 @@ fn validate_interval_value(value: &Value, path: &str) -> Result<(), String> {
         .as_f64()
         .ok_or_else(|| fail(path, "interval upper must be finite"))?;
     if !lower.is_finite() || !upper.is_finite() || lower > upper {
-        return Err(fail(path, "interval bounds must be finite and lower <= upper"));
+        return Err(fail(
+            path,
+            "interval bounds must be finite and lower <= upper",
+        ));
     }
     Ok(())
 }
@@ -183,7 +182,13 @@ fn validate_conditions(value: &Value, path: &str) -> Result<(), String> {
     if let Some(key) = map.keys().find(|key| !ALLOWED.contains(&key.as_str())) {
         return Err(fail(path, format!("unknown condition field {key}")));
     }
-    for key in ["temperature_k", "field_magnitude_t", "test_current_a", "electric_field_criterion_uv_per_cm", "frequency_hz"] {
+    for key in [
+        "temperature_k",
+        "field_magnitude_t",
+        "test_current_a",
+        "electric_field_criterion_uv_per_cm",
+        "frequency_hz",
+    ] {
         if let Some(item) = map.get(key) {
             let number = item
                 .as_f64()
@@ -196,8 +201,15 @@ fn validate_conditions(value: &Value, path: &str) -> Result<(), String> {
     }
     if let Some(vector) = map.get("field_vector_t") {
         let values = array(vector, &format!("{path}.field_vector_t"))?;
-        if values.len() != 3 || values.iter().any(|v| v.as_f64().is_none_or(|n| !n.is_finite())) {
-            return Err(fail(path, "field_vector_t must contain three finite numbers"));
+        if values.len() != 3
+            || values
+                .iter()
+                .any(|v| v.as_f64().is_none_or(|n| !n.is_finite()))
+        {
+            return Err(fail(
+                path,
+                "field_vector_t must contain three finite numbers",
+            ));
         }
     }
     for key in ["field_orientation", "current_criterion", "geometry"] {
@@ -216,34 +228,55 @@ fn validate_conditions(value: &Value, path: &str) -> Result<(), String> {
 }
 
 fn validate_uncertainty(value: &Value, path: &str) -> Result<(), String> {
-    require_keys(value, &["type"], &[
-        "standard_uncertainty",
-        "coverage_factor",
-        "confidence_level",
-        "lower_bound",
-        "upper_bound",
-        "covariance_group_id",
-    ], path)?;
+    require_keys(
+        value,
+        &["type"],
+        &[
+            "standard_uncertainty",
+            "coverage_factor",
+            "confidence_level",
+            "lower_bound",
+            "upper_bound",
+            "covariance_group_id",
+        ],
+        path,
+    )?;
     let kind = enum_value(
         value,
         "type",
-        &["standard_uncertainty", "expanded_uncertainty", "interval", "qualitative", "unknown"],
+        &[
+            "standard_uncertainty",
+            "expanded_uncertainty",
+            "interval",
+            "qualitative",
+            "unknown",
+        ],
         path,
     )?;
-    if kind == "standard_uncertainty" && !object(value, path)?.contains_key("standard_uncertainty") {
-        return Err(fail(path, "standard_uncertainty type requires standard_uncertainty"));
+    if kind == "standard_uncertainty" && !object(value, path)?.contains_key("standard_uncertainty")
+    {
+        return Err(fail(
+            path,
+            "standard_uncertainty type requires standard_uncertainty",
+        ));
     }
     if kind == "expanded_uncertainty"
         && (!object(value, path)?.contains_key("standard_uncertainty")
             || !object(value, path)?.contains_key("coverage_factor"))
     {
-        return Err(fail(path, "expanded_uncertainty requires standard_uncertainty and coverage_factor"));
+        return Err(fail(
+            path,
+            "expanded_uncertainty requires standard_uncertainty and coverage_factor",
+        ));
     }
     if kind == "interval"
         && (!object(value, path)?.contains_key("lower_bound")
             || !object(value, path)?.contains_key("upper_bound"))
     {
-        return Err(fail(path, "interval uncertainty requires lower_bound and upper_bound"));
+        return Err(fail(
+            path,
+            "interval uncertainty requires lower_bound and upper_bound",
+        ));
     }
     for key in ["standard_uncertainty", "coverage_factor"] {
         if let Some(item) = object(value, path)?.get(key) {
@@ -256,7 +289,9 @@ fn validate_uncertainty(value: &Value, path: &str) -> Result<(), String> {
         }
     }
     if let Some(item) = object(value, path)?.get("confidence_level") {
-        let number = item.as_f64().ok_or_else(|| fail(path, "confidence_level must be finite"))?;
+        let number = item
+            .as_f64()
+            .ok_or_else(|| fail(path, "confidence_level must be finite"))?;
         if !number.is_finite() || !(0.0..=1.0).contains(&number) || number == 0.0 {
             return Err(fail(path, "confidence_level must be in (0, 1]"));
         }
@@ -265,10 +300,17 @@ fn validate_uncertainty(value: &Value, path: &str) -> Result<(), String> {
         object(value, path)?.get("lower_bound"),
         object(value, path)?.get("upper_bound"),
     ) {
-        let lower = lower.as_f64().ok_or_else(|| fail(path, "lower_bound must be finite"))?;
-        let upper = upper.as_f64().ok_or_else(|| fail(path, "upper_bound must be finite"))?;
+        let lower = lower
+            .as_f64()
+            .ok_or_else(|| fail(path, "lower_bound must be finite"))?;
+        let upper = upper
+            .as_f64()
+            .ok_or_else(|| fail(path, "upper_bound must be finite"))?;
         if !lower.is_finite() || !upper.is_finite() || lower > upper {
-            return Err(fail(path, "uncertainty interval must be finite and lower <= upper"));
+            return Err(fail(
+                path,
+                "uncertainty interval must be finite and lower <= upper",
+            ));
         }
     }
     Ok(())
@@ -278,14 +320,20 @@ fn validate_measurement_system(value: &Value, path: &str) -> Result<(), String> 
     require_keys(
         value,
         &["instrument_id", "calibration_revision"],
-        &["calibration_valid_at_measurement", "operator_or_automation_id"],
+        &[
+            "calibration_valid_at_measurement",
+            "operator_or_automation_id",
+        ],
         path,
     )?;
     string_field(value, "instrument_id", path)?;
     string_field(value, "calibration_revision", path)?;
     if let Some(valid) = object(value, path)?.get("calibration_valid_at_measurement") {
         if !valid.is_boolean() {
-            return Err(fail(path, "calibration_valid_at_measurement must be boolean"));
+            return Err(fail(
+                path,
+                "calibration_valid_at_measurement must be boolean",
+            ));
         }
     }
     if object(value, path)?.contains_key("operator_or_automation_id") {
@@ -324,11 +372,19 @@ fn rectangles_overlap(left: &Segment, right: &Segment) -> bool {
 fn validate_document(value: &Value) -> Result<AuditReport, String> {
     require_keys(
         value,
-        &["schema_version", "evidence_class", "claim_ceiling", "reel", "segments", "observations"],
+        &[
+            "schema_version",
+            "evidence_class",
+            "claim_ceiling",
+            "reel",
+            "segments",
+            "observations",
+        ],
         &["application_profiles", "provenance"],
         "$",
     )?;
-    if string_field(value, "schema_version", "$")? != "rebco-long-length-spatial-qualification.v0.1" {
+    if string_field(value, "schema_version", "$")? != "rebco-long-length-spatial-qualification.v0.1"
+    {
         return Err(fail("$.schema_version", "unsupported schema version"));
     }
     let evidence_class = enum_value(
@@ -345,21 +401,40 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
     require_keys(
         reel_value,
         &[
-            "reel_id", "lot_id", "campaign_id", "process_run_id", "architecture_id",
-            "total_length_mm", "width_mm", "longitudinal_datum", "positive_direction",
-            "width_datum", "coordinate_units",
+            "reel_id",
+            "lot_id",
+            "campaign_id",
+            "process_run_id",
+            "architecture_id",
+            "total_length_mm",
+            "width_mm",
+            "longitudinal_datum",
+            "positive_direction",
+            "width_datum",
+            "coordinate_units",
         ],
         &["face_convention", "source_manifest_sha256"],
         "$.reel",
     )?;
     let reel_id = string_field(reel_value, "reel_id", "$.reel")?.to_string();
-    for key in ["lot_id", "campaign_id", "process_run_id", "architecture_id", "longitudinal_datum", "width_datum"] {
+    for key in [
+        "lot_id",
+        "campaign_id",
+        "process_run_id",
+        "architecture_id",
+        "longitudinal_datum",
+        "width_datum",
+    ] {
         string_field(reel_value, key, "$.reel")?;
     }
     enum_value(
         reel_value,
         "positive_direction",
-        &["winding_direction", "unwinding_direction", "declared_axis_positive"],
+        &[
+            "winding_direction",
+            "unwinding_direction",
+            "declared_axis_positive",
+        ],
         "$.reel",
     )?;
     if string_field(reel_value, "coordinate_units", "$.reel")? != "mm" {
@@ -372,7 +447,9 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
     }
     if let Some(digest) = object(reel_value, "$.reel")?.get("source_manifest_sha256") {
         validate_digest(
-            digest.as_str().ok_or_else(|| fail("$.reel.source_manifest_sha256", "must be a string"))?,
+            digest
+                .as_str()
+                .ok_or_else(|| fail("$.reel.source_manifest_sha256", "must be a string"))?,
             "$.reel.source_manifest_sha256",
         )?;
     }
@@ -392,16 +469,29 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
         require_keys(
             item,
             &[
-                "segment_id", "parent_reel_id", "longitudinal_start_mm", "longitudinal_end_mm",
-                "width_start_mm", "width_end_mm", "face", "genealogy_state",
+                "segment_id",
+                "parent_reel_id",
+                "longitudinal_start_mm",
+                "longitudinal_end_mm",
+                "width_start_mm",
+                "width_end_mm",
+                "face",
+                "genealogy_state",
             ],
-            &["parent_segment_ids", "transformation_event_ids", "splice_or_joint_ids"],
+            &[
+                "parent_segment_ids",
+                "transformation_event_ids",
+                "splice_or_joint_ids",
+            ],
             &path,
         )?;
         let id = string_field(item, "segment_id", &path)?.to_string();
         let parent_reel_id = string_field(item, "parent_reel_id", &path)?.to_string();
         if parent_reel_id != reel.id {
-            return Err(fail(&path, "parent_reel_id does not match the declared reel"));
+            return Err(fail(
+                &path,
+                "parent_reel_id does not match the declared reel",
+            ));
         }
         let segment = Segment {
             id: id.clone(),
@@ -414,7 +504,9 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
         let genealogy = enum_value(
             item,
             "genealogy_state",
-            &["original", "cut", "split", "merged", "spliced", "reworked", "scrapped", "unknown"],
+            &[
+                "original", "cut", "split", "merged", "spliced", "reworked", "scrapped", "unknown",
+            ],
             &path,
         )?;
         if segment.longitudinal_start_mm < 0.0
@@ -424,9 +516,16 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
             || segment.width_end_mm > reel.width_mm
             || segment.width_start_mm >= segment.width_end_mm
         {
-            return Err(fail(&path, "segment rectangle lies outside reel bounds or has zero area"));
+            return Err(fail(
+                &path,
+                "segment rectangle lies outside reel bounds or has zero area",
+            ));
         }
-        for optional_ids in ["parent_segment_ids", "transformation_event_ids", "splice_or_joint_ids"] {
+        for optional_ids in [
+            "parent_segment_ids",
+            "transformation_event_ids",
+            "splice_or_joint_ids",
+        ] {
             if let Some(ids) = object(item, &path)?.get(optional_ids) {
                 let values = array(ids, &format!("{path}.{optional_ids}"))?;
                 let mut unique = BTreeSet::new();
@@ -434,7 +533,12 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
                     let id = id_value
                         .as_str()
                         .filter(|text| !text.trim().is_empty())
-                        .ok_or_else(|| fail(&path, format!("{optional_ids} values must be non-empty strings")))?;
+                        .ok_or_else(|| {
+                            fail(
+                                &path,
+                                format!("{optional_ids} values must be non-empty strings"),
+                            )
+                        })?;
                     if !unique.insert(id) {
                         return Err(fail(&path, format!("{optional_ids} contains a duplicate")));
                     }
@@ -442,9 +546,15 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
             }
         }
         if genealogy == "original" && object(item, &path)?.contains_key("parent_segment_ids") {
-            let ids = array(&item["parent_segment_ids"], &format!("{path}.parent_segment_ids"))?;
+            let ids = array(
+                &item["parent_segment_ids"],
+                &format!("{path}.parent_segment_ids"),
+            )?;
             if !ids.is_empty() {
-                return Err(fail(&path, "original segment cannot declare parent segment IDs"));
+                return Err(fail(
+                    &path,
+                    "original segment cannot declare parent segment IDs",
+                ));
             }
         }
         if segments.insert(id, segment).is_some() {
@@ -476,12 +586,22 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
         require_keys(
             observation,
             &[
-                "observation_id", "segment_id", "property", "evidence_state",
-                "authority", "coordinate_footprint", "source",
+                "observation_id",
+                "segment_id",
+                "property",
+                "evidence_state",
+                "authority",
+                "coordinate_footprint",
+                "source",
             ],
             &[
-                "value", "unit", "method", "detection_limit", "conditions",
-                "uncertainty", "measurement_system",
+                "value",
+                "unit",
+                "method",
+                "detection_limit",
+                "conditions",
+                "uncertainty",
+                "measurement_system",
             ],
             &path,
         )?;
@@ -497,27 +617,57 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
             observation,
             "property",
             &[
-                "ic", "jc", "je", "n_value", "tc_onset", "tc_zero_resistance",
-                "tc_bulk_thermodynamic", "layer_thickness", "texture_metric",
-                "defect_density", "crack_presence", "delamination", "phase_fraction",
-                "strain_response", "ac_loss", "joint_resistance", "other_declared",
+                "ic",
+                "jc",
+                "je",
+                "n_value",
+                "tc_onset",
+                "tc_zero_resistance",
+                "tc_bulk_thermodynamic",
+                "layer_thickness",
+                "texture_metric",
+                "defect_density",
+                "crack_presence",
+                "delamination",
+                "phase_fraction",
+                "strain_response",
+                "ac_loss",
+                "joint_resistance",
+                "other_declared",
             ],
             &path,
         )?;
         let state = enum_value(
             observation,
             "evidence_state",
-            &["measured", "not_detected", "unmeasured", "inferred", "disputed", "not_applicable"],
+            &[
+                "measured",
+                "not_detected",
+                "unmeasured",
+                "inferred",
+                "disputed",
+                "not_applicable",
+            ],
             &path,
         )?;
         let authority = enum_value(
             observation,
             "authority",
-            &["direct_measurement", "derived_measurement", "model_inference", "literature_reported", "synthetic_fixture", "unresolved"],
+            &[
+                "direct_measurement",
+                "derived_measurement",
+                "model_inference",
+                "literature_reported",
+                "synthetic_fixture",
+                "unresolved",
+            ],
             &path,
         )?;
         if evidence_class == "synthetic" && authority != "synthetic_fixture" {
-            return Err(fail(&path, "synthetic corpus requires synthetic_fixture authority"));
+            return Err(fail(
+                &path,
+                "synthetic corpus requires synthetic_fixture authority",
+            ));
         }
         *state_counts.entry(state.clone()).or_insert(0) += 1;
 
@@ -525,19 +675,43 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
         require_keys(
             footprint,
             &[
-                "longitudinal_start_mm", "longitudinal_end_mm", "width_start_mm",
-                "width_end_mm", "face",
+                "longitudinal_start_mm",
+                "longitudinal_end_mm",
+                "width_start_mm",
+                "width_end_mm",
+                "face",
             ],
             &["spatial_resolution_mm", "registration_uncertainty_mm"],
             &format!("{path}.coordinate_footprint"),
         )?;
         let footprint_interval = Interval {
-            start: number_field(footprint, "longitudinal_start_mm", &format!("{path}.coordinate_footprint"))?,
-            end: number_field(footprint, "longitudinal_end_mm", &format!("{path}.coordinate_footprint"))?,
+            start: number_field(
+                footprint,
+                "longitudinal_start_mm",
+                &format!("{path}.coordinate_footprint"),
+            )?,
+            end: number_field(
+                footprint,
+                "longitudinal_end_mm",
+                &format!("{path}.coordinate_footprint"),
+            )?,
         };
-        let width_start = number_field(footprint, "width_start_mm", &format!("{path}.coordinate_footprint"))?;
-        let width_end = number_field(footprint, "width_end_mm", &format!("{path}.coordinate_footprint"))?;
-        let face = enum_value(footprint, "face", &["a", "b", "both", "unknown"], &format!("{path}.coordinate_footprint"))?;
+        let width_start = number_field(
+            footprint,
+            "width_start_mm",
+            &format!("{path}.coordinate_footprint"),
+        )?;
+        let width_end = number_field(
+            footprint,
+            "width_end_mm",
+            &format!("{path}.coordinate_footprint"),
+        )?;
+        let face = enum_value(
+            footprint,
+            "face",
+            &["a", "b", "both", "unknown"],
+            &format!("{path}.coordinate_footprint"),
+        )?;
         if footprint_interval.start < segment.longitudinal_start_mm
             || footprint_interval.end > segment.longitudinal_end_mm
             || footprint_interval.start >= footprint_interval.end
@@ -549,21 +723,39 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
             || width_start < 0.0
             || width_end > reel.width_mm
         {
-            return Err(fail(&path, "observation footprint lies outside its segment or reel"));
+            return Err(fail(
+                &path,
+                "observation footprint lies outside its segment or reel",
+            ));
         }
-        if segment.face != "both" && segment.face != "unknown" && face != segment.face && face != "both" {
+        if segment.face != "both"
+            && segment.face != "unknown"
+            && face != segment.face
+            && face != "both"
+        {
             return Err(fail(&path, "observation face does not match segment face"));
         }
-        if let Some(resolution) = object(footprint, &format!("{path}.coordinate_footprint"))?.get("spatial_resolution_mm") {
-            let value = resolution.as_f64().ok_or_else(|| fail(&path, "spatial_resolution_mm must be finite"))?;
+        if let Some(resolution) =
+            object(footprint, &format!("{path}.coordinate_footprint"))?.get("spatial_resolution_mm")
+        {
+            let value = resolution
+                .as_f64()
+                .ok_or_else(|| fail(&path, "spatial_resolution_mm must be finite"))?;
             if !value.is_finite() || value <= 0.0 {
                 return Err(fail(&path, "spatial_resolution_mm must be positive"));
             }
         }
-        if let Some(uncertainty) = object(footprint, &format!("{path}.coordinate_footprint"))?.get("registration_uncertainty_mm") {
-            let value = uncertainty.as_f64().ok_or_else(|| fail(&path, "registration_uncertainty_mm must be finite"))?;
+        if let Some(uncertainty) = object(footprint, &format!("{path}.coordinate_footprint"))?
+            .get("registration_uncertainty_mm")
+        {
+            let value = uncertainty
+                .as_f64()
+                .ok_or_else(|| fail(&path, "registration_uncertainty_mm must be finite"))?;
             if !value.is_finite() || value < 0.0 {
-                return Err(fail(&path, "registration_uncertainty_mm must be non-negative"));
+                return Err(fail(
+                    &path,
+                    "registration_uncertainty_mm must be non-negative",
+                ));
             }
         }
 
@@ -575,13 +767,25 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
                 validate_interval_value(&observation["value"], &format!("{path}.value"))?;
                 string_field(observation, "unit", &path)?;
                 string_field(observation, "method", &path)?;
-                validate_conditions(field(observation, "conditions", &path)?, &format!("{path}.conditions"))?;
-                validate_uncertainty(field(observation, "uncertainty", &path)?, &format!("{path}.uncertainty"))?;
-                validate_measurement_system(field(observation, "measurement_system", &path)?, &format!("{path}.measurement_system"))?;
+                validate_conditions(
+                    field(observation, "conditions", &path)?,
+                    &format!("{path}.conditions"),
+                )?;
+                validate_uncertainty(
+                    field(observation, "uncertainty", &path)?,
+                    &format!("{path}.uncertainty"),
+                )?;
+                validate_measurement_system(
+                    field(observation, "measurement_system", &path)?,
+                    &format!("{path}.measurement_system"),
+                )?;
             }
             "not_detected" => {
                 if object(observation, &path)?.contains_key("value") {
-                    return Err(fail(&path, "not_detected must not carry a fabricated value"));
+                    return Err(fail(
+                        &path,
+                        "not_detected must not carry a fabricated value",
+                    ));
                 }
                 let limit = number_field(observation, "detection_limit", &path)?;
                 if limit < 0.0 {
@@ -589,12 +793,21 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
                 }
                 string_field(observation, "unit", &path)?;
                 string_field(observation, "method", &path)?;
-                validate_conditions(field(observation, "conditions", &path)?, &format!("{path}.conditions"))?;
-                validate_measurement_system(field(observation, "measurement_system", &path)?, &format!("{path}.measurement_system"))?;
+                validate_conditions(
+                    field(observation, "conditions", &path)?,
+                    &format!("{path}.conditions"),
+                )?;
+                validate_measurement_system(
+                    field(observation, "measurement_system", &path)?,
+                    &format!("{path}.measurement_system"),
+                )?;
             }
             "unmeasured" | "not_applicable" => {
                 if object(observation, &path)?.contains_key("value") {
-                    return Err(fail(&path, "unmeasured/not_applicable cannot carry a value"));
+                    return Err(fail(
+                        &path,
+                        "unmeasured/not_applicable cannot carry a value",
+                    ));
                 }
             }
             "disputed" => {
@@ -635,36 +848,81 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
         require_keys(
             source,
             &["artifact_sha256", "rights_status"],
-            &["source_uri", "source_locator", "review_state", "acquisition_time"],
+            &[
+                "source_uri",
+                "source_locator",
+                "review_state",
+                "acquisition_time",
+            ],
             &format!("{path}.source"),
         )?;
         validate_hash_field(source, "artifact_sha256", &format!("{path}.source"))?;
-        enum_value(source, "rights_status", &["public", "restricted", "permission_required", "unknown"], &format!("{path}.source"))?;
+        enum_value(
+            source,
+            "rights_status",
+            &["public", "restricted", "permission_required", "unknown"],
+            &format!("{path}.source"),
+        )?;
         if object(source, &format!("{path}.source"))?.contains_key("review_state") {
-            enum_value(source, "review_state", &["unreviewed", "reviewed", "disputed", "withdrawn"], &format!("{path}.source"))?;
+            enum_value(
+                source,
+                "review_state",
+                &["unreviewed", "reviewed", "disputed", "withdrawn"],
+                &format!("{path}.source"),
+            )?;
         }
         for key in ["source_uri", "source_locator", "acquisition_time"] {
             if let Some(item) = object(source, &format!("{path}.source"))?.get(key) {
                 if item.as_str().is_none_or(|text| text.trim().is_empty()) {
-                    return Err(fail(&path, format!("source.{key} must be a non-empty string")));
+                    return Err(fail(
+                        &path,
+                        format!("source.{key} must be a non-empty string"),
+                    ));
                 }
             }
         }
     }
 
     if let Some(profiles) = object(value, "$")?.get("application_profiles") {
-        for (index, profile) in array(profiles, "$.application_profiles")?.iter().enumerate() {
+        for (index, profile) in array(profiles, "$.application_profiles")?
+            .iter()
+            .enumerate()
+        {
             let path = format!("$.application_profiles[{index}]");
             require_keys(
                 profile,
-                &["profile_id", "intended_use", "temperature_k", "field_magnitude_t", "field_orientation", "current_criterion", "acceptance_rule_id"],
+                &[
+                    "profile_id",
+                    "intended_use",
+                    "temperature_k",
+                    "field_magnitude_t",
+                    "field_orientation",
+                    "current_criterion",
+                    "acceptance_rule_id",
+                ],
                 &["strain_limit", "geometry_convention"],
                 &path,
             )?;
             string_field(profile, "profile_id", &path)?;
-            enum_value(profile, "intended_use", &["high_field_magnet", "power_cable", "busbar", "rf_component", "other_declared"], &path)?;
-            if number_field(profile, "temperature_k", &path)? <= 0.0 || number_field(profile, "field_magnitude_t", &path)? < 0.0 {
-                return Err(fail(&path, "application profile temperature/field is invalid"));
+            enum_value(
+                profile,
+                "intended_use",
+                &[
+                    "high_field_magnet",
+                    "power_cable",
+                    "busbar",
+                    "rf_component",
+                    "other_declared",
+                ],
+                &path,
+            )?;
+            if number_field(profile, "temperature_k", &path)? <= 0.0
+                || number_field(profile, "field_magnitude_t", &path)? < 0.0
+            {
+                return Err(fail(
+                    &path,
+                    "application profile temperature/field is invalid",
+                ));
             }
             string_field(profile, "field_orientation", &path)?;
             string_field(profile, "current_criterion", &path)?;
@@ -674,16 +932,28 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
                     string_field(profile, key, &path)?;
                 }
             }
-            if object(profile, &path)?.contains_key("strain_limit") && number_field(profile, "strain_limit", &path)? < 0.0 {
+            if object(profile, &path)?.contains_key("strain_limit")
+                && number_field(profile, "strain_limit", &path)? < 0.0
+            {
                 return Err(fail(&path, "strain_limit must be non-negative"));
             }
         }
     }
     if let Some(provenance) = object(value, "$")?.get("provenance") {
-        require_keys(provenance, &["created_at", "producer", "rights_status"], &["source_uri", "notes"], "$.provenance")?;
+        require_keys(
+            provenance,
+            &["created_at", "producer", "rights_status"],
+            &["source_uri", "notes"],
+            "$.provenance",
+        )?;
         string_field(provenance, "created_at", "$.provenance")?;
         string_field(provenance, "producer", "$.provenance")?;
-        enum_value(provenance, "rights_status", &["public", "restricted", "permission_required", "unknown"], "$.provenance")?;
+        enum_value(
+            provenance,
+            "rights_status",
+            &["public", "restricted", "permission_required", "unknown"],
+            "$.provenance",
+        )?;
     }
 
     let measured_length = interval_union_length(ic_measured);
@@ -728,7 +998,9 @@ fn report_value(report: AuditReport) -> Value {
 }
 
 fn run() -> Result<(), String> {
-    let path = env::args().nth(1).unwrap_or_else(|| DEFAULT_FIXTURE.to_string());
+    let path = env::args()
+        .nth(1)
+        .unwrap_or_else(|| DEFAULT_FIXTURE.to_string());
     let source = fs::read_to_string(&path)
         .map_err(|error| format!("cannot read fixture {path}: {error}"))?;
     let value: Value = serde_json::from_str(&source)
@@ -772,49 +1044,82 @@ mod tests {
         assert!((report.ic_measured_full_width_coverage_fraction - 0.4).abs() < 1e-9);
         assert!((report.ic_explicitly_unmeasured_full_width_length_mm - 300.0).abs() < 1e-9);
         assert!((report.ic_not_directly_measured_length_mm - 600.0).abs() < 1e-9);
-        assert_eq!(report.acceptance_disposition, "NOT_EVALUATED_NO_QUALIFIED_APPLICATION_TEST");
+        assert_eq!(
+            report.acceptance_disposition,
+            "NOT_EVALUATED_NO_QUALIFIED_APPLICATION_TEST"
+        );
     }
 
     #[test]
     fn rejects_segment_outside_reel_bounds() {
         let mut value = fixture();
         value["segments"][0]["longitudinal_end_mm"] = json!(1100.0);
-        assert!(validate_document(&value).unwrap_err().contains("outside reel bounds"));
+        assert!(
+            validate_document(&value)
+                .unwrap_err()
+                .contains("outside reel bounds")
+        );
     }
 
     #[test]
     fn rejects_spatially_overlapping_segments() {
         let mut value = fixture();
         value["segments"][1]["longitudinal_start_mm"] = json!(350.0);
-        assert!(validate_document(&value).unwrap_err().contains("overlap spatially"));
+        assert!(
+            validate_document(&value)
+                .unwrap_err()
+                .contains("overlap spatially")
+        );
     }
 
     #[test]
     fn rejects_observation_with_unknown_segment() {
         let mut value = fixture();
         value["observations"][0]["segment_id"] = json!("UNKNOWN");
-        assert!(validate_document(&value).unwrap_err().contains("unknown segment"));
+        assert!(
+            validate_document(&value)
+                .unwrap_err()
+                .contains("unknown segment")
+        );
     }
 
     #[test]
     fn rejects_unmeasured_record_with_fabricated_value() {
         let mut value = fixture();
         value["observations"][2]["value"] = json!(0.0);
-        assert!(validate_document(&value).unwrap_err().contains("cannot carry a value"));
+        assert!(
+            validate_document(&value)
+                .unwrap_err()
+                .contains("cannot carry a value")
+        );
     }
 
     #[test]
     fn rejects_measured_record_without_conditions() {
         let mut value = fixture();
-        value["observations"][0].as_object_mut().expect("object").remove("conditions");
-        assert!(validate_document(&value).unwrap_err().contains("missing property conditions"));
+        value["observations"][0]
+            .as_object_mut()
+            .expect("object")
+            .remove("conditions");
+        assert!(
+            validate_document(&value)
+                .unwrap_err()
+                .contains("missing property conditions")
+        );
     }
 
     #[test]
     fn rejects_not_detected_without_a_detection_limit() {
         let mut value = fixture();
-        value["observations"][1].as_object_mut().expect("object").remove("detection_limit");
-        assert!(validate_document(&value).unwrap_err().contains("missing property detection_limit"));
+        value["observations"][1]
+            .as_object_mut()
+            .expect("object")
+            .remove("detection_limit");
+        assert!(
+            validate_document(&value)
+                .unwrap_err()
+                .contains("missing property detection_limit")
+        );
     }
 
     #[test]
@@ -828,7 +1133,11 @@ mod tests {
     fn rejects_measurement_footprint_outside_segment() {
         let mut value = fixture();
         value["observations"][2]["coordinate_footprint"]["longitudinal_start_mm"] = json!(600.0);
-        assert!(validate_document(&value).unwrap_err().contains("outside its segment"));
+        assert!(
+            validate_document(&value)
+                .unwrap_err()
+                .contains("outside its segment")
+        );
     }
 
     #[test]
@@ -836,7 +1145,11 @@ mod tests {
         let mut value = fixture();
         let first_id = value["observations"][0]["observation_id"].clone();
         value["observations"][1]["observation_id"] = first_id;
-        assert!(validate_document(&value).unwrap_err().contains("duplicate observation_id"));
+        assert!(
+            validate_document(&value)
+                .unwrap_err()
+                .contains("duplicate observation_id")
+        );
     }
 
     #[test]
@@ -854,7 +1167,8 @@ mod tests {
     #[test]
     fn invalid_calibration_does_not_count_as_qualified_coverage() {
         let mut value = fixture();
-        value["observations"][0]["measurement_system"]["calibration_valid_at_measurement"] = json!(false);
+        value["observations"][0]["measurement_system"]["calibration_valid_at_measurement"] =
+            json!(false);
         let report = validate_document(&value).expect("record remains inspectable");
         assert_eq!(report.ic_measured_full_width_length_mm, 0.0);
         assert_eq!(report.ic_measured_unqualified_full_width_length_mm, 400.0);
@@ -873,13 +1187,21 @@ mod tests {
     fn rejects_unknown_fields_in_closed_contract() {
         let mut value = fixture();
         value["unreviewed_shortcut"] = json!(true);
-        assert!(validate_document(&value).unwrap_err().contains("unknown property"));
+        assert!(
+            validate_document(&value)
+                .unwrap_err()
+                .contains("unknown property")
+        );
     }
 
     #[test]
     fn synthetic_corpus_cannot_claim_direct_measurement_authority() {
         let mut value = fixture();
         value["observations"][0]["authority"] = json!("direct_measurement");
-        assert!(validate_document(&value).unwrap_err().contains("synthetic_fixture authority"));
+        assert!(
+            validate_document(&value)
+                .unwrap_err()
+                .contains("synthetic_fixture authority")
+        );
     }
 }
