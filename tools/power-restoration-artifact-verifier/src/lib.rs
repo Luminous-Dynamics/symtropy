@@ -2670,6 +2670,8 @@ mod tests {
                 instrument_id: Some("meter-set-001".to_string()),
                 calibration_artifact_ref: Some(calibration_uri.clone()),
                 calibration_artifact_sha256: Some(calibration_sha.clone()),
+                calibration_valid_from_unix_ms: Some(1_799_999_000_000),
+                calibration_valid_until_unix_ms: Some(1_800_010_000_000),
             },
             source_artifacts: vec![
                 power_restoration_service_trajectory_audit::ServiceSourceArtifact {
