@@ -43,10 +43,10 @@ impl AdmissionEvidence {
         {
             blockers.push(AdmissionGate::ImmutableRevision);
         }
-        if !self
+        if self
             .license_expression
             .as_deref()
-            .is_some_and(|value| !value.trim().is_empty())
+            .is_none_or(|value| value.trim().is_empty())
             || !self.license_scope_reviewed
         {
             blockers.push(AdmissionGate::ReviewedLicenseScope);
