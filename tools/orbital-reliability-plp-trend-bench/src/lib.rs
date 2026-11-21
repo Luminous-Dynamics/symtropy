@@ -330,21 +330,28 @@ fn evaluate_case(case: &TrendCase) -> Decision {
             blockers,
         },
         Err(error) => {
-            let code = if case.exposure_end_seconds == 0
+            let invalid_window = case.exposure_end_seconds == 0
                 || case.exposure_end_seconds > MAX_EXPOSURE_SECONDS
                 || case.event_times_seconds.iter().any(|time| {
                     *time == 0 || *time >= case.exposure_end_seconds
                 })
-                || case.event_times_seconds.windows(2).any(|pair| pair[0] >= pair[1])
-            {
+                || case.event_times_seconds.windows(2).any(|pair| pair[0] >= pair[1]);
+            let insufficient = case.event_times_seconds.len() < 2;
+            let code = if invalid_window {
                 "event_history_or_exposure_window_invalid"
+            } else if insufficient {
+                "fewer_than_two_events_for_trend_test"
             } else {
                 "insufficient_or_numerically_invalid_event_history"
             };
             let _ = error;
             push_blocker(&mut blockers, code);
             Decision {
-                disposition: Disposition::Rejected,
+                disposition: if insufficient && !invalid_window {
+                    Disposition::Indeterminate
+                } else {
+                    Disposition::Rejected
+                },
                 event_count: case.event_times_seconds.len(),
                 beta_hat: None,
                 likelihood_ratio_statistic: None,
