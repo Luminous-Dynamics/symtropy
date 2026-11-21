@@ -483,7 +483,8 @@
               "type": "number",
               "exclusiveMinimum": 0
             }
-          }
+          },
+          "description": "For Ic observations this declares the exact operating-condition profile. Coverage is partitioned by temperature, applied field/vector/orientation, current criterion and other operating values; measurement geometry remains source-specific and does not merge unlike test profiles."
         },
         "uncertainty": {
           "type": "object",
@@ -663,6 +664,53 @@
               "required": [
                 "value"
               ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "property": {
+                "const": "ic"
+              },
+              "evidence_state": {
+                "enum": [
+                  "measured",
+                  "inferred"
+                ]
+              }
+            },
+            "required": [
+              "property",
+              "evidence_state"
+            ]
+          },
+          "then": {
+            "required": [
+              "unit",
+              "conditions"
+            ],
+            "properties": {
+              "conditions": {
+                "required": [
+                  "temperature_k",
+                  "current_criterion",
+                  "geometry"
+                ],
+                "anyOf": [
+                  {
+                    "required": [
+                      "field_magnitude_t",
+                      "field_orientation"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "field_vector_t"
+                    ]
+                  }
+                ]
+              }
             }
           }
         }
