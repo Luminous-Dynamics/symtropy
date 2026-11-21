@@ -302,12 +302,21 @@ def main() -> None:
                     sp.diff(xi_cov[nu],coords[mu])
                     -sp.diff(xi_cov[mu],coords[nu])
                 )/2
-        killing_residuals=[
-            sp.factor(sp.trigsimp(nabla_xi_local[i,j]+nabla_xi_local[j,i]))
-            for i in range(5) for j in range(5)
-        ]
-        if any(v != 0 for v in killing_residuals):
-            raise AssertionError(f"{label} is not Killing")
+        # Independent Killing test from the Lie derivative L_xi g=0.
+        lie_residuals=[]
+        for i in range(5):
+            for j in range(5):
+                lie=sp.S.Zero
+                for lam in range(5):
+                    lie += (
+                        xi_up[lam]*sp.diff(metric[i,j],coords[lam])
+                        +metric[lam,j]*sp.diff(xi_up[lam],coords[i])
+                        +metric[i,lam]*sp.diff(xi_up[lam],coords[j])
+                    )
+                lie_residuals.append(sp.factor(sp.trigsimp(lie)))
+        if any(v != 0 for v in lie_residuals):
+            bad=next(v for v in lie_residuals if v != 0)
+            raise AssertionError(f"{label} is not Killing: {sp.sstr(bad)}")
         contraction=sp.S.Zero
         for rho in range(5):
             for sigma in range(5):
@@ -359,15 +368,21 @@ def main() -> None:
         +sl2["xi_axial"]["k_density_epsilon"].subs(at_horizon)/2
     )
     # The entropy generator vanishes at the selected bifurcation point.
-    zeta_vector=sp.factor(
-        (xi_minus/2-xi_plus+xi_axial/2).subs(at_horizon)
-    )
+    zeta_vector=sp.factor(xi_zeta.subs(at_horizon))
     exact_zero("bifurcation generator vanishes",zeta_vector.norm())
     exact_zero("linearity of bifurcation charge",entropy_from_generators-zeta_direct)
     exact_zero("bifurcation charge equals Wald variation",zeta_direct-wald_variation)
-    exact_zero("source Section 4 density versus axial/S-L2 identity",
-               source_density-j2_sl2)
+    source_density_minus_j2=sp.factor(source_density-j2_sl2)
     source_identity_residual=sp.factor(2*n_delta_Q-j2_sl2)
+    xi_zeta=xi_minus/2-xi_plus+xi_axial/2
+    direct_zeta_data=surface_density_for_generator(xi_zeta,"zeta_H")
+    direct_zeta_density=sp.factor(
+        direct_zeta_data["k_density_epsilon"].subs(at_horizon)
+    )
+    exact_zero("direct entropy generator equals component sum",
+               direct_zeta_density-zeta_direct)
+    exact_zero("direct bifurcation charge equals Wald variation",
+               direct_zeta_density-wald_variation)
 
     sl2_fixture={
         "bifurcation_point":{"t_H":"0","r_H":"1"},
@@ -392,14 +407,16 @@ def main() -> None:
         "entropy_from_eq23":sp.sstr(entropy_from_generators),
         "direct_bifurcation_charge":sp.sstr(zeta_direct),
         "source_eq24_density":sp.sstr(source_density),
-        "source_eq24_minus_delta_J2":sp.sstr(source_density-j2_sl2),
+        "source_eq24_minus_delta_J2":sp.sstr(source_density_minus_j2),
         "2n_delta_Q_minus_delta_J2":sp.sstr(source_identity_residual),
         "validation":{
-            "all_generators_killing":True,
+            "all_generators_killing_by_lie_derivative":True,
             "bifurcation_generator_zero":True,
             "entropy_generator_equals_wald_variation":True,
             "eq23_linearity_exact":True,
             "source_eq24_density_equals_delta_J2":False,
+            "direct_zeta_matches_component_combination":True,
+            "direct_zeta_matches_wald_variation":True,
             "eq24_local_identity_2nQ_equals_J2":False
         }
     }
