@@ -208,6 +208,11 @@ monotonic event time, payload/station consistency, material totals, energy-windo
 consistency, process prerequisites, delivery/handoff order, and agreement
 between event-derived counts and report summary fields.
 
+The verifier implementation lives in the dependency-light
+`crates/core/symtropy-mk0-contract` package, which is a member of the public
+workspace and has a dedicated CI test step. The private-dependency bridge
+re-exports the same types and verifier rather than maintaining a second copy.
+
 This verifier establishes only that the synthetic scenario is internally
 coherent. It does **not** prove that a physical printer, recycler, manipulator,
 or mobile robot performed the corresponding operation; it does not qualify
