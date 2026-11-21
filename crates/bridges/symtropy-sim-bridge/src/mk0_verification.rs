@@ -33,13 +33,16 @@ pub enum Mk0VerificationViolation {
     DuplicateEnergyWindow,
     EnergyWindowMismatch,
     MissingPrintClaim,
+    DuplicatePrintClaim,
     UnexpectedPrintClaim,
     PrintWorkOrderMismatch,
     MissingDelivery,
+    DuplicateDelivery,
     UnexpectedDelivery,
     DeliveryWorkOrderMismatch,
     DeliveryRouteMismatch,
     MissingHandoff,
+    DuplicateHandoff,
     UnexpectedHandoff,
     HandoffWorkOrderMismatch,
     HandoffReceiverMismatch,
@@ -224,8 +227,10 @@ pub fn verify_mk0_bootstrapper_report(report: &Mk0ScenarioReport) -> Mk0Verifica
         .collect();
 
     let should_print = work_order_valid && expected_energy_allowed && enough_material;
-    if should_print && print_claims.len() != 1 {
+    if should_print && print_claims.is_empty() {
         violations.push(Mk0VerificationViolation::MissingPrintClaim);
+    } else if should_print && print_claims.len() > 1 {
+        violations.push(Mk0VerificationViolation::DuplicatePrintClaim);
     } else if !should_print && !print_claims.is_empty() {
         violations.push(Mk0VerificationViolation::UnexpectedPrintClaim);
     }
@@ -251,8 +256,10 @@ pub fn verify_mk0_bootstrapper_report(report: &Mk0ScenarioReport) -> Mk0Verifica
         .collect();
 
     let should_deliver = should_print && has_delivery_route;
-    if should_deliver && deliveries.len() != 1 {
+    if should_deliver && deliveries.is_empty() {
         violations.push(Mk0VerificationViolation::MissingDelivery);
+    } else if should_deliver && deliveries.len() > 1 {
+        violations.push(Mk0VerificationViolation::DuplicateDelivery);
     } else if !should_deliver && !deliveries.is_empty() {
         violations.push(Mk0VerificationViolation::UnexpectedDelivery);
     }
@@ -278,8 +285,10 @@ pub fn verify_mk0_bootstrapper_report(report: &Mk0ScenarioReport) -> Mk0Verifica
         .collect();
 
     let should_handoff = should_deliver;
-    if should_handoff && handoffs.len() != 1 {
+    if should_handoff && handoffs.is_empty() {
         violations.push(Mk0VerificationViolation::MissingHandoff);
+    } else if should_handoff && handoffs.len() > 1 {
+        violations.push(Mk0VerificationViolation::DuplicateHandoff);
     } else if !should_handoff && !handoffs.is_empty() {
         violations.push(Mk0VerificationViolation::UnexpectedHandoff);
     }
@@ -498,4 +507,69 @@ mod tests {
         assert!(!verified.contract_valid);
         assert!(verified.violations.contains(&Mk0VerificationViolation::ReportCountersMismatch));
     }
-}
+} 
+    #[test]
+    fn verifies_energy_constrained_room_as_valid_noncompletion() {
+        let config = Mk0ScenarioConfig {
+            initial_energy_reserve: 0.1,
+            ..Mk0ScenarioConfig::default()
+        };
+        let report = run_mk0_bootstrapper_scenario(config);
+        let verified = verify_mk0_bootstrapper_report(&report);
+
+        assert!(!report.success);
+        assert!(verified.contract_valid, "{:?}", verified.violations);
+        assert!(!verified.synthetic_run_completed);
+    }
+
+    #[test]
+    fn verifies_missing_delivery_route_as_valid_noncompletion() {
+        let mut config = Mk0ScenarioConfig::default();
+        config.room_layout.edges.clear();
+        let report = run_mk0_bootstrapper_scenario(config);
+        let verified = verify_mk0_bootstrapper_report(&report);
+
+        assert!(!report.success);
+        assert!(verified.contract_valid, "{:?}", verified.violations);
+        assert!(!verified.synthetic_run_completed);
+    }
+
+    #[test]
+    fn rejects_an_invalid_energy_reserve() {
+        let config = Mk0ScenarioConfig {
+            initial_energy_reserve: f32::NAN,
+            ..Mk0ScenarioConfig::default()
+        };
+        let report = run_mk0_bootstrapper_scenario(config);
+        let verified = verify_mk0_bootstrapper_report(&report);
+
+        assert!(!verified.contract_valid);
+        assert!(verified.violations.contains(&Mk0VerificationViolation::InvalidEnergyReserve));
+    }
+
+    #[test]
+    fn rejects_duplicate_handoff_receipts() {
+        let mut report = run_mk0_bootstrapper_scenario(Mk0ScenarioConfig::default());
+        let mut duplicate = report
+            .events
+            .iter()
+            .find(|event| event.record_kind == Mk0RecordKind::HandoffReceipt)
+            .unwrap()
+            .clone();
+        duplicate.record_id = "handoff-duplicate".to_string();
+        if let Mk0RecordPayload::HandoffReceipt(ref mut handoff) = duplicate.payload {
+            handoff.id = duplicate.record_id.clone();
+        }
+        let energy_window_index = report
+            .events
+            .iter()
+            .position(|event| event.record_kind == Mk0RecordKind::EnergyWindow)
+            .unwrap();
+        report.events.insert(energy_window_index, duplicate);
+
+        let verified = verify_mk0_bootstrapper_report(&report);
+        assert!(!verified.contract_valid);
+        assert!(verified.violations.contains(&Mk0VerificationViolation::DuplicateHandoff));
+        assert!(verified.violations.contains(&Mk0VerificationViolation::ReportCountersMismatch));
+    }
+
