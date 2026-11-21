@@ -66,6 +66,15 @@
             "obs-rev-002"
           ],
           "storage_scope": "persistent-summary"
+        },
+        {
+          "item_ref": "mem-rev-002-embedding",
+          "layer": "embedding",
+          "created_tick": 250,
+          "derived_from_refs": [
+            "obs-rev-002"
+          ],
+          "storage_scope": "vector-store"
         }
       ],
       "revocation": {
