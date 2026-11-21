@@ -15,7 +15,6 @@ use std::fmt::{Display, Formatter};
 pub const MIN_BLIND_HOLDOUT_TRIALS: usize = 10;
 pub const MIN_BLIND_TASK_CLUSTERS: usize = 10;
 pub const MIN_BOOTSTRAP_REPLICATES: usize = 1_000;
-const Z_95: f64 = 1.959_963_984_540_054;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Digest(pub [u8; 32]);
@@ -76,7 +75,6 @@ pub enum FidelityError {
     InvalidNormalizationScale,
     InvalidTaskStageScore,
     InvalidBootstrapReplicateCount,
-    InvalidBootstrapConfidenceInterval,
 }
 
 impl Display for FidelityError {
@@ -111,7 +109,6 @@ impl Display for FidelityError {
             Self::InvalidNormalizationScale => write!(formatter, "normalization scale must be finite and positive"),
             Self::InvalidTaskStageScore => write!(formatter, "task-stage scores must be finite and in [0, 1]"),
             Self::InvalidBootstrapReplicateCount => write!(formatter, "at least 1000 bootstrap replicates are required"),
-            Self::InvalidBootstrapConfidenceInterval => write!(formatter, "bootstrap confidence level must be finite and in (0, 1)"),
         }
     }
 }
@@ -539,7 +536,6 @@ pub fn score_evaluation(
             mean_task_rmse_95: bootstrap_mean_interval(
                 &task_rmse,
                 bootstrap,
-                Z_95,
             ),
         });
     }
@@ -630,7 +626,7 @@ fn score_task_agreement(
         end_to_end_outcome_agreement_rate: agreements as f64 / count as f64,
         false_safe_count,
         false_failure_count,
-        mean_signed_stage_gap_95: bootstrap_mean_interval(&deltas, bootstrap, Z_95),
+        mean_signed_stage_gap_95: bootstrap_mean_interval(&deltas, bootstrap),
     }
 }
 
@@ -670,7 +666,6 @@ fn pearson_correlation(left: &[f64], right: &[f64]) -> Option<f64> {
 fn bootstrap_mean_interval(
     values: &[f64],
     config: BootstrapConfig,
-    z: f64,
 ) -> ConfidenceInterval {
     let mut random = SplitMix64::new(config.seed);
     let mut bootstrap_means = Vec::with_capacity(config.replicates);
