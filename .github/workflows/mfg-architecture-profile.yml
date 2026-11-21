@@ -104,6 +104,7 @@ jobs:
         run: |
           cargo run --locked --bin foundrybench-metrics -- calibration ../benchmarks/binary-calibration-input.schema.json ../benchmarks/binary-calibration.synthetic.json > /tmp/binary-calibration.json
           grep -F '"brier_score"' /tmp/binary-calibration.json
+          grep -F '"negative_log_likelihood"' /tmp/binary-calibration.json
           grep -F '"expected_calibration_error"' /tmp/binary-calibration.json
 
       - name: Verify run-level partition disjointness
