@@ -120,4 +120,4 @@ This is a generic forward operator only. It does not model scintillator light pr
 - The Poisson Fisher helper assumes fixed response and conditionally independent Poisson bins. It does not, by itself, account for the cross-bin covariance from uncertain response matrices. The ensemble-moment helper is a forward covariance primitive, not a hierarchical likelihood or an unfolding algorithm.
 - Neither module proves global identifiability, distinguishes all competing physical mechanisms, nor provides experimental evidence.
 
-See [IDENTIFIABILITY_AND_DESIGN.md](../../docs/research/cmni/IDENTIFIABILITY_AND_DESIGN.md) for the proposed design architecture, SOTA comparison and benchmark ladder.
+See [IDENTIFIABILITY_AND_DESIGN.md](../../../docs/research/cmni/IDENTIFIABILITY_AND_DESIGN.md) for the proposed design architecture, SOTA comparison and benchmark ladder.
