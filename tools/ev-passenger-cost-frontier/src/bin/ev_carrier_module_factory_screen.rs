@@ -10,7 +10,9 @@ use ev_passenger_cost_frontier::carrier_module_factory::{
 fn main() -> ExitCode {
     let args: Vec<String> = env::args().skip(1).collect();
     if args.len() != 2 {
-        eprintln!("usage: ev_carrier_module_factory_screen <factory-report.json> <module-processes.json>");
+        eprintln!(
+            "usage: ev_carrier_module_factory_screen <factory-report.json> <module-processes.json>"
+        );
         return ExitCode::from(2);
     }
     let base_raw = match fs::read_to_string(&args[0]) {
