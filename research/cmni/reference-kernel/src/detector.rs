@@ -170,7 +170,7 @@ impl DetectorResponseMatrix {
                 }
             }
         }
-        if initial_true_counts.iter().any(|value| *value == 0.0) {
+        if initial_true_counts.contains(&0.0) {
             return Err(ModelError::InvalidParameter(
                 "poisson_em_initial_true_spectrum_must_be_strictly_positive",
             ));
