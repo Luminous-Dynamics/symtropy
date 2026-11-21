@@ -106,6 +106,30 @@ class SequentialAcquisitionTests(unittest.TestCase):
         with self.assertRaises(evaluator.EvaluationError):
             self.score(submission=candidate)
 
+    def test_unhashable_candidate_decision_fails_closed(self):
+        candidate = copy.deepcopy(self.submission)
+        self.prediction(candidate, "sa-001-eig-trap")["decision"] = []
+        with self.assertRaises(evaluator.EvaluationError):
+            self.score(submission=candidate)
+
+    def test_malformed_hidden_state_fails_closed(self):
+        truth = copy.deepcopy(self.truth)
+        truth["episodes"][0]["hidden_state"] = []
+        with self.assertRaises(evaluator.EvaluationError):
+            self.score(truth=truth)
+
+    def test_malformed_deadline_fails_closed(self):
+        workload = copy.deepcopy(self.workload)
+        workload["episodes"][0]["deadline_tick"] = True
+        with self.assertRaises(evaluator.EvaluationError):
+            self.score(workload=workload)
+
+    def test_non_object_episode_fails_closed(self):
+        workload = copy.deepcopy(self.workload)
+        workload["episodes"][0] = []
+        with self.assertRaises(evaluator.EvaluationError):
+            self.score(workload=workload)
+
     def test_outcome_likelihoods_must_normalize(self):
         workload = copy.deepcopy(self.workload)
         episode = next(x for x in workload["episodes"] if x["episode_id"] == "sa-001-eig-trap")
