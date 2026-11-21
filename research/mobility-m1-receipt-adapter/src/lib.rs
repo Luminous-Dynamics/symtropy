@@ -136,10 +136,7 @@ fn qualify_receipt_time(
     }
 
     let uncertainty_ns = normalized.normalized_reading.uncertainty_bound_seconds * 1_000_000_000.0;
-    if !uncertainty_ns.is_finite()
-        || uncertainty_ns < 0.0
-        || uncertainty_ns >= u64::MAX as f64
-    {
+    if !uncertainty_ns.is_finite() || uncertainty_ns < 0.0 || uncertainty_ns >= u64::MAX as f64 {
         return Err(AdapterError::TimeUncertaintyOutOfRange);
     }
     // Round upward: the mission receipt must never understate the Mycelix hard bound.
@@ -623,7 +620,6 @@ mod tests {
         assert_eq!(result, m1::ReceiptDisposition::Applied);
         assert_eq!(f.supervisor.phase("pick"), Ok(m1::SubgoalPhase::Complete));
     }
-
 
     #[test]
     fn normalized_time_uncertainty_is_rounded_up_and_preserved_in_m1() {
