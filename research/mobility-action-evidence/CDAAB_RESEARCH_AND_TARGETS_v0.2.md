@@ -34,7 +34,25 @@ The 2026 AI Index also reports that robots succeed at only **12% of real househo
 
 The LADDER leaderboard distinguishes the full three-suite result from LADDER-Lite and reports 95% Wilson intervals. It also shows that long-horizon physical execution remains difficult and expensive. This is a reason to report matched task success and cost frontiers, not to collapse all systems into one scalar score.
 
-## 3. Benchmark validity is itself a qualification gate
+## 3. Domain regulation is a separate qualification boundary
+
+CDAAB is an engineering evaluation framework, not an approval or certification regime. Each deployment domain and jurisdiction has separate rules and competent authorities:
+
+| Domain | Current regulatory signal | CDAAB implication |
+|---|---|---|
+| Maritime autonomous surface ships | IMO adopted the non-mandatory MASS Code under Resolution MSC.595(111) in May 2026; it came into effect 1 July 2026. It applies to cargo ships under SOLAS Chapter I (generally over 500 GT on international voyages), and invites Member States to apply it as far as practicable to smaller MASS. | Model operational mode, remote operator, watchkeeping, connectivity, safety case and certificate scope explicitly. A software benchmark is not a MASS Safety Certificate. |
+| Aviation AI | EASA Proposed Issue 03 of its AI Concept Paper (3 June 2026) extends technical guidance to reinforcement learning, symbolic AI and Level 3 advanced automation, where the human may be remote or absent. This was a concept-paper consultation, not an operational approval. | Require a domain-specific safety assurance case, ODD, human/remote-operator role, system configuration and authority determination before any operational claim. |
+| South African UAS | SACAA's current UAS information page lists autonomous unmanned aircraft among the exclusions from Part 101. | Do not infer that ordinary Part 101 approvals authorize autonomous UAS operation. Obtain a written competent-authority determination before any autonomy trial that depends on it. |
+
+The same action/evidence architecture can be reused, but domain ODD definitions, operational roles, safety requirements, certificates and approvals cannot be generalized from one regime to another. Road, maritime and aviation adapters must remain owned by their domain specialists.
+
+Sources:
+- IMO MSC 111 / MASS Code: https://www.imo.org/en/mediacentre/meetingsummaries/pages/temporary-msc-111.aspx
+- IMO autonomous shipping FAQ: https://www.imo.org/en/mediacentre/hottopics/pages/autonomous-shipping.aspx
+- EASA AI Concept Paper Proposed Issue 03: https://www.easa.europa.eu/en/newsroom-and-events/news/easa-releases-latest-issue-its-concept-paper-artificial-intelligence
+- SACAA UAS rules and applicability: https://www.caa.co.za/industry-information/uas/
+
+## 4. Benchmark validity is itself a qualification gate
 
 A 2026 audit of manipulation benchmarks identifies shortcut solvability, insufficient statistical significance, creeping overfit and data-source dependence as ways a leaderboard can misrepresent general capability. It reports that only 19.8% of the audited LIBERO SOTA claims were provably statistically significant. CDAAB therefore requires an evaluator-integrity report before performance claims are eligible.
 
@@ -49,7 +67,7 @@ Required checks:
 
 Reference reading: Jiang et al., [What Are We Actually Benchmarking in Robot Manipulation?](https://arxiv.org/abs/2606.04233) (2026).
 
-## 4. Non-compensatory metric families
+## 5. Non-compensatory metric families
 
 Do not publish a weighted aggregate that allows higher task success to compensate for false completion or an unsafe retry. Publish a dashboard and a gate state.
 
@@ -118,7 +136,7 @@ Do not publish a weighted aggregate that allows higher task success to compensat
 
 Use paired comparisons where the same task/seed can be run across systems. Cluster uncertainty by task/scenario, environment, robot/embodiment and seed as appropriate. Preregister the minimum detectable effect and sampling plan; report interval estimates and the number of independent clusters. Do not choose sample counts after looking at outcomes.
 
-## 5. Matched baseline ladder
+## 6. Matched baseline ladder
 
 Evaluate all candidates against the same policy, platform and budget where possible:
 
@@ -130,7 +148,7 @@ Evaluate all candidates against the same policy, platform and budget where possi
 
 Keep the controller constant when comparing assurance layers. Separately report model/controller changes. The difference between C/D/E and A/B estimates the value of the assurance architecture, rather than mixing that value with a stronger model.
 
-## 6. Paradigm-shift research hypotheses
+## 7. Paradigm-shift research hypotheses
 
 These are research directions, not claims of implementation or SOTA performance.
 
@@ -143,7 +161,7 @@ These are research directions, not claims of implementation or SOTA performance.
 
 A first executable active-assurance selector now exists in `src/active_assurance.rs`. It treats each observation as a resource-consuming action, applies independent residual-risk/latency/energy/cost ceilings, rejects common-cause observer paths, and returns the nondominated Pareto frontier. It deliberately consumes caller-supplied risk forecasts rather than claiming to estimate/calibrate them. The M2 targeted workflow on the current code head passes 50 library tests plus four differential-oracle tests (two action/effect and two active-assurance), format, schema checks and Clippy; the broad CI result is tracked separately.
 
-## 7. Assurance ladder and evidence labels
+## 8. Assurance ladder and evidence labels
 
 | Level | Evidence | What it supports | What it does not support |
 |---|---|---|---|
@@ -156,7 +174,7 @@ A first executable active-assurance selector now exists in `src/active_assurance
 
 Every report must label evidence as **implemented**, **structurally checked**, **targeted CI passed**, **broad CI passed**, **simulated**, **HIL**, **physical**, or **independently/regulatorily qualified**. No level is implied by a green software workflow.
 
-## 8. Initial target ledger
+## 9. Initial target ledger
 
 | Measure | Target | Evidence required before status can change |
 |---|---:|---|
@@ -175,7 +193,7 @@ Every report must label evidence as **implemented**, **structurally checked**, *
 
 Targets may be revised only before a confirmatory evaluation plan is frozen, with the reason and new target version recorded.
 
-## 9. References
+## 10. References
 
 - LADDER benchmark, full research and leaderboard: https://ladderrobotics.ai/research
 - Bench2Drive v0.0.4 evaluation release: https://github.com/Thinklab-SJTU/Bench2Drive/blob/0.0.4/docs/v004_update.md
