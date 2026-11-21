@@ -1,0 +1,38 @@
+{
+  "schema_version":"0.1.0",
+  "model_class":"compound_full_second_moment_tensor",
+  "units":{"mass":"kg","centroid":"m","second_moment_tensor":"kg m^2","angular_impulse":"N m s","angular_velocity":"rad/s"},
+  "claim_ceiling":"Synthetic mathematical fixtures only. Not a measured mass-property dataset or production physics validation.",
+  "governing_relations":{
+    "compound_mass":"M = sum_k m_k",
+    "compound_center_of_mass":"c = sum_k(m_k r_k)/M",
+    "rotated_component_tensor":"C_k_assembly = R_k C_k_local R_k^T",
+    "parallel_axis_tensor":"C_total = sum_k(C_k_assembly + m_k (r_k-c)(r_k-c)^T)",
+    "bivector_inertia_operator":"I_C(Omega) = C_total Omega + Omega C_total",
+    "kinetic_energy":"T = 0.5 * omega^T I_C omega"
+  },
+  "known_answers":[
+    {
+      "id":"two-offset-unit-solid-spheres",
+      "dimension":3,
+      "components":[
+        {"id":"left","mass_kg":1.0,"centroid_m":[0.0,0.0,0.0],"local_second_moment_kg_m2":[[0.2,0.0,0.0],[0.0,0.2,0.0],[0.0,0.0,0.2]]},
+        {"id":"right","mass_kg":1.0,"centroid_m":[2.0,0.0,0.0],"local_second_moment_kg_m2":[[0.2,0.0,0.0],[0.0,0.2,0.0],[0.0,0.0,0.2]]}
+      ],
+      "expected_total_mass_kg":2.0,
+      "expected_center_of_mass_m":[1.0,0.0,0.0],
+      "expected_second_moment_kg_m2":[[2.4,0.0,0.0],[0.0,0.4,0.0],[0.0,0.0,0.4]],
+      "plane_order":["01","02","12"],
+      "expected_plane_inertias_kg_m2":[2.8,2.8,0.8]
+    },
+    {
+      "id":"rotated-anisotropic-component",
+      "dimension":3,
+      "mass_kg":2.0,
+      "local_second_moment_kg_m2":[[1.0,0.0,0.0],[0.0,2.0,0.0],[0.0,0.0,3.0]],
+      "rotation_radians_about_z":0.7853981633974483,
+      "expected_second_moment_kg_m2":[[1.5,-0.5,0.0],[-0.5,1.5,0.0],[0.0,0.0,3.0]],
+      "claim":"Products of inertia must be preserved after component rotation."
+    }
+  ]
+}
