@@ -83,6 +83,22 @@
         "obs-rare-vibration"
       ],
       "expected_answer": "rare-vibration"
+    },
+    {
+      "episode_id": "lh-010-correction-before-arrival",
+      "expected_decision": "answer",
+      "required_observation_refs": [
+        "obs-machine-state-v1"
+      ],
+      "expected_answer": "initial_machine_state"
+    },
+    {
+      "episode_id": "lh-011-revocation-before-effect",
+      "expected_decision": "answer",
+      "required_observation_refs": [
+        "obs-private-utterance-pre-revoke"
+      ],
+      "expected_answer": "private_utterance_still_eligible"
     }
   ]
 }
