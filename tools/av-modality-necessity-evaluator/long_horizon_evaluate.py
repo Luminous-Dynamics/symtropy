@@ -54,6 +54,8 @@ def _episode_state(
     event_ids: set[str] = set()
     ordered: list[dict[str, Any]] = []
     observations: dict[str, int] = {}
+    observation_signatures: dict[str, tuple[Any, ...]] = {}
+    previous_availability_tick = -1
 
     for event in events:
         if not isinstance(event, dict):
@@ -66,12 +68,46 @@ def _episode_state(
         tick = event.get("availability_tick")
         if isinstance(tick, bool) or not isinstance(tick, int) or tick < 0:
             raise EvaluationError(f"{episode.get('episode_id')}: invalid event availability tick")
+        if tick < previous_availability_tick:
+            raise EvaluationError(f"{episode.get('episode_id')}: stream events are not ordered by availability")
+        previous_availability_tick = tick
         ordered.append(event)
         if kind == "observation":
             ref = event.get("observation_ref")
             if not isinstance(ref, str) or not ref:
                 raise EvaluationError(f"{episode.get('episode_id')}: observation missing ref")
-            # Duplicate delivery reuses the original observation identity; first availability wins.
+            modalities = event.get("modalities")
+            capture_tick = event.get("capture_tick")
+            digest = event.get("artifact_sha256")
+            clock_id = event.get("clock_domain_id")
+            generation = event.get("clock_generation")
+            dependency_group = event.get("source_dependency_group")
+            if (
+                not isinstance(modalities, list)
+                or not modalities
+                or any(modality not in {"audio", "video"} for modality in modalities)
+                or len(modalities) != len(set(modalities))
+                or isinstance(capture_tick, bool)
+                or not isinstance(capture_tick, int)
+                or capture_tick < 0
+                or not isinstance(digest, str)
+                or len(digest) != 64
+                or any(char not in "0123456789abcdef" for char in digest)
+                or not isinstance(clock_id, str)
+                or not clock_id
+                or isinstance(generation, bool)
+                or not isinstance(generation, int)
+                or generation < 0
+                or (dependency_group is not None and (not isinstance(dependency_group, str) or not dependency_group))
+            ):
+                raise EvaluationError(f"{episode.get('episode_id')}: malformed immutable observation identity")
+            signature = (
+                tuple(modalities), capture_tick, digest, clock_id, generation, dependency_group
+            )
+            if ref in observation_signatures and observation_signatures[ref] != signature:
+                raise EvaluationError(f"{episode.get('episode_id')}: duplicate observation reference changed immutable source identity")
+            observation_signatures[ref] = signature
+            # Duplicate delivery reuses the original immutable source identity; first availability wins.
             observations[ref] = min(observations.get(ref, tick), tick)
         elif kind not in {"correction", "revocation"}:
             raise EvaluationError(f"{episode.get('episode_id')}: unknown event kind {kind!r}")
