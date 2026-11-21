@@ -200,6 +200,28 @@ Qualification requirements:
 
 Proposed synthetic qualification targets: at least 90% power for preregistered effect sizes, no more than 5% false discovery rate under no-bias controls, and calibrated 90/95% intervals. These are proposed thresholds, not achieved results. Symthaea tracking: https://github.com/Luminous-Dynamics/symthaea/issues/13074.
 
+### Layer H — small-feature Bayesian bias inference
+
+The research kernel now includes a bounded spike-and-slab comparator for a flattened set of observation channels:
+
+[
+y_i\sim\operatorname{Poisson}\left(\mu_{i,\mathrm{physical}}\exp(x_i^T\beta)\right).
+]
+
+It enumerates all feature subsets exactly for up to 12 preregistered predictors. Each included coefficient has a zero-centred Gaussian slab prior and each feature has an independent Bernoulli inclusion prior. Within each subset, Newton optimization finds the posterior mode; a Laplace approximation around that mode estimates the subset marginal likelihood and coefficient covariance. Posterior model probabilities are normalized across the enumerated subsets, then used to calculate feature inclusion probabilities and mixture coefficient uncertainty.
+
+This is **not** the AIACHNE model reproduction. AIACHNE's WANDA 2025 presentation describes a sparse Bayesian, energy-dependent multiplicative-bias model with a horseshoe prior, with bias basis matrix B and coefficients gamma. Our implementation uses exact small-subset enumeration plus a Gaussian slab and Laplace integration as a transparent alternative. It should be benchmarked against a faithful horseshoe implementation on the actual AIACHNE/PFNS feature table before claiming parity.
+
+The current algorithm is intended for a small, frozen feature dictionary. For energy-dependent bias, the caller can flatten experiment-by-energy observations and build columns from predeclared experiment-feature × energy-basis interactions. Standardize columns using training data only; do not leak holdout information into feature scaling. Keep physical means fixed in this first implementation, and do not add a free global intercept unless its confounding with absolute normalization is explicitly handled.
+
+Qualification controls now include:
+- a planted single-feature multiplicative bias with strong posterior inclusion;
+- a no-bias negative control where the null model is preferred;
+- perfectly collinear features where posterior inclusion remains symmetric and coefficient covariance exposes attribution ambiguity;
+- prior and feature-scaling sensitivity, feature-label permutation, and campaign-level holdout tests as required next-stage qualification.
+
+Posterior inclusion is not causal attribution. A feature can identify a predictive measurement association without identifying why the physical experiment produced it. Any proposed corrected dataset remains separate from immutable source observations and must carry its coefficient posterior and provenance.
+
 ## Current implementation and limits
 
 Implemented in this research-only Rust crate:
@@ -214,7 +236,8 @@ Implemented in this research-only Rust crate:
 - nested two-level scalar approximate-control-variate estimation with frozen beta and a nested-sample variance estimate;
 - finite-scenario maximin candidate-design scoring with cost metadata and deterministic tie-breaking;
 - covariance-aware reference-spectrum shape comparison with profiled scale;
-- a deterministic log-linear feature-conditioned multiplicative-bias forward operator, with caller-supplied coefficients.
+- a deterministic log-linear feature-conditioned multiplicative-bias forward operator, with caller-supplied coefficients;
+- small-feature spike-and-slab Poisson bias inference with exact subset enumeration (up to 12 features) and Laplace evidence / covariance approximations.
 
 Not implemented yet:
 
@@ -223,7 +246,8 @@ Not implemented yet:
 - a full Bayesian expected-information-gain estimator, multifidelity sample-allocation optimizer or ACV coefficient learner;
 - a continuous robust-design optimizer, uncertainty-set calibration or Pareto frontier;
 - a nuisance-integrated or posterior-predictive model-discrimination score;
-- sparse Bayesian inference for feature-conditioned bias coefficients, including prior sensitivity and coefficient uncertainty;
+- faithful AIACHNE horseshoe-prior model reproduction and comparison against the current spike-and-slab/Laplace alternative;
+- prior-sensitivity sweeps, correlated-feature robustness, and campaign-held-out validation for the new spike-and-slab model;
 - a general nuisance-aware hierarchical likelihood for response, background, live time, PSD and other calibration dimensions;
 - versioned PFNS reference evaluation ingestion, JSON experimental covariance database reader, interpolation audit and absolute-fluence comparison;
 - Geant4, GRAVEL, or the cited 2026 Bayesian method;
