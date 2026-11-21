@@ -1648,12 +1648,16 @@ pub fn audit_drag_trajectory_contract(root: &Value) -> Vec<String> {
                 && at(value, &["input_sample_fields"]).and_then(Value::as_array)
                     .is_some_and(|fields| ["sample_id","time_fraction","integrated_drag_weight_kg","relative_velocity_m_s"]
                         .iter().all(|wanted| fields.iter().any(|item| item.as_str() == Some(*wanted))))
+                && at(value, &["event_fields"]).and_then(Value::as_array)
+                    .is_some_and(|fields| fields.iter().any(|item| item.as_str() == Some("charged_frame_id"))
+                        && fields.iter().any(|item| item.as_str() == Some("neutral_frame_id")))
                 && at(value, &["checks"]).and_then(Value::as_array)
                     .is_some_and(|checks| checks.iter().any(|item| item.as_str() == Some("neutral_impulse_reconstructed_from_same_samples"))
                         && checks.iter().any(|item| item.as_str() == Some("reported_frictional_heating_matches_same_samples"))
                         && checks.iter().any(|item| item.as_str() == Some("deterministic_event_and_sample_ordering")))
                 && at(value, &["receipt_fields"]).and_then(Value::as_array)
-                    .is_some_and(|fields| fields.iter().any(|item| item.as_str() == Some("quadrature_rule_ids_by_event")))
+                    .is_some_and(|fields| fields.iter().any(|item| item.as_str() == Some("quadrature_rule_ids_by_event"))
+                        && fields.iter().any(|item| item.as_str() == Some("coordinate_frame_ids_by_event")))
         }),
         "DRAG_TRAJECTORY_IMPLEMENTATION",
         "time-varying drag implementation must retain sample identity, shared momentum/energy quadrature and rule provenance",
@@ -1678,10 +1682,11 @@ pub fn audit_drag_trajectory_contract(root: &Value) -> Vec<String> {
     let tests = at(root, &["test_families"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        tests.is_some_and(|rows| rows.len() == 12
+        tests.is_some_and(|rows| rows.len() == 13
             && rows.iter().any(|item| item.as_str() == Some("incorrect_impulse_rejected_even_when_heating_matches"))
             && rows.iter().any(|item| item.as_str() == Some("incorrect_heating_rejected_even_when_impulse_matches"))
             && rows.iter().any(|item| item.as_str() == Some("event_error_cancellation_rejected"))
+            && rows.iter().any(|item| item.as_str() == Some("implicit_coordinate_frame_mismatch_rejected"))
             && rows.iter().any(|item| item.as_str() == Some("offline_reference_self_check"))),
         "DRAG_TRAJECTORY_TEST_MATRIX",
         "twelve variable-drift analytic, adversarial and reference tests must remain declared",
@@ -1692,6 +1697,8 @@ pub fn audit_drag_trajectory_contract(root: &Value) -> Vec<String> {
             && at(root, &["acceptance", "same_space_time_quadrature_for_impulse_and_heating"])
                 .and_then(Value::as_bool) == Some(true)
             && at(root, &["acceptance", "quadrature_accuracy_requires_independent_refinement"])
+                .and_then(Value::as_bool) == Some(true)
+            && at(root, &["acceptance", "frame_identity_match_required"])
                 .and_then(Value::as_bool) == Some(true),
         "DRAG_TRAJECTORY_ACCEPTANCE",
         "case-specific tolerances and independent quadrature refinement are mandatory",
