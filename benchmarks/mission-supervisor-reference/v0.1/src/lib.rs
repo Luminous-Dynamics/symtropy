@@ -256,16 +256,22 @@ impl ObserverRole {
     }
 }
 
-/// Provenance for normalized observed_at_ms. M1 consumes a caller-qualified
-/// result; it does not perform clock conversion. The source receipt digest
-/// commits to the raw reading itself.
+/// Provenance for normalized observed_at_ms. The destination is a qualified
+/// time scale/profile plus an explicit epoch, not an assumed clock. M1 consumes
+/// a caller-qualified result; it never performs clock conversion or authenticates
+/// these opaque commitments.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ReceiptTimeQualification {
     pub source_clock_id: String,
     pub source_boot_epoch_id: String,
-    pub comparison_clock_id: String,
-    pub comparison_boot_epoch_id: String,
-    pub normalization_commitment: Digest,
+    pub comparison_basis_id: String,
+    pub comparison_epoch_id: String,
+    /// Commitment to the raw source clock reading.
+    pub source_time_commitment: Digest,
+    /// Commitment to the exact clock-correlation profile and parameters.
+    pub correlation_commitment: Digest,
+    /// Commitment to the exact normalized destination reading.
+    pub normalized_time_commitment: Digest,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -274,7 +280,7 @@ pub struct ReceiptEnvelope {
     pub content_digest: Digest,
     pub source_id: String,
     pub source_sequence: u64,
-    /// Milliseconds in the comparison clock declared below.
+    /// Milliseconds in the qualified destination time scale and epoch declared below.
     pub observed_at_ms: u64,
     pub time_qualification: ReceiptTimeQualification,
     pub observer_role: ObserverRole,
@@ -295,8 +301,8 @@ impl ReceiptEnvelope {
         let time = &self.time_qualification;
         if time.source_clock_id.trim().is_empty()
             || time.source_boot_epoch_id.trim().is_empty()
-            || time.comparison_clock_id.trim().is_empty()
-            || time.comparison_boot_epoch_id.trim().is_empty()
+            || time.comparison_basis_id.trim().is_empty()
+            || time.comparison_epoch_id.trim().is_empty()
         {
             return Err(SupervisorError::InvalidTimeQualification);
         }
@@ -462,9 +468,9 @@ struct SourceCursor {
     observed_at_ms: u64,
     source_clock_id: String,
     source_boot_epoch_id: String,
-    comparison_clock_id: String,
-    comparison_boot_epoch_id: String,
-    normalization_commitment: Digest,
+    comparison_basis_id: String,
+    comparison_epoch_id: String,
+    correlation_commitment: Digest,
 }
 
 /// Single-writer deterministic state machine. It allows at most one unresolved
@@ -962,9 +968,9 @@ impl MissionSupervisor {
             let time = &envelope.time_qualification;
             if time.source_clock_id != cursor.source_clock_id
                 || time.source_boot_epoch_id != cursor.source_boot_epoch_id
-                || time.comparison_clock_id != cursor.comparison_clock_id
-                || time.comparison_boot_epoch_id != cursor.comparison_boot_epoch_id
-                || time.normalization_commitment != cursor.normalization_commitment
+                || time.comparison_basis_id != cursor.comparison_basis_id
+                || time.comparison_epoch_id != cursor.comparison_epoch_id
+                || time.correlation_commitment != cursor.correlation_commitment
             {
                 return Err(SupervisorError::SourceTimeBasisMismatch);
             }
@@ -982,12 +988,12 @@ impl MissionSupervisor {
                 observed_at_ms: envelope.observed_at_ms,
                 source_clock_id: envelope.time_qualification.source_clock_id.clone(),
                 source_boot_epoch_id: envelope.time_qualification.source_boot_epoch_id.clone(),
-                comparison_clock_id: envelope.time_qualification.comparison_clock_id.clone(),
-                comparison_boot_epoch_id: envelope
+                comparison_basis_id: envelope.time_qualification.comparison_basis_id.clone(),
+                comparison_epoch_id: envelope
                     .time_qualification
-                    .comparison_boot_epoch_id
+                    .comparison_epoch_id
                     .clone(),
-                normalization_commitment: envelope.time_qualification.normalization_commitment,
+                correlation_commitment: envelope.time_qualification.correlation_commitment,
             },
         );
         Ok(ReceiptDisposition::Applied)
@@ -1019,9 +1025,11 @@ mod tests {
             time_qualification: ReceiptTimeQualification {
                 source_clock_id: format!("source-clock-{source_id}"),
                 source_boot_epoch_id: format!("source-boot-{source_id}"),
-                comparison_clock_id: "mission-comparison-clock".into(),
-                comparison_boot_epoch_id: "mission-comparison-epoch".into(),
-                normalization_commitment: digest(byte.wrapping_add(1)),
+                comparison_basis_id: "tai".into(),
+                comparison_epoch_id: "tai-epoch-1970".into(),
+                source_time_commitment: digest(byte.wrapping_add(1)),
+                correlation_commitment: digest(byte.wrapping_add(2)),
+                normalized_time_commitment: digest(byte.wrapping_add(3)),
             },
             observer_role: role,
             confidence_basis_points: confidence,
@@ -1161,7 +1169,7 @@ mod tests {
     }
 
     #[test]
-    fn source_timestamp_cannot_cross_comparison_clock_or_boot_epoch() {
+    fn source_timestamp_cannot_cross_time_basis_or_correlation_revision() {
         let mut supervisor = MissionSupervisor::new(plan());
         let ticket = supervisor
             .dispatch_action("pick", "pick-action-1")
@@ -1196,7 +1204,7 @@ mod tests {
             9_900,
             ObserverRole::IndependentSensor,
         );
-        changed_basis.time_qualification.comparison_clock_id = "other-clock".into();
+        changed_basis.time_qualification.comparison_basis_id = "unix-time@1".into();
         assert_eq!(
             supervisor.observe_goal(GoalEvidence {
                 envelope: changed_basis,
@@ -1250,7 +1258,7 @@ mod tests {
             9_900,
             ObserverRole::IndependentSensor,
         );
-        changed_mapping.time_qualification.normalization_commitment = digest(99);
+        changed_mapping.time_qualification.correlation_commitment = digest(99);
         assert_eq!(
             supervisor.observe_goal(GoalEvidence {
                 envelope: changed_mapping,
