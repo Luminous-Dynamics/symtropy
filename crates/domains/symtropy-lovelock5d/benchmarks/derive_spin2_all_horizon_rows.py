@@ -74,29 +74,30 @@ def main():
   if any(sp.cancel(c)!=0 for c in horizon_coefficients.coeffs()):
    raise AssertionError(f"{k}: a scaled-row coefficient is nonzero at the horizon")
 
-  # First directional horizon derivative along Qbar(rho).
-  qprime=2/(lam+1)
-  den_h=den.subs({rho:1,Q:lam+1})
-  first_slopes={}
-  for mon,cn in zip(poly.monoms(),poly.coeffs()):
-   slope=sp.factor((sp.diff(cn,rho)+qprime*sp.diff(cn,Q)).subs({rho:1,Q:lam+1})/den_h)
-   first_slopes[mon]=slope
-  zero_mon=(0,0,0,0,0,0,0,0)
-  B_mon=(1,0,0,0,0,0,0,0)
-  F_mon=(0,0,0,1,0,0,0,0)
-  if k=="b":
-   assert all(sp.cancel(v)==0 for v in first_slopes.values())
-   horizon_valuation={"first_derivative":"all coefficient/source slopes vanish",
-                      "first_nonzero_order_at_least":2}
-  elif k=="g":
-   expected_slopes={m:sp.Integer(0) for m in first_slopes}
-   expected_slopes[B_mon]=-4*(lam+2)/(lam+1)**2
-   expected_slopes[F_mon]=4*(lam+2)/(lam+1)**2
-   for m,v in first_slopes.items():
-    assert sp.factor(v-expected_slopes[m])==0
-   horizon_valuation={"first_nonzero_coefficient":
-       "4*(lambda+2)/(lambda+1)^2*(Fhat2(1)-Bhat2(1))",
-       "all_other_first_coefficient_terms":"zero"}
+  # First directional horizon derivative along Qbar(rho); skip the
+  # currently unresolved h-row valuation so this verifier stays bounded.
+  if k in ("b","g"):
+   qprime=2/(lam+1)
+   den_h=den.subs({rho:1,Q:lam+1})
+   first_slopes={}
+   for mon,cn in zip(poly.monoms(),poly.coeffs()):
+    slope=sp.factor((sp.diff(cn,rho)+qprime*sp.diff(cn,Q)).subs({rho:1,Q:lam+1})/den_h)
+    first_slopes[mon]=slope
+   B_mon=(1,0,0,0,0,0,0,0)
+   F_mon=(0,0,0,1,0,0,0,0)
+   if k=="b":
+    assert all(sp.cancel(v)==0 for v in first_slopes.values())
+    horizon_valuation={"first_derivative":"all coefficient/source slopes vanish",
+                       "first_nonzero_order_at_least":2}
+   else:
+    expected_slopes={m:sp.Integer(0) for m in first_slopes}
+    expected_slopes[B_mon]=-4*(lam+2)/(lam+1)**2
+    expected_slopes[F_mon]=4*(lam+2)/(lam+1)**2
+    for m,v in first_slopes.items():
+     assert sp.factor(v-expected_slopes[m])==0
+    horizon_valuation={"first_nonzero_coefficient":
+        "4*(lambda+2)/(lambda+1)^2*(Fhat2(1)-Bhat2(1))",
+        "all_other_first_coefficient_terms":"zero"}
   else:
    horizon_valuation={"first_derivative":"not yet derived"}
 
