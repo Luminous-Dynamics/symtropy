@@ -57,7 +57,7 @@ jobs:
           set -euo pipefail
           actual_commit="$(git rev-parse HEAD)"
           test "$actual_commit" = "$BENCHMARK_COMMIT"
-          cargo run --locked --quiet --manifest-path tools/orbital-interface-lifecycle-bench/Cargo.toml -- \
+          cargo run --locked --quiet --manifest-path tools/orbital-interface-lifecycle-bench/Cargo.toml --bin orbital-interface-lifecycle-bench -- \
             tools/orbital-interface-lifecycle-bench/fixtures/v0.1/cases.json \
             --source-commit "$actual_commit" > orbital-interface-lifecycle-receipt.json
           jq -e --arg expected_commit "$BENCHMARK_COMMIT" '
