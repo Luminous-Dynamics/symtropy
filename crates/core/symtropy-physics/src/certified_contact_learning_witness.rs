@@ -277,4 +277,84 @@ mod tests {
             actual_error_squared_numerator * 10_000_i128 * alpha_numerator * alpha_numerator
         );
     }
+
+    #[test]
+    fn primal_dual_gap_certificate_covers_an_active_coulomb_disk_boundary() {
+        // A separate two-contact product-of-disks QP exercises a nonzero
+        // multiplier at an active Coulomb disk boundary. H=I is strongly
+        // convex with alpha=1. The first disk has radius 1 and the second
+        // disk also has radius 1.
+        //
+        // f(j) = 1/2 ||j||^2 - 3*j0.
+        // j_star=(1,0,0,0) is on the first disk boundary; lambda_1=1,
+        // lambda_2=0. The candidate j_hat=(9/10,0,1/2,0) is feasible.
+        let h_num: Matrix4 = [
+            [10, 0, 0, 0],
+            [0, 10, 0, 0],
+            [0, 0, 10, 0],
+            [0, 0, 0, 10],
+        ];
+        let solution_num: Vector4 = [10, 0, 0, 0];
+        let candidate_num: Vector4 = [9, 0, 5, 0];
+        // c=(-3,0,0,0), represented over denominator 100.
+        let linear_term_num_over_100: Vector4 = [-300, 0, 0, 0];
+
+        // Both candidate contact impulses are inside their unit Coulomb disks.
+        assert!(candidate_num[0] * candidate_num[0] + candidate_num[1] * candidate_num[1] < 100);
+        assert!(candidate_num[2] * candidate_num[2] + candidate_num[3] * candidate_num[3] < 100);
+        // The minimizer lies exactly on the first disk boundary and at the
+        // centre of the second disk.
+        assert_eq!(
+            solution_num[0] * solution_num[0] + solution_num[1] * solution_num[1],
+            100
+        );
+        assert_eq!(solution_num[2] * solution_num[2] + solution_num[3] * solution_num[3], 0);
+
+        // Exact KKT stationarity at j_star:
+        // H*j_star + c + 2*lambda_1*j_star(first disk) = 0,
+        // with lambda_1=1 and lambda_2=0. All terms below share denominator 100.
+        let h_solution_num = mat_vec(&h_num, &solution_num);
+        let stationarity_num: Vector4 = std::array::from_fn(|index| {
+            h_solution_num[index]
+                + linear_term_num_over_100[index]
+                + if index == 0 { 200 } else { 0 }
+        });
+        assert_eq!(stationarity_num, [0; 4]);
+
+        // The Lagrangian Hessian is diag(3,3,1,1), hence positive definite;
+        // the stationary point is its global minimizer. Since j_star is
+        // primal-feasible and complementary, its Lagrangian value is a dual
+        // lower bound equal to f(j_star).
+        let lagrangian_hessian_diagonal = [3_i128, 3, 1, 1];
+        assert!(lagrangian_hessian_diagonal.iter().all(|value| *value >= 1));
+
+        // Exact objective values over denominator 100:
+        // f(j_hat)=53/100 - 270/100 = -217/100.
+        // d(lambda)=f(j_star)=50/100 - 300/100 = -250/100.
+        let candidate_norm_squared_num = squared_norm(&candidate_num);
+        assert_eq!(candidate_norm_squared_num, 106);
+        let primal_twice_kinetic_num = candidate_norm_squared_num;
+        let primal_linear_num_over_100 = -270_i128;
+        let primal_num_over_100 =
+            primal_twice_kinetic_num / 2 + primal_linear_num_over_100;
+        assert_eq!(primal_num_over_100, -217);
+
+        let dual_num_over_100 = 50_i128 - 300_i128;
+        assert_eq!(dual_num_over_100, -250);
+        let gap_num_over_100 = primal_num_over_100 - dual_num_over_100;
+        assert_eq!(gap_num_over_100, 33);
+
+        // Exact squared error is ||(-1,0,5,0)/10||^2 = 26/100.
+        let error_num: Vector4 =
+            std::array::from_fn(|index| candidate_num[index] - solution_num[index]);
+        assert_eq!(error_num, [-1, 0, 5, 0]);
+        let error_squared_num = squared_norm(&error_num);
+        assert_eq!(error_squared_num, 26);
+
+        // Strong convexity yields ||j_hat-j_star||^2 <= 2*gap/alpha.
+        // Here alpha=1, so 26/100 <= 66/100. This active-boundary example
+        // complements the prior interior / zero-multiplier exact-gap witness.
+        assert!(error_squared_num <= 2 * gap_num_over_100);
+    }
+
 }
