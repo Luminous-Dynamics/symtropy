@@ -108,3 +108,16 @@ This is a generic forward operator only. It does not model scintillator light pr
 - Iteration count is an explicit early-stopping regularization choice. This is not GRAVEL and should not be used to claim superiority without held-out truth, matrix mismatch tests and uncertainty coverage.
 - Five additional tests cover identity response recovery, a migrated two-bin spectrum, known background, unobservable bins and invalid iteration/initial values.
 - Synthetic deterministic benchmark: `research/cmni/fixtures/poisson-em-detector-unfolding-synthetic.json`.
+
+
+## Local identifiability and response-calibration uncertainty
+
+- `poisson_fisher_information` builds local Fisher information for conditionally independent Poisson channels from caller-supplied expected counts and Jacobians.
+- `combine_fisher_information` adds independent run contributions; `identifiability_summary` reports eigenvalues, effective rank, log determinant and condition number using a symmetric Jacobi eigensolver.
+- `DetectorResponseEnsemble` propagates equally weighted response-matrix calibration realizations into predictive mean counts and total covariance using the law of total covariance.
+- Synthetic fixtures: `research/cmni/fixtures/identifiability-design-synthetic.json` and `research/cmni/fixtures/detector-response-ensemble-uncertainty-synthetic.json`.
+- Eight local-identifiability tests and six response-ensemble tests have been authored. The total is now **78 authored Rust tests** (37 root, 12 detector, 7 measurement, 8 material-state, 8 experiment-design, 6 response-uncertainty). They have not been executed; no Cargo test or CI pass is claimed.
+- The Poisson Fisher helper assumes fixed response and conditionally independent Poisson bins. It does not, by itself, account for the cross-bin covariance from uncertain response matrices. The ensemble-moment helper is a forward covariance primitive, not a hierarchical likelihood or an unfolding algorithm.
+- Neither module proves global identifiability, distinguishes all competing physical mechanisms, nor provides experimental evidence.
+
+See [IDENTIFIABILITY_AND_DESIGN.md](../../docs/research/cmni/IDENTIFIABILITY_AND_DESIGN.md) for the proposed design architecture, SOTA comparison and benchmark ladder.
