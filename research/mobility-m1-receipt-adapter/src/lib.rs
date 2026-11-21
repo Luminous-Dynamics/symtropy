@@ -22,7 +22,6 @@ pub enum AdapterError {
     TimeUnknown,
     TimeUnqualified,
     TimeSourceClockMismatch,
-    TimeComparisonClockMismatch,
     TimeNormalizationCommitmentMissing,
     OutcomeDispositionMismatch,
     Admission(m2::AdmissionError),
@@ -79,12 +78,14 @@ pub fn apply_outcome_to_m1(
             if source_clock != &evidence.clock {
                 return Err(AdapterError::TimeSourceClockMismatch);
             }
-            if comparison_clock != &m2_ticket.clock {
-                return Err(AdapterError::TimeComparisonClockMismatch);
-            }
-            if normalization_commitment.is_none() {
+            if comparison_clock.clock_id.trim().is_empty()
+                || comparison_clock.boot_epoch_id.trim().is_empty()
+            {
                 return Err(AdapterError::TimeNormalizationCommitmentMissing);
             }
+            let _ = normalization_commitment
+                .as_ref()
+                .ok_or(AdapterError::TimeNormalizationCommitmentMissing)?;
             *normalized_observed_at_ms
         }
     };
@@ -109,6 +110,26 @@ pub fn apply_outcome_to_m1(
             source_id: evidence.source_id.clone(),
             source_sequence: evidence.source_sequence,
             observed_at_ms,
+            time_qualification: m1::ReceiptTimeQualification {
+                source_clock_id: evidence.clock.clock_id.clone(),
+                source_boot_epoch_id: evidence.clock.boot_epoch_id.clone(),
+                comparison_clock_id: match receipt_time {
+                    QualifiedReceiptTime::Qualified { comparison_clock, .. } => comparison_clock.clock_id.clone(),
+                    QualifiedReceiptTime::Unqualified | QualifiedReceiptTime::Unknown => unreachable!("time qualification was checked above"),
+                },
+                comparison_boot_epoch_id: match receipt_time {
+                    QualifiedReceiptTime::Qualified { comparison_clock, .. } => comparison_clock.boot_epoch_id.clone(),
+                    QualifiedReceiptTime::Unqualified | QualifiedReceiptTime::Unknown => unreachable!("time qualification was checked above"),
+                },
+                normalization_commitment: match receipt_time {
+                    QualifiedReceiptTime::Qualified { normalization_commitment: Some(commitment), .. } => {
+                        m1::Digest(commitment.0)
+                    }
+                    QualifiedReceiptTime::Qualified { normalization_commitment: None, .. }
+                    | QualifiedReceiptTime::Unqualified
+                    | QualifiedReceiptTime::Unknown => unreachable!("normalization commitment was checked above"),
+                },
+            },
             observer_role: match evidence.observer_role {
                 m2::ObserverRole::AgentSelfReport => m1::ObserverRole::AgentSelfReport,
                 m2::ObserverRole::IndependentSensor => m1::ObserverRole::IndependentSensor,
@@ -406,7 +427,7 @@ mod tests {
     }
 
     #[test]
-    fn wrong_comparison_clock_is_rejected_without_mutating_m1() {
+    fn distinct_comparison_clock_is_preserved_without_raw_tick_cast() {
         let mut f = fixture(m2::PhysicalOutcome::Satisfied);
         let bad = QualifiedReceiptTime::Qualified {
             source_clock: f.evidence.clock.clone(),
@@ -417,21 +438,20 @@ mod tests {
             normalized_observed_at_ms: 1_070,
             normalization_commitment: Some(digest(9)),
         };
-        assert_eq!(
-            apply_outcome_to_m1(
-                &mut f.supervisor,
-                &f.m1_ticket,
-                &f.m2_ticket,
-                &f.live,
-                &f.evidence,
-                f.policy.clone(),
-                &bad,
-            ),
-            Err(AdapterError::TimeComparisonClockMismatch)
-        );
+        let result = apply_outcome_to_m1(
+            &mut f.supervisor,
+            &f.m1_ticket,
+            &f.m2_ticket,
+            &f.live,
+            &f.evidence,
+            f.policy.clone(),
+            &bad,
+        )
+        .expect("explicitly qualified target comparison clock");
+        assert_eq!(result, m1::ReceiptDisposition::Applied);
         assert_eq!(
             f.supervisor.phase("pick"),
-            Ok(m1::SubgoalPhase::AwaitingEvidence)
+            Ok(m1::SubgoalPhase::Complete)
         );
     }
 
@@ -446,6 +466,13 @@ mod tests {
                     source_id: "observer-a".into(),
                     source_sequence: 1,
                     observed_at_ms: 1_050,
+                    time_qualification: m1::ReceiptTimeQualification {
+                        source_clock_id: "observer-clock".into(),
+                        source_boot_epoch_id: "observer-boot".into(),
+                        comparison_clock_id: "mission-time".into(),
+                        comparison_boot_epoch_id: "mission-epoch".into(),
+                        normalization_commitment: m1::Digest([13; 32]),
+                    },
                     observer_role: m1::ObserverRole::IndependentSensor,
                     confidence_basis_points: 9_900,
                 },
