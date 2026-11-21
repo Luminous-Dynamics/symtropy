@@ -178,13 +178,30 @@ class MemoryTournamentTests(unittest.TestCase):
             "recent_window", "summary_only", "episodic_retrieval", "evidence_ledger"
         })
         ledger = report["per_condition"]["evidence_ledger"]
-        self.assertEqual(ledger["answer_accuracy"], 10 / 11)
+        self.assertEqual(ledger["answer_accuracy"], 11 / 12)
         self.assertEqual(ledger["provenance_complete_rate"], 1.0)
-        self.assertEqual(report["per_condition"]["summary_only"]["answer_accuracy"], 4 / 11)
+        self.assertEqual(report["per_condition"]["summary_only"]["answer_accuracy"], 4 / 12)
         self.assertLess(
             report["per_condition"]["summary_only"]["provenance_complete_rate"],
             ledger["provenance_complete_rate"],
         )
+
+    def test_fifteen_span_chain_rewards_exact_sequence_not_unordered_recall(self):
+        episode_id = "lh-012-multisegment-15-source-chain"
+        results = {}
+        for run in self.runs:
+            score = evaluator.evaluate(self.workload, self.truth, run["submission"])
+            results[run["memory_condition"]] = next(
+                row for row in score["per_episode"] if row["episode_id"] == episode_id
+            )
+        self.assertTrue(results["evidence_ledger"]["answer_correct"])
+        self.assertTrue(results["evidence_ledger"]["provenance_complete"])
+        self.assertFalse(results["summary_only"]["answer_correct"])
+        self.assertIn("current_observation_order_mismatch", results["summary_only"]["violations"])
+        self.assertFalse(results["episodic_retrieval"]["answer_correct"])
+        self.assertIn("current_observation_order_mismatch", results["episodic_retrieval"]["violations"])
+        self.assertFalse(results["recent_window"]["answer_correct"])
+        self.assertTrue(results["recent_window"]["abstained"])
 
     def test_future_correction_checkpoint_preserves_old_state_in_all_conditions(self):
         report = comparator.compare_memory_conditions(self.workload,self.truth,self.runs)
