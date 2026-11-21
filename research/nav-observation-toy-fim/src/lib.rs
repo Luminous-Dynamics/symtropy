@@ -1,5 +1,6 @@
 pub mod correlated;
 pub mod correlation_envelope;
+pub mod correlation_audit;
 pub mod geometry_outcome;
 pub mod robust;
 
