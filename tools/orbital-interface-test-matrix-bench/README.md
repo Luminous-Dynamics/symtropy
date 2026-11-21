@@ -17,11 +17,11 @@ References:
 
 ## Evaluator semantics
 
-An obligation binds its exact configuration, procedure, service kind, lifecycle phase, factor-level conditions and required evidence key. A completed run can cover an obligation only when those fields match and the measurement evidence declares valid calibration, instrument range, uncertainty, clock alignment, raw-artifact digest shape and an declared run group.
+An obligation binds its exact configuration, procedure, service kind, lifecycle phase, factor-level conditions and required evidence key. A completed run can cover an obligation only when those fields match and the measurement evidence declares valid calibration, instrument range, uncertainty, clock alignment, raw-artifact digest shape and a declared run-group identifier.
 
 - A **completed failed** test covers the tested condition but remains a visible failure; coverage is not a pass.
 - Planned, aborted, invalid or evidence-incomplete runs do not cover an obligation.
-- Two samples from the same independence group do not count as statistically independent replicates.
+- Two samples from the same run group count as one declared group. Distinct run-group IDs do not prove statistical independence or common-cause separation.
 - Conflicting records under one run ID are Disputed; byte-identical repeated records are DuplicateNoOp.
 - Configuration, procedure, function, lifecycle phase and evidence key remain distinct.
 - A campaign that exceeds its cost budget can still have complete coverage; cost and adequacy are reported separately.
@@ -35,7 +35,7 @@ The fixture's pre-registration and NotApplicable review references are declared 
 - **Cycle-count baseline:** number of tests labelled Passed reaches a threshold. It can pass even when no low/high-energy test exists.
 - **OFAT baseline:** each factor's required level appears somewhere in a valid run. It does not require the factors to occur together.
 - **Pairwise baseline:** every pair of required factor levels appears somewhere. It can miss an important three-way interaction.
-- **Strict coverage:** all conditions for an obligation occur together in the same eligible run(s), with enough distinct independence groups.
+- **Strict coverage:** all conditions for an obligation occur together in the same eligible run(s), with enough distinct declared run groups.
 
 The metrics report false OFAT and pairwise coverage counts when those shortcuts claim a required obligation is covered but the strict evaluator does not.
 
