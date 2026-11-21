@@ -30,21 +30,35 @@ class LongHorizonEvaluatorTests(unittest.TestCase):
     def test_reference_submission_passes_all_finite_known_answers(self):
         score = self.score()
         totals = score["totals"]
-        self.assertEqual(totals["episode_count"], 9)
-        self.assertEqual(totals["answer_correct_count"], 8)
-        self.assertEqual(totals["decision_correct_count"], 9)
-        self.assertEqual(totals["answer_accuracy"], 8 / 9)
-        self.assertEqual(totals["coverage"], 8 / 9)
+        self.assertEqual(totals["episode_count"], 11)
+        self.assertEqual(totals["answer_correct_count"], 10)
+        self.assertEqual(totals["decision_correct_count"], 11)
+        self.assertEqual(totals["answer_accuracy"], 10 / 11)
+        self.assertEqual(totals["coverage"], 10 / 11)
         self.assertEqual(totals["selective_accuracy"], 1.0)
         self.assertEqual(totals["citation_precision"], 1.0)
         self.assertEqual(totals["citation_recall"], 1.0)
-        self.assertEqual(totals["provenance_complete_count"], 9)
-        self.assertEqual(totals["evidence_qualified_answer_correct_count"], 8)
-        self.assertEqual(totals["evidence_qualified_answer_accuracy"], 8 / 9)
-        self.assertEqual(totals["evidence_compliant_count"], 9)
+        self.assertEqual(totals["provenance_complete_count"], 11)
+        self.assertEqual(totals["evidence_qualified_answer_correct_count"], 10)
+        self.assertEqual(totals["evidence_qualified_answer_accuracy"], 10 / 11)
+        self.assertEqual(totals["evidence_compliant_count"], 11)
         self.assertEqual(totals["false_memory_count"], 0)
         self.assertEqual(totals["hard_violation_count"], 0)
         self.assertEqual(totals["deadline_miss_count"], 0)
+
+    def test_correction_is_not_effective_before_its_availability_tick(self):
+        score = self.score()
+        result = self.episode_result(score, "lh-010-correction-before-arrival")
+        self.assertTrue(result["answer_correct"])
+        self.assertTrue(result["provenance_complete"])
+        self.assertEqual(result["violations"], [])
+
+    def test_revocation_is_not_effective_before_its_availability_tick(self):
+        score = self.score()
+        result = self.episode_result(score, "lh-011-revocation-before-effect")
+        self.assertTrue(result["answer_correct"])
+        self.assertTrue(result["provenance_complete"])
+        self.assertEqual(result["violations"], [])
 
     def test_duplicate_transport_reuses_one_source_observation(self):
         score = self.score()
