@@ -151,6 +151,14 @@ Score the quality of those actions against blinded truth, not only pointwise pre
 
 Where source data permit, fit raw counts through detector response, background, live time, calibration, and physical forward models. For already-published PFNS spectra, preserve the source likelihood and covariance. Do not claim that a post-unfolded spectrum is a raw-count model or that an ensemble of response matrices is a complete detector simulation.
 
+### Current common-cause covariance substrate
+
+The research crate includes `assemble_joint_experiment_covariance` and typed inputs for per-experiment independent covariance plus named shared-source covariance/Jacobian contributions. It builds all within- and cross-experiment blocks with (J_i C_s J_j^T). The same source ID must carry a consistent covariance definition across every experiment; inconsistent definitions fail closed.
+
+Each experiment also reports whether its common-cause lineage coverage is complete. The joint result propagates that flag. A computed block-diagonal matrix with incomplete source metadata is therefore not labelled as proof of independence. This is a provenance qualification signal, not a way to infer missing covariance values; unrecorded common causes still require source evidence or conservative sensitivity bounds.
+
+Current implementation is a linearized covariance assembler. It is not yet a lineage graph ingestion engine, full joint likelihood, batch optimizer, or posterior propagation layer. Its unit tests are authored and await exact-head CI.
+
 ## 3. Frozen benchmark ladder
 
 All candidate methods must receive identical training data, validation data, held-out experimental lineages, feature availability, and computational budgets. Include oracle methods only as diagnostic ceilings.
