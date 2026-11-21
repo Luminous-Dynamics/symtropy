@@ -29,6 +29,8 @@ The initial benchmark should preserve model, architecture, sample, source batch,
 
 SuperPower's public process description states that it measures transport critical current at 3 m intervals along conductor and also uses a calibrated non-contact magnetization system ("TapeStar") to produce a lengthwise Ic trace. The same page illustrates a transport measurement on approximately 630 m of 4 mm tape and a TapeStar trace of that same length. This is unusually useful because it documents a real industrial metrology architecture, rather than merely a product headline: https://www.superpower-inc.com/Technology.aspx
 
+SuperPower states that direct transport Ic is measured at 3 m intervals. Preserve that as a sampling-spacing fact only: it does not prove the unmeasured space between sample locations was directly tested. In every record, the physical measurement footprint and sample-center spacing are separate fields; a gap between footprints remains unmeasured unless a qualifying scan actually covered it. The TapeStar trace also requires its actual spatial footprint, resolution, calibration revision and registration uncertainty to be recorded, rather than assuming the entire reel was observed because a plot is drawn across its length.
+
 The v0.1 auditor therefore separates:
 - `direct_transport`: a transport-current measurement used for the direct-Ic spatial coverage metric;
 - `noncontact_magnetization_proxy`: a calibrated indirect Ic estimate, reported separately and never counted as direct transport coverage;
