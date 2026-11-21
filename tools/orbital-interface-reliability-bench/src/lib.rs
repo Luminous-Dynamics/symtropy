@@ -66,6 +66,8 @@ pub struct Expected {
     pub naive_success_fraction: Option<f64>,
     pub naive_baseline_false_assurance: bool,
     pub minimum_zero_failure_trials: Option<usize>,
+    pub naive_cycle_lower_bound: Option<f64>,
+    pub naive_cycle_false_assurance: bool,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
@@ -83,7 +85,8 @@ pub struct ReliabilityCase {
     pub dependence_assessment_ref: Option<String>,
     pub reliability_target: f64,
     pub confidence: f64,
-    pub nominal_cycle_count_claim: Option<u64>,
+    pub reported_cycle_successes: usize,
+    pub reported_cycle_failures: usize,
     pub trials: Vec<Trial>,
     pub expected: Expected,
 }
@@ -137,6 +140,7 @@ pub struct Summary {
     pub censored_trials: usize,
     pub duplicate_trials: usize,
     pub naive_false_assurance_cases: usize,
+    pub naive_cycle_false_assurance_cases: usize,
     pub expected_result_mismatches: usize,
 }
 
@@ -167,6 +171,8 @@ struct Decision {
     naive_success_fraction: Option<f64>,
     naive_baseline_false_assurance: bool,
     minimum_zero_failure_trials: Option<usize>,
+    naive_cycle_lower_bound: Option<f64>,
+    naive_cycle_false_assurance: bool,
 }
 
 fn valid_digest(value: &str) -> bool {
@@ -299,6 +305,8 @@ fn empty_decision(disposition: Disposition, duplicate_trials: usize) -> Decision
         naive_success_fraction: None,
         naive_baseline_false_assurance: false,
         minimum_zero_failure_trials: None,
+        naive_cycle_lower_bound: None,
+        naive_cycle_false_assurance: false,
     }
 }
 
@@ -521,6 +529,7 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
         censored_trials: 0,
         duplicate_trials: 0,
         naive_false_assurance_cases: 0,
+        naive_cycle_false_assurance_cases: 0,
         expected_result_mismatches: 0,
     };
     let mut results = Vec::with_capacity(corpus.cases.len());
@@ -529,7 +538,20 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
         if !case_ids.insert(case.case_id.as_str()) {
             return Err("reliability case IDs must be unique".to_owned());
         }
-        let decision = evaluate_case(case)?;
+        let mut decision = evaluate_case(case)?;
+        if case.reported_cycle_successes + case.reported_cycle_failures > 0 {
+            let cycle_trials = case.reported_cycle_successes + case.reported_cycle_failures;
+            if cycle_trials <= MAX_TRIALS {
+                let cycle_lower = mission_reliability_lower_bound(
+                    cycle_trials,
+                    case.reported_cycle_failures,
+                    case.confidence,
+                )?;
+                decision.naive_cycle_lower_bound = Some(cycle_lower);
+                decision.naive_cycle_false_assurance = cycle_lower >= case.reliability_target
+                    && decision.disposition != Disposition::ReliabilityDemonstrated;
+            }
+        }
         match decision.disposition {
             Disposition::ReliabilityDemonstrated => summary.reliability_demonstrated += 1,
             Disposition::ReliabilityNotDemonstrated => {
@@ -551,6 +573,8 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
         summary.duplicate_trials += decision.duplicate_trials;
         summary.naive_false_assurance_cases +=
             usize::from(decision.naive_baseline_false_assurance);
+        summary.naive_cycle_false_assurance_cases +=
+            usize::from(decision.naive_cycle_false_assurance);
 
         let expected = &case.expected;
         let bound_matches = match (
@@ -583,7 +607,13 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
             && decision.meets_reliability_target == expected.meets_reliability_target
             && fraction_matches
             && decision.naive_baseline_false_assurance == expected.naive_baseline_false_assurance
-            && decision.minimum_zero_failure_trials == expected.minimum_zero_failure_trials;
+            && decision.minimum_zero_failure_trials == expected.minimum_zero_failure_trials
+            && match (decision.naive_cycle_lower_bound, expected.naive_cycle_lower_bound) {
+                (Some(actual), Some(target)) => (actual - target).abs() <= 1e-10,
+                (None, None) => true,
+                _ => false,
+            }
+            && decision.naive_cycle_false_assurance == expected.naive_cycle_false_assurance;
         if !matched {
             summary.expected_result_mismatches += 1;
         }
@@ -605,6 +635,8 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
             naive_success_fraction: decision.naive_success_fraction,
             naive_baseline_false_assurance: decision.naive_baseline_false_assurance,
             minimum_zero_failure_trials: decision.minimum_zero_failure_trials,
+            naive_cycle_lower_bound: decision.naive_cycle_lower_bound,
+            naive_cycle_false_assurance: decision.naive_cycle_false_assurance,
             expected_result_matched: matched,
         });
     }
