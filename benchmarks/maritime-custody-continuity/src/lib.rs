@@ -400,7 +400,8 @@ fn evaluate_box(
     let mut seen_handoffs = BTreeSet::new();
     let mut receiver_receipt_time = None;
 
-    for (index, event) in actual.iter().enumerate() {
+    for (index, event_ref) in actual.iter().enumerate() {
+        let event = *event_ref;
         if event.quantity != 1 || event.unit != "BOX" {
             record_failure(
                 report,
@@ -640,7 +641,7 @@ pub fn evaluate(
     }
 
     for (box_id, events_for_unknown) in &by_box {
-        if !expected_by_box.contains_key(box_id) {
+        if !expected_by_box.contains_key(*box_id) {
             report.unknown_box_events += events_for_unknown.len();
             record_failure(
                 &mut report,
@@ -801,6 +802,7 @@ mod tests {
     #[test]
     fn wrong_final_receiver_does_not_complete_the_chain() {
         let (expectations, mut events) = fixtures();
+        event_mut(&mut events, "B1-R3").to_party = "WRONG_RECEIVER".to_string();
         event_mut(&mut events, "B1-A3").to_party = "WRONG_RECEIVER".to_string();
         let report = evaluate(&expectations, &events, 200).unwrap();
         assert_eq!(report.failure_counts.get(&ChainFailure::NotAtExpectedReceiver), Some(&1));
