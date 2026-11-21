@@ -83,6 +83,7 @@
     "non_finite_input_is_rejected",
     "parameter_scaling_changes_information_in_declared_coordinates",
     "independent_variance_weights_are_applied",
+    "jacobi_spectrum_retains_a_small_but_resolvable_singular_direction",
     "offline_reference_self_check"
   ],
   "limitations": [
