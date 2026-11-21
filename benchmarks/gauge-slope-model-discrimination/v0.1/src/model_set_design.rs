@@ -299,8 +299,7 @@ mod tests {
             condition(1.5, 0.02),
         ];
         let result =
-            score_linear_vs_quadratic_speed_models(&design, exact_bounds(0.25, 0.125))
-                .unwrap();
+            score_linear_vs_quadratic_speed_models(&design, exact_bounds(0.25, 0.125)).unwrap();
         assert!(result.worst_case_squared_standardized_separation > 0.0);
     }
 
