@@ -263,6 +263,7 @@ pub struct CalibrationBin {
 pub struct BinaryCalibrationReport {
     pub observation_count: usize,
     pub brier_score: f64,
+    pub negative_log_likelihood: f64,
     pub expected_calibration_error: f64,
     pub maximum_calibration_error: f64,
     pub bins: Vec<CalibrationBin>,
@@ -289,6 +290,8 @@ pub fn evaluate_binary_calibration(
     let mut bin_probability_sums = vec![0.0f64; bin_count];
     let mut bin_positive_counts = vec![0usize; bin_count];
     let mut brier_sum = 0.0f64;
+    let mut negative_log_likelihood_sum = 0.0f64;
+    const NLL_EPSILON: f64 = 1e-15;
 
     for observation in observations {
         if observation.sample_id.trim().is_empty()
@@ -312,6 +315,12 @@ pub fn evaluate_binary_calibration(
 
         let target = if observation.actual_positive { 1.0 } else { 0.0 };
         brier_sum += (probability - target).powi(2);
+        let clamped_probability = probability.clamp(NLL_EPSILON, 1.0 - NLL_EPSILON);
+        negative_log_likelihood_sum -= if observation.actual_positive {
+            clamped_probability.ln()
+        } else {
+            (1.0 - clamped_probability).ln()
+        };
 
         let index = if probability == 1.0 {
             bin_count - 1
@@ -359,6 +368,7 @@ pub fn evaluate_binary_calibration(
     Ok(BinaryCalibrationReport {
         observation_count,
         brier_score: brier_sum / observation_count as f64,
+        negative_log_likelihood: negative_log_likelihood_sum / observation_count as f64,
         expected_calibration_error: ece,
         maximum_calibration_error: mce,
         bins,
@@ -663,6 +673,7 @@ mod tests {
         let report = evaluate_binary_calibration(&observations, 10).unwrap();
         assert_eq!(report.observation_count, 4);
         assert!(report.brier_score <= 0.01);
+        assert!(report.negative_log_likelihood < 0.06);
         assert!(report.expected_calibration_error <= 0.05);
         assert_eq!(report.bins.len(), 10);
         assert_eq!(report.bins[4].sample_count, 0);
@@ -685,6 +696,7 @@ mod tests {
         ];
         let report = evaluate_binary_calibration(&observations, 10).unwrap();
         assert!(report.brier_score > 0.95);
+        assert!(report.negative_log_likelihood > 4.5);
         assert!(report.expected_calibration_error > 0.95);
         assert!(report.maximum_calibration_error > 0.95);
     }
