@@ -225,6 +225,41 @@
           "items": {
             "$ref": "#/$defs/probe"
           }
+        },
+        "unrelated_control": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "observation_ref",
+            "modality",
+            "availability_tick",
+            "source_content",
+            "source_dependency_group"
+          ],
+          "properties": {
+            "observation_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "modality": {
+              "enum": [
+                "audio",
+                "video"
+              ]
+            },
+            "availability_tick": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "source_content": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_dependency_group": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
         }
       }
     }
