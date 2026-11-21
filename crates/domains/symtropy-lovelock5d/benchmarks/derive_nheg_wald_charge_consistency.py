@@ -115,13 +115,11 @@ def main() -> None:
     )
     exact_zero(
         "source leading coefficient",
-        sp.limit(eps**3*D_source_epsilon,eps,0,dir="+")
-        -100*alpha/(sp.pi*G)
+        sp.limit(Q/(q**3*p**2),T,0,dir="+")-1600
     )
     exact_zero(
         "Wald leading coefficient",
-        sp.limit(eps**3*D_wald_epsilon,eps,0,dir="+")
-        +5*alpha/(16*sp.pi*G)
+        sp.limit(wald_factor,T,0,dir="+")+5
     )
     exact_zero(
         "density ratio",
@@ -129,8 +127,7 @@ def main() -> None:
     )
     exact_zero(
         "difference leading coefficient",
-        sp.limit(eps**3*D_difference,eps,0,dir="+")
-        -1605*alpha/(16*sp.pi*G)
+        sp.limit(expected_difference/(q**3*p**2),T,0,dir="+")-1605
     )
     difference_integral_leading=1605*alpha/(32*sp.pi*G)
     exact_zero(
