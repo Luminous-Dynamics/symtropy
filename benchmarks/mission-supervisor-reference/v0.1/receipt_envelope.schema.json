@@ -41,16 +41,20 @@
       "required": [
         "source_clock_id",
         "source_boot_epoch_id",
-        "comparison_clock_id",
-        "comparison_boot_epoch_id",
-        "normalization_commitment"
+        "comparison_basis_id",
+        "comparison_epoch_id",
+        "source_time_commitment",
+        "correlation_commitment",
+        "normalized_time_commitment"
       ],
       "properties": {
         "source_clock_id": { "type": "string", "minLength": 1 },
         "source_boot_epoch_id": { "type": "string", "minLength": 1 },
-        "comparison_clock_id": { "type": "string", "minLength": 1 },
-        "comparison_boot_epoch_id": { "type": "string", "minLength": 1 },
-        "normalization_commitment": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+        "comparison_basis_id": { "type": "string", "minLength": 1 },
+        "comparison_epoch_id": { "type": "string", "minLength": 1 },
+        "source_time_commitment": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "correlation_commitment": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "normalized_time_commitment": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
       }
     },
     "observer_role": {
