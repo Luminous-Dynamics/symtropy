@@ -36,16 +36,41 @@ impl Display for EnvelopeError {
         match self {
             Self::EmptyArticleId => write!(formatter, "article ID must not be empty"),
             Self::EmptyCalibrationId => write!(formatter, "calibration ID must not be empty"),
-            Self::InvalidValidityWindow => write!(formatter, "valid_from must be earlier than valid_until"),
-            Self::InvalidVoltageBand => write!(formatter, "minimum supply voltage must not exceed maximum"),
-            Self::InvalidDutyLimit => write!(formatter, "maximum duty must be in 0..=10000 basis points"),
-            Self::InvalidDeratingMargin => write!(formatter, "derating margin must be in 0..=10000 basis points"),
-            Self::InsufficientSpeedBreakpoints => write!(formatter, "at least two speed breakpoints are required"),
-            Self::InsufficientTemperatureBreakpoints => write!(formatter, "at least two temperature breakpoints are required"),
-            Self::UnorderedSpeedBreakpoints => write!(formatter, "speed breakpoints must be strictly increasing"),
-            Self::UnorderedTemperatureBreakpoints => write!(formatter, "temperature breakpoints must be strictly increasing"),
-            Self::WrongCellCount => write!(formatter, "one cell is required for every adjacent speed/temperature rectangle"),
-            Self::ZeroCellDuration => write!(formatter, "each qualified cell must have a positive maximum command duration"),
+            Self::InvalidValidityWindow => {
+                write!(formatter, "valid_from must be earlier than valid_until")
+            }
+            Self::InvalidVoltageBand => {
+                write!(formatter, "minimum supply voltage must not exceed maximum")
+            }
+            Self::InvalidDutyLimit => {
+                write!(formatter, "maximum duty must be in 0..=10000 basis points")
+            }
+            Self::InvalidDeratingMargin => write!(
+                formatter,
+                "derating margin must be in 0..=10000 basis points"
+            ),
+            Self::InsufficientSpeedBreakpoints => {
+                write!(formatter, "at least two speed breakpoints are required")
+            }
+            Self::InsufficientTemperatureBreakpoints => write!(
+                formatter,
+                "at least two temperature breakpoints are required"
+            ),
+            Self::UnorderedSpeedBreakpoints => {
+                write!(formatter, "speed breakpoints must be strictly increasing")
+            }
+            Self::UnorderedTemperatureBreakpoints => write!(
+                formatter,
+                "temperature breakpoints must be strictly increasing"
+            ),
+            Self::WrongCellCount => write!(
+                formatter,
+                "one cell is required for every adjacent speed/temperature rectangle"
+            ),
+            Self::ZeroCellDuration => write!(
+                formatter,
+                "each qualified cell must have a positive maximum command duration"
+            ),
         }
     }
 }
@@ -137,7 +162,10 @@ impl CapabilityEnvelope {
         if temperature_breakpoints_mc.len() < 2 {
             return Err(EnvelopeError::InsufficientTemperatureBreakpoints);
         }
-        if speed_breakpoints_mrpm.windows(2).any(|pair| pair[0] >= pair[1]) {
+        if speed_breakpoints_mrpm
+            .windows(2)
+            .any(|pair| pair[0] >= pair[1])
+        {
             return Err(EnvelopeError::UnorderedSpeedBreakpoints);
         }
         if temperature_breakpoints_mc
@@ -146,8 +174,8 @@ impl CapabilityEnvelope {
         {
             return Err(EnvelopeError::UnorderedTemperatureBreakpoints);
         }
-        let expected_cells = (speed_breakpoints_mrpm.len() - 1)
-            .saturating_mul(temperature_breakpoints_mc.len() - 1);
+        let expected_cells =
+            (speed_breakpoints_mrpm.len() - 1).saturating_mul(temperature_breakpoints_mc.len() - 1);
         if cells.len() != expected_cells {
             return Err(EnvelopeError::WrongCellCount);
         }
@@ -230,17 +258,14 @@ impl CapabilityEnvelope {
             return decision;
         }
 
-        let Some(speed_interval) = interval_index(
-            &self.speed_breakpoints_mrpm,
-            request.speed_mrpm,
-        ) else {
+        let Some(speed_interval) = interval_index(&self.speed_breakpoints_mrpm, request.speed_mrpm)
+        else {
             decision.admission = Admission::Rejected(RejectionReason::SpeedOutOfRange);
             return decision;
         };
-        let Some(temperature_interval) = interval_index(
-            &self.temperature_breakpoints_mc,
-            request.temperature_mc,
-        ) else {
+        let Some(temperature_interval) =
+            interval_index(&self.temperature_breakpoints_mc, request.temperature_mc)
+        else {
             decision.admission = Admission::Rejected(RejectionReason::TemperatureOutOfRange);
             return decision;
         };
@@ -251,8 +276,7 @@ impl CapabilityEnvelope {
         decision.cell_index = Some(cell_index);
 
         if request.duration_ms == 0 || request.duration_ms > cell.max_command_duration_ms {
-            decision.admission =
-                Admission::Rejected(RejectionReason::CommandDurationExceeded);
+            decision.admission = Admission::Rejected(RejectionReason::CommandDurationExceeded);
             return decision;
         }
 
@@ -357,10 +381,26 @@ mod tests {
             vec![0, 1_000_000, 2_000_000],
             vec![20_000, 40_000, 60_000],
             vec![
-                QualifiedCell { positive_limit_mnm: 1_000, negative_limit_mnm: 900, max_command_duration_ms: 500 },
-                QualifiedCell { positive_limit_mnm: 800, negative_limit_mnm: 750, max_command_duration_ms: 400 },
-                QualifiedCell { positive_limit_mnm: 700, negative_limit_mnm: 650, max_command_duration_ms: 300 },
-                QualifiedCell { positive_limit_mnm: 500, negative_limit_mnm: 450, max_command_duration_ms: 200 },
+                QualifiedCell {
+                    positive_limit_mnm: 1_000,
+                    negative_limit_mnm: 900,
+                    max_command_duration_ms: 500,
+                },
+                QualifiedCell {
+                    positive_limit_mnm: 800,
+                    negative_limit_mnm: 750,
+                    max_command_duration_ms: 400,
+                },
+                QualifiedCell {
+                    positive_limit_mnm: 700,
+                    negative_limit_mnm: 650,
+                    max_command_duration_ms: 300,
+                },
+                QualifiedCell {
+                    positive_limit_mnm: 500,
+                    negative_limit_mnm: 450,
+                    max_command_duration_ms: 200,
+                },
             ],
         )
         .expect("valid fixture")
@@ -412,7 +452,10 @@ mod tests {
     #[test]
     fn outer_boundaries_are_included_but_extrapolation_is_rejected() {
         let env = envelope(0);
-        assert_eq!(env.evaluate(request(400, 2_000_000, 60_000)).admission, Admission::Accepted);
+        assert_eq!(
+            env.evaluate(request(400, 2_000_000, 60_000)).admission,
+            Admission::Accepted
+        );
         assert_eq!(
             env.evaluate(request(1, 2_000_001, 60_000)).admission,
             Admission::Rejected(RejectionReason::SpeedOutOfRange)
@@ -493,38 +536,64 @@ mod tests {
         assert_eq!(
             CapabilityEnvelope::new(
                 EnvelopeMetadata {
-                    article_id: "article".to_owned(), calibration_id: "cal".to_owned(),
-                    calibration_digest: digest(1), valid_from_ms: 1, valid_until_ms: 2,
-                    supply_voltage_min_mv: 10, supply_voltage_max_mv: 5,
-                    max_duty_basis_points: 100, derating_margin_basis_points: 0,
+                    article_id: "article".to_owned(),
+                    calibration_id: "cal".to_owned(),
+                    calibration_digest: digest(1),
+                    valid_from_ms: 1,
+                    valid_until_ms: 2,
+                    supply_voltage_min_mv: 10,
+                    supply_voltage_max_mv: 5,
+                    max_duty_basis_points: 100,
+                    derating_margin_basis_points: 0,
                 },
-                vec![0, 1], vec![0, 1],
-                vec![QualifiedCell { positive_limit_mnm: 1, negative_limit_mnm: 1, max_command_duration_ms: 1 }],
+                vec![0, 1],
+                vec![0, 1],
+                vec![QualifiedCell {
+                    positive_limit_mnm: 1,
+                    negative_limit_mnm: 1,
+                    max_command_duration_ms: 1
+                }],
             ),
             Err(EnvelopeError::InvalidVoltageBand)
         );
         assert_eq!(
             CapabilityEnvelope::new(
                 EnvelopeMetadata {
-                    article_id: "article".to_owned(), calibration_id: "cal".to_owned(),
-                    calibration_digest: digest(1), valid_from_ms: 1, valid_until_ms: 2,
-                    supply_voltage_min_mv: 10, supply_voltage_max_mv: 10,
-                    max_duty_basis_points: 10_001, derating_margin_basis_points: 0,
+                    article_id: "article".to_owned(),
+                    calibration_id: "cal".to_owned(),
+                    calibration_digest: digest(1),
+                    valid_from_ms: 1,
+                    valid_until_ms: 2,
+                    supply_voltage_min_mv: 10,
+                    supply_voltage_max_mv: 10,
+                    max_duty_basis_points: 10_001,
+                    derating_margin_basis_points: 0,
                 },
-                vec![0, 1], vec![0, 1],
-                vec![QualifiedCell { positive_limit_mnm: 1, negative_limit_mnm: 1, max_command_duration_ms: 1 }],
+                vec![0, 1],
+                vec![0, 1],
+                vec![QualifiedCell {
+                    positive_limit_mnm: 1,
+                    negative_limit_mnm: 1,
+                    max_command_duration_ms: 1
+                }],
             ),
             Err(EnvelopeError::InvalidDutyLimit)
         );
         assert_eq!(
             CapabilityEnvelope::new(
                 EnvelopeMetadata {
-                    article_id: "article".to_owned(), calibration_id: "cal".to_owned(),
-                    calibration_digest: digest(1), valid_from_ms: 1, valid_until_ms: 2,
-                    supply_voltage_min_mv: 10, supply_voltage_max_mv: 10,
-                    max_duty_basis_points: 100, derating_margin_basis_points: 0,
+                    article_id: "article".to_owned(),
+                    calibration_id: "cal".to_owned(),
+                    calibration_digest: digest(1),
+                    valid_from_ms: 1,
+                    valid_until_ms: 2,
+                    supply_voltage_min_mv: 10,
+                    supply_voltage_max_mv: 10,
+                    max_duty_basis_points: 100,
+                    derating_margin_basis_points: 0,
                 },
-                vec![0, 1], vec![0, 1],
+                vec![0, 1],
+                vec![0, 1],
                 vec![],
             ),
             Err(EnvelopeError::WrongCellCount)
@@ -532,15 +601,29 @@ mod tests {
         assert_eq!(
             CapabilityEnvelope::new(
                 EnvelopeMetadata {
-                    article_id: "article".to_owned(), calibration_id: "cal".to_owned(),
-                    calibration_digest: digest(1), valid_from_ms: 1, valid_until_ms: 2,
-                    supply_voltage_min_mv: 10, supply_voltage_max_mv: 10,
-                    max_duty_basis_points: 100, derating_margin_basis_points: 0,
+                    article_id: "article".to_owned(),
+                    calibration_id: "cal".to_owned(),
+                    calibration_digest: digest(1),
+                    valid_from_ms: 1,
+                    valid_until_ms: 2,
+                    supply_voltage_min_mv: 10,
+                    supply_voltage_max_mv: 10,
+                    max_duty_basis_points: 100,
+                    derating_margin_basis_points: 0,
                 },
-                vec![0, 1, 1], vec![0, 1],
+                vec![0, 1, 1],
+                vec![0, 1],
                 vec![
-                    QualifiedCell { positive_limit_mnm: 1, negative_limit_mnm: 1, max_command_duration_ms: 1 },
-                    QualifiedCell { positive_limit_mnm: 1, negative_limit_mnm: 1, max_command_duration_ms: 1 },
+                    QualifiedCell {
+                        positive_limit_mnm: 1,
+                        negative_limit_mnm: 1,
+                        max_command_duration_ms: 1
+                    },
+                    QualifiedCell {
+                        positive_limit_mnm: 1,
+                        negative_limit_mnm: 1,
+                        max_command_duration_ms: 1
+                    },
                 ],
             ),
             Err(EnvelopeError::UnorderedSpeedBreakpoints)
