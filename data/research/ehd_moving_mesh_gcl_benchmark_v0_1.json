@@ -1,0 +1,76 @@
+{
+  "schema": "luminous.ehd_moving_mesh_gcl_benchmark",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-MOVING-GCL-001",
+  "as_of": "2026-11-21",
+  "status": "analytic_reference_oracle_authored_tests_rust_execution_pending",
+  "units": "SI",
+  "identity": {
+    "equation": "V(t1)-V(t0)=integral_t0_t1 integral_boundary(w dot n) dA dt",
+    "grid_velocity": "linear_in_time_face_motion",
+    "orientation": "outward_face_normal",
+    "residual": "integrated_grid_flux_minus_cell_volume_change"
+  },
+  "reference_implementation": {
+    "path": "tools/ehd-reference-audit/src/gcl.rs",
+    "geometry": "single_axis_aligned_spatial_box",
+    "spatial_dimensions": [
+      1,
+      2,
+      3
+    ],
+    "motion": "lower_and_upper_bounds_linear_in_normalized_time",
+    "face_area_integral": "exact_polynomial_expansion_and_integration_on_tau_0_1",
+    "quadrature": "none_for_reference_face_area_integral",
+    "reports": [
+      "initial_volume",
+      "final_volume",
+      "volume_change",
+      "lower_face_flux_by_axis",
+      "upper_face_flux_by_axis",
+      "integrated_grid_flux",
+      "gcl_residual",
+      "allowed_case_specific_residual"
+    ],
+    "free_stream_check": "q1*V1=q0*(V0+integrated_grid_flux)_with_no_physical_flux_or_source"
+  },
+  "test_families": [
+    "static_mesh_zero_grid_flux",
+    "one_dimensional_translation_and_expansion",
+    "two_dimensional_translation_and_anisotropic_expansion",
+    "three_dimensional_anisotropic_motion",
+    "forward_reverse_flux_antisymmetry",
+    "independent_temporal_subdivision_additivity",
+    "uniform_scalar_ale_free_stream",
+    "invalid_duration_rejection",
+    "collapsed_or_non_finite_bounds_rejection",
+    "invalid_tolerance_rejection",
+    "offline_cli_reference_self_check"
+  ],
+  "acceptance": {
+    "universal_numeric_tolerance": null,
+    "case_specific_absolute_plus_relative_tolerance_required": true,
+    "tolerance_must_be_predeclared": true,
+    "geometric_residual_separate_from_impulse_charge_momentum_energy_ledgers": true,
+    "free_stream_state_tolerance_separately_declared": true
+  },
+  "limitations": [
+    "axis_aligned_cells_only",
+    "linear_face_motion_only",
+    "no_rotated_or_curved_cells",
+    "no_general_polyhedra",
+    "no_shear_or_sliding_interfaces",
+    "no_remeshing_or_connectivity_changes",
+    "no_fluid_or_plasma_solver",
+    "not_a_production_ale_solver"
+  ],
+  "next_steps": [
+    "independent analytic and external geometry oracle comparison",
+    "oriented_polyhedron_translation_and_rotation",
+    "affine_deformation_and_swept_face_geometry",
+    "nonconforming_interface_and_remeshing_gcl",
+    "discrete_free_stream_preservation_in_a_real_ale_solver",
+    "coupled_plasma_neutral_solver_adapter"
+  ],
+  "claim_ceiling": "The reference module and authored tests specify an analytic GCL oracle for linearly moving axis-aligned boxes only. No arbitrary moving-mesh GCL compliance, production ALE solver, EHD solver coupling, physical result, Rust execution or SOTA superiority is claimed."
+}
