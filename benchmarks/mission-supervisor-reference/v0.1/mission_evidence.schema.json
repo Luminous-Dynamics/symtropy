@@ -38,7 +38,8 @@
             "comparison_epoch_id",
             "source_time_commitment",
             "correlation_commitment",
-            "normalized_time_commitment"
+            "normalized_time_commitment",
+            "uncertainty_bound_nanoseconds"
           ],
           "properties": {
             "source_clock_id": { "type": "string", "minLength": 1 },
@@ -47,7 +48,8 @@
             "comparison_epoch_id": { "type": "string", "minLength": 1 },
             "source_time_commitment": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
             "correlation_commitment": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
-            "normalized_time_commitment": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+            "normalized_time_commitment": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "uncertainty_bound_nanoseconds": { "type": "integer", "minimum": 0 }
           }
         },
         "observer_role": {
