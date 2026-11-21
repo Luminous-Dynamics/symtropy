@@ -1,0 +1,191 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-response-window-silence-v0",
+  "policy_id": "synthetic-reference-interaction-policy-v1",
+  "run_id": "synthetic-reference-run-v1",
+  "measurement_status": "synthetic_reference",
+  "predictions": [
+    {
+      "episode_id": "rw-001-dead-time",
+      "actions": []
+    },
+    {
+      "episode_id": "rw-002-urgent-hazard",
+      "actions": [
+        {
+          "action_id": "a-rw002-respond",
+          "trigger_event_id": "hazard-1",
+          "action_type": "respond",
+          "decision_tick": 13,
+          "output_start_tick": 14,
+          "output_end_tick": 16,
+          "turn_epoch": "epoch-rw002",
+          "evidence_refs": [
+            "obs-hazard-1"
+          ],
+          "confidence": 0.98
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-003-duplicate-trigger",
+      "actions": [
+        {
+          "action_id": "a-rw003-respond",
+          "trigger_event_id": "alarm-primary",
+          "action_type": "respond",
+          "decision_tick": 7,
+          "output_start_tick": 8,
+          "output_end_tick": 10,
+          "turn_epoch": "epoch-rw003",
+          "evidence_refs": [
+            "obs-alarm-primary"
+          ],
+          "confidence": 0.95
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-004-ambiguous-clarify",
+      "actions": [
+        {
+          "action_id": "a-rw004-clarify",
+          "trigger_event_id": "ambiguous-request",
+          "action_type": "clarify",
+          "decision_tick": 9,
+          "output_start_tick": 10,
+          "output_end_tick": 12,
+          "turn_epoch": "epoch-rw004",
+          "evidence_refs": [
+            "obs-ambiguous-4"
+          ],
+          "confidence": 0.9
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-005-user-interruption",
+      "actions": [
+        {
+          "action_id": "a-rw005-yield",
+          "trigger_event_id": "user-starts",
+          "action_type": "yield",
+          "decision_tick": 21,
+          "output_stop_ack_tick": 22,
+          "turn_epoch": "epoch-rw005",
+          "evidence_refs": [
+            "obs-user-start-5"
+          ],
+          "confidence": 0.99
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-006-backchannel",
+      "actions": []
+    },
+    {
+      "episode_id": "rw-007-latching-stop",
+      "actions": [
+        {
+          "action_id": "a-rw007-stop",
+          "trigger_event_id": "explicit-stop",
+          "action_type": "stop",
+          "decision_tick": 16,
+          "output_stop_ack_tick": 17,
+          "turn_epoch": "epoch-rw007",
+          "evidence_refs": [
+            "obs-stop-7"
+          ],
+          "confidence": 1
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-008-superseded-response",
+      "actions": [
+        {
+          "action_id": "a-rw008-cancel",
+          "trigger_event_id": "new-evidence",
+          "action_type": "cancel",
+          "decision_tick": 21,
+          "turn_epoch": "epoch-rw008",
+          "target_action_id": "plan-old-response",
+          "evidence_refs": [
+            "obs-new-evidence-8"
+          ],
+          "confidence": 0.99
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-009-slow-down",
+      "actions": [
+        {
+          "action_id": "a-rw009-deescalate",
+          "trigger_event_id": "slow-down",
+          "action_type": "deescalate",
+          "decision_tick": 17,
+          "turn_epoch": "epoch-rw009",
+          "evidence_refs": [
+            "obs-slowdown-9"
+          ],
+          "confidence": 0.98
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-010-background-load",
+      "actions": [
+        {
+          "action_id": "a-rw010-respond",
+          "trigger_event_id": "urgent-cue",
+          "action_type": "respond",
+          "decision_tick": 35,
+          "output_start_tick": 36,
+          "output_end_tick": 38,
+          "turn_epoch": "epoch-rw010",
+          "evidence_refs": [
+            "obs-urgent-10"
+          ],
+          "confidence": 0.96
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-011-cross-modal-incomparable",
+      "actions": [
+        {
+          "action_id": "a-rw011-abstain",
+          "trigger_event_id": "audio-event",
+          "action_type": "abstain",
+          "decision_tick": 14,
+          "turn_epoch": "epoch-rw011",
+          "evidence_refs": [
+            "obs-audio-11",
+            "obs-video-11"
+          ],
+          "confidence": 0
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-012-mixed-silence-then-trigger",
+      "actions": [
+        {
+          "action_id": "a-rw012-respond",
+          "trigger_event_id": "relevant-trigger",
+          "action_type": "respond",
+          "decision_tick": 99,
+          "output_start_tick": 100,
+          "output_end_tick": 102,
+          "turn_epoch": "epoch-rw012",
+          "evidence_refs": [
+            "obs-question-12"
+          ],
+          "confidence": 0.97
+        }
+      ]
+    }
+  ]
+}
