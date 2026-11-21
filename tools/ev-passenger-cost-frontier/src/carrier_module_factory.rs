@@ -643,65 +643,6 @@ fn evaluate_pair(base: &BaseFactoryScenario, config: &ModuleConfiguration) -> Sc
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn base() -> BaseFactoryScenario {
-        BaseFactoryScenario {
-            site_id: "south-africa-example".into(),
-            template_id: "contract-assembly-flex".into(),
-            target_good_vehicles_per_year: 1_000,
-            planned_attempts_per_year: 1_075,
-            shifts_per_day: 2,
-            productive_minutes_per_cell_year: 150_000.0,
-            good_vehicle_yield_fraction: 0.93,
-            production_release_ready: false,
-            evidence_gaps: vec!["synthetic".into()],
-            stations: vec![BaseFactoryStation {
-                process_id: "battery-drive-install".into(),
-                cycle_minutes_per_attempt: 8.0,
-                parallel_cells_required: 1,
-            }],
-        }
-    }
-
-    fn config() -> ModuleConfiguration {
-        ModuleConfiguration {
-            config_id: "synthetic-pod".into(),
-            architecture: "detachable_drone_pod".into(),
-            evidence_class: EvidenceClass::Synthetic,
-            evidence_reference: "synthetic fixture".into(),
-            modules_per_good_vehicle: 1,
-            good_module_yield_fraction: Some(0.95),
-            station_processes: vec![
-                ModuleStation {
-                    process_id: "assembly".into(),
-                    process_label: "Pod assembly".into(),
-                    cycle_minutes_per_attempt: Some(30.0),
-                    equipment_capex_usd_per_cell: Some(20_000.0),
-                    footprint_sqm_per_cell: Some(24.0),
-                    operators_per_cell_per_shift: Some(2),
-                    maximum_parallel_cells_available: Some(128),
-                    energy_kwh_per_attempt: Some(4.0),
-                    thermal_energy_kwh_per_attempt: Some(0.0),
-                },
-                ModuleStation {
-                    process_id: "eol-test".into(),
-                    process_label: "Electrical / EOL test".into(),
-                    cycle_minutes_per_attempt: Some(20.0),
-                    equipment_capex_usd_per_cell: Some(35_000.0),
-                    footprint_sqm_per_cell: Some(18.0),
-                    operators_per_cell_per_shift: Some(1),
-                    maximum_parallel_cells_available: Some(128),
-                    energy_kwh_per_attempt: Some(3.0),
-                    thermal_energy_kwh_per_attempt: Some(0.0),
-                },
-            ],
-            notes: vec!["synthetic".into()],
-        }
-    }
-
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 enum SharedCellCompatibility {
@@ -1125,6 +1066,66 @@ pub fn evaluate_shared_cells(
         claim_ceiling: "Synthetic/shared-station capacity overlay only; no verified fixture compatibility, production release, supplier quotation, physical plant layout or cost superiority is established".into(),
     })
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn base() -> BaseFactoryScenario {
+        BaseFactoryScenario {
+            site_id: "south-africa-example".into(),
+            template_id: "contract-assembly-flex".into(),
+            target_good_vehicles_per_year: 1_000,
+            planned_attempts_per_year: 1_075,
+            shifts_per_day: 2,
+            productive_minutes_per_cell_year: 150_000.0,
+            good_vehicle_yield_fraction: 0.93,
+            production_release_ready: false,
+            evidence_gaps: vec!["synthetic".into()],
+            stations: vec![BaseFactoryStation {
+                process_id: "battery-drive-install".into(),
+                cycle_minutes_per_attempt: 8.0,
+                parallel_cells_required: 1,
+            }],
+        }
+    }
+
+    fn config() -> ModuleConfiguration {
+        ModuleConfiguration {
+            config_id: "synthetic-pod".into(),
+            architecture: "detachable_drone_pod".into(),
+            evidence_class: EvidenceClass::Synthetic,
+            evidence_reference: "synthetic fixture".into(),
+            modules_per_good_vehicle: 1,
+            good_module_yield_fraction: Some(0.95),
+            station_processes: vec![
+                ModuleStation {
+                    process_id: "assembly".into(),
+                    process_label: "Pod assembly".into(),
+                    cycle_minutes_per_attempt: Some(30.0),
+                    equipment_capex_usd_per_cell: Some(20_000.0),
+                    footprint_sqm_per_cell: Some(24.0),
+                    operators_per_cell_per_shift: Some(2),
+                    maximum_parallel_cells_available: Some(128),
+                    energy_kwh_per_attempt: Some(4.0),
+                    thermal_energy_kwh_per_attempt: Some(0.0),
+                },
+                ModuleStation {
+                    process_id: "eol-test".into(),
+                    process_label: "Electrical / EOL test".into(),
+                    cycle_minutes_per_attempt: Some(20.0),
+                    equipment_capex_usd_per_cell: Some(35_000.0),
+                    footprint_sqm_per_cell: Some(18.0),
+                    operators_per_cell_per_shift: Some(1),
+                    maximum_parallel_cells_available: Some(128),
+                    energy_kwh_per_attempt: Some(3.0),
+                    thermal_energy_kwh_per_attempt: Some(0.0),
+                },
+            ],
+            notes: vec!["synthetic".into()],
+        }
+    }
 
     fn shared_mapping(compatibility: SharedCellCompatibility) -> SharedCellMapping {
         SharedCellMapping {
