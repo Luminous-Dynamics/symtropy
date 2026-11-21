@@ -99,6 +99,7 @@
         "required": [
           "episode_id",
           "scenario_id",
+          "reason_code",
           "reason"
         ],
         "properties": {
@@ -107,6 +108,10 @@
             "minLength": 1
           },
           "scenario_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason_code": {
             "type": "string",
             "minLength": 1
           },
