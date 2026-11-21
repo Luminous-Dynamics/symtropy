@@ -331,6 +331,50 @@ where
     Ok(observed / reference)
 }
 
+/// First-order thick-target yield for the two prompt-dissociation beam
+/// components. Both components use the same S-factor and stopping functions;
+/// production work should replace this with species/depth-specific transport
+/// and dissociation profiles when those data are available.
+pub fn prompt_dissociation_weighted_yield<FS, FStop, FU>(
+    components: [BeamEnergyComponent; 2],
+    gamow_energy_cm: GamowEnergyKev,
+    target_density: TargetDensityPerCm3,
+    steps: usize,
+    s_factor_keV_barn: FS,
+    stopping_keV_cm_per_cm: FStop,
+    screening_keV: FU,
+) -> Result<f64, ModelError>
+where
+    FS: Fn(f64) -> f64,
+    FStop: Fn(f64) -> f64,
+    FU: Fn(f64) -> f64,
+{
+    let mut total = 0.0;
+    let mut weight_sum = 0.0;
+    for component in components {
+        checked_nonnegative(component.deuteron_flux_fraction, "deuteron_flux_fraction")?;
+        let energy = EnergyKev::new(component.energy_cm_kev)?;
+        let component_yield = homogeneous_thick_target_yield(
+            energy,
+            gamow_energy_cm,
+            target_density,
+            steps,
+            &s_factor_keV_barn,
+            &stopping_keV_cm_per_cm,
+            &screening_keV,
+        )?;
+        total += component.deuteron_flux_fraction * component_yield;
+        weight_sum += component.deuteron_flux_fraction;
+    }
+    if (weight_sum - 1.0).abs() > 1.0e-6 {
+        return Err(ModelError::InvalidParameter("deuteron_flux_fractions_must_sum_to_one"));
+    }
+    if !total.is_finite() || total < 0.0 {
+        return Err(ModelError::InvalidParameter("weighted_beam_yield_must_be_finite_and_nonnegative"));
+    }
+    Ok(total)
+}
+
 /// Homogeneous ALR enhancement E_scr(E; Ue) = Y_scr(E) / Y_bare(E),
 /// using the closed-form expression printed as Eq. (12) in the 2026 paper.
 pub fn screening_enhancement(
@@ -501,6 +545,31 @@ mod tests {
             |_| 1.0e8,       // synthetic stopping, keV_cm/cm
             |_| screening,   // synthetic effective screening potential, keV
         )
+    }
+
+    #[test]
+    fn prompt_dissociation_maps_d_plus_and_d2_plus_to_distinct_cm_energies() {
+        let components = prompt_dissociation_beam_components(1.0, 0.85, 0.15)
+            .expect("valid ion-current fractions");
+        assert!((components[0].energy_cm_kev - 0.5).abs() < 1.0e-12);
+        assert!((components[1].energy_cm_kev - 0.25).abs() < 1.0e-12);
+        assert!((components[0].deuteron_flux_fraction - 0.85 / 1.15).abs() < 1.0e-12);
+        assert!((components[1].deuteron_flux_fraction - 0.30 / 1.15).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn prompt_dissociation_deuteron_flux_weights_sum_to_one() {
+        let components = prompt_dissociation_beam_components(5.0, 0.85, 0.15)
+            .expect("valid ion-current fractions");
+        let sum = components.iter().map(|component| component.deuteron_flux_fraction).sum::<f64>();
+        assert!((sum - 1.0).abs() < 1.0e-12);
+        assert!((components[1].deuteron_flux_fraction - 0.2608695652173913).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn prompt_dissociation_rejects_invalid_ion_current_fractions() {
+        assert!(prompt_dissociation_beam_components(1.0, 0.85, 0.10).is_err());
+        assert!(prompt_dissociation_beam_components(1.0, 1.1, -0.1).is_err());
     }
 
     #[test]
