@@ -48,7 +48,8 @@
             "test_result": "inconclusive",
             "limitations": [
               "Synthetic fixture record only; not a measurement or qualification receipt."
-            ]
+            ],
+            "valid_until_utc": null
           },
           {
             "evidence_id": "vehicle-hv-integrated-drone-bay-polarity-negative-control",
@@ -71,7 +72,8 @@
             "test_result": "inconclusive",
             "limitations": [
               "Synthetic fixture record only; not a measurement or qualification receipt."
-            ]
+            ],
+            "valid_until_utc": null
           },
           {
             "evidence_id": "vehicle-hv-mobile-drone-trailer-revision-negative-control",
@@ -94,7 +96,8 @@
             "test_result": "inconclusive",
             "limitations": [
               "Synthetic fixture record only; not a measurement or qualification receipt."
-            ]
+            ],
+            "valid_until_utc": null
           },
           {
             "evidence_id": "vehicle-hv-amr-handoff-unqualified",
@@ -117,7 +120,8 @@
             "test_result": "inconclusive",
             "limitations": [
               "Synthetic fixture record only; not a measurement or qualification receipt."
-            ]
+            ],
+            "valid_until_utc": null
           }
         ]
       },
@@ -158,7 +162,8 @@
             "test_result": "inconclusive",
             "limitations": [
               "Synthetic fixture record only; not a measurement or qualification receipt."
-            ]
+            ],
+            "valid_until_utc": null
           },
           {
             "evidence_id": "vehicle-mount-integrated-drone-bay-polarity-negative-control",
@@ -181,7 +186,8 @@
             "test_result": "inconclusive",
             "limitations": [
               "Synthetic fixture record only; not a measurement or qualification receipt."
-            ]
+            ],
+            "valid_until_utc": null
           },
           {
             "evidence_id": "vehicle-mount-mobile-drone-trailer-revision-negative-control",
@@ -204,7 +210,8 @@
             "test_result": "inconclusive",
             "limitations": [
               "Synthetic fixture record only; not a measurement or qualification receipt."
-            ]
+            ],
+            "valid_until_utc": null
           },
           {
             "evidence_id": "vehicle-mount-amr-handoff-unqualified",
@@ -227,7 +234,8 @@
             "test_result": "inconclusive",
             "limitations": [
               "Synthetic fixture record only; not a measurement or qualification receipt."
-            ]
+            ],
+            "valid_until_utc": null
           }
         ]
       },
@@ -265,7 +273,8 @@
             "test_result": "inconclusive",
             "limitations": [
               "Synthetic fixture record only; not a measurement or qualification receipt."
-            ]
+            ],
+            "valid_until_utc": null
           },
           {
             "evidence_id": "vehicle-data-integrated-drone-bay-polarity-negative-control",
@@ -288,7 +297,8 @@
             "test_result": "inconclusive",
             "limitations": [
               "Synthetic fixture record only; not a measurement or qualification receipt."
-            ]
+            ],
+            "valid_until_utc": null
           },
           {
             "evidence_id": "vehicle-data-mobile-drone-trailer-revision-negative-control",
@@ -311,7 +321,8 @@
             "test_result": "inconclusive",
             "limitations": [
               "Synthetic fixture record only; not a measurement or qualification receipt."
-            ]
+            ],
+            "valid_until_utc": null
           },
           {
             "evidence_id": "vehicle-data-amr-handoff-unqualified",
@@ -334,7 +345,8 @@
             "test_result": "inconclusive",
             "limitations": [
               "Synthetic fixture record only; not a measurement or qualification receipt."
-            ]
+            ],
+            "valid_until_utc": null
           }
         ]
       }
@@ -390,7 +402,8 @@
               "test_result": "inconclusive",
               "limitations": [
                 "Synthetic fixture record only; not a measurement or qualification receipt."
-              ]
+              ],
+              "valid_until_utc": null
             }
           ]
         },
@@ -431,7 +444,8 @@
               "test_result": "inconclusive",
               "limitations": [
                 "Synthetic fixture record only; not a measurement or qualification receipt."
-              ]
+              ],
+              "valid_until_utc": null
             }
           ]
         },
@@ -469,7 +483,8 @@
               "test_result": "inconclusive",
               "limitations": [
                 "Synthetic fixture record only; not a measurement or qualification receipt."
-              ]
+              ],
+              "valid_until_utc": null
             }
           ]
         }
@@ -524,7 +539,8 @@
               "test_result": "inconclusive",
               "limitations": [
                 "Synthetic fixture record only; not a measurement or qualification receipt."
-              ]
+              ],
+              "valid_until_utc": null
             }
           ]
         },
@@ -565,7 +581,8 @@
               "test_result": "inconclusive",
               "limitations": [
                 "Synthetic fixture record only; not a measurement or qualification receipt."
-              ]
+              ],
+              "valid_until_utc": null
             }
           ]
         },
@@ -603,7 +620,8 @@
               "test_result": "inconclusive",
               "limitations": [
                 "Synthetic fixture record only; not a measurement or qualification receipt."
-              ]
+              ],
+              "valid_until_utc": null
             }
           ]
         }
@@ -658,7 +676,8 @@
               "test_result": "inconclusive",
               "limitations": [
                 "Synthetic fixture record only; not a measurement or qualification receipt."
-              ]
+              ],
+              "valid_until_utc": null
             }
           ]
         },
@@ -699,7 +718,8 @@
               "test_result": "inconclusive",
               "limitations": [
                 "Synthetic fixture record only; not a measurement or qualification receipt."
-              ]
+              ],
+              "valid_until_utc": null
             }
           ]
         },
@@ -737,7 +757,8 @@
               "test_result": "inconclusive",
               "limitations": [
                 "Synthetic fixture record only; not a measurement or qualification receipt."
-              ]
+              ],
+              "valid_until_utc": null
             }
           ]
         }
@@ -792,7 +813,8 @@
               "test_result": "inconclusive",
               "limitations": [
                 "Synthetic fixture record only; not a measurement or qualification receipt."
-              ]
+              ],
+              "valid_until_utc": null
             }
           ]
         },
@@ -833,7 +855,8 @@
               "test_result": "inconclusive",
               "limitations": [
                 "Synthetic fixture record only; not a measurement or qualification receipt."
-              ]
+              ],
+              "valid_until_utc": null
             }
           ]
         },
@@ -871,12 +894,14 @@
               "test_result": "inconclusive",
               "limitations": [
                 "Synthetic fixture record only; not a measurement or qualification receipt."
-              ]
+              ],
+              "valid_until_utc": null
             }
           ]
         }
       ]
     }
   ],
-  "claim_ceiling": "Synthetic exact-interface examples only. No physical interface has been qualified and no module is production released."
+  "claim_ceiling": "Synthetic exact-interface examples only. No physical interface has been qualified and no module is production released.",
+  "evaluation_time_utc": "2026-11-21T06:30:00Z"
 }
