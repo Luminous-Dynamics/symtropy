@@ -10,6 +10,37 @@ use crate::ModelError;
 pub const ENERGY_BIAS_LENGTH_SCALES_LOG10: [f64; 3] = [0.05, 0.15, 0.3];
 pub const ENERGY_BIAS_CENTRES_PER_SCALE: [usize; 3] = [100, 50, 10];
 pub const ENERGY_BIAS_BASIS_COLUMNS_PER_GROUP: usize = 160;
+pub const AIACHNE_BIAS_DOMAIN_LOWER_SUBTRACTION_MEV: f64 = 1.0e-4;
+pub const AIACHNE_BIAS_DOMAIN_UPPER_ADDITION_MEV: f64 = 5.0;
+
+/// Reproduce the reference-grid domain extension in AIACHNE/ExecuteStudy.ipynb.
+pub fn aiachne_bias_basis_energy_domain(
+    reference_energies_mev: &[f64],
+) -> Result<(f64, f64), ModelError> {
+    if reference_energies_mev.len() < 2 {
+        return Err(ModelError::MismatchedDataLengths);
+    }
+    if reference_energies_mev.iter().any(|value| !value.is_finite()) {
+        return Err(ModelError::NonFiniteValue("aiachne_reference_energy_grid"));
+    }
+    if reference_energies_mev
+        .windows(2)
+        .any(|pair| pair[1] <= pair[0])
+    {
+        return Err(ModelError::InvalidParameter(
+            "aiachne_reference_energy_grid_must_be_strictly_increasing",
+        ));
+    }
+    let minimum = reference_energies_mev[0] - AIACHNE_BIAS_DOMAIN_LOWER_SUBTRACTION_MEV;
+    let maximum = reference_energies_mev[reference_energies_mev.len() - 1]
+        + AIACHNE_BIAS_DOMAIN_UPPER_ADDITION_MEV;
+    if !minimum.is_finite() || !maximum.is_finite() || minimum <= 0.0 || maximum <= minimum {
+        return Err(ModelError::InvalidParameter(
+            "aiachne_bias_basis_energy_domain_invalid",
+        ));
+    }
+    Ok((minimum, maximum))
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct GroupedEnergyBiasDesign {
@@ -210,6 +241,14 @@ mod tests {
         assert_eq!(&design.length_scales_log10[..100], &[0.05; 100]);
         assert_eq!(&design.length_scales_log10[100..150], &[0.15; 50]);
         assert_eq!(&design.length_scales_log10[150..160], &[0.3; 10]);
+    }
+
+    #[test]
+    fn notebook_reference_grid_extension_is_reproduced() {
+        let domain = aiachne_bias_basis_energy_domain(&[0.0005, 0.01, 25.01])
+            .expect("AIACHNE basis energy domain");
+        assert!((domain.0 - 0.0004).abs() < 1.0e-15);
+        assert!((domain.1 - 30.01).abs() < 1.0e-12);
     }
 
     #[test]
