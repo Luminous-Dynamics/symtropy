@@ -406,18 +406,27 @@ fn compare_groups(groups: Vec<(String, Vec<&TaskCluster>)>) -> Vec<GroupComparis
                     trials += 1;
                 }
             }
-            let baseline = wilson_interval(baseline_successes, trials, 1.959_963_984_540_054)
-                .expect("validated non-empty task clusters");
-            let candidate = wilson_interval(candidate_successes, trials, 1.959_963_984_540_054)
-                .expect("validated non-empty task clusters");
-            GroupComparison {
-                group,
-                baseline,
-                candidate,
-                paired_delta: candidate.rate - baseline.rate,
-            }
+            make_group_comparison(group, baseline_successes, candidate_successes, trials)
         })
         .collect()
+}
+
+fn make_group_comparison(
+    group: String,
+    baseline_successes: u64,
+    candidate_successes: u64,
+    trials: u64,
+) -> GroupComparison {
+    let baseline = wilson_interval(baseline_successes, trials, 1.959_963_984_540_054)
+        .expect("validated non-empty task group");
+    let candidate = wilson_interval(candidate_successes, trials, 1.959_963_984_540_054)
+        .expect("validated non-empty task group");
+    GroupComparison {
+        group,
+        baseline,
+        candidate,
+        paired_delta: candidate.rate - baseline.rate,
+    }
 }
 
 fn bootstrap_task_cluster_delta(
