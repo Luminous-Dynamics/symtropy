@@ -46,3 +46,11 @@ A profile may combine several layers. Each layer pins its own specification revi
 The next step is to add reference-only profiles for i3X 1.0 and OPC UA for Machinery 1.04.2, then connect each profile to a shared frozen workload and independent evaluator. The i3X upstream conformance suite must be reused rather than reimplemented. MTConnect/QIF source admission remains owned by #3025/#3026/#3033; composition VVUQ remains owned by #3121; context and decision-value ablations remain owned by #5622.
 
 No live broker, endpoint, CNC machine, robot, PLC, write method or physical asset is contacted by this M0 fixture.
+
+## Reference profiles added in M0.1
+
+- `profiles/i3x-1.0.reference.json`: source-reviewed i3X 1.0 API profile. The upstream suite is a separate external referee (60 conformance tests). When a concrete read-only endpoint exists, run the upstream CLI with `--no-writes`; do not expose or declare update capabilities. The upstream suite requires Node.js >=18.17 for its own test runner; this does not add a Node runtime to Foundry.
+- `profiles/opcua-machinery-1.04.2.reference.json`: separately pins OPC UA for Machinery Part 1 v1.04.2, published 2026-11-01.
+- `profiles/opcua-robotics-1.02.reference.json`: independently pins OPC UA for Robotics Part 1 v1.02. Do not conflate this with Machinery or infer robot safety conformance.
+
+Reference profiles are source-reviewed specifications only. Their runtime semantics have not been implemented or tested. The `required_fields_to_preserve` list is a future adapter/evaluator requirement, not a claim that fields are currently preserved. `preserved_fields` remains empty and every profile stays `not_run`.
