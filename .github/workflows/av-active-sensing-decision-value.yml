@@ -6,6 +6,7 @@ on:
       - research/av-active-sensing-decision-value-v0
     paths:
       - "research/av-active-sensing-decision-value-v0/**"
+      - "tools/av-modality-necessity-evaluator/active_sensing*"
       - ".github/workflows/av-active-sensing-decision-value.yml"
   pull_request:
     branches: [main]
@@ -64,6 +65,45 @@ jobs:
               elif isinstance(value, list):
                   for child in value: scan(child)
           scan(workload)
+          PY
+      - name: Validate reference policy submission
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          base = "research/av-active-sensing-decision-value-v0/"
+          schema = json.load(open(base + "schemas/submission-v1.schema.json", encoding="utf-8"))
+          submission = json.load(open(base + "fixtures/agent/reference-submission-v1.json", encoding="utf-8"))
+          Draft202012Validator(schema).validate(submission)
+          PY
+      - name: Run active sensing adversarial evaluator tests
+        run: python -m unittest discover -s tools/av-modality-necessity-evaluator -p "test_active_sensing_evaluate.py" -v
+      - name: Score finite active sensing reference policy
+        run: |
+          python tools/av-modality-necessity-evaluator/active_sensing_evaluate.py \
+            --workload research/av-active-sensing-decision-value-v0/fixtures/agent/workload-v1.json \
+            --truth research/av-active-sensing-decision-value-v0/fixtures/evaluator-only/action-truth-v1.json \
+            --submission research/av-active-sensing-decision-value-v0/fixtures/agent/reference-submission-v1.json \
+            --output /tmp/av-active-sensing-reference-scorecard.json
+      - name: Validate scorecard against frozen reference
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          base = "research/av-active-sensing-decision-value-v0/"
+          schema = json.load(open(base + "schemas/scorecard-v1.schema.json", encoding="utf-8"))
+          actual = json.load(open("/tmp/av-active-sensing-reference-scorecard.json", encoding="utf-8"))
+          expected = json.load(open(base + "fixtures/expected/reference-scorecard-v1.json", encoding="utf-8"))
+          Draft202012Validator(schema).validate(actual)
+          assert actual == expected, "active sensing reference scorecard mismatch"
+          assert actual["totals"]["answer_accuracy"] == 1.0
+          assert actual["totals"]["safe_decision_accuracy"] == 1.0
+          assert actual["totals"]["decision_regret_total"] == 0
+          assert actual["totals"]["acquisition_count"] == 3
+          assert actual["totals"]["wasted_acquisition_count"] == 0
+          assert actual["totals"]["late_acquisition_count"] == 0
+          assert actual["totals"]["budget_violation_count"] == 0
+          assert actual["totals"]["evidence_violation_count"] == 0
           PY
       - name: Assert causal deadlines and resource bounds
         run: |
