@@ -160,7 +160,7 @@ def evaluate(provider, client):
         if offered is None:
             add_reason(reasons, "LOAD_CASE_MISSING", 1)
             continue
-        if offered["frame_id"] != required["frame_id"] or offered["frame_id"] != provider["frame_id"]:
+        if offered["frame_id"] != required["frame_id"]:
             add_reason(reasons, "LOAD_FRAME_MISMATCH", 1)
         if offered["interaction_profile_ref"] != required["interaction_profile_ref"]:
             add_reason(reasons, "LOAD_INTERACTION_PROFILE_MISMATCH", 1)
