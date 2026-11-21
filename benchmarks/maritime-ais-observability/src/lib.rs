@@ -502,6 +502,9 @@ pub fn evaluate_call_with_initial_state(
                 lower_tick: fix.tick,
                 upper_tick: fix.tick,
                 confirmation_tick: fix.tick,
+                confirmation_received_tick: fix.received_tick,
+                event_gap_ticks: None,
+                receive_gap_ticks: None,
                 supporting_fix_count: 1,
                 profile_version: profile.version.clone(),
             });
