@@ -39,7 +39,7 @@ The levels are non-substitutable. A pass at one level never implies a pass at a 
 
 ## 3. Frozen M2 contract corpus
 
-The current integration-test oracle compares two separately written implementations over deterministic fault mutations. It covers 23 admission cases and 18 physical-outcome cases across positive controls, expired tickets, configuration changes, mission generation, ODD/mode revision, authority epoch/revocation/scope, clock restart, navigation profile/service/frame/source/sequence, unknown/unqualified/missing navigation time, mismatched comparison clock, missing cross-clock correlation, stale observations, observer identity, event sequence, ticket/configuration/frame/calibration/predicate binding, confidence, and no-effect/partial/unknown dispositions.
+The current integration-test oracle compares two separately written implementations over deterministic fault mutations. It covers 28 admission cases and 18 physical-outcome cases across positive controls, expired tickets, configuration changes, mission generation, active M1 subgoal/action/attempt/predicate binding, ODD/mode revision, authority epoch/revocation/scope, clock restart, navigation profile/service/frame/source/sequence, unknown/unqualified/missing navigation time, mismatched comparison clock, missing cross-clock correlation, stale observations, observer identity, event sequence, ticket/configuration/frame/calibration/predicate binding, canonical outcome-content digest carriage, confidence, and no-effect/partial/unknown dispositions.
 
 The next corpus expansion should keep three files separate:
 
@@ -158,6 +158,6 @@ The strategy is not to claim a larger policy score than a VLA or driving planner
 
 ## 9. Claim ceiling and next gates
 
-The current M2 crate and independent oracle qualify only deterministic software-contract behaviour for the fields and assumptions it explicitly checks. The next gates are: exact-head CI; mutation/oracle agreement; M1 adapter; Mycelix claim/evidence mapping; frozen controller/evaluator corpus; simulator integrations per domain; then HIL/physical tests through domain owners.
+The current M2 crate and independent oracle qualify only deterministic software-contract behaviour for the fields and assumptions it explicitly checks. The next gates are: exact-head CI; mutation/oracle agreement; M1 adapter (including qualified source-time conversion into the M1 receipt time unit); Mycelix claim/evidence mapping; simulator integrations per domain; then HIL/physical tests through domain owners.
 
 No part of this protocol authorizes actuator output, vehicle operation, flight, navigation service, or regulatory compliance.
