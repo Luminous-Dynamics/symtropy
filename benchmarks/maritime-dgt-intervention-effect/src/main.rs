@@ -40,7 +40,10 @@ fn main() {
         rows.len()
     );
     for row in &rows {
-        println!("  {} resource={} stage={}", row.fixture_id, row.resource_id, row.stage);
+        println!(
+            "  {} resource={} stage={}",
+            row.fixture_id, row.resource_id, row.stage
+        );
     }
 
     // This sequence is deliberately synthetic. It demonstrates evidence-stage
