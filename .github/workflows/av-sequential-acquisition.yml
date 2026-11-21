@@ -48,8 +48,10 @@ jobs:
           base = "research/av-sequential-acquisition-v0/"
           workload_schema = json.load(open(base + "schemas/workload-v1.schema.json", encoding="utf-8"))
           submission_schema = json.load(open(base + "schemas/submission-v1.schema.json", encoding="utf-8"))
+          scorecard_schema = json.load(open(base + "schemas/scorecard-v1.schema.json", encoding="utf-8"))
           Draft202012Validator.check_schema(workload_schema)
           Draft202012Validator.check_schema(submission_schema)
+          Draft202012Validator.check_schema(scorecard_schema)
           workload = json.load(open(base + "fixtures/agent/workload-v1.json", encoding="utf-8"))
           truth = json.load(open(base + "fixtures/evaluator-only/truth-v1.json", encoding="utf-8"))
           submission = json.load(open(base + "fixtures/agent/reference-submission-v1.json", encoding="utf-8"))
@@ -76,7 +78,11 @@ jobs:
         run: |
           python - <<'PY'
           import json
+          from jsonschema import Draft202012Validator
+          base = "research/av-sequential-acquisition-v0/"
+          schema = json.load(open(base + "schemas/scorecard-v1.schema.json", encoding="utf-8"))
           report = json.load(open("/tmp/av-sequential-acquisition-scorecard.json", encoding="utf-8"))
+          Draft202012Validator(schema).validate(report)
           assert report["totals"]["episode_count"] == 4
           assert report["totals"]["oracle_action_set_matches"] == 4
           assert report["totals"]["mean_regret_vs_exact_nonadaptive_oracle"] <= 1e-9
