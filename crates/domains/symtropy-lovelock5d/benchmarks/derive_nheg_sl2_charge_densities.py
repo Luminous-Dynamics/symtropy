@@ -269,6 +269,21 @@ def main() -> None:
                 if value != 0:
                     nabla_h_down[sigma,nu,rho]=value
 
+    h_up=sp.simplify(inverse*h_down*inverse)
+    h_trace=sp.factor((inverse*h_down).trace())
+    nabla_h_up={}
+    for mu in range(5):
+        for nu in range(5):
+            for sigma in range(5):
+                value=sp.diff(h_up[mu,nu],coords[sigma])
+                for lam in range(5):
+                    value += (
+                        gamma[mu][sigma][lam]*h_up[lam,nu]
+                        +gamma[nu][sigma][lam]*h_up[mu,lam]
+                    )
+                if value != 0:
+                    nabla_h_up[mu,nu,sigma]=value
+
     def p_eh(aa: int,bb: int,cc: int,dd: int) -> sp.Expr:
         return sp.Rational(1,2)*(
             inverse[aa,cc]*inverse[bb,dd]
@@ -277,6 +292,57 @@ def main() -> None:
 
     def p_total(aa: int,bb: int,cc: int,dd: int) -> sp.Expr:
         return p_eh(aa,bb,cc,dd)+alpha_NH*p_gb(aa,bb,cc,dd)
+
+    def source_einstein_k_tr(xi_up: sp.Matrix) -> sp.Expr:
+        # Source Appendix Eq. (29), evaluated for a general exact Killing vector.
+        xi_cov=metric*xi_up
+        nabla_xi_up={}
+        for mu in range(5):
+            for nu in range(5):
+                value=sp.diff(xi_up[nu],coords[mu])
+                for lam in range(5):
+                    value += gamma[nu][mu][lam]*xi_up[lam]
+                nabla_xi_up[mu,nu]=sp.factor(value)
+
+        def grad_xi(mu: int,nu: int) -> sp.Expr:
+            return sp.factor(sum(
+                inverse[mu,lam]*nabla_xi_up[lam,nu]
+                for lam in range(5)
+            ))
+
+        def div_h(mu: int) -> sp.Expr:
+            return sp.factor(sum(
+                nabla_h_up.get((mu,lam,lam),sp.S.Zero)
+                for lam in range(5)
+            ))
+
+        def grad_trace(mu: int) -> sp.Expr:
+            return sp.factor(sum(
+                inverse[mu,lam]*sp.diff(h_trace,coords[lam])
+                for lam in range(5)
+            ))
+
+        def raised_derivative(mu: int,nu: int,upper_slot: int) -> sp.Expr:
+            return sp.factor(sum(
+                inverse[mu,lam]
+                *nabla_h_up.get((nu,upper_slot,lam),sp.S.Zero)
+                for lam in range(5)
+            ))
+
+        def bracket(mu: int,nu: int) -> sp.Expr:
+            term1=sum(
+                h_up[mu,lam]*nabla_xi_up[lam,nu]
+                for lam in range(5)
+            )
+            term2=-sum(
+                raised_derivative(mu,nu,lam)*xi_cov[lam]
+                for lam in range(5)
+            )
+            term3=-sp.Rational(1,2)*h_trace*grad_xi(mu,nu)
+            term4=-(div_h(mu)-grad_trace(mu))*xi_up[nu]
+            return sp.factor((term1+term2+term3+term4)/(16*sp.pi*G))
+
+        return sp.factor(bracket(0,1)-bracket(1,0))
 
     theta_cache={}
     def theta_up(mu: int) -> sp.Expr:
@@ -318,25 +384,53 @@ def main() -> None:
             bad=next(v for v in lie_residuals if v != 0)
             raise AssertionError(f"{label} is not Killing: {sp.sstr(bad)}")
         contraction=sp.S.Zero
+        contraction_eh=sp.S.Zero
         for rho in range(5):
             for sigma in range(5):
                 contraction += p_total(0,1,rho,sigma)*nabla_xi_local[rho,sigma]
+                contraction_eh += p_eh(0,1,rho,sigma)*nabla_xi_local[rho,sigma]
         q_density=sp.factor(
             sqrt_minus_g*(-2/(16*sp.pi*G))*contraction
+        )
+        q_eh_density=sp.factor(
+            sqrt_minus_g*(-2/(16*sp.pi*G))*contraction_eh
         )
         # Pullback of xi dot Theta to H_{t,r} is
         # sqrt(-g)*(-xi^t Theta^r + xi^r Theta^t).
         theta_pullback=sp.factor(
             sqrt_minus_g*(-xi_up[0]*theta_up(1)+xi_up[1]*theta_up(0))
         )
+        theta_eh_up={}
+        for mu in (0,1):
+            val=sp.S.Zero
+            for nu in range(5):
+                for rho in range(5):
+                    for sigma in range(5):
+                        dh=nabla_h_down.get((sigma,nu,rho),sp.S.Zero)
+                        if dh != 0:
+                            val += p_eh(mu,nu,rho,sigma)*dh
+            theta_eh_up[mu]=sp.factor(2*val/(16*sp.pi*G))
+        theta_eh_pullback=sp.factor(
+            sqrt_minus_g*(-xi_up[0]*theta_eh_up[1]+xi_up[1]*theta_eh_up[0])
+        )
         k_density=sp.factor(sp.diff(q_density,a)-theta_pullback)
+        k_eh_iw=sp.factor(sp.diff(q_eh_density,a)-theta_eh_pullback)
+        k_eh_source=sp.factor(source_einstein_k_tr(xi_up))
+        exact_zero(
+            f"{label} Einstein Iyer-Wald versus source Eq29",
+            k_eh_iw-sqrt_minus_g*k_eh_source
+        )
         return {
             "xi":xi_up,
             "nabla_xi":nabla_xi_local,
             "q_density":q_density,
             "theta_pullback_density":theta_pullback,
             "k_density_theta":k_density,
-            "k_density_epsilon":sp.factor(k_density/sine)
+            "k_density_epsilon":sp.factor(k_density/sine),
+            "q_eh_density":q_eh_density,
+            "theta_eh_pullback_density":theta_eh_pullback,
+            "k_eh_iw_density":k_eh_iw,
+            "k_eh_source_density":sp.factor(sqrt_minus_g*k_eh_source)
         }
 
     xi_minus=sp.Matrix([1,0,0,0,0])
