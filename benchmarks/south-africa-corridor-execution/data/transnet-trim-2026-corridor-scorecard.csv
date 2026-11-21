@@ -1,0 +1,7 @@
+corridor,train_execution_target_pct,train_execution_actual_pct,otd_target_pct,otd_including_80s_actual_pct,otd_excluding_80s_actual_pct,ota_target_pct,ota_actual_pct
+Central Corridor,60,40,95,88,56,60,50
+Container Corridor,60,24,95,96,18,60,56
+North Corridor,75,69,95,92,6,60,23
+North-East Corridor,75,71,95,82,36,60,52
+Ore Corridor,95,91,95,93,1,60,35
+Cape Corridor,95,75,95,97,70,60,36
