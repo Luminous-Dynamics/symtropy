@@ -1,0 +1,16 @@
+[package]
+name = "power-restoration-threephase-data-readiness"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Fail-closed native three-phase, short-circuit and protection input-readiness auditor"
+
+[dependencies]
+power-restoration-benchmark-case = { path = "../power-restoration-benchmark-case" }
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.154"
+sha2 = "=0.10.9"
+
+[workspace]
