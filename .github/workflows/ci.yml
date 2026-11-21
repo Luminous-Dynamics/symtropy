@@ -102,11 +102,5 @@ jobs:
     - name: Run Synthetic Sequential REBCO Inspection Planner
       run: cargo run --locked --quiet -p rebco-long-length-auditor --bin sequential_inspection_dp -- docs/research/fixtures/rebco_sequential_inspection_dp_synthetic_v0_1.json
 
-    - name: Test Exact Sequential REBCO Inspection Planner
-      run: cargo test --locked -p rebco-long-length-auditor --bin sequential_inspection_dp
-
-    - name: Run Synthetic Sequential REBCO Inspection Planner
-      run: cargo run --locked --quiet -p rebco-long-length-auditor --bin sequential_inspection_dp -- docs/research/fixtures/rebco_sequential_inspection_dp_synthetic_v0_1.json
-
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
