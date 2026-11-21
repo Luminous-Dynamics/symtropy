@@ -19,7 +19,10 @@ A mission action is not a timeless command. Its applicability is conditional on:
 - operational design domain and mode revisions;
 - authority identity, epoch, scope and revocation state;
 - monotonic clock and boot epoch;
-- navigation profile, service level, frame, freshness and sequence.
+- navigation profile, service level, frame, freshness and sequence;
+- source-acquisition time that is explicitly qualified into the live comparison clock.
+
+Navigation freshness is **not** computed by comparing an arbitrary provider timestamp or local receipt tick with the platform clock. The upstream Mycelix time/correlation owner must supply a qualified time mapping into the exact live clock/boot epoch. Cross-clock mappings require a correlation commitment. Unknown, unqualified or missing source time fails closed; receipt time remains a distinct fact and cannot silently stand in for source-acquisition time.
 
 The caller must re-evaluate the ticket against a newly acquired live context immediately before dispatch. A ticket is rejected at its expiry boundary (now >= expires_at), on boot/clock discontinuity, or when any bound configuration, ODD, mode, authority or mission generation changes.
 
@@ -67,6 +70,7 @@ The unit-test corpus contains positive controls and table-driven negative contro
 - authority revocation, epoch and scope mismatch;
 - expiry and clock/boot discontinuity;
 - navigation profile, integrity, frame, freshness and sequence downgrade;
+- unknown/unqualified/missing navigation source time, mismatched comparison clock and absent cross-clock correlation;
 - acknowledgement versus independent physical effect;
 - self-report and executor-as-observer rejection;
 - wrong ticket, configuration, predicate, calibration and frame;
