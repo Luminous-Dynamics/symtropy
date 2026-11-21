@@ -21,9 +21,40 @@ function sameScope(left, right) {
   return fields.every((field) => left[field] === right[field]);
 }
 
-function zeroMissUpper95(n) {
-  if (!Number.isSafeInteger(n) || n <= 0 || n > 100000) return null;
-  return -Math.expm1(Math.log(0.05) / n);
+function logAddExp(left, right) {
+  if (left === -Infinity) return right;
+  if (right === -Infinity) return left;
+  const maximum = Math.max(left, right);
+  return maximum + Math.log(Math.exp(left - maximum) + Math.exp(right - maximum));
+}
+
+function logBinomialCdfAtMost(misses, trials, probability) {
+  if (probability <= 0) return 0;
+  if (probability >= 1) return misses === trials ? 0 : -Infinity;
+  const logQ = Math.log(probability);
+  const logNotQ = Math.log1p(-probability);
+  let logMass = trials * logNotQ;
+  let logSum = logMass;
+  for (let j = 1; j <= misses; j += 1) {
+    logMass += Math.log(trials - j + 1) - Math.log(j) + logQ - logNotQ;
+    logSum = logAddExp(logSum, logMass);
+  }
+  return Math.min(logSum, 0);
+}
+
+function missUpper95(misses, trials) {
+  if (!Number.isSafeInteger(trials) || trials <= 0 || trials > 100000
+      || !Number.isSafeInteger(misses) || misses < 0 || misses > trials) return null;
+  if (misses === trials) return 1;
+  const logAlpha = Math.log(0.05);
+  let lower = 0;
+  let upper = 1;
+  for (let i = 0; i < 120; i += 1) {
+    const midpoint = lower + (upper - lower) / 2;
+    if (logBinomialCdfAtMost(misses, trials, midpoint) > logAlpha) lower = midpoint;
+    else upper = midpoint;
+  }
+  return upper;
 }
 
 function sharedDomain(a, b) {
@@ -163,8 +194,8 @@ function evaluateCase(c) {
   return {
     disposition, injected_count: references.length, captured_count: capturedCount,
     missed_count: missedCount, duplicate_count: duplicateCount, unexpected_count: unexpectedCount,
-    upper_miss_probability_95: missedCount === 0 && duplicateCount === 0
-      && unexpectedCount === 0 && !disputed ? zeroMissUpper95(references.length) : null,
+    upper_miss_probability_95: duplicateCount === 0 && unexpectedCount === 0 && !disputed
+      ? missUpper95(missedCount, references.length) : null,
     blockers
   };
 }
