@@ -994,7 +994,11 @@ mod tests {
         manifest["nodeset_artifact"]["git_blob_sha1"] =
             json!("0000000000000000000000000000000000000000");
         let errors = verify_nodeset_artifact(SYNTHETIC_XML.as_bytes(), &manifest).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("Git blob SHA-1 mismatch")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("Git blob SHA-1 mismatch"))
+        );
     }
 
     #[test]
