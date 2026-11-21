@@ -44,7 +44,7 @@ pub struct Obligation {
     pub lifecycle_phase: String,
     pub conditions: BTreeMap<String, String>,
     pub evidence_key: String,
-    pub minimum_independent_groups: usize,
+    pub minimum_run_groups: usize,
     pub not_applicable_reason: Option<String>,
     pub not_applicable_review_ref: Option<String>,
 }
@@ -65,7 +65,7 @@ pub struct TestRun {
     pub uncertainty_complete: bool,
     pub clock_aligned: bool,
     pub evidence_keys: Vec<String>,
-    pub independence_group: String,
+    pub run_group_id: String,
     pub cost_units: u64,
 }
 
@@ -205,7 +205,7 @@ fn run_has_valid_evidence(run: &TestRun) -> bool {
         && run.instrument_in_range
         && run.uncertainty_complete
         && run.clock_aligned
-        && !run.independence_group.is_empty()
+        && !run.run_group_id.is_empty()
         && !run.evidence_keys.is_empty()
 }
 
@@ -224,20 +224,20 @@ fn exact_conditions_match(run: &TestRun, obligation: &Obligation) -> bool {
         .all(|(factor, level)| run.conditions.get(factor) == Some(level))
 }
 
-fn strict_groups(obligation: &Obligation, runs: &[TestRun]) -> BTreeSet<String> {
+fn strict_run_groups(obligation: &Obligation, runs: &[TestRun]) -> BTreeSet<String> {
     runs.iter()
         .filter(|run| {
             run_has_valid_evidence(run)
                 && run_matches_scope(run, obligation)
                 && exact_conditions_match(run, obligation)
         })
-        .map(|run| run.independence_group.clone())
+        .map(|run| run.run_group_id.clone())
         .collect()
 }
 
 fn ofat_baseline_covers(obligation: &Obligation, runs: &[TestRun]) -> bool {
     if obligation.conditions.is_empty() {
-        return !strict_groups(obligation, runs).is_empty();
+        return !strict_run_groups(obligation, runs).is_empty();
     }
 
     obligation.conditions.iter().all(|(factor, level)| {
@@ -309,7 +309,7 @@ fn evaluate_case(case: &CampaignCase) -> Result<Decision, String> {
             || obligation.service_kind.is_empty()
             || obligation.lifecycle_phase.is_empty()
             || obligation.evidence_key.is_empty()
-            || obligation.minimum_independent_groups == 0
+            || obligation.minimum_run_groups == 0
         {
             return Err(format!("obligation {} has incomplete scope", obligation.id));
         }
@@ -414,8 +414,8 @@ fn evaluate_case(case: &CampaignCase) -> Result<Decision, String> {
             covered += 1;
             continue;
         }
-        let groups = strict_groups(obligation, &unique_runs);
-        let strict_covered = groups.len() >= obligation.minimum_independent_groups;
+        let groups = strict_run_groups(obligation, &unique_runs);
+        let strict_covered = groups.len() >= obligation.minimum_run_groups;
         let required = obligation.criticality != Criticality::Informational;
 
         if strict_covered {
@@ -548,8 +548,8 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
                 decision.disposition,
                 Disposition::Rejected | Disposition::Disputed
             );
-            let groups = strict_groups(obligation, &case.runs);
-            if fail_closed || groups.len() < obligation.minimum_independent_groups {
+            let groups = strict_run_groups(obligation, &case.runs);
+            if fail_closed || groups.len() < obligation.minimum_run_groups {
                 missing_ids.push(obligation.id.clone());
             }
         }
