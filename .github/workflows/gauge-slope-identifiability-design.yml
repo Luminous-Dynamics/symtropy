@@ -1,0 +1,64 @@
+name: GAUGE Slope Identifiability Design
+
+on:
+  pull_request:
+    paths:
+      - 'benchmarks/gauge-slope-identifiability-design/v0.1/**'
+      - '.github/workflows/gauge-slope-identifiability-design.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'benchmarks/gauge-slope-identifiability-design/v0.1/**'
+      - '.github/workflows/gauge-slope-identifiability-design.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gauge-slope-identifiability-design-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Validate pinned IDTD comparator receipt
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("benchmarks/gauge-slope-identifiability-design/v0.1/external_baseline_manifest.idtd.v0.1.json")
+          data = json.loads(path.read_text())
+          checks = {
+              "baseline_id": data.get("baseline_id") == "IDTD-ARXIV-2610.10905",
+              "paper_version": data.get("paper", {}).get("version") == "v2",
+              "immutable_code_revision": data.get("code_source", {}).get("revision") == "b47eed10adb4ea3d1987fc4211a9251f5de18ea6",
+              "fim_source_blob": any(
+                  item.get("path") == "consysid/active/fim_evaluator.py"
+                  and item.get("git_blob_sha1") == "1a3aa63c8ed6f2091a06ffa25ae16f4072a7516d"
+                  for item in data.get("code_source", {}).get("files", [])
+              ),
+              "code_not_executed": data.get("reproduction_status", {}).get("code_executed_by_symtropy") is False,
+              "paper_not_reproduced": data.get("reproduction_status", {}).get("paper_experiment_reproduced") is False,
+              "full_pipeline_not_reproduced": data.get("reproduction_status", {}).get("full_robot_policy_pipeline_reproduced") is False,
+              "reduced_scope_claim": len(data.get("symtropy_comparator_scope", {}).get("not_implemented", [])) >= 5,
+          }
+          for name, passed in checks.items():
+              print(f"{name}: {'PASS' if passed else 'FAIL'}")
+          failed = [name for name, passed in checks.items() if not passed]
+          if failed:
+              raise SystemExit("IDTD comparator receipt validation failed: " + ", ".join(failed))
+          PY
+      - name: Check formatting
+        run: cargo fmt --manifest-path benchmarks/gauge-slope-identifiability-design/v0.1/Cargo.toml -- --check
+      - name: Run identifiability tests
+        run: cargo test --manifest-path benchmarks/gauge-slope-identifiability-design/v0.1/Cargo.toml --locked
+      - name: Run Clippy
+        run: cargo clippy --manifest-path benchmarks/gauge-slope-identifiability-design/v0.1/Cargo.toml --all-targets --locked -- -D warnings

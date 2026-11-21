@@ -1,0 +1,93 @@
+{
+  "schema_version": "0.1.0",
+  "baseline_id": "IDTD-ARXIV-2610.10905",
+  "baseline_role": "external_active_trajectory_design_comparator",
+  "paper": {
+    "title": "Informationally Decoupled Trajectory Design for Sim-to-Real System Identification",
+    "arxiv_id": "2610.10905",
+    "version": "v2",
+    "v1_submitted": "2026-10-07",
+    "v2_last_revised": "2026-10-27",
+    "authors": [
+      "Sangwoo Shin",
+      "Ashvin Anilkumar",
+      "Ryan Gao",
+      "Josiah P. Hanna"
+    ],
+    "url": "https://arxiv.org/abs/2610.10905",
+    "reported_claims": {
+      "average_parameter_identification_error_reduction_percent": 39.6,
+      "reported_simulation_environments": [
+        "linear dynamics",
+        "Go2 quadruped",
+        "G1 humanoid",
+        "Crazyflie quadrotor"
+      ],
+      "reported_real_robot_validation": "K1 humanoid",
+      "claim_source": "paper authors' abstract; not independently reproduced by Symtropy"
+    }
+  },
+  "code_source": {
+    "repository": "https://github.com/jsw7460/IDTD",
+    "revision": "b47eed10adb4ea3d1987fc4211a9251f5de18ea6",
+    "commit_count_observed": 2,
+    "license_expression": "MIT",
+    "license_blob_sha1": "8b6f23fde72cb75c297476ec29d7494025c75c42",
+    "files": [
+      {
+        "path": "README.md",
+        "git_blob_sha1": "9366c0cf2221598cec9e0678975ec61954cccb21"
+      },
+      {
+        "path": "consysid/active/fim_evaluator.py",
+        "git_blob_sha1": "1a3aa63c8ed6f2091a06ffa25ae16f4072a7516d"
+      },
+      {
+        "path": "consysid/active/active_optimizer.py",
+        "git_blob_sha1": "f959377f2c777ef9b21e29c4f31e26b388efa874"
+      }
+    ],
+    "runtime_dependencies": [
+      "NumPy",
+      "PyTorch",
+      "CMA",
+      "Colorama",
+      "Matplotlib",
+      "Weights & Biases",
+      "JaxRLWorld from SimForge"
+    ],
+    "runtime_dependency_note": "The README states that JaxRLWorld is external to PyPI and must be installed from the SimForge repository."
+  },
+  "observed_method": {
+    "fim_estimator": "finite-difference state sensitivity from main and auxiliary perturbed simulation environments",
+    "state_channel_policy": "state channels can be restricted to hardware-measurable channels; README/code comments explicitly warn against optimizing information in unobservable state directions",
+    "trajectory_segmentation": {
+      "default_segment_count": 4,
+      "aggregation": "each parameter receives its best segment score",
+      "parameter_aggregation": "negative sum of logarithms of per-parameter scores"
+    },
+    "per_parameter_score": "Schur(F_s,{i}) / F_ii(s)^alpha",
+    "alpha_default": 1.0,
+    "alpha_interpretation": "alpha=1 is a scale-free decoupling ratio; alpha<1 also rewards stronger absolute excitation on weakly observed axes",
+    "optimizer": "CMA-ES command-trajectory optimization; Bezier trajectories are executed through a trained policy"
+  },
+  "reproduction_status": {
+    "code_executed_by_symtropy": false,
+    "paper_experiment_reproduced": false,
+    "full_robot_policy_pipeline_reproduced": false,
+    "reported_39_6_percent_claim_verified": false,
+    "status": "PINNED_REFERENCE_ONLY"
+  },
+  "symtropy_comparator_scope": {
+    "implemented": "two-parameter Schur-decoupling coverage score and synthetic negative controls",
+    "not_implemented": [
+      "IDTD's full multi-parameter state Jacobian",
+      "policy-conditioned Bezier command search",
+      "CMA-ES optimization",
+      "robot simulator environment partitioning",
+      "Go2/G1/Crazyflie/K1 experiment reproduction",
+      "paper's reported cross-environment evaluation"
+    ],
+    "claim_boundary": "The Symtropy score is a reduced analytic comparator only; it is not a reproduction or validation of IDTD."
+  }
+}
