@@ -71,7 +71,17 @@ jobs:
           if not list(validator.iter_errors(overclaim)):
               raise SystemExit("dataset admission with unresolved evidence unexpectedly validated")
 
-          print("Validated pinned code identity, unresolved dataset pin, explicit no-import state and blocked-admission negative control.")
+          duplicate_source = copy.deepcopy(manifest)
+          duplicate_source["sources"][1] = copy.deepcopy(code)
+          if not list(validator.iter_errors(duplicate_source)):
+              raise SystemExit("duplicate source identities unexpectedly validated")
+
+          missing_source = copy.deepcopy(manifest)
+          missing_source["sources"] = [code, copy.deepcopy(code)]
+          if not list(validator.iter_errors(missing_source)):
+              raise SystemExit("manifest without a dataset source unexpectedly validated")
+
+          print("Validated pinned code identity, unresolved dataset pin, explicit no-import state, blocked-admission and source-identity negative controls.")
           PY
       - name: Check formatting
         run: cargo fmt --manifest-path benchmarks/gauge-rigid-body-admission/v0.1/Cargo.toml -- --check
