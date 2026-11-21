@@ -204,7 +204,8 @@ pub fn select_observation_frontier(
         if candidate.expected_residual_risk_upper_bound_bps > MAX_RISK_BPS {
             return Err(AssuranceError::InvalidResidualRiskBound);
         }
-        if candidate.expected_residual_risk_upper_bound_bps >= context.current_risk_upper_bound_bps {
+        if candidate.expected_residual_risk_upper_bound_bps >= context.current_risk_upper_bound_bps
+        {
             return Err(AssuranceError::NoExpectedRiskReduction);
         }
 
@@ -232,9 +233,11 @@ pub fn select_observation_frontier(
         }
     }
 
-    filtered_out.sort_by(|left: &FilteredObservationCandidate, right: &FilteredObservationCandidate| {
-        left.candidate_id.cmp(&right.candidate_id)
-    });
+    filtered_out.sort_by(
+        |left: &FilteredObservationCandidate, right: &FilteredObservationCandidate| {
+            left.candidate_id.cmp(&right.candidate_id)
+        },
+    );
     if feasible.is_empty() {
         return Ok(AssuranceDecision::Hold {
             reason: HoldReason::NoCandidateMeetsRiskAndResourceBudgets,
@@ -437,7 +440,6 @@ mod tests {
             })
         );
     }
-
 
     #[test]
     fn candidate_must_target_the_same_predicate() {
