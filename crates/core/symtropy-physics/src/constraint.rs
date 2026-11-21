@@ -5,10 +5,10 @@
 
 use crate::body::{BodyHandle, RigidBody};
 
-/// Observable disposition of one velocity-level constraint invocation.
+/// Observable disposition of one constraint solver invocation.
 ///
 /// This reports execution only. It is not an independent physical-validity or
-/// simulation-qualification verdict.
+/// simulation-qualification verdict. Residual norms and units are constraint-specific.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ConstraintSolveOutcome {
     /// The constraint applied a velocity correction. The optional residual is
@@ -40,6 +40,21 @@ pub trait Constraint<const D: usize>: Send + Sync + std::any::Any {
     /// Solve the constraint by applying positional corrections.
     /// Called multiple times per frame for iterative convergence.
     fn solve(&self, body_a: &mut RigidBody<D>, body_b: &mut RigidBody<D>, dt: f64);
+
+    /// Solve the positional constraint and return a typed execution outcome.
+    ///
+    /// The default adapter preserves source compatibility: it invokes the
+    /// existing method exactly once and labels the outcome Unreported. It does
+    /// not infer NoOp or Applied from a unit return.
+    fn solve_with_outcome(
+        &self,
+        body_a: &mut RigidBody<D>,
+        body_b: &mut RigidBody<D>,
+        dt: f64,
+    ) -> ConstraintSolveOutcome {
+        self.solve(body_a, body_b, dt);
+        ConstraintSolveOutcome::Unreported
+    }
 
     /// Optional velocity-level correction (impulse-based, Fix 7).
     /// Called after position solve for hybrid PBD+impulse dynamics.
