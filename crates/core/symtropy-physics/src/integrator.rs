@@ -817,4 +817,23 @@ mod tests {
         assert_eq!(body.force_accumulator, before_force);
     }
 
+    #[test]
+    fn strict_integrator_rejects_stale_inverse_mass_without_mutation() {
+        let mut body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(43), Point::origin(), 0.5, 2.0,
+        );
+        body.inv_mass *= 2.0;
+        body.linear_velocity[0] = 0.25;
+        let before_velocity = body.linear_velocity;
+        let before_translation = body.transform.translation;
+        assert_eq!(
+            try_integrate(&mut body, &SVector::zeros(), 0.01),
+            Err(crate::body::RotationalResponseError::MassProperties(
+                crate::mass_properties::MassPropertiesError::InvalidMass,
+            ))
+        );
+        assert_eq!(body.linear_velocity, before_velocity);
+        assert_eq!(body.transform.translation, before_translation);
+    }
+
 }
