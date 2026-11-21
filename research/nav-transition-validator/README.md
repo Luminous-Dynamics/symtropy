@@ -26,7 +26,7 @@ The CLI reports JSON_SCHEMA_DRAFT_2020_12_PASS and STRUCTURAL_SEMANTIC_PASS only
 
 ## Dataset admission gate
 
-The same package includes a separate Draft 2020-12 schema and semantic admission validator for benchmark payloads. An admitted record requires an immutable release, file SHA-256 hashes, explicit dataset-payload rights evidence, permission for the requested use, a frozen train/test split with a digest, and explicit time/frame/calibration/ground-truth metadata. Candidate records may remain incomplete, but are counted as candidates and never promoted. The validator deliberately allows an explicitly declared unqualified time/frame state while surfacing it in the summary; unknown is not upgraded to qualified. The committed v0.1 registry currently contains four candidates and zero admitted datasets.
+The same package includes a separate Draft 2020-12 schema and semantic admission validator for benchmark payloads. An admitted record requires an immutable release, file SHA-256 hashes, explicit dataset-payload rights evidence, permission for the requested use, a frozen train/test split with a digest, and explicit time/frame/calibration/ground-truth metadata. Candidate records may remain incomplete, but are counted as candidates and never promoted. The validator deliberately allows an explicitly declared unqualified time/frame state while surfacing it in the summary; unknown is not upgraded to qualified. The committed v0.1 registry currently contains four candidates and zero admitted datasets. For an admitted record, time-basis, spatial-reference and calibration states must be explicitly characterized; `unqualified` is allowed and reported as a limitation, but `unknown` blocks admission.
 
 ## Semantic checks
 
