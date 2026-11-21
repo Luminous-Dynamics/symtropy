@@ -228,20 +228,31 @@ fn valid_utc_timestamp(value: &str) -> bool {
         }
     }
     let parse = |start: usize, end: usize| {
-        value.get(start..end).and_then(|part| part.parse::<u32>().ok())
+        value
+            .get(start..end)
+            .and_then(|part| part.parse::<u32>().ok())
     };
-    let Some(month) = parse(5, 7) else { return false };
-    let Some(day) = parse(8, 10) else { return false };
-    let Some(hour) = parse(11, 13) else { return false };
-    let Some(minute) = parse(14, 16) else { return false };
-    let Some(second) = parse(17, 19) else { return false };
+    let Some(month) = parse(5, 7) else {
+        return false;
+    };
+    let Some(day) = parse(8, 10) else {
+        return false;
+    };
+    let Some(hour) = parse(11, 13) else {
+        return false;
+    };
+    let Some(minute) = parse(14, 16) else {
+        return false;
+    };
+    let Some(second) = parse(17, 19) else {
+        return false;
+    };
     (1..=12).contains(&month)
         && (1..=31).contains(&day)
         && hour <= 23
         && minute <= 59
         && second <= 60
 }
-
 
 fn valid_optional_quantity(quantity: &Option<Quantity>) -> bool {
     quantity.as_ref().is_none_or(|value| {
@@ -321,7 +332,10 @@ fn validate_ports(label: &str, ports: &[InterfacePort], errors: &mut Vec<String>
                 || evidence.acceptance_criteria_id.trim().is_empty()
                 || evidence.uncertainty_budget_reference.trim().is_empty()
                 || !valid_utc_timestamp(&evidence.test_completed_at_utc)
-                || evidence.limitations.iter().any(|limitation| limitation.trim().is_empty())
+                || evidence
+                    .limitations
+                    .iter()
+                    .any(|limitation| limitation.trim().is_empty())
                 || !valid_digest(&evidence.report_digest_sha256)
                 || !valid_digest(&evidence.measurement_dataset_sha256)
                 || !valid_digest(&evidence.calibration_bundle_sha256)
@@ -1242,8 +1256,7 @@ mod tests {
     #[test]
     fn exact_scope_failed_independent_test_is_incompatible() {
         let mut input = qualified_input();
-        input.modules[0].ports[0].evidence[0].test_result =
-            QualificationTestResult::Failed;
+        input.modules[0].ports[0].evidence[0].test_result = QualificationTestResult::Failed;
         let report = evaluate_compatibility(&input).expect("valid input with failed evidence");
         let hv = report.results[0]
             .interfaces
@@ -1251,7 +1264,10 @@ mod tests {
             .find(|interface| interface.module_port_id == "module-hv")
             .expect("HV result");
         assert_eq!(hv.status, CompatibilityStatus::Incompatible);
-        assert!(hv.findings.contains(&"exact_configuration_independent_test_failed".into()));
+        assert!(
+            hv.findings
+                .contains(&"exact_configuration_independent_test_failed".into())
+        );
     }
 
     #[test]
