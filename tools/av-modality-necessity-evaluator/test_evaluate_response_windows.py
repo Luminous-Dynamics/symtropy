@@ -173,6 +173,7 @@ class ResponseWindowEvaluatorTests(unittest.TestCase):
         score = evaluator.evaluate(self.workload, self.truth, candidate)
         result = next(x for x in score["per_episode"] if x["episode_id"] == "rw-002-urgent-hazard")
         self.assertTrue(any("decision_precedes_trigger" in x for x in result["violations"]))
+        self.assertLess(result["correct_decision_count"], result["decision_count"])
 
     def test_candidate_must_cover_exact_episode_set(self):
         candidate = copy.deepcopy(self.submission)
