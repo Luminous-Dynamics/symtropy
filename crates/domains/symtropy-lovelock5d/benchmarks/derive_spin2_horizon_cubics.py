@@ -158,9 +158,10 @@ def main():
     mHpp = (0, 0, 0, 0, 0, 0, 0, 1)
     m0   = (0, 0, 0, 0, 0, 0, 0, 0)
 
-    # The cubic assembly below uses only h0 and (for E_g) h1. Assert
-    # explicitly that no omitted h1/h2 contribution enters at order <=3.
+    # The cubic assembly below omits several higher Taylor jets. Prove
+    # their multipliers vanish at every order at which they could contribute.
     for key, series in rows.items():
+        # H2 and H2' may contribute only through h0 and (for E_g) h1.
         for monomial in (mH, mHp):
             coeffs = series.get(monomial, [sp.Integer(0)] * 4)
             if any(sp.simplify(coeffs[n]) != 0 for n in (1, 2)):
@@ -171,6 +172,19 @@ def main():
         if any(sp.simplify(hpp_coeffs[n]) != 0 for n in (0, 1, 2, 3)):
             raise AssertionError(
                 f"{key}: H2_second contributes to the cubic horizon coefficient"
+            )
+
+        # Exclude b3/f3 terms from B2', F2' and B2'' Taylor expansions.
+        for monomial in (mBp, mFp):
+            coeffs = series.get(monomial, [sp.Integer(0)] * 4)
+            if sp.simplify(coeffs[1]) != 0:
+                raise AssertionError(
+                    f"{key}: first derivative of a first-jet coefficient is nonzero"
+                )
+        bpp_coeffs = series.get(mBpp, [sp.Integer(0)] * 4)
+        if any(sp.simplify(bpp_coeffs[n]) != 0 for n in (0, 1, 2)):
+            raise AssertionError(
+                f"{key}: B2_second coefficient would introduce omitted higher jets"
             )
 
     cubic = {}
