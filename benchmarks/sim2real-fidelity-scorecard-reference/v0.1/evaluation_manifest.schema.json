@@ -136,12 +136,17 @@
                     "type": "object",
                     "additionalProperties": false,
                     "required": [
-                      "timestamp_ns",
+                      "real_timestamp_ns",
+                      "simulated_timestamp_ns",
                       "real_value",
                       "simulated_value"
                     ],
                     "properties": {
-                      "timestamp_ns": {
+                      "real_timestamp_ns": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "simulated_timestamp_ns": {
                         "type": "integer",
                         "minimum": 0
                       },
