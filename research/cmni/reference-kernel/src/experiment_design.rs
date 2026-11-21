@@ -254,7 +254,7 @@ pub fn poisson_kl_divergence(
 pub fn pairwise_poisson_kl_matrix(
     model_expected_counts: &[Vec<f64>],
 ) -> Result<Vec<Vec<f64>>, ModelError> {
-    if model_expected_counts.is_empty() {
+    if model_expected_counts.len() < 2 {
         return Err(ModelError::MismatchedDataLengths);
     }
     let channels = model_expected_counts[0].len();
@@ -370,6 +370,14 @@ mod tests {
     fn pairwise_model_kl_rejects_incompatible_channels() {
         assert_eq!(
             pairwise_poisson_kl_matrix(&[vec![1.0, 2.0], vec![1.0]]),
+            Err(ModelError::MismatchedDataLengths)
+        );
+    }
+
+    #[test]
+    fn pairwise_model_kl_requires_at_least_two_hypotheses() {
+        assert_eq!(
+            pairwise_poisson_kl_matrix(&[vec![1.0, 2.0]]),
             Err(ModelError::MismatchedDataLengths)
         );
     }
