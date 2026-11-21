@@ -1,6 +1,6 @@
 use maritime_ais_observability::{
-    evaluate_call, evaluate_call_with_initial_state, predictions_from_report, score_events,
-    AisFix, DwellProfile, GroundTruthEvent, ScoredEventKind, ServiceState, Zone,
+    AisFix, DwellProfile, GroundTruthEvent, ScoredEventKind, ServiceState, Zone, evaluate_call,
+    evaluate_call_with_initial_state, predictions_from_report, score_events,
 };
 
 fn fix(tick: i64, id: &str, zone: Zone, speed: u32) -> AisFix {
@@ -105,11 +105,10 @@ fn main() {
         fix(22, "B2", Zone::Berth, 100),
         fix(23, "B3", Zone::Berth, 100),
     ];
-    let unknown_start = evaluate_call("563123456", &late_start, &profile)
-        .unwrap_or_else(|error| {
-            eprintln!("indeterminate-start example failed: {error}");
-            std::process::exit(2);
-        });
+    let unknown_start = evaluate_call("563123456", &late_start, &profile).unwrap_or_else(|error| {
+        eprintln!("indeterminate-start example failed: {error}");
+        std::process::exit(2);
+    });
     println!(
         "No baseline: initial={} final={} berth-arrival-events={} reacquisition-events={}",
         unknown_start.initial_state.label(),
