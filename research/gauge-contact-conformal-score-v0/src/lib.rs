@@ -355,6 +355,7 @@ pub fn score_complete_trial(
 /// Exact identity tuple required by the existing #4147 calibration block.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CalibrationBlockIdentity {
+    pub dataset_revision: String,
     pub model_digest: String,
     pub target_digest: String,
     pub domain_digest: String,
@@ -366,6 +367,7 @@ pub struct CalibrationBlockIdentity {
 /// score records needed to replay and audit the block maximum.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CalibrationBlockReceipt {
+    pub identity: CalibrationBlockIdentity,
     pub calibration_block: CalibrationBlock,
     pub trial_score_records: Vec<TrialPoseScore>,
 }
@@ -384,7 +386,12 @@ pub fn build_calibration_block(
     if trials.is_empty() {
         return Err(PoseScoreError::EmptyTrialSet);
     }
-    if !is_sha256(&identity.model_digest)
+    if identity.dataset_revision.len() != 40
+        || !identity
+            .dataset_revision
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit())
+        || !is_sha256(&identity.model_digest)
         || !is_sha256(&identity.target_digest)
         || !is_sha256(&identity.domain_digest)
         || !is_sha256(&identity.score_definition_digest)
@@ -405,7 +412,8 @@ pub fn build_calibration_block(
         if !trial_ids.insert(trial.trial_id.as_str()) {
             return Err(PoseScoreError::DuplicateTrialId);
         }
-        if trial.identity.model_digest != identity.model_digest
+        if trial.identity.dataset_revision != identity.dataset_revision
+            || trial.identity.model_digest != identity.model_digest
             || trial.identity.target_digest != identity.target_digest
             || trial.identity.domain_digest != identity.domain_digest
             || trial.score_definition_digest != identity.score_definition_digest
@@ -431,6 +439,7 @@ pub fn build_calibration_block(
     }
 
     Ok(CalibrationBlockReceipt {
+        identity: identity.clone(),
         calibration_block: CalibrationBlock {
             exchangeability_unit_id: exchangeability_unit_id.to_owned(),
             episodes,
@@ -516,6 +525,7 @@ mod tests {
             dataset_revision: DATASET_REVISION.to_owned(),
             raw_trial_sha256: RAW_DIGEST.to_owned(),
             prediction_sha256: FORECAST_DIGEST.to_owned(),
+            dataset_revision: DATASET_REVISION.to_owned(),
             model_digest: MODEL_DIGEST.to_owned(),
             target_digest: TARGET_DIGEST.to_owned(),
             domain_digest: DOMAIN_DIGEST.to_owned(),
@@ -838,6 +848,25 @@ mod tests {
         .unwrap();
         trial.identity.model_digest =
             "9999999999999999999999999999999999999999999999999999999999999999".to_owned();
+        assert_eq!(
+            build_calibration_block("session-01", &[trial], &block_identity()),
+            Err(PoseScoreError::MixedBlockIdentity)
+        );
+    }
+
+    #[test]
+    fn block_rejects_mixed_dataset_revisions() {
+        let mut trial = score_complete_trial(
+            "trial-01",
+            EpisodeOutcome::Completed,
+            &expected(),
+            &samples(),
+            normalization(),
+            score_identity(),
+        )
+        .unwrap();
+        trial.identity.dataset_revision =
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned();
         assert_eq!(
             build_calibration_block("session-01", &[trial], &block_identity()),
             Err(PoseScoreError::MixedBlockIdentity)
