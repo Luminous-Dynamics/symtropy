@@ -75,8 +75,10 @@ impl<const D: usize> Shape<D> for HyperBox<D> {
     fn mass_properties(
         &self,
         mass: f64,
-    ) -> Result<crate::mass_properties::MassProperties<D>, crate::mass_properties::MassPropertiesError>
-    {
+    ) -> Result<
+        crate::mass_properties::MassProperties<D>,
+        crate::mass_properties::MassPropertiesError,
+    > {
         use crate::mass_properties::{MassProperties, MassPropertiesError};
 
         if !self
