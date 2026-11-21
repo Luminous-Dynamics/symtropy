@@ -142,9 +142,9 @@ fn check_nodeset_namespace_index(
         let index: usize = index
             .parse()
             .map_err(|_| format!("{context}: invalid namespace index in {value:?}"))?;
-        if index == 0 || index > namespace_uris.len() {
+        if index > namespace_uris.len() {
             return Err(format!(
-                "{context}: NodeSet namespace index {index} is outside 1..={} for {value:?}",
+                "{context}: NodeSet namespace index {index} is outside 0..={} for {value:?}",
                 namespace_uris.len()
             ));
         }
@@ -159,15 +159,34 @@ fn check_browse_name_index(
 ) -> Result<(), String> {
     if let Some((prefix, _)) = value.split_once(':') {
         if let Ok(index) = prefix.parse::<usize>() {
-            if index == 0 || index > namespace_uris.len() {
+            if index > namespace_uris.len() {
                 return Err(format!(
-                    "{context}: BrowseName namespace index {index} is outside 1..={} for {value:?}",
+                    "{context}: BrowseName namespace index {index} is outside 0..={} for {value:?}",
                     namespace_uris.len()
                 ));
             }
         }
     }
     Ok(())
+}
+
+fn check_node_attributes(
+    element: &BytesStart<'_>,
+    namespace_uris: &[String],
+) -> Result<usize, String> {
+    let attributes = attr_map(element)?;
+    let mut checked = 0usize;
+    for field in ["NodeId", "ParentNodeId", "DataType"] {
+        if let Some(value) = attributes.get(field) {
+            check_nodeset_namespace_index(value, namespace_uris, field)?;
+            checked += usize::from(value.starts_with("ns="));
+        }
+    }
+    if let Some(value) = attributes.get("BrowseName") {
+        check_browse_name_index(value, namespace_uris, "BrowseName")?;
+        checked += usize::from(value.contains(':'));
+    }
+    Ok(checked)
 }
 
 /// Parse a UANodeSet XML document without resolving external entities or DTDs.
@@ -228,18 +247,9 @@ pub fn parse_nodeset_xml(xml: &[u8]) -> Result<ParsedNodeSet, String> {
                         model.required_models.push(required);
                     }
                     "UAObject" | "UAObjectType" | "UAVariable" | "UAVariableType"
-                    | "UADataType" | "UAReferenceType" | "UMethod" | "UAMethod" => {
-                        let attrs = attr_map(&element)?;
-                        for field in ["NodeId", "ParentNodeId", "DataType"] {
-                            if let Some(value) = attrs.get(field) {
-                                check_nodeset_namespace_index(value, &namespace_uris, field)?;
-                                checked_node_id_references += usize::from(value.starts_with("ns="));
-                            }
-                        }
-                        if let Some(value) = attrs.get("BrowseName") {
-                            check_browse_name_index(value, &namespace_uris, "BrowseName")?;
-                            checked_node_id_references += usize::from(value.contains(':'));
-                        }
+                    | "UADataType" | "UAReferenceType" | "UAView" | "UAMethod" => {
+                        checked_node_id_references +=
+                            check_node_attributes(&element, &namespace_uris)?;
                     }
                     _ => {}
                 }
@@ -255,6 +265,11 @@ pub fn parse_nodeset_xml(xml: &[u8]) -> Result<ParsedNodeSet, String> {
                         model.required_models.push(required);
                     }
                     "Model" => models.push(parse_model(&attr_map(&element)?)?),
+                    "UAObject" | "UAObjectType" | "UAVariable" | "UAVariableType"
+                    | "UADataType" | "UAReferenceType" | "UAView" | "UAMethod" => {
+                        checked_node_id_references +=
+                            check_node_attributes(&element, &namespace_uris)?;
+                    }
                     _ => {}
                 }
             }
@@ -753,6 +768,74 @@ mod tests {
             sha256_hex(b"abc"),
             "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
         );
+    }
+
+
+    fn fixture_manifest() -> Value {
+        let required_models = json!([
+            {"model_uri":OPC_UA_CORE_NAMESPACE,"version":"1.05.07","publication_date":"2026-07-30"},
+            {"model_uri":"http://opcfoundation.org/UA/DI/","version":"1.04.0","publication_date":"2022-11-03"},
+            {"model_uri":"http://opcfoundation.org/UA/IA/","version":"1.01.4","publication_date":"2025-05-23"}
+        ]);
+        json!({
+            "namespace_metadata":{
+                "namespace_uri":"http://opcfoundation.org/UA/Machinery/",
+                "namespace_version":"1.04.2",
+                "namespace_publication_date":"2026-11-01"
+            },
+            "nodeset_artifact":{
+                "content_sha256":sha256_hex(SYNTHETIC_XML.as_bytes()),
+                "byte_length":SYNTHETIC_XML.len(),
+                "namespace_uris":[
+                    "http://opcfoundation.org/UA/Machinery/",
+                    "http://opcfoundation.org/UA/DI/",
+                    "http://opcfoundation.org/UA/IA/"
+                ],
+                "node_set_model":{
+                    "model_uri":"http://opcfoundation.org/UA/Machinery/",
+                    "version":"1.04.2","model_version":"1.4.2",
+                    "publication_date":"2026-11-02"
+                },
+                "required_models":required_models
+            }
+        })
+    }
+
+    #[test]
+    fn exact_artifact_digest_and_separate_namespace_and_model_dates_are_admitted() {
+        let report = verify_nodeset_artifact(SYNTHETIC_XML.as_bytes(), &fixture_manifest()).unwrap();
+        assert!(report.admitted);
+        assert_eq!(report.model_publication_date, "2026-11-02");
+        // Normative NamespaceMetadata is 2026-11-01; NodeSet Model PublicationDate is 2026-11-02.
+    }
+
+    #[test]
+    fn digest_mismatch_fails_before_model_admission() {
+        let mut manifest = fixture_manifest();
+        manifest["nodeset_artifact"]["content_sha256"] = json!("00".repeat(32));
+        assert!(verify_nodeset_artifact(SYNTHETIC_XML.as_bytes(), &manifest)
+            .unwrap_err().iter().any(|error| error.contains("SHA-256 mismatch")));
+    }
+
+    #[test]
+    fn required_model_version_or_date_mismatch_is_rejected() {
+        let mut xml = SYNTHETIC_XML.replace("Version=\"1.05.07\"", "Version=\"1.05.03\"");
+        xml = xml.replace("2026-07-30T00:00:00Z", "2026-07-29T00:00:00Z");
+        let parsed = parse_nodeset_xml(xml.as_bytes()).unwrap();
+        assert_eq!(parsed.models[0].required_models[0].version,"1.05.03");
+        let mut manifest = fixture_manifest();
+        manifest["nodeset_artifact"]["content_sha256"] = json!(sha256_hex(xml.as_bytes()));
+        manifest["nodeset_artifact"]["byte_length"] = json!(xml.len());
+        let errors = verify_nodeset_artifact(xml.as_bytes(),&manifest).unwrap_err();
+        assert!(errors.iter().any(|error|error.contains("RequiredModels mismatch")));
+    }
+
+    #[test]
+    fn standard_namespace_publication_date_is_not_collapsed_into_nodeset_model_date() {
+        let mut manifest = fixture_manifest();
+        manifest["namespace_metadata"]["namespace_publication_date"] = json!("2026-11-01");
+        manifest["nodeset_artifact"]["node_set_model"]["publication_date"] = json!("2026-11-02");
+        assert!(verify_nodeset_artifact(SYNTHETIC_XML.as_bytes(),&manifest).is_ok());
     }
 
     #[test]
