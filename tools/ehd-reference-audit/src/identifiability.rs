@@ -60,23 +60,6 @@ impl fmt::Display for IdentifiabilityError {
 
 impl Error for IdentifiabilityError {}
 
-fn weakest_eigenvector(a: f64, b: f64, d: f64, lambda_min: f64) -> [f64; 2] {
-    let scale = a.abs().max(d.abs()).max(b.abs());
-    let (mut x, mut y) = if scale > 0.0 && b.abs() > f64::EPSILON * scale {
-        (b, lambda_min - a)
-    } else if a <= d {
-        (1.0, 0.0)
-    } else {
-        (0.0, 1.0)
-    };
-    let norm = x.hypot(y);
-    if norm > 0.0 && norm.is_finite() {
-        x /= norm;
-        y /= norm;
-    }
-    [x, y]
-}
-
 /// Analyse a two-parameter design with independent observation errors.
 ///
 /// Design columns are derivatives with respect to physical parameters. Each
@@ -142,28 +125,52 @@ pub fn analyse_two_parameter_design(
         return Err(IdentifiabilityError::NonFiniteDerivedValue);
     }
 
-    // Symmetric 2x2 eigenspectrum. Only tiny negative roundoff is clamped.
-    let trace = g00 + g11;
-    let discriminant = (g00 - g11).hypot(2.0 * g01);
-    let lambda_max = 0.5 * (trace + discriminant);
-    let mut lambda_min = 0.5 * (trace - discriminant);
-    let roundoff_floor = 64.0 * f64::EPSILON * lambda_max.abs().max(1.0);
-    if lambda_min < 0.0 && lambda_min >= -roundoff_floor {
-        lambda_min = 0.0;
+    // One-sided Jacobi rotation on the two weighted design columns. This
+    // computes the singular values from the rotated columns directly instead
+    // of subtracting nearly equal eigenvalues of X^T X (which squares the
+    // condition number and can erase a small singular direction).
+    let tau = if g01 == 0.0 {
+        0.0
+    } else {
+        (g11 - g00) / (2.0 * g01)
+    };
+    let tangent = if g01 == 0.0 {
+        0.0
+    } else {
+        let sign = if tau.is_sign_negative() { -1.0 } else { 1.0 };
+        sign / (tau.abs() + tau.hypot(1.0))
+    };
+    let cosine = 1.0 / tangent.hypot(1.0);
+    let sine = tangent * cosine;
+
+    let mut rotated_norm_0 = 0.0_f64;
+    let mut rotated_norm_1 = 0.0_f64;
+    for row in 0..n {
+        let inverse_sigma = 1.0 / observation_variances[row].sqrt();
+        let x0 = design_rows[row][0] * parameter_scales[0] * inverse_sigma;
+        let x1 = design_rows[row][1] * parameter_scales[1] * inverse_sigma;
+        let rotated_0 = cosine.mul_add(x0, -sine * x1);
+        let rotated_1 = sine.mul_add(x0, cosine * x1);
+        rotated_norm_0 = rotated_0.mul_add(rotated_0, rotated_norm_0);
+        rotated_norm_1 = rotated_1.mul_add(rotated_1, rotated_norm_1);
     }
-    if !lambda_max.is_finite() || !lambda_min.is_finite() || lambda_min < 0.0 {
+    if !rotated_norm_0.is_finite() || !rotated_norm_1.is_finite() {
         return Err(IdentifiabilityError::NonFiniteDerivedValue);
     }
-
+    let lambda_max = rotated_norm_0.max(rotated_norm_1);
+    let lambda_min = rotated_norm_0.min(rotated_norm_1);
     let eigenvalues = [lambda_max, lambda_min];
     let singular_values = [lambda_max.sqrt(), lambda_min.sqrt()];
+    let weakest_parameter_direction_scaled = if rotated_norm_0 <= rotated_norm_1 {
+        [cosine, -sine]
+    } else {
+        [sine, cosine]
+    };
     let threshold = relative_rank_tolerance * singular_values[0];
     let numerical_rank = singular_values
         .iter()
         .filter(|value| **value > threshold)
         .count();
-    let weakest_parameter_direction_scaled =
-        weakest_eigenvector(g00, g01, g11, lambda_min);
 
     let (condition_number, disposition, parameter_estimate, weighted_residual_sum_squares) =
         if numerical_rank == 2 {
@@ -348,5 +355,18 @@ mod tests {
         let variances = [4.0, 1.0];
         let report = analyse_two_parameter_design(&design, &observations, &variances, [1.0, 1.0], 1.0e-12).unwrap();
         assert_eq!(report.information_matrix, [[1.25, -0.75], [-0.75, 1.25]]);
+    }
+
+    #[test]
+    fn jacobi_spectrum_retains_a_small_but_resolvable_singular_direction() {
+        let design = [[1.0, 0.0], [1.0, 1.0e-9]];
+        let observations = [1.0, 1.0];
+        let variances = [1.0, 1.0];
+        let report = analyse_two_parameter_design(
+            &design, &observations, &variances, [1.0, 1.0], 1.0e-12,
+        ).unwrap();
+        assert_eq!(report.numerical_rank, 2);
+        assert!(report.singular_values[1] > 1.0e-12 * report.singular_values[0]);
+        assert!(report.condition_number.unwrap() > 1.0e8);
     }
 }
