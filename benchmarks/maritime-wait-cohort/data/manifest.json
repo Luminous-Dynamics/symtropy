@@ -10,7 +10,7 @@
   "scenario_count": 5,
   "call_observation_count": 25,
   "outcomes": {
-    "BERTH": 8,
+    "BERTH": 9,
     "DIVERTED": 4,
     "CANCELLED": 4,
     "CENSORED_EFFECTIVE": 9
