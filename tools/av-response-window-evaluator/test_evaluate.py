@@ -103,6 +103,14 @@ class ResponseWindowEvaluatorTests(unittest.TestCase):
         )
         event["tick"] = tick
 
+    def set_permission_tick(self, candidate, response, tick):
+        event_ref = response["controller_permission_event_ref"]
+        event = next(
+            item for item in candidate["renderer_lifecycle_events"]
+            if item["event_ref"] == event_ref
+        )
+        event["tick"] = tick
+
     def test_reference_known_answer_scores_all_expected_events(self):
         report = self.score()
         totals = report["totals"]
@@ -125,6 +133,7 @@ class ResponseWindowEvaluatorTests(unittest.TestCase):
         row = next(x for x in candidate["responses"] if x["response_id"] == "r1")
         row["response_start_tick"] = 10
         row["response_end_tick"] = 12
+        self.set_permission_tick(candidate, row, 9)
         self.set_renderer_tick(candidate, row, "start", 10)
         self.set_renderer_tick(candidate, row, "end", 12)
         report = self.score(submission=candidate)
@@ -148,6 +157,7 @@ class ResponseWindowEvaluatorTests(unittest.TestCase):
         row = next(x for x in candidate["responses"] if x["response_id"] == "r1")
         row["response_start_tick"] = 9
         row["response_end_tick"] = 11
+        self.set_permission_tick(candidate, row, 8)
         self.set_renderer_tick(candidate, row, "start", 9)
         self.set_renderer_tick(candidate, row, "end", 11)
         report = self.score(submission=candidate)
