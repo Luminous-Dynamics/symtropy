@@ -41,12 +41,12 @@ jobs:
       # switch to --locked so dependency resolution is reproducible.
       - name: Validate Draft 2020-12 schema and profile fixtures
         working-directory: tools/manufacturing-architecture-portability/validator
-        run: cargo test
+        run: cargo test --locked
 
       - name: Validate all committed profiles
         working-directory: tools/manufacturing-architecture-portability/validator
         run: |
-          cargo run -- ../profile.schema.json \
+          cargo run --locked -- ../profile.schema.json \
             ../profiles/uns-mqtt.synthetic.json \
             ../profiles/i3x-1.0.reference.json \
             ../profiles/opcua-machinery-1.04.2.reference.json \
@@ -54,13 +54,5 @@ jobs:
 
       - name: Clippy
         working-directory: tools/manufacturing-architecture-portability/validator
-        run: cargo clippy --all-targets -- -D warnings
+        run: cargo clippy --locked --all-targets -- -D warnings
 
-      - name: Upload generated lockfile (one-time bootstrap)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: mfg-architecture-validator-cargo-lock
-          path: tools/manufacturing-architecture-portability/validator/Cargo.lock
-          if-no-files-found: warn
-          retention-days: 7
