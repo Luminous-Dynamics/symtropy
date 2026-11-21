@@ -152,6 +152,10 @@ jobs:
             and .serviceable_mission_count == 3
             and .status == "partial_service"
             and (.assignments | length) == 3
+            and .search_nodes == 38
+            and (any(.assignments[]; .mission_id == "mission-1" and .pack_id == "pack-a" and .energy_margin_wh == 300))
+            and (any(.assignments[]; .mission_id == "mission-2" and .pack_id == "pack-b" and .energy_margin_wh == 300))
+            and (any(.assignments[]; .mission_id == "mission-3" and .pack_id == "pack-c" and .energy_margin_wh == 200))
             and ([.assignments[].pack_id] | unique | length) == 3
             and ([.assignments[].mission_id] | unique | length) == 3
             and (.unserved_missions == ["mission-4"])
