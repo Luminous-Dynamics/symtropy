@@ -93,8 +93,12 @@ function evaluate(scenario) {
     if (!typed) {
       add("CLAIM_TYPE_MISMATCH", claim.claim_id, "estimand, unit and model profile do not match the claim type");
     }
+    if (claim.claim_type === "model_credibility" &&
+        (!claim.validation_domain || !claim.validation_domain.trim())) {
+      add("INCOMPLETE", claim.claim_id, "model credibility claim lacks a declared validation domain");
+    }
 
-    if (claim.state !== "supported" && claim.mandatory) {
+    if (claim.state !== "supported") {
       if (claim.state === "contradicted") add("CONTRADICTED", claim.claim_id, "claim is contradicted");
       else if (claim.state === "indeterminate") add("INDETERMINATE", claim.claim_id, "claim state is indeterminate");
       else if (claim.state === "open_defeater") add("OPEN_DEFEATER", claim.claim_id, "mandatory defeater remains open");
@@ -255,7 +259,7 @@ if (corpus.schema !== "luminous.orbital-assurance-bundle.corpus.v0.1" ||
     corpus.claim_ceiling !== "synthetic-assurance-graph-structure-only") {
   throw new Error("unsupported corpus contract");
 }
-if (corpus.cases.length !== 54) throw new Error("expected 54 frozen cases");
+if (corpus.cases.length !== 56) throw new Error("expected 56 frozen cases");
 const ids = new Set();
 let mismatches = 0;
 let complete = 0;
@@ -280,4 +284,4 @@ if (mismatches !== 0) {
   process.stderr.write("FAIL: " + mismatches + " expected-result mismatches\n");
   process.exit(1);
 }
-process.stdout.write("PASS: 54 cases; independent graph oracle; " + complete + " positive controls; zero mismatches; zero authority grants\n");
+process.stdout.write("PASS: 56 cases; independent graph oracle; " + complete + " positive controls; zero mismatches; zero authority grants\n");
