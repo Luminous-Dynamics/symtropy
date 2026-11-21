@@ -79,7 +79,7 @@ This known-answer case demonstrates why a single constant-drift approximation is
 
 ## 4. Authored test matrix
 
-Ten module tests are currently authored:
+Twelve module tests are currently authored:
 1. Variable-drift Simpson impulse and heating known answer.
 2. Constant-drift reduction to the integrated drag identity.
 3. Reject negative integrated drag measure.
@@ -89,7 +89,9 @@ Ten module tests are currently authored:
 7. Reject event-level momentum errors that cancel globally.
 8. Reject duplicate event and quadrature sample IDs.
 9. Reject out-of-range time and non-finite velocity.
-10. Deterministic result under event/sample permutation, empty inputs and invalid tolerances (the last group is covered in the same test), plus CLI reference self-check.
+10. Deterministic result under event/sample permutation.
+11. Reject empty batches/events and invalid tolerances.
+12. Offline reference self-check.
 
 These are authored tests, not executed Rust tests.
 
