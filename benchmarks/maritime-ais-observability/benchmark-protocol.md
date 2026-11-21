@@ -119,7 +119,26 @@ Its method illustrates concrete threshold sensitivity and gap-handling policy; t
 
 Belcore et al. (2025), *Open AIS Data to Assess Seaside Operations in Container Ports*, describes trajectory segmentation and anchoring/berthing classification tested across U.S. port infrastructure. It is an additional algorithmic comparator, not a gold-standard label source.
 
-## 8. Promotion gates
+## 8. Event-detection scorecard
+
+Ground truth must use an independently adjudicated source-local visit/call reference. MMSI is not used as a visit identity. Each truth label is a specific event type and event tick in the same declared sender event-time domain as the inferred interval.
+
+For truth event (g=(call,kind,t)) and prediction (p=(call',kind',[l,u])), a match is eligible only when:
+- `call == call'`;
+- `kind == kind'`;
+- distance from (t) to interval ([l,u]) is no greater than the pre-registered tolerance.
+
+Interval distance is zero when the truth tick lies inside [l,u], otherwise the distance to the nearest endpoint. The scorer constructs all eligible pairs and performs deterministic global minimum-distance one-to-one matching, tie-breaking by truth and prediction input index.
+
+- matched pair: true positive;
+- unmatched prediction: false positive;
+- unmatched ground-truth event: false negative.
+
+Precision is TP/(TP+FP); recall is TP/(TP+FN). Undefined denominators remain NOT_DEFINED (None), not zero. The scorecard separately reports mean interval-distance error and mean width of matched event intervals. It reports metrics by event kind and overall.
+
+Duplicate inferred events cannot increase recall: only one prediction may match a ground-truth event. A prediction of the wrong event type or from the wrong call reference cannot match. Reacquisition and observability-gap events are diagnostics, not service-event detections, and are not converted into arrival/departure labels.
+
+## 9. Promotion gates
 
 Before real-port validation:
 1. Establish legal raw AIS access and receiver/antenna identity.
@@ -130,7 +149,7 @@ Before real-port validation:
 6. Group holdouts by port, receiver, vessel, call and calendar period; never tune dwell/gap on held-out calls.
 7. Keep AIS-inferred zone entry separate from DCSA/PCO actual event semantics unless a reviewed source mapping supports the equivalence.
 
-## 9. Non-claims
+## 10. Non-claims
 
 Synthetic conformance does not validate real AIS telemetry, geofence geometry, receiver deployment, DGT event accuracy, CPPI equivalence, causal port performance or navigation/berth authority.
 
