@@ -110,3 +110,30 @@ The published apparatus/PSD metadata is encoded in:
 The Rust reference kernel includes a pure `neutron_psd_gate_accepts` helper. It receives one calibrated light-output slice and evaluates the source-described gamma-tail gate and threshold. It is a deterministic selection-rule scaffold, **not** a reconstruction of waveforms, detector response, or the full MCNP/Geant4/GRAVEL chain.
 
 The fixture contains published-summary metadata only. It has no raw waveforms or calibration spectra.
+
+
+## 11. 2026 external diagnostic benchmarks
+
+Two post-2025 references expand the comparison baseline:
+
+- A 2026 *Nature Protocols* tutorial gives an end-to-end fast-neutron EJ-309 workflow spanning detector configuration, calibration, characterization, neutron/gamma discrimination, counting and spectrum estimation: https://doi.org/10.1038/s41596-026-01372-8
+- A 2026 Geant4 comparison studies EJ-309 and EJ-276D response matrices and GRAVEL unfolding. It emphasizes that spectrum reconstruction is ill-conditioned and depends on response-matrix construction, pulse-height statistics and the stopping criterion: https://doi.org/10.1016/j.net.2026.104376
+
+### Proposed matched SOTA benchmark
+
+Compare EJ-309 and EJ-276D only at matched source spectrum, geometry, threshold, exposure, calibration and background information. Use blind known source spectra, not the pulse-height spectrum as its own ground truth.
+
+Report:
+- response-matrix column efficiency and energy-migration structure;
+- forward pulse-height residual / Poisson deviance;
+- unfolded spectrum RMSE and integrated fluence bias;
+- peak location and width error;
+- predictive interval coverage;
+- gamma-only false-neutron rate at matched neutron sensitivity;
+- sensitivity to response-matrix perturbation / Monte Carlo statistics;
+- GRAVEL stopping criterion and initial-spectrum sensitivity;
+- effective rank / singular values and recoverable modes.
+
+Use the 2026 study's Qs metric for comparability, but do not rely on one metric alone. Keep response-matrix uncertainty and unfolding instability explicit.
+
+The Rust kernel now includes a source-neutral forward response-matrix operator. It does not implement GRAVEL or Geant4 and makes no detector-performance claim.
