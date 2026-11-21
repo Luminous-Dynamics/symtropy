@@ -272,6 +272,14 @@ Independent finite-difference calculations validate the analytic gradients for c
 
 This is still **not Bayesian Monte Carlo or HMC sampling**. It is the posterior target and gradient needed by a sampler. It does not include adaptation, multiple chains, effective sample size, R-hat, divergent-transition diagnostics, tau0 sweep analysis, or posterior bias-field screening. Do not report posterior inclusion / credible intervals from this target until a qualified sampler has been run and converged.
 
+### Layer L — cached posterior target and fixed-step HMC comparator
+
+The fixed observation covariance is now factored once in a PreparedRawScaleHorseshoeModel. Each posterior evaluation reuses that Cholesky factor while calculating the changing bias mean and horseshoe prior. This avoids repeating the cubic covariance factorization at every leapfrog step.
+
+A seeded fixed-step HMC comparator is also present. It uses the analytic gradients, caller-selected step size and leapfrog count, momentum reversal, a Metropolis accept/reject step, discarded initial transitions, and records accepted proposals and energy-error divergences. A basic split-Rhat screening function can compare a coefficient across independent chains.
+
+This is not NUTS and not yet a qualified sampler: there is no step-size or mass-matrix adaptation, no rank-normalized / folded Rhat, no ESS / MCSE, no posterior predictive check and no tau0-sweep stability analysis. The HMC implementation should be compared against an independent mature sampler on tractable low-dimensional oracles before any posterior claim is made. The AIACHNE BMC sampler reproduction remains a separate comparison target, not something this HMC implementation is claimed to equal.
+
 ## Current implementation and limits
 
 Implemented in this research-only Rust crate:
@@ -291,7 +299,8 @@ Implemented in this research-only Rust crate:
 - a small-feature Poisson spike-and-slab comparator for count data;
 - a full-covariance log-ratio Gaussian sparse model average with fixed normalization effects and exact Gaussian integration over subsets (up to 12 sparse columns);
 - a raw-scale correlated Gaussian PFNS likelihood with mean mu * exp(delta) and covariance diag(mu) Sigma_relative diag(mu), preserving the un-biased covariance anchor;
-- a global-local horseshoe posterior target with half-Cauchy local scales, half-normal or half-Cauchy global scale, and analytic gradients in log-scale sampler coordinates.
+- a global-local horseshoe posterior target with half-Cauchy local scales, half-normal or half-Cauchy global scale, and analytic gradients in log-scale sampler coordinates;
+- a prepared raw-scale target with cached covariance factorization and seeded fixed-step HMC / basic split-Rhat screening.
 
 Not implemented yet:
 
@@ -300,7 +309,7 @@ Not implemented yet:
 - a full Bayesian expected-information-gain estimator, multifidelity sample-allocation optimizer or ACV coefficient learner;
 - a continuous robust-design optimizer, uncertainty-set calibration or Pareto frontier;
 - a nuisance-integrated or posterior-predictive model-discrimination score;
-- a qualified BMC / HMC / NUTS sampler, with warmup/adaptation, multiple-chain R-hat and ESS, divergence checks, energy diagnostics, posterior predictive checks and tau0 stability sweeps;
+- qualified sampling: step-size / mass-matrix adaptation, NUTS or validated BMC comparison, rank-normalized and folded Rhat, bulk/tail ESS, MCSE, posterior predictive checks, energy diagnostics and tau0 stability sweeps;
 - inference over the complete 160-basis-per-group design and global τ hyperprior;
 - τ_0 sensitivity sweeps, redundant feature-level grouping analysis, correlated-feature robustness, and campaign-held-out validation;
 - a general nuisance-aware hierarchical likelihood for response, background, live time, PSD and other calibration dimensions;
