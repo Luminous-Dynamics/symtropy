@@ -21,7 +21,14 @@
       "edition": "1.02 (published 2025-09-08)",
       "role": "machine_information_model",
       "publication_state": "published_specification",
-      "reference_uri": "https://reference.opcfoundation.org/specs/OPC-40010-1"
+      "reference_uri": "https://reference.opcfoundation.org/specs/OPC-40010-1",
+      "namespace_metadata": {
+        "namespace_uri": "http://opcfoundation.org/UA/Robotics/",
+        "namespace_version": "1.02",
+        "namespace_publication_date": "2025-09-08",
+        "nodeset_uri": "https://reference.opcfoundation.org/nodesets/?u=http://opcfoundation.org/UA/Robotics/&v=1.02&i=1",
+        "nodeset_scope": "complete_namespace"
+      }
     }
   ],
   "layers": [
