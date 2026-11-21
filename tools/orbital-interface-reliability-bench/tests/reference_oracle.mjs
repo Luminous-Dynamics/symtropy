@@ -172,7 +172,7 @@ function assess(input) {
   };
 }
 
-assert.equal(corpus.cases.length, 35);
+assert.equal(corpus.cases.length, 36);
 const seen = new Set();
 for (const item of corpus.cases) {
   assert.ok(!seen.has(item.case_id), "duplicate reliability case " + item.case_id);
