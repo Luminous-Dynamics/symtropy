@@ -1460,6 +1460,31 @@ mod tests {
     }
 
     #[test]
+    fn committed_unweighted_stress_fixture_keeps_probability_and_stress_sets_separate() {
+        let fixture: SharedFleetInput = serde_json::from_str(include_str!(
+            "../fixtures/synthetic-two-region-shared-aircraft-stress.json"
+        ))
+        .expect("stress fixture must deserialize");
+        let report = evaluate_shared_fleet(&fixture).expect("stress fixture must evaluate");
+        assert_eq!(report.scenario_count, 2);
+        assert_eq!(report.stress_scenario_count, 1);
+        assert_eq!(report.nonanticipative_policy_node_count, 7);
+        assert_eq!(report.exact_policy_count_evaluated, 16_384);
+        assert_eq!(report.optimized_policy.expected_total_cost_units, 524);
+        assert_eq!(report.optimized_policy.cvar90_total_cost_units, 866);
+        assert!(report
+            .optimized_policy
+            .worst_stress_case_total_cost_units
+            .is_some());
+        assert!(report
+            .worst_case_optimal_policy
+            .worst_stress_case_unserved_units
+            .is_some());
+        assert!(!report.physical_dispatch_authorized);
+        assert!(!report.dispatch_commands_emitted);
+    }
+
+    #[test]
     fn unweighted_stress_scenarios_affect_minimax_but_not_expectation_or_cvar() {
         let probabilistic_only = evaluate_shared_fleet(&input()).expect("probabilistic fixture");
         let mut with_stress = input();
