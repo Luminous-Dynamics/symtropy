@@ -1,14 +1,11 @@
-use power_restoration_threephase_data_readiness::{
-    ThreePhaseReadinessReport, parse_and_audit,
-};
+use power_restoration_threephase_data_readiness::{ThreePhaseReadinessReport, parse_and_audit};
 use std::env;
 use std::fs;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
 fn read(path: &PathBuf) -> Result<String, String> {
-    fs::read_to_string(path)
-        .map_err(|error| format!("cannot read {}: {error}", path.display()))
+    fs::read_to_string(path).map_err(|error| format!("cannot read {}: {error}", path.display()))
 }
 
 fn run() -> Result<ThreePhaseReadinessReport, String> {

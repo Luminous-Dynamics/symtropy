@@ -467,11 +467,16 @@ fn validate_phase_list(
     field: &str,
     scope: ReadinessScope,
 ) {
-    let has_abc = phases.iter().any(|p| matches!(p, Conductor::A | Conductor::B | Conductor::C));
+    let has_abc = phases
+        .iter()
+        .any(|p| matches!(p, Conductor::A | Conductor::B | Conductor::C));
     if phases.is_empty()
         || !has_abc
         || !unique_conductors(phases)
-        || (!allow_neutral && phases.iter().any(|p| matches!(p, Conductor::Neutral | Conductor::ProtectiveEarth)))
+        || (!allow_neutral
+            && phases
+                .iter()
+                .any(|p| matches!(p, Conductor::Neutral | Conductor::ProtectiveEarth)))
     {
         blocker(
             blockers,
@@ -523,7 +528,9 @@ fn validate_node_model(
                     "grounded node requires an explicit neutral conductor in the native model",
                 );
             }
-            if node.grounding_type == GroundingType::MultiGroundedNeutral && !node.neutral_continuous {
+            if node.grounding_type == GroundingType::MultiGroundedNeutral
+                && !node.neutral_continuous
+            {
                 blocker(
                     blockers,
                     ReadinessScope::ThreePhaseLoadFlow,
@@ -533,7 +540,11 @@ fn validate_node_model(
                     "multi-grounded neutral must declare neutral continuity",
                 );
             }
-            if node.grounding_impedance_ohm.as_ref().is_none_or(|z| !z.real.is_finite() || !z.imaginary.is_finite() || z.real < 0.0) {
+            if node
+                .grounding_impedance_ohm
+                .as_ref()
+                .is_none_or(|z| !z.real.is_finite() || !z.imaginary.is_finite() || z.real < 0.0)
+            {
                 blocker(
                     blockers,
                     ReadinessScope::ThreePhaseLoadFlow,
@@ -592,8 +603,14 @@ fn validate_matrix(
         && matrix.conductor_order == branch.conductors
         && matrix.resistance_ohm_per_km_or_base.len() == n
         && matrix.reactance_ohm_per_km_or_base.len() == n
-        && matrix.resistance_ohm_per_km_or_base.iter().all(|row| row.len() == n)
-        && matrix.reactance_ohm_per_km_or_base.iter().all(|row| row.len() == n);
+        && matrix
+            .resistance_ohm_per_km_or_base
+            .iter()
+            .all(|row| row.len() == n)
+        && matrix
+            .reactance_ohm_per_km_or_base
+            .iter()
+            .all(|row| row.len() == n);
     if !valid_dimensions {
         blocker(
             blockers,
@@ -633,7 +650,8 @@ fn validate_matrix(
                 return;
             }
             if (resistance - matrix.resistance_ohm_per_km_or_base[col][row]).abs() > FLOAT_TOLERANCE
-                || (reactance - matrix.reactance_ohm_per_km_or_base[col][row]).abs() > FLOAT_TOLERANCE
+                || (reactance - matrix.reactance_ohm_per_km_or_base[col][row]).abs()
+                    > FLOAT_TOLERANCE
             {
                 blocker(
                     blockers,
@@ -687,10 +705,7 @@ fn validate_matrix(
     }
 }
 
-fn validate_current_ratings(
-    branch: &BranchPhaseModel,
-    blockers: &mut Vec<ReadinessBlocker>,
-) {
+fn validate_current_ratings(branch: &BranchPhaseModel, blockers: &mut Vec<ReadinessBlocker>) {
     let mut actual = BTreeMap::new();
     for rating in &branch.current_ratings {
         if actual.insert(rating.conductor, rating).is_some() {
@@ -791,8 +806,11 @@ pub fn audit_three_phase_inputs(
 ) -> Result<ThreePhaseReadinessReport, Vec<String>> {
     let case_sha = canonical_case_sha256(case)
         .map_err(|error| vec![format!("benchmark case canonicalization failed: {error}")])?;
-    let package_sha = canonical_sha256(package)
-        .map_err(|error| vec![format!("three-phase package canonicalization failed: {error}")])?;
+    let package_sha = canonical_sha256(package).map_err(|error| {
+        vec![format!(
+            "three-phase package canonicalization failed: {error}"
+        )]
+    })?;
     let mut blockers = Vec::new();
 
     add_blocker_if(
@@ -841,7 +859,9 @@ pub fn audit_three_phase_inputs(
     for artifact in &package.source_artifacts {
         if !valid_id(&artifact.artifact_uri)
             || !lower_hex(&artifact.sha256, 64)
-            || source_map.insert(artifact.artifact_uri.as_str(), artifact.sha256.as_str()).is_some()
+            || source_map
+                .insert(artifact.artifact_uri.as_str(), artifact.sha256.as_str())
+                .is_some()
         {
             blocker(
                 &mut blockers,
@@ -855,37 +875,90 @@ pub fn audit_three_phase_inputs(
     }
     let mut referenced_sources = BTreeSet::<String>::new();
 
-    let expected_node_ids: BTreeSet<&str> = case.network.nodes.iter().map(|node| node.node_id.as_str()).collect();
+    let expected_node_ids: BTreeSet<&str> = case
+        .network
+        .nodes
+        .iter()
+        .map(|node| node.node_id.as_str())
+        .collect();
     let mut node_ids = BTreeSet::new();
     let mut node_map = BTreeMap::<&str, &NodePhaseModel>::new();
     for node in &package.node_models {
         if !node_ids.insert(node.node_id.as_str()) {
-            blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "node", &node.node_id, "nodeId", "duplicate node phase model");
+            blocker(
+                &mut blockers,
+                ReadinessScope::ThreePhaseLoadFlow,
+                "node",
+                &node.node_id,
+                "nodeId",
+                "duplicate node phase model",
+            );
         }
         node_map.insert(node.node_id.as_str(), node);
         if !expected_node_ids.contains(node.node_id.as_str()) {
-            blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "node", &node.node_id, "nodeId", "node phase model references node absent from frozen case");
+            blocker(
+                &mut blockers,
+                ReadinessScope::ThreePhaseLoadFlow,
+                "node",
+                &node.node_id,
+                "nodeId",
+                "node phase model references node absent from frozen case",
+            );
         }
         validate_node_model(node, &mut blockers, &source_map, &mut referenced_sources);
     }
     for node_id in &expected_node_ids {
         if !node_ids.contains(node_id) {
-            blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "node", node_id, "nodeModels", "missing native phase and grounding model for case node");
+            blocker(
+                &mut blockers,
+                ReadinessScope::ThreePhaseLoadFlow,
+                "node",
+                node_id,
+                "nodeModels",
+                "missing native phase and grounding model for case node",
+            );
         }
     }
 
-    let expected_branch_ids: BTreeSet<&str> = case.network.branches.iter().map(|branch| branch.branch_id.as_str()).collect();
+    let expected_branch_ids: BTreeSet<&str> = case
+        .network
+        .branches
+        .iter()
+        .map(|branch| branch.branch_id.as_str())
+        .collect();
     let mut branch_ids = BTreeSet::new();
     let mut branch_kinds = BTreeMap::<&str, BranchEquipmentKind>::new();
     for branch in &package.branch_models {
         if !branch_ids.insert(branch.branch_id.as_str()) {
-            blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "branch", &branch.branch_id, "branchId", "duplicate branch phase model");
+            blocker(
+                &mut blockers,
+                ReadinessScope::ThreePhaseLoadFlow,
+                "branch",
+                &branch.branch_id,
+                "branchId",
+                "duplicate branch phase model",
+            );
         }
         branch_kinds.insert(branch.branch_id.as_str(), branch.equipment_kind);
         if !expected_branch_ids.contains(branch.branch_id.as_str()) {
-            blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "branch", &branch.branch_id, "branchId", "branch model references branch absent from frozen case");
+            blocker(
+                &mut blockers,
+                ReadinessScope::ThreePhaseLoadFlow,
+                "branch",
+                &branch.branch_id,
+                "branchId",
+                "branch model references branch absent from frozen case",
+            );
         }
-        validate_phase_list(&branch.conductors, true, &mut blockers, "branch", &branch.branch_id, "conductors", ReadinessScope::ThreePhaseLoadFlow);
+        validate_phase_list(
+            &branch.conductors,
+            true,
+            &mut blockers,
+            "branch",
+            &branch.branch_id,
+            "conductors",
+            ReadinessScope::ThreePhaseLoadFlow,
+        );
         match branch.primitive_impedance.as_ref() {
             Some(matrix) => validate_matrix(branch, matrix, &mut blockers),
             None => blocker(
@@ -898,43 +971,111 @@ pub fn audit_three_phase_inputs(
             ),
         }
         validate_current_ratings(branch, &mut blockers);
-        validate_evidence(&branch.evidence, &source_map, &mut referenced_sources, &mut blockers, ReadinessScope::ThreePhaseLoadFlow, "branch", &branch.branch_id, "evidence");
-        validate_sequence(branch.sequence_impedance.as_ref(), &mut blockers, "branch", &branch.branch_id, "sequenceImpedance", ReadinessScope::ShortCircuit);
+        validate_evidence(
+            &branch.evidence,
+            &source_map,
+            &mut referenced_sources,
+            &mut blockers,
+            ReadinessScope::ThreePhaseLoadFlow,
+            "branch",
+            &branch.branch_id,
+            "evidence",
+        );
+        validate_sequence(
+            branch.sequence_impedance.as_ref(),
+            &mut blockers,
+            "branch",
+            &branch.branch_id,
+            "sequenceImpedance",
+            ReadinessScope::ShortCircuit,
+        );
 
-        if let Some(case_branch) = case.network.branches.iter().find(|item| item.branch_id == branch.branch_id) {
+        if let Some(case_branch) = case
+            .network
+            .branches
+            .iter()
+            .find(|item| item.branch_id == branch.branch_id)
+        {
             for endpoint in [&case_branch.from_node_id, &case_branch.to_node_id] {
                 match node_map.get(endpoint.as_str()) {
                     Some(node) => {
                         for conductor in &branch.conductors {
                             if !node.conductors.contains(conductor) {
-                                blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "branch", &branch.branch_id, "conductors", "branch conductor is absent from one endpoint node model");
+                                blocker(
+                                    &mut blockers,
+                                    ReadinessScope::ThreePhaseLoadFlow,
+                                    "branch",
+                                    &branch.branch_id,
+                                    "conductors",
+                                    "branch conductor is absent from one endpoint node model",
+                                );
                                 break;
                             }
                         }
                     }
-                    None => blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "branch", &branch.branch_id, "endpoints", "branch endpoint lacks a native node phase model"),
+                    None => blocker(
+                        &mut blockers,
+                        ReadinessScope::ThreePhaseLoadFlow,
+                        "branch",
+                        &branch.branch_id,
+                        "endpoints",
+                        "branch endpoint lacks a native node phase model",
+                    ),
                 }
             }
         }
     }
     for branch_id in &expected_branch_ids {
         if !branch_ids.contains(branch_id) {
-            blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "branch", branch_id, "branchModels", "missing native primitive impedance/phase model for case branch");
-            blocker(&mut blockers, ReadinessScope::ShortCircuit, "branch", branch_id, "sequenceImpedance", "missing native sequence impedance for case branch");
+            blocker(
+                &mut blockers,
+                ReadinessScope::ThreePhaseLoadFlow,
+                "branch",
+                branch_id,
+                "branchModels",
+                "missing native primitive impedance/phase model for case branch",
+            );
+            blocker(
+                &mut blockers,
+                ReadinessScope::ShortCircuit,
+                "branch",
+                branch_id,
+                "sequenceImpedance",
+                "missing native sequence impedance for case branch",
+            );
         }
     }
 
     let mut transformer_ids = BTreeSet::new();
     for transformer in &package.transformer_models {
         if !transformer_ids.insert(transformer.branch_id.as_str()) {
-            blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "transformer", &transformer.branch_id, "branchId", "duplicate transformer model");
+            blocker(
+                &mut blockers,
+                ReadinessScope::ThreePhaseLoadFlow,
+                "transformer",
+                &transformer.branch_id,
+                "branchId",
+                "duplicate transformer model",
+            );
         }
-        if branch_kinds.get(transformer.branch_id.as_str()) != Some(&BranchEquipmentKind::Transformer) {
-            blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "transformer", &transformer.branch_id, "branchId", "transformer model does not match a transformer-classified branch");
+        if branch_kinds.get(transformer.branch_id.as_str())
+            != Some(&BranchEquipmentKind::Transformer)
+        {
+            blocker(
+                &mut blockers,
+                ReadinessScope::ThreePhaseLoadFlow,
+                "transformer",
+                &transformer.branch_id,
+                "branchId",
+                "transformer model does not match a transformer-classified branch",
+            );
         }
         add_blocker_if(
             !valid_id(&transformer.vector_group)
-                || transformer.vector_group.bytes().any(|byte| byte.is_ascii_whitespace())
+                || transformer
+                    .vector_group
+                    .bytes()
+                    .any(|byte| byte.is_ascii_whitespace())
                 || transformer.clock_number > 11
                 || !transformer.high_voltage_nominal_kv.is_finite()
                 || !transformer.low_voltage_nominal_kv.is_finite()
@@ -949,40 +1090,124 @@ pub fn audit_three_phase_inputs(
             "vectorGroupAndRatings",
             "transformer vector group, clock number and winding ratings are incomplete or invalid",
         );
-        if transformer.high_voltage_connection == WindingConnection::GroundedWye && !transformer.high_voltage_neutral_grounded {
-            blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "transformer", &transformer.branch_id, "highVoltageNeutralGrounded", "grounded-wye high side must declare neutral grounding");
+        if transformer.high_voltage_connection == WindingConnection::GroundedWye
+            && !transformer.high_voltage_neutral_grounded
+        {
+            blocker(
+                &mut blockers,
+                ReadinessScope::ThreePhaseLoadFlow,
+                "transformer",
+                &transformer.branch_id,
+                "highVoltageNeutralGrounded",
+                "grounded-wye high side must declare neutral grounding",
+            );
         }
-        if transformer.low_voltage_connection == WindingConnection::GroundedWye && !transformer.low_voltage_neutral_grounded {
-            blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "transformer", &transformer.branch_id, "lowVoltageNeutralGrounded", "grounded-wye low side must declare neutral grounding");
+        if transformer.low_voltage_connection == WindingConnection::GroundedWye
+            && !transformer.low_voltage_neutral_grounded
+        {
+            blocker(
+                &mut blockers,
+                ReadinessScope::ThreePhaseLoadFlow,
+                "transformer",
+                &transformer.branch_id,
+                "lowVoltageNeutralGrounded",
+                "grounded-wye low side must declare neutral grounding",
+            );
         }
-        validate_sequence(transformer.leakage_sequence_impedance.as_ref(), &mut blockers, "transformer", &transformer.branch_id, "leakageSequenceImpedance", ReadinessScope::ShortCircuit);
-        validate_evidence(&transformer.evidence, &source_map, &mut referenced_sources, &mut blockers, ReadinessScope::ThreePhaseLoadFlow, "transformer", &transformer.branch_id, "evidence");
+        validate_sequence(
+            transformer.leakage_sequence_impedance.as_ref(),
+            &mut blockers,
+            "transformer",
+            &transformer.branch_id,
+            "leakageSequenceImpedance",
+            ReadinessScope::ShortCircuit,
+        );
+        validate_evidence(
+            &transformer.evidence,
+            &source_map,
+            &mut referenced_sources,
+            &mut blockers,
+            ReadinessScope::ThreePhaseLoadFlow,
+            "transformer",
+            &transformer.branch_id,
+            "evidence",
+        );
     }
     for (branch_id, kind) in &branch_kinds {
         if *kind == BranchEquipmentKind::Transformer && !transformer_ids.contains(branch_id) {
-            blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "transformer", branch_id, "transformerModels", "transformer-classified branch lacks vector-group and winding/grounding model");
+            blocker(
+                &mut blockers,
+                ReadinessScope::ThreePhaseLoadFlow,
+                "transformer",
+                branch_id,
+                "transformerModels",
+                "transformer-classified branch lacks vector-group and winding/grounding model",
+            );
         }
     }
 
-    let expected_load_ids: BTreeSet<&str> = case.network.loads.iter().map(|load| load.load_id.as_str()).collect();
+    let expected_load_ids: BTreeSet<&str> = case
+        .network
+        .loads
+        .iter()
+        .map(|load| load.load_id.as_str())
+        .collect();
     let mut load_ids = BTreeSet::new();
     for allocation in &package.load_phase_allocations {
         if !load_ids.insert(allocation.load_id.as_str()) {
-            blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "load", &allocation.load_id, "loadId", "duplicate phase-resolved load allocation");
+            blocker(
+                &mut blockers,
+                ReadinessScope::ThreePhaseLoadFlow,
+                "load",
+                &allocation.load_id,
+                "loadId",
+                "duplicate phase-resolved load allocation",
+            );
         }
-        let Some(load) = case.network.loads.iter().find(|item| item.load_id == allocation.load_id) else {
-            blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "load", &allocation.load_id, "loadId", "phase allocation references load absent from frozen case");
+        let Some(load) = case
+            .network
+            .loads
+            .iter()
+            .find(|item| item.load_id == allocation.load_id)
+        else {
+            blocker(
+                &mut blockers,
+                ReadinessScope::ThreePhaseLoadFlow,
+                "load",
+                &allocation.load_id,
+                "loadId",
+                "phase allocation references load absent from frozen case",
+            );
             continue;
         };
         let mut phases = BTreeSet::new();
         let mut active_sum = 0.0;
         let mut reactive_sum = 0.0;
         for phase in &allocation.phases {
-            if !matches!(phase.phase, Conductor::A | Conductor::B | Conductor::C) || !phases.insert(phase.phase) {
-                blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "load", &allocation.load_id, "phases", "load phase assignments must be unique A/B/C conductors");
+            if !matches!(phase.phase, Conductor::A | Conductor::B | Conductor::C)
+                || !phases.insert(phase.phase)
+            {
+                blocker(
+                    &mut blockers,
+                    ReadinessScope::ThreePhaseLoadFlow,
+                    "load",
+                    &allocation.load_id,
+                    "phases",
+                    "load phase assignments must be unique A/B/C conductors",
+                );
             }
-            if !phase.active_power_kw.is_finite() || phase.active_power_kw < 0.0 || !phase.reactive_power_kvar.is_finite() {
-                blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "load", &allocation.load_id, "phases", "phase-resolved P/Q must be finite and active power non-negative");
+            if !phase.active_power_kw.is_finite()
+                || phase.active_power_kw < 0.0
+                || !phase.reactive_power_kvar.is_finite()
+            {
+                blocker(
+                    &mut blockers,
+                    ReadinessScope::ThreePhaseLoadFlow,
+                    "load",
+                    &allocation.load_id,
+                    "phases",
+                    "phase-resolved P/Q must be finite and active power non-negative",
+                );
             }
             active_sum += phase.active_power_kw;
             reactive_sum += phase.reactive_power_kvar;
@@ -991,33 +1216,94 @@ pub fn audit_three_phase_inputs(
             || (active_sum - load.active_power_kw).abs() > FLOAT_TOLERANCE
             || (reactive_sum - load.reactive_power_kvar).abs() > FLOAT_TOLERANCE
         {
-            blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "load", &allocation.load_id, "phasePq", "phase P/Q allocation must exactly reconcile with the frozen case load total");
+            blocker(
+                &mut blockers,
+                ReadinessScope::ThreePhaseLoadFlow,
+                "load",
+                &allocation.load_id,
+                "phasePq",
+                "phase P/Q allocation must exactly reconcile with the frozen case load total",
+            );
         }
         if let Some(node) = node_map.get(load.node_id.as_str()) {
             for phase in &allocation.phases {
                 if !node.conductors.contains(&phase.phase) {
-                    blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "load", &allocation.load_id, "phases", "load is allocated to a phase absent from its node model");
+                    blocker(
+                        &mut blockers,
+                        ReadinessScope::ThreePhaseLoadFlow,
+                        "load",
+                        &allocation.load_id,
+                        "phases",
+                        "load is allocated to a phase absent from its node model",
+                    );
                 }
             }
         } else {
-            blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "load", &allocation.load_id, "nodeId", "load node lacks a native phase model");
+            blocker(
+                &mut blockers,
+                ReadinessScope::ThreePhaseLoadFlow,
+                "load",
+                &allocation.load_id,
+                "nodeId",
+                "load node lacks a native phase model",
+            );
         }
-        validate_evidence(&allocation.evidence, &source_map, &mut referenced_sources, &mut blockers, ReadinessScope::ThreePhaseLoadFlow, "load", &allocation.load_id, "evidence");
+        validate_evidence(
+            &allocation.evidence,
+            &source_map,
+            &mut referenced_sources,
+            &mut blockers,
+            ReadinessScope::ThreePhaseLoadFlow,
+            "load",
+            &allocation.load_id,
+            "evidence",
+        );
     }
     for load_id in &expected_load_ids {
         if !load_ids.contains(load_id) {
-            blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "load", load_id, "loadPhaseAllocations", "missing phase-resolved P/Q assignment");
+            blocker(
+                &mut blockers,
+                ReadinessScope::ThreePhaseLoadFlow,
+                "load",
+                load_id,
+                "loadPhaseAllocations",
+                "missing phase-resolved P/Q assignment",
+            );
         }
     }
 
-    let expected_source_ids: BTreeSet<&str> = case.network.grid_sources.iter().map(|source| source.source_id.as_str()).collect();
+    let expected_source_ids: BTreeSet<&str> = case
+        .network
+        .grid_sources
+        .iter()
+        .map(|source| source.source_id.as_str())
+        .collect();
     let mut source_ids = BTreeSet::new();
     for source in &package.grid_source_models {
         if !source_ids.insert(source.source_id.as_str()) {
-            blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "gridSource", &source.source_id, "sourceId", "duplicate grid source model");
+            blocker(
+                &mut blockers,
+                ReadinessScope::ThreePhaseLoadFlow,
+                "gridSource",
+                &source.source_id,
+                "sourceId",
+                "duplicate grid source model",
+            );
         }
-        let Some(case_source) = case.network.grid_sources.iter().find(|item| item.source_id == source.source_id) else {
-            blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "gridSource", &source.source_id, "sourceId", "source model references source absent from frozen case");
+        let Some(case_source) = case
+            .network
+            .grid_sources
+            .iter()
+            .find(|item| item.source_id == source.source_id)
+        else {
+            blocker(
+                &mut blockers,
+                ReadinessScope::ThreePhaseLoadFlow,
+                "gridSource",
+                &source.source_id,
+                "sourceId",
+                "source model references source absent from frozen case",
+            );
             continue;
         };
         let mut phases = BTreeSet::new();
@@ -1028,24 +1314,56 @@ pub fn audit_three_phase_inputs(
                 || voltage.line_neutral_kv <= 0.0
                 || !voltage.angle_degrees.is_finite()
             {
-                blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "gridSource", &source.source_id, "phaseVoltages", "source phase voltages must be unique, finite and positive");
+                blocker(
+                    &mut blockers,
+                    ReadinessScope::ThreePhaseLoadFlow,
+                    "gridSource",
+                    &source.source_id,
+                    "phaseVoltages",
+                    "source phase voltages must be unique, finite and positive",
+                );
             }
         }
         if phases != BTreeSet::from([Conductor::A, Conductor::B, Conductor::C]) {
-            blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "gridSource", &source.source_id, "phaseVoltages", "three-phase grid source must declare A, B and C voltage phasors");
+            blocker(
+                &mut blockers,
+                ReadinessScope::ThreePhaseLoadFlow,
+                "gridSource",
+                &source.source_id,
+                "phaseVoltages",
+                "three-phase grid source must declare A, B and C voltage phasors",
+            );
         }
         if let Some(node) = node_map.get(case_source.node_id.as_str()) {
             for phase in &phases {
                 if !node.conductors.contains(phase) {
-                    blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "gridSource", &source.source_id, "phaseVoltages", "source phase is absent from source node model");
+                    blocker(
+                        &mut blockers,
+                        ReadinessScope::ThreePhaseLoadFlow,
+                        "gridSource",
+                        &source.source_id,
+                        "phaseVoltages",
+                        "source phase is absent from source node model",
+                    );
                 }
             }
         } else {
-            blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "gridSource", &source.source_id, "nodeId", "source node lacks native phase model");
+            blocker(
+                &mut blockers,
+                ReadinessScope::ThreePhaseLoadFlow,
+                "gridSource",
+                &source.source_id,
+                "nodeId",
+                "source node lacks native phase model",
+            );
         }
         add_blocker_if(
-            source.short_circuit_power_mva.is_none_or(|value| !value.is_finite() || value <= 0.0)
-                || source.x_over_r_ratio.is_none_or(|value| !value.is_finite() || value <= 0.0),
+            source
+                .short_circuit_power_mva
+                .is_none_or(|value| !value.is_finite() || value <= 0.0)
+                || source
+                    .x_over_r_ratio
+                    .is_none_or(|value| !value.is_finite() || value <= 0.0),
             &mut blockers,
             ReadinessScope::ShortCircuit,
             "gridSource",
@@ -1053,13 +1371,43 @@ pub fn audit_three_phase_inputs(
             "shortCircuitSource",
             "source short-circuit MVA and X/R ratio must be finite and positive",
         );
-        validate_sequence(source.sequence_impedance.as_ref(), &mut blockers, "gridSource", &source.source_id, "sequenceImpedance", ReadinessScope::ShortCircuit);
-        validate_evidence(&source.evidence, &source_map, &mut referenced_sources, &mut blockers, ReadinessScope::ThreePhaseLoadFlow, "gridSource", &source.source_id, "evidence");
+        validate_sequence(
+            source.sequence_impedance.as_ref(),
+            &mut blockers,
+            "gridSource",
+            &source.source_id,
+            "sequenceImpedance",
+            ReadinessScope::ShortCircuit,
+        );
+        validate_evidence(
+            &source.evidence,
+            &source_map,
+            &mut referenced_sources,
+            &mut blockers,
+            ReadinessScope::ThreePhaseLoadFlow,
+            "gridSource",
+            &source.source_id,
+            "evidence",
+        );
     }
     for source_id in &expected_source_ids {
         if !source_ids.contains(source_id) {
-            blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "gridSource", source_id, "gridSourceModels", "missing phase voltage and source impedance model");
-            blocker(&mut blockers, ReadinessScope::ShortCircuit, "gridSource", source_id, "shortCircuitSource", "missing source short-circuit strength/XR and sequence contribution");
+            blocker(
+                &mut blockers,
+                ReadinessScope::ThreePhaseLoadFlow,
+                "gridSource",
+                source_id,
+                "gridSourceModels",
+                "missing phase voltage and source impedance model",
+            );
+            blocker(
+                &mut blockers,
+                ReadinessScope::ShortCircuit,
+                "gridSource",
+                source_id,
+                "shortCircuitSource",
+                "missing source short-circuit strength/XR and sequence contribution",
+            );
         }
     }
 
@@ -1069,14 +1417,32 @@ pub fn audit_three_phase_inputs(
         FaultType::DoubleLineToGround,
         FaultType::ThreePhase,
     ]);
-    let expected_faults: BTreeSet<&str> = case.faults.iter().map(|fault| fault.fault_id.as_str()).collect();
+    let expected_faults: BTreeSet<&str> = case
+        .faults
+        .iter()
+        .map(|fault| fault.fault_id.as_str())
+        .collect();
     let mut actual_faults = BTreeSet::new();
     for fault in &package.fault_scenarios {
         if !expected_faults.contains(fault.fault_id.as_str()) {
-            blocker(&mut blockers, ReadinessScope::ShortCircuit, "faultScenario", &fault.fault_id, "faultId", "fault scenario references fault absent from frozen case");
+            blocker(
+                &mut blockers,
+                ReadinessScope::ShortCircuit,
+                "faultScenario",
+                &fault.fault_id,
+                "faultId",
+                "fault scenario references fault absent from frozen case",
+            );
         }
         if !actual_faults.insert((fault.fault_id.as_str(), fault.fault_type)) {
-            blocker(&mut blockers, ReadinessScope::ShortCircuit, "faultScenario", &fault.fault_id, "faultType", "duplicate fault ID/type scenario");
+            blocker(
+                &mut blockers,
+                ReadinessScope::ShortCircuit,
+                "faultScenario",
+                &fault.fault_id,
+                "faultType",
+                "duplicate fault ID/type scenario",
+            );
         }
         let required_phase_count = match fault.fault_type {
             FaultType::SingleLineToGround => 1,
@@ -1086,24 +1452,60 @@ pub fn audit_three_phase_inputs(
         let unique_phases: BTreeSet<_> = fault.phases_involved.iter().copied().collect();
         if unique_phases.len() != fault.phases_involved.len()
             || unique_phases.len() != required_phase_count
-            || fault.phases_involved.iter().any(|p| !matches!(p, Conductor::A | Conductor::B | Conductor::C))
+            || fault
+                .phases_involved
+                .iter()
+                .any(|p| !matches!(p, Conductor::A | Conductor::B | Conductor::C))
         {
-            blocker(&mut blockers, ReadinessScope::ShortCircuit, "faultScenario", &fault.fault_id, "phasesInvolved", "fault type requires the exact number of unique A/B/C phases");
+            blocker(
+                &mut blockers,
+                ReadinessScope::ShortCircuit,
+                "faultScenario",
+                &fault.fault_id,
+                "phasesInvolved",
+                "fault type requires the exact number of unique A/B/C phases",
+            );
         }
         if !fault.fault_impedance_ohm.real.is_finite()
             || fault.fault_impedance_ohm.real < 0.0
             || !fault.fault_impedance_ohm.imaginary.is_finite()
             || fault.contributing_source_ids.is_empty()
-            || fault.contributing_source_ids.iter().any(|id| !expected_source_ids.contains(id.as_str()))
+            || fault
+                .contributing_source_ids
+                .iter()
+                .any(|id| !expected_source_ids.contains(id.as_str()))
         {
-            blocker(&mut blockers, ReadinessScope::ShortCircuit, "faultScenario", &fault.fault_id, "faultImpedanceOrSources", "fault impedance or contributing-source set is invalid");
+            blocker(
+                &mut blockers,
+                ReadinessScope::ShortCircuit,
+                "faultScenario",
+                &fault.fault_id,
+                "faultImpedanceOrSources",
+                "fault impedance or contributing-source set is invalid",
+            );
         }
-        validate_evidence(&fault.evidence, &source_map, &mut referenced_sources, &mut blockers, ReadinessScope::ShortCircuit, "faultScenario", &fault.fault_id, "evidence");
+        validate_evidence(
+            &fault.evidence,
+            &source_map,
+            &mut referenced_sources,
+            &mut blockers,
+            ReadinessScope::ShortCircuit,
+            "faultScenario",
+            &fault.fault_id,
+            "evidence",
+        );
     }
     for fault_id in &expected_faults {
         for fault_type in &required_fault_types {
             if !actual_faults.contains(&(*fault_id, *fault_type)) {
-                blocker(&mut blockers, ReadinessScope::ShortCircuit, "faultScenario", fault_id, "faultTypeCoverage", "missing required single-line-ground/line-line/double-line-ground/three-phase fault scenario");
+                blocker(
+                    &mut blockers,
+                    ReadinessScope::ShortCircuit,
+                    "faultScenario",
+                    fault_id,
+                    "faultTypeCoverage",
+                    "missing required single-line-ground/line-line/double-line-ground/three-phase fault scenario",
+                );
             }
         }
     }
@@ -1112,24 +1514,53 @@ pub fn audit_three_phase_inputs(
     let mut protected_branches = BTreeSet::new();
     for device in &package.protection_devices {
         if !protection_device_ids.insert(device.device_id.as_str()) {
-            blocker(&mut blockers, ReadinessScope::ProtectionCoordination, "protectionDevice", &device.device_id, "deviceId", "duplicate protection device ID");
+            blocker(
+                &mut blockers,
+                ReadinessScope::ProtectionCoordination,
+                "protectionDevice",
+                &device.device_id,
+                "deviceId",
+                "duplicate protection device ID",
+            );
         }
         if !valid_id(&device.coordination_group_id)
             || device.protected_branch_ids.is_empty()
-            || !device.protected_branch_ids.iter().all(|id| expected_branch_ids.contains(id.as_str()))
+            || !device
+                .protected_branch_ids
+                .iter()
+                .all(|id| expected_branch_ids.contains(id.as_str()))
         {
-            blocker(&mut blockers, ReadinessScope::ProtectionCoordination, "protectionDevice", &device.device_id, "protectedBranchIds", "protection device requires a coordination group and known protected branches");
+            blocker(
+                &mut blockers,
+                ReadinessScope::ProtectionCoordination,
+                "protectionDevice",
+                &device.device_id,
+                "protectedBranchIds",
+                "protection device requires a coordination group and known protected branches",
+            );
         }
         for branch_id in &device.protected_branch_ids {
             protected_branches.insert(branch_id.as_str());
         }
         add_blocker_if(
-            device.current_transformer_primary_a.is_none_or(|value| !value.is_finite() || value <= 0.0)
-                || device.current_transformer_secondary_a.is_none_or(|value| !value.is_finite() || value <= 0.0)
-                || device.voltage_transformer_ratio.is_some_and(|ratio| !ratio.is_finite() || ratio <= 0.0)
-                || device.phase_pickup_primary_a.is_none_or(|value| !value.is_finite() || value <= 0.0)
-                || device.ground_pickup_primary_a.is_none_or(|value| !value.is_finite() || value <= 0.0)
-                || device.interruption_capacity_ka.is_none_or(|value| !value.is_finite() || value <= 0.0),
+            device
+                .current_transformer_primary_a
+                .is_none_or(|value| !value.is_finite() || value <= 0.0)
+                || device
+                    .current_transformer_secondary_a
+                    .is_none_or(|value| !value.is_finite() || value <= 0.0)
+                || device
+                    .voltage_transformer_ratio
+                    .is_some_and(|ratio| !ratio.is_finite() || ratio <= 0.0)
+                || device
+                    .phase_pickup_primary_a
+                    .is_none_or(|value| !value.is_finite() || value <= 0.0)
+                || device
+                    .ground_pickup_primary_a
+                    .is_none_or(|value| !value.is_finite() || value <= 0.0)
+                || device
+                    .interruption_capacity_ka
+                    .is_none_or(|value| !value.is_finite() || value <= 0.0),
             &mut blockers,
             ReadinessScope::ProtectionCoordination,
             "protectionDevice",
@@ -1137,30 +1568,86 @@ pub fn audit_three_phase_inputs(
             "settings",
             "CT/VT ratios, phase/ground pickup and interruption rating must be finite and positive",
         );
-        validate_curve(&device.phase_time_current_curve, &device.device_id, "phaseTimeCurrentCurve", &mut blockers);
-        validate_curve(&device.ground_time_current_curve, &device.device_id, "groundTimeCurrentCurve", &mut blockers);
-        validate_evidence(&device.evidence, &source_map, &mut referenced_sources, &mut blockers, ReadinessScope::ProtectionCoordination, "protectionDevice", &device.device_id, "evidence");
+        validate_curve(
+            &device.phase_time_current_curve,
+            &device.device_id,
+            "phaseTimeCurrentCurve",
+            &mut blockers,
+        );
+        validate_curve(
+            &device.ground_time_current_curve,
+            &device.device_id,
+            "groundTimeCurrentCurve",
+            &mut blockers,
+        );
+        validate_evidence(
+            &device.evidence,
+            &source_map,
+            &mut referenced_sources,
+            &mut blockers,
+            ReadinessScope::ProtectionCoordination,
+            "protectionDevice",
+            &device.device_id,
+            "evidence",
+        );
     }
 
     let mut exempt_branches = BTreeSet::new();
     for exemption in &package.protection_exemptions {
         if !exempt_branches.insert(exemption.branch_id.as_str()) {
-            blocker(&mut blockers, ReadinessScope::ProtectionCoordination, "protectionExemption", &exemption.branch_id, "branchId", "duplicate protection exemption");
+            blocker(
+                &mut blockers,
+                ReadinessScope::ProtectionCoordination,
+                "protectionExemption",
+                &exemption.branch_id,
+                "branchId",
+                "duplicate protection exemption",
+            );
         }
         if !expected_branch_ids.contains(exemption.branch_id.as_str())
             || !valid_id(&exemption.reason)
             || !valid_id(&exemption.approved_by)
         {
-            blocker(&mut blockers, ReadinessScope::ProtectionCoordination, "protectionExemption", &exemption.branch_id, "approval", "exemption must reference a known branch and include reason/approver");
+            blocker(
+                &mut blockers,
+                ReadinessScope::ProtectionCoordination,
+                "protectionExemption",
+                &exemption.branch_id,
+                "approval",
+                "exemption must reference a known branch and include reason/approver",
+            );
         }
         if protected_branches.contains(exemption.branch_id.as_str()) {
-            blocker(&mut blockers, ReadinessScope::ProtectionCoordination, "protectionExemption", &exemption.branch_id, "branchId", "branch cannot be both protected and exempted");
+            blocker(
+                &mut blockers,
+                ReadinessScope::ProtectionCoordination,
+                "protectionExemption",
+                &exemption.branch_id,
+                "branchId",
+                "branch cannot be both protected and exempted",
+            );
         }
-        validate_evidence(&exemption.approval_evidence, &source_map, &mut referenced_sources, &mut blockers, ReadinessScope::ProtectionCoordination, "protectionExemption", &exemption.branch_id, "approvalEvidence");
+        validate_evidence(
+            &exemption.approval_evidence,
+            &source_map,
+            &mut referenced_sources,
+            &mut blockers,
+            ReadinessScope::ProtectionCoordination,
+            "protectionExemption",
+            &exemption.branch_id,
+            "approvalEvidence",
+        );
     }
     for branch_id in &expected_branch_ids {
         if !protected_branches.contains(branch_id) && !exempt_branches.contains(branch_id) {
-            blocker(&mut blockers, ReadinessScope::ProtectionCoordination, "branch", branch_id, "protectionCoverage", "branch has neither a protection-device mapping nor an approved exemption");
+            blocker(
+                &mut blockers,
+                ReadinessScope::ProtectionCoordination,
+                "branch",
+                branch_id,
+                "protectionCoverage",
+                "branch has neither a protection-device mapping nor an approved exemption",
+            );
         }
     }
 
@@ -1179,23 +1666,44 @@ pub fn audit_three_phase_inputs(
 
     blockers.sort();
     blockers.dedup();
-    let load_flow_count = blockers.iter().filter(|item| item.scope == ReadinessScope::ThreePhaseLoadFlow).count();
-    let short_circuit_count = blockers.iter().filter(|item| item.scope == ReadinessScope::ShortCircuit).count();
-    let protection_count = blockers.iter().filter(|item| item.scope == ReadinessScope::ProtectionCoordination).count();
+    let load_flow_count = blockers
+        .iter()
+        .filter(|item| item.scope == ReadinessScope::ThreePhaseLoadFlow)
+        .count();
+    let short_circuit_count = blockers
+        .iter()
+        .filter(|item| item.scope == ReadinessScope::ShortCircuit)
+        .count();
+    let protection_count = blockers
+        .iter()
+        .filter(|item| item.scope == ReadinessScope::ProtectionCoordination)
+        .count();
     let load_flow_ready = load_flow_count == 0;
     let short_ready = load_flow_ready && short_circuit_count == 0;
     let protection_ready = short_ready && protection_count == 0;
 
     let load_flow = ScopeReadiness {
-        state: if load_flow_ready { ReadinessState::ReadyForIndependentDomainSolver } else { ReadinessState::InconclusiveMissingOrInvalidNativeInputs },
+        state: if load_flow_ready {
+            ReadinessState::ReadyForIndependentDomainSolver
+        } else {
+            ReadinessState::InconclusiveMissingOrInvalidNativeInputs
+        },
         blocker_count: load_flow_count,
     };
     let short_circuit = ScopeReadiness {
-        state: if short_ready { ReadinessState::ReadyForIndependentDomainSolver } else { ReadinessState::InconclusiveMissingOrInvalidNativeInputs },
+        state: if short_ready {
+            ReadinessState::ReadyForIndependentDomainSolver
+        } else {
+            ReadinessState::InconclusiveMissingOrInvalidNativeInputs
+        },
         blocker_count: load_flow_count + short_circuit_count,
     };
     let protection = ScopeReadiness {
-        state: if protection_ready { ReadinessState::ReadyForIndependentDomainSolver } else { ReadinessState::InconclusiveMissingOrInvalidNativeInputs },
+        state: if protection_ready {
+            ReadinessState::ReadyForIndependentDomainSolver
+        } else {
+            ReadinessState::InconclusiveMissingOrInvalidNativeInputs
+        },
         blocker_count: load_flow_count + short_circuit_count + protection_count,
     };
     let result_status = if protection_ready {
@@ -1237,7 +1745,8 @@ mod tests {
     fn case() -> BenchmarkCase {
         serde_json::from_str(include_str!(
             "../../power-restoration-benchmark-case/fixtures/synthetic-restoration-case-v0.1.json"
-        )).unwrap()
+        ))
+        .unwrap()
     }
 
     fn evidence(id: &str) -> EvidenceRef {
@@ -1250,120 +1759,220 @@ mod tests {
     }
 
     fn build_valid_package(case: &BenchmarkCase) -> ThreePhaseInputPackage {
-        let nodes = case.network.nodes.iter().map(|node| NodePhaseModel {
-            node_id: node.node_id.clone(),
-            conductors: vec![Conductor::A, Conductor::B, Conductor::C, Conductor::Neutral],
-            grounding_type: GroundingType::MultiGroundedNeutral,
-            neutral_continuous: true,
-            grounding_impedance_ohm: Some(ComplexValue { real: 0.1, imaginary: 0.05 }),
-            evidence: evidence(&format!("node-{}", node.node_id)),
-        }).collect::<Vec<_>>();
-
-        let branches = case.network.branches.iter().map(|branch| {
-            let conductors = vec![Conductor::A, Conductor::B, Conductor::C, Conductor::Neutral];
-            let n = conductors.len();
-            let mut r = vec![vec![0.01; n]; n];
-            let mut x = vec![vec![0.05; n]; n];
-            for i in 0..n {
-                r[i][i] = 0.2 + i as f64 * 0.01;
-                x[i][i] = 0.4 + i as f64 * 0.01;
-            }
-            BranchPhaseModel {
-                branch_id: branch.branch_id.clone(),
-                equipment_kind: BranchEquipmentKind::OverheadLine,
-                conductors: conductors.clone(),
-                primitive_impedance: Some(PrimitiveImpedanceMatrix {
-                    unit: PrimitiveMatrixUnit::OhmPerKm,
-                    conductor_order: conductors.clone(),
-                    resistance_ohm_per_km_or_base: r,
-                    reactance_ohm_per_km_or_base: x,
+        let nodes = case
+            .network
+            .nodes
+            .iter()
+            .map(|node| NodePhaseModel {
+                node_id: node.node_id.clone(),
+                conductors: vec![Conductor::A, Conductor::B, Conductor::C, Conductor::Neutral],
+                grounding_type: GroundingType::MultiGroundedNeutral,
+                neutral_continuous: true,
+                grounding_impedance_ohm: Some(ComplexValue {
+                    real: 0.1,
+                    imaginary: 0.05,
                 }),
+                evidence: evidence(&format!("node-{}", node.node_id)),
+            })
+            .collect::<Vec<_>>();
+
+        let branches = case
+            .network
+            .branches
+            .iter()
+            .map(|branch| {
+                let conductors = vec![Conductor::A, Conductor::B, Conductor::C, Conductor::Neutral];
+                let n = conductors.len();
+                let mut r = vec![vec![0.01; n]; n];
+                let mut x = vec![vec![0.05; n]; n];
+                for i in 0..n {
+                    r[i][i] = 0.2 + i as f64 * 0.01;
+                    x[i][i] = 0.4 + i as f64 * 0.01;
+                }
+                BranchPhaseModel {
+                    branch_id: branch.branch_id.clone(),
+                    equipment_kind: BranchEquipmentKind::OverheadLine,
+                    conductors: conductors.clone(),
+                    primitive_impedance: Some(PrimitiveImpedanceMatrix {
+                        unit: PrimitiveMatrixUnit::OhmPerKm,
+                        conductor_order: conductors.clone(),
+                        resistance_ohm_per_km_or_base: r,
+                        reactance_ohm_per_km_or_base: x,
+                    }),
+                    sequence_impedance: Some(SequenceImpedance {
+                        positive: ComplexValue {
+                            real: 0.2,
+                            imaginary: 0.4,
+                        },
+                        negative: ComplexValue {
+                            real: 0.21,
+                            imaginary: 0.41,
+                        },
+                        zero: ComplexValue {
+                            real: 0.5,
+                            imaginary: 1.2,
+                        },
+                        unit: "ohm".to_string(),
+                    }),
+                    current_ratings: conductors
+                        .iter()
+                        .map(|conductor| ConductorCurrentRating {
+                            conductor: *conductor,
+                            continuous_ampacity_a: 400.0,
+                            emergency_ampacity_a: 500.0,
+                        })
+                        .collect(),
+                    evidence: evidence(&format!("branch-{}", branch.branch_id)),
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let loads = case
+            .network
+            .loads
+            .iter()
+            .map(|load| LoadPhaseAllocation {
+                load_id: load.load_id.clone(),
+                phases: [Conductor::A, Conductor::B, Conductor::C]
+                    .into_iter()
+                    .map(|phase| PhasePower {
+                        phase,
+                        active_power_kw: load.active_power_kw / 3.0,
+                        reactive_power_kvar: load.reactive_power_kvar / 3.0,
+                    })
+                    .collect(),
+                evidence: evidence(&format!("load-{}", load.load_id)),
+            })
+            .collect::<Vec<_>>();
+
+        let sources = case
+            .network
+            .grid_sources
+            .iter()
+            .map(|source| GridSourceModel {
+                source_id: source.source_id.clone(),
+                phase_voltages: vec![
+                    PhaseVoltage {
+                        phase: Conductor::A,
+                        line_neutral_kv: 7.2,
+                        angle_degrees: 0.0,
+                    },
+                    PhaseVoltage {
+                        phase: Conductor::B,
+                        line_neutral_kv: 7.2,
+                        angle_degrees: -120.0,
+                    },
+                    PhaseVoltage {
+                        phase: Conductor::C,
+                        line_neutral_kv: 7.2,
+                        angle_degrees: 120.0,
+                    },
+                ],
                 sequence_impedance: Some(SequenceImpedance {
-                    positive: ComplexValue { real: 0.2, imaginary: 0.4 },
-                    negative: ComplexValue { real: 0.21, imaginary: 0.41 },
-                    zero: ComplexValue { real: 0.5, imaginary: 1.2 },
+                    positive: ComplexValue {
+                        real: 0.05,
+                        imaginary: 0.4,
+                    },
+                    negative: ComplexValue {
+                        real: 0.05,
+                        imaginary: 0.4,
+                    },
+                    zero: ComplexValue {
+                        real: 0.15,
+                        imaginary: 0.9,
+                    },
                     unit: "ohm".to_string(),
                 }),
-                current_ratings: conductors.iter().map(|conductor| ConductorCurrentRating {
-                    conductor: *conductor,
-                    continuous_ampacity_a: 400.0,
-                    emergency_ampacity_a: 500.0,
-                }).collect(),
-                evidence: evidence(&format!("branch-{}", branch.branch_id)),
-            }
-        }).collect::<Vec<_>>();
+                short_circuit_power_mva: Some(250.0),
+                x_over_r_ratio: Some(8.0),
+                evidence: evidence(&format!("source-{}", source.source_id)),
+            })
+            .collect::<Vec<_>>();
 
-        let loads = case.network.loads.iter().map(|load| LoadPhaseAllocation {
-            load_id: load.load_id.clone(),
-            phases: [Conductor::A, Conductor::B, Conductor::C].into_iter().map(|phase| PhasePower {
-                phase,
-                active_power_kw: load.active_power_kw / 3.0,
-                reactive_power_kvar: load.reactive_power_kvar / 3.0,
-            }).collect(),
-            evidence: evidence(&format!("load-{}", load.load_id)),
-        }).collect::<Vec<_>>();
-
-        let sources = case.network.grid_sources.iter().map(|source| GridSourceModel {
-            source_id: source.source_id.clone(),
-            phase_voltages: vec![
-                PhaseVoltage { phase: Conductor::A, line_neutral_kv: 7.2, angle_degrees: 0.0 },
-                PhaseVoltage { phase: Conductor::B, line_neutral_kv: 7.2, angle_degrees: -120.0 },
-                PhaseVoltage { phase: Conductor::C, line_neutral_kv: 7.2, angle_degrees: 120.0 },
-            ],
-            sequence_impedance: Some(SequenceImpedance {
-                positive: ComplexValue { real: 0.05, imaginary: 0.4 },
-                negative: ComplexValue { real: 0.05, imaginary: 0.4 },
-                zero: ComplexValue { real: 0.15, imaginary: 0.9 },
-                unit: "ohm".to_string(),
-            }),
-            short_circuit_power_mva: Some(250.0),
-            x_over_r_ratio: Some(8.0),
-            evidence: evidence(&format!("source-{}", source.source_id)),
-        }).collect::<Vec<_>>();
-
-        let contributing_source_ids = case.network.grid_sources.iter()
+        let contributing_source_ids = case
+            .network
+            .grid_sources
+            .iter()
             .map(|source| source.source_id.clone())
             .collect::<Vec<_>>();
-        let fault_scenarios = case.faults.iter().flat_map(|fault| {
-            let contributing_source_ids = contributing_source_ids.clone();
-            [
-                (FaultType::SingleLineToGround, vec![Conductor::A]),
-                (FaultType::LineToLine, vec![Conductor::A, Conductor::B]),
-                (FaultType::DoubleLineToGround, vec![Conductor::B, Conductor::C]),
-                (FaultType::ThreePhase, vec![Conductor::A, Conductor::B, Conductor::C]),
-            ].into_iter().map(move |(fault_type, phases)| FaultScenario {
-                fault_id: fault.fault_id.clone(),
-                fault_type,
-                phases_involved: phases,
-                fault_impedance_ohm: ComplexValue { real: 0.01, imaginary: 0.0 },
-                contributing_source_ids: contributing_source_ids.clone(),
-                evidence: evidence(&format!("fault-{}-{fault_type:?}", fault.fault_id)),
+        let fault_scenarios = case
+            .faults
+            .iter()
+            .flat_map(|fault| {
+                let contributing_source_ids = contributing_source_ids.clone();
+                [
+                    (FaultType::SingleLineToGround, vec![Conductor::A]),
+                    (FaultType::LineToLine, vec![Conductor::A, Conductor::B]),
+                    (
+                        FaultType::DoubleLineToGround,
+                        vec![Conductor::B, Conductor::C],
+                    ),
+                    (
+                        FaultType::ThreePhase,
+                        vec![Conductor::A, Conductor::B, Conductor::C],
+                    ),
+                ]
+                .into_iter()
+                .map(move |(fault_type, phases)| FaultScenario {
+                    fault_id: fault.fault_id.clone(),
+                    fault_type,
+                    phases_involved: phases,
+                    fault_impedance_ohm: ComplexValue {
+                        real: 0.01,
+                        imaginary: 0.0,
+                    },
+                    contributing_source_ids: contributing_source_ids.clone(),
+                    evidence: evidence(&format!("fault-{}-{fault_type:?}", fault.fault_id)),
+                })
             })
-        }).collect::<Vec<_>>();
+            .collect::<Vec<_>>();
 
-        let protection_devices = case.network.branches.iter().map(|branch| ProtectionDeviceModel {
-            device_id: format!("relay-{}", branch.branch_id),
-            device_kind: ProtectionDeviceKind::Relay,
-            protected_branch_ids: vec![branch.branch_id.clone()],
-            current_transformer_primary_a: Some(400.0),
-            current_transformer_secondary_a: Some(5.0),
-            voltage_transformer_ratio: Some(60.0),
-            phase_pickup_primary_a: Some(240.0),
-            ground_pickup_primary_a: Some(60.0),
-            interruption_capacity_ka: Some(25.0),
-            phase_time_current_curve: vec![
-                TimeCurrentPoint { current_multiple_of_pickup: 1.5, trip_time_seconds: 1.0 },
-                TimeCurrentPoint { current_multiple_of_pickup: 5.0, trip_time_seconds: 0.2 },
-                TimeCurrentPoint { current_multiple_of_pickup: 10.0, trip_time_seconds: 0.08 },
-            ],
-            ground_time_current_curve: vec![
-                TimeCurrentPoint { current_multiple_of_pickup: 1.5, trip_time_seconds: 1.2 },
-                TimeCurrentPoint { current_multiple_of_pickup: 5.0, trip_time_seconds: 0.25 },
-                TimeCurrentPoint { current_multiple_of_pickup: 10.0, trip_time_seconds: 0.1 },
-            ],
-            coordination_group_id: "feeder-zone-1".to_string(),
-            evidence: evidence(&format!("protection-{}", branch.branch_id)),
-        }).collect::<Vec<_>>();
+        let protection_devices = case
+            .network
+            .branches
+            .iter()
+            .map(|branch| ProtectionDeviceModel {
+                device_id: format!("relay-{}", branch.branch_id),
+                device_kind: ProtectionDeviceKind::Relay,
+                protected_branch_ids: vec![branch.branch_id.clone()],
+                current_transformer_primary_a: Some(400.0),
+                current_transformer_secondary_a: Some(5.0),
+                voltage_transformer_ratio: Some(60.0),
+                phase_pickup_primary_a: Some(240.0),
+                ground_pickup_primary_a: Some(60.0),
+                interruption_capacity_ka: Some(25.0),
+                phase_time_current_curve: vec![
+                    TimeCurrentPoint {
+                        current_multiple_of_pickup: 1.5,
+                        trip_time_seconds: 1.0,
+                    },
+                    TimeCurrentPoint {
+                        current_multiple_of_pickup: 5.0,
+                        trip_time_seconds: 0.2,
+                    },
+                    TimeCurrentPoint {
+                        current_multiple_of_pickup: 10.0,
+                        trip_time_seconds: 0.08,
+                    },
+                ],
+                ground_time_current_curve: vec![
+                    TimeCurrentPoint {
+                        current_multiple_of_pickup: 1.5,
+                        trip_time_seconds: 1.2,
+                    },
+                    TimeCurrentPoint {
+                        current_multiple_of_pickup: 5.0,
+                        trip_time_seconds: 0.25,
+                    },
+                    TimeCurrentPoint {
+                        current_multiple_of_pickup: 10.0,
+                        trip_time_seconds: 0.1,
+                    },
+                ],
+                coordination_group_id: "feeder-zone-1".to_string(),
+                evidence: evidence(&format!("protection-{}", branch.branch_id)),
+            })
+            .collect::<Vec<_>>();
 
         let mut package = ThreePhaseInputPackage {
             schema_version: "0.1.0".to_string(),
@@ -1397,16 +2006,42 @@ mod tests {
 
     fn collect_source_artifacts(package: &ThreePhaseInputPackage) -> Vec<ArtifactRef> {
         let mut by_uri = BTreeMap::<String, String>::new();
-        let mut add = |e: &EvidenceRef| { by_uri.insert(e.artifact_uri.clone(), e.sha256.clone()); };
+        let mut add = |e: &EvidenceRef| {
+            by_uri.insert(e.artifact_uri.clone(), e.sha256.clone());
+        };
         package.node_models.iter().for_each(|x| add(&x.evidence));
         package.branch_models.iter().for_each(|x| add(&x.evidence));
-        package.transformer_models.iter().for_each(|x| add(&x.evidence));
-        package.load_phase_allocations.iter().for_each(|x| add(&x.evidence));
-        package.grid_source_models.iter().for_each(|x| add(&x.evidence));
-        package.fault_scenarios.iter().for_each(|x| add(&x.evidence));
-        package.protection_devices.iter().for_each(|x| add(&x.evidence));
-        package.protection_exemptions.iter().for_each(|x| add(&x.approval_evidence));
-        by_uri.into_iter().map(|(artifact_uri, sha256)| ArtifactRef { artifact_uri, sha256 }).collect()
+        package
+            .transformer_models
+            .iter()
+            .for_each(|x| add(&x.evidence));
+        package
+            .load_phase_allocations
+            .iter()
+            .for_each(|x| add(&x.evidence));
+        package
+            .grid_source_models
+            .iter()
+            .for_each(|x| add(&x.evidence));
+        package
+            .fault_scenarios
+            .iter()
+            .for_each(|x| add(&x.evidence));
+        package
+            .protection_devices
+            .iter()
+            .for_each(|x| add(&x.evidence));
+        package
+            .protection_exemptions
+            .iter()
+            .for_each(|x| add(&x.approval_evidence));
+        by_uri
+            .into_iter()
+            .map(|(artifact_uri, sha256)| ArtifactRef {
+                artifact_uri,
+                sha256,
+            })
+            .collect()
     }
 
     #[test]
@@ -1414,11 +2049,23 @@ mod tests {
         let case = case();
         let package = build_valid_package(&case);
         let report = audit_three_phase_inputs(&case, &package).unwrap();
-        assert_eq!(report.result_status, "native_three_phase_and_protection_inputs_ready_for_independent_domain_solver");
+        assert_eq!(
+            report.result_status,
+            "native_three_phase_and_protection_inputs_ready_for_independent_domain_solver"
+        );
         assert_eq!(report.blocker_count, 0);
-        assert_eq!(report.three_phase_load_flow.state, ReadinessState::ReadyForIndependentDomainSolver);
-        assert_eq!(report.short_circuit.state, ReadinessState::ReadyForIndependentDomainSolver);
-        assert_eq!(report.protection_coordination.state, ReadinessState::ReadyForIndependentDomainSolver);
+        assert_eq!(
+            report.three_phase_load_flow.state,
+            ReadinessState::ReadyForIndependentDomainSolver
+        );
+        assert_eq!(
+            report.short_circuit.state,
+            ReadinessState::ReadyForIndependentDomainSolver
+        );
+        assert_eq!(
+            report.protection_coordination.state,
+            ReadinessState::ReadyForIndependentDomainSolver
+        );
     }
 
     #[test]
@@ -1428,31 +2075,66 @@ mod tests {
         let mut broken = package;
         broken.branch_models.clear();
         let report = audit_three_phase_inputs(&case, &broken).unwrap();
-        assert_eq!(report.three_phase_load_flow.state, ReadinessState::InconclusiveMissingOrInvalidNativeInputs);
-        assert!(report.blockers.iter().any(|b| b.field_path == "branchModels"));
+        assert_eq!(
+            report.three_phase_load_flow.state,
+            ReadinessState::InconclusiveMissingOrInvalidNativeInputs
+        );
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|b| b.field_path == "branchModels")
+        );
     }
 
     #[test]
     fn missing_negative_or_zero_sequence_data_blocks_short_circuit_readiness() {
         let case = case();
         let mut package = build_valid_package(&case);
-        let sequence = package.branch_models[0].sequence_impedance.as_mut().unwrap();
+        let sequence = package.branch_models[0]
+            .sequence_impedance
+            .as_mut()
+            .unwrap();
         sequence.zero.real = 0.0;
         sequence.zero.imaginary = 0.0;
         let report = audit_three_phase_inputs(&case, &package).unwrap();
-        assert_eq!(report.three_phase_load_flow.state, ReadinessState::ReadyForIndependentDomainSolver);
-        assert_eq!(report.short_circuit.state, ReadinessState::InconclusiveMissingOrInvalidNativeInputs);
-        assert!(report.blockers.iter().any(|b| b.field_path == "sequenceImpedance"));
+        assert_eq!(
+            report.three_phase_load_flow.state,
+            ReadinessState::ReadyForIndependentDomainSolver
+        );
+        assert_eq!(
+            report.short_circuit.state,
+            ReadinessState::InconclusiveMissingOrInvalidNativeInputs
+        );
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|b| b.field_path == "sequenceImpedance")
+        );
     }
 
     #[test]
     fn balanced_scalar_impedance_cannot_replace_native_matrix() {
         let case = case();
         let mut package = build_valid_package(&case);
-        package.branch_models[0].primitive_impedance.as_mut().unwrap().resistance_ohm_per_km_or_base.clear();
+        package.branch_models[0]
+            .primitive_impedance
+            .as_mut()
+            .unwrap()
+            .resistance_ohm_per_km_or_base
+            .clear();
         let report = audit_three_phase_inputs(&case, &package).unwrap();
-        assert_eq!(report.three_phase_load_flow.state, ReadinessState::InconclusiveMissingOrInvalidNativeInputs);
-        assert!(report.blockers.iter().any(|b| b.field_path == "primitiveImpedance"));
+        assert_eq!(
+            report.three_phase_load_flow.state,
+            ReadinessState::InconclusiveMissingOrInvalidNativeInputs
+        );
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|b| b.field_path == "primitiveImpedance")
+        );
     }
 
     #[test]
@@ -1461,7 +2143,10 @@ mod tests {
         let mut package = build_valid_package(&case);
         package.load_phase_allocations[0].phases[0].active_power_kw += 10.0;
         let report = audit_three_phase_inputs(&case, &package).unwrap();
-        assert_eq!(report.three_phase_load_flow.state, ReadinessState::InconclusiveMissingOrInvalidNativeInputs);
+        assert_eq!(
+            report.three_phase_load_flow.state,
+            ReadinessState::InconclusiveMissingOrInvalidNativeInputs
+        );
         assert!(report.blockers.iter().any(|b| b.field_path == "phasePq"));
     }
 
@@ -1469,31 +2154,62 @@ mod tests {
     fn fault_scenario_matrix_requires_every_fault_type_per_fault_location() {
         let case = case();
         let mut package = build_valid_package(&case);
-        package.fault_scenarios.retain(|f| f.fault_type != FaultType::DoubleLineToGround);
+        package
+            .fault_scenarios
+            .retain(|f| f.fault_type != FaultType::DoubleLineToGround);
         let report = audit_three_phase_inputs(&case, &package).unwrap();
-        assert_eq!(report.short_circuit.state, ReadinessState::InconclusiveMissingOrInvalidNativeInputs);
-        assert!(report.blockers.iter().any(|b| b.field_path == "faultTypeCoverage"));
+        assert_eq!(
+            report.short_circuit.state,
+            ReadinessState::InconclusiveMissingOrInvalidNativeInputs
+        );
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|b| b.field_path == "faultTypeCoverage")
+        );
     }
 
     #[test]
     fn protection_input_missing_curve_blocks_protection_only() {
         let case = case();
         let mut package = build_valid_package(&case);
-        package.protection_devices[0].ground_time_current_curve.clear();
+        package.protection_devices[0]
+            .ground_time_current_curve
+            .clear();
         let report = audit_three_phase_inputs(&case, &package).unwrap();
-        assert_eq!(report.three_phase_load_flow.state, ReadinessState::ReadyForIndependentDomainSolver);
-        assert_eq!(report.short_circuit.state, ReadinessState::ReadyForIndependentDomainSolver);
-        assert_eq!(report.protection_coordination.state, ReadinessState::InconclusiveMissingOrInvalidNativeInputs);
+        assert_eq!(
+            report.three_phase_load_flow.state,
+            ReadinessState::ReadyForIndependentDomainSolver
+        );
+        assert_eq!(
+            report.short_circuit.state,
+            ReadinessState::ReadyForIndependentDomainSolver
+        );
+        assert_eq!(
+            report.protection_coordination.state,
+            ReadinessState::InconclusiveMissingOrInvalidNativeInputs
+        );
     }
 
     #[test]
     fn every_branch_requires_protection_device_or_approved_exemption() {
         let case = case();
         let mut package = build_valid_package(&case);
-        package.protection_devices.retain(|device| device.protected_branch_ids[0] != "B12");
+        package
+            .protection_devices
+            .retain(|device| device.protected_branch_ids[0] != "B12");
         let report = audit_three_phase_inputs(&case, &package).unwrap();
-        assert_eq!(report.protection_coordination.state, ReadinessState::InconclusiveMissingOrInvalidNativeInputs);
-        assert!(report.blockers.iter().any(|b| b.field_path == "protectionCoverage" && b.object_id == "B12"));
+        assert_eq!(
+            report.protection_coordination.state,
+            ReadinessState::InconclusiveMissingOrInvalidNativeInputs
+        );
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|b| b.field_path == "protectionCoverage" && b.object_id == "B12")
+        );
     }
 
     #[test]
@@ -1502,7 +2218,12 @@ mod tests {
         let mut package = build_valid_package(&case);
         package.branch_models[0].equipment_kind = BranchEquipmentKind::Transformer;
         let report = audit_three_phase_inputs(&case, &package).unwrap();
-        assert!(report.blockers.iter().any(|b| b.field_path == "transformerModels"));
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|b| b.field_path == "transformerModels")
+        );
     }
 
     #[test]
@@ -1510,9 +2231,19 @@ mod tests {
         let case = case();
         let mut package = build_valid_package(&case);
         let original = package.branch_models[0].evidence.artifact_uri.clone();
-        package.source_artifacts.iter_mut().find(|a| a.artifact_uri == original).unwrap().sha256 = "9".repeat(64);
+        package
+            .source_artifacts
+            .iter_mut()
+            .find(|a| a.artifact_uri == original)
+            .unwrap()
+            .sha256 = "9".repeat(64);
         let report = audit_three_phase_inputs(&case, &package).unwrap();
-        assert!(report.blockers.iter().any(|b| b.reason.contains("digest differs")));
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|b| b.reason.contains("digest differs"))
+        );
     }
 
     #[test]
@@ -1522,17 +2253,36 @@ mod tests {
         package.branch_models.push(package.branch_models[0].clone());
         package.node_models.push(package.node_models[0].clone());
         let report = audit_three_phase_inputs(&case, &package).unwrap();
-        assert!(report.blockers.iter().any(|b| b.reason.contains("duplicate branch")));
-        assert!(report.blockers.iter().any(|b| b.reason.contains("duplicate node")));
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|b| b.reason.contains("duplicate branch"))
+        );
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|b| b.reason.contains("duplicate node"))
+        );
     }
 
     #[test]
     fn impedance_matrix_requires_symmetric_primitive_entries() {
         let case = case();
         let mut package = build_valid_package(&case);
-        package.branch_models[0].primitive_impedance.as_mut().unwrap().resistance_ohm_per_km_or_base[0][1] = 0.2;
+        package.branch_models[0]
+            .primitive_impedance
+            .as_mut()
+            .unwrap()
+            .resistance_ohm_per_km_or_base[0][1] = 0.2;
         let report = audit_three_phase_inputs(&case, &package).unwrap();
-        assert!(report.blockers.iter().any(|b| b.reason.contains("symmetric")));
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|b| b.reason.contains("symmetric"))
+        );
     }
 
     #[test]
@@ -1540,11 +2290,19 @@ mod tests {
         let case = case();
         let mut package = build_valid_package(&case);
         let resistance = &mut package.branch_models[0]
-            .primitive_impedance.as_mut().unwrap().resistance_ohm_per_km_or_base;
+            .primitive_impedance
+            .as_mut()
+            .unwrap()
+            .resistance_ohm_per_km_or_base;
         resistance[0][1] = 0.3;
         resistance[1][0] = 0.3;
         let report = audit_three_phase_inputs(&case, &package).unwrap();
-        assert!(report.blockers.iter().any(|b| b.field_path == "primitiveImpedance.resistance"));
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|b| b.field_path == "primitiveImpedance.resistance")
+        );
     }
 
     #[test]
@@ -1554,8 +2312,14 @@ mod tests {
         package.grid_source_models[0].short_circuit_power_mva = None;
         package.grid_source_models[0].x_over_r_ratio = None;
         let report = audit_three_phase_inputs(&case, &package).unwrap();
-        assert_eq!(report.three_phase_load_flow.state, ReadinessState::ReadyForIndependentDomainSolver);
-        assert_eq!(report.short_circuit.state, ReadinessState::InconclusiveMissingOrInvalidNativeInputs);
+        assert_eq!(
+            report.three_phase_load_flow.state,
+            ReadinessState::ReadyForIndependentDomainSolver
+        );
+        assert_eq!(
+            report.short_circuit.state,
+            ReadinessState::InconclusiveMissingOrInvalidNativeInputs
+        );
     }
 
     #[test]
@@ -1565,9 +2329,18 @@ mod tests {
         package.protection_devices[0].current_transformer_primary_a = None;
         package.protection_devices[0].interruption_capacity_ka = None;
         let report = audit_three_phase_inputs(&case, &package).unwrap();
-        assert_eq!(report.three_phase_load_flow.state, ReadinessState::ReadyForIndependentDomainSolver);
-        assert_eq!(report.short_circuit.state, ReadinessState::ReadyForIndependentDomainSolver);
-        assert_eq!(report.protection_coordination.state, ReadinessState::InconclusiveMissingOrInvalidNativeInputs);
+        assert_eq!(
+            report.three_phase_load_flow.state,
+            ReadinessState::ReadyForIndependentDomainSolver
+        );
+        assert_eq!(
+            report.short_circuit.state,
+            ReadinessState::ReadyForIndependentDomainSolver
+        );
+        assert_eq!(
+            report.protection_coordination.state,
+            ReadinessState::InconclusiveMissingOrInvalidNativeInputs
+        );
     }
 
     #[test]
@@ -1577,8 +2350,18 @@ mod tests {
         package.branch_models[0].primitive_impedance = None;
         package.branch_models[0].sequence_impedance = None;
         let report = audit_three_phase_inputs(&case, &package).unwrap();
-        assert!(report.blockers.iter().any(|b| b.field_path == "primitiveImpedance"));
-        assert!(report.blockers.iter().any(|b| b.field_path == "sequenceImpedance"));
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|b| b.field_path == "primitiveImpedance")
+        );
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|b| b.field_path == "sequenceImpedance")
+        );
     }
 
     #[test]
@@ -1587,16 +2370,28 @@ mod tests {
         let mut package = build_valid_package(&case);
         package.source_artifacts.pop();
         let report = audit_three_phase_inputs(&case, &package).unwrap();
-        assert!(report.blockers.iter().any(|b| b.reason.contains("absent from source_artifacts")));
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|b| b.reason.contains("absent from source_artifacts"))
+        );
     }
 
     #[test]
     fn invalid_non_monotonic_time_current_curve_blocks_protection() {
         let case = case();
         let mut package = build_valid_package(&case);
-        package.protection_devices[0].phase_time_current_curve.swap(0, 1);
+        package.protection_devices[0]
+            .phase_time_current_curve
+            .swap(0, 1);
         let report = audit_three_phase_inputs(&case, &package).unwrap();
-        assert!(report.blockers.iter().any(|b| b.field_path == "phaseTimeCurrentCurve"));
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|b| b.field_path == "phaseTimeCurrentCurve")
+        );
     }
 
     #[test]
@@ -1604,10 +2399,17 @@ mod tests {
         let case = case();
         let mut package = build_valid_package(&case);
         package.node_models[0].neutral_continuous = false;
-        package.node_models[0].conductors.retain(|c| *c != Conductor::Neutral);
+        package.node_models[0]
+            .conductors
+            .retain(|c| *c != Conductor::Neutral);
         let report = audit_three_phase_inputs(&case, &package).unwrap();
         assert!(report.blockers.iter().any(|b| b.field_path == "conductors"));
-        assert!(report.blockers.iter().any(|b| b.field_path == "endpoints" || b.field_path == "conductors"));
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|b| b.field_path == "endpoints" || b.field_path == "conductors")
+        );
     }
 
     #[test]
@@ -1616,8 +2418,17 @@ mod tests {
         let mut package = build_valid_package(&case);
         package.case_sha256 = "f".repeat(64);
         let report = audit_three_phase_inputs(&case, &package).unwrap();
-        assert_eq!(report.three_phase_load_flow.state, ReadinessState::InconclusiveMissingOrInvalidNativeInputs);
-        assert_eq!(report.short_circuit.state, ReadinessState::InconclusiveMissingOrInvalidNativeInputs);
-        assert_eq!(report.protection_coordination.state, ReadinessState::InconclusiveMissingOrInvalidNativeInputs);
+        assert_eq!(
+            report.three_phase_load_flow.state,
+            ReadinessState::InconclusiveMissingOrInvalidNativeInputs
+        );
+        assert_eq!(
+            report.short_circuit.state,
+            ReadinessState::InconclusiveMissingOrInvalidNativeInputs
+        );
+        assert_eq!(
+            report.protection_coordination.state,
+            ReadinessState::InconclusiveMissingOrInvalidNativeInputs
+        );
     }
 }
