@@ -53,6 +53,7 @@ pub enum IdentifiabilityError {
     InvalidGravity,
     InvalidParameterScale,
     InvalidInclineAngle,
+    NoSustainedDownhillSlide,
     InvalidAccelerationUncertainty,
     NoFullRankCandidatePair,
     InvalidRankTolerance,
@@ -81,6 +82,12 @@ impl Display for IdentifiabilityError {
                 write!(
                     formatter,
                     "incline plus angle bias must lie strictly inside (-pi/2, pi/2)"
+                )
+            }
+            Self::NoSustainedDownhillSlide => {
+                write!(
+                    formatter,
+                    "gravity-friction model does not sustain downhill sliding at this incline"
                 )
             }
             Self::InvalidAccelerationUncertainty => {
@@ -385,6 +392,12 @@ fn validate_excitation(
     {
         return Err(IdentifiabilityError::InvalidAccelerationUncertainty);
     }
+    // This fixture models sustained downhill sliding driven only by gravity.
+    // Below the friction angle, the block does not sustain this regime without
+    // an external drive or an explicitly modeled initial-velocity transient.
+    if phi.sin() - model.friction_coefficient * phi.cos() <= 0.0 {
+        return Err(IdentifiabilityError::NoSustainedDownhillSlide);
+    }
     Ok(())
 }
 
@@ -435,7 +448,7 @@ mod tests {
     #[test]
     fn two_well_separated_inclinations_produce_full_local_rank() {
         let information =
-            fisher_information(model(), &[excitation(5.0, 0.05), excitation(75.0, 0.05)])
+            fisher_information(model(), &[excitation(20.0, 0.05), excitation(75.0, 0.05)])
                 .expect("valid diverse design");
         assert_eq!(information.effective_rank, 2);
         assert!(information.minimum_eigenvalue > 0.0);
@@ -462,7 +475,7 @@ mod tests {
     fn d_optimal_pair_selects_from_the_declared_equal_budget_candidates() {
         let candidates = [
             excitation(30.0, 0.05),
-            excitation(5.0, 0.05),
+            excitation(20.0, 0.05),
             excitation(75.0, 0.05),
             excitation(40.0, 0.05),
         ];
@@ -491,10 +504,10 @@ mod tests {
     #[test]
     fn doubling_acceleration_noise_reduces_information_by_four() {
         let single_noise =
-            fisher_information(model(), &[excitation(5.0, 0.05), excitation(75.0, 0.05)])
+            fisher_information(model(), &[excitation(20.0, 0.05), excitation(75.0, 0.05)])
                 .expect("valid design");
         let double_noise =
-            fisher_information(model(), &[excitation(5.0, 0.10), excitation(75.0, 0.10)])
+            fisher_information(model(), &[excitation(20.0, 0.10), excitation(75.0, 0.10)])
                 .expect("valid design");
 
         close(
@@ -516,7 +529,7 @@ mod tests {
 
     #[test]
     fn input_order_does_not_change_information() {
-        let first = excitation(5.0, 0.05);
+        let first = excitation(20.0, 0.05);
         let second = excitation(75.0, 0.05);
         let a = fisher_information(model(), &[first, second]).expect("valid design");
         let b = fisher_information(model(), &[second, first]).expect("valid design");
@@ -545,11 +558,11 @@ mod tests {
             friction_coefficient: 0.1,
             angle_bias_rad: 0.01,
         };
-        let unit = fisher_information(scaled, &[excitation(5.0, 0.05), excitation(75.0, 0.05)])
+        let unit = fisher_information(scaled, &[excitation(20.0, 0.05), excitation(75.0, 0.05)])
             .expect("valid scaled design");
         let mut unscaled = scaled;
         unscaled.parameter_scales = ParameterScales::UNIT;
-        let raw = fisher_information(unscaled, &[excitation(5.0, 0.05), excitation(75.0, 0.05)])
+        let raw = fisher_information(unscaled, &[excitation(20.0, 0.05), excitation(75.0, 0.05)])
             .expect("valid unscaled design");
         close(
             unit.fisher.friction_friction,
@@ -593,6 +606,10 @@ mod tests {
         assert_eq!(
             fisher_information(model(), &[excitation(90.0, 0.05)]),
             Err(IdentifiabilityError::InvalidInclineAngle)
+        );
+        assert_eq!(
+            fisher_information(model(), &[excitation(5.0, 0.05)]),
+            Err(IdentifiabilityError::NoSustainedDownhillSlide)
         );
     }
 
