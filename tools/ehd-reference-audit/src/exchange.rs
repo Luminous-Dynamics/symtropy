@@ -296,6 +296,51 @@ pub fn map_integrated_impulses(
     })
 }
 
+/// Deterministic executable smoke check used by the offline audit CLI.
+/// This verifies the transfer arithmetic on a synthetic two-destination case;
+/// it does not validate a geometric intersection backend or a plasma solver.
+pub fn reference_self_check() -> Result<(), MappingError> {
+    let tolerance = MappingTolerance {
+        fraction_sum_abs: 1.0e-12,
+        impulse_abs_ns: 1.0e-12,
+        impulse_rel: 1.0e-12,
+    };
+    let report = map_integrated_impulses(
+        &[ImpulseEvent {
+            source_event_id: 1,
+            impulse_ns: [4.0, -2.0, 1.0],
+        }],
+        &[
+            OverlapWeight {
+                source_event_id: 1,
+                destination_cell_id: 10,
+                fraction: 0.25,
+            },
+            OverlapWeight {
+                source_event_id: 1,
+                destination_cell_id: 20,
+                fraction: 0.75,
+            },
+        ],
+        tolerance,
+    )?;
+
+    if report.source_total_ns != [4.0, -2.0, 1.0]
+        || report.destination_total_ns != [4.0, -2.0, 1.0]
+        || report.conservation_residual_ns != [0.0, 0.0, 0.0]
+        || report.destination_impulses_ns.get(&10) != Some(&[1.0, -0.5, 0.25])
+        || report.destination_impulses_ns.get(&20) != Some(&[3.0, -1.5, 0.75])
+    {
+        return Err(MappingError::ConservationFailure {
+            component: 0,
+            residual_ns: report.destination_total_ns[0] - report.source_total_ns[0],
+            allowed_ns: 0.0,
+        });
+    }
+
+    Ok(())
+}
+
 fn validate_tolerance(tolerance: MappingTolerance) -> Result<(), MappingError> {
     for (name, value) in [
         ("fraction_sum_abs", tolerance.fraction_sum_abs),
@@ -327,6 +372,11 @@ mod tests {
 
     fn weight(source: u64, destination: u64, fraction: f64) -> OverlapWeight {
         OverlapWeight { source_event_id: source, destination_cell_id: destination, fraction }
+    }
+
+    #[test]
+    fn reference_self_check_passes() {
+        reference_self_check().unwrap();
     }
 
     #[test]
