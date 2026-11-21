@@ -21,7 +21,14 @@
       "edition": "1.04.2 (published 2026-11-01)",
       "role": "machine_information_model",
       "publication_state": "published_specification",
-      "reference_uri": "https://reference.opcfoundation.org/specs/OPC-40001-1/full"
+      "reference_uri": "https://reference.opcfoundation.org/specs/OPC-40001-1",
+      "namespace_metadata": {
+        "namespace_uri": "http://opcfoundation.org/UA/Machinery/",
+        "namespace_version": "1.04.2",
+        "namespace_publication_date": "2026-11-01",
+        "nodeset_uri": "https://reference.opcfoundation.org/nodesets/?u=http://opcfoundation.org/UA/Machinery/&v=1.04.2&i=1",
+        "nodeset_scope": "complete_namespace"
+      }
     }
   ],
   "layers": [
