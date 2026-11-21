@@ -65,6 +65,9 @@ pub struct ServiceProducer {
     /// Required for measured service; calibration evidence is not inferred.
     pub calibration_artifact_ref: Option<String>,
     pub calibration_artifact_sha256: Option<String>,
+    /// Inclusive start and exclusive end of the calibration's validity window.
+    pub calibration_valid_from_unix_ms: Option<u64>,
+    pub calibration_valid_until_unix_ms: Option<u64>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -261,6 +264,8 @@ fn validate_producer(trajectory: &ServiceTrajectoryRecord, errors: &mut Vec<Stri
             if producer.instrument_id.is_some()
                 || producer.calibration_artifact_ref.is_some()
                 || producer.calibration_artifact_sha256.is_some()
+                || producer.calibration_valid_from_unix_ms.is_some()
+                || producer.calibration_valid_until_unix_ms.is_some()
             {
                 errors.push(
                     "modelled service must not claim a metering instrument/calibration identity"
@@ -285,6 +290,9 @@ fn validate_producer(trajectory: &ServiceTrajectoryRecord, errors: &mut Vec<Stri
                     .calibration_artifact_sha256
                     .as_deref()
                     .is_none_or(|hash| !is_lower_hex(hash, 64))
+                || producer.calibration_valid_from_unix_ms.is_none()
+                || producer.calibration_valid_until_unix_ms.is_none()
+                || producer.calibration_valid_from_unix_ms >= producer.calibration_valid_until_unix_ms
             {
                 errors.push(
                     "measured service requires an instrument ID and calibration artifact/digest"
@@ -303,6 +311,8 @@ fn validate_producer(trajectory: &ServiceTrajectoryRecord, errors: &mut Vec<Stri
                 || producer.instrument_id.is_some()
                 || producer.calibration_artifact_ref.is_some()
                 || producer.calibration_artifact_sha256.is_some()
+                || producer.calibration_valid_from_unix_ms.is_some()
+                || producer.calibration_valid_until_unix_ms.is_some()
             {
                 errors.push("planned forecast requires an explicit forecast model and must not claim a metering instrument".to_string());
             }
@@ -312,6 +322,8 @@ fn validate_producer(trajectory: &ServiceTrajectoryRecord, errors: &mut Vec<Stri
                 || producer.instrument_id.is_some()
                 || producer.calibration_artifact_ref.is_some()
                 || producer.calibration_artifact_sha256.is_some()
+                || producer.calibration_valid_from_unix_ms.is_some()
+                || producer.calibration_valid_until_unix_ms.is_some()
             {
                 errors.push("observed work producer must not claim a modelled service model or metering calibration".to_string());
             }
@@ -719,6 +731,24 @@ fn validate_common(
         ) {
             if source_digests.get(calibration_ref).copied() != Some(calibration_digest) {
                 errors.push("meter calibration artifact must be present in the source artifact set with its exact digest".to_string());
+            }
+            let valid_from = trajectory.producer.calibration_valid_from_unix_ms;
+            let valid_until = trajectory.producer.calibration_valid_until_unix_ms;
+            if let (Some(valid_from), Some(valid_until)) = (valid_from, valid_until) {
+                let interval_ms = u64::from(trajectory.timebase.interval_duration_seconds) * 1_000;
+                for sample in &trajectory.samples {
+                    let sample_end = sample.interval_start_unix_ms.checked_add(interval_ms);
+                    if sample.interval_start_unix_ms < valid_from
+                        || sample_end.is_none_or(|end| end > valid_until)
+                    {
+                        errors.push(format!(
+                            "measured service sample {} falls outside the meter calibration validity window",
+                            sample.sample_id
+                        ));
+                    }
+                }
+            } else {
+                errors.push("measured service requires an explicit calibration validity window".to_string());
             }
         }
     }
@@ -1609,6 +1639,8 @@ mod tests {
                 instrument_id: Some("meter-set-001".to_string()),
                 calibration_artifact_ref: Some("calibration://meter-set-001".to_string()),
                 calibration_artifact_sha256: Some("3".repeat(64)),
+                calibration_valid_from_unix_ms: Some(1_799_999_000_000),
+                calibration_valid_until_unix_ms: Some(1_800_010_000_000),
             },
             source_artifacts,
             samples,
@@ -1776,6 +1808,8 @@ mod tests {
         trajectory.producer.instrument_id = None;
         trajectory.producer.calibration_artifact_ref = None;
         trajectory.producer.calibration_artifact_sha256 = None;
+        trajectory.producer.calibration_valid_from_unix_ms = None;
+        trajectory.producer.calibration_valid_until_unix_ms = None;
         trajectory
             .source_artifacts
             .retain(|source| source.artifact_ref.starts_with("evidence://"));
@@ -2149,6 +2183,21 @@ mod tests {
             .find(|source| source.artifact_ref == "calibration://meter-set-001")
             .unwrap();
         calibration.sha256 = "9".repeat(64);
+        assert!(audit_service_trajectory(&trajectory, &receipt, &case).is_err());
+    }
+
+    #[test]
+    fn measured_service_samples_must_fall_inside_calibration_validity_window() {
+        let case = case();
+        let receipt = receipt(&case);
+        let mut trajectory = fully_served_trajectory(&case, &receipt);
+        trajectory.producer.calibration_valid_until_unix_ms =
+            Some(1_800_000_000_000);
+        assert!(audit_service_trajectory(&trajectory, &receipt, &case).is_err());
+
+        let mut trajectory = fully_served_trajectory(&case, &receipt);
+        trajectory.producer.calibration_valid_from_unix_ms =
+            Some(1_800_000_060_000);
         assert!(audit_service_trajectory(&trajectory, &receipt, &case).is_err());
     }
 
