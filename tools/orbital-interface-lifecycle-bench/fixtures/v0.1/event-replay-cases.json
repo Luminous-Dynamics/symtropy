@@ -1,0 +1,997 @@
+{
+  "schema": "luminous.orbital-interface-event-replay.corpus.v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic-event-replay-semantics-only",
+  "cases": [
+    {
+      "case_id": "case-01-valid-initial-qualification",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        }
+      ],
+      "expected_status": "qualified",
+      "expected_reason": "qualification_stream_initialized",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-02-one-service-cycle",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"cycle_completed\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"service-event-source\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "5e0dcd9837d1e31fc0d5959e9aa0bace305c8e41cbb3ef9fbdbb419e5cdda7ea"
+        }
+      ],
+      "expected_status": "qualified",
+      "expected_reason": "cycle_replayed_once",
+      "expected_cycle_count": 1,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-03-identical-bytes-replayed-once",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"cycle_completed\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"service-event-source\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "5e0dcd9837d1e31fc0d5959e9aa0bace305c8e41cbb3ef9fbdbb419e5cdda7ea"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"cycle_completed\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"service-event-source\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "5e0dcd9837d1e31fc0d5959e9aa0bace305c8e41cbb3ef9fbdbb419e5cdda7ea"
+        }
+      ],
+      "expected_status": "qualified",
+      "expected_reason": "cycle_replayed_once",
+      "expected_cycle_count": 1,
+      "expected_duplicate_count": 1
+    },
+    {
+      "case_id": "case-04-event-id-reused-with-different-bytes",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":900,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "7ce2d0a307678935b0040d027e70c04876e4504735666aa6d9a92b1aaffecbe9"
+        }
+      ],
+      "expected_status": "disputed",
+      "expected_reason": "event_id_reused_with_conflicting_bytes",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-05-sequence-fork",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"cycle_completed\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"service-event-source\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "5e0dcd9837d1e31fc0d5959e9aa0bace305c8e41cbb3ef9fbdbb419e5cdda7ea"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2-fork\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"cycle_completed\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"service-event-source\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "6f8d9e1d03ca9a05b2286795e35922f0608b706939485f7a860f5c7863533bfa"
+        }
+      ],
+      "expected_status": "disputed",
+      "expected_reason": "sequence_fork",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-06-sequence-gap",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-3\",\"sequence\":3,\"previous_event_id\":\"event-2\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"cycle_completed\",\"event_tick\":30,\"time_uncertainty_ticks\":0,\"observation_tick\":30,\"ingestion_tick\":30,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"service-event-source\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "0802f67f96d5bb20eb9182a8f537a86e82c9d2cffb2e87f6f8d38425bcbe196a"
+        }
+      ],
+      "expected_status": "indeterminate",
+      "expected_reason": "event_sequence_gap_or_nonzero_start",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-07-predecessor-missing",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"missing\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"cycle_completed\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"service-event-source\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "0b225e4ffdfe73b4dc9d85dc80d3ff4bd204273eaf72126318a2b28342bd659b"
+        }
+      ],
+      "expected_status": "indeterminate",
+      "expected_reason": "causal_predecessor_mismatch",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-08-sequence-start-not-one",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "2e6470bb56364aa55ce9be73ee148d000e15b7d27c2f3a5335e514c9052d2986"
+        }
+      ],
+      "expected_status": "indeterminate",
+      "expected_reason": "event_sequence_gap_or_nonzero_start",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-09-event-time-reverses-sequence",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"cycle_completed\",\"event_tick\":5,\"time_uncertainty_ticks\":0,\"observation_tick\":5,\"ingestion_tick\":5,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"service-event-source\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "325a855ce23b2c178fdc0612cddca4937ac052ee170d4c7795176f7067658390"
+        }
+      ],
+      "expected_status": "indeterminate",
+      "expected_reason": "event_time_order_not_proven",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-10-counter-reset-without-lineage",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"cycle_counter_reset\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"configuration-authority\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "bcb07c9f9f14fc47b0c76b12eef8e149d22ff8c66aca982b913a38301e6460b2"
+        }
+      ],
+      "expected_status": "disputed",
+      "expected_reason": "cycle_counter_reset_without_component_lineage",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-11-component-replacement-requires-requalification",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"component_replaced\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"maintenance-authority\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":\"capture-coupon-b-r1\",\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "fc0fbfe4924b98cb526c0290002898df5d34d13aa6f4107d0ea1fc8af64328ff"
+        }
+      ],
+      "expected_status": "requalification_required",
+      "expected_reason": "component_replacement_requires_requalification",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-12-replacement-identity-missing",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"component_replaced\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"maintenance-authority\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "2b617f75d505b84bc45ba4e6f90e66952d395f1d2ef80c14c664bca4b0e15316"
+        }
+      ],
+      "expected_status": "indeterminate",
+      "expected_reason": "replacement_component_identity_missing",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-13-old-component-used-after-replacement",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"component_replaced\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"maintenance-authority\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":\"capture-coupon-b-r1\",\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "fc0fbfe4924b98cb526c0290002898df5d34d13aa6f4107d0ea1fc8af64328ff"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-3\",\"sequence\":3,\"previous_event_id\":\"event-2\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"cycle_completed\",\"event_tick\":30,\"time_uncertainty_ticks\":0,\"observation_tick\":30,\"ingestion_tick\":30,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"service-event-source\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "0802f67f96d5bb20eb9182a8f537a86e82c9d2cffb2e87f6f8d38425bcbe196a"
+        }
+      ],
+      "expected_status": "rejected",
+      "expected_reason": "article_pair_component_or_service_identity_mismatch",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-14-ingestion-arrives-out-of-order",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"cycle_completed\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"service-event-source\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "5e0dcd9837d1e31fc0d5959e9aa0bace305c8e41cbb3ef9fbdbb419e5cdda7ea"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        }
+      ],
+      "expected_status": "qualified",
+      "expected_reason": "cycle_replayed_once",
+      "expected_cycle_count": 1,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-15-time-uncertainty-overlaps",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"cycle_completed\",\"event_tick\":12,\"time_uncertainty_ticks\":3,\"observation_tick\":12,\"ingestion_tick\":12,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"service-event-source\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "3c289c4aa482fc4a0cca9d8581e86dd0cf2131ac6c41ad6cab8574bd99694087"
+        }
+      ],
+      "expected_status": "indeterminate",
+      "expected_reason": "event_time_order_not_proven",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-16-observation-before-event-time",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"cycle_completed\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":15,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"service-event-source\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "d27a5b8937f8d4c6715c8f5157a15d5fe6b120e03fa01dca604b0f248ce49c02"
+        }
+      ],
+      "expected_status": "indeterminate",
+      "expected_reason": "event_time_order_not_proven",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-17-ingestion-before-observation",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"cycle_completed\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":19,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"service-event-source\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "07a5d090ccf67fd07ab0b509de0ce3df52bf6433c174d03ef86c33af4bf1bf4d"
+        }
+      ],
+      "expected_status": "indeterminate",
+      "expected_reason": "event_observation_ingestion_time_order_invalid",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-18-producer-not-in-allowlist",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"unknown-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "59885152cef215e353be82a6d40cbce692a761235e4ccb0cee295a73b87e9ac1"
+        }
+      ],
+      "expected_status": "indeterminate",
+      "expected_reason": "producer_not_in_v0_1_allowlist",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-19-wrong-authority-scope",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"cycle_completed\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"maintenance-authority\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "80638fb3eec7449274bf50202d9259dc9684551c52840df6de7edb7c45097580"
+        }
+      ],
+      "expected_status": "rejected",
+      "expected_reason": "event_authority_scope_mismatch",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-20-stream-must-start-with-qualification",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"cycle_completed\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"service-event-source\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "39f5a9962b78b9534ead7016af6ec64ae90b207da0570de5a5b274e002ec50c5"
+        }
+      ],
+      "expected_status": "rejected",
+      "expected_reason": "stream_must_begin_with_initial_qualification",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-21-cycle-limit-exceeded",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":0,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "82f7f5077d4696314d2e1eecc05e60aec8940a3564fabf96116e7b70663fa4b9"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"cycle_completed\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"service-event-source\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "5e0dcd9837d1e31fc0d5959e9aa0bace305c8e41cbb3ef9fbdbb419e5cdda7ea"
+        }
+      ],
+      "expected_status": "requalification_required",
+      "expected_reason": "qualified_cycle_limit_exceeded",
+      "expected_cycle_count": 1,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-22-invalid-inspection-calibration",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"inspection_recorded\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"metrology-authority\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":false,\"measurement_in_range\":true,\"inspection_coverage_complete\":true,\"wear_within_limit\":true,\"uncertainty_clears_margin\":true,\"raw_artifact_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "13be02cae7360f95ca33fa13cbd85ce330106ca493007c8fa0df806d6dc5cfd0"
+        }
+      ],
+      "expected_status": "indeterminate",
+      "expected_reason": "inspection_evidence_incomplete_or_invalid",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-23-incomplete-inspection-coverage",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"inspection_recorded\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"metrology-authority\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":true,\"measurement_in_range\":true,\"inspection_coverage_complete\":false,\"wear_within_limit\":true,\"uncertainty_clears_margin\":true,\"raw_artifact_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "d394196b9567085b2ccdc014bcd63eee77ff676fc9ffd67fe6cdd589f59143e1"
+        }
+      ],
+      "expected_status": "indeterminate",
+      "expected_reason": "inspection_evidence_incomplete_or_invalid",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-24-wear-outside-limit",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"inspection_recorded\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"metrology-authority\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":true,\"measurement_in_range\":true,\"inspection_coverage_complete\":true,\"wear_within_limit\":false,\"uncertainty_clears_margin\":true,\"raw_artifact_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "8b0e271d10a196e34f5cd4f6716da7371aa5a3d5aec0be2ff422814d6d6aef1e"
+        }
+      ],
+      "expected_status": "withdrawn",
+      "expected_reason": "wear_exceeds_declared_limit",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-25-uncertainty-not-clear",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"inspection_recorded\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"metrology-authority\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":true,\"measurement_in_range\":true,\"inspection_coverage_complete\":true,\"wear_within_limit\":true,\"uncertainty_clears_margin\":false,\"raw_artifact_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "7bcc571e119b559db1d54173e08a71038bb47fe81d77fdbf43d0faac64c1ae01"
+        }
+      ],
+      "expected_status": "indeterminate",
+      "expected_reason": "inspection_evidence_incomplete_or_invalid",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-26-raw-inspection-artifact-missing",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"inspection_recorded\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"metrology-authority\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":true,\"measurement_in_range\":true,\"inspection_coverage_complete\":true,\"wear_within_limit\":true,\"uncertainty_clears_margin\":true,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "94bd66fe24edf946d5e0a332004a008626563b95f8fef808a5b9095e4a952884"
+        }
+      ],
+      "expected_status": "indeterminate",
+      "expected_reason": "inspection_evidence_incomplete_or_invalid",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-27-maintenance-requires-requalification",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"maintenance_performed\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"maintenance-authority\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "69c6ab13e63ce974f7d4516c5bbdeda8b018f0d2f195000a79bd5c7d94b79272"
+        }
+      ],
+      "expected_status": "requalification_required",
+      "expected_reason": "maintenance_requires_requalification",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-28-maintenance-wrong-authority",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"maintenance_performed\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"service-event-source\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "215aa493323306293340e977050ceb6cb11197c36a3dcfe96095bb718c172b8b"
+        }
+      ],
+      "expected_status": "rejected",
+      "expected_reason": "event_authority_scope_mismatch",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-29-requalification-after-maintenance",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"maintenance_performed\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"maintenance-authority\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "69c6ab13e63ce974f7d4516c5bbdeda8b018f0d2f195000a79bd5c7d94b79272"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-3\",\"sequence\":3,\"previous_event_id\":\"event-2\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":30,\"time_uncertainty_ticks\":0,\"observation_tick\":30,\"ingestion_tick\":30,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":8,\"valid_until_tick\":900,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":true,\"environment_within_envelope\":null}",
+          "claimed_sha256": "e1cfc5139e8a620f823162353b94f875df26edfa4c6f0085b1bbb628c7907824"
+        }
+      ],
+      "expected_status": "qualified",
+      "expected_reason": "qualification_reissued_after_requalification",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-30-revocation-withdraws",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_revoked\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "76fa808dbfd63e69c0e92064664964ea3b0e2bf2daa5acc5f635d967387cbd62"
+        }
+      ],
+      "expected_status": "withdrawn",
+      "expected_reason": "qualification_revoked",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-31-stale-qualification-after-revocation",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_revoked\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "76fa808dbfd63e69c0e92064664964ea3b0e2bf2daa5acc5f635d967387cbd62"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-3\",\"sequence\":3,\"previous_event_id\":\"event-2\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":30,\"time_uncertainty_ticks\":0,\"observation_tick\":30,\"ingestion_tick\":30,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":true,\"environment_within_envelope\":null}",
+          "claimed_sha256": "2ecc49d8c46e027a71609111aa9e15abf3351db3c741a8b48cd16bf7d6a92f44"
+        }
+      ],
+      "expected_status": "withdrawn",
+      "expected_reason": "withdrawn_qualification_is_terminal_in_v0_1",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-32-configuration-change-requires-requalification",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"configuration_changed\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"configuration-authority\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":\"provider-config-r2\",\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "8e99694228a3cb43595fe617d980b53b5f97db8e74e1433b4048ff3d8b37246c"
+        }
+      ],
+      "expected_status": "requalification_required",
+      "expected_reason": "configuration_change_requires_requalification",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-33-new-configuration-id-missing",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"configuration_changed\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"configuration-authority\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "09d0bba48f040ff5dd38f796288e7a99a1526ee8c2016fc6128f5f8538b21662"
+        }
+      ],
+      "expected_status": "indeterminate",
+      "expected_reason": "new_configuration_identity_missing",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-34-stale-configuration-after-change",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"configuration_changed\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"configuration-authority\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":\"provider-config-r2\",\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "8e99694228a3cb43595fe617d980b53b5f97db8e74e1433b4048ff3d8b37246c"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-3\",\"sequence\":3,\"previous_event_id\":\"event-2\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"cycle_completed\",\"event_tick\":30,\"time_uncertainty_ticks\":0,\"observation_tick\":30,\"ingestion_tick\":30,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"service-event-source\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "0802f67f96d5bb20eb9182a8f537a86e82c9d2cffb2e87f6f8d38425bcbe196a"
+        }
+      ],
+      "expected_status": "rejected",
+      "expected_reason": "event_uses_stale_configuration_or_interface",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-35-procedure-change-requires-requalification",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"procedure_changed\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"configuration-authority\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":\"procedure-r2\",\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "c56e0808568326384f4812b6ce68aa6bb6fabc69283b0b477a879d8c36ed3ed5"
+        }
+      ],
+      "expected_status": "requalification_required",
+      "expected_reason": "procedure_change_requires_requalification",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-36-interface-change-requires-requalification",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"interface_changed\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"configuration-authority\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":\"if-r2\",\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "b9df274a306f37fce5bf426270a27c0ab377835c0c3d4e1ad578210da0b21ad9"
+        }
+      ],
+      "expected_status": "requalification_required",
+      "expected_reason": "interface_change_requires_requalification",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-37-pair-identity-mismatch",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-other\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"cycle_completed\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"service-event-source\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "1bf4ff87c1c36e77331c91ba39de3416aa944e2edff986391f4b2a9aff606609"
+        }
+      ],
+      "expected_status": "rejected",
+      "expected_reason": "stream_pair_or_service_scope_mismatch",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-38-service-kind-mismatch",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"prepared_storable_fluid\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"cycle_completed\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"service-event-source\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "37eb0a89f528ba610fc7d030d58aad109d0634ffa53cf1cea12cda7f7c39a21e"
+        }
+      ],
+      "expected_status": "rejected",
+      "expected_reason": "stream_pair_or_service_scope_mismatch",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-39-mechanical-to-fluid-qualification-confusion",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"prepared_storable_fluid\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"cycle_completed\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"service-event-source\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "37eb0a89f528ba610fc7d030d58aad109d0634ffa53cf1cea12cda7f7c39a21e"
+        }
+      ],
+      "expected_status": "rejected",
+      "expected_reason": "stream_pair_or_service_scope_mismatch",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-40-fluid-service-kind-stream",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"prepared_storable_fluid\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "5f24669ed992b6b442a30a3a9f5d21616c91df47abfb34246b6ce3b28f5f3f5c"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"prepared_storable_fluid\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"cycle_completed\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"service-event-source\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "37eb0a89f528ba610fc7d030d58aad109d0634ffa53cf1cea12cda7f7c39a21e"
+        }
+      ],
+      "expected_status": "qualified",
+      "expected_reason": "cycle_replayed_once",
+      "expected_cycle_count": 1,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-41-event-byte-digest-mismatch",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "expected_status": "disputed",
+      "expected_reason": "event_byte_digest_mismatch",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-42-identical-payload-different-event-id-sequence-fork",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"second-id-seq2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"cycle_completed\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"service-event-source\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "0f96f8d4ddf89baf3f8a94f879620bf64c5a586c54d624f0fbd62d014362ada6"
+        }
+      ],
+      "expected_status": "disputed",
+      "expected_reason": "sequence_fork",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-43-duplicate-cycle-not-double-counted",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"cycle_completed\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"service-event-source\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "5e0dcd9837d1e31fc0d5959e9aa0bace305c8e41cbb3ef9fbdbb419e5cdda7ea"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"cycle_completed\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"service-event-source\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "5e0dcd9837d1e31fc0d5959e9aa0bace305c8e41cbb3ef9fbdbb419e5cdda7ea"
+        }
+      ],
+      "expected_status": "qualified",
+      "expected_reason": "cycle_replayed_once",
+      "expected_cycle_count": 1,
+      "expected_duplicate_count": 1
+    },
+    {
+      "case_id": "case-44-calibration-raw-digest-format-invalid",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"inspection_recorded\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"metrology-authority\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":true,\"measurement_in_range\":true,\"inspection_coverage_complete\":true,\"wear_within_limit\":true,\"uncertainty_clears_margin\":true,\"raw_artifact_sha256\":\"not-a-digest\",\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "aa0713bf49a7592f1368afe2ee3aa9144ab1f8ef8e7368a0695b34a04092fe83"
+        }
+      ],
+      "expected_status": "indeterminate",
+      "expected_reason": "inspection_evidence_incomplete_or_invalid",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-45-measurement-range-insufficient",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"inspection_recorded\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"metrology-authority\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":true,\"measurement_in_range\":false,\"inspection_coverage_complete\":true,\"wear_within_limit\":true,\"uncertainty_clears_margin\":true,\"raw_artifact_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "33f1233a9abf0b2e1ac2ac2e8e7ae2f72896315d72441ad935c6f0cf21149d23"
+        }
+      ],
+      "expected_status": "indeterminate",
+      "expected_reason": "inspection_evidence_incomplete_or_invalid",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-46-qualification-expired-at-execution",
+      "at_tick": 1001,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        }
+      ],
+      "expected_status": "requalification_required",
+      "expected_reason": "qualification_expired_at_evaluation",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-47-inspection-expired-at-evaluation",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":5,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "34cfa013fdbcb2953eedf6d74568e1efba53e4f3c46efd99dd859689a91d1b90"
+        }
+      ],
+      "expected_status": "requalification_required",
+      "expected_reason": "inspection_interval_expired_at_evaluation",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-48-environment-outside-qualified-envelope",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"environment_exposure\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"metrology-authority\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":false}",
+          "claimed_sha256": "c32ea3f636d9fae86ed40ff1a7f5e2d57336a19616f6f65bb1a5eae5a34db99b"
+        }
+      ],
+      "expected_status": "requalification_required",
+      "expected_reason": "environment_exceeds_qualified_envelope",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-49-environment-observation-missing",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"environment_exposure\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"metrology-authority\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "da52ee673d7a8842896d6fffc55d40ec75cd2f1680cd55602e87074d654c4bf7"
+        }
+      ],
+      "expected_status": "indeterminate",
+      "expected_reason": "environment_observation_missing",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-50-unknown-event-schema",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"unknown.schema\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "67398f5205a8e4d640c63e8ecd5df83398aee4562fb9e26e5e511d453608e8a2"
+        }
+      ],
+      "expected_status": "rejected",
+      "expected_reason": "unsupported_event_schema",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-51-stream-id-mismatch",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"other-stream\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"cycle_completed\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"service-event-source\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "1bbb2f82ee3d8ff38170846bc45102396a6f1b8c27a5c22af891189a44abfe08"
+        }
+      ],
+      "expected_status": "rejected",
+      "expected_reason": "stream_pair_or_service_scope_mismatch",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-52-out-of-order-input-still-deterministic",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"cycle_completed\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"service-event-source\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "5e0dcd9837d1e31fc0d5959e9aa0bace305c8e41cbb3ef9fbdbb419e5cdda7ea"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        }
+      ],
+      "expected_status": "qualified",
+      "expected_reason": "cycle_replayed_once",
+      "expected_cycle_count": 1,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-53-missing-event-id",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "89efaa011e68eda317fb27d6d7994ca9bc991c1a5712445b4a04fddbed1a246a"
+        }
+      ],
+      "expected_status": "indeterminate",
+      "expected_reason": "event_identity_missing",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-54-revocation-cannot-be-undone-by-stale-replay",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_revoked\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "76fa808dbfd63e69c0e92064664964ea3b0e2bf2daa5acc5f635d967387cbd62"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-3\",\"sequence\":3,\"previous_event_id\":\"event-2\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":30,\"time_uncertainty_ticks\":0,\"observation_tick\":30,\"ingestion_tick\":30,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":true,\"environment_within_envelope\":null}",
+          "claimed_sha256": "2ecc49d8c46e027a71609111aa9e15abf3351db3c741a8b48cd16bf7d6a92f44"
+        }
+      ],
+      "expected_status": "withdrawn",
+      "expected_reason": "withdrawn_qualification_is_terminal_in_v0_1",
+      "expected_cycle_count": 0,
+      "expected_duplicate_count": 0
+    },
+    {
+      "case_id": "case-55-exact-byte-replay-preserves-single-cycle",
+      "at_tick": 100,
+      "events": [
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-1\",\"sequence\":1,\"previous_event_id\":null,\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"qualification_issued\",\"event_tick\":10,\"time_uncertainty_ticks\":0,\"observation_tick\":10,\"ingestion_tick\":10,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"qualification-authority\",\"qualified_cycle_limit\":10,\"valid_until_tick\":1000,\"inspection_interval_ticks\":100,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "83ae71c18860978751e0030b47e9c548a881ce68026baa48685f0f88d65c3160"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"cycle_completed\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"service-event-source\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "5e0dcd9837d1e31fc0d5959e9aa0bace305c8e41cbb3ef9fbdbb419e5cdda7ea"
+        },
+        {
+          "raw_event": "{\"event_schema\":\"luminous.orbital-interface-lifecycle.event.v0.1\",\"stream_id\":\"stream-provider-a-client-a\",\"event_id\":\"event-2\",\"sequence\":2,\"previous_event_id\":\"event-1\",\"pair_id\":\"pair-provider-a-client-a\",\"service_kind\":\"mechanical_capture\",\"component_id\":\"capture-coupon-a-r1\",\"configuration_id\":\"provider-config-r1\",\"procedure_revision\":\"procedure-r1\",\"interface_revision\":\"if-r1\",\"event_type\":\"cycle_completed\",\"event_tick\":20,\"time_uncertainty_ticks\":0,\"observation_tick\":20,\"ingestion_tick\":20,\"producer_id\":\"luminous-synthetic-lab\",\"authority_scope\":\"service-event-source\",\"qualified_cycle_limit\":null,\"valid_until_tick\":null,\"inspection_interval_ticks\":null,\"calibration_valid\":null,\"measurement_in_range\":null,\"inspection_coverage_complete\":null,\"wear_within_limit\":null,\"uncertainty_clears_margin\":null,\"raw_artifact_sha256\":null,\"new_component_id\":null,\"new_configuration_id\":null,\"new_procedure_revision\":null,\"new_interface_revision\":null,\"requalification\":false,\"environment_within_envelope\":null}",
+          "claimed_sha256": "5e0dcd9837d1e31fc0d5959e9aa0bace305c8e41cbb3ef9fbdbb419e5cdda7ea"
+        }
+      ],
+      "expected_status": "qualified",
+      "expected_reason": "cycle_replayed_once",
+      "expected_cycle_count": 1,
+      "expected_duplicate_count": 1
+    }
+  ]
+}
