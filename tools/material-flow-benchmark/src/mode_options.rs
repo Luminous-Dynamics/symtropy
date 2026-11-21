@@ -399,17 +399,6 @@ fn build_decision_nodes(
     Ok((nodes, indices))
 }
 
-fn add_policy_cost(
-    metrics: &mut WeightedMetrics,
-    cost: u128,
-    probability_bps: u16,
-) -> Result<(), String> {
-    let weighted = cost
-        .checked_mul(u128::from(probability_bps))
-        .ok_or_else(|| "weighted cost overflow".to_string())?;
-    checked_add(&mut metrics.total_cost, weighted, "expected total cost")
-}
-
 fn evaluate_policy_mask(
     input: &ModeOptionsInput,
     indices: &BTreeMap<DecisionKey, usize>,
