@@ -4,17 +4,11 @@
 //! Offline command-line evaluator for FoundryBench's synthetic metric fixtures.
 
 use mfg_architecture_profile_validator::bench_metrics::{
-    evaluate_tep_onset_horizon, inspect_run_partition_leakage,
-    measure_feature_subset_stability, DiagnosisDisposition, FeatureSubsetRun,
-    RunPartitionManifest, TepOnsetRecord,
+    DiagnosisDisposition, FeatureSubsetRun, RunPartitionManifest, TepOnsetRecord,
+    evaluate_tep_onset_horizon, inspect_run_partition_leakage, measure_feature_subset_stability,
 };
-use serde_json::{json, Value};
-use std::{
-    collections::BTreeSet,
-    env, fs,
-    path::PathBuf,
-    process::ExitCode,
-};
+use serde_json::{Value, json};
+use std::{collections::BTreeSet, env, fs, path::PathBuf, process::ExitCode};
 
 fn read_json(path: &PathBuf) -> Result<Value, String> {
     let bytes = fs::read(path).map_err(|error| format!("{}: {error}", path.display()))?;
