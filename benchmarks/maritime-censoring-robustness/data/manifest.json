@@ -48,9 +48,37 @@
     "conditional inverse-probability-of-censoring Horvitz-Thompson incidence reference using the known synthetic G(t|X)"
   ],
   "non_identification_outputs": [
-    "SENSITIVITY_REQUIRED",
     "NOT_IDENTIFIED",
     "NOT_EVALUABLE"
   ],
-  "claim_ceiling": "The simulator falsifies estimator assumptions against synthetic known truth only. It does not authenticate port data or estimate real maritime waiting times."
+  "claim_ceiling": "The simulator falsifies estimator assumptions against synthetic known truth only. It does not authenticate port data or estimate real maritime waiting times.",
+  "scenario_parameters": {
+    "INDEPENDENT_ADMIN": {
+      "administrative_censor_probability_per_tick": 0.1,
+      "independent_of_event_time": true,
+      "independent_of_event_cause": true
+    },
+    "MEASURED_STRATUM_DEPENDENT": {
+      "administrative_censor_probability_by_stratum": {
+        "0": 0.03,
+        "1": 0.22
+      },
+      "independent_of_event_time_and_cause_conditional_on_stratum": true
+    },
+    "OUTCOME_DEPENDENT_REPORTING_LAG": {
+      "berth_publication_delay_ticks": 4,
+      "diversion_publication_delay_ticks": 0,
+      "cancellation_publication_delay_ticks": 0,
+      "delay_depends_on_latent_cause": true
+    },
+    "POSITIVITY_FAILURE": {
+      "stratum": "1",
+      "berth_publication_delay_ticks": 11,
+      "diversion_publication_delay_ticks": 0,
+      "cancellation_publication_delay_ticks": 0,
+      "berth_observation_support_within_horizon": 0
+    }
+  },
+  "tie_convention": "If event time and administrative censor time are equal, the event is observed before censoring.",
+  "bounds_note": "Lower cause incidence is observed cause share; upper is observed cause share plus the unresolved fraction. This is a broad finite-cohort bound, not a confidence interval or a certified sharp bound."
 }
