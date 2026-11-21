@@ -17,17 +17,18 @@
       "task_id": "synthetic-task-1",
       "category": "transfer",
       "horizon": 1,
-      "shift_family": "in_distribution",
       "episodes": [
         {
           "episode_id": "synthetic-1-a",
           "baseline_success": false,
-          "candidate_success": true
+          "candidate_success": true,
+          "shift_family": "in_distribution"
         },
         {
           "episode_id": "synthetic-1-b",
           "baseline_success": false,
-          "candidate_success": false
+          "candidate_success": false,
+          "shift_family": "in_distribution"
         }
       ]
     },
@@ -35,17 +36,18 @@
       "task_id": "synthetic-task-2",
       "category": "ordered",
       "horizon": 2,
-      "shift_family": "in_distribution",
       "episodes": [
         {
           "episode_id": "synthetic-2-a",
           "baseline_success": false,
-          "candidate_success": true
+          "candidate_success": true,
+          "shift_family": "in_distribution"
         },
         {
           "episode_id": "synthetic-2-b",
           "baseline_success": false,
-          "candidate_success": true
+          "candidate_success": true,
+          "shift_family": "in_distribution"
         }
       ]
     },
@@ -53,17 +55,18 @@
       "task_id": "synthetic-task-3",
       "category": "transfer",
       "horizon": 3,
-      "shift_family": "in_distribution",
       "episodes": [
         {
           "episode_id": "synthetic-3-a",
           "baseline_success": false,
-          "candidate_success": true
+          "candidate_success": true,
+          "shift_family": "in_distribution"
         },
         {
           "episode_id": "synthetic-3-b",
           "baseline_success": false,
-          "candidate_success": true
+          "candidate_success": true,
+          "shift_family": "in_distribution"
         }
       ]
     },
@@ -71,17 +74,18 @@
       "task_id": "synthetic-task-4",
       "category": "ordered",
       "horizon": 4,
-      "shift_family": "in_distribution",
       "episodes": [
         {
           "episode_id": "synthetic-4-a",
           "baseline_success": false,
-          "candidate_success": true
+          "candidate_success": true,
+          "shift_family": "in_distribution"
         },
         {
           "episode_id": "synthetic-4-b",
           "baseline_success": false,
-          "candidate_success": false
+          "candidate_success": false,
+          "shift_family": "in_distribution"
         }
       ]
     },
@@ -89,17 +93,18 @@
       "task_id": "synthetic-task-5",
       "category": "transfer",
       "horizon": 5,
-      "shift_family": "in_distribution",
       "episodes": [
         {
           "episode_id": "synthetic-5-a",
           "baseline_success": false,
-          "candidate_success": true
+          "candidate_success": true,
+          "shift_family": "in_distribution"
         },
         {
           "episode_id": "synthetic-5-b",
           "baseline_success": false,
-          "candidate_success": true
+          "candidate_success": true,
+          "shift_family": "in_distribution"
         }
       ]
     },
@@ -107,17 +112,18 @@
       "task_id": "synthetic-task-6",
       "category": "ordered",
       "horizon": 1,
-      "shift_family": "held_out_layout",
       "episodes": [
         {
           "episode_id": "synthetic-6-a",
           "baseline_success": false,
-          "candidate_success": true
+          "candidate_success": true,
+          "shift_family": "held_out_layout"
         },
         {
           "episode_id": "synthetic-6-b",
           "baseline_success": false,
-          "candidate_success": true
+          "candidate_success": true,
+          "shift_family": "held_out_layout"
         }
       ]
     },
@@ -125,17 +131,18 @@
       "task_id": "synthetic-task-7",
       "category": "transfer",
       "horizon": 2,
-      "shift_family": "held_out_layout",
       "episodes": [
         {
           "episode_id": "synthetic-7-a",
           "baseline_success": false,
-          "candidate_success": true
+          "candidate_success": true,
+          "shift_family": "held_out_layout"
         },
         {
           "episode_id": "synthetic-7-b",
           "baseline_success": false,
-          "candidate_success": false
+          "candidate_success": false,
+          "shift_family": "held_out_layout"
         }
       ]
     },
@@ -143,17 +150,18 @@
       "task_id": "synthetic-task-8",
       "category": "ordered",
       "horizon": 3,
-      "shift_family": "held_out_layout",
       "episodes": [
         {
           "episode_id": "synthetic-8-a",
           "baseline_success": false,
-          "candidate_success": true
+          "candidate_success": true,
+          "shift_family": "held_out_layout"
         },
         {
           "episode_id": "synthetic-8-b",
           "baseline_success": false,
-          "candidate_success": true
+          "candidate_success": true,
+          "shift_family": "held_out_layout"
         }
       ]
     },
@@ -161,17 +169,18 @@
       "task_id": "synthetic-task-9",
       "category": "transfer",
       "horizon": 4,
-      "shift_family": "held_out_layout",
       "episodes": [
         {
           "episode_id": "synthetic-9-a",
           "baseline_success": false,
-          "candidate_success": true
+          "candidate_success": true,
+          "shift_family": "held_out_layout"
         },
         {
           "episode_id": "synthetic-9-b",
           "baseline_success": false,
-          "candidate_success": true
+          "candidate_success": true,
+          "shift_family": "held_out_layout"
         }
       ]
     },
@@ -179,17 +188,18 @@
       "task_id": "synthetic-task-10",
       "category": "ordered",
       "horizon": 5,
-      "shift_family": "held_out_layout",
       "episodes": [
         {
           "episode_id": "synthetic-10-a",
           "baseline_success": false,
-          "candidate_success": true
+          "candidate_success": true,
+          "shift_family": "held_out_layout"
         },
         {
           "episode_id": "synthetic-10-b",
           "baseline_success": false,
-          "candidate_success": false
+          "candidate_success": false,
+          "shift_family": "held_out_layout"
         }
       ]
     }
