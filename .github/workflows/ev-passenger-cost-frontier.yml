@@ -33,6 +33,8 @@ jobs:
           jq empty tools/ev-passenger-cost-frontier/fixtures/ev_component_public_benchmarks_v0_1.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/ev_localization_v0_1.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/ev_factory_design_v0_1.json
+          jq empty tools/ev-passenger-cost-frontier/schemas/ev_carrier_module_processes_v0_1.schema.json
+          jq empty tools/ev-passenger-cost-frontier/fixtures/ev_carrier_module_processes_v0_1.json
           jq -e '
             .benchmark_id == "EV-PUBLIC-COMPONENT-BENCHMARKS-001"
             and .observed_as_of == "2026-10-20"
@@ -103,6 +105,21 @@ jobs:
             and all(.results[]; .cost_of_goods_if_vat_unrecoverable_low >= .cost_of_goods_if_vat_recovered_low)
             and all(.results[]; .cost_of_goods_if_vat_unrecoverable_high >= .cost_of_goods_if_vat_recovered_high)
           ' ev-localization-cost-report.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_carrier_module_factory_screen -- \
+            ev-factory-design-report.json \
+            tools/ev-passenger-cost-frontier/fixtures/ev_carrier_module_processes_v0_1.json \
+            > ev-carrier-module-factory-report.json
+          jq -e '
+            .benchmark_id == "EV-CARRIER-MODULE-MFG-001"
+            and .base_factory_benchmark_id == "EV-FACTORY-DESIGN-001"
+            and .scenario_count == 108
+            and ([.results[].config_id] | unique | length == 3)
+            and all(.results[] | select(.evidence_class == "synthetic"); .status == "passes_synthetic_screen")
+            and all(.results[] | select(.evidence_class == "synthetic"); .equivalent_good_vehicle_capacity_per_year >= .target_good_vehicles_per_year)
+            and all(.results[] | select(.evidence_class == "synthetic"); .module_production_release_ready == false)
+            and all(.results[] | select(.config_id == "integrated-drone-bay-production-intent-unknown"); .status == "indeterminate" and .equivalent_good_vehicle_capacity_per_year == null)
+            and all(.results[]; .base_factory_production_release_ready == false)
+          ' ev-carrier-module-factory-report.json
           sha256sum \
             tools/ev-passenger-cost-frontier/schemas/ev_passenger_cost_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/ev_passenger_cost_v0_1.json \
@@ -112,7 +129,12 @@ jobs:
             tools/ev-passenger-cost-frontier/src/bin/ev_localization_frontier.rs \
             tools/ev-passenger-cost-frontier/src/bin/ev_factory_frontier.rs \
             tools/ev-passenger-cost-frontier/fixtures/ev_factory_design_v0_1.json \
-            ev-passenger-cost-report.json ev-localization-cost-report.json ev-factory-design-report.json > ev-passenger-cost-report.sha256
+            tools/ev-passenger-cost-frontier/schemas/ev_carrier_module_processes_v0_1.schema.json \
+            tools/ev-passenger-cost-frontier/fixtures/ev_carrier_module_processes_v0_1.json \
+            tools/ev-passenger-cost-frontier/src/carrier_module_factory.rs \
+            tools/ev-passenger-cost-frontier/src/lib.rs \
+            tools/ev-passenger-cost-frontier/src/bin/ev_carrier_module_factory_screen.rs \
+            ev-passenger-cost-report.json ev-localization-cost-report.json ev-factory-design-report.json ev-carrier-module-factory-report.json > ev-passenger-cost-report.sha256
       - uses: actions/upload-artifact@v4
         with:
           name: ev-passenger-cost-frontier-report
@@ -120,5 +142,8 @@ jobs:
             ev-passenger-cost-report.json
             ev-localization-cost-report.json
             ev-factory-design-report.json
+            ev-carrier-module-factory-report.json
+            tools/ev-passenger-cost-frontier/fixtures/ev_carrier_module_processes_v0_1.json
+            tools/ev-passenger-cost-frontier/schemas/ev_carrier_module_processes_v0_1.schema.json
             ev-passenger-cost-report.sha256
           if-no-files-found: error
