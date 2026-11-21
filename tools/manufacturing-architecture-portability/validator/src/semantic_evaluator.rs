@@ -103,6 +103,9 @@ mod tests {
     const CANDIDATE: &str =
         include_str!("../tests/fixtures/mtconnect-observation.candidate.json");
     const PROJECTION_SCHEMA: &str = include_str!("../../portable-observation.schema.json");
+    const ASSET_SCHEMA: &str = include_str!("../../portable-asset.schema.json");
+    const ASSET_CANDIDATE: &str =
+        include_str!("../tests/fixtures/mtconnect-asset.candidate.json");
 
     const FIELDS: &[&str] = &[
         "projection_schema_version",
@@ -234,6 +237,33 @@ mod tests {
         assert_eq!(actual["measurement_uncertainty_disposition"], json!("unknown"));
         let result = compare_required_fields(&oracle(), &actual, FIELDS).unwrap();
         assert!(result.equivalent_on_required_fields);
+    }
+
+    #[test]
+    fn mtconnect_asset_is_a_separate_top_level_projection_not_a_stream_observation() {
+        let asset_schema: Value =
+            serde_json::from_str(ASSET_SCHEMA).expect("asset schema JSON must parse");
+        jsonschema::draft202012::meta::validate(&asset_schema)
+            .expect("asset schema must be valid Draft 2020-12");
+        let asset_validator = jsonschema::draft202012::options()
+            .should_validate_formats(true)
+            .build(&asset_schema)
+            .expect("asset schema validator must build");
+        let asset: Value =
+            serde_json::from_str(ASSET_CANDIDATE).expect("asset fixture must parse");
+        assert!(asset_validator.is_valid(&asset));
+
+        let stream_schema: Value =
+            serde_json::from_str(PROJECTION_SCHEMA).expect("stream observation schema must parse");
+        let stream_validator = jsonschema::draft202012::options()
+            .should_validate_formats(true)
+            .build(&stream_schema)
+            .expect("stream schema validator must build");
+        assert!(!stream_validator.is_valid(&asset));
+
+        let mut invalid_stream = candidate();
+        invalid_stream["native_kind"] = json!("ASSET");
+        assert!(!stream_validator.is_valid(&invalid_stream));
     }
 
     #[test]
