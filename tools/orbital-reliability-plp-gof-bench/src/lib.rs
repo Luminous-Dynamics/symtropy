@@ -92,8 +92,56 @@ pub struct MonteCarloResult {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct DeclaredAnalysisBindings {
+    pub model_profile: String,
+    pub termination_profile: String,
+    pub subject_group_id: String,
+    pub configuration_sha256: String,
+    pub environment_id: String,
+    pub exposure_clock_id: String,
+    pub observation_start_seconds: u64,
+    pub exposure_end_seconds: u64,
+    pub complete_event_history: bool,
+    pub repair_policy: String,
+    pub admissibility_receipt_sha256: String,
+    pub admissibility_source_commit: String,
+    pub capture_receipt_sha256: String,
+    pub capture_source_commit: String,
+    pub analysis_protocol_id: String,
+    pub multiplicity_policy_id: String,
+    pub significance_level: f64,
+    pub monte_carlo_replicates: usize,
+    pub random_seed: u64,
+}
+
+fn declared_analysis_bindings(case: &GofCase) -> DeclaredAnalysisBindings {
+    DeclaredAnalysisBindings {
+        model_profile: case.model_profile.clone(),
+        termination_profile: case.termination_profile.clone(),
+        subject_group_id: case.subject_group_id.clone(),
+        configuration_sha256: case.configuration_sha256.clone(),
+        environment_id: case.environment_id.clone(),
+        exposure_clock_id: case.exposure_clock_id.clone(),
+        observation_start_seconds: case.observation_start_seconds,
+        exposure_end_seconds: case.exposure_end_seconds,
+        complete_event_history: case.complete_event_history,
+        repair_policy: case.repair_policy.clone(),
+        admissibility_receipt_sha256: case.admissibility_receipt_sha256.clone(),
+        admissibility_source_commit: case.admissibility_source_commit.clone(),
+        capture_receipt_sha256: case.capture_receipt_sha256.clone(),
+        capture_source_commit: case.capture_source_commit.clone(),
+        analysis_protocol_id: case.analysis_protocol_id.clone(),
+        multiplicity_policy_id: case.multiplicity_policy_id.clone(),
+        significance_level: case.significance_level,
+        monte_carlo_replicates: case.monte_carlo_replicates,
+        random_seed: case.random_seed,
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct CaseResult {
     pub case_id: String,
+    pub declared_analysis_bindings: DeclaredAnalysisBindings,
     pub disposition: Disposition,
     pub event_count: usize,
     pub beta_hat: Option<f64>,
@@ -581,6 +629,7 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
 
         results.push(CaseResult {
             case_id: case.case_id.clone(),
+            declared_analysis_bindings: declared_analysis_bindings(case),
             disposition: decision.disposition,
             event_count: decision.event_count,
             beta_hat: decision.beta_hat,
