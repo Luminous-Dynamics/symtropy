@@ -171,8 +171,9 @@
         "temperature_k": 77,
         "field_magnitude_t": 0,
         "field_orientation": "self-field",
-        "current_criterion": "synthetic proxy calibration target criterion",
-        "geometry": "full-width calibrated non-contact mapping"
+        "current_criterion": "synthetic declared electric-field criterion",
+        "geometry": "full-width calibrated non-contact mapping",
+        "electric_field_criterion_uv_per_cm": 1
       },
       "uncertainty": {
         "type": "standard_uncertainty",
