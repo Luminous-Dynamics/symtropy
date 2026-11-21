@@ -2620,11 +2620,15 @@ mod motor_step_world_tests {
         let mut world = PhysicsWorld::<3>::new(SVector::zeros());
         world.solver_iterations = iterations;
 
-        let static_body = RigidBody::<3>::static_body(
+        let mut static_body = RigidBody::<3>::static_body(
             BodyHandle(0),
             Point::origin(),
             Box::new(Sphere::new(Point::origin(), 0.1)),
         );
+        // These two bodies share a joint anchor at the origin. Suppress their
+        // overlapping collider pair so this test isolates motor/joint work
+        // from a simultaneous contact-resolution impulse.
+        static_body.is_sensor = true;
         let dynamic_body = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
         let anchor = world.add_body(static_body);
         let slider = world.add_body(dynamic_body);
