@@ -26,9 +26,9 @@ Requires Rust 1.96+ and Cargo:
 
 ```bash
 cargo fmt --manifest-path tools/orbital-structural-interface-bench/Cargo.toml --check
-cargo test --manifest-path tools/orbital-structural-interface-bench/Cargo.toml
-cargo clippy --manifest-path tools/orbital-structural-interface-bench/Cargo.toml --all-targets -- -D warnings
-cargo run --manifest-path tools/orbital-structural-interface-bench/Cargo.toml -- \
+cargo test --locked --manifest-path tools/orbital-structural-interface-bench/Cargo.toml
+cargo clippy --locked --manifest-path tools/orbital-structural-interface-bench/Cargo.toml --all-targets -- -D warnings
+cargo run --locked --manifest-path tools/orbital-structural-interface-bench/Cargo.toml -- \
   tools/orbital-structural-interface-bench/fixtures/v0.1/cases.json \
   --source-commit <40-lowercase-hex-commit>
 python3 tools/orbital-structural-interface-bench/tests/reference_oracle.py \
