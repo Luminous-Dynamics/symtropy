@@ -52,7 +52,7 @@ Run from the repository root:
 ## Current v0 limits
 
 - One pending action at a time.
-- One deterministic fixture outcome per action ID and episode.
+- One deterministic fixture outcome per action ID and episode; v0 enforces `max_uses = 1` for every action.
 - Logical ticks, not measured wall-clock time.
 - Action costs are exact integer scenario units (audio bytes, frames, millijoules) until hardware telemetry backs them.
 - Transcript hashes establish deterministic integrity/identity within the harness; they are not signatures, producer authentication or authorization.
