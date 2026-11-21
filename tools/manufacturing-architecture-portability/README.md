@@ -168,3 +168,12 @@ The portable observation projection now admits only MTConnect `Sample`, `Event` 
 A test-only synthetic CuttingTool Asset fixture is validated by the asset schema and deliberately rejected by the stream-observation schema. This consumes the existing MTConnect/QIF mapper semantics in #3025/#3026/#3033; it does not create a second asset registry or parser.
 
 For a `qualified_reference` claim, calibration and uncertainty records also bind their validity intervals to an explicit clock identity. The current evaluator requires that clock to equal the QIF measurement's declared reference clock; both the mapped measurement time and decision time must fall inside the validity interval. It does not compare raw source timestamps against a reference-clock interval. Clock mapping correctness remains owned by the clock/metrology evidence path (#4947); #6579 only checks the supplied identities and time envelope.
+
+## External NIST integration anchors
+
+Two NIST assets should be separate benchmark strata, not pooled into one synthetic/physical dataset:
+
+- **Tennessee Eastman Process (TEP):** NIST identifies this as the initial test case for its planned SI-for-Manufacturing integration bench. Use it for continuous-process fault detection/diagnosis and contextualization, with its own process model, fault labels, source/rights manifest and baseline. Do not mix it into discrete CNC/QIF acceptance statistics.
+- **NIST Smart Manufacturing Systems (SMS) Test Bed:** its CAx Lab spans CAD/CAM/CAI/PDM/V&V, while its Manufacturing Lab includes CNC milling/turning and inspection equipment, with machine data collected using MTConnect. This is the more directly relevant source candidate for a future physical/equipment information-architecture stratum. External data admission, schema/release pinning, data rights and source digests remain prerequisites.
+
+NIST's TIDAL benchmark plan emphasizes accuracy, latency, cost and grounding, and weights fault-detection recall ahead of precision. Foundry should publish recall and precision together with false-alarm burden, abstention, decision cost and per-fault-family results. NIST's benchmark environment, agent harness and evaluation toolkit are future programme deliverables (FY28 in its current plan), not a released harness that this PR has run.
