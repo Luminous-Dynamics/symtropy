@@ -159,7 +159,7 @@
       },
       {
         "episode_id": "lh-006-absent-event-false-memory",
-        "decision": "answer",
+        "decision": "abstain",
         "answer": null,
         "confidence": 0,
         "cited_observation_refs": [],
