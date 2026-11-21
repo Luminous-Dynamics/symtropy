@@ -65,7 +65,6 @@
     },
     "episode_receipts": {
       "type": "array",
-      "minItems": 1,
       "items": {
         "$ref": "#/$defs/episode"
       }
@@ -149,6 +148,20 @@
       ]
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"run_status": {"const": "complete"}},
+        "required": ["run_status"]
+      },
+      "then": {
+        "properties": {
+          "episode_receipts": {"minItems": 1},
+          "aggregate_counts": {"minProperties": 1}
+        }
+      }
+    }
+  ],
   "$defs": {
     "build": {
       "type": "object",
