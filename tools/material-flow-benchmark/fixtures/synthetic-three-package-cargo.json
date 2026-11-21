@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "scenario_id": "synthetic-three-package-cargo-v1",
+  "bay": {
+    "bay_id": "synthetic-bay-01",
+    "internal_dimensions_mm": {
+      "length_mm": 3000,
+      "width_mm": 1800,
+      "height_mm": 1800
+    },
+    "vehicle_tare_mass_g": 2000000,
+    "vehicle_tare_cg_mm": [
+      1500,
+      900,
+      700
+    ],
+    "maximum_cargo_payload_g": 1500000,
+    "maximum_gross_vehicle_mass_g": 3800000,
+    "combined_cg_bounds_mm": {
+      "x_min_mm": 1000,
+      "x_max_mm": 2000,
+      "y_min_mm": 500,
+      "y_max_mm": 1300,
+      "z_min_mm": 300,
+      "z_max_mm": 1200
+    },
+    "bay_geometry_evidence": "fresh_in_domain",
+    "vehicle_mass_cg_evidence": "fresh_in_domain"
+  },
+  "packages": [
+    {
+      "package_id": "parcel-a",
+      "dimensions_mm": {
+        "length_mm": 600,
+        "width_mm": 500,
+        "height_mm": 400
+      },
+      "mass_g": 100000,
+      "allowed_orientations": [
+        "length_width_height"
+      ],
+      "placement": {
+        "x_mm": 0,
+        "y_mm": 0,
+        "z_mm": 0,
+        "orientation": "length_width_height"
+      },
+      "access_face": "x_min",
+      "geometry_evidence": "fresh_in_domain",
+      "restraint_evidence": "fresh_in_domain"
+    },
+    {
+      "package_id": "parcel-b",
+      "dimensions_mm": {
+        "length_mm": 500,
+        "width_mm": 500,
+        "height_mm": 400
+      },
+      "mass_g": 150000,
+      "allowed_orientations": [
+        "length_width_height"
+      ],
+      "placement": {
+        "x_mm": 700,
+        "y_mm": 600,
+        "z_mm": 0,
+        "orientation": "length_width_height"
+      },
+      "access_face": "x_min",
+      "geometry_evidence": "fresh_in_domain",
+      "restraint_evidence": "fresh_in_domain"
+    },
+    {
+      "package_id": "parcel-c",
+      "dimensions_mm": {
+        "length_mm": 400,
+        "width_mm": 400,
+        "height_mm": 300
+      },
+      "mass_g": 80000,
+      "allowed_orientations": [
+        "length_width_height"
+      ],
+      "placement": {
+        "x_mm": 1300,
+        "y_mm": 1200,
+        "z_mm": 0,
+        "orientation": "length_width_height"
+      },
+      "access_face": "x_min",
+      "geometry_evidence": "fresh_in_domain",
+      "restraint_evidence": "fresh_in_domain"
+    }
+  ]
+}
