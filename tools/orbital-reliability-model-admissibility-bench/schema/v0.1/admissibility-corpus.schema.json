@@ -275,14 +275,16 @@
             "nonhomogeneous_poisson_recurrent_events",
             "accelerated_life",
             "degradation_path",
-            "unknown_or_unregistered"
+            "unknown_or_unregistered",
+            "power_law_recurrent_minimal_repair"
           ]
         },
         "analysis_request": {
           "enum": [
             "aggregate_rate_only",
             "assumption_challenge",
-            "first_failure_life"
+            "first_failure_life",
+            "power_law_recurrent_estimate"
           ]
         },
         "input_resolution": {
