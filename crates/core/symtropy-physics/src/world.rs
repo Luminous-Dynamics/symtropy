@@ -2734,3 +2734,199 @@ mod anisotropic_contact_inertia_tests {
     }
 }
 
+
+
+#[cfg(test)]
+mod staged_world_integration_tests {
+    use super::*;
+    use crate::body::BodyType;
+    use crate::mass_properties::RotationalInertiaOperator;
+    use std::cell::Cell;
+
+    struct CountingCallback {
+        force_calls: Cell<usize>,
+    }
+
+    impl CountingCallback {
+        fn new() -> Self {
+            Self { force_calls: Cell::new(0) }
+        }
+    }
+
+    impl PhysicsCallback<4> for CountingCallback {
+        fn modulate_force(&self, _body: BodyHandle, force: &SVector<f64, 4>) -> SVector<f64, 4> {
+            self.force_calls.set(self.force_calls.get() + 1);
+            *force
+        }
+        fn modulate_impulse(&self, impulse: f64, _contact_point: &SVector<f64, 4>) -> f64 {
+            impulse
+        }
+        fn friction_multiplier(&self, _contact_point: &SVector<f64, 4>, _body: BodyHandle) -> f64 {
+            1.0
+        }
+        fn on_collision(&mut self, _event: &CollisionEvent<4>) {}
+        fn record_dissipation(&mut self, _energy: f64) {}
+        fn record_work(&mut self, _body: BodyHandle, _work_joules: f64) {}
+        fn apply_trauma(&mut self, _event: &CollisionEvent<4>) {}
+    }
+
+    fn valid_body(handle: usize, x: f64) -> RigidBody<4> {
+        let operator = RotationalInertiaOperator::<4>::isotropic(2.0)
+            .expect("4D fixture operator must be SPD");
+        let mut body = RigidBody::<4>::dynamic_sphere(
+            BodyHandle(handle),
+            Point::new([x, 0.0, 0.0, 0.0]),
+            0.2,
+            1.0,
+        )
+        .with_rotational_inertia_operator(operator);
+        body.linear_velocity = SVector::from([0.2, -0.1, 0.3, 0.4]);
+        body.angular_velocity.set(0, 1, 0.3);
+        body.angular_velocity.set(2, 3, -0.2);
+        body.force_accumulator = SVector::from([1.0, 2.0, -0.5, 0.25]);
+        body.torque_accumulator.set(0, 1, 0.2);
+        body.torque_accumulator.set(2, 3, -0.1);
+        body
+    }
+
+    fn unsupported_body(handle: usize, x: f64) -> RigidBody<4> {
+        let mut body = RigidBody::<4>::dynamic_sphere(
+            BodyHandle(handle),
+            Point::new([x, 0.0, 0.0, 0.0]),
+            0.2,
+            1.0,
+        );
+        body.linear_velocity = SVector::from([-0.4, 0.1, 0.2, -0.3]);
+        body.angular_velocity.set(0, 1, 0.25);
+        body.torque_accumulator.set(0, 1, 0.1);
+        body.force_accumulator = SVector::from([-1.0, 0.5, 0.25, -0.75]);
+        body
+    }
+
+    fn assert_body_unchanged(before: &RigidBody<4>, after: &RigidBody<4>) {
+        assert_eq!(before.transform.translation, after.transform.translation);
+        assert_eq!(before.transform.rotation, after.transform.rotation);
+        assert_eq!(before.linear_velocity, after.linear_velocity);
+        assert_eq!(before.angular_velocity, after.angular_velocity);
+        assert_eq!(before.force_accumulator, after.force_accumulator);
+        assert_eq!(before.torque_accumulator, after.torque_accumulator);
+    }
+
+    #[test]
+    fn later_body_rejection_leaves_all_world_owned_state_unchanged_in_both_orders() {
+        for invalid_first in [false, true] {
+            let mut world = PhysicsWorld::<4>::new(SVector::zeros());
+            let valid = valid_body(40, -10.0);
+            let invalid = unsupported_body(41, 10.0);
+            let valid_handle = valid.handle;
+            let invalid_handle = invalid.handle;
+            if invalid_first {
+                world.add_body(invalid);
+                world.add_body(valid);
+            } else {
+                world.add_body(valid);
+                world.add_body(invalid);
+            }
+
+            world.collision_events.push(CollisionEvent {
+                body_a: valid_handle,
+                body_b: invalid_handle,
+                impulse: 0.5,
+                normal: SVector::from([1.0, 0.0, 0.0, 0.0]),
+                depth: 0.1,
+            });
+            world.sensor_events.push(crate::contact::SensorEvent {
+                sensor: valid_handle,
+                other: invalid_handle,
+            });
+            let collision_count = world.collision_events.len();
+            let sensor_count = world.sensor_events.len();
+            let contact_count = world.contacts.len();
+            let dirty_before = world.static_tree_dirty;
+            let bodies_before = world.bodies.iter().map(|body| {
+                (body.handle, body.transform.translation, body.transform.rotation,
+                 body.linear_velocity, body.angular_velocity, body.force_accumulator,
+                 body.torque_accumulator)
+            }).collect::<Vec<_>>();
+            let mut callback = CountingCallback::new();
+
+            assert_eq!(
+                world.try_step_with_callback(0.01, &mut callback),
+                Err(PhysicsStepPreflightError::BodyIntegration {
+                    body: invalid_handle,
+                    source: crate::body::RotationalResponseError::UnsupportedModel {
+                        model: crate::body::RotationalInertiaModel::MeanInertiaApproximation,
+                    },
+                })
+            );
+
+            // Callback modulation is external to PhysicsWorld and intentionally
+            // occurs once per awake body during preflight.
+            assert_eq!(callback.force_calls.get(), 2);
+            assert_eq!(world.collision_events.len(), collision_count);
+            assert_eq!(world.sensor_events.len(), sensor_count);
+            assert_eq!(world.contacts.len(), contact_count);
+            assert_eq!(world.static_tree_dirty, dirty_before);
+            for (handle, translation, rotation, linear, angular, force, torque) in bodies_before {
+                let body = world.body(handle).expect("body remains present");
+                assert_eq!(body.transform.translation, translation);
+                assert_eq!(body.transform.rotation, rotation);
+                assert_eq!(body.linear_velocity, linear);
+                assert_eq!(body.angular_velocity, angular);
+                assert_eq!(body.force_accumulator, force);
+                assert_eq!(body.torque_accumulator, torque);
+            }
+        }
+    }
+
+    fn world_with_two_valid_operator_bodies() -> PhysicsWorld<4> {
+        let mut world = PhysicsWorld::<4>::new(SVector::from([0.0, -9.81, 0.0, 0.0]));
+        world.add_body(valid_body(50, -10.0));
+        world.add_body(valid_body(51, 10.0));
+        world
+    }
+
+    #[test]
+    fn strict_world_integration_matches_legacy_for_valid_full_operator_bodies() {
+        let mut legacy = world_with_two_valid_operator_bodies();
+        let mut strict = world_with_two_valid_operator_bodies();
+
+        legacy.step(0.001);
+        strict.try_step(0.001).expect("all strict integration candidates are admitted");
+
+        assert_eq!(legacy.bodies.len(), strict.bodies.len());
+        for (legacy_body, strict_body) in legacy.bodies.iter().zip(strict.bodies.iter()) {
+            assert_eq!(legacy_body.handle, strict_body.handle);
+            assert_eq!(legacy_body.transform.translation, strict_body.transform.translation);
+            assert_eq!(legacy_body.transform.rotation, strict_body.transform.rotation);
+            assert_eq!(legacy_body.linear_velocity, strict_body.linear_velocity);
+            assert_eq!(legacy_body.angular_velocity, strict_body.angular_velocity);
+            assert_eq!(strict_body.force_accumulator, SVector::zeros());
+            assert_eq!(strict_body.torque_accumulator, Bivector::zero());
+        }
+    }
+
+    #[test]
+    fn invalid_timestep_rejects_before_callback_or_world_mutation() {
+        let mut world = world_with_two_valid_operator_bodies();
+        let bodies_before = world.bodies.iter().map(|body| {
+            (body.transform.translation, body.linear_velocity, body.angular_velocity,
+             body.force_accumulator, body.torque_accumulator)
+        }).collect::<Vec<_>>();
+        let mut callback = CountingCallback::new();
+        assert_eq!(
+            world.try_step_with_callback(f64::NAN, &mut callback),
+            Err(PhysicsStepPreflightError::InvalidTimeStep)
+        );
+        assert_eq!(callback.force_calls.get(), 0);
+        for (body, (translation, linear, angular, force, torque)) in
+            world.bodies.iter().zip(bodies_before)
+        {
+            assert_eq!(body.transform.translation, translation);
+            assert_eq!(body.linear_velocity, linear);
+            assert_eq!(body.angular_velocity, angular);
+            assert_eq!(body.force_accumulator, force);
+            assert_eq!(body.torque_accumulator, torque);
+        }
+    }
+}
