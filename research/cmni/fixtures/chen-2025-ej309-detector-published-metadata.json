@@ -1,0 +1,92 @@
+{
+  "schema_version": "0.1.0",
+  "fixture_id": "chen-2025-ej309-detector-metadata-v0",
+  "provenance_kind": "published_summary",
+  "source": {
+    "article_doi": "10.1038/s41586-025-09042-7",
+    "article_url": "https://doi.org/10.1038/s41586-025-09042-7",
+    "supplementary_information_url": "https://assets-eu.researchsquare.com/files/rs-5046357/v1/267adeeb10150099b6fa9938.pdf",
+    "zenodo_article_cited_doi": "10.5281/zenodo.13830012",
+    "title_matched_zenodo_record": "https://zenodo.org/records/14752388",
+    "archive_content_status": "not inspected"
+  },
+  "detector_count_described": 1,
+  "detector": {
+    "scintillator": "EJ-309 liquid scintillator",
+    "geometry": {
+      "shape": "cylinder",
+      "diameter_cm": 12.7,
+      "length_cm": 12.7
+    },
+    "distance_from_target_cm": 12,
+    "photomultiplier": "Hamamatsu R1250",
+    "digitizer": {
+      "vendor": "CAEN",
+      "model": "DT5730S",
+      "resolution_bits": 14,
+      "sampling_frequency_mhz": 500,
+      "firmware": "DPP-PSD"
+    },
+    "magnetic_shielding": {
+      "material": "Mu-metal",
+      "field_before_gauss": 40,
+      "field_at_detector_front_after_gauss_upper_bound": 0.3
+    },
+    "measurement_location": "outside vacuum chamber"
+  },
+  "psd_gate": {
+    "feature": "tail_gate_integral / total_gate_integral",
+    "light_output_slice_width_kev_ee": 5,
+    "gamma_fit": {
+      "model": "Gaussian per light-output slice",
+      "mean_parameter": "mu_gamma",
+      "standard_deviation_parameter": "sigma_gamma"
+    },
+    "neutron_window": {
+      "lower_boundary": "mu_gamma + 5*sigma_gamma",
+      "upper_boundary": "lower_boundary + 0.2 PSD units",
+      "lower_light_output_threshold_kev_ee": 50
+    },
+    "reported_pileup_contribution_upper_percent": 2,
+    "reported_gamma_rejection_percent": 99.9999,
+    "qualification": "source-reported performance for the reported setup and analysis; not a universal guarantee or independently reproduced result"
+  },
+  "calibration": {
+    "gamma_sources": [
+      "60Co",
+      "137Cs",
+      "152Eu"
+    ],
+    "calibration_quantity": "light output in keVee",
+    "neutron_energy_mev": 2.45,
+    "neutron_source_energy_distribution": "Gaussian",
+    "neutron_source_sigma_mev": 0.5,
+    "simulated_neutrons": 10000000,
+    "detector_response_tools": [
+      "MCNP6.2",
+      "DRiFT",
+      "Geant4"
+    ],
+    "unfolding_algorithm": "GRAVEL",
+    "response_matrix_source": "Geant4 simulated detector response",
+    "strongest_reported_response_agreement_kev_ee": [
+      200,
+      1000
+    ],
+    "limitations": "paper attributes response discrepancy below 200 keVee to the 50-keVee acquisition cutoff; very few experimental counts above 1000 keVee"
+  },
+  "background": {
+    "reported_rate_per_second": {
+      "value": 0.21,
+      "uncertainty": 0.09,
+      "notation": "0.21(9)"
+    },
+    "reported_stability_duration_hours": 24
+  },
+  "limitations": [
+    "Published metadata only; no raw waveform, calibration spectrum, response matrix or pulse-level data are included in this fixture.",
+    "The public archive's 14.7 GB ZIP contents have not been inspected.",
+    "One EJ-309 detector is described for the reported Thunderbird neutron measurement; this is not independent multi-detector replication.",
+    "The article's gamma rejection and pileup figures are source-reported and require independent challenge testing."
+  ]
+}
