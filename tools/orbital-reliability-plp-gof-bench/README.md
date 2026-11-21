@@ -64,7 +64,7 @@ The Monte Carlo p-value uses:
 \hat p=\frac{1+b}{B+1},
 \]
 
-where \(b\) is the number of conditional reference statistics at least as extreme as the observed statistic and \(B\) is the frozen replicate count. The receipt preserves the seed, PRNG identifier, statistic identifier, replicate count, exceedance count, minimum attainable p-value, Monte Carlo standard error and Wilson 95% interval for the tail-probability estimate.
+where \(b\) is the number of conditional reference statistics at least as extreme as the observed statistic and \(B\) is the frozen replicate count. The receipt preserves the seed, PRNG identifier, statistic identifier, replicate count, exceedance count, minimum attainable p-value, Monte Carlo standard error and Wilson 95% interval for the tail-probability estimate. The PRNG is SplitMix64 mapped to an explicitly open 52-bit uniform grid (k/(2^{52}+1)), for integer (k\in\{1,\ldots,2^{52}\}), before the inverse-exponential transform. Its version identifier is `splitmix64-top52-open-uniform-exp-normalize-v1`.
 
 Published foundation: Lindqvist & Rannestad (2011), *Monte Carlo exact goodness-of-fit tests for nonhomogeneous Poisson processes*, which develops conditional tests given sufficient statistics for power-law and log-linear NHPPs. [DOI: 10.1002/asmb.841](https://doi.org/10.1002/asmb.841); [author manuscript](https://bo.folk.ntnu.no/forskning/LindqvistRannestadASMB.R2.pdf).
 
