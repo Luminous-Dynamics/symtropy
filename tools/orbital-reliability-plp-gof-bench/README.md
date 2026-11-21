@@ -82,7 +82,7 @@ Supported only for:
 
 The v0.1 profile rejects or leaves indeterminate delayed entry, interval censoring, failure-terminated plans, mixed environments/configurations, gapped windows, non-minimal repair, missing capture evidence, incomplete histories and unsupported model families. Do not transplant the fixed-window conditional distribution to failure-terminated designs: their conditional endpoint and terminal-event conventions differ.
 
-The supported significance range is 1%–10%. The Monte Carlo replicate count is 999–100,000 and must provide at least the declared p-value resolution. Multiple diagnostic testing requires an externally declared multiplicity policy.
+The supported significance range is 1%–10%. The Monte Carlo replicate count is 999–100,000 and must provide at least the declared p-value resolution. A hard 10,000,000 total conditional-draw budget bounds work per case; the evaluator rejects rather than silently reducing B. Multiple diagnostic testing requires an externally declared multiplicity policy.
 
 ## Result semantics
 
@@ -96,12 +96,12 @@ No result grants fit acceptance, reliability, physical qualification or authorit
 
 ## Frozen synthetic corpus
 
-The v0.1 corpus contains 22 cases:
+The v0.1 corpus contains 23 cases:
 - complete-history PLP controls with \(\beta\) near 0.6, 0.85, 1.0, 1.6 and 2.0;
 - seeded piecewise/burst and irregular-gap alternatives expected to reject;
 - Weibull profile and failure-terminated / delayed-entry plans outside scope;
 - incomplete history and missing admissibility/capture pins;
-- insufficient event count, invalid chronology, unsupported alpha, insufficient Monte Carlo resolution, imperfect repair, malformed configuration and unsafe random seed.
+- insufficient event count, invalid chronology, unsupported alpha, insufficient Monte Carlo resolution, an excessive total-draw request, imperfect repair, malformed configuration and unsafe random seed.
 
 The separately implemented JavaScript reference oracle reproduces the conditional reference simulation and case dispositions. Agreement on this finite corpus is software/statistical-contract validation only; it is not an empirical estimate of field error rates or proof of diagnostic operating characteristics.
 
