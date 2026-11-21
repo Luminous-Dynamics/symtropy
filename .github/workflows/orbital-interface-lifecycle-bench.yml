@@ -67,7 +67,7 @@ jobs:
             and .result == "pass"
             and .report.evidence_class == "synthetic"
             and .report.claim_ceiling == "synthetic-lifecycle-state-semantics-only"
-            and .report.summary.case_count == 42
+            and .report.summary.case_count == 43
             and .report.summary.expected_result_mismatches == 0
             and .report.authority_granted == false
             and .authority_granted == false
