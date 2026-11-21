@@ -9,8 +9,258 @@
 #[cfg(test)]
 use nalgebra::SVector;
 
-use crate::body::{BodyHandle, RigidBody};
+use crate::body::{BodyHandle, RigidBody, RotationalInertiaModel};
 use crate::constraint::Constraint;
+use symtropy_math::Bivector;
+
+const MAX_PRISMATIC_ROTATIONAL_DOF: usize = 36;
+
+/// Why a passive prismatic angular lock declined to change body state.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PrismaticAngularLockRejection {
+    InvalidStiffness,
+    NonFiniteState,
+    UnsupportedInertiaModel,
+    NonFiniteResponse,
+    NonSymmetricResponse,
+    SingularDelassus,
+    IllConditionedDelassus,
+    SolveResidualTooLarge,
+    UnrepresentableResult,
+}
+
+/// Observable result of the passive prismatic angular-lock solve.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum PrismaticAngularLockOutcome {
+    NoOp,
+    Applied { predicted_residual_inf: f64 },
+    Rejected(PrismaticAngularLockRejection),
+}
+
+fn has_admitted_angular_response<const D: usize>(body: &RigidBody<D>) -> bool {
+    if !body.is_dynamic() {
+        return true;
+    }
+    match body.rotational_inertia_model() {
+        RotationalInertiaModel::ValidatedSpatialBivectorOperator => true,
+        RotationalInertiaModel::PrincipalAxesWorldSpace3D => D == 3,
+        _ => false,
+    }
+}
+
+/// Assemble and solve the angular Delassus system without mutating either body.
+/// The matrix and factorization live on the stack (at most 36 rotational DOF).
+fn try_prismatic_angular_lock_impulse<const D: usize>(
+    body_a: &RigidBody<D>,
+    body_b: &RigidBody<D>,
+    stiffness: f64,
+) -> Result<Option<(Bivector<D>, f64)>, PrismaticAngularLockRejection> {
+    if !stiffness.is_finite() || !(0.0..=1.0).contains(&stiffness) {
+        return Err(PrismaticAngularLockRejection::InvalidStiffness);
+    }
+    if stiffness == 0.0 {
+        return Ok(None);
+    }
+    if !body_a.angular_velocity.is_finite() || !body_b.angular_velocity.is_finite() {
+        return Err(PrismaticAngularLockRejection::NonFiniteState);
+    }
+    if !has_admitted_angular_response(body_a) || !has_admitted_angular_response(body_b) {
+        return Err(PrismaticAngularLockRejection::UnsupportedInertiaModel);
+    }
+
+    let mut relative = Bivector::<D>::zero();
+    let mut relative_scale = 0.0_f64;
+    for i in 0..D {
+        for j in (i + 1)..D {
+            let value = body_b.angular_velocity.get(i, j) - body_a.angular_velocity.get(i, j);
+            if !value.is_finite() {
+                return Err(PrismaticAngularLockRejection::NonFiniteState);
+            }
+            relative.set(i, j, value);
+            relative_scale = relative_scale.max(value.abs());
+        }
+    }
+    if relative_scale == 0.0 {
+        return Ok(None);
+    }
+
+    let dof = D.saturating_mul(D.saturating_sub(1)) / 2;
+    if dof == 0 || dof > MAX_PRISMATIC_ROTATIONAL_DOF {
+        return Err(PrismaticAngularLockRejection::UnsupportedInertiaModel);
+    }
+
+    let mut planes = [(0usize, 1usize); MAX_PRISMATIC_ROTATIONAL_DOF];
+    let mut plane_count = 0;
+    for i in 0..D {
+        for j in (i + 1)..D {
+            planes[plane_count] = (i, j);
+            plane_count += 1;
+        }
+    }
+    if plane_count != dof {
+        return Err(PrismaticAngularLockRejection::UnsupportedInertiaModel);
+    }
+
+    // W = I_a^-1 + I_b^-1 in the canonical lexicographic bivector basis.
+    let mut delassus = [[0.0_f64; MAX_PRISMATIC_ROTATIONAL_DOF]; MAX_PRISMATIC_ROTATIONAL_DOF];
+    for column in 0..dof {
+        let (basis_i, basis_j) = planes[column];
+        let mut basis = Bivector::<D>::zero();
+        basis.set(basis_i, basis_j, 1.0);
+        let response_a = body_a.apply_inverse_angular_inertia(&basis);
+        let response_b = body_b.apply_inverse_angular_inertia(&basis);
+        if !response_a.is_finite() || !response_b.is_finite() {
+            return Err(PrismaticAngularLockRejection::NonFiniteResponse);
+        }
+        for row in 0..dof {
+            let (row_i, row_j) = planes[row];
+            let value = response_a.get(row_i, row_j) + response_b.get(row_i, row_j);
+            if !value.is_finite() {
+                return Err(PrismaticAngularLockRejection::NonFiniteResponse);
+            }
+            delassus[row][column] = value;
+        }
+    }
+
+    let mut matrix_scale = 0.0_f64;
+    for row in 0..dof {
+        for column in 0..dof {
+            matrix_scale = matrix_scale.max(delassus[row][column].abs());
+        }
+    }
+    if !matrix_scale.is_finite() || matrix_scale <= 0.0 {
+        return Err(PrismaticAngularLockRejection::SingularDelassus);
+    }
+    let symmetry_tolerance = 1.0e-10 * matrix_scale;
+    for row in 0..dof {
+        for column in 0..row {
+            if (delassus[row][column] - delassus[column][row]).abs()
+                > symmetry_tolerance
+            {
+                return Err(PrismaticAngularLockRejection::NonSymmetricResponse);
+            }
+        }
+    }
+
+    // Scale-aware Cholesky. Tiny pivots are rejected rather than silently
+    // regularized, because regularization would change the declared lock.
+    let mut lower = [[0.0_f64; MAX_PRISMATIC_ROTATIONAL_DOF]; MAX_PRISMATIC_ROTATIONAL_DOF];
+    for row in 0..dof {
+        for column in 0..=row {
+            let mut pivot = delassus[row][column];
+            for inner in 0..column {
+                pivot -= lower[row][inner] * lower[column][inner];
+            }
+            if !pivot.is_finite() {
+                return Err(PrismaticAngularLockRejection::NonFiniteResponse);
+            }
+            if row == column {
+                if pivot <= 0.0 {
+                    return Err(PrismaticAngularLockRejection::SingularDelassus);
+                }
+                if pivot <= 1.0e-12 * matrix_scale {
+                    return Err(PrismaticAngularLockRejection::IllConditionedDelassus);
+                }
+                lower[row][column] = pivot.sqrt();
+            } else {
+                let diagonal = lower[column][column];
+                if !diagonal.is_finite() || diagonal <= 0.0 {
+                    return Err(PrismaticAngularLockRejection::SingularDelassus);
+                }
+                lower[row][column] = pivot / diagonal;
+            }
+        }
+    }
+
+    // Solve W * lambda = stiffness * (omega_b - omega_a).
+    let mut rhs = [0.0_f64; MAX_PRISMATIC_ROTATIONAL_DOF];
+    let mut forward = [0.0_f64; MAX_PRISMATIC_ROTATIONAL_DOF];
+    let mut solution = [0.0_f64; MAX_PRISMATIC_ROTATIONAL_DOF];
+    let mut rhs_inf = 0.0_f64;
+    for index in 0..dof {
+        let (i, j) = planes[index];
+        rhs[index] = stiffness * relative.get(i, j);
+        if !rhs[index].is_finite() {
+            return Err(PrismaticAngularLockRejection::NonFiniteResponse);
+        }
+        rhs_inf = rhs_inf.max(rhs[index].abs());
+    }
+    for row in 0..dof {
+        let mut value = rhs[row];
+        for column in 0..row {
+            value -= lower[row][column] * forward[column];
+        }
+        forward[row] = value / lower[row][row];
+        if !forward[row].is_finite() {
+            return Err(PrismaticAngularLockRejection::NonFiniteResponse);
+        }
+    }
+    for row in (0..dof).rev() {
+        let mut value = forward[row];
+        for column in (row + 1)..dof {
+            value -= lower[column][row] * solution[column];
+        }
+        solution[row] = value / lower[row][row];
+        if !solution[row].is_finite() {
+            return Err(PrismaticAngularLockRejection::NonFiniteResponse);
+        }
+    }
+
+    // Verify the unregularized linear solve before any body mutation.
+    let mut matrix_inf = 0.0_f64;
+    let mut solution_inf = 0.0_f64;
+    let mut solve_residual_inf = 0.0_f64;
+    for row in 0..dof {
+        let mut row_sum = 0.0_f64;
+        let mut reconstructed = 0.0_f64;
+        for column in 0..dof {
+            row_sum += delassus[row][column].abs();
+            reconstructed += delassus[row][column] * solution[column];
+        }
+        matrix_inf = matrix_inf.max(row_sum);
+        solution_inf = solution_inf.max(solution[row].abs());
+        solve_residual_inf = solve_residual_inf.max((reconstructed - rhs[row]).abs());
+    }
+    let solve_scale = (matrix_inf * solution_inf + rhs_inf).max(f64::MIN_POSITIVE);
+    if !solve_residual_inf.is_finite() || solve_residual_inf > 1.0e-10 * solve_scale {
+        return Err(PrismaticAngularLockRejection::SolveResidualTooLarge);
+    }
+
+    let mut impulse = Bivector::<D>::zero();
+    for index in 0..dof {
+        let (i, j) = planes[index];
+        impulse.set(i, j, solution[index]);
+    }
+    let impulse_b = impulse.scale(-1.0);
+
+    // Predict both endpoint responses with the same body operators used by
+    // apply_angular_impulse. Reject before mutation if any result is invalid.
+    let delta_a = body_a.apply_inverse_angular_inertia(&impulse);
+    let delta_b = body_b.apply_inverse_angular_inertia(&impulse_b);
+    if !delta_a.is_finite() || !delta_b.is_finite() {
+        return Err(PrismaticAngularLockRejection::NonFiniteResponse);
+    }
+    let next_a = body_a.angular_velocity.add(&delta_a);
+    let next_b = body_b.angular_velocity.add(&delta_b);
+    if !next_a.is_finite() || !next_b.is_finite() {
+        return Err(PrismaticAngularLockRejection::UnrepresentableResult);
+    }
+
+    let mut predicted_residual_inf = 0.0_f64;
+    for (i, j) in planes.iter().take(dof) {
+        let actual = next_b.get(*i, *j) - next_a.get(*i, *j);
+        let target = (1.0 - stiffness) * relative.get(*i, *j);
+        if !actual.is_finite() || !target.is_finite() {
+            return Err(PrismaticAngularLockRejection::UnrepresentableResult);
+        }
+        predicted_residual_inf = predicted_residual_inf.max((actual - target).abs());
+    }
+    if predicted_residual_inf > 1.0e-9 * relative_scale.max(f64::MIN_POSITIVE) {
+        return Err(PrismaticAngularLockRejection::SolveResidualTooLarge);
+    }
+
+    Ok(Some((impulse, predicted_residual_inf)))
+}
 
 /// Prismatic joint: body B slides along one axis relative to body A.
 pub struct PrismaticJoint<const D: usize> {
@@ -50,6 +300,31 @@ impl<const D: usize> PrismaticJoint<D> {
     pub fn with_motor(mut self, motor: super::MotorDrive) -> Self {
         self.motor = Some(motor);
         self
+    }
+
+    /// Solve the passive rotational lock in the combined kinetic metric.
+    ///
+    /// A common world-space angular impulse solves
+    /// (I_a^-1 + I_b^-1) * lambda = stiffness * (omega_b - omega_a).
+    /// Static/kinematic endpoints contribute zero response. Unsupported,
+    /// invalid, singular or ill-conditioned models are rejected without
+    /// changing either body.
+    pub fn solve_angular_velocity_lock(
+        &self,
+        body_a: &mut RigidBody<D>,
+        body_b: &mut RigidBody<D>,
+    ) -> PrismaticAngularLockOutcome {
+        match try_prismatic_angular_lock_impulse(body_a, body_b, self.stiffness) {
+            Ok(None) => PrismaticAngularLockOutcome::NoOp,
+            Err(reason) => PrismaticAngularLockOutcome::Rejected(reason),
+            Ok(Some((impulse, predicted_residual_inf))) => {
+                crate::integrator::apply_angular_impulse(body_a, &impulse);
+                crate::integrator::apply_angular_impulse(body_b, &impulse.scale(-1.0));
+                PrismaticAngularLockOutcome::Applied {
+                    predicted_residual_inf,
+                }
+            }
+        }
     }
 }
 
@@ -173,30 +448,9 @@ impl<const D: usize> Constraint<D> for PrismaticJoint<D> {
             }
         }
 
-        // Damp all angular velocity (prismatic = no rotation)
-        for i in 0..D {
-            for j in (i + 1)..D {
-                let rel = body_b.angular_velocity.get(i, j) - body_a.angular_velocity.get(i, j);
-                if rel.abs() < 1e-10 {
-                    continue;
-                }
-                let correction = rel * self.stiffness * 0.5;
-                if body_a.is_dynamic() {
-                    body_a.angular_velocity.set(
-                        i,
-                        j,
-                        body_a.angular_velocity.get(i, j) + correction,
-                    );
-                }
-                if body_b.is_dynamic() {
-                    body_b.angular_velocity.set(
-                        i,
-                        j,
-                        body_b.angular_velocity.get(i, j) - correction,
-                    );
-                }
-            }
-        }
+        // Passive rotational lock uses the combined inertia metric rather than
+        // editing angular-velocity coordinates independently.
+        let _lock_outcome = self.solve_angular_velocity_lock(body_a, body_b);
     }
 }
 
@@ -274,6 +528,128 @@ mod tests {
             "Y velocity should be damped, got {}",
             b.linear_velocity[1]
         );
+    }
+
+    fn static_body_3() -> RigidBody<3> {
+        RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
+        )
+    }
+
+    fn dynamic_with_full_inertia(handle: usize, matrix: Vec<f64>) -> RigidBody<3> {
+        let operator = crate::mass_properties::RotationalInertiaOperator::<3>::try_from_row_major(
+            matrix,
+        )
+        .expect("test inertia operator must be SPD");
+        RigidBody::<3>::dynamic_sphere(BodyHandle(handle), Point::origin(), 0.2, 1.0)
+            .with_rotational_inertia_operator(operator)
+    }
+
+    #[test]
+    fn static_base_absorbs_the_entire_prismatic_angular_lock() {
+        let mut a = static_body_3();
+        let mut b = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.2, 1.0);
+        b.angular_velocity.set(0, 1, 0.7);
+        b.angular_velocity.set(0, 2, -0.4);
+        b.angular_velocity.set(1, 2, 0.2);
+
+        let outcome = PrismaticJoint::new(BodyHandle(0), BodyHandle(1), 0)
+            .solve_angular_velocity_lock(&mut a, &mut b);
+        assert!(matches!(outcome, PrismaticAngularLockOutcome::Applied { .. }));
+        assert!(
+            b.angular_velocity.norm() < 1.0e-9,
+            "a static base must not halve the dynamic body's angular correction"
+        );
+    }
+
+    #[test]
+    fn unequal_off_diagonal_inertias_obey_stiffness_residual() {
+        let mut a = dynamic_with_full_inertia(
+            0,
+            vec![4.0, 0.8, 0.0, 0.8, 3.0, 0.35, 0.0, 0.35, 2.0],
+        );
+        let mut b = dynamic_with_full_inertia(
+            1,
+            vec![2.5, -0.3, 0.1, -0.3, 5.0, 0.6, 0.1, 0.6, 3.5],
+        );
+        a.angular_velocity.set(0, 1, -0.1);
+        a.angular_velocity.set(0, 2, 0.2);
+        a.angular_velocity.set(1, 2, -0.3);
+        b.angular_velocity.set(0, 1, 0.6);
+        b.angular_velocity.set(0, 2, -0.4);
+        b.angular_velocity.set(1, 2, 0.5);
+        let mut before = Bivector::<3>::zero();
+        for i in 0..3 {
+            for j in (i + 1)..3 {
+                before.set(
+                    i,
+                    j,
+                    b.angular_velocity.get(i, j) - a.angular_velocity.get(i, j),
+                );
+            }
+        }
+
+        let mut joint = PrismaticJoint::new(BodyHandle(0), BodyHandle(1), 0);
+        joint.stiffness = 0.25;
+        let outcome = joint.solve_angular_velocity_lock(&mut a, &mut b);
+        assert!(matches!(outcome, PrismaticAngularLockOutcome::Applied { .. }));
+        for i in 0..3 {
+            for j in (i + 1)..3 {
+                let after = b.angular_velocity.get(i, j) - a.angular_velocity.get(i, j);
+                assert!(
+                    (after - 0.75 * before.get(i, j)).abs() < 1.0e-9,
+                    "plane ({i},{j}) did not retain the declared 75% residual"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn ill_conditioned_delassus_rejects_without_mutation() {
+        let matrix = vec![
+            1.0e13, 0.0, 0.0,
+            0.0, 1.0, 0.0,
+            0.0, 0.0, 1.0,
+        ];
+        let mut a = dynamic_with_full_inertia(0, matrix.clone());
+        let mut b = dynamic_with_full_inertia(1, matrix);
+        a.angular_velocity.set(0, 1, 0.4);
+        b.angular_velocity.set(1, 2, -0.7);
+        let before_a = a.angular_velocity;
+        let before_b = b.angular_velocity;
+
+        let outcome = PrismaticJoint::new(BodyHandle(0), BodyHandle(1), 0)
+            .solve_angular_velocity_lock(&mut a, &mut b);
+        assert_eq!(
+            outcome,
+            PrismaticAngularLockOutcome::Rejected(
+                PrismaticAngularLockRejection::IllConditionedDelassus
+            )
+        );
+        assert_eq!(a.angular_velocity, before_a);
+        assert_eq!(b.angular_velocity, before_b);
+    }
+
+    #[test]
+    fn higher_dimensional_mean_inertia_is_not_silently_admitted() {
+        let mut a = RigidBody::<4>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.2, 1.0);
+        let mut b = RigidBody::<4>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.2, 1.0);
+        b.angular_velocity.set(0, 1, 0.5);
+        let before_a = a.angular_velocity;
+        let before_b = b.angular_velocity;
+
+        let outcome = PrismaticJoint::new(BodyHandle(0), BodyHandle(1), 0)
+            .solve_angular_velocity_lock(&mut a, &mut b);
+        assert_eq!(
+            outcome,
+            PrismaticAngularLockOutcome::Rejected(
+                PrismaticAngularLockRejection::UnsupportedInertiaModel
+            )
+        );
+        assert_eq!(a.angular_velocity, before_a);
+        assert_eq!(b.angular_velocity, before_b);
     }
 
     #[test]
