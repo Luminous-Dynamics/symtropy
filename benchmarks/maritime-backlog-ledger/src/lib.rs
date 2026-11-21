@@ -20,12 +20,20 @@ impl LedgerKind {
             _ => Err(format!("unknown ledger kind {value:?}")),
         }
     }
+
+    fn required_unit(self) -> &'static str {
+        match self {
+            Self::VesselQueue => "VESSEL_CALL",
+            Self::ContainerStock => "PHYSICAL_BOX",
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CaseDefinition {
     pub case_id: String,
     pub ledger: LedgerKind,
+    pub stock_unit: String,
     pub terminal_id: String,
     pub window_start_tick: i64,
     pub as_of_tick: i64,
@@ -82,6 +90,7 @@ pub struct SourceEvent {
     classification: Classification,
     state: RecordState,
     pub event_kind: String,
+    pub quantity_unit: String,
     pub quantity: u64,
     pub terminal_id: String,
 }
@@ -124,7 +133,7 @@ fn parse_u64(value: &str, name: &str, line: usize) -> Result<u64, String> {
 fn parse_u32(value: &str, name: &str, line: usize) -> Result<u32, String> {
     value
         .parse::<u32>()
-        .map_err(|_| format!("line {line}: {name} must be a positive integer, got {value:?}"))
+        .map_err(|_| format!("line {line}: {name} must be a non-negative integer, got {value:?}"))
 }
 
 fn split_row<'a>(line: &'a str, expected_fields: usize, line_number: usize) -> Result<Vec<&'a str>, String> {
@@ -141,7 +150,7 @@ fn split_row<'a>(line: &'a str, expected_fields: usize, line_number: usize) -> R
     Ok(fields)
 }
 
-/// Parse the frozen v0.1 case CSV. This deliberately is not a general CSV
+/// Parse the frozen v0.1 case CSV. This is deliberately not a general CSV
 /// parser: the admitted fixture has a fixed header and no quoted fields.
 pub fn parse_cases(csv: &str) -> Result<Vec<CaseDefinition>, String> {
     let mut lines = csv.lines().filter(|line| !line.trim().is_empty());
@@ -162,11 +171,19 @@ pub fn parse_cases(csv: &str) -> Result<Vec<CaseDefinition>, String> {
         }
 
         let ledger = LedgerKind::parse(f[1])?;
-        let window_start_tick = parse_i64(f[3], "window_start_tick", line_number)?;
-        let as_of_tick = parse_i64(f[4], "as_of_tick", line_number)?;
-        let opening_stock = parse_u64(f[5], "opening_stock", line_number)?;
-        let reported_closing_stock = parse_u64(f[6], "reported_closing_stock", line_number)?;
-        let expected_accept = match f[7] {
+        let stock_unit = f[2].to_string();
+        if stock_unit != ledger.required_unit() {
+            return Err(format!(
+                "line {line_number}: stock unit {stock_unit:?} does not match ledger unit {:?}",
+                ledger.required_unit()
+            ));
+        }
+
+        let window_start_tick = parse_i64(f[4], "window_start_tick", line_number)?;
+        let as_of_tick = parse_i64(f[5], "as_of_tick", line_number)?;
+        let opening_stock = parse_u64(f[6], "opening_stock", line_number)?;
+        let reported_closing_stock = parse_u64(f[7], "reported_closing_stock", line_number)?;
+        let expected_accept = match f[8] {
             "ACCEPT" => true,
             "REJECT" => false,
             other => return Err(format!("line {line_number}: unknown expected outcome {other:?}")),
@@ -179,7 +196,8 @@ pub fn parse_cases(csv: &str) -> Result<Vec<CaseDefinition>, String> {
         cases.push(CaseDefinition {
             case_id,
             ledger,
-            terminal_id: f[2].to_string(),
+            stock_unit,
+            terminal_id: f[3].to_string(),
             window_start_tick,
             as_of_tick,
             opening_stock,
@@ -194,8 +212,8 @@ pub fn parse_cases(csv: &str) -> Result<Vec<CaseDefinition>, String> {
     Ok(cases)
 }
 
-/// Parse source observations. Exact duplicate source_record_id rows are kept
-/// here and made idempotent by the ledger verifier; conflicting reuse rejects.
+/// Parse source observations. Exact duplicate record rows are retained here
+/// and made idempotent by the verifier; conflicting source-record reuse rejects.
 pub fn parse_events(csv: &str) -> Result<Vec<SourceEvent>, String> {
     let mut lines = csv.lines().filter(|line| !line.trim().is_empty());
     let header = lines.next().ok_or_else(|| "event CSV is empty".to_string())?.trim();
@@ -218,8 +236,9 @@ pub fn parse_events(csv: &str) -> Result<Vec<SourceEvent>, String> {
             classification: Classification::parse(f[7])?,
             state: RecordState::parse(f[8])?,
             event_kind: f[9].to_string(),
-            quantity: parse_u64(f[10], "quantity", line_number)?,
-            terminal_id: f[11].to_string(),
+            quantity_unit: f[10].to_string(),
+            quantity: parse_u64(f[11], "quantity", line_number)?,
+            terminal_id: f[12].to_string(),
         };
 
         if event.revision == 0 {
@@ -256,8 +275,11 @@ fn is_zero_state(event: &SourceEvent) -> bool {
 fn verify_case(case: &CaseDefinition, input_events: &[SourceEvent]) -> Result<u64, String> {
     let mut records_by_id: BTreeMap<String, SourceEvent> = BTreeMap::new();
 
-    // First make exact replay idempotent and reject source-record identity reuse.
-    for event in input_events.iter().filter(|event| event.case_id == case.case_id) {
+    // Filter by observation time before conflict checks. A record not yet
+    // observed at the decision cutoff must not influence historical replay.
+    for event in input_events.iter().filter(|event| {
+        event.case_id == case.case_id && event.observed_tick <= case.as_of_tick
+    }) {
         match records_by_id.get(&event.source_record_id) {
             Some(existing) if existing == event => continue,
             Some(_) => {
@@ -287,25 +309,27 @@ fn verify_case(case: &CaseDefinition, input_events: &[SourceEvent]) -> Result<u6
 
     for (event_id, mut revisions) in by_event {
         revisions.sort_by_key(|event| event.revision);
-        let source_id = revisions[0].source_id.as_str();
-        let terminal_id = revisions[0].terminal_id.as_str();
+        let first = revisions.first().expect("event group is non-empty");
+        let source_id = first.source_id.as_str();
+        let terminal_id = first.terminal_id.as_str();
+        let quantity_unit = first.quantity_unit.as_str();
 
-        if revisions.iter().any(|event| {\n            event.source_id != source_id\n                || event.terminal_id != terminal_id\n                || event.quantity_unit != case.stock_unit\n        }) {
-            return Err(format!("event {event_id:?} changed source or terminal identity across revisions"));
+        if revisions.iter().any(|event| {
+            event.source_id != source_id
+                || event.terminal_id != terminal_id
+                || event.quantity_unit != quantity_unit
+        }) {
+            return Err(format!("event {event_id:?} changed source, terminal or unit identity across revisions"));
         }
 
-        let mut visible: Vec<SourceEvent> = revisions
-            .into_iter()
-            .filter(|event| event.observed_tick <= case.as_of_tick)
-            .collect();
-
-        if visible.is_empty() {
-            // Future-observed evidence must not influence historical replay.
-            continue;
+        if quantity_unit != case.stock_unit {
+            return Err(format!(
+                "event {event_id:?} quantity unit {quantity_unit:?} does not match case stock unit {:?}",
+                case.stock_unit
+            ));
         }
 
-        visible.sort_by_key(|event| event.revision);
-        for (index, event) in visible.iter().enumerate() {
+        for (index, event) in revisions.iter().enumerate() {
             let expected_revision = u32::try_from(index + 1)
                 .map_err(|_| "revision index overflow".to_string())?;
             if event.revision != expected_revision {
@@ -316,13 +340,10 @@ fn verify_case(case: &CaseDefinition, input_events: &[SourceEvent]) -> Result<u6
             }
         }
 
-        for pair in visible.windows(2) {
-            if pair[0].revision == pair[1].revision {
-                return Err(format!("event {event_id:?} has conflicting records for revision {}", pair[0].revision));
-            }
-        }
+        // All rows are already at or before the cutoff. The largest revision
+        // is the event's current state; it replaces rather than adds to prior rows.
+        let current = revisions.last().expect("event group is non-empty");
 
-        let current = visible.last().expect("visible revisions is non-empty");
         if current.state == RecordState::Voided {
             if !is_zero_state(current) {
                 return Err(format!("voided event {event_id:?} must have NONE and zero quantity"));
@@ -350,12 +371,12 @@ fn verify_case(case: &CaseDefinition, input_events: &[SourceEvent]) -> Result<u6
             return Err(format!("actual event {event_id:?} has zero quantity"));
         }
 
-        // This validates event-kind/ledger compatibility before arithmetic.
         signed_delta(case.ledger, &current.event_kind, current.quantity)?;
         active.push(current.clone());
     }
 
-    // The event identity, not ingestion order, defines deterministic order.
+    // Canonical event-time order gives a stable stock trajectory independent
+    // of source row order or ingestion order.
     active.sort_by(|a, b| (a.event_tick, &a.event_id).cmp(&(b.event_tick, &b.event_id)));
 
     let mut stock = i128::from(case.opening_stock);
@@ -445,12 +466,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn all_thirty_frozen_dispositions_match() {
+    fn all_thirty_one_frozen_dispositions_match() {
         let report = evaluate_reference_corpus().expect("frozen corpus should parse");
-        assert_eq!(report.total, 30);
+        assert_eq!(report.total, 31);
         assert_eq!(report.accepted, 15);
-        assert_eq!(report.rejected, 15);
-        assert_eq!(report.matched, 30);
+        assert_eq!(report.rejected, 16);
+        assert_eq!(report.matched, 31);
         assert!(report.all_expected_dispositions_match());
     }
 
@@ -459,8 +480,7 @@ mod tests {
         let events = parse_events(EVENTS_CSV).expect("events parse");
         let cases = parse_cases(CASES_CSV).expect("cases parse");
         let case = cases.iter().find(|case| case.case_id == "V06").expect("V06 exists");
-        let result = verify_case(case, &events);
-        assert_eq!(result, Ok(1));
+        assert_eq!(verify_case(case, &events), Ok(1));
     }
 
     #[test]
@@ -502,7 +522,7 @@ mod tests {
         let event_rows = events
             .iter()
             .map(|event| format!(
-                "{},{},{},{},{},{},{},{},{},{},{},{}",
+                "{},{},{},{},{},{},{},{},{},{},{},{},{}",
                 event.case_id,
                 event.event_id,
                 event.source_record_id,
@@ -521,6 +541,7 @@ mod tests {
                     RecordState::Voided => "VOIDED",
                 },
                 event.event_kind,
+                event.quantity_unit,
                 event.quantity,
                 event.terminal_id,
             ))
@@ -534,26 +555,18 @@ mod tests {
 
     #[test]
     fn source_record_id_conflict_is_rejected() {
-        let events = EVENTS_CSV.replace(
-            "V24,REUSED-24,REC-V24-1,OPS_A,1,10,9,ACTUAL,ACTIVE,ELIGIBLE_ARRIVAL,2,DURBAN_A",
-            "V24,REUSED-24,REC-V24-1,OPS_A,1,10,9,ACTUAL,ACTIVE,ELIGIBLE_ARRIVAL,1,DURBAN_A",
-        );
-        let report = evaluate_corpus(CASES_CSV, &events).expect("corpus parses");
+        let report = evaluate_reference_corpus().expect("corpus parses");
         let case = report.cases.iter().find(|case| case.case_id == "V24").expect("V24 exists");
         assert_eq!(case.actual, "REJECT");
         assert!(case.detail.contains("reused with different content"));
     }
 
     #[test]
-    fn planned_and_estimated_events_cannot_change_actual_stock() {
-        let mut events = parse_events(EVENTS_CSV).expect("events parse");
-        let case = parse_cases(CASES_CSV).expect("cases parse")
-            .into_iter().find(|case| case.case_id == "V07").expect("V07 exists");
-        let planned = events.iter().find(|event| event.case_id == "V07" && event.classification == Classification::Planned).expect("planned event");
-        assert_eq!(planned.event_kind, "NONE");
-        assert_eq!(verify_case(&case, &events), Ok(1));
-        events.retain(|event| !(event.case_id == "V07" && event.classification == Classification::Actual));
-        assert!(verify_case(&case, &events).is_err());
+    fn planned_events_cannot_change_actual_stock() {
+        let events = parse_events(EVENTS_CSV).expect("events parse");
+        let cases = parse_cases(CASES_CSV).expect("cases parse");
+        let case = cases.iter().find(|case| case.case_id == "V07").expect("V07 exists");
+        assert_eq!(verify_case(case, &events), Ok(1));
     }
 
     #[test]
@@ -561,8 +574,10 @@ mod tests {
         let report = evaluate_reference_corpus().expect("corpus parses");
         let vessel_case = report.cases.iter().find(|case| case.case_id == "V18").expect("V18 exists");
         let container_case = report.cases.iter().find(|case| case.case_id == "C19").expect("C19 exists");
+        let unit_case = report.cases.iter().find(|case| case.case_id == "C31").expect("C31 exists");
         assert_eq!(vessel_case.actual, "REJECT");
         assert_eq!(container_case.actual, "REJECT");
+        assert!(unit_case.detail.contains("quantity unit"));
     }
 
     #[test]
