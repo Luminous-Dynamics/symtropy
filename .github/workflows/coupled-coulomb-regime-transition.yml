@@ -1,0 +1,27 @@
+name: Coupled Coulomb regime transition witness
+
+on:
+  pull_request:
+    paths:
+      - "crates/core/symtropy-physics/src/lib.rs"
+      - "crates/core/symtropy-physics/src/coupled_friction_transition_witness.rs"
+      - "docs/research/COULOMB_COUPLED_REGIME_TRANSITION_WITNESS_2026-11-01.md"
+      - ".github/workflows/coupled-coulomb-regime-transition.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  coupled-regime-transition:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Replay exact coupled transition witness
+        run: cargo test -p symtropy-physics --lib coupled_friction_transition_witness --locked
