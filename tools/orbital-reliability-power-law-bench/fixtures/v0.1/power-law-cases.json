@@ -4793,8 +4793,7 @@
         "reliability_claim_granted": false,
         "blockers": [
           "event_time_order_window_or_failure_definition_invalid",
-          "invalid_exposure_end_or_artifact_digest",
-          "power_law_estimator_rejected_event_times"
+          "invalid_exposure_end_or_artifact_digest"
         ]
       }
     },
