@@ -1047,7 +1047,10 @@ pub fn evaluate_shared_fleet(input: &SharedFleetInput) -> Result<SharedFleetRepo
         }
         let worst_case =
             worst_case_cost(&evaluation.scenario_costs).map_err(|error| vec![error])?;
-        if worst_case < best_worst_case_value {
+        if worst_case < best_worst_case_value
+            || (worst_case == best_worst_case_value
+                && evaluation.weighted.total_cost < best_worst_case.weighted.total_cost)
+        {
             best_worst_case_mask = mask;
             best_worst_case_value = worst_case;
             best_worst_case = evaluation.clone();
@@ -1403,7 +1406,7 @@ mod tests {
 
         assert_eq!(
             report.worst_case_optimal_policy.expected_total_cost_units,
-            570
+            527
         );
         assert_eq!(
             report.worst_case_optimal_policy.worst_case_total_cost_units,
