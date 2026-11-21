@@ -904,7 +904,7 @@ fn validate_config(config: &EpisodeConfigV1) -> Result<(), ExecutorError> {
     let mut action_ids = BTreeSet::new();
     for action in &config.action_catalogue {
         if action.action_id.trim().is_empty()
-            || action.max_uses == 0
+            || action.max_uses != 1
             || !action_ids.insert(action.action_id.clone())
             || !action.cancel_cost.fits_within(action.reserve_cost)
         {
@@ -1107,6 +1107,13 @@ mod tests {
             .expect("final answer accepted");
         assert_eq!(*executor.status(), EpisodeStatusV1::Answered);
         assert_eq!(executor.transcript().last().map(|event| event.tick), Some(13));
+    }
+
+    #[test]
+    fn v0_rejects_actions_with_multiple_fixture_uses() {
+        let mut invalid_config = config();
+        invalid_config.action_catalogue[0].max_uses = 2;
+        assert!(ActiveSensingExecutorV1::new(invalid_config, fixtures()).is_err());
     }
 
     #[test]
