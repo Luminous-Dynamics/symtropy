@@ -42,3 +42,21 @@ The companion `correlated_3d.rs` uses an explicit measurement covariance:
 It computes `J = Hᵀ R⁻¹ H` using Cholesky solves and the full 3D line-of-sight vectors. It does not turn group labels into an arbitrary correlation coefficient; one declared latent scalar error is shared by the members of that group, and inconsistent sigmas fail closed. Its six tests cover duplicated common-mode precision, off-diagonal cross-axis information, planar rank loss, permutation invariance, malformed shared-error declarations and budgeted vertical-coverage selection.
 
 Run the correlated example with the isolated crate's `correlated_3d_demo` binary. This is still a narrow local linearized range model: it does not cover multiple latent factors per source, anisotropic vector errors, time-varying correlation, or general pairwise 3D covariance scenarios.
+
+
+## Benchmark protocol: projected versus full 3D observability
+
+For each matched episode, report both the 2D horizontal projection and the full 3D FIM. Do not score a system as fully observable when it has only two horizontal constraints and no vertical information.
+
+Required profile variants:
+- planar UGV with genuinely constrained vertical motion (report the motion-model assumption explicitly);
+- UAV ascent/descent and banking, where vertical/attitude geometry changes;
+- subterranean ramps, shafts and stairwells;
+- surface-to-underwater or depth-mode transitions;
+- lander/local-surface frame transitions where body-fixed and local-up directions matter.
+
+For every time window, report rank, all eigenvalues/eigenvectors, minimum eigenvalue, condition number, axis-wise uncertainty orientation, availability state and the time spent in rank-deficient or poorly conditioned states. Track transition and recovery latency, not just average trajectory error.
+
+The 3D model currently describes only a 3D position state with scalar range observations. It is not a six-degree-of-freedom pose or 15-state inertial error-state model. Those require separately derived Jacobians and coupling terms; they must not be approximated by relabelling this 3x3 matrix.
+
+The correlated 3D extension includes one shared scalar additive error per declared group. It still does not model multiple independent latent factors, anisotropic measurement errors, time-varying correlations or arbitrary joint covariance constraints. OCI and full pairwise-correlation uncertainty remain separate research work.
