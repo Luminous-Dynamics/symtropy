@@ -205,7 +205,7 @@ class MemoryTournamentTests(unittest.TestCase):
 
     def test_future_correction_checkpoint_preserves_old_state_in_all_conditions(self):
         report = comparator.compare_memory_conditions(self.workload,self.truth,self.runs)
-        self.assertEqual(report["per_condition"]["evidence_ledger"]["answer_accuracy"],10/11)
+        self.assertEqual(report["per_condition"]["evidence_ledger"]["answer_accuracy"],11/12)
         for run in self.runs:
             prediction=next(x for x in run["submission"]["predictions"] if x["episode_id"]=="lh-010-correction-before-arrival")
             self.assertEqual(prediction["answer"],"initial_machine_state")
