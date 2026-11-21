@@ -1,11 +1,6 @@
-#[path = "../correlated.rs"]
-mod correlated;
-#[path = "../correlation_envelope.rs"]
-mod correlation_envelope;
-
-use correlated::CorrelatedRangeAction;
-use correlation_envelope::{
-    evaluate_correlation_envelope, correlation_scenario_fisher, CorrelationScenario,
+use nav_observation_toy_fim::correlated::CorrelatedRangeAction;
+use nav_observation_toy_fim::correlation_envelope::{
+    correlation_scenario_fisher, evaluate_correlation_envelope, CorrelationScenario,
     PairwiseCorrelation,
 };
 
