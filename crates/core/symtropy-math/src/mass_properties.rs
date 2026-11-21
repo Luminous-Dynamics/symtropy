@@ -16,6 +16,7 @@ pub enum MassPropertiesError {
     NonFiniteTensor,
     AsymmetricTensor,
     NonPositiveSemidefiniteTensor,
+    TensorValidationDidNotConverge,
     EmptyComponents,
     InvalidTransform,
     InvalidCombinedMass,
@@ -55,6 +56,95 @@ impl std::fmt::Display for MassPropertiesError {
 }
 
 impl std::error::Error for MassPropertiesError {}
+
+/// Return the minimum eigenvalue of a small symmetric matrix using Jacobi
+/// plane rotations. This avoids nalgebra's typenum bounds for arbitrary
+/// const-generic D. Construction-time only; never called in a physics tick.
+fn minimum_symmetric_eigenvalue<const D: usize>(
+    input: SMatrix<f64, D, D>,
+    tolerance: f64,
+) -> Result<f64, MassPropertiesError> {
+    let mut matrix = (input + input.transpose()) * 0.5;
+    let max_iterations = 64_usize
+        .saturating_mul(D.max(1))
+        .saturating_mul(D.max(1));
+    let mut converged = D <= 1;
+
+    for _ in 0..max_iterations {
+        let mut pivot_p = 0;
+        let mut pivot_q = 0;
+        let mut maximum_off_diagonal = 0.0_f64;
+        for row in 0..D {
+            for column in (row + 1)..D {
+                let value = matrix[(row, column)].abs();
+                if value > maximum_off_diagonal {
+                    maximum_off_diagonal = value;
+                    pivot_p = row;
+                    pivot_q = column;
+                }
+            }
+        }
+
+        if maximum_off_diagonal <= tolerance {
+            converged = true;
+            break;
+        }
+
+        let app = matrix[(pivot_p, pivot_p)];
+        let aqq = matrix[(pivot_q, pivot_q)];
+        let apq = matrix[(pivot_p, pivot_q)];
+        if apq == 0.0 {
+            converged = true;
+            break;
+        }
+
+        let tau = (aqq - app) / (2.0 * apq);
+        let sign = if tau.is_sign_negative() { -1.0 } else { 1.0 };
+        let tangent = sign / (tau.abs() + tau.hypot(1.0));
+        let cosine = 1.0 / (1.0 + tangent * tangent).sqrt();
+        let sine = tangent * cosine;
+
+        matrix[(pivot_p, pivot_p)] = app - tangent * apq;
+        matrix[(pivot_q, pivot_q)] = aqq + tangent * apq;
+        matrix[(pivot_p, pivot_q)] = 0.0;
+        matrix[(pivot_q, pivot_p)] = 0.0;
+
+        for index in 0..D {
+            if index == pivot_p || index == pivot_q {
+                continue;
+            }
+            let aip = matrix[(index, pivot_p)];
+            let aiq = matrix[(index, pivot_q)];
+            let new_aip = cosine * aip - sine * aiq;
+            let new_aiq = sine * aip + cosine * aiq;
+            matrix[(index, pivot_p)] = new_aip;
+            matrix[(pivot_p, index)] = new_aip;
+            matrix[(index, pivot_q)] = new_aiq;
+            matrix[(pivot_q, index)] = new_aiq;
+        }
+    }
+
+    if !converged {
+        let mut residual = 0.0_f64;
+        for row in 0..D {
+            for column in (row + 1)..D {
+                residual = residual.max(matrix[(row, column)].abs());
+            }
+        }
+        if residual > tolerance {
+            return Err(MassPropertiesError::TensorValidationDidNotConverge);
+        }
+    }
+
+    let mut minimum = f64::INFINITY;
+    for axis in 0..D {
+        minimum = minimum.min(matrix[(axis, axis)]);
+    }
+    if !minimum.is_finite() {
+        return Err(MassPropertiesError::NonFiniteTensor);
+    }
+    Ok(minimum)
+}
 
 /// Centroidal mass properties in the shape's local frame.
 ///
@@ -102,9 +192,9 @@ impl<const D: usize> MassProperties<D> {
             }
         }
 
-        let symmetric = (centroidal_second_moment + centroidal_second_moment.transpose()) * 0.5;
-        let eigen = nalgebra::linalg::SymmetricEigen::new(symmetric);
-        if eigen.eigenvalues.iter().any(|value| *value < -tolerance) {
+        let minimum_eigenvalue =
+            minimum_symmetric_eigenvalue(centroidal_second_moment, tolerance)?;
+        if minimum_eigenvalue < -tolerance {
             return Err(MassPropertiesError::NonPositiveSemidefiniteTensor);
         }
 
