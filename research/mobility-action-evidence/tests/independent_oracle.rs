@@ -1,9 +1,8 @@
 use mobility_action_evidence::{
-    validate_physical_outcome, validate_ticket_applicability, ActionTicket, AuthorityBinding,
-    ClockBinding, Digest, LiveContext, NavigationRequirement, NavigationService,
-    NavigationTimeEvidence, OperationBinding, OutcomeDisposition, OutcomePolicy, ObserverRole,
-    PhysicalOutcome, PhysicalOutcomeEvidence,
-    PlatformBinding,
+    ActionTicket, AuthorityBinding, ClockBinding, Digest, LiveContext, NavigationRequirement,
+    NavigationService, NavigationTimeEvidence, ObserverRole, OperationBinding, OutcomeDisposition,
+    OutcomePolicy, PhysicalOutcome, PhysicalOutcomeEvidence, PlatformBinding,
+    validate_physical_outcome, validate_ticket_applicability,
 };
 
 fn digest(byte: u8) -> Digest {
@@ -107,8 +106,7 @@ fn independent_admission_oracle(ticket: &ActionTicket, context: &LiveContext) ->
     if nonempty.iter().any(|value| value.trim().is_empty()) {
         return false;
     }
-    if ticket.issued_at_ticks >= ticket.expires_at_ticks
-        || ticket.navigation.maximum_age_ticks == 0
+    if ticket.issued_at_ticks >= ticket.expires_at_ticks || ticket.navigation.maximum_age_ticks == 0
     {
         return false;
     }
@@ -255,11 +253,8 @@ fn independent_outcome_oracle(
 fn admission_validator_matches_independent_oracle_under_fault_mutations() {
     let base_ticket = ticket();
     let base_live = live();
-    let mut cases: Vec<(&str, ActionTicket, LiveContext)> = vec![(
-        "positive-control",
-        base_ticket.clone(),
-        base_live.clone(),
-    )];
+    let mut cases: Vec<(&str, ActionTicket, LiveContext)> =
+        vec![("positive-control", base_ticket.clone(), base_live.clone())];
 
     let mut c = base_live.clone();
     c.now_ticks = 2_000;
