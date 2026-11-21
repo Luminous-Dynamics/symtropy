@@ -249,6 +249,8 @@ pub struct EventMetrics {
     pub true_positive: usize,
     pub false_positive: usize,
     pub false_negative: usize,
+    pub total_interval_distance_ticks: u128,
+    pub total_matched_interval_width_ticks: u128,
     pub precision: Option<f64>,
     pub recall: Option<f64>,
     pub mean_interval_distance_ticks: Option<f64>,
@@ -278,6 +280,8 @@ impl MutableEventMetrics {
             true_positive: self.true_positive,
             false_positive: self.false_positive,
             false_negative: self.false_negative,
+            total_interval_distance_ticks: self.total_interval_distance,
+            total_matched_interval_width_ticks: self.total_interval_width,
             precision: (predicted > 0)
                 .then_some(self.true_positive as f64 / predicted as f64),
             recall: (actual > 0)
@@ -326,7 +330,7 @@ fn interval_distance(event_tick: i64, lower_tick: i64, upper_tick: i64) -> Resul
 /// Match inferred transition intervals to independently adjudicated event times.
 ///
 /// Matching is one-to-one by source-local call reference and event kind.
-— predictions outside the tolerance become false positives; unmatched
+/// Predictions outside the tolerance become false positives; unmatched
 /// ground-truth events become false negatives. An event inside the predicted
 /// interval has zero interval-distance error.
 pub fn score_events(
@@ -423,14 +427,14 @@ pub fn score_events(
         overall.true_positive += metrics.true_positive;
         overall.false_positive += metrics.false_positive;
         overall.false_negative += metrics.false_negative;
-        if let Some(distance) = metrics.mean_interval_distance_ticks {
-            overall.total_interval_distance +=
-                (distance * metrics.true_positive as f64).round() as u128;
-        }
-        if let Some(width) = metrics.mean_matched_interval_width_ticks {
-            overall.total_interval_width +=
-                (width * metrics.true_positive as f64).round() as u128;
-        }
+        overall.total_interval_distance = overall
+            .total_interval_distance
+            .checked_add(metrics.total_interval_distance_ticks)
+            .ok_or_else(|| "overall interval distance total overflow".to_string())?;
+        overall.total_interval_width = overall
+            .total_interval_width
+            .checked_add(metrics.total_matched_interval_width_ticks)
+            .ok_or_else(|| "overall interval width total overflow".to_string())?;
     }
 
     Ok(EventScorecard {
