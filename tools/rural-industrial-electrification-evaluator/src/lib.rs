@@ -173,6 +173,8 @@ pub struct CompatibilityReport {
     pub physical_authority_granted: bool,
     pub actuators_commanded: bool,
     pub production_release_granted: bool,
+    pub evidence_digest_content_verified: bool,
+    pub source_signatures_authenticated: bool,
     pub claim_ceiling: String,
 }
 
@@ -669,6 +671,8 @@ pub fn evaluate_compatibility(
         physical_authority_granted: false,
         actuators_commanded: false,
         production_release_granted: false,
+        evidence_digest_content_verified: false,
+        source_signatures_authenticated: false,
         claim_ceiling: "Read-only exact-revision interface compatibility screen. A compatible result requires independent test evidence bound to both exact configurations and interface revisions. It is not a vehicle/module release, regulatory approval, physical actuation or operational authority.".into(),
     })
 }
@@ -843,6 +847,34 @@ mod tests {
             }],
             claim_ceiling: "Test fixture only".into(),
         }
+    }
+
+    #[test]
+    fn committed_synthetic_corpus_preserves_indeterminate_and_incompatible_cases() {
+        let input: CompatibilityInput = serde_json::from_str(include_str!(
+            "../fixtures/ev_carrier_interface_contract_v0_1.json"
+        ))
+        .expect("ICD fixture must deserialize");
+        let report = evaluate_compatibility(&input).expect("fixture must evaluate");
+        assert_eq!(report.module_result_count, 4);
+        assert_eq!(
+            report.results.iter().find(|result| result.module_configuration_id == "detachable-uav-pod-synthetic").unwrap().status,
+            CompatibilityStatus::Indeterminate
+        );
+        assert_eq!(
+            report.results.iter().find(|result| result.module_configuration_id == "integrated-drone-bay-polarity-negative-control").unwrap().status,
+            CompatibilityStatus::Incompatible
+        );
+        assert_eq!(
+            report.results.iter().find(|result| result.module_configuration_id == "mobile-drone-trailer-revision-negative-control").unwrap().status,
+            CompatibilityStatus::Incompatible
+        );
+        assert_eq!(
+            report.results.iter().find(|result| result.module_configuration_id == "amr-handoff-unqualified").unwrap().status,
+            CompatibilityStatus::Indeterminate
+        );
+        assert!(!report.production_release_granted);
+        assert!(!report.physical_authority_granted);
     }
 
     #[test]
