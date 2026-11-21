@@ -900,7 +900,11 @@ mod tests {
         input.modules[0].ports[0].polarity_profile = Some("DC_NEG_POS".into());
         let report = evaluate_compatibility(&input).expect("valid input");
         assert_eq!(report.results[0].status, CompatibilityStatus::Incompatible);
-        assert!(report.results[0].interfaces[0]
+        assert!(report.results[0]
+            .interfaces
+            .iter()
+            .find(|interface| interface.module_port_id == "module-hv")
+            .expect("HV finding")
             .findings
             .contains(&"polarity_profile_mismatch".into()));
     }
@@ -926,7 +930,11 @@ mod tests {
         });
         let report = evaluate_compatibility(&input).expect("valid input");
         assert_eq!(report.results[0].status, CompatibilityStatus::Incompatible);
-        assert!(report.results[0].interfaces[0]
+        assert!(report.results[0]
+            .interfaces
+            .iter()
+            .find(|interface| interface.module_port_id == "module-hv")
+            .expect("HV finding")
             .findings
             .contains(&"provider_operating_range_outside_consumer_acceptance".into()));
     }
@@ -986,6 +994,12 @@ mod tests {
         let first = evaluate_compatibility(&input).expect("first report");
         input.vehicle.ports.reverse();
         input.modules[0].ports.reverse();
+        for port in &mut input.vehicle.ports {
+            port.evidence.reverse();
+        }
+        for port in &mut input.modules[0].ports {
+            port.evidence.reverse();
+        }
         let second = evaluate_compatibility(&input).expect("permuted report");
         assert_eq!(first, second);
     }
