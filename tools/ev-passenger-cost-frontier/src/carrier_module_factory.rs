@@ -399,10 +399,7 @@ fn evaluate_pair(base: &BaseFactoryScenario, config: &ModuleConfiguration) -> Sc
             (Some(required), Some(available)) => Some(required.min(u64::from(available))),
             _ => None,
         };
-        if station.cycle_minutes_per_attempt.is_some()
-            && attempts.is_some()
-            && required.is_none()
-        {
+        if station.cycle_minutes_per_attempt.is_some() && attempts.is_some() && required.is_none() {
             missing.push("required_parallel_cells_exceeds_v1_sizing_limit".into());
         }
         if station.cycle_minutes_per_attempt.is_none() {
@@ -731,9 +728,11 @@ mod tests {
         let result = evaluate_pair(&factory, &test);
         assert_eq!(result.status, Status::Indeterminate);
         assert_eq!(result.equivalent_good_vehicle_capacity_per_year, None);
-        assert!(result.missing_fields.iter().any(|field| {
-            field == "assembly:required_parallel_cells_exceeds_v1_sizing_limit"
-        }));
+        assert!(
+            result.missing_fields.iter().any(|field| {
+                field == "assembly:required_parallel_cells_exceeds_v1_sizing_limit"
+            })
+        );
     }
 
     #[test]
