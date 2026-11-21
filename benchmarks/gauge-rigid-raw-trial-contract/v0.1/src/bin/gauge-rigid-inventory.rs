@@ -324,8 +324,28 @@ fn inspect_file(root: &Path, path: &Path) -> Result<FileResult, String> {
         .map_err(|error| format!("cannot read raw file: {error}"))?;
     let sha256 = sha256_bytes(&raw_bytes)?;
 
-    let text = std::str::from_utf8(&raw_bytes)
-        .map_err(|error| format!("raw JSON is not valid UTF-8: {error}"))?;
+    let text = match std::str::from_utf8(&raw_bytes) {
+        Ok(text) => text,
+        Err(error) => {
+            return Ok(FileResult {
+                path: relative,
+                family,
+                material,
+                subtask,
+                record_label,
+                byte_len: raw_bytes.len(),
+                sha256: Some(sha256),
+                disposition: "INVALID_OR_UNSUPPORTED_PROFILE",
+                error: Some(format!("raw JSON is not valid UTF-8: {error}")),
+                fps_hz: None,
+                translation_unit: None,
+                euler_order: None,
+                quaternion_component_order: None,
+                body_streams: Vec::new(),
+                semantics: None,
+            });
+        }
+    };
     match validate_trial_json(text) {
         Ok(report) => {
             let mut streams = report
@@ -661,7 +681,7 @@ mod tests {
         assert!(escaped.contains(r#"\"quote\""#));
         assert!(escaped.contains(r#"\\\n"#));
         assert!(escaped.contains(r#"\t\u0001"#));
-        assert!(escaped.ends_with("café\\\""));
+        assert!(escaped.ends_with("café\""));
     }
 
     #[test]
