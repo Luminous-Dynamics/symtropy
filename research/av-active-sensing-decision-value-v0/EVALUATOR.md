@@ -53,3 +53,8 @@ This validates finite scenario and evaluator mechanics only. It does not establi
 The public repository includes evaluator truth/outcomes and is not a blind test set. A blind evaluation requires hidden rights-qualified scenarios in an evaluator-controlled process/storage boundary, with the candidate receiving only the state and observations actually available at each step.
 
 The next qualification tranche should add multiple acquisition rounds per episode, partial observations that change the follow-up action, repeated seeds, calibrated predicted-EVSI versus realized-EVSI reliability, explicit stop-decision metrics, and measured wall-clock/input/energy resource envelopes.
+
+
+### EVSI-estimate calibration
+
+The evaluator now reports mean absolute error and signed bias between each candidate's estimated EVSI and evaluator-known realized EVSI for actions the candidate actually requested. This is a selected-action calibration diagnostic: it does **not** measure whether the policy correctly values actions it never considered, so it must not be presented as full action-space calibration or decision-policy calibration. A future round-based executor (#6555) should elicit estimates for candidate sets before selection and score calibration across selected and unselected alternatives without leaking outcomes.
