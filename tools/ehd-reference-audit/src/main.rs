@@ -474,7 +474,7 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
         push_if_missing(
             &mut findings,
             text_at(case, &["claim_boundary"]).is_some_and(|s| {
-                s.contains("discharge I–V curve")
+                s.contains("discharge I-V curve")
                     && s.contains("no solver accuracy, thrust prediction")
             }),
             "MERLINO_REFERENCE_CLAIM",
@@ -503,7 +503,7 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
         );
         push_if_missing(
             &mut findings,
-            text_at(case, &["experimental_comparator", "plot_conversion", "simulated_current_to_microamp"])
+            text_at(case, &["experimental_comparator", "plot_conversion", "simulated_integrated_current_to_microamp"])
                 .is_some_and(|s| s.contains("2e6") && s.contains("half-domain")),
             "MERLINO_CURRENT_SCALING",
             "half-domain model-current ×2 conversion must remain explicit",
@@ -725,7 +725,7 @@ mod tests {
     fn half_domain_current_correction_is_mandatory() {
         let mut value = atlas();
         value["solver_reference_cases"][0]["experimental_comparator"]["plot_conversion"]
-            ["simulated_current_to_microamp"] = Value::String("multiply by 1e6".into());
+            ["simulated_integrated_current_to_microamp"] = Value::String("multiply by 1e6".into());
         assert!(has_code(&audit_atlas(&value), "MERLINO_CURRENT_SCALING"));
     }
 
