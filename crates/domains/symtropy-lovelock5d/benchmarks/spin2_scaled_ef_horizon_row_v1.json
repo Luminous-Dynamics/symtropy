@@ -23,7 +23,20 @@
     ],
     "interpretation": "One horizon compatibility condition from E_f only; E_b/E_h recurrence and independent E_g constraint remain open.",
     "reduced": "F2pH - 2*H2H*lambda/(3*(lambda + 1)**2) + H2pH/(3*lambda + 3) + 2*(lambda + 2)**2/(3*(lambda + 1)**2)",
-    "unreduced": "3*(lambda+2)^2*Fhat2'(1)-2*lambda*(lambda+2)^2/(lambda+1)^2*Hhat2(1)+(lambda+2)^2/(lambda+1)*Hhat2'(1)+2*(lambda+2)^4/(lambda+1)^2=0"
+    "unreduced": "3*(lambda+2)^2*Fhat2'(1)-2*lambda*(lambda+2)^2/(lambda+1)^2*Hhat2(1)+(lambda+2)^2/(lambda+1)*Hhat2'(1)+2*(lambda+2)^4/(lambda+1)^2=0",
+    "myers_perry_alpha_zero_control": {
+      "lambda": 0,
+      "Fhat2_prime_horizon": -2,
+      "Hhat2_horizon": 1,
+      "Hhat2_prime_horizon": -2,
+      "compatibility_residual": "0",
+      "passed": true
+    },
+    "negative_control_wrong_sign_Hhat2_prime": {
+      "mutated_Hhat2_prime": 2,
+      "compatibility_residual": "4/3",
+      "rejected": true
+    }
   },
   "horizon_jet": {
     "coefficient_slopes": {
@@ -81,6 +94,8 @@
     "full_scaled_row_decomposition_exact": true,
     "generator_equation_fingerprint_matches_pinned_source": true,
     "python": "3.13.5",
-    "sympy": "1.14.0"
+    "sympy": "1.14.0",
+    "myers_perry_horizon_control_exact": true,
+    "wrong_sign_horizon_negative_control_rejected": true
   }
 }
