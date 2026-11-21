@@ -338,3 +338,122 @@ Compare:
 Do not infer that a vendor tool failed because an unsupported export omitted data. Record the exact product/version, module, format, configuration, mapping, permissions and source evidence. A commercial system may keep semantics internally that a neutral export does not carry; test both the native workflow and the exchange boundary when possible.
 
 **Competitive objective:** deliver the best open, reproducible cross-vendor structural-interface conformance suite and evidence handoff—not a universal replacement for established engineering software.
+
+
+## 14. Cross-scale manufacturing and structural-evidence transfer
+
+### Why this is a separate gate
+
+This protocol decides whether a provider/client structural-interface profile is compatible. It must not silently infer that the evidence supporting the provider profile transfers to every target scale or manufactured instance.
+
+Compose these existing owners rather than copying their records or semantics:
+
+- Symthaea [MFG-FOUNDATION-001I #5763](https://github.com/Luminous-Dynamics/symthaea/issues/5763): research-to-manufacturing transfer assessment;
+- Symthaea [MAT-PSPP-001 #6224](https://github.com/Luminous-Dynamics/symthaea/issues/6224) and [ENG-MAT-001 #5074](https://github.com/Luminous-Dynamics/symthaea/issues/5074): process → realized structure → conditioned property → engineering performance and exact material-state applicability;
+- Symthaea [MFG-PROC-000 #5686](https://github.com/Luminous-Dynamics/symthaea/issues/5686): process definition, capability, recipe, process plan and executed-process distinction;
+- Symthaea [MAT-013 #4344](https://github.com/Luminous-Dynamics/symthaea/issues/4344): physical sample, process and characterization lineage;
+- Symtropy [AERO-INSPECTION-OBSERVABILITY-001 #4165](https://github.com/Luminous-Dynamics/symtropy/issues/4165): defect- and method-specific inspectability evidence;
+- Symtropy [ORBITAL-TRUSS-ACCEPTANCE-001 #4263](https://github.com/Luminous-Dynamics/symtropy/issues/4263): as-built geometry, joint inspection and assembled-structure response;
+- Mycelix [construction/manufacturing provenance #5149](https://github.com/Luminous-Dynamics/mycelix/issues/5149): source references, authority, custody, revocation, dispute and evidence lineage.
+
+### Paradigm shift: qualify the transfer, not just the source result
+
+The required chain is:
+
+`research result -> process window -> executed process -> realized material state -> specimen/coupon -> subcomponent -> joint -> component -> assembled load path -> service state`
+
+This is a set of separately justified transfer edges, not a staircase in which evidence automatically becomes stronger with scale. A result may support a coupon-level property and still be indeterminate for a joint because of geometry, residual stress, fastener/bond details, defects, boundary conditions, manufacturing variability or inspection coverage.
+
+Every transfer edge must be explicit and profile-relative. A minimal derived adapter should reference canonical source records and declare:
+
+- source subject identity, source scale and exact configuration/process/material revisions;
+- target subject identity, target scale and intended engineering claim;
+- transfer method: direct test, validated model, similarity argument, conservative bound or other named method;
+- changed variables between source and target, including geometry, scale, process, lot, orientation, thermal history, surface state, joining method, environment and load path;
+- assumptions, applicability domain and excluded mechanisms;
+- measurement and characterization methods, calibration, uncertainty and common-cause dependencies;
+- supporting and contradicting evidence, including failed scale-up and negative results;
+- effectivity, expiry, supersession, change triggers and review authority references.
+
+The adapter is a derived assessment over canonical references. It does not copy manufacturing recipes, raw measurements, supplier claims, material lots, work orders or custody events into a second ledger.
+
+### Transfer dispositions
+
+Use distinct, non-authorizing states:
+
+- `NO_TRANSFER_EVIDENCE`: no admissible bridge evidence exists;
+- `INCOMPLETE`: some bridge evidence exists but required dimensions are missing;
+- `SUPPORTED_AT_SOURCE_SCALE_ONLY`: source result is supported, target-scale claim is not;
+- `SUPPORTED_FOR_TARGET_PROFILE`: the declared transfer argument is supported within its exact target profile;
+- `CHALLENGED`: an observed discrepancy or negative result conflicts with the transfer;
+- `INDETERMINATE`: evidence cannot decide the claim;
+- `STALE_OR_SUPERSEDED`: source, target or dependency identity is no longer current;
+- `DISPUTED`: incompatible records or unresolved authority/evidence conflict.
+
+Never emit a universal `PRODUCTION_READY`, `FLIGHT_READY` or `QUALIFIED` boolean from this adapter.
+
+### Non-inheritance and invalidation rules
+
+A changed material supplier, feedstock lot, machine, tool, process window, build orientation, heat treatment, cure, surface preparation, joint design, geometry revision, inspection procedure, measurement system or target environment does not automatically invalidate every upstream record. It does require a dependency-aware applicability assessment of every affected transfer edge.
+
+The default on an unassessed dependency is `INDETERMINATE`, not inherited compatibility. Preserve historical results as historical evidence; do not rewrite them as current. A supplier certificate or provenance signature establishes neither the physical property nor the structural capability of the target joint.
+
+A coupon property cannot alone qualify:
+- production process stability or yield;
+- a larger component's defect population;
+- joint-level coupled-load capacity;
+- assembled load-path behavior;
+- fatigue, fracture, buckling, creep, thermal stress, nonlinear contact or damage tolerance;
+- field durability or maintenance interval.
+
+Each stronger claim requires its own admitted model/test method and a justified bridge from the source scale.
+
+### Aerospace benchmark extension
+
+Add a held-out transfer tournament to the v0.1 corpus. Keep the 40 structural-interface compatibility cases frozen; do not relabel their expected answers after seeing candidate output. The transfer extension should cover at least these adversarial groups:
+
+1. same nominal alloy, but different temper, build orientation or heat treatment;
+2. same process name, but machine/tool/process-window changes;
+3. repeated coupons from one lot misrepresented as independent production batches;
+4. coupon properties transferred to a joint with a different load path or stress concentration;
+5. specimen dimensions scale while flaw population, surface finish or residual stress changes;
+6. a physically conforming component with no evidence for assembled boundary conditions;
+7. NDE coverage that cannot see the critical defect orientation or buried interface;
+8. calibration, operator, equipment or analysis pipeline shared by supposed independent confirmation;
+9. an old transfer edge retained after material/process/configuration change;
+10. a failed scale-up omitted from the evidence set;
+11. a repair restoring geometry but not restoring material/process or load-transfer evidence;
+12. an as-built assembly whose local joints pass but global load-path acceptance remains unresolved.
+
+Report separately: false scale promotions; unsupported target-scale acceptances; missed transfer gaps; correct abstentions; stale-evidence detection; disputed-record handling; evidence-reason completeness; and human review time. An abstention is preferable to an unsupported transfer.
+
+### Industry comparison and measurable targets
+
+Commercial PLM/CAE/MES/metrology stacks are credible comparators for configuration management, specialist analysis, manufacturing execution and inspection. This work should not claim to replace them. The tournament should compare the candidate adapter against:
+
+- a manual drawing/ICD plus certificate review by competent engineers;
+- a standards/document/PLM-only exchange workflow with the same source records;
+- a profile-ID or material-name shortcut as a deliberately weak negative control;
+- existing #5763 transfer assessment without the structural-interface adapter;
+- the composed adapter with exact scale, process, geometry, measurement and evidence applicability.
+
+All competitors receive the same inputs, frozen criteria, evidence availability, held-out profile pairs and time budget. Measure false acceptance, false rejection, abstention, review hours, rework discovered before assembly, and change-propagation latency. Do not compare only synthetic software scores or assert a vendor-system weakness without a matched evaluation.
+
+Proposed internal gates—not achieved results or certification criteria:
+
+- zero false target-scale promotions in the frozen critical-negative set;
+- 100% detection of the seeded stale-identity and changed-process cases;
+- 100% preservation of source-scale and target-scale labels in the output receipt;
+- exact reproducibility of the transfer disposition and reason set from frozen input bytes;
+- no critical failure hidden by weighted averages;
+- at least 20% lower median review effort than the frozen manual baseline, without increasing false acceptance or reducing evidence coverage. Treat the 20% as a hypothesis until measured on a blinded, held-out set.
+
+Before any physical extension, use non-flight, non-pressurized coupons and guarded fixtures under an approved test plan. A coupon campaign must have a documented article/process lineage, independent measurement, calibration and competent safety review. Do not use flight hardware, propellants, cryogenic fluids, high-pressure transfer or a flight test as an early benchmark shortcut.
+
+### External context
+
+NASA Langley's Design for Inspection research makes inspectability an early design variable and proposes automation-friendly simulation tests for defect findability and sensitivity to variation: [NTRS 20240003953](https://ntrs.nasa.gov/citations/20240003953) and [NTRS 20240007593](https://ntrs.nasa.gov/citations/20240007593). This protocol composes with that direction but does not claim to reproduce NASA's metric.
+
+NIST's digital-thread work identifies persistent gaps around geometry, globally unique identifiers, semantic product/manufacturing information and composite-structure representation; it is a reason to test real interoperation, not a claim that every commercial deployment fails: [NIST Digital Thread for Manufacturing](https://www.nist.gov/programs-projects/digital-thread-manufacturing). NIST's experiment on design/manufacturing/inspection integration also documents that a standards-based prototype did not fully link all required lifecycle information: [Defining requirements for integrating information between design, manufacturing, and inspection](https://www.nist.gov/publications/defining-requirements-integrating-information-between-design-manufacturing-and).
+
+The intended differentiation is therefore not a new universal digital twin. It is a portable, independently replayable decision contract that states exactly what transfers, to which scale and configuration, under which evidence and uncertainty, and what remains unknown.
