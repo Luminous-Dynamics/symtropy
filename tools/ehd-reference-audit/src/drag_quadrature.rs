@@ -313,10 +313,10 @@ pub fn audit_temporal_quadrature(
         let mut speed_squared = 0.0_f64;
         for component in 0..3 {
             let velocity = evaluate(&case.relative_velocity_m_s[component], *time);
-            quadrature_impulse[component] += weight * drag_rate * velocity;
+            quadrature_impulse[component] += *weight * drag_rate * velocity;
             speed_squared += velocity * velocity;
         }
-        quadrature_heating += weight * drag_rate * speed_squared;
+        quadrature_heating += *weight * drag_rate * speed_squared;
     }
 
     let (exact_impulse, exact_heating, impulse_degree_max, heating_degree_max) =
@@ -499,7 +499,7 @@ mod tests {
                 let numerical = nodes
                     .iter()
                     .zip(weights.iter())
-                    .map(|(node, weight)| weight * node.powi(degree as i32))
+                     .map(|(node, weight)| *weight * node.powi(degree as i32))
                     .sum::<f64>();
                 let exact = 1.0 / (degree as f64 + 1.0);
                 assert!(
@@ -526,7 +526,7 @@ mod tests {
             let numerical = nodes
                 .iter()
                 .zip(weights.iter())
-                .map(|(node, weight)| weight * node.powi(degree as i32))
+                 .map(|(node, weight)| *weight * node.powi(degree as i32))
                 .sum::<f64>();
             let exact = 1.0 / (degree as f64 + 1.0);
             assert!(
