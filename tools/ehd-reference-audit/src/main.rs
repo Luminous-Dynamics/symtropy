@@ -8,6 +8,7 @@ use serde_json::Value;
 use std::{env, fs, process};
 
 mod exchange;
+mod geometry;
 
 const EMBEDDED_ATLAS: &str =
     include_str!("../../../data/research/ehd_reference_atlas_v0_1.json");
@@ -1291,6 +1292,13 @@ fn main() {
             false
         }
     };
+    let geometry_kernel_ok = match geometry::reference_self_check() {
+        Ok(()) => true,
+        Err(error) => {
+            findings.push(format!("GEOMETRY_KERNEL_SELF_CHECK: {error}"));
+            false
+        }
+    };
     if findings.is_empty() {
         let count = len_at(&atlas, &["source_records"]).unwrap_or(0);
         let system_count = len_at(&atlas, &["system_integration_references"]).unwrap_or(0);
@@ -1303,6 +1311,9 @@ fn main() {
         println!("array interaction protocol: audited");
         if exchange_kernel_ok {
             println!("conservative impulse remap kernel self-check: passed");
+        }
+        if geometry_kernel_ok {
+            println!("axis-aligned space-time geometry self-check: passed");
         }
         println!("scope: source structure and cohort comparability only; no physical V&V claim");
     } else {
