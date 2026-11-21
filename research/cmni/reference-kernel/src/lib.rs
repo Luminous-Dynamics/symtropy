@@ -293,6 +293,132 @@ pub fn total_deuteron_rate_per_second(
         * (d_plus_ion_current_fraction + 2.0 * d2_plus_ion_current_fraction))
 }
 
+/// One measured/sampled cell in a two-dimensional beam-current-density map.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct BeamProfileCell {
+    pub x_cm: f64,
+    pub y_cm: f64,
+    pub area_cm2: f64,
+    /// Measured ion-current density for the combined singly charged D+ / D2+
+    /// beam, in A/cm^2. Species fractions are supplied separately.
+    pub ion_current_density_a_cm2: f64,
+}
+
+/// A spatially resolved beam map reconciled against an independent Faraday-cup
+/// total current. Cell order is preserved in all returned arrays.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ReconciledBeamProfile {
+    pub integrated_map_current_a: f64,
+    pub faraday_cup_current_a: f64,
+    pub relative_current_mismatch: f64,
+    /// Total deuteron arrival rate in each cell, atoms/s.
+    pub deuteron_rate_by_cell_s: Vec<f64>,
+    /// Fraction of total deuteron arrival rate represented by each cell.
+    pub deuteron_flux_fraction_by_cell: Vec<f64>,
+    /// Average deuteron areal flux density per cell, atoms/(cm^2 s).
+    pub deuteron_flux_density_by_cell_cm2_s: Vec<f64>,
+}
+
+/// Reconcile an arbitrary 2-D measured beam profile with an independently
+/// measured Faraday-cup current and convert it to deuteron flux.
+///
+/// This function makes no Gaussian, circular-symmetry or uniform-profile
+/// assumption. Each cell contributes j_i * area_i to the integrated ion
+/// current. The sum must agree with Faraday-cup current within the explicitly
+/// supplied relative tolerance. The map is not silently renormalized to hide
+/// a disagreement: failure is fail-closed.
+///
+/// The species fractions are ion-current fractions for singly charged D+ and
+/// D2+ and must sum to one. Each D2+ contributes two D nuclei to the flux
+/// bookkeeping. This does not model dissociation, implantation or stopping.
+pub fn reconcile_measured_beam_profile(
+    cells: &[BeamProfileCell],
+    faraday_cup_current_a: f64,
+    d_plus_ion_current_fraction: f64,
+    d2_plus_ion_current_fraction: f64,
+    relative_tolerance: f64,
+) -> Result<ReconciledBeamProfile, ModelError> {
+    if cells.is_empty() {
+        return Err(ModelError::InvalidParameter("beam_profile_must_not_be_empty"));
+    }
+    let cup_current = checked_positive(faraday_cup_current_a, "faraday_cup_current_A")?;
+    let tolerance = checked_nonnegative(relative_tolerance, "beam_profile_relative_tolerance")?;
+    if !tolerance.is_finite() {
+        return Err(ModelError::NonFiniteValue("beam_profile_relative_tolerance"));
+    }
+    for (fraction, name) in [
+        (d_plus_ion_current_fraction, "D_plus_ion_current_fraction"),
+        (d2_plus_ion_current_fraction, "D2_plus_ion_current_fraction"),
+    ] {
+        if !fraction.is_finite() || !(0.0..=1.0).contains(&fraction) {
+            return Err(ModelError::InvalidParameter(name));
+        }
+    }
+    if (d_plus_ion_current_fraction + d2_plus_ion_current_fraction - 1.0).abs() > 1.0e-6 {
+        return Err(ModelError::InvalidParameter("ion_current_fractions_must_sum_to_one"));
+    }
+
+    const ELEMENTARY_CHARGE_C: f64 = 1.602_176_634e-19;
+    let deuterons_per_charge = d_plus_ion_current_fraction + 2.0 * d2_plus_ion_current_fraction;
+    let mut integrated_current = 0.0;
+    let mut cell_currents = Vec::with_capacity(cells.len());
+
+    for cell in cells {
+        for (value, name) in [
+            (cell.x_cm, "beam_cell_x_cm"),
+            (cell.y_cm, "beam_cell_y_cm"),
+            (cell.area_cm2, "beam_cell_area_cm2"),
+            (cell.ion_current_density_a_cm2, "beam_cell_current_density_A_cm2"),
+        ] {
+            if !value.is_finite() {
+                return Err(ModelError::NonFiniteValue(name));
+            }
+        }
+        if cell.area_cm2 <= 0.0 || cell.ion_current_density_a_cm2 < 0.0 {
+            return Err(ModelError::InvalidParameter("beam_cell_area_must_be_positive_and_current_density_nonnegative"));
+        }
+        let current = cell.area_cm2 * cell.ion_current_density_a_cm2;
+        integrated_current += current;
+        cell_currents.push(current);
+    }
+
+    if !integrated_current.is_finite() || integrated_current <= 0.0 {
+        return Err(ModelError::NonPositiveValue("integrated_beam_map_current_A"));
+    }
+    let relative_mismatch = (integrated_current - cup_current).abs() / cup_current;
+    if relative_mismatch > tolerance {
+        return Err(ModelError::InvalidParameter("beam_map_current_does_not_reconcile_with_faraday_cup"));
+    }
+
+    let mut rates = Vec::with_capacity(cells.len());
+    let mut fractions = Vec::with_capacity(cells.len());
+    let mut flux_densities = Vec::with_capacity(cells.len());
+    let mut total_deuteron_rate = 0.0;
+
+    for (cell, current) in cells.iter().zip(cell_currents.iter()) {
+        let deuteron_rate = current / ELEMENTARY_CHARGE_C * deuterons_per_charge;
+        total_deuteron_rate += deuteron_rate;
+        rates.push(deuteron_rate);
+        flux_densities.push(deuteron_rate / cell.area_cm2);
+    }
+
+    if !total_deuteron_rate.is_finite() || total_deuteron_rate <= 0.0 {
+        return Err(ModelError::NonPositiveValue("total_deuteron_rate_s"));
+    }
+    for rate in &rates {
+        fractions.push(*rate / total_deuteron_rate);
+    }
+
+    Ok(ReconciledBeamProfile {
+        integrated_map_current_a: integrated_current,
+        faraday_cup_current_a: cup_current,
+        relative_current_mismatch: relative_mismatch,
+        deuteron_rate_by_cell_s: rates,
+        deuteron_flux_fraction_by_cell: fractions,
+        deuteron_flux_density_by_cell_cm2_s: flux_densities,
+    })
+}
+
 /// Axisymmetric Gaussian footprint used only as an explicit baseline model.
 ///
 /// The profile is normalized over the infinite plane, so its spatial integral
@@ -1099,6 +1225,48 @@ mod tests {
         const E_CHARGE: f64 = 1.602_176_634e-19;
         let expected = 1.0e-6 / E_CHARGE * 1.15;
         assert!((rate - expected).abs()/expected < 1.0e-12);
+    }
+
+    #[test]
+    fn measured_beam_profile_reconciles_current_and_conserves_deuteron_flux() {
+        let cells = [
+            BeamProfileCell { x_cm: -0.5, y_cm: 0.0, area_cm2: 0.25, ion_current_density_a_cm2: 2.0e-6 },
+            BeamProfileCell { x_cm: 0.0, y_cm: 0.0, area_cm2: 0.50, ion_current_density_a_cm2: 1.0e-6 },
+            BeamProfileCell { x_cm: 0.5, y_cm: 0.0, area_cm2: 0.25, ion_current_density_a_cm2: 2.0e-6 },
+        ];
+        let profile = reconcile_measured_beam_profile(&cells, 1.0e-6, 0.85, 0.15, 1.0e-12)
+            .expect("matching spatial beam profile");
+        assert!((profile.integrated_map_current_a - 1.0e-6).abs() < 1.0e-18);
+        let fraction_sum = profile.deuteron_flux_fraction_by_cell.iter().sum::<f64>();
+        assert!((fraction_sum - 1.0).abs() < 1.0e-12);
+        let rate_sum = profile.deuteron_rate_by_cell_s.iter().sum::<f64>();
+        let expected = total_deuteron_rate_per_second(1.0e-6, 0.85, 0.15)
+            .expect("total deuteron rate");
+        assert!((rate_sum - expected).abs()/expected < 1.0e-12);
+    }
+
+    #[test]
+    fn measured_beam_profile_rejects_faraday_current_mismatch() {
+        let cells = [
+            BeamProfileCell { x_cm: 0.0, y_cm: 0.0, area_cm2: 1.0, ion_current_density_a_cm2: 1.0e-6 },
+        ];
+        let result = reconcile_measured_beam_profile(&cells, 1.2e-6, 1.0, 0.0, 0.01);
+        assert_eq!(
+            result,
+            Err(ModelError::InvalidParameter("beam_map_current_does_not_reconcile_with_faraday_cup"))
+        );
+    }
+
+    #[test]
+    fn measured_beam_profile_rejects_invalid_cell_geometry_or_density() {
+        let bad_area = [BeamProfileCell {
+            x_cm: 0.0, y_cm: 0.0, area_cm2: 0.0, ion_current_density_a_cm2: 1.0e-6
+        }];
+        assert!(reconcile_measured_beam_profile(&bad_area, 1.0e-6, 1.0, 0.0, 0.01).is_err());
+        let bad_density = [BeamProfileCell {
+            x_cm: 0.0, y_cm: 0.0, area_cm2: 1.0, ion_current_density_a_cm2: -1.0e-6
+        }];
+        assert!(reconcile_measured_beam_profile(&bad_density, 1.0e-6, 1.0, 0.0, 0.01).is_err());
     }
 
     #[test]
