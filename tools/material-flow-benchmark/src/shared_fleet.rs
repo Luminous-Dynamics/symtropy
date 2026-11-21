@@ -1822,21 +1822,17 @@ mod tests {
                 1 | 2 => "rural",
                 _ => unreachable!("three-period fixture"),
             };
-            let action = canonical.regions.iter()
+            let action = canonical
+                .regions
+                .iter()
                 .position(|region| region.region_id == target)
                 .expect("target region exists") as u64;
             mask = mask
                 .checked_add(action * radix.pow(node_index as u32))
                 .expect("policy mask fits v0.1 search budget");
         }
-        let metrics = simulate_scenario(
-            &canonical,
-            &canonical.scenarios[0],
-            &indices,
-            mask,
-            true,
-        )
-        .expect("two-hop policy");
+        let metrics = simulate_scenario(&canonical, &canonical.scenarios[0], &indices, mask, true)
+            .expect("two-hop policy");
         assert_eq!(metrics.repositioning_events, 2);
         assert_eq!(metrics.repositioning_periods, 2);
         assert_eq!(metrics.reposition_energy_units, 8);
