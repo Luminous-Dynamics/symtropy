@@ -120,7 +120,6 @@ function evaluateCase(c) {
     if (!observed.record_id || !observed.reference_event_id || !sha256(observed.payload_sha256)
         || recordIds.has(observed.record_id)) {
       const result = blocked("disputed", "duplicate_record_identity_or_malformed_observation");
-      result.injected_count = references.length;
       return result;
     }
     recordIds.add(observed.record_id);
