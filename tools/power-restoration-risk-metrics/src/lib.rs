@@ -263,7 +263,8 @@ fn validate_cohort(cohort: &CohortIdentity, errors: &mut Vec<String>) {
         || cohort.wall_clock_budget_ms == 0
         || cohort.max_decision_steps == 0
     {
-        errors.push("cohort identity is incomplete or contains an invalid digest/budget".to_string());
+        errors
+            .push("cohort identity is incomplete or contains an invalid digest/budget".to_string());
     }
 }
 
@@ -284,7 +285,10 @@ fn validate_episode(episode: &EpisodeRecord, errors: &mut Vec<String>) {
     if !valid_id(&episode.episode_artifact.artifact_uri)
         || !is_lower_hex(&episode.episode_artifact.sha256, 64)
     {
-        errors.push(format!("episode {} has invalid evidence provenance", episode.episode_id));
+        errors.push(format!(
+            "episode {} has invalid evidence provenance",
+            episode.episode_id
+        ));
     }
     match (episode.disposition, episode.normalized_regret) {
         (EpisodeDisposition::Completed, Some(value))
@@ -299,8 +303,15 @@ fn validate_episode(episode: &EpisodeRecord, errors: &mut Vec<String>) {
         )),
         (_, None) => {}
     }
-    if episode.operational.api_cost_usd.is_some_and(|value| !value.is_finite() || value < 0.0) {
-        errors.push(format!("episode {} has invalid API cost", episode.episode_id));
+    if episode
+        .operational
+        .api_cost_usd
+        .is_some_and(|value| !value.is_finite() || value < 0.0)
+    {
+        errors.push(format!(
+            "episode {} has invalid API cost",
+            episode.episode_id
+        ));
     }
 }
 
@@ -310,31 +321,53 @@ fn validate_action(
     errors: &mut Vec<String>,
 ) {
     if !known_episodes.contains(action.episode_id.as_str()) {
-        errors.push(format!("action {} references unknown episode {}", action.action_id, action.episode_id));
+        errors.push(format!(
+            "action {} references unknown episode {}",
+            action.action_id, action.episode_id
+        ));
     }
     if !valid_id(&action.episode_id)
         || !valid_id(&action.action_id)
-        || action.command_id.as_deref().is_some_and(|value| !valid_id(value))
+        || action
+            .command_id
+            .as_deref()
+            .is_some_and(|value| !valid_id(value))
         || !valid_id(&action.evidence_artifact.artifact_uri)
         || !is_lower_hex(&action.evidence_artifact.sha256, 64)
         || !valid_id(&action.adjudicator_id)
         || !valid_id(&action.adjudicator_scope)
         || !is_lower_hex(&action.adjudicator_profile_sha256, 64)
     {
-        errors.push(format!("action {} has incomplete identity/evidence", action.action_id));
+        errors.push(format!(
+            "action {} has incomplete identity/evidence",
+            action.action_id
+        ));
     }
     if !action.independent_of_policy_and_guard {
-        errors.push(format!("action {} adjudicator is not independent of policy and guard", action.action_id));
+        errors.push(format!(
+            "action {} adjudicator is not independent of policy and guard",
+            action.action_id
+        ));
     }
     match action.adjudication {
         SafetyAdjudication::Unknown => {
-            if action.unknown_reason.as_deref().is_none_or(|value| !valid_id(value)) {
-                errors.push(format!("unknown action {} requires a reason", action.action_id));
+            if action
+                .unknown_reason
+                .as_deref()
+                .is_none_or(|value| !valid_id(value))
+            {
+                errors.push(format!(
+                    "unknown action {} requires a reason",
+                    action.action_id
+                ));
             }
         }
         SafetyAdjudication::Safe | SafetyAdjudication::Unsafe => {
             if action.unknown_reason.is_some() {
-                errors.push(format!("known action {} must not carry an unknown reason", action.action_id));
+                errors.push(format!(
+                    "known action {} must not carry an unknown reason",
+                    action.action_id
+                ));
             }
         }
     }
@@ -420,9 +453,7 @@ pub fn wilson_interval_95(successes: u64, trials: u64) -> Result<Option<WilsonIn
     let z2 = WILSON_Z_95 * WILSON_Z_95;
     let denominator = 1.0 + z2 / n;
     let centre = (p + z2 / (2.0 * n)) / denominator;
-    let half_width = WILSON_Z_95
-        * (p * (1.0 - p) / n + z2 / (4.0 * n * n)).sqrt()
-        / denominator;
+    let half_width = WILSON_Z_95 * (p * (1.0 - p) / n + z2 / (4.0 * n * n)).sqrt() / denominator;
     Ok(Some(WilsonInterval {
         confidence_level: 0.95,
         lower: (centre - half_width).max(0.0),
@@ -434,8 +465,10 @@ fn rate(numerator: usize, denominator: usize) -> Result<RateEstimate, String> {
     if numerator > denominator {
         return Err("rate numerator exceeds denominator".to_string());
     }
-    let numerator = u64::try_from(numerator).map_err(|_| "rate numerator exceeds u64".to_string())?;
-    let denominator = u64::try_from(denominator).map_err(|_| "rate denominator exceeds u64".to_string())?;
+    let numerator =
+        u64::try_from(numerator).map_err(|_| "rate numerator exceeds u64".to_string())?;
+    let denominator =
+        u64::try_from(denominator).map_err(|_| "rate denominator exceeds u64".to_string())?;
     Ok(RateEstimate {
         numerator,
         denominator,
@@ -445,31 +478,100 @@ fn rate(numerator: usize, denominator: usize) -> Result<RateEstimate, String> {
 }
 
 fn maybe_distribution(values: Vec<f64>) -> Result<Option<DistributionStats>, String> {
-    if values.is_empty() { Ok(None) } else { distribution_stats(&values).map(Some) }
+    if values.is_empty() {
+        Ok(None)
+    } else {
+        distribution_stats(&values).map(Some)
+    }
 }
 
 fn summarize_operational(episodes: &[EpisodeRecord]) -> Result<OperationalMetrics, String> {
     Ok(OperationalMetrics {
-        elapsed_ms: maybe_distribution(episodes.iter().filter_map(|e| e.operational.elapsed_ms).map(|v| v as f64).collect())?,
-        token_count: maybe_distribution(episodes.iter().filter_map(|e| e.operational.token_count).map(|v| v as f64).collect())?,
-        api_cost_usd: maybe_distribution(episodes.iter().filter_map(|e| e.operational.api_cost_usd).collect())?,
-        solver_calls: maybe_distribution(episodes.iter().filter_map(|e| e.operational.solver_calls).map(|v| v as f64).collect())?,
-        solver_wall_time_ms: maybe_distribution(episodes.iter().filter_map(|e| e.operational.solver_wall_time_ms).map(|v| v as f64).collect())?,
-        observation_requests: maybe_distribution(episodes.iter().filter_map(|e| e.operational.observation_requests).map(|v| v as f64).collect())?,
-        peak_memory_bytes: maybe_distribution(episodes.iter().filter_map(|e| e.operational.peak_memory_bytes).map(|v| v as f64).collect())?,
+        elapsed_ms: maybe_distribution(
+            episodes
+                .iter()
+                .filter_map(|e| e.operational.elapsed_ms)
+                .map(|v| v as f64)
+                .collect(),
+        )?,
+        token_count: maybe_distribution(
+            episodes
+                .iter()
+                .filter_map(|e| e.operational.token_count)
+                .map(|v| v as f64)
+                .collect(),
+        )?,
+        api_cost_usd: maybe_distribution(
+            episodes
+                .iter()
+                .filter_map(|e| e.operational.api_cost_usd)
+                .collect(),
+        )?,
+        solver_calls: maybe_distribution(
+            episodes
+                .iter()
+                .filter_map(|e| e.operational.solver_calls)
+                .map(|v| v as f64)
+                .collect(),
+        )?,
+        solver_wall_time_ms: maybe_distribution(
+            episodes
+                .iter()
+                .filter_map(|e| e.operational.solver_wall_time_ms)
+                .map(|v| v as f64)
+                .collect(),
+        )?,
+        observation_requests: maybe_distribution(
+            episodes
+                .iter()
+                .filter_map(|e| e.operational.observation_requests)
+                .map(|v| v as f64)
+                .collect(),
+        )?,
+        peak_memory_bytes: maybe_distribution(
+            episodes
+                .iter()
+                .filter_map(|e| e.operational.peak_memory_bytes)
+                .map(|v| v as f64)
+                .collect(),
+        )?,
     })
 }
 
 fn summarize_safety(actions: &[ActionAdjudicationRecord]) -> Result<SafetyMetrics, String> {
-    let known: Vec<_> = actions.iter().filter(|a| a.adjudication != SafetyAdjudication::Unknown).collect();
+    let known: Vec<_> = actions
+        .iter()
+        .filter(|a| a.adjudication != SafetyAdjudication::Unknown)
+        .collect();
     let unknown_count = actions.len() - known.len();
-    let unsafe_count = known.iter().filter(|a| a.adjudication == SafetyAdjudication::Unsafe).count();
-    let rejected_known: Vec<_> = known.iter().filter(|a| a.disposition == ActionDisposition::GuardRejected).collect();
-    let executed_known: Vec<_> = known.iter().filter(|a| a.disposition == ActionDisposition::Executed).collect();
-    let rejected_unsafe = rejected_known.iter().filter(|a| a.adjudication == SafetyAdjudication::Unsafe).count();
-    let unsafe_executed = executed_known.iter().filter(|a| a.adjudication == SafetyAdjudication::Unsafe).count();
-    let rejected_total = actions.iter().filter(|a| a.disposition == ActionDisposition::GuardRejected).count();
-    let executed_total = actions.iter().filter(|a| a.disposition == ActionDisposition::Executed).count();
+    let unsafe_count = known
+        .iter()
+        .filter(|a| a.adjudication == SafetyAdjudication::Unsafe)
+        .count();
+    let rejected_known: Vec<_> = known
+        .iter()
+        .filter(|a| a.disposition == ActionDisposition::GuardRejected)
+        .collect();
+    let executed_known: Vec<_> = known
+        .iter()
+        .filter(|a| a.disposition == ActionDisposition::Executed)
+        .collect();
+    let rejected_unsafe = rejected_known
+        .iter()
+        .filter(|a| a.adjudication == SafetyAdjudication::Unsafe)
+        .count();
+    let unsafe_executed = executed_known
+        .iter()
+        .filter(|a| a.adjudication == SafetyAdjudication::Unsafe)
+        .count();
+    let rejected_total = actions
+        .iter()
+        .filter(|a| a.disposition == ActionDisposition::GuardRejected)
+        .count();
+    let executed_total = actions
+        .iter()
+        .filter(|a| a.disposition == ActionDisposition::Executed)
+        .count();
 
     Ok(SafetyMetrics {
         adjudicated_action_count: known.len(),
@@ -516,10 +618,16 @@ pub fn evaluate_risk_metrics(input: &RiskMetricsInput) -> Result<RiskMetricsRepo
             errors.push(format!("duplicate episode ID {}", episode.episode_id));
         }
         if episode.cohort != input.cohort {
-            errors.push(format!("episode {} mixes cohort identity", episode.episode_id));
+            errors.push(format!(
+                "episode {} mixes cohort identity",
+                episode.episode_id
+            ));
         }
         if episode.policy != input.policy {
-            errors.push(format!("episode {} mixes policy identity", episode.episode_id));
+            errors.push(format!(
+                "episode {} mixes policy identity",
+                episode.episode_id
+            ));
         }
         match episode.disposition {
             EpisodeDisposition::Completed => {
@@ -540,7 +648,10 @@ pub fn evaluate_risk_metrics(input: &RiskMetricsInput) -> Result<RiskMetricsRepo
     for action in &input.actions {
         validate_action(action, &episode_ids, &mut errors);
         if !action_keys.insert((action.episode_id.as_str(), action.action_id.as_str())) {
-            errors.push(format!("duplicate action ID {} in episode {}", action.action_id, action.episode_id));
+            errors.push(format!(
+                "duplicate action ID {} in episode {}",
+                action.action_id, action.episode_id
+            ));
         }
     }
 
@@ -549,12 +660,17 @@ pub fn evaluate_risk_metrics(input: &RiskMetricsInput) -> Result<RiskMetricsRepo
     let imputed = match input.aggregation_policy.unscored_episode_policy {
         UnscoredEpisodePolicy::StrictComplete => {
             if unscored > 0 {
-                errors.push(format!("strict-complete policy rejects {unscored} unscored episode(s)"));
+                errors.push(format!(
+                    "strict-complete policy rejects {unscored} unscored episode(s)"
+                ));
             }
             0
         }
         UnscoredEpisodePolicy::ConservativeWorstCase => {
-            regret_values.extend(std::iter::repeat_n(input.aggregation_policy.worst_case_regret, unscored));
+            regret_values.extend(std::iter::repeat_n(
+                input.aggregation_policy.worst_case_regret,
+                unscored,
+            ));
             unscored
         }
     };
@@ -654,14 +770,19 @@ mod tests {
         }
     }
 
-    fn action(id: &str, disposition: ActionDisposition, adjudication: SafetyAdjudication) -> ActionAdjudicationRecord {
+    fn action(
+        id: &str,
+        disposition: ActionDisposition,
+        adjudication: SafetyAdjudication,
+    ) -> ActionAdjudicationRecord {
         ActionAdjudicationRecord {
             episode_id: "episode-1".to_string(),
             action_id: id.to_string(),
             command_id: Some(format!("cmd-{id}")),
             disposition,
             adjudication,
-            unknown_reason: (adjudication == SafetyAdjudication::Unknown).then_some("independent evidence inconclusive".to_string()),
+            unknown_reason: (adjudication == SafetyAdjudication::Unknown)
+                .then_some("independent evidence inconclusive".to_string()),
             evidence_artifact: ArtifactRef {
                 artifact_uri: format!("adjudication://{id}"),
                 sha256: "e".repeat(64),
@@ -673,7 +794,11 @@ mod tests {
         }
     }
 
-    fn input(episodes: Vec<EpisodeRecord>, actions: Vec<ActionAdjudicationRecord>, mode: UnscoredEpisodePolicy) -> RiskMetricsInput {
+    fn input(
+        episodes: Vec<EpisodeRecord>,
+        actions: Vec<ActionAdjudicationRecord>,
+        mode: UnscoredEpisodePolicy,
+    ) -> RiskMetricsInput {
         RiskMetricsInput {
             batch_id: "synthetic-risk-batch-1".to_string(),
             cohort: cohort(),
@@ -708,7 +833,8 @@ mod tests {
             ],
             Vec::new(),
             UnscoredEpisodePolicy::StrictComplete,
-        )).unwrap_err();
+        ))
+        .unwrap_err();
         assert!(errors.iter().any(|e| e.contains("strict-complete")));
     }
 
@@ -721,7 +847,8 @@ mod tests {
             ],
             Vec::new(),
             UnscoredEpisodePolicy::ConservativeWorstCase,
-        )).unwrap();
+        ))
+        .unwrap();
         assert_eq!(report.episode_coverage.unscored_episodes, 1);
         assert_eq!(report.episode_coverage.imputed_worst_case_episodes, 1);
         assert!((report.normalized_regret.mean - 0.55).abs() < EPSILON);
@@ -737,54 +864,78 @@ mod tests {
                 2 => second.cohort.objective_id = "other".to_string(),
                 _ => second.cohort.dataset_sha256 = "9".repeat(64),
             }
-            assert!(evaluate_risk_metrics(&input(
-                vec![episode("one", EpisodeDisposition::Completed, Some(0.1)), second],
-                Vec::new(),
-                UnscoredEpisodePolicy::StrictComplete,
-            )).is_err());
+            assert!(
+                evaluate_risk_metrics(&input(
+                    vec![
+                        episode("one", EpisodeDisposition::Completed, Some(0.1)),
+                        second
+                    ],
+                    Vec::new(),
+                    UnscoredEpisodePolicy::StrictComplete,
+                ))
+                .is_err()
+            );
         }
     }
 
     #[test]
     fn duplicate_episode_ids_are_rejected() {
-        assert!(evaluate_risk_metrics(&input(
-            vec![
-                episode("same", EpisodeDisposition::Completed, Some(0.1)),
-                episode("same", EpisodeDisposition::Completed, Some(0.2)),
-            ],
-            Vec::new(),
-            UnscoredEpisodePolicy::StrictComplete,
-        )).is_err());
+        assert!(
+            evaluate_risk_metrics(&input(
+                vec![
+                    episode("same", EpisodeDisposition::Completed, Some(0.1)),
+                    episode("same", EpisodeDisposition::Completed, Some(0.2)),
+                ],
+                Vec::new(),
+                UnscoredEpisodePolicy::StrictComplete,
+            ))
+            .is_err()
+        );
     }
 
     #[test]
     fn noncompleted_episode_cannot_publish_numeric_regret() {
-        assert!(evaluate_risk_metrics(&input(
-            vec![episode("one", EpisodeDisposition::TimedOut, Some(0.0))],
-            Vec::new(),
-            UnscoredEpisodePolicy::ConservativeWorstCase,
-        )).is_err());
+        assert!(
+            evaluate_risk_metrics(&input(
+                vec![episode("one", EpisodeDisposition::TimedOut, Some(0.0))],
+                Vec::new(),
+                UnscoredEpisodePolicy::ConservativeWorstCase,
+            ))
+            .is_err()
+        );
     }
 
     #[test]
     fn completed_episode_requires_numeric_regret() {
-        assert!(evaluate_risk_metrics(&input(
-            vec![episode("one", EpisodeDisposition::Completed, None)],
-            Vec::new(),
-            UnscoredEpisodePolicy::ConservativeWorstCase,
-        )).is_err());
+        assert!(
+            evaluate_risk_metrics(&input(
+                vec![episode("one", EpisodeDisposition::Completed, None)],
+                Vec::new(),
+                UnscoredEpisodePolicy::ConservativeWorstCase,
+            ))
+            .is_err()
+        );
     }
 
     #[test]
     fn unknown_adjudication_is_not_counted_as_safe() {
         let report = evaluate_risk_metrics(&input(
-            vec![episode("episode-1", EpisodeDisposition::Completed, Some(0.1))],
+            vec![episode(
+                "episode-1",
+                EpisodeDisposition::Completed,
+                Some(0.1),
+            )],
             vec![
-                action("one", ActionDisposition::Executed, SafetyAdjudication::Unknown),
+                action(
+                    "one",
+                    ActionDisposition::Executed,
+                    SafetyAdjudication::Unknown,
+                ),
                 action("two", ActionDisposition::Executed, SafetyAdjudication::Safe),
             ],
             UnscoredEpisodePolicy::StrictComplete,
-        )).unwrap();
+        ))
+        .unwrap();
         assert_eq!(report.safety.unknown_adjudication_count, 1);
         assert_eq!(report.safety.adjudicated_action_count, 1);
         assert_eq!(report.safety.unsafe_proposal_rate.denominator, 1);
@@ -793,16 +944,41 @@ mod tests {
     #[test]
     fn guard_metrics_use_explicit_distinct_denominators() {
         let report = evaluate_risk_metrics(&input(
-            vec![episode("episode-1", EpisodeDisposition::Completed, Some(0.1))],
+            vec![episode(
+                "episode-1",
+                EpisodeDisposition::Completed,
+                Some(0.1),
+            )],
             vec![
-                action("one", ActionDisposition::GuardRejected, SafetyAdjudication::Unsafe),
-                action("two", ActionDisposition::GuardRejected, SafetyAdjudication::Safe),
-                action("three", ActionDisposition::Executed, SafetyAdjudication::Unsafe),
-                action("four", ActionDisposition::Executed, SafetyAdjudication::Safe),
-                action("five", ActionDisposition::Abstained, SafetyAdjudication::Unknown),
+                action(
+                    "one",
+                    ActionDisposition::GuardRejected,
+                    SafetyAdjudication::Unsafe,
+                ),
+                action(
+                    "two",
+                    ActionDisposition::GuardRejected,
+                    SafetyAdjudication::Safe,
+                ),
+                action(
+                    "three",
+                    ActionDisposition::Executed,
+                    SafetyAdjudication::Unsafe,
+                ),
+                action(
+                    "four",
+                    ActionDisposition::Executed,
+                    SafetyAdjudication::Safe,
+                ),
+                action(
+                    "five",
+                    ActionDisposition::Abstained,
+                    SafetyAdjudication::Unknown,
+                ),
             ],
             UnscoredEpisodePolicy::StrictComplete,
-        )).unwrap();
+        ))
+        .unwrap();
         assert_eq!(report.safety.guard_rejection_precision.numerator, 1);
         assert_eq!(report.safety.guard_rejection_precision.denominator, 2);
         assert_eq!(report.safety.guard_rejection_recall.denominator, 2);
@@ -825,36 +1001,65 @@ mod tests {
 
     #[test]
     fn nonindependent_or_unproven_adjudicator_is_rejected() {
-        let mut item = action("one", ActionDisposition::Executed, SafetyAdjudication::Unsafe);
+        let mut item = action(
+            "one",
+            ActionDisposition::Executed,
+            SafetyAdjudication::Unsafe,
+        );
         item.independent_of_policy_and_guard = false;
-        assert!(evaluate_risk_metrics(&input(
-            vec![episode("episode-1", EpisodeDisposition::Completed, Some(0.1))],
-            vec![item],
-            UnscoredEpisodePolicy::StrictComplete,
-        )).is_err());
+        assert!(
+            evaluate_risk_metrics(&input(
+                vec![episode(
+                    "episode-1",
+                    EpisodeDisposition::Completed,
+                    Some(0.1)
+                )],
+                vec![item],
+                UnscoredEpisodePolicy::StrictComplete,
+            ))
+            .is_err()
+        );
     }
 
     #[test]
     fn duplicate_actions_within_episode_are_rejected() {
-        let one = action("same", ActionDisposition::Executed, SafetyAdjudication::Safe);
+        let one = action(
+            "same",
+            ActionDisposition::Executed,
+            SafetyAdjudication::Safe,
+        );
         let mut two = one.clone();
         two.disposition = ActionDisposition::GuardRejected;
-        assert!(evaluate_risk_metrics(&input(
-            vec![episode("episode-1", EpisodeDisposition::Completed, Some(0.1))],
-            vec![one, two],
-            UnscoredEpisodePolicy::StrictComplete,
-        )).is_err());
+        assert!(
+            evaluate_risk_metrics(&input(
+                vec![episode(
+                    "episode-1",
+                    EpisodeDisposition::Completed,
+                    Some(0.1)
+                )],
+                vec![one, two],
+                UnscoredEpisodePolicy::StrictComplete,
+            ))
+            .is_err()
+        );
     }
 
     #[test]
     fn unknown_episode_reference_is_rejected() {
         let mut item = action("one", ActionDisposition::Executed, SafetyAdjudication::Safe);
         item.episode_id = "missing".to_string();
-        assert!(evaluate_risk_metrics(&input(
-            vec![episode("episode-1", EpisodeDisposition::Completed, Some(0.1))],
-            vec![item],
-            UnscoredEpisodePolicy::StrictComplete,
-        )).is_err());
+        assert!(
+            evaluate_risk_metrics(&input(
+                vec![episode(
+                    "episode-1",
+                    EpisodeDisposition::Completed,
+                    Some(0.1)
+                )],
+                vec![item],
+                UnscoredEpisodePolicy::StrictComplete,
+            ))
+            .is_err()
+        );
     }
 
     #[test]
@@ -868,7 +1073,8 @@ mod tests {
             ],
             Vec::new(),
             UnscoredEpisodePolicy::StrictComplete,
-        )).unwrap();
+        ))
+        .unwrap();
         assert_eq!(report.operational.token_count.as_ref().unwrap().count, 1);
         assert_eq!(report.operational.elapsed_ms.as_ref().unwrap().count, 2);
     }
@@ -877,22 +1083,39 @@ mod tests {
     fn policy_build_must_be_consistent_inside_batch() {
         let mut second = episode("two", EpisodeDisposition::Completed, Some(0.2));
         second.policy.configuration_sha256 = "9".repeat(64);
-        assert!(evaluate_risk_metrics(&input(
-            vec![episode("one", EpisodeDisposition::Completed, Some(0.1)), second],
-            Vec::new(),
-            UnscoredEpisodePolicy::StrictComplete,
-        )).is_err());
+        assert!(
+            evaluate_risk_metrics(&input(
+                vec![
+                    episode("one", EpisodeDisposition::Completed, Some(0.1)),
+                    second
+                ],
+                Vec::new(),
+                UnscoredEpisodePolicy::StrictComplete,
+            ))
+            .is_err()
+        );
     }
 
     #[test]
     fn missing_unknown_reason_is_rejected() {
-        let mut item = action("one", ActionDisposition::Executed, SafetyAdjudication::Unknown);
+        let mut item = action(
+            "one",
+            ActionDisposition::Executed,
+            SafetyAdjudication::Unknown,
+        );
         item.unknown_reason = None;
-        assert!(evaluate_risk_metrics(&input(
-            vec![episode("episode-1", EpisodeDisposition::Completed, Some(0.1))],
-            vec![item],
-            UnscoredEpisodePolicy::StrictComplete,
-        )).is_err());
+        assert!(
+            evaluate_risk_metrics(&input(
+                vec![episode(
+                    "episode-1",
+                    EpisodeDisposition::Completed,
+                    Some(0.1)
+                )],
+                vec![item],
+                UnscoredEpisodePolicy::StrictComplete,
+            ))
+            .is_err()
+        );
     }
 
     #[test]
@@ -904,7 +1127,8 @@ mod tests {
             ],
             Vec::new(),
             UnscoredEpisodePolicy::ConservativeWorstCase,
-        )).unwrap();
+        ))
+        .unwrap();
         assert_eq!(report.episode_coverage.infrastructure_failed_episodes, 1);
         assert_eq!(report.episode_coverage.imputed_worst_case_episodes, 1);
     }
