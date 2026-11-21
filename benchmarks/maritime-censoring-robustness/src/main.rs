@@ -84,5 +84,18 @@ fn main() {
     }
 
     println!();
+    println!("Same-latent-cohort reporting-delay sensitivity:");
+    for step in &report.reporting_delay_sweep {
+        println!(
+            "  delay={} ticks true_berth_CIF={:.6} observed_AJ={:.6} underestimation={:.6} unresolved={:.4}",
+            step.reporting_delay_ticks,
+            step.true_berth_cif,
+            step.observed_berth_cif,
+            step.berth_underestimation,
+            step.unresolved_fraction
+        );
+    }
+
+    println!();
     println!("This is a seeded synthetic mechanism stress test, not a port-data estimate.");
 }
