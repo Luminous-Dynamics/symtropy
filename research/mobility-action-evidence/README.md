@@ -67,6 +67,7 @@ The M1 mission supervisor remains the owner of subgoal transitions, ambiguity ho
 
 The action ticket now carries the exact M1 subgoal ID, action ID, attempt and expected predicate ID, and the live context must match the active M1 ticket at dispatch. The observer receipt also carries its caller-computed canonical content digest so it can be projected into M1's receipt envelope without substituting the ticket commitment for the observation digest. A future adapter must not cast `observed_at_ticks` to M1's `observed_at_ms`: it must obtain a qualified unit/basis conversion from Mycelix Position #435, and preserve unknown/unqualified source time rather than fabricating a timestamp.
 
+- [CDAAB research, industry comparisons and targets v0.2](CDAAB_RESEARCH_AND_TARGETS_v0.2.md): assurance-overlay benchmark protocol, matched baselines, evaluator integrity, non-compensatory metrics, L0–L5 evidence levels and target ledger.
 ## Benchmark protocol artefacts
 
 `BENCHMARK_PROTOCOL_v0.1.md` defines the L0–L5 CDAAB assurance ladder, matched baselines, non-compensatory metrics, statistical rules, version-pinned external comparators and claim ceiling.
