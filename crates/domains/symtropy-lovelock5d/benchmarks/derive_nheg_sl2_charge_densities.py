@@ -241,6 +241,15 @@ def main() -> None:
     exact_zero("GB axial variation",k_gb_density-expected_k_gb)
     exact_zero("total axial Lovelock variation",k_axial_density-expected_k_axial)
 
+    # Source Eq. (24)-(25), converted independently to alpha_sym,T and d epsilon.
+    Q_source=(
+        1600-2112*T-3536*T**2+736*T**3+156*T**4+12*T**5-3*T**6
+    )
+    source_density=(
+        alpha_sym*Q_source
+        /(16*sp.pi*G*eps**3*(1-T)**3*(1+T)**2)
+    )
+
     # ------------------------------------------------------------------
     # SL(2,R) charge-density decomposition with the full presymplectic term.
     # The Lovelock potential is divergence-free, so Theta^mu=2 E_R nabla h.
@@ -340,6 +349,8 @@ def main() -> None:
     q_minus=sp.factor(sl2["xi_minus"]["k_density_epsilon"].subs(at_horizon))
     q_plus=sp.factor(sl2["xi_plus"]["k_density_epsilon"].subs(at_horizon))
     j2_sl2=sp.factor(sl2["xi_axial"]["k_density_epsilon"].subs(at_horizon))
+    exact_zero("axial Noether density matches Lovelock baseline",
+               j2_sl2-k_axial_density/sine)
     n_delta_Q=sp.factor(sp.Rational(1,2)*q_minus-q_plus)
     entropy_from_generators=sp.factor(n_delta_Q+sp.Rational(1,2)*j2_sl2)
     zeta_direct=sp.factor(
@@ -393,14 +404,6 @@ def main() -> None:
         }
     }
 
-    # Source Eq. (24)-(25), converted independently to alpha_sym,T and d epsilon.
-    Q_source=(
-        1600-2112*T-3536*T**2+736*T**3+156*T**4+12*T**5-3*T**6
-    )
-    source_density=(
-        alpha_sym*Q_source
-        /(16*sp.pi*G*eps**3*(1-T)**3*(1+T)**2)
-    )
     # Exact local Wald/Jacobson-Myers density and its parametric variation.
     wald_multiplier=sp.factor(1+alpha_sym*(
         4*(T**2+10*T-3)/(alpha_sym*(1-T)**3)
