@@ -9,7 +9,7 @@
   "runtime_revision": "synthetic-v1",
   "hardware_id": "synthetic-no-device",
   "seed": 0,
-  "workload_ref": "git-blob-sha1:99d87aa69914a3ad8cdde0aed9ac8fc336b2f566",
+  "workload_ref": "git-blob-sha1:e6607cb2de1ddb5327c2f94c631a710ef4820d6e",
   "protocol_id": "long-horizon-memory-ablation-v1",
   "memory_budget_profile_id": "workload-per-episode-budget-v1",
   "measurement_status": "synthetic_reference",
@@ -292,6 +292,50 @@
         "current_observation_refs": [
           "obs-rare-vibration"
         ]
+      },
+      {
+        "episode_id": "lh-010-correction-before-arrival",
+        "decision": "answer",
+        "answer": "initial_machine_state",
+        "confidence": 0.9,
+        "cited_observation_refs": [
+          "obs-machine-state-v1"
+        ],
+        "current_observation_refs": [
+          "obs-machine-state-v1"
+        ],
+        "claimed_independent_corroboration": false,
+        "claimed_cross_clock_order": false,
+        "evidence_as_of_tick": 300,
+        "response_tick": 301,
+        "retrieved_memory_item_refs": [],
+        "retained_memory_item_refs": [],
+        "purge_receipts": [],
+        "claimed_distinct_event_count": null
+      },
+      {
+        "episode_id": "lh-011-revocation-before-effect",
+        "decision": "answer",
+        "answer": "private_utterance_still_eligible",
+        "confidence": 0.9,
+        "cited_observation_refs": [
+          "obs-private-utterance-pre-revoke"
+        ],
+        "current_observation_refs": [
+          "obs-private-utterance-pre-revoke"
+        ],
+        "claimed_independent_corroboration": false,
+        "claimed_cross_clock_order": false,
+        "evidence_as_of_tick": 1200,
+        "response_tick": 1201,
+        "retrieved_memory_item_refs": [
+          "mem-private-pre-revoke-summary"
+        ],
+        "retained_memory_item_refs": [
+          "mem-private-pre-revoke-summary"
+        ],
+        "purge_receipts": [],
+        "claimed_distinct_event_count": null
       }
     ]
   }
