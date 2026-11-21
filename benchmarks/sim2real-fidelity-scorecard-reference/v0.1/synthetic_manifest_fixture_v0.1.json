@@ -3,11 +3,11 @@
   "claim_scope": "Synthetic software fixture only. These are not real physical measurements or simulator results.",
   "protocol": {
     "simulator_commit": "1212121212121212121212121212121212121212",
-    "simulator_configuration_digest": "synthetic-config-digest-v1",
+    "simulator_configuration_digest": "abababababababababababababababababababababababababababababababab",
     "robot_article_id": "synthetic-robot-article",
     "asset_revision": "synthetic-asset-v1",
-    "command_trace_digest": "synthetic-command-trace-digest",
-    "sensor_calibration_digest": "synthetic-calibration-digest"
+    "command_trace_digest": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+    "sensor_calibration_digest": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef"
   },
   "training_recording_ids": [
     "recording-training-001"
@@ -70,7 +70,8 @@
         "simulated_stage_score": 0.72,
         "real_end_to_end_success": true,
         "simulated_end_to_end_success": true
-      }
+      },
+      "task_id": "task-1"
     },
     {
       "trial_id": "trial-2",
@@ -126,7 +127,8 @@
         "simulated_stage_score": 0.77,
         "real_end_to_end_success": false,
         "simulated_end_to_end_success": false
-      }
+      },
+      "task_id": "task-2"
     },
     {
       "trial_id": "trial-3",
@@ -182,7 +184,8 @@
         "simulated_stage_score": 0.82,
         "real_end_to_end_success": true,
         "simulated_end_to_end_success": true
-      }
+      },
+      "task_id": "task-3"
     },
     {
       "trial_id": "trial-4",
@@ -238,7 +241,8 @@
         "simulated_stage_score": 0.72,
         "real_end_to_end_success": false,
         "simulated_end_to_end_success": false
-      }
+      },
+      "task_id": "task-4"
     },
     {
       "trial_id": "trial-5",
@@ -294,7 +298,8 @@
         "simulated_stage_score": 0.77,
         "real_end_to_end_success": true,
         "simulated_end_to_end_success": true
-      }
+      },
+      "task_id": "task-5"
     },
     {
       "trial_id": "trial-6",
@@ -350,7 +355,8 @@
         "simulated_stage_score": 0.82,
         "real_end_to_end_success": false,
         "simulated_end_to_end_success": false
-      }
+      },
+      "task_id": "task-6"
     },
     {
       "trial_id": "trial-7",
@@ -406,7 +412,8 @@
         "simulated_stage_score": 0.72,
         "real_end_to_end_success": true,
         "simulated_end_to_end_success": true
-      }
+      },
+      "task_id": "task-7"
     },
     {
       "trial_id": "trial-8",
@@ -462,7 +469,8 @@
         "simulated_stage_score": 0.77,
         "real_end_to_end_success": false,
         "simulated_end_to_end_success": false
-      }
+      },
+      "task_id": "task-8"
     },
     {
       "trial_id": "trial-9",
@@ -518,7 +526,8 @@
         "simulated_stage_score": 0.82,
         "real_end_to_end_success": true,
         "simulated_end_to_end_success": true
-      }
+      },
+      "task_id": "task-9"
     },
     {
       "trial_id": "trial-10",
@@ -574,7 +583,8 @@
         "simulated_stage_score": 0.72,
         "real_end_to_end_success": false,
         "simulated_end_to_end_success": false
-      }
+      },
+      "task_id": "task-10"
     }
   ]
 }
