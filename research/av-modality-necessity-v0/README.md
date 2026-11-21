@@ -312,3 +312,37 @@ Three recent benchmarks sharpen the comparison protocol:
 - **OmniInteract (EMNLP 2026):** the benchmark reports 1,430 response slots across 250 videos, including 368 continuous 1QnA slots. The best reported continuous 1QnA IA-QTF1 is 0.052, and overall IA-QTF1 peaks at 0.368. https://aclanthology.org/2026.emnlp-main.490/
 
 **Implication:** do not report just response correctness and latency. Include every candidate output (including silence), exact evidence-validity window, false-alarm intervals, missed trigger windows, interrupted/nested task resumption, history workload and response timing. Use SPOT's published protocol as a proactive baseline and TRACE as a causal-execution audit. These are separate external benchmarks; the synthetic AV evaluator is complementary, not a replacement.
+
+
+## Expanded 2026 streaming-model comparison set (checked 21 November 2026)
+
+The benchmark comparisons should now include a broader model cohort, not only the datasets originally used to design v0:
+
+| System / benchmark | Reported result | How we should compare |
+|---|---|---|
+| ALIVE | Its official page reports OVO 68.9, StreamingBench 76.0, ProactiveVideoQA PAUC 51.6, IPIBench 40.3 and FSI-Bench EDP 52.8 for its best listed system | Reproduce the exact task-specific protocols; compare proactive value, interruption and resource efficiency separately |
+| Realtime-Venus | Its reported Omni variant scores 70.2 StreamingBench, 64.7 OVO and 81.3 Daily-Omni; its separate audio variant reports MMAU 78 and 97% C_RESUME | Keep model variants and audio/full-duplex metrics separate; measure response-window and resumption correctness |
+| 4DMemory | The paper describes a long-video memory benchmark of about 900 hours and 5,000+ manually reviewed questions | Compare long-horizon event recall and source-linked evidence, not just generated summaries |
+| EgoMemReason | 500 week-long episodic-memory questions across six challenge types; best reported accuracy 39.6% | Add source-span retrieval and event-identity accuracy to the comparison, preserving its week-long task definition |
+
+Sources:
+- ALIVE project / benchmark: https://github.com/LALBJ/ALIVE
+- Realtime-Venus project: https://github.com/HumanMLLM/Realtime-Venus
+- 4DMemory paper: https://arxiv.org/abs/2610.20537
+- EgoMemReason project: https://github.com/SibylResearchGroup/EgoMemReason
+
+These results are benchmark- and model-variant-specific. They are not a common leaderboard and should not be ranked against one another or against this synthetic suite. They define a reproduction cohort, not scores our system has achieved.
+
+### What would count as a real improvement over these systems?
+
+Do not claim superiority merely because Symthaea adds an evidence ledger or because it has a lower median latency on a synthetic stream. The path to a credible result is:
+
+1. reproduce at least one official streaming benchmark end-to-end with its exact model, split, input cadence, output timing and evaluation code;
+2. run a matched within-model A-only / V-only / A+V ablation and report paired differences by necessity stratum;
+3. include source-citation accuracy, temporal eligibility, common-cause overcount, correction/revocation and correct silence as orthogonal metrics;
+4. measure p95/p99 response-window latency, input bytes/frames, tokens and hardware energy on the same device and run;
+5. publish confidence intervals over multiple seeds and a held-out environment/source split.
+
+A plausible first win is **non-inferior official task quality and response-window accuracy with lower measured resource use, while eliminating a failure mode that the official score does not measure**. A stronger win is a statistically supported advantage on a preregistered failure stratum at the same total budget.
+
+Do not combine these metrics into one weighted score. A system cannot buy higher accuracy by violating evidence provenance or permissions.
