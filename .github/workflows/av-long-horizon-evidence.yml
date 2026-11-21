@@ -107,6 +107,26 @@ jobs:
                   assert ref in known_observations
                   assert known_observations[ref] <= query_tick, episode["episode_id"]
           PY
+      - name: Fifteen-span chain is complete, ordered and query-admissible
+        run: |
+          python - <<'PY'
+          import json
+          base = "research/av-long-horizon-evidence-v0/fixtures/"
+          workload = json.load(open(base + "agent/workload-v1.json", encoding="utf-8"))
+          truth = json.load(open(base + "evaluator-only/truth-v1.json", encoding="utf-8"))
+          episode_id = "lh-012-multisegment-15-source-chain"
+          episode = next(row for row in workload["episodes"] if row["episode_id"] == episode_id)
+          label = next(row for row in truth["episodes"] if row["episode_id"] == episode_id)
+          events = [row for row in episode["stream_events"] if row["kind"] == "observation"]
+          refs = [row["observation_ref"] for row in events]
+          ordered = label["required_ordered_observation_refs"]
+          assert len(events) == 15 and len(set(refs)) == 15
+          assert ordered == refs
+          assert set(label["required_observation_refs"]) == set(refs)
+          assert all(row["availability_tick"] <= episode["query"]["query_tick"] for row in events)
+          assert events[-1]["availability_tick"] - events[0]["availability_tick"] >= 3600
+          PY
+
       - name: Duplicate transport retains original observation identity
         run: |
           jq -e '.episodes[] | select(.episode_id == "lh-002-repeated-event-dedup") |
