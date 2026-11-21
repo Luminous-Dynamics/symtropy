@@ -530,13 +530,18 @@ fn evaluate_case(case: &AdmissibilityCase) -> Result<Decision, String> {
             .any(|article| article.reported_failure_events > 1)
     {
         if !present(&case.maintenance_policy_ref) {
-            add_blocker(&mut decision, "missing_maintenance_policy_for_recurrent_process");
+            add_blocker(
+                &mut decision,
+                "missing_maintenance_policy_for_recurrent_process",
+            );
         }
-        if unique_articles
-            .iter()
-            .any(|article| article.reported_failure_events > 1 && !article.maintenance_history_complete)
-        {
-            add_blocker(&mut decision, "repair_restoration_history_missing_for_recurrent_process");
+        if unique_articles.iter().any(|article| {
+            article.reported_failure_events > 1 && !article.maintenance_history_complete
+        }) {
+            add_blocker(
+                &mut decision,
+                "repair_restoration_history_missing_for_recurrent_process",
+            );
         }
     }
 
