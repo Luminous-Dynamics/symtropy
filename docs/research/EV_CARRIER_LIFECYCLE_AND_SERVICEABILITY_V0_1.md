@@ -178,6 +178,49 @@ These are algorithm/service comparisons, not measured lifecycle costs for our mo
 
 Keep the v0.1 claim ceiling unchanged: all current module rates, task durations, repair values and costs are synthetic. Do not import paper-reported cost or energy improvements into a module lifecycle result. Compose MFB #6177/#6147/#6247 and EV-ICD #6308 rather than implementing routing, cargo or interface qualification in this adapter.
 
+## November 2026 battery-health and duty-cycle research refresh
+
+Recent literature materially changes the v0.2 battery serviceability model. The lifecycle adapter should not treat a single scalar battery state-of-health (SoH) as a complete statement of mission capability.
+
+### Two distinct health dimensions
+
+- **Energy capability:** retained usable capacity/energy under the declared temperature, discharge-rate, age and mission profile. This constrains total sortie energy plus reserve.
+- **Power capability:** resistance-derived power retention and voltage-sag margin under the peak current/power profile. A pack may retain reasonable capacity yet be unable to supply a short high-power demand safely.
+
+Robin et al., *Scientific Reports* (published 14 October 2026), “Dual-health protocol modelling of Li-ion battery degradation for UAVs with capacity–resistance coupled metrics in aviation duty cycles,” DOI [10.1038/s41598-026-70252-8](https://doi.org/10.1038/s41598-026-70252-8), reconstructs 22 Sony–Murata VTC6 cells under different aviation duty protocols, reporting 439 valid capacity checkpoints, 388 impedance checkpoints and 415 paired health states. Its approach couples capacity retention and resistance-derived power retention; it also reports leakage-safe leave-one-cell-out validation. This is a useful benchmark design precedent, not a validated threshold set for our future pack.
+
+### Degradation-aware mission allocation
+
+Jiang et al., *Energy Conversion and Management* 348 (15 January 2026), Article 120778, “Battery degradation-aware vehicle routing problem for heterogeneous electric vertical takeoff and landing aircraft delivery fleets,” DOI [10.1016/j.enconman.2025.120778](https://doi.org/10.1016/j.enconman.2025.120778), uses a real battery-aging dataset and an ANN-derived degradation model in a MILP routing formulation. It reports, on its own instances and relative to its shortest-distance approach, 40.41% lower average degradation per kilometre, 53.26% greater average remaining useful life and 37.32% lower average maintenance and operational costs per kilometre. These figures are paper-specific; do not carry them into our architecture's claims or targets without reproducing its instances, data, objective, constraints and compute conditions.
+
+The benchmark implication is to compare shortest-distance / minimum-energy routing with degradation-aware load balancing, and to report battery degradation per successful mission, flight hour and kilometre alongside service quality. A route can be energy-feasible today yet impose a disproportionate lifetime cost on a degraded aircraft or battery.
+
+### Wind and configuration interaction
+
+Wang et al., *Drones* 10(8), 627 (17 August 2026), DOI [10.3390/drones10080627](https://doi.org/10.3390/drones10080627), compares nine UAV configurations over 60 mFSTSP instances with 10, 25 and 50 customers and nine wind scenarios. It reports that wind changes both flight time and the feasible-sortie set, so cruise speed, battery energy and battery mass must be compared together; there is no universally best configuration. Its data-driven validation reports 3–6% deviation for makespan and energy under three wind conditions. Its simplifying assumptions include spatially uniform, time-invariant wind per scenario, so it is a baseline rather than a full spatiotemporal meteorological twin.
+
+### v0.2 implementation requirements
+
+1. Keep battery identity, cell/pack genealogy, service events and passport projection with Mycelix. This evaluator consumes typed evidence and does not create another battery registry.
+2. Represent energy and power health as separate evidence-bearing quantities with measurement time, temperature, test protocol, instrument/calibration identity, sample count, uncertainty and configuration/serial effectivity.
+3. Evaluate mission demand against both energy reserve and peak-power/voltage-sag envelopes. Missing, stale, incomparable or out-of-domain tests must produce indeterminate or blocked eligibility—not a nominal pass.
+4. Preserve separate outputs for capacity fade, resistance/power fade, thermal derating, degradation increment, remaining-useful-life estimate and uncertainty. Do not average them into one health number that hides a binding constraint.
+5. Model repair, replacement, balancing, reconditioning and remanufacturing as different interventions. Require a new post-intervention evidence chain and authorized sign-off; no algorithm may grant return-to-service.
+6. Compose battery availability with maintenance windows, replacement inventory, charging queues, wind-feasible sorties and carrier/UAV co-availability through #6083/#6177. Do not duplicate dispatch or asset identity ownership.
+7. Benchmark a shortest-distance baseline, energy-minimizing baseline, degradation-aware exact/MILP formulation on small instances, and a learned policy only after the deterministic baselines. Use held-out cells/batteries and duty cycles to prevent leakage.
+
+### Proposed qualification metrics
+
+- zero accepted dispatch proposals outside the independently supplied energy-reserve or peak-power envelope;
+- zero health estimates accepted when serial, chemistry, test protocol, temperature range, calibration or sample lineage mismatches;
+- exact agreement with hand-computable degradation and power-envelope cases;
+- zero hidden failures when only one health dimension is supplied;
+- report degradation per successful delivery, per flight hour and per kilometre, with uncertainty and service-level parity;
+- report replacement/repair events, maintenance downtime, usable spare-battery inventory and energy/power constrained mission rejection separately;
+- reproduce the cited paper's own result before comparing a proposed policy against it; only claim superiority on matched held-out cases with paired confidence intervals and identical hard constraints.
+
+These are benchmark requirements, not evidence that a battery model, cell dataset, aircraft pack, or physical qualification campaign already exists in this repository.
+
 ## Non-claims
 
 The current fixture does not establish real module failures, warranty cost, maintenance intervals, technician rates, factory cost, reliability, fleet availability, vehicle homologation, airworthiness, battery/fire safety, regulatory compliance or commercial TCO.
