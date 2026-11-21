@@ -160,3 +160,9 @@ A supplied `qualified_reference` must also declare its subject/applicability:
 - uncertainty budget: exact characteristic, original measurement unit and validity interval covering both measurement and decision time.
 
 The evaluator rejects wrong instrument, wrong characteristic, wrong unit, or expired/future calibration/uncertainty references. Even a structurally valid, correctly scoped reference pair is reported as `applicability_matched_references_not_authenticated`; `physical_metrology_qualified` remains false. Authentication, accreditation/authority scope, calibration-chain traceability, MSA budget reconstruction, covariance and conformity remain upstream owner responsibilities (#2995, Mycelix #4704/#6034).
+
+## MTConnect stream observations versus top-level Assets
+
+The portable observation projection now admits only MTConnect `Sample`, `Event` and `Condition` stream records. MTConnect `Asset` objects are a separate top-level resource/document class and must use `portable-asset.schema.json` with the distinct Assets 2.8 JSON Schema identifier, source document digest, raw asset digest and source locator.
+
+A test-only synthetic CuttingTool Asset fixture is validated by the asset schema and deliberately rejected by the stream-observation schema. This consumes the existing MTConnect/QIF mapper semantics in #3025/#3026/#3033; it does not create a second asset registry or parser.
