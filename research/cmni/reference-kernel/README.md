@@ -203,3 +203,12 @@ See [IDENTIFIABILITY_AND_DESIGN.md](../../../docs/research/cmni/IDENTIFIABILITY_
 - `split_rhat_for_coefficient` provides a basic split-Rhat screening statistic for independent chains. It is not rank-normalized or folded Rhat.
 - The sampler has no warmup adaptation, dense/diagonal mass-matrix adaptation, NUTS tree building, effective sample size, posterior predictive diagnostics or tau0 stability screening. Run multiple independent seeds and dispersed initials; do not interpret samples until those diagnostics are added and the chains are validated.
 - Three prepared-model tests and five HMC tests have been authored. The total is now **160 authored Rust tests** (37 root, 12 detector, 7 measurement, 8 material-state, 14 experiment-design, 11 response-uncertainty, 11 multifidelity-design, 8 spectrum-metrics, 7 measurement-bias, 8 sparse-Poisson-bias, 10 energy-bias-basis, 8 correlated-Gaussian-bias, 6 raw-scale-likelihood, 5 horseshoe-posterior, 3 prepared-horseshoe, 5 horseshoe-HMC). Tests remain unexecuted.
+
+
+## Prepared raw-scale horseshoe model and HMC comparator
+
+- `PreparedRawScaleHorseshoeModel` computes and caches the full baseline relative-covariance Cholesky factor once, then evaluates successive parameter states without repeating the cubic factorization.
+- `run_horseshoe_hmc_chain` provides a deterministic seeded fixed-step HMC comparator with caller-specified step size / leapfrog steps, discarded initial transitions, retained draws, acceptance rate and divergence count.
+- `split_rhat_for_coefficient` provides basic unranked split-Rhat only; it is a screening diagnostic, not the rank-normalized / folded Rhat recommended for final Bayesian inference.
+- No adaptation, mass matrix learning, NUTS, effective sample size, MCSE or posterior predictive diagnostics are implemented. The sampler is not a reproduction of the AIACHNE BMC code.
+- Three prepared-target tests and five HMC tests have been authored. Total: **160 authored Rust tests** (37 root, 12 detector, 7 measurement, 8 material-state, 14 experiment-design, 11 response-uncertainty, 11 multifidelity-design, 8 spectrum-metrics, 7 measurement-bias, 8 sparse-Poisson-bias, 10 energy-bias-basis, 8 correlated-Gaussian-bias, 6 raw-scale-likelihood, 5 horseshoe-posterior, 3 prepared-horseshoe, 5 horseshoe-HMC). Not executed in this environment.
