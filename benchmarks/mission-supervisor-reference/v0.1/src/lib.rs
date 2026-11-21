@@ -554,8 +554,11 @@ impl MissionSupervisor {
     ) -> Result<ReceiptDisposition, SupervisorError> {
         self.ensure_running()?;
         let subgoal_id = evidence.subgoal_id.clone();
-        self.ensure_active_subgoal(&subgoal_id)?;
         evidence.envelope.validate()?;
+        if let Some(disposition) = self.check_existing_event(&evidence.envelope)? {
+            return Ok(disposition);
+        }
+        self.ensure_active_subgoal(&subgoal_id)?;
         let runtime = self
             .states
             .get(&subgoal_id)
@@ -630,8 +633,11 @@ impl MissionSupervisor {
     ) -> Result<ReceiptDisposition, SupervisorError> {
         self.ensure_running()?;
         let subgoal_id = evidence.subgoal_id.clone();
-        self.ensure_active_subgoal(&subgoal_id)?;
         evidence.envelope.validate()?;
+        if let Some(disposition) = self.check_existing_event(&evidence.envelope)? {
+            return Ok(disposition);
+        }
+        self.ensure_active_subgoal(&subgoal_id)?;
         if !matches!(
             &self
                 .states
@@ -701,8 +707,11 @@ impl MissionSupervisor {
     ) -> Result<ReceiptDisposition, SupervisorError> {
         self.ensure_running()?;
         let subgoal_id = permit.subgoal_id.clone();
-        self.ensure_active_subgoal(&subgoal_id)?;
         permit.envelope.validate()?;
+        if let Some(disposition) = self.check_existing_event(&permit.envelope)? {
+            return Ok(disposition);
+        }
+        self.ensure_active_subgoal(&subgoal_id)?;
         let runtime = self
             .states
             .get(&subgoal_id)
@@ -819,6 +828,27 @@ impl MissionSupervisor {
                 Err(SupervisorError::InvalidStateTransition)
             }
         }
+    }
+
+    fn check_existing_event(
+        &mut self,
+        envelope: &ReceiptEnvelope,
+    ) -> Result<Option<ReceiptDisposition>, SupervisorError> {
+        if let Some(previous_digest) = self.seen_events.get(&envelope.event_id) {
+            if previous_digest == &envelope.content_digest {
+                return Ok(Some(ReceiptDisposition::Duplicate));
+            }
+            self.halted = true;
+            self.decisions.push(Decision {
+                mission_id: self.plan.mission_id.clone(),
+                subgoal_id: self.active_subgoal.clone().unwrap_or_default(),
+                kind: DecisionKind::EventIdentityConflict {
+                    event_id: envelope.event_id.clone(),
+                },
+            });
+            return Err(SupervisorError::EventIdConflict);
+        }
+        Ok(None)
     }
 
     fn register_event(
