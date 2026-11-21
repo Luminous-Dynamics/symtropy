@@ -110,6 +110,7 @@ pub struct ActionAdjudicationRecord {
     pub episode_id: String,
     pub action_id: String,
     pub command_id: Option<String>,
+    pub decision_latency_ms: Option<u64>,
     pub disposition: ActionDisposition,
     pub adjudication: SafetyAdjudication,
     pub unknown_reason: Option<String>,
@@ -149,6 +150,8 @@ pub struct RiskMetricsInput {
 #[serde(rename_all = "camelCase")]
 pub struct DistributionStats {
     pub count: usize,
+    /// Sum over observed values; useful for total token/API/solver cost.
+    pub sum: f64,
     pub mean: f64,
     pub median: f64,
     pub p95_nearest_rank: f64,
@@ -208,6 +211,7 @@ pub struct SafetyMetrics {
 #[serde(rename_all = "camelCase")]
 pub struct OperationalMetrics {
     pub elapsed_ms: Option<DistributionStats>,
+    pub decision_latency_ms: Option<DistributionStats>,
     pub token_count: Option<DistributionStats>,
     pub api_cost_usd: Option<DistributionStats>,
     pub solver_calls: Option<DistributionStats>,
@@ -433,6 +437,7 @@ pub fn distribution_stats(values: &[f64]) -> Result<DistributionStats, String> {
     };
     Ok(DistributionStats {
         count: sorted.len(),
+        sum: sorted.iter().sum(),
         mean,
         median,
         p95_nearest_rank: nearest_rank_quantile(&sorted, 0.95)?,
@@ -683,7 +688,7 @@ pub fn evaluate_risk_metrics(input: &RiskMetricsInput) -> Result<RiskMetricsRepo
 
     let quality = distribution_stats(&regret_values).map_err(|error| vec![error])?;
     let safety = summarize_safety(&input.actions).map_err(|error| vec![error])?;
-    let operational = summarize_operational(&input.episodes).map_err(|error| vec![error])?;
+    let operational = summarize_operational(&input.episodes, &input.actions).map_err(|error| vec![error])?;
     let input_sha256 = canonical_sha256(input).map_err(|error| vec![error])?;
     Ok(RiskMetricsReport {
         batch_id: input.batch_id.clone(),
@@ -781,6 +786,7 @@ mod tests {
             episode_id: "episode-1".to_string(),
             action_id: id.to_string(),
             command_id: Some(format!("cmd-{id}")),
+            decision_latency_ms: Some(125),
             disposition,
             adjudication,
             unknown_reason: (adjudication == SafetyAdjudication::Unknown)
