@@ -257,6 +257,21 @@ Here mu is the un-biased prediction including the declared per-experiment normal
 
 The new primitive is a per-experiment log-likelihood, with Cholesky-based full-covariance evaluation and fail-closed symmetry / positive-definiteness checks. It can be composed with the grouped 160-column basis and sparse feature coefficients. It does not yet implement the prior over grouped coefficients, global horseshoe sparsity parameter, posterior sampler, or across-experiment BMC chain. It is one essential layer of the faithful reproduction, not the complete inference algorithm.
 
+### Layer K — horseshoe posterior target and analytic gradients
+
+The raw-scale likelihood can now be combined with a global-local horseshoe hierarchy. In the current research target:
+
+[
+\gamma_j\mid\lambda_j,\tau\sim\mathcal N(0,\tau^2\lambda_j^2),\qquad
+\lambda_j\sim\operatorname{HalfCauchy}(0,1),
+]
+
+with either a half-normal or half-Cauchy prior on the global scale tau. The sampler coordinates are gamma, log(lambda) and log(tau), and the returned gradients include the Jacobians from the log-scale parameterization. The half-normal global-scale option is included because the AIACHNE paper reports it as more numerically stable than the half-Cauchy alternative in its comparison.
+
+Independent finite-difference calculations validate the analytic gradients for coefficient, local-scale and global-scale coordinates under both prior choices. Five Rust unit tests now encode these finite-difference checks and basic parameter validation.
+
+This is still **not Bayesian Monte Carlo or HMC sampling**. It is the posterior target and gradient needed by a sampler. It does not include adaptation, multiple chains, effective sample size, R-hat, divergent-transition diagnostics, tau0 sweep analysis, or posterior bias-field screening. Do not report posterior inclusion / credible intervals from this target until a qualified sampler has been run and converged.
+
 ## Current implementation and limits
 
 Implemented in this research-only Rust crate:
@@ -275,7 +290,8 @@ Implemented in this research-only Rust crate:
 - a published-form 160-column grouped Gaussian log-energy bias-basis constructor with overlapping categorical feature-level memberships;
 - a small-feature Poisson spike-and-slab comparator for count data;
 - a full-covariance log-ratio Gaussian sparse model average with fixed normalization effects and exact Gaussian integration over subsets (up to 12 sparse columns);
-- a raw-scale correlated Gaussian PFNS likelihood with mean mu * exp(delta) and covariance diag(mu) Sigma_relative diag(mu), preserving the un-biased covariance anchor.
+- a raw-scale correlated Gaussian PFNS likelihood with mean mu * exp(delta) and covariance diag(mu) Sigma_relative diag(mu), preserving the un-biased covariance anchor;
+- a global-local horseshoe posterior target with half-Cauchy local scales, half-normal or half-Cauchy global scale, and analytic gradients in log-scale sampler coordinates.
 
 Not implemented yet:
 
@@ -284,7 +300,7 @@ Not implemented yet:
 - a full Bayesian expected-information-gain estimator, multifidelity sample-allocation optimizer or ACV coefficient learner;
 - a continuous robust-design optimizer, uncertainty-set calibration or Pareto frontier;
 - a nuisance-integrated or posterior-predictive model-discrimination score;
-- faithful AIACHNE BMC sampler and horseshoe / global-local prior reproduction, including the global sparsity hyperparameter and posterior diagnostics;
+- a qualified BMC / HMC / NUTS sampler, with warmup/adaptation, multiple-chain R-hat and ESS, divergence checks, energy diagnostics, posterior predictive checks and tau0 stability sweeps;
 - inference over the complete 160-basis-per-group design and global τ hyperprior;
 - τ_0 sensitivity sweeps, redundant feature-level grouping analysis, correlated-feature robustness, and campaign-held-out validation;
 - a general nuisance-aware hierarchical likelihood for response, background, live time, PSD and other calibration dimensions;
