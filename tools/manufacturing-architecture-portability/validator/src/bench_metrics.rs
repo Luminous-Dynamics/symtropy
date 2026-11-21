@@ -115,8 +115,8 @@ pub fn measure_feature_subset_stability(
     let mut sizes = Vec::with_capacity(runs.len());
 
     for run in runs {
-        if run.run_id.trim().is_empty() {
-            return Err("selector run ID must not be empty".to_owned());
+        if run.run_id.trim().is_empty() || run.run_id.trim() != run.run_id {
+            return Err("selector run ID must be non-empty and canonical".to_owned());
         }
         if !run_ids.insert(run.run_id.clone()) {
             return Err(format!("duplicate selector run ID {:?}", run.run_id));
@@ -214,8 +214,11 @@ pub fn inspect_run_partition_leakage(
         &partitions.validation_run_ids,
         &partitions.test_run_ids,
     ] {
-        if partition.iter().any(|run_id| run_id.trim().is_empty()) {
-            return Err("partition contains an empty run ID".to_owned());
+        if partition
+            .iter()
+            .any(|run_id| run_id.trim().is_empty() || run_id.trim() != run_id)
+        {
+            return Err("partition contains an empty or non-canonical run ID".to_owned());
         }
     }
 
@@ -744,6 +747,20 @@ mod tests {
             inspect_run_partition_leakage(&partitions)
                 .unwrap()
                 .is_empty()
+        );
+    }
+
+    #[test]
+    fn rejects_whitespace_padded_run_identifiers() {
+        let partitions = RunPartitionManifest {
+            training_run_ids: set(&[" train-01 "]),
+            validation_run_ids: set(&["validation-01"]),
+            test_run_ids: set(&["test-01"]),
+        };
+        assert!(
+            inspect_run_partition_leakage(&partitions)
+                .unwrap_err()
+                .contains("non-canonical run ID")
         );
     }
 
