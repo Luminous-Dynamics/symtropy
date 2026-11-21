@@ -449,10 +449,14 @@ fn stop_plan(scenarios: &[Scenario], weights: &[f64], profile: &Profile) -> Plan
     }
 }
 
+struct DpContext<'a> {
+    scenarios: &'a [Scenario],
+    actions: &'a [Action],
+    profile: &'a Profile,
+}
+
 fn solve_state(
-    scenarios: &[Scenario],
-    actions: &[Action],
-    profile: &Profile,
+    context: &DpContext<'_>,
     weights: &[f64],
     available_action_mask: u64,
     remaining_budget_units: u64,
@@ -469,16 +473,16 @@ fn solve_state(
         return cached.clone();
     }
 
-    let mut best = stop_plan(scenarios, weights, profile);
+    let mut best = stop_plan(context.scenarios, weights, context.profile);
     if remaining_horizon > 0 {
-        for (index, action) in actions.iter().enumerate() {
+        for (index, action) in context.actions.iter().enumerate() {
             let bit = 1_u64 << index;
             if available_action_mask & bit == 0 || action.cost_units > remaining_budget_units {
                 continue;
             }
             let next_mask = available_action_mask & !bit;
-            let positive = posterior_after(scenarios, weights, action, true);
-            let negative = posterior_after(scenarios, weights, action, false);
+            let positive = posterior_after(context.scenarios, weights, action, true);
+            let negative = posterior_after(context.scenarios, weights, action, false);
             let mut expected_value = action.cost_units as f64;
             let mut positive_child = None;
             let mut negative_child = None;
@@ -487,9 +491,7 @@ fn solve_state(
             if let Some((probability, posterior)) = positive {
                 probability_positive = probability;
                 let child = solve_state(
-                    scenarios,
-                    actions,
-                    profile,
+                    context,
                     &posterior,
                     next_mask,
                     remaining_budget_units - action.cost_units,
@@ -501,9 +503,7 @@ fn solve_state(
             }
             if let Some((probability, posterior)) = negative {
                 let child = solve_state(
-                    scenarios,
-                    actions,
-                    profile,
+                    context,
                     &posterior,
                     next_mask,
                     remaining_budget_units - action.cost_units,
@@ -519,7 +519,7 @@ fn solve_state(
                 <= EPSILON
                 && best
                     .selected_action_index
-                    .is_some_and(|best_index| action.id < actions[best_index].id);
+                    .is_some_and(|best_index| action.id < context.actions[best_index].id);
             if is_better || tie_is_lexically_better {
                 best = Plan {
                     expected_total_loss: expected_value,
@@ -575,11 +575,14 @@ fn solve(
         .map(|scenario| scenario.prior_weight)
         .collect::<Vec<_>>();
     let available_mask = (1_u64 << actions.len()) - 1;
-    let mut memo = BTreeMap::new();
-    let plan = solve_state(
+    let context = DpContext {
         scenarios,
         actions,
         profile,
+    };
+    let mut memo = BTreeMap::new();
+    let plan = solve_state(
+        &context,
         &initial_weights,
         available_mask,
         profile.total_budget_units,
@@ -723,6 +726,78 @@ fn main() -> ExitCode {
             ExitCode::FAILURE
         }
     }
+}
+
+fn solve_state_exhaustive(
+    scenarios: &[Scenario],
+    actions: &[Action],
+    profile: &Profile,
+    weights: &[f64],
+    available_action_mask: u64,
+    remaining_budget_units: u64,
+    remaining_horizon: usize,
+) -> Plan {
+    let mut best = stop_plan(scenarios, weights, profile);
+    if remaining_horizon == 0 {
+        return best;
+    }
+    for (index, action) in actions.iter().enumerate() {
+        let bit = 1_u64 << index;
+        if available_action_mask & bit == 0 || action.cost_units > remaining_budget_units {
+            continue;
+        }
+        let next_mask = available_action_mask & !bit;
+        let positive = posterior_after(scenarios, weights, action, true);
+        let negative = posterior_after(scenarios, weights, action, false);
+        let mut expected_value = action.cost_units as f64;
+        let mut positive_child = None;
+        let mut negative_child = None;
+        let mut probability_positive = 0.0;
+        if let Some((probability, posterior)) = positive {
+            probability_positive = probability;
+            let child = solve_state_exhaustive(
+                scenarios,
+                actions,
+                profile,
+                &posterior,
+                next_mask,
+                remaining_budget_units - action.cost_units,
+                remaining_horizon - 1,
+            );
+            expected_value += probability * child.expected_total_loss;
+            positive_child = Some(Box::new(child));
+        }
+        if let Some((probability, posterior)) = negative {
+            let child = solve_state_exhaustive(
+                scenarios,
+                actions,
+                profile,
+                &posterior,
+                next_mask,
+                remaining_budget_units - action.cost_units,
+                remaining_horizon - 1,
+            );
+            expected_value += probability * child.expected_total_loss;
+            negative_child = Some(Box::new(child));
+        }
+        let is_better = expected_value + EPSILON < best.expected_total_loss;
+        let tie_is_lexically_better = (expected_value - best.expected_total_loss).abs() <= EPSILON
+            && best
+                .selected_action_index
+                .is_some_and(|best_index| action.id < actions[best_index].id);
+        if is_better || tie_is_lexically_better {
+            best = Plan {
+                expected_total_loss: expected_value,
+                selected_action_index: Some(index),
+                terminal_disposition: None,
+                terminal_decision_loss: None,
+                probability_positive: Some(probability_positive),
+                positive_child,
+                negative_child,
+            };
+        }
+    }
+    best
 }
 
 #[cfg(test)]
@@ -941,11 +1016,14 @@ mod tests {
             .iter()
             .map(|scenario| scenario.prior_weight)
             .collect::<Vec<_>>();
+        let context = DpContext {
+            scenarios: &scenarios,
+            actions: &actions,
+            profile: &profile,
+        };
         let mut memo = BTreeMap::new();
         let exact = solve_state(
-            &scenarios,
-            &actions,
-            &profile,
+            &context,
             &weights,
             (1_u64 << actions.len()) - 1,
             profile.total_budget_units,
@@ -963,76 +1041,4 @@ mod tests {
         );
         assert!((exact.expected_total_loss - exhaustive.expected_total_loss).abs() < 1.0e-9);
     }
-}
-
-fn solve_state_exhaustive(
-    scenarios: &[Scenario],
-    actions: &[Action],
-    profile: &Profile,
-    weights: &[f64],
-    available_action_mask: u64,
-    remaining_budget_units: u64,
-    remaining_horizon: usize,
-) -> Plan {
-    let mut best = stop_plan(scenarios, weights, profile);
-    if remaining_horizon == 0 {
-        return best;
-    }
-    for (index, action) in actions.iter().enumerate() {
-        let bit = 1_u64 << index;
-        if available_action_mask & bit == 0 || action.cost_units > remaining_budget_units {
-            continue;
-        }
-        let next_mask = available_action_mask & !bit;
-        let positive = posterior_after(scenarios, weights, action, true);
-        let negative = posterior_after(scenarios, weights, action, false);
-        let mut expected_value = action.cost_units as f64;
-        let mut positive_child = None;
-        let mut negative_child = None;
-        let mut probability_positive = 0.0;
-        if let Some((probability, posterior)) = positive {
-            probability_positive = probability;
-            let child = solve_state_exhaustive(
-                scenarios,
-                actions,
-                profile,
-                &posterior,
-                next_mask,
-                remaining_budget_units - action.cost_units,
-                remaining_horizon - 1,
-            );
-            expected_value += probability * child.expected_total_loss;
-            positive_child = Some(Box::new(child));
-        }
-        if let Some((probability, posterior)) = negative {
-            let child = solve_state_exhaustive(
-                scenarios,
-                actions,
-                profile,
-                &posterior,
-                next_mask,
-                remaining_budget_units - action.cost_units,
-                remaining_horizon - 1,
-            );
-            expected_value += probability * child.expected_total_loss;
-            negative_child = Some(Box::new(child));
-        }
-        let is_better = expected_value + EPSILON < best.expected_total_loss;
-        let tie_is_lexically_better = (expected_value - best.expected_total_loss).abs() <= EPSILON
-            && best
-                .selected_action_index
-                .is_some_and(|best_index| action.id < actions[best_index].id);
-        if is_better || tie_is_lexically_better {
-            best = Plan {
-                expected_total_loss: expected_value,
-                selected_action_index: Some(index),
-                terminal_disposition: None,
-                terminal_decision_loss: None,
-                probability_positive: Some(probability_positive),
-                positive_child,
-                negative_child,
-            };
-        }
-    }
-    best
 }
