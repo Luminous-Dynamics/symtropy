@@ -204,11 +204,7 @@ fn valid_optional_range(range: &Option<QuantityRange>) -> bool {
     })
 }
 
-fn validate_ports(
-    label: &str,
-    ports: &[InterfacePort],
-    errors: &mut Vec<String>,
-) {
+fn validate_ports(label: &str, ports: &[InterfacePort], errors: &mut Vec<String>) {
     if ports.len() > MAX_PORTS_PER_CONFIGURATION {
         errors.push(format!(
             "{label}.ports: exceeds {MAX_PORTS_PER_CONFIGURATION} ports"
@@ -318,11 +314,7 @@ pub fn validate_input(input: &CompatibilityInput) -> Result<(), Vec<String>> {
                 "modules[{index}]: exact unique module and target vehicle identities are required"
             ));
         }
-        validate_ports(
-            &format!("modules[{index}]"),
-            &module.ports,
-            &mut errors,
-        );
+        validate_ports(&format!("modules[{index}]"), &module.ports, &mut errors);
     }
     if errors.is_empty() {
         Ok(())
@@ -373,9 +365,7 @@ fn add_interface_finding(
     finding: &str,
 ) {
     findings.push(finding.to_string());
-    if result == CompatibilityStatus::Incompatible
-        || *status != CompatibilityStatus::Incompatible
-    {
+    if result == CompatibilityStatus::Incompatible || *status != CompatibilityStatus::Incompatible {
         *status = result;
     }
 }
@@ -410,36 +400,71 @@ fn evaluate_interface(
             vehicle_evidence_source_reference: None,
             vehicle_evidence_report_digest_sha256: None,
             module_evidence_id: first_evidence_id(&module_port.evidence).unwrap_or_default(),
-            module_evidence_source_reference: module_port.evidence.first()
+            module_evidence_source_reference: module_port
+                .evidence
+                .first()
                 .map(|receipt| receipt.source_reference.clone())
                 .unwrap_or_default(),
-            module_evidence_report_digest_sha256: module_port.evidence.first()
+            module_evidence_report_digest_sha256: module_port
+                .evidence
+                .first()
                 .map(|receipt| receipt.report_digest_sha256.clone())
                 .unwrap_or_default(),
         };
     };
 
-
-
     if vehicle_port.mate_port_id != module_port.port_id {
-        add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Incompatible, "mate_port_identity_not_reciprocal");
+        add_interface_finding(
+            &mut findings,
+            &mut status,
+            CompatibilityStatus::Incompatible,
+            "mate_port_identity_not_reciprocal",
+        );
     }
     if vehicle_port.family != module_port.family {
-        add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Incompatible, "interface_family_mismatch");
+        add_interface_finding(
+            &mut findings,
+            &mut status,
+            CompatibilityStatus::Incompatible,
+            "interface_family_mismatch",
+        );
     }
     if vehicle_port.interface_revision != module_port.interface_revision {
-        add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Incompatible, "interface_revision_mismatch");
+        add_interface_finding(
+            &mut findings,
+            &mut status,
+            CompatibilityStatus::Incompatible,
+            "interface_revision_mismatch",
+        );
     }
     if vehicle_port.profile_id != module_port.profile_id {
-        add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Incompatible, "interface_profile_mismatch");
+        add_interface_finding(
+            &mut findings,
+            &mut status,
+            CompatibilityStatus::Incompatible,
+            "interface_profile_mismatch",
+        );
     }
     if !directions_mate(vehicle_port.direction, module_port.direction) {
-        add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Incompatible, "port_direction_mismatch");
+        add_interface_finding(
+            &mut findings,
+            &mut status,
+            CompatibilityStatus::Incompatible,
+            "port_direction_mismatch",
+        );
     }
 
-    match (&vehicle_port.polarity_profile, &module_port.polarity_profile) {
+    match (
+        &vehicle_port.polarity_profile,
+        &module_port.polarity_profile,
+    ) {
         (Some(left), Some(right)) if left != right => {
-            add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Incompatible, "polarity_profile_mismatch");
+            add_interface_finding(
+                &mut findings,
+                &mut status,
+                CompatibilityStatus::Incompatible,
+                "polarity_profile_mismatch",
+            );
         }
         (None, None) => {}
         (Some(_), None) | (None, Some(_))
@@ -448,7 +473,12 @@ fn evaluate_interface(
                 InterfaceFamily::HighVoltageDc | InterfaceFamily::LowVoltageDc
             ) =>
         {
-            add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Indeterminate, "required_polarity_profile_missing");
+            add_interface_finding(
+                &mut findings,
+                &mut status,
+                CompatibilityStatus::Indeterminate,
+                "required_polarity_profile_missing",
+            );
         }
         _ => {}
     }
@@ -456,11 +486,19 @@ fn evaluate_interface(
     match (&vehicle_port.operating_range, &module_port.operating_range) {
         (Some(provider), Some(consumer)) => {
             if provider.unit != consumer.unit {
-                add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Incompatible, "operating_range_unit_mismatch");
-            } else if provider.minimum < consumer.minimum
-                || provider.maximum > consumer.maximum
-            {
-                add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Incompatible, "provider_operating_range_outside_consumer_acceptance");
+                add_interface_finding(
+                    &mut findings,
+                    &mut status,
+                    CompatibilityStatus::Incompatible,
+                    "operating_range_unit_mismatch",
+                );
+            } else if provider.minimum < consumer.minimum || provider.maximum > consumer.maximum {
+                add_interface_finding(
+                    &mut findings,
+                    &mut status,
+                    CompatibilityStatus::Incompatible,
+                    "provider_operating_range_outside_consumer_acceptance",
+                );
             }
         }
         (None, None) => {
@@ -470,18 +508,38 @@ fn evaluate_interface(
                     | InterfaceFamily::LowVoltageDc
                     | InterfaceFamily::ThermalFluid
             ) {
-                add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Indeterminate, "required_operating_range_missing");
+                add_interface_finding(
+                    &mut findings,
+                    &mut status,
+                    CompatibilityStatus::Indeterminate,
+                    "required_operating_range_missing",
+                );
             }
         }
-        _ => add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Indeterminate, "operating_range_incomplete"),
+        _ => add_interface_finding(
+            &mut findings,
+            &mut status,
+            CompatibilityStatus::Indeterminate,
+            "operating_range_incomplete",
+        ),
     }
 
     match (&vehicle_port.capacity_limit, &module_port.capacity_required) {
         (Some(limit), Some(required)) => {
             if limit.unit != required.unit {
-                add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Incompatible, "capacity_unit_mismatch");
+                add_interface_finding(
+                    &mut findings,
+                    &mut status,
+                    CompatibilityStatus::Incompatible,
+                    "capacity_unit_mismatch",
+                );
             } else if limit.value + f64::EPSILON < required.value {
-                add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Incompatible, "provider_capacity_below_module_requirement");
+                add_interface_finding(
+                    &mut findings,
+                    &mut status,
+                    CompatibilityStatus::Incompatible,
+                    "provider_capacity_below_module_requirement",
+                );
             }
         }
         (None, None) => {
@@ -494,10 +552,20 @@ fn evaluate_interface(
                     | InterfaceFamily::CargoRetention
                     | InterfaceFamily::Service
             ) {
-                add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Indeterminate, "required_capacity_limit_or_demand_missing");
+                add_interface_finding(
+                    &mut findings,
+                    &mut status,
+                    CompatibilityStatus::Indeterminate,
+                    "required_capacity_limit_or_demand_missing",
+                );
             }
         }
-        _ => add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Indeterminate, "capacity_limit_or_demand_incomplete"),
+        _ => add_interface_finding(
+            &mut findings,
+            &mut status,
+            CompatibilityStatus::Indeterminate,
+            "capacity_limit_or_demand_incomplete",
+        ),
     }
 
     let vehicle_qualified_evidence = qualified_evidence(
@@ -513,7 +581,12 @@ fn evaluate_interface(
         &module_port.interface_revision,
     );
     if vehicle_qualified_evidence.is_none() || module_qualified_evidence.is_none() {
-        add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Indeterminate, "independent_exact_configuration_qualification_not_present_on_both_ports");
+        add_interface_finding(
+            &mut findings,
+            &mut status,
+            CompatibilityStatus::Indeterminate,
+            "independent_exact_configuration_qualification_not_present_on_both_ports",
+        );
     }
     let vehicle_receipt = vehicle_qualified_evidence.or_else(|| vehicle_port.evidence.first());
     let module_receipt = module_qualified_evidence.or_else(|| module_port.evidence.first());
@@ -545,17 +618,25 @@ fn evaluate_interface(
 
 fn canonical_input(input: &CompatibilityInput) -> CompatibilityInput {
     let mut canonical = input.clone();
-    canonical.vehicle.ports.sort_by(|left, right| left.port_id.cmp(&right.port_id));
+    canonical
+        .vehicle
+        .ports
+        .sort_by(|left, right| left.port_id.cmp(&right.port_id));
     for port in &mut canonical.vehicle.ports {
-        port.evidence.sort_by(|left, right| left.evidence_id.cmp(&right.evidence_id));
+        port.evidence
+            .sort_by(|left, right| left.evidence_id.cmp(&right.evidence_id));
     }
     canonical.modules.sort_by(|left, right| {
-        left.module_configuration_id.cmp(&right.module_configuration_id)
+        left.module_configuration_id
+            .cmp(&right.module_configuration_id)
     });
     for module in &mut canonical.modules {
-        module.ports.sort_by(|left, right| left.port_id.cmp(&right.port_id));
+        module
+            .ports
+            .sort_by(|left, right| left.port_id.cmp(&right.port_id));
         for port in &mut module.ports {
-            port.evidence.sort_by(|left, right| left.evidence_id.cmp(&right.evidence_id));
+            port.evidence
+                .sort_by(|left, right| left.evidence_id.cmp(&right.evidence_id));
         }
     }
     canonical
@@ -608,11 +689,8 @@ pub fn evaluate_compatibility(
                         "multiple_module_ports_claim_same_vehicle_port".into(),
                         format!("conflicts_with_module_port_{previous}"),
                     ],
-                    vehicle_evidence_id: find_vehicle_port(
-                        &canonical.vehicle,
-                        &port.mate_port_id,
-                    )
-                    .and_then(|vehicle_port| first_evidence_id(&vehicle_port.evidence)),
+                    vehicle_evidence_id: find_vehicle_port(&canonical.vehicle, &port.mate_port_id)
+                        .and_then(|vehicle_port| first_evidence_id(&vehicle_port.evidence)),
                     vehicle_evidence_source_reference: find_vehicle_port(
                         &canonical.vehicle,
                         &port.mate_port_id,
@@ -626,10 +704,14 @@ pub fn evaluate_compatibility(
                     .and_then(|vehicle_port| vehicle_port.evidence.first())
                     .map(|receipt| receipt.report_digest_sha256.clone()),
                     module_evidence_id: first_evidence_id(&port.evidence).unwrap_or_default(),
-                    module_evidence_source_reference: port.evidence.first()
+                    module_evidence_source_reference: port
+                        .evidence
+                        .first()
                         .map(|receipt| receipt.source_reference.clone())
                         .unwrap_or_default(),
-                    module_evidence_report_digest_sha256: port.evidence.first()
+                    module_evidence_report_digest_sha256: port
+                        .evidence
+                        .first()
                         .map(|receipt| receipt.report_digest_sha256.clone())
                         .unwrap_or_default(),
                 };
@@ -640,9 +722,9 @@ pub fn evaluate_compatibility(
             interfaces.push(evaluate_interface(&canonical.vehicle, module, port));
         }
 
-        let target_vehicle_mismatch =
-            module.target_vehicle_family_id != canonical.vehicle.vehicle_family_id
-                || module.target_vehicle_revision != canonical.vehicle.vehicle_revision;
+        let target_vehicle_mismatch = module.target_vehicle_family_id
+            != canonical.vehicle.vehicle_family_id
+            || module.target_vehicle_revision != canonical.vehicle.vehicle_revision;
         if target_vehicle_mismatch {
             for finding in &mut interfaces {
                 if finding.status == CompatibilityStatus::Compatible {
@@ -711,7 +793,8 @@ pub fn evaluate_compatibility(
     }
 
     results.sort_by(|left, right| {
-        left.module_configuration_id.cmp(&right.module_configuration_id)
+        left.module_configuration_id
+            .cmp(&right.module_configuration_id)
     });
     Ok(CompatibilityReport {
         schema_version: ICD_SCHEMA_VERSION,
@@ -799,7 +882,12 @@ mod tests {
                     "HV-400V-DC-KEY-A",
                     PortDirection::Provider,
                     revision,
-                    evidence(EvidenceClass::IndependentTest, vehicle_id, module_id, revision),
+                    evidence(
+                        EvidenceClass::IndependentTest,
+                        vehicle_id,
+                        module_id,
+                        revision,
+                    ),
                 )
             },
             InterfacePort {
@@ -814,7 +902,12 @@ mod tests {
                     "MOUNT-DATUM-A",
                     PortDirection::Provider,
                     revision,
-                    evidence(EvidenceClass::IndependentTest, vehicle_id, module_id, revision),
+                    evidence(
+                        EvidenceClass::IndependentTest,
+                        vehicle_id,
+                        module_id,
+                        revision,
+                    ),
                 )
             },
             InterfacePort {
@@ -825,7 +918,12 @@ mod tests {
                     "CAN-FD-ICD-001",
                     PortDirection::Bidirectional,
                     revision,
-                    evidence(EvidenceClass::IndependentTest, vehicle_id, module_id, revision),
+                    evidence(
+                        EvidenceClass::IndependentTest,
+                        vehicle_id,
+                        module_id,
+                        revision,
+                    ),
                 )
             },
         ];
@@ -848,7 +946,12 @@ mod tests {
                     "HV-400V-DC-KEY-A",
                     PortDirection::Consumer,
                     revision,
-                    evidence(EvidenceClass::IndependentTest, vehicle_id, module_id, revision),
+                    evidence(
+                        EvidenceClass::IndependentTest,
+                        vehicle_id,
+                        module_id,
+                        revision,
+                    ),
                 )
             },
             InterfacePort {
@@ -863,7 +966,12 @@ mod tests {
                     "MOUNT-DATUM-A",
                     PortDirection::Consumer,
                     revision,
-                    evidence(EvidenceClass::IndependentTest, vehicle_id, module_id, revision),
+                    evidence(
+                        EvidenceClass::IndependentTest,
+                        vehicle_id,
+                        module_id,
+                        revision,
+                    ),
                 )
             },
             InterfacePort {
@@ -874,7 +982,12 @@ mod tests {
                     "CAN-FD-ICD-001",
                     PortDirection::Bidirectional,
                     revision,
-                    evidence(EvidenceClass::IndependentTest, vehicle_id, module_id, revision),
+                    evidence(
+                        EvidenceClass::IndependentTest,
+                        vehicle_id,
+                        module_id,
+                        revision,
+                    ),
                 )
             },
         ];
@@ -910,19 +1023,41 @@ mod tests {
         let report = evaluate_compatibility(&input).expect("fixture must evaluate");
         assert_eq!(report.module_result_count, 4);
         assert_eq!(
-            report.results.iter().find(|result| result.module_configuration_id == "detachable-uav-pod-synthetic").unwrap().status,
+            report
+                .results
+                .iter()
+                .find(|result| result.module_configuration_id == "detachable-uav-pod-synthetic")
+                .unwrap()
+                .status,
             CompatibilityStatus::Indeterminate
         );
         assert_eq!(
-            report.results.iter().find(|result| result.module_configuration_id == "integrated-drone-bay-polarity-negative-control").unwrap().status,
+            report
+                .results
+                .iter()
+                .find(|result| result.module_configuration_id
+                    == "integrated-drone-bay-polarity-negative-control")
+                .unwrap()
+                .status,
             CompatibilityStatus::Incompatible
         );
         assert_eq!(
-            report.results.iter().find(|result| result.module_configuration_id == "mobile-drone-trailer-revision-negative-control").unwrap().status,
+            report
+                .results
+                .iter()
+                .find(|result| result.module_configuration_id
+                    == "mobile-drone-trailer-revision-negative-control")
+                .unwrap()
+                .status,
             CompatibilityStatus::Incompatible
         );
         assert_eq!(
-            report.results.iter().find(|result| result.module_configuration_id == "amr-handoff-unqualified").unwrap().status,
+            report
+                .results
+                .iter()
+                .find(|result| result.module_configuration_id == "amr-handoff-unqualified")
+                .unwrap()
+                .status,
             CompatibilityStatus::Indeterminate
         );
         assert!(!report.production_release_granted);
@@ -972,13 +1107,15 @@ mod tests {
         input.modules[0].ports[0].polarity_profile = Some("DC_NEG_POS".into());
         let report = evaluate_compatibility(&input).expect("valid input");
         assert_eq!(report.results[0].status, CompatibilityStatus::Incompatible);
-        assert!(report.results[0]
-            .interfaces
-            .iter()
-            .find(|interface| interface.module_port_id == "module-hv")
-            .expect("HV finding")
-            .findings
-            .contains(&"polarity_profile_mismatch".into()));
+        assert!(
+            report.results[0]
+                .interfaces
+                .iter()
+                .find(|interface| interface.module_port_id == "module-hv")
+                .expect("HV finding")
+                .findings
+                .contains(&"polarity_profile_mismatch".into())
+        );
     }
 
     #[test]
@@ -1002,13 +1139,15 @@ mod tests {
         });
         let report = evaluate_compatibility(&input).expect("valid input");
         assert_eq!(report.results[0].status, CompatibilityStatus::Incompatible);
-        assert!(report.results[0]
-            .interfaces
-            .iter()
-            .find(|interface| interface.module_port_id == "module-hv")
-            .expect("HV finding")
-            .findings
-            .contains(&"provider_operating_range_outside_consumer_acceptance".into()));
+        assert!(
+            report.results[0]
+                .interfaces
+                .iter()
+                .find(|interface| interface.module_port_id == "module-hv")
+                .expect("HV finding")
+                .findings
+                .contains(&"provider_operating_range_outside_consumer_acceptance".into())
+        );
     }
 
     #[test]
@@ -1058,12 +1197,18 @@ mod tests {
     #[test]
     fn missing_declared_vehicle_port_is_incompatible_only_for_complete_inventory() {
         let mut input = qualified_input();
-        input.vehicle.ports.retain(|port| port.port_id != "vehicle-hv");
+        input
+            .vehicle
+            .ports
+            .retain(|port| port.port_id != "vehicle-hv");
         let report = evaluate_compatibility(&input).expect("valid input");
         assert_eq!(report.results[0].status, CompatibilityStatus::Incompatible);
         let mut incomplete = qualified_input();
         incomplete.vehicle.interface_inventory_complete = false;
-        incomplete.vehicle.ports.retain(|port| port.port_id != "vehicle-hv");
+        incomplete
+            .vehicle
+            .ports
+            .retain(|port| port.port_id != "vehicle-hv");
         let report = evaluate_compatibility(&incomplete).expect("valid input");
         assert_eq!(report.results[0].status, CompatibilityStatus::Indeterminate);
     }
@@ -1106,7 +1251,11 @@ mod tests {
         assert!(validate_input(&input).is_err());
 
         let mut invalid = qualified_input();
-        invalid.modules[0].ports[1].capacity_required.as_mut().unwrap().value = f64::NAN;
+        invalid.modules[0].ports[1]
+            .capacity_required
+            .as_mut()
+            .unwrap()
+            .value = f64::NAN;
         assert!(validate_input(&invalid).is_err());
     }
 }
