@@ -225,7 +225,7 @@ The exact-head fixture workflow now allows future control events to remain in th
 - revocation target existed before the revocation event;
 - every truth-required source observation was available by that episode's query tick.
 
-The evidence-ledger reference known-answer score is now 10/11 answers, 11/11 safe decisions, 10/11 coverage, 11/11 complete provenance, zero false memories and zero hard evidence violations. The four-condition tournament reference summary has been updated for 11 matched episodes. All remain hand-authored synthetic policy checks, not model scores or blind-set results.
+The evidence-ledger reference known-answer score is now 10/11 answers, 11/11 safe decisions, 10/11 coverage, 11/11 complete provenance, zero false memories and zero hard evidence violations. The four-condition tournament reference summary has been updated for 12 matched episodes. All remain hand-authored synthetic policy checks, not model scores or blind-set results.
 
 The paired checkpoints make temporal qualification stricter: a system may neither apply a future correction too early nor retain a revoked source after the revocation becomes effective. Both error directions matter.
 
@@ -243,3 +243,20 @@ References:
 The EgoWitness media, masks and annotations are not imported by either PR. Exact upstream release revision, source-video rights, mask/annotation licence and derivative rights remain to be audited per artefact. Public paper facts do not authorize copying or training on the underlying recordings.
 
 The competitive path is now: (1) reproduce official EgoWitness and EgoMemReason scores under their own protocols where the datasets are lawfully accessible; (2) compare against direct VLM, recent-window, summary, retrieval and specialist-tool agents with matched budgets; and (3) add our independent provenance, as-known time, false-merge/split, correction, revocation and causal-evidence checks. The latter enrich the qualification profile but do not replace the official benchmark score.
+
+
+## Multi-segment chain recall (12th scenario)
+
+The benchmark now includes lh-012-multisegment-15-source-chain: a two-hour synthetic stream containing 15 source observations spread across 70 minutes, with a query that requires reconstructing the full ordered maintenance sequence. The candidate must return the exact 15 source references in temporal order, not merely mention the right event or retrieve the right set in arbitrary order.
+
+This is motivated by StreamArena's long-video benchmark: 189 questions require at least two distinct evidence segments, its most demanding questions require up to 15 segments, and some retrospection queries rely on evidence more than an hour earlier. The synthetic challenge isolates the evidence-chain property without importing the benchmark's media or assuming identical task semantics.
+
+The evaluator now supports optional required_ordered_observation_refs in evaluator truth. When present, it must be a unique permutation of the required evidence set. The candidate's current_observation_refs must match that order exactly. An unordered but complete evidence bag receives current_observation_order_mismatch, loses answer correctness and cannot be marked provenance-complete.
+
+The four reference lanes intentionally differ:
+- recent-window: the 15 source observations have expired from the 20-minute window, so the policy abstains;
+- summary-only: it retrieves all 15 references but returns them in reverse order;
+- episodic retrieval: it retrieves only 14 of the 15 required spans;
+- evidence ledger: it retrieves all 15 references in the correct order.
+
+The resulting synthetic reference scorecard is now 12 episodes: the evidence-ledger policy produces 11/12 answer correctness, 12/12 correct decisions, 11/12 coverage, complete provenance and zero hard violations. The four-way tournament expected summary is updated for all 12 matched episodes. These are hand-authored reference-policy checks, not model results or comparative evidence against StreamArena.
