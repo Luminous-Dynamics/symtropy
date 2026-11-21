@@ -1,0 +1,229 @@
+name: AV Long-Horizon Evidence Memory Fixture Integrity
+
+on:
+  push:
+    branches:
+      - research/av-long-horizon-evidence-v0
+    paths:
+      - "research/av-long-horizon-evidence-v0/**"
+      - "tools/av-modality-necessity-evaluator/**"
+      - ".github/workflows/av-long-horizon-evidence.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/av-long-horizon-evidence-v0/**"
+      - ".github/workflows/av-long-horizon-evidence.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: av-long-horizon-evidence-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  QUALIFIED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  fixture-integrity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.QUALIFIED_SHA }}
+          persist-credentials: false
+      - name: Assert exact checkout
+        run: test "$(git rev-parse HEAD)" = "$QUALIFIED_SHA"
+      - name: Install JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.26.0
+      - name: Validate workload schema and data planes
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          base = "research/av-long-horizon-evidence-v0/"
+          schema = json.load(open(base + "schemas/workload-v1.schema.json", encoding="utf-8"))
+          Draft202012Validator.check_schema(schema)
+          workload = json.load(open(base + "fixtures/agent/workload-v1.json", encoding="utf-8"))
+          truth = json.load(open(base + "fixtures/evaluator-only/truth-v1.json", encoding="utf-8"))
+          expected = json.load(open(base + "fixtures/expected/known-answer-v1.json", encoding="utf-8"))
+          Draft202012Validator(schema).validate(workload)
+          for label, data in (("truth", truth), ("expected", expected)):
+              assert data["schema_version"] == 1 and data["benchmark_id"] == workload["benchmark_id"], label
+              assert len(data["episodes"]) == len(workload["episodes"]), label
+              assert len({x["episode_id"] for x in data["episodes"]}) == len(data["episodes"]), label
+          ids = [x["episode_id"] for x in workload["episodes"]]
+          assert ids == [x["episode_id"] for x in truth["episodes"]]
+          assert ids == [x["episode_id"] for x in expected["episodes"]]
+          assert len(ids) == 12
+          forbidden = {"expected_answer", "required_observation_refs", "expected_decision", "superseded_refs", "revoked_refs", "absent_event_class"}
+          def scan(value):
+              if isinstance(value, dict):
+                  assert not (forbidden & set(value)), "evaluator truth leaked into public workload"
+                  for child in value.values(): scan(child)
+              elif isinstance(value, list):
+                  for child in value: scan(child)
+          scan(workload)
+          PY
+      - name: Check causal query cutoffs and ordered timelines
+        run: |
+          python - <<'PY'
+          import json
+          p = "research/av-long-horizon-evidence-v0/fixtures/agent/workload-v1.json"
+          data = json.load(open(p, encoding="utf-8"))
+          truth = json.load(open("research/av-long-horizon-evidence-v0/fixtures/evaluator-only/truth-v1.json", encoding="utf-8"))
+          truth_by_id = {row["episode_id"]: row for row in truth["episodes"]}
+          for episode in data["episodes"]:
+              query_tick = episode["query"]["query_tick"]
+              events = episode["stream_events"]
+              availability = [event["availability_tick"] for event in events]
+              assert availability == sorted(availability), episode["episode_id"]
+              assert episode["query"]["response_deadline_tick"] >= query_tick
+              known_observations = {}
+              event_ids = set()
+              for event in events:
+                  assert event["event_id"] not in event_ids, episode["episode_id"]
+                  event_ids.add(event["event_id"])
+                  tick = event["availability_tick"]
+                  if event["kind"] == "observation":
+                      known_observations[event["observation_ref"]] = min(
+                          known_observations.get(event["observation_ref"], tick), tick
+                      )
+                  elif event["kind"] == "correction":
+                      old_ref = event["supersedes_observation_ref"]
+                      new_ref = event["replacement_observation_ref"]
+                      assert old_ref in known_observations and new_ref in known_observations
+                      assert known_observations[old_ref] <= tick
+                      assert known_observations[new_ref] <= tick
+                  elif event["kind"] == "revocation":
+                      target = event["target_observation_ref"]
+                      assert target in known_observations
+                      assert known_observations[target] <= tick
+              required = truth_by_id[episode["episode_id"]]["required_observation_refs"]
+              for ref in required:
+                  assert ref in known_observations
+                  assert known_observations[ref] <= query_tick, episode["episode_id"]
+          PY
+      - name: Fifteen-span chain is complete, ordered and query-admissible
+        run: |
+          python - <<'PY'
+          import json
+          base = "research/av-long-horizon-evidence-v0/fixtures/"
+          workload = json.load(open(base + "agent/workload-v1.json", encoding="utf-8"))
+          truth = json.load(open(base + "evaluator-only/truth-v1.json", encoding="utf-8"))
+          episode_id = "lh-012-multisegment-15-source-chain"
+          episode = next(row for row in workload["episodes"] if row["episode_id"] == episode_id)
+          label = next(row for row in truth["episodes"] if row["episode_id"] == episode_id)
+          events = [row for row in episode["stream_events"] if row["kind"] == "observation"]
+          refs = [row["observation_ref"] for row in events]
+          ordered = label["required_ordered_observation_refs"]
+          assert len(events) == 15 and len(set(refs)) == 15
+          assert ordered == refs
+          assert set(label["required_observation_refs"]) == set(refs)
+          assert all(row["availability_tick"] <= episode["query"]["query_tick"] for row in events)
+          assert events[-1]["availability_tick"] - events[0]["availability_tick"] >= 3600
+          PY
+
+      - name: Duplicate transport retains original observation identity
+        run: |
+          jq -e '.episodes[] | select(.episode_id == "lh-002-repeated-event-dedup") |
+            ([.stream_events[] | select(.event_id == "ev-tap-2-replay")][0].observation_ref) == "obs-tap-2"' research/av-long-horizon-evidence-v0/fixtures/agent/workload-v1.json
+      - name: Correction and replacement are both explicit
+        run: |
+          jq -e '.episodes[] | select(.episode_id == "lh-003-correction-supersession") |
+            ([.stream_events[] | select(.event_id == "ev-correction-1")][0].availability_tick) >
+            ([.stream_events[] | select(.observation_ref == "obs-machine-state-corrected")][0].availability_tick)' research/av-long-horizon-evidence-v0/fixtures/agent/workload-v1.json
+      - name: Common-cause dependency and revocation controls exist
+        run: |
+          jq -e '.episodes[] | select(.episode_id == "lh-004-common-cause-dependence") |
+            .stream_events[0].source_dependency_group == .stream_events[1].source_dependency_group' research/av-long-horizon-evidence-v0/fixtures/agent/workload-v1.json
+          jq -e '.episodes[] | select(.episode_id == "lh-008-memory-revocation") |
+            any(.stream_events[]; .kind == "revocation" and .target_observation_ref == "obs-private-utterance")' research/av-long-horizon-evidence-v0/fixtures/agent/workload-v1.json
+
+      - name: Validate candidate submission and scorecard schemas
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          base = "research/av-long-horizon-evidence-v0/"
+          submission_schema = json.load(open(base + "schemas/submission-v1.schema.json", encoding="utf-8"))
+          scorecard_schema = json.load(open(base + "schemas/scorecard-v1.schema.json", encoding="utf-8"))
+          arm_schema = json.load(open(base + "schemas/memory-arm-run-v1.schema.json", encoding="utf-8"))
+          tournament_schema = json.load(open(base + "schemas/memory-tournament-scorecard-v1.schema.json", encoding="utf-8"))
+          for schema in (submission_schema, scorecard_schema, arm_schema, tournament_schema):
+              Draft202012Validator.check_schema(schema)
+          submission = json.load(open(base + "fixtures/agent/reference-submission-v1.json", encoding="utf-8"))
+          Draft202012Validator(submission_schema).validate(submission)
+          arms = [
+              "memory-arm-recent-window-v1.json",
+              "memory-arm-summary-only-v1.json",
+              "memory-arm-episodic-retrieval-v1.json",
+              "memory-arm-evidence-ledger-v1.json",
+          ]
+          for filename in arms:
+              run = json.load(open(base + "fixtures/agent/" + filename, encoding="utf-8"))
+              Draft202012Validator(arm_schema).validate(run)
+              Draft202012Validator(submission_schema).validate(run["submission"])
+          PY
+      - name: Run long-horizon evaluator unit and adversarial tests
+        run: python -m unittest discover -s tools/av-modality-necessity-evaluator -p "test_long_horizon_evaluate.py" -v
+      - name: Score finite known-answer memory submission
+        run: |
+          python tools/av-modality-necessity-evaluator/long_horizon_evaluate.py \
+            --workload research/av-long-horizon-evidence-v0/fixtures/agent/workload-v1.json \
+            --truth research/av-long-horizon-evidence-v0/fixtures/evaluator-only/truth-v1.json \
+            --submission research/av-long-horizon-evidence-v0/fixtures/agent/reference-submission-v1.json \
+            --output /tmp/av-long-horizon-reference-scorecard.json
+      - name: Validate reference scorecard known answers
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          base = "research/av-long-horizon-evidence-v0/"
+          schema = json.load(open(base + "schemas/scorecard-v1.schema.json", encoding="utf-8"))
+          actual = json.load(open("/tmp/av-long-horizon-reference-scorecard.json", encoding="utf-8"))
+          expected = json.load(open(base + "fixtures/expected/reference-scorecard-summary-v1.json", encoding="utf-8"))
+          Draft202012Validator(schema).validate(actual)
+          assert actual["memory_condition"] == expected["memory_condition"]
+          for key, value in expected["totals"].items():
+              assert actual["totals"][key] == value, (key, actual["totals"][key], value)
+          assert actual["totals"]["answer_correct_count"] == 11
+          assert actual["totals"]["decision_correct_count"] == 12
+          assert actual["totals"]["hard_violation_count"] == 0
+          PY
+
+      - name: Run matched four-condition memory tournament tests
+        run: python -m unittest discover -s tools/av-modality-necessity-evaluator -p "test_compare_memory_conditions.py" -v
+      - name: Run recent-window / summary / episodic / evidence-ledger tournament
+        run: |
+          python tools/av-modality-necessity-evaluator/compare_memory_conditions.py \
+            --workload research/av-long-horizon-evidence-v0/fixtures/agent/workload-v1.json \
+            --truth research/av-long-horizon-evidence-v0/fixtures/evaluator-only/truth-v1.json \
+            --recent-window research/av-long-horizon-evidence-v0/fixtures/agent/memory-arm-recent-window-v1.json \
+            --summary-only research/av-long-horizon-evidence-v0/fixtures/agent/memory-arm-summary-only-v1.json \
+            --episodic-retrieval research/av-long-horizon-evidence-v0/fixtures/agent/memory-arm-episodic-retrieval-v1.json \
+            --evidence-ledger research/av-long-horizon-evidence-v0/fixtures/agent/memory-arm-evidence-ledger-v1.json \
+            --output /tmp/av-long-horizon-memory-tournament.json
+      - name: Validate matched memory tournament known answers
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          base = "research/av-long-horizon-evidence-v0/"
+          schema = json.load(open(base + "schemas/memory-tournament-scorecard-v1.schema.json", encoding="utf-8"))
+          actual = json.load(open("/tmp/av-long-horizon-memory-tournament.json", encoding="utf-8"))
+          expected = json.load(open(base + "fixtures/expected/memory-tournament-summary-v1.json", encoding="utf-8"))
+          Draft202012Validator(schema).validate(actual)
+          for condition, metrics in expected["per_condition"].items():
+              for key, value in metrics.items():
+                  assert actual["per_condition"][condition][key] == value, (condition, key, actual["per_condition"][condition][key], value)
+          for comparison, metrics in expected["paired"].items():
+              for key, value in metrics.items():
+                  assert actual["evidence_ledger_paired_comparisons"][comparison][key] == value, (comparison, key)
+          for condition, resource in actual["per_condition"].items():
+              assert resource["resource_usage"]["measurement_status"] == "synthetic_reference"
+              assert resource["resource_usage"]["memory_bytes_total"] is None
+          PY

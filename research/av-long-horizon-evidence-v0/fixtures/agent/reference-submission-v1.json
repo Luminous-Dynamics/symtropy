@@ -1,0 +1,334 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-long-horizon-evidence-v0",
+  "policy_id": "reference-evidence-ledger-policy-v1",
+  "run_id": "synthetic-known-answer-reference-v1",
+  "memory_condition": "evidence_ledger",
+  "model_revision": null,
+  "runtime_revision": "offline-reference-v1",
+  "predictions": [
+    {
+      "episode_id": "lh-001-delayed-recall-10m",
+      "decision": "answer",
+      "answer": "door-impact",
+      "confidence": 0.95,
+      "cited_observation_refs": [
+        "obs-door-impact"
+      ],
+      "current_observation_refs": [
+        "obs-door-impact"
+      ],
+      "claimed_independent_corroboration": false,
+      "claimed_cross_clock_order": false,
+      "evidence_as_of_tick": 600,
+      "response_tick": 601,
+      "retrieved_memory_item_refs": [],
+      "retained_memory_item_refs": [],
+      "purge_receipts": [],
+      "claimed_distinct_event_count": null
+    },
+    {
+      "episode_id": "lh-002-repeated-event-dedup",
+      "decision": "answer",
+      "answer": "four_distinct_taps",
+      "confidence": 0.95,
+      "cited_observation_refs": [
+        "obs-tap-1",
+        "obs-tap-2",
+        "obs-tap-3",
+        "obs-tap-4"
+      ],
+      "current_observation_refs": [
+        "obs-tap-1",
+        "obs-tap-2",
+        "obs-tap-3",
+        "obs-tap-4"
+      ],
+      "claimed_independent_corroboration": false,
+      "claimed_cross_clock_order": false,
+      "evidence_as_of_tick": 900,
+      "response_tick": 901,
+      "claimed_distinct_event_count": 4,
+      "retrieved_memory_item_refs": [],
+      "retained_memory_item_refs": [],
+      "purge_receipts": []
+    },
+    {
+      "episode_id": "lh-003-correction-supersession",
+      "decision": "answer",
+      "answer": "corrected_machine_state",
+      "confidence": 0.95,
+      "cited_observation_refs": [
+        "obs-machine-state-v1",
+        "obs-machine-state-corrected"
+      ],
+      "current_observation_refs": [
+        "obs-machine-state-corrected"
+      ],
+      "claimed_independent_corroboration": false,
+      "claimed_cross_clock_order": false,
+      "evidence_as_of_tick": 1800,
+      "response_tick": 1801,
+      "retrieved_memory_item_refs": [],
+      "retained_memory_item_refs": [],
+      "purge_receipts": [],
+      "claimed_distinct_event_count": null
+    },
+    {
+      "episode_id": "lh-004-common-cause-dependence",
+      "decision": "answer",
+      "answer": "dependent_views_not_independent",
+      "confidence": 0.95,
+      "cited_observation_refs": [
+        "obs-impact-video",
+        "obs-impact-audio"
+      ],
+      "current_observation_refs": [
+        "obs-impact-video",
+        "obs-impact-audio"
+      ],
+      "claimed_independent_corroboration": false,
+      "claimed_cross_clock_order": false,
+      "evidence_as_of_tick": 1200,
+      "response_tick": 1201,
+      "retrieved_memory_item_refs": [],
+      "retained_memory_item_refs": [],
+      "purge_receipts": [],
+      "claimed_distinct_event_count": null
+    },
+    {
+      "episode_id": "lh-005-nuisance-interference",
+      "decision": "answer",
+      "answer": "target-alarm",
+      "confidence": 0.95,
+      "cited_observation_refs": [
+        "obs-target-alarm"
+      ],
+      "current_observation_refs": [
+        "obs-target-alarm"
+      ],
+      "claimed_independent_corroboration": false,
+      "claimed_cross_clock_order": false,
+      "evidence_as_of_tick": 3600,
+      "response_tick": 3601,
+      "retrieved_memory_item_refs": [],
+      "retained_memory_item_refs": [],
+      "purge_receipts": [],
+      "claimed_distinct_event_count": null
+    },
+    {
+      "episode_id": "lh-006-absent-event-false-memory",
+      "decision": "abstain",
+      "answer": null,
+      "confidence": 0,
+      "cited_observation_refs": [],
+      "current_observation_refs": [],
+      "claimed_independent_corroboration": false,
+      "claimed_cross_clock_order": false,
+      "evidence_as_of_tick": 900,
+      "response_tick": 901,
+      "retrieved_memory_item_refs": [],
+      "retained_memory_item_refs": [],
+      "purge_receipts": [],
+      "claimed_distinct_event_count": null
+    },
+    {
+      "episode_id": "lh-007-cross-clock-and-event-order",
+      "decision": "answer",
+      "answer": "within_clock_order_only",
+      "confidence": 0.95,
+      "cited_observation_refs": [
+        "obs-camera-action",
+        "obs-mic-sound",
+        "obs-camera-reset",
+        "obs-mic-after-reset"
+      ],
+      "current_observation_refs": [
+        "obs-camera-action",
+        "obs-mic-sound",
+        "obs-camera-reset",
+        "obs-mic-after-reset"
+      ],
+      "claimed_independent_corroboration": false,
+      "claimed_cross_clock_order": false,
+      "evidence_as_of_tick": 7200,
+      "response_tick": 7201,
+      "retrieved_memory_item_refs": [],
+      "retained_memory_item_refs": [],
+      "purge_receipts": [],
+      "claimed_distinct_event_count": null
+    },
+    {
+      "episode_id": "lh-008-memory-revocation",
+      "decision": "answer",
+      "answer": "only_public_action_remains_eligible",
+      "confidence": 0.95,
+      "cited_observation_refs": [
+        "obs-public-action"
+      ],
+      "current_observation_refs": [
+        "obs-public-action"
+      ],
+      "claimed_independent_corroboration": false,
+      "claimed_cross_clock_order": false,
+      "evidence_as_of_tick": 3600,
+      "response_tick": 3601,
+      "retrieved_memory_item_refs": [
+        "mem-public-action-summary"
+      ],
+      "retained_memory_item_refs": [
+        "mem-public-action-summary"
+      ],
+      "purge_receipts": [
+        {
+          "item_ref": "mem-private-summary",
+          "status": "purged",
+          "purge_tick": 1800,
+          "receipt_id": "synthetic-purge-receipt-mem-private-summary",
+          "attestation_level": "candidate_self_reported"
+        },
+        {
+          "item_ref": "mem-private-embedding",
+          "status": "purged",
+          "purge_tick": 1800,
+          "receipt_id": "synthetic-purge-receipt-mem-private-embedding",
+          "attestation_level": "candidate_self_reported"
+        },
+        {
+          "item_ref": "mem-private-retrieval-index",
+          "status": "purged",
+          "purge_tick": 1800,
+          "receipt_id": "synthetic-purge-receipt-mem-private-retrieval-index",
+          "attestation_level": "candidate_self_reported"
+        },
+        {
+          "item_ref": "mem-private-working-context",
+          "status": "purged",
+          "purge_tick": 1800,
+          "receipt_id": "synthetic-purge-receipt-mem-private-working-context",
+          "attestation_level": "candidate_self_reported"
+        },
+        {
+          "item_ref": "mem-private-response-cache",
+          "status": "purged",
+          "purge_tick": 1800,
+          "receipt_id": "synthetic-purge-receipt-mem-private-response-cache",
+          "attestation_level": "candidate_self_reported"
+        }
+      ],
+      "claimed_distinct_event_count": null
+    },
+    {
+      "episode_id": "lh-009-compression-retention",
+      "decision": "answer",
+      "answer": "rare-vibration",
+      "confidence": 0.95,
+      "cited_observation_refs": [
+        "obs-rare-vibration"
+      ],
+      "current_observation_refs": [
+        "obs-rare-vibration"
+      ],
+      "claimed_independent_corroboration": false,
+      "claimed_cross_clock_order": false,
+      "evidence_as_of_tick": 5400,
+      "response_tick": 5401,
+      "retrieved_memory_item_refs": [],
+      "retained_memory_item_refs": [],
+      "purge_receipts": [],
+      "claimed_distinct_event_count": null
+    },
+    {
+      "episode_id": "lh-010-correction-before-arrival",
+      "decision": "answer",
+      "answer": "initial_machine_state",
+      "confidence": 0.95,
+      "cited_observation_refs": [
+        "obs-machine-state-v1"
+      ],
+      "current_observation_refs": [
+        "obs-machine-state-v1"
+      ],
+      "claimed_independent_corroboration": false,
+      "claimed_cross_clock_order": false,
+      "evidence_as_of_tick": 300,
+      "response_tick": 301,
+      "retrieved_memory_item_refs": [],
+      "retained_memory_item_refs": [],
+      "purge_receipts": [],
+      "claimed_distinct_event_count": null
+    },
+    {
+      "episode_id": "lh-011-revocation-before-effect",
+      "decision": "answer",
+      "answer": "private_utterance_still_eligible",
+      "confidence": 0.95,
+      "cited_observation_refs": [
+        "obs-private-utterance-pre-revoke"
+      ],
+      "current_observation_refs": [
+        "obs-private-utterance-pre-revoke"
+      ],
+      "claimed_independent_corroboration": false,
+      "claimed_cross_clock_order": false,
+      "evidence_as_of_tick": 1200,
+      "response_tick": 1201,
+      "retrieved_memory_item_refs": [
+        "mem-private-pre-revoke-summary"
+      ],
+      "retained_memory_item_refs": [
+        "mem-private-pre-revoke-summary"
+      ],
+      "purge_receipts": [],
+      "claimed_distinct_event_count": null
+    },
+    {
+      "episode_id": "lh-012-multisegment-15-source-chain",
+      "decision": "answer",
+      "answer": "ordered_15_span_chain",
+      "confidence": 0.95,
+      "cited_observation_refs": [
+        "obs-chain-01",
+        "obs-chain-02",
+        "obs-chain-03",
+        "obs-chain-04",
+        "obs-chain-05",
+        "obs-chain-06",
+        "obs-chain-07",
+        "obs-chain-08",
+        "obs-chain-09",
+        "obs-chain-10",
+        "obs-chain-11",
+        "obs-chain-12",
+        "obs-chain-13",
+        "obs-chain-14",
+        "obs-chain-15"
+      ],
+      "current_observation_refs": [
+        "obs-chain-01",
+        "obs-chain-02",
+        "obs-chain-03",
+        "obs-chain-04",
+        "obs-chain-05",
+        "obs-chain-06",
+        "obs-chain-07",
+        "obs-chain-08",
+        "obs-chain-09",
+        "obs-chain-10",
+        "obs-chain-11",
+        "obs-chain-12",
+        "obs-chain-13",
+        "obs-chain-14",
+        "obs-chain-15"
+      ],
+      "claimed_independent_corroboration": false,
+      "claimed_cross_clock_order": false,
+      "evidence_as_of_tick": 7200,
+      "response_tick": 7201,
+      "retrieved_memory_item_refs": [],
+      "retained_memory_item_refs": [],
+      "purge_receipts": [],
+      "claimed_distinct_event_count": null
+    }
+  ]
+}

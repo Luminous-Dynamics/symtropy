@@ -1,0 +1,295 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/av-long-horizon-workload-v1.schema.json",
+  "title": "Long-Horizon Audiovisual Evidence Workload v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "note",
+    "memory_conditions",
+    "episodes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "const": "av-long-horizon-evidence-v0"
+    },
+    "note": {
+      "type": "string"
+    },
+    "memory_conditions": {
+      "type": "array",
+      "minItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "recent_window",
+          "summary_only",
+          "episodic_retrieval",
+          "evidence_ledger"
+        ]
+      }
+    },
+    "episodes": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "$ref": "#/$defs/episode"
+      }
+    }
+  },
+  "$defs": {
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "kind",
+        "availability_tick"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "observation",
+            "correction",
+            "revocation"
+          ]
+        },
+        "availability_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "observation_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "modalities": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "audio",
+              "video"
+            ]
+          }
+        },
+        "capture_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "artifact_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "source_dependency_group": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clock_generation": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "supersedes_observation_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "replacement_observation_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_observation_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "observation"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "observation_ref",
+              "modalities",
+              "capture_tick",
+              "artifact_sha256",
+              "clock_domain_id",
+              "clock_generation"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "correction"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "supersedes_observation_ref",
+              "replacement_observation_ref"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "revocation"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "target_observation_ref"
+            ]
+          }
+        }
+      ]
+    },
+    "episode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_id",
+        "horizon_seconds",
+        "memory_budget_bytes",
+        "stream_events",
+        "query"
+      ],
+      "properties": {
+        "episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "horizon_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "memory_budget_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "stream_events": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/event"
+          }
+        },
+        "query": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "query_id",
+            "query_tick",
+            "query_text",
+            "response_deadline_tick"
+          ],
+          "properties": {
+            "query_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "query_tick": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "query_text": {
+              "type": "string",
+              "minLength": 1
+            },
+            "response_deadline_tick": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "derived_memory_items": {
+          "type": "array",
+          "uniqueItems": false,
+          "items": {
+            "$ref": "#/$defs/derived_memory_item"
+          }
+        }
+      }
+    },
+    "derived_memory_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "item_ref",
+        "kind",
+        "created_tick",
+        "derived_from_observation_refs",
+        "derived_from_item_refs"
+      ],
+      "properties": {
+        "item_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "summary",
+            "embedding",
+            "retrieval_index",
+            "working_context",
+            "response_cache",
+            "episodic_entry"
+          ]
+        },
+        "created_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "derived_from_observation_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "derived_from_item_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

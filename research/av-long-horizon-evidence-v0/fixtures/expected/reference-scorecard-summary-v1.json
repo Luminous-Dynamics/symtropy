@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-long-horizon-evidence-v0",
+  "status": "synthetic_reference_evaluator_known_answer_only",
+  "memory_condition": "evidence_ledger",
+  "totals": {
+    "episode_count": 12,
+    "answer_correct_count": 11,
+    "decision_correct_count": 12,
+    "answer_accuracy": 0.9166666666666666,
+    "decision_accuracy": 1,
+    "coverage": 0.9166666666666666,
+    "selective_accuracy": 1,
+    "citation_precision": 1,
+    "citation_recall": 1,
+    "provenance_complete_count": 12,
+    "provenance_complete_rate": 1,
+    "evidence_compliant_count": 12,
+    "evidence_compliance_rate": 1,
+    "false_memory_count": 0,
+    "hard_violation_count": 0,
+    "deadline_miss_count": 0,
+    "evidence_qualified_answer_correct_count": 11,
+    "evidence_qualified_answer_accuracy": 0.9166666666666666
+  }
+}

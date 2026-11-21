@@ -1,0 +1,143 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-long-horizon-evidence-v0",
+  "status": "author-authored finite known-answer semantics; candidate memory-system results not supplied",
+  "episodes": [
+    {
+      "episode_id": "lh-001-delayed-recall-10m",
+      "expected_decision": "answer",
+      "required_observation_refs": [
+        "obs-door-impact"
+      ],
+      "expected_answer": "door-impact"
+    },
+    {
+      "episode_id": "lh-002-repeated-event-dedup",
+      "expected_decision": "answer",
+      "required_observation_refs": [
+        "obs-tap-1",
+        "obs-tap-2",
+        "obs-tap-3",
+        "obs-tap-4"
+      ],
+      "expected_answer": "four_distinct_taps",
+      "excluded_duplicate_event_ids": [
+        "ev-tap-2-replay"
+      ],
+      "expected_distinct_event_count": 4
+    },
+    {
+      "episode_id": "lh-003-correction-supersession",
+      "expected_decision": "answer",
+      "required_observation_refs": [
+        "obs-machine-state-corrected"
+      ],
+      "expected_answer": "corrected_machine_state"
+    },
+    {
+      "episode_id": "lh-004-common-cause-dependence",
+      "expected_decision": "answer",
+      "required_observation_refs": [
+        "obs-impact-video",
+        "obs-impact-audio"
+      ],
+      "expected_answer": "dependent_views_not_independent"
+    },
+    {
+      "episode_id": "lh-005-nuisance-interference",
+      "expected_decision": "answer",
+      "required_observation_refs": [
+        "obs-target-alarm"
+      ],
+      "expected_answer": "target-alarm"
+    },
+    {
+      "episode_id": "lh-006-absent-event-false-memory",
+      "expected_decision": "abstain",
+      "required_observation_refs": [],
+      "expected_answer": null
+    },
+    {
+      "episode_id": "lh-007-cross-clock-and-event-order",
+      "expected_decision": "answer",
+      "required_observation_refs": [
+        "obs-camera-action",
+        "obs-mic-sound",
+        "obs-camera-reset",
+        "obs-mic-after-reset"
+      ],
+      "expected_answer": "within_clock_order_only"
+    },
+    {
+      "episode_id": "lh-008-memory-revocation",
+      "expected_decision": "answer",
+      "required_observation_refs": [
+        "obs-public-action"
+      ],
+      "expected_answer": "only_public_action_remains_eligible"
+    },
+    {
+      "episode_id": "lh-009-compression-retention",
+      "expected_decision": "answer",
+      "required_observation_refs": [
+        "obs-rare-vibration"
+      ],
+      "expected_answer": "rare-vibration"
+    },
+    {
+      "episode_id": "lh-010-correction-before-arrival",
+      "expected_decision": "answer",
+      "required_observation_refs": [
+        "obs-machine-state-v1"
+      ],
+      "expected_answer": "initial_machine_state"
+    },
+    {
+      "episode_id": "lh-011-revocation-before-effect",
+      "expected_decision": "answer",
+      "required_observation_refs": [
+        "obs-private-utterance-pre-revoke"
+      ],
+      "expected_answer": "private_utterance_still_eligible"
+    },
+    {
+      "episode_id": "lh-012-multisegment-15-source-chain",
+      "expected_decision": "answer",
+      "expected_answer": "ordered_15_span_chain",
+      "required_observation_refs": [
+        "obs-chain-01",
+        "obs-chain-02",
+        "obs-chain-03",
+        "obs-chain-04",
+        "obs-chain-05",
+        "obs-chain-06",
+        "obs-chain-07",
+        "obs-chain-08",
+        "obs-chain-09",
+        "obs-chain-10",
+        "obs-chain-11",
+        "obs-chain-12",
+        "obs-chain-13",
+        "obs-chain-14",
+        "obs-chain-15"
+      ],
+      "required_ordered_observation_refs": [
+        "obs-chain-01",
+        "obs-chain-02",
+        "obs-chain-03",
+        "obs-chain-04",
+        "obs-chain-05",
+        "obs-chain-06",
+        "obs-chain-07",
+        "obs-chain-08",
+        "obs-chain-09",
+        "obs-chain-10",
+        "obs-chain-11",
+        "obs-chain-12",
+        "obs-chain-13",
+        "obs-chain-14",
+        "obs-chain-15"
+      ]
+    }
+  ]
+}

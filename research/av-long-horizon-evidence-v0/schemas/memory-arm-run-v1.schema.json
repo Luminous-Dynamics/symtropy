@@ -1,0 +1,37 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://luminousdynamics.io/schemas/av-long-horizon-memory-arm-v1.schema.json",
+  "title":"Matched Memory-Condition Run v1",
+  "type":"object","additionalProperties":false,
+  "required":["schema_version","benchmark_id","comparison_id","policy_id","run_id","memory_condition","model_revision","runtime_revision","hardware_id","seed","workload_ref","protocol_id","memory_budget_profile_id","measurement_status","budget","submission"],
+  "properties":{
+    "schema_version":{"const":1},"benchmark_id":{"const":"av-long-horizon-evidence-v0"},
+    "comparison_id":{"type":"string","minLength":1},"policy_id":{"type":"string","minLength":1},
+    "run_id":{"type":"string","minLength":1},
+    "memory_condition":{"enum":["recent_window","summary_only","episodic_retrieval","evidence_ledger"]},
+    "model_revision":{"type":["string","null"]},"runtime_revision":{"type":["string","null"]},
+    "hardware_id":{"type":"string","minLength":1},"seed":{"type":"integer","minimum":0},
+    "workload_ref":{"type":"string","minLength":1},"protocol_id":{"type":"string","minLength":1},
+    "memory_budget_profile_id":{"type":"string","minLength":1},
+    "measurement_status":{"enum":["synthetic_reference","measured"]},
+    "budget":{"type":"object","additionalProperties":false,
+      "required":["max_memory_bytes_per_episode","max_input_tokens_per_episode","max_retrieval_latency_ms","max_energy_joules_per_episode"],
+      "properties":{
+        "max_memory_bytes_per_episode":{"type":"integer","minimum":1},
+        "max_input_tokens_per_episode":{"type":"integer","minimum":0},
+        "max_retrieval_latency_ms":{"type":"number","minimum":0},
+        "max_energy_joules_per_episode":{"type":"number","minimum":0}
+      }
+    },
+    "submission":{"type":"object","additionalProperties":false,
+      "required":["schema_version","benchmark_id","policy_id","run_id","memory_condition","model_revision","runtime_revision","predictions"],
+      "properties":{
+        "schema_version":{"const":1},"benchmark_id":{"const":"av-long-horizon-evidence-v0"},
+        "policy_id":{"type":"string","minLength":1},"run_id":{"type":"string","minLength":1},
+        "memory_condition":{"enum":["recent_window","summary_only","episodic_retrieval","evidence_ledger"]},
+        "model_revision":{"type":["string","null"]},"runtime_revision":{"type":["string","null"]},
+        "predictions":{"type":"array","minItems":1,"items":{"type":"object"}}
+      }
+    }
+  }
+}

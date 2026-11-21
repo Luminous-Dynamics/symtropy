@@ -1,0 +1,376 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/av-long-horizon-memory-tournament-v1.schema.json",
+  "title": "Matched Long-Horizon Memory Tournament Scorecard v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "comparison_id",
+    "matched_protocol",
+    "interpretation",
+    "per_condition",
+    "evidence_ledger_paired_comparisons"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "const": "av-long-horizon-evidence-v0"
+    },
+    "comparison_id": {
+      "type": "string"
+    },
+    "matched_protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_id",
+        "model_revision",
+        "runtime_revision",
+        "hardware_id",
+        "seed",
+        "workload_ref",
+        "protocol_id",
+        "memory_budget_profile_id",
+        "measurement_status",
+        "budget"
+      ],
+      "properties": {
+        "policy_id": {
+          "type": "string"
+        },
+        "model_revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "runtime_revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_id": {
+          "type": "string"
+        },
+        "seed": {
+          "type": "integer"
+        },
+        "workload_ref": {
+          "type": "string"
+        },
+        "protocol_id": {
+          "type": "string"
+        },
+        "memory_budget_profile_id": {
+          "type": "string"
+        },
+        "measurement_status": {
+          "enum": [
+            "synthetic_reference",
+            "measured"
+          ]
+        },
+        "budget": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "max_memory_bytes_per_episode",
+            "max_input_tokens_per_episode",
+            "max_retrieval_latency_ms",
+            "max_energy_joules_per_episode"
+          ],
+          "properties": {
+            "max_memory_bytes_per_episode": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "max_input_tokens_per_episode": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "max_retrieval_latency_ms": {
+              "type": "number",
+              "minimum": 0
+            },
+            "max_energy_joules_per_episode": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "interpretation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "limitations"
+      ],
+      "properties": {
+        "status": {
+          "const": "synthetic_matched_memory_reference"
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "per_condition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "recent_window",
+        "summary_only",
+        "episodic_retrieval",
+        "evidence_ledger"
+      ],
+      "properties": {
+        "recent_window": {
+          "$ref": "#/$defs/condition"
+        },
+        "summary_only": {
+          "$ref": "#/$defs/condition"
+        },
+        "episodic_retrieval": {
+          "$ref": "#/$defs/condition"
+        },
+        "evidence_ledger": {
+          "$ref": "#/$defs/condition"
+        }
+      }
+    },
+    "evidence_ledger_paired_comparisons": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "vs_recent_window",
+        "vs_summary_only",
+        "vs_episodic_retrieval"
+      ],
+      "properties": {
+        "vs_recent_window": {
+          "$ref": "#/$defs/paired"
+        },
+        "vs_summary_only": {
+          "$ref": "#/$defs/paired"
+        },
+        "vs_episodic_retrieval": {
+          "$ref": "#/$defs/paired"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "condition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "answer_accuracy",
+        "decision_accuracy",
+        "coverage",
+        "selective_accuracy",
+        "citation_precision",
+        "citation_recall",
+        "provenance_complete_rate",
+        "evidence_compliance_rate",
+        "false_memory_count",
+        "hard_violation_count",
+        "resource_usage",
+        "evidence_qualified_answer_accuracy"
+      ],
+      "properties": {
+        "answer_accuracy": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "decision_accuracy": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "coverage": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "selective_accuracy": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "citation_precision": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "citation_recall": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "provenance_complete_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "evidence_compliance_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "false_memory_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "hard_violation_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "resource_usage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "measurement_status",
+            "memory_bytes_total",
+            "input_tokens_total",
+            "retrieval_latency_p50_ms",
+            "retrieval_latency_p95_ms",
+            "energy_joules_total"
+          ],
+          "properties": {
+            "measurement_status": {
+              "enum": [
+                "synthetic_reference",
+                "measured"
+              ]
+            },
+            "memory_bytes_total": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "input_tokens_total": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "retrieval_latency_p50_ms": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "retrieval_latency_p95_ms": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "energy_joules_total": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            }
+          }
+        },
+        "evidence_qualified_answer_accuracy": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "paired": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_count",
+        "ledger_answer_wins",
+        "baseline_answer_wins",
+        "ties",
+        "net_answer_accuracy_gain",
+        "ledger_provenance_wins",
+        "baseline_provenance_wins"
+      ],
+      "properties": {
+        "episode_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ledger_answer_wins": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "baseline_answer_wins": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ties": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "net_answer_accuracy_gain": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": -1,
+          "maximum": 1
+        },
+        "ledger_provenance_wins": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "baseline_provenance_wins": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

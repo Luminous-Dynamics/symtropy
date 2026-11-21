@@ -1,0 +1,1046 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-long-horizon-evidence-v0",
+  "note": "Synthetic metadata-only stream fixtures. No raw media, calibrated sensor data or physical memory-performance claims.",
+  "memory_conditions": [
+    "recent_window",
+    "summary_only",
+    "episodic_retrieval",
+    "evidence_ledger"
+  ],
+  "episodes": [
+    {
+      "episode_id": "lh-001-delayed-recall-10m",
+      "horizon_seconds": 600,
+      "memory_budget_bytes": 131072,
+      "stream_events": [
+        {
+          "event_id": "ev-door-impact",
+          "kind": "observation",
+          "availability_tick": 0,
+          "observation_ref": "obs-door-impact",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 0,
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_dependency_group": "root-door-1",
+          "clock_domain_id": "clock-room-a",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-corridor-motion",
+          "kind": "observation",
+          "availability_tick": 120,
+          "observation_ref": "obs-corridor-motion",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 120,
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_dependency_group": "root-motion-1",
+          "clock_domain_id": "clock-room-a",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-cup-placement",
+          "kind": "observation",
+          "availability_tick": 300,
+          "observation_ref": "obs-cup-placement",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 300,
+          "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_dependency_group": "root-cup-1",
+          "clock_domain_id": "clock-room-a",
+          "clock_generation": 0
+        }
+      ],
+      "query": {
+        "query_id": "q-lh001",
+        "query_tick": 600,
+        "query_text": "Which sound event was observed at the start of this stream, and which observation supports it?",
+        "response_deadline_tick": 630
+      }
+    },
+    {
+      "episode_id": "lh-002-repeated-event-dedup",
+      "horizon_seconds": 900,
+      "memory_budget_bytes": 131072,
+      "stream_events": [
+        {
+          "event_id": "ev-tap-1",
+          "kind": "observation",
+          "availability_tick": 0,
+          "observation_ref": "obs-tap-1",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 0,
+          "artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "source_dependency_group": "root-tap-1",
+          "clock_domain_id": "clock-room-a",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-tap-2",
+          "kind": "observation",
+          "availability_tick": 90,
+          "observation_ref": "obs-tap-2",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 90,
+          "artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "source_dependency_group": "root-tap-2",
+          "clock_domain_id": "clock-room-a",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-tap-3",
+          "kind": "observation",
+          "availability_tick": 180,
+          "observation_ref": "obs-tap-3",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 180,
+          "artifact_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "source_dependency_group": "root-tap-3",
+          "clock_domain_id": "clock-room-a",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-tap-4",
+          "kind": "observation",
+          "availability_tick": 270,
+          "observation_ref": "obs-tap-4",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 270,
+          "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "source_dependency_group": "root-tap-4",
+          "clock_domain_id": "clock-room-a",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-tap-2-replay",
+          "kind": "observation",
+          "availability_tick": 360,
+          "observation_ref": "obs-tap-2",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 90,
+          "artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "source_dependency_group": "root-tap-2",
+          "clock_domain_id": "clock-room-a",
+          "clock_generation": 0
+        }
+      ],
+      "query": {
+        "query_id": "q-lh002",
+        "query_tick": 900,
+        "query_text": "How many distinct tap events occurred, excluding the replayed delivery?",
+        "response_deadline_tick": 930
+      }
+    },
+    {
+      "episode_id": "lh-003-correction-supersession",
+      "horizon_seconds": 1800,
+      "memory_budget_bytes": 196608,
+      "stream_events": [
+        {
+          "event_id": "ev-machine-state-v1",
+          "kind": "observation",
+          "availability_tick": 0,
+          "observation_ref": "obs-machine-state-v1",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 0,
+          "artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "source_dependency_group": "root-machine-state",
+          "clock_domain_id": "clock-room-b",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-machine-audio-v1",
+          "kind": "observation",
+          "availability_tick": 60,
+          "observation_ref": "obs-machine-audio-v1",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 60,
+          "artifact_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "source_dependency_group": "root-machine-audio",
+          "clock_domain_id": "clock-room-b",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-machine-state-corrected",
+          "kind": "observation",
+          "availability_tick": 600,
+          "observation_ref": "obs-machine-state-corrected",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 600,
+          "artifact_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "source_dependency_group": "root-machine-state-corrected",
+          "clock_domain_id": "clock-room-b",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-correction-1",
+          "kind": "correction",
+          "availability_tick": 601,
+          "supersedes_observation_ref": "obs-machine-state-v1",
+          "replacement_observation_ref": "obs-machine-state-corrected"
+        }
+      ],
+      "query": {
+        "query_id": "q-lh003",
+        "query_tick": 1800,
+        "query_text": "What is the currently valid machine state after applying any later correction?",
+        "response_deadline_tick": 1830
+      }
+    },
+    {
+      "episode_id": "lh-004-common-cause-dependence",
+      "horizon_seconds": 1200,
+      "memory_budget_bytes": 131072,
+      "stream_events": [
+        {
+          "event_id": "ev-impact-video",
+          "kind": "observation",
+          "availability_tick": 0,
+          "observation_ref": "obs-impact-video",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 0,
+          "artifact_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "source_dependency_group": "root-shared-impact-4",
+          "clock_domain_id": "clock-room-c",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-impact-audio",
+          "kind": "observation",
+          "availability_tick": 2,
+          "observation_ref": "obs-impact-audio",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 2,
+          "artifact_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+          "source_dependency_group": "root-shared-impact-4",
+          "clock_domain_id": "clock-room-c",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-operator-note",
+          "kind": "observation",
+          "availability_tick": 600,
+          "observation_ref": "obs-operator-note",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 600,
+          "artifact_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "source_dependency_group": "root-operator-note",
+          "clock_domain_id": "clock-room-c",
+          "clock_generation": 0
+        }
+      ],
+      "query": {
+        "query_id": "q-lh004",
+        "query_tick": 1200,
+        "query_text": "Do the first audio and video observations provide independent corroboration, or two dependent views of one source event?",
+        "response_deadline_tick": 1230
+      }
+    },
+    {
+      "episode_id": "lh-005-nuisance-interference",
+      "horizon_seconds": 3600,
+      "memory_budget_bytes": 262144,
+      "stream_events": [
+        {
+          "event_id": "ev-target-alarm",
+          "kind": "observation",
+          "availability_tick": 0,
+          "observation_ref": "obs-target-alarm",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 0,
+          "artifact_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "source_dependency_group": "root-target-alarm",
+          "clock_domain_id": "clock-room-d",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-distractor-visual-1",
+          "kind": "observation",
+          "availability_tick": 100,
+          "observation_ref": "obs-distractor-visual-1",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 100,
+          "artifact_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+          "source_dependency_group": "root-distractor-1",
+          "clock_domain_id": "clock-room-d",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-distractor-audio-2",
+          "kind": "observation",
+          "availability_tick": 300,
+          "observation_ref": "obs-distractor-audio-2",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 300,
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_dependency_group": "root-distractor-2",
+          "clock_domain_id": "clock-room-d",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-distractor-visual-3",
+          "kind": "observation",
+          "availability_tick": 900,
+          "observation_ref": "obs-distractor-visual-3",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 900,
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_dependency_group": "root-distractor-3",
+          "clock_domain_id": "clock-room-d",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-distractor-audio-4",
+          "kind": "observation",
+          "availability_tick": 1500,
+          "observation_ref": "obs-distractor-audio-4",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 1500,
+          "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_dependency_group": "root-distractor-4",
+          "clock_domain_id": "clock-room-d",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-distractor-visual-5",
+          "kind": "observation",
+          "availability_tick": 2400,
+          "observation_ref": "obs-distractor-visual-5",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 2400,
+          "artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "source_dependency_group": "root-distractor-5",
+          "clock_domain_id": "clock-room-d",
+          "clock_generation": 0
+        }
+      ],
+      "query": {
+        "query_id": "q-lh005",
+        "query_tick": 3600,
+        "query_text": "Which alarm was present at the beginning, and what is its source observation?",
+        "response_deadline_tick": 3630
+      }
+    },
+    {
+      "episode_id": "lh-006-absent-event-false-memory",
+      "horizon_seconds": 900,
+      "memory_budget_bytes": 131072,
+      "stream_events": [
+        {
+          "event_id": "ev-water-run",
+          "kind": "observation",
+          "availability_tick": 0,
+          "observation_ref": "obs-water-run",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 0,
+          "artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "source_dependency_group": "root-water-1",
+          "clock_domain_id": "clock-room-e",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-door-close",
+          "kind": "observation",
+          "availability_tick": 120,
+          "observation_ref": "obs-door-close",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 120,
+          "artifact_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "source_dependency_group": "root-door-2",
+          "clock_domain_id": "clock-room-e",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-visual-person",
+          "kind": "observation",
+          "availability_tick": 240,
+          "observation_ref": "obs-visual-person",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 240,
+          "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "source_dependency_group": "root-person-1",
+          "clock_domain_id": "clock-room-e",
+          "clock_generation": 0
+        }
+      ],
+      "query": {
+        "query_id": "q-lh006",
+        "query_tick": 900,
+        "query_text": "Was a glass-breaking event observed anywhere in this stream? Cite the source if present; otherwise say the evidence is absent.",
+        "response_deadline_tick": 930
+      }
+    },
+    {
+      "episode_id": "lh-007-cross-clock-and-event-order",
+      "horizon_seconds": 7200,
+      "memory_budget_bytes": 262144,
+      "stream_events": [
+        {
+          "event_id": "ev-camera-action",
+          "kind": "observation",
+          "availability_tick": 0,
+          "observation_ref": "obs-camera-action",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 0,
+          "artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "source_dependency_group": "root-action-1",
+          "clock_domain_id": "camera-clock",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-mic-sound",
+          "kind": "observation",
+          "availability_tick": 4,
+          "observation_ref": "obs-mic-sound",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 4,
+          "artifact_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "source_dependency_group": "root-sound-1",
+          "clock_domain_id": "microphone-clock",
+          "clock_generation": 2
+        },
+        {
+          "event_id": "ev-camera-reset",
+          "kind": "observation",
+          "availability_tick": 3600,
+          "observation_ref": "obs-camera-reset",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 3600,
+          "artifact_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "source_dependency_group": "root-camera-reset",
+          "clock_domain_id": "camera-clock",
+          "clock_generation": 1
+        },
+        {
+          "event_id": "ev-mic-after-reset",
+          "kind": "observation",
+          "availability_tick": 3605,
+          "observation_ref": "obs-mic-after-reset",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 3605,
+          "artifact_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "source_dependency_group": "root-mic-after-reset",
+          "clock_domain_id": "microphone-clock",
+          "clock_generation": 3
+        }
+      ],
+      "query": {
+        "query_id": "q-lh007",
+        "query_tick": 7200,
+        "query_text": "Which observations can be ordered confidently across their own clocks, and which cross-clock event relations remain incomparable?",
+        "response_deadline_tick": 7230
+      }
+    },
+    {
+      "episode_id": "lh-008-memory-revocation",
+      "horizon_seconds": 3600,
+      "memory_budget_bytes": 196608,
+      "stream_events": [
+        {
+          "event_id": "ev-private-utterance",
+          "kind": "observation",
+          "availability_tick": 0,
+          "observation_ref": "obs-private-utterance",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 0,
+          "artifact_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+          "source_dependency_group": "root-private-utterance",
+          "clock_domain_id": "clock-room-f",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-public-action",
+          "kind": "observation",
+          "availability_tick": 120,
+          "observation_ref": "obs-public-action",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 120,
+          "artifact_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "source_dependency_group": "root-public-action",
+          "clock_domain_id": "clock-room-f",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-revoke-private-utterance",
+          "kind": "revocation",
+          "availability_tick": 1800,
+          "target_observation_ref": "obs-private-utterance"
+        }
+      ],
+      "query": {
+        "query_id": "q-lh008",
+        "query_tick": 3600,
+        "query_text": "Which source observations remain eligible for retrieval after the revocation event?",
+        "response_deadline_tick": 3630
+      },
+      "derived_memory_items": [
+        {
+          "item_ref": "mem-private-summary",
+          "kind": "summary",
+          "created_tick": 600,
+          "derived_from_observation_refs": [
+            "obs-private-utterance"
+          ],
+          "derived_from_item_refs": []
+        },
+        {
+          "item_ref": "mem-private-embedding",
+          "kind": "embedding",
+          "created_tick": 650,
+          "derived_from_observation_refs": [
+            "obs-private-utterance"
+          ],
+          "derived_from_item_refs": []
+        },
+        {
+          "item_ref": "mem-private-retrieval-index",
+          "kind": "retrieval_index",
+          "created_tick": 700,
+          "derived_from_observation_refs": [],
+          "derived_from_item_refs": [
+            "mem-private-embedding"
+          ]
+        },
+        {
+          "item_ref": "mem-private-working-context",
+          "kind": "working_context",
+          "created_tick": 900,
+          "derived_from_observation_refs": [],
+          "derived_from_item_refs": [
+            "mem-private-summary"
+          ]
+        },
+        {
+          "item_ref": "mem-private-response-cache",
+          "kind": "response_cache",
+          "created_tick": 1000,
+          "derived_from_observation_refs": [],
+          "derived_from_item_refs": [
+            "mem-private-working-context"
+          ]
+        },
+        {
+          "item_ref": "mem-public-action-summary",
+          "kind": "summary",
+          "created_tick": 700,
+          "derived_from_observation_refs": [
+            "obs-public-action"
+          ],
+          "derived_from_item_refs": []
+        }
+      ]
+    },
+    {
+      "episode_id": "lh-009-compression-retention",
+      "horizon_seconds": 5400,
+      "memory_budget_bytes": 65536,
+      "stream_events": [
+        {
+          "event_id": "ev-rare-vibration",
+          "kind": "observation",
+          "availability_tick": 0,
+          "observation_ref": "obs-rare-vibration",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 0,
+          "artifact_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "source_dependency_group": "root-rare-vibration",
+          "clock_domain_id": "clock-room-g",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-routine-motion-1",
+          "kind": "observation",
+          "availability_tick": 600,
+          "observation_ref": "obs-routine-motion-1",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 600,
+          "artifact_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+          "source_dependency_group": "root-routine-1",
+          "clock_domain_id": "clock-room-g",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-routine-noise-2",
+          "kind": "observation",
+          "availability_tick": 1200,
+          "observation_ref": "obs-routine-noise-2",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 1200,
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_dependency_group": "root-routine-2",
+          "clock_domain_id": "clock-room-g",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-routine-motion-3",
+          "kind": "observation",
+          "availability_tick": 1800,
+          "observation_ref": "obs-routine-motion-3",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 1800,
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_dependency_group": "root-routine-3",
+          "clock_domain_id": "clock-room-g",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-routine-noise-4",
+          "kind": "observation",
+          "availability_tick": 2400,
+          "observation_ref": "obs-routine-noise-4",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 2400,
+          "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_dependency_group": "root-routine-4",
+          "clock_domain_id": "clock-room-g",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-routine-motion-5",
+          "kind": "observation",
+          "availability_tick": 3000,
+          "observation_ref": "obs-routine-motion-5",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 3000,
+          "artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "source_dependency_group": "root-routine-5",
+          "clock_domain_id": "clock-room-g",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-routine-noise-6",
+          "kind": "observation",
+          "availability_tick": 4200,
+          "observation_ref": "obs-routine-noise-6",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 4200,
+          "artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "source_dependency_group": "root-routine-6",
+          "clock_domain_id": "clock-room-g",
+          "clock_generation": 0
+        }
+      ],
+      "query": {
+        "query_id": "q-lh009",
+        "query_tick": 5400,
+        "query_text": "Retrieve the rare vibration from the start with exact supporting observation and time; do not substitute a routine later noise.",
+        "response_deadline_tick": 5430
+      }
+    },
+    {
+      "episode_id": "lh-010-correction-before-arrival",
+      "horizon_seconds": 601,
+      "memory_budget_bytes": 196608,
+      "stream_events": [
+        {
+          "event_id": "ev-machine-state-v1",
+          "kind": "observation",
+          "availability_tick": 0,
+          "observation_ref": "obs-machine-state-v1",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 0,
+          "artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "source_dependency_group": "root-machine-state",
+          "clock_domain_id": "clock-room-b",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-machine-audio-v1",
+          "kind": "observation",
+          "availability_tick": 60,
+          "observation_ref": "obs-machine-audio-v1",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 60,
+          "artifact_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "source_dependency_group": "root-machine-audio",
+          "clock_domain_id": "clock-room-b",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-machine-state-corrected",
+          "kind": "observation",
+          "availability_tick": 600,
+          "observation_ref": "obs-machine-state-corrected",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 600,
+          "artifact_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "source_dependency_group": "root-machine-state-corrected",
+          "clock_domain_id": "clock-room-b",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-correction-1",
+          "kind": "correction",
+          "availability_tick": 601,
+          "supersedes_observation_ref": "obs-machine-state-v1",
+          "replacement_observation_ref": "obs-machine-state-corrected"
+        }
+      ],
+      "query": {
+        "query_id": "q-lh010",
+        "query_tick": 300,
+        "query_text": "As of this checkpoint, before the later correction arrives, what machine state is currently supported?",
+        "response_deadline_tick": 330
+      }
+    },
+    {
+      "episode_id": "lh-011-revocation-before-effect",
+      "horizon_seconds": 1800,
+      "memory_budget_bytes": 196608,
+      "stream_events": [
+        {
+          "event_id": "ev-private-utterance-pre-revoke",
+          "kind": "observation",
+          "availability_tick": 0,
+          "observation_ref": "obs-private-utterance-pre-revoke",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 0,
+          "artifact_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "source_dependency_group": "root-private-pre-revoke",
+          "clock_domain_id": "clock-room-f",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-public-action-pre-revoke",
+          "kind": "observation",
+          "availability_tick": 120,
+          "observation_ref": "obs-public-action-pre-revoke",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 120,
+          "artifact_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+          "source_dependency_group": "root-public-pre-revoke",
+          "clock_domain_id": "clock-room-f",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-revoke-private-after-query",
+          "kind": "revocation",
+          "availability_tick": 1800,
+          "target_observation_ref": "obs-private-utterance-pre-revoke"
+        }
+      ],
+      "derived_memory_items": [
+        {
+          "item_ref": "mem-private-pre-revoke-summary",
+          "kind": "summary",
+          "created_tick": 600,
+          "derived_from_observation_refs": [
+            "obs-private-utterance-pre-revoke"
+          ],
+          "derived_from_item_refs": []
+        }
+      ],
+      "query": {
+        "query_id": "q-lh011",
+        "query_tick": 1200,
+        "query_text": "At this pre-revocation checkpoint, is the earlier private audio observation still eligible evidence?",
+        "response_deadline_tick": 1230
+      }
+    },
+    {
+      "episode_id": "lh-012-multisegment-15-source-chain",
+      "horizon_seconds": 7200,
+      "memory_budget_bytes": 524288,
+      "stream_events": [
+        {
+          "event_id": "ev-chain-01",
+          "kind": "observation",
+          "availability_tick": 0,
+          "observation_ref": "obs-chain-01",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 0,
+          "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "source_dependency_group": "root-chain-01",
+          "clock_domain_id": "clock-chain-room",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-chain-02",
+          "kind": "observation",
+          "availability_tick": 300,
+          "observation_ref": "obs-chain-02",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 300,
+          "artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "source_dependency_group": "root-chain-02",
+          "clock_domain_id": "clock-chain-room",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-chain-03",
+          "kind": "observation",
+          "availability_tick": 600,
+          "observation_ref": "obs-chain-03",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 600,
+          "artifact_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "source_dependency_group": "root-chain-03",
+          "clock_domain_id": "clock-chain-room",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-chain-04",
+          "kind": "observation",
+          "availability_tick": 900,
+          "observation_ref": "obs-chain-04",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 900,
+          "artifact_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "source_dependency_group": "root-chain-04",
+          "clock_domain_id": "clock-chain-room",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-chain-05",
+          "kind": "observation",
+          "availability_tick": 1200,
+          "observation_ref": "obs-chain-05",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 1200,
+          "artifact_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "source_dependency_group": "root-chain-05",
+          "clock_domain_id": "clock-chain-room",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-chain-06",
+          "kind": "observation",
+          "availability_tick": 1500,
+          "observation_ref": "obs-chain-06",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 1500,
+          "artifact_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+          "source_dependency_group": "root-chain-06",
+          "clock_domain_id": "clock-chain-room",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-chain-07",
+          "kind": "observation",
+          "availability_tick": 1800,
+          "observation_ref": "obs-chain-07",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 1800,
+          "artifact_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "source_dependency_group": "root-chain-07",
+          "clock_domain_id": "clock-chain-room",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-chain-08",
+          "kind": "observation",
+          "availability_tick": 2100,
+          "observation_ref": "obs-chain-08",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 2100,
+          "artifact_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "source_dependency_group": "root-chain-08",
+          "clock_domain_id": "clock-chain-room",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-chain-09",
+          "kind": "observation",
+          "availability_tick": 2400,
+          "observation_ref": "obs-chain-09",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 2400,
+          "artifact_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+          "source_dependency_group": "root-chain-09",
+          "clock_domain_id": "clock-chain-room",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-chain-10",
+          "kind": "observation",
+          "availability_tick": 2700,
+          "observation_ref": "obs-chain-10",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 2700,
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_dependency_group": "root-chain-10",
+          "clock_domain_id": "clock-chain-room",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-chain-11",
+          "kind": "observation",
+          "availability_tick": 3000,
+          "observation_ref": "obs-chain-11",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 3000,
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_dependency_group": "root-chain-11",
+          "clock_domain_id": "clock-chain-room",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-chain-12",
+          "kind": "observation",
+          "availability_tick": 3300,
+          "observation_ref": "obs-chain-12",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 3300,
+          "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_dependency_group": "root-chain-12",
+          "clock_domain_id": "clock-chain-room",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-chain-13",
+          "kind": "observation",
+          "availability_tick": 3600,
+          "observation_ref": "obs-chain-13",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 3600,
+          "artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "source_dependency_group": "root-chain-13",
+          "clock_domain_id": "clock-chain-room",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-chain-14",
+          "kind": "observation",
+          "availability_tick": 3900,
+          "observation_ref": "obs-chain-14",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 3900,
+          "artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "source_dependency_group": "root-chain-14",
+          "clock_domain_id": "clock-chain-room",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-chain-15",
+          "kind": "observation",
+          "availability_tick": 4200,
+          "observation_ref": "obs-chain-15",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 4200,
+          "artifact_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "source_dependency_group": "root-chain-15",
+          "clock_domain_id": "clock-chain-room",
+          "clock_generation": 0
+        }
+      ],
+      "query": {
+        "query_id": "q-lh012",
+        "query_tick": 7200,
+        "query_text": "Reconstruct the 15-stage maintenance sequence in order. Return the complete sequence and cite every distinct source observation, not just the beginning and end.",
+        "response_deadline_tick": 7230
+      }
+    }
+  ]
+}

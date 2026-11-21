@@ -1,0 +1,311 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/av-long-horizon-scorecard-v1.schema.json",
+  "title": "Long-Horizon AV Evidence Scorecard v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "policy_id",
+    "run_id",
+    "memory_condition",
+    "interpretation",
+    "totals",
+    "per_horizon_seconds",
+    "per_episode",
+    "hard_violations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "const": "av-long-horizon-evidence-v0"
+    },
+    "policy_id": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "memory_condition": {
+      "enum": [
+        "recent_window",
+        "summary_only",
+        "episodic_retrieval",
+        "evidence_ledger"
+      ]
+    },
+    "interpretation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "limitations"
+      ],
+      "properties": {
+        "status": {
+          "const": "synthetic_reference_score"
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "totals": {
+      "$ref": "#/$defs/metrics"
+    },
+    "per_horizon_seconds": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/metrics"
+      }
+    },
+    "per_episode": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "episode_id",
+          "horizon_seconds",
+          "answer_correct",
+          "decision_correct",
+          "abstained",
+          "confidence",
+          "citation_precision",
+          "citation_recall",
+          "provenance_complete",
+          "evidence_compliant",
+          "violations",
+          "false_memory",
+          "deadline_miss",
+          "evidence_qualified_answer_correct"
+        ],
+        "properties": {
+          "episode_id": {
+            "type": "string"
+          },
+          "horizon_seconds": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "answer_correct": {
+            "type": "boolean"
+          },
+          "decision_correct": {
+            "type": "boolean"
+          },
+          "abstained": {
+            "type": "boolean"
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "citation_precision": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1
+          },
+          "citation_recall": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1
+          },
+          "provenance_complete": {
+            "type": "boolean"
+          },
+          "evidence_compliant": {
+            "type": "boolean"
+          },
+          "violations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "false_memory": {
+            "type": "boolean"
+          },
+          "deadline_miss": {
+            "type": "boolean"
+          },
+          "evidence_qualified_answer_correct": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "hard_violations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "episode_id",
+          "violations"
+        ],
+        "properties": {
+          "episode_id": {
+            "type": "string"
+          },
+          "violations": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_count",
+        "answer_correct_count",
+        "decision_correct_count",
+        "answer_accuracy",
+        "decision_accuracy",
+        "coverage",
+        "selective_accuracy",
+        "citation_precision",
+        "citation_recall",
+        "provenance_complete_count",
+        "provenance_complete_rate",
+        "evidence_compliant_count",
+        "evidence_compliance_rate",
+        "false_memory_count",
+        "hard_violation_count",
+        "deadline_miss_count",
+        "evidence_qualified_answer_correct_count",
+        "evidence_qualified_answer_accuracy"
+      ],
+      "properties": {
+        "episode_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "answer_correct_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "decision_correct_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "answer_accuracy": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "decision_accuracy": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "coverage": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "selective_accuracy": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "citation_precision": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "citation_recall": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "provenance_complete_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "provenance_complete_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "evidence_compliant_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidence_compliance_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "false_memory_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "hard_violation_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "deadline_miss_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidence_qualified_answer_correct_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidence_qualified_answer_accuracy": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    }
+  }
+}
