@@ -1304,6 +1304,37 @@
       "restricted": true,
       "expected_status": "withdrawn",
       "expected_reason": "unresolved_critical_defect"
+    },
+    {
+      "case_id": "case-43-restricted-envelope-remains-explicit",
+      "at_tick": 100,
+      "pair_id": "pair-provider-a-client-a",
+      "qualified_pair_id": "pair-provider-a-client-a",
+      "service_kind": "mechanical_capture",
+      "qualification_service_kind": "mechanical_capture",
+      "provider_configuration": "provider-config-r3",
+      "qualified_configuration": "provider-config-r3",
+      "current_procedure_revision": "procedure-r2",
+      "qualified_procedure_revision": "procedure-r2",
+      "cycle_count": 8,
+      "qualified_cycle_limit": 10,
+      "inspection_age_ticks": 4,
+      "inspection_interval_ticks": 10,
+      "qualification_valid_until_tick": 120,
+      "calibration_valid": true,
+      "wear_within_limit": true,
+      "environment_within_envelope": true,
+      "uncertainty_clears_margin": true,
+      "inspection_coverage_complete": true,
+      "lineage_reconciled": true,
+      "raw_artifact_valid": true,
+      "critical_defect_for_service": false,
+      "maintenance_after_qualification": false,
+      "qualification_revoked": false,
+      "fluid_interface_observation_present": true,
+      "restricted": true,
+      "expected_status": "restricted",
+      "expected_reason": "only_restricted_envelope_is_qualified"
     }
   ]
 }
