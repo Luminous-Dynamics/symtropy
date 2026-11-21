@@ -16,7 +16,7 @@ P(X \le k\mid X\sim\operatorname{Poisson}(\mu_U))=1-C
 
 The upper failure intensity is \(\lambda_U=\mu_U/T\), reported as events per million operating hours. A rate claim is demonstrated only when \(\lambda_U\) is no greater than the predeclared target.
 
-For zero observed events, \(\mu_U=-\ln(1-C)\), so the minimum exposure for target rate \(\lambda_0\) is:
+For up to \(k\) observed events, the required exposure for target rate \(\lambda_0\) is \(T_{\min}=\mu_U(k,C)/\lambda_0\), where \(\mu_U\) is the exact Poisson upper mean bound. The zero-event special case simplifies because \(\mu_U=-\ln(1-C)\):
 
 \[
 T_{\min}=\frac{-\ln(1-C)}{\lambda_0}
@@ -64,7 +64,7 @@ The v0.1 corpus contains 34 synthetic cases, including:
 - population/configuration/restoration-policy mismatches;
 - missing references, invalid target, invalid digest, empty cohorts and Weibull model-boundary rejection.
 
-The Rust implementation evaluates in the log domain using log-sum-exp and bisection. The JavaScript reference oracle uses a probability-domain recurrence and independent bisection for this bounded fixture, then checks article-order permutation invariance.
+The Rust implementation evaluates in the log domain using log-sum-exp and bisection. It exposes sample-exposure sizing for a predeclared maximum event count (with the zero-failure function retained as a special case). The JavaScript reference oracle uses a probability-domain recurrence and independent bisection for this bounded fixture, checks one-event exposure sizing, and checks article-order permutation invariance.
 
 ## Benchmark targets and SOTA comparison protocol
 
