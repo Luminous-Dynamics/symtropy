@@ -485,7 +485,7 @@
         "budget_exceeded": false,
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 1,
-        "pairwise_false_coverage_count": 1
+        "pairwise_false_coverage_count": 0
       },
       "preregistration_ref": "synthetic-preregistration:case-04-ofat-does-not-cover-required-pair"
     },
