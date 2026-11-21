@@ -159,3 +159,26 @@ Sources:
 The v0 executable evaluator is a **single decision-round action-selection harness**. It scores one ordered list of action requests against synthetic action outcomes; it does not yet give the candidate an observation, wait for a replan, and then issue a second request in an interactive session. That multi-round event-sourced executor is tracked separately in [#6555](https://github.com/Luminous-Dynamics/symtropy/issues/6555). Do not describe PR #6549 by itself as a complete interactive AVP-like runtime.
 
 The first matched external evaluation should use AVP's five official long-video benchmarks and VAP's official keyframe-selection protocol, with identical backbone, candidate observation budget, prompt/context, decoding, hardware and repeated seeds where possible. Then add our orthogonal tests for action latency, physical modality availability, EVSI versus EIG, required evidence citations, common-cause dependence, deadline validity and audio/video acquisition. This makes the claim falsifiable: better decision quality at matched acquisition cost, or non-inferior quality with lower bytes/frames/tokens/energy—not a high score on eight synthetic cases.
+
+
+## EIG versus EVSI policy counterexample
+
+A second synthetic submission is now included: max-eig-reference-submission-v1.json. The policy comparator scores it and the EVSI reference on the same eight episode IDs.
+
+The authored finite tournament is designed to demonstrate the failure modes of maximizing raw information gain:
+- high EIG / zero EVSI: inspect an irrelevant uniform label;
+- common cause: acquire a redundant second view;
+- deadline: request high-EIG imagery that arrives after the decision window;
+- scarce budget: choose the high-EIG label instead of the low-EIG alarm that changes the intervention decision;
+- already-sufficient evidence: inspect decorative signage;
+- partial sensor: request an unavailable microphone result.
+
+The EVSI reference's known-answer target is 8/8 answers, 8/8 correct acquisition/stop decisions, zero regret, 3 acquisitions, zero wasted/late actions and mean realized EVSI 1.875. The greedy max-EIG fixture is authored to produce 6/8 answer accuracy, 2/8 safe-decision accuracy, 11.5 finite-fixture regret, 8 acquisitions, 6 wasted acquisitions and 1 late acquisition. The paired comparison reports 6 EVSI-policy safe-decision wins and no max-EIG wins.
+
+These values are **synthetic evaluator known answers**, not measured model behaviour, not a statistically powered comparison and not a published SOTA result. They demonstrate that the scorer distinguishes decision-value sensing from an EIG-only policy on the deliberately constructed counterexamples. The next benchmark increment must use independently run policies, actual multi-round observations and a blind held-out corpus.
+
+## Scope boundary and next executor
+
+The current evaluator is a single decision-round action-choice harness: the candidate emits an ordered list of requests for one decision round, while the evaluator controls which resulting observation refs are actually admitted. It does not yet expose an observation to the candidate and solicit a fresh action after each returned result. The multi-round, event-by-event interaction protocol is tracked in [#6555](https://github.com/Luminous-Dynamics/symtropy/issues/6555).
+
+This is intentional separation: first qualify action, cost, time, evidence and regret semantics; then qualify interactive event sequencing, re-planning, cancellation, concurrency and budget reservation/settlement.
