@@ -65,7 +65,7 @@
         "status": "current",
         "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "dependency_group": "STRUCT-LAB-A",
-        "subject_ref": "article://JOINT-ARTICLE-001",
+        "subject_ref": "physical-unit://ORBITAL-JOINT-TEST-0001",
         "configuration_id": "JOINT-ASSEMBLY-CFG-001",
         "icd_id": "PROJECT-ICD-001",
         "icd_revision": "R1"
@@ -89,7 +89,7 @@
         "status": "current",
         "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "dependency_group": "NDE-LAB-C",
-        "subject_ref": "article://JOINT-ARTICLE-001",
+        "subject_ref": "physical-unit://ORBITAL-JOINT-TEST-0001",
         "configuration_id": "JOINT-ASSEMBLY-CFG-001",
         "icd_id": "PROJECT-ICD-001",
         "icd_revision": "R1"
@@ -101,13 +101,13 @@
         "status": "current",
         "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         "dependency_group": "VERIFY-LAB-D",
-        "subject_ref": "article://JOINT-ARTICLE-001",
+        "subject_ref": "physical-unit://ORBITAL-JOINT-TEST-0001",
         "configuration_id": "JOINT-ASSEMBLY-CFG-001",
         "icd_id": "PROJECT-ICD-001",
         "icd_revision": "R1"
       }
     ],
-    "article_subject_ref": "article://JOINT-ARTICLE-001"
+    "article_subject_ref": "physical-unit://ORBITAL-JOINT-TEST-0001"
   },
   "base_client": {
     "profile_id": "CLIENT-JOINT-A",
@@ -165,7 +165,7 @@
     "requires_independent_evidence": true,
     "uncertainty_basis": "hard_bound",
     "evidence": [],
-    "article_subject_ref": "assembly-design://JOINT-REQUIREMENT-001"
+    "article_subject_ref": "design-target://ORBITAL-JOINT-REQUIREMENT-0001"
   },
   "cases": [
     {
@@ -955,7 +955,7 @@
           "operation": "set_evidence",
           "evidence_id": "EV-INSPECTION",
           "field": "subject_ref",
-          "value": "article://WRONG-ARTICLE"
+          "value": "physical-unit://DIFFERENT-SERIAL-0002"
         }
       ],
       "expected": {
