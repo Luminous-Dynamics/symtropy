@@ -261,7 +261,10 @@ pub fn parse_nodeset_xml(xml: &[u8]) -> Result<ParsedNodeSet, String> {
                         current_alias_name =
                             required_attr(&attributes, "Alias", "Alias")?.to_owned();
                         if aliases.contains_key(&current_alias_name) {
-                            return Err(format!("duplicate UANodeSet Alias {:?}", current_alias_name));
+                            return Err(format!(
+                                "duplicate UANodeSet Alias {:?}",
+                                current_alias_name
+                            ));
                         }
                         current_alias_value.clear();
                         collecting_alias = true;
@@ -361,7 +364,10 @@ pub fn parse_nodeset_xml(xml: &[u8]) -> Result<ParsedNodeSet, String> {
                 "Alias" if collecting_alias => {
                     let value = current_alias_value.trim().to_owned();
                     if value.is_empty() {
-                        return Err(format!("UANodeSet Alias {:?} has no NodeId value", current_alias_name));
+                        return Err(format!(
+                            "UANodeSet Alias {:?} has no NodeId value",
+                            current_alias_name
+                        ));
                     }
                     check_nodeset_namespace_index(&value, &namespace_uris, "Alias value")?;
                     aliases.insert(current_alias_name.clone(), value);
@@ -374,8 +380,7 @@ pub fn parse_nodeset_xml(xml: &[u8]) -> Result<ParsedNodeSet, String> {
                     }
                     let resolved = resolve_node_id_reference(target, &aliases, "Reference target")?;
                     check_nodeset_namespace_index(resolved, &namespace_uris, "Reference target")?;
-                    checked_node_id_references +=
-                        if resolved.starts_with("ns=") { 1 } else { 0 };
+                    checked_node_id_references += if resolved.starts_with("ns=") { 1 } else { 0 };
                     collecting_reference = false;
                 }
                 "Model" => {
@@ -1180,10 +1185,21 @@ mod tests {
         assert!(parse_nodeset_xml(xml.as_bytes()).is_ok());
 
         let bad_alias = xml.replace("ns=2;i=47", "ns=4;i=47");
-        assert!(parse_nodeset_xml(bad_alias.as_bytes()).unwrap_err().contains("Alias value"));
+        assert!(
+            parse_nodeset_xml(bad_alias.as_bytes())
+                .unwrap_err()
+                .contains("Alias value")
+        );
 
-        let unknown_alias = xml.replace("ReferenceType=\"HasComponent\"", "ReferenceType=\"MissingAlias\"");
-        assert!(parse_nodeset_xml(unknown_alias.as_bytes()).unwrap_err().contains("unknown UANodeSet Alias"));
+        let unknown_alias = xml.replace(
+            "ReferenceType=\"HasComponent\"",
+            "ReferenceType=\"MissingAlias\"",
+        );
+        assert!(
+            parse_nodeset_xml(unknown_alias.as_bytes())
+                .unwrap_err()
+                .contains("unknown UANodeSet Alias")
+        );
     }
 
     #[test]
@@ -1192,7 +1208,11 @@ mod tests {
             "<Models>",
             "<Aliases><Alias Alias=\"Same\">i=1</Alias><Alias Alias=\"Same\">i=2</Alias></Aliases><Models>",
         );
-        assert!(parse_nodeset_xml(xml.as_bytes()).unwrap_err().contains("duplicate UANodeSet Alias"));
+        assert!(
+            parse_nodeset_xml(xml.as_bytes())
+                .unwrap_err()
+                .contains("duplicate UANodeSet Alias")
+        );
     }
 
     #[test]
@@ -1204,14 +1224,19 @@ mod tests {
         assert!(parse_nodeset_xml(xml.as_bytes()).is_ok());
 
         let invalid_target = xml.replace("ns=3;i=85", "ns=4;i=85");
-        assert!(parse_nodeset_xml(invalid_target.as_bytes())
-            .unwrap_err()
-            .contains("Reference target"));
+        assert!(
+            parse_nodeset_xml(invalid_target.as_bytes())
+                .unwrap_err()
+                .contains("Reference target")
+        );
 
-        let invalid_type = xml.replace("ReferenceType=\"ns=0;i=40\"", "ReferenceType=\"ns=4;i=40\"");
-        assert!(parse_nodeset_xml(invalid_type.as_bytes())
-            .unwrap_err()
-            .contains("ReferenceType"));
+        let invalid_type =
+            xml.replace("ReferenceType=\"ns=0;i=40\"", "ReferenceType=\"ns=4;i=40\"");
+        assert!(
+            parse_nodeset_xml(invalid_type.as_bytes())
+                .unwrap_err()
+                .contains("ReferenceType")
+        );
     }
 
     #[test]
