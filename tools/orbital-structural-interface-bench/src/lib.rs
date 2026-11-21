@@ -488,11 +488,9 @@ fn evaluate(provider: &Profile, client: &Profile) -> (String, Vec<String>) {
         }
     }
 
-    if let Some(material) = material {
-        if let Some(inspection) = inspection {
-            if material.dependency_group == inspection.dependency_group && client.requires_independent_evidence {
-                add_reason(&mut reasons, "MATERIAL_INSPECTION_COMMON_CAUSE", Severity::Indeterminate);
-            }
+    if let (Some(material), Some(inspection)) = (material, inspection) {
+        if material.dependency_group == inspection.dependency_group && client.requires_independent_evidence {
+            add_reason(&mut reasons, "MATERIAL_INSPECTION_COMMON_CAUSE", Severity::Indeterminate);
         }
     }
 
@@ -554,7 +552,7 @@ pub fn run_corpus(input: &[u8], source_commit: &str) -> Result<Receipt, String> 
         });
     }
 
-    results.sort_by(|left, right| left.case_id.cmp(&right.case_id));
+    results.sort_by_key(|item| item.case_id.clone());
     let mismatched_cases = results.len() - matched_cases;
     Ok(Receipt {
         schema: RECEIPT_SCHEMA.to_owned(),
