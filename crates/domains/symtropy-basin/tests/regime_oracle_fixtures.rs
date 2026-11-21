@@ -119,11 +119,13 @@ fn bistable_finite_grid_recovers_exact_symmetric_basin_fraction() {
 #[test]
 fn finite_state_cycle_has_exact_period_four() {
     let next = |state: u8| (state + 1) % 4;
-    let orbit: Vec<u8> = (0..=4).scan(0u8, |state, _| {
-        let current = *state;
-        *state = next(*state);
-        Some(current)
-    }).collect();
+    let orbit: Vec<u8> = (0..=4)
+        .scan(0u8, |state, _| {
+            let current = *state;
+            *state = next(*state);
+            Some(current)
+        })
+        .collect();
 
     assert_eq!(orbit, vec![0, 1, 2, 3, 0]);
     for state in 0..4u8 {
