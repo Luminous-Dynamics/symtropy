@@ -371,9 +371,11 @@ pub fn evaluate_paired_comparison(
     let by_category = compare_groups(category_groups.into_iter().collect());
     let by_shift_family = shift_counts
         .into_iter()
-        .map(|(group, (baseline_successes, candidate_successes, trials))| {
-            make_group_comparison(group, baseline_successes, candidate_successes, trials)
-        })
+        .map(
+            |(group, (baseline_successes, candidate_successes, trials))| {
+                make_group_comparison(group, baseline_successes, candidate_successes, trials)
+            },
+        )
         .collect();
 
     Ok(RobustnessScorecard {
@@ -519,12 +521,7 @@ mod tests {
                 .zip(candidate)
                 .enumerate()
                 .map(|(index, (base, candidate))| {
-                    EpisodePair::new(
-                        format!("{id}-{index}"),
-                        shift,
-                        *base,
-                        *candidate,
-                    )
+                    EpisodePair::new(format!("{id}-{index}"), shift, *base, *candidate)
                 })
                 .collect(),
         )
