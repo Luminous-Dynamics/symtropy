@@ -10,6 +10,7 @@
     "source_id",
     "source_sequence",
     "observed_at_ms",
+    "time_qualification",
     "observer_role",
     "confidence_basis_points"
   ],
@@ -33,6 +34,24 @@
     "observed_at_ms": {
       "type": "integer",
       "minimum": 0
+    },
+    "time_qualification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_clock_id",
+        "source_boot_epoch_id",
+        "comparison_clock_id",
+        "comparison_boot_epoch_id",
+        "normalization_commitment"
+      ],
+      "properties": {
+        "source_clock_id": { "type": "string", "minLength": 1 },
+        "source_boot_epoch_id": { "type": "string", "minLength": 1 },
+        "comparison_clock_id": { "type": "string", "minLength": 1 },
+        "comparison_boot_epoch_id": { "type": "string", "minLength": 1 },
+        "normalization_commitment": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
     },
     "observer_role": {
       "enum": [
