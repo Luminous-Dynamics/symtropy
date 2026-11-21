@@ -14,6 +14,7 @@ pub mod cargo_loading;
 pub mod coavailability;
 pub mod convergence;
 pub mod cross_channel;
+pub mod mode_options;
 pub mod observation;
 pub mod procedure;
 pub mod simulation;
