@@ -29,6 +29,8 @@ This v0.1 parser supports only the observed declaration profile:
 
 It rejects missing channels, mismatched lengths, invalid scalar declarations, malformed JSON and zero-norm quaternion samples. It reports maximum quaternion norm deviation; it does not normalize or rewrite the source values.
 
+The parser uses only the Rust standard library. It validates the entire JSON document, enforces a maximum nesting depth, rejects duplicate object keys and trailing payloads, and decodes JSON string escapes (including surrogate pairs). This avoids adding a third-party dependency to the isolated benchmark crate.
+
 ## Derived views
 
 - Position conversion: raw millimetres × 0.001 = metres.
