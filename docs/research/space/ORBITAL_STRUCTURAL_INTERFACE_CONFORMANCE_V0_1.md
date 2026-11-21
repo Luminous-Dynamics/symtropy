@@ -511,13 +511,13 @@ This is an exact identity join, not a similarity/scale-transfer argument. The tr
 
 ### ASTRA/NOM4D: what was actually demonstrated
 
-Caltech's ASTRA in-space experiment set out to build a 1.4 m reflector antenna using composite-fiber tubes, aluminium joints and a reflective Kapton surface. The intended truss comprised 11 bays. Caltech reports that the system assembled the initial section but, because of time limitations, was unlikely to finish the full 11-bay structure before the mission ended. DARPA describes a gantry-style manipulator connecting members and joints, and explicitly states that structures hundreds of metres or kilometres in scale remain beyond today's demonstrated capability.
+Caltech's ASTRA in-space experiment was designed around an 11-bay tensioned-reflector truss. The payload launched with two pre-built bays. In orbit, the team released the launch restraints, pushed those two bays out, and then used the onboard three-axis gantry manipulator to assemble a **third bay from individual components**. Caltech reports that ground-team members sent commands through the Vigoride host vehicle and checked outcomes against downloaded images; the operation was repeated to overcome unforeseen problems. The team also built an identical flight-spare system on the ground to reproduce anomalies, with only about seven or eight short communications windows of roughly 15 minutes per day. Caltech said completing all 11 bays before the mission ended in December appeared unlikely. DARPA calls this a first automated in-space assembly demonstration, while explicitly noting that hundreds-of-metres or kilometre-scale structures remain beyond today's capability.
 
 Primary references:
 - [DARPA NOM4D, 5 November 2026](https://www.darpa.mil/news/2026/nom4d-program-demonstrates-automated-in-space-assembly)
-- [Caltech ASTRA, 5 November 2026](https://www.caltech.edu/about/news/caltech-robotic-space-demo-successfully-builds-in-space)
+- [Caltech ASTRA, 5 November 2026 — assembly sequence, ground operations and third-bay result](https://www.caltech.edu/about/news/caltech-robotic-space-demo-successfully-builds-in-space)
 
-This is a major in-space assembly milestone, but not a completed 11-bay antenna, general-purpose modular structural interface standard, published joint-capacity dataset or full structural qualification result. No quantitative comparison should be invented when public joint preload, force/torque, structural response and post-build NDE data are unavailable.
+This is a major demonstration of robotic assembly of one new bay in orbit. It is not a completed 11-bay antenna, an unattended end-to-end autonomous operation, a general-purpose modular structural-interface standard, a published joint-capacity dataset or a full structural qualification result. Public descriptions do not supply a matched, independently reproducible data set for joint preload, insertion force/torque, structural response, detailed as-built metrology and post-build NDE. Do not invent numerical comparisons for those quantities.
 
 It changes the benchmark priorities. The next credible progression should separately measure:
 
