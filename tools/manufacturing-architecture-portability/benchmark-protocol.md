@@ -89,6 +89,12 @@ FoundryBench therefore reports both:
 - **Causal/engineering validity:** report whether selected variables have an admitted relationship to the known process topology or fault propagation evidence. Statistical stability is not causal truth; a consistently selected spurious proxy remains spurious.
 - **Compactness/performance trade-off:** publish feature count, per-fault F1/recall, stability and inference cost together. Do not rank a method by dimensionality reduction alone.
 
+A reusable Rust implementation is available as `validator::bench_metrics`:
+- `measure_feature_subset_stability` takes a fixed candidate-feature universe and independent selector-run manifests; it reports mean/median/p10/minimum pairwise Jaccard, Kuncheva only on equal-cardinality pairs, and selected-feature-count standard deviation separately.
+- `inspect_run_partition_leakage` checks that training, validation and test run-ID sets are non-empty where required and disjoint before sample/window creation.
+
+Its unit tests include the adversarial case where feature-count standard deviation is zero while feature-identity stability is low. This is an executable metric component, not a TEP benchmark result: no TEP data, labels or learned feature selectors are included in the module.
+
 A stronger target is a stable, compact feature subset that retains difficult-fault recall under run-level and operating-mode shifts. The benchmark should test whether stability survives those shifts, not only random resampling from one stationary run.
 
 ### Onset-based early diagnosis and safe deferral
