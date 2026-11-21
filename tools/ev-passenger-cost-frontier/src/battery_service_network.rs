@@ -974,6 +974,26 @@ mod tests {
         assert_eq!(report.serviceable_mission_count, 3);
         assert_eq!(report.assignments.len(), 3);
         assert_eq!(report.unserved_missions, vec!["mission-4".to_string()]);
+        assert_eq!(
+            report.assignments,
+            vec![
+                PackAssignment {
+                    mission_id: "mission-1".to_string(),
+                    pack_id: "pack-a".to_string(),
+                    energy_margin_wh: 300,
+                },
+                PackAssignment {
+                    mission_id: "mission-2".to_string(),
+                    pack_id: "pack-b".to_string(),
+                    energy_margin_wh: 300,
+                },
+                PackAssignment {
+                    mission_id: "mission-3".to_string(),
+                    pack_id: "pack-c".to_string(),
+                    energy_margin_wh: 200,
+                },
+            ]
+        );
         let assigned_pack_ids: BTreeSet<_> = report
             .assignments
             .iter()
