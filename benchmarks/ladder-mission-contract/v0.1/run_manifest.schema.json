@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/symtropy/ladder/run-manifest/v0.1",
+  "title": "LADDER run manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark",
+    "benchmark_commit",
+    "run_kind",
+    "suite",
+    "method",
+    "task_selection",
+    "expected_episode_count",
+    "episodes_completed",
+    "privileged",
+    "tuned_on_ladder",
+    "environment",
+    "result_artifact"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark": {
+      "const": "LADDER"
+    },
+    "benchmark_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "run_kind": {
+      "enum": [
+        "full",
+        "lite",
+        "partial_reproduction"
+      ]
+    },
+    "suite": {
+      "enum": [
+        "robolab_long",
+        "simplerenv_long",
+        "robotarena_long"
+      ]
+    },
+    "method": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "name"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "policy_server",
+            "orchestrator",
+            "agent",
+            "official_baseline"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "code_revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "model_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "task_selection": {
+      "enum": [
+        "all",
+        "lite",
+        "explicit_subset"
+      ]
+    },
+    "explicit_task_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "expected_episode_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "episodes_completed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "privileged": {
+      "type": "boolean"
+    },
+    "tuned_on_ladder": {
+      "type": "boolean"
+    },
+    "tuning_description": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "simulator",
+        "robot",
+        "machine",
+        "runtime"
+      ],
+      "properties": {
+        "simulator": {
+          "type": "string"
+        },
+        "robot": {
+          "type": "string"
+        },
+        "machine": {
+          "type": "string"
+        },
+        "runtime": {
+          "type": "string"
+        },
+        "gpu": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "driver": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "result_artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path_or_url",
+        "sha256",
+        "media_type"
+      ],
+      "properties": {
+        "path_or_url": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "media_type": {
+          "type": "string"
+        }
+      }
+    },
+    "notes": {
+      "type": "string"
+    }
+  }
+}
