@@ -304,3 +304,17 @@ cargo run --locked --bin foundrybench-metrics -- run-partitions \
 The feature-stability command reports Jaccard/Kuncheva overlap and subset-size variance; the supplied synthetic fixture intentionally has zero subset-size variance with non-identical feature subsets. The TEP onset command requires all 21 fault scenario IDs plus normal-operation exposure, and reports the separate detection/diagnosis/deferral metrics. The partition command returns non-zero when any complete run ID appears in more than one partition.
 
 All three committed manifests are synthetic known-answer fixtures; they contain no real TEP measurements, fitted feature selector or model-performance result.
+
+### Binary probability-calibration CLI
+
+`foundrybench-metrics calibration` consumes an independent binary outcome/probability manifest and reports Brier score, clipped negative log-likelihood, fixed-width ECE/MCE and reliability-bin counts, mean probabilities and observed positive rates. Probabilities are validated in [0,1]; duplicate/non-canonical sample IDs and invalid bin counts fail closed.
+
+The benchmark includes a synthetic known-answer manifest. The CI workflow runs this CLI and checks that the Brier, NLL and ECE outputs are present. It is not the 2026 CRNN result and does not imply any trained classifier has been evaluated.
+
+## Physics-guided residual reference-model stress
+
+A 2026 TEP binary-detection baseline uses residuals from a nominal simulator, a temporal attention CRNN and post-hoc probability calibration. It reports run-level 70/20/10 splitting, macro-F1 about 0.93±0.02 and ECE about 0.03, with a nuisance-alarm budget around 0.1/hour. The paper's "twin" is the nominal simulator, not a plant-specific physical twin; its task is binary normal/fault detection, not multiclass fault diagnosis.
+
+The protocol now includes a reference-model mismatch sweep `lambda ∈ {0, 0.05, 0.10, 0.20}` with detector/calibrator/threshold fixed, plus a separate recalibration arm. Compare raw-data, physics-guided residual and hybrid methods on identical run-level partitions. Report recall, false alarms/hour, Brier, NLL, ECE, detection delay, residual drift and calibration drift at each mismatch. Sensor noise/dropout and operating-mode shifts remain separate controlled factors.
+
+Source: [Scientific Reports 2026 physics-guided residual/CRNN TEP study](https://www.nature.com/articles/s41598-026-49874-5). The paper's result is a comparator, not reproduced by Foundry.
