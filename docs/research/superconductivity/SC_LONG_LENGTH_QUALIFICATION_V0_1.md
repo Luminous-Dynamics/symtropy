@@ -13,6 +13,18 @@ The 2026 roadmap by Noe et al. reports, within its stated commercial scope, typi
 
 Those published values are context, not a supplier guarantee, a current market census, or an acceptance profile. Every comparison must pin its source version and reproduce its actual temperature, field, field angle, geometry, current criterion and cost boundary.
 
+## Industry comparison anchors (source-pinned; not universal thresholds)
+
+The comparison must be product- and condition-specific. Current public manufacturer specifications illustrate why generic averages are insufficient:
+
+- SuperPower's 2G HTS specification lists widths 2–12 mm, standard piece lengths of 200–500 m with some specifications above 900 m, and 4 mm self-field critical-current ranges of 120–160 A for AP tape and 80–120 A for HM tape at 77 K using a 1 μV/cm transport criterion. Its page also reports example axial tensile strength of 550 MPa for a specified substrate/stabilizer configuration and a soldered lap-joint resistivity near 50 nΩ·cm² at 77 K. These values are configuration-dependent manufacturer specifications, not a universal product family pass threshold: https://superpower-inc.com/specification.aspx
+- Fujikura's product table lists FESC-SCH04 (4 mm width, 0.11 mm total thickness, 50 μm substrate, 20 μm stabilizing layer, artificial pins) at 130 A at 77 K self-field and 640 A at 20 K / 5 T. Fujikura explicitly labels the 20 K / 5 T value a reference value that does not guarantee actual performance: https://www.fujikura.co.jp/en/products/superconductors/superconductingwire-reel/superconductingwire-reel.html
+- A 2026 translation-gap review reports estimated routine piece lengths / yields of >20 km / >98% for NbTi, >10 km / >95% for Nb₃Sn, and 0.3–2 km / 80–90% for REBCO. Treat these as the review's estimates under its own definitions, not a universal audited census. The manufacturer-specific SuperPower values above do not have exactly the same product / length definition, reinforcing the need to pin each benchmark record: https://www.sciencedirect.com/science/article/pii/S2949822826015558
+
+A useful independent product-performance cohort is the 2026 REBCO anisotropy study of three 4 mm tapes from SST, SuperPower and Faraday Factory Japan / SuperOx. It reports sample-specific Ic at 77 K self-field and at 20 K / 19 T with the field-angle convention explicitly stated. It is especially relevant for building an orientation-aware comparison cohort, but the samples were received in 2023 and the measured values must not be represented as current vendor-wide specifications: https://doi.org/10.1088/1361-6668/ae940e
+
+The initial benchmark should preserve model, architecture, sample, source batch, substrate, REBCO thickness, stabilizer, field orientation, criterion and test lab. It must not average or rank across mismatched conditions.
+
 ## Paradigm shift
 
 Replace:
@@ -62,7 +74,7 @@ Report all statistics with the sampling design, spatial resolution and dependenc
 - accepted cut lengths under declared minimum-length, splice and joint rules;
 - uncertainty and unobserved coverage separately.
 
-Adjacent readings are correlated and cannot be treated as independent replicates. If the measurement design does not support a tail estimate, return insufficient evidence rather than manufacturing a precise lower percentile.
+Adjacent readings are correlated and cannot be treated as independent replicates. If the measurement design does not support a tail estimate, return insufficient evidence rather than manufacturing a precise lower percentile. A direct-measurement coverage interval contributes to qualified coverage only when the measurement system explicitly records `calibration_valid_at_measurement=true`; missing or false calibration status remains observed-but-unqualified.
 
 ## Application-conditioned product acceptance
 
@@ -129,7 +141,7 @@ The benchmark must catch:
 ## Initial acceptance gates
 
 Synthetic contract gates:
-- invalid coordinate frames, identities, bounds and genealogy are rejected;
+- invalid coordinate frames, identities, bounds and reel-parent joins are rejected;
 - `unmeasured`, `not_detected`, `measured`, `inferred` and `disputed` remain distinct;
 - all constructed reel / lot / campaign leakage is detected;
 - missing coverage cannot satisfy a required acceptance region;
