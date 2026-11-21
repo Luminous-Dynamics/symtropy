@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 const SCHEMA: &str = "luminous.orbital-reliability-model-admissibility.corpus.v0.1";
 const CLAIM_CEILING: &str = "synthetic-model-input-admissibility-only";
 const MAX_ARTICLES: usize = 100_000;
-const MAX_EVENTS_PER_ARTICLE: usize = 100_000;
+const MAX_EVENTS_PER_ARTICLE: u64 = 100_000;
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -429,7 +429,7 @@ fn evaluate_case(case: &AdmissibilityCase) -> Result<Decision, String> {
             if article.reported_failure_events > 1 {
                 decision.recurrent_event_articles += 1;
             }
-            if article.events.len() > MAX_EVENTS_PER_ARTICLE {
+            if article.events.len() > MAX_EVENTS_PER_ARTICLE as usize {
                 return Err("event count exceeds v0.1 limit".to_owned());
             }
             let mut prior_time = None;
