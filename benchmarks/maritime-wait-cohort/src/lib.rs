@@ -469,6 +469,8 @@ mod tests {
         assert_eq!((s01.call_count, s01.berth_count, s01.diversion_count, s01.cancellation_count, s01.censored_count), (6, 3, 1, 1, 1));
         assert_eq!(s01.total_vessel_ticks, 22);
         assert_eq!(s01.integrated_queue_vessel_ticks, 22);
+        assert_eq!(s01.administrative_censored_count, 1);
+        assert_eq!(s01.reporting_lag_censored_count, 0);
         assert_eq!(s01.p50_berth_incidence_tick, Some(4));
         assert_eq!(s01.p90_berth_incidence_tick, None);
         assert_eq!(s01.p95_berth_incidence_tick, None);
@@ -489,6 +491,8 @@ mod tests {
         assert_eq!((s02.call_count, s02.berth_count, s02.diversion_count, s02.cancellation_count, s02.censored_count), (5, 2, 1, 1, 1));
         assert_eq!(s02.total_vessel_ticks, 15);
         assert_eq!(s02.integrated_queue_vessel_ticks, 15);
+        assert_eq!(s02.administrative_censored_count, 1);
+        assert_eq!(s02.reporting_lag_censored_count, 0);
         assert_eq!(s02.p50_berth_incidence_tick, None);
         close(s02.risk_steps.last().unwrap().event_free_survival, 0.2);
         close(s02.risk_steps.last().unwrap().berth_cumulative_incidence, 0.4);
@@ -499,6 +503,8 @@ mod tests {
         assert_eq!((s03.call_count, s03.berth_count, s03.diversion_count, s03.cancellation_count, s03.censored_count), (4, 0, 0, 0, 4));
         assert_eq!(s03.total_vessel_ticks, 20);
         assert_eq!(s03.integrated_queue_vessel_ticks, 20);
+        assert_eq!(s03.administrative_censored_count, 4);
+        assert_eq!(s03.reporting_lag_censored_count, 0);
         assert_eq!(s03.p50_berth_incidence_tick, None);
         close(s03.risk_steps.last().unwrap().event_free_survival, 1.0);
         close(s03.risk_steps.last().unwrap().berth_cumulative_incidence, 0.0);
@@ -507,6 +513,8 @@ mod tests {
         assert_eq!((s04.call_count, s04.berth_count, s04.diversion_count, s04.cancellation_count, s04.censored_count), (5, 2, 1, 1, 1));
         assert_eq!(s04.total_vessel_ticks, 19);
         assert_eq!(s04.integrated_queue_vessel_ticks, 19);
+        assert_eq!(s04.administrative_censored_count, 1);
+        assert_eq!(s04.reporting_lag_censored_count, 0);
         assert_eq!(s04.p50_berth_incidence_tick, None);
         close(s04.risk_steps.last().unwrap().event_free_survival, 0.2);
         close(s04.risk_steps.last().unwrap().berth_cumulative_incidence, 0.4);
@@ -517,6 +525,8 @@ mod tests {
         assert_eq!((s05.call_count, s05.berth_count, s05.diversion_count, s05.cancellation_count, s05.censored_count), (5, 1, 1, 1, 2));
         assert_eq!(s05.total_vessel_ticks, 23);
         assert_eq!(s05.integrated_queue_vessel_ticks, 23);
+        assert_eq!(s05.administrative_censored_count, 1);
+        assert_eq!(s05.reporting_lag_censored_count, 1);
         assert_eq!(s05.p50_berth_incidence_tick, None);
         close(s05.risk_steps.last().unwrap().event_free_survival, 0.4);
         close(s05.risk_steps.last().unwrap().berth_cumulative_incidence, 0.2);
