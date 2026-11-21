@@ -92,6 +92,7 @@ FoundryBench therefore reports both:
 A reusable Rust implementation is available as `validator::bench_metrics`:
 - `measure_feature_subset_stability` takes a fixed candidate-feature universe and independent selector-run manifests; it reports mean/median/p10/minimum pairwise Jaccard, Kuncheva only on equal-cardinality pairs, and selected-feature-count standard deviation separately.
 - `inspect_run_partition_leakage` checks that training, validation and test run-ID sets are non-empty where required and disjoint before sample/window creation.
+- Feature identifiers must be canonical, non-empty members of a frozen declared universe; whitespace variants, duplicates and unknown identifiers fail closed.
 
 Its unit tests include the adversarial case where feature-count standard deviation is zero while feature-identity stability is low. This is an executable metric component, not a TEP benchmark result: no TEP data, labels or learned feature selectors are included in the module.
 
