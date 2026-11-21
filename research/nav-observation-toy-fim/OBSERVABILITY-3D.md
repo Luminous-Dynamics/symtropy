@@ -60,3 +60,16 @@ For every time window, report rank, all eigenvalues/eigenvectors, minimum eigenv
 The 3D model currently describes only a 3D position state with scalar range observations. It is not a six-degree-of-freedom pose or 15-state inertial error-state model. Those require separately derived Jacobians and coupling terms; they must not be approximated by relabelling this 3x3 matrix.
 
 The correlated 3D extension includes one shared scalar additive error per declared group. It still does not model multiple independent latent factors, anisotropic measurement errors, time-varying correlations or arbitrary joint covariance constraints. OCI and full pairwise-correlation uncertainty remain separate research work.
+
+
+## Exact-head validation result
+
+On Symtropy draft PR #6512 head `85728e4d968bba436b1f44661a42cfa7e4d968ee`, the isolated Rust workflow passed **63/63 unique tests, 0 failures**, Clippy with no warnings, and all active-sensing/3D demonstration binaries.
+
+Known-answer demo outputs:
+- planar east/north/diagonal set: rank 2, eigenvalues approximately [0, 1, 2], no finite 3D condition number;
+- east/north/up set: rank 3, eigenvalues [1, 1, 1], condition number 1;
+- two same-bearing east observations: independent model Jxx=2; same declared shared-error model Jxx=2/3;
+- shared-error E-optimal selector chose [east-a, north, up], rank 3, eigenvalues approximately [0.609756, 1, 1].
+
+These are deterministic synthetic linear-model results, not measured navigation accuracy or a claim of 3D field qualification. The full test breakdown is 13 base FIM + 8 common-mode + 11 correlation-envelope + 7 correlation-audit + 3 audit-gated planning + 5 sensitivity + 2 expected-error + 8 independent 3D + 6 correlated 3D tests.
