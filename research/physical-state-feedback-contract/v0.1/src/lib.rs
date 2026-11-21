@@ -804,6 +804,124 @@ pub trait ReadOnlyStateQuery {
     fn query(&self, request: &StateQuery) -> Result<StateSnapshot, Self::Error>;
 }
 
+/// An action-bound request for exactly one externally visible state transition.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StepRequest {
+    pub pre_snapshot_sha256: String,
+    pub model_build_sha256: String,
+    pub configuration_sha256: String,
+    pub world_id: String,
+    pub episode_id: String,
+    pub trajectory_id: String,
+    pub pre_step_index: u64,
+    pub pre_simulation_time_ns: u64,
+    pub action_stream_sha256: String,
+    pub duration_ns: u64,
+}
+
+impl StepRequest {
+    pub fn from_snapshot(
+        pre_state: &StateSnapshot,
+        action_stream_sha256: impl Into<String>,
+        duration_ns: u64,
+    ) -> Result<Self, ValidationError> {
+        pre_state.validate()?;
+        let request = Self {
+            pre_snapshot_sha256: pre_state.identity.snapshot_sha256.clone(),
+            model_build_sha256: pre_state.identity.model_build_sha256.clone(),
+            configuration_sha256: pre_state.identity.configuration_sha256.clone(),
+            world_id: pre_state.identity.world_id.clone(),
+            episode_id: pre_state.identity.episode_id.clone(),
+            trajectory_id: pre_state.identity.trajectory_id.clone(),
+            pre_step_index: pre_state.identity.step_index,
+            pre_simulation_time_ns: pre_state.identity.simulation_time_ns,
+            action_stream_sha256: action_stream_sha256.into(),
+            duration_ns,
+        };
+        request.validate()?;
+        Ok(request)
+    }
+
+    pub fn validate(&self) -> Result<(), ValidationError> {
+        validate_sha256(&self.pre_snapshot_sha256, "step.pre_snapshot_sha256")?;
+        validate_sha256(&self.model_build_sha256, "step.model_build_sha256")?;
+        validate_sha256(
+            &self.configuration_sha256,
+            "step.configuration_sha256",
+        )?;
+        validate_sha256(&self.action_stream_sha256, "step.action_stream_sha256")?;
+        for (name, value) in [
+            ("world_id", self.world_id.as_str()),
+            ("episode_id", self.episode_id.as_str()),
+            ("trajectory_id", self.trajectory_id.as_str()),
+        ] {
+            if value.trim().is_empty() {
+                return Err(ValidationError::new(
+                    format!("step.{name}"),
+                    "must be non-empty",
+                ));
+            }
+        }
+        if self.duration_ns == 0 {
+            return Err(ValidationError::new(
+                "step.duration_ns",
+                "step duration must be positive",
+            ));
+        }
+        self.pre_step_index.checked_add(1).ok_or_else(|| {
+            ValidationError::new("step.pre_step_index", "step index overflow")
+        })?;
+        self.pre_simulation_time_ns
+            .checked_add(self.duration_ns)
+            .ok_or_else(|| {
+                ValidationError::new("step.duration_ns", "simulation time overflow")
+            })?;
+        Ok(())
+    }
+
+    pub fn validate_result(&self, result: &StateSnapshot) -> Result<(), ValidationError> {
+        self.validate()?;
+        result.validate()?;
+        let expected_step = self.pre_step_index + 1;
+        let expected_time = self.pre_simulation_time_ns + self.duration_ns;
+        let identity = &result.identity;
+        if identity.snapshot_sha256 == self.pre_snapshot_sha256 {
+            return Err(ValidationError::new(
+                "step.result.snapshot_sha256",
+                "a state transition must produce a new snapshot identity",
+            ));
+        }
+        if identity.model_build_sha256 != self.model_build_sha256
+            || identity.configuration_sha256 != self.configuration_sha256
+            || identity.world_id != self.world_id
+            || identity.episode_id != self.episode_id
+            || identity.trajectory_id != self.trajectory_id
+        {
+            return Err(ValidationError::new(
+                "step.result.identity",
+                "result must preserve model, configuration, world, episode and trajectory identity",
+            ));
+        }
+        if identity.step_index != expected_step
+            || identity.simulation_time_ns != expected_time
+        {
+            return Err(ValidationError::new(
+                "step.result.identity",
+                "result step and simulation time must equal the pre-state plus one step and the requested duration",
+            ));
+        }
+        Ok(())
+    }
+}
+
+/// Implementations mutate the simulation only through an explicit action-bound step.
+/// Observation/query uses ReadOnlyStateQuery and is intentionally a separate trait.
+pub trait ActionConditionedStepper {
+    type Error: Display;
+
+    fn step(&mut self, request: &StepRequest) -> Result<StateSnapshot, Self::Error>;
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum ReplayClass {
     Deterministic,
@@ -1121,6 +1239,32 @@ mod tests {
             impulse_ns: None,
         };
         assert!(query.validate_result(&context_result).is_ok());
+    }
+
+    #[test]
+    fn step_request_binds_the_result_to_pre_state_action_duration_and_identity() {
+        let pre_state = valid_snapshot(0, 0);
+        let request =
+            StepRequest::from_snapshot(&pre_state, "d".repeat(64), 1_000_000).unwrap();
+        let result = valid_snapshot(1, 1_000_000);
+        assert!(request.validate_result(&result).is_ok());
+
+        let wrong_time = valid_snapshot(1, 2_000_000);
+        assert!(request.validate_result(&wrong_time).is_err());
+
+        let mut wrong_model = valid_snapshot(1, 1_000_000);
+        wrong_model.identity.model_build_sha256 = "e".repeat(64);
+        assert!(request.validate_result(&wrong_model).is_err());
+
+        let same_snapshot = pre_state.clone();
+        assert!(request.validate_result(&same_snapshot).is_err());
+    }
+
+    #[test]
+    fn step_request_rejects_zero_duration_and_invalid_action_digest() {
+        let pre_state = valid_snapshot(0, 0);
+        assert!(StepRequest::from_snapshot(&pre_state, "invalid", 1).is_err());
+        assert!(StepRequest::from_snapshot(&pre_state, "d".repeat(64), 0).is_err());
     }
 
     #[test]
