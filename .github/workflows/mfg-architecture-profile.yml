@@ -84,6 +84,27 @@ jobs:
           grep -F '"status": "requires_explicit_dependency_resolution"' /tmp/opcua-node-bundle.json
           grep -F '"model_uri": "http://opcfoundation.org/UA/"' /tmp/opcua-node-bundle.json
 
+      - name: Evaluate feature-subset identity stability
+        working-directory: tools/manufacturing-architecture-portability/validator
+        run: |
+          cargo run --locked --bin foundrybench-metrics -- feature-stability ../benchmarks/feature-stability-input.schema.json ../benchmarks/feature-stability.synthetic.json > /tmp/feature-stability.json
+          grep -F '"mean_jaccard"' /tmp/feature-stability.json
+          grep -F '"selected_feature_count_stddev": 0.0' /tmp/feature-stability.json
+
+      - name: Evaluate synthetic 21-scenario TEP onset metrics
+        working-directory: tools/manufacturing-architecture-portability/validator
+        run: |
+          cargo run --locked --bin foundrybench-metrics -- tep-onset ../benchmarks/tep-onset-input.schema.json ../benchmarks/tep-onset.synthetic.json > /tmp/tep-onset.json
+          grep -F '"scenario_id": 21' /tmp/tep-onset.json
+          grep -F '"safe_deferral_count": 2' /tmp/tep-onset.json
+          grep -F '"confident_wrong_count": 1' /tmp/tep-onset.json
+
+      - name: Verify run-level partition disjointness
+        working-directory: tools/manufacturing-architecture-portability/validator
+        run: |
+          cargo run --locked --bin foundrybench-metrics -- run-partitions ../benchmarks/run-partition-input.schema.json ../benchmarks/run-partitions.synthetic.json > /tmp/run-partitions.json
+          grep -F '"leakage_free": true' /tmp/run-partitions.json
+
       - name: Clippy
         working-directory: tools/manufacturing-architecture-portability/validator
         run: cargo clippy --locked --all-targets -- -D warnings
