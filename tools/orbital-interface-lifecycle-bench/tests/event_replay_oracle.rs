@@ -545,7 +545,7 @@ fn reference(
 fn independent_value_oracle_matches_all_frozen_event_stream_cases() {
     let raw = include_str!("../fixtures/v0.1/event-replay-cases.json");
     let corpus: Corpus = serde_json::from_str(raw).expect("event corpus parses");
-    assert_eq!(corpus.cases.len(), 55);
+    assert_eq!(corpus.cases.len(), 63);
     for case in &corpus.cases {
         let (status, reason, cycles, duplicates) = reference(&case.events, case.at_tick);
         assert_eq!(status, case.expected_status, "{}", case.case_id);
@@ -566,7 +566,7 @@ fn production_replay_matches_frozen_expected_outcomes() {
     let report = orbital_interface_lifecycle_bench::event_replay::evaluate(&corpus)
         .expect("corpus evaluates");
     assert_eq!(report.result, "pass");
-    assert_eq!(report.summary.case_count, 55);
+    assert_eq!(report.summary.case_count, 63);
     assert_eq!(report.summary.expected_result_mismatches, 0);
     assert_eq!(report.summary.duplicate_events, 2);
     assert!(!report.authority_granted);
