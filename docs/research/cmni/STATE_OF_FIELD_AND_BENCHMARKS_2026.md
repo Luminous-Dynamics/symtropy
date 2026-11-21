@@ -50,6 +50,39 @@ Primary sources:
 - https://doi.org/10.1137/25M1731812
 - https://arxiv.org/abs/2501.10845
 
+### Batch Bayesian experiment design: optimize portfolios, not just the next point
+
+Mäkinen, Duncan and Helin, *Batch-based Bayesian optimal experimental design in linear inverse problems*, Statistics and Computing 36, 266 (published 2026-11-11; DOI 10.1007/s11222-026-11022-4), give a Bayesian formulation for batch A-optimal design relaxed to finite positive measures with fixed mass. Their expected utility is concave in the relaxed measure, and they derive Wasserstein-gradient particle updates. Their practical lifted formulation uses an ensemble-variance penalty to concentrate each design distribution and an MMD-based repulsive term to discourage distinct design ensembles from collapsing onto the same point.
+
+Important limitations in the paper are directly relevant to CMNI:
+- the unregularized measure solution does not automatically guarantee exactly B deployable discrete measurement locations;
+- the repulsive and variance regularizers generally remove concavity of the lifted objective, so local maxima may depend on initialization and regularization weights;
+- the numerical examples are linear inverse problems, not nuclear-data campaign portfolios.
+
+A complementary 2026 preprint by Sharrock, *Wasserstein Gradient Flows for Batch Bayesian Optimal Experimental Design* (arXiv:2603.12102), addresses batch expected-information-gain design through entropic regularization over design measures, with Gibbs design laws and mean-field / product approximations. This provides a promising bridge from A-optimal covariance reduction to direct EIG optimization, but must be compared on identical candidate sets and compute budgets.
+
+**CMNI implication:** compare discrete greedy selection, exhaustive small-batch oracle, relaxed A-optimal measures, and entropic batch-EIG methods. Measure utility after converting the relaxed distributions into a real deployable batch; report the rounding regret, exact batch-size constraint, minimum separation/feasibility, and sensitivity to initialization. Do not claim a globally optimal batch merely because the unregularized measure utility is concave—the regularized lifted objective may not be.
+
+Primary sources:
+- https://doi.org/10.1007/s11222-026-11022-4
+- https://arxiv.org/abs/2603.12102
+
+### Independence is a lineage graph, not a detector label
+
+The July 2026 AIACHNE (^{252}\mathrm{Cf}) experiment used an efficiency-calibration approach uncorrelated with the previous detector-efficiency measurements, using elastic neutron scattering on (^{12}\mathrm{C}) and (^{9}\mathrm{Be}). The new route is an important independent test. Yet the paper also reports deficiencies in angle-differential (^{12}\mathrm{C}) and (^{9}\mathrm{Be}(n,n)) evaluated nuclear data, which produce small unphysical structures in the derived PFNS.
+
+This gives CMNI a more precise definition of independent evidence:
+- a measurement can be independent of historical detector calibration;
+- its response calibration may still rely on evaluated nuclear data;
+- those evaluated data may carry their own shared uncertainty, version, and common-cause dependencies.
+
+Therefore do not treat "different detector" or "new experiment" as equivalent to "independent evidence." Trace the complete uncertainty path through reaction standards, evaluated libraries, response simulations, software corrections, and reference spectra. The covariance model should include shared source contributions when sensitivity/Jacobian information is available, and explicitly mark unknown dependencies where it is not.
+
+The standalone CMNI crate now has a research-only common-cause covariance assembler: each experiment contributes an independent observation covariance and Jacobians with respect to named shared uncertainty sources. For shared source (s), it adds the cross block (J_{i,s}C_sJ_{j,s}^T). It rejects inconsistent covariance definitions for the same source ID rather than silently assuming zero cross covariance. The tests are authored, not yet CI-verified.
+
+Primary source:
+- https://doi.org/10.1103/w7z1-l32n
+
 ### Mature posterior diagnostics and spectrum-adjustment references
 
 - Stan's current posterior-analysis guidance uses rank-normalized split and folded R-hat, bulk ESS, tail ESS, and Monte Carlo standard errors for quantities of interest. Its warning guidance recommends bulk and tail ESS greater than 100 times the number of chains for final analysis, while also emphasizing that Monte Carlo error must be relevant to the actual scientific estimand.
