@@ -377,11 +377,36 @@ mod tests {
 
     fn speed_dependent_fixture() -> [TrialObservation<'static>; 5] {
         [
-            TrialObservation { trial_id: "trial-001", speed_m_s: 0.5, acceleration_m_s2: 1.875, acceleration_sigma_m_s2: 0.02 },
-            TrialObservation { trial_id: "trial-002", speed_m_s: 1.0, acceleration_m_s2: 1.749, acceleration_sigma_m_s2: 0.02 },
-            TrialObservation { trial_id: "trial-003", speed_m_s: 1.5, acceleration_m_s2: 1.625, acceleration_sigma_m_s2: 0.02 },
-            TrialObservation { trial_id: "trial-004", speed_m_s: 2.0, acceleration_m_s2: 1.501, acceleration_sigma_m_s2: 0.02 },
-            TrialObservation { trial_id: "trial-005", speed_m_s: 2.5, acceleration_m_s2: 1.374, acceleration_sigma_m_s2: 0.02 },
+            TrialObservation {
+                trial_id: "trial-001",
+                speed_m_s: 0.5,
+                acceleration_m_s2: 1.875,
+                acceleration_sigma_m_s2: 0.02,
+            },
+            TrialObservation {
+                trial_id: "trial-002",
+                speed_m_s: 1.0,
+                acceleration_m_s2: 1.749,
+                acceleration_sigma_m_s2: 0.02,
+            },
+            TrialObservation {
+                trial_id: "trial-003",
+                speed_m_s: 1.5,
+                acceleration_m_s2: 1.625,
+                acceleration_sigma_m_s2: 0.02,
+            },
+            TrialObservation {
+                trial_id: "trial-004",
+                speed_m_s: 2.0,
+                acceleration_m_s2: 1.501,
+                acceleration_sigma_m_s2: 0.02,
+            },
+            TrialObservation {
+                trial_id: "trial-005",
+                speed_m_s: 2.5,
+                acceleration_m_s2: 1.374,
+                acceleration_sigma_m_s2: 0.02,
+            },
         ]
     }
 
@@ -397,10 +422,30 @@ mod tests {
     #[test]
     fn constant_fixture_does_not_pay_for_an_unneeded_slope() {
         let rows = [
-            TrialObservation { trial_id: "constant-1", speed_m_s: 0.4, acceleration_m_s2: 1.25, acceleration_sigma_m_s2: 0.03 },
-            TrialObservation { trial_id: "constant-2", speed_m_s: 0.8, acceleration_m_s2: 1.25, acceleration_sigma_m_s2: 0.03 },
-            TrialObservation { trial_id: "constant-3", speed_m_s: 1.2, acceleration_m_s2: 1.25, acceleration_sigma_m_s2: 0.03 },
-            TrialObservation { trial_id: "constant-4", speed_m_s: 1.6, acceleration_m_s2: 1.25, acceleration_sigma_m_s2: 0.03 },
+            TrialObservation {
+                trial_id: "constant-1",
+                speed_m_s: 0.4,
+                acceleration_m_s2: 1.25,
+                acceleration_sigma_m_s2: 0.03,
+            },
+            TrialObservation {
+                trial_id: "constant-2",
+                speed_m_s: 0.8,
+                acceleration_m_s2: 1.25,
+                acceleration_sigma_m_s2: 0.03,
+            },
+            TrialObservation {
+                trial_id: "constant-3",
+                speed_m_s: 1.2,
+                acceleration_m_s2: 1.25,
+                acceleration_sigma_m_s2: 0.03,
+            },
+            TrialObservation {
+                trial_id: "constant-4",
+                speed_m_s: 1.6,
+                acceleration_m_s2: 1.25,
+                acceleration_sigma_m_s2: 0.03,
+            },
         ];
         let result = compare_constant_vs_speed_dependent(&rows).unwrap();
         assert!(result.alternative_slope_m_s2_per_m_s.abs() < 1.0e-12);
@@ -411,9 +456,18 @@ mod tests {
     #[test]
     fn repeated_speeds_have_zero_profiled_design_information() {
         let conditions = [
-            DesignCondition { speed_m_s: 1.0, acceleration_sigma_m_s2: 0.02 },
-            DesignCondition { speed_m_s: 1.0, acceleration_sigma_m_s2: 0.03 },
-            DesignCondition { speed_m_s: 1.0, acceleration_sigma_m_s2: 0.02 },
+            DesignCondition {
+                speed_m_s: 1.0,
+                acceleration_sigma_m_s2: 0.02,
+            },
+            DesignCondition {
+                speed_m_s: 1.0,
+                acceleration_sigma_m_s2: 0.03,
+            },
+            DesignCondition {
+                speed_m_s: 1.0,
+                acceleration_sigma_m_s2: 0.02,
+            },
         ];
         assert_eq!(
             score_speed_design(&conditions, -0.25),
@@ -424,27 +478,57 @@ mod tests {
     #[test]
     fn wider_speed_spread_is_more_discriminating_at_equal_trial_budget() {
         let narrow = [
-            DesignCondition { speed_m_s: 0.9, acceleration_sigma_m_s2: 0.02 },
-            DesignCondition { speed_m_s: 1.0, acceleration_sigma_m_s2: 0.02 },
-            DesignCondition { speed_m_s: 1.1, acceleration_sigma_m_s2: 0.02 },
+            DesignCondition {
+                speed_m_s: 0.9,
+                acceleration_sigma_m_s2: 0.02,
+            },
+            DesignCondition {
+                speed_m_s: 1.0,
+                acceleration_sigma_m_s2: 0.02,
+            },
+            DesignCondition {
+                speed_m_s: 1.1,
+                acceleration_sigma_m_s2: 0.02,
+            },
         ];
         let wide = [
-            DesignCondition { speed_m_s: 0.5, acceleration_sigma_m_s2: 0.02 },
-            DesignCondition { speed_m_s: 1.5, acceleration_sigma_m_s2: 0.02 },
-            DesignCondition { speed_m_s: 2.5, acceleration_sigma_m_s2: 0.02 },
+            DesignCondition {
+                speed_m_s: 0.5,
+                acceleration_sigma_m_s2: 0.02,
+            },
+            DesignCondition {
+                speed_m_s: 1.5,
+                acceleration_sigma_m_s2: 0.02,
+            },
+            DesignCondition {
+                speed_m_s: 2.5,
+                acceleration_sigma_m_s2: 0.02,
+            },
         ];
         let narrow_score = score_speed_design(&narrow, -0.25).unwrap();
         let wide_score = score_speed_design(&wide, -0.25).unwrap();
-        assert!(wide_score.squared_standardized_separation > narrow_score.squared_standardized_separation);
+        assert!(
+            wide_score.squared_standardized_separation
+                > narrow_score.squared_standardized_separation
+        );
         assert_eq!(wide_score.condition_count, narrow_score.condition_count);
     }
 
     #[test]
     fn doubling_uncertainty_quarters_profiled_separation() {
         let conditions = [
-            DesignCondition { speed_m_s: 0.5, acceleration_sigma_m_s2: 0.02 },
-            DesignCondition { speed_m_s: 1.0, acceleration_sigma_m_s2: 0.02 },
-            DesignCondition { speed_m_s: 2.0, acceleration_sigma_m_s2: 0.02 },
+            DesignCondition {
+                speed_m_s: 0.5,
+                acceleration_sigma_m_s2: 0.02,
+            },
+            DesignCondition {
+                speed_m_s: 1.0,
+                acceleration_sigma_m_s2: 0.02,
+            },
+            DesignCondition {
+                speed_m_s: 2.0,
+                acceleration_sigma_m_s2: 0.02,
+            },
         ];
         let doubled = conditions.map(|condition| DesignCondition {
             acceleration_sigma_m_s2: condition.acceleration_sigma_m_s2 * 2.0,
@@ -452,16 +536,35 @@ mod tests {
         });
         let original = score_speed_design(&conditions, -0.25).unwrap();
         let noisier = score_speed_design(&doubled, -0.25).unwrap();
-        assert!((noisier.squared_standardized_separation * 4.0
-            - original.squared_standardized_separation).abs() < 1.0e-10);
+        assert!(
+            (noisier.squared_standardized_separation * 4.0
+                - original.squared_standardized_separation)
+                .abs()
+                < 1.0e-10
+        );
     }
 
     #[test]
     fn duplicate_trial_ids_are_rejected_as_pseudoreplication() {
         let rows = [
-            TrialObservation { trial_id: "same-recording", speed_m_s: 0.5, acceleration_m_s2: 1.8, acceleration_sigma_m_s2: 0.02 },
-            TrialObservation { trial_id: "same-recording", speed_m_s: 1.0, acceleration_m_s2: 1.7, acceleration_sigma_m_s2: 0.02 },
-            TrialObservation { trial_id: "third-recording", speed_m_s: 1.5, acceleration_m_s2: 1.6, acceleration_sigma_m_s2: 0.02 },
+            TrialObservation {
+                trial_id: "same-recording",
+                speed_m_s: 0.5,
+                acceleration_m_s2: 1.8,
+                acceleration_sigma_m_s2: 0.02,
+            },
+            TrialObservation {
+                trial_id: "same-recording",
+                speed_m_s: 1.0,
+                acceleration_m_s2: 1.7,
+                acceleration_sigma_m_s2: 0.02,
+            },
+            TrialObservation {
+                trial_id: "third-recording",
+                speed_m_s: 1.5,
+                acceleration_m_s2: 1.6,
+                acceleration_sigma_m_s2: 0.02,
+            },
         ];
         assert_eq!(
             compare_constant_vs_speed_dependent(&rows),
@@ -472,9 +575,24 @@ mod tests {
     #[test]
     fn invalid_measurements_fail_closed() {
         let rows = [
-            TrialObservation { trial_id: "a", speed_m_s: 0.5, acceleration_m_s2: 1.8, acceleration_sigma_m_s2: 0.02 },
-            TrialObservation { trial_id: "b", speed_m_s: -1.0, acceleration_m_s2: 1.7, acceleration_sigma_m_s2: 0.02 },
-            TrialObservation { trial_id: "c", speed_m_s: 1.5, acceleration_m_s2: 1.6, acceleration_sigma_m_s2: 0.02 },
+            TrialObservation {
+                trial_id: "a",
+                speed_m_s: 0.5,
+                acceleration_m_s2: 1.8,
+                acceleration_sigma_m_s2: 0.02,
+            },
+            TrialObservation {
+                trial_id: "b",
+                speed_m_s: -1.0,
+                acceleration_m_s2: 1.7,
+                acceleration_sigma_m_s2: 0.02,
+            },
+            TrialObservation {
+                trial_id: "c",
+                speed_m_s: 1.5,
+                acceleration_m_s2: 1.6,
+                acceleration_sigma_m_s2: 0.02,
+            },
         ];
         assert_eq!(
             compare_constant_vs_speed_dependent(&rows),
@@ -484,7 +602,10 @@ mod tests {
 
     #[test]
     fn coefficient_conversion_is_withheld_without_admitted_geometry() {
-        assert_eq!(friction_speed_coefficient_s_per_m(-0.25, None).unwrap(), None);
+        assert_eq!(
+            friction_speed_coefficient_s_per_m(-0.25, None).unwrap(),
+            None
+        );
     }
 
     #[test]
@@ -509,7 +630,9 @@ mod tests {
             effective_incline_angle_rad: 0.5,
             evidence_sha256: digest,
         };
-        let coefficient = friction_speed_coefficient_s_per_m(-0.25, Some(geometry)).unwrap().unwrap();
+        let coefficient = friction_speed_coefficient_s_per_m(-0.25, Some(geometry))
+            .unwrap()
+            .unwrap();
         let expected = 0.25 / (9.81 * 0.5_f64.cos());
         assert!((coefficient - expected).abs() < 1.0e-12);
     }
@@ -517,10 +640,19 @@ mod tests {
     #[test]
     fn input_permutation_preserves_the_fit() {
         let original = speed_dependent_fixture();
-        let permuted = [original[4], original[2], original[0], original[3], original[1]];
+        let permuted = [
+            original[4],
+            original[2],
+            original[0],
+            original[3],
+            original[1],
+        ];
         let a = compare_constant_vs_speed_dependent(&original).unwrap();
         let b = compare_constant_vs_speed_dependent(&permuted).unwrap();
-        assert!((a.alternative_slope_m_s2_per_m_s - b.alternative_slope_m_s2_per_m_s).abs() < 1.0e-12);
+        assert!(
+            (a.alternative_slope_m_s2_per_m_s - b.alternative_slope_m_s2_per_m_s).abs()
+                < 1.0e-12
+        );
         assert!((a.delta_chi_squared - b.delta_chi_squared).abs() < 1.0e-10);
     }
 }
