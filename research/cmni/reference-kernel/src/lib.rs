@@ -12,6 +12,9 @@ use std::fmt;
 mod detector;
 pub use detector::DetectorResponseMatrix;
 
+mod measurement_bias;
+pub use measurement_bias::apply_feature_conditioned_multiplicative_bias;
+
 mod experiment_design;
 pub use experiment_design::{
     combine_fisher_information,
