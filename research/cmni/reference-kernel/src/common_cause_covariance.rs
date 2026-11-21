@@ -35,6 +35,9 @@ pub struct ExperimentNoiseModel {
     pub experiment_id: String,
     pub independent_observation_covariance: Vec<Vec<f64>>,
     pub shared_sources: Vec<SharedUncertaintyContribution>,
+    /// False means unrecorded common-cause dependencies may remain.
+    /// It never means those omitted dependencies have zero covariance.
+    pub lineage_coverage_complete: bool,
 }
 
 /// Joint covariance assembled in the order of the supplied experiment list.
@@ -43,6 +46,8 @@ pub struct JointExperimentCovariance {
     pub covariance: Vec<Vec<f64>>,
     /// Half-open observation ranges, one per experiment, in input order.
     pub experiment_ranges: Vec<(usize, usize)>,
+    /// False if any input experiment reports incomplete common-cause provenance.
+    pub lineage_coverage_complete: bool,
     /// Sorted IDs of shared sources represented in the joint covariance.
     pub shared_source_ids: Vec<String>,
 }
@@ -213,6 +218,9 @@ pub fn assemble_joint_experiment_covariance(
     Ok(JointExperimentCovariance {
         covariance: joint,
         experiment_ranges,
+        lineage_coverage_complete: experiments
+            .iter()
+            .all(|experiment| experiment.lineage_coverage_complete),
         shared_source_ids: source_definitions.into_keys().collect(),
     })
 }
@@ -339,11 +347,13 @@ mod tests {
                 experiment_id: "exp-a".to_owned(),
                 independent_observation_covariance: vec![vec![2.0]],
                 shared_sources: Vec::new(),
+                lineage_coverage_complete: true,
             },
             ExperimentNoiseModel {
                 experiment_id: "exp-b".to_owned(),
                 independent_observation_covariance: vec![vec![3.0]],
                 shared_sources: Vec::new(),
+                lineage_coverage_complete: true,
             },
         ])
         .expect("independent portfolio");
@@ -364,11 +374,13 @@ mod tests {
                 experiment_id: "exp-a".to_owned(),
                 independent_observation_covariance: vec![vec![1.0]],
                 shared_sources: vec![shared(2.0)],
+                lineage_coverage_complete: true,
             },
             ExperimentNoiseModel {
                 experiment_id: "exp-b".to_owned(),
                 independent_observation_covariance: vec![vec![1.0]],
                 shared_sources: vec![shared(3.0)],
+                lineage_coverage_complete: true,
             },
         ])
         .expect("shared calibration portfolio");
@@ -396,6 +408,7 @@ mod tests {
                     contribution("reference", 2.0, 1.0),
                     contribution("response", 3.0, 2.0),
                 ],
+                lineage_coverage_complete: true,
             },
             ExperimentNoiseModel {
                 experiment_id: "exp-b".to_owned(),
@@ -404,6 +417,7 @@ mod tests {
                     contribution("reference", 2.0, 2.0),
                     contribution("response", 3.0, 1.0),
                 ],
+                lineage_coverage_complete: true,
             },
         ])
         .expect("multiple shared sources");
@@ -421,6 +435,7 @@ mod tests {
                     source_covariance: vec![vec![2.0]],
                     observation_jacobian: vec![vec![1.0]],
                 }],
+                lineage_coverage_complete: true,
             },
             ExperimentNoiseModel {
                 experiment_id: "exp-b".to_owned(),
@@ -430,6 +445,7 @@ mod tests {
                     source_covariance: vec![vec![3.0]],
                     observation_jacobian: vec![vec![1.0]],
                 }],
+                lineage_coverage_complete: true,
             },
         ]);
         assert_eq!(
@@ -447,11 +463,13 @@ mod tests {
                 experiment_id: "same".to_owned(),
                 independent_observation_covariance: vec![vec![1.0]],
                 shared_sources: Vec::new(),
+                lineage_coverage_complete: true,
             },
             ExperimentNoiseModel {
                 experiment_id: "same".to_owned(),
                 independent_observation_covariance: vec![vec![1.0]],
                 shared_sources: Vec::new(),
+                lineage_coverage_complete: true,
             },
         ]);
         assert_eq!(
