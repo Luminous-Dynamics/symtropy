@@ -1,0 +1,66 @@
+name: Manufacturing Architecture Profile Integrity
+
+on:
+  pull_request:
+    paths:
+      - "tools/manufacturing-architecture-portability/**"
+      - ".github/workflows/mfg-architecture-profile.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/manufacturing-architecture-portability/**"
+      - ".github/workflows/mfg-architecture-profile.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mfg-architecture-profile-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            tools/manufacturing-architecture-portability/validator -> target
+
+      # The first run bootstraps Cargo.lock for this isolated validator package.
+      # The generated lockfile is uploaded and then committed; subsequent runs
+      # switch to --locked so dependency resolution is reproducible.
+      - name: Validate Draft 2020-12 schema and profile fixtures
+        working-directory: tools/manufacturing-architecture-portability/validator
+        run: cargo test
+
+      - name: Validate all committed profiles
+        working-directory: tools/manufacturing-architecture-portability/validator
+        run: |
+          cargo run -- ../profile.schema.json \
+            ../profiles/uns-mqtt.synthetic.json \
+            ../profiles/i3x-1.0.reference.json \
+            ../profiles/opcua-machinery-1.04.2.reference.json \
+            ../profiles/opcua-robotics-1.02.reference.json
+
+      - name: Clippy
+        working-directory: tools/manufacturing-architecture-portability/validator
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Upload generated lockfile (one-time bootstrap)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mfg-architecture-validator-cargo-lock
+          path: tools/manufacturing-architecture-portability/validator/Cargo.lock
+          if-no-files-found: warn
+          retention-days: 7
