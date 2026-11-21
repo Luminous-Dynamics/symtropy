@@ -391,8 +391,8 @@ pub fn compare_setup_portability(
                     .expect("validated target counts"),
             );
 
-            source_decided += usize::from(source_winner != PairWinner::Undecided);
-            target_decided += usize::from(target_winner != PairWinner::Undecided);
+            source_decided += if source_winner != PairWinner::Undecided { 1 } else { 0 };
+            target_decided += if target_winner != PairWinner::Undecided { 1 } else { 0 };
             if source_winner != PairWinner::Undecided
                 && target_winner != PairWinner::Undecided
             {
