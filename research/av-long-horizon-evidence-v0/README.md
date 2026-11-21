@@ -188,3 +188,20 @@ Reproduce 4DMemory and EgoMemReason using their official data/protocols where ri
 Then apply our additional orthogonal challenge suite: source citations, exact as-of time, duplicate event identity, correction/supersession, clock-domain incomparability, common-cause dependence, revocation and post-revocation residual probes. Do not call this "better than 4DMemory" merely because a nine-case synthetic set measures additional properties. The claim requires official benchmark reproduction plus independent long-horizon adversarial evidence tests.
 
 A meaningful next result would be non-inferior answer/event recall on 4DMemory/EgoMemReason at materially lower measured retained-memory and retrieval cost, while passing provenance/correction/revocation gates that the external protocol does not currently score.
+
+
+## Evidence-qualified answer metric and evaluator hardening (21 November 2026)
+
+The evaluator now publishes an additional **evidence-qualified answer accuracy** metric. It counts an answer only when the answer is correct, every required current source reference is present and admissible, provenance is complete, and the evidence contract has no violations. Raw answer accuracy, safe-decision accuracy, coverage, citation precision/recall and evidence-qualified accuracy remain separate. This prevents a lucky guess from being described as a successful evidence retrieval.
+
+The synthetic four-condition reference tournament's known-answer evidence-qualified accuracies are:
+- recent-window: 4/9;
+- summary-only: 2/9;
+- episodic retrieval: 6/9;
+- evidence ledger: 8/9.
+
+These figures are outcomes of hand-authored synthetic fixture policies, not learned memory systems or external benchmark scores.
+
+Further hardening validates that duplicate deliveries preserve the exact immutable observation identity: modality set, content digest, capture tick, source dependency group, clock-domain ID and clock generation. The stream's availability ticks must be monotonically ordered. Derived-memory lineage is validated as an acyclic dependency graph; unknown source dependencies, unknown parents, temporal ancestry violations and cycles fail closed.
+
+Purge receipts remain explicitly **candidate-self-reported**. A completed synthetic purge-claim check is not independent proof that bytes were erased from live storage, indexes, backups, caches or external providers. Real deletion qualification needs independent storage/provider receipts and post-revocation residual probes in an isolated evaluator.
