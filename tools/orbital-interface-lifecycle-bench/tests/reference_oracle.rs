@@ -21,9 +21,7 @@ fn independent_reference(case: &LifecycleCase) -> (Disposition, &'static str) {
     if case.provider_configuration != case.qualified_configuration {
         return (RequalificationRequired, "configuration_changed_since_qualification");
     }
-    if case.current_procedure_revision.is_empty()
-        || case.qualified_procedure_revision.is_empty()
-    {
+    if case.current_procedure_revision.is_empty() || case.qualified_procedure_revision.is_empty() {
         return (Indeterminate, "procedure_revision_missing");
     }
     if case.current_procedure_revision != case.qualified_procedure_revision {
@@ -60,10 +58,7 @@ fn independent_reference(case: &LifecycleCase) -> (Disposition, &'static str) {
     match case.qualified_cycle_limit {
         None => return (Indeterminate, "qualified_cycle_limit_missing"),
         Some(limit) if case.cycle_count > limit => {
-            return (
-                RequalificationRequired,
-                "qualified_cycle_limit_exceeded",
-            );
+            return (RequalificationRequired, "qualified_cycle_limit_exceeded");
         }
         Some(_) => {}
     }
@@ -130,10 +125,10 @@ fn independent_oracle_matches_all_frozen_expected_dispositions() {
 fn product_evaluator_matches_the_independent_oracle_on_the_frozen_corpus() {
     let raw = include_str!("../fixtures/v0.1/cases.json");
     let corpus: Corpus = serde_json::from_str(raw).expect("fixture corpus parses");
-    let report = orbital_interface_lifecycle_bench::evaluate(&corpus)
-        .expect("lifecycle corpus is valid");
+    let report =
+        orbital_interface_lifecycle_bench::evaluate(&corpus).expect("lifecycle corpus is valid");
     assert_eq!(report.result, "pass");
-    assert_eq!(report.summary.case_count, 42);
+    assert_eq!(report.summary.case_count, 43);
     assert_eq!(report.summary.expected_result_mismatches, 0);
     assert!(!report.authority_granted);
     assert!(
