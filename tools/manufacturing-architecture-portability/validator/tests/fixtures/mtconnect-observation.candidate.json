@@ -25,5 +25,12 @@
   ],
   "projection_schema_version": "0.1.0",
   "adapter_profile_id": "urn:luminous:symtropy:mfg-arch:uns-mqtt-synthetic-v0.1",
-  "source_schema_version": "2.8"
+  "source_schema_version": "2.8",
+  "evidence_class": "synthetic",
+  "calibration_disposition": "unknown",
+  "calibration_reference_id": null,
+  "calibration_reference_sha256": null,
+  "measurement_uncertainty_disposition": "unknown",
+  "measurement_uncertainty_reference_id": null,
+  "measurement_uncertainty_reference_sha256": null
 }
