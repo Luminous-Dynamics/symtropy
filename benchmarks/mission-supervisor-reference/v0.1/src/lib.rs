@@ -491,7 +491,7 @@ impl MissionSupervisor {
             return Err(SupervisorError::InvalidStateTransition);
         }
         if !matches!(
-            runtime.state,
+            &runtime.state,
             RuntimeState::AwaitingEvidence(_) | RuntimeState::ReconciliationRequired(_)
         ) {
             return Err(SupervisorError::InvalidStateTransition);
