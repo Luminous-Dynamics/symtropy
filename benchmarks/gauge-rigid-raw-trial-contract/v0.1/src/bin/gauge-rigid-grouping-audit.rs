@@ -1087,8 +1087,12 @@ mod tests {
             grouping_tsv: PathBuf::from("grouping.tsv"),
             output: None,
         };
-        let receipt = output_jsonl(&args, &rows, &format!("{}:{}", "e".repeat(64), "f".repeat(64)))
-            .unwrap();
+        let receipt = output_jsonl(
+            &args,
+            &rows,
+            &format!("{}:{}", "e".repeat(64), "f".repeat(64)),
+        )
+        .unwrap();
         assert!(receipt.contains("FAIL_CROSS_SPLIT_DEPENDENCE"));
     }
 
