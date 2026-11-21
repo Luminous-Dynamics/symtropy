@@ -28,10 +28,18 @@ impl Display for CapsuleMassError {
             Self::NonFiniteInput => write!(formatter, "mass, length and radius must be finite"),
             Self::NonPositiveMass => write!(formatter, "mass must be positive"),
             Self::NonPositiveRadius => write!(formatter, "radius must be positive"),
-            Self::LengthBelowDiameter => write!(formatter, "overall length must be at least the cap diameter"),
-            Self::NonPositiveVolume => write!(formatter, "capsule volume must be positive and finite"),
+            Self::LengthBelowDiameter => write!(
+                formatter,
+                "overall length must be at least the cap diameter"
+            ),
+            Self::NonPositiveVolume => {
+                write!(formatter, "capsule volume must be positive and finite")
+            }
             Self::InvalidRotation => write!(formatter, "rotation must be proper and orthogonal"),
-            Self::NonFiniteResult => write!(formatter, "capsule mass-property calculation produced a non-finite result"),
+            Self::NonFiniteResult => write!(
+                formatter,
+                "capsule mass-property calculation produced a non-finite result"
+            ),
         }
     }
 }
@@ -95,8 +103,8 @@ impl CapsuleMassProperties3 {
         // Caps: each hemisphere's COM is 3r/8 from its flat face. The
         // second moment about its own COM in each direction is 19*m_h*r^2/320.
         // Its axial COM lies at Lc/2 + 3r/8 from the capsule COM.
-        let radial_second_moment = cylinder_mass_kg * radius_m * radius_m / 4.0
-            + cap_mass_kg * radius_m * radius_m / 5.0;
+        let radial_second_moment =
+            cylinder_mass_kg * radius_m * radius_m / 4.0 + cap_mass_kg * radius_m * radius_m / 5.0;
         let axial_cap_offset = cylinder_half_length + 3.0 * radius_m / 8.0;
         let axial_second_moment = cylinder_mass_kg * cylinder_length_m * cylinder_length_m / 12.0
             + cap_mass_kg
@@ -137,15 +145,33 @@ impl CapsuleMassProperties3 {
         })
     }
 
-    pub fn mass_kg(&self) -> f64 { self.mass_kg }
-    pub fn overall_length_m(&self) -> f64 { self.overall_length_m }
-    pub fn radius_m(&self) -> f64 { self.radius_m }
-    pub fn cylinder_length_m(&self) -> f64 { self.cylinder_length_m }
-    pub fn density_kg_m3(&self) -> f64 { self.density_kg_m3 }
-    pub fn cylinder_mass_kg(&self) -> f64 { self.cylinder_mass_kg }
-    pub fn cap_mass_kg(&self) -> f64 { self.cap_mass_kg }
-    pub fn second_moment_diagonal_kg_m2(&self) -> Vec3 { self.second_moment_diagonal_kg_m2 }
-    pub fn principal_inertia_kg_m2(&self) -> Vec3 { self.principal_inertia_kg_m2 }
+    pub fn mass_kg(&self) -> f64 {
+        self.mass_kg
+    }
+    pub fn overall_length_m(&self) -> f64 {
+        self.overall_length_m
+    }
+    pub fn radius_m(&self) -> f64 {
+        self.radius_m
+    }
+    pub fn cylinder_length_m(&self) -> f64 {
+        self.cylinder_length_m
+    }
+    pub fn density_kg_m3(&self) -> f64 {
+        self.density_kg_m3
+    }
+    pub fn cylinder_mass_kg(&self) -> f64 {
+        self.cylinder_mass_kg
+    }
+    pub fn cap_mass_kg(&self) -> f64 {
+        self.cap_mass_kg
+    }
+    pub fn second_moment_diagonal_kg_m2(&self) -> Vec3 {
+        self.second_moment_diagonal_kg_m2
+    }
+    pub fn principal_inertia_kg_m2(&self) -> Vec3 {
+        self.principal_inertia_kg_m2
+    }
 
     pub fn local_second_moment_matrix_kg_m2(&self) -> Mat3 {
         [
@@ -159,7 +185,10 @@ impl CapsuleMassProperties3 {
     pub fn second_moment_in_frame(&self, local_to_world: Mat3) -> Result<Mat3, CapsuleMassError> {
         validate_rotation(local_to_world)?;
         let local = self.local_second_moment_matrix_kg_m2();
-        let rotated = multiply(&multiply(&local_to_world, &local), &transpose(local_to_world));
+        let rotated = multiply(
+            &multiply(&local_to_world, &local),
+            &transpose(local_to_world),
+        );
         if rotated.iter().flatten().all(|x| x.is_finite()) {
             Ok(rotated)
         } else {
@@ -201,7 +230,8 @@ fn validate_rotation(rotation: Mat3) -> Result<(), CapsuleMassError> {
             }
         }
     }
-    let determinant = rotation[0][0] * (rotation[1][1] * rotation[2][2] - rotation[1][2] * rotation[2][1])
+    let determinant = rotation[0][0]
+        * (rotation[1][1] * rotation[2][2] - rotation[1][2] * rotation[2][1])
         - rotation[0][1] * (rotation[1][0] * rotation[2][2] - rotation[1][2] * rotation[2][0])
         + rotation[0][2] * (rotation[1][0] * rotation[2][1] - rotation[1][1] * rotation[2][0]);
     if (determinant - 1.0).abs() > 1.0e-10 {
@@ -227,7 +257,8 @@ mod tests {
 
     #[test]
     fn sphere_boundary_reduces_to_uniform_solid_sphere() {
-        let properties = CapsuleMassProperties3::from_uniform_mass(1.0, 0.06, 0.03).expect("sphere limit");
+        let properties =
+            CapsuleMassProperties3::from_uniform_mass(1.0, 0.06, 0.03).expect("sphere limit");
         let expected_c = 1.0 * 0.03 * 0.03 / 5.0;
         let expected_i = 2.0 * 1.0 * 0.03 * 0.03 / 5.0;
         for value in properties.second_moment_diagonal_kg_m2() {
@@ -242,19 +273,37 @@ mod tests {
 
     #[test]
     fn reference_link_matches_closed_form_mass_split_and_tensor() {
-        let properties = CapsuleMassProperties3::from_uniform_mass(1.0, 0.3, 0.03).expect("capsule");
+        let properties =
+            CapsuleMassProperties3::from_uniform_mass(1.0, 0.3, 0.03).expect("capsule");
         close(properties.cylinder_length_m(), 0.24, 1.0e-14);
         close(properties.cylinder_mass_kg(), 6.0 / 7.0, 1.0e-12);
         close(properties.cap_mass_kg(), 1.0 / 7.0, 1.0e-12);
-        close(properties.second_moment_diagonal_kg_m2()[0], 0.00021857142857142857, 1.0e-15);
-        close(properties.second_moment_diagonal_kg_m2()[2], 0.006582857142857142, 1.0e-14);
-        close(properties.principal_inertia_kg_m2()[0], 0.006801428571428571, 1.0e-14);
-        close(properties.principal_inertia_kg_m2()[2], 0.00043714285714285714, 1.0e-15);
+        close(
+            properties.second_moment_diagonal_kg_m2()[0],
+            0.00021857142857142857,
+            1.0e-15,
+        );
+        close(
+            properties.second_moment_diagonal_kg_m2()[2],
+            0.006582857142857142,
+            1.0e-14,
+        );
+        close(
+            properties.principal_inertia_kg_m2()[0],
+            0.006801428571428571,
+            1.0e-14,
+        );
+        close(
+            properties.principal_inertia_kg_m2()[2],
+            0.00043714285714285714,
+            1.0e-15,
+        );
     }
 
     #[test]
     fn slender_link_has_larger_transverse_than_axial_inertia() {
-        let properties = CapsuleMassProperties3::from_uniform_mass(1.0, 0.5, 0.01).expect("slender capsule");
+        let properties =
+            CapsuleMassProperties3::from_uniform_mass(1.0, 0.5, 0.01).expect("slender capsule");
         let inertia = properties.principal_inertia_kg_m2();
         assert!(inertia[0] > 100.0 * inertia[2], "transverse={:?}", inertia);
         close(inertia[0], 0.02031189189189189, 1.0e-13);
@@ -266,8 +315,16 @@ mod tests {
         let one = CapsuleMassProperties3::from_uniform_mass(1.0, 0.3, 0.03).expect("one");
         let two = CapsuleMassProperties3::from_uniform_mass(2.0, 0.3, 0.03).expect("two");
         for axis in 0..3 {
-            close(two.second_moment_diagonal_kg_m2()[axis], 2.0 * one.second_moment_diagonal_kg_m2()[axis], 1.0e-14);
-            close(two.principal_inertia_kg_m2()[axis], 2.0 * one.principal_inertia_kg_m2()[axis], 1.0e-14);
+            close(
+                two.second_moment_diagonal_kg_m2()[axis],
+                2.0 * one.second_moment_diagonal_kg_m2()[axis],
+                1.0e-14,
+            );
+            close(
+                two.principal_inertia_kg_m2()[axis],
+                2.0 * one.principal_inertia_kg_m2()[axis],
+                1.0e-14,
+            );
         }
         close(two.density_kg_m3(), 2.0 * one.density_kg_m3(), 1.0e-10);
     }
@@ -277,32 +334,51 @@ mod tests {
         let original = CapsuleMassProperties3::from_uniform_mass(1.0, 0.3, 0.03).expect("original");
         let doubled = CapsuleMassProperties3::from_uniform_mass(1.0, 0.6, 0.06).expect("doubled");
         for axis in 0..3 {
-            close(doubled.second_moment_diagonal_kg_m2()[axis], 4.0 * original.second_moment_diagonal_kg_m2()[axis], 1.0e-13);
-            close(doubled.principal_inertia_kg_m2()[axis], 4.0 * original.principal_inertia_kg_m2()[axis], 1.0e-13);
+            close(
+                doubled.second_moment_diagonal_kg_m2()[axis],
+                4.0 * original.second_moment_diagonal_kg_m2()[axis],
+                1.0e-13,
+            );
+            close(
+                doubled.principal_inertia_kg_m2()[axis],
+                4.0 * original.principal_inertia_kg_m2()[axis],
+                1.0e-13,
+            );
         }
     }
 
     #[test]
     fn rotated_frame_preserves_tensor_trace_and_principal_values() {
-        let properties = CapsuleMassProperties3::from_uniform_mass(1.0, 0.3, 0.03).expect("capsule");
+        let properties =
+            CapsuleMassProperties3::from_uniform_mass(1.0, 0.3, 0.03).expect("capsule");
         let angle = std::f64::consts::FRAC_PI_4;
         let rotation = [
             [angle.cos(), 0.0, angle.sin()],
             [0.0, 1.0, 0.0],
             [-angle.sin(), 0.0, angle.cos()],
         ];
-        let rotated = properties.second_moment_in_frame(rotation).expect("rotated tensor");
+        let rotated = properties
+            .second_moment_in_frame(rotation)
+            .expect("rotated tensor");
         let original = properties.second_moment_diagonal_kg_m2();
-        close(rotated[0][0] + rotated[1][1] + rotated[2][2], original[0] + original[1] + original[2], 1.0e-14);
+        close(
+            rotated[0][0] + rotated[1][1] + rotated[2][2],
+            original[0] + original[1] + original[2],
+            1.0e-14,
+        );
         close(rotated[0][0], 0.5 * (original[0] + original[2]), 1.0e-14);
         close(rotated[2][2], 0.5 * (original[0] + original[2]), 1.0e-14);
-        assert!(rotated[0][2].abs() > 1.0e-5, "rotation must retain off-diagonal coupling");
+        assert!(
+            rotated[0][2].abs() > 1.0e-5,
+            "rotation must retain off-diagonal coupling"
+        );
         assert!((rotated[0][2] - rotated[2][0]).abs() < 1.0e-14);
     }
 
     #[test]
     fn formula_agrees_with_independent_cap_slice_quadrature() {
-        let properties = CapsuleMassProperties3::from_uniform_mass(1.0, 0.3, 0.03).expect("capsule");
+        let properties =
+            CapsuleMassProperties3::from_uniform_mass(1.0, 0.3, 0.03).expect("capsule");
         let radius = properties.radius_m();
         let cylinder_length = properties.cylinder_length_m();
         let half = 0.5 * cylinder_length;
@@ -352,6 +428,9 @@ mod tests {
         );
         let reflection = [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
         let capsule = CapsuleMassProperties3::from_uniform_mass(1.0, 0.3, 0.03).expect("capsule");
-        assert_eq!(capsule.second_moment_in_frame(reflection), Err(CapsuleMassError::InvalidRotation));
+        assert_eq!(
+            capsule.second_moment_in_frame(reflection),
+            Err(CapsuleMassError::InvalidRotation)
+        );
     }
 }
