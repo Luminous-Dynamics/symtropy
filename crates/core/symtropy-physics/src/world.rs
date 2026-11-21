@@ -22,6 +22,18 @@ use crate::manifold_gen;
 /// Relative approach speed (units/sec) below which restitution is not
 /// applied, to avoid tiny resting-contact jitter being amplified into a
 /// perpetual micro-bounce. Mirrors Box2D's `b2_velocityThreshold` default.
+/// Why a strict world integration phase failed before committing any body.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum PhysicsStepPreflightError {
+    /// The requested timestep is not finite and strictly positive.
+    InvalidTimeStep,
+    /// One body's prepared integration failed; no world-owned state was committed.
+    BodyIntegration {
+        body: BodyHandle,
+        source: crate::body::RotationalResponseError,
+    },
+}
+
 const RESTITUTION_VELOCITY_THRESHOLD: f64 = 1.0;
 
 /// Hard cap on the Baumgarte/TGS position-correction bias velocity, in
@@ -434,7 +446,74 @@ impl<const D: usize> PhysicsWorld<D> {
         self.step_internal(dt, &mut noop);
     }
 
+    /// Step the world after strictly preflighting every awake dynamic body.
+    ///
+    /// All body integration candidates are computed before the world clears
+    /// events, swaps contact caches, rebuilds broadphase state or changes any
+    /// body. If preflight rejects, `PhysicsWorld`-owned state is unchanged.
+    /// The supplied callback's `modulate_force` method is invoked during
+    /// preflight; any external interior side effects in that callback cannot
+    /// be rolled back. After successful integration commit, later CCD/contact/
+    /// constraint/sleep phases retain the ordinary step semantics. This is an
+    /// integration-phase transaction, not a whole-world rollback guarantee.
+    pub fn try_step_with_callback(
+        &mut self,
+        dt: f64,
+        callback: &mut dyn PhysicsCallback<D>,
+    ) -> Result<(), PhysicsStepPreflightError> {
+        if !dt.is_finite() || dt <= 0.0 {
+            return Err(PhysicsStepPreflightError::InvalidTimeStep);
+        }
+
+        let mut prepared = Vec::with_capacity(self.bodies.len());
+        for body in &self.bodies {
+            if body.sleeping {
+                prepared.push(None);
+                continue;
+            }
+
+            let mut force = body.force_accumulator;
+            #[cfg(feature = "deterministic-net")]
+            for component in force.iter_mut() {
+                *component = quantize_q16_16(*component);
+            }
+            // Match the ordinary path: one force-modulation call for every
+            // awake body, including static/kinematic bodies.
+            let force = callback.modulate_force(body.handle, &force);
+
+            if body.is_dynamic() {
+                let candidate = integrator::prepare_integrate_with_force(
+                    body, &self.gravity, &force, dt,
+                )
+                .map_err(|source| PhysicsStepPreflightError::BodyIntegration {
+                    body: body.handle,
+                    source,
+                })?;
+                prepared.push(Some(candidate));
+            } else {
+                prepared.push(None);
+            }
+        }
+
+        self.step_internal_with_prepared_integrations(dt, callback, Some(prepared));
+        Ok(())
+    }
+
+    /// Strict world-step preflight with the built-in no-op callback.
+    pub fn try_step(&mut self, dt: f64) -> Result<(), PhysicsStepPreflightError> {
+        let mut noop = NoOpCallback;
+        self.try_step_with_callback(dt, &mut noop)
+    }
     fn step_internal(&mut self, dt: f64, callback: &mut dyn PhysicsCallback<D>) {
+        self.step_internal_with_prepared_integrations(dt, callback, None);
+    }
+
+    fn step_internal_with_prepared_integrations(
+        &mut self,
+        dt: f64,
+        callback: &mut dyn PhysicsCallback<D>,
+        mut prepared_integrations: Option<Vec<Option<integrator::PreparedBodyIntegration<D>>>>,
+    ) {
         // 0. Clear events from previous step
         self.collision_events.clear();
         self.sensor_events.clear();
@@ -456,21 +535,40 @@ impl<const D: usize> PhysicsWorld<D> {
         let pre_integration_positions: Vec<SVector<f64, D>> =
             self.bodies.iter().map(|b| b.position()).collect();
 
-        #[cfg(feature = "deterministic-net")]
-        for body in &mut self.bodies {
-            // Snap accumulated forces to Q16.16 before integration for
-            // bit-identical simulation across platforms (P2P / replay).
-            if !body.sleeping {
-                for i in 0..D {
-                    body.force_accumulator[i] = quantize_q16_16(body.force_accumulator[i]);
+        if prepared_integrations.is_none() {
+            #[cfg(feature = "deterministic-net")]
+            for body in &mut self.bodies {
+                // Preserve the legacy quantization-before-callback order.
+                if !body.sleeping {
+                    for i in 0..D {
+                        body.force_accumulator[i] = quantize_q16_16(body.force_accumulator[i]);
+                    }
                 }
             }
-        }
-        for body in &mut self.bodies {
-            if !body.sleeping {
-                body.force_accumulator =
-                    callback.modulate_force(body.handle, &body.force_accumulator);
-                integrator::integrate(body, &self.gravity, dt);
+            for body in &mut self.bodies {
+                if !body.sleeping {
+                    body.force_accumulator =
+                        callback.modulate_force(body.handle, &body.force_accumulator);
+                    integrator::integrate(body, &self.gravity, dt);
+                }
+            }
+        } else {
+            let prepared = prepared_integrations
+                .as_mut()
+                .expect("prepared integration batch was provided");
+            assert_eq!(prepared.len(), self.bodies.len());
+            for (index, body) in self.bodies.iter_mut().enumerate() {
+                if body.sleeping {
+                    continue;
+                }
+                if body.is_dynamic() {
+                    let candidate = prepared[index]
+                        .take()
+                        .expect("every awake dynamic body was preflighted");
+                    integrator::commit_prepared_integrate(body, candidate);
+                } else {
+                    body.clear_accumulators();
+                }
             }
         }
         #[cfg(feature = "deterministic-net")]
