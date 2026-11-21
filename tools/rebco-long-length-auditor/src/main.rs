@@ -235,19 +235,13 @@ fn validate_conditions(value: &Value, path: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn condition_profile(
-    observation: &Value,
-    path: &str,
-) -> Result<(String, Value, String), String> {
+fn condition_profile(observation: &Value, path: &str) -> Result<(String, Value, String), String> {
     let conditions = field(observation, "conditions", path)?;
     let conditions_path = format!("{path}.conditions");
     validate_conditions(conditions, &conditions_path)?;
     let map = object(conditions, &conditions_path)?;
     if !map.contains_key("temperature_k") {
-        return Err(fail(
-            &conditions_path,
-            "Ic coverage requires temperature_k",
-        ));
+        return Err(fail(&conditions_path, "Ic coverage requires temperature_k"));
     }
     if !map.contains_key("field_magnitude_t") && !map.contains_key("field_vector_t") {
         return Err(fail(
@@ -1114,8 +1108,7 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
             let inferred_length = interval_union_length(profile.inferred);
             let direct_transport_unqualified_length =
                 interval_union_length(profile.direct_transport_unqualified);
-            let proxy_unqualified_length =
-                interval_union_length(profile.proxy_unqualified);
+            let proxy_unqualified_length = interval_union_length(profile.proxy_unqualified);
             json!({
                 "condition_profile_id": condition_profile_id,
                 "operating_conditions": profile.operating_conditions,
@@ -1200,8 +1193,7 @@ mod tests {
             .coverage_profiles
             .iter()
             .find(|profile| {
-                profile["operating_conditions"]["temperature_k"].as_f64()
-                    == Some(temperature_k)
+                profile["operating_conditions"]["temperature_k"].as_f64() == Some(temperature_k)
             })
             .expect("condition profile must exist")
     }
