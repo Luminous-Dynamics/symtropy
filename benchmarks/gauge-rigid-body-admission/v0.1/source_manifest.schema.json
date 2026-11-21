@@ -231,38 +231,40 @@
             }
           }
         }
-      }
+      },
+      "allOf": [
+        {
+          "contains": {
+            "properties": {
+              "source_id": {
+                "const": "gauge-code"
+              }
+            },
+            "required": [
+              "source_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "source_id": {
+                "const": "gauge-dataset"
+              }
+            },
+            "required": [
+              "source_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        }
+      ]
     }
   },
   "allOf": [
-    {
-      "contains": {
-        "properties": {
-          "source_id": {
-            "const": "gauge-code"
-          }
-        },
-        "required": [
-          "source_id"
-        ]
-      },
-      "minContains": 1,
-      "maxContains": 1
-    },
-    {
-      "contains": {
-        "properties": {
-          "source_id": {
-            "const": "gauge-dataset"
-          }
-        },
-        "required": [
-          "source_id"
-        ]
-      },
-      "minContains": 1,
-      "maxContains": 1
-    },
     {
       "if": {
         "properties": {
