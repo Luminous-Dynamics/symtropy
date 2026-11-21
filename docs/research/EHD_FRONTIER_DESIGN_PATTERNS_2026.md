@@ -58,6 +58,18 @@ The accessible abstract and article text report a CFD investigation in a wire-cy
 
 **Research use:** promote ion mobility and gas composition to measured model inputs and sensitivity coordinates. Do not promote the reported CFD ratio to an experimentally demonstrated propulsion gain. Validate with measured mobility, gas composition, pressure, current waveform, discharge mode, and independent flow/thrust observations.
 
+### 1.5 Automated multistage ducted-thruster optimisation — Shibata et al. (2026)
+
+H. Shibata et al., “Multi-objective exploration of multistaged ducted thrusters,” *AIP Advances* 16, 015101 (published 2 January 2026). DOI: [10.1063/5.0300448](https://doi.org/10.1063/5.0300448).
+
+This is a direct computational optimisation incumbent and must be part of the benchmark, not omitted as generic evolutionary optimisation. It combines CMA-ES with ANEMONE-lite: 2D corona modelling with Poisson space-charge, 2D incompressible Navier–Stokes with SUPG-FEM, and hierarchical Cartesian/quadtree mesh generation. The search uses four latent variables, seven candidates per generation, and a small NACA four-digit collector parameterisation. The simulation targets stationary, zero-freestream operation.
+
+The paper reports approximately **6× thrust per unit span** and about **0.5× thrust-to-power** relative to its initial design plan. The paper's “thrust density” is defined per unit span, in N/m—not area-normalised N/m². The thrust estimate includes inlet/outlet pressure difference and electrode pressure drag but explicitly omits friction drag on electrodes and duct. The authors state that experimental validation is planned; underlying data are available from the corresponding author on request.
+
+**What this means for our SOTA plan:** the computational search loop itself is no longer a differentiator. The next step is to test its optimised candidates under 3D geometry, nonzero freestream, temperature/composition changes, full viscous and frame/electrode drag, tolerance variation, uncertainty, and physical validation. We should compare Pareto fronts using matched units and observable boundaries, with the original 2D assumptions reproduced as a baseline.
+
+The same paper also reveals a design-space opportunity: independently optimise each collector and jointly optimise duct geometry and stage count, but only after conservative plasma-to-neutral momentum transfer and robust drag accounting are qualified.
+
 ## 2. Paradigm shift: co-design the entire charge-to-thrust path
 
 Represent an EHD cell as a sequence of physical transformations:
