@@ -81,7 +81,9 @@
     "uncertainty_characteristic_id",
     "uncertainty_original_unit",
     "uncertainty_valid_from_ns",
-    "uncertainty_valid_until_ns"
+    "uncertainty_valid_until_ns",
+    "calibration_validity_clock_id",
+    "uncertainty_validity_clock_id"
   ],
   "properties": {
     "projection_schema_version": {
@@ -436,6 +438,20 @@
         "null"
       ],
       "minimum": 0
+    },
+    "calibration_validity_clock_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "uncertainty_validity_clock_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
     }
   },
   "allOf": [
@@ -471,6 +487,10 @@
           "calibration_valid_until_ns": {
             "type": "integer",
             "minimum": 0
+          },
+          "calibration_validity_clock_id": {
+            "type": "string",
+            "minLength": 1
           }
         },
         "required": [
@@ -478,7 +498,8 @@
           "calibration_attestation_sha256",
           "calibration_subject_instrument_id",
           "calibration_valid_from_ns",
-          "calibration_valid_until_ns"
+          "calibration_valid_until_ns",
+          "calibration_validity_clock_id"
         ]
       }
     },
@@ -518,6 +539,10 @@
           "uncertainty_valid_until_ns": {
             "type": "integer",
             "minimum": 0
+          },
+          "uncertainty_validity_clock_id": {
+            "type": "string",
+            "minLength": 1
           }
         },
         "required": [
@@ -526,7 +551,8 @@
           "uncertainty_characteristic_id",
           "uncertainty_original_unit",
           "uncertainty_valid_from_ns",
-          "uncertainty_valid_until_ns"
+          "uncertainty_valid_until_ns",
+          "uncertainty_validity_clock_id"
         ]
       }
     }
