@@ -44,6 +44,15 @@ class ActiveSensingEvaluatorTests(unittest.TestCase):
         self.assertEqual(score["totals"]["mean_estimated_evsi_mae"], 0)
         self.assertEqual(score["totals"]["mean_estimated_evsi_bias"], 0)
 
+    def test_evsi_estimate_error_is_measured_against_realized_value(self):
+        candidate = copy.deepcopy(self.submission)
+        row = self.prediction(candidate, "as-002-low-eig-high-evsi")
+        row["action_requests"][0]["estimated_evsi"] = 8.0
+        score = self.score(candidate)
+        self.assertEqual(score["totals"]["estimated_evsi_count"], 3)
+        self.assertAlmostEqual(score["totals"]["mean_estimated_evsi_mae"], 2 / 3)
+        self.assertAlmostEqual(score["totals"]["mean_estimated_evsi_bias"], 2 / 3)
+
     def test_high_eig_zero_evsi_acquisition_is_wasted(self):
         candidate = copy.deepcopy(self.submission)
         row = self.prediction(candidate, "as-001-high-eig-zero-evsi")
