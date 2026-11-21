@@ -1,0 +1,257 @@
+{
+  "schema_version": "0.1.0",
+  "artifact_id": "EHD-FRONTIER-DESIGN-PATTERNS-2026",
+  "as_of": "2026-11-21",
+  "status": "literature_transcription_and_benchmark_proposal",
+  "claim_ceiling": "No Luminous simulation, physical measurement, prototype, solver validation, or SOTA improvement is claimed.",
+  "records": [
+    {
+      "id": "jiang-2026-sub-unit-electrode",
+      "title": "Performance enhancement of electrohydrodynamic thruster using sub unit electrode configuration",
+      "authors": [
+        "Xin Jiang",
+        "Hiroyuki Tsubata",
+        "Soya Shimizu",
+        "Takahiro Nozaki"
+      ],
+      "venue": "Scientific Reports",
+      "published": "2026-11-07",
+      "accepted": "2026-10-29",
+      "doi": "10.1038/s41598-026-78941-0",
+      "url": "https://doi.org/10.1038/s41598-026-78941-0",
+      "evidence_class": "peer_reviewed_early_article_abstract_transcription",
+      "regime": "atmospheric_corona_ehd",
+      "geometry_family": "sub_unit_electrode",
+      "reported_operating_point": {
+        "voltage_kv": 22
+      },
+      "reported_values": {
+        "baseline_thrust_mn": 50.23,
+        "sub_unit_thrust_mn": 64.09,
+        "sub_unit_plus_thrust_mn": 68.7,
+        "sub_unit_gain_pct_recomputed": 27.59,
+        "sub_unit_plus_increment_over_sub_unit_pct_recomputed": 7.19,
+        "sub_unit_plus_gain_over_baseline_pct_recomputed": 36.77
+      },
+      "reported_tradeoff": "The article abstract explicitly reports a trade-off between absolute thrust and thrust-to-power ratio; absolute T/P values are not transcribed here.",
+      "missing_or_unverified": [
+        "complete electrode dimensions and tolerances",
+        "gas composition, humidity, pressure and temperature",
+        "current waveform and wall-plug power values",
+        "force measurement uncertainty and raw time series",
+        "integrated mass boundary",
+        "full article and supplementary-data transcription"
+      ],
+      "comparability": "Source-local comparison only. Do not combine its percentage gain with another paper or rank it against grid/guide/auxiliary-electrode studies without matched conditions."
+    },
+    {
+      "id": "nonaka-2026-guide-electrode",
+      "title": "Use of Guide Electrode for Increasing Thrust and Thrust-to-Power Ratio in Electroaerodynamic Propulsion Systems",
+      "authors": [
+        "Ryotaro Nonaka",
+        "Hiroaki Katagiri",
+        "Shigeki Yashita",
+        "Tomoya Kitamura",
+        "Hiroyuki Tsubata",
+        "Takahiro Nozaki"
+      ],
+      "venue": "IEEJ Journal of Industry Applications",
+      "volume": 15,
+      "issue": 4,
+      "pages": "675-682",
+      "published": "2026-07-01",
+      "doi": "10.1541/ieejjia.20250124",
+      "url": "https://doi.org/10.1541/ieejjia.20250124",
+      "evidence_class": "peer_reviewed_abstract_transcription",
+      "regime": "atmospheric_corona_ead",
+      "geometry_family": "cylindrical_guide_electrode",
+      "configuration_change": "A cylindrical guide electrode is placed above the emitter at the same potential.",
+      "reported_mechanism": "The guide electrode reshapes the field toward the collector and suppresses ion leakage.",
+      "reported_values": {
+        "maximum_thrust_improvement_pct": 36.6,
+        "maximum_thrust_to_power_direction": "improved_vs_own_baseline",
+        "absolute_thrust_mn": null,
+        "absolute_thrust_to_power": null
+      },
+      "missing_or_unverified": [
+        "exact voltage/current operating point for the maximum",
+        "absolute thrust and T/P values",
+        "full geometry and tolerance table",
+        "gas state and force uncertainty",
+        "full article tables and raw/supplementary data transcription"
+      ],
+      "comparability": "Source-local relative gain only. Do not infer absolute performance or combine with sub-unit/auxiliary/grid gains."
+    },
+    {
+      "id": "tao-2026-controlled-microrobot",
+      "title": "Controlled flight of high-thrust ultralight ion-propelled microrobot with integrated sensing",
+      "authors": [
+        "Qiannan Tao",
+        "Yang Gu",
+        "Xinshuai Wang",
+        "Zhi Chen",
+        "Fei Lv",
+        "Fu Xu",
+        "Tahir Bashir",
+        "Yu Zheng",
+        "Yunqi Cao",
+        "Xianfa Cai",
+        "Khadga Thakuri",
+        "Bin Han",
+        "Wei Li"
+      ],
+      "venue": "Nature Communications",
+      "volume": 17,
+      "article_number": "9530",
+      "published": "2026-08-08",
+      "doi": "10.1038/s41467-026-76462-y",
+      "url": "https://doi.org/10.1038/s41467-026-76462-y",
+      "evidence_class": "peer_reviewed_integrated_system_demonstration",
+      "regime": "atmospheric_ion_wind_microrobot",
+      "geometry_family": "four_unit_cross_platform",
+      "reported_values": {
+        "platform_dimensions_mm": [
+          37.7,
+          37.7
+        ],
+        "robot_mass_mg": 36.7,
+        "reported_thrust_to_weight": 5,
+        "payload_mg": 146.8,
+        "hover_duration_hours": 1,
+        "hover_is_tethered": true,
+        "measured_or_reported_power_w": 0.45,
+        "voltage_kv": 4.5,
+        "current_ma": 0.1,
+        "thrust_to_power_mn_per_w": 2.8,
+        "thrust_density_n_per_m3": 538,
+        "pitch_rmse_reduction_pct": 83.11,
+        "roll_rmse_reduction_pct": 89.21,
+        "independent_ion_thruster_units": 4
+      },
+      "system_boundary": "The demonstrated one-hour hover is tethered; the article discusses external/carrier power because the sub-gram platform cannot carry an adequate onboard power system. Do not classify this as self-powered free flight.",
+      "missing_or_unverified": [
+        "complete onboard high-voltage conversion mass and energy budget",
+        "self-powered free-flight endurance",
+        "cross-lab replication"
+      ],
+      "comparability": "Integrated-system/control cohort; not a bare-thruster T/A or T/P comparator. Preserve tether and power-system boundaries."
+    },
+    {
+      "id": "dong-2026-ion-mobility-regulation",
+      "title": "Mechanism-guided prediction of energy efficiency enhancement in ion wind propulsion through ion mobility regulation",
+      "authors": [
+        "Guangyu Dong",
+        "Jishui Jiang",
+        "Yanxiong Zhou",
+        "Liguang Li",
+        "Zhijun Wu",
+        "Dunhui Xiao"
+      ],
+      "venue": "International Journal of Heat and Mass Transfer",
+      "volume": 271,
+      "issue_date": "2026-12-15",
+      "doi": "10.1016/j.ijheatmasstransfer.2026.129334",
+      "url": "https://doi.org/10.1016/j.ijheatmasstransfer.2026.129334",
+      "evidence_class": "online_early_source_modelled_prediction_not_ranked",
+      "regime": "wire_cylinder_ion_wind_cfd",
+      "geometry_family": "wire_cylinder",
+      "reported_values": {
+        "ion_mobility_reduction_factor": 100,
+        "downstream_weighted_average_velocity_initial_m_per_s": 0.0161,
+        "downstream_weighted_average_velocity_predicted_m_per_s": 0.469,
+        "velocity_increase_factor_approx": 29.1,
+        "calculated_energy_efficiency_initial_pct": 0.000327,
+        "calculated_energy_efficiency_predicted_pct": 8.07,
+        "prescribed_scaled_current_condition": true
+      },
+      "interpretation_guard": "The issue date is after the 2026-11-21 atlas date. Treat this as an accessible early/online source, not a final issue-date benchmark. The 100x mobility change is a model coordinate under a prescribed scaled-current condition, not an experimentally demonstrated independent control knob or propulsion improvement.",
+      "missing_or_unverified": [
+        "final issue publication as of the atlas date",
+        "independent replication",
+        "experimental validation of the predicted 100x mobility change under matched current and discharge conditions",
+        "full raw CFD and measurement data audit"
+      ],
+      "comparability": "Research watchlist only; do not put on a performance leaderboard."
+    }
+  ],
+  "proposed_design_factors": [
+    {
+      "id": "guide_electrode",
+      "levels": [
+        "absent",
+        "present"
+      ],
+      "response_targets": [
+        "field_concentration",
+        "collector_capture_fraction",
+        "leakage_current",
+        "thrust",
+        "wall_plug_power"
+      ]
+    },
+    {
+      "id": "sub_unit_geometry",
+      "levels": [
+        "absent",
+        "present",
+        "plus_variant"
+      ],
+      "response_targets": [
+        "thrust",
+        "flow_obstruction",
+        "collector_drag",
+        "thrust_to_power"
+      ]
+    },
+    {
+      "id": "auxiliary_electrode",
+      "levels": [
+        "absent",
+        "conductive",
+        "dielectric"
+      ],
+      "response_targets": [
+        "reverse_drag",
+        "charge_routing",
+        "thrust",
+        "thrust_to_power"
+      ]
+    },
+    {
+      "id": "collector_topology",
+      "levels": [
+        "plate",
+        "grid",
+        "segmented_grid"
+      ],
+      "response_targets": [
+        "charge_capture",
+        "drag",
+        "thrust_density",
+        "breakdown_margin"
+      ]
+    },
+    {
+      "id": "drive_architecture",
+      "levels": [
+        "fixed",
+        "independent_zones",
+        "health_aware_allocation"
+      ],
+      "response_targets": [
+        "attitude_control",
+        "failure_tolerance",
+        "wall_plug_power",
+        "latency"
+      ]
+    }
+  ],
+  "comparability_rules": [
+    "Do not sum or multiply source-local percentage improvements.",
+    "Keep thrust, thrust-to-power, thrust density and thrust-to-weight as separate metrics with explicit units.",
+    "Keep bare thruster, integrated platform and tethered system boundaries separate.",
+    "Keep article abstract transcriptions separate from full-article/raw-data transcriptions.",
+    "A missing condition remains null; do not infer it from another paper.",
+    "Treat online-ahead-of-issue modelling as a watchlist entry until publication status and model/measurement provenance are reconciled."
+  ]
+}
