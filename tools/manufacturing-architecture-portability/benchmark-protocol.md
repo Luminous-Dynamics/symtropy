@@ -94,6 +94,10 @@ A reusable Rust implementation is available as `validator::bench_metrics`:
 - `inspect_run_partition_leakage` checks that training, validation and test run-ID sets are non-empty where required and disjoint before sample/window creation.
 - Feature identifiers must be canonical, non-empty members of a frozen declared universe; whitespace variants, duplicates and unknown identifiers fail closed.
 
+- `evaluate_tep_onset_horizon` accepts independently adjudicated run-level detection/diagnosis outcomes for one pre-registered horizon. It requires all 21 scenarios plus normal-operation exposure, validates detection/diagnosis consistency and reports detection recall, confident-wrong rate, safe-deferral rate, diagnosis coverage/accuracy, mean detection delay and false alarms per normal-operation hour.
+
+The onset evaluator receives diagnosis disposition from independent truth adjudication; it does not infer correctness from model confidence or inspect raw TEP samples. Its current known-answer tests are synthetic fixtures only.
+
 Its unit tests include the adversarial case where feature-count standard deviation is zero while feature-identity stability is low. This is an executable metric component, not a TEP benchmark result: no TEP data, labels or learned feature selectors are included in the module.
 
 A stronger target is a stable, compact feature subset that retains difficult-fault recall under run-level and operating-mode shifts. The benchmark should test whether stability survives those shifts, not only random resampling from one stationary run.
