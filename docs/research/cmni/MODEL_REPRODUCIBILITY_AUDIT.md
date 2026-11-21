@@ -158,3 +158,28 @@ From the 2026 Methods:
 The paper's reported low-energy plateau and beam-driven D–D product measurements remain the observations to explain. The ambiguity above means only that the exact compact curve parameterization is not fully reproducible from the printed equations alone. It does not establish that the measurements are wrong, nor does it justify a cold-fusion/net-energy claim.
 
 **Release rule:** no “reproduces the 2026 heterogeneous fit” label until source code, parameter definitions, raw/processed inputs and figure curves agree.
+
+
+## 9. Beam-species / molecular-ion energy-mixture confound
+
+The same Methods section reports a typical incident mixture of approximately 85% D⁺ and 15% D₂⁺ and computes the incident deuteron flux by counting two D nuclei per D₂⁺ ion. It also reports an approximately 5% beam-energy spread based on a retarding-potential analyzer.
+
+A single scalar energy spread does not automatically establish the mass-resolved energy distribution of the individual deuterons. For a singly charged ion accelerated through (V) kV:
+- D⁺ carries approximately (V) keV total ion energy, so (E_{cm}approx V/2) keV for D on stationary D.
+- D₂⁺ carries approximately (V) keV total molecular energy. In the **conditional prompt-dissociation** limit, if its fragments inherit molecular velocity, each D fragment carries approximately (V/2) keV and has (E_{cm}approx V/4) keV.
+
+With 85/15 ion-current fractions, the corresponding prompt-dissociation limiting case places (2(0.15)/(0.85+2(0.15))approx26.1%) of the deuteron flux in the lower-energy fragment component. This is a kinematic sensitivity hypothesis, not a measured fragment distribution and not an explanation of the observed plateau.
+
+The isolated Rust prototype now separates:
+- ion-current fractions from deuteron-flux fractions;
+- the D⁺ and prompt-D₂⁺ fragment center-of-mass energy components;
+- weighted component-yield evaluation;
+- arbitrary weighted energy-spectrum samples, suitable for a future measured histogram or quadrature representation without assuming a Gaussian.
+
+Remaining missing physics includes measured mass-resolved fractions vs operating point, molecular survival/dissociation probability and depth, fragment energy/angular distributions, species-specific stopping and implantation, and the detector observation model.
+
+Tracking:
+- https://github.com/Luminous-Dynamics/symtropy/issues/6483
+- https://github.com/Luminous-Dynamics/symthaea/issues/13034
+
+Do not promote the prompt-dissociation model as the actual source distribution until a mass-resolved beam characterization supports it.
