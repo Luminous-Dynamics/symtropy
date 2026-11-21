@@ -188,7 +188,8 @@ fn validate_conditions(value: &Value, path: &str) -> Result<(), String> {
             let number = item
                 .as_f64()
                 .ok_or_else(|| fail(path, format!("{key} must be a finite number")))?;
-            if !number.is_finite() || number < 0.0 || (key == "temperature_k" || key == "frequency_hz") && number == 0.0 {
+            let must_be_positive = key == "temperature_k" || key == "frequency_hz";
+            if !number.is_finite() || number < 0.0 || (must_be_positive && number == 0.0) {
                 return Err(fail(path, format!("{key} is outside its valid range")));
             }
         }
@@ -355,9 +356,12 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
     for key in ["lot_id", "campaign_id", "process_run_id", "architecture_id", "longitudinal_datum", "width_datum"] {
         string_field(reel_value, key, "$.reel")?;
     }
-    if enum_value(reel_value, "positive_direction", &["winding_direction", "unwinding_direction", "declared_axis_positive"], "$.reel")?.is_empty() {
-        return Err(fail("$.reel.positive_direction", "must not be empty"));
-    }
+    enum_value(
+        reel_value,
+        "positive_direction",
+        &["winding_direction", "unwinding_direction", "declared_axis_positive"],
+        "$.reel",
+    )?;
     if string_field(reel_value, "coordinate_units", "$.reel")? != "mm" {
         return Err(fail("$.reel.coordinate_units", "v0.1 requires millimetres"));
     }
