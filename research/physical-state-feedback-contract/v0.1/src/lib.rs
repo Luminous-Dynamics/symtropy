@@ -1,0 +1,1087 @@
+//! Evidence-aware physical state feedback types.
+//!
+//! This dependency-free crate defines a minimal contract for queryable physical
+//! state. It intentionally contains no engine implementation or serializer.
+//! Adapters must preserve epistemic status, units, frames and uncertainty
+//! semantics rather than silently inventing unavailable values.
+
+use std::collections::BTreeSet;
+use std::error::Error;
+use std::fmt::{self, Display, Formatter};
+
+pub const SCHEMA_VERSION: &str = "physical-state-feedback-v0.1";
+const SHA256_HEX_LEN: usize = 64;
+const QUATERNION_NORM_TOLERANCE: f64 = 1.0e-6;
+const COVARIANCE_TOLERANCE: f64 = 1.0e-10;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ValidationError {
+    pub path: String,
+    pub reason: String,
+}
+
+impl ValidationError {
+    fn new(path: impl Into<String>, reason: impl Into<String>) -> Self {
+        Self {
+            path: path.into(),
+            reason: reason.into(),
+        }
+    }
+}
+
+impl Display for ValidationError {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        write!(formatter, "{}: {}", self.path, self.reason)
+    }
+}
+
+impl Error for ValidationError {}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum FieldStatus {
+    Measured,
+    Estimated,
+    Predicted,
+    Assumed,
+    Unavailable,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Uncertainty {
+    /// Uncertainty was not quantified. This is not a zero-width interval.
+    NotQuantified { reason: String },
+    ScalarStdDev { standard_deviation: f64 },
+    Interval { lower: f64, upper: f64 },
+    Covariance3 { matrix: [[f64; 3]; 3] },
+    EmpiricalSamples { values: Vec<f64> },
+}
+
+impl Uncertainty {
+    pub fn validate(&self, path: &str) -> Result<(), ValidationError> {
+        match self {
+            Self::NotQuantified { reason } => {
+                if reason.trim().is_empty() {
+                    return Err(ValidationError::new(
+                        path,
+                        "NotQuantified requires a non-empty reason",
+                    ));
+                }
+            }
+            Self::ScalarStdDev { standard_deviation } => {
+                if !standard_deviation.is_finite() || *standard_deviation < 0.0 {
+                    return Err(ValidationError::new(
+                        path,
+                        "standard deviation must be finite and non-negative",
+                    ));
+                }
+            }
+            Self::Interval { lower, upper } => {
+                if !lower.is_finite() || !upper.is_finite() || lower > upper {
+                    return Err(ValidationError::new(
+                        path,
+                        "interval bounds must be finite and lower <= upper",
+                    ));
+                }
+            }
+            Self::Covariance3 { matrix } => validate_covariance3(matrix, path)?,
+            Self::EmpiricalSamples { values } => {
+                if values.len() < 2 || values.iter().any(|value| !value.is_finite()) {
+                    return Err(ValidationError::new(
+                        path,
+                        "empirical uncertainty requires at least two finite samples",
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+fn validate_covariance3(
+    matrix: &[[f64; 3]; 3],
+    path: &str,
+) -> Result<(), ValidationError> {
+    for row in matrix {
+        if row.iter().any(|value| !value.is_finite()) {
+            return Err(ValidationError::new(
+                path,
+                "covariance entries must be finite",
+            ));
+        }
+    }
+    for i in 0..3 {
+        if matrix[i][i] < -COVARIANCE_TOLERANCE {
+            return Err(ValidationError::new(
+                path,
+                "covariance diagonal must be non-negative",
+            ));
+        }
+        for j in (i + 1)..3 {
+            if (matrix[i][j] - matrix[j][i]).abs() > COVARIANCE_TOLERANCE {
+                return Err(ValidationError::new(
+                    path,
+                    "covariance matrix must be symmetric",
+                ));
+            }
+            let minor = matrix[i][i] * matrix[j][j] - matrix[i][j] * matrix[j][i];
+            if minor < -COVARIANCE_TOLERANCE {
+                return Err(ValidationError::new(
+                    path,
+                    "covariance matrix must be positive semidefinite",
+                ));
+            }
+        }
+    }
+    let determinant = matrix[0][0]
+        * (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1])
+        - matrix[0][1]
+            * (matrix[1][0] * matrix[2][2] - matrix[1][2] * matrix[2][0])
+        + matrix[0][2]
+            * (matrix[1][0] * matrix[2][1] - matrix[1][1] * matrix[2][0]);
+    if determinant < -COVARIANCE_TOLERANCE {
+        return Err(ValidationError::new(
+            path,
+            "covariance matrix must be positive semidefinite",
+        ));
+    }
+    Ok(())
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct Provenance {
+    pub source_sha256: Option<String>,
+    pub model_build_sha256: Option<String>,
+    pub synthetic_fixture_id: Option<String>,
+    pub derivation: Option<String>,
+}
+
+impl Provenance {
+    fn validate(&self, status: FieldStatus, path: &str) -> Result<(), ValidationError> {
+        for (name, digest) in [
+            ("source_sha256", self.source_sha256.as_deref()),
+            ("model_build_sha256", self.model_build_sha256.as_deref()),
+        ] {
+            if let Some(digest) = digest {
+                validate_sha256(digest, &format!("{path}.{name}"))?;
+            }
+        }
+        if self
+            .synthetic_fixture_id
+            .as_deref()
+            .is_some_and(|value| value.trim().is_empty())
+            || self
+                .derivation
+                .as_deref()
+                .is_some_and(|value| value.trim().is_empty())
+        {
+            return Err(ValidationError::new(
+                path,
+                "fixture ID and derivation, when present, must be non-empty",
+            ));
+        }
+        if status != FieldStatus::Unavailable
+            && self.source_sha256.is_none()
+            && self.model_build_sha256.is_none()
+            && self.synthetic_fixture_id.is_none()
+            && self.derivation.is_none()
+        {
+            return Err(ValidationError::new(
+                path,
+                "available values require source, model, fixture or derivation provenance",
+            ));
+        }
+        if status == FieldStatus::Measured
+            && self.source_sha256.is_none()
+            && self.synthetic_fixture_id.is_none()
+        {
+            return Err(ValidationError::new(
+                path,
+                "MEASURED values require a source digest or explicit synthetic fixture ID",
+            ));
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct FieldMetadata {
+    pub status: FieldStatus,
+    pub unit: String,
+    pub frame_id: Option<String>,
+    pub uncertainty: Option<Uncertainty>,
+    pub provenance: Provenance,
+    pub unavailable_reason: Option<String>,
+}
+
+impl FieldMetadata {
+    fn validate(&self, path: &str) -> Result<(), ValidationError> {
+        if self.unit.trim().is_empty() {
+            return Err(ValidationError::new(path, "unit must be explicit"));
+        }
+        if self
+            .frame_id
+            .as_deref()
+            .is_some_and(|frame| frame.trim().is_empty())
+        {
+            return Err(ValidationError::new(
+                path,
+                "frame ID must be non-empty when present",
+            ));
+        }
+        self.provenance.validate(self.status, path)?;
+        match self.status {
+            FieldStatus::Unavailable => {
+                if self.unavailable_reason.as_deref().is_none_or(str::is_empty) {
+                    return Err(ValidationError::new(
+                        path,
+                        "UNAVAILABLE requires an explicit reason",
+                    ));
+                }
+                if self.uncertainty.is_some() {
+                    return Err(ValidationError::new(
+                        path,
+                        "UNAVAILABLE fields cannot claim quantified uncertainty",
+                    ));
+                }
+            }
+            _ => {
+                if self.unavailable_reason.is_some() {
+                    return Err(ValidationError::new(
+                        path,
+                        "available fields must not carry unavailable_reason",
+                    ));
+                }
+                self.uncertainty
+                    .as_ref()
+                    .ok_or_else(|| {
+                        ValidationError::new(
+                            path,
+                            "available numeric fields require quantified or explicitly NotQuantified uncertainty",
+                        )
+                    })?
+                    .validate(&format!("{path}.uncertainty"))?;
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct FieldValue<T> {
+    pub value: Option<T>,
+    pub metadata: FieldMetadata,
+}
+
+impl<T> FieldValue<T> {
+    pub fn validate(&self, path: &str) -> Result<(), ValidationError> {
+        self.metadata.validate(path)?;
+        match (self.metadata.status, self.value.is_some()) {
+            (FieldStatus::Unavailable, false) => Ok(()),
+            (FieldStatus::Unavailable, true) => Err(ValidationError::new(
+                path,
+                "UNAVAILABLE must not contain a fabricated/default value",
+            )),
+            (_, true) => Ok(()),
+            (_, false) => Err(ValidationError::new(
+                path,
+                "available field status requires a value",
+            )),
+        }
+    }
+
+    pub fn validate_expected_unit(
+        &self,
+        path: &str,
+        expected_unit: &str,
+    ) -> Result<(), ValidationError> {
+        self.validate(path)?;
+        if self.metadata.unit != expected_unit {
+            return Err(ValidationError::new(
+                path,
+                format!("expected canonical unit {expected_unit:?}, got {:?}", self.metadata.unit),
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn validate_frame(
+        &self,
+        path: &str,
+        expected_frame: &str,
+    ) -> Result<(), ValidationError> {
+        self.validate(path)?;
+        if self.metadata.frame_id.as_deref() != Some(expected_frame) {
+            return Err(ValidationError::new(
+                path,
+                format!("expected frame {expected_frame:?}"),
+            ));
+        }
+        Ok(())
+    }
+}
+
+pub trait FiniteValue {
+    fn is_finite(&self) -> bool;
+}
+
+impl FiniteValue for f64 {
+    fn is_finite(&self) -> bool {
+        f64::is_finite(*self)
+    }
+}
+
+impl FiniteValue for [f64; 3] {
+    fn is_finite(&self) -> bool {
+        self.iter().all(|value| value.is_finite())
+    }
+}
+
+impl FiniteValue for [f64; 4] {
+    fn is_finite(&self) -> bool {
+        self.iter().all(|value| value.is_finite())
+    }
+}
+
+impl FiniteValue for [f64; 9] {
+    fn is_finite(&self) -> bool {
+        self.iter().all(|value| value.is_finite())
+    }
+}
+
+impl<T: FiniteValue> FieldValue<T> {
+    pub fn validate_finite(&self, path: &str) -> Result<(), ValidationError> {
+        self.validate(path)?;
+        if self.value.as_ref().is_some_and(|value| !value.is_finite()) {
+            return Err(ValidationError::new(path, "numeric value must be finite"));
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Pose3 {
+    /// Translation in metres in the declared frame.
+    pub translation_m: FieldValue<[f64; 3]>,
+    /// Unit quaternion in x, y, z, w order.
+    pub rotation_xyzw: FieldValue<[f64; 4]>,
+}
+
+impl Pose3 {
+    fn validate(&self, path: &str, expected_frame: &str) -> Result<(), ValidationError> {
+        self.translation_m
+            .validate_expected_unit(&format!("{path}.translation"), "m")?;
+        self.translation_m
+            .validate_frame(&format!("{path}.translation"), expected_frame)?;
+        self.translation_m
+            .validate_finite(&format!("{path}.translation"))?;
+        self.rotation_xyzw
+            .validate_expected_unit(&format!("{path}.rotation"), "1")?;
+        self.rotation_xyzw
+            .validate_frame(&format!("{path}.rotation"), expected_frame)?;
+        self.rotation_xyzw
+            .validate_finite(&format!("{path}.rotation"))?;
+
+        if self.translation_m.value.is_none() {
+            return Err(ValidationError::new(
+                path,
+                "entity pose translation cannot be unavailable",
+            ));
+        }
+        let quaternion = self.rotation_xyzw.value.as_ref().ok_or_else(|| {
+            ValidationError::new(path, "entity pose rotation cannot be unavailable")
+        })?;
+        let norm = quaternion.iter().map(|value| value * value).sum::<f64>().sqrt();
+        if (norm - 1.0).abs() > QUATERNION_NORM_TOLERANCE {
+            return Err(ValidationError::new(
+                path,
+                format!("quaternion norm must be 1 ± {QUATERNION_NORM_TOLERANCE}"),
+            ));
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum ContactStatus {
+    NoContact,
+    InContact,
+    Unavailable { reason: String },
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ContactObservation {
+    pub status: ContactStatus,
+    pub partner_entity_ids: Vec<String>,
+    pub impulse_ns: Option<FieldValue<[f64; 3]>>,
+}
+
+impl ContactObservation {
+    fn validate(&self, path: &str, entity_id: &str) -> Result<(), ValidationError> {
+        let partners = self
+            .partner_entity_ids
+            .iter()
+            .cloned()
+            .collect::<BTreeSet<_>>();
+        if partners.len() != self.partner_entity_ids.len()
+            || self
+                .partner_entity_ids
+                .iter()
+                .any(|value| value.as_str() == entity_id)
+        {
+            return Err(ValidationError::new(
+                path,
+                "contact partners must be unique and cannot include the entity itself",
+            ));
+        }
+        match &self.status {
+            ContactStatus::NoContact => {
+                if !self.partner_entity_ids.is_empty() || self.impulse_ns.is_some() {
+                    return Err(ValidationError::new(
+                        path,
+                        "NoContact cannot include partners or an impulse",
+                    ));
+                }
+            }
+            ContactStatus::InContact => {
+                if self.partner_entity_ids.is_empty() {
+                    return Err(ValidationError::new(
+                        path,
+                        "InContact requires at least one partner entity",
+                    ));
+                }
+                if let Some(impulse) = &self.impulse_ns {
+                    impulse.validate_expected_unit(&format!("{path}.impulse"), "N*s")?;
+                    impulse.validate_finite(&format!("{path}.impulse"))?;
+                }
+            }
+            ContactStatus::Unavailable { reason } => {
+                if reason.trim().is_empty()
+                    || !self.partner_entity_ids.is_empty()
+                    || self.impulse_ns.is_some()
+                {
+                    return Err(ValidationError::new(
+                        path,
+                        "Unavailable contact requires a reason and no fabricated partners/impulse",
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct EntityState {
+    pub entity_id: String,
+    pub generation: u64,
+    pub parent_entity_id: Option<String>,
+    pub pose: Pose3,
+    pub linear_velocity_m_s: FieldValue<[f64; 3]>,
+    pub angular_velocity_rad_s: FieldValue<[f64; 3]>,
+    pub linear_acceleration_m_s2: FieldValue<[f64; 3]>,
+    pub mass_kg: FieldValue<f64>,
+    /// Row-major 3x3 inertia tensor in kg*m^2.
+    pub inertia_kg_m2: FieldValue<[f64; 9]>,
+    pub contact: ContactObservation,
+}
+
+impl EntityState {
+    fn validate(&self, path: &str, world_frame: &str) -> Result<(), ValidationError> {
+        if self.entity_id.trim().is_empty() {
+            return Err(ValidationError::new(path, "entity ID must be non-empty"));
+        }
+        if self
+            .parent_entity_id
+            .as_deref()
+            .is_some_and(|parent| parent.trim().is_empty() || parent == self.entity_id)
+        {
+            return Err(ValidationError::new(
+                path,
+                "parent ID must be non-empty and cannot be self",
+            ));
+        }
+        self.pose
+            .validate(&format!("{path}.pose"), world_frame)?;
+        for (name, field, unit) in [
+            ("linear_velocity", &self.linear_velocity_m_s, "m/s"),
+            ("angular_velocity", &self.angular_velocity_rad_s, "rad/s"),
+            ("linear_acceleration", &self.linear_acceleration_m_s2, "m/s^2"),
+        ] {
+            field.validate_expected_unit(&format!("{path}.{name}"), unit)?;
+            field.validate_frame(&format!("{path}.{name}"), world_frame)?;
+            field.validate_finite(&format!("{path}.{name}"))?;
+        }
+        self.mass_kg
+            .validate_expected_unit(&format!("{path}.mass"), "kg")?;
+        self.mass_kg.validate_finite(&format!("{path}.mass"))?;
+        self.inertia_kg_m2
+            .validate_expected_unit(&format!("{path}.inertia"), "kg*m^2")?;
+        self.inertia_kg_m2
+            .validate_finite(&format!("{path}.inertia"))?;
+        self.contact
+            .validate(&format!("{path}.contact"), &self.entity_id)?;
+        Ok(())
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum TransformConvention {
+    RightHandedXyzw,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SnapshotIdentity {
+    pub snapshot_sha256: String,
+    pub model_build_sha256: String,
+    pub configuration_sha256: String,
+    pub world_id: String,
+    pub episode_id: String,
+    pub trajectory_id: String,
+    pub step_index: u64,
+    pub simulation_time_ns: u64,
+    pub clock_source: String,
+    pub world_frame: String,
+    pub transform_convention: TransformConvention,
+    pub unit_system: String,
+}
+
+impl SnapshotIdentity {
+    fn validate(&self) -> Result<(), ValidationError> {
+        validate_sha256(&self.snapshot_sha256, "identity.snapshot_sha256")?;
+        validate_sha256(&self.model_build_sha256, "identity.model_build_sha256")?;
+        validate_sha256(
+            &self.configuration_sha256,
+            "identity.configuration_sha256",
+        )?;
+        for (name, value) in [
+            ("world_id", self.world_id.as_str()),
+            ("episode_id", self.episode_id.as_str()),
+            ("trajectory_id", self.trajectory_id.as_str()),
+            ("clock_source", self.clock_source.as_str()),
+            ("world_frame", self.world_frame.as_str()),
+        ] {
+            if value.trim().is_empty() {
+                return Err(ValidationError::new(
+                    format!("identity.{name}"),
+                    "must be non-empty",
+                ));
+            }
+        }
+        if self.unit_system != "SI" {
+            return Err(ValidationError::new(
+                "identity.unit_system",
+                "v0.1 requires canonical SI units",
+            ));
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct StateSnapshot {
+    pub schema_version: String,
+    pub identity: SnapshotIdentity,
+    pub entities: Vec<EntityState>,
+}
+
+impl StateSnapshot {
+    pub fn validate(&self) -> Result<(), ValidationError> {
+        if self.schema_version != SCHEMA_VERSION {
+            return Err(ValidationError::new(
+                "schema_version",
+                format!("expected {SCHEMA_VERSION:?}"),
+            ));
+        }
+        self.identity.validate()?;
+        if self.entities.is_empty() {
+            return Err(ValidationError::new(
+                "entities",
+                "snapshot must contain at least one entity",
+            ));
+        }
+        let mut entity_ids = BTreeSet::new();
+        for (index, entity) in self.entities.iter().enumerate() {
+            entity.validate(
+                &format!("entities[{index}]"),
+                &self.identity.world_frame,
+            )?;
+            if !entity_ids.insert(entity.entity_id.as_str()) {
+                return Err(ValidationError::new(
+                    format!("entities[{index}].entity_id"),
+                    "duplicate entity ID in snapshot",
+                ));
+            }
+        }
+        for (index, entity) in self.entities.iter().enumerate() {
+            if let Some(parent) = &entity.parent_entity_id {
+                if !entity_ids.contains(parent.as_str()) {
+                    return Err(ValidationError::new(
+                        format!("entities[{index}].parent_entity_id"),
+                        "parent entity is not present in this snapshot",
+                    ));
+                }
+            }
+            for partner in &entity.contact.partner_entity_ids {
+                if !entity_ids.contains(partner.as_str()) {
+                    return Err(ValidationError::new(
+                        format!("entities[{index}].contact"),
+                        format!("unknown contact partner entity {partner:?}"),
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+pub fn validate_snapshot_sequence(
+    snapshots: &[StateSnapshot],
+) -> Result<(), ValidationError> {
+    if snapshots.is_empty() {
+        return Err(ValidationError::new(
+            "snapshots",
+            "sequence must contain at least one snapshot",
+        ));
+    }
+    for (index, snapshot) in snapshots.iter().enumerate() {
+        snapshot.validate()?;
+        if index == 0 {
+            continue;
+        }
+        let previous = &snapshots[index - 1].identity;
+        let current = &snapshot.identity;
+        if current.trajectory_id != previous.trajectory_id
+            || current.episode_id != previous.episode_id
+            || current.world_id != previous.world_id
+            || current.model_build_sha256 != previous.model_build_sha256
+            || current.configuration_sha256 != previous.configuration_sha256
+        {
+            return Err(ValidationError::new(
+                format!("snapshots[{index}].identity"),
+                "sequence crossed world, episode, trajectory, model or configuration identity",
+            ));
+        }
+        if current.step_index <= previous.step_index
+            || current.simulation_time_ns <= previous.simulation_time_ns
+        {
+            return Err(ValidationError::new(
+                format!("snapshots[{index}].identity"),
+                "step index and simulation time must be strictly increasing",
+            ));
+        }
+    }
+    Ok(())
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum StateField {
+    Pose,
+    LinearVelocity,
+    AngularVelocity,
+    LinearAcceleration,
+    Mass,
+    Inertia,
+    Contact,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StateQuery {
+    pub snapshot_sha256: String,
+    pub entity_ids: Vec<String>,
+    pub fields: Vec<StateField>,
+}
+
+impl StateQuery {
+    pub fn validate(&self) -> Result<(), ValidationError> {
+        validate_sha256(&self.snapshot_sha256, "query.snapshot_sha256")?;
+        if self.entity_ids.is_empty() || self.fields.is_empty() {
+            return Err(ValidationError::new(
+                "query",
+                "at least one entity ID and field are required",
+            ));
+        }
+        let ids = self.entity_ids.iter().cloned().collect::<BTreeSet<_>>();
+        let fields = self.fields.iter().copied().collect::<BTreeSet<_>>();
+        if ids.len() != self.entity_ids.len() || fields.len() != self.fields.len() {
+            return Err(ValidationError::new(
+                "query",
+                "entity IDs and requested fields must be unique",
+            ));
+        }
+        if self.entity_ids.iter().any(|id| id.trim().is_empty()) {
+            return Err(ValidationError::new(
+                "query.entity_ids",
+                "entity IDs must be non-empty",
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn validate_result(&self, result: &StateSnapshot) -> Result<(), ValidationError> {
+        self.validate()?;
+        result.validate()?;
+        if result.identity.snapshot_sha256 != self.snapshot_sha256 {
+            return Err(ValidationError::new(
+                "query.result.snapshot_sha256",
+                "returned snapshot does not match the requested immutable snapshot",
+            ));
+        }
+        let requested = self.entity_ids.iter().cloned().collect::<BTreeSet<_>>();
+        let returned = result
+            .entities
+            .iter()
+            .map(|entity| entity.entity_id.clone())
+            .collect::<BTreeSet<_>>();
+        if returned != requested {
+            return Err(ValidationError::new(
+                "query.result.entities",
+                "result must contain exactly the requested entity IDs",
+            ));
+        }
+        Ok(())
+    }
+}
+
+/// Implementations query the immutable snapshot named in the request.
+/// The shared reference expresses the read-only boundary at the Rust API level.
+pub trait ReadOnlyStateQuery {
+    type Error: Display;
+
+    fn query(&self, request: &StateQuery) -> Result<StateSnapshot, Self::Error>;
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum ReplayClass {
+    Deterministic,
+    Stochastic {
+        maximum_state_divergence: f64,
+        divergence_metric: String,
+    },
+    NonReplayable {
+        reason: String,
+    },
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReplayReceipt {
+    pub initial_snapshot_sha256: String,
+    pub action_stream_sha256: String,
+    pub model_build_sha256: String,
+    pub configuration_sha256: String,
+    pub solver_sha256: String,
+    pub output_snapshot_sha256: String,
+    pub random_seed_sha256: Option<String>,
+    pub replay_class: ReplayClass,
+}
+
+impl ReplayReceipt {
+    pub fn validate(&self) -> Result<(), ValidationError> {
+        for (name, digest) in [
+            ("initial_snapshot_sha256", &self.initial_snapshot_sha256),
+            ("action_stream_sha256", &self.action_stream_sha256),
+            ("model_build_sha256", &self.model_build_sha256),
+            ("configuration_sha256", &self.configuration_sha256),
+            ("solver_sha256", &self.solver_sha256),
+            ("output_snapshot_sha256", &self.output_snapshot_sha256),
+        ] {
+            validate_sha256(digest, &format!("replay.{name}"))?;
+        }
+        if let Some(seed) = &self.random_seed_sha256 {
+            validate_sha256(seed, "replay.random_seed_sha256")?;
+        }
+        match &self.replay_class {
+            ReplayClass::Deterministic => {}
+            ReplayClass::Stochastic {
+                maximum_state_divergence,
+                divergence_metric,
+            } => {
+                if !maximum_state_divergence.is_finite()
+                    || *maximum_state_divergence < 0.0
+                    || divergence_metric.trim().is_empty()
+                {
+                    return Err(ValidationError::new(
+                        "replay.replay_class",
+                        "stochastic replay requires a finite non-negative divergence bound and metric",
+                    ));
+                }
+            }
+            ReplayClass::NonReplayable { reason } => {
+                if reason.trim().is_empty() {
+                    return Err(ValidationError::new(
+                        "replay.replay_class",
+                        "NonReplayable requires an explicit reason",
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+fn validate_sha256(value: &str, path: &str) -> Result<(), ValidationError> {
+    if value.len() != SHA256_HEX_LEN || !value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return Err(ValidationError::new(
+            path,
+            "expected exactly 64 hexadecimal SHA-256 characters",
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn metadata(
+        status: FieldStatus,
+        unit: &str,
+        frame_id: Option<&str>,
+        uncertainty: Option<Uncertainty>,
+    ) -> FieldMetadata {
+        FieldMetadata {
+            status,
+            unit: unit.to_owned(),
+            frame_id: frame_id.map(str::to_owned),
+            uncertainty,
+            provenance: Provenance {
+                source_sha256: (status == FieldStatus::Measured).then(|| "a".repeat(64)),
+                model_build_sha256: (status == FieldStatus::Predicted).then(|| "b".repeat(64)),
+                synthetic_fixture_id: None,
+                derivation: (status == FieldStatus::Estimated)
+                    .then(|| "central difference".to_owned()),
+            },
+            unavailable_reason: (status == FieldStatus::Unavailable)
+                .then(|| "not exposed by this model".to_owned()),
+        }
+    }
+
+    fn available<T>(
+        value: T,
+        unit: &str,
+        frame: Option<&str>,
+        uncertainty: Uncertainty,
+    ) -> FieldValue<T> {
+        FieldValue {
+            value: Some(value),
+            metadata: metadata(FieldStatus::Measured, unit, frame, Some(uncertainty)),
+        }
+    }
+
+    fn unavailable<T>(unit: &str, frame: Option<&str>) -> FieldValue<T> {
+        FieldValue {
+            value: None,
+            metadata: metadata(FieldStatus::Unavailable, unit, frame, None),
+        }
+    }
+
+    fn zero_covariance() -> Uncertainty {
+        Uncertainty::Covariance3 {
+            matrix: [[0.0; 3]; 3],
+        }
+    }
+
+    fn valid_entity(entity_id: &str) -> EntityState {
+        EntityState {
+            entity_id: entity_id.to_owned(),
+            generation: 0,
+            parent_entity_id: None,
+            pose: Pose3 {
+                translation_m: available(
+                    [0.0, 0.0, 0.0],
+                    "m",
+                    Some("world"),
+                    zero_covariance(),
+                ),
+                rotation_xyzw: available(
+                    [0.0, 0.0, 0.0, 1.0],
+                    "1",
+                    Some("world"),
+                    Uncertainty::NotQuantified {
+                        reason: "orientation covariance not supplied by fixture".to_owned(),
+                    },
+                ),
+            },
+            linear_velocity_m_s: available(
+                [0.0, 0.0, 0.0],
+                "m/s",
+                Some("world"),
+                zero_covariance(),
+            ),
+            angular_velocity_rad_s: unavailable("rad/s", Some("world")),
+            linear_acceleration_m_s2: unavailable("m/s^2", Some("world")),
+            mass_kg: available(
+                1.0,
+                "kg",
+                None,
+                Uncertainty::ScalarStdDev {
+                    standard_deviation: 0.01,
+                },
+            ),
+            inertia_kg_m2: unavailable("kg*m^2", Some("world")),
+            contact: ContactObservation {
+                status: ContactStatus::NoContact,
+                partner_entity_ids: Vec::new(),
+                impulse_ns: None,
+            },
+        }
+    }
+
+    fn valid_snapshot(step_index: u64, simulation_time_ns: u64) -> StateSnapshot {
+        StateSnapshot {
+            schema_version: SCHEMA_VERSION.to_owned(),
+            identity: SnapshotIdentity {
+                snapshot_sha256: format!("{:064x}", step_index + 1),
+                model_build_sha256: "b".repeat(64),
+                configuration_sha256: "c".repeat(64),
+                world_id: "world-1".to_owned(),
+                episode_id: "episode-1".to_owned(),
+                trajectory_id: "trajectory-1".to_owned(),
+                step_index,
+                simulation_time_ns,
+                clock_source: "solver_monotonic_clock".to_owned(),
+                world_frame: "world".to_owned(),
+                transform_convention: TransformConvention::RightHandedXyzw,
+                unit_system: "SI".to_owned(),
+            },
+            entities: vec![valid_entity("body-1")],
+        }
+    }
+
+    #[test]
+    fn valid_snapshot_accepts_measured_and_explicitly_unavailable_fields() {
+        assert!(valid_snapshot(0, 0).validate().is_ok());
+    }
+
+    #[test]
+    fn unavailable_field_cannot_carry_a_silent_zero() {
+        let field = unavailable::<f64>("kg", None);
+        assert!(field.validate("mass").is_ok());
+        let fabricated = FieldValue {
+            value: Some(0.0),
+            metadata: metadata(FieldStatus::Unavailable, "kg", None, None),
+        };
+        assert!(fabricated.validate("mass").is_err());
+    }
+
+    #[test]
+    fn measured_values_require_source_or_synthetic_provenance() {
+        let field = FieldValue {
+            value: Some(1.0),
+            metadata: FieldMetadata {
+                status: FieldStatus::Measured,
+                unit: "kg".to_owned(),
+                frame_id: None,
+                uncertainty: Some(Uncertainty::NotQuantified {
+                    reason: "scale uncertainty not supplied".to_owned(),
+                }),
+                provenance: Provenance::default(),
+                unavailable_reason: None,
+            },
+        };
+        assert!(field.validate("mass").is_err());
+    }
+
+    #[test]
+    fn malformed_uncertainty_is_rejected() {
+        assert!(
+            Uncertainty::Interval {
+                lower: 2.0,
+                upper: 1.0
+            }
+            .validate("interval")
+            .is_err()
+        );
+        assert!(
+            Uncertainty::Covariance3 {
+                matrix: [[1.0, 2.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+            }
+            .validate("covariance")
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn non_unit_quaternion_is_rejected() {
+        let mut snapshot = valid_snapshot(0, 0);
+        snapshot.entities[0].pose.rotation_xyzw.value = Some([0.0, 0.0, 0.0, 2.0]);
+        assert!(snapshot.validate().is_err());
+    }
+
+    #[test]
+    fn duplicate_entity_ids_are_rejected() {
+        let mut snapshot = valid_snapshot(0, 0);
+        snapshot.entities.push(valid_entity("body-1"));
+        assert!(snapshot.validate().is_err());
+    }
+
+    #[test]
+    fn unknown_contact_partner_is_rejected() {
+        let mut snapshot = valid_snapshot(0, 0);
+        snapshot.entities[0].contact = ContactObservation {
+            status: ContactStatus::InContact,
+            partner_entity_ids: vec!["missing-body".to_owned()],
+            impulse_ns: None,
+        };
+        assert!(snapshot.validate().is_err());
+    }
+
+    #[test]
+    fn snapshot_sequences_require_monotonic_identity_and_time() {
+        let first = valid_snapshot(0, 0);
+        let second = valid_snapshot(1, 1_000_000);
+        assert!(validate_snapshot_sequence(&[first.clone(), second]).is_ok());
+        let out_of_order = valid_snapshot(1, 0);
+        assert!(validate_snapshot_sequence(&[first, out_of_order]).is_err());
+    }
+
+    #[test]
+    fn query_rejects_a_stale_or_wrong_snapshot_result() {
+        let query = StateQuery {
+            snapshot_sha256: "a".repeat(64),
+            entity_ids: vec!["body-1".to_owned()],
+            fields: vec![StateField::Pose, StateField::LinearVelocity],
+        };
+        assert!(query.validate_result(&valid_snapshot(0, 0)).is_err());
+    }
+
+    #[test]
+    fn query_requires_exact_entity_set() {
+        let mut query = StateQuery {
+            snapshot_sha256: valid_snapshot(0, 0).identity.snapshot_sha256,
+            entity_ids: vec!["body-2".to_owned()],
+            fields: vec![StateField::Pose],
+        };
+        let result = valid_snapshot(0, 0);
+        assert!(query.validate_result(&result).is_err());
+        query.entity_ids = vec!["body-1".to_owned()];
+        assert!(query.validate_result(&result).is_ok());
+    }
+
+    #[test]
+    fn replay_receipt_distinguishes_deterministic_and_stochastic_modes() {
+        let digest = "a".repeat(64);
+        let receipt = ReplayReceipt {
+            initial_snapshot_sha256: digest.clone(),
+            action_stream_sha256: digest.clone(),
+            model_build_sha256: digest.clone(),
+            configuration_sha256: digest.clone(),
+            solver_sha256: digest.clone(),
+            output_snapshot_sha256: digest,
+            random_seed_sha256: None,
+            replay_class: ReplayClass::Stochastic {
+                maximum_state_divergence: 0.001,
+                divergence_metric: "se3_state_l2".to_owned(),
+            },
+        };
+        assert!(receipt.validate().is_ok());
+
+        let invalid = ReplayReceipt {
+            replay_class: ReplayClass::Stochastic {
+                maximum_state_divergence: f64::NAN,
+                divergence_metric: String::new(),
+            },
+            ..receipt
+        };
+        assert!(invalid.validate().is_err());
+    }
+}
