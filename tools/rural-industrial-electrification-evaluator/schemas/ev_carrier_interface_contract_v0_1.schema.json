@@ -1,0 +1,520 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EV-CARRIER-ICD-001 compatibility input v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "vehicle",
+    "modules",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "const": "EV-CARRIER-ICD-001"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "vehicle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "vehicle_configuration_id",
+        "vehicle_family_id",
+        "vehicle_revision",
+        "interface_inventory_complete",
+        "ports"
+      ],
+      "properties": {
+        "vehicle_configuration_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "vehicle_family_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "vehicle_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "interface_inventory_complete": {
+          "type": "boolean"
+        },
+        "ports": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "port_id",
+              "mate_port_id",
+              "family",
+              "interface_revision",
+              "profile_id",
+              "direction",
+              "polarity_profile",
+              "operating_range",
+              "capacity_limit",
+              "capacity_required",
+              "required",
+              "evidence"
+            ],
+            "properties": {
+              "port_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "mate_port_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "family": {
+                "enum": [
+                  "mechanical_structure",
+                  "high_voltage_dc",
+                  "low_voltage_dc",
+                  "data_control",
+                  "thermal_fluid",
+                  "cargo_retention",
+                  "uav_docking",
+                  "amr_docking",
+                  "environmental",
+                  "service"
+                ]
+              },
+              "interface_revision": {
+                "type": "string",
+                "minLength": 1
+              },
+              "profile_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "direction": {
+                "enum": [
+                  "provider",
+                  "consumer",
+                  "bidirectional"
+                ]
+              },
+              "polarity_profile": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "operating_range": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "unit",
+                      "minimum",
+                      "maximum"
+                    ],
+                    "properties": {
+                      "unit": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "minimum": {
+                        "type": "number"
+                      },
+                      "maximum": {
+                        "type": "number"
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "capacity_limit": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "unit",
+                      "value"
+                    ],
+                    "properties": {
+                      "unit": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "value": {
+                        "type": "number",
+                        "minimum": 0
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "capacity_required": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "unit",
+                      "value"
+                    ],
+                    "properties": {
+                      "unit": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "value": {
+                        "type": "number",
+                        "minimum": 0
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "evidence": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "evidence_id",
+                    "evidence_class",
+                    "source_reference",
+                    "report_digest_sha256",
+                    "tested_vehicle_configuration_id",
+                    "tested_module_configuration_id",
+                    "interface_revision",
+                    "acceptance_criteria_id"
+                  ],
+                  "properties": {
+                    "evidence_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "evidence_class": {
+                      "enum": [
+                        "independent_test",
+                        "measured",
+                        "synthetic",
+                        "planned",
+                        "unknown",
+                        "stale",
+                        "revoked"
+                      ]
+                    },
+                    "source_reference": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "report_digest_sha256": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "tested_vehicle_configuration_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "tested_module_configuration_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "interface_revision": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "acceptance_criteria_id": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "modules": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "module_configuration_id",
+          "module_family_id",
+          "module_revision",
+          "target_vehicle_family_id",
+          "target_vehicle_revision",
+          "interface_inventory_complete",
+          "ports"
+        ],
+        "properties": {
+          "module_configuration_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "module_family_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "module_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "target_vehicle_family_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "target_vehicle_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "interface_inventory_complete": {
+            "type": "boolean"
+          },
+          "ports": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "port_id",
+                "mate_port_id",
+                "family",
+                "interface_revision",
+                "profile_id",
+                "direction",
+                "polarity_profile",
+                "operating_range",
+                "capacity_limit",
+                "capacity_required",
+                "required",
+                "evidence"
+              ],
+              "properties": {
+                "port_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "mate_port_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "family": {
+                  "enum": [
+                    "mechanical_structure",
+                    "high_voltage_dc",
+                    "low_voltage_dc",
+                    "data_control",
+                    "thermal_fluid",
+                    "cargo_retention",
+                    "uav_docking",
+                    "amr_docking",
+                    "environmental",
+                    "service"
+                  ]
+                },
+                "interface_revision": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "profile_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "direction": {
+                  "enum": [
+                    "provider",
+                    "consumer",
+                    "bidirectional"
+                  ]
+                },
+                "polarity_profile": {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "operating_range": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "unit",
+                        "minimum",
+                        "maximum"
+                      ],
+                      "properties": {
+                        "unit": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "minimum": {
+                          "type": "number"
+                        },
+                        "maximum": {
+                          "type": "number"
+                        }
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "capacity_limit": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "unit",
+                        "value"
+                      ],
+                      "properties": {
+                        "unit": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "value": {
+                          "type": "number",
+                          "minimum": 0
+                        }
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "capacity_required": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "unit",
+                        "value"
+                      ],
+                      "properties": {
+                        "unit": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "value": {
+                          "type": "number",
+                          "minimum": 0
+                        }
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "required": {
+                  "type": "boolean"
+                },
+                "evidence": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "evidence_id",
+                      "evidence_class",
+                      "source_reference",
+                      "report_digest_sha256",
+                      "tested_vehicle_configuration_id",
+                      "tested_module_configuration_id",
+                      "interface_revision",
+                      "acceptance_criteria_id"
+                    ],
+                    "properties": {
+                      "evidence_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "evidence_class": {
+                        "enum": [
+                          "independent_test",
+                          "measured",
+                          "synthetic",
+                          "planned",
+                          "unknown",
+                          "stale",
+                          "revoked"
+                        ]
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "report_digest_sha256": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                      },
+                      "tested_vehicle_configuration_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "tested_module_configuration_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "interface_revision": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "acceptance_criteria_id": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
