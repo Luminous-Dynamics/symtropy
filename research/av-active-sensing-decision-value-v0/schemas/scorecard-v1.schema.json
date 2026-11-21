@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/av-active-sensing-scorecard-v1.schema.json",
+  "title": "AV Active Sensing Decision-Value Scorecard v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "policy_id",
+    "run_id",
+    "interpretation",
+    "totals",
+    "per_episode"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "const": "av-active-sensing-decision-value-v0"
+    },
+    "policy_id": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "interpretation": {
+      "type": "object",
+      "required": [
+        "status",
+        "limitations"
+      ],
+      "properties": {
+        "status": {
+          "const": "synthetic_reference_score"
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "totals": {
+      "$ref": "#/$defs/metrics"
+    },
+    "per_episode": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/episode_metrics"
+      }
+    }
+  },
+  "$defs": {
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_count",
+        "answer_accuracy",
+        "safe_decision_accuracy",
+        "coverage",
+        "decision_regret_total",
+        "acquisition_count",
+        "wasted_acquisition_count",
+        "late_acquisition_count",
+        "budget_violation_count",
+        "evidence_violation_count",
+        "mean_realized_evsi"
+      ],
+      "properties": {
+        "episode_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "answer_accuracy": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "safe_decision_accuracy": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "coverage": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "decision_regret_total": {
+          "type": "number",
+          "minimum": 0
+        },
+        "acquisition_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "wasted_acquisition_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "late_acquisition_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "budget_violation_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidence_violation_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "mean_realized_evsi": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      }
+    },
+    "episode_metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_id",
+        "answer_correct",
+        "decision_correct",
+        "response_tick",
+        "decision_regret",
+        "acquisition_count",
+        "wasted_acquisition_count",
+        "late_acquisition_count",
+        "budget_violations",
+        "evidence_violations"
+      ],
+      "properties": {
+        "episode_id": {
+          "type": "string"
+        },
+        "answer_correct": {
+          "type": "boolean"
+        },
+        "decision_correct": {
+          "type": "boolean"
+        },
+        "response_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "decision_regret": {
+          "type": "number",
+          "minimum": 0
+        },
+        "acquisition_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "wasted_acquisition_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "late_acquisition_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "budget_violations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "evidence_violations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
