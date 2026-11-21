@@ -273,7 +273,7 @@ This benchmark is intentionally kept separate from bare-thruster T/A and T/P com
 
 ## 12. Offline audit command
 
-The branch now includes a small Rust workspace member that checks the atlas schema, metric-unit ontology, source IDs, figure row counts, evidence-class boundaries, configuration-specific extrema, mass/power boundaries, and specialist-solver scope. It has mutation tests for common comparison errors.
+The branch now includes a Rust workspace member that checks both `ehd_reference_atlas_v0_1.json` and `ehd_frontier_design_patterns_v0_1.json`. It checks the atlas schema, metric-unit ontology, source IDs, figure row counts, evidence-class boundaries, configuration-specific extrema, mass/power boundaries, specialist-solver scope, source-local sub-unit percentage arithmetic, guide-electrode unknowns, the tethered microrobot boundary, the future-dated ion-mobility watchlist guard, and the required topology-design factor set. Mutation tests cover these failure modes. The frontier dataset is embedded and audited automatically in both the default and explicit-atlas-path CLI modes.
 
 From the repository root:
 
@@ -283,4 +283,4 @@ cargo run -p ehd-reference-audit -- data/research/ehd_reference_atlas_v0_1.json
 cargo test -p ehd-reference-audit
 ```
 
-The audit is structural/comparability QA only. It does not hash/download upstream Zenodo files, reproduce solver outputs, verify physical measurements, or grant physical-validation status. The authored Rust tests have not been executed in this environment because the Rust toolchain is unavailable here.
+The audit is structural/comparability QA only. It does not hash/download upstream Zenodo files, reproduce solver outputs, verify physical measurements, or grant physical-validation status. There are now 29 authored Rust unit tests across both datasets. They have not been compiled or executed in this environment because the Rust toolchain is unavailable here.
