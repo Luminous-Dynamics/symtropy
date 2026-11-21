@@ -150,3 +150,13 @@ See [IDENTIFIABILITY_AND_DESIGN.md](../../../docs/research/cmni/IDENTIFIABILITY_
 - It does not estimate coefficients, apply a sparse prior, infer causality, or provide correction uncertainty; those require a separate model-fitting and holdout process.
 - Synthetic fixture: `research/cmni/fixtures/feature-conditioned-measurement-bias-synthetic.json`.
 - Seven additional tests cover zero-bias identity, multiplicative factors, channel-specific coefficients, malformed dimensions, nonpositive predictions and invalid/overflowing inputs. The total is now **115 authored Rust tests** (37 root, 12 detector, 7 measurement, 8 material-state, 14 experiment-design, 11 response-uncertainty, 11 multifidelity-design, 8 spectrum-metrics, 7 measurement-bias). Not executed in this environment.
+
+
+## Small-feature Bayesian measurement-bias inference
+
+- `fit_sparse_bayesian_poisson_bias` fits a Poisson log-link multiplicative-bias model with independent Bernoulli feature inclusion and Gaussian coefficient slab priors.
+- It exactly enumerates all feature subsets for up to 12 candidate columns, finds each subset posterior mode by damped Newton iterations, and uses a Laplace approximation for subset marginal evidence and coefficient covariance.
+- The returned posterior includes feature inclusion probabilities, model probabilities, coefficient mean/covariance and the MAP feature subset.
+- Synthetic fixture: `research/cmni/fixtures/sparse-bayesian-poisson-bias-synthetic.json`. It includes planted-bias, no-bias and collinear-feature cases.
+- This is not the AIACHNE horseshoe method. It is a bounded comparator; inference is conditional on fixed physical means, a fixed design matrix and independent Poisson counts. It does not infer causality or propagate uncertainty in the physical model / feature dictionary.
+- Eight additional tests cover planted signal recovery, null controls, collinear feature ambiguity, prior and input validation, bounded enumeration, and posterior normalization. The total is now **123 authored Rust tests** (37 root, 12 detector, 7 measurement, 8 material-state, 14 experiment-design, 11 response-uncertainty, 11 multifidelity-design, 8 spectrum-metrics, 7 measurement-bias, 8 sparse-bias-inference). Tests are not executed in the current environment.
