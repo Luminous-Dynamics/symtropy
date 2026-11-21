@@ -14,6 +14,15 @@
 
 use crate::ModelError;
 
+type BaseArgs = (
+    Vec<f64>,
+    Vec<f64>,
+    Vec<Vec<f64>>,
+    Vec<f64>,
+    Vec<f64>,
+    Vec<Vec<f64>>,
+);
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum GlobalScalePrior {
     HalfNormal { scale: f64 },
@@ -357,14 +366,7 @@ fn dot(left: &[f64], right: &[f64]) -> f64 {
 mod tests {
     use super::*;
 
-    fn base_args() -> (
-        Vec<f64>,
-        Vec<f64>,
-        Vec<Vec<f64>>,
-        Vec<f64>,
-        Vec<f64>,
-        Vec<Vec<f64>>,
-    ) {
+    fn base_args() -> BaseArgs {
         (
             vec![11.0, 19.0],
             vec![10.0, 20.0],
