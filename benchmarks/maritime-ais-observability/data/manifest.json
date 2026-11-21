@@ -1,0 +1,37 @@
+{
+  "schema_version": "0.1.0",
+  "dataset_id": "maritime-ais-observability-synthetic-v0.1",
+  "dataset_status": "synthetic_state_machine_known_answer_fixtures",
+  "generated_on": "2026-11-21",
+  "implementation_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/6562",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4007",
+  "time_semantics": {
+    "unit": "integer synthetic tick",
+    "utc": false,
+    "hours": false
+  },
+  "profile": {
+    "version": "edge-port-fsm-v0.1",
+    "max_observation_gap_ticks": 2,
+    "anchorage_dwell_ticks": 2,
+    "approach_dwell_ticks": 1,
+    "berth_dwell_ticks": 3,
+    "departure_dwell_ticks": 2,
+    "outside_dwell_ticks": 2,
+    "anchorage_max_speed_milli_knots": 1500,
+    "approach_max_speed_milli_knots": 12000,
+    "berth_max_speed_milli_knots": 500,
+    "outside_max_speed_milli_knots": 50000
+  },
+  "zones_are_upstream_qualified": true,
+  "geometry_engine": "not included; consumes zone labels and upstream geometry provenance",
+  "state_vocabulary": [
+    "OUTSIDE",
+    "ANCHORAGE",
+    "APPROACH",
+    "BERTH",
+    "DEPARTURE",
+    "INDETERMINATE"
+  ],
+  "claim_ceiling": "Synthetic FSM, dwell and gap conformance only. Does not infer line-fast, physical berth arrival, cargo operations, actual Durban AIS performance or navigation state."
+}
