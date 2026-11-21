@@ -1,5 +1,4 @@
 {
-  "$schema": "../profile.schema.json",
   "schema_version": "0.1.0",
   "profile_id": "urn:luminous:symtropy:mfg-arch:uns-mqtt-synthetic-v0.1",
   "profile_name": "UNS over MQTT — synthetic event transport fixture",
