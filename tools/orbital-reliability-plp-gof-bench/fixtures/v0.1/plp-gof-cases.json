@@ -838,13 +838,15 @@
       "monte_carlo_replicates": 999,
       "random_seed": 118,
       "expected": {
-        "disposition": "fit_rejected",
+        "disposition": "rejected",
         "event_count": 6,
-        "beta_hat": 0.2796259628343096,
-        "observed_cvm": 0.4096118046701176,
-        "tail_exceedances": 2,
-        "monte_carlo_p_value": 0.003,
-        "blockers": []
+        "beta_hat": null,
+        "observed_cvm": null,
+        "tail_exceedances": null,
+        "monte_carlo_p_value": null,
+        "blockers": [
+          "event_history_or_exposure_window_invalid"
+        ]
       }
     },
     {
