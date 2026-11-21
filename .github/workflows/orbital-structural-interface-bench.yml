@@ -30,6 +30,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Re-resolve standalone lockfile for reconciliation
+        run: |
+          cargo generate-lockfile --manifest-path tools/orbital-structural-interface-bench/Cargo.toml
+          echo "BEGIN_GENERATED_STRUCTURAL_BENCH_LOCKFILE"
+          cat tools/orbital-structural-interface-bench/Cargo.lock
+          echo "END_GENERATED_STRUCTURAL_BENCH_LOCKFILE"
       - name: Format
         run: cargo fmt --manifest-path tools/orbital-structural-interface-bench/Cargo.toml --check
       - name: Rust tests and adversarial corpus
