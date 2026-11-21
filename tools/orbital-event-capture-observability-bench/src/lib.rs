@@ -230,6 +230,67 @@ fn shared_failure_domain(reference: &[String], acquisition: &[String]) -> bool {
 /// One-sided exact 95% upper bound for a binomial miss probability when zero
 /// misses are observed in N independent, representative known-event trials.
 /// This is a conditional sampling statement, not proof of representativeness.
+fn log_add_exp(left: f64, right: f64) -> f64 {
+    if left == f64::NEG_INFINITY {
+        return right;
+    }
+    if right == f64::NEG_INFINITY {
+        return left;
+    }
+    let maximum = left.max(right);
+    maximum + ((left - maximum).exp() + (right - maximum).exp()).ln()
+}
+
+fn log_binomial_cdf_at_most(misses: usize, trials: usize, probability: f64) -> f64 {
+    if probability <= 0.0 {
+        return 0.0;
+    }
+    if probability >= 1.0 {
+        return if misses == trials { 0.0 } else { f64::NEG_INFINITY };
+    }
+
+    let log_q = probability.ln();
+    let log_not_q = (-probability).ln_1p();
+    let mut log_mass = trials as f64 * log_not_q;
+    let mut log_sum = log_mass;
+    for j in 1..=misses {
+        log_mass += ((trials - j + 1) as f64).ln()
+            - (j as f64).ln()
+            + log_q
+            - log_not_q;
+        log_sum = log_add_exp(log_sum, log_mass);
+    }
+    log_sum.min(0.0)
+}
+
+/// One-sided exact 95% Clopper-Pearson upper confidence limit for the
+/// probability of missing an independently referenced event.
+pub fn miss_probability_upper_bound_95(
+    misses: usize,
+    trials: usize,
+) -> Result<f64, String> {
+    if trials == 0 || trials > MAX_EVENTS || misses > trials {
+        return Err("misses/trials must satisfy 0 <= misses <= trials <= v0.1 maximum".to_owned());
+    }
+    if misses == trials {
+        return Ok(1.0);
+    }
+
+    let log_alpha = 0.05_f64.ln();
+    let mut lower = 0.0;
+    let mut upper = 1.0;
+    for _ in 0..120 {
+        let midpoint = lower + (upper - lower) / 2.0;
+        if log_binomial_cdf_at_most(misses, trials, midpoint) > log_alpha {
+            lower = midpoint;
+        } else {
+            upper = midpoint;
+        }
+    }
+    Ok(upper)
+}
+
+/// Zero-miss closed form retained as an explicit convenience function.
 pub fn zero_miss_upper_bound_95(trials: usize) -> Result<f64, String> {
     if trials == 0 || trials > MAX_EVENTS {
         return Err("trial count must be between 1 and the v0.1 maximum".to_owned());
@@ -447,12 +508,11 @@ fn evaluate_case(case: &CaptureCase) -> Decision {
         Disposition::ReconciledFixtureOnly
     };
 
-    let upper_miss_probability_95 = if missed_count == 0
-        && duplicate_count == 0
+    let upper_miss_probability_95 = if duplicate_count == 0
         && unexpected_count == 0
         && !disputed_payload_or_time
     {
-        zero_miss_upper_bound_95(case.reference_events.len()).ok()
+        miss_probability_upper_bound_95(missed_count, case.reference_events.len()).ok()
     } else {
         None
     };
@@ -607,6 +667,10 @@ mod tests {
         assert!(zero_miss_upper_bound_95(2994).unwrap() > 0.001);
         assert!(zero_miss_upper_bound_95(29956).unwrap() < 0.0001);
         assert!(zero_miss_upper_bound_95(0).is_err());
+        assert!((miss_probability_upper_bound_95(1, 5).unwrap() - 0.6574083180011387).abs() < 1.0e-12);
+        assert!((miss_probability_upper_bound_95(2, 5).unwrap() - 0.8107446225622293).abs() < 1.0e-12);
+        assert_eq!(miss_probability_upper_bound_95(5, 5).unwrap(), 1.0);
+        assert!(miss_probability_upper_bound_95(6, 5).is_err());
     }
 
     #[test]
