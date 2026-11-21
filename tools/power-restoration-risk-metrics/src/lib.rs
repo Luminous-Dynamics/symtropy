@@ -688,7 +688,8 @@ pub fn evaluate_risk_metrics(input: &RiskMetricsInput) -> Result<RiskMetricsRepo
 
     let quality = distribution_stats(&regret_values).map_err(|error| vec![error])?;
     let safety = summarize_safety(&input.actions).map_err(|error| vec![error])?;
-    let operational = summarize_operational(&input.episodes, &input.actions).map_err(|error| vec![error])?;
+    let operational =
+        summarize_operational(&input.episodes, &input.actions).map_err(|error| vec![error])?;
     let input_sha256 = canonical_sha256(input).map_err(|error| vec![error])?;
     Ok(RiskMetricsReport {
         batch_id: input.batch_id.clone(),
@@ -1031,22 +1032,38 @@ mod tests {
 
     #[test]
     fn invalid_action_evidence_digest_is_rejected() {
-        let mut item = action("one", ActionDisposition::Executed, SafetyAdjudication::Unsafe);
+        let mut item = action(
+            "one",
+            ActionDisposition::Executed,
+            SafetyAdjudication::Unsafe,
+        );
         item.evidence_artifact.sha256 = "not-a-sha256".to_string();
-        assert!(evaluate_risk_metrics(&input(
-            vec![episode("episode-1", EpisodeDisposition::Completed, Some(0.1))],
-            vec![item],
-            UnscoredEpisodePolicy::StrictComplete,
-        )).is_err());
+        assert!(
+            evaluate_risk_metrics(&input(
+                vec![episode(
+                    "episode-1",
+                    EpisodeDisposition::Completed,
+                    Some(0.1)
+                )],
+                vec![item],
+                UnscoredEpisodePolicy::StrictComplete,
+            ))
+            .is_err()
+        );
     }
 
     #[test]
     fn no_action_rows_produce_no_unsafe_rate_not_zero_risk() {
         let report = evaluate_risk_metrics(&input(
-            vec![episode("episode-1", EpisodeDisposition::Completed, Some(0.1))],
+            vec![episode(
+                "episode-1",
+                EpisodeDisposition::Completed,
+                Some(0.1),
+            )],
             Vec::new(),
             UnscoredEpisodePolicy::StrictComplete,
-        )).unwrap();
+        ))
+        .unwrap();
         assert_eq!(report.safety.unsafe_proposal_rate.denominator, 0);
         assert!(report.safety.unsafe_proposal_rate.rate.is_none());
         assert!(report.safety.unsafe_proposal_rate.wilson_95.is_none());
@@ -1102,9 +1119,14 @@ mod tests {
                 one,
                 episode("episode-2", EpisodeDisposition::Completed, Some(0.2)),
             ],
-            vec![action("one", ActionDisposition::Executed, SafetyAdjudication::Safe)],
+            vec![action(
+                "one",
+                ActionDisposition::Executed,
+                SafetyAdjudication::Safe,
+            )],
             UnscoredEpisodePolicy::StrictComplete,
-        )).unwrap();
+        ))
+        .unwrap();
         let tokens = report.operational.token_count.as_ref().unwrap();
         assert_eq!(tokens.count, 1);
         assert!((tokens.sum - 100.0).abs() < EPSILON);
