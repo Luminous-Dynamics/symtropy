@@ -51,7 +51,9 @@
           "decision",
           "answer",
           "response_tick",
-          "evidence_as_of_tick"
+          "evidence_as_of_tick",
+          "cited_observation_refs",
+          "claimed_independent_corroboration"
         ],
         "properties": {
           "episode_id": {
@@ -154,6 +156,9 @@
                 "minimum": 0
               }
             }
+          },
+          "claimed_independent_corroboration": {
+            "type": "boolean"
           }
         }
       }
