@@ -1,0 +1,213 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/wpt-rul-survival-v0/survival-prediction-run.schema.json",
+  "title": "WPT competing-risk survival prediction run v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "evidence_kind",
+    "evaluation_split",
+    "estimand",
+    "censoring_assumption",
+    "censoring_estimator",
+    "prediction_horizon_hours",
+    "minimum_censoring_survival",
+    "target_event_codes",
+    "competing_event_codes",
+    "prediction_model_sha256",
+    "outcome_data_sha256",
+    "hazard_time_edges_hours",
+    "subjects",
+    "quality_flags"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "wpt-rul-survival-eval-v0"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_kind": {
+      "const": "SYNTHETIC_KNOWN_TRUTH"
+    },
+    "evaluation_split": {
+      "const": "TEST"
+    },
+    "estimand": {
+      "const": "COMPETING_RISK_CIF_AT_HORIZON"
+    },
+    "censoring_assumption": {
+      "const": "INDEPENDENT_RIGHT_CENSORING"
+    },
+    "censoring_estimator": {
+      "const": "EVALUATION_COHORT_UNCONDITIONAL_KM"
+    },
+    "prediction_horizon_hours": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "minimum_censoring_survival": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 1
+    },
+    "target_event_codes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "STRUCTURAL_CRACK_LIMIT",
+          "RUTTING_LIMIT",
+          "INSULATION_RESISTANCE_LIMIT",
+          "COIL_OPEN_CIRCUIT",
+          "THERMAL_LIMIT",
+          "SERVICE_AVAILABILITY_LIMIT",
+          "OTHER"
+        ]
+      }
+    },
+    "competing_event_codes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "PLANNED_REPLACEMENT",
+          "UNRELATED_ASSET_FAILURE",
+          "ROAD_RECONSTRUCTION"
+        ]
+      }
+    },
+    "prediction_model_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "outcome_data_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "subjects": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "subject_id",
+          "cluster_id",
+          "observed_duration_hours",
+          "outcome_kind",
+          "event_code",
+          "predicted_survival_probability",
+          "predicted_cumulative_incidence",
+          "predicted_cause_specific_hazard_rates"
+        ],
+        "properties": {
+          "subject_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cluster_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "observed_duration_hours": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "outcome_kind": {
+            "enum": [
+              "TARGET_FAILURE",
+              "COMPETING_EVENT",
+              "RIGHT_CENSORED"
+            ]
+          },
+          "event_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "predicted_survival_probability": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "predicted_cumulative_incidence": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "event_code",
+                "probability"
+              ],
+              "properties": {
+                "event_code": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "probability": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              }
+            }
+          },
+          "predicted_cause_specific_hazard_rates_per_hour": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "event_code",
+                "rates_per_interval"
+              ],
+              "properties": {
+                "event_code": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "rates_per_interval": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "description": "Hazard rate in h^-1 for the corresponding interval in hazard_time_edges_hours."
+                }
+              }
+            },
+            "description": "Piecewise-constant cause-specific hazard rates in inverse hours (h^-1), one rate per declared cause per hazard interval."
+          }
+        }
+      }
+    },
+    "quality_flags": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "const": "SYNTHETIC_ONLY"
+      }
+    },
+    "hazard_time_edges_hours": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "type": "number",
+        "minimum": 0
+      },
+      "description": "Strictly increasing interval boundaries measured in hours. Cause-specific hazard rates are expressed in h^-1."
+    }
+  }
+}
