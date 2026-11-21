@@ -84,12 +84,14 @@ jobs:
             .scenario_count == 2
             and .nonanticipative_policy_node_count == 5
             and .exact_policy_count_evaluated == 243
+            and .probability_ambiguity_radius_bps == 1000
+            and .distributionally_robust_optimal_policy.probability_ambiguity_expected_cost_units <= .optimized_policy.probability_ambiguity_expected_cost_units
             and .optimized_policy.expected_total_cost_units == 524
             and .optimized_policy.cvar90_total_cost_units == 866
             and .optimized_policy.worst_case_total_cost_units == 1246
             and .cvar90_optimal_policy.expected_total_cost_units == 527
             and .cvar90_optimal_policy.cvar90_total_cost_units == 825
-            and .worst_case_optimal_policy.expected_total_cost_units == 570
+            and .worst_case_optimal_policy.expected_total_cost_units == 527
             and .worst_case_optimal_policy.worst_case_total_cost_units == 1156
             and .service_robust_optimal_policy.expected_total_cost_units == 526
             and .service_robust_optimal_policy.worst_case_unserved_units == 21

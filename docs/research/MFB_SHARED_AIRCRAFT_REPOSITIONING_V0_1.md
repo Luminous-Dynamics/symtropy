@@ -145,6 +145,25 @@ Do not treat algorithm labels as evidence of superiority. Reproduce the original
 
 The exact policy engine now requires the co-availability status/reference and a per-period service-capacity / mission-energy upper bound before it can allocate aerial service. Tests cover stale co-availability despite clear weather and approved permission, per-period service-capacity caps, energy upper bounds overriding the generic floor, and missing evidence references. The reference fixtures use synthetic source identifiers and therefore test only fail-closed contract behavior.
 
+## Distributionally robust probability ambiguity
+
+The exact search now includes a fifth objective: **minimize worst-case expected cost over a finite-support total-variation ambiguity set** around the supplied scenario probabilities.
+
+The declared radius is 1,000 basis points (10% total-variation distance). The adversary may move at most 10 percentage points of probability mass from lower-cost scenarios to higher-cost scenarios while keeping the scenario support fixed. The evaluator computes the worst-case expectation exactly by sorting scenario losses and greedily moving probability mass from the lowest-cost support points to the highest-cost support points until the radius or available mass is exhausted.
+
+For scenario costs (c_i), nominal probabilities (p_i) and ambiguity radius (ho):
+
+[
+max_{q:; sum_i q_i=1,; rac12lVert q-pVert_1leq ho}
+sum_i q_i c_i
+]
+
+The fifth policy minimizes this worst-case expectation over the same nonanticipative policy set as the expected-cost, CVaR90, minimax-cost and service-robust policies. Every policy and baseline also reports its own worst-case expected cost at the declared radius.
+
+This is a finite-support probability ambiguity model, **not** distributionally robust coverage of scenarios absent from the supplied support. It cannot protect against unmodeled weather, route closure, equipment failure or demand regimes that are not represented in the input. The radius is a declared stress parameter, not a confidence interval estimated from data. Before using it for operations, calibrate the scenario support and radius against held-out observations and report out-of-sample coverage.
+
+A hand-computable test uses costs 100 and 20 with nominal probabilities 5% and 95%: nominal expected cost is 24; a 5% TV radius gives 28; a 10% radius gives 32. Scenario order permutation must not change the result.
+
 ## v0.2 and beyond
 
 1. Add an explicit in-transit state with per-period route-segment weather/permission, emergency safe-state semantics and no unmodeled flight continuation.

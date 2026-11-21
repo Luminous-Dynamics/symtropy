@@ -3,9 +3,7 @@
 
 use std::{env, fs, process::ExitCode};
 
-use symtropy_material_flow_benchmark::shared_fleet::{
-    SharedFleetInput, evaluate_shared_fleet,
-};
+use symtropy_material_flow_benchmark::shared_fleet::{SharedFleetInput, evaluate_shared_fleet};
 
 fn main() -> ExitCode {
     let mut args = env::args_os();
