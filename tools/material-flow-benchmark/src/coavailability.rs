@@ -380,10 +380,14 @@ fn find_first_available_launch(
                 );
             }
             if launch_pad_conflict_observed {
-                return Err("launch pad is reserved throughout the feasible launch window".into());
+                return Err(
+                    "launch pad is reserved throughout the feasible launch window".into(),
+                );
             }
             if recovery_pad_conflict_observed {
-                return Err("recovery pad is reserved throughout the feasible recovery window".into());
+                return Err(
+                    "recovery pad is reserved throughout the feasible recovery window".into(),
+                );
             }
             return Ok(None);
         }
