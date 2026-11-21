@@ -111,7 +111,7 @@ def evaluate(
         uses: dict[str, int] = {}
         total_audio = total_video = 0
         total_energy = 0.0
-        requested_outcomes: list[tuple[dict[str, Any], dict[str, Any], int]] = []
+        requested_outcomes: list[tuple[dict[str, Any], dict[str, Any], int, bool]] = []
         for request in requests:
             if not isinstance(request, dict):
                 violations.append("invalid_action_request")
@@ -132,8 +132,10 @@ def evaluate(
             if request_tick > response_tick:
                 violations.append("action_requested_after_response")
             action = catalogue[action_id]
+            requested_ids.append(action_id)
             uses[action_id] = uses.get(action_id, 0) + 1
-            if uses[action_id] > action.get("max_uses", 0):
+            within_use_limit = uses[action_id] <= action.get("max_uses", 0)
+            if not within_use_limit:
                 violations.append("action_max_uses_exceeded")
             resource = action.get("resource_cost") or {}
             audio_cost, video_cost, energy_cost = (
@@ -157,8 +159,7 @@ def evaluate(
                 continue
             if outcome["arrival_tick"] != expected_arrival:
                 raise EvaluationError(f"{episode_id}: outcome arrival does not match action latency")
-            requested_ids.append(action_id)
-            requested_outcomes.append((action, outcome, request_tick))
+            requested_outcomes.append((action, outcome, request_tick, within_use_limit))
 
             for estimate_field in ("estimated_eig_nats", "estimated_evsi", "estimated_cost_joules"):
                 estimate = request.get(estimate_field)
@@ -187,7 +188,7 @@ def evaluate(
             if ref in admitted:
                 raise EvaluationError(f"{episode_id}: duplicate initial observation reference")
             admitted[ref] = (tick, observation.get("source_dependency_group"))
-        for action, outcome, _ in requested_outcomes:
+        for action, outcome, _, within_use_limit in requested_outcomes:
             if outcome.get("observation_ref") is not None:
                 ref = outcome["observation_ref"]
                 if ref in admitted:
@@ -231,12 +232,12 @@ def evaluate(
                 violations.append("common_cause_evidence_claimed_independent")
 
         late_count = sum(
-            1 for _, outcome, _ in requested_outcomes
+            1 for _, outcome, _, _ in requested_outcomes
             if outcome.get("status") == "late" or outcome.get("arrival_tick", 0) > deadline
         )
         realized_evsi = 0.0
         wasted_count = 0
-        for _, outcome, _ in requested_outcomes:
+        for _, outcome, _, within_use_limit in requested_outcomes:
             delivered_on_time = (
                 outcome.get("status") == "delivered"
                 and outcome.get("arrival_tick", deadline + 1) <= deadline
@@ -244,7 +245,7 @@ def evaluate(
             evsi = outcome.get("evsi", 0.0)
             if not finite_number(evsi):
                 raise EvaluationError(f"{episode_id}: truth EVSI must be finite")
-            if delivered_on_time and evsi > 0 and outcome.get("independent_source", True):
+            if within_use_limit and delivered_on_time and evsi > 0 and outcome.get("independent_source", True):
                 realized_evsi += float(evsi)
             else:
                 wasted_count += 1
