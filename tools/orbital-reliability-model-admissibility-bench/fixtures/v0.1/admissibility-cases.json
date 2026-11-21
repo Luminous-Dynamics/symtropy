@@ -2214,8 +2214,7 @@
         "recurrent_event_articles": 0,
         "assumption_diagnostics_ready": false,
         "blockers": [
-          "incomplete_maintenance_or_restoration_history",
-          "repair_restoration_history_missing_for_recurrent_process"
+          "incomplete_maintenance_or_restoration_history"
         ]
       }
     },
