@@ -76,7 +76,7 @@ There are now **45 authored Rust tests** in the prototype: 37 in the main refere
 - Isotope scope matters: the 6.385-MeV `1H(15N,αγ)12C` resonance measures protium; deuterium needs a D-sensitive reaction/measurement and its own calibrated response.
 - Lateral spatial point-spread and depth response are distinct and not yet combined in the current kernel.
 
-There are now **52 authored Rust tests**: 37 in the root reference kernel, 8 in material_state.rs and 7 in measurement.rs. They remain unexecuted because cargo/rustc/nix are unavailable in this environment.
+There are now **59 authored Rust tests**: 37 in the root reference kernel, 7 in detector.rs, 7 in measurement.rs and 8 in material_state.rs. They remain unexecuted because cargo/rustc/nix are unavailable in this environment.
 
 
 ## Detector response matrix forward model
@@ -88,3 +88,14 @@ There are now **52 authored Rust tests**: 37 in the root reference kernel, 8 in 
 - Synthetic fixture: research/cmni/fixtures/detector-response-matrix-forward-synthetic.json.
 
 The forward matrix is a numerical interface only. There is no Geant4/MCNP/DRiFT model, no scintillation or PSD response, and no unfolding algorithm in this prototype.
+
+
+## Detector response matrix forward operator
+
+- DetectorResponseMatrix maps true incident neutron-energy bin rates to expected measured pulse-height bin rates.
+- Rows are measured pulse-height bins; columns are true-energy bins. Column sums represent accepted-event probability / efficiency and must not exceed one.
+- Background count rates and exposure time are independent inputs.
+- Seven tests cover identity, energy migration, efficiency loss, expected counts, invalid probabilities, ragged matrices and background/exposure validation.
+- A synthetic 2 × 2 fixture is in research/cmni/fixtures/detector-response-matrix-forward-synthetic.json.
+
+This is a generic forward operator only. It does not model scintillator light production, proton quenching, detector geometry/transport, PSD, threshold, pileup, dead time or any Geant4/MCNP response. No spectrum unfolding is implemented.
