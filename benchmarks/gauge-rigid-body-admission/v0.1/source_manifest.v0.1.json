@@ -73,10 +73,11 @@
       "blockers": [
         "No file-level SHA-256 inventory for the rigid-body physical measurement payloads has been captured.",
         "Only representative bouncing-ball and Newton's-cradle trial JSON files have been structurally inspected; all eight rigid task families, material branches and trial files still require a complete schema audit.",
-        "The observed trial files provide FPS=30, translation unit mm, Euler order ZYX, per-body x/y/z, qx/qy/qz/qw and ex/ey/ez arrays. Quaternion handedness/algebra, world/body transform direction, Euler angle units/active-passive convention, frame identity, clock origin and timestamp reconstruction semantics are not fully declared in the inspected records.",
         "Per-sample measurement uncertainty/covariance, calibration uncertainty propagation, missing-frame policy, outlier policy and recording-level grouping have not yet been fully audited.",
         "The MIT license is a Hub metadata declaration; its application to every data artifact, embedded asset and external dependency has not been independently reviewed.",
-        "No use/mirroring approval decision has been made for the exact physical-trial payloads."
+        "No use/mirroring approval decision has been made for the exact physical-trial payloads.",
+        "The paper states 180 Hz camera acquisition followed by truncation to the valid experiment interval and downsampling to 30 FPS for released trajectory JSON. The exact resampling/filter method, sample phase, timestamp reconstruction and uncertainty propagation through downsampling are not identified in the inspected artifacts.",
+        "The 30 FPS exported trajectories cannot by themselves establish peak contact force or sub-frame impact timing. The task-specific GAUGE momentum-transfer metric is not a direct contact-force measurement; impact/impulse claims require a separate observability and measurement qualification."
       ],
       "observed_inventory": [
         "Pinned Hub repository revision: f95bb06e7d11142f88ffd3b6b56c7258deb8fff6 (resolved from the main branch commit link).",
@@ -89,7 +90,8 @@
         "Rigid task data is separated into json/ and video/ subdirectories. The observed bouncing-ball json directory reports 280 kB; Newton's-cradle json reports 9.19 MB.",
         "The dataset preview split is validation; the preview row is a video/trajectory pipeline status record (3249 videos and 3249 trajectories), not the raw trial schema.",
         "Observed abbreviated subtree commits: data/rigid root e5655c5; metadata/rigid root c2d8cd1; bouncing-ball JSON cba0206. These short subtree refs are not substituted for the full dataset revision.",
-        "Hub metadata declares license mit; this is recorded as a declaration, not as an independently reviewed artifact-level rights conclusion."
+        "Hub metadata declares license mit; this is recorded as a declaration, not as an independently reviewed artifact-level rights conclusion.",
+        "GAUGE paper (arXiv:2608.05948, 2026-08-06) states that 16 NOKOV Mars9H cameras acquire at 180 Hz with sub-millimetre localization; each recording is truncated to the valid interval then downsampled to 30 FPS for JSON. Rigid/textile simulator states are also recorded at 30 Hz after 180 Hz simulation; deformable simulation runs at 900 Hz but states are recorded at 30 Hz."
       ],
       "data_card_preview": {
         "viewer_available": false,
