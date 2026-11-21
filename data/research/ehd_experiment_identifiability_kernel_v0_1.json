@@ -6,8 +6,14 @@
   "status": "two_parameter_manufactured_reference_kernel_authored_tests_rust_execution_pending",
   "claim_ceiling": "The executable kernel qualifies only two-parameter linear design rank and weighted least-squares recovery under diagonal observation covariance. It is not an EHD physical parameter estimator, nonlinear identifiability engine, model discriminator, or experiment authorization.",
   "parameter_contract": {
-    "parameter_order": ["a", "b"],
-    "parameter_scales": [1.0, 1.0],
+    "parameter_order": [
+      "a",
+      "b"
+    ],
+    "parameter_scales": [
+      1,
+      1
+    ],
     "rank_analysis_coordinates": "design_columns_multiplied_by_declared_parameter_scales",
     "noise_model": "independent_normal_zero_mean_diagonal_variance",
     "correlated_covariance_supported": false
@@ -49,30 +55,152 @@
   "manufactured_cases": [
     {
       "case_id": "E0-REPEATED-CONDITION-RANK-1",
-      "design_matrix": [[1.0, 1.0], [1.0, 1.0], [1.0, 1.0]],
-      "observations": [2.5, 2.5, 2.5],
-      "observation_variances": [1.0, 1.0, 1.0],
-      "expected_information_matrix": [[3.0, 3.0], [3.0, 3.0]],
-      "expected_eigenvalues_descending": [6.0, 0.0],
-      "expected_singular_values_descending": [2.449489742783178, 0.0],
+      "design_matrix": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "observations": [
+        2.5,
+        2.5,
+        2.5
+      ],
+      "observation_variances": [
+        1,
+        1,
+        1
+      ],
+      "expected_information_matrix": [
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          3
+        ]
+      ],
+      "expected_eigenvalues_descending": [
+        6,
+        0
+      ],
+      "expected_singular_values_descending": [
+        2.449489742783178,
+        0
+      ],
       "expected_rank": 1,
       "expected_disposition": "not_identifiable",
       "expected_parameter_estimate": null,
-      "expected_weakest_direction_absolute_components": [0.7071067811865476, 0.7071067811865476],
+      "expected_weakest_direction_absolute_components": [
+        0.7071067811865476,
+        0.7071067811865476
+      ],
       "invariant": "repeated_observations_at_one_identical_design_condition_never_increase_design_rank"
     },
     {
       "case_id": "E0-BALANCED-CONDITION-RANK-2",
-      "design_matrix": [[-1.0, 1.0], [0.0, 1.0], [1.0, 1.0]],
-      "observations": [-1.5, 0.5, 2.5],
-      "observation_variances": [1.0, 1.0, 1.0],
-      "expected_information_matrix": [[2.0, 0.0], [0.0, 3.0]],
-      "expected_eigenvalues_descending": [3.0, 2.0],
-      "expected_singular_values_descending": [1.7320508075688772, 1.4142135623730951],
+      "design_matrix": [
+        [
+          -1,
+          1
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "observations": [
+        -1.5,
+        0.5,
+        2.5
+      ],
+      "observation_variances": [
+        1,
+        1,
+        1
+      ],
+      "expected_information_matrix": [
+        [
+          2,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "expected_eigenvalues_descending": [
+        3,
+        2
+      ],
+      "expected_singular_values_descending": [
+        1.7320508075688772,
+        1.4142135623730951
+      ],
       "expected_rank": 2,
       "expected_disposition": "identifiable",
-      "expected_parameter_estimate": [2.0, 0.5],
-      "expected_weighted_residual_sum_squares": 0.0
+      "expected_parameter_estimate": [
+        2,
+        0.5
+      ],
+      "expected_weighted_residual_sum_squares": 0
+    },
+    {
+      "case_id": "E0-NEAR-COLLINEAR-RANK-2",
+      "design_matrix": [
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1e-9
+        ]
+      ],
+      "observations": [
+        1,
+        1
+      ],
+      "observation_variances": [
+        1,
+        1
+      ],
+      "expected_information_matrix": [
+        [
+          2,
+          1e-9
+        ],
+        [
+          1e-9,
+          1e-18
+        ]
+      ],
+      "expected_eigenvalues_descending": [
+        2,
+        5e-19
+      ],
+      "expected_singular_values_descending": [
+        1.4142135623730951,
+        7.071067811865476e-10
+      ],
+      "expected_rank": 2,
+      "expected_disposition": "identifiable",
+      "expected_condition_number_approx": 2000000000,
+      "practical_warning_required": true,
+      "purpose": "verify_direct_jacobi_spectrum_retains_small_singular_value_without_gram_eigenvalue_cancellation"
     }
   ],
   "test_families": [
@@ -99,9 +227,12 @@
     "no_physical_experiment"
   ],
   "prospective_targets": {
-    "nominal_95_percent_interval_empirical_coverage_range": [0.90, 0.98],
-    "minimum_normalized_information_eigenvalue_improvement_vs_random_factor": 2.0,
-    "profile_likelihood_interval_width_reduction_fraction": 0.30,
+    "nominal_95_percent_interval_empirical_coverage_range": [
+      0.9,
+      0.98
+    ],
+    "minimum_normalized_information_eigenvalue_improvement_vs_random_factor": 2,
+    "profile_likelihood_interval_width_reduction_fraction": 0.3,
     "artifact_false_positive_rate_maximum": 0.01,
     "status": "targets_not_results"
   }
