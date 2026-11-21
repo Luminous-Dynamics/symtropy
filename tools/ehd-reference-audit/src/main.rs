@@ -1777,9 +1777,11 @@ pub fn audit_temporal_quadrature_contract(root: &Value) -> Vec<String> {
     let tests = at(root, &["test_families"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        tests.is_some_and(|rows| rows.len() == 8
+        tests.is_some_and(|rows| rows.len() == 10
             && rows.iter().any(|item| item.as_str() == Some("impulse_pass_heating_fail_with_gauss_legendre_2"))
             && rows.iter().any(|item| item.as_str() == Some("degree_six_heating_fail_gl3_pass_gl4"))
+            && rows.iter().any(|item| item.as_str() == Some("each_rule_matches_monomial_moments_through_declared_exactness"))
+            && rows.iter().any(|item| item.as_str() == Some("each_rule_fails_first_higher_even_monomial_moment"))
             && rows.iter().any(|item| item.as_str() == Some("interior_negative_drag_rate_rejected"))
             && rows.iter().any(|item| item.as_str() == Some("offline_reference_self_check"))),
         "TEMPORAL_QUADRATURE_TEST_MATRIX",
