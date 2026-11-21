@@ -159,11 +159,11 @@ class ActiveSensingEvaluatorTests(unittest.TestCase):
         row = self.prediction(candidate, "as-007-partial-unavailable-action")
         row["action_requests"] = [{
             "request_id": "partial-pump", "action_id": "request-pump-audio",
-            "request_tick": 10, "estimated_eig_nats": 0.1,
+            "request_tick": 13, "estimated_eig_nats": 0.1,
             "estimated_evsi": 0, "estimated_cost_joules": 0.4
         }]
-        row["response_tick"] = 16
-        row["evidence_as_of_tick"] = 15
+        row["response_tick"] = 19
+        row["evidence_as_of_tick"] = 18
         row["cited_observation_refs"].append("obs-pump-audio")
         result = self.result(self.score(candidate), "as-007-partial-unavailable-action")
         self.assertIn("fabricated_or_unrequested_observation", result["evidence_violations"])
