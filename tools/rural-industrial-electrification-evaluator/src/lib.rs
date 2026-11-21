@@ -843,8 +843,9 @@ mod tests {
         profile_id: &str,
         direction: PortDirection,
         revision: &str,
-        evidence: QualificationEvidence,
+        mut evidence: QualificationEvidence,
     ) -> InterfacePort {
+        evidence.evidence_id = format!("{port_id}-{}", evidence.evidence_id);
         InterfacePort {
             port_id: port_id.into(),
             mate_port_id: mate_port_id.into(),
