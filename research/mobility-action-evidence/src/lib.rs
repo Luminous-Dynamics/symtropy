@@ -1146,8 +1146,12 @@ mod tests {
         evidence
             .observer_failure_domains
             .push("vehicle-power".into());
+        let mut policy = outcome_policy();
+        policy
+            .expected_observer_failure_domains
+            .push("vehicle-power".into());
         assert_eq!(
-            validate_physical_outcome(&ticket(), &evidence, outcome_policy()),
+            validate_physical_outcome(&ticket(), &evidence, policy),
             Err(OutcomeError::CommonCauseFailureDomainOverlap)
         );
     }
