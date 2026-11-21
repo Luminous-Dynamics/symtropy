@@ -300,6 +300,8 @@ fn evaluate_case(case: &CaptureCase) -> Decision {
         || case.reference.system_id.trim().is_empty()
         || case.reference.failure_domains.is_empty()
         || case.reference.acquisition_failure_domains.is_empty()
+        || case.reference.failure_domains.iter().any(|domain| domain.trim().is_empty())
+        || case.reference.acquisition_failure_domains.iter().any(|domain| domain.trim().is_empty())
         || shared_failure_domain(
             &case.reference.failure_domains,
             &case.reference.acquisition_failure_domains,
