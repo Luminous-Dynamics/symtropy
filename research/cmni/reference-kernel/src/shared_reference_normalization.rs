@@ -418,7 +418,7 @@ fn matrix_vector_multiply(
     }
     Ok(matrix
         .iter()
-        .map(|row| row.iter().zip(vector.iter()).map(|(a, b)| a * b).sum())
+        .map(|row| row.iter().zip(vector.iter()).map(|(a, b)| *a * *b).sum())
         .collect())
 }
 
@@ -436,7 +436,7 @@ fn transpose_matrix_vector_multiply(
     let mut result = vec![0.0; columns];
     for (row, weight) in matrix.iter().zip(vector.iter()) {
         for (column, value) in result.iter_mut().enumerate() {
-            *value += row[column] * weight;
+            *value += row[column] * *weight;
         }
     }
     Ok(result)
@@ -474,7 +474,7 @@ fn matrix_multiply(left: &[Vec<f64>], right: &[Vec<f64>]) -> Result<Vec<Vec<f64>
             *output = left[row_index]
                 .iter()
                 .zip(right.iter().map(|row| row[column_index]))
-                .map(|(a, b)| a * b)
+                .map(|(a, b)| *a * b)
                 .sum();
         }
     }
@@ -496,6 +496,7 @@ fn propagate_covariance(
 
 fn add_matrices(left: &[Vec<f64>], right: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, ModelError> {
     if left.is_empty()
+        || right.is_empty()
         || left.len() != right.len()
         || left.iter().any(|row| row.len() != right[0].len())
         || right.iter().any(|row| row.len() != left[0].len())
@@ -516,7 +517,7 @@ fn add_matrices(left: &[Vec<f64>], right: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, 
 }
 
 fn dot(left: &[f64], right: &[f64]) -> f64 {
-    left.iter().zip(right.iter()).map(|(a, b)| a * b).sum()
+    left.iter().zip(right.iter()).map(|(a, b)| *a * *b).sum()
 }
 
 #[cfg(test)]
@@ -528,7 +529,7 @@ mod tests {
         let weights = trapezoidal_integration_weights(&[1.0, 2.0, 4.0]).expect("weights");
         assert_eq!(weights, vec![0.5, 1.5, 1.0]);
         let integral = dot(&[2.0, 4.0, 8.0], &weights);
-        assert_eq!(integral, 13.0);
+        assert_eq!(integral, 15.0);
     }
 
     #[test]
