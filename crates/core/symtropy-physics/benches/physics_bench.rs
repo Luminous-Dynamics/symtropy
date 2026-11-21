@@ -5,6 +5,7 @@ use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use nalgebra::SVector;
 use symtropy_math::{Bivector, Capsule, ConvexHull, HyperBox, Point, Sphere};
 use symtropy_physics::body::{BodyHandle, RigidBody};
+use symtropy_physics::contact::try_angular_contact_effective_mass;
 use symtropy_physics::mass_properties::RotationalInertiaOperator;
 use symtropy_physics::PhysicsWorld;
 use symtropy_physics::gjk;
@@ -409,6 +410,42 @@ fn bench_strict_vs_legacy_integration_3d(c: &mut Criterion) {
     });
 }
 
+fn bench_contact_angular_effective_mass_strict_vs_legacy(c: &mut Criterion) {
+    let mut body = RigidBody::<3>::dynamic_sphere(
+        BodyHandle(90), Point::origin(), 0.1, 1.0,
+    );
+    body.inertia = SVector::from([2.0, 3.0, 4.0]);
+    body.inv_inertia = SVector::from([0.5, 1.0 / 3.0, 0.25]);
+    body.transform.rotation = symtropy_math::Rotor::<3>::from_plane_angle(
+        &Bivector::<3>::unit_plane(0, 2), 0.37,
+    );
+    let lever = SVector::from([0.7, -0.2, 0.4]);
+    let normal = SVector::from([0.0, 1.0, 0.0]);
+    let impulse = symtropy_physics::integrator::angular_impulse_from_point(&lever, &normal);
+    let legacy_delta = body.apply_inverse_angular_inertia(&impulse);
+    let legacy_value = normal.dot(
+        &symtropy_physics::integrator::angular_point_velocity(&legacy_delta, &lever),
+    ).max(0.0);
+    let strict_value = try_angular_contact_effective_mass(&body, &lever, &normal)
+        .expect("strict fixture must pass");
+    assert!((legacy_value - strict_value).abs() < 1.0e-12);
+
+    c.bench_function("contact_angular_effective_mass_legacy_3d", |bench| {
+        bench.iter(|| {
+            let delta = body.apply_inverse_angular_inertia(black_box(&impulse));
+            black_box(normal.dot(
+                &symtropy_physics::integrator::angular_point_velocity(&delta, &lever),
+            ).max(0.0));
+        });
+    });
+    c.bench_function("contact_angular_effective_mass_strict_3d", |bench| {
+        bench.iter(|| {
+            black_box(try_angular_contact_effective_mass(
+                &body, black_box(&lever), black_box(&normal),
+            ));
+        });
+    });
+}
 fn bench_anisotropic_contact_world_step(c: &mut Criterion) {
     c.bench_function("anisotropic_contact_world_step_10_bodies_3d", |bench| {
         bench.iter_batched(
@@ -467,6 +504,7 @@ criterion_group!(
     bench_fallible_principal_response_3d,
     bench_fallible_full_operator_response_4d,
     bench_strict_vs_legacy_integration_3d,
+    bench_contact_angular_effective_mass_strict_vs_legacy,
     // Physics step at scale
     bench_physics_step_10_bodies,
     bench_world_strict_preflight_10_bodies,

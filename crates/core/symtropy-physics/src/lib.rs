@@ -40,7 +40,10 @@ pub use body::{
 };
 pub use broadphase::{Aabb, Lbvh, morton_encode, morton_prefix};
 pub use constraint::Constraint;
-pub use contact::{CollisionEvent, ContactCache, ContactManifold, SensorEvent};
+pub use contact::{
+    try_angular_contact_effective_mass, CollisionEvent, ContactCache, ContactManifold,
+    ContactResponseError, SensorEvent,
+};
 pub use diagnostics::{InvariantDrift, InvariantSnapshot};
 pub use epa::EpaResult;
 pub use integrator::{
