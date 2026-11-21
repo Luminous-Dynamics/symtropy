@@ -491,3 +491,49 @@ Each stage has its own schema, parser, claim ceiling and authority. A CAD/PMI se
 The independent baseline set should therefore include NIST's STEP File Analyzer and Viewer, CAx-IF AP242/QIF test cases, a manual engineering/quality review, and any rights-cleared commercial CAD/QMS/PLM exchange path available for the same fixtures. NIST describes ongoing conformance work for semantic PMI, persistent identifiers, hybrid geometry, composite representation and secure digital-thread integration: [NIST Digital Thread for Manufacturing](https://www.nist.gov/programs-projects/digital-thread-manufacturing). CAx-IF publishes AP242 recommended practices and exchange test cases: [CAx-IF Recommended Practices](https://www.mbx-if.org/home/cax/recpractices/). NIST's STEP File Analyzer is an external reference validator, not a substitute for the independent semantic oracle: [NIST STEP File Analyzer and Viewer](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer).
 
 Benchmark the composed chain for semantic preservation, exact identity joins, stale-revision rejection, loss/Unknown behavior, false joins, replay determinism and engineering-review time. Do not claim superiority over NIST or a commercial tool based only on synthetic evaluator agreement. Use matched fixtures, declared feature support, identical inputs and blinded held-out models.
+
+
+## 16. Serialized-article identity and current in-space assembly comparator
+
+### Component definition is not a physical unit
+
+Compose the Mycelix [AEROCOMMONS-COMPONENT-PILOT-001 #6345](https://github.com/Luminous-Dynamics/mycelix/issues/6345) identity contract. It distinguishes a reusable component definition from each serialized physical unit. Build, inspection and test evidence attach to the exact physical unit and configuration; the unit links back to its component definition.
+
+For the v0.1 structural evaluator:
+
+- `profile.article_subject_ref` identifies the exact provider-side physical article/serial to which the profile and its direct evidence apply (for example, a qualification specimen or a serialized as-built joint);
+- structural-capability, inspection, engagement-verification, fatigue and assembled-path evidence must identify that same physical article, configuration and ICD revision;
+- material/process evidence must instead identify its exact material-lineage subject, while still matching the profile's configuration and ICD scope;
+- the client-side `article_subject_ref` is the target/design subject of the requirement profile and is not conflated with the provider's test article;
+- a component-family definition, catalogue part number or another serial unit is not an equivalent evidence subject.
+
+This is an exact identity join, not a similarity/scale-transfer argument. The transfer from a qualification specimen to a production component or assembly remains governed by the separate #5763/#6224/#6523 transfer boundary. A digest-shaped identifier or matching serial reference does not authenticate the record or establish physical truth.
+
+### ASTRA/NOM4D: what was actually demonstrated
+
+Caltech's ASTRA in-space experiment set out to build a 1.4 m reflector antenna using composite-fiber tubes, aluminium joints and a reflective Kapton surface. The intended truss comprised 11 bays. Caltech reports that the system assembled the initial section but, because of time limitations, was unlikely to finish the full 11-bay structure before the mission ended. DARPA describes a gantry-style manipulator connecting members and joints, and explicitly states that structures hundreds of metres or kilometres in scale remain beyond today's demonstrated capability.
+
+Primary references:
+- [DARPA NOM4D, 5 November 2026](https://www.darpa.mil/news/2026/nom4d-program-demonstrates-automated-in-space-assembly)
+- [Caltech ASTRA, 5 November 2026](https://www.caltech.edu/about/news/caltech-robotic-space-demo-successfully-builds-in-space)
+
+This is a major in-space assembly milestone, but not a completed 11-bay antenna, general-purpose modular structural interface standard, published joint-capacity dataset or full structural qualification result. No quantitative comparison should be invented when public joint preload, force/torque, structural response and post-build NDE data are unavailable.
+
+It changes the benchmark priorities. The next credible progression should separately measure:
+
+1. **Assembly process:** per-operation success, aborted/retried operations, insertion/locking force, pose tolerance and time, with exact tool/task revisions.
+2. **As-built geometry:** per-member and per-joint datum/pose/clearance errors, accumulated bay-to-bay error and full-structure geometry where measured.
+3. **Connection integrity:** independent engagement verification, retention, slip, stiffness, local damage and load-path evidence under a declared model/test envelope.
+4. **Inspection:** defect- and orientation-specific NDE coverage, false calls, method-specific POD and uninspected regions.
+5. **Reconfiguration/service:** disassembly, replacement, repair, repeated mating and evidence invalidation/requalification.
+6. **Economics:** total shipped mass, launched mass, assembly time, test/inspection time, rework, equipment, energy and evidence-generation cost reported separately.
+
+Do not collapse these into an assembly success percentage. A robot's successful insertion does not prove retention; retention does not prove combined-load capacity; local joint acceptance does not prove the global assembled load path. The synthetic benchmark checks contract logic only until those physical datasets exist.
+
+### Inspection and data-driven qualification are distinct evidence layers
+
+NASA Langley's Design for Inspection work proposes simulation-based tests to measure defect findability and sensitivity to variation, with parameter-space coverage designed to reduce the number of simulations. It is a methodological comparator, not a metric this repository claims to reproduce: [NTRS 20240003953](https://ntrs.nasa.gov/citations/20240003953), [NTRS 20240007593](https://ntrs.nasa.gov/citations/20240007593).
+
+For real NDE studies, report defect-family/method-specific probability of detection and false-call rates using a qualified study design. ASTM E2862-23 covers statistical POD analysis for hit/miss data under a specific set of examination parameters; it is not a universal design score or a replacement for physical inspection evidence: [ASTM E2862-23](https://store.astm.org/e2862-23.html).
+
+A NASA 2026 data-driven-qualification white paper discusses a future architecture combining multimodal anomaly detection, probabilistic mapping of indications to failure risk, and disposition logic. It also emphasizes that digital certification needs further validation of physics models and data management. Treat this as a research direction, not an existing certification route or permission to replace physical verification: [NASA data-driven qualification white paper](https://ntrs.nasa.gov/api/citations/20260009117/downloads/ISM-ASTRO%20White%20Paper%20Augmenting%20NASA-STD-6030.pdf).
