@@ -359,7 +359,7 @@ fn evaluate_case(case: &PowerLawCase) -> Result<Decision, String> {
             continue;
         }
         if let Some(previous) = events_by_id.get(event.event_id.as_str()) {
-            if **previous == event {
+            if *previous == event {
                 decision.duplicate_events += 1;
                 add_blocker(&mut decision, "identical_duplicate_event_record");
                 continue;
