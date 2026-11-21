@@ -124,6 +124,46 @@ jobs:
           jq empty tools/ev-passenger-cost-frontier/fixtures/ev_carrier_lifecycle_v0_1.json
           jq empty tools/ev-passenger-cost-frontier/schemas/battery_service_network_v0_1.schema.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/battery_service_network_v0_1.json
+          jq -e --slurpfile schema tools/ev-passenger-cost-frontier/schemas/battery_service_network_v0_1.schema.json '
+            . as $fixture
+            | ($schema[0]["$defs"].pack.required | sort) as $pack_required
+            | ($schema[0]["$defs"].evidenceEnvelope.required | sort) as $evidence_required
+            | ($schema[0]["$defs"].mission.required | sort) as $mission_required
+            | (
+                (($fixture | keys | sort) == ($schema[0].required | sort))
+                and all($fixture.packs[];
+                  . as $pack
+                  | (($pack | keys | sort) == $pack_required)
+                  and (
+                    [
+                      $pack.state_evidence,
+                      $pack.identity_verification.evidence,
+                      $pack.custody_resolution.evidence,
+                      $pack.post_test.evidence,
+                      $pack.usable_energy.evidence,
+                      $pack.peak_power.evidence,
+                      $pack.thermal.evidence
+                    ]
+                    | all(.[]; . as $evidence
+                      | (($evidence | keys | sort) == $evidence_required)
+                      and ($evidence.asset_id == $pack.pack_id)
+                      and ($evidence.configuration_digest == $pack.configuration_digest)
+                      and ($evidence.producer_id | length > 0)
+                      and ($evidence.method_id | length > 0)
+                      and ($evidence.evidence_reference | length > 0)
+                      and ($evidence.evidence_class == "synthetic")
+                      and ($evidence.observed_at_unix_ms <= $fixture.dispatch_time_unix_ms)
+                      and ($evidence.valid_from_unix_ms <= $fixture.dispatch_time_unix_ms)
+                      and ($evidence.valid_until_unix_ms >= $fixture.dispatch_time_unix_ms)
+                      and ($evidence.valid_from_unix_ms <= $evidence.valid_until_unix_ms)
+                      and ($evidence.observed_at_unix_ms >= $evidence.valid_from_unix_ms)
+                      and ($evidence.observed_at_unix_ms <= $evidence.valid_until_unix_ms)
+                    )
+                  )
+                )
+                and all($fixture.missions[]; (keys | sort) == $mission_required)
+              )
+          ' tools/ev-passenger-cost-frontier/fixtures/battery_service_network_v0_1.json
           cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_carrier_lifecycle_screen -- \
             ev-carrier-module-factory-report.json \
             tools/ev-passenger-cost-frontier/fixtures/ev_carrier_lifecycle_v0_1.json \
