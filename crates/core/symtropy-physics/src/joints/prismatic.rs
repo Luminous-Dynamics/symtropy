@@ -632,6 +632,49 @@ mod tests {
         assert_eq!(b.angular_velocity, before_b);
     }
 
+    fn dynamic_with_full_inertia_4d(handle: usize) -> RigidBody<4> {
+        let mut matrix = vec![0.0; 36];
+        for index in 0..6 {
+            matrix[index * 6 + index] = 2.0 + index as f64;
+        }
+        matrix[3] = 0.2;
+        matrix[18] = 0.2;
+        let operator = crate::mass_properties::RotationalInertiaOperator::<4>::try_from_row_major(
+            matrix,
+        )
+        .expect("test 4D inertia operator must be SPD");
+        RigidBody::<4>::dynamic_sphere(BodyHandle(handle), Point::origin(), 0.2, 1.0)
+            .with_rotational_inertia_operator(operator)
+    }
+
+    #[test]
+    fn full_four_dimensional_operator_solves_all_six_planes() {
+        let mut a = dynamic_with_full_inertia_4d(0);
+        let mut b = dynamic_with_full_inertia_4d(1);
+        a.angular_velocity.set(0, 1, -0.1);
+        a.angular_velocity.set(0, 3, 0.2);
+        a.angular_velocity.set(1, 2, -0.3);
+        b.angular_velocity.set(0, 1, 0.6);
+        b.angular_velocity.set(0, 3, -0.4);
+        b.angular_velocity.set(1, 2, 0.5);
+        b.angular_velocity.set(1, 3, 0.3);
+        let before = b.angular_velocity.add(&a.angular_velocity.scale(-1.0));
+
+        let mut joint = PrismaticJoint::new(BodyHandle(0), BodyHandle(1), 0);
+        joint.stiffness = 0.5;
+        let outcome = joint.solve_angular_velocity_lock(&mut a, &mut b);
+        assert!(matches!(outcome, PrismaticAngularLockOutcome::Applied { .. }));
+        for i in 0..4 {
+            for j in (i + 1)..4 {
+                let after = b.angular_velocity.get(i, j) - a.angular_velocity.get(i, j);
+                assert!(
+                    (after - 0.5 * before.get(i, j)).abs() < 1.0e-9,
+                    "4D plane ({i},{j}) did not retain the declared 50% residual"
+                );
+            }
+        }
+    }
+
     #[test]
     fn higher_dimensional_mean_inertia_is_not_silently_admitted() {
         let mut a = RigidBody::<4>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.2, 1.0);
