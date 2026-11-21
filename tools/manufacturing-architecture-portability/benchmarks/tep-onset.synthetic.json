@@ -1,0 +1,181 @@
+{
+  "evaluation_horizon_ns": 60000000000,
+  "records": [
+    {
+      "run_id": "tep-fault-01",
+      "scenario_id": 1,
+      "detection_delay_ns": 30000000000,
+      "diagnosis": "correct",
+      "normal_false_alarm_count": 0,
+      "normal_exposure_ns": 0
+    },
+    {
+      "run_id": "tep-fault-02",
+      "scenario_id": 2,
+      "detection_delay_ns": 30000000000,
+      "diagnosis": "correct",
+      "normal_false_alarm_count": 0,
+      "normal_exposure_ns": 0
+    },
+    {
+      "run_id": "tep-fault-03",
+      "scenario_id": 3,
+      "detection_delay_ns": 30000000000,
+      "diagnosis": "safe_deferral",
+      "normal_false_alarm_count": 0,
+      "normal_exposure_ns": 0
+    },
+    {
+      "run_id": "tep-fault-04",
+      "scenario_id": 4,
+      "detection_delay_ns": 30000000000,
+      "diagnosis": "correct",
+      "normal_false_alarm_count": 0,
+      "normal_exposure_ns": 0
+    },
+    {
+      "run_id": "tep-fault-05",
+      "scenario_id": 5,
+      "detection_delay_ns": 30000000000,
+      "diagnosis": "correct",
+      "normal_false_alarm_count": 0,
+      "normal_exposure_ns": 0
+    },
+    {
+      "run_id": "tep-fault-06",
+      "scenario_id": 6,
+      "detection_delay_ns": 30000000000,
+      "diagnosis": "correct",
+      "normal_false_alarm_count": 0,
+      "normal_exposure_ns": 0
+    },
+    {
+      "run_id": "tep-fault-07",
+      "scenario_id": 7,
+      "detection_delay_ns": 30000000000,
+      "diagnosis": "correct",
+      "normal_false_alarm_count": 0,
+      "normal_exposure_ns": 0
+    },
+    {
+      "run_id": "tep-fault-08",
+      "scenario_id": 8,
+      "detection_delay_ns": 30000000000,
+      "diagnosis": "correct",
+      "normal_false_alarm_count": 0,
+      "normal_exposure_ns": 0
+    },
+    {
+      "run_id": "tep-fault-09",
+      "scenario_id": 9,
+      "detection_delay_ns": 30000000000,
+      "diagnosis": "safe_deferral",
+      "normal_false_alarm_count": 0,
+      "normal_exposure_ns": 0
+    },
+    {
+      "run_id": "tep-fault-10",
+      "scenario_id": 10,
+      "detection_delay_ns": 30000000000,
+      "diagnosis": "correct",
+      "normal_false_alarm_count": 0,
+      "normal_exposure_ns": 0
+    },
+    {
+      "run_id": "tep-fault-11",
+      "scenario_id": 11,
+      "detection_delay_ns": 30000000000,
+      "diagnosis": "correct",
+      "normal_false_alarm_count": 0,
+      "normal_exposure_ns": 0
+    },
+    {
+      "run_id": "tep-fault-12",
+      "scenario_id": 12,
+      "detection_delay_ns": 30000000000,
+      "diagnosis": "correct",
+      "normal_false_alarm_count": 0,
+      "normal_exposure_ns": 0
+    },
+    {
+      "run_id": "tep-fault-13",
+      "scenario_id": 13,
+      "detection_delay_ns": 30000000000,
+      "diagnosis": "correct",
+      "normal_false_alarm_count": 0,
+      "normal_exposure_ns": 0
+    },
+    {
+      "run_id": "tep-fault-14",
+      "scenario_id": 14,
+      "detection_delay_ns": 30000000000,
+      "diagnosis": "correct",
+      "normal_false_alarm_count": 0,
+      "normal_exposure_ns": 0
+    },
+    {
+      "run_id": "tep-fault-15",
+      "scenario_id": 15,
+      "detection_delay_ns": 30000000000,
+      "diagnosis": "confident_wrong",
+      "normal_false_alarm_count": 0,
+      "normal_exposure_ns": 0
+    },
+    {
+      "run_id": "tep-fault-16",
+      "scenario_id": 16,
+      "detection_delay_ns": 30000000000,
+      "diagnosis": "correct",
+      "normal_false_alarm_count": 0,
+      "normal_exposure_ns": 0
+    },
+    {
+      "run_id": "tep-fault-17",
+      "scenario_id": 17,
+      "detection_delay_ns": 30000000000,
+      "diagnosis": "correct",
+      "normal_false_alarm_count": 0,
+      "normal_exposure_ns": 0
+    },
+    {
+      "run_id": "tep-fault-18",
+      "scenario_id": 18,
+      "detection_delay_ns": 30000000000,
+      "diagnosis": "correct",
+      "normal_false_alarm_count": 0,
+      "normal_exposure_ns": 0
+    },
+    {
+      "run_id": "tep-fault-19",
+      "scenario_id": 19,
+      "detection_delay_ns": 30000000000,
+      "diagnosis": "correct",
+      "normal_false_alarm_count": 0,
+      "normal_exposure_ns": 0
+    },
+    {
+      "run_id": "tep-fault-20",
+      "scenario_id": 20,
+      "detection_delay_ns": 30000000000,
+      "diagnosis": "correct",
+      "normal_false_alarm_count": 0,
+      "normal_exposure_ns": 0
+    },
+    {
+      "run_id": "tep-fault-21",
+      "scenario_id": 21,
+      "detection_delay_ns": 30000000000,
+      "diagnosis": "correct",
+      "normal_false_alarm_count": 0,
+      "normal_exposure_ns": 0
+    },
+    {
+      "run_id": "tep-normal-01",
+      "scenario_id": null,
+      "detection_delay_ns": null,
+      "diagnosis": "not_applicable",
+      "normal_false_alarm_count": 2,
+      "normal_exposure_ns": 7200000000000
+    }
+  ]
+}
