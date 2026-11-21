@@ -149,6 +149,10 @@ pub fn evaluate_inspection_join(candidate: &Value) -> InspectionJoinEvaluation {
         text_at(candidate, "instrument_calibration_disposition") == Some("qualified_reference")
             && text_at(candidate, "calibration_attestation_id").is_some()
             && text_at(candidate, "calibration_attestation_sha256").is_some();
+    let uncertainty_reference_present =
+        text_at(candidate, "measurement_uncertainty_disposition") == Some("qualified_reference")
+            && text_at(candidate, "uncertainty_budget_id").is_some()
+            && text_at(candidate, "uncertainty_budget_sha256").is_some();
     let calibration_applies = if calibration_reference_present {
         let interval_valid = integer_at(candidate, "calibration_valid_from_ns")
             .zip(integer_at(candidate, "calibration_valid_until_ns"))
@@ -393,7 +397,7 @@ mod tests {
         actual["calibration_attestation_sha256"] =
             json!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
         let result = evaluate_inspection_join(&actual);
-        assert_eq!(result.metrology_reference_state, "partial_metrology_reference_set");
+        assert_eq!(result.metrology_reference_state, "partial_or_inapplicable_metrology_references");
         assert!(!result.physical_metrology_qualified);
     }
 
