@@ -37,7 +37,8 @@
       "expected_answer": "obs-ew1-same-instance",
       "required_observation_refs": [
         "obs-ew1-anchor",
-        "obs-ew1-same-instance"
+        "obs-ew1-same-instance",
+        "obs-ew1-lookalike"
       ]
     },
     {
@@ -91,7 +92,8 @@
       "required_observation_refs": [
         "obs-ew2-target-ada",
         "obs-ew2-target-bob",
-        "obs-ew2-target-cia"
+        "obs-ew2-target-cia",
+        "obs-ew2-lookalike-ada"
       ]
     },
     {
