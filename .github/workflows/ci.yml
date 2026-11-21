@@ -4,7 +4,8 @@ on:
   push:
     branches: [ "main", "stabilize/*" ]
   pull_request:
-    branches: [ "main" ]
+    # Keep dependent feature-branch PRs under the same strict CI suite.
+    branches: [ "main", "feat/*" ]
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -83,6 +84,12 @@ jobs:
     - name: Test Airborne Energy Observability Oracle
       if: ${{ hashFiles('tools/airborne-energy-observability-validator/Cargo.toml') != '' }}
       run: cargo test --locked -p airborne-energy-observability-validator
+
+    # The kitchen planner is a separately reviewed domain package. Run its
+    # complete unit/fixture suite whenever the package is present in the PR tree.
+    - name: Run Tests (Kitchen Planner)
+      if: ${{ hashFiles('crates/domains/symtropy-kitchen-planner/Cargo.toml') != '' }}
+      run: cargo test -p symtropy-kitchen-planner --all-targets
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
