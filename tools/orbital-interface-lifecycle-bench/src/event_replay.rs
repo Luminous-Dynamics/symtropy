@@ -174,9 +174,7 @@ fn expected_authority(kind: EventKind) -> &'static str {
         }
         EventKind::CycleCompleted => "service-event-source",
         EventKind::InspectionRecorded | EventKind::EnvironmentExposure => "metrology-authority",
-        EventKind::MaintenancePerformed | EventKind::ComponentReplaced => {
-            "maintenance-authority"
-        }
+        EventKind::MaintenancePerformed | EventKind::ComponentReplaced => "maintenance-authority",
         EventKind::ConfigurationChanged
         | EventKind::ProcedureChanged
         | EventKind::InterfaceChanged
@@ -303,12 +301,7 @@ fn decide(case: &EventCase) -> Decision {
     let mut ordered = BTreeMap::new();
     for event in unique {
         if ordered.insert(event.sequence, event).is_some() {
-            return Decision::new(
-                ReplayStatus::Disputed,
-                "sequence_fork",
-                0,
-                duplicate_count,
-            );
+            return Decision::new(ReplayStatus::Disputed, "sequence_fork", 0, duplicate_count);
         }
     }
 
@@ -375,7 +368,9 @@ fn decide(case: &EventCase) -> Decision {
             status = ReplayStatus::Qualified;
             reason = "qualification_stream_initialized";
         } else {
-            let previous_event = previous.as_ref().expect("previous event exists after index zero");
+            let previous_event = previous
+                .as_ref()
+                .expect("previous event exists after index zero");
             if event.previous_event_id.as_deref() != Some(previous_event.event_id.as_str()) {
                 return Decision::new(
                     ReplayStatus::Indeterminate,
@@ -497,7 +492,10 @@ fn decide(case: &EventCase) -> Decision {
                         || event.inspection_coverage_complete != Some(true)
                         || event.wear_within_limit != Some(true)
                         || event.uncertainty_clears_margin != Some(true)
-                        || event.raw_artifact_sha256.as_deref().is_none_or(|value| !valid_digest(value))
+                        || event
+                            .raw_artifact_sha256
+                            .as_deref()
+                            .is_none_or(|value| !valid_digest(value))
                     {
                         return Decision::new(
                             ReplayStatus::Indeterminate,
