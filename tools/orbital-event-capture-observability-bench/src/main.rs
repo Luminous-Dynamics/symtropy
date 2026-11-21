@@ -20,7 +20,9 @@ fn valid_commit(value: &str) -> bool {
 fn main() -> ExitCode {
     let mut args = env::args().skip(1);
     let Some(fixture_path) = args.next() else {
-        eprintln!("usage: orbital-event-capture-observability-bench <corpus.json> --source-commit <40-hex>");
+        eprintln!(
+            "usage: orbital-event-capture-observability-bench <corpus.json> --source-commit <40-hex>"
+        );
         return ExitCode::from(2);
     };
     let Some(flag) = args.next() else {
@@ -32,7 +34,9 @@ fn main() -> ExitCode {
         return ExitCode::from(2);
     };
     if flag != "--source-commit" || !valid_commit(&source_commit) || args.next().is_some() {
-        eprintln!("expected exactly --source-commit followed by 40 lowercase hexadecimal characters");
+        eprintln!(
+            "expected exactly --source-commit followed by 40 lowercase hexadecimal characters"
+        );
         return ExitCode::from(2);
     }
 
