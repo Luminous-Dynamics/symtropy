@@ -161,45 +161,45 @@ fn resolve_call(observation: &Observation) -> Result<ResolvedCall, String> {
                 Some(CensorReason::ReportingLag),
             )
         } else {
-        match observation.outcome {
-            Outcome::Censored => {
-                if observation.outcome_tick != observation.as_of_tick
-                    || observation.observed_tick != observation.as_of_tick
-                {
-                    return Err(format!(
-                        "censored call {:?} must be observed at its declared cutoff",
-                        observation.call_id
-                    ));
+            match observation.outcome {
+                Outcome::Censored => {
+                    if observation.outcome_tick != observation.as_of_tick
+                        || observation.observed_tick != observation.as_of_tick
+                    {
+                        return Err(format!(
+                            "censored call {:?} must be observed at its declared cutoff",
+                            observation.call_id
+                        ));
+                    }
+                    (
+                        Outcome::Censored,
+                        observation.as_of_tick,
+                        Some(CensorReason::Administrative),
+                    )
                 }
-                (
-                    Outcome::Censored,
-                    observation.as_of_tick,
-                    Some(CensorReason::Administrative),
-                )
+                outcome => {
+                    if observation.outcome_tick < observation.entry_tick {
+                        return Err(format!(
+                            "call {:?} outcome precedes queue entry",
+                            observation.call_id
+                        ));
+                    }
+                    if observation.outcome_tick > observation.as_of_tick {
+                        return Err(format!(
+                            "call {:?} has an outcome after its observation cutoff",
+                            observation.call_id
+                        ));
+                    }
+                    if observation.observed_tick < observation.outcome_tick {
+                        return Err(format!(
+                            "call {:?} outcome was observed before it occurred",
+                            observation.call_id
+                        ));
+                    }
+                    (outcome, observation.outcome_tick, None)
+                }
             }
-            outcome => {
-                if observation.outcome_tick < observation.entry_tick {
-                    return Err(format!(
-                        "call {:?} outcome precedes queue entry",
-                        observation.call_id
-                    ));
-                }
-                if observation.outcome_tick > observation.as_of_tick {
-                    return Err(format!(
-                        "call {:?} has an outcome after its observation cutoff",
-                        observation.call_id
-                    ));
-                }
-                if observation.observed_tick < observation.outcome_tick {
-                    return Err(format!(
-                        "call {:?} outcome was observed before it occurred",
-                        observation.call_id
-                    ));
-                }
-                (outcome, observation.outcome_tick, None)
-            }
-        }
-    };
+        };
 
     let duration = end_tick
         .checked_sub(observation.entry_tick)
