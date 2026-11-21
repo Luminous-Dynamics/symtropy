@@ -12,6 +12,7 @@ mod geometry;
 mod gcl;
 mod exchange_receipt;
 mod polynomial_moments;
+mod drag_dissipation;
 
 const EMBEDDED_ATLAS: &str =
     include_str!("../../../data/research/ehd_reference_atlas_v0_1.json");
@@ -27,6 +28,8 @@ const EMBEDDED_EXCHANGE_RECEIPT: &str =
     include_str!("../../../data/research/ehd_exchange_event_receipt_v0_1.json");
 const EMBEDDED_POLYNOMIAL_MOMENTS: &str =
     include_str!("../../../data/research/ehd_polynomial_moments_v0_1.json");
+const EMBEDDED_DRAG_DISSIPATION: &str =
+    include_str!("../../../data/research/ehd_drag_dissipation_v0_1.json");
 
 fn at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
     path.iter().try_fold(value, |node, key| node.get(*key))
@@ -1520,6 +1523,86 @@ pub fn audit_polynomial_moments_contract(root: &Value) -> Vec<String> {
     findings
 }
 
+/// Audit the constant-drift ion-neutral drag/dissipation contract. This is
+/// an analytic reference case, not a general collision or thermal model.
+pub fn audit_drag_dissipation_contract(root: &Value) -> Vec<String> {
+    let mut findings = Vec::new();
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["schema"]) == Some("luminous.ehd_drag_dissipation")
+            && text_at(root, &["schema_version"]) == Some("0.1.0")
+            && text_at(root, &["benchmark_id"]) == Some("EHD-DRAG-DISSIPATION-001")
+            && text_at(root, &["status"])
+                == Some("constant_drift_analytic_reference_authored_tests_rust_execution_pending"),
+        "DRAG_DISSIPATION_IDENTITY",
+        "drag/dissipation benchmark identity/version/status changed",
+    );
+    let closure = at(root, &["physical_closure"]);
+    push_if_missing(
+        &mut findings,
+        closure.is_some_and(|value| {
+            text_at(value, &["neutral_impulse"])
+                == Some("I_n = Gamma * relative_velocity")
+                && text_at(value, &["charged_reaction_impulse"])
+                    == Some("I_c = -I_n")
+                && text_at(value, &["integrated_frictional_heating"])
+                    .is_some_and(|expr| expr.contains("Gamma*|relative_velocity|^2")
+                        && expr.contains(">= 0"))
+        }),
+        "DRAG_DISSIPATION_PHYSICS",
+        "drag impulse, equal-opposite reaction and non-negative frictional heating identity must remain explicit",
+    );
+    let implementation = at(root, &["reference_implementation"]);
+    push_if_missing(
+        &mut findings,
+        implementation.is_some_and(|value| {
+            text_at(value, &["path"]) == Some("tools/ehd-reference-audit/src/drag_dissipation.rs")
+                && text_at(value, &["motion"])
+                    == Some("constant_relative_velocity_over_event_space_time_slab")
+                && text_at(value, &["summation"])
+                    == Some("event_id_ordered_compensated_summation")
+                && at(value, &["checks"]).and_then(Value::as_array)
+                    .is_some_and(|checks| checks.iter().any(|item| item.as_str() == Some("impulse_work_is_nonnegative"))
+                        && checks.iter().any(|item| item.as_str() == Some("impulse_work_matches_predicted_frictional_heating")))
+        }),
+        "DRAG_DISSIPATION_SCOPE",
+        "reference implementation must retain constant-drift scope, deterministic summation and energy-sign checks",
+    );
+    let tests = at(root, &["test_families"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        tests.is_some_and(|rows| rows.len() == 10
+            && rows.iter().any(|item| item.as_str() == Some("anti_drag_impulse_rejected"))
+            && rows.iter().any(|item| item.as_str() == Some("negative_frictional_work_rejected_even_with_relaxed_impulse_tolerance"))
+            && rows.iter().any(|item| item.as_str() == Some("equal_opposite_wrong_magnitude_rejected"))),
+        "DRAG_DISSIPATION_TESTS",
+        "nine analytic and adversarial drag/dissipation test families must remain declared",
+    );
+    push_if_missing(
+        &mut findings,
+        at(root, &["acceptance", "universal_numeric_tolerance"]).is_some_and(Value::is_null)
+            && at(root, &["acceptance", "per_event_momentum_and_energy_checks_required"])
+                .and_then(Value::as_bool) == Some(true)
+            && at(root, &["acceptance", "relative_velocity_constant_within_event_required"])
+                .and_then(Value::as_bool) == Some(true),
+        "DRAG_DISSIPATION_ACCEPTANCE",
+        "case-specific per-event momentum/energy tolerances and constant-drift scope are mandatory",
+    );
+    let limits = at(root, &["limitations"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        limits.is_some_and(|rows| rows.iter().any(|item| item.as_str() == Some("constant_relative_velocity_only"))
+            && rows.iter().any(|item| item.as_str() == Some("no_thermal_partition_between_species"))
+            && rows.iter().any(|item| item.as_str() == Some("no_full_fluid_or_plasma_equations")))
+            && text_at(root, &["claim_ceiling"])
+                .is_some_and(|claim| claim.contains("constant-drift analytic drag/dissipation oracle only")
+                    && claim.contains("No general time-varying")),
+        "DRAG_DISSIPATION_CLAIM_BOUNDARY",
+        "constant-drift oracle must not be promoted to a general collision/thermal solver",
+    );
+    findings
+}
+
 fn main() {
     let mut args = env::args().skip(1);
     let path = args.next();
@@ -1596,6 +1679,14 @@ fn main() {
         }
     };
     findings.extend(audit_polynomial_moments_contract(&polynomial_moments_contract));
+    let drag_dissipation_contract: Value = match serde_json::from_str(EMBEDDED_DRAG_DISSIPATION) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("invalid embedded drag-dissipation contract JSON: {error}");
+            process::exit(2);
+        }
+    };
+    findings.extend(audit_drag_dissipation_contract(&drag_dissipation_contract));
     let exchange_kernel_ok = match exchange::reference_self_check() {
         Ok(()) => true,
         Err(error) => {
@@ -1631,6 +1722,13 @@ fn main() {
             false
         }
     };
+    let drag_dissipation_ok = match drag_dissipation::reference_self_check() {
+        Ok(()) => true,
+        Err(error) => {
+            findings.push(format!("DRAG_DISSIPATION_SELF_CHECK: {error}"));
+            false
+        }
+    };
     if findings.is_empty() {
         let count = len_at(&atlas, &["source_records"]).unwrap_or(0);
         let system_count = len_at(&atlas, &["system_integration_references"]).unwrap_or(0);
@@ -1656,7 +1754,10 @@ fn main() {
         if polynomial_moments_ok {
             println!("P0/P1/P2 exact polynomial-moment integration self-check: passed");
         }
-        println!("scope: source structure and analytic reference checks only; no physical V&V, production ALE, TPE(1/2) or durable exactly-once claim");
+        if drag_dissipation_ok {
+            println!("constant-drift ion-neutral drag dissipation self-check: passed");
+        }
+        println!("scope: source structure and analytic reference checks only; no physical V&V, production ALE, TPE(1/2), general collision heating or durable exactly-once claim");
     } else {
         eprintln!("FAIL: {label} ({} finding(s))", findings.len());
         for finding in findings {
@@ -2153,6 +2254,36 @@ mod polynomial_moment_contract_tests {
         value["acceptance"]["per_destination_integral_checked"] = Value::Bool(false);
         assert!(audit_polynomial_moments_contract(&value).iter().any(|finding| {
             finding.starts_with("POLY_MOMENT_ACCEPTANCE")
+        }));
+    }
+}
+
+#[cfg(test)]
+mod drag_dissipation_contract_tests {
+    use super::*;
+
+    #[test]
+    fn constant_drift_drag_dissipation_contract_passes() {
+        let value: Value = serde_json::from_str(EMBEDDED_DRAG_DISSIPATION)
+            .expect("embedded drag-dissipation contract must be valid JSON");
+        assert!(audit_drag_dissipation_contract(&value).is_empty());
+    }
+
+    #[test]
+    fn drag_dissipation_contract_rejects_time_varying_claim_without_quadrature() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_DRAG_DISSIPATION).unwrap();
+        value["limitations"] = Value::Array(Vec::new());
+        assert!(audit_drag_dissipation_contract(&value).iter().any(|finding| {
+            finding.starts_with("DRAG_DISSIPATION_CLAIM_BOUNDARY")
+        }));
+    }
+
+    #[test]
+    fn drag_dissipation_contract_requires_event_level_energy_checks() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_DRAG_DISSIPATION).unwrap();
+        value["acceptance"]["per_event_momentum_and_energy_checks_required"] = Value::Bool(false);
+        assert!(audit_drag_dissipation_contract(&value).iter().any(|finding| {
+            finding.starts_with("DRAG_DISSIPATION_ACCEPTANCE")
         }));
     }
 }
