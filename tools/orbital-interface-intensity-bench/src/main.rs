@@ -18,13 +18,14 @@ fn sha256_hex(bytes: &[u8]) -> String {
 fn run() -> Result<ExitCode, String> {
     let mut args = env::args().skip(1);
     let fixture_path = args.next().ok_or_else(|| {
-        "usage: orbital-interface-intensity <cases.json> --source-commit <40-hex-sha>"
-            .to_owned()
+        "usage: orbital-interface-intensity <cases.json> --source-commit <40-hex-sha>".to_owned()
     })?;
     if args.next().as_deref() != Some("--source-commit") {
         return Err("expected --source-commit".to_owned());
     }
-    let source_commit = args.next().ok_or_else(|| "missing source commit value".to_owned())?;
+    let source_commit = args
+        .next()
+        .ok_or_else(|| "missing source commit value".to_owned())?;
     if source_commit.len() != 40
         || !source_commit
             .bytes()
