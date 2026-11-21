@@ -27,13 +27,19 @@ jobs:
       - name: Checkout exact M1 reference
         uses: actions/checkout@v4
         with:
-          ref: 03c43fa531174f02348edccb55f745ae49382318
+          ref: 769522d2b1e28194eb6d8a48418f9feccc53b926
           path: m1-src
       - name: Checkout exact M2 contract
         uses: actions/checkout@v4
         with:
           ref: 884bcfbd4474b31ed395fbedf63f0a4091eefa14
           path: m2-src
+      - name: Checkout exact Mycelix Position API
+        uses: actions/checkout@v4
+        with:
+          repository: Luminous-Dynamics/mycelix
+          ref: fb92acb62c3b2b9c040de8ebc34fe371f4efd8a7
+          path: mycelix-src
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: 1.96.0
