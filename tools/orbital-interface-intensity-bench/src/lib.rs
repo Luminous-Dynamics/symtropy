@@ -266,23 +266,30 @@ pub fn failure_intensity_upper_bound(
     Ok(mean_upper / exposure_hours * 1_000_000.0)
 }
 
-/// Required exposure for a zero-event upper bound to meet a target intensity.
-pub fn minimum_zero_failure_exposure_hours(
+/// Required exposure for an upper bound to meet a target intensity when up to
+/// maximum_failures events are observed.
+pub fn minimum_exposure_hours_for_maximum_failures(
+    maximum_failures: u64,
     target_per_million_hours: f64,
     confidence: f64,
 ) -> Result<f64, String> {
     if !target_per_million_hours.is_finite() || target_per_million_hours <= 0.0 {
         return Err("target intensity must be finite and positive".to_owned());
     }
-    if !(confidence.is_finite() && 0.0 < confidence && confidence < 1.0) {
-        return Err("confidence must be finite and strictly between zero and one".to_owned());
-    }
-    let alpha = 1.0 - confidence;
-    let exposure = -alpha.ln() * 1_000_000.0 / target_per_million_hours;
+    let mean_upper = poisson_mean_upper_bound(maximum_failures, confidence)?;
+    let exposure = mean_upper * 1_000_000.0 / target_per_million_hours;
     if !exposure.is_finite() || exposure <= 0.0 {
         return Err("required exposure is outside the v0.1 numeric range".to_owned());
     }
     Ok(exposure)
+}
+
+/// Zero-failure special case retained as an explicit convenience function.
+pub fn minimum_zero_failure_exposure_hours(
+    target_per_million_hours: f64,
+    confidence: f64,
+) -> Result<f64, String> {
+    minimum_exposure_hours_for_maximum_failures(0, target_per_million_hours, confidence)
 }
 
 fn evaluate_case(case: &IntensityCase) -> Result<Decision, String> {
@@ -636,6 +643,26 @@ mod tests {
     fn zero_failure_exposure_known_answer() {
         let hours = minimum_zero_failure_exposure_hours(100.0, 0.90).expect("valid input");
         assert!((hours - 23_025.850_929_940_46).abs() < 1e-8);
+    }
+
+    #[test]
+    fn one_allowed_failure_requires_more_exposure_than_zero_failures() {
+        let zero = minimum_exposure_hours_for_maximum_failures(0, 100.0, 0.90)
+            .expect("valid zero-failure design");
+        let one = minimum_exposure_hours_for_maximum_failures(1, 100.0, 0.90)
+            .expect("valid one-failure design");
+        assert!((one - 38_897.201_698_674_29).abs() < 1e-7);
+        assert!(one > zero);
+    }
+
+    #[test]
+    fn exposure_sizing_rejects_excessive_failure_count() {
+        assert!(minimum_exposure_hours_for_maximum_failures(
+            MAX_FAILURE_EVENTS + 1,
+            100.0,
+            0.90
+        )
+        .is_err());
     }
 
     #[test]
