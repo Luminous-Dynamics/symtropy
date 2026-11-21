@@ -85,7 +85,7 @@
     "model_form": "F = f(u, geometry, gas_state, pressure, temperature, humidity, freestream, discharge_state)",
     "optional_local_linearization": "delta_F = J(configuration, operating_point) * delta_u",
     "linearity_scope": "A local linearization is valid only in an empirically identified envelope. It must not be extrapolated across corona onset/extinction, mode transitions, actuator saturation, materially changed flow topology, or geometry families without new qualification.",
-    "isolated_cell_additivity_is_default": "false",
+    "isolated_cell_additivity_is_default": false,
     "required_model_outputs": [
       "predicted_force_vector_n",
       "prediction_covariance_n2",
