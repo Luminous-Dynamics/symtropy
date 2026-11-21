@@ -31,3 +31,14 @@ Run the standalone crate's 3D demonstration with Cargo using binary name observa
 - later extension to 6D pose and 15-state inertial error-state observability, only where the state/measurement model is explicitly derived.
 
 The 3D FIM output is not itself a protection level or calibrated covariance. Source independence and common-mode errors still need the correlated covariance model and held-out audit.
+
+
+## Shared-error 3D extension
+
+The companion `correlated_3d.rs` uses an explicit measurement covariance:
+
+`R = diag(private_sigma²) + Σ_g tau_g² 1_g 1_gᵀ`
+
+It computes `J = Hᵀ R⁻¹ H` using Cholesky solves and the full 3D line-of-sight vectors. It does not turn group labels into an arbitrary correlation coefficient; one declared latent scalar error is shared by the members of that group, and inconsistent sigmas fail closed. Its six tests cover duplicated common-mode precision, off-diagonal cross-axis information, planar rank loss, permutation invariance, malformed shared-error declarations and budgeted vertical-coverage selection.
+
+Run the correlated example with the isolated crate's `correlated_3d_demo` binary. This is still a narrow local linearized range model: it does not cover multiple latent factors per source, anisotropic vector errors, time-varying correlation, or general pairwise 3D covariance scenarios.
