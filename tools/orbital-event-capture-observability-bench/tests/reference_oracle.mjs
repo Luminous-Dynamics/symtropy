@@ -16,7 +16,9 @@ function validScope(scope) {
 }
 
 function sameScope(left, right) {
-  return JSON.stringify(left) === JSON.stringify(right);
+  const fields = ["sensor_id", "firmware_sha256", "acquisition_config_sha256",
+    "event_class", "operating_mode_id", "environment_id"];
+  return fields.every((field) => left[field] === right[field]);
 }
 
 function zeroMissUpper95(n) {
@@ -77,7 +79,8 @@ function evaluateCase(c) {
 
   const measured = c.clock.measured_max_error_ticks;
   if (!c.clock.synchronized || !c.clock.monotonic || !Number.isSafeInteger(measured)
-      || measured < 0 || measured > c.clock.allowed_max_error_ticks) {
+      || measured < 0 || !Number.isSafeInteger(c.clock.allowed_max_error_ticks)
+      || measured > c.clock.allowed_max_error_ticks) {
     return blocked("indeterminate", "clock_integrity_or_error_bound_not_established");
   }
 
@@ -95,7 +98,8 @@ function evaluateCase(c) {
   let priorSeq = null;
   let priorTime = null;
   for (const event of references) {
-    if (!event.event_id || !sha256(event.payload_sha256) || referenceById.has(event.event_id)) {
+    if (!event.event_id || !sha256(event.payload_sha256) || !Number.isSafeInteger(event.sequence)
+        || !Number.isSafeInteger(event.time_ticks) || referenceById.has(event.event_id)) {
       return blocked("rejected", "independent_reference_event_stream_invalid");
     }
     if ((priorSeq !== null && (priorSeq >= Number.MAX_SAFE_INTEGER || event.sequence !== priorSeq + 1))
@@ -120,7 +124,7 @@ function evaluateCase(c) {
 
   for (const observed of c.observed_events) {
     if (!observed.record_id || !observed.reference_event_id || !sha256(observed.payload_sha256)
-        || recordIds.has(observed.record_id)) {
+        || !Number.isSafeInteger(observed.time_ticks) || recordIds.has(observed.record_id)) {
       const result = blocked("disputed", "duplicate_record_identity_or_malformed_observation");
       return result;
     }
