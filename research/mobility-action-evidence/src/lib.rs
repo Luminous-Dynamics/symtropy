@@ -7,6 +7,8 @@
 //! commands, authenticate identities, compute commitments, estimate position,
 //! prove sensor independence, or provide runtime-assurance authority.
 
+pub mod protocol_semantics;
+
 use std::fmt;
 
 /// Opaque digest supplied by an upstream canonicalization/cryptographic owner.
