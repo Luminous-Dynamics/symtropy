@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "ego-witness-spatial-memory-v0",
+  "status": "synthetic reference known-answer contracts; no model or external media result",
+  "episodes": [
+    {
+      "episode_id": "ew-001-cross-day-instance-reidentification",
+      "expected_answer": "obs-ew1-same-instance",
+      "required_observation_refs": [
+        "obs-ew1-anchor",
+        "obs-ew1-same-instance"
+      ]
+    },
+    {
+      "episode_id": "ew-002-last-seen-wearer-attribution",
+      "expected_answer": "wearer-cia|obs-ew2-target-cia",
+      "required_observation_refs": [
+        "obs-ew2-target-ada",
+        "obs-ew2-target-bob",
+        "obs-ew2-target-cia"
+      ]
+    },
+    {
+      "episode_id": "ew-003-room-anchor-identity",
+      "expected_answer": "obs-ew3-room-living-a|obs-ew3-room-living-b",
+      "required_observation_refs": [
+        "obs-ew3-room-living-a",
+        "obs-ew3-room-living-b",
+        "obs-ew3-room-kitchen"
+      ]
+    },
+    {
+      "episode_id": "ew-004-same-category-distinct-instances",
+      "expected_answer": "different_instances|obs-ew4-toolbox-a-return",
+      "required_observation_refs": [
+        "obs-ew4-toolbox-a",
+        "obs-ew4-toolbox-b",
+        "obs-ew4-toolbox-a-return"
+      ]
+    }
+  ]
+}
