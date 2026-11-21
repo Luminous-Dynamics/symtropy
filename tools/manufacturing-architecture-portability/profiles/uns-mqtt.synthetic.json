@@ -81,7 +81,8 @@
         "claim_ceiling": [
           "Synthetic topic and event semantics only; no MQTT broker, client, vendor endpoint, delivery guarantee, security configuration or protocol conformance has been tested."
         ]
-      }
+      },
+      "intelligence_scope": "asset"
     }
   ],
   "input_contract": {
