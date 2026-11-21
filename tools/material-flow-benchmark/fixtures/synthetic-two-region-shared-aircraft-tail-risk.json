@@ -1,0 +1,189 @@
+{
+  "schema_version": 1,
+  "scenario_set_id": "two-region-shared-aircraft-tail-risk-v1",
+  "period_count": 3,
+  "initial_aircraft_region_id": "urban",
+  "maximum_aircraft_energy_units": 20,
+  "initial_aircraft_energy_units": 16,
+  "protected_energy_reserve_units": 4,
+  "energy_units_per_aerial_delivery": 2,
+  "recharge_energy_units_per_idle_period": 8,
+  "aircraft_idle_cost_per_period": 0,
+  "regions": [
+    {
+      "region_id": "urban",
+      "road_capacity_units": 2,
+      "aerial_service_capacity_units": 3,
+      "road_cost_per_unit": 20,
+      "aerial_cost_per_unit": 10,
+      "unserved_penalty_per_unit": 20
+    },
+    {
+      "region_id": "rural",
+      "road_capacity_units": 1,
+      "aerial_service_capacity_units": 4,
+      "road_cost_per_unit": 1,
+      "aerial_cost_per_unit": 10,
+      "unserved_penalty_per_unit": 50
+    }
+  ],
+  "reposition_links": [
+    {
+      "from_region_id": "urban",
+      "to_region_id": "rural",
+      "travel_periods": 1,
+      "energy_units": 4,
+      "cost_units": 3,
+      "evidence_status": "fresh_in_domain",
+      "evidence_reference": "synthetic://reposition/urban-rural"
+    },
+    {
+      "from_region_id": "rural",
+      "to_region_id": "urban",
+      "travel_periods": 1,
+      "energy_units": 4,
+      "cost_units": 3,
+      "evidence_status": "fresh_in_domain",
+      "evidence_reference": "synthetic://reposition/rural-urban"
+    }
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "normal",
+      "probability_bps": 9500,
+      "periods": [
+        {
+          "observations": [
+            {
+              "region_id": "urban",
+              "demand_units": 4,
+              "weather": "clear_fresh",
+              "weather_evidence_reference": "synthetic://weather/shared-initial/period-0/urban",
+              "permission": "approved_fresh",
+              "permission_evidence_reference": "synthetic://permission/shared-initial/period-0/urban"
+            },
+            {
+              "region_id": "rural",
+              "demand_units": 2,
+              "weather": "clear_fresh",
+              "weather_evidence_reference": "synthetic://weather/shared-initial/period-0/rural",
+              "permission": "approved_fresh",
+              "permission_evidence_reference": "synthetic://permission/shared-initial/period-0/rural"
+            }
+          ]
+        },
+        {
+          "observations": [
+            {
+              "region_id": "urban",
+              "demand_units": 8,
+              "weather": "clear_fresh",
+              "weather_evidence_reference": "synthetic://weather/normal/period-1/urban",
+              "permission": "approved_fresh",
+              "permission_evidence_reference": "synthetic://permission/normal/period-1/urban"
+            },
+            {
+              "region_id": "rural",
+              "demand_units": 2,
+              "weather": "clear_fresh",
+              "weather_evidence_reference": "synthetic://weather/normal/period-1/rural",
+              "permission": "approved_fresh",
+              "permission_evidence_reference": "synthetic://permission/normal/period-1/rural"
+            }
+          ]
+        },
+        {
+          "observations": [
+            {
+              "region_id": "urban",
+              "demand_units": 8,
+              "weather": "clear_fresh",
+              "weather_evidence_reference": "synthetic://weather/normal/period-2/urban",
+              "permission": "approved_fresh",
+              "permission_evidence_reference": "synthetic://permission/normal/period-2/urban"
+            },
+            {
+              "region_id": "rural",
+              "demand_units": 2,
+              "weather": "clear_fresh",
+              "weather_evidence_reference": "synthetic://weather/normal/period-2/rural",
+              "permission": "approved_fresh",
+              "permission_evidence_reference": "synthetic://permission/normal/period-2/rural"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "scenario_id": "rare-rural-demand-spike",
+      "probability_bps": 500,
+      "periods": [
+        {
+          "observations": [
+            {
+              "region_id": "urban",
+              "demand_units": 4,
+              "weather": "clear_fresh",
+              "weather_evidence_reference": "synthetic://weather/shared-initial/period-0/urban",
+              "permission": "approved_fresh",
+              "permission_evidence_reference": "synthetic://permission/shared-initial/period-0/urban"
+            },
+            {
+              "region_id": "rural",
+              "demand_units": 2,
+              "weather": "clear_fresh",
+              "weather_evidence_reference": "synthetic://weather/shared-initial/period-0/rural",
+              "permission": "approved_fresh",
+              "permission_evidence_reference": "synthetic://permission/shared-initial/period-0/rural"
+            }
+          ]
+        },
+        {
+          "observations": [
+            {
+              "region_id": "urban",
+              "demand_units": 2,
+              "weather": "clear_fresh",
+              "weather_evidence_reference": "synthetic://weather/rare-rural-demand-spike/period-1/urban",
+              "permission": "approved_fresh",
+              "permission_evidence_reference": "synthetic://permission/rare-rural-demand-spike/period-1/urban"
+            },
+            {
+              "region_id": "rural",
+              "demand_units": 12,
+              "weather": "clear_fresh",
+              "weather_evidence_reference": "synthetic://weather/rare-rural-demand-spike/period-1/rural",
+              "permission": "approved_fresh",
+              "permission_evidence_reference": "synthetic://permission/rare-rural-demand-spike/period-1/rural"
+            }
+          ]
+        },
+        {
+          "observations": [
+            {
+              "region_id": "urban",
+              "demand_units": 2,
+              "weather": "clear_fresh",
+              "weather_evidence_reference": "synthetic://weather/rare-rural-demand-spike/period-2/urban",
+              "permission": "approved_fresh",
+              "permission_evidence_reference": "synthetic://permission/rare-rural-demand-spike/period-2/urban"
+            },
+            {
+              "region_id": "rural",
+              "demand_units": 12,
+              "weather": "clear_fresh",
+              "weather_evidence_reference": "synthetic://weather/rare-rural-demand-spike/period-2/rural",
+              "permission": "approved_fresh",
+              "permission_evidence_reference": "synthetic://permission/rare-rural-demand-spike/period-2/rural"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "probability_basis": "synthetic_fixture",
+  "probability_evidence_reference": "synthetic://scenario-weights/two-region-shared-aircraft-tail-risk-v1",
+  "calibration_report_sha256": null,
+  "held_out_window_reference": null,
+  "stress_scenarios": []
+}

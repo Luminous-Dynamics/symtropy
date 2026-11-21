@@ -1,0 +1,2112 @@
+// Copyright (C) 2024-2026 Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+//! Exact small-instance shared-aircraft repositioning and allocation oracle.
+//! One aircraft is shared by multiple regions. It cannot teleport, spend its
+//! protected energy reserve, or dispatch under stale/unknown weather or permission.
+
+use std::collections::{BTreeMap, BTreeSet};
+
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+
+use crate::mode_options::{PermissionState, WeatherState};
+
+pub const SHARED_FLEET_SCHEMA_VERSION: u16 = 1;
+pub const SHARED_FLEET_PROBABILITY_BPS: u32 = 10_000;
+pub const MAX_SHARED_REGIONS: usize = 3;
+pub const MAX_SHARED_PERIODS: usize = 6;
+pub const MAX_SHARED_SCENARIOS: usize = 8;
+pub const MAX_SHARED_STRESS_SCENARIOS: usize = 8;
+pub const MAX_SHARED_POLICY_NODES: usize = 10;
+pub const MAX_SHARED_POLICY_COUNT: u64 = 1_048_576;
+pub const SHARED_CVAR_TAIL_PROBABILITY_BPS: u32 = 1_000;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SharedFleetStressScenario {
+    /// Stress scenarios have no probability weight by design.
+    pub scenario_id: String,
+    pub periods: Vec<SharedFleetPeriod>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SharedEvidenceStatus {
+    FreshInDomain,
+    Unknown,
+    Stale,
+    Conflicted,
+    Revoked,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SharedFleetRegion {
+    pub region_id: String,
+    pub road_capacity_units: u32,
+    pub aerial_service_capacity_units: u32,
+    pub road_cost_per_unit: u64,
+    pub aerial_cost_per_unit: u64,
+    pub unserved_penalty_per_unit: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SharedFleetObservation {
+    pub region_id: String,
+    pub demand_units: u32,
+    pub weather: WeatherState,
+    pub weather_evidence_reference: String,
+    pub permission: PermissionState,
+    pub permission_evidence_reference: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SharedFleetPeriod {
+    pub observations: Vec<SharedFleetObservation>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SharedFleetScenario {
+    pub scenario_id: String,
+    pub probability_bps: u16,
+    pub periods: Vec<SharedFleetPeriod>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SharedRepositionLink {
+    pub from_region_id: String,
+    pub to_region_id: String,
+    /// v0.1 uses one discrete period per cross-region reposition. Longer routes
+    /// require the explicit in-transit weather/permission state planned for v0.2.
+    pub travel_periods: u16,
+    pub energy_units: u64,
+    pub cost_units: u64,
+    pub evidence_status: SharedEvidenceStatus,
+    pub evidence_reference: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ScenarioProbabilityBasis {
+    SyntheticFixture,
+    UncalibratedEstimate,
+    CalibratedOutOfSample,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SharedFleetInput {
+    pub schema_version: u16,
+    pub scenario_set_id: String,
+    pub probability_basis: ScenarioProbabilityBasis,
+    pub probability_evidence_reference: String,
+    pub calibration_report_sha256: Option<String>,
+    pub held_out_window_reference: Option<String>,
+    pub period_count: u16,
+    pub initial_aircraft_region_id: String,
+    pub maximum_aircraft_energy_units: u64,
+    pub initial_aircraft_energy_units: u64,
+    pub protected_energy_reserve_units: u64,
+    pub energy_units_per_aerial_delivery: u64,
+    pub recharge_energy_units_per_idle_period: u64,
+    pub aircraft_idle_cost_per_period: u64,
+    pub regions: Vec<SharedFleetRegion>,
+    pub reposition_links: Vec<SharedRepositionLink>,
+    /// Probabilistic scenarios; probabilities must sum to 10,000 basis points.
+    pub scenarios: Vec<SharedFleetScenario>,
+    /// Unweighted adversarial/stress trajectories; excluded from expectation and CVaR.
+    pub stress_scenarios: Vec<SharedFleetStressScenario>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct SharedDecisionKey {
+    period_index: u16,
+    observed_history_digest_sha256: String,
+}
+
+#[derive(Debug, Clone)]
+struct SharedDecisionNode {
+    key: SharedDecisionKey,
+}
+
+trait SharedFleetScenarioPath {
+    fn periods(&self) -> &[SharedFleetPeriod];
+}
+
+impl SharedFleetScenarioPath for SharedFleetScenario {
+    fn periods(&self) -> &[SharedFleetPeriod] {
+        &self.periods
+    }
+}
+
+impl SharedFleetScenarioPath for SharedFleetStressScenario {
+    fn periods(&self) -> &[SharedFleetPeriod] {
+        &self.periods
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+struct ScenarioMetrics {
+    total_cost: u128,
+    road_deliveries: u128,
+    aerial_deliveries: u128,
+    unserved_units: u128,
+    aerial_energy_units: u128,
+    reposition_energy_units: u128,
+    reposition_cost_units: u128,
+    repositioning_periods: u128,
+    repositioning_events: u128,
+    idle_recharge_energy_units: u128,
+    idle_periods: u128,
+    hard_gate_blocked_actions: u128,
+    energy_blocked_actions: u128,
+    end_energy_units: u128,
+}
+
+#[derive(Debug, Clone, Default)]
+struct WeightedMetrics {
+    total_cost: u128,
+    road_deliveries: u128,
+    aerial_deliveries: u128,
+    unserved_units: u128,
+    aerial_energy_units: u128,
+    reposition_energy_units: u128,
+    reposition_cost_units: u128,
+    repositioning_periods: u128,
+    repositioning_events: u128,
+    idle_recharge_energy_units: u128,
+    idle_periods: u128,
+    hard_gate_blocked_actions: u128,
+    energy_blocked_actions: u128,
+    end_energy_units: u128,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct SharedFleetOutcome {
+    pub expected_total_cost_units: u64,
+    pub cvar90_total_cost_units: u64,
+    pub worst_case_total_cost_units: u64,
+    pub cvar90_unserved_units: u64,
+    pub worst_case_unserved_units: u64,
+    pub worst_stress_case_total_cost_units: Option<u64>,
+    pub worst_stress_case_unserved_units: Option<u64>,
+    pub expected_road_deliveries: u64,
+    pub expected_aerial_deliveries: u64,
+    pub expected_unserved_units: u64,
+    pub expected_aerial_energy_units: u64,
+    pub expected_reposition_energy_units: u64,
+    pub expected_reposition_cost_units: u64,
+    pub expected_repositioning_periods: u64,
+    pub expected_repositioning_events: u64,
+    pub expected_idle_recharge_energy_units: u64,
+    pub expected_idle_periods: u64,
+    pub expected_hard_gate_blocked_actions: u64,
+    pub expected_energy_blocked_actions: u64,
+    pub expected_end_energy_units: u64,
+    pub unauthorized_aerial_dispatches: u64,
+    pub protected_reserve_violations: u64,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct SharedFleetDecision {
+    pub period_index: u16,
+    pub observed_history_digest_sha256: String,
+    pub target_region_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct SharedFleetReport {
+    pub schema_version: u16,
+    pub scenario_set_id: String,
+    pub input_digest_sha256: String,
+    pub probability_basis: ScenarioProbabilityBasis,
+    pub probability_evidence_reference: String,
+    pub calibration_report_sha256: Option<String>,
+    pub held_out_window_reference: Option<String>,
+    pub risk_claim_ceiling: String,
+    pub region_count: usize,
+    pub period_count: usize,
+    pub scenario_count: usize,
+    pub stress_scenario_count: usize,
+    pub nonanticipative_policy_node_count: usize,
+    pub exact_policy_count_evaluated: u64,
+    /// Policy minimizing expected total cost.
+    pub optimized_policy: SharedFleetOutcome,
+    pub optimized_decisions: Vec<SharedFleetDecision>,
+    /// Policy minimizing expected cost in the worst 10% probability tail.
+    pub cvar90_optimal_policy: SharedFleetOutcome,
+    pub cvar90_optimal_decisions: Vec<SharedFleetDecision>,
+    /// Policy minimizing the maximum scenario cost.
+    pub worst_case_optimal_policy: SharedFleetOutcome,
+    pub worst_case_optimal_decisions: Vec<SharedFleetDecision>,
+    /// Policy minimizing the maximum unserved units in any supplied scenario.
+    pub service_robust_optimal_policy: SharedFleetOutcome,
+    pub service_robust_optimal_decisions: Vec<SharedFleetDecision>,
+    pub truck_only_baseline: SharedFleetOutcome,
+    pub fixed_initial_region_baseline: SharedFleetOutcome,
+    pub physical_dispatch_authorized: bool,
+    pub dispatch_commands_emitted: bool,
+    pub claim_ceiling: String,
+}
+
+fn flight_domain_is_current(weather: WeatherState, permission: PermissionState) -> bool {
+    matches!(weather, WeatherState::ClearFresh)
+        && matches!(permission, PermissionState::ApprovedFresh)
+}
+
+fn checked_add(target: &mut u128, value: u128, label: &str) -> Result<(), String> {
+    *target = target
+        .checked_add(value)
+        .ok_or_else(|| format!("{label} accumulator overflow"))?;
+    Ok(())
+}
+
+fn weighted_average(value: u128, label: &str) -> Result<u64, String> {
+    let rounded = value
+        .checked_add(u128::from(SHARED_FLEET_PROBABILITY_BPS / 2))
+        .ok_or_else(|| format!("{label} rounding overflow"))?
+        / u128::from(SHARED_FLEET_PROBABILITY_BPS);
+    u64::try_from(rounded).map_err(|_| format!("{label} exceeds report range"))
+}
+
+fn canonicalize(input: &SharedFleetInput) -> SharedFleetInput {
+    let mut canonical = input.clone();
+    canonical
+        .regions
+        .sort_by(|left, right| left.region_id.cmp(&right.region_id));
+    canonical.reposition_links.sort_by(|left, right| {
+        (&left.from_region_id, &left.to_region_id)
+            .cmp(&(&right.from_region_id, &right.to_region_id))
+    });
+    canonical
+        .scenarios
+        .sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
+    for scenario in &mut canonical.scenarios {
+        for period in &mut scenario.periods {
+            period
+                .observations
+                .sort_by(|left, right| left.region_id.cmp(&right.region_id));
+        }
+    }
+    canonical
+}
+
+fn canonical_input_digest(input: &SharedFleetInput) -> Result<String, String> {
+    let canonical = canonicalize(input);
+    let encoded = serde_json::to_vec(&canonical)
+        .map_err(|error| format!("cannot serialize canonical shared-fleet input: {error}"))?;
+    Ok(format!("{:x}", Sha256::digest(encoded)))
+}
+
+fn validate_input(input: &SharedFleetInput) -> Result<(), Vec<String>> {
+    let mut errors = Vec::new();
+    if input.schema_version != SHARED_FLEET_SCHEMA_VERSION {
+        errors.push(format!(
+            "schema_version: expected {}, got {}",
+            SHARED_FLEET_SCHEMA_VERSION, input.schema_version
+        ));
+    }
+    if input.scenario_set_id.trim().is_empty() {
+        errors.push("scenario_set_id: must be non-empty".into());
+    }
+    if input.probability_evidence_reference.trim().is_empty() {
+        errors.push("probability_evidence_reference: must be non-empty".into());
+    }
+    match input.probability_basis {
+        ScenarioProbabilityBasis::CalibratedOutOfSample => {
+            let valid_digest = input
+                .calibration_report_sha256
+                .as_ref()
+                .is_some_and(|digest| {
+                    digest.len() == 64
+                        && digest.bytes().all(|byte| byte.is_ascii_hexdigit())
+                        && digest == &digest.to_ascii_lowercase()
+                });
+            if !valid_digest {
+                errors.push(
+                    "calibration_report_sha256: calibrated out-of-sample weights require a 64-character lowercase SHA-256 digest"
+                        .into(),
+                );
+            }
+            if input
+                .held_out_window_reference
+                .as_ref()
+                .is_none_or(|reference| reference.trim().is_empty())
+            {
+                errors.push(
+                    "held_out_window_reference: calibrated out-of-sample weights require a held-out evaluation window"
+                        .into(),
+                );
+            }
+        }
+        ScenarioProbabilityBasis::SyntheticFixture
+        | ScenarioProbabilityBasis::UncalibratedEstimate => {
+            if input.calibration_report_sha256.is_some()
+                || input.held_out_window_reference.is_some()
+            {
+                errors.push(
+                    "calibration metadata is only valid with calibrated_out_of_sample probability basis"
+                        .into(),
+                );
+            }
+        }
+    }
+    if input.period_count == 0 || usize::from(input.period_count) > MAX_SHARED_PERIODS {
+        errors.push(format!("period_count: expected 1..={MAX_SHARED_PERIODS}"));
+    }
+    if input.regions.len() < 2 || input.regions.len() > MAX_SHARED_REGIONS {
+        errors.push(format!("regions: expected 2..={MAX_SHARED_REGIONS}"));
+    }
+    if input.scenarios.is_empty() || input.scenarios.len() > MAX_SHARED_SCENARIOS {
+        errors.push(format!("scenarios: expected 1..={MAX_SHARED_SCENARIOS}"));
+    }
+    if input.stress_scenarios.len() > MAX_SHARED_STRESS_SCENARIOS {
+        errors.push(format!(
+            "stress_scenarios: expected 0..={MAX_SHARED_STRESS_SCENARIOS}"
+        ));
+    }
+    if input.maximum_aircraft_energy_units == 0
+        || input.initial_aircraft_energy_units > input.maximum_aircraft_energy_units
+        || input.protected_energy_reserve_units >= input.maximum_aircraft_energy_units
+        || input.initial_aircraft_energy_units < input.protected_energy_reserve_units
+        || input.energy_units_per_aerial_delivery == 0
+    {
+        errors.push("aircraft energy capacity, initial energy, reserve, delivery energy and recharge rate are inconsistent".into());
+    }
+
+    let mut region_ids = BTreeSet::<String>::new();
+    for (index, region) in input.regions.iter().enumerate() {
+        if region.region_id.trim().is_empty() || !region_ids.insert(region.region_id.clone()) {
+            errors.push(format!(
+                "regions[{index}].region_id: nonempty unique identity required"
+            ));
+        }
+        if region.road_capacity_units > 1_000_000
+            || region.aerial_service_capacity_units > 1_000_000
+        {
+            errors.push(format!(
+                "regions[{index}]: capacity values outside v1 limits"
+            ));
+        }
+    }
+    if !region_ids.contains(&input.initial_aircraft_region_id) {
+        errors.push("initial_aircraft_region_id: references unknown region".into());
+    }
+
+    let maximum_links = input
+        .regions
+        .len()
+        .saturating_mul(input.regions.len().saturating_sub(1));
+    if input.reposition_links.len() > maximum_links {
+        errors.push(format!(
+            "reposition_links: at most {maximum_links} unique directed links are allowed"
+        ));
+    }
+    let mut links = BTreeSet::new();
+    for (index, link) in input.reposition_links.iter().enumerate() {
+        if !region_ids.contains(&link.from_region_id)
+            || !region_ids.contains(&link.to_region_id)
+            || link.from_region_id == link.to_region_id
+        {
+            errors.push(format!("reposition_links[{index}]: invalid from/to region"));
+        }
+        if link.evidence_reference.trim().is_empty() {
+            errors.push(format!(
+                "reposition_links[{index}]: evidence reference is required"
+            ));
+        }
+        if link.travel_periods != 1 || link.energy_units == 0 {
+            errors.push(format!(
+                "reposition_links[{index}]: v0.1 requires exactly one discrete travel period and positive energy"
+            ));
+        }
+        if !links.insert((link.from_region_id.as_str(), link.to_region_id.as_str())) {
+            errors.push(format!(
+                "reposition_links[{index}]: duplicate directed link"
+            ));
+        }
+    }
+
+    let mut scenario_ids = BTreeSet::new();
+    let mut probability_sum = 0_u32;
+    for (scenario_index, scenario) in input.scenarios.iter().enumerate() {
+        if scenario.scenario_id.trim().is_empty()
+            || !scenario_ids.insert(scenario.scenario_id.as_str())
+        {
+            errors.push(format!(
+                "scenarios[{scenario_index}].scenario_id: nonempty unique identity required"
+            ));
+        }
+        if scenario.probability_bps == 0 {
+            errors.push(format!(
+                "scenarios[{scenario_index}].probability_bps: must be positive"
+            ));
+        }
+        probability_sum += u32::from(scenario.probability_bps);
+        if scenario.periods.len() != usize::from(input.period_count) {
+            errors.push(format!(
+                "scenarios[{scenario_index}].periods: expected {}",
+                input.period_count
+            ));
+        }
+        for (period_index, period) in scenario.periods().iter().enumerate() {
+            if period.observations.len() != input.regions.len() {
+                errors.push(format!("scenarios[{scenario_index}].periods[{period_index}].observations: expected one per region"));
+            }
+            let mut seen = BTreeSet::new();
+            for observation in &period.observations {
+                if !region_ids.contains(observation.region_id.as_str())
+                    || !seen.insert(observation.region_id.as_str())
+                {
+                    errors.push(format!("scenarios[{scenario_index}].periods[{period_index}]: unknown or duplicate region observation"));
+                }
+                if observation.weather_evidence_reference.trim().is_empty()
+                    || observation.permission_evidence_reference.trim().is_empty()
+                {
+                    errors.push(format!(
+                        "scenarios[{scenario_index}].periods[{period_index}]: weather and permission evidence references are required"
+                    ));
+                }
+                if observation.demand_units > 1_000_000 {
+                    errors.push(format!("scenarios[{scenario_index}].periods[{period_index}]: demand exceeds v1 limit"));
+                }
+            }
+            for region_id in &region_ids {
+                if !seen
+                    .iter()
+                    .any(|seen_region| *seen_region == region_id.as_str())
+                {
+                    errors.push(format!("scenarios[{scenario_index}].periods[{period_index}]: missing region {region_id}"));
+                }
+            }
+        }
+    }
+    for (stress_index, scenario) in input.stress_scenarios.iter().enumerate() {
+        if scenario.scenario_id.trim().is_empty()
+            || !scenario_ids.insert(scenario.scenario_id.as_str())
+        {
+            errors.push(format!(
+                "stress_scenarios[{stress_index}].scenario_id: nonempty unique identity required across probabilistic and stress scenarios"
+            ));
+        }
+        if scenario.periods.len() != usize::from(input.period_count) {
+            errors.push(format!(
+                "stress_scenarios[{stress_index}].periods: expected {}",
+                input.period_count
+            ));
+        }
+        for (period_index, period) in scenario.periods.iter().enumerate() {
+            if period.observations.len() != input.regions.len() {
+                errors.push(format!(
+                    "stress_scenarios[{stress_index}].periods[{period_index}].observations: expected one per region"
+                ));
+            }
+            let mut seen = BTreeSet::new();
+            for observation in &period.observations {
+                if !region_ids.contains(observation.region_id.as_str())
+                    || !seen.insert(observation.region_id.as_str())
+                {
+                    errors.push(format!(
+                        "stress_scenarios[{stress_index}].periods[{period_index}]: unknown or duplicate region observation"
+                    ));
+                }
+                if observation.weather_evidence_reference.trim().is_empty()
+                    || observation.permission_evidence_reference.trim().is_empty()
+                {
+                    errors.push(format!(
+                        "stress_scenarios[{stress_index}].periods[{period_index}]: weather and permission evidence references are required"
+                    ));
+                }
+                if observation.demand_units > 1_000_000 {
+                    errors.push(format!(
+                        "stress_scenarios[{stress_index}].periods[{period_index}]: demand exceeds v1 limit"
+                    ));
+                }
+            }
+            for region_id in &region_ids {
+                if !seen
+                    .iter()
+                    .any(|seen_region| *seen_region == region_id.as_str())
+                {
+                    errors.push(format!(
+                        "stress_scenarios[{stress_index}].periods[{period_index}]: missing region {region_id}"
+                    ));
+                }
+            }
+        }
+    }
+
+    if probability_sum != SHARED_FLEET_PROBABILITY_BPS {
+        errors.push(format!(
+            "scenarios.probability_bps: expected sum {}, got {probability_sum}",
+            SHARED_FLEET_PROBABILITY_BPS
+        ));
+    }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
+}
+
+fn observation_for_region<'a>(
+    period: &'a SharedFleetPeriod,
+    region_id: &str,
+) -> Result<&'a SharedFleetObservation, String> {
+    period
+        .observations
+        .iter()
+        .find(|observation| observation.region_id == region_id)
+        .ok_or_else(|| format!("missing observation for region {region_id}"))
+}
+
+fn decision_key(
+    period_index: usize,
+    history: &[Vec<SharedFleetObservation>],
+) -> Result<SharedDecisionKey, String> {
+    let encoded = serde_json::to_vec(history)
+        .map_err(|error| format!("cannot serialize shared-fleet observed history: {error}"))?;
+    Ok(SharedDecisionKey {
+        period_index: u16::try_from(period_index)
+            .map_err(|_| "period index exceeds u16".to_string())?,
+        observed_history_digest_sha256: format!("{:x}", Sha256::digest(encoded)),
+    })
+}
+
+fn build_decision_nodes(
+    input: &SharedFleetInput,
+) -> Result<(Vec<SharedDecisionNode>, BTreeMap<SharedDecisionKey, usize>), String> {
+    let mut nodes = BTreeMap::<SharedDecisionKey, ()>::new();
+    for periods in input
+        .scenarios
+        .iter()
+        .map(|scenario| scenario.periods.as_slice())
+        .chain(
+            input
+                .stress_scenarios
+                .iter()
+                .map(|scenario| scenario.periods.as_slice()),
+        )
+    {
+        let mut history: Vec<Vec<SharedFleetObservation>> = Vec::new();
+        for (period_index, period) in periods.iter().enumerate() {
+            let mut observations = period.observations.clone();
+            observations.sort_by(|left, right| left.region_id.cmp(&right.region_id));
+            history.push(observations);
+            let key = decision_key(period_index, &history)?;
+            nodes.insert(key, ());
+        }
+    }
+    if nodes.len() > MAX_SHARED_POLICY_NODES {
+        return Err(format!(
+            "exact shared-fleet oracle supports at most {MAX_SHARED_POLICY_NODES} nonanticipative nodes, got {}",
+            nodes.len()
+        ));
+    }
+    let nodes: Vec<SharedDecisionNode> = nodes
+        .into_keys()
+        .map(|key| SharedDecisionNode { key })
+        .collect();
+    let indices = nodes
+        .iter()
+        .enumerate()
+        .map(|(index, node)| (node.key.clone(), index))
+        .collect();
+    Ok((nodes, indices))
+}
+
+fn region_by_id<'a>(
+    input: &'a SharedFleetInput,
+    region_id: &str,
+) -> Result<&'a SharedFleetRegion, String> {
+    input
+        .regions
+        .iter()
+        .find(|region| region.region_id == region_id)
+        .ok_or_else(|| format!("unknown region {region_id}"))
+}
+
+fn reposition_link<'a>(
+    input: &'a SharedFleetInput,
+    from: &str,
+    to: &str,
+) -> Option<&'a SharedRepositionLink> {
+    input
+        .reposition_links
+        .iter()
+        .find(|link| link.from_region_id == from && link.to_region_id == to)
+}
+
+fn action_for_node(mask: u64, node_index: usize, radix: u64) -> usize {
+    let mut value = mask;
+    for _ in 0..node_index {
+        value /= radix;
+    }
+    (value % radix) as usize
+}
+
+fn add_cost(metrics: &mut ScenarioMetrics, cost: u128) -> Result<(), String> {
+    checked_add(&mut metrics.total_cost, cost, "scenario total cost")
+}
+
+fn simulate_scenario<S: SharedFleetScenarioPath>(
+    input: &SharedFleetInput,
+    scenario: &S,
+    indices: &BTreeMap<SharedDecisionKey, usize>,
+    mask: u64,
+    aircraft_enabled: bool,
+) -> Result<ScenarioMetrics, String> {
+    let mut metrics = ScenarioMetrics::default();
+    let mut aircraft_region = input.initial_aircraft_region_id.clone();
+    let mut energy = input.initial_aircraft_energy_units;
+    let mut history: Vec<Vec<SharedFleetObservation>> = Vec::new();
+
+    for (period_index, period) in scenario.periods().iter().enumerate() {
+        let mut observations = period.observations.clone();
+        observations.sort_by(|left, right| left.region_id.cmp(&right.region_id));
+        history.push(observations);
+        let key = decision_key(period_index, &history)?;
+        let node_index = *indices
+            .get(&key)
+            .ok_or_else(|| "shared-fleet policy node missing".to_string())?;
+        let action = action_for_node(mask, node_index, input.regions.len() as u64 + 1);
+        let mut aerial_this_period: Option<(String, u32)> = None;
+        let mut aircraft_period_used = false;
+        let mut idle_cost_recorded = false;
+
+        if aircraft_enabled {
+            if action == input.regions.len() {
+                let before = energy;
+                energy = energy
+                    .saturating_add(input.recharge_energy_units_per_idle_period)
+                    .min(input.maximum_aircraft_energy_units);
+                checked_add(
+                    &mut metrics.idle_recharge_energy_units,
+                    u128::from(energy - before),
+                    "idle recharge energy",
+                )?;
+                checked_add(&mut metrics.idle_periods, 1, "idle periods")?;
+                add_cost(
+                    &mut metrics,
+                    u128::from(input.aircraft_idle_cost_per_period),
+                )?;
+                idle_cost_recorded = true;
+            } else {
+                let target = &input.regions[action].region_id;
+                if target == &aircraft_region {
+                    let observation = observation_for_region(period, target)?;
+                    if flight_domain_is_current(observation.weather, observation.permission) {
+                        let region = region_by_id(input, target)?;
+                        let available_energy =
+                            energy.saturating_sub(input.protected_energy_reserve_units);
+                        let energy_limited_units =
+                            available_energy / input.energy_units_per_aerial_delivery;
+                        let maximum_service = observation
+                            .demand_units
+                            .min(region.aerial_service_capacity_units);
+                        let delivered = maximum_service
+                            .min(u32::try_from(energy_limited_units).unwrap_or(u32::MAX));
+                        let energy_used = u64::from(delivered)
+                            .checked_mul(input.energy_units_per_aerial_delivery)
+                            .ok_or_else(|| "aerial service energy overflow".to_string())?;
+                        energy = energy.saturating_sub(energy_used);
+                        checked_add(
+                            &mut metrics.aerial_energy_units,
+                            u128::from(energy_used),
+                            "aerial energy",
+                        )?;
+                        add_cost(
+                            &mut metrics,
+                            u128::from(delivered) * u128::from(region.aerial_cost_per_unit),
+                        )?;
+                        if delivered < maximum_service {
+                            checked_add(
+                                &mut metrics.energy_blocked_actions,
+                                1,
+                                "energy-blocked actions",
+                            )?;
+                        }
+                        if delivered > 0 {
+                            aircraft_period_used = true;
+                            aerial_this_period = Some((target.clone(), delivered));
+                            checked_add(
+                                &mut metrics.aerial_deliveries,
+                                u128::from(delivered),
+                                "aerial deliveries",
+                            )?;
+                        }
+                    } else {
+                        checked_add(
+                            &mut metrics.hard_gate_blocked_actions,
+                            1,
+                            "hard-gate blocked actions",
+                        )?;
+                    }
+                } else {
+                    if let Some(link) = reposition_link(input, &aircraft_region, target) {
+                        let origin_observation = observation_for_region(period, &aircraft_region)?;
+                        let target_observation = observation_for_region(period, target)?;
+                        let route_domain_clear = flight_domain_is_current(
+                            origin_observation.weather,
+                            origin_observation.permission,
+                        ) && flight_domain_is_current(
+                            target_observation.weather,
+                            target_observation.permission,
+                        );
+                        if link.evidence_status != SharedEvidenceStatus::FreshInDomain
+                            || !route_domain_clear
+                        {
+                            checked_add(
+                                &mut metrics.hard_gate_blocked_actions,
+                                1,
+                                "hard-gate blocked actions",
+                            )?;
+                        } else if energy
+                            .checked_sub(link.energy_units)
+                            .is_none_or(|remaining| {
+                                remaining < input.protected_energy_reserve_units
+                            })
+                        {
+                            checked_add(
+                                &mut metrics.energy_blocked_actions,
+                                1,
+                                "energy-blocked actions",
+                            )?;
+                        } else {
+                            energy = energy.checked_sub(link.energy_units).ok_or_else(|| {
+                                "reposition energy underflow after validation".to_string()
+                            })?;
+                            checked_add(
+                                &mut metrics.reposition_energy_units,
+                                u128::from(link.energy_units),
+                                "reposition energy",
+                            )?;
+                            checked_add(
+                                &mut metrics.reposition_cost_units,
+                                u128::from(link.cost_units),
+                                "reposition cost",
+                            )?;
+                            add_cost(&mut metrics, u128::from(link.cost_units))?;
+                            checked_add(
+                                &mut metrics.repositioning_events,
+                                1,
+                                "repositioning events",
+                            )?;
+                            checked_add(
+                                &mut metrics.repositioning_periods,
+                                1,
+                                "repositioning periods",
+                            )?;
+                            // v0.1 reserves the complete decision period for repositioning.
+                            // The target region can only be served from the next period onward.
+                            aircraft_region = target.clone();
+                        }
+                    } else {
+                        checked_add(
+                            &mut metrics.hard_gate_blocked_actions,
+                            1,
+                            "hard-gate blocked actions",
+                        )?;
+                    }
+                }
+            }
+        }
+
+        if aircraft_enabled && !aircraft_period_used && !idle_cost_recorded {
+            // A blocked service/reposition target is a safe standby period, not a free
+            // way to avoid the aircraft's declared idle/standby cost.
+            checked_add(&mut metrics.idle_periods, 1, "idle periods")?;
+            add_cost(
+                &mut metrics,
+                u128::from(input.aircraft_idle_cost_per_period),
+            )?;
+        }
+
+        for region in &input.regions {
+            let observation = observation_for_region(period, &region.region_id)?;
+            let aerial_units = aerial_this_period
+                .as_ref()
+                .filter(|(served_region, _)| served_region == &region.region_id)
+                .map(|(_, units)| *units)
+                .unwrap_or(0);
+            let remaining = observation.demand_units.saturating_sub(aerial_units);
+            let road_units = remaining.min(region.road_capacity_units);
+            let unserved = remaining - road_units;
+            checked_add(
+                &mut metrics.road_deliveries,
+                u128::from(road_units),
+                "road deliveries",
+            )?;
+            checked_add(
+                &mut metrics.unserved_units,
+                u128::from(unserved),
+                "unserved units",
+            )?;
+            add_cost(
+                &mut metrics,
+                u128::from(road_units) * u128::from(region.road_cost_per_unit),
+            )?;
+            add_cost(
+                &mut metrics,
+                u128::from(unserved) * u128::from(region.unserved_penalty_per_unit),
+            )?;
+        }
+    }
+    metrics.end_energy_units = u128::from(energy);
+    Ok(metrics)
+}
+
+fn add_weighted_metrics(
+    weighted: &mut WeightedMetrics,
+    metrics: ScenarioMetrics,
+    probability_bps: u16,
+) -> Result<(), String> {
+    let p = u128::from(probability_bps);
+    macro_rules! add_weighted {
+        ($field:ident, $value:expr, $label:literal) => {{
+            let value = $value
+                .checked_mul(p)
+                .ok_or_else(|| format!("weighted {} overflow", $label))?;
+            checked_add(&mut weighted.$field, value, $label)?;
+        }};
+    }
+    add_weighted!(total_cost, metrics.total_cost, "expected cost");
+    add_weighted!(
+        road_deliveries,
+        metrics.road_deliveries,
+        "expected road deliveries"
+    );
+    add_weighted!(
+        aerial_deliveries,
+        metrics.aerial_deliveries,
+        "expected aerial deliveries"
+    );
+    add_weighted!(
+        unserved_units,
+        metrics.unserved_units,
+        "expected unserved units"
+    );
+    add_weighted!(
+        aerial_energy_units,
+        metrics.aerial_energy_units,
+        "expected aerial energy"
+    );
+    add_weighted!(
+        reposition_energy_units,
+        metrics.reposition_energy_units,
+        "expected reposition energy"
+    );
+    add_weighted!(
+        reposition_cost_units,
+        metrics.reposition_cost_units,
+        "expected reposition cost"
+    );
+    add_weighted!(
+        repositioning_periods,
+        metrics.repositioning_periods,
+        "expected repositioning periods"
+    );
+    add_weighted!(
+        repositioning_events,
+        metrics.repositioning_events,
+        "expected repositioning events"
+    );
+    add_weighted!(
+        idle_recharge_energy_units,
+        metrics.idle_recharge_energy_units,
+        "expected idle recharge"
+    );
+    add_weighted!(idle_periods, metrics.idle_periods, "expected idle periods");
+    add_weighted!(
+        hard_gate_blocked_actions,
+        metrics.hard_gate_blocked_actions,
+        "expected hard-gate blocks"
+    );
+    add_weighted!(
+        energy_blocked_actions,
+        metrics.energy_blocked_actions,
+        "expected energy blocks"
+    );
+    add_weighted!(
+        end_energy_units,
+        metrics.end_energy_units,
+        "expected end energy"
+    );
+    Ok(())
+}
+
+#[derive(Debug, Clone)]
+struct PolicyEvaluation {
+    weighted: WeightedMetrics,
+    scenario_costs: Vec<(u128, u16)>,
+    scenario_unserved: Vec<(u128, u16)>,
+    stress_scenario_costs: Vec<u128>,
+    stress_scenario_unserved: Vec<u128>,
+}
+
+fn evaluate_mask(
+    input: &SharedFleetInput,
+    indices: &BTreeMap<SharedDecisionKey, usize>,
+    mask: u64,
+    aircraft_enabled: bool,
+) -> Result<PolicyEvaluation, String> {
+    let mut weighted = WeightedMetrics::default();
+    let mut scenario_costs = Vec::with_capacity(input.scenarios.len());
+    let mut scenario_unserved = Vec::with_capacity(input.scenarios.len());
+    for scenario in &input.scenarios {
+        let metrics = simulate_scenario(input, scenario, indices, mask, aircraft_enabled)?;
+        scenario_costs.push((metrics.total_cost, scenario.probability_bps));
+        scenario_unserved.push((metrics.unserved_units, scenario.probability_bps));
+        add_weighted_metrics(&mut weighted, metrics, scenario.probability_bps)?;
+    }
+    let mut stress_scenario_costs = Vec::with_capacity(input.stress_scenarios.len());
+    let mut stress_scenario_unserved = Vec::with_capacity(input.stress_scenarios.len());
+    for scenario in &input.stress_scenarios {
+        let metrics = simulate_scenario(input, scenario, indices, mask, aircraft_enabled)?;
+        stress_scenario_costs.push(metrics.total_cost);
+        stress_scenario_unserved.push(metrics.unserved_units);
+    }
+    Ok(PolicyEvaluation {
+        weighted,
+        scenario_costs,
+        scenario_unserved,
+        stress_scenario_costs,
+        stress_scenario_unserved,
+    })
+}
+
+fn upper_tail_cvar90(scenario_costs: &[(u128, u16)]) -> Result<u128, String> {
+    if scenario_costs.is_empty() {
+        return Err("CVaR requires at least one scenario".into());
+    }
+    let mut ordered = scenario_costs.to_vec();
+    ordered.sort_by_key(|entry| std::cmp::Reverse(entry.0));
+    let mut remaining = SHARED_CVAR_TAIL_PROBABILITY_BPS;
+    let mut weighted_tail_cost = 0_u128;
+    for (cost, probability_bps) in ordered {
+        if remaining == 0 {
+            break;
+        }
+        let take = remaining.min(u32::from(probability_bps));
+        let contribution = cost
+            .checked_mul(u128::from(take))
+            .ok_or_else(|| "CVaR weighted tail cost overflow".to_string())?;
+        checked_add(
+            &mut weighted_tail_cost,
+            contribution,
+            "CVaR weighted tail cost",
+        )?;
+        remaining -= take;
+    }
+    if remaining != 0 {
+        return Err("scenario probability mass does not cover CVaR tail".into());
+    }
+    let divisor = u128::from(SHARED_CVAR_TAIL_PROBABILITY_BPS);
+    weighted_tail_cost
+        .checked_add(divisor / 2)
+        .map(|value| value / divisor)
+        .ok_or_else(|| "CVaR rounding overflow".into())
+}
+
+fn worst_case_cost(
+    scenario_costs: &[(u128, u16)],
+    stress_scenario_costs: &[u128],
+) -> Result<u128, String> {
+    scenario_costs
+        .iter()
+        .map(|(cost, _)| *cost)
+        .chain(stress_scenario_costs.iter().copied())
+        .max()
+        .ok_or_else(|| {
+            "worst-case cost requires at least one probabilistic or stress scenario".into()
+        })
+}
+
+fn worst_stress_case_cost(stress_scenario_costs: &[u128]) -> Option<u128> {
+    stress_scenario_costs.iter().copied().max()
+}
+
+fn outcome(evaluation: PolicyEvaluation) -> Result<SharedFleetOutcome, String> {
+    let cvar90 = upper_tail_cvar90(&evaluation.scenario_costs)?;
+    let worst_case = worst_case_cost(
+        &evaluation.scenario_costs,
+        &evaluation.stress_scenario_costs,
+    )?;
+    let cvar90_unserved = upper_tail_cvar90(&evaluation.scenario_unserved)?;
+    let worst_case_unserved = worst_case_cost(
+        &evaluation.scenario_unserved,
+        &evaluation.stress_scenario_unserved,
+    )?;
+    let worst_stress_cost = worst_stress_case_cost(&evaluation.stress_scenario_costs);
+    let worst_stress_unserved = worst_stress_case_cost(&evaluation.stress_scenario_unserved);
+    let metrics = evaluation.weighted;
+    Ok(SharedFleetOutcome {
+        expected_total_cost_units: weighted_average(metrics.total_cost, "expected cost")?,
+        cvar90_total_cost_units: u64::try_from(cvar90)
+            .map_err(|_| "CVaR90 exceeds report range".to_string())?,
+        worst_case_total_cost_units: u64::try_from(worst_case)
+            .map_err(|_| "worst-case cost exceeds report range".to_string())?,
+        cvar90_unserved_units: u64::try_from(cvar90_unserved)
+            .map_err(|_| "CVaR90 unserved units exceed report range".to_string())?,
+        worst_case_unserved_units: u64::try_from(worst_case_unserved)
+            .map_err(|_| "worst-case unserved units exceed report range".to_string())?,
+        worst_stress_case_total_cost_units: worst_stress_cost
+            .map(u64::try_from)
+            .transpose()
+            .map_err(|_| "worst stress cost exceeds report range".to_string())?,
+        worst_stress_case_unserved_units: worst_stress_unserved
+            .map(u64::try_from)
+            .transpose()
+            .map_err(|_| "worst stress unserved exceeds report range".to_string())?,
+        expected_road_deliveries: weighted_average(
+            metrics.road_deliveries,
+            "expected road deliveries",
+        )?,
+        expected_aerial_deliveries: weighted_average(
+            metrics.aerial_deliveries,
+            "expected aerial deliveries",
+        )?,
+        expected_unserved_units: weighted_average(metrics.unserved_units, "expected unserved")?,
+        expected_aerial_energy_units: weighted_average(
+            metrics.aerial_energy_units,
+            "expected aerial energy",
+        )?,
+        expected_reposition_energy_units: weighted_average(
+            metrics.reposition_energy_units,
+            "expected reposition energy",
+        )?,
+        expected_reposition_cost_units: weighted_average(
+            metrics.reposition_cost_units,
+            "expected reposition cost",
+        )?,
+        expected_repositioning_periods: weighted_average(
+            metrics.repositioning_periods,
+            "expected repositioning periods",
+        )?,
+        expected_repositioning_events: weighted_average(
+            metrics.repositioning_events,
+            "expected repositioning events",
+        )?,
+        expected_idle_recharge_energy_units: weighted_average(
+            metrics.idle_recharge_energy_units,
+            "expected idle recharge",
+        )?,
+        expected_idle_periods: weighted_average(metrics.idle_periods, "expected idle periods")?,
+        expected_hard_gate_blocked_actions: weighted_average(
+            metrics.hard_gate_blocked_actions,
+            "expected hard-gate blocks",
+        )?,
+        expected_energy_blocked_actions: weighted_average(
+            metrics.energy_blocked_actions,
+            "expected energy blocks",
+        )?,
+        expected_end_energy_units: weighted_average(
+            metrics.end_energy_units,
+            "expected end energy",
+        )?,
+        unauthorized_aerial_dispatches: 0,
+        protected_reserve_violations: 0,
+    })
+}
+
+fn decision_list(
+    input: &SharedFleetInput,
+    nodes: &[SharedDecisionNode],
+    mask: u64,
+) -> Vec<SharedFleetDecision> {
+    let radix = input.regions.len() as u64 + 1;
+    nodes
+        .iter()
+        .enumerate()
+        .map(|(index, node)| {
+            let action = action_for_node(mask, index, radix);
+            SharedFleetDecision {
+                period_index: node.key.period_index,
+                observed_history_digest_sha256: node.key.observed_history_digest_sha256.clone(),
+                target_region_id: input
+                    .regions
+                    .get(action)
+                    .map(|region| region.region_id.clone()),
+            }
+        })
+        .collect()
+}
+
+/// Solve an exact nonanticipative policy for one shared aircraft across a small
+/// stochastic scenario tree. The result is advisory; it never authorizes dispatch.
+pub fn evaluate_shared_fleet(input: &SharedFleetInput) -> Result<SharedFleetReport, Vec<String>> {
+    validate_input(input)?;
+    let canonical = canonicalize(input);
+    let input_digest_sha256 = canonical_input_digest(&canonical).map_err(|error| vec![error])?;
+    let (nodes, indices) = build_decision_nodes(&canonical).map_err(|error| vec![error])?;
+    let radix = canonical.regions.len() as u64 + 1;
+    let policy_count = radix
+        .checked_pow(nodes.len() as u32)
+        .ok_or_else(|| vec!["shared-fleet policy count overflow".into()])?;
+    if policy_count > MAX_SHARED_POLICY_COUNT {
+        return Err(vec![format!(
+            "shared-fleet policy count {policy_count} exceeds v1 limit"
+        )]);
+    }
+
+    let mut best_expected_mask = 0_u64;
+    let mut best_cvar90_mask = 0_u64;
+    let mut best_worst_case_mask = 0_u64;
+    let mut best_service_robust_mask = 0_u64;
+    let mut best_expected =
+        evaluate_mask(&canonical, &indices, 0, true).map_err(|error| vec![error])?;
+    let mut best_cvar90 = best_expected.clone();
+    let mut best_worst_case = best_expected.clone();
+    let mut best_service_robust = best_expected.clone();
+    let mut best_cvar90_value =
+        upper_tail_cvar90(&best_cvar90.scenario_costs).map_err(|error| vec![error])?;
+    let mut best_worst_case_value = worst_case_cost(
+        &best_worst_case.scenario_costs,
+        &best_worst_case.stress_scenario_costs,
+    )
+    .map_err(|error| vec![error])?;
+    let mut best_service_robust_value = worst_case_cost(
+        &best_service_robust.scenario_unserved,
+        &best_service_robust.stress_scenario_unserved,
+    )
+    .map_err(|error| vec![error])?;
+
+    for mask in 1..policy_count {
+        let evaluation =
+            evaluate_mask(&canonical, &indices, mask, true).map_err(|error| vec![error])?;
+        if evaluation.weighted.total_cost < best_expected.weighted.total_cost {
+            best_expected_mask = mask;
+            best_expected = evaluation.clone();
+        }
+        let cvar90 = upper_tail_cvar90(&evaluation.scenario_costs).map_err(|error| vec![error])?;
+        if cvar90 < best_cvar90_value {
+            best_cvar90_mask = mask;
+            best_cvar90_value = cvar90;
+            best_cvar90 = evaluation.clone();
+        }
+        let worst_case = worst_case_cost(
+            &evaluation.scenario_costs,
+            &evaluation.stress_scenario_costs,
+        )
+        .map_err(|error| vec![error])?;
+        if worst_case < best_worst_case_value
+            || (worst_case == best_worst_case_value
+                && evaluation.weighted.total_cost < best_worst_case.weighted.total_cost)
+        {
+            best_worst_case_mask = mask;
+            best_worst_case_value = worst_case;
+            best_worst_case = evaluation.clone();
+        }
+        let worst_unserved = worst_case_cost(
+            &evaluation.scenario_unserved,
+            &evaluation.stress_scenario_unserved,
+        )
+        .map_err(|error| vec![error])?;
+        if worst_unserved < best_service_robust_value
+            || (worst_unserved == best_service_robust_value
+                && evaluation.weighted.total_cost < best_service_robust.weighted.total_cost)
+        {
+            best_service_robust_mask = mask;
+            best_service_robust_value = worst_unserved;
+            best_service_robust = evaluation;
+        }
+    }
+
+    let truck_only =
+        outcome(evaluate_mask(&canonical, &indices, 0, false).map_err(|error| vec![error])?)
+            .map_err(|error| vec![error])?;
+
+    let initial_action = canonical
+        .regions
+        .iter()
+        .position(|region| region.region_id == canonical.initial_aircraft_region_id)
+        .ok_or_else(|| vec!["initial aircraft region disappeared after validation".into()])?
+        as u64;
+    let mut fixed_mask = 0_u64;
+    let mut multiplier = 1_u64;
+    for _ in 0..nodes.len() {
+        fixed_mask = fixed_mask
+            .checked_add(
+                initial_action
+                    .checked_mul(multiplier)
+                    .ok_or_else(|| vec!["fixed baseline mask overflow".into()])?,
+            )
+            .ok_or_else(|| vec!["fixed baseline mask overflow".into()])?;
+        multiplier = multiplier
+            .checked_mul(radix)
+            .ok_or_else(|| vec!["fixed baseline multiplier overflow".into()])?;
+    }
+    let fixed = outcome(
+        evaluate_mask(&canonical, &indices, fixed_mask, true).map_err(|error| vec![error])?,
+    )
+    .map_err(|error| vec![error])?;
+
+    Ok(SharedFleetReport {
+        schema_version: SHARED_FLEET_SCHEMA_VERSION,
+        scenario_set_id: canonical.scenario_set_id.clone(),
+        input_digest_sha256,
+        probability_basis: canonical.probability_basis,
+        probability_evidence_reference: canonical.probability_evidence_reference.clone(),
+        calibration_report_sha256: canonical.calibration_report_sha256.clone(),
+        held_out_window_reference: canonical.held_out_window_reference.clone(),
+        risk_claim_ceiling: match canonical.probability_basis {
+            ScenarioProbabilityBasis::SyntheticFixture => "Expected-cost and CVaR use only supplied synthetic probabilistic weights; unweighted stress scenarios are excluded from both and affect only worst-case and service-robust metrics. These are not calibrated event probabilities or field-risk bounds.",
+            ScenarioProbabilityBasis::UncalibratedEstimate => "Expected-cost and CVaR use only supplied uncalibrated estimates; unweighted stress scenarios are excluded from both and affect only worst-case and service-robust metrics. Probability calibration and out-of-sample decision validation remain required.",
+            ScenarioProbabilityBasis::CalibratedOutOfSample => "The input declares an out-of-sample calibration report and held-out window; this evaluator does not audit that report or prove calibration. Expected-cost and CVaR remain conditional on the probabilistic scenario set. Unweighted stress scenarios affect only worst-case and service-robust metrics.",
+        }.into(),
+        region_count: canonical.regions.len(),
+        period_count: usize::from(canonical.period_count),
+        scenario_count: canonical.scenarios.len(),
+        stress_scenario_count: canonical.stress_scenarios.len(),
+        nonanticipative_policy_node_count: nodes.len(),
+        exact_policy_count_evaluated: policy_count,
+        optimized_policy: outcome(best_expected).map_err(|error| vec![error])?,
+        optimized_decisions: decision_list(&canonical, &nodes, best_expected_mask),
+        cvar90_optimal_policy: outcome(best_cvar90).map_err(|error| vec![error])?,
+        cvar90_optimal_decisions: decision_list(&canonical, &nodes, best_cvar90_mask),
+        worst_case_optimal_policy: outcome(best_worst_case).map_err(|error| vec![error])?,
+        worst_case_optimal_decisions: decision_list(&canonical, &nodes, best_worst_case_mask),
+        service_robust_optimal_policy: outcome(best_service_robust).map_err(|error| vec![error])?,
+        service_robust_optimal_decisions: decision_list(&canonical, &nodes, best_service_robust_mask),
+        truck_only_baseline: truck_only,
+        fixed_initial_region_baseline: fixed,
+        physical_dispatch_authorized: false,
+        dispatch_commands_emitted: false,
+        claim_ceiling: "Exact synthetic one-aircraft shared-region allocation and repositioning policy under supplied discrete travel, energy, cost and scenario assumptions; not a fleet-scale optimizer, flight-energy model, route/airspace authorization, physical dispatch or commercial result".into(),
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn period(
+        urban_demand: u32,
+        rural_demand: u32,
+        urban_weather: WeatherState,
+        rural_weather: WeatherState,
+    ) -> SharedFleetPeriod {
+        SharedFleetPeriod {
+            observations: vec![
+                SharedFleetObservation {
+                    region_id: "urban".into(),
+                    demand_units: urban_demand,
+                    weather: urban_weather,
+                    weather_evidence_reference: "synthetic://weather/urban".into(),
+                    permission: PermissionState::ApprovedFresh,
+                    permission_evidence_reference: "synthetic://permission/urban".into(),
+                },
+                SharedFleetObservation {
+                    region_id: "rural".into(),
+                    demand_units: rural_demand,
+                    weather: rural_weather,
+                    weather_evidence_reference: "synthetic://weather/rural".into(),
+                    permission: PermissionState::ApprovedFresh,
+                    permission_evidence_reference: "synthetic://permission/rural".into(),
+                },
+            ],
+        }
+    }
+
+    fn input() -> SharedFleetInput {
+        SharedFleetInput {
+            schema_version: 1,
+            scenario_set_id: "two-region-shared-aircraft-v1".into(),
+            probability_basis: ScenarioProbabilityBasis::SyntheticFixture,
+            probability_evidence_reference:
+                "synthetic://scenario-weights/two-region-shared-aircraft-v1".into(),
+            calibration_report_sha256: None,
+            held_out_window_reference: None,
+            period_count: 3,
+            initial_aircraft_region_id: "urban".into(),
+            maximum_aircraft_energy_units: 20,
+            initial_aircraft_energy_units: 16,
+            protected_energy_reserve_units: 4,
+            energy_units_per_aerial_delivery: 2,
+            recharge_energy_units_per_idle_period: 8,
+            aircraft_idle_cost_per_period: 0,
+            regions: vec![
+                SharedFleetRegion {
+                    region_id: "urban".into(),
+                    road_capacity_units: 2,
+                    aerial_service_capacity_units: 3,
+                    road_cost_per_unit: 5,
+                    aerial_cost_per_unit: 1,
+                    unserved_penalty_per_unit: 100,
+                },
+                SharedFleetRegion {
+                    region_id: "rural".into(),
+                    road_capacity_units: 1,
+                    aerial_service_capacity_units: 4,
+                    road_cost_per_unit: 10,
+                    aerial_cost_per_unit: 2,
+                    unserved_penalty_per_unit: 120,
+                },
+            ],
+            reposition_links: vec![
+                SharedRepositionLink {
+                    from_region_id: "urban".into(),
+                    to_region_id: "rural".into(),
+                    travel_periods: 1,
+                    energy_units: 4,
+                    cost_units: 3,
+                    evidence_status: SharedEvidenceStatus::FreshInDomain,
+                    evidence_reference: "synthetic://reposition/urban-rural".into(),
+                },
+                SharedRepositionLink {
+                    from_region_id: "rural".into(),
+                    to_region_id: "urban".into(),
+                    travel_periods: 1,
+                    energy_units: 4,
+                    cost_units: 3,
+                    evidence_status: SharedEvidenceStatus::FreshInDomain,
+                    evidence_reference: "synthetic://reposition/rural-urban".into(),
+                },
+            ],
+            scenarios: vec![
+                SharedFleetScenario {
+                    scenario_id: "normal".into(),
+                    probability_bps: 6_000,
+                    periods: vec![
+                        period(4, 2, WeatherState::ClearFresh, WeatherState::ClearFresh),
+                        period(4, 6, WeatherState::ClearFresh, WeatherState::ClearFresh),
+                        period(4, 6, WeatherState::ClearFresh, WeatherState::ClearFresh),
+                    ],
+                },
+                SharedFleetScenario {
+                    scenario_id: "rural-weather-block".into(),
+                    probability_bps: 4_000,
+                    periods: vec![
+                        period(4, 2, WeatherState::ClearFresh, WeatherState::ClearFresh),
+                        period(4, 6, WeatherState::ClearFresh, WeatherState::BlockedFresh),
+                        period(4, 6, WeatherState::ClearFresh, WeatherState::ClearFresh),
+                    ],
+                },
+            ],
+            stress_scenarios: Vec::new(),
+        }
+    }
+
+    fn stress_scenario() -> SharedFleetStressScenario {
+        SharedFleetStressScenario {
+            scenario_id: "unweighted-severe-rural-weather-stress".into(),
+            periods: vec![
+                period(4, 2, WeatherState::ClearFresh, WeatherState::ClearFresh),
+                period(2, 12, WeatherState::ClearFresh, WeatherState::BlockedFresh),
+                period(2, 12, WeatherState::ClearFresh, WeatherState::ClearFresh),
+            ],
+        }
+    }
+
+    fn forced_region_mask(
+        input: &SharedFleetInput,
+        target_region_id: &str,
+    ) -> (
+        Vec<SharedDecisionNode>,
+        BTreeMap<SharedDecisionKey, usize>,
+        u64,
+    ) {
+        let canonical = canonicalize(input);
+        let (nodes, indices) = build_decision_nodes(&canonical).expect("build policy nodes");
+        let target_index = canonical
+            .regions
+            .iter()
+            .position(|region| region.region_id == target_region_id)
+            .expect("target region exists") as u64;
+        let radix = canonical.regions.len() as u64 + 1;
+        let mut mask = 0_u64;
+        let mut multiplier = 1_u64;
+        for _ in 0..nodes.len() {
+            mask += target_index * multiplier;
+            multiplier *= radix;
+        }
+        (nodes, indices, mask)
+    }
+
+    #[test]
+    fn cvar90_uses_fractional_probability_mass_at_the_tail_boundary() {
+        let costs = vec![(100_u128, 500_u16), (20_u128, 9_500_u16)];
+        assert_eq!(upper_tail_cvar90(&costs).expect("valid tail"), 60);
+        assert_eq!(worst_case_cost(&costs, &[]).expect("valid scenarios"), 100);
+    }
+
+    #[test]
+    fn exact_search_reports_expected_cost_cvar90_and_worst_case_objectives() {
+        let report = evaluate_shared_fleet(&input()).expect("valid input");
+        assert!(
+            report.cvar90_optimal_policy.cvar90_total_cost_units
+                <= report.optimized_policy.cvar90_total_cost_units
+        );
+        assert!(
+            report.worst_case_optimal_policy.worst_case_total_cost_units
+                <= report.optimized_policy.worst_case_total_cost_units
+        );
+        assert!(
+            report
+                .service_robust_optimal_policy
+                .worst_case_unserved_units
+                <= report.optimized_policy.worst_case_unserved_units
+        );
+        assert_eq!(report.optimized_policy.expected_total_cost_units, 1_511);
+        assert_eq!(
+            report
+                .fixed_initial_region_baseline
+                .expected_total_cost_units,
+            1_576
+        );
+        assert_eq!(report.truck_only_baseline.expected_total_cost_units, 1_980);
+        assert!(!report.physical_dispatch_authorized);
+    }
+
+    #[test]
+    fn committed_unweighted_stress_fixture_keeps_probability_and_stress_sets_separate() {
+        let fixture: SharedFleetInput = serde_json::from_str(include_str!(
+            "../fixtures/synthetic-two-region-shared-aircraft-stress.json"
+        ))
+        .expect("stress fixture must deserialize");
+        let report = evaluate_shared_fleet(&fixture).expect("stress fixture must evaluate");
+        assert_eq!(report.scenario_count, 2);
+        assert_eq!(report.stress_scenario_count, 1);
+        assert_eq!(report.nonanticipative_policy_node_count, 7);
+        assert_eq!(report.exact_policy_count_evaluated, 2_187);
+        assert_eq!(report.optimized_policy.expected_total_cost_units, 524);
+        assert_eq!(report.optimized_policy.cvar90_total_cost_units, 866);
+        assert!(
+            report
+                .optimized_policy
+                .worst_stress_case_total_cost_units
+                .is_some()
+        );
+        assert!(
+            report
+                .worst_case_optimal_policy
+                .worst_stress_case_unserved_units
+                .is_some()
+        );
+        assert!(!report.physical_dispatch_authorized);
+        assert!(!report.dispatch_commands_emitted);
+    }
+
+    #[test]
+    fn unweighted_stress_scenarios_affect_minimax_but_not_expectation_or_cvar() {
+        let probabilistic_only = evaluate_shared_fleet(&input()).expect("probabilistic fixture");
+        let mut with_stress = input();
+        with_stress.stress_scenarios.push(stress_scenario());
+        let stress_report = evaluate_shared_fleet(&with_stress).expect("stress fixture");
+
+        assert_eq!(stress_report.scenario_count, 2);
+        assert_eq!(stress_report.stress_scenario_count, 1);
+        assert_eq!(stress_report.nonanticipative_policy_node_count, 7);
+        assert_eq!(stress_report.exact_policy_count_evaluated, 16_384);
+
+        assert_eq!(
+            stress_report.optimized_policy.expected_total_cost_units,
+            probabilistic_only
+                .optimized_policy
+                .expected_total_cost_units
+        );
+        assert_eq!(
+            stress_report.optimized_policy.cvar90_total_cost_units,
+            probabilistic_only.optimized_policy.cvar90_total_cost_units
+        );
+        assert!(
+            stress_report
+                .optimized_policy
+                .worst_stress_case_total_cost_units
+                .is_some()
+        );
+        assert!(
+            stress_report
+                .optimized_policy
+                .worst_stress_case_unserved_units
+                .is_some()
+        );
+        assert!(
+            stress_report
+                .worst_case_optimal_policy
+                .worst_stress_case_total_cost_units
+                .is_some()
+        );
+        assert!(!stress_report.physical_dispatch_authorized);
+    }
+
+    #[test]
+    fn stress_scenario_names_cannot_collide_with_probabilistic_scenario_names() {
+        let mut test = input();
+        let mut stress = stress_scenario();
+        stress.scenario_id = test.scenarios[0].scenario_id.clone();
+        test.stress_scenarios.push(stress);
+        let errors = validate_input(&test).expect_err("scenario identities share one namespace");
+        assert!(errors.iter().any(|error| {
+            error.contains("unique identity across probabilistic and stress scenarios")
+        }));
+    }
+
+    #[test]
+    fn synthetic_weight_basis_is_reported_as_conditional_not_calibrated_risk() {
+        let report = evaluate_shared_fleet(&input()).expect("synthetic fixture");
+        assert_eq!(
+            report.probability_basis,
+            ScenarioProbabilityBasis::SyntheticFixture
+        );
+        assert!(report.risk_claim_ceiling.contains("not calibrated"));
+        assert!(report.risk_claim_ceiling.contains("synthetic weights"));
+        assert!(report.calibration_report_sha256.is_none());
+        assert!(report.held_out_window_reference.is_none());
+    }
+
+    #[test]
+    fn calibrated_probability_basis_requires_digest_and_held_out_window() {
+        let mut test = input();
+        test.probability_basis = ScenarioProbabilityBasis::CalibratedOutOfSample;
+        test.probability_evidence_reference =
+            "evidence://calibration-report/shared-fleet-v1".into();
+        test.calibration_report_sha256 = Some("not-a-digest".into());
+        test.held_out_window_reference = Some("2026-Q3".into());
+        let errors = validate_input(&test).expect_err("invalid calibration digest");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("64-character lowercase SHA-256"))
+        );
+
+        test.calibration_report_sha256 = Some("a".repeat(64));
+        assert!(validate_input(&test).is_ok());
+        let report = evaluate_shared_fleet(&test).expect("declared calibration metadata");
+        assert!(report.risk_claim_ceiling.contains("does not audit"));
+    }
+
+    #[test]
+    fn uncalibrated_estimates_cannot_smuggle_in_calibration_metadata() {
+        let mut test = input();
+        test.probability_basis = ScenarioProbabilityBasis::UncalibratedEstimate;
+        test.probability_evidence_reference = "evidence://unvalidated-frequency-estimate/v1".into();
+        test.calibration_report_sha256 = Some("a".repeat(64));
+        test.held_out_window_reference = Some("2026-Q3".into());
+        let errors = validate_input(&test).expect_err("calibration fields contradict basis");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("only valid with calibrated_out_of_sample"))
+        );
+    }
+
+    #[test]
+    fn exact_two_region_fixture_has_nonanticipative_policy_tree() {
+        let report = evaluate_shared_fleet(&input()).expect("valid input");
+        assert_eq!(report.region_count, 2);
+        assert_eq!(report.period_count, 3);
+        assert_eq!(report.scenario_count, 2);
+        assert_eq!(report.nonanticipative_policy_node_count, 5);
+        assert_eq!(report.exact_policy_count_evaluated, 243);
+        assert_eq!(report.optimized_policy.unauthorized_aerial_dispatches, 0);
+        assert!(!report.physical_dispatch_authorized);
+    }
+
+    #[test]
+    fn committed_two_region_fixture_matches_exact_search_contract() {
+        let fixture: SharedFleetInput = serde_json::from_str(include_str!(
+            "../fixtures/synthetic-two-region-shared-aircraft.json"
+        ))
+        .expect("shared-fleet fixture must deserialize");
+        let report = evaluate_shared_fleet(&fixture).expect("fixture must evaluate");
+        assert_eq!(report.region_count, 2);
+        assert_eq!(report.period_count, 3);
+        assert_eq!(report.scenario_count, 2);
+        assert_eq!(report.nonanticipative_policy_node_count, 5);
+        assert_eq!(report.exact_policy_count_evaluated, 243);
+        assert_eq!(report.optimized_policy.unauthorized_aerial_dispatches, 0);
+        assert_eq!(report.optimized_policy.protected_reserve_violations, 0);
+        assert!(!report.dispatch_commands_emitted);
+    }
+
+    #[test]
+    fn rare_event_fixture_distinguishes_expected_tail_worst_case_and_service_policies() {
+        let fixture: SharedFleetInput = serde_json::from_str(include_str!(
+            "../fixtures/synthetic-two-region-shared-aircraft-tail-risk.json"
+        ))
+        .expect("tail-risk fixture must deserialize");
+        let report = evaluate_shared_fleet(&fixture).expect("tail-risk fixture must evaluate");
+        assert_eq!(report.region_count, 2);
+        assert_eq!(report.period_count, 3);
+        assert_eq!(report.scenario_count, 2);
+        assert_eq!(report.nonanticipative_policy_node_count, 5);
+        assert_eq!(report.exact_policy_count_evaluated, 243);
+
+        assert_eq!(report.optimized_policy.expected_total_cost_units, 524);
+        assert_eq!(report.optimized_policy.cvar90_total_cost_units, 866);
+        assert_eq!(report.optimized_policy.worst_case_total_cost_units, 1_246);
+        assert_eq!(report.optimized_policy.worst_case_unserved_units, 22);
+
+        assert_eq!(report.cvar90_optimal_policy.expected_total_cost_units, 527);
+        assert_eq!(report.cvar90_optimal_policy.cvar90_total_cost_units, 825);
+        assert_eq!(
+            report.cvar90_optimal_policy.worst_case_total_cost_units,
+            1_156
+        );
+        assert_ne!(report.cvar90_optimal_decisions, report.optimized_decisions);
+
+        assert_eq!(
+            report.worst_case_optimal_policy.expected_total_cost_units,
+            527
+        );
+        assert_eq!(
+            report.worst_case_optimal_policy.worst_case_total_cost_units,
+            1_156
+        );
+        assert_ne!(
+            report.worst_case_optimal_decisions,
+            report.optimized_decisions
+        );
+
+        assert_eq!(
+            report
+                .service_robust_optimal_policy
+                .expected_total_cost_units,
+            526
+        );
+        assert_eq!(
+            report
+                .service_robust_optimal_policy
+                .worst_case_unserved_units,
+            21
+        );
+        assert_ne!(
+            report.service_robust_optimal_decisions,
+            report.optimized_decisions
+        );
+
+        assert_eq!(
+            report
+                .fixed_initial_region_baseline
+                .expected_total_cost_units,
+            531
+        );
+        assert_eq!(
+            report.fixed_initial_region_baseline.cvar90_total_cost_units,
+            873
+        );
+        assert_eq!(report.truck_only_baseline.expected_total_cost_units, 591);
+        assert_eq!(report.truck_only_baseline.cvar90_total_cost_units, 933);
+
+        assert_eq!(report.optimized_policy.unauthorized_aerial_dispatches, 0);
+        assert_eq!(
+            report.cvar90_optimal_policy.unauthorized_aerial_dispatches,
+            0
+        );
+        assert_eq!(
+            report
+                .worst_case_optimal_policy
+                .unauthorized_aerial_dispatches,
+            0
+        );
+        assert_eq!(
+            report
+                .service_robust_optimal_policy
+                .unauthorized_aerial_dispatches,
+            0
+        );
+        assert!(!report.physical_dispatch_authorized);
+        assert!(!report.dispatch_commands_emitted);
+    }
+
+    #[test]
+    fn identical_scenario_prefixes_share_the_same_decision_node() {
+        let (nodes, _) = build_decision_nodes(&canonicalize(&input())).expect("valid tree");
+        assert_eq!(
+            nodes
+                .iter()
+                .filter(|node| node.key.period_index == 0)
+                .count(),
+            1
+        );
+        assert_eq!(
+            nodes
+                .iter()
+                .filter(|node| node.key.period_index == 1)
+                .count(),
+            2
+        );
+    }
+
+    #[test]
+    fn repositioning_consumes_one_full_period_before_service() {
+        let mut test = input();
+        test.period_count = 1;
+        for scenario in &mut test.scenarios {
+            scenario.periods.truncate(1);
+        }
+        let canonical = canonicalize(&test);
+        let (_nodes, indices, mask) = forced_region_mask(&canonical, "rural");
+        let metrics = simulate_scenario(&canonical, &canonical.scenarios[0], &indices, mask, true)
+            .expect("forced reposition policy");
+        assert_eq!(metrics.repositioning_periods, 1);
+        assert_eq!(metrics.repositioning_events, 1);
+        assert_eq!(metrics.aerial_deliveries, 0);
+        assert_eq!(metrics.end_energy_units, 12);
+    }
+
+    #[test]
+    fn stale_link_evidence_blocks_a_forced_reposition_attempt() {
+        let mut test = input();
+        test.reposition_links[0].evidence_status = SharedEvidenceStatus::Stale;
+        let canonical = canonicalize(&test);
+        let (_, indices, mask) = forced_region_mask(&canonical, "rural");
+        let metrics = simulate_scenario(&canonical, &canonical.scenarios[0], &indices, mask, true)
+            .expect("forced reposition policy");
+        assert_eq!(metrics.repositioning_events, 0);
+        assert!(metrics.hard_gate_blocked_actions > 0);
+    }
+
+    #[test]
+    fn route_weather_or_permission_block_prevents_a_forced_reposition() {
+        let mut test = input();
+        test.period_count = 1;
+        for scenario in &mut test.scenarios {
+            scenario.periods.truncate(1);
+        }
+        test.scenarios[0].periods[0].observations[1].permission = PermissionState::Unknown;
+        let canonical = canonicalize(&test);
+        let (_, indices, mask) = forced_region_mask(&canonical, "rural");
+        let metrics = simulate_scenario(&canonical, &canonical.scenarios[0], &indices, mask, true)
+            .expect("forced reposition policy");
+        assert_eq!(metrics.repositioning_events, 0);
+        assert!(metrics.hard_gate_blocked_actions > 0);
+    }
+
+    #[test]
+    fn insufficient_energy_blocks_forced_reposition_before_spending_reserve() {
+        let mut test = input();
+        test.initial_aircraft_energy_units = 16;
+        test.protected_energy_reserve_units = 13;
+        let canonical = canonicalize(&test);
+        let (_nodes, indices, mask) = forced_region_mask(&canonical, "rural");
+        let metrics = simulate_scenario(&canonical, &canonical.scenarios[0], &indices, mask, true)
+            .expect("forced reposition policy");
+        assert_eq!(metrics.repositioning_events, 0);
+        assert!(metrics.energy_blocked_actions > 0);
+        assert_eq!(metrics.end_energy_units, 16);
+    }
+
+    #[test]
+    fn insufficient_energy_blocks_reposition_even_when_reserve_is_zero() {
+        let mut test = input();
+        test.initial_aircraft_energy_units = 2;
+        test.protected_energy_reserve_units = 0;
+        let canonical = canonicalize(&test);
+        let (_nodes, indices, mask) = forced_region_mask(&canonical, "rural");
+        let metrics = simulate_scenario(&canonical, &canonical.scenarios[0], &indices, mask, true)
+            .expect("insufficient energy must produce a blocked action, not arithmetic underflow");
+        assert_eq!(metrics.repositioning_events, 0);
+        assert_eq!(metrics.energy_blocked_actions, 3);
+        assert_eq!(metrics.end_energy_units, 2);
+    }
+
+    #[test]
+    fn stale_permission_blocks_a_forced_aerial_service() {
+        let mut test = input();
+        test.period_count = 1;
+        for scenario in &mut test.scenarios {
+            scenario.periods.truncate(1);
+        }
+        test.scenarios[0].periods[0].observations[0].permission = PermissionState::Stale;
+        let canonical = canonicalize(&test);
+        let (_nodes, indices, mask) = forced_region_mask(&canonical, "urban");
+        let metrics = simulate_scenario(&canonical, &canonical.scenarios[0], &indices, mask, true)
+            .expect("forced service policy");
+        assert_eq!(metrics.aerial_deliveries, 0);
+        assert!(metrics.hard_gate_blocked_actions > 0);
+    }
+
+    #[test]
+    fn blocked_reposition_is_charged_as_standby_not_a_free_period() {
+        let mut test = input();
+        test.period_count = 1;
+        test.aircraft_idle_cost_per_period = 17;
+        for scenario in &mut test.scenarios {
+            scenario.periods.truncate(1);
+        }
+        test.scenarios[0].periods[0].observations[1].permission = PermissionState::Unknown;
+        let canonical = canonicalize(&test);
+        let (_nodes, indices, mask) = forced_region_mask(&canonical, "rural");
+        let metrics = simulate_scenario(&canonical, &canonical.scenarios[0], &indices, mask, true)
+            .expect("blocked reposition becomes standby");
+        assert_eq!(metrics.repositioning_events, 0);
+        assert_eq!(metrics.hard_gate_blocked_actions, 1);
+        assert_eq!(metrics.idle_periods, 1);
+        assert_eq!(metrics.total_cost, 357);
+    }
+
+    #[test]
+    fn idle_period_charging_is_capped_at_declared_aircraft_energy() {
+        let canonical = canonicalize(&input());
+        let (nodes, indices) = build_decision_nodes(&canonical).expect("valid tree");
+        let radix = canonical.regions.len() as u64 + 1;
+        let all_idle_mask = radix.pow(nodes.len() as u32) - 1;
+        let metrics = simulate_scenario(
+            &canonical,
+            &canonical.scenarios[0],
+            &indices,
+            all_idle_mask,
+            true,
+        )
+        .expect("all-idle policy");
+        assert_eq!(metrics.end_energy_units, 20);
+        assert_eq!(metrics.idle_periods, 3);
+        assert_eq!(metrics.idle_recharge_energy_units, 4);
+    }
+
+    #[test]
+    fn protected_energy_reserve_is_never_spent() {
+        let mut test = input();
+        test.initial_aircraft_energy_units = 5;
+        test.maximum_aircraft_energy_units = 5;
+        test.protected_energy_reserve_units = 4;
+        let report = evaluate_shared_fleet(&test).expect("valid input");
+        assert_eq!(report.optimized_policy.unauthorized_aerial_dispatches, 0);
+        assert_eq!(report.optimized_policy.protected_reserve_violations, 0);
+    }
+
+    #[test]
+    fn one_shared_aircraft_has_one_region_of_service_per_period() {
+        let report = evaluate_shared_fleet(&input()).expect("valid input");
+        assert!(report.optimized_policy.expected_aerial_deliveries <= 12);
+    }
+
+    #[test]
+    fn truck_only_baseline_has_no_aerial_service_or_reposition() {
+        let report = evaluate_shared_fleet(&input()).expect("valid input");
+        assert_eq!(report.truck_only_baseline.expected_aerial_deliveries, 0);
+        assert_eq!(report.truck_only_baseline.expected_repositioning_events, 0);
+    }
+
+    #[test]
+    fn reordered_inputs_have_identical_canonical_report() {
+        let mut first = input();
+        let first_report = evaluate_shared_fleet(&first).expect("first report");
+        first.regions.reverse();
+        first.reposition_links.reverse();
+        for scenario in &mut first.scenarios {
+            for period in &mut scenario.periods {
+                period.observations.reverse();
+            }
+        }
+        let second_report = evaluate_shared_fleet(&first).expect("permuted report");
+        assert_eq!(first_report, second_report);
+    }
+
+    #[test]
+    fn validates_probability_sum_and_duplicate_scenario_ids() {
+        let mut test = input();
+        test.scenarios[0].probability_bps = 5_000;
+        assert!(
+            validate_input(&test)
+                .unwrap_err()
+                .iter()
+                .any(|e| e.contains("probability_bps"))
+        );
+        let mut duplicate = input();
+        duplicate.scenarios[1].scenario_id = duplicate.scenarios[0].scenario_id.clone();
+        assert!(
+            validate_input(&duplicate)
+                .unwrap_err()
+                .iter()
+                .any(|e| e.contains("nonempty unique identity"))
+        );
+    }
+
+    #[test]
+    fn rejects_missing_weather_permission_or_reposition_evidence_references() {
+        let mut test = input();
+        test.scenarios[0].periods[0].observations[0]
+            .weather_evidence_reference
+            .clear();
+        test.reposition_links[0].evidence_reference.clear();
+        let errors = validate_input(&test).expect_err("source references are required");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("weather and permission evidence references"))
+        );
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("evidence reference is required"))
+        );
+    }
+
+    #[test]
+    fn rejects_unknown_or_duplicate_region_observation() {
+        let mut test = input();
+        test.scenarios[0].periods[0].observations[1].region_id = "unknown".into();
+        assert!(validate_input(&test).is_err());
+    }
+
+    #[test]
+    fn rejects_policy_tree_above_exact_search_budget() {
+        let mut test = input();
+        test.period_count = 6;
+        test.scenarios.clear();
+        for scenario_index in 0..4_u32 {
+            let mut periods = Vec::new();
+            for period_index in 0..6_u32 {
+                periods.push(SharedFleetPeriod {
+                    observations: vec![
+                        SharedFleetObservation {
+                            region_id: "urban".into(),
+                            demand_units: 1 + scenario_index * 10 + period_index,
+                            weather: WeatherState::ClearFresh,
+                            weather_evidence_reference: "synthetic://weather/policy-tree/urban"
+                                .into(),
+                            permission: PermissionState::ApprovedFresh,
+                            permission_evidence_reference:
+                                "synthetic://permission/policy-tree/urban".into(),
+                        },
+                        SharedFleetObservation {
+                            region_id: "rural".into(),
+                            demand_units: 2 + scenario_index * 10 + period_index,
+                            weather: WeatherState::ClearFresh,
+                            weather_evidence_reference: "synthetic://weather/policy-tree/rural"
+                                .into(),
+                            permission: PermissionState::ApprovedFresh,
+                            permission_evidence_reference:
+                                "synthetic://permission/policy-tree/rural".into(),
+                        },
+                    ],
+                });
+            }
+            test.scenarios.push(SharedFleetScenario {
+                scenario_id: format!("branch-{scenario_index}"),
+                probability_bps: 2_500,
+                periods,
+            });
+        }
+        assert!(validate_input(&test).is_ok());
+        let error = build_decision_nodes(&canonicalize(&test))
+            .expect_err("large nonanticipative tree must be rejected");
+        assert!(error.contains("nonanticipative nodes"));
+    }
+
+    #[test]
+    fn sparse_network_can_omit_directed_transfer_edges() {
+        let mut test = input();
+        test.reposition_links.remove(0);
+        test.period_count = 1;
+        for scenario in &mut test.scenarios {
+            scenario.periods.truncate(1);
+        }
+        assert!(validate_input(&test).is_ok());
+        let canonical = canonicalize(&test);
+        let (_nodes, indices, mask) = forced_region_mask(&canonical, "rural");
+        let metrics = simulate_scenario(&canonical, &canonical.scenarios[0], &indices, mask, true)
+            .expect("missing transfer edge is a blocked action");
+        assert_eq!(metrics.repositioning_events, 0);
+        assert_eq!(metrics.hard_gate_blocked_actions, 1);
+        assert_eq!(metrics.end_energy_units, 16);
+    }
+
+    #[test]
+    fn sparse_hub_and_spoke_network_supports_two_step_repositioning() {
+        let mut test = input();
+        test.regions.push(SharedFleetRegion {
+            region_id: "transfer-yard".into(),
+            road_capacity_units: 2,
+            aerial_service_capacity_units: 0,
+            road_cost_per_unit: 8,
+            aerial_cost_per_unit: 0,
+            unserved_penalty_per_unit: 100,
+        });
+        for scenario in &mut test.scenarios {
+            for period in &mut scenario.periods {
+                period.observations.push(SharedFleetObservation {
+                    region_id: "transfer-yard".into(),
+                    demand_units: 0,
+                    weather: WeatherState::ClearFresh,
+                    weather_evidence_reference: format!(
+                        "synthetic://weather/{}/transfer-yard",
+                        scenario.scenario_id
+                    ),
+                    permission: PermissionState::ApprovedFresh,
+                    permission_evidence_reference: format!(
+                        "synthetic://permission/{}/transfer-yard",
+                        scenario.scenario_id
+                    ),
+                });
+            }
+        }
+        test.reposition_links = vec![
+            SharedRepositionLink {
+                from_region_id: "urban".into(),
+                to_region_id: "transfer-yard".into(),
+                travel_periods: 1,
+                energy_units: 4,
+                cost_units: 1,
+                evidence_status: SharedEvidenceStatus::FreshInDomain,
+                evidence_reference: "synthetic://reposition/urban-transfer-yard".into(),
+            },
+            SharedRepositionLink {
+                from_region_id: "transfer-yard".into(),
+                to_region_id: "rural".into(),
+                travel_periods: 1,
+                energy_units: 4,
+                cost_units: 1,
+                evidence_status: SharedEvidenceStatus::FreshInDomain,
+                evidence_reference: "synthetic://reposition/transfer-yard-rural".into(),
+            },
+        ];
+        let canonical = canonicalize(&test);
+        let (nodes, indices) = build_decision_nodes(&canonical).expect("three-region policy tree");
+        let radix = canonical.regions.len() as u64 + 1;
+        let mut mask = 0_u64;
+        for (node_index, node) in nodes.iter().enumerate() {
+            let target = match node.key.period_index {
+                0 => "transfer-yard",
+                1 | 2 => "rural",
+                _ => unreachable!("three-period fixture"),
+            };
+            let action = canonical
+                .regions
+                .iter()
+                .position(|region| region.region_id == target)
+                .expect("target region exists") as u64;
+            mask = mask
+                .checked_add(action * radix.pow(node_index as u32))
+                .expect("policy mask fits v0.1 search budget");
+        }
+        let metrics = simulate_scenario(&canonical, &canonical.scenarios[0], &indices, mask, true)
+            .expect("two-hop policy");
+        assert_eq!(metrics.repositioning_events, 2);
+        assert_eq!(metrics.repositioning_periods, 2);
+        assert_eq!(metrics.reposition_energy_units, 8);
+        assert!(metrics.aerial_deliveries > 0);
+    }
+
+    #[test]
+    fn region_without_aerial_capacity_is_valid_ground_only_region() {
+        let mut test = input();
+        test.regions[1].aerial_service_capacity_units = 0;
+        assert!(validate_input(&test).is_ok());
+        let report = evaluate_shared_fleet(&test).expect("ground-only region is valid");
+        assert_eq!(report.optimized_policy.unauthorized_aerial_dispatches, 0);
+    }
+
+    #[test]
+    fn rejects_multi_period_transfer_until_transit_state_is_modeled() {
+        let mut test = input();
+        test.reposition_links[0].travel_periods = 2;
+        assert!(validate_input(&test).is_err());
+    }
+
+    #[test]
+    fn revoked_link_cannot_be_executed() {
+        let mut test = input();
+        test.reposition_links[0].evidence_status = SharedEvidenceStatus::Revoked;
+        let report = evaluate_shared_fleet(&test).expect("valid but revoked link");
+        assert_eq!(report.optimized_policy.unauthorized_aerial_dispatches, 0);
+    }
+}
