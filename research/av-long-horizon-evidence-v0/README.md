@@ -126,7 +126,7 @@ Run the reference scorer:
 
 The evaluator requires the submission's evidence cutoff to equal the query tick. This prevents a policy from moving the evidence horizon backwards to make required observations appear unavailable. It verifies citations against the actual stream, requires required source references for answers, tracks the original observation identity across duplicate delivery, rejects revoked evidence after revocation, rejects superseded observations as the current state, and detects false independent-corroboration and cross-clock-order claims.
 
-The finite reference submission now produces ten correct event answers and one correct absent-event abstention: 10/11 answer accuracy, 10/11 coverage, 11/11 safe-decision accuracy, 11/11 complete source-citation sets, zero hard violations and zero deadline misses. This includes a pre-correction checkpoint and a pre-revocation checkpoint. The mean citation precision is 8.5/9 because the correction case intentionally cites both the superseded historical observation and the current replacement while marking only the replacement as current. These values are synthetic evaluator known answers, not learned-model scores.
+The 12-episode reference submission produces eleven correct event answers and one correct absent-event abstention: 11/12 answer accuracy, 11/12 coverage, 12/12 safe-decision accuracy, 12/12 complete source-citation sets, zero hard violations and zero deadline misses. The 15-span chain requires all fifteen source references in their exact temporal order. These values are synthetic evaluator known answers, not learned-model scores.
 
 ### Interpretation boundaries
 
@@ -139,7 +139,7 @@ The finite reference submission now produces ten correct event answers and one c
 
 ### Four-condition memory tournament known-answer correction
 
-The exact-head Actions run on 20 November 2026 completed workload/schema checks, all 16 then-current long-horizon evaluator tests, all 7 matched-memory tournament tests, both score-generation steps and scorecard schema validation. The 21 November evaluator hardening adds nine more long-horizon adversarial tests; these are being checked on the latest exact head. Its final comparison exposed that the frozen summary-only expected row understated the stricter evaluator's result. The expected fixture has now been corrected to the computed known answer:
+The original 20 November exact-head Actions run validated the initial long-horizon evaluator and four-condition tournament. On 21 November the evaluator was hardened for as-known checkpoints, derived-memory revocation lineage and exact ordered evidence chains. The current 12-episode fixture and four matched arms are the active known-answer reference; their exact-head Actions run is the qualification authority:
 
 - summary-only answer accuracy: 2/9 (0.2222);
 - safe-decision accuracy: 3/9 (0.3333);
@@ -185,7 +185,7 @@ Reproduce 4DMemory and EgoMemReason using their official data/protocols where ri
 - specialist harnesses and model-specific RAG;
 - Symthaea memory owner with evidence-ledger qualification.
 
-Then apply our additional orthogonal challenge suite: source citations, exact as-of time, duplicate event identity, correction/supersession, clock-domain incomparability, common-cause dependence, revocation and post-revocation residual probes. Do not call this "better than 4DMemory" merely because a nine-case synthetic set measures additional properties. The claim requires official benchmark reproduction plus independent long-horizon adversarial evidence tests.
+Then apply our additional orthogonal challenge suite: source citations, exact as-of time, duplicate event identity, correction/supersession, clock-domain incomparability, common-cause dependence, revocation and post-revocation residual probes. Do not call this "better than 4DMemory" merely because a 12-episode synthetic set with a 15-span challenge measures additional properties. The claim requires official benchmark reproduction plus independent long-horizon adversarial evidence tests.
 
 A meaningful next result would be non-inferior answer/event recall on 4DMemory/EgoMemReason at materially lower measured retained-memory and retrieval cost, while passing provenance/correction/revocation gates that the external protocol does not currently score.
 
@@ -225,7 +225,7 @@ The exact-head fixture workflow now allows future control events to remain in th
 - revocation target existed before the revocation event;
 - every truth-required source observation was available by that episode's query tick.
 
-The evidence-ledger reference known-answer score is now 10/11 answers, 11/11 safe decisions, 10/11 coverage, 11/11 complete provenance, zero false memories and zero hard evidence violations. The four-condition tournament reference summary has been updated for 12 matched episodes. All remain hand-authored synthetic policy checks, not model scores or blind-set results.
+The evidence-ledger reference known-answer score is now 11/12 answers, 12/12 safe decisions, 11/12 coverage, 12/12 complete provenance, zero false memories and zero hard evidence violations. The four-condition tournament reference summary has been updated for 12 matched episodes. All remain hand-authored synthetic policy checks, not model scores or blind-set results.
 
 The paired checkpoints make temporal qualification stricter: a system may neither apply a future correction too early nor retain a revoked source after the revocation becomes effective. Both error directions matter.
 
