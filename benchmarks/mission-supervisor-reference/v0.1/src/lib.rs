@@ -1141,7 +1141,6 @@ mod tests {
         assert_eq!(supervisor.decisions().len(), 3);
     }
 
-
     #[test]
     fn source_timestamp_cannot_cross_comparison_clock_or_boot_epoch() {
         let mut supervisor = MissionSupervisor::new(plan());
