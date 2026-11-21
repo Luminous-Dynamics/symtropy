@@ -3,3 +3,5 @@
 
 pub mod carrier_lifecycle;
 pub mod carrier_module_factory;
+
+pub mod battery_service_network;
