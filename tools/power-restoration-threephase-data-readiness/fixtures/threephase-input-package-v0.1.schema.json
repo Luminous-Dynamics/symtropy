@@ -1,0 +1,840 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/power-restoration-threephase-input-package-v0.1.schema.json",
+  "title": "Power restoration native three-phase input package v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "packageId",
+    "caseSha256",
+    "base",
+    "producer",
+    "nodeModels",
+    "branchModels",
+    "transformerModels",
+    "loadPhaseAllocations",
+    "gridSourceModels",
+    "faultScenarios",
+    "protectionDevices",
+    "protectionExemptions",
+    "sourceArtifacts"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1.0"
+    },
+    "packageId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "caseSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "base": {
+      "$ref": "#/$defs/base"
+    },
+    "producer": {
+      "$ref": "#/$defs/producer"
+    },
+    "nodeModels": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/node"
+      }
+    },
+    "branchModels": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/branch"
+      }
+    },
+    "transformerModels": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/transformer"
+      }
+    },
+    "loadPhaseAllocations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/loadAllocation"
+      }
+    },
+    "gridSourceModels": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/gridSource"
+      }
+    },
+    "faultScenarios": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/fault"
+      }
+    },
+    "protectionDevices": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/protectionDevice"
+      }
+    },
+    "protectionExemptions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/exemption"
+      }
+    },
+    "sourceArtifacts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/artifactRef"
+      }
+    }
+  },
+  "$defs": {
+    "artifactRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifactUri",
+        "sha256"
+      ],
+      "properties": {
+        "artifactUri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifactUri",
+        "sha256",
+        "producerId",
+        "producerProfileSha256"
+      ],
+      "properties": {
+        "artifactUri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "producerId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "producerProfileSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "complex": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "real",
+        "imaginary"
+      ],
+      "properties": {
+        "real": {
+          "type": "number"
+        },
+        "imaginary": {
+          "type": "number"
+        }
+      }
+    },
+    "base": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "frequencyHz",
+        "baseMva",
+        "nominalLineLineKv",
+        "voltageMinPu",
+        "voltageMaxPu"
+      ],
+      "properties": {
+        "frequencyHz": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "baseMva": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "nominalLineLineKv": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "voltageMinPu": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "voltageMaxPu": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "producerId",
+        "sourceCommit",
+        "configurationSha256"
+      ],
+      "properties": {
+        "producerId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceCommit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "configurationSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nodeId",
+        "conductors",
+        "groundingType",
+        "neutralContinuous",
+        "groundingImpedanceOhm",
+        "evidence"
+      ],
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "conductors": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "a",
+              "b",
+              "c",
+              "neutral",
+              "protective_earth"
+            ]
+          }
+        },
+        "groundingType": {
+          "enum": [
+            "solid",
+            "resistance_grounded",
+            "reactance_grounded",
+            "ungrounded",
+            "multi_grounded_neutral"
+          ]
+        },
+        "neutralContinuous": {
+          "type": "boolean"
+        },
+        "groundingImpedanceOhm": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/complex"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "sequence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "positive",
+        "negative",
+        "zero",
+        "unit"
+      ],
+      "properties": {
+        "positive": {
+          "$ref": "#/$defs/complex"
+        },
+        "negative": {
+          "$ref": "#/$defs/complex"
+        },
+        "zero": {
+          "$ref": "#/$defs/complex"
+        },
+        "unit": {
+          "type": "string"
+        }
+      }
+    },
+    "primitive": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unit",
+        "conductorOrder",
+        "resistanceOhmPerKmOrBase",
+        "reactanceOhmPerKmOrBase"
+      ],
+      "properties": {
+        "unit": {
+          "enum": [
+            "ohm_per_km",
+            "ohm_on_high_side_base"
+          ]
+        },
+        "conductorOrder": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "a",
+              "b",
+              "c",
+              "neutral",
+              "protective_earth"
+            ]
+          }
+        },
+        "resistanceOhmPerKmOrBase": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "reactanceOhmPerKmOrBase": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
+    "currentRating": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "conductor",
+        "continuousAmpacityA",
+        "emergencyAmpacityA"
+      ],
+      "properties": {
+        "conductor": {
+          "enum": [
+            "a",
+            "b",
+            "c",
+            "neutral",
+            "protective_earth"
+          ]
+        },
+        "continuousAmpacityA": {
+          "type": "number"
+        },
+        "emergencyAmpacityA": {
+          "type": "number"
+        }
+      }
+    },
+    "branch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "branchId",
+        "equipmentKind",
+        "conductors",
+        "primitiveImpedance",
+        "sequenceImpedance",
+        "currentRatings",
+        "evidence"
+      ],
+      "properties": {
+        "branchId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "equipmentKind": {
+          "enum": [
+            "overhead_line",
+            "cable",
+            "transformer",
+            "regulator",
+            "series_reactor"
+          ]
+        },
+        "conductors": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "a",
+              "b",
+              "c",
+              "neutral",
+              "protective_earth"
+            ]
+          }
+        },
+        "primitiveImpedance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/primitive"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sequenceImpedance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sequence"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currentRatings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/currentRating"
+          }
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "transformer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "branchId",
+        "highVoltageConnection",
+        "lowVoltageConnection",
+        "vectorGroup",
+        "clockNumber",
+        "highVoltageNominalKv",
+        "lowVoltageNominalKv",
+        "ratedPowerMva",
+        "leakageSequenceImpedance",
+        "zeroSequenceTransfer",
+        "highVoltageNeutralGrounded",
+        "lowVoltageNeutralGrounded",
+        "evidence"
+      ],
+      "properties": {
+        "branchId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "highVoltageConnection": {
+          "enum": [
+            "grounded_wye",
+            "ungrounded_wye",
+            "delta",
+            "zig_zag"
+          ]
+        },
+        "lowVoltageConnection": {
+          "enum": [
+            "grounded_wye",
+            "ungrounded_wye",
+            "delta",
+            "zig_zag"
+          ]
+        },
+        "vectorGroup": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clockNumber": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "highVoltageNominalKv": {
+          "type": "number"
+        },
+        "lowVoltageNominalKv": {
+          "type": "number"
+        },
+        "ratedPowerMva": {
+          "type": "number"
+        },
+        "leakageSequenceImpedance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sequence"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "zeroSequenceTransfer": {
+          "enum": [
+            "transferred",
+            "blocked",
+            "depends_on_grounding"
+          ]
+        },
+        "highVoltageNeutralGrounded": {
+          "type": "boolean"
+        },
+        "lowVoltageNeutralGrounded": {
+          "type": "boolean"
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "phasePower": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "phase",
+        "activePowerKw",
+        "reactivePowerKvar"
+      ],
+      "properties": {
+        "phase": {
+          "enum": [
+            "a",
+            "b",
+            "c"
+          ]
+        },
+        "activePowerKw": {
+          "type": "number"
+        },
+        "reactivePowerKvar": {
+          "type": "number"
+        }
+      }
+    },
+    "loadAllocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "loadId",
+        "phases",
+        "evidence"
+      ],
+      "properties": {
+        "loadId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "phases": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/phasePower"
+          }
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "phaseVoltage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "phase",
+        "lineNeutralKv",
+        "angleDegrees"
+      ],
+      "properties": {
+        "phase": {
+          "enum": [
+            "a",
+            "b",
+            "c"
+          ]
+        },
+        "lineNeutralKv": {
+          "type": "number"
+        },
+        "angleDegrees": {
+          "type": "number"
+        }
+      }
+    },
+    "gridSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sourceId",
+        "phaseVoltages",
+        "sequenceImpedance",
+        "shortCircuitPowerMva",
+        "xOverRRatio",
+        "evidence"
+      ],
+      "properties": {
+        "sourceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "phaseVoltages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/phaseVoltage"
+          }
+        },
+        "sequenceImpedance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sequence"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "shortCircuitPowerMva": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "xOverRRatio": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "fault": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "faultId",
+        "faultType",
+        "phasesInvolved",
+        "faultImpedanceOhm",
+        "contributingSourceIds",
+        "evidence"
+      ],
+      "properties": {
+        "faultId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "faultType": {
+          "enum": [
+            "single_line_to_ground",
+            "line_to_line",
+            "double_line_to_ground",
+            "three_phase"
+          ]
+        },
+        "phasesInvolved": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "a",
+              "b",
+              "c"
+            ]
+          }
+        },
+        "faultImpedanceOhm": {
+          "$ref": "#/$defs/complex"
+        },
+        "contributingSourceIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "tccPoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "currentMultipleOfPickup",
+        "tripTimeSeconds"
+      ],
+      "properties": {
+        "currentMultipleOfPickup": {
+          "type": "number"
+        },
+        "tripTimeSeconds": {
+          "type": "number"
+        }
+      }
+    },
+    "protectionDevice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deviceId",
+        "deviceKind",
+        "protectedBranchIds",
+        "currentTransformerPrimaryA",
+        "currentTransformerSecondaryA",
+        "voltageTransformerRatio",
+        "phasePickupPrimaryA",
+        "groundPickupPrimaryA",
+        "interruptionCapacityKa",
+        "phaseTimeCurrentCurve",
+        "groundTimeCurrentCurve",
+        "coordinationGroupId",
+        "evidence"
+      ],
+      "properties": {
+        "deviceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "deviceKind": {
+          "enum": [
+            "circuit_breaker",
+            "fuse",
+            "recloser",
+            "relay",
+            "sectionalizer"
+          ]
+        },
+        "protectedBranchIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "currentTransformerPrimaryA": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "currentTransformerSecondaryA": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "voltageTransformerRatio": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "phasePickupPrimaryA": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "groundPickupPrimaryA": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "interruptionCapacityKa": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "phaseTimeCurrentCurve": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/tccPoint"
+          }
+        },
+        "groundTimeCurrentCurve": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/tccPoint"
+          }
+        },
+        "coordinationGroupId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "exemption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "branchId",
+        "reason",
+        "approvedBy",
+        "approvalEvidence"
+      ],
+      "properties": {
+        "branchId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "approvedBy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "approvalEvidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    }
+  }
+}
