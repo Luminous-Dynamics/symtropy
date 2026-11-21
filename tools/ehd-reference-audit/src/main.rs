@@ -1571,8 +1571,9 @@ pub fn audit_drag_dissipation_contract(root: &Value) -> Vec<String> {
     let tests = at(root, &["test_families"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        tests.is_some_and(|rows| rows.len() == 9
+        tests.is_some_and(|rows| rows.len() == 10
             && rows.iter().any(|item| item.as_str() == Some("anti_drag_impulse_rejected"))
+            && rows.iter().any(|item| item.as_str() == Some("negative_frictional_work_rejected_even_with_relaxed_impulse_tolerance"))
             && rows.iter().any(|item| item.as_str() == Some("equal_opposite_wrong_magnitude_rejected"))),
         "DRAG_DISSIPATION_TESTS",
         "nine analytic and adversarial drag/dissipation test families must remain declared",
