@@ -82,7 +82,8 @@
         "claim_ceiling": [
           "OPC UA for Robotics 1.02 publication and namespace identity have been source-reviewed. No robotics server/client endpoint, NodeSet import, mapping or conformance test has been executed."
         ]
-      }
+      },
+      "intelligence_scope": "asset"
     }
   ],
   "input_contract": {
