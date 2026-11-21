@@ -46,6 +46,26 @@ class LongHorizonEvaluatorTests(unittest.TestCase):
         self.assertEqual(totals["hard_violation_count"], 0)
         self.assertEqual(totals["deadline_miss_count"], 0)
 
+    def test_multisegment_chain_requires_all_fifteen_sources_in_exact_order(self):
+        truth = copy.deepcopy(self.truth)
+        submission = copy.deepcopy(self.submission)
+        episode_id = "lh-012-multisegment-15-source-chain"
+        label = next(row for row in truth["episodes"] if row["episode_id"] == episode_id)
+        prediction = next(row for row in submission["predictions"] if row["episode_id"] == episode_id)
+        self.assertEqual(len(label["required_observation_refs"]), 15)
+        self.assertEqual(prediction["current_observation_refs"], label["required_ordered_observation_refs"])
+        report = evaluator.evaluate(self.workload, truth, submission)
+        result = next(row for row in report["per_episode"] if row["episode_id"] == episode_id)
+        self.assertTrue(result["answer_correct"])
+        self.assertTrue(result["provenance_complete"])
+        prediction["current_observation_refs"] = list(reversed(prediction["current_observation_refs"]))
+        prediction["cited_observation_refs"] = list(reversed(prediction["cited_observation_refs"]))
+        report = evaluator.evaluate(self.workload, truth, submission)
+        result = next(row for row in report["per_episode"] if row["episode_id"] == episode_id)
+        self.assertFalse(result["answer_correct"])
+        self.assertFalse(result["provenance_complete"])
+        self.assertIn("current_observation_order_mismatch", result["violations"])
+
     def test_correction_is_not_effective_before_its_availability_tick(self):
         score = self.score()
         result = self.episode_result(score, "lh-010-correction-before-arrival")
