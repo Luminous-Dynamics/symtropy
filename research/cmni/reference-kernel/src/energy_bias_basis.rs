@@ -135,7 +135,7 @@ pub fn build_grouped_energy_bias_design(
 
     Ok(GroupedEnergyBiasDesign {
         energy_centres_mev,
-        length_scales_log10: length_scales_log10,
+        length_scales_log10,
         columns_per_group: ENERGY_BIAS_BASIS_COLUMNS_PER_GROUP,
         group_count,
         basis_by_observation,
