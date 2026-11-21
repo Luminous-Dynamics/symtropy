@@ -10,8 +10,7 @@
 
 use bevy::prelude::*;
 
-mod mk0;
-pub use mk0::*;
+pub use symtropy_mk0_contract::*;
 
 // Re-export Mycelix types for game systems to use via symtropy_sim_bridge::
 pub use feldman_dkg::participant::ParticipantId;
