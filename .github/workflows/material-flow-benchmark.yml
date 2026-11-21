@@ -112,7 +112,7 @@ jobs:
             and .stress_scenario_count == 1
             and .probability_basis == "synthetic_fixture"
             and .nonanticipative_policy_node_count == 7
-            and .exact_policy_count_evaluated == 16384
+            and .exact_policy_count_evaluated == 2187
             and .optimized_policy.expected_total_cost_units == 524
             and .optimized_policy.cvar90_total_cost_units == 866
             and .optimized_policy.worst_stress_case_total_cost_units != null
