@@ -289,7 +289,7 @@ impl<'a> SymtropyPhysicsAdapter<'a> {
                 "body {:?} has non-finite configured mass",
                 stable.entity_id
             )));
-        } else if body.body_type == BodyType::Static || body.mass <= 0.0 {
+        } else if matches!(body.body_type, BodyType::Static) || body.mass <= 0.0 {
             unavailable_field(
                 "kg",
                 None,
@@ -564,10 +564,11 @@ fn angular_velocity_from_bivector_matrix(matrix: [[f64; 3]; 3]) -> [f64; 3] {
 
 fn rotation_matrix_diagnostics(matrix: [[f64; 3]; 3]) -> (f64, f64) {
     let mut orthogonality_error: f64 = 0.0;
-    for i in 0..3 {
-        for j in 0..3 {
-            let dot = (0..3)
-                .map(|k| matrix[k][i] * matrix[k][j])
+    for (i, _) in matrix.iter().enumerate() {
+        for (j, _) in matrix.iter().enumerate() {
+            let dot = matrix
+                .iter()
+                .map(|row| row[i] * row[j])
                 .sum::<f64>();
             let expected = if i == j { 1.0 } else { 0.0 };
             orthogonality_error = orthogonality_error.max((dot - expected).abs());
@@ -741,7 +742,7 @@ mod tests {
     #[test]
     fn stale_contact_cache_is_unavailable_not_no_contact() {
         let mut world = world();
-        let handle = world.add_sphere(Point::origin(), 0.25, 1.0);
+        let handle = world.add_sphere(Point::new([0.0, 0.0, 0.0]), 0.25, 1.0);
         let adapter = adapter(&world, &[handle], false);
         let snapshot = adapter.snapshot().unwrap();
         assert!(matches!(
