@@ -90,7 +90,7 @@ jobs:
             and .result == "pass"
             and .report.evidence_class == "synthetic"
             and .report.claim_ceiling == "synthetic-event-replay-semantics-only"
-            and .report.summary.case_count == 55
+            and .report.summary.case_count == 63
             and .report.summary.expected_result_mismatches == 0
             and .report.summary.duplicate_events == 2
             and .authority_granted == false
