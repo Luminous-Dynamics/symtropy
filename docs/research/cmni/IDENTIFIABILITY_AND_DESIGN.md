@@ -222,6 +222,28 @@ Qualification controls now include:
 
 Posterior inclusion is not causal attribution. A feature can identify a predictive measurement association without identifying why the physical experiment produced it. Any proposed corrected dataset remains separate from immutable source observations and must carry its coefficient posterior and provenance.
 
+### Layer I — direct energy-basis and correlated PFNS-style bias model
+
+A closer audit of Walton et al. (LA-UR-24-29607; Computer Physics Communications, DOI 10.1016/j.cpc.2025.109698) clarifies the structure that our earlier generic feature operator lacked:
+
+- Their baseline per-experiment PFNS model is μ = D σ s, where D maps the evaluated spectrum to the observation energy grid and s is a per-experiment scale.
+- The baseline observation model is y = μ + ε with multivariate-normal error covariance diag(μ) Σ diag(μ), where Σ is the experiment's relative covariance.
+- Experimental datasets are grouped by *levels* of a categorical feature. The feature categories include hardware, methods and corrections. The same datasets can appear in overlapping group levels under different features, so multiple redundant explanations must be assessed.
+- A group-specific multiplicative bias is y_g = μ exp(δ_g) + ε, with δ_g(E) expanded in Gaussian functions over log10 outgoing energy.
+- The reported basis uses 160 functions per feature level: widths 0.3, 0.15 and 0.05 in log10-energy coordinates, with 10, 50 and 100 logarithmically spaced centres respectively.
+- Bias coefficients receive a horseshoe prior with global sparsity parameter τ. The paper examines fixed τ, half-Cauchy and half-normal hyperpriors; the half-normal was reported as more numerically stable in their comparison.
+
+The research kernel now constructs the reported 160-column grouped energy basis and supports overlapping group memberships. This is basis construction only; it does not implement the horseshoe prior or the paper's Bayesian Monte Carlo sampler.
+
+The kernel also adds an exact small-subset Bayesian model average for a *log-ratio Gaussian approximation*. It fits log(observed / baseline) residuals using a supplied full covariance matrix, always-included Gaussian-prior fixed effects (for example, per-experiment log normalization), and Bernoulli-inclusion / Gaussian-slab sparse bias features. The Gaussian subset marginal likelihood is integrated analytically, including covariance and model uncertainty. This is a useful correlated-data comparator, not the original AIACHNE raw-scale likelihood. Applying the delta method to their relative covariance Σ gives an approximate covariance in log-ratio space for modest relative errors; a faithful reproduction must retain their raw-scale multivariate-normal model, per-experiment scale and BMC/horseshoe inference.
+
+Important limits:
+- The 160-column-per-group basis can be built, but the current exact subset inference caps sparse columns at 12. It cannot fit the complete AIACHNE basis in one run.
+- The separate Poisson spike-and-slab implementation is for count observations and must not be used as the PFNS likelihood.
+- The log-Gaussian comparator requires a full covariance matrix already transformed / justified in log-ratio space; it does not automatically convert the AIACHNE raw relative covariance.
+- Posterior inclusion describes association with a feature level, not a causal mechanism. Walton et al. explicitly report roughly 50 features for only 20 datasets and warn about underdetermination and expert interpretation.
+- Their stable-bias screening required nonzero posterior bias samples to persist over a substantial sweep of τ_0; one isolated fit is insufficient.
+
 ## Current implementation and limits
 
 Implemented in this research-only Rust crate:
@@ -237,7 +259,9 @@ Implemented in this research-only Rust crate:
 - finite-scenario maximin candidate-design scoring with cost metadata and deterministic tie-breaking;
 - covariance-aware reference-spectrum shape comparison with profiled scale;
 - a deterministic log-linear feature-conditioned multiplicative-bias forward operator, with caller-supplied coefficients;
-- small-feature spike-and-slab Poisson bias inference with exact subset enumeration (up to 12 features) and Laplace evidence / covariance approximations.
+- a published-form 160-column grouped Gaussian log-energy bias-basis constructor with overlapping categorical feature-level memberships;
+- a small-feature Poisson spike-and-slab comparator for count data;
+- a full-covariance log-ratio Gaussian sparse model average with fixed normalization effects and exact Gaussian integration over subsets (up to 12 sparse columns).
 
 Not implemented yet:
 
@@ -246,8 +270,9 @@ Not implemented yet:
 - a full Bayesian expected-information-gain estimator, multifidelity sample-allocation optimizer or ACV coefficient learner;
 - a continuous robust-design optimizer, uncertainty-set calibration or Pareto frontier;
 - a nuisance-integrated or posterior-predictive model-discrimination score;
-- faithful AIACHNE horseshoe-prior model reproduction and comparison against the current spike-and-slab/Laplace alternative;
-- prior-sensitivity sweeps, correlated-feature robustness, and campaign-held-out validation for the new spike-and-slab model;
+- faithful AIACHNE raw-scale multivariate-normal likelihood, BMC sampler and horseshoe / global-local prior reproduction;
+- inference over the complete 160-basis-per-group design and global τ hyperprior;
+- τ_0 sensitivity sweeps, redundant feature-level grouping analysis, correlated-feature robustness, and campaign-held-out validation;
 - a general nuisance-aware hierarchical likelihood for response, background, live time, PSD and other calibration dimensions;
 - versioned PFNS reference evaluation ingestion, JSON experimental covariance database reader, interpolation audit and absolute-fluence comparison;
 - Geant4, GRAVEL, or the cited 2026 Bayesian method;
