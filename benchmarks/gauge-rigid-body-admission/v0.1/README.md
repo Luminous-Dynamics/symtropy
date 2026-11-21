@@ -47,7 +47,7 @@ A physical dataset cannot be marked admitted unless all of the following are tru
 8. Raw provenance and integrity are verified.
 9. The specific data use is authorized.
 
-The Rust reference exposes these as independent gates. A claim of `admitted` with any missing gate is rejected. Passing the software gate means only that the manifest supplies the required evidence fields; it does not certify that the evidence itself is true.
+The Rust reference exposes these as independent gates. The source manifest also requires exactly one code-source record and exactly one dataset-source record, rejecting duplicate or missing identities. A claim of `admitted` with any missing gate is rejected. Passing the software gate means only that the manifest supplies the required evidence fields; it does not certify that the evidence itself is true.
 
 ## Planned next stages
 
