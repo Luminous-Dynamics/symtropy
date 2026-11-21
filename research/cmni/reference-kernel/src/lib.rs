@@ -41,7 +41,7 @@ mod horseshoe_posterior;
 pub use horseshoe_posterior::{
     grouped_raw_scale_horseshoe_log_posterior, raw_scale_horseshoe_log_posterior,
     GlobalScalePrior, GroupedHorseshoePosteriorInput, GroupedRawScaleHorseshoePosterior,
-    RawScaleHorseshoePosterior,
+    PreparedGroupedRawScaleHorseshoeModel, RawScaleHorseshoePosterior,
 };
 
 mod prepared_horseshoe;
