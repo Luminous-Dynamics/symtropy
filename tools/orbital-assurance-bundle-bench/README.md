@@ -93,7 +93,7 @@ The proposed advance is not replacing SACM, GSN, standards, engineering judgemen
 
 ## Frozen corpus and acceptance targets
 
-The current fixture contains 56 synthetic cases and two positive controls. It includes absent dependencies, scope and receipt-pin attacks, freshness and knowledge-cutoff attacks, mission-probability / constant-intensity substitution in both directions, evidence-class mismatch, open defeaters, contradictory and indeterminate claims, stale/withdrawn/unsupported claims, missing/stale/wrong-class authority, duplicate pins/edges, dangling edges, self-loops, cycles, reversed support direction, optional orphan claims and input permutation.
+The current fixture contains 60 synthetic cases and two positive controls. It includes absent dependencies, scope and receipt-pin attacks, freshness and knowledge-cutoff attacks, mission-probability / constant-intensity substitution in both directions, evidence-class mismatch, open defeaters, contradictory and indeterminate claims, stale/withdrawn/unsupported claims, missing/stale/wrong-class authority, duplicate pins/edges, dangling edges, self-loops, cycles, reversed support direction, optional orphan claims and input permutation.
 
 Prospective targets, not measured achievements:
 
