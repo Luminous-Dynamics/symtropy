@@ -89,7 +89,7 @@ The latest public results available on 21 November 2026 provide useful but non-i
 | LADDER | Research page reports 62.0% for GPT-Policy/GPT-6 Astra; live leaderboard lists 63.3%. Resolve exact run/evaluator definitions before selecting one headline baseline. | Long-horizon manipulation/task completion | Did each subgoal actually complete? Were action attempts authorized at application? How did the system recover from ambiguity? What was the full cost per verified episode? |
 | RoboCasa365 | Official 50-task leaderboard updated 16 Nov 2026: HexaShell 85.6 overall; 91.1 Atomic-Seen; 85.0 Composite-Seen; 80.0 Composite-Unseen. | Multi-task kitchen manipulation on three splits | Report same splits, plus safety-spec compliance, success-but-unsafe, worst-violation severity, unauthorized actions and independent effect evidence. |
 | SafeVLA-Bench | 24 policies, 5 suites, 22,500 episodes and 8 safety specifications. Its RoboCasa-365 table includes a 81.9% native-success policy with 50.1% safety and 37.7% success-but-unsafe; the top safety-ranked policy has 53.1% safety and 58.4% success. | Task success separately from safety specification compliance and violation severity | Use safety and SBU as independent non-compensatory axes; add action authority, time-of-check/time-of-use, outcome integrity and recovery. |
-| Bench2Drive v0.0.4 | LEAD: 95.59 driving score and 87.28% success on the published 220-route validation set. | Closed-loop autonomous driving under the exact versioned route/evaluator setup | Add revocation, stale-map/navigation, clock discontinuity, delayed sensor, V2X common-cause and ambiguous actuator/vehicle outcome schedules. |
+| Bench2Drive v0.0.4 | LEAD: 95.59 driving score and 87.28% success on the published 220-route validation set. | Closed-loop autonomous driving under the exact versioned route/evaluator setup | Add revocation, stale-map/navigation, clock discontinuity, delayed sensor, V2X common-cause and ambiguous actuator/vehicle outcome schedules. Recompute comfort using motion/distance-aware diagnostics and audit that navigation inputs are not overridden by the evaluation harness. |
 | PX4 engineering maturity | CI, SITL, bench hardware testing and HIL are separate stages. Bench tests expose boot ordering, USB/link lifecycle, storage, loop-rate drift and concurrency defects that desktop SITL may miss. | Embedded flight-stack testing and hardware integration | Preserve evidence levels: software contract != simulator != HIL != supervised physical operation. |
 
 Primary references:
@@ -104,7 +104,7 @@ These scores must not be averaged, ranked against one another or presented as if
 
 ## 4. Benchmark the benchmark
 
-A 2026 CoRL audit of LIBERO, CALVIN, SimplerEnv, RoboCasa and RoboTwin 2.0 identified shortcut solvability, statistical significance, creeping overfitting and data-source dependence. It reports that only 19.8% of audited LIBERO SOTA claims were provably statistically significant; a 0.09B probe without a language encoder reached near reported LIBERO SOTA; and CALVIN performance dropped when object poses were resampled within the training range.
+A 2026 CoRL audit of LIBERO, CALVIN, SimplerEnv, RoboCasa and RoboTwin 2.0 identified shortcut solvability, statistical significance, creeping overfitting and data-source dependence. It reports that only 19.8% of audited LIBERO SOTA claims were provably statistically significant; a 0.09B probe without a language encoder reached near reported LIBERO SOTA; and CALVIN's average tasks-completed score dropped from 4.17 to 3.14 when object poses were resampled within the training range.
 
 CDAAB should require four corresponding diagnostics before performance claims are published:
 
@@ -116,6 +116,19 @@ CDAAB should require four corresponding diagnostics before performance claims ar
 References:
 - Jiang et al., “What Are We Actually Benchmarking in Robot Manipulation?” (CoRL 2026): https://arxiv.org/abs/2606.04233
 - Audit diagnostics: https://ripl.github.io/manipulation_benchmark_audit/
+
+### Additional closed-loop evaluator pitfall: “Comfortably Stuck”
+
+The October 2026 Bench2Drive audit reports that the published comfort metric correlates with stationary time at approximately r = 0.97 across eight models; a corrected distance-based metric reduces that correlation to r = 0.06. It also identifies controller-side steering override and training/evaluation route-target mismatch. This is directly relevant to CDAAB: the evaluator/controller harness is part of the system under test and can silently replace the policy behavior or reward inactivity.
+
+Add mandatory checks for:
+- stationary-time / comfort correlation;
+- distance-normalized comfort and progress;
+- zero hidden steering override or route-command substitution;
+- matched navigation-signal distribution and disclosure of train/evaluation mismatch;
+- stationary-but-not-progressing episodes retained as failures or incomplete, never as task success.
+
+Reference: Schwarzfischer et al., “Comfortably Stuck: Evaluation Pitfalls in Bench2Drive's Closed-Loop Protocol” (15 Oct 2026), https://arxiv.org/abs/2610.21741
 
 ## 5. CDAAB target ledger
 
