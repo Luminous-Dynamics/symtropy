@@ -642,6 +642,11 @@ mod tests {
             good_vehicle_yield_fraction: 0.93,
             production_release_ready: false,
             evidence_gaps: vec!["synthetic".into()],
+            stations: vec![BaseFactoryStation {
+                process_id: "battery-drive-install".into(),
+                cycle_minutes_per_attempt: 8.0,
+                parallel_cells_required: 1,
+            }],
         }
     }
 
@@ -692,7 +697,7 @@ enum SharedCellCompatibility {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-struct SharedCellCatalog {
+pub struct SharedCellCatalog {
     schema_version: String,
     benchmark_id: String,
     claim_ceiling: String,
@@ -757,7 +762,7 @@ struct SharedCellScenarioResult {
 }
 
 #[derive(Debug, Serialize)]
-struct SharedCellReport {
+pub struct SharedCellReport {
     schema_version: String,
     benchmark_id: String,
     base_factory_benchmark_id: String,
@@ -1077,6 +1082,135 @@ pub fn evaluate_shared_cells(
         claim_ceiling: "Synthetic/shared-station capacity overlay only; no verified fixture compatibility, production release, supplier quotation, physical plant layout or cost superiority is established".into(),
     })
 }
+
+    fn shared_mapping(compatibility: SharedCellCompatibility) -> SharedCellMapping {
+        SharedCellMapping {
+            mapping_id: "pod-harness-to-battery-drive".into(),
+            config_id: "synthetic-pod".into(),
+            template_id: "contract-assembly-flex".into(),
+            module_process_id: "assembly".into(),
+            base_station_process_id: "battery-drive-install".into(),
+            compatibility,
+            evidence_class: if compatibility == SharedCellCompatibility::Unknown {
+                EvidenceClass::Unknown
+            } else {
+                EvidenceClass::Synthetic
+            },
+            evidence_reference: "synthetic://shared-cell/pod-harness".into(),
+            setup_minutes_per_changeover: Some(30.0),
+            changeovers_per_year: Some(24),
+            maximum_supplemental_cells: Some(4),
+            notes: vec!["synthetic arithmetic fixture only".into()],
+        }
+    }
+
+    fn shared_catalog(mapping: SharedCellMapping) -> SharedCellCatalog {
+        SharedCellCatalog {
+            schema_version: "0.1.0".into(),
+            benchmark_id: "EV-CARRIER-SHARED-CELLS-001".into(),
+            claim_ceiling: "synthetic".into(),
+            mappings: vec![mapping],
+        }
+    }
+
+    fn shared_factory_report(factory: BaseFactoryScenario) -> FactoryReport {
+        FactoryReport {
+            schema_version: "0.1.0".into(),
+            benchmark_id: "EV-FACTORY-DESIGN-001".into(),
+            results: vec![factory],
+        }
+    }
+
+    #[test]
+    fn shared_module_work_consumes_only_residual_base_station_minutes() {
+        let factory = shared_factory_report(base());
+        let modules = ModuleProcessCatalog {
+            schema_version: "0.1.0".into(),
+            benchmark_id: "EV-CARRIER-MODULE-MFG-001".into(),
+            configurations: vec![config()],
+            claim_ceiling: "synthetic".into(),
+        };
+        let mapping = shared_mapping(SharedCellCompatibility::SyntheticCompatible);
+        let report = evaluate_shared_cells(&factory, &modules, &shared_catalog(mapping))
+            .expect("valid shared-cell input");
+        assert_eq!(report.result_count, 1);
+        let result = &report.results[0];
+        assert_eq!(result.status, Status::PassesSyntheticScreen);
+        assert_eq!(result.required_supplemental_cells, Some(0));
+        assert_eq!(result.supplemental_cells_used, Some(0));
+        assert!(result.base_station_residual_minutes_per_year.unwrap()
+            >= result.total_module_work_minutes_per_year.unwrap());
+        assert_eq!(result.module_production_release_ready, false);
+    }
+
+    #[test]
+    fn insufficient_shared_and_supplemental_capacity_blocks_and_reports_displacement() {
+        let mut factory = base();
+        factory.productive_minutes_per_cell_year = 10_000.0;
+        let factory = shared_factory_report(factory);
+        let modules = ModuleProcessCatalog {
+            schema_version: "0.1.0".into(),
+            benchmark_id: "EV-CARRIER-MODULE-MFG-001".into(),
+            configurations: vec![config()],
+            claim_ceiling: "synthetic".into(),
+        };
+        let mut mapping = shared_mapping(SharedCellCompatibility::SyntheticCompatible);
+        mapping.maximum_supplemental_cells = Some(0);
+        let report = evaluate_shared_cells(&factory, &modules, &shared_catalog(mapping))
+            .expect("valid but under-capacity fixture");
+        let result = &report.results[0];
+        assert_eq!(result.status, Status::Blocked);
+        assert_eq!(result.supplemental_cells_used, Some(0));
+        assert!(result.base_vehicle_attempts_displaced_if_shortfall_is_forced.unwrap() > 0);
+        assert!(result.shared_capacity_margin_minutes_per_year.unwrap() < 0.0);
+    }
+
+    #[test]
+    fn unknown_shared_station_compatibility_remains_indeterminate() {
+        let factory = shared_factory_report(base());
+        let modules = ModuleProcessCatalog {
+            schema_version: "0.1.0".into(),
+            benchmark_id: "EV-CARRIER-MODULE-MFG-001".into(),
+            configurations: vec![config()],
+            claim_ceiling: "synthetic".into(),
+        };
+        let mapping = shared_mapping(SharedCellCompatibility::Unknown);
+        let report = evaluate_shared_cells(&factory, &modules, &shared_catalog(mapping))
+            .expect("valid unknown evidence fixture");
+        assert_eq!(report.results[0].status, Status::Indeterminate);
+        assert!(report.results[0].shared_capacity_margin_minutes_per_year.is_none());
+        assert!(report.results[0].missing_fields.contains(&"shared_station_compatibility_evidence".into()));
+    }
+
+    #[test]
+    fn incompatible_shared_station_is_blocked_even_with_spare_capacity() {
+        let factory = shared_factory_report(base());
+        let modules = ModuleProcessCatalog {
+            schema_version: "0.1.0".into(),
+            benchmark_id: "EV-CARRIER-MODULE-MFG-001".into(),
+            configurations: vec![config()],
+            claim_ceiling: "synthetic".into(),
+        };
+        let mapping = shared_mapping(SharedCellCompatibility::Incompatible);
+        let report = evaluate_shared_cells(&factory, &modules, &shared_catalog(mapping))
+            .expect("valid incompatible fixture");
+        assert_eq!(report.results[0].status, Status::Blocked);
+        assert!(report.results[0].findings.iter().any(|finding| finding.contains("not qualified")));
+    }
+
+    #[test]
+    fn verified_compatibility_requires_measured_or_independent_evidence() {
+        let factory = shared_factory_report(base());
+        let modules = ModuleProcessCatalog {
+            schema_version: "0.1.0".into(),
+            benchmark_id: "EV-CARRIER-MODULE-MFG-001".into(),
+            configurations: vec![config()],
+            claim_ceiling: "synthetic".into(),
+        };
+        let mapping = shared_mapping(SharedCellCompatibility::VerifiedCompatible);
+        assert!(validate_shared_cell_catalog(&factory, &modules, &shared_catalog(mapping))
+            .unwrap_err().iter().any(|error| error.contains("verified compatibility requires")));
+    }
 
     #[test]
     fn synthetic_pod_route_covers_base_vehicle_factory_throughput() {
