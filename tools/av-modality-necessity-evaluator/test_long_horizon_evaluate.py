@@ -39,6 +39,8 @@ class LongHorizonEvaluatorTests(unittest.TestCase):
         self.assertEqual(totals["citation_precision"], 1.0)
         self.assertEqual(totals["citation_recall"], 1.0)
         self.assertEqual(totals["provenance_complete_count"], 9)
+        self.assertEqual(totals["evidence_qualified_answer_correct_count"], 8)
+        self.assertEqual(totals["evidence_qualified_answer_accuracy"], 8 / 9)
         self.assertEqual(totals["evidence_compliant_count"], 9)
         self.assertEqual(totals["false_memory_count"], 0)
         self.assertEqual(totals["hard_violation_count"], 0)
