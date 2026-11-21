@@ -181,11 +181,12 @@ function evaluate(scenario) {
     if (edge.relation === "contradicts") {
       add("CONTRADICTED", to.claim_id, "claim is contradicted by " + from.claim_id);
     }
-    if (edge.relation === "supports" && from.claim_type === "orbital_review_bundle") {
-      add("GRAPH_INVALID", from.claim_id, "support edges point from evidence claim to the claim it supports");
-    }
-    if (edge.relation === "supports" && to.claim_type !== "orbital_review_bundle") {
-      add("GRAPH_INVALID", from.claim_id, "v0.1 permits direct support edges only into the review root");
+    if (edge.relation === "supports") {
+      if (from.claim_type === "orbital_review_bundle") {
+        add("GRAPH_INVALID", from.claim_id, "support edges point from evidence claim to the claim it supports");
+      } else if (to.claim_type !== "orbital_review_bundle") {
+        add("GRAPH_INVALID", from.claim_id, "v0.1 permits direct support edges only into the review root");
+      }
     }
     if (edge.relation === "derived_from" &&
         ((from.claim_type === "mission_success_probability" && to.claim_type === "constant_failure_intensity") ||
