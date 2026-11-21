@@ -110,7 +110,7 @@ A separate enumeration of the fixture's declared objective found 38 search nodes
 
 The expected mapping is pack-a → mission-1 (300 Wh surplus), pack-b → mission-2 (300 Wh surplus), pack-c → mission-3 (200 Wh surplus), with mission-4 unserved. The workflow asserts the exact mapping, energy margins and 38-node search count.
 
-This independent fixture arithmetic is not evidence that the Rust code compiles or passes its CI tests. At the time of this document update, the exact-head GitHub workflow run has not been observed; do not claim compile, Clippy, rustfmt or Rust tests are green. The current test source contains 17 focused test cases, including future-observation, expired/malformed time-window, evidence/asset/configuration mismatch and exact known-answer controls, but their execution is pending external workflow evidence.
+This independent fixture arithmetic is not evidence that the Rust code compiles or passes its CI tests. At the time of this document update, the exact-head GitHub workflow run has not been observed; do not claim compile, Clippy, rustfmt or Rust tests are green. The current test source contains 18 focused test cases, including future-observation, expired/malformed time-window, evidence/asset/configuration mismatch and exact known-answer controls, but their execution is pending external workflow evidence.
 
 ## 4. The next paradigm shift: battery-service capacity as a network option
 
