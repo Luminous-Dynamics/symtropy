@@ -1368,7 +1368,7 @@ mod tests {
             report.results[0]
                 .findings
                 .iter()
-                .any(|finding| finding.contains("not qualified"))
+                .any(|finding| finding.contains("not_qualified"))
         );
     }
 
