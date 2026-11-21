@@ -9,6 +9,8 @@ use std::{env, fs, process};
 
 const EMBEDDED_ATLAS: &str =
     include_str!("../../../data/research/ehd_reference_atlas_v0_1.json");
+const EMBEDDED_FRONTIER_PATTERNS: &str =
+    include_str!("../../../data/research/ehd_frontier_design_patterns_v0_1.json");
 
 fn at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
     path.iter().try_fold(value, |node, key| node.get(*key))
@@ -513,6 +515,217 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
     findings
 }
 
+
+/// Audit the separate 2026 frontier cohort without merging it into the older
+/// source atlas. These checks preserve source-local claims and evidence limits.
+pub fn audit_frontier_patterns(root: &Value) -> Vec<String> {
+    let mut findings = Vec::new();
+
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["artifact_id"]) == Some("EHD-FRONTIER-DESIGN-PATTERNS-2026")
+            && text_at(root, &["schema_version"]) == Some("0.1.0")
+            && text_at(root, &["as_of"]) == Some("2026-11-21"),
+        "FRONTIER_IDENTITY",
+        "frontier artifact identity, schema version or as-of date changed",
+    );
+
+    let records = at(root, &["records"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        records.is_some_and(|rows| rows.len() == 4),
+        "FRONTIER_RECORD_COUNT",
+        "frontier cohort must retain four separately qualified source records",
+    );
+
+    let mut ids = std::collections::BTreeSet::new();
+    if let Some(rows) = records {
+        for (index, record) in rows.iter().enumerate() {
+            let id = text_at(record, &["id"]);
+            push_if_missing(
+                &mut findings,
+                id.is_some_and(|value| ids.insert(value.to_owned())),
+                "FRONTIER_SOURCE_ID",
+                &format!("frontier record {index} has a missing or duplicate id"),
+            );
+            push_if_missing(
+                &mut findings,
+                text_at(record, &["doi"]).is_some_and(|value| !value.trim().is_empty())
+                    && text_at(record, &["url"]).is_some_and(|value| value.starts_with("https://")),
+                "FRONTIER_SOURCE_PROVENANCE",
+                &format!("frontier record {index} lacks a DOI or HTTPS source URL"),
+            );
+        }
+    }
+
+    let record = |wanted: &str| {
+        records.and_then(|rows| rows.iter().find(|row| text_at(row, &["id"]) == Some(wanted)))
+    };
+
+    let jiang = record("jiang-2026-sub-unit-electrode");
+    push_if_missing(
+        &mut findings,
+        jiang.is_some(),
+        "FRONTIER_JIANG_RECORD",
+        "missing 2026 sub-unit electrode source",
+    );
+    if let Some(row) = jiang {
+        let baseline = number_at(row, &["reported_values", "baseline_thrust_mn"]);
+        let sub_unit = number_at(row, &["reported_values", "sub_unit_thrust_mn"]);
+        let plus = number_at(row, &["reported_values", "sub_unit_plus_thrust_mn"]);
+        let sub_gain = number_at(row, &["reported_values", "sub_unit_gain_pct_recomputed"]);
+        let plus_increment = number_at(
+            row,
+            &["reported_values", "sub_unit_plus_increment_over_sub_unit_pct_recomputed"],
+        );
+        let plus_gain = number_at(
+            row,
+            &["reported_values", "sub_unit_plus_gain_over_baseline_pct_recomputed"],
+        );
+        let arithmetic_matches = baseline.is_some_and(|b| b > 0.0)
+            && sub_unit.is_some_and(|s| s > 0.0)
+            && plus.is_some_and(|p| p > 0.0)
+            && sub_gain.is_some_and(|v| {
+                (sub_unit.unwrap() / baseline.unwrap() - 1.0) * 100.0 - v < 0.02
+                    && v - (sub_unit.unwrap() / baseline.unwrap() - 1.0) * 100.0 < 0.02
+            })
+            && plus_increment.is_some_and(|v| {
+                (plus.unwrap() / sub_unit.unwrap() - 1.0) * 100.0 - v < 0.02
+                    && v - (plus.unwrap() / sub_unit.unwrap() - 1.0) * 100.0 < 0.02
+            })
+            && plus_gain.is_some_and(|v| {
+                (plus.unwrap() / baseline.unwrap() - 1.0) * 100.0 - v < 0.02
+                    && v - (plus.unwrap() / baseline.unwrap() - 1.0) * 100.0 < 0.02
+            });
+        push_if_missing(
+            &mut findings,
+            arithmetic_matches
+                && number_at(row, &["reported_operating_point", "voltage_kv"]) == Some(22.0),
+            "FRONTIER_JIANG_ARITHMETIC",
+            "sub-unit thrust points, 22 kV condition or within-paper percentage arithmetic changed",
+        );
+        push_if_missing(
+            &mut findings,
+            text_at(row, &["reported_tradeoff"]).is_some_and(|value| {
+                value.contains("trade-off") && value.contains("thrust-to-power")
+            }),
+            "FRONTIER_JIANG_TP_TRADEOFF",
+            "sub-unit absolute thrust versus thrust-to-power trade-off must remain explicit",
+        );
+    }
+
+    let nonaka = record("nonaka-2026-guide-electrode");
+    push_if_missing(
+        &mut findings,
+        nonaka.is_some(),
+        "FRONTIER_NONAKA_RECORD",
+        "missing guide-electrode source",
+    );
+    if let Some(row) = nonaka {
+        push_if_missing(
+            &mut findings,
+            number_at(row, &["reported_values", "maximum_thrust_improvement_pct"]) == Some(36.6)
+                && at(row, &["reported_values", "absolute_thrust_mn"]).is_some_and(Value::is_null)
+                && at(row, &["reported_values", "absolute_thrust_to_power"]).is_some_and(Value::is_null),
+            "FRONTIER_NONAKA_SOURCE_LOCAL",
+            "guide-electrode gain must remain source-local with unknown absolute thrust/T/P",
+        );
+    }
+
+    let tao = record("tao-2026-controlled-microrobot");
+    push_if_missing(
+        &mut findings,
+        tao.is_some(),
+        "FRONTIER_TAO_RECORD",
+        "missing integrated microrobot comparator",
+    );
+    if let Some(row) = tao {
+        push_if_missing(
+            &mut findings,
+            at(row, &["reported_values", "hover_is_tethered"]).and_then(Value::as_bool)
+                == Some(true)
+                && number_at(row, &["reported_values", "hover_duration_hours"]) == Some(1.0)
+                && number_at(row, &["reported_values", "robot_mass_mg"]) == Some(36.7)
+                && number_at(row, &["reported_values", "reported_thrust_to_weight"]) == Some(5.0)
+                && text_at(row, &["system_boundary"]).is_some_and(|value| value.contains("tethered")),
+            "FRONTIER_TAO_BOUNDARY",
+            "microrobot one-hour hover must remain tethered and separate from onboard-energy flight",
+        );
+    }
+
+    let dong = record("dong-2026-ion-mobility-regulation");
+    push_if_missing(
+        &mut findings,
+        dong.is_some(),
+        "FRONTIER_DONG_RECORD",
+        "missing ion-mobility early-source watchlist entry",
+    );
+    if let Some(row) = dong {
+        let issue_date = text_at(row, &["issue_date"]);
+        let as_of = text_at(root, &["as_of"]);
+        push_if_missing(
+            &mut findings,
+            issue_date.zip(as_of).is_some_and(|(issue, cutoff)| issue > cutoff)
+                && text_at(row, &["evidence_class"])
+                    == Some("online_early_source_modelled_prediction_not_ranked")
+                && at(row, &["reported_values", "prescribed_scaled_current_condition"])
+                    .and_then(Value::as_bool)
+                    == Some(true)
+                && text_at(row, &["comparability"])
+                    .is_some_and(|value| value.contains("watchlist only")),
+            "FRONTIER_DONG_DATE_GUARD",
+            "future issue-date mobility CFD result must remain an early, scaled-current, non-ranked watchlist item",
+        );
+    }
+
+    let factors = at(root, &["proposed_design_factors"]).and_then(Value::as_array);
+    let required_factors = [
+        "guide_electrode",
+        "sub_unit_geometry",
+        "auxiliary_electrode",
+        "collector_topology",
+        "drive_architecture",
+    ];
+    let factors_match = factors.is_some_and(|items| {
+        items.len() == required_factors.len()
+            && required_factors.iter().all(|wanted| {
+                items.iter().any(|item| text_at(item, &["id"]) == Some(*wanted))
+            })
+    });
+    push_if_missing(
+        &mut findings,
+        factors_match,
+        "FRONTIER_DESIGN_FACTOR_SET",
+        "topology-screen design factor set is incomplete or duplicated",
+    );
+
+    for policy in [
+        "Do not sum or multiply source-local percentage improvements",
+        "Keep bare thruster, integrated platform and tethered system boundaries separate",
+        "A missing condition remains null",
+    ] {
+        push_if_missing(
+            &mut findings,
+            contains_any(root, &["comparability_rules"], policy),
+            "FRONTIER_COMPARABILITY_POLICY",
+            &format!("missing required frontier comparability rule: {policy}"),
+        );
+    }
+
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["claim_ceiling"]).is_some_and(|value| {
+            value.contains("No Luminous simulation")
+                && value.contains("physical measurement")
+                && value.contains("SOTA improvement")
+        }),
+        "FRONTIER_CLAIM_CEILING",
+        "frontier dataset must retain an explicit non-achievement claim ceiling",
+    );
+
+    findings
+}
+
 fn main() {
     let mut args = env::args().skip(1);
     let path = args.next();
@@ -540,13 +753,23 @@ fn main() {
         }
     };
 
-    let findings = audit_atlas(&atlas);
+    let frontier: Value = match serde_json::from_str(EMBEDDED_FRONTIER_PATTERNS) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("invalid embedded frontier JSON: {error}");
+            process::exit(2);
+        }
+    };
+    let mut findings = audit_atlas(&atlas);
+    findings.extend(audit_frontier_patterns(&frontier));
     if findings.is_empty() {
         let count = len_at(&atlas, &["source_records"]).unwrap_or(0);
         let system_count = len_at(&atlas, &["system_integration_references"]).unwrap_or(0);
         println!("PASS: {label}");
         println!("physical source cohorts: {count}");
         println!("integrated-system references: {system_count}");
+        let frontier_count = len_at(&frontier, &["records"]).unwrap_or(0);
+        println!("frontier design-pattern references: {frontier_count}");
         println!("scope: source structure and cohort comparability only; no physical V&V claim");
     } else {
         eprintln!("FAIL: {label} ({} finding(s))", findings.len());
@@ -743,4 +966,49 @@ mod tests {
         value["source_records"] = Value::Array(Vec::new());
         assert!(has_code(&audit_atlas(&value), "SOURCE_RECORDS"));
     }
+
+    #[test]
+    fn frontier_design_patterns_pass_declared_contract() {
+        let value: Value = serde_json::from_str(EMBEDDED_FRONTIER_PATTERNS)
+            .expect("embedded frontier data must be valid JSON");
+        assert!(audit_frontier_patterns(&value).is_empty());
+    }
+
+    #[test]
+    fn sub_unit_gain_arithmetic_is_enforced() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_FRONTIER_PATTERNS).unwrap();
+        value["records"][0]["reported_values"]["sub_unit_gain_pct_recomputed"] = Value::from(10.0);
+        assert!(has_code(&audit_frontier_patterns(&value), "FRONTIER_JIANG_ARITHMETIC"));
+    }
+
+    #[test]
+    fn guide_electrode_absolute_metrics_cannot_be_invented() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_FRONTIER_PATTERNS).unwrap();
+        value["records"][1]["reported_values"]["absolute_thrust_to_power"] = Value::from(9.0);
+        assert!(has_code(&audit_frontier_patterns(&value), "FRONTIER_NONAKA_SOURCE_LOCAL"));
+    }
+
+    #[test]
+    fn tethered_microrobot_hover_cannot_be_promoted_to_self_powered() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_FRONTIER_PATTERNS).unwrap();
+        value["records"][2]["reported_values"]["hover_is_tethered"] = Value::Bool(false);
+        assert!(has_code(&audit_frontier_patterns(&value), "FRONTIER_TAO_BOUNDARY"));
+    }
+
+    #[test]
+    fn future_issue_date_mobility_result_cannot_enter_leaderboard() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_FRONTIER_PATTERNS).unwrap();
+        value["records"][3]["evidence_class"] = Value::String("published_measured_benchmark".into());
+        assert!(has_code(&audit_frontier_patterns(&value), "FRONTIER_DONG_DATE_GUARD"));
+    }
+
+    #[test]
+    fn all_frontier_topology_factors_are_required() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_FRONTIER_PATTERNS).unwrap();
+        value["proposed_design_factors"].as_array_mut().unwrap().retain(|item| {
+            item["id"].as_str() != Some("guide_electrode")
+        });
+        assert!(has_code(&audit_frontier_patterns(&value), "FRONTIER_DESIGN_FACTOR_SET"));
+    }
+
 }
