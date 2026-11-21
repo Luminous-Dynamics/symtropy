@@ -3,23 +3,17 @@
 //! This oracle intentionally recomputes feasibility and dominance using a
 //! separate, simple formulation. It does not call production helpers.
 
-use mobility_action_evidence::active_assurance::{
-    select_observation_frontier, AssuranceContext, AssuranceDecision, ObservationBudget,
-    ObservationCandidate, ObservationQualification,
-};
 use mobility_action_evidence::Digest;
+use mobility_action_evidence::active_assurance::{
+    AssuranceContext, AssuranceDecision, ObservationBudget, ObservationCandidate,
+    ObservationQualification, select_observation_frontier,
+};
 
 fn digest(value: u8) -> Digest {
     Digest([value; 32])
 }
 
-fn option(
-    id: &str,
-    risk: u16,
-    latency: u64,
-    energy: u64,
-    cost: u64,
-) -> ObservationCandidate {
+fn option(id: &str, risk: u16, latency: u64, energy: u64, cost: u64) -> ObservationCandidate {
     ObservationCandidate {
         candidate_id: id.into(),
         predicate_id: "object-secured".into(),
@@ -53,10 +47,8 @@ fn reference_frontier(
                 && candidate.expected_residual_risk_upper_bound_bps
                     <= budget.maximum_residual_risk_bps
                 && candidate.latency_upper_bound_ms <= budget.maximum_latency_ms
-                && candidate.energy_upper_bound_millijoules
-                    <= budget.maximum_energy_millijoules
-                && candidate.cost_upper_bound_microcredits
-                    <= budget.maximum_cost_microcredits
+                && candidate.energy_upper_bound_millijoules <= budget.maximum_energy_millijoules
+                && candidate.cost_upper_bound_microcredits <= budget.maximum_cost_microcredits
         })
         .collect();
 
