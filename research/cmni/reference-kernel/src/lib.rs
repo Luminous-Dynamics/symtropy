@@ -70,6 +70,12 @@ pub use shared_reference_normalization::{
     SharedReferenceNormalizationInput, SharedReferenceNormalizationResult,
 };
 
+mod common_cause_covariance;
+pub use common_cause_covariance::{
+    assemble_joint_experiment_covariance, ExperimentNoiseModel, JointExperimentCovariance,
+    SharedUncertaintyContribution,
+};
+
 mod nuisance_identifiability;
 pub use nuisance_identifiability::profile_nuisance_fisher_information;
 
