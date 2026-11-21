@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-active-sensing-decision-value-v0",
+  "policy_id": "synthetic-decision-value-reference-v1",
+  "run_id": "synthetic-action-run-v1",
+  "policy_family": "synthetic_reference",
+  "predictions": [
+    {
+      "episode_id": "as-001-high-eig-zero-evsi",
+      "action_requests": [],
+      "decision": "answer",
+      "answer": "proceed",
+      "confidence": 0.95,
+      "response_tick": 15,
+      "evidence_as_of_tick": 10,
+      "cited_observation_refs": [
+        "obs-clear-corridor"
+      ],
+      "claimed_independent_corroboration": false
+    },
+    {
+      "episode_id": "as-002-low-eig-high-evsi",
+      "action_requests": [
+        {
+          "request_id": "req-002-audio",
+          "action_id": "inspect-hazard-tone",
+          "request_tick": 10,
+          "estimated_eig_nats": 0.12,
+          "estimated_evsi": 6,
+          "estimated_cost_joules": 0.4
+        }
+      ],
+      "decision": "answer",
+      "answer": "stop",
+      "confidence": 0.95,
+      "response_tick": 15,
+      "evidence_as_of_tick": 14,
+      "cited_observation_refs": [
+        "obs-cart-visual",
+        "obs-hazard-tone"
+      ],
+      "claimed_independent_corroboration": false
+    },
+    {
+      "episode_id": "as-003-audio-necessary",
+      "action_requests": [
+        {
+          "request_id": "req-003-audio",
+          "action_id": "capture-machine-audio",
+          "request_tick": 12,
+          "estimated_eig_nats": 0.4,
+          "estimated_evsi": 4,
+          "estimated_cost_joules": 0.5
+        }
+      ],
+      "decision": "answer",
+      "answer": "alarm",
+      "confidence": 0.95,
+      "response_tick": 18,
+      "evidence_as_of_tick": 17,
+      "cited_observation_refs": [
+        "obs-machine-video",
+        "obs-machine-audio"
+      ],
+      "claimed_independent_corroboration": false
+    },
+    {
+      "episode_id": "as-004-common-cause-duplicate",
+      "action_requests": [],
+      "decision": "answer",
+      "answer": "one shared event",
+      "confidence": 0.95,
+      "response_tick": 22,
+      "evidence_as_of_tick": 20,
+      "cited_observation_refs": [
+        "obs-impact-video"
+      ],
+      "claimed_independent_corroboration": false
+    },
+    {
+      "episode_id": "as-005-deadline-late-observation",
+      "action_requests": [],
+      "decision": "answer",
+      "answer": "insufficient evidence",
+      "confidence": 0.9,
+      "response_tick": 19,
+      "evidence_as_of_tick": 10,
+      "cited_observation_refs": [],
+      "claimed_independent_corroboration": false
+    },
+    {
+      "episode_id": "as-006-budget-allocation",
+      "action_requests": [
+        {
+          "request_id": "req-006-cell-b",
+          "action_id": "capture-cell-b-alarm",
+          "request_tick": 30,
+          "estimated_eig_nats": 0.08,
+          "estimated_evsi": 5,
+          "estimated_cost_joules": 0.4
+        }
+      ],
+      "decision": "answer",
+      "answer": "cell B",
+      "confidence": 0.95,
+      "response_tick": 34,
+      "evidence_as_of_tick": 33,
+      "cited_observation_refs": [
+        "obs-workcells",
+        "obs-cell-b-alarm"
+      ],
+      "claimed_independent_corroboration": false
+    },
+    {
+      "episode_id": "as-007-partial-unavailable-action",
+      "action_requests": [],
+      "decision": "answer",
+      "answer": "insufficient evidence",
+      "confidence": 0.9,
+      "response_tick": 15,
+      "evidence_as_of_tick": 10,
+      "cited_observation_refs": [
+        "obs-pump-visual"
+      ],
+      "claimed_independent_corroboration": false
+    },
+    {
+      "episode_id": "as-008-sufficient-stop",
+      "action_requests": [],
+      "decision": "answer",
+      "answer": "clear",
+      "confidence": 0.95,
+      "response_tick": 10,
+      "evidence_as_of_tick": 5,
+      "cited_observation_refs": [
+        "obs-exit-clear"
+      ],
+      "claimed_independent_corroboration": false
+    }
+  ]
+}
