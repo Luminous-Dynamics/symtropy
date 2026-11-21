@@ -229,3 +229,23 @@ A measured source histogram must specify:
 Only after the species-resolved distributions are measured should the beam forward model convolve yields over the observed distribution. A retarding-potential analyzer result is not automatically a species-resolved per-nucleus spectrum.
 
 The synthetic test fixture for the prompt-dissociation 85/15 kinematic limit is `research/cmni/fixtures/d2plus-prompt-dissociation-85-15-synthetic.json`. It is not an empirical beam record.
+
+
+## 12. Source-specific EJ-309 observation model
+
+The 2025 Thunderbird study describes one EJ-309 liquid-scintillator neutron detector and a pulse-shape discrimination chain. The initial detector adapter should represent:
+- Cylindrical EJ-309 geometry: 12.7 × 12.7 cm.
+- Hamamatsu R1250 PMT; CAEN DT5730S, 14-bit / 500 MHz, DPP-PSD digitizer.
+- Light-output calibration using 60Co, 137Cs and 152Eu.
+- PSD feature: tail/total charge-integral ratio.
+- Per-light-output slice gamma fit: 5-keVee slices with fitted `mu_gamma` and `sigma_gamma`.
+- Neutron gate: lower PSD boundary `mu_gamma + 5*sigma_gamma`; upper boundary another 0.2 PSD units higher; light-output threshold 50 keVee.
+- Pileup contribution reported below 2%.
+- Magnetic field at detector front reduced from 40 G to below 0.3 G by shielding.
+- Response simulation: MCNP6.2 + DRiFT and Geant4, 2.45-MeV D-D neutron source, detector resolution function, GRAVEL unfolding with Geant4 response matrix.
+
+The source-reported >99.9999% gamma rejection is not a universal guarantee. Model per-slice gamma distributions, gate acceptance, threshold, pileup, gain drift, calibration and background. The SI reports response agreement mainly over 200–1000 keVee; do not extrapolate it below the measured/calibrated range.
+
+The reported 2025 apparatus describes one EJ-309 neutron detector. Do not present its response model as an independent second detector or multi-detector replication. Future independent validation should use a separately calibrated second detector or different neutron-detection physics.
+
+Tracking: https://github.com/Luminous-Dynamics/symtropy/issues/6486
