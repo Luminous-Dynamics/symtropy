@@ -1184,7 +1184,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn observer_dependency_path_is_bound_to_action_ticket() {
         let mut policy = outcome_policy();
