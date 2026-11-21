@@ -341,6 +341,102 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "skill_outcome": {
+            "const": "success"
+          }
+        },
+        "required": [
+          "skill_outcome"
+        ]
+      },
+      "then": {
+        "properties": {
+          "attempts": {
+            "minimum": 1
+          },
+          "precondition": {
+            "properties": {
+              "verdict": {
+                "const": "satisfied"
+              }
+            }
+          },
+          "postcondition": {
+            "properties": {
+              "verdict": {
+                "const": "satisfied"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "skill_outcome": {
+            "const": "not_attempted"
+          }
+        },
+        "required": [
+          "skill_outcome"
+        ]
+      },
+      "then": {
+        "properties": {
+          "attempts": {
+            "const": 0
+          },
+          "postcondition": {
+            "properties": {
+              "verdict": {
+                "const": "not_assessed"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "precondition": {
+            "properties": {
+              "verdict": {
+                "const": "not_satisfied"
+              }
+            }
+          },
+          "required": [
+            "precondition"
+          ]
+        },
+        "required": [
+          "precondition"
+        ]
+      },
+      "then": {
+        "properties": {
+          "skill_outcome": {
+            "enum": [
+              "failure",
+              "ambiguous",
+              "not_attempted"
+            ]
+          },
+          "postcondition": {
+            "properties": {
+              "verdict": {
+                "const": "not_assessed"
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "$defs": {
