@@ -15,6 +15,12 @@ pub use detector::DetectorResponseMatrix;
 mod measurement_bias;
 pub use measurement_bias::apply_feature_conditioned_multiplicative_bias;
 
+mod sparse_bias_inference;
+pub use sparse_bias_inference::{
+    fit_sparse_bayesian_poisson_bias,
+    SparseBayesianBiasResult,
+};
+
 mod experiment_design;
 pub use experiment_design::{
     combine_fisher_information,
