@@ -35,6 +35,12 @@ pub enum GeometryError {
         overlap_measure: f64,
         allowed_measure: f64,
     },
+    /// Conservative sum of all pairwise intersection measures exceeds the
+    /// source-cell overlap budget. This upper-bounds multiply-covered measure.
+    OverlapBudgetExceeded {
+        pairwise_overlap_upper_bound: f64,
+        allowed_measure: f64,
+    },
     CoverageMismatch {
         source_id: u64,
         source_measure: f64,
@@ -55,6 +61,9 @@ impl fmt::Display for GeometryError {
             Self::NonFiniteMeasure(id) => write!(f, "space-time measure overflow/underflow for box {id}"),
             Self::OverlappingDestinationIntersections { first_id, second_id, overlap_measure, allowed_measure } => write!(
                 f, "destination boxes {first_id} and {second_id} overlap inside source by {overlap_measure}, allowed {allowed_measure}"
+            ),
+            Self::OverlapBudgetExceeded { pairwise_overlap_upper_bound, allowed_measure } => write!(
+                f, "cumulative pairwise-overlap upper bound {pairwise_overlap_upper_bound} exceeds source overlap budget {allowed_measure}"
             ),
             Self::CoverageMismatch { source_id, source_measure, covered_measure, allowed_measure } => write!(
                 f, "destination intersections cover {covered_measure} of source {source_id} measure {source_measure}; allowed measure error {allowed_measure}"
@@ -156,6 +165,13 @@ pub fn build_overlap_weights<const N: usize>(
 
     // Detect overlaps independently of the total coverage sum: equal-sized
     // overlap and gap defects must not cancel and pass as a complete partition.
+    //
+    // The sum of pairwise intersection measures is a conservative upper bound
+    // on the measure covered more than once: at a point covered by k boxes it
+    // counts C(k, 2), which is >= k - 1 for k >= 2. Checking only each pair
+    // independently is insufficient because many individually sub-tolerance
+    // overlaps can exceed the total source-cell error budget.
+    let mut pairwise_overlap_upper_bound = Kahan::default();
     for i in 0..intersections.len() {
         for j in (i + 1)..intersections.len() {
             let overlap = triple_intersection_measure(source, &intersections[i].0, &intersections[j].0)?;
@@ -167,7 +183,14 @@ pub fn build_overlap_weights<const N: usize>(
                     allowed_measure: allowed,
                 });
             }
+            pairwise_overlap_upper_bound.add(overlap);
         }
+    }
+    if pairwise_overlap_upper_bound.sum > allowed {
+        return Err(GeometryError::OverlapBudgetExceeded {
+            pairwise_overlap_upper_bound: pairwise_overlap_upper_bound.sum,
+            allowed_measure: allowed,
+        });
     }
 
     let mut covered = Kahan::default();
@@ -322,6 +345,49 @@ mod tests {
             build_overlap_weights(&source, &dest, tol()).unwrap_err(),
             GeometryError::OverlappingDestinationIntersections { first_id: 2, second_id: 3, .. }
         ));
+    }
+
+    #[test]
+    fn rejects_cumulative_sub_tolerance_overlaps_hidden_by_a_compensating_gap() {
+        // Each individual overlap is 0.06, below the 0.10 overlap budget.
+        // The total pairwise-overlap upper bound is 0.12, above budget.
+        // A 0.12 gap makes the sum of destination measures exactly equal
+        // to the source measure, so a coverage-sum-only test would pass.
+        let source = SpaceTimeBox {
+            id: 1,
+            lower: [0.0, 0.0],
+            upper: [1.0, 1.0],
+        };
+        let dest = [
+            SpaceTimeBox { id: 2, lower: [0.00, 0.0], upper: [0.30, 1.0] },
+            SpaceTimeBox { id: 3, lower: [0.24, 0.0], upper: [0.54, 1.0] },
+            SpaceTimeBox { id: 4, lower: [0.48, 0.0], upper: [0.78, 1.0] },
+            SpaceTimeBox { id: 5, lower: [0.90, 0.0], upper: [1.00, 1.0] },
+        ];
+        let budget = MeasureTolerance { absolute: 0.10, relative: 0.0 };
+        assert!(matches!(
+            build_overlap_weights(&source, &dest, budget).unwrap_err(),
+            GeometryError::OverlapBudgetExceeded {
+                pairwise_overlap_upper_bound,
+                allowed_measure
+            } if (pairwise_overlap_upper_bound - 0.12).abs() < 1.0e-12
+                && (allowed_measure - 0.10).abs() < 1.0e-12
+        ));
+    }
+
+    #[test]
+    fn accepts_cumulative_overlap_within_declared_budget() {
+        let source = SpaceTimeBox {
+            id: 1,
+            lower: [0.0, 0.0],
+            upper: [1.0, 1.0],
+        };
+        let dest = [
+            SpaceTimeBox { id: 2, lower: [0.00, 0.0], upper: [0.50, 1.0] },
+            SpaceTimeBox { id: 3, lower: [0.49, 0.0], upper: [1.00, 1.0] },
+        ];
+        let budget = MeasureTolerance { absolute: 0.02, relative: 0.0 };
+        assert!(build_overlap_weights(&source, &dest, budget).is_ok());
     }
 
     #[test]
