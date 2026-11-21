@@ -1120,6 +1120,44 @@ mod tests {
     }
 
     #[test]
+    fn event_scorecard_maximizes_matches_before_minimizing_distance() {
+        let truth = [
+            GroundTruthEvent {
+                call_reference_id: "CALL_A".to_string(),
+                kind: ScoredEventKind::BerthEntry,
+                event_tick: 10,
+            },
+            GroundTruthEvent {
+                call_reference_id: "CALL_A".to_string(),
+                kind: ScoredEventKind::BerthEntry,
+                event_tick: 9,
+            },
+        ];
+        let predictions = [
+            ScoredPrediction {
+                call_reference_id: "CALL_A".to_string(),
+                kind: ScoredEventKind::BerthEntry,
+                lower_tick: 10,
+                upper_tick: 10,
+            },
+            ScoredPrediction {
+                call_reference_id: "CALL_A".to_string(),
+                kind: ScoredEventKind::BerthEntry,
+                lower_tick: 11,
+                upper_tick: 11,
+            },
+        ];
+
+        // The first prediction can match either truth, while the second can
+        // match only the first. Maximum-cardinality matching must find both.
+        let score = score_events(&truth, &predictions, 1).expect("scorecard");
+        assert_eq!(score.overall.true_positive, 2);
+        assert_eq!(score.overall.false_positive, 0);
+        assert_eq!(score.overall.false_negative, 0);
+        assert_eq!(score.overall.mean_interval_distance_ticks, Some(1.0));
+    }
+
+    #[test]
     fn event_scorecard_rejects_invalid_prediction_interval() {
         let prediction = ScoredPrediction {
             call_reference_id: "CALL_A".to_string(),
