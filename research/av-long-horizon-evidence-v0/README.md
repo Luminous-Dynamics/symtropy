@@ -36,7 +36,7 @@ This repository is public. The evaluator-only fixture is logically separate but 
 
 Every digest is a placeholder commitment for metadata contract tests. No PCM or RGB bytes, physical capture or calibrated sensors are included.
 
-## Initial nine scenarios
+## Initial scenarios and temporal checkpoint extensions
 
 1. Delayed recall after ten minutes.
 2. Repeated-event disambiguation with a duplicate transport delivery that reuses the original observation identity.
@@ -90,7 +90,7 @@ An answer without correct source lineage is not a fully qualified evidence retri
 - Publish quality/coverage/latency degradation curves at 1 / 5 / 15 / 60-minute horizons.
 - At matched answer quality, target materially lower retained memory bytes than a naive rolling-context baseline without loss of event/citation recall; quantify the Pareto frontier rather than claim from synthetic placeholders.
 
-Targets must be calibrated against a powered held-out corpus and independent labels. The synthetic nine-case suite is contract scaffolding, not a SOTA benchmark submission.
+Targets must be calibrated against a powered held-out corpus and independent labels. The synthetic 11-case suite is contract scaffolding, not a SOTA benchmark submission.
 
 ## Ownership and limits
 
@@ -126,7 +126,7 @@ Run the reference scorer:
 
 The evaluator requires the submission's evidence cutoff to equal the query tick. This prevents a policy from moving the evidence horizon backwards to make required observations appear unavailable. It verifies citations against the actual stream, requires required source references for answers, tracks the original observation identity across duplicate delivery, rejects revoked evidence after revocation, rejects superseded observations as the current state, and detects false independent-corroboration and cross-clock-order claims.
 
-The finite reference submission produces eight correct event answers and one correct absent-event abstention: 8/9 answer accuracy, 8/9 coverage, 9/9 safe-decision accuracy, 9/9 complete source-citation sets, zero hard violations and zero deadline misses. The mean citation precision is 8.5/9 because the correction case intentionally cites both the superseded historical observation and the current replacement while marking only the replacement as current. These values are synthetic evaluator known answers, not learned-model scores.
+The finite reference submission now produces ten correct event answers and one correct absent-event abstention: 10/11 answer accuracy, 10/11 coverage, 11/11 safe-decision accuracy, 11/11 complete source-citation sets, zero hard violations and zero deadline misses. This includes a pre-correction checkpoint and a pre-revocation checkpoint. The mean citation precision is 8.5/9 because the correction case intentionally cites both the superseded historical observation and the current replacement while marking only the replacement as current. These values are synthetic evaluator known answers, not learned-model scores.
 
 ### Interpretation boundaries
 
@@ -205,3 +205,26 @@ These figures are outcomes of hand-authored synthetic fixture policies, not lear
 Further hardening validates that duplicate deliveries preserve the exact immutable observation identity: modality set, content digest, capture tick, source dependency group, clock-domain ID and clock generation. The stream's availability ticks must be monotonically ordered. Derived-memory lineage is validated as an acyclic dependency graph; unknown source dependencies, unknown parents, temporal ancestry violations and cycles fail closed.
 
 Purge receipts remain explicitly **candidate-self-reported**. A completed synthetic purge-claim check is not independent proof that bytes were erased from live storage, indexes, backups, caches or external providers. Real deletion qualification needs independent storage/provider receipts and post-revocation residual probes in an isolated evaluator.
+
+
+## As-known-before-change checkpoint extension (21 November 2026)
+
+The first nine episodes tested correction and revocation after those control events had become available. That left an important temporal-state gap: systems also need to preserve the previously valid state before a future correction or revocation arrives.
+
+Two paired checkpoint episodes are now included, taking the synthetic fixture set from nine to eleven:
+
+10. **Correction-before-arrival:** the initial machine-state observation is available at tick 0; a replacement observation arrives at tick 600; the correction becomes available at tick 601; the query is fixed at tick 300. The correct answer must use the initial observation as the current state. The later correction must not leak backward.
+11. **Revocation-before-effect:** a private audio observation is available at tick 0, a public video action at tick 120, and a derived summary at tick 600; the revocation only arrives at tick 1800; the query is tick 1200. The private observation remains eligible at that earlier checkpoint. Once the revocation is available, the original post-revocation case still requires it and all derived descendants to become ineligible and be purged.
+
+The timeline is a stored synthetic replay fixture, not permission to expose future events to the online candidate. A real candidate receives only the causal prefix through the current query tick. The evaluator may hold the full fixture and applies corrections/revocations only when their availability tick is at or before the prediction's as-of tick.
+
+The exact-head fixture workflow now allows future control events to remain in the stored stream while verifying:
+- stream availability order is monotonic;
+- event identities are unique;
+- correction source and replacement observations existed before the correction event;
+- revocation target existed before the revocation event;
+- every truth-required source observation was available by that episode's query tick.
+
+The evidence-ledger reference known-answer score is now 10/11 answers, 11/11 safe decisions, 10/11 coverage, 11/11 complete provenance, zero false memories and zero hard evidence violations. The four-condition tournament reference summary has been updated for 11 matched episodes. All remain hand-authored synthetic policy checks, not model scores or blind-set results.
+
+The paired checkpoints make temporal qualification stricter: a system may neither apply a future correction too early nor retain a revoked source after the revocation becomes effective. Both error directions matter.
