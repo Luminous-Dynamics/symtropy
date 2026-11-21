@@ -191,10 +191,11 @@ def evaluate(
             if outcome.get("observation_ref") is not None:
                 ref = outcome["observation_ref"]
                 if ref in admitted:
-                    raise EvaluationError(f"{episode_id}: action outcome reuses an existing observation ref")
-                # A late result has an identity and an arrival time, but is not
-                # eligible before its arrival or after the task deadline.
-                admitted[ref] = (outcome["arrival_tick"], outcome.get("source_dependency_group"))
+                    violations.append("duplicate_action_observation_reference")
+                else:
+                    # A late result has an identity and an arrival time, but is not
+                    # eligible before its arrival or after the task deadline.
+                    admitted[ref] = (outcome["arrival_tick"], outcome.get("source_dependency_group"))
 
         citations = prediction.get("cited_observation_refs")
         if not isinstance(citations, list) or any(not isinstance(ref, str) or not ref for ref in citations):
