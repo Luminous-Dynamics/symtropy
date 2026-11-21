@@ -22,6 +22,32 @@ pub enum BodyType {
     Dynamic,
 }
 
+/// Invariant violation in the canonical mass values or their reciprocal caches.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum MassPropertyInvariantError {
+    NonFiniteMass,
+    NegativeMass,
+    DynamicMassNotPositive,
+    NonFiniteInverseMass,
+    NegativeInverseMass,
+    InverseMassMismatch,
+    NonFiniteInertia { axis: usize },
+    NegativeInertia { axis: usize },
+    DynamicInertiaNotPositive { axis: usize },
+    NonFiniteInverseInertia { axis: usize },
+    NegativeInverseInertia { axis: usize },
+    InverseInertiaMismatch { axis: usize },
+}
+
+fn reciprocal_matches(actual: f64, canonical: f64) -> bool {
+    let expected = if canonical > 0.0 { 1.0 / canonical } else { 0.0 };
+    if !expected.is_finite() {
+        return false;
+    }
+    let scale = actual.abs().max(expected.abs());
+    scale == 0.0 || (actual - expected).abs() <= 32.0 * f64::EPSILON * scale
+}
+
 /// N-dimensional rigid body.
 pub struct RigidBody<const D: usize> {
     pub handle: BodyHandle,
@@ -114,6 +140,56 @@ impl<const D: usize> RigidBody<D> {
             mass,
             SVector::from_element(inertia),
         )
+    }
+
+    /// Validate canonical mass/inertia values against their derived inverse caches.
+    ///
+    /// `mass` and `inertia` are treated as canonical. This method deliberately
+    /// rejects stale inverse caches rather than silently repairing them, so an
+    /// inconsistent body cannot enter a checked physics step.
+    pub fn validate_mass_properties(&self) -> Result<(), MassPropertyInvariantError> {
+        if !self.mass.is_finite() {
+            return Err(MassPropertyInvariantError::NonFiniteMass);
+        }
+        if self.mass < 0.0 {
+            return Err(MassPropertyInvariantError::NegativeMass);
+        }
+        if self.is_dynamic() && self.mass <= 0.0 {
+            return Err(MassPropertyInvariantError::DynamicMassNotPositive);
+        }
+        if !self.inv_mass.is_finite() {
+            return Err(MassPropertyInvariantError::NonFiniteInverseMass);
+        }
+        if self.inv_mass < 0.0 {
+            return Err(MassPropertyInvariantError::NegativeInverseMass);
+        }
+        if !reciprocal_matches(self.inv_mass, self.mass) {
+            return Err(MassPropertyInvariantError::InverseMassMismatch);
+        }
+
+        for axis in 0..D {
+            let inertia = self.inertia[axis];
+            let inverse = self.inv_inertia[axis];
+            if !inertia.is_finite() {
+                return Err(MassPropertyInvariantError::NonFiniteInertia { axis });
+            }
+            if inertia < 0.0 {
+                return Err(MassPropertyInvariantError::NegativeInertia { axis });
+            }
+            if self.is_dynamic() && inertia <= 0.0 {
+                return Err(MassPropertyInvariantError::DynamicInertiaNotPositive { axis });
+            }
+            if !inverse.is_finite() {
+                return Err(MassPropertyInvariantError::NonFiniteInverseInertia { axis });
+            }
+            if inverse < 0.0 {
+                return Err(MassPropertyInvariantError::NegativeInverseInertia { axis });
+            }
+            if !reciprocal_matches(inverse, inertia) {
+                return Err(MassPropertyInvariantError::InverseInertiaMismatch { axis });
+            }
+        }
+        Ok(())
     }
 
     pub fn is_dynamic(&self) -> bool {
@@ -237,5 +313,101 @@ impl<const D: usize> RigidBody<D> {
         let local_dir = self.transform.rotation.reverse().rotate_vector(direction);
         let local_support = self.collider.support(&local_dir);
         self.transform.transform_point(&Point(local_support)).0
+    }
+}
+
+
+#[cfg(test)]
+mod mass_property_invariant_tests {
+    use super::*;
+
+    fn dynamic_body() -> RigidBody<3> {
+        RigidBody::dynamic_sphere(BodyHandle(7), Point::origin(), 0.25, 2.0)
+    }
+
+    #[test]
+    fn constructor_derives_consistent_inverse_mass_properties() {
+        let body = dynamic_body();
+        assert_eq!(body.validate_mass_properties(), Ok(()));
+    }
+
+    #[test]
+    fn static_zero_mass_and_inertia_are_valid() {
+        let body = RigidBody::<3>::static_body(
+            BodyHandle(1),
+            Point::origin(),
+            Box::new(symtropy_math::Sphere::new(Point::origin(), 0.5)),
+        );
+        assert_eq!(body.validate_mass_properties(), Ok(()));
+    }
+
+    #[test]
+    fn detects_stale_inverse_mass_cache() {
+        let mut body = dynamic_body();
+        body.inv_mass *= 2.0;
+        assert_eq!(
+            body.validate_mass_properties(),
+            Err(MassPropertyInvariantError::InverseMassMismatch)
+        );
+    }
+
+    #[test]
+    fn detects_stale_inverse_inertia_cache_with_axis() {
+        let mut body = dynamic_body();
+        body.inv_inertia[1] *= 2.0;
+        assert_eq!(
+            body.validate_mass_properties(),
+            Err(MassPropertyInvariantError::InverseInertiaMismatch { axis: 1 })
+        );
+    }
+
+    #[test]
+    fn rejects_nonfinite_and_nonpositive_dynamic_mass_properties() {
+        let mut nonfinite_mass = dynamic_body();
+        nonfinite_mass.mass = f64::NAN;
+        assert_eq!(
+            nonfinite_mass.validate_mass_properties(),
+            Err(MassPropertyInvariantError::NonFiniteMass)
+        );
+
+        let mut zero_mass = dynamic_body();
+        zero_mass.mass = 0.0;
+        zero_mass.inv_mass = 0.0;
+        assert_eq!(
+            zero_mass.validate_mass_properties(),
+            Err(MassPropertyInvariantError::DynamicMassNotPositive)
+        );
+
+        let mut nonfinite_inertia = dynamic_body();
+        nonfinite_inertia.inertia[2] = f64::INFINITY;
+        assert_eq!(
+            nonfinite_inertia.validate_mass_properties(),
+            Err(MassPropertyInvariantError::NonFiniteInertia { axis: 2 })
+        );
+
+        let mut zero_inertia = dynamic_body();
+        zero_inertia.inertia[0] = 0.0;
+        zero_inertia.inv_inertia[0] = 0.0;
+        assert_eq!(
+            zero_inertia.validate_mass_properties(),
+            Err(MassPropertyInvariantError::DynamicInertiaNotPositive { axis: 0 })
+        );
+    }
+
+    #[test]
+    fn rejects_negative_or_nonfinite_inverse_cache_values() {
+        let mut negative_inverse_mass = dynamic_body();
+        negative_inverse_mass.inv_mass = -1.0;
+        assert_eq!(
+            negative_inverse_mass.validate_mass_properties(),
+            Err(MassPropertyInvariantError::NegativeInverseMass)
+        );
+
+        let mut nonfinite_inverse_inertia = dynamic_body();
+        nonfinite_inverse_inertia.inv_inertia[0] = f64::INFINITY;
+        assert_eq!(
+            nonfinite_inverse_inertia.validate_mass_properties(),
+            Err(MassPropertyInvariantError::NonFiniteInverseInertia { axis: 0 })
+        );
     }
 }
