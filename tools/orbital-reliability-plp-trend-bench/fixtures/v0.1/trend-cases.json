@@ -1,0 +1,666 @@
+{
+  "schema": "luminous.orbital-reliability-plp-trend.corpus.v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic-constant-vs-plp-trend-diagnostic-only",
+  "cases": [
+    {
+      "case_id": "beta_one_no_trend",
+      "model_profile": "power_law_process_repairable_minimal_repair",
+      "admissibility_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "admissibility_source_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "exposure_end_seconds": 100000,
+      "event_times_seconds": [
+        30498,
+        34559,
+        39161,
+        44375
+      ],
+      "significance_level": 0.05,
+      "expected": {
+        "disposition": "no_trend_signal_detected",
+        "event_count": 4,
+        "beta_hat": 1.0000014933686876,
+        "likelihood_ratio_statistic": 8.920582386990239e-12,
+        "exact_conditional_p_value": 0.9999976659648525,
+        "blockers": []
+      }
+    },
+    {
+      "case_id": "declining_intensity_signal",
+      "model_profile": "power_law_process_repairable_minimal_repair",
+      "admissibility_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "admissibility_source_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "exposure_end_seconds": 100000,
+      "event_times_seconds": [
+        1500,
+        2128,
+        3020,
+        4285,
+        6081
+      ],
+      "significance_level": 0.05,
+      "expected": {
+        "disposition": "trend_signal_detected",
+        "event_count": 5,
+        "beta_hat": 0.2857198905462183,
+        "likelihood_ratio_statistic": 12.471879903796676,
+        "exact_conditional_p_value": 0.000505639988516382,
+        "blockers": []
+      }
+    },
+    {
+      "case_id": "increasing_intensity_signal",
+      "model_profile": "power_law_process_repairable_minimal_repair",
+      "admissibility_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "admissibility_source_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "exposure_end_seconds": 100000,
+      "event_times_seconds": [
+        65705,
+        68045,
+        70469,
+        72979,
+        75578
+      ],
+      "significance_level": 0.05,
+      "expected": {
+        "disposition": "trend_signal_detected",
+        "event_count": 5,
+        "beta_hat": 2.8571480947760657,
+        "likelihood_ratio_statistic": 3.9982331605972843,
+        "exact_conditional_p_value": 0.0491435956931463,
+        "blockers": []
+      }
+    },
+    {
+      "case_id": "near_constant_high_count",
+      "model_profile": "power_law_process_repairable_minimal_repair",
+      "admissibility_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "admissibility_source_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "exposure_end_seconds": 100000,
+      "event_times_seconds": [
+        28830,
+        29193,
+        29560,
+        29932,
+        30308,
+        30689,
+        31076,
+        31466,
+        31862,
+        32263,
+        32669,
+        33080,
+        33496,
+        33917,
+        34344,
+        34776,
+        35213,
+        35656,
+        36105,
+        36559,
+        37019,
+        37484,
+        37956,
+        38433,
+        38917,
+        39406,
+        39902,
+        40404,
+        40912,
+        41426,
+        41948,
+        42475,
+        43009,
+        43550,
+        44098,
+        44653,
+        45215,
+        45783,
+        46359,
+        46942
+      ],
+      "significance_level": 0.05,
+      "expected": {
+        "disposition": "no_trend_signal_detected",
+        "event_count": 40,
+        "beta_hat": 1.0000006152438343,
+        "likelihood_ratio_statistic": 1.5140986609017e-11,
+        "exact_conditional_p_value": 0.9999969017790246,
+        "blockers": []
+      }
+    },
+    {
+      "case_id": "near_constant_low_count",
+      "model_profile": "power_law_process_repairable_minimal_repair",
+      "admissibility_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "admissibility_source_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "exposure_end_seconds": 100000,
+      "event_times_seconds": [
+        30119,
+        33287,
+        36788,
+        40657,
+        44933
+      ],
+      "significance_level": 0.05,
+      "expected": {
+        "disposition": "no_trend_signal_detected",
+        "event_count": 5,
+        "beta_hat": 0.999997484326118,
+        "likelihood_ratio_statistic": 3.1643181540877635e-11,
+        "exact_conditional_p_value": 0.9999955858058045,
+        "blockers": []
+      }
+    },
+    {
+      "case_id": "strong_declining_at_one_percent",
+      "model_profile": "power_law_process_repairable_minimal_repair",
+      "admissibility_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "admissibility_source_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "exposure_end_seconds": 100000,
+      "event_times_seconds": [
+        219,
+        281,
+        361,
+        463,
+        595,
+        764,
+        980,
+        1259,
+        1616,
+        2075
+      ],
+      "significance_level": 0.01,
+      "expected": {
+        "disposition": "trend_signal_detected",
+        "event_count": 10,
+        "beta_hat": 0.20001182963579614,
+        "likelihood_ratio_statistic": 47.806510211845875,
+        "exact_conditional_p_value": 6.635469951277173e-12,
+        "blockers": []
+      }
+    },
+    {
+      "case_id": "moderate_declining_at_ten_percent",
+      "model_profile": "power_law_process_repairable_minimal_repair",
+      "admissibility_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "admissibility_source_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "exposure_end_seconds": 100000,
+      "event_times_seconds": [
+        8629,
+        9537,
+        10540,
+        11648,
+        12873,
+        14227,
+        15724,
+        17377,
+        19205,
+        21225
+      ],
+      "significance_level": 0.1,
+      "expected": {
+        "disposition": "trend_signal_detected",
+        "event_count": 10,
+        "beta_hat": 0.49999693815502777,
+        "likelihood_ratio_statistic": 6.1371788637249765,
+        "exact_conditional_p_value": 0.014004473471774581,
+        "blockers": []
+      }
+    },
+    {
+      "case_id": "increasing_at_one_percent",
+      "model_profile": "power_law_process_repairable_minimal_repair",
+      "admissibility_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "admissibility_source_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "exposure_end_seconds": 100000,
+      "event_times_seconds": [
+        68987,
+        69506,
+        70030,
+        70557,
+        71088,
+        71623,
+        72162,
+        72706,
+        73253,
+        73805,
+        74360,
+        74920,
+        75484,
+        76052,
+        76625,
+        77202,
+        77783,
+        78368,
+        78958,
+        79553
+      ],
+      "significance_level": 0.01,
+      "expected": {
+        "disposition": "trend_signal_detected",
+        "event_count": 20,
+        "beta_hat": 3.3333299886181234,
+        "likelihood_ratio_statistic": 20.15888407742162,
+        "exact_conditional_p_value": 0.000007758425307757832,
+        "blockers": []
+      }
+    },
+    {
+      "case_id": "scale_invariant_small",
+      "model_profile": "power_law_process_repairable_minimal_repair",
+      "admissibility_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "admissibility_source_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "exposure_end_seconds": 10000,
+      "event_times_seconds": [
+        4813,
+        4997,
+        5188,
+        5386,
+        5592,
+        5806,
+        6028,
+        6258
+      ],
+      "significance_level": 0.05,
+      "expected": {
+        "disposition": "no_trend_signal_detected",
+        "event_count": 8,
+        "beta_hat": 1.6667130693888241,
+        "likelihood_ratio_statistic": 1.7733881679490935,
+        "exact_conditional_p_value": 0.18750958392401929,
+        "blockers": []
+      }
+    },
+    {
+      "case_id": "scale_invariant_large",
+      "model_profile": "power_law_process_repairable_minimal_repair",
+      "admissibility_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "admissibility_source_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "exposure_end_seconds": 1000000,
+      "event_times_seconds": [
+        481307,
+        499699,
+        518793,
+        538617,
+        559199,
+        580567,
+        602752,
+        625784
+      ],
+      "significance_level": 0.05,
+      "expected": {
+        "disposition": "no_trend_signal_detected",
+        "event_count": 8,
+        "beta_hat": 1.6666668131909654,
+        "likelihood_ratio_statistic": 1.7732105429091707,
+        "exact_conditional_p_value": 0.18753168467665138,
+        "blockers": []
+      }
+    },
+    {
+      "case_id": "two_event_no_trend",
+      "model_profile": "power_law_process_repairable_minimal_repair",
+      "admissibility_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "admissibility_source_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "exposure_end_seconds": 100000,
+      "event_times_seconds": [
+        32465,
+        41686
+      ],
+      "significance_level": 0.05,
+      "expected": {
+        "disposition": "no_trend_signal_detected",
+        "event_count": 2,
+        "beta_hat": 0.9999937775405925,
+        "likelihood_ratio_statistic": 7.743864463517422e-11,
+        "exact_conditional_p_value": 0.999993263025602,
+        "blockers": []
+      }
+    },
+    {
+      "case_id": "two_event_strong_trend",
+      "model_profile": "power_law_process_repairable_minimal_repair",
+      "admissibility_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "admissibility_source_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "exposure_end_seconds": 100000,
+      "event_times_seconds": [
+        1111,
+        3020
+      ],
+      "significance_level": 0.05,
+      "expected": {
+        "disposition": "trend_signal_detected",
+        "event_count": 2,
+        "beta_hat": 0.250005530436968,
+        "likelihood_ratio_statistic": 6.454557101397019,
+        "exact_conditional_p_value": 0.014346813091861588,
+        "blockers": []
+      }
+    },
+    {
+      "case_id": "ten_event_declining",
+      "model_profile": "power_law_process_repairable_minimal_repair",
+      "admissibility_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "admissibility_source_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "exposure_end_seconds": 100000,
+      "event_times_seconds": [
+        4677,
+        5300,
+        6005,
+        6805,
+        7711,
+        8738,
+        9901,
+        11220,
+        12714,
+        14406
+      ],
+      "significance_level": 0.05,
+      "expected": {
+        "disposition": "trend_signal_detected",
+        "event_count": 10,
+        "beta_hat": 0.3999987734382039,
+        "likelihood_ratio_statistic": 11.67427735502772,
+        "exact_conditional_p_value": 0.0007004663750480589,
+        "blockers": []
+      }
+    },
+    {
+      "case_id": "twenty_event_increasing",
+      "model_profile": "power_law_process_repairable_minimal_repair",
+      "admissibility_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "admissibility_source_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "exposure_end_seconds": 100000,
+      "event_times_seconds": [
+        53862,
+        54539,
+        55225,
+        55920,
+        56623,
+        57336,
+        58057,
+        58787,
+        59526,
+        60275,
+        61033,
+        61801,
+        62578,
+        63366,
+        64163,
+        64970,
+        65787,
+        66614,
+        67452,
+        68301
+      ],
+      "significance_level": 0.05,
+      "expected": {
+        "disposition": "trend_signal_detected",
+        "event_count": 20,
+        "beta_hat": 2.0000002929425786,
+        "likelihood_ratio_statistic": 7.725890151823598,
+        "exact_conditional_p_value": 0.005638076000282988,
+        "blockers": []
+      }
+    },
+    {
+      "case_id": "forty_event_beta_high",
+      "model_profile": "power_law_process_repairable_minimal_repair",
+      "admissibility_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "admissibility_source_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "exposure_end_seconds": 100000,
+      "event_times_seconds": [
+        41869,
+        42237,
+        42608,
+        42983,
+        43360,
+        43741,
+        44126,
+        44514,
+        44905,
+        45299,
+        45698,
+        46099,
+        46504,
+        46913,
+        47325,
+        47741,
+        48161,
+        48584,
+        49011,
+        49442,
+        49876,
+        50315,
+        50757,
+        51203,
+        51653,
+        52107,
+        52565,
+        53027,
+        53493,
+        53963,
+        54437,
+        54915,
+        55398,
+        55885,
+        56376,
+        56872,
+        57371,
+        57876,
+        58384,
+        58897
+      ],
+      "significance_level": 0.01,
+      "expected": {
+        "disposition": "no_trend_signal_detected",
+        "event_count": 40,
+        "beta_hat": 1.428572398484731,
+        "likelihood_ratio_statistic": 4.534011809649443,
+        "exact_conditional_p_value": 0.03359457002825894,
+        "blockers": []
+      }
+    },
+    {
+      "case_id": "wrong_profile",
+      "model_profile": "weibull_first_failure_life",
+      "admissibility_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "admissibility_source_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "exposure_end_seconds": 100000,
+      "event_times_seconds": [
+        10000,
+        20000,
+        30000
+      ],
+      "significance_level": 0.05,
+      "expected": {
+        "disposition": "model_not_supported",
+        "event_count": 3,
+        "beta_hat": null,
+        "likelihood_ratio_statistic": null,
+        "exact_conditional_p_value": null,
+        "blockers": [
+          "selected_model_profile_is_not_power_law_minimal_repair"
+        ]
+      }
+    },
+    {
+      "case_id": "missing_admissibility_pin",
+      "model_profile": "power_law_process_repairable_minimal_repair",
+      "admissibility_receipt_sha256": "bad",
+      "admissibility_source_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "exposure_end_seconds": 100000,
+      "event_times_seconds": [
+        10000,
+        20000,
+        30000
+      ],
+      "significance_level": 0.05,
+      "expected": {
+        "disposition": "indeterminate",
+        "event_count": 3,
+        "beta_hat": null,
+        "likelihood_ratio_statistic": null,
+        "exact_conditional_p_value": null,
+        "blockers": [
+          "missing_or_malformed_admissibility_receipt_pin"
+        ]
+      }
+    },
+    {
+      "case_id": "invalid_alpha",
+      "model_profile": "power_law_process_repairable_minimal_repair",
+      "admissibility_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "admissibility_source_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "exposure_end_seconds": 100000,
+      "event_times_seconds": [
+        10000,
+        20000,
+        30000
+      ],
+      "significance_level": 1,
+      "expected": {
+        "disposition": "rejected",
+        "event_count": 3,
+        "beta_hat": null,
+        "likelihood_ratio_statistic": null,
+        "exact_conditional_p_value": null,
+        "blockers": [
+          "invalid_significance_level"
+        ]
+      }
+    },
+    {
+      "case_id": "zero_exposure",
+      "model_profile": "power_law_process_repairable_minimal_repair",
+      "admissibility_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "admissibility_source_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "exposure_end_seconds": 0,
+      "event_times_seconds": [
+        10000,
+        20000,
+        30000
+      ],
+      "significance_level": 0.05,
+      "expected": {
+        "disposition": "rejected",
+        "event_count": 3,
+        "beta_hat": null,
+        "likelihood_ratio_statistic": null,
+        "exact_conditional_p_value": null,
+        "blockers": [
+          "event_history_or_exposure_window_invalid"
+        ]
+      }
+    },
+    {
+      "case_id": "event_at_exposure_endpoint",
+      "model_profile": "power_law_process_repairable_minimal_repair",
+      "admissibility_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "admissibility_source_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "exposure_end_seconds": 100000,
+      "event_times_seconds": [
+        10000,
+        100000
+      ],
+      "significance_level": 0.05,
+      "expected": {
+        "disposition": "rejected",
+        "event_count": 2,
+        "beta_hat": null,
+        "likelihood_ratio_statistic": null,
+        "exact_conditional_p_value": null,
+        "blockers": [
+          "event_history_or_exposure_window_invalid"
+        ]
+      }
+    },
+    {
+      "case_id": "duplicate_event_times",
+      "model_profile": "power_law_process_repairable_minimal_repair",
+      "admissibility_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "admissibility_source_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "exposure_end_seconds": 100000,
+      "event_times_seconds": [
+        10000,
+        10000,
+        20000
+      ],
+      "significance_level": 0.05,
+      "expected": {
+        "disposition": "rejected",
+        "event_count": 3,
+        "beta_hat": null,
+        "likelihood_ratio_statistic": null,
+        "exact_conditional_p_value": null,
+        "blockers": [
+          "event_history_or_exposure_window_invalid"
+        ]
+      }
+    },
+    {
+      "case_id": "out_of_order_events",
+      "model_profile": "power_law_process_repairable_minimal_repair",
+      "admissibility_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "admissibility_source_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "exposure_end_seconds": 100000,
+      "event_times_seconds": [
+        20000,
+        10000,
+        30000
+      ],
+      "significance_level": 0.05,
+      "expected": {
+        "disposition": "rejected",
+        "event_count": 3,
+        "beta_hat": null,
+        "likelihood_ratio_statistic": null,
+        "exact_conditional_p_value": null,
+        "blockers": [
+          "event_history_or_exposure_window_invalid"
+        ]
+      }
+    },
+    {
+      "case_id": "single_event_insufficient",
+      "model_profile": "power_law_process_repairable_minimal_repair",
+      "admissibility_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "admissibility_source_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "exposure_end_seconds": 100000,
+      "event_times_seconds": [
+        10000
+      ],
+      "significance_level": 0.05,
+      "expected": {
+        "disposition": "indeterminate",
+        "event_count": 1,
+        "beta_hat": null,
+        "likelihood_ratio_statistic": null,
+        "exact_conditional_p_value": null,
+        "blockers": [
+          "fewer_than_two_events_for_trend_test"
+        ]
+      }
+    },
+    {
+      "case_id": "empty_event_history",
+      "model_profile": "power_law_process_repairable_minimal_repair",
+      "admissibility_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "admissibility_source_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "exposure_end_seconds": 100000,
+      "event_times_seconds": [],
+      "significance_level": 0.05,
+      "expected": {
+        "disposition": "indeterminate",
+        "event_count": 0,
+        "beta_hat": null,
+        "likelihood_ratio_statistic": null,
+        "exact_conditional_p_value": null,
+        "blockers": [
+          "fewer_than_two_events_for_trend_test"
+        ]
+      }
+    }
+  ]
+}
