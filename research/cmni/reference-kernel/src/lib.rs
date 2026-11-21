@@ -25,6 +25,15 @@ pub use experiment_design::{
 mod response_uncertainty;
 pub use response_uncertainty::{DetectorResponseEnsemble, PredictiveCountMoments};
 
+mod multifidelity_design;
+pub use multifidelity_design::{
+    nested_control_variate_estimate,
+    robust_design_scores,
+    select_maximin_design,
+    ControlVariateEstimate,
+    RobustDesignScore,
+};
+
 mod measurement;
 pub use measurement::{
     apply_depth_observation_operator,
