@@ -275,6 +275,30 @@ mod tests {
     }
 
     #[test]
+    fn temporal_slabs_can_be_repartitioned_independently() {
+        let source = SpaceTimeBox {
+            id: 1,
+            lower: [0.0, 0.0, 0.0, 0.0],
+            upper: [1.0, 1.0, 1.0, 2.0],
+        };
+        let destinations = [
+            SpaceTimeBox {
+                id: 2,
+                lower: [0.0, 0.0, 0.0, 0.0],
+                upper: [1.0, 1.0, 1.0, 0.5],
+            },
+            SpaceTimeBox {
+                id: 3,
+                lower: [0.0, 0.0, 0.0, 0.5],
+                upper: [1.0, 1.0, 1.0, 2.0],
+            },
+        ];
+        let weights = build_overlap_weights(&source, &destinations, tol()).unwrap();
+        assert_eq!(weights[0].fraction, 0.25);
+        assert_eq!(weights[1].fraction, 0.75);
+    }
+
+    #[test]
     fn rejects_coverage_gap() {
         let source = SpaceTimeBox { id: 1, lower: [0.0, 0.0], upper: [2.0, 2.0] };
         let dest = [
