@@ -553,8 +553,6 @@ mod tests {
         );
     }
 
-
-
     #[test]
     fn empty_planned_episode_set_is_rejected() {
         let mut binding = expected();
