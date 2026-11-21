@@ -41,9 +41,10 @@ jobs:
               .git_blob_sha1 == "1a3aa63c8ed6f2091a06ffa25ae16f4072a7516d")
           ' benchmarks/gauge-slope-identifiability-design/v0.1/external_baseline_manifest.idtd.v0.1.json >/dev/null
           jq -e '
-            .reproduction_status.code_executed == false and
+            .reproduction_status.code_executed_by_symtropy == false and
             .reproduction_status.paper_experiment_reproduced == false and
-            .symtropy_comparator_scope.full_robot_policy_pipeline_reproduced == false
+            .reproduction_status.full_robot_policy_pipeline_reproduced == false and
+            (.scope.not_implemented | length) >= 5
           ' benchmarks/gauge-slope-identifiability-design/v0.1/external_baseline_manifest.idtd.v0.1.json >/dev/null
       - name: Check formatting
         run: cargo fmt --manifest-path benchmarks/gauge-slope-identifiability-design/v0.1/Cargo.toml -- --check
