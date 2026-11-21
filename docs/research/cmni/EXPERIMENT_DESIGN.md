@@ -142,3 +142,18 @@ Do not infer that D₂⁺ explains the reported plateau. The work item is to qua
 Build separate source-summary controls and synthetic challenge cases. Never use the seven-target 0.2 mA result as if it were a replicate of the three 0.5 mA Phase I/II gains.
 
 The reported 2025 setup uses one EJ-309 detector. Reconstruct the source response/PSD method first; future independent validation should use a separately calibrated detector or a different detection modality.
+
+
+## 12. Spatial-fluence and irradiation-history interventions
+
+The 2026 Methods report that beam focusing changes with target bias above 5 kV, while the reported spot is approximately 1 cm². A total-current-normalized yield can still conceal local changes in current density, defect production, temperature and D replenishment.
+
+Add a matched-dose spatial counterfactual suite:
+- Same integrated charge, different 2-D spot profiles.
+- Same peak current density, different total charge.
+- Same total charge and spot, different beam raster/drift.
+- Same average D loading, different near-surface depth profile.
+- Same D+/D2+ fractions, different species-resolved energy histogram.
+- Same sample average, different local defect/temperature gradients.
+
+Do not claim these effects explain the reported plateau. Their value is to find whether yield is identifiable from total charge and nominal energy alone, or whether spatial/temporal fluence must be measured and modelled.
