@@ -240,6 +240,11 @@ mod tests {
             expected_observation_frame_id: "frame.local-1".into(),
             expected_calibration_id: "calibration-1".into(),
             expected_effect_digest: digest(7),
+            expected_observer_failure_domains: vec![
+                "gripper-camera".into(),
+                "observer-processor".into(),
+                "observer-power".into(),
+            ],
             observer_independence_policy_digest: digest(40),
         };
         let live = m2::LiveContext {
