@@ -126,3 +126,19 @@ For 85/15 ion-current fractions, this prompt-dissociation scenario gives approxi
 Symtropy must compare at least (a) mono-species D⁺; (b) prompt D₂⁺ dissociation; and (c) an adjustable/delayed-dissociation model. Preserve ion-current fractions separately from deuteron-flux fractions. A retarding-potential analyzer's scalar energy-spread measurement does not by itself establish a mass-resolved per-deuteron spectrum; request the source's mass-resolution and fragmentation characterization.
 
 Do not infer that D₂⁺ explains the reported plateau. The work item is to quantify whether the species mixture changes predicted yields materially at matched total deuteron flux and to define the measurements needed to discriminate it.
+
+
+## 11. Source-backed 2025 control matrix
+
+| Control | Published observation | Tests | Does not establish |
+|---|---|---|---|
+| Pre-run background | 0.21(9) n/s; described as stable over 24 h | Baseline neutron background under reported conditions | Background invariance in all apparatus states |
+| Seven-target beam repeatability | ~69.3(2) n/s after 120 min at -30 kV / 0.2 mA | Repeatability across different Pd targets | Replication of the separate 0.5 mA electrochemical Phase I/II gain |
+| Sheath voltage OFF | Signal returns to ~0.2 n/s | Dependence on D+ beam excitation | Electrochemical-cell-off persistence |
+| H2O instead of D2O | 88.3(3)% reduction | Isotope/fuel-loading control | Direct D/Pd measurement during fusion or exclusion of every artifact |
+| Electrochemical cell OFF with beam active | At most 2% variation; reactivation increase about 6% vs initial ~20% | Persistence of electrochemically loaded D | Beam-off behavior |
+| XRD characterization | Separate in-situ XRD gives H/Pd around 0.7 | Independent evidence of high hydride loading in characterization setup | Direct D/Pd measurement during each fusion run |
+
+Build separate source-summary controls and synthetic challenge cases. Never use the seven-target 0.2 mA result as if it were a replicate of the three 0.5 mA Phase I/II gains.
+
+The reported 2025 setup uses one EJ-309 detector. Reconstruct the source response/PSD method first; future independent validation should use a separately calibrated detector or a different detection modality.
