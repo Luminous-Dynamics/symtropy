@@ -113,7 +113,9 @@
       "verification": [
         "per-source overlap-fraction coverage",
         "global vector impulse residual with case-specific absolute-plus-relative tolerances",
-        "input-order permutation determinism"
+        "input-order permutation determinism",
+        "axis_aligned_space_time_intersection_backend_rejects_gaps",
+        "axis_aligned_space_time_intersection_backend_rejects_equal_measure_overlap_gap_adversary"
       ],
       "limitations": [
         "does_not_compute_geometric_intersections",
@@ -121,7 +123,30 @@
         "does_not_transform_coordinate_frames",
         "does_not_infer_boundary_impulse",
         "does_not_verify_geometric_nonoverlap_of_supplied_intersections"
-      ]
+      ],
+      "geometry_backend": {
+        "implementation": "tools/ehd-reference-audit/src/geometry.rs",
+        "geometry": "axis_aligned_space_time_boxes",
+        "supported_dimensions": [
+          2,
+          3,
+          4
+        ],
+        "dimension_meaning": "N = number of spatial axes + one time axis; N=2/3/4 covers 1D/2D/3D space-time respectively",
+        "checks": [
+          "finite_positive_box_bounds",
+          "pairwise_disjoint_destination_intersections_within_source",
+          "complete_source_measure_coverage",
+          "deterministic_destination_order"
+        ],
+        "adversarial_case": "equal_measure_destination_overlap_and_source_gap_is_rejected_by_pairwise_overlap_detection",
+        "limitations": [
+          "axis_aligned_boxes_only",
+          "not_curved_or_rotated_cells",
+          "not_general_unstructured_polyhedra",
+          "does_not_validate_non_axis_aligned_mesh_topology"
+        ]
+      }
     },
     "industry_interoperability": {
       "reference": "preCICE",
