@@ -171,7 +171,7 @@ Use reduced models for screening, Merlino2D for discharge structure where applic
 
 Every Pareto point must declare whether thrust is direct or flow-derived, per span or per area; whether power is terminal or wall-plug; and whether mass includes converter, frame, power source and payload.
 
-## 6. SOTA / industry comparison method
+## 7. SOTA / industry comparison method
 
 Use within-cohort matched experiments, not a universal leaderboard:
 1. Rebuild the exact incumbent in the same rig or numerical environment.
@@ -219,7 +219,7 @@ High thrust density must not compensate for bad T/P, poor flight drag, breakdown
 This atlas is source transcription and benchmark design. The data have not been independently reproduced by Luminous; Merlino2D has not been run in this workspace. No new Rust solver, complete EHD twin, physical experiment, new physical interaction, antigravity effect, vacuum thrust, engineering superiority, certification or independent SOTA result is claimed.
 
 
-## 10. Integrated microrobot and distributed-array control
+## 11. Integrated microrobot and distributed-array control
 
 A separate system-level comparator is Tao et al., *Controlled flight of high-thrust ultralight ion-propelled microrobot with integrated sensing*, Nature Communications 17, Article 9530 (2026), DOI 10.1038/s41467-026-76462-y.
 
