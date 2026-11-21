@@ -851,4 +851,27 @@ mod tests {
         assert_eq!(validate_trial_json(no_body), Err(TrialError::NoBodyStreams));
         assert_eq!(validate_trial_json("{"), Err(TrialError::InvalidJson));
     }
+
+    #[test]
+    fn rejects_duplicate_object_keys_and_trailing_payload() {
+        let duplicate = r#"{"FPS":30,"FPS":30,"translation unit":"mm","euler order":"ZYX"}"#;
+        assert_eq!(validate_trial_json(duplicate), Err(TrialError::InvalidJson));
+        assert_eq!(
+            validate_trial_json(&format!("{SINGLE_BODY} trailing")),
+            Err(TrialError::InvalidJson)
+        );
+    }
+
+    #[test]
+    fn decodes_escaped_unicode_in_body_identifiers() {
+        let input = replace_once(SINGLE_BODY, "\"ball\": {", "\"ball\\u0020passive\": {");
+        let report = validate_trial_json(&input).expect("escaped body identifier");
+        assert_eq!(report.bodies[0].body_id, "ball passive");
+    }
+
+    #[test]
+    fn rejects_invalid_unicode_surrogate_pairs() {
+        let input = replace_once(SINGLE_BODY, "\"ball\": {", "\"\\ud800\": {");
+        assert_eq!(validate_trial_json(&input), Err(TrialError::InvalidJson));
+    }
 }
