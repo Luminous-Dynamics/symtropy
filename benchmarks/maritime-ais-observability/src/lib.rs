@@ -333,6 +333,93 @@ fn interval_distance(event_tick: i64, lower_tick: i64, upper_tick: i64) -> Resul
 /// Predictions outside the tolerance become false positives; unmatched
 /// ground-truth events become false negatives. An event inside the predicted
 /// interval has zero interval-distance error.
+#[derive(Clone, Debug)]
+struct ResidualEdge {
+    to: usize,
+    reverse_index: usize,
+    capacity: usize,
+    cost: i128,
+}
+
+fn add_residual_edge(
+    graph: &mut [Vec<ResidualEdge>],
+    from: usize,
+    to: usize,
+    cost: i128,
+) -> usize {
+    let forward_index = graph[from].len();
+    let reverse_index = graph[to].len();
+    graph[from].push(ResidualEdge {
+        to,
+        reverse_index,
+        capacity: 1,
+        cost,
+    });
+    graph[to].push(ResidualEdge {
+        to: from,
+        reverse_index: forward_index,
+        capacity: 0,
+        cost: -cost,
+    });
+    forward_index
+}
+
+fn augment_min_cost_matching(graph: &mut [Vec<ResidualEdge>], source: usize, sink: usize) -> Result<(), String> {
+    let node_count = graph.len();
+
+    loop {
+        let mut distance = vec![i128::MAX; node_count];
+        let mut previous: Vec<Option<(usize, usize)>> = vec![None; node_count];
+        distance[source] = 0;
+
+        // Bellman-Ford handles negative reverse residual edges. Strict
+        // improvement keeps equal-cost path selection deterministic.
+        for _ in 0..node_count.saturating_sub(1) {
+            let mut changed = false;
+            for from in 0..node_count {
+                if distance[from] == i128::MAX {
+                    continue;
+                }
+                for (edge_index, edge) in graph[from].iter().enumerate() {
+                    if edge.capacity == 0 {
+                        continue;
+                    }
+                    let candidate = distance[from]
+                        .checked_add(edge.cost)
+                        .ok_or_else(|| "matching path cost overflow".to_string())?;
+                    if candidate < distance[edge.to] {
+                        distance[edge.to] = candidate;
+                        previous[edge.to] = Some((from, edge_index));
+                        changed = true;
+                    }
+                }
+            }
+            if !changed {
+                break;
+            }
+        }
+
+        if previous[sink].is_none() {
+            break;
+        }
+
+        let mut node = sink;
+        while node != source {
+            let (from, edge_index) = previous[node]
+                .ok_or_else(|| "matching augmenting path is incomplete".to_string())?;
+            let reverse_index = graph[from][edge_index].reverse_index;
+            if graph[from][edge_index].capacity == 0 {
+                return Err("matching residual capacity underflow".to_string());
+            }
+            graph[from][edge_index].capacity -= 1;
+            graph[node][reverse_index].capacity += 1;
+            node = from;
+        }
+    }
+
+    Ok(())
+}
+
 pub fn score_events(
     ground_truth: &[GroundTruthEvent],
     predictions: &[ScoredPrediction],
@@ -354,7 +441,31 @@ pub fn score_events(
         }
     }
 
-    let mut candidates = Vec::new();
+    let source_node = 0;
+    let truth_base = 1;
+    let prediction_base = truth_base + ground_truth.len();
+    let sink_node = prediction_base + predictions.len();
+    let mut graph: Vec<Vec<ResidualEdge>> =
+        (0..=sink_node).map(|_| Vec::new()).collect();
+
+    for truth_index in 0..ground_truth.len() {
+        add_residual_edge(
+            &mut graph,
+            source_node,
+            truth_base + truth_index,
+            0,
+        );
+    }
+    for prediction_index in 0..predictions.len() {
+        add_residual_edge(
+            &mut graph,
+            prediction_base + prediction_index,
+            sink_node,
+            0,
+        );
+    }
+
+    let mut match_edges = Vec::new();
     for (truth_index, truth) in ground_truth.iter().enumerate() {
         for (prediction_index, prediction) in predictions.iter().enumerate() {
             if truth.call_reference_id != prediction.call_reference_id
@@ -368,20 +479,28 @@ pub fn score_events(
                 prediction.upper_tick,
             )?;
             if distance <= tolerance_ticks {
-                candidates.push((distance, truth_index, prediction_index));
+                let edge_index = add_residual_edge(
+                    &mut graph,
+                    truth_base + truth_index,
+                    prediction_base + prediction_index,
+                    i128::from(distance),
+                );
+                match_edges.push((truth_index, prediction_index, edge_index, distance));
             }
         }
     }
 
-    // Deterministic global minimum-distance one-to-one matching.
-    candidates.sort_unstable();
+    // Successive shortest augmenting paths maximize match cardinality first;
+    // shortest residual paths minimize total interval distance at that cardinality.
+    augment_min_cost_matching(&mut graph, source_node, sink_node)?;
 
     let mut matched_truth = vec![false; ground_truth.len()];
     let mut matched_prediction = vec![false; predictions.len()];
     let mut by_kind: BTreeMap<ScoredEventKind, MutableEventMetrics> = BTreeMap::new();
 
-    for (distance, truth_index, prediction_index) in candidates {
-        if matched_truth[truth_index] || matched_prediction[prediction_index] {
+    for (truth_index, prediction_index, edge_index, distance) in match_edges {
+        let truth_node = truth_base + truth_index;
+        if graph[truth_node][edge_index].capacity != 0 {
             continue;
         }
         matched_truth[truth_index] = true;
