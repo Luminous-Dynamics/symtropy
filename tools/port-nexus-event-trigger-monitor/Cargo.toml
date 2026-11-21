@@ -1,0 +1,17 @@
+[package]
+name = "port-nexus-event-trigger-monitor"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Read-only evidence-aware multi-domain event trigger monitor for port energy and compute"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "port-nexus-event-trigger-monitor"
+path = "src/main.rs"
+
+[workspace]
+resolver = "2"
