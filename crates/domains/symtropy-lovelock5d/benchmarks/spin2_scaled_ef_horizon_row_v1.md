@@ -149,3 +149,8 @@ The next derivation must combine:
 4. The asymptotic homogeneous-mode basis and fixed-r_H versus fixed-ADM-energy parameter directions.
 
 The complete scaled algebraic row is now analytically regular at the horizon, but the **coupled Frobenius recurrence remains incomplete**, no finite-alpha BVP is solved, and there is no interval solution enclosure or existence/uniqueness theorem yet.
+
+
+## Provenance boundary
+
+The local equation-emission replay used for this derivation was an independent SymPy reconstruction of the public action-variation generator. Its 8,174-character E_f expression matches the existing public generator fixture's recorded symbolic fingerprint; the verifier also pins the emitted expression text SHA-256. The byte-for-byte public generator script has **not** yet been executed from a clean checkout in this environment. That clean-checkout generator replay receipt remains outstanding and must be completed before treating the input-generation provenance as fully closed.
