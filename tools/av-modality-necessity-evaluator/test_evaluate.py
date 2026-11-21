@@ -151,6 +151,25 @@ class EvaluatorTests(unittest.TestCase):
         self.assertFalse(result["answer_correct"])
         self.assertTrue(result["evidence_compliant"])
 
+    def test_audio_arriving_after_evidence_cutoff_allows_safe_abstention(self):
+        workload = copy.deepcopy(self.workload)
+        workload["episodes"][0]["availability"]["audio_tick"] = 20
+        candidate = copy.deepcopy(self.submission)
+        row = next(x for x in candidate["predictions"] if x["episode_id"] == "audio-a")
+        row.update(
+            answer=None, confidence=0.0, abstained=True,
+            used_modalities=["video"], cited_observation_refs=["v-audio-a"],
+            evidence_as_of_tick=15, response_tick=16,
+        )
+        score = evaluator.evaluate(
+            workload, self.truth, candidate,
+            permitted_modalities={"audio", "video"},
+        )
+        result = next(x for x in score["per_episode"] if x["episode_id"] == "audio-a")
+        self.assertTrue(result["decision_correct"])
+        self.assertFalse(result["answer_correct"])
+        self.assertTrue(result["evidence_compliant"])
+
     def test_conflict_answer_requires_both_modalities(self):
         candidate = copy.deepcopy(self.submission)
         row = next(x for x in candidate["predictions"] if x["episode_id"] == "conflict")
