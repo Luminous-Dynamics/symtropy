@@ -57,5 +57,9 @@
     "fixture_data": "original synthetic values; no real terminal, vessel, call, cargo, operator or provider records",
     "external_sources": "standards and industry context only; no CPPI or proprietary source dataset content copied"
   },
-  "claim_ceiling": "Synthetic stock-flow and event-replay contract only. No port-performance, congestion, causal, physical-capacity, or operational-authority claim."
+  "claim_ceiling": "Synthetic stock-flow and event-replay contract only. No port-performance, congestion, causal, physical-capacity, or operational-authority claim.",
+  "fixture_sha256": {
+    "cases.csv": "9f21397ff88ddc4c872bb64e11b9819aa7c731243708d489b9b0c0b7fbcde785",
+    "events.csv": "1c4f18d259d169b57c3b3f98a927b268932d4570ce15076878f773d71cef71c4"
+  }
 }
