@@ -99,10 +99,10 @@ pub fn verify_mk0_bootstrapper_report(report: &Mk0ScenarioReport) -> Mk0Verifica
             violations.push(Mk0VerificationViolation::DuplicateRecordId);
         }
 
-        if let Some(previous) = previous_tick {
-            if event.tick < previous {
-                violations.push(Mk0VerificationViolation::EventTimeRegressed);
-            }
+        if let Some(previous) = previous_tick
+            && event.tick < previous
+        {
+            violations.push(Mk0VerificationViolation::EventTimeRegressed);
         }
         previous_tick = Some(event.tick);
 
@@ -115,10 +115,10 @@ pub fn verify_mk0_bootstrapper_report(report: &Mk0ScenarioReport) -> Mk0Verifica
         if event.station != expected_event_station(event, config.subassembly.printer_station) {
             violations.push(Mk0VerificationViolation::EventStationMismatch);
         }
-        if let Mk0RecordPayload::MaintenanceFlag(flag) = &event.payload {
-            if flag.reason.trim().is_empty() {
-                violations.push(Mk0VerificationViolation::InvalidMaintenanceFlag);
-            }
+        if let Mk0RecordPayload::MaintenanceFlag(flag) = &event.payload
+            && flag.reason.trim().is_empty()
+        {
+            violations.push(Mk0VerificationViolation::InvalidMaintenanceFlag);
         }
     }
 
@@ -313,30 +313,30 @@ pub fn verify_mk0_bootstrapper_report(report: &Mk0ScenarioReport) -> Mk0Verifica
     if work_order_position.is_some_and(|position| position != 0) {
         violations.push(Mk0VerificationViolation::CausalOrderViolation);
     }
-    if let (Some(work_order), Some(material)) = (work_order_position, material_position) {
-        if material <= work_order {
-            violations.push(Mk0VerificationViolation::CausalOrderViolation);
-        }
+    if let (Some(work_order), Some(material)) = (work_order_position, material_position)
+        && material <= work_order
+    {
+        violations.push(Mk0VerificationViolation::CausalOrderViolation);
     }
-    if let (Some(work_order), Some(print)) = (work_order_position, print_position) {
-        if print <= work_order {
-            violations.push(Mk0VerificationViolation::CausalOrderViolation);
-        }
+    if let (Some(work_order), Some(print)) = (work_order_position, print_position)
+        && print <= work_order
+    {
+        violations.push(Mk0VerificationViolation::CausalOrderViolation);
     }
-    if let (Some(material), Some(print)) = (material_position, print_position) {
-        if print <= material {
-            violations.push(Mk0VerificationViolation::CausalOrderViolation);
-        }
+    if let (Some(material), Some(print)) = (material_position, print_position)
+        && print <= material
+    {
+        violations.push(Mk0VerificationViolation::CausalOrderViolation);
     }
-    if let (Some(print), Some(delivery)) = (print_position, delivery_position) {
-        if delivery <= print {
-            violations.push(Mk0VerificationViolation::CausalOrderViolation);
-        }
+    if let (Some(print), Some(delivery)) = (print_position, delivery_position)
+        && delivery <= print
+    {
+        violations.push(Mk0VerificationViolation::CausalOrderViolation);
     }
-    if let (Some(delivery), Some(handoff)) = (delivery_position, handoff_position) {
-        if handoff <= delivery {
-            violations.push(Mk0VerificationViolation::CausalOrderViolation);
-        }
+    if let (Some(delivery), Some(handoff)) = (delivery_position, handoff_position)
+        && handoff <= delivery
+    {
+        violations.push(Mk0VerificationViolation::CausalOrderViolation);
     }
 
     let observed_work_orders = work_orders.len() as u32;
