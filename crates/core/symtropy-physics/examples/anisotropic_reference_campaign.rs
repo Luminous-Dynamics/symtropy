@@ -220,9 +220,9 @@ fn euler_top_body_derivative(
 }
 
 fn skew3(vector: &SVector<f64, 3>) -> SMatrix<f64, 3, 3> {
-    SMatrix::new(
+    SMatrix::<f64, 3, 3>::from_row_slice(&[
         0.0, -vector[2], vector[1], vector[2], 0.0, -vector[0], -vector[1], vector[0], 0.0,
-    )
+    ])
 }
 
 fn rk4_euler_top_body(
@@ -281,7 +281,7 @@ fn production_top_state_after(
     let omega_body = rotation
         .reverse()
         .rotate_vector(&bivector_to_angular_vector(&angular_velocity));
-    (rotation.to_matrix(), omega_body)
+    (*rotation.to_matrix(), omega_body)
 }
 
 fn asymmetric_top_rk4_reference_campaign() -> usize {
@@ -403,10 +403,10 @@ fn intermediate_axis_campaign() -> usize {
 }
 
 fn off_center_impulse_energy_campaign() -> usize {
-    let inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.4, 0.9, 0.5))
+    let inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::<f64, 3>::from([1.4, 0.9, 0.5]))
         .expect("valid ellipsoid");
-    let offset = SVector::new(0.7, -0.25, 0.4);
-    let impulse = SVector::new(-0.2, 0.9, 0.35).normalize();
+    let offset = SVector::<f64, 3>::from([0.7, -0.25, 0.4]);
+    let impulse = SVector::<f64, 3>::from([-0.2, 0.9, 0.35]).normalize();
     let angular_impulse = Bivector::from_wedge(&offset, &impulse);
     let angular_response = inertia
         .angular_velocity_from_momentum(&angular_impulse, 1.0e-12)
@@ -464,15 +464,15 @@ fn bivector_roundtrip_campaign<const D: usize>(name: &str) -> usize {
 
 fn body_frame_contact_campaign() -> usize {
     let body_inertia =
-        BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.4, 0.9, 0.5))
+        BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::<f64, 3>::from([1.4, 0.9, 0.5]))
             .expect("valid body-frame ellipsoid");
     let mut generator = Bivector::<3>::zero();
     generator.set(0, 1, 0.31);
     generator.set(0, 2, -0.22);
     generator.set(1, 2, 0.43);
     let body_to_world = Rotor::from_bivector(&generator);
-    let offset_body = SVector::new(0.7, -0.25, 0.4);
-    let direction_body = SVector::new(-0.2, 0.9, 0.35).normalize();
+    let offset_body = SVector::<f64, 3>::from([0.7, -0.25, 0.4]);
+    let direction_body = SVector::<f64, 3>::from([-0.2, 0.9, 0.35]).normalize();
     let offset_world = body_to_world.rotate_vector(&offset_body);
     let direction_world = body_to_world.rotate_vector(&direction_body);
     let body_result = body_inertia
@@ -553,10 +553,10 @@ fn scale_safe_mass_properties_campaign() -> usize {
     let compound = BivectorInertia::<3>::combine_at_common_center(
         tiny_mass,
         &component,
-        &SVector::new(1.0e155, 0.0, 0.0),
+        &SVector::<f64, 3>::from([1.0e155, 0.0, 0.0]),
         tiny_mass,
         &component,
-        &SVector::new(-1.0e155, 0.0, 0.0),
+        &SVector::<f64, 3>::from([-1.0e155, 0.0, 0.0]),
     )
     .expect("scale-safe parallel-axis composition");
     failures += report(
