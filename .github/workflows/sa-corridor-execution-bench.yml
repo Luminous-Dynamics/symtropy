@@ -31,6 +31,10 @@ jobs:
           toolchain: "1.96.0"
           components: rustfmt, clippy
 
+      - name: Verify source fixture digest
+        working-directory: benchmarks/south-africa-corridor-execution
+        run: sha256sum --check data/SHA256SUMS
+
       - name: Check formatting
         working-directory: benchmarks/south-africa-corridor-execution
         run: cargo fmt --all --check
