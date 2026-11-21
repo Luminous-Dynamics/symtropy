@@ -34,7 +34,6 @@ struct Profile {
 
 #[derive(Debug, Clone)]
 struct Scenario {
-    id: String,
     prior_weight: f64,
     weak_cells: Vec<bool>,
     application_failure: bool,
@@ -263,7 +262,6 @@ fn parse_scenarios(
         total_weight += prior_weight;
         let application_failure = maximum_true_run(&weak_cells) >= minimum_run;
         scenarios.push(Scenario {
-            id,
             prior_weight,
             weak_cells,
             application_failure,
@@ -777,6 +775,43 @@ mod tests {
         let dp = receipt["finite_horizon_optimal_expected_total_loss"].as_f64().unwrap();
         let myopic = receipt["one_step_greedy_expected_total_loss"].as_f64().unwrap();
         assert!(dp <= myopic + 1.0e-9);
+    }
+
+    #[test]
+    fn fixture_demonstrates_value_of_sequential_adaptation() {
+        let receipt = run();
+        assert_eq!(
+            receipt["one_step_greedy_first_action"],
+            "DIRECT-CELL-2"
+        );
+        assert_eq!(
+            receipt["finite_horizon_first_action"],
+            "PROXY-CELL-2"
+        );
+        let one_step = receipt["one_step_greedy_expected_total_loss"]
+            .as_f64()
+            .unwrap();
+        let sequential = receipt["finite_horizon_optimal_expected_total_loss"]
+            .as_f64()
+            .unwrap();
+        assert!((one_step - 19.09).abs() < 1.0e-8);
+        assert!((sequential - 11.72).abs() < 1.0e-8);
+        assert!(sequential < one_step);
+    }
+
+    #[test]
+    fn positive_and_negative_branches_can_choose_different_followup_actions() {
+        let receipt = run();
+        let tree = &receipt["finite_horizon_policy_tree"];
+        assert_eq!(tree["action_id"], "PROXY-CELL-2");
+        assert_eq!(
+            tree["positive_outcome_policy"]["action_id"],
+            "DIRECT-CELL-2"
+        );
+        assert_eq!(
+            tree["negative_outcome_policy"]["action_id"],
+            "DIRECT-CELL-4"
+        );
     }
 
     #[test]
