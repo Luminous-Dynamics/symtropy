@@ -1161,9 +1161,17 @@ pub fn evaluate_shared_fleet(input: &SharedFleetInput) -> Result<SharedFleetRepo
     let mut best_cvar90_value =
         upper_tail_cvar90(&best_cvar90.scenario_costs).map_err(|error| vec![error])?;
     let mut best_worst_case_value =
-        worst_case_cost(&best_worst_case.scenario_costs).map_err(|error| vec![error])?;
+        worst_case_cost(
+            &best_worst_case.scenario_costs,
+            &best_worst_case.stress_scenario_costs,
+        )
+        .map_err(|error| vec![error])?;
     let mut best_service_robust_value =
-        worst_case_cost(&best_service_robust.scenario_unserved).map_err(|error| vec![error])?;
+        worst_case_cost(
+            &best_service_robust.scenario_unserved,
+            &best_service_robust.stress_scenario_unserved,
+        )
+        .map_err(|error| vec![error])?;
 
     for mask in 1..policy_count {
         let evaluation =
@@ -1179,7 +1187,8 @@ pub fn evaluate_shared_fleet(input: &SharedFleetInput) -> Result<SharedFleetRepo
             best_cvar90 = evaluation.clone();
         }
         let worst_case =
-            worst_case_cost(&evaluation.scenario_costs).map_err(|error| vec![error])?;
+            worst_case_cost(&evaluation.scenario_costs, &evaluation.stress_scenario_costs)
+                .map_err(|error| vec![error])?;
         if worst_case < best_worst_case_value
             || (worst_case == best_worst_case_value
                 && evaluation.weighted.total_cost < best_worst_case.weighted.total_cost)
@@ -1189,7 +1198,11 @@ pub fn evaluate_shared_fleet(input: &SharedFleetInput) -> Result<SharedFleetRepo
             best_worst_case = evaluation.clone();
         }
         let worst_unserved =
-            worst_case_cost(&evaluation.scenario_unserved).map_err(|error| vec![error])?;
+            worst_case_cost(
+                &evaluation.scenario_unserved,
+                &evaluation.stress_scenario_unserved,
+            )
+            .map_err(|error| vec![error])?;
         if worst_unserved < best_service_robust_value
             || (worst_unserved == best_service_robust_value
                 && evaluation.weighted.total_cost < best_service_robust.weighted.total_cost)
@@ -1238,13 +1251,14 @@ pub fn evaluate_shared_fleet(input: &SharedFleetInput) -> Result<SharedFleetRepo
         calibration_report_sha256: canonical.calibration_report_sha256.clone(),
         held_out_window_reference: canonical.held_out_window_reference.clone(),
         risk_claim_ceiling: match canonical.probability_basis {
-            ScenarioProbabilityBasis::SyntheticFixture => "Expected-cost and CVaR outputs are conditional arithmetic on supplied synthetic weights; they are not calibrated event probabilities, empirical field-risk bounds or operational savings claims.",
-            ScenarioProbabilityBasis::UncalibratedEstimate => "Expected-cost and CVaR outputs are conditional arithmetic on supplied uncalibrated estimates; they are not calibrated field-risk bounds. Probability calibration and out-of-sample decision validation remain required.",
-            ScenarioProbabilityBasis::CalibratedOutOfSample => "The input declares an out-of-sample calibration report and held-out window; this evaluator does not audit that report or prove calibration. Risk outputs remain conditional on the supplied finite scenario set and weights.",
+            ScenarioProbabilityBasis::SyntheticFixture => "Expected-cost and CVaR use only supplied synthetic probabilistic weights; unweighted stress scenarios are excluded from both and affect only worst-case and service-robust metrics. These are not calibrated event probabilities or field-risk bounds.",
+            ScenarioProbabilityBasis::UncalibratedEstimate => "Expected-cost and CVaR use only supplied uncalibrated estimates; unweighted stress scenarios are excluded from both and affect only worst-case and service-robust metrics. Probability calibration and out-of-sample decision validation remain required.",
+            ScenarioProbabilityBasis::CalibratedOutOfSample => "The input declares an out-of-sample calibration report and held-out window; this evaluator does not audit that report or prove calibration. Expected-cost and CVaR remain conditional on the probabilistic scenario set. Unweighted stress scenarios affect only worst-case and service-robust metrics.",
         }.into(),
         region_count: canonical.regions.len(),
         period_count: usize::from(canonical.period_count),
         scenario_count: canonical.scenarios.len(),
+        stress_scenario_count: canonical.stress_scenarios.len(),
         nonanticipative_policy_node_count: nodes.len(),
         exact_policy_count_evaluated: policy_count,
         optimized_policy: outcome(best_expected).map_err(|error| vec![error])?,
@@ -1402,7 +1416,7 @@ mod tests {
     fn cvar90_uses_fractional_probability_mass_at_the_tail_boundary() {
         let costs = vec![(100_u128, 500_u16), (20_u128, 9_500_u16)];
         assert_eq!(upper_tail_cvar90(&costs).expect("valid tail"), 60);
-        assert_eq!(worst_case_cost(&costs).expect("valid scenarios"), 100);
+        assert_eq!(worst_case_cost(&costs, &[]).expect("valid scenarios"), 100);
     }
 
     #[test]
