@@ -72,6 +72,34 @@ Zapdos is a credible open FEM plasma solver. Its 2023 published V&V focuses on 1
 
 Symtropy owns scenario identity, orchestration, replay, receipts and evidence boundaries. It is not to be represented as a plasma solver.
 
+### Commercial industry comparator: COMSOL Multiphysics
+
+COMSOL is the most useful commercial reference to include in the first solver tournament because its current product documentation describes:
+- Plasma Module interfaces for low-temperature plasma modelling, including DC discharges, corona, DBD, ICP/CCP and nonisothermal plasma-flow coupling;
+- species drift–diffusion, heavy-species transport, electrostatics/Poisson and chemistry;
+- a CFD Module with an explicit electrohydrodynamics (EHD) multiphysics capability;
+- a separate Electric Discharge Module with drift–diffusion charged-species transport, Poisson coupling, and dielectric surface-charge effects.
+
+Official references: [Plasma Module](https://www.comsol.com/plasma-module), [COMSOL 6.4 plasma interface matrix](https://doc.comsol.com/6.4/doc/com.comsol.help.plasma/plasma_introduction.02.02.html), [CFD Module / EHD](https://www.comsol.com/cfd-module), [Electric Discharge Module](https://doc.comsol.com/6.3/doc/com.comsol.help.edis/edis_introduction.2.2.html).
+
+**Important interface distinction:** COMSOL's simplified Corona Discharge interface estimates the transport region with an approximate boundary condition; it omits the ionisation layer and does not solve electron dynamics. Its documentation recommends the more general Plasma / Electric Discharge interfaces when those effects matter. Thus "COMSOL can model corona" is not enough: the benchmark must record the exact interface, modules, model equations, chemistry, dimensionality, mesh, circuit coupling and flow coupling. A commercial feature list is not validation of a particular EHD thruster.
+
+### Time-resolved plasma plus flow as a second reference architecture
+
+A 2024 ion-wind DBD study used a time-resolved 2D plasma-fluid model (nonPDPSIM) for nanosecond discharge dynamics and a separate time-averaged COMSOL flow model for the gas motion, with Schlieren imaging as a flow benchmark. This is a useful reference architecture for separating fast discharge physics from slower neutral-fluid response. It does not by itself validate an EHD flight thruster, but it is a relevant solver-composition comparator. [Study](https://doi.org/10.1007/s11090-024-10533-0).
+
+### Solver strategy against industry
+
+| Path | Strength | Limitation / fair role |
+|---|---|---|
+| COMSOL Plasma + CFD/EHD | Broad commercial multiphysics interfaces and documented corona / discharge / fluid capabilities | Licensed modules and exact interface matter; require benchmark files and convergence evidence |
+| Merlino2D + separate flow solver | Public 2D corona/DBD discharge code, GPLv3; source-accessible and scriptable | MATLAB; no complete neutral-flow / thrust solution by itself |
+| Zapdos + MOOSE | Open finite-element plasma fluid framework with published verification/validation in its supported cohorts | Validation transfer to EHD thruster regimes must be justified |
+| nonPDPSIM + flow solver | Time-resolved discharge physics with separate neutral-flow coupling in published ion-wind research | Exact version, reproducible access, license and source data must be pinned before tournament admission |
+| Symtropy + Symthaea | Open, deterministic scenario identity, evidence boundaries, source comparison, robust OED and replay | Not a plasma solver; must consume qualified specialist outputs rather than replace them |
+
+The realistic competitive objective is not to claim that a small Rust tool has more plasma physics than COMSOL. It is to build a more transparent, reproducible and solver-neutral **qualification and decision layer**: exact equation cohorts, data lineage, held-out geometry/session tests, conservation audits, complete cost accounting, and abstention when the solver or data are outside scope. Raw solver accuracy and runtime must still be measured head-to-head.
+
 ## 5. Paradigm shifts
 
 ### A. Co-design field geometry and aerodynamic drag
