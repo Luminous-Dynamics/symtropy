@@ -142,6 +142,30 @@ class SequentialAcquisitionTests(unittest.TestCase):
         with self.assertRaises(evaluator.EvaluationError):
             self.score(workload=workload)
 
+    def test_exact_oracle_rejects_excessive_action_catalogue(self):
+        episode = copy.deepcopy(self.episode("sa-001-eig-trap"))
+        template = copy.deepcopy(episode["actions"][0])
+        for index in range(11):
+            action = copy.deepcopy(template)
+            action["action_id"] = f"extra-{index}"
+            episode["actions"].append(action)
+        with self.assertRaises(evaluator.EvaluationError):
+            evaluator.exact_oracle(episode)
+
+    def test_exact_oracle_rejects_joint_outcome_explosion(self):
+        episode = copy.deepcopy(self.episode("sa-001-eig-trap"))
+        action = next(row for row in episode["actions"] if row["action_id"] == "subtype_detail")
+        count = evaluator.MAX_JOINT_OUTCOME_COMBINATIONS + 1
+        action["outcomes"] = [
+            {
+                "outcome_id": f"bucket-{index}",
+                "likelihood_by_state": {state: 1.0 / count for state in episode["prior_by_state"]},
+            }
+            for index in range(count)
+        ]
+        with self.assertRaises(evaluator.EvaluationError):
+            evaluator.plan_statistics(episode, ["subtype_detail"])
+
     def test_outcome_likelihoods_must_normalize(self):
         workload = copy.deepcopy(self.workload)
         episode = next(x for x in workload["episodes"] if x["episode_id"] == "sa-001-eig-trap")
