@@ -19,6 +19,8 @@ const MAX_ENUMERATED_BIAS_FEATURES: usize = 12;
 const MAX_NEWTON_ITERATIONS: usize = 100;
 const NEWTON_TOLERANCE: f64 = 1.0e-9;
 
+type SubsetEvaluation = (f64, Vec<f64>, Vec<Vec<f64>>, f64);
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct SparseBayesianBiasResult {
     pub coefficient_posterior_mean: Vec<f64>,
@@ -174,7 +176,6 @@ pub fn fit_sparse_bayesian_poisson_bias(
     let mut map_coefficients = vec![0.0; feature_count];
     let mut map_feature_mask = 0usize;
     let mut map_model_probability = -1.0_f64;
-    let mut map_index = 0usize;
 
     for (mask, (fit, probability)) in fits.iter().zip(probabilities.iter()).enumerate() {
         let active = active_features(mask, feature_count);
@@ -187,7 +188,6 @@ pub fn fit_sparse_bayesian_poisson_bias(
         if *probability > map_model_probability {
             map_model_probability = *probability;
             map_feature_mask = mask;
-            map_index = mask;
             map_coefficients = full_coefficients;
         }
     }
@@ -401,7 +401,7 @@ fn evaluate_subset(
     active: &[usize],
     coefficients: &[f64],
     prior_precision: f64,
-) -> Result<(f64, Vec<f64>, Vec<Vec<f64>>, f64), ModelError> {
+) -> Result<SubsetEvaluation, ModelError> {
     let dimension = active.len();
     if coefficients.len() != dimension {
         return Err(ModelError::MismatchedDataLengths);
