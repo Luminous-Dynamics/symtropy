@@ -84,6 +84,8 @@ impl Error for ScorecardError {}
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EpisodePair {
     pub episode_id: String,
+    /// Shift condition for this matched episode (e.g. in_distribution, held_out_layout).
+    pub shift_family: String,
     pub baseline_success: bool,
     pub candidate_success: bool,
 }
@@ -91,11 +93,13 @@ pub struct EpisodePair {
 impl EpisodePair {
     pub fn new(
         episode_id: impl Into<String>,
+        shift_family: impl Into<String>,
         baseline_success: bool,
         candidate_success: bool,
     ) -> Self {
         Self {
             episode_id: episode_id.into(),
+            shift_family: shift_family.into(),
             baseline_success,
             candidate_success,
         }
@@ -104,10 +108,11 @@ impl EpisodePair {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TaskCluster {
+    /// Stable semantic task/activity ID. All perturbation conditions for this
+    /// task remain within one resampling cluster.
     pub task_id: String,
     pub category: String,
     pub horizon: u32,
-    pub shift_family: String,
     pub episodes: Vec<EpisodePair>,
 }
 
@@ -116,14 +121,12 @@ impl TaskCluster {
         task_id: impl Into<String>,
         category: impl Into<String>,
         horizon: u32,
-        shift_family: impl Into<String>,
         episodes: Vec<EpisodePair>,
     ) -> Self {
         Self {
             task_id: task_id.into(),
             category: category.into(),
             horizon,
-            shift_family: shift_family.into(),
             episodes,
         }
     }
