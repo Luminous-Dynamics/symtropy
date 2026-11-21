@@ -314,3 +314,13 @@ Proposed research acceptance targets, not achieved results:
 - publish a complete trace from observation request to renderer stop, with independent digest and exact-head receipts.
 
 The 15-span synthetic episode validates only one finite sequence contract. Official StreamArena, DIVE, OmniInteract and EgoWitness scores must still be reproduced independently using their own splits, annotations and protocols. No benchmark numbers are transferred or conflated.
+
+
+## New long-horizon and adaptive-access benchmark anchors (checked 21 November 2026)
+
+- **StreamArena (August 2026):** 243 full-length videos averaging 88.8 minutes and 3,646 open-ended question-answer pairs across real-time perception, historical retrospection, proactive interaction and tool use. Its paper identifies the trade-off between recent-window-only, text-summary and repeatedly compressed visual memory. https://arxiv.org/abs/2608.05703
+- **SEW-Bench / Budget-Constrained Embodied Perception (24 August 2026):** under a 4,096-token decision budget, access-structured perception reports 75–94% episodic retrieval versus 3–19% for equal-budget query-independent sampling. Crucially, the authors also report that the full three-component architecture did not beat the verbatim-only baseline and two preregistered falsification criteria fired. This is an important warning against assuming compression is automatically beneficial. https://arxiv.org/abs/2608.22975
+- **TRACE (25 September 2026):** 1,240 records from 517 videos and explicit reporting of temporal validity, history processing, response timing, false alarms, missed windows, workload, completion and reliability. https://arxiv.org/abs/2609.30670
+- **SPOT-Bench (NeurIPS 2026 E&D):** proactive streaming benchmark at 1Hz with a posted Ctrl-SPOT T-F1@5 overall baseline of 20.9; every prediction is evaluated, including non-response dead-time. https://dibschat.github.io/SPOT-Bench/
+
+These results suggest two distinct research priorities: query-conditioned evidence access rather than query-independent frame sampling, and exact evidence retention rather than lossy summary recall. But our benchmark must preserve the negative SEW-Bench ablation result: test verbatim-only and compression-only controls. The objective is not "build a sophisticated memory stack"; it is to establish which components earn their memory and compute costs under matched budgets.
