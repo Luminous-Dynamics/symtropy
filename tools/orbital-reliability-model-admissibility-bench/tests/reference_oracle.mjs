@@ -3,6 +3,7 @@ import fs from "node:fs";
 
 const supportedProfiles = new Set([
   "homogeneous_poisson_constant_intensity",
+  "power_law_recurrent_minimal_repair",
   "weibull_first_failure_life",
   "nonhomogeneous_poisson_recurrent_events",
   "accelerated_life",
@@ -62,6 +63,16 @@ function oracle(caseData) {
     if (caseData.input_resolution !== "event_level") {
       add("weibull_first_failure_requires_event_level_input");
       disposition = "indeterminate";
+    }
+  }
+  if (caseData.selected_profile === "power_law_recurrent_minimal_repair") {
+    if (caseData.analysis_request !== "power_law_recurrent_estimate") {
+      add("power_law_profile_requires_power_law_recurrent_estimate_request");
+      disposition = "model_not_supported";
+    }
+    if (caseData.input_resolution !== "event_level") {
+      add("power_law_profile_requires_event_level_input");
+      disposition = "model_not_supported";
     }
   }
   if (caseData.selected_profile === "homogeneous_poisson_constant_intensity") {
@@ -160,7 +171,11 @@ function oracle(caseData) {
             event.recorded_at > caseData.knowledge_cutoff) {
           add("event_not_known_at_declared_cutoff");
         }
-        if (article.reported_failure_events > 1 &&
+        if (caseData.selected_profile === "power_law_recurrent_minimal_repair" &&
+            event.restoration_state !== "minimal_repair") {
+          add("power_law_profile_requires_minimal_repair_event_history");
+          disposition = "model_not_supported";
+        } else if (article.reported_failure_events > 1 &&
             ["unknown", "imperfect_repair"].includes(event.restoration_state)) {
           add("recurrent_event_restoration_semantics_unresolved_or_unsupported");
         }
@@ -172,7 +187,16 @@ function oracle(caseData) {
   if (clusters.size < uniqueArticles.length) {
     add("shared_sampling_cluster_prevents_independent_article_claim");
   }
-  if (uniqueArticles.length < 2) add("fewer_than_two_distinct_articles");
+  if (caseData.selected_profile === "power_law_recurrent_minimal_repair" &&
+      caseData.analysis_request === "power_law_recurrent_estimate" &&
+      caseData.input_resolution === "event_level") {
+    if (uniqueArticles.length !== 1) {
+      add("power_law_profile_requires_exactly_one_repairable_series");
+      disposition = "model_not_supported";
+    }
+  } else if (uniqueArticles.length < 2) {
+    add("fewer_than_two_distinct_articles");
+  }
 
   if (caseData.selected_profile === "weibull_first_failure_life" &&
       uniqueArticles.some(article => article.reported_failure_events > 1)) {
