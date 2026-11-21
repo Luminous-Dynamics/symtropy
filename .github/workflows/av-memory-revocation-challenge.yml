@@ -6,6 +6,7 @@ on:
       - research/av-revocation-noninterference-v0
     paths:
       - "research/av-memory-revocation-challenge-v0/**"
+      - "tools/av-modality-necessity-evaluator/**"
       - ".github/workflows/av-memory-revocation-challenge.yml"
   pull_request:
     branches: [main]
@@ -45,11 +46,16 @@ jobs:
           from jsonschema import Draft202012Validator
           base = "research/av-memory-revocation-challenge-v0/"
           schema = json.load(open(base + "schemas/workload-v1.schema.json", encoding="utf-8"))
-          Draft202012Validator.check_schema(schema)
+          submission_schema = json.load(open(base + "schemas/submission-v1.schema.json", encoding="utf-8"))
+          scorecard_schema = json.load(open(base + "schemas/scorecard-v1.schema.json", encoding="utf-8"))
+          for item in (schema, submission_schema, scorecard_schema):
+              Draft202012Validator.check_schema(item)
           workload = json.load(open(base + "fixtures/agent/workload-v1.json", encoding="utf-8"))
           truth = json.load(open(base + "fixtures/evaluator-only/truth-v1.json", encoding="utf-8"))
           expected = json.load(open(base + "fixtures/expected/known-answer-v1.json", encoding="utf-8"))
+          reference = json.load(open(base + "fixtures/agent/reference-submission-v1.json", encoding="utf-8"))
           Draft202012Validator(schema).validate(workload)
+          Draft202012Validator(submission_schema).validate(reference)
           for name, doc in (("truth", truth), ("expected", expected)):
               assert doc["schema_version"] == 1 and doc["benchmark_id"] == workload["benchmark_id"], name
               assert len(doc["episodes"]) == 8, name
@@ -116,6 +122,16 @@ jobs:
           assert actual["totals"] == expected["totals"], (actual["totals"], expected["totals"])
           assert actual["interpretation"]["storage_erasure_status"] == "not_independently_verified"
           assert all(not row["violations"] for row in actual["per_episode"])
+          PY
+      - name: Validate revocation scorecard against its JSON Schema
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          base = "research/av-memory-revocation-challenge-v0/"
+          schema = json.load(open(base + "schemas/scorecard-v1.schema.json", encoding="utf-8"))
+          actual = json.load(open("/tmp/av-memory-revocation-scorecard.json", encoding="utf-8"))
+          Draft202012Validator(schema).validate(actual)
           PY
       - name: Require coverage of all declared residual attack paths
 
