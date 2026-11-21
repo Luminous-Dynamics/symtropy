@@ -627,20 +627,104 @@ mod tests {
             fix(3, "m3", Zone::Berth, 100),
             fix(4, "m4", Zone::Approach, 5_000),
             fix(5, "m5", Zone::Approach, 5_000),
-            fix(6, "m6", Zone::Outside, 10_000),
+            fix(6, "m6", Zone::Approach, 5_000),
             fix(7, "m7", Zone::Outside, 10_000),
+            fix(8, "m8", Zone::Outside, 10_000),
+            fix(9, "m9", Zone::Outside, 10_000),
         ];
         let report = evaluate_call("563123456", &fixes, &default_profile()).expect("valid call");
 
         assert!(report.events.iter().any(|event| {
             event.kind == EventKind::BerthExitDetected
                 && event.lower_tick == 4
-                && event.confirmation_tick == 5
+                && event.confirmation_tick == 6
         }));
         assert_eq!(report.final_state, ServiceState::Outside);
         assert!(!report.events.iter().any(|event| {
             event.kind.label().contains("LINES_UNTIED")
         }));
+    }
+
+    #[test]
+    fn high_speed_inside_stable_berth_invalidates_the_state_claim() {
+        let fixes = [
+            fix(0, "m0", Zone::Berth, 100),
+            fix(1, "m1", Zone::Berth, 100),
+            fix(2, "m2", Zone::Berth, 100),
+            fix(3, "m3", Zone::Berth, 100),
+            fix(4, "m4", Zone::Berth, 8_000),
+        ];
+        let report = evaluate_call("563123456", &fixes, &default_profile()).expect("valid call");
+
+        assert_eq!(report.kinematic_conflict_count, 1);
+        assert_eq!(report.final_state, ServiceState::Indeterminate);
+        assert!(report.events.iter().any(|event| {
+            event.kind == EventKind::SpeedZoneConflict && event.confirmation_tick == 4
+        }));
+    }
+
+    #[test]
+    fn geofence_digest_change_within_call_rejects() {
+        let first = fix(0, "m0", Zone::Outside, 0);
+        let mut second = fix(1, "m1", Zone::Outside, 0);
+        second.geofence_digest = "sha256:fixture-geofence-v2".to_string();
+
+        let error = evaluate_call("563123456", &[first, second], &default_profile())
+            .expect_err("mixed geofence versions must reject");
+        assert!(error.contains("geofence identity changed"));
+    }
+
+    #[test]
+    fn dwell_parameter_sweep_changes_confirmation_not_latent_fixes() {
+        let fixes = [
+            fix(0, "m0", Zone::Outside, 0),
+            fix(1, "m1", Zone::Berth, 100),
+            fix(2, "m2", Zone::Berth, 100),
+            fix(3, "m3", Zone::Berth, 100),
+            fix(4, "m4", Zone::Berth, 100),
+        ];
+        let mut confirmations = Vec::new();
+
+        for dwell in 1..=4 {
+            let mut profile = default_profile();
+            profile.berth_dwell_ticks = dwell;
+            let report = evaluate_call("563123456", &fixes, &profile).expect("valid call");
+            let event = report
+                .events
+                .iter()
+                .find(|event| event.kind == EventKind::BerthZoneEntry);
+            confirmations.push(event.map(|event| event.confirmation_tick));
+        }
+
+        assert_eq!(confirmations, vec![Some(2), Some(3), Some(4), None]);
+    }
+
+    #[test]
+    fn a_long_gap_while_berthed_invalidates_continuity_then_reacquires() {
+        let fixes = [
+            fix(0, "m0", Zone::Berth, 100),
+            fix(1, "m1", Zone::Berth, 100),
+            fix(2, "m2", Zone::Berth, 100),
+            fix(3, "m3", Zone::Berth, 100),
+            fix(8, "m8", Zone::Berth, 100),
+            fix(9, "m9", Zone::Berth, 100),
+            fix(10, "m10", Zone::Berth, 100),
+            fix(11, "m11", Zone::Berth, 100),
+        ];
+        let report = evaluate_call("563123456", &fixes, &default_profile()).expect("valid call");
+
+        assert_eq!(report.observability_gap_count, 1);
+        assert_eq!(report.final_state, ServiceState::Berth);
+        assert!(report.events.iter().any(|event| event.kind == EventKind::ObservabilityGap));
+        assert!(report.events.iter().any(|event| event.kind == EventKind::ZoneReacquired));
+        assert_eq!(
+            report
+                .events
+                .iter()
+                .filter(|event| event.kind == EventKind::BerthZoneEntry)
+                .count(),
+            1
+        );
     }
 
     #[test]
