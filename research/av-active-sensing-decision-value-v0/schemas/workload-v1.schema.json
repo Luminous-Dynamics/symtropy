@@ -1,0 +1,220 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/av-active-sensing-workload-v1.schema.json",
+  "title": "AV Active Sensing Decision-Value Workload v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "note",
+    "episodes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "const": "av-active-sensing-decision-value-v0"
+    },
+    "note": {
+      "type": "string"
+    },
+    "episodes": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "$ref": "#/$defs/episode"
+      }
+    }
+  },
+  "$defs": {
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observation_ref",
+        "modality",
+        "availability_tick",
+        "artifact_sha256",
+        "source_dependency_group"
+      ],
+      "properties": {
+        "observation_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "modality": {
+          "enum": [
+            "audio",
+            "video"
+          ]
+        },
+        "availability_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "artifact_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "source_dependency_group": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_id",
+        "modality",
+        "target",
+        "latency_ticks",
+        "resource_cost",
+        "max_uses"
+      ],
+      "properties": {
+        "action_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "modality": {
+          "enum": [
+            "audio",
+            "video",
+            "audio_video"
+          ]
+        },
+        "target": {
+          "type": "string",
+          "minLength": 1
+        },
+        "latency_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "resource_cost": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "audio_bytes",
+            "video_frames",
+            "energy_joules"
+          ],
+          "properties": {
+            "audio_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "video_frames": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "energy_joules": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "max_uses": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "episode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_id",
+        "task",
+        "initial_observations",
+        "action_catalogue",
+        "budget"
+      ],
+      "properties": {
+        "episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "task": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "query_tick",
+            "deadline_tick",
+            "decision_prompt",
+            "decision_options"
+          ],
+          "properties": {
+            "query_tick": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "deadline_tick": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "decision_prompt": {
+              "type": "string",
+              "minLength": 1
+            },
+            "decision_options": {
+              "type": "array",
+              "minItems": 2,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "initial_observations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/observation"
+          }
+        },
+        "action_catalogue": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/action"
+          }
+        },
+        "budget": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "max_actions",
+            "max_audio_bytes",
+            "max_video_frames",
+            "max_energy_joules"
+          ],
+          "properties": {
+            "max_actions": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "max_audio_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "max_video_frames": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "max_energy_joules": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    }
+  }
+}
