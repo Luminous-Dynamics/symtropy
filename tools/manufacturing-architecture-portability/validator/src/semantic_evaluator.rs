@@ -257,12 +257,12 @@ mod tests {
     #[test]
     fn additional_candidate_fields_are_reported() {
         let mut actual = candidate();
-        actual["adapter_profile_id"] = json!("urn:luminous:test:adapter");
+        actual["backend_vendor_metadata"] = json!("urn:luminous:test:adapter");
         let result = compare_required_fields(&oracle(), &actual, FIELDS).unwrap();
         assert!(result.equivalent_on_required_fields);
         assert_eq!(
             result.additional_candidate_fields,
-            vec!["adapter_profile_id".to_owned()]
+            vec!["backend_vendor_metadata".to_owned()]
         );
     }
 
