@@ -11,6 +11,7 @@ fn fix(tick: i64, id: &str, zone: Zone, speed: u32) -> AisFix {
         geofence_digest: "sha256:synthetic-geofence-v1".to_string(),
         spatial_reference_id: "EPSG:4326".to_string(),
         tick,
+        received_tick: 1_000 + tick,
         zone,
         speed_milli_knots: speed,
         position_valid: true,
