@@ -57,6 +57,7 @@ pub struct Profile {
     pub icd_id: String,
     pub icd_revision: String,
     pub configuration_id: String,
+    pub article_subject_ref: String,
     pub frame_id: String,
     pub units_profile_id: String,
     pub geometry_profile_id: String,
@@ -124,6 +125,10 @@ pub struct Evidence {
     pub evidence_class: String,
     pub status: String,
     pub sha256: String,
+    pub subject_ref: String,
+    pub configuration_id: String,
+    pub icd_id: String,
+    pub icd_revision: String,
     pub dependency_group: String,
 }
 
@@ -306,6 +311,18 @@ fn profile_evidence<'a>(
         );
         return None;
     };
+    let expected_subject = if required_kind == "material_process" {
+        profile.material_lineage_ref.as_deref()
+    } else {
+        Some(profile.article_subject_ref.as_str())
+    };
+    if expected_subject != Some(evidence.subject_ref.as_str())
+        || evidence.configuration_id != profile.configuration_id
+        || evidence.icd_id != profile.icd_id
+        || evidence.icd_revision != profile.icd_revision
+    {
+        add_reason(reasons, "EVIDENCE_SCOPE_MISMATCH", Severity::Malformed);
+    }
     if evidence.status == "stale" {
         add_reason(reasons, "EVIDENCE_STALE", Severity::Malformed);
         return Some(evidence);
@@ -391,12 +408,42 @@ fn evaluate(provider: &Profile, client: &Profile) -> (String, Vec<String>) {
         }
     }
 
+    for (profile, _label) in [(provider, "PROVIDER"), (client, "CLIENT")] {
+        let mut load_case_ids = BTreeSet::new();
+        for load_case in &profile.load_cases {
+            if load_case.case_id.trim().is_empty()
+                || !load_case_ids.insert(load_case.case_id.as_str())
+            {
+                add_reason(
+                    &mut reasons,
+                    "LOAD_CASE_ID_DUPLICATE_OR_EMPTY",
+                    Severity::Malformed,
+                );
+            }
+            if load_case.interaction_profile_ref.trim().is_empty() {
+                add_reason(
+                    &mut reasons,
+                    "LOAD_INTERACTION_PROFILE_ID_EMPTY",
+                    Severity::Indeterminate,
+                );
+            }
+        }
+    }
+    if client.load_cases.is_empty() {
+        add_reason(
+            &mut reasons,
+            "LOAD_REQUIREMENT_SET_EMPTY",
+            Severity::Indeterminate,
+        );
+    }
+
     for value in [
         &provider.profile_id,
         &provider.profile_revision,
         &provider.icd_id,
         &provider.icd_revision,
         &provider.configuration_id,
+        &provider.article_subject_ref,
         &provider.frame_id,
         &provider.units_profile_id,
         &provider.geometry_profile_id,
@@ -408,12 +455,23 @@ fn evaluate(provider: &Profile, client: &Profile) -> (String, Vec<String>) {
         &client.icd_id,
         &client.icd_revision,
         &client.configuration_id,
+        &client.article_subject_ref,
         &client.frame_id,
         &client.units_profile_id,
         &client.geometry_profile_id,
         &client.mating_feature_id,
         &client.retention_feature_id,
         &client.tooling_profile_id,
+        &provider.material_spec_id,
+        &provider.material_condition_id,
+        &provider.material_lot_id,
+        &provider.process_route_id,
+        &provider.inspection_method_id,
+        &client.material_spec_id,
+        &client.material_condition_id,
+        &client.material_lot_id,
+        &client.process_route_id,
+        &client.inspection_method_id,
     ] {
         if value.trim().is_empty() {
             add_reason(&mut reasons, "IDENTITY_FIELD_EMPTY", Severity.Malformed);
