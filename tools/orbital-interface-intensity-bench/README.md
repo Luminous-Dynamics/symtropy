@@ -43,10 +43,10 @@ Reference IDs and booleans are declarations. This evaluator checks their presenc
 
 ## Industry and standards comparison
 
-- **IEC 61124:2023** specifies optimized compliance-test plans for constant failure rate and constant failure intensity, including operating-time-to-failure / inter-failure data. Its default assumption is independent, identically exponentially distributed operating times, implying a constant failure rate/intensity. This crate is not a replacement for IEC test-plan selection or implementation.
-- **MIL-HDBK-781 Rev B** is listed active by DLA (validation notice dated 29 July 2026) and covers reliability test methods, plans and environments for engineering, development, qualification and production. It remains a programme-tailoring comparator.
-- **NASA-STD-5017B** addresses physical mechanism design/development and qualification, including service-life environments, all functions and energy extremes. A statistical rate demonstration cannot replace mechanism qualification.
-- **NASA-STD-7009B** and the NIST 2026 UQ/metrology harmonization report reinforce intended-use model credibility, uncertainty, and decision-risk-scaled VVUQ. A numerical model result must remain bounded by its validation domain.
+- **[IEC 61124:2023](https://webstore.iec.ch/en/publication/65838)** specifies optimized compliance-test plans for constant failure rate and constant failure intensity, including operating-time-to-failure / inter-failure data. Its default assumption is independent, identically exponentially distributed operating times, implying a constant failure rate/intensity. This crate is not a replacement for IEC test-plan selection or implementation.
+- **[MIL-HDBK-781 Rev B status](https://quicksearch.dla.mil/qsDocDetails.aspx?ident_number=54097)** is listed active by DLA (validation notice dated 29 July 2026) and covers reliability test methods, plans and environments for engineering, development, qualification and production. It remains a programme-tailoring comparator.
+- **[NASA-STD-5017B](https://standards.nasa.gov/standard/NASA/NASA-STD-5017)** addresses physical mechanism design/development and qualification, including service-life environments, all functions and energy extremes. A statistical rate demonstration cannot replace mechanism qualification.
+- **[NASA-STD-7009B](https://standards.nasa.gov/standard/nasa/nasa-std-7009)** and the **[NIST 2026 UQ/metrology harmonization report](https://www.nist.gov/publications/methods-uncertainty-quantification-computational-modeling-and-simulation-harmonizing)** reinforce intended-use model credibility, uncertainty, and decision-risk-scaled VVUQ. A numerical model result must remain bounded by its validation domain.
 
 This is a narrow complementary profile, not a claim to outperform or supersede any standard. Comparisons must use matched estimands, sampling assumptions, censoring, confidence, event definitions and exposure units.
 
