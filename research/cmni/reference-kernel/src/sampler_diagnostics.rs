@@ -490,8 +490,8 @@ mod tests {
         let values: Vec<f64> = (0..20).map(|index| (index as f64).sin()).collect();
         let energies = vec![1.0; 20];
         let chains = vec![
-            synthetic_chain(1000 + chain_index as u64, &values, &energies),
-            synthetic_chain(&values, &energies),
+            synthetic_chain(1, &values, &energies),
+            synthetic_chain(2, &values, &energies),
         ];
         assert_eq!(
             diagnose_horseshoe_coefficient(&chains, 0),
@@ -525,7 +525,7 @@ mod tests {
             let energies: Vec<f64> = (0..80)
                 .map(|index| 2.0 + ((index * 11 + chain_index) as f64 * 0.19).cos())
                 .collect();
-            chains.push(synthetic_chain(&values, &energies));
+            chains.push(synthetic_chain(1000 + chain_index as u64, &values, &energies));
         }
         let summary = diagnose_horseshoe_coefficient(&chains, 0).expect("diagnostics");
         assert!(summary.maximum_rhat.is_finite());
@@ -543,7 +543,7 @@ mod tests {
                 .map(|index| if index % 2 == 0 { *scale } else { -*scale })
                 .collect();
             let energies: Vec<f64> = (0..80).map(|index| index as f64).collect();
-            chains.push(synthetic_chain(&values, &energies));
+            chains.push(synthetic_chain(3000 + chain_index as u64, &values, &energies));
             let _ = chain_index;
         }
         let summary = diagnose_horseshoe_coefficient(&chains, 0).expect("diagnostics");
@@ -575,7 +575,7 @@ mod tests {
             let energies: Vec<f64> = (0..80)
                 .map(|index| 2.0 + ((index * 11 + chain_index) as f64 * 0.19).cos())
                 .collect();
-            chains.push(synthetic_chain(&values, &energies));
+            chains.push(synthetic_chain(4000 + chain_index as u64, &values, &energies));
         }
         let base = diagnose_horseshoe_coefficient(&chains, 0).expect("base diagnostics");
         let scaled_chains: Vec<HorseshoeHmcChain> = chains.iter().map(|chain| {
@@ -596,7 +596,7 @@ mod tests {
         let chains = (0..4).map(|chain_index| {
             let values = vec![chain_index as f64; 8];
             let energies: Vec<f64> = (0..8).map(|index| index as f64).collect();
-            synthetic_chain(&values, &energies)
+            synthetic_chain(5000 + chain_index as u64, &values, &energies)
         }).collect::<Vec<_>>();
         let summary = diagnose_horseshoe_coefficient(&chains, 0).expect("diagnostics");
         assert_eq!(summary.mean_ess, 0.0);
