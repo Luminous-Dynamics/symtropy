@@ -1231,8 +1231,8 @@ mod tests {
     fn measured_beam_profile_reconciles_current_and_conserves_deuteron_flux() {
         let cells = [
             BeamProfileCell { x_cm: -0.5, y_cm: 0.0, area_cm2: 0.25, ion_current_density_a_cm2: 2.0e-6 },
-            BeamProfileCell { x_cm: 0.0, y_cm: 0.0, area_cm2: 0.50, ion_current_density_a_cm2: 1.0e-6 },
-            BeamProfileCell { x_cm: 0.5, y_cm: 0.0, area_cm2: 0.25, ion_current_density_a_cm2: 2.0e-6 },
+            BeamProfileCell { x_cm: 0.0, y_cm: 0.0, area_cm2: 0.50, ion_current_density_a_cm2: 0.5e-6 },
+            BeamProfileCell { x_cm: 0.5, y_cm: 0.0, area_cm2: 0.25, ion_current_density_a_cm2: 1.0e-6 },
         ];
         let profile = reconcile_measured_beam_profile(&cells, 1.0e-6, 0.85, 0.15, 1.0e-12)
             .expect("matching spatial beam profile");
