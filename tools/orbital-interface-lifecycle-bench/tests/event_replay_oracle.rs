@@ -457,7 +457,7 @@ fn reference(
 
 #[test]
 fn independent_value_oracle_matches_all_frozen_event_stream_cases() {
-    let raw = include_str!("../fixtures/v0.1/cases.json");
+    let raw = include_str!("../fixtures/v0.1/event-replay-cases.json");
     let corpus: Corpus = serde_json::from_str(raw).expect("event corpus parses");
     assert_eq!(corpus.cases.len(), 55);
     for case in &corpus.cases {
@@ -475,7 +475,7 @@ fn independent_value_oracle_matches_all_frozen_event_stream_cases() {
 
 #[test]
 fn production_replay_matches_frozen_expected_outcomes() {
-    let raw = include_str!("../fixtures/v0.1/cases.json");
+    let raw = include_str!("../fixtures/v0.1/event-replay-cases.json");
     let corpus: Corpus = serde_json::from_str(raw).expect("event corpus parses");
     let report = orbital_interface_lifecycle_bench::event_replay::evaluate(&corpus)
         .expect("corpus evaluates");
