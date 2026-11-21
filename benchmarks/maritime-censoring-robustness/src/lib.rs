@@ -87,13 +87,6 @@ impl HazardProfile {
         self.berth + self.diversion + self.cancellation
     }
 
-    fn probability(self, cause: Cause) -> f64 {
-        match cause {
-            Cause::Berth => self.berth,
-            Cause::Diversion => self.diversion,
-            Cause::Cancellation => self.cancellation,
-        }
-    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -179,6 +172,8 @@ pub struct ScenarioReport {
     pub known_g_conditional_ipcw: Option<Incidence>,
     pub observed_event_share: Incidence,
     pub unresolved_fraction: f64,
+    pub administrative_censored_calls: usize,
+    pub reporting_lag_censored_calls: usize,
     pub partial_identification_bounds: IncidenceBounds,
     pub pooled_aj_error: f64,
     pub standardized_aj_error: f64,
@@ -502,7 +497,15 @@ fn known_g_ipcw(
         incidence.add_cause(cause, 1.0 / (g * denominator));
     }
 
-    Some((incidence, minimum_g, maximum_weight))
+    // Report the weakest theoretical observation support through the horizon,
+    // not merely the minimum G among events that happened to be observed.
+    let minimum_horizon_g = match scenario {
+        ScenarioKind::IndependentAdministrative => (1.0_f64 - 0.10).powi(i32::from(HORIZON) - 1),
+        ScenarioKind::MeasuredStratumDependent => (1.0_f64 - 0.22).powi(i32::from(HORIZON) - 1),
+        _ => unreachable!(),
+    };
+
+    Some((incidence, minimum_horizon_g.min(minimum_g), maximum_weight))
 }
 
 fn observed_cause_share(observed: &[ObservedCall]) -> Incidence {
@@ -561,6 +564,14 @@ fn evaluate_scenario(scenario: ScenarioKind) -> ScenarioReport {
     let standardized = standardize_stratum_aj(&observed);
     let ipcw = known_g_ipcw(&observed, scenario);
     let bounds = partial_bounds(&observed);
+    let administrative_censored_calls = observed
+        .iter()
+        .filter(|call| call.censor_reason == Some(CensorReason::Administrative))
+        .count();
+    let reporting_lag_censored_calls = observed
+        .iter()
+        .filter(|call| call.censor_reason == Some(CensorReason::ReportingLag))
+        .count();
 
     let stratum_1_true_berths = latent
         .iter()
@@ -590,6 +601,8 @@ fn evaluate_scenario(scenario: ScenarioKind) -> ScenarioReport {
         known_g_conditional_ipcw: ipcw.map(|item| item.0),
         observed_event_share: observed_cause_share(&observed),
         unresolved_fraction: unresolved_fraction(&observed),
+        administrative_censored_calls,
+        reporting_lag_censored_calls,
         partial_identification_bounds: bounds,
         pooled_aj_error: pooled.max_abs_error(full_truth),
         standardized_aj_error: standardized.max_abs_error(full_truth),
