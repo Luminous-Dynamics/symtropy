@@ -1,0 +1,129 @@
+# AIACHNE PFNS corpus and shared-reference normalization audit
+
+**Status:** source-byte and structural audit; scientific reproduction remains outstanding  
+**Pinned source:** `lanl/sparse_bias@190a4e97ac21de4f33b42e49733e62c45d515e75`  
+**CMNI branch:** `research/cmni-symtropy-v0`
+
+## 1. Corpus identity and byte verification
+
+The public LANL directory `AIACHNE/Data_LA-UR-25-31736/` contains 22 files: 21 experiment JSON records and one pointwise (^{252}\mathrm{Cf}) reference-evaluation file. The total source size is 1,508,795 bytes.
+
+The manifest `research/cmni/source-manifests/lanl-aiachne-pfns-public-corpus-v1.json` records:
+- the immutable upstream commit;
+- each relative path and byte length;
+- each Git blob SHA-1 object identity;
+- a SHA-256 digest for each file.
+
+All 22 text payloads were retrieved at the pinned commit. For every file, its UTF-8 byte length matched GitHub's reported size and a locally recomputed Git blob SHA-1 (the `blob <size>\0<bytes>` object preimage) matched the upstream object ID. SHA-256 was computed over the same bytes.
+
+This is exact source-byte identity verification. The bytes were retrieved and hashed in-memory through the GitHub connector; this is not a claim that they were copied into the Symtropy repository or a local filesystem. It also does not establish scientific validity, completeness of experimental provenance, or eligibility for a benchmark. The LANL README states BSD-3 licensing; preserve original copyright/attribution and verify redistribution terms before republishing source bytes.
+
+## 2. Structural audit of the 21 experiment records
+
+The audit parsed `data.values`, `data.uncertainties`, `data.correlations`, and `data.structure[1].limits` from every experiment record.
+
+| Experiment file | Observations | Minimum unpivoted Cholesky pivot |
+|---|---:|---:|
+| PFNS_Bao1989.json | 33 | 0.0391482 |
+| PFNS_Blain2017highEout.json | 12 | 0.0005470089 |
+| PFNS_Blain2017lowEout.json | 13 | 0.0285906 |
+| PFNS_Blinov1973.json | 73 | 0.00647697 |
+| PFNS_Blinov1980002.json | 67 | 0.290811 |
+| PFNS_Blinov1980003.json | 49 | 0.389919 |
+| PFNS_Blinov1980004.json | 76 | 0.353803 |
+| PFNS_Blinov1980005.json | 81 | 0.622406 |
+| PFNS_Boettger1990.json | 60 | 0.01144997 |
+| PFNS_Boldeman1986highEout.json | 59 | 0.0000188666 |
+| PFNS_Boldeman1986lowEout.json | 28 | 0.00621279 |
+| PFNS_Boytsov1983003.json | 24 | 0.0445277 |
+| PFNS_Boytsov1983004.json | 24 | 0.00596214 |
+| PFNS_Boytsov1983ant.json | 55 | 0.00276827 |
+| PFNS_Chalupka1990.json | 28 | 0.345596 |
+| PFNS_Knitter1973003.json | 90 | 0.0388139 |
+| PFNS_Kornilov2015.json | 90 | 0.0134859 |
+| PFNS_Lajtai1990.json | 70 | 0.102323 |
+| PFNS_Maerten1990_0deg.json | 23 | 0.0201662 |
+| PFNS_Maerten1990_60deg.json | 23 | 0.0238484 |
+| PFNS_Poenitz1982.json | 52 | 0.0788631 |
+| **Total** | **1,030** | — |
+
+Observed structural facts across these 21 files:
+- 1,030 values and 1,030 relative-uncertainty entries.
+- 1,030 energy-limit values in `data.structure[1].limits`.
+- 63,646 flattened correlation entries, exactly (sum_e n_e^2).
+- Every correlation array reshapes to (n_e\times n_e).
+- Every correlation matrix is symmetric to floating-point precision; maximum observed absolute asymmetry is below (4.5\times10^{-16}).
+- All 21 matrices passed an ordinary unpivoted Cholesky factorization with strictly positive pivots.
+- No zero-valued observation bins were found in these records.
+- No non-finite numeric values were found in the audited numeric arrays.
+- Energy-limit arrays were monotonically non-decreasing.
+
+The minimum Cholesky pivot in the table is the minimum positive diagonal Schur pivot before taking its square root in the unpivoted factorization. It is **not** an eigenvalue or a condition number. The very small pivot for `PFNS_Boldeman1986highEout.json` (about (1.89\times10^{-5})) and the small pivot for the Blain high-energy record are flags for a separate conditioning/eigenvalue audit. Passing Cholesky is only a structural positive-definiteness check, not validation of the covariance model or the physical measurements.
+
+## 3. A consequential preprocessing dependency: all experiments are normalized to one reference
+
+The public `AIACHNE/ExecuteStudy.ipynb` loads the pointwise evaluation file:
+
+`Eval_MvUncCf252PFNS_AfterAIACHNEKnowledgePointwise_Upd20250908.dat`
+
+It reads `Eout`, `val`, and `rel_unc`, then normalizes each experiment before compiling the multi-experiment dataset. The notebook calls the public `get_scale_factor` helper with the experimental energy grid and values, and with the common evaluation's `Eout` and `val`. The helper linearly interpolates the reference values onto the experimental grid and computes the ratio of trapezoidal integrals. The observed spectrum is multiplied by that scalar.
+
+Two details matter:
+1. The notebook passes the pointwise reference values to the scale-factor function, but not the `rel_unc` field read from the reference-evaluation file.
+2. The public `compile_data_dicts` helper combines experiment correlation matrices with a block-diagonal construction. It does not add cross-experiment covariance from a shared uncertain reference.
+
+This is not by itself proof that the published scientific analysis is invalid: the notebook may be a conditional analysis that treats the reference evaluation as fixed. But it is a precise modeling boundary. If CMNI reports uncertainty unconditional on the shared evaluation, then reference uncertainty and the dependence it induces across normalized experiments must be represented or bounded. If the reference is intentionally treated as fixed, that conditioning assumption must be explicit and its impact tested.
+
+Normalization also changes the covariance within each experiment. For observed vector (y), integration weights (w), common reference (r), and a projection (A) from the reference grid to the experiment grid:
+
+[
+p=w^Ty,\qquad q=w^TAr,\qquad z=\frac{q}{p}y.
+]
+
+The first-order Jacobians are:
+
+[
+J_y=\frac{q}{p}\left(I-\frac{yw^T}{p}\right),
+\qquad
+J_r=\frac{y(w^TA)}{p}.
+]
+
+Therefore:
+
+[
+C_z\approx J_yC_yJ_y^T+J_rC_rJ_r^T,
+]
+
+and for two otherwise independent experiments (j,k) normalized to the same uncertain reference:
+
+[
+C_{jk}\approx J_{r,j}C_rJ_{r,k}^T.
+]
+
+With a fixed reference integral, the normalized integral is constrained exactly, giving a null covariance direction along the integration weights. With an uncertain shared reference, the common-reference term restores variance in that direction and creates cross-experiment dependence.
+
+## 4. CMNI implementation increment
+
+The standalone Rust kernel now contains `shared_reference_normalization.rs`, exported through `lib.rs`. It:
+- accepts raw observation covariance, reference covariance, a projection matrix, and explicit integration weights;
+- returns the normalized spectrum and scale factor;
+- returns separate observation and reference Jacobians;
+- returns the propagated within-experiment covariance components;
+- computes cross-covariance between two experiments sharing the same reference.
+
+The implementation is a first-order delta-method primitive. It does not silently assume a diagonal reference covariance, because the pointwise reference file supplies marginal relative uncertainties but not a full covariance matrix in the inspected format. A diagonal-reference scenario can be used as a declared sensitivity case, not treated as known truth. Monte Carlo propagation of the nonlinear ratio is a required independent comparison.
+
+Authored Rust tests cover integral preservation, the fixed-reference normalization null direction, induced cross-experiment covariance, and invalid dimensions/non-finite inputs. These tests are not yet reported as executed; exact-head CI must compile, lint, and run them.
+
+## 5. Next parity experiments
+
+1. Reconstruct the upstream notebook's exact trapezoidal weights and linear interpolation projection on each experimental energy grid.
+2. Reproduce its scale factors exactly before fitting any bias model.
+3. Compare the upstream conditional covariance path (original per-experiment correlation blocks, fixed reference) against:
+   - first-order delta covariance with a declared reference covariance;
+   - Monte Carlo normalization draws from the same reference uncertainty;
+   - shared-reference cross-experiment covariance retained in the joint likelihood.
+4. Run feature-attribution and leave-one-experiment-out tests under both conditional and propagated-reference models.
+5. Quantify whether feature inclusion probabilities, bias signs, and the reported spread-reduction factor change under reference uncertainty and alternative normalization anchors.
+
+The purpose is not to assume that the original choice is wrong. It is to expose the reference-conditioning assumption, measure its consequence, and stop CMNI from reporting conditional uncertainties as though they were unconditional.
