@@ -1,9 +1,6 @@
 use nav_observation_toy_fim::DesignCriterion;
 
-#[path = "../correlated.rs"]
-mod correlated;
-
-use correlated::{
+use nav_observation_toy_fim::correlated::{
     correlated_fisher, exhaustive_select_correlated, greedy_select_correlated,
     CorrelatedRangeAction,
 };
