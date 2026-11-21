@@ -42,6 +42,16 @@ This v0.1 fixture specifically models **sustained downhill sliding driven by gra
 
 The Schur-decoupling scorer is a small two-parameter benchmark analogue of the objective in [IDTD (arXiv:2610.10905)](https://arxiv.org/abs/2610.10905). It does **not** reproduce IDTD's robot simulator, segmented command trajectories, policy optimization, CMA-ES, parameter estimation or real-robot experiment.
 
+### Pinned external baseline
+
+The external IDTD comparator is pinned in `external_baseline_manifest.idtd.v0.1.json` to code commit `b47eed10adb4ea3d1987fc4211a9251f5de18ea6`, with blob identities for the README, MIT LICENSE, FIM evaluator and active optimizer.
+
+The paper's v2 (revised 2026-10-27) reports a 39.6% average reduction in parameter identification error over its strongest prior active-exploration baseline across linear dynamics, Go2, G1 and Crazyflie simulation, plus a real K1 humanoid validation. This is the authors' reported result; Symtropy has **not** independently reproduced the paper's experiment or verified the 39.6% claim.
+
+The public implementation uses finite-difference state sensitivities, hardware-measurable state-channel selection, segment-wise per-parameter Schur coverage and CMA-ES policy-conditioned Bezier command search. It depends on an external SimForge/JaxRLWorld runtime and a Python stack. Our current comparator validates only the reduced two-parameter score and counterexamples.
+
+A fair follow-on should compare repeated-angle, fixed-grid, random, D-optimal and IDTD-style designs with the same physical trial count, observation channels, duration, policy/actuator limits, compute budget and blind physical holdouts. Report parameter recovery, held-out trajectory error, per-parameter conditional Fisher coverage, uncertainty/calibration, failure/abstention, physical trial count and p50/p95 optimization time separately.
+
 ## Synthetic example
 
 The analytical fixture uses `mu=0.25`, `delta=0.02 rad`, `g=9.81 m/s^2`, and acceleration standard deviation `0.05 m/s^2`.
