@@ -12,7 +12,7 @@ on:
       - ".github/workflows/mfg-architecture-profile.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: mfg-architecture-profile-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -38,6 +38,19 @@ jobs:
         with:
           workspaces: |
             tools/manufacturing-architecture-portability/validator -> target
+
+      # Temporary maintainer-only rustfmt repair. Remove after the normalized commit lands.
+      - name: One-time rustfmt repair on Foundry research branch
+        if: github.event_name == 'pull_request' && github.actor == 'Tristan-Stoltz-ERC' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'research/mfg-architecture-portability-v0-1'
+        run: |
+          cargo fmt --manifest-path tools/manufacturing-architecture-portability/validator/Cargo.toml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/manufacturing-architecture-portability/validator/src
+          if ! git diff --cached --quiet; then
+            git commit -m "style(foundry): rustfmt OPC UA NodeSet admission"
+            git push origin HEAD:refs/heads/research/mfg-architecture-portability-v0-1
+          fi
 
       # Cargo.lock is committed and every dependency operation is locked.
       - name: Check formatting
