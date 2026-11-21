@@ -944,15 +944,25 @@ fn evaluate_shared_cell_pair(
     let total_module_work_minutes = module_processing_minutes
         .zip(module_changeover_minutes)
         .map(|(processing, setup)| processing + setup);
-    let fitted = total_module_work_minutes.zip(base_station_residual_minutes)
-        .map(|(work, residual)| work.min(residual.max(0.0)));
-    let excess = total_module_work_minutes.zip(base_station_residual_minutes)
-        .map(|(work, residual)| (work - residual.max(0.0)).max(0.0));
+    let compatibility_allows_sharing = matches!(
+        mapping.compatibility,
+        SharedCellCompatibility::SyntheticCompatible | SharedCellCompatibility::VerifiedCompatible
+    );
+    let fitted = compatibility_allows_sharing
+        .then(|| total_module_work_minutes.zip(base_station_residual_minutes)
+            .map(|(work, residual)| work.min(residual.max(0.0))))
+        .flatten();
+    let excess = compatibility_allows_sharing
+        .then(|| total_module_work_minutes.zip(base_station_residual_minutes)
+            .map(|(work, residual)| (work - residual.max(0.0)).max(0.0)))
+        .flatten();
     let required_supplemental = excess.and_then(|minutes| {
         ceil_supplemental_cells(minutes, base.productive_minutes_per_cell_year)
     });
-    let supplemental_capacity = mapping.maximum_supplemental_cells
-        .map(|cells| cells as f64 * base.productive_minutes_per_cell_year);
+    let supplemental_capacity = compatibility_allows_sharing
+        .then(|| mapping.maximum_supplemental_cells
+            .map(|cells| cells as f64 * base.productive_minutes_per_cell_year))
+        .flatten();
     let shared_capacity_margin = base_station_residual_minutes
         .zip(supplemental_capacity)
         .zip(total_module_work_minutes)
