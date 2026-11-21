@@ -22,7 +22,7 @@ Each event binds an exact pair, stream, component, configuration, procedure, int
 
 Identical event IDs with identical bytes are idempotent and counted once. Conflicting bytes under one event ID are Disputed. Sequence forks are Disputed. Missing sequence/predecessor and time-order ambiguity are Indeterminate. Counter reset without explicit component lineage is Disputed.
 
-The digest is recomputed over the exact `raw_event` string bytes. It is not a producer signature, instrument authentication or proof of physical truth.
+The digest is recomputed over the exact `raw_event` string bytes. It is not a producer signature, instrument authentication or proof of physical truth. Inspection/environment events require scoped measurement-quality fields before they can withdraw or restrict a qualification; an uncalibrated failure assertion is Indeterminate.
 
 ## Reducer
 
@@ -30,13 +30,13 @@ The reducer handles initial qualification, service cycles, inspections, maintena
 
 **Counter boundary:** the reported `cycle_count` is the count in the current qualified component/qualification segment. Requalification begins a new qualification segment; component replacement begins a new component segment. The immutable event stream preserves the prior history, but v0.1 does not emit a separate cumulative provider/client-pair lifetime total or per-component lifetime roll-up. Never interpret the reported field as a lifetime cycle count.
 
-The stream must begin with an initial qualification. Each subsequent event must carry the exact previous event ID. Event-time uncertainty intervals must prove the required order; ingestion order is not used as event order.
+The stream must begin with an initial qualification. Each subsequent event must carry the exact previous event ID. Event-time uncertainty intervals must prove the required order; ingestion order is not used as event order. Events not fully known by the evaluation cutoff are indeterminate. Service cycles outside qualification or inspection validity cannot count as qualified cycles, and an overdue inspection cannot renew the prior qualification without an explicit requalification event.
 
 A configuration change, maintenance event, component replacement, environmental exposure outside the current envelope, expired qualification or expired inspection interval requires requalification. Revocation and known wear-limit violation withdraw the qualification. A withdrawn qualification is terminal in v0.1; reinstatement policy is deliberately not inferred.
 
 ## Frozen corpus and oracle
 
-The frozen corpus contains 55 synthetic end-to-end cases. The event schema is published at [event-replay-event-v0.1.schema.json](schema/event-replay-event-v0.1.schema.json). A separately written value-based integration oracle reconstructs outcomes without calling the production reducer. It checks status, reason, cycle count and duplicate count.
+The frozen corpus contains 63 synthetic end-to-end cases. The event schema is published at [event-replay-event-v0.1.schema.json](schema/event-replay-event-v0.1.schema.json). A separately written value-based integration oracle reconstructs outcomes without calling the production reducer. It checks status, reason, cycle count and duplicate count.
 
 Run:
 
