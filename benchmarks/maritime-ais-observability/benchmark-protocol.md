@@ -20,7 +20,8 @@ This crate owns step 4 and the associated falsification tests. It does not own r
 Each synthetic fix has:
 - MMSI and source-local message ID;
 - source and receiver identity;
-- sender event tick (integer simulation tick);\n- receiver observation tick (a separate integer simulation clock);
+- sender event tick (integer simulation tick);
+- receiver observation tick (a separate integer simulation clock);
 - upstream zone label;
 - geofence digest and spatial-reference identifier;
 - speed in integer milli-knots;
@@ -38,7 +39,8 @@ The local vocabulary is OUTSIDE, ANCHORAGE, APPROACH, BERTH and DEPARTURE, plus 
 Each zone has a dwell and speed envelope. A transition is emitted only after:
 - at least two supporting fixes;
 - uninterrupted fix gaps no larger than the declared maximum;
-- total observed candidate dwell meets the configured threshold;\n- both sender-event gaps and receiver-observation gaps remain within their separately declared limits;
+- total observed candidate dwell meets the configured threshold;
+- both sender-event gaps and receiver-observation gaps remain within their separately declared limits;
 - speed is within the zone envelope.
 
 An inferred event carries:
