@@ -184,3 +184,16 @@ This is not a navigation estimator, a real-time runtime-assurance controller, a 
 12. `nav.indoor.observability-recovery.v0.1`
 13. `nav.integrity.protection-level-cap-saturation.negative.v0.1`
 14. `nav.land.heavy-tail-residual-integrity.v0.1`
+
+
+## 2026 research, industry and dataset comparator register
+
+See [INDUSTRY-AND-SOTA-COMPARATORS.md](./INDUSTRY-AND-SOTA-COMPARATORS.md) for the updated method comparison, commercial demonstration references, benchmark dataset candidates, dataset-rights caveats, matched-baseline protocol, required metrics and preregistered research targets.
+
+The register deliberately separates:
+- established 2026 SOTA methods from Luminous implementations;
+- vendor-reported system demonstrations from public matched numerical results;
+- dataset paper licence from the licence of every underlying data asset;
+- synthetic/analytic prototype results from external benchmark and physical validation.
+
+No dataset is considered admitted to a commercial or redistributable benchmark solely because its paper is open access.
