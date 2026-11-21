@@ -49,6 +49,9 @@ def build_run(workload, truth, condition, run_id):
                 "lh-007-cross-clock-and-event-order": ("single_global_order", required, False, True),
                 "lh-008-memory-revocation": ("private_utterance_still_eligible", ["obs-private-utterance"], False, False),
                 "lh-009-compression-retention": ("routine_noise_6", ["obs-routine-noise-6"], False, False),
+                "lh-012-multisegment-15-source-chain": (
+                    "ordered_15_span_chain", list(reversed(required)), False, False
+                ),
             }
             if episode_id in choices:
                 answer, citations, independent, cross_clock = choices[episode_id]
@@ -58,6 +61,8 @@ def build_run(workload, truth, condition, run_id):
                 answer, citations, abstained = "initial_machine_state", ["obs-machine-state-v1"], False
             elif episode_id == "lh-008-memory-revocation":
                 answer, citations, abstained = "private_utterance", ["obs-private-utterance"], False
+            elif episode_id == "lh-012-multisegment-15-source-chain":
+                answer, citations, abstained = "ordered_15_span_chain", required[:-1], False
         elif condition != "evidence_ledger":
             raise AssertionError(condition)
 
