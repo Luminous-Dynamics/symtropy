@@ -187,7 +187,7 @@ impl PhysicsStepReport {
                 .count()
     }
 
-    /// Count legacy constraint invocations whose outcomes were not reported.
+    /// Count constraint invocations that did not provide a typed outcome.
     pub fn unreported_constraint_count(&self) -> usize {
         self.constraint_position_events
             .iter()
@@ -197,6 +197,42 @@ impl PhysicsStepReport {
                 .constraint_velocity_events
                 .iter()
                 .filter(|event| event.outcome == ConstraintSolveOutcome::Unreported)
+                .count()
+    }
+
+    /// Count all position-level and velocity-level constraint invocations.
+    pub fn total_constraint_invocation_count(&self) -> usize {
+        self.constraint_position_events.len() + self.constraint_velocity_events.len()
+    }
+
+    /// Count invocations with an explicit Applied, NoOp or Rejected outcome.
+    pub fn typed_constraint_invocation_count(&self) -> usize {
+        self.total_constraint_invocation_count() - self.unreported_constraint_count()
+    }
+
+    /// Count typed invocations that reported an applied correction.
+    pub fn applied_constraint_count(&self) -> usize {
+        self.constraint_position_events
+            .iter()
+            .filter(|event| matches!(event.outcome, ConstraintSolveOutcome::Applied { .. }))
+            .count()
+            + self
+                .constraint_velocity_events
+                .iter()
+                .filter(|event| matches!(event.outcome, ConstraintSolveOutcome::Applied { .. }))
+                .count()
+    }
+
+    /// Count typed invocations that explicitly reported no correction.
+    pub fn noop_constraint_count(&self) -> usize {
+        self.constraint_position_events
+            .iter()
+            .filter(|event| event.outcome == ConstraintSolveOutcome::NoOp)
+            .count()
+            + self
+                .constraint_velocity_events
+                .iter()
+                .filter(|event| event.outcome == ConstraintSolveOutcome::NoOp)
                 .count()
     }
 }
@@ -3031,6 +3067,10 @@ mod constraint_outcome_report_tests {
         assert_eq!(report.constraint_velocity_events.len(), 6);
         assert_eq!(report.rejected_constraint_count(), 2);
         assert_eq!(report.unreported_constraint_count(), 6);
+        assert_eq!(report.total_constraint_invocation_count(), 12);
+        assert_eq!(report.typed_constraint_invocation_count(), 6);
+        assert_eq!(report.applied_constraint_count(), 2);
+        assert_eq!(report.noop_constraint_count(), 2);
         assert!(report.world_state_may_have_mutated_before_rejection);
         for iteration in 0..2 {
             for (constraint_index, outcome) in outcomes.iter().enumerate() {
