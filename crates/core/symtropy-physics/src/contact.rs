@@ -53,6 +53,67 @@ pub struct SensorEvent {
     pub other: BodyHandle,
 }
 
+/// Failure while evaluating the rotational contribution to contact effective mass.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ContactResponseError {
+    /// A lever arm or contact direction contains NaN or infinity.
+    NonFiniteInput,
+    /// The body's strict rotational-inertia admission or solve failed.
+    RotationalResponse(crate::body::RotationalResponseError),
+    /// A finite input produced a non-finite effective-mass contribution.
+    NonFiniteEffectiveMass,
+    /// A positive-definite inertia response produced a negative quadratic value.
+    NegativeEffectiveMass { value: f64 },
+}
+
+/// Compute the angular contribution to normal-contact effective mass.
+///
+/// For a unit impulse direction n at center-of-mass lever arm r, this
+/// evaluates n dot (-(I^-1(r wedge n)) r) using the body's admitted
+/// rotational-inertia model. The value is the rotational term in the
+/// contact denominator (units 1/kg). The caller must supply a normalized
+/// contact normal.
+///
+/// Unlike the legacy world helper, this function never converts an
+/// unsupported or stale inertia model into a physical zero. A negative
+/// result is rejected because an admitted positive-definite inertia
+/// operator must produce a non-negative quadratic response.
+pub fn try_angular_contact_effective_mass<const D: usize>(
+    body: &crate::body::RigidBody<D>,
+    lever_arm: &SVector<f64, D>,
+    normal: &SVector<f64, D>,
+) -> Result<f64, ContactResponseError> {
+    if !lever_arm.iter().all(|value| value.is_finite())
+        || !normal.iter().all(|value| value.is_finite())
+    {
+        return Err(ContactResponseError::NonFiniteInput);
+    }
+
+    let angular_impulse = crate::integrator::angular_impulse_from_point(lever_arm, normal);
+    let delta_angular_velocity = match body
+        .try_apply_inverse_angular_inertia(&angular_impulse)
+        .map_err(ContactResponseError::RotationalResponse)?
+    {
+        crate::body::RotationalResponse::StaticOrKinematic => {
+            symtropy_math::Bivector::<D>::zero()
+        }
+        crate::body::RotationalResponse::Applied {
+            delta_angular_velocity,
+            ..
+        } => delta_angular_velocity,
+    };
+
+    let point_velocity =
+        crate::integrator::angular_point_velocity(&delta_angular_velocity, lever_arm);
+    let effective_mass = normal.dot(&point_velocity);
+    if !effective_mass.is_finite() {
+        return Err(ContactResponseError::NonFiniteEffectiveMass);
+    }
+    if effective_mass < 0.0 {
+        return Err(ContactResponseError::NegativeEffectiveMass { value: effective_mass });
+    }
+    Ok(effective_mass)
+}
 /// Contact information from a collision between two bodies.
 ///
 /// Holds one or more contact points. Multi-point manifolds arise from
@@ -238,6 +299,87 @@ impl<const D: usize> Default for ContactCache<D> {
 mod tests {
     use super::*;
 
+    fn anisotropic_body_3d() -> crate::body::RigidBody<3> {
+        let mut body = crate::body::RigidBody::<3>::dynamic_sphere(
+            BodyHandle(70), symtropy_math::Point::origin(), 0.1, 1.0,
+        );
+        body.inertia = SVector::from([2.0, 3.0, 4.0]);
+        body.inv_inertia = SVector::from([0.5, 1.0 / 3.0, 0.25]);
+        body
+    }
+
+    #[test]
+    fn strict_contact_effective_mass_matches_analytic_anisotropic_3d_case() {
+        // r = +X and n = +Y yield a +Z impulse; Izz = 4, so response = 1/4.
+        let body = anisotropic_body_3d();
+        let lever = SVector::from([1.0, 0.0, 0.0]);
+        let normal = SVector::from([0.0, 1.0, 0.0]);
+        let result = try_angular_contact_effective_mass(&body, &lever, &normal).unwrap();
+        assert!((result - 0.25).abs() < 1.0e-12, "effective mass={result}");
+    }
+
+    #[test]
+    fn strict_contact_effective_mass_supports_full_bivector_operator_4d() {
+        let operator = crate::mass_properties::RotationalInertiaOperator::<4>::isotropic(2.0)
+            .expect("isotropic 4D operator fixture must be SPD");
+        let body = crate::body::RigidBody::<4>::dynamic_sphere(
+            BodyHandle(71), symtropy_math::Point::origin(), 0.1, 1.0,
+        )
+        .with_rotational_inertia_operator(operator);
+        let lever = SVector::from([1.0, 0.0, 0.0, 0.0]);
+        let normal = SVector::from([0.0, 1.0, 0.0, 0.0]);
+        let result = try_angular_contact_effective_mass(&body, &lever, &normal).unwrap();
+        assert!((result - 0.5).abs() < 1.0e-12, "effective mass={result}");
+    }
+
+    #[test]
+    fn strict_contact_effective_mass_rejects_unsupported_model() {
+        let body = crate::body::RigidBody::<4>::dynamic_sphere(
+            BodyHandle(72), symtropy_math::Point::origin(), 0.1, 1.0,
+        );
+        let result = try_angular_contact_effective_mass(
+            &body,
+            &SVector::from([1.0, 0.0, 0.0, 0.0]),
+            &SVector::from([0.0, 1.0, 0.0, 0.0]),
+        );
+        assert!(matches!(
+            result,
+            Err(ContactResponseError::RotationalResponse(
+                crate::body::RotationalResponseError::UnsupportedModel { .. }
+            ))
+        ));
+    }
+
+    #[test]
+    fn strict_contact_effective_mass_rejects_non_finite_geometry() {
+        let body = anisotropic_body_3d();
+        let mut normal = SVector::from([0.0, 1.0, 0.0]);
+        normal[1] = f64::NAN;
+        assert_eq!(
+            try_angular_contact_effective_mass(
+                &body, &SVector::from([1.0, 0.0, 0.0]), &normal,
+            ),
+            Err(ContactResponseError::NonFiniteInput)
+        );
+    }
+
+    #[test]
+    fn strict_contact_effective_mass_is_rotation_covariant() {
+        let body = anisotropic_body_3d();
+        let mut rotated_body = anisotropic_body_3d();
+        let frame = symtropy_math::Rotor::<3>::from_plane_angle(
+            &symtropy_math::Bivector::<3>::unit_plane(0, 1), 0.47,
+        );
+        rotated_body.transform.rotation = frame;
+        let lever = SVector::from([0.7, -0.2, 0.4]);
+        let normal = SVector::from([0.0, 1.0, 0.0]);
+        let base = try_angular_contact_effective_mass(&body, &lever, &normal).unwrap();
+        let rotated = try_angular_contact_effective_mass(
+            &rotated_body, &frame.rotate_vector(&lever), &frame.rotate_vector(&normal),
+        )
+        .unwrap();
+        assert!((base - rotated).abs() < 1.0e-11, "base={base}, rotated={rotated}");
+    }
     #[test]
     fn single_point_manifold() {
         let m = ContactManifold::<3>::single(
