@@ -392,7 +392,7 @@ fn evaluate_interface(
             status: missing_status,
             findings,
             vehicle_evidence_id: None,
-            module_evidence_id: module_port.evidence.evidence_id.clone(),
+            module_evidence_id: first_evidence_id(&module_port.evidence).unwrap_or_default(),
         };
     };
 
@@ -510,11 +510,17 @@ fn evaluate_interface(
 fn canonical_input(input: &CompatibilityInput) -> CompatibilityInput {
     let mut canonical = input.clone();
     canonical.vehicle.ports.sort_by(|left, right| left.port_id.cmp(&right.port_id));
+    for port in &mut canonical.vehicle.ports {
+        port.evidence.sort_by(|left, right| left.evidence_id.cmp(&right.evidence_id));
+    }
     canonical.modules.sort_by(|left, right| {
         left.module_configuration_id.cmp(&right.module_configuration_id)
     });
     for module in &mut canonical.modules {
         module.ports.sort_by(|left, right| left.port_id.cmp(&right.port_id));
+        for port in &mut module.ports {
+            port.evidence.sort_by(|left, right| left.evidence_id.cmp(&right.evidence_id));
+        }
     }
     canonical
 }
@@ -710,7 +716,7 @@ mod tests {
             capacity_limit: None,
             capacity_required: None,
             required: true,
-            evidence,
+            evidence: vec![evidence],
         }
     }
 
