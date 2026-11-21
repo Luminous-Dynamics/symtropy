@@ -1700,10 +1700,14 @@ mod tests {
     #[test]
     fn sparse_network_can_omit_directed_transfer_edges() {
         let mut test = input();
-        test.reposition_links.pop();
+        test.reposition_links.remove(0);
+        test.period_count = 1;
+        for scenario in &mut test.scenarios {
+            scenario.periods.truncate(1);
+        }
         assert!(validate_input(&test).is_ok());
         let canonical = canonicalize(&test);
-        let (_nodes, indices, mask) = forced_region_mask(&canonical, "urban");
+        let (_nodes, indices, mask) = forced_region_mask(&canonical, "rural");
         let metrics = simulate_scenario(
             &canonical,
             &canonical.scenarios[0],
@@ -1711,8 +1715,10 @@ mod tests {
             mask,
             true,
         )
-        .expect("missing reverse edge is blocked");
-        assert_eq!(metrics.repositioning_events, 1);
+        .expect("missing transfer edge is a blocked action");
+        assert_eq!(metrics.repositioning_events, 0);
+        assert_eq!(metrics.hard_gate_blocked_actions, 1);
+        assert_eq!(metrics.end_energy_units, 16);
     }
 
     #[test]
