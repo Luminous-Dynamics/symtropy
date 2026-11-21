@@ -239,7 +239,6 @@ pub fn inspect_run_partition_leakage(
     Ok(leakage)
 }
 
-
 pub const TEP_SCENARIO_IDS: [u8; 21] = [
     1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
 ];
@@ -393,7 +392,9 @@ pub fn evaluate_tep_onset_horizon(
     }
 
     if normal_run_count == 0 || normal_exposure_ns == 0 {
-        return Err("at least one normal-operation run with positive exposure is required".to_owned());
+        return Err(
+            "at least one normal-operation run with positive exposure is required".to_owned(),
+        );
     }
     let missing: Vec<u8> = TEP_SCENARIO_IDS
         .iter()
@@ -556,46 +557,58 @@ mod tests {
     fn onset_evaluator_rejects_missing_scenarios_and_duplicate_run_ids() {
         let mut records = tep_records();
         records.retain(|record| record.scenario_id != Some(15));
-        assert!(evaluate_tep_onset_horizon(&records, 60_000_000_000)
-            .unwrap_err()
-            .contains("missing scenarios"));
+        assert!(
+            evaluate_tep_onset_horizon(&records, 60_000_000_000)
+                .unwrap_err()
+                .contains("missing scenarios")
+        );
 
         let mut duplicate = tep_records();
         duplicate.push(duplicate[0].clone());
-        assert!(evaluate_tep_onset_horizon(&duplicate, 60_000_000_000)
-            .unwrap_err()
-            .contains("duplicate TEP run ID"));
+        assert!(
+            evaluate_tep_onset_horizon(&duplicate, 60_000_000_000)
+                .unwrap_err()
+                .contains("duplicate TEP run ID")
+        );
     }
 
     #[test]
     fn onset_evaluator_rejects_horizon_and_detection_disposition_mismatches() {
         let mut late = tep_records();
         late[0].detection_delay_ns = Some(120_000_000_000);
-        assert!(evaluate_tep_onset_horizon(&late, 60_000_000_000)
-            .unwrap_err()
-            .contains("exceeds the evaluation horizon"));
+        assert!(
+            evaluate_tep_onset_horizon(&late, 60_000_000_000)
+                .unwrap_err()
+                .contains("exceeds the evaluation horizon")
+        );
 
         let mut inconsistent = tep_records();
         inconsistent[0].detection_delay_ns = None;
         inconsistent[0].diagnosis = DiagnosisDisposition::Correct;
-        assert!(evaluate_tep_onset_horizon(&inconsistent, 60_000_000_000)
-            .unwrap_err()
-            .contains("inconsistent detection/diagnosis"));
+        assert!(
+            evaluate_tep_onset_horizon(&inconsistent, 60_000_000_000)
+                .unwrap_err()
+                .contains("inconsistent detection/diagnosis")
+        );
     }
 
     #[test]
     fn onset_evaluator_rejects_fault_labels_on_normal_run_and_requires_normal_exposure() {
         let mut normal_fault = tep_records();
         normal_fault.last_mut().unwrap().diagnosis = DiagnosisDisposition::Correct;
-        assert!(evaluate_tep_onset_horizon(&normal_fault, 60_000_000_000)
-            .unwrap_err()
-            .contains("normal run"));
+        assert!(
+            evaluate_tep_onset_horizon(&normal_fault, 60_000_000_000)
+                .unwrap_err()
+                .contains("normal run")
+        );
 
         let mut no_exposure = tep_records();
         no_exposure.last_mut().unwrap().normal_exposure_ns = 0;
-        assert!(evaluate_tep_onset_horizon(&no_exposure, 60_000_000_000)
-            .unwrap_err()
-            .contains("positive exposure"));
+        assert!(
+            evaluate_tep_onset_horizon(&no_exposure, 60_000_000_000)
+                .unwrap_err()
+                .contains("positive exposure")
+        );
     }
 
     #[test]
