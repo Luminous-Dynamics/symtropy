@@ -1,0 +1,12 @@
+[package]
+name = "mobility-action-evidence"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Configuration-bound, expiring mobility action and physical-outcome evidence contract"
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
