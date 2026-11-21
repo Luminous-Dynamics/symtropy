@@ -12,6 +12,17 @@ use std::fmt;
 mod detector;
 pub use detector::DetectorResponseMatrix;
 
+mod experiment_design;
+pub use experiment_design::{
+    combine_fisher_information,
+    identifiability_summary,
+    poisson_fisher_information,
+    IdentifiabilitySummary,
+};
+
+mod response_uncertainty;
+pub use response_uncertainty::{DetectorResponseEnsemble, PredictiveCountMoments};
+
 mod measurement;
 pub use measurement::{
     apply_depth_observation_operator,
