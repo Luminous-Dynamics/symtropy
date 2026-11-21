@@ -212,3 +212,12 @@ See [IDENTIFIABILITY_AND_DESIGN.md](../../../docs/research/cmni/IDENTIFIABILITY_
 - `split_rhat_for_coefficient` provides basic unranked split-Rhat only; it is a screening diagnostic, not the rank-normalized / folded Rhat recommended for final Bayesian inference.
 - No adaptation, mass matrix learning, NUTS, effective sample size, MCSE or posterior predictive diagnostics are implemented. The sampler is not a reproduction of the AIACHNE BMC code.
 - Three prepared-target tests and five HMC tests have been authored. Total: **160 authored Rust tests** (37 root, 12 detector, 7 measurement, 8 material-state, 14 experiment-design, 11 response-uncertainty, 11 multifidelity-design, 8 spectrum-metrics, 7 measurement-bias, 8 sparse-Poisson-bias, 10 energy-bias-basis, 8 correlated-Gaussian-bias, 6 raw-scale-likelihood, 5 horseshoe-posterior, 3 prepared-horseshoe, 5 horseshoe-HMC). Not executed in this environment.
+
+
+## Modern multi-chain HMC diagnostics (research implementation)
+
+- diagnose_horseshoe_coefficient requires at least four chains and computes rank-normalized split-Rhat, folded rank-normalized split-Rhat, bulk ESS, lower/upper tail-indicator ESS, raw-scale mean ESS, raw-unit MCSE, per-chain E-BFMI and total divergence count.
+- The proposed qualification flag requires max(Rhat) < 1.01, bulk and tail ESS at least 100 × chain count, zero divergences and E-BFMI >= 0.3 in every chain. These are conservative project gates based on published Stan diagnostic guidance; they are not evidence that this implementation reproduces Stan exactly.
+- Mean MCSE is computed on the original coefficient scale, not the rank-normalized scale. Bulk ESS is separately computed on rank-normalized values.
+- Six sampler-diagnostic tests cover four-chain requirement, summary generation, folded-Rhat scale mismatch, E-BFMI failure, MCSE scaling and zero-ESS behavior. Total: **166 authored Rust tests** across 17 source files. Tests have not been executed in this environment.
+- The diagnostics need independent comparison against Stan/posterior reference chains. They do not replace trace plots, posterior predictive checks, prior sensitivity or adapted HMC/NUTS.
