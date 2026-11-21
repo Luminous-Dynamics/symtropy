@@ -10,8 +10,8 @@ pub use positioning::time_correlation_v2 as mycelix_time;
 #[derive(Clone, Debug, PartialEq)]
 pub enum QualifiedReceiptTime {
     Qualified {
-        correlation: mycelix_time::ClockCorrelationV2,
-        normalized: mycelix_time::NormalizedInstantV2,
+        correlation: Box<mycelix_time::ClockCorrelationV2>,
+        normalized: Box<mycelix_time::NormalizedInstantV2>,
     },
     Unqualified,
     Unknown,
@@ -294,8 +294,8 @@ mod tests {
             output_commitment,
         };
         QualifiedReceiptTime::Qualified {
-            correlation,
-            normalized,
+            correlation: Box::new(correlation),
+            normalized: Box::new(normalized),
         }
     }
 
