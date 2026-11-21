@@ -960,6 +960,40 @@ pub fn audit_exchange_contract(root: &Value) -> Vec<String> {
         "EXCHANGE_MAPPING_POLICY",
         "different meshes/time grids are permitted, but simple interpolation alone is not a conservative exchange contract",
     );
+    let reference_kernel = at(root, &["exchange_mapping", "reference_kernel"]);
+    push_if_missing(
+        &mut findings,
+        reference_kernel.is_some_and(|value| {
+            text_at(value, &["implementation"])
+                == Some("tools/ehd-reference-audit/src/exchange.rs")
+                && text_at(value, &["quantity"])
+                    .is_some_and(|text| text.contains("already-integrated vector impulse"))
+                && text_at(value, &["source_reconstruction"])
+                    .is_some_and(|text| text.contains("first_order"))
+                && text_at(value, &["coverage_policy"])
+                    .is_some_and(|text| text.contains("no implicit renormalization"))
+                && at(value, &["limitations"]).and_then(Value::as_array)
+                    .is_some_and(|rows| rows.iter().any(|v| v.as_str()
+                        == Some("does_not_compute_geometric_intersections")))
+        }),
+        "EXCHANGE_REFERENCE_KERNEL",
+        "reference impulse kernel must retain its first-order, no-renormalization and no-geometry-engine limits",
+    );
+    let interoperability = at(root, &["exchange_mapping", "industry_interoperability"]);
+    push_if_missing(
+        &mut findings,
+        interoperability.is_some_and(|value| {
+            text_at(value, &["reference"]) == Some("preCICE")
+                && text_at(value, &["documentation"])
+                    .is_some_and(|url| url.starts_with("https://precice.org/"))
+                && text_at(value, &["rule"])
+                    .is_some_and(|text| text.contains("extensive quantities")
+                        && text.contains("intensive quantities"))
+        }),
+        "EXCHANGE_INDUSTRY_INTEROP",
+        "preCICE conservative-vs-consistent mapping boundary must be retained as an interoperability reference",
+    );
+
     let mapping_fields = at(root, &["exchange_mapping", "record"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
@@ -1511,6 +1545,21 @@ mod tests {
         assert!(has_code(&audit_frontier_patterns(&value), "FRONTIER_DESIGN_FACTOR_SET"));
     }
 
+
+    #[test]
+    fn exchange_reference_kernel_keeps_its_limited_first_order_scope() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_EXCHANGE_CONTRACT).unwrap();
+        value["exchange_mapping"]["reference_kernel"]["limitations"] = Value::Array(Vec::new());
+        assert!(has_code(&audit_exchange_contract(&value), "EXCHANGE_REFERENCE_KERNEL"));
+    }
+
+    #[test]
+    fn precice_interoperability_boundary_is_retained() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_EXCHANGE_CONTRACT).unwrap();
+        value["exchange_mapping"]["industry_interoperability"]["reference"] =
+            Value::String("nearest-neighbor".into());
+        assert!(has_code(&audit_exchange_contract(&value), "EXCHANGE_INDUSTRY_INTEROP"));
+    }
 
     #[test]
     fn plasma_neutral_exchange_contract_passes_declared_contract() {
