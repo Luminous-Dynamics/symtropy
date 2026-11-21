@@ -2751,3 +2751,86 @@ mod anisotropic_contact_inertia_tests {
     }
 }
 
+
+
+#[cfg(test)]
+mod constraint_outcome_report_tests {
+    use super::*;
+    use crate::body::BodyType;
+    use crate::constraint::DistanceConstraint;
+    use symtropy_math::Point;
+
+    #[test]
+    fn report_enabled_step_surfaces_prismatic_rejection_after_prior_phases() {
+        let mut world = PhysicsWorld::<4>::new(SVector::zeros());
+        let base = world.add_body(RigidBody::<4>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(Sphere::new(Point::origin(), 0.1)),
+        ));
+        let dynamic = world.add_body(RigidBody::<4>::new(
+            BodyHandle(1),
+            BodyType::Dynamic,
+            Transform::from_translation(Point::new([0.0, 0.0, 0.0, 2.0])),
+            Box::new(Sphere::new(Point::origin(), 0.1)),
+            1.0,
+            SVector::from_element(1.0),
+        ));
+        world
+            .body_mut(dynamic)
+            .expect("dynamic link is present")
+            .angular_velocity
+            .set(0, 1, 0.5);
+        world.add_constraint(Box::new(crate::joints::PrismaticJoint::new(
+            base, dynamic, 3,
+        )));
+        world.solver_iterations = 1;
+
+        let report = world.step_with_report(0.016);
+
+        assert_eq!(report.constraint_velocity_events.len(), 1);
+        let event = &report.constraint_velocity_events[0];
+        assert_eq!(event.constraint_index, 0);
+        assert_eq!(event.body_a, base);
+        assert_eq!(event.body_b, dynamic);
+        assert_eq!(event.iteration, 0);
+        assert_eq!(
+            event.outcome,
+            ConstraintSolveOutcome::Rejected {
+                code: "prismatic.unsupported_inertia_model",
+                body_state_mutated_before_rejection: false,
+            }
+        );
+        assert_eq!(report.rejected_constraint_count(), 1);
+        assert!(report.world_state_may_have_mutated_before_rejection);
+    }
+
+    #[test]
+    fn legacy_constraint_is_called_once_per_iteration_and_marked_unreported() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let a = world.add_sphere(Point::new([0.0, 0.0, 0.0]), 0.1, 1.0);
+        let b = world.add_sphere(Point::new([5.0, 0.0, 0.0]), 0.1, 1.0);
+        world
+            .body_mut(a)
+            .expect("body A is present")
+            .linear_velocity[0] = 1.0;
+        world.add_constraint(Box::new(DistanceConstraint {
+            body_a: a,
+            body_b: b,
+            rest_length: 5.0,
+            stiffness: 1.0,
+        }));
+        world.solver_iterations = 2;
+
+        let report = world.step_with_report(0.016);
+
+        assert_eq!(report.constraint_velocity_events.len(), 2);
+        assert_eq!(report.unreported_constraint_count(), 2);
+        assert_eq!(report.constraint_velocity_events[0].iteration, 0);
+        assert_eq!(report.constraint_velocity_events[1].iteration, 1);
+        assert!(report
+            .constraint_velocity_events
+            .iter()
+            .all(|event| event.outcome == ConstraintSolveOutcome::Unreported));
+    }
+}
