@@ -340,6 +340,13 @@ fn validate_ports(
                 || evidence.acceptance_criteria_id.trim().is_empty()
                 || evidence.uncertainty_budget_reference.trim().is_empty()
                 || !valid_utc_timestamp(&evidence.test_completed_at_utc)
+                || evidence.test_completed_at_utc.as_str() > evaluation_time_utc
+                || evidence.valid_until_utc.as_ref().is_some_and(|expiry| {
+                    !valid_utc_timestamp(expiry)
+                        || expiry.as_str() < evidence.test_completed_at_utc.as_str()
+                })
+                || (evidence.evidence_class == EvidenceClass::IndependentTest
+                    && evidence.valid_until_utc.is_none())
                 || evidence
                     .limitations
                     .iter()
