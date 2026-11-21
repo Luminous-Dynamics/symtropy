@@ -221,12 +221,28 @@ fn validate_inputs(
                 "base.results[{index}]: duplicate scenario identity"
             ));
         }
+        let mut station_ids = BTreeSet::new();
+        for (station_index, station) in scenario.stations.iter().enumerate() {
+            if station.process_id.trim().is_empty()
+                || !station_ids.insert(station.process_id.as_str())
+                || !station.cycle_minutes_per_attempt.is_finite()
+                || station.cycle_minutes_per_attempt <= 0.0
+                || station.cycle_minutes_per_attempt > 1_000_000.0
+                || station.parallel_cells_required == 0
+                || station.parallel_cells_required > 100_000
+            {
+                errors.push(format!(
+                    "base.results[{index}].stations[{station_index}]: invalid station identity/capacity"
+                ));
+            }
+        }
         if scenario.site_id.trim().is_empty()
             || scenario.template_id.trim().is_empty()
             || scenario.stations.is_empty()
             || scenario.target_good_vehicles_per_year == 0
             || scenario.target_good_vehicles_per_year > 10_000_000
             || scenario.planned_attempts_per_year < scenario.target_good_vehicles_per_year
+            || scenario.planned_attempts_per_year > 10_000_000
             || scenario.shifts_per_day == 0
             || scenario.shifts_per_day > 4
             || !scenario.productive_minutes_per_cell_year.is_finite()
