@@ -81,6 +81,7 @@ pub struct NavigationRequirement {
     pub profile_digest: Digest,
     pub required_service: NavigationService,
     pub spatial_frame_id: String,
+    pub source_id: String,
     pub minimum_source_sequence: u64,
     pub maximum_age_ticks: u64,
 }
@@ -128,6 +129,7 @@ pub struct LiveContext {
     pub navigation_profile_digest: Digest,
     pub navigation_service: NavigationService,
     pub navigation_frame_id: String,
+    pub navigation_source_id: String,
     pub navigation_source_sequence: u64,
     pub navigation_observed_at_ticks: u64,
 }
@@ -156,6 +158,7 @@ pub enum AdmissionError {
     NavigationProfileMismatch,
     NavigationServiceInsufficient,
     NavigationFrameMismatch,
+    NavigationSourceMismatch,
     NavigationSequenceStale,
     NavigationObservationFromFuture,
     NavigationObservationStale,
@@ -193,6 +196,7 @@ pub fn validate_ticket_applicability(
         ticket.clock.clock_id.as_str(),
         ticket.clock.boot_epoch_id.as_str(),
         ticket.navigation.spatial_frame_id.as_str(),
+        ticket.navigation.source_id.as_str(),
         ticket.expected_observation_frame_id.as_str(),
         ticket.expected_calibration_id.as_str(),
         live.mission_id.as_str(),
@@ -203,6 +207,7 @@ pub fn validate_ticket_applicability(
         live.clock.clock_id.as_str(),
         live.clock.boot_epoch_id.as_str(),
         live.navigation_frame_id.as_str(),
+        live.navigation_source_id.as_str(),
     ];
     if required_references.iter().any(|value| !is_nonempty(value)) {
         return Err(AdmissionError::EmptyRequiredReference);
@@ -280,6 +285,9 @@ pub fn validate_ticket_applicability(
     if ticket.navigation.spatial_frame_id != live.navigation_frame_id {
         return Err(AdmissionError::NavigationFrameMismatch);
     }
+    if ticket.navigation.source_id != live.navigation_source_id {
+        return Err(AdmissionError::NavigationSourceMismatch);
+    }
     if live.navigation_source_sequence < ticket.navigation.minimum_source_sequence {
         return Err(AdmissionError::NavigationSequenceStale);
     }
@@ -339,10 +347,11 @@ pub enum PhysicalOutcome {
 /// Limits for accepting a physical-outcome receipt.
 ///
 /// The last source sequence must be tracked by the caller/M1 event ledger.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OutcomePolicy {
     pub now_ticks: u64,
     pub maximum_age_ticks: u64,
+    pub sequence_source_id: String,
     pub last_source_sequence: u64,
     pub minimum_confidence_basis_points: u16,
 }
@@ -355,6 +364,7 @@ pub enum OutcomeError {
     SelfReportNotAccepted,
     ObserverIsExecutingController,
     StaleSourceSequence,
+    SequenceSourceMismatch,
     ClockMismatch,
     BootEpochMismatch,
     OutcomePredatesAction,
@@ -419,6 +429,9 @@ pub fn validate_physical_outcome(
     }
     if evidence.source_id == evidence.executing_controller_id {
         return Err(OutcomeError::ObserverIsExecutingController);
+    }
+    if evidence.source_id != policy.sequence_source_id {
+        return Err(OutcomeError::SequenceSourceMismatch);
     }
     if evidence.source_sequence <= policy.last_source_sequence {
         return Err(OutcomeError::StaleSourceSequence);
@@ -511,6 +524,7 @@ mod tests {
                 profile_digest: digest(6),
                 required_service: NavigationService::Degraded,
                 spatial_frame_id: "frame.local-enu-1".into(),
+                source_id: "navigation-sensor-1".into(),
                 minimum_source_sequence: 20,
                 maximum_age_ticks: 100,
             },
@@ -536,6 +550,7 @@ mod tests {
             navigation_profile_digest: action.navigation.profile_digest,
             navigation_service: NavigationService::Qualified,
             navigation_frame_id: action.navigation.spatial_frame_id.clone(),
+            navigation_source_id: action.navigation.source_id.clone(),
             navigation_source_sequence: 22,
             navigation_observed_at_ticks: 1_090,
         }
@@ -565,6 +580,7 @@ mod tests {
         OutcomePolicy {
             now_ticks: 1_160,
             maximum_age_ticks: 100,
+            sequence_source_id: "independent-camera-1".into(),
             last_source_sequence: 30,
             minimum_confidence_basis_points: 9_000,
         }
@@ -703,6 +719,13 @@ mod tests {
         );
 
         let mut live = live_context();
+        live.navigation_source_id = "different-navigation-source".into();
+        assert_eq!(
+            validate_ticket_applicability(&ticket(), &live),
+            Err(AdmissionError::NavigationSourceMismatch)
+        );
+
+        let mut live = live_context();
         live.navigation_source_sequence = 19;
         assert_eq!(
             validate_ticket_applicability(&ticket(), &live),
@@ -775,6 +798,13 @@ mod tests {
 
     #[test]
     fn physical_evidence_must_be_fresh_ordered_and_in_same_time_domain() {
+        let mut evidence = physical_evidence();
+        evidence.source_id = "other-camera".into();
+        assert_eq!(
+            validate_physical_outcome(&ticket(), &evidence, outcome_policy()),
+            Err(OutcomeError::SequenceSourceMismatch)
+        );
+
         let mut evidence = physical_evidence();
         evidence.source_sequence = 30;
         assert_eq!(
