@@ -69,8 +69,14 @@ pub fn diffuse_no_flux_1d(
     if diffusion_cm2_s == 0.0 {
         return Ok(concentration_atoms_cm3.to_vec());
     }
-    if timestep_s > stability_limit.expect("positive diffusion has a finite stability limit") * (1.0 + 1.0e-12) {
-        return Err(ModelError::InvalidParameter("diffusion_timestep_exceeds_explicit_stability_limit"));
+    match stability_limit {
+        Some(limit) if timestep_s <= limit * (1.0 + 1.0e-12) => {}
+        Some(_) => {
+            return Err(ModelError::InvalidParameter("diffusion_timestep_exceeds_explicit_stability_limit"));
+        }
+        None => {
+            return Err(ModelError::InvalidParameter("positive_diffusivity_requires_finite_stability_limit"));
+        }
     }
 
     let n = concentration_atoms_cm3.len();
