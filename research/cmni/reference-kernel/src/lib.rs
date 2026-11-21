@@ -189,13 +189,13 @@ pub fn screened_cross_section_barn<FS>(
     energy_cm: EnergyKev,
     gamow_energy_cm: GamowEnergyKev,
     screening_kev: f64,
-    s_factor_keV_barn: FS,
+    s_factor_kev_barn: FS,
 ) -> Result<f64, ModelError>
 where
     FS: Fn(f64) -> f64,
 {
     let energy = energy_cm.get();
-    let screening = checked_nonnegative(screening_kev, "screening_keV")?;
+    let screening = checked_nonnegative(screening_kev, "screening_kev")?;
     let s_factor = checked_positive(s_factor_keV_barn(energy), "S_factor_keV_barn")?;
     let shifted_energy = energy + screening;
     let cross_section = s_factor / (energy * shifted_energy).sqrt()
@@ -562,7 +562,7 @@ impl GaussianBeamFootprint {
 /// - Ecm and Gamow energy are in keV in the center-of-mass frame;
 /// - S(Ecm) is in keV·barn;
 /// - n_D is target deuterium number density in cm^-3;
-/// - stopping_keV_cm_per_cm is **-dEcm/dx** in keV_cm/cm (not automatically
+/// - stopping_kev_cm_per_cm is **-dEcm/dx** in keV_cm/cm (not automatically
 ///   the projectile laboratory-frame stopping power);
 /// - screening_keV is a non-negative effective potential in keV.
 ///
@@ -588,7 +588,7 @@ where
     FStop: Fn(f64) -> f64,
     FU: Fn(f64) -> f64,
 {
-    if steps < 2 || steps % 2 != 0 {
+    if steps < 2 || !steps.is_multiple_of(2) {
         return Err(ModelError::InvalidIntegrationSteps);
     }
 
