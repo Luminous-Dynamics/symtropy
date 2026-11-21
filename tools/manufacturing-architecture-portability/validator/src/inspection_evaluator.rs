@@ -158,13 +158,15 @@ pub fn evaluate_inspection_join(candidate: &Value) -> InspectionJoinEvaluation {
             .zip(integer_at(candidate, "calibration_valid_until_ns"))
             .is_some_and(|(start, end)| {
                 start <= end
-                    && integer_at(candidate, "source_measured_at_ns")
+                    && integer_at(candidate, "measured_at_reference_ns")
                         .is_some_and(|time| start <= time && time <= end)
                     && integer_at(candidate, "decision_time_ns")
                         .is_some_and(|time| start <= time && time <= end)
             });
         let instrument_matches = text_at(candidate, "calibration_subject_instrument_id")
             == text_at(candidate, "instrument_resource_id");
+        let clock_matches = text_at(candidate, "calibration_validity_clock_id")
+            == text_at(candidate, "qif_reference_clock_id");
         if !interval_valid {
             violations.push(JoinViolation {
                 code: "CALIBRATION_ATTESTATION_OUTSIDE_EFFECTIVITY",
@@ -177,7 +179,13 @@ pub fn evaluate_inspection_join(candidate: &Value) -> InspectionJoinEvaluation {
                 field: "calibration_subject_instrument_id",
             });
         }
-        interval_valid && instrument_matches
+        if !clock_matches {
+            violations.push(JoinViolation {
+                code: "CALIBRATION_VALIDITY_CLOCK_MISMATCH",
+                field: "calibration_validity_clock_id",
+            });
+        }
+        interval_valid && instrument_matches && clock_matches
     } else {
         false
     };
@@ -187,7 +195,7 @@ pub fn evaluate_inspection_join(candidate: &Value) -> InspectionJoinEvaluation {
             .zip(integer_at(candidate, "uncertainty_valid_until_ns"))
             .is_some_and(|(start, end)| {
                 start <= end
-                    && integer_at(candidate, "source_measured_at_ns")
+                    && integer_at(candidate, "measured_at_reference_ns")
                         .is_some_and(|time| start <= time && time <= end)
                     && integer_at(candidate, "decision_time_ns")
                         .is_some_and(|time| start <= time && time <= end)
@@ -196,6 +204,8 @@ pub fn evaluate_inspection_join(candidate: &Value) -> InspectionJoinEvaluation {
             == text_at(candidate, "qif_characteristic_id");
         let unit_matches = text_at(candidate, "uncertainty_original_unit")
             == text_at(candidate, "original_unit");
+        let clock_matches = text_at(candidate, "uncertainty_validity_clock_id")
+            == text_at(candidate, "qif_reference_clock_id");
         if !interval_valid {
             violations.push(JoinViolation {
                 code: "UNCERTAINTY_BUDGET_OUTSIDE_EFFECTIVITY",
@@ -214,7 +224,13 @@ pub fn evaluate_inspection_join(candidate: &Value) -> InspectionJoinEvaluation {
                 field: "uncertainty_original_unit",
             });
         }
-        interval_valid && characteristic_matches && unit_matches
+        if !clock_matches {
+            violations.push(JoinViolation {
+                code: "UNCERTAINTY_VALIDITY_CLOCK_MISMATCH",
+                field: "uncertainty_validity_clock_id",
+            });
+        }
+        interval_valid && characteristic_matches && unit_matches && clock_matches
     } else {
         false
     };
@@ -294,6 +310,7 @@ mod tests {
         actual["calibration_subject_instrument_id"] = json!("CMM-01");
         actual["calibration_valid_from_ns"] = json!(1750000000_u64);
         actual["calibration_valid_until_ns"] = json!(1750001000_u64);
+        actual["calibration_validity_clock_id"] = json!("PLANT-UTC-001");
         actual["measurement_uncertainty_disposition"] = json!("qualified_reference");
         actual["uncertainty_budget_id"] = json!("MSA-001");
         actual["uncertainty_budget_sha256"] =
@@ -352,6 +369,7 @@ mod tests {
         actual["uncertainty_original_unit"] = json!("mm");
         actual["uncertainty_valid_from_ns"] = json!(1750000000_u64);
         actual["uncertainty_valid_until_ns"] = json!(1750001000_u64);
+        actual["uncertainty_validity_clock_id"] = json!("PLANT-UTC-001");
 
         assert!(validate_schema(&actual));
         let valid = evaluate_inspection_join(&actual);
@@ -375,6 +393,22 @@ mod tests {
         }));
 
         actual["uncertainty_characteristic_id"] = json!("SHAFT-DIAMETER-01");
+
+        actual["calibration_validity_clock_id"] = json!("CMM-LOCAL-BOOT-7");
+        let wrong_calibration_clock = evaluate_inspection_join(&actual);
+        assert!(wrong_calibration_clock.violations.iter().any(|v| {
+            v.code == "CALIBRATION_VALIDITY_CLOCK_MISMATCH"
+        }));
+
+        actual["calibration_validity_clock_id"] = json!("PLANT-UTC-001");
+        actual["uncertainty_validity_clock_id"] = json!("CMM-LOCAL-BOOT-7");
+        let wrong_uncertainty_clock = evaluate_inspection_join(&actual);
+        assert!(wrong_uncertainty_clock.violations.iter().any(|v| {
+            v.code == "UNCERTAINTY_VALIDITY_CLOCK_MISMATCH"
+        }));
+
+        actual["uncertainty_validity_clock_id"] = json!("PLANT-UTC-001");
+
         actual["uncertainty_original_unit"] = json!("um");
         let wrong_unit = evaluate_inspection_join(&actual);
         assert!(wrong_unit.violations.iter().any(|v| {
