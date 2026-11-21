@@ -41,7 +41,7 @@ Unknown or unmeasured variables remain unknown. A model-inferred D profile or de
 | Transport/history intervention | Different loading histories, beam dose/flux/duty and thermal histories | Do response lags/hysteresis follow D replenishment/depletion? | Time-resolved D profile proxies, beam flux, temperature, pressure/RGA and state history |
 | Depth-profile intervention | Matched bulk composition but different characterized near-surface profiles/overlayers | Is the effect localized to the implantation/surface region? | SIMS/NRA/ERDA or equivalent depth-sensitive methods; thickness and surface characterization |
 | Detector cross-check | Same physical condition observed with independent channels in their actual common energy range | Is the effect stable under distinct detection physics and calibration paths? | Detector-specific calibration, efficiency, live time, background, pulse-shape/energy spectra and synchronized timing |
-| Alternative excitation | New ion species or non-ion-beam stimuli only after baseline qualification | Does the effect require D+ implantation, or is it coupled to another material excitation? | Predicted signature per mechanism, appropriate diagnostics, null controls and power analysis |
+| Beam species / energy decomposition | Mass-resolved D⁺ and D₂⁺ fractions, species-specific energy distributions, and prompt/delayed dissociation alternatives | Can a molecular-ion component create a distinct per-deuteron center-of-mass energy population that changes the apparent low-energy curve? | Mass-resolved beam composition vs operating point, energy distribution per species, fragmentation/dissociation characterization, Faraday-cup calibration, beam current and charge records |\n| Alternative excitation | New ion species or non-ion-beam stimuli only after baseline qualification | Does the effect require D+ implantation, or is it coupled to another material excitation? | Predicted signature per mechanism, appropriate diagnostics, null controls and power analysis |
 
 These are abstract study designs. They do not specify high-voltage, ion-source, radiation, vacuum or electrochemical apparatus operating procedures. Physical work belongs in qualified institutions with approved safety and radiation controls.
 
@@ -111,3 +111,18 @@ A virtual design is not accepted because the simulation looks plausible. It must
 - 2026 Pd/Ti study discussion on local defects, deuterium transport, and recommended profiling: https://doi.org/10.1038/s41467-026-74421-1
 - 2025 Pd beam-driven/electrochemical loading study: https://doi.org/10.1038/s41586-025-09042-7
 - ARPA-E LENR evidence and control criteria: https://arpa-e-foa.energy.gov/FileContent.aspx?FileID=68c066ad-2aa8-4bbe-bfbf-fcb73762fdda
+
+
+## 10. Beam species and per-deuteron energy distribution
+
+The 2026 paper reports a typical source composition of ~85% D⁺ and ~15% D₂⁺, with deuteron flux calculated by counting two D atoms per D₂⁺ ion. Treat these as reported source fractions, not as a guaranteed constant for every energy point.
+
+For a singly charged ion accelerated through (V) kV:
+- D⁺ has approximately (V) keV total kinetic energy and (E_{cm}approx V/2) keV for D on stationary D.
+- If D₂⁺ promptly dissociates into two D fragments that retain the molecular velocity, each D has approximately (V/2) keV and (E_{cm}approx V/4) keV.
+
+For 85/15 ion-current fractions, this prompt-dissociation scenario gives approximately 26.1% of the deuteron flux in the lower-energy fragment component. It is a sensitivity case, not an observed fragment distribution.
+
+Symtropy must compare at least (a) mono-species D⁺; (b) prompt D₂⁺ dissociation; and (c) an adjustable/delayed-dissociation model. Preserve ion-current fractions separately from deuteron-flux fractions. A retarding-potential analyzer's scalar energy-spread measurement does not by itself establish a mass-resolved per-deuteron spectrum; request the source's mass-resolution and fragmentation characterization.
+
+Do not infer that D₂⁺ explains the reported plateau. The work item is to quantify whether the species mixture changes predicted yields materially at matched total deuteron flux and to define the measurements needed to discriminate it.
