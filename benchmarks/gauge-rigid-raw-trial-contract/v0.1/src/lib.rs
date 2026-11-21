@@ -11,9 +11,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 
 const RESERVED_ROOT_KEYS: [&str; 3] = ["FPS", "translation unit", "euler order"];
-const REQUIRED_CHANNELS: [&str; 10] = [
-    "x", "y", "z", "qx", "qy", "qz", "qw", "ex", "ey", "ez",
-];
+const REQUIRED_CHANNELS: [&str; 10] = ["x", "y", "z", "qx", "qy", "qz", "qw", "ex", "ey", "ez"];
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TrialError {
@@ -25,9 +23,18 @@ pub enum TrialError {
     UnsupportedEulerOrder,
     NoBodyStreams,
     BodyStreamNotObject(String),
-    MissingChannel { body: String, channel: &'static str },
-    ChannelNotArray { body: String, channel: &'static str },
-    EmptyChannel { body: String, channel: &'static str },
+    MissingChannel {
+        body: String,
+        channel: &'static str,
+    },
+    ChannelNotArray {
+        body: String,
+        channel: &'static str,
+    },
+    EmptyChannel {
+        body: String,
+        channel: &'static str,
+    },
     ChannelSampleCountMismatch {
         body: String,
         channel: &'static str,
@@ -39,7 +46,10 @@ pub enum TrialError {
         channel: &'static str,
         index: usize,
     },
-    DegenerateQuaternion { body: String, index: usize },
+    DegenerateQuaternion {
+        body: String,
+        index: usize,
+    },
     InvalidDerivedValue,
 }
 
@@ -51,10 +61,16 @@ impl Display for TrialError {
             Self::MissingField(field) => write!(formatter, "missing required root field {field}"),
             Self::InvalidFps => write!(formatter, "FPS must be a finite positive number"),
             Self::UnsupportedTranslationUnit => {
-                write!(formatter, "translation unit is outside the observed v0.1 profile")
+                write!(
+                    formatter,
+                    "translation unit is outside the observed v0.1 profile"
+                )
             }
             Self::UnsupportedEulerOrder => {
-                write!(formatter, "Euler order is outside the observed v0.1 profile")
+                write!(
+                    formatter,
+                    "Euler order is outside the observed v0.1 profile"
+                )
             }
             Self::NoBodyStreams => write!(formatter, "trial has no body trajectory streams"),
             Self::BodyStreamNotObject(body) => {
@@ -64,7 +80,10 @@ impl Display for TrialError {
                 write!(formatter, "body stream {body} is missing channel {channel}")
             }
             Self::ChannelNotArray { body, channel } => {
-                write!(formatter, "body stream {body} channel {channel} must be an array")
+                write!(
+                    formatter,
+                    "body stream {body} channel {channel} must be an array"
+                )
             }
             Self::EmptyChannel { body, channel } => {
                 write!(formatter, "body stream {body} channel {channel} is empty")
@@ -78,7 +97,11 @@ impl Display for TrialError {
                 formatter,
                 "body stream {body} channel {channel} has {actual} samples; expected {expected}"
             ),
-            Self::InvalidSample { body, channel, index } => write!(
+            Self::InvalidSample {
+                body,
+                channel,
+                index,
+            } => write!(
                 formatter,
                 "body stream {body} channel {channel} sample {index} must be finite numeric data"
             ),
@@ -151,7 +174,10 @@ impl TrialReport {
 
     /// Relative frame-index time only: frame 0 is assigned t=0 and each
     /// subsequent frame advances by 1/FPS. This is not an absolute sensor clock.
-    pub fn relative_frame_time_seconds(&self, zero_based_frame_index: usize) -> Result<f64, TrialError> {
+    pub fn relative_frame_time_seconds(
+        &self,
+        zero_based_frame_index: usize,
+    ) -> Result<f64, TrialError> {
         let time = zero_based_frame_index as f64 / self.fps_hz;
         if time.is_finite() {
             Ok(time)
@@ -243,13 +269,14 @@ pub fn validate_trial_json(input: &str) -> Result<TrialReport, TrialError> {
 
             let mut values = Vec::with_capacity(raw_values.len());
             for (index, raw) in raw_values.iter().enumerate() {
-                let value = raw.as_f64().filter(|value| value.is_finite()).ok_or_else(|| {
-                    TrialError::InvalidSample {
+                let value = raw
+                    .as_f64()
+                    .filter(|value| value.is_finite())
+                    .ok_or_else(|| TrialError::InvalidSample {
                         body: body_id.clone(),
                         channel,
                         index,
-                    }
-                })?;
+                    })?;
                 values.push(value);
             }
             lengths.insert(channel, values.len());
@@ -400,7 +427,10 @@ mod tests {
         let report = validate_trial_json(SINGLE_BODY).expect("valid fixture");
         assert_eq!(report.relative_frame_time_seconds(0), Ok(0.0));
         assert_eq!(report.relative_frame_time_seconds(30), Ok(1.0));
-        assert_eq!(report.semantics.absolute_clock_origin, KnownSemantics::Unresolved);
+        assert_eq!(
+            report.semantics.absolute_clock_origin,
+            KnownSemantics::Unresolved
+        );
     }
 
     #[test]
@@ -410,11 +440,26 @@ mod tests {
             report.semantics.quaternion_component_storage_order,
             KnownSemantics::Declared
         );
-        assert_eq!(report.semantics.quaternion_algebra, KnownSemantics::Unresolved);
-        assert_eq!(report.semantics.transform_direction, KnownSemantics::Unresolved);
-        assert_eq!(report.semantics.coordinate_handedness, KnownSemantics::Unresolved);
-        assert_eq!(report.semantics.frame_identifiers, KnownSemantics::Unresolved);
-        assert_eq!(report.semantics.euler_angle_unit, KnownSemantics::Unresolved);
+        assert_eq!(
+            report.semantics.quaternion_algebra,
+            KnownSemantics::Unresolved
+        );
+        assert_eq!(
+            report.semantics.transform_direction,
+            KnownSemantics::Unresolved
+        );
+        assert_eq!(
+            report.semantics.coordinate_handedness,
+            KnownSemantics::Unresolved
+        );
+        assert_eq!(
+            report.semantics.frame_identifiers,
+            KnownSemantics::Unresolved
+        );
+        assert_eq!(
+            report.semantics.euler_angle_unit,
+            KnownSemantics::Unresolved
+        );
         assert_eq!(
             report.semantics.per_sample_measurement_uncertainty,
             KnownSemantics::Unresolved
@@ -425,10 +470,7 @@ mod tests {
     fn reports_quaternion_norm_deviation_without_normalizing() {
         let input = replace_once(SINGLE_BODY, "\"qw\": [1.0, 1.0]", "\"qw\": [2.0, 1.0]");
         let report = validate_trial_json(&input).expect("finite nonzero quaternion components");
-        assert_eq!(
-            report.bodies[0].maximum_quaternion_norm_deviation,
-            1.0
-        );
+        assert_eq!(report.bodies[0].maximum_quaternion_norm_deviation, 1.0);
     }
 
     #[test]
@@ -471,7 +513,11 @@ mod tests {
 
     #[test]
     fn rejects_non_numeric_channel_sample() {
-        let input = replace_once(SINGLE_BODY, "\"x\": [1000.0, 500.0]", "\"x\": [1000.0, null]");
+        let input = replace_once(
+            SINGLE_BODY,
+            "\"x\": [1000.0, 500.0]",
+            "\"x\": [1000.0, null]",
+        );
         assert!(matches!(
             validate_trial_json(&input),
             Err(TrialError::InvalidSample {
@@ -488,7 +534,10 @@ mod tests {
         assert_eq!(validate_trial_json(&zero), Err(TrialError::InvalidFps));
 
         let non_numeric = replace_once(SINGLE_BODY, "\"FPS\": 30", "\"FPS\": \"thirty\"");
-        assert_eq!(validate_trial_json(&non_numeric), Err(TrialError::InvalidFps));
+        assert_eq!(
+            validate_trial_json(&non_numeric),
+            Err(TrialError::InvalidFps)
+        );
     }
 
     #[test]
