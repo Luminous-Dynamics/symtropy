@@ -508,7 +508,8 @@ fn evaluate_case(case: &CaptureCase) -> Decision {
         Disposition::ReconciledFixtureOnly
     };
 
-    let upper_miss_probability_95 = if duplicate_count == 0
+    let upper_miss_probability_95 = if !loss_counters_nonzero
+        && duplicate_count == 0
         && unexpected_count == 0
         && !disputed_payload_or_time
     {
