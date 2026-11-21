@@ -8,6 +8,7 @@
 //! authority. The default fixture is explicitly synthetic.
 
 use serde_json::{Map, Value, json};
+use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::fs;
@@ -40,19 +41,24 @@ struct Interval {
 }
 
 #[derive(Debug, Clone)]
+struct CoverageIntervals {
+    operating_conditions: Value,
+    measurement_unit: String,
+    direct_transport: Vec<Interval>,
+    calibrated_proxy: Vec<Interval>,
+    inferred: Vec<Interval>,
+    direct_transport_unqualified: Vec<Interval>,
+    proxy_unqualified: Vec<Interval>,
+}
+
+#[derive(Debug, Clone)]
 struct AuditReport {
     reel_id: String,
     segment_count: usize,
     observation_count: usize,
     evidence_state_counts: BTreeMap<String, usize>,
-    ic_direct_transport_qualified_length_mm: f64,
-    ic_calibrated_proxy_length_mm: f64,
-    ic_inferred_full_width_length_mm: f64,
-    ic_direct_transport_unqualified_length_mm: f64,
-    ic_proxy_unqualified_length_mm: f64,
-    ic_explicitly_unmeasured_full_width_length_mm: f64,
-    ic_direct_transport_coverage_fraction: f64,
-    ic_not_directly_measured_length_mm: f64,
+    coverage_profiles: Vec<Value>,
+    explicitly_unmeasured_spatial_length_mm: f64,
     acceptance_disposition: &'static str,
 }
 
@@ -227,6 +233,67 @@ fn validate_conditions(value: &Value, path: &str) -> Result<(), String> {
         return Err(fail(path, "strain must be a finite number"));
     }
     Ok(())
+}
+
+fn condition_profile(
+    observation: &Value,
+    path: &str,
+) -> Result<(String, Value, String), String> {
+    let conditions = field(observation, "conditions", path)?;
+    let conditions_path = format!("{path}.conditions");
+    validate_conditions(conditions, &conditions_path)?;
+    let map = object(conditions, &conditions_path)?;
+    if !map.contains_key("temperature_k") {
+        return Err(fail(
+            &conditions_path,
+            "Ic coverage requires temperature_k",
+        ));
+    }
+    if !map.contains_key("field_magnitude_t") && !map.contains_key("field_vector_t") {
+        return Err(fail(
+            &conditions_path,
+            "Ic coverage requires field_magnitude_t or field_vector_t",
+        ));
+    }
+    if !map.contains_key("field_orientation") && !map.contains_key("field_vector_t") {
+        return Err(fail(
+            &conditions_path,
+            "Ic coverage requires field_orientation or field_vector_t",
+        ));
+    }
+    for key in ["current_criterion", "geometry"] {
+        if !map.contains_key(key) {
+            return Err(fail(
+                &conditions_path,
+                format!("Ic coverage requires {key}"),
+            ));
+        }
+        string_field(conditions, key, &conditions_path)?;
+    }
+    let measurement_unit = string_field(observation, "unit", path)?.to_string();
+
+    // Geometry describes the measurement method/footprint. It is retained on
+    // the source observation but excluded from the operating-condition key so
+    // a calibrated proxy can be compared with direct transport under the same
+    // T/B/orientation/current-criterion conditions.
+    let mut operating_conditions = Map::new();
+    for (key, value) in map {
+        if key != "geometry" {
+            operating_conditions.insert(key.clone(), value.clone());
+        }
+    }
+    let profile_identity = json!({
+        "measurement_unit": measurement_unit,
+        "operating_conditions": operating_conditions
+    });
+    let encoded = serde_json::to_vec(&profile_identity)
+        .map_err(|error| fail(path, format!("cannot encode condition profile: {error}")))?;
+    let profile_id = format!("{:x}", Sha256::digest(&encoded));
+    Ok((
+        profile_id,
+        profile_identity["operating_conditions"].clone(),
+        measurement_unit,
+    ))
 }
 
 fn validate_uncertainty(value: &Value, path: &str) -> Result<(), String> {
@@ -578,11 +645,7 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
     let observation_values = array(field(value, "observations", "$")?, "$.observations")?;
     let mut observation_ids = BTreeSet::new();
     let mut state_counts = BTreeMap::<String, usize>::new();
-    let mut ic_direct_transport = Vec::<Interval>::new();
-    let mut ic_calibrated_proxy = Vec::<Interval>::new();
-    let mut ic_inferred = Vec::<Interval>::new();
-    let mut ic_direct_transport_unqualified = Vec::<Interval>::new();
-    let mut ic_proxy_unqualified = Vec::<Interval>::new();
+    let mut ic_profiles = BTreeMap::<String, CoverageIntervals>::new();
     let mut ic_unmeasured = Vec::<Interval>::new();
 
     for (index, observation) in observation_values.iter().enumerate() {
@@ -856,6 +919,20 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
         if property == "ic" && fully_width_covered {
             match state.as_str() {
                 "measured" => {
+                    let (profile_id, operating_conditions, measurement_unit) =
+                        condition_profile(observation, &path)?;
+                    let profile =
+                        ic_profiles
+                            .entry(profile_id)
+                            .or_insert_with(|| CoverageIntervals {
+                                operating_conditions,
+                                measurement_unit,
+                                direct_transport: Vec::new(),
+                                calibrated_proxy: Vec::new(),
+                                inferred: Vec::new(),
+                                direct_transport_unqualified: Vec::new(),
+                                proxy_unqualified: Vec::new(),
+                            });
                     let calibration_valid = object(
                         field(observation, "measurement_system", &path)?,
                         &format!("{path}.measurement_system"),
@@ -864,20 +941,38 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
                     .and_then(Value::as_bool)
                     .unwrap_or(false);
                     match (measurement_basis.as_str(), calibration_valid) {
-                        ("direct_transport", true) => ic_direct_transport.push(footprint_interval),
-                        ("direct_transport", false) => {
-                            ic_direct_transport_unqualified.push(footprint_interval)
+                        ("direct_transport", true) => {
+                            profile.direct_transport.push(footprint_interval)
                         }
+                        ("direct_transport", false) => profile
+                            .direct_transport_unqualified
+                            .push(footprint_interval),
                         ("noncontact_magnetization_proxy", true) => {
-                            ic_calibrated_proxy.push(footprint_interval)
+                            profile.calibrated_proxy.push(footprint_interval)
                         }
                         ("noncontact_magnetization_proxy", false) => {
-                            ic_proxy_unqualified.push(footprint_interval)
+                            profile.proxy_unqualified.push(footprint_interval)
                         }
                         _ => {}
                     }
                 }
-                "inferred" => ic_inferred.push(footprint_interval),
+                "inferred" => {
+                    let (profile_id, operating_conditions, measurement_unit) =
+                        condition_profile(observation, &path)?;
+                    let profile =
+                        ic_profiles
+                            .entry(profile_id)
+                            .or_insert_with(|| CoverageIntervals {
+                                operating_conditions,
+                                measurement_unit,
+                                direct_transport: Vec::new(),
+                                calibrated_proxy: Vec::new(),
+                                inferred: Vec::new(),
+                                direct_transport_unqualified: Vec::new(),
+                                proxy_unqualified: Vec::new(),
+                            });
+                    profile.inferred.push(footprint_interval);
+                }
                 "unmeasured" => ic_unmeasured.push(footprint_interval),
                 _ => {}
             }
@@ -995,29 +1090,40 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
         )?;
     }
 
-    let direct_transport_length = interval_union_length(ic_direct_transport);
-    let calibrated_proxy_length = interval_union_length(ic_calibrated_proxy);
-    let inferred_length = interval_union_length(ic_inferred);
-    let direct_transport_unqualified_length =
-        interval_union_length(ic_direct_transport_unqualified);
-    let proxy_unqualified_length = interval_union_length(ic_proxy_unqualified);
-    let explicit_unmeasured_length = interval_union_length(ic_unmeasured);
-    let direct_transport_coverage_fraction =
-        (direct_transport_length / reel.total_length_mm).clamp(0.0, 1.0);
-    let not_directly_measured = (reel.total_length_mm - direct_transport_length).max(0.0);
+    let explicitly_unmeasured_spatial_length_mm = interval_union_length(ic_unmeasured);
+    let coverage_profiles = ic_profiles
+        .into_iter()
+        .map(|(condition_profile_id, profile)| {
+            let direct_transport_length = interval_union_length(profile.direct_transport);
+            let calibrated_proxy_length = interval_union_length(profile.calibrated_proxy);
+            let inferred_length = interval_union_length(profile.inferred);
+            let direct_transport_unqualified_length =
+                interval_union_length(profile.direct_transport_unqualified);
+            let proxy_unqualified_length =
+                interval_union_length(profile.proxy_unqualified);
+            json!({
+                "condition_profile_id": condition_profile_id,
+                "operating_conditions": profile.operating_conditions,
+                "measurement_unit": profile.measurement_unit,
+                "direct_transport_qualified_length_mm": direct_transport_length,
+                "calibrated_noncontact_proxy_length_mm": calibrated_proxy_length,
+                "inferred_full_width_length_mm": inferred_length,
+                "direct_transport_unqualified_length_mm": direct_transport_unqualified_length,
+                "proxy_unqualified_length_mm": proxy_unqualified_length,
+                "direct_transport_coverage_fraction":
+                    (direct_transport_length / reel.total_length_mm).clamp(0.0, 1.0),
+                "not_directly_measured_length_mm":
+                    (reel.total_length_mm - direct_transport_length).max(0.0)
+            })
+        })
+        .collect::<Vec<Value>>();
     Ok(AuditReport {
         reel_id: reel.id,
         segment_count: segments.len(),
         observation_count: observation_values.len(),
         evidence_state_counts: state_counts,
-        ic_direct_transport_qualified_length_mm: direct_transport_length,
-        ic_calibrated_proxy_length_mm: calibrated_proxy_length,
-        ic_inferred_full_width_length_mm: inferred_length,
-        ic_direct_transport_unqualified_length_mm: direct_transport_unqualified_length,
-        ic_proxy_unqualified_length_mm: proxy_unqualified_length,
-        ic_explicitly_unmeasured_full_width_length_mm: explicit_unmeasured_length,
-        ic_direct_transport_coverage_fraction: direct_transport_coverage_fraction,
-        ic_not_directly_measured_length_mm: not_directly_measured,
+        coverage_profiles,
+        explicitly_unmeasured_spatial_length_mm,
         acceptance_disposition: "NOT_EVALUATED_NO_QUALIFIED_APPLICATION_TEST",
     })
 }
@@ -1029,16 +1135,8 @@ fn report_value(report: AuditReport) -> Value {
         "segment_count": report.segment_count,
         "observation_count": report.observation_count,
         "evidence_state_counts": report.evidence_state_counts,
-        "critical_current_coverage": {
-            "direct_transport_qualified_length_mm": report.ic_direct_transport_qualified_length_mm,
-            "calibrated_noncontact_proxy_length_mm": report.ic_calibrated_proxy_length_mm,
-            "inferred_full_width_length_mm": report.ic_inferred_full_width_length_mm,
-            "direct_transport_unqualified_length_mm": report.ic_direct_transport_unqualified_length_mm,
-            "proxy_unqualified_length_mm": report.ic_proxy_unqualified_length_mm,
-            "explicitly_unmeasured_full_width_length_mm": report.ic_explicitly_unmeasured_full_width_length_mm,
-            "direct_transport_coverage_fraction": report.ic_direct_transport_coverage_fraction,
-            "not_directly_measured_length_mm": report.ic_not_directly_measured_length_mm
-        },
+        "critical_current_coverage_by_condition_profile": report.coverage_profiles,
+        "explicitly_unmeasured_spatial_length_mm_unscoped": report.explicitly_unmeasured_spatial_length_mm,
         "acceptance_disposition": report.acceptance_disposition,
         "claim_ceiling": CLAIM_CEILING
     })
