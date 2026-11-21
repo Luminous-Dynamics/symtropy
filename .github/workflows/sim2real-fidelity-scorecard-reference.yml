@@ -1,0 +1,116 @@
+name: Sim2Real Fidelity Scorecard Reference
+
+on:
+  pull_request:
+    paths:
+      - 'benchmarks/sim2real-fidelity-scorecard-reference/v0.1/**'
+      - '.github/workflows/sim2real-fidelity-scorecard-reference.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'benchmarks/sim2real-fidelity-scorecard-reference/v0.1/**'
+      - '.github/workflows/sim2real-fidelity-scorecard-reference.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sim2real-fidelity-scorecard-reference-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.24.0
+      - name: Validate manifest schema, fixture and negative controls
+        run: |
+          python - <<'PY'
+          import copy
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("benchmarks/sim2real-fidelity-scorecard-reference/v0.1")
+          schema = json.loads((root / "evaluation_manifest.schema.json").read_text())
+          fixture = json.loads((root / "synthetic_manifest_fixture_v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          validator = Draft202012Validator(schema)
+          manifest = fixture
+
+          errors = list(validator.iter_errors(manifest))
+          if errors:
+              raise SystemExit("fixture invalid: " + "; ".join(
+                  f"{error.json_path}: {error.message}" for error in errors
+              ))
+
+          trials = manifest["blind_holdout_trials"]
+          assert len(trials) >= 10
+          assert len({trial["task_id"] for trial in trials}) >= 10
+          assert len({trial["source_recording_id"] for trial in trials}) == len(trials)
+          assert not set(manifest["training_recording_ids"]) & set(manifest["calibration_recording_ids"])
+          assert not set(manifest["training_recording_ids"] + manifest["calibration_recording_ids"]) & {
+              trial["source_recording_id"] for trial in trials
+          }
+          expected_series = {
+              (trace["signal"], trace["series_id"]): trace["normalization_scale"]
+              for trace in trials[0]["traces"]
+          }
+          for trial in trials:
+              actual = {
+                  (trace["signal"], trace["series_id"]): trace["normalization_scale"]
+                  for trace in trial["traces"]
+              }
+              assert actual == expected_series
+              for trace in trial["traces"]:
+                  real_times = [sample["real_timestamp_ns"] for sample in trace["samples"]]
+                  sim_times = [sample["simulated_timestamp_ns"] for sample in trace["samples"]]
+                  assert real_times == sim_times
+                  assert all(a < b for a, b in zip(real_times, real_times[1:]))
+
+          negative_cases = []
+          bad = copy.deepcopy(manifest)
+          bad["protocol"]["simulator_commit"] = "not-a-sha"
+          negative_cases.append(("invalid-simulator-commit", bad))
+
+          bad = copy.deepcopy(manifest)
+          bad["blind_holdout_trials"][0]["task_id"] = ""
+          negative_cases.append(("empty-task-id", bad))
+
+          bad = copy.deepcopy(manifest)
+          bad["blind_holdout_trials"][0]["task_outcome"]["simulated_stage_score"] = 1.1
+          negative_cases.append(("out-of-range-stage-score", bad))
+
+          bad = copy.deepcopy(manifest)
+          bad["protocol"]["sensor_calibration_digest"] = "not-a-digest"
+          negative_cases.append(("invalid-calibration-digest", bad))
+
+          for name, candidate in negative_cases:
+              if not list(validator.iter_errors(candidate)):
+                  raise SystemExit(f"negative control unexpectedly passed: {name}")
+
+          misaligned = copy.deepcopy(manifest)
+          misaligned["blind_holdout_trials"][0]["traces"][0]["samples"][1]["simulated_timestamp_ns"] += 1
+          assert any(
+              sample["real_timestamp_ns"] != sample["simulated_timestamp_ns"]
+              for sample in misaligned["blind_holdout_trials"][0]["traces"][0]["samples"]
+          )
+
+          print(f"validated {len(trials)} synthetic holdout trial records, {len(negative_cases)} schema negative controls and timestamp/split invariants")
+          PY
+      - name: Check formatting
+        run: cargo fmt --manifest-path benchmarks/sim2real-fidelity-scorecard-reference/v0.1/Cargo.toml -- --check
+      - name: Run blind-holdout fidelity tests
+        run: cargo test --manifest-path benchmarks/sim2real-fidelity-scorecard-reference/v0.1/Cargo.toml --locked
+      - name: Run Clippy
+        run: cargo clippy --manifest-path benchmarks/sim2real-fidelity-scorecard-reference/v0.1/Cargo.toml --all-targets --locked -- -D warnings

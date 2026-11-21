@@ -1,0 +1,649 @@
+{
+  "schema_version": "0.1.0",
+  "protocol": {
+    "simulator_commit": "1212121212121212121212121212121212121212",
+    "simulator_configuration_digest": "abababababababababababababababababababababababababababababababab",
+    "robot_article_id": "synthetic-robot-article",
+    "asset_revision": "synthetic-asset-v1",
+    "command_trace_digest": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+    "sensor_calibration_digest": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef"
+  },
+  "training_recording_ids": [
+    "recording-training-001"
+  ],
+  "calibration_recording_ids": [
+    "recording-calibration-001"
+  ],
+  "blind_holdout_trials": [
+    {
+      "trial_id": "trial-1",
+      "source_recording_id": "physical-recording-1",
+      "traces": [
+        {
+          "signal": "joint_position_rad",
+          "series_id": "left_j1",
+          "normalization_scale": 0.1,
+          "samples": [
+            {
+              "real_value": 0,
+              "simulated_value": 0.01,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
+            },
+            {
+              "real_value": 0.2,
+              "simulated_value": 0.21,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
+            },
+            {
+              "real_value": 0.4,
+              "simulated_value": 0.41,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
+            }
+          ]
+        },
+        {
+          "signal": "current_derived_torque_nm",
+          "series_id": "left_j1",
+          "normalization_scale": 0.5,
+          "samples": [
+            {
+              "real_value": 0,
+              "simulated_value": 0.02,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
+            },
+            {
+              "real_value": 1,
+              "simulated_value": 1.05,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
+            },
+            {
+              "real_value": 0.5,
+              "simulated_value": 0.55,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
+            }
+          ]
+        }
+      ],
+      "task_outcome": {
+        "real_stage_score": 0.7,
+        "simulated_stage_score": 0.72,
+        "real_end_to_end_success": true,
+        "simulated_end_to_end_success": true
+      },
+      "task_id": "task-1"
+    },
+    {
+      "trial_id": "trial-2",
+      "source_recording_id": "physical-recording-2",
+      "traces": [
+        {
+          "signal": "joint_position_rad",
+          "series_id": "left_j1",
+          "normalization_scale": 0.1,
+          "samples": [
+            {
+              "real_value": 0,
+              "simulated_value": 0.011,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
+            },
+            {
+              "real_value": 0.2,
+              "simulated_value": 0.211,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
+            },
+            {
+              "real_value": 0.4,
+              "simulated_value": 0.411,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
+            }
+          ]
+        },
+        {
+          "signal": "current_derived_torque_nm",
+          "series_id": "left_j1",
+          "normalization_scale": 0.5,
+          "samples": [
+            {
+              "real_value": 0,
+              "simulated_value": 0.02,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
+            },
+            {
+              "real_value": 1,
+              "simulated_value": 1.05,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
+            },
+            {
+              "real_value": 0.5,
+              "simulated_value": 0.55,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
+            }
+          ]
+        }
+      ],
+      "task_outcome": {
+        "real_stage_score": 0.75,
+        "simulated_stage_score": 0.77,
+        "real_end_to_end_success": false,
+        "simulated_end_to_end_success": false
+      },
+      "task_id": "task-2"
+    },
+    {
+      "trial_id": "trial-3",
+      "source_recording_id": "physical-recording-3",
+      "traces": [
+        {
+          "signal": "joint_position_rad",
+          "series_id": "left_j1",
+          "normalization_scale": 0.1,
+          "samples": [
+            {
+              "real_value": 0,
+              "simulated_value": 0.012,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
+            },
+            {
+              "real_value": 0.2,
+              "simulated_value": 0.212,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
+            },
+            {
+              "real_value": 0.4,
+              "simulated_value": 0.412,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
+            }
+          ]
+        },
+        {
+          "signal": "current_derived_torque_nm",
+          "series_id": "left_j1",
+          "normalization_scale": 0.5,
+          "samples": [
+            {
+              "real_value": 0,
+              "simulated_value": 0.02,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
+            },
+            {
+              "real_value": 1,
+              "simulated_value": 1.05,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
+            },
+            {
+              "real_value": 0.5,
+              "simulated_value": 0.55,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
+            }
+          ]
+        }
+      ],
+      "task_outcome": {
+        "real_stage_score": 0.7999999999999999,
+        "simulated_stage_score": 0.82,
+        "real_end_to_end_success": true,
+        "simulated_end_to_end_success": true
+      },
+      "task_id": "task-3"
+    },
+    {
+      "trial_id": "trial-4",
+      "source_recording_id": "physical-recording-4",
+      "traces": [
+        {
+          "signal": "joint_position_rad",
+          "series_id": "left_j1",
+          "normalization_scale": 0.1,
+          "samples": [
+            {
+              "real_value": 0,
+              "simulated_value": 0.013000000000000001,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
+            },
+            {
+              "real_value": 0.2,
+              "simulated_value": 0.213,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
+            },
+            {
+              "real_value": 0.4,
+              "simulated_value": 0.413,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
+            }
+          ]
+        },
+        {
+          "signal": "current_derived_torque_nm",
+          "series_id": "left_j1",
+          "normalization_scale": 0.5,
+          "samples": [
+            {
+              "real_value": 0,
+              "simulated_value": 0.02,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
+            },
+            {
+              "real_value": 1,
+              "simulated_value": 1.05,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
+            },
+            {
+              "real_value": 0.5,
+              "simulated_value": 0.55,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
+            }
+          ]
+        }
+      ],
+      "task_outcome": {
+        "real_stage_score": 0.7,
+        "simulated_stage_score": 0.72,
+        "real_end_to_end_success": false,
+        "simulated_end_to_end_success": false
+      },
+      "task_id": "task-4"
+    },
+    {
+      "trial_id": "trial-5",
+      "source_recording_id": "physical-recording-5",
+      "traces": [
+        {
+          "signal": "joint_position_rad",
+          "series_id": "left_j1",
+          "normalization_scale": 0.1,
+          "samples": [
+            {
+              "real_value": 0,
+              "simulated_value": 0.014,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
+            },
+            {
+              "real_value": 0.2,
+              "simulated_value": 0.214,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
+            },
+            {
+              "real_value": 0.4,
+              "simulated_value": 0.414,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
+            }
+          ]
+        },
+        {
+          "signal": "current_derived_torque_nm",
+          "series_id": "left_j1",
+          "normalization_scale": 0.5,
+          "samples": [
+            {
+              "real_value": 0,
+              "simulated_value": 0.02,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
+            },
+            {
+              "real_value": 1,
+              "simulated_value": 1.05,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
+            },
+            {
+              "real_value": 0.5,
+              "simulated_value": 0.55,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
+            }
+          ]
+        }
+      ],
+      "task_outcome": {
+        "real_stage_score": 0.75,
+        "simulated_stage_score": 0.77,
+        "real_end_to_end_success": true,
+        "simulated_end_to_end_success": true
+      },
+      "task_id": "task-5"
+    },
+    {
+      "trial_id": "trial-6",
+      "source_recording_id": "physical-recording-6",
+      "traces": [
+        {
+          "signal": "joint_position_rad",
+          "series_id": "left_j1",
+          "normalization_scale": 0.1,
+          "samples": [
+            {
+              "real_value": 0,
+              "simulated_value": 0.015,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
+            },
+            {
+              "real_value": 0.2,
+              "simulated_value": 0.215,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
+            },
+            {
+              "real_value": 0.4,
+              "simulated_value": 0.415,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
+            }
+          ]
+        },
+        {
+          "signal": "current_derived_torque_nm",
+          "series_id": "left_j1",
+          "normalization_scale": 0.5,
+          "samples": [
+            {
+              "real_value": 0,
+              "simulated_value": 0.02,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
+            },
+            {
+              "real_value": 1,
+              "simulated_value": 1.05,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
+            },
+            {
+              "real_value": 0.5,
+              "simulated_value": 0.55,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
+            }
+          ]
+        }
+      ],
+      "task_outcome": {
+        "real_stage_score": 0.7999999999999999,
+        "simulated_stage_score": 0.82,
+        "real_end_to_end_success": false,
+        "simulated_end_to_end_success": false
+      },
+      "task_id": "task-6"
+    },
+    {
+      "trial_id": "trial-7",
+      "source_recording_id": "physical-recording-7",
+      "traces": [
+        {
+          "signal": "joint_position_rad",
+          "series_id": "left_j1",
+          "normalization_scale": 0.1,
+          "samples": [
+            {
+              "real_value": 0,
+              "simulated_value": 0.016,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
+            },
+            {
+              "real_value": 0.2,
+              "simulated_value": 0.216,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
+            },
+            {
+              "real_value": 0.4,
+              "simulated_value": 0.416,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
+            }
+          ]
+        },
+        {
+          "signal": "current_derived_torque_nm",
+          "series_id": "left_j1",
+          "normalization_scale": 0.5,
+          "samples": [
+            {
+              "real_value": 0,
+              "simulated_value": 0.02,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
+            },
+            {
+              "real_value": 1,
+              "simulated_value": 1.05,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
+            },
+            {
+              "real_value": 0.5,
+              "simulated_value": 0.55,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
+            }
+          ]
+        }
+      ],
+      "task_outcome": {
+        "real_stage_score": 0.7,
+        "simulated_stage_score": 0.72,
+        "real_end_to_end_success": true,
+        "simulated_end_to_end_success": true
+      },
+      "task_id": "task-7"
+    },
+    {
+      "trial_id": "trial-8",
+      "source_recording_id": "physical-recording-8",
+      "traces": [
+        {
+          "signal": "joint_position_rad",
+          "series_id": "left_j1",
+          "normalization_scale": 0.1,
+          "samples": [
+            {
+              "real_value": 0,
+              "simulated_value": 0.017,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
+            },
+            {
+              "real_value": 0.2,
+              "simulated_value": 0.217,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
+            },
+            {
+              "real_value": 0.4,
+              "simulated_value": 0.417,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
+            }
+          ]
+        },
+        {
+          "signal": "current_derived_torque_nm",
+          "series_id": "left_j1",
+          "normalization_scale": 0.5,
+          "samples": [
+            {
+              "real_value": 0,
+              "simulated_value": 0.02,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
+            },
+            {
+              "real_value": 1,
+              "simulated_value": 1.05,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
+            },
+            {
+              "real_value": 0.5,
+              "simulated_value": 0.55,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
+            }
+          ]
+        }
+      ],
+      "task_outcome": {
+        "real_stage_score": 0.75,
+        "simulated_stage_score": 0.77,
+        "real_end_to_end_success": false,
+        "simulated_end_to_end_success": false
+      },
+      "task_id": "task-8"
+    },
+    {
+      "trial_id": "trial-9",
+      "source_recording_id": "physical-recording-9",
+      "traces": [
+        {
+          "signal": "joint_position_rad",
+          "series_id": "left_j1",
+          "normalization_scale": 0.1,
+          "samples": [
+            {
+              "real_value": 0,
+              "simulated_value": 0.018000000000000002,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
+            },
+            {
+              "real_value": 0.2,
+              "simulated_value": 0.218,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
+            },
+            {
+              "real_value": 0.4,
+              "simulated_value": 0.418,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
+            }
+          ]
+        },
+        {
+          "signal": "current_derived_torque_nm",
+          "series_id": "left_j1",
+          "normalization_scale": 0.5,
+          "samples": [
+            {
+              "real_value": 0,
+              "simulated_value": 0.02,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
+            },
+            {
+              "real_value": 1,
+              "simulated_value": 1.05,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
+            },
+            {
+              "real_value": 0.5,
+              "simulated_value": 0.55,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
+            }
+          ]
+        }
+      ],
+      "task_outcome": {
+        "real_stage_score": 0.7999999999999999,
+        "simulated_stage_score": 0.82,
+        "real_end_to_end_success": true,
+        "simulated_end_to_end_success": true
+      },
+      "task_id": "task-9"
+    },
+    {
+      "trial_id": "trial-10",
+      "source_recording_id": "physical-recording-10",
+      "traces": [
+        {
+          "signal": "joint_position_rad",
+          "series_id": "left_j1",
+          "normalization_scale": 0.1,
+          "samples": [
+            {
+              "real_value": 0,
+              "simulated_value": 0.019000000000000003,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
+            },
+            {
+              "real_value": 0.2,
+              "simulated_value": 0.219,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
+            },
+            {
+              "real_value": 0.4,
+              "simulated_value": 0.419,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
+            }
+          ]
+        },
+        {
+          "signal": "current_derived_torque_nm",
+          "series_id": "left_j1",
+          "normalization_scale": 0.5,
+          "samples": [
+            {
+              "real_value": 0,
+              "simulated_value": 0.02,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
+            },
+            {
+              "real_value": 1,
+              "simulated_value": 1.05,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
+            },
+            {
+              "real_value": 0.5,
+              "simulated_value": 0.55,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
+            }
+          ]
+        }
+      ],
+      "task_outcome": {
+        "real_stage_score": 0.7,
+        "simulated_stage_score": 0.72,
+        "real_end_to_end_success": false,
+        "simulated_end_to_end_success": false
+      },
+      "task_id": "task-10"
+    }
+  ]
+}
