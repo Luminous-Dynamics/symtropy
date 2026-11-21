@@ -43,3 +43,14 @@ Run the isolated Rust crate's correlation_audit_demo binary using Cargo. It exer
 - The union of marginal pairwise intervals does not prove that any one joint scenario simultaneously fits every pair.
 - This audit does not estimate a new model, authorize independence, create a trust score, or supply a navigation protection level.
 - Mycelix owns source/failure-domain evidence; the experiment owner owns the validity of holdout blocks and truth labels.
+
+
+## Fail-closed planning composition
+
+The correlation_planning module exposes a single composition function that:
+1. audits held-out residual blocks against the full declared scenario family;
+2. proceeds only when the aggregate result is ConsistentAtDeclaredConfidence;
+3. otherwise returns ModelNotQualified(OutOfModel or Indeterminate) and no selected sensor subset;
+4. after a successful audit, performs the exact worst-case robust subset selection.
+
+The regression suite verifies all three paths: valid holdout enables a full-rank budget-feasible selection; a hidden shared correlation blocks the plan; too few blocks block the plan. This is an offline qualification gate. Callers remain responsible for the holdout's freshness, independence and representativeness for the current environment.
