@@ -146,16 +146,16 @@ impl<const D: usize> Constraint<D> for HingeJoint<D> {
         body_a: &mut RigidBody<D>,
         body_b: &mut RigidBody<D>,
         dt: f64,
-        mut callback: Option<&mut dyn crate::world::PhysicsCallback<D>>,
+        callback: Option<&mut dyn crate::world::PhysicsCallback<D>>,
     ) {
         // Preserve the direct one-call API while using the same step-scoped
         // accumulator as PhysicsWorld.
         let mut motor_state = MotorStepState::default();
         self.solve_velocity_with_state(body_a, body_b, dt, None, &mut motor_state);
-        if let Some(work_joules) = motor_state.take_work_receipt() {
-            if let Some(cb) = callback.as_deref_mut() {
-                cb.record_work(self.body_b, work_joules);
-            }
+        if let Some(work_joules) = motor_state.take_work_receipt()
+            && let Some(cb) = callback
+        {
+            cb.record_work(self.body_b, work_joules);
         }
     }
 
