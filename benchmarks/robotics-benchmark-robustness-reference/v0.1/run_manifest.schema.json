@@ -79,7 +79,6 @@
           "task_id",
           "category",
           "horizon",
-          "shift_family",
           "episodes"
         ],
         "properties": {
@@ -95,10 +94,6 @@
             "type": "integer",
             "minimum": 1
           },
-          "shift_family": {
-            "type": "string",
-            "minLength": 1
-          },
           "episodes": {
             "type": "array",
             "minItems": 1,
@@ -108,7 +103,8 @@
               "required": [
                 "episode_id",
                 "baseline_success",
-                "candidate_success"
+                "candidate_success",
+                "shift_family"
               ],
               "properties": {
                 "episode_id": {
@@ -120,6 +116,10 @@
                 },
                 "candidate_success": {
                   "type": "boolean"
+                },
+                "shift_family": {
+                  "type": "string",
+                  "minLength": 1
                 }
               }
             }
