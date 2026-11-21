@@ -55,6 +55,31 @@ impl<const D: usize> Shape<D> for Sphere<D> {
     fn clone_box(&self) -> Box<dyn Shape<D>> {
         Box::new(*self)
     }
+
+    fn mass_properties(
+        &self,
+        mass: f64,
+    ) -> Result<
+        crate::mass_properties::MassProperties<D>,
+        crate::mass_properties::MassPropertiesError,
+    > {
+        use crate::mass_properties::{MassProperties, MassPropertiesError};
+
+        if !self.radius.is_finite()
+            || self.radius <= 0.0
+            || !self.center.0.iter().all(|value| value.is_finite())
+        {
+            return Err(MassPropertiesError::InvalidGeometry);
+        }
+        if !mass.is_finite() || mass <= 0.0 {
+            return Err(MassPropertiesError::InvalidMass);
+        }
+
+        // Uniform-density solid D-ball: E[x_i²] = r²/(D+2).
+        let coordinate_second_moment = mass * self.radius * self.radius / (D as f64 + 2.0);
+        let tensor = nalgebra::SMatrix::<f64, D, D>::identity() * coordinate_second_moment;
+        MassProperties::new(mass, self.center, tensor)
+    }
 }
 
 #[cfg(test)]
