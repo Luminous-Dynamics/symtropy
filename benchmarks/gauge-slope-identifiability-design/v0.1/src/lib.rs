@@ -284,6 +284,9 @@ pub fn summarize(
     // Compute the smaller eigenvalue from det/lambda_max to reduce
     // cancellation for near-rank-one information matrices.
     let determinant = fisher.determinant();
+    if !determinant.is_finite() {
+        return Err(IdentifiabilityError::NonFiniteInformation);
+    }
     let mut minimum_eigenvalue = if maximum_eigenvalue > 0.0 {
         determinant / maximum_eigenvalue
     } else {
@@ -308,8 +311,10 @@ pub fn summarize(
         2
     };
 
+    // Condition number is reported for the scaled weighted Jacobian,
+    // i.e. the ratio of singular values rather than Fisher eigenvalues.
     let condition_number = if effective_rank == 2 {
-        Some(maximum_eigenvalue / minimum_eigenvalue)
+        Some((maximum_eigenvalue / minimum_eigenvalue).sqrt())
     } else {
         None
     };
@@ -376,7 +381,6 @@ fn validate_excitation(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::f64::consts::PI;
 
     fn model() -> SlopeModel {
         SlopeModel {
@@ -439,8 +443,14 @@ mod tests {
             &[excitation(30.0, 0.05), excitation(30.001, 0.05)],
         )
         .expect("valid near-duplicate design");
-        assert_eq!(information.effective_rank, 2);
-        assert!(information.condition_number.unwrap() > 500_000.0);
+        // The conservative default tolerance reports this as rank-deficient.
+        // A declared tighter tolerance reveals the finite, very poor
+        // singular-value condition number without silently upgrading it.
+        assert_eq!(information.effective_rank, 1);
+        let tight = summarize(information.fisher, 2, 1.0e-14)
+            .expect("explicit tighter numerical tolerance");
+        assert_eq!(tight.effective_rank, 2);
+        assert!(tight.condition_number.unwrap() > 500_000.0);
     }
 
     #[test]
@@ -604,6 +614,5 @@ mod tests {
             summarize(FisherInformation2::default(), 1, 0.0),
             Err(IdentifiabilityError::InvalidRankTolerance)
         );
-        assert!(PI.is_finite());
     }
 }
