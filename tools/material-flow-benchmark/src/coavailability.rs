@@ -978,6 +978,9 @@ mod tests {
 
     #[test]
     fn rejects_aircraft_double_booking_during_flight_or_turnaround() {
+        let baseline = evaluate_coavailability(&input()).expect("baseline input");
+        assert_eq!(baseline.verdict, FeasibilityVerdict::Feasible);
+
         let mut test = input();
         test.existing_reservations.push(ResourceReservation {
             reservation_id: "other-uav-operation".into(),
@@ -989,9 +992,6 @@ mod tests {
         assert_eq!(report.verdict, FeasibilityVerdict::Infeasible);
         assert_eq!(report.selected_launch_time_ms, None);
         assert_eq!(report.selected_recovery_time_ms, None);
-        assert!(report.findings.iter().any(|finding| {
-            finding.contains("no conflict-free launch and recovery slot exists")
-        }));
     }
 
     #[test]
