@@ -1,14 +1,14 @@
 //! AIACHNE-style grouped Gaussian energy-bias basis construction.
 //!
 //! This module implements the published basis geometry only: three Gaussian
-//! width scales in log10 energy, with 10 / 50 / 100 centres respectively.
+//! width scales in log10 energy, with short / medium / long groups of 100 / 50 / 10 centres respectively.
 //! It does not implement the horseshoe prior or the Bayesian Monte Carlo
 //! inference used by the reference paper.
 
 use crate::ModelError;
 
-pub const ENERGY_BIAS_LENGTH_SCALES_LOG10: [f64; 3] = [0.3, 0.15, 0.05];
-pub const ENERGY_BIAS_CENTRES_PER_SCALE: [usize; 3] = [10, 50, 100];
+pub const ENERGY_BIAS_LENGTH_SCALES_LOG10: [f64; 3] = [0.05, 0.15, 0.3];
+pub const ENERGY_BIAS_CENTRES_PER_SCALE: [usize; 3] = [100, 50, 10];
 pub const ENERGY_BIAS_BASIS_COLUMNS_PER_GROUP: usize = 160;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -207,9 +207,9 @@ mod tests {
         assert_eq!(design.energy_centres_mev.len(), 160);
         assert_eq!(design.length_scales_log10.len(), 160);
         assert_eq!(design.grouped_design_matrix[0].len(), 160);
-        assert_eq!(&design.length_scales_log10[..10], &[0.3; 10]);
-        assert_eq!(&design.length_scales_log10[10..60], &[0.15; 50]);
-        assert_eq!(&design.length_scales_log10[60..160], &[0.05; 100]);
+        assert_eq!(&design.length_scales_log10[..100], &[0.05; 100]);
+        assert_eq!(&design.length_scales_log10[100..150], &[0.15; 50]);
+        assert_eq!(&design.length_scales_log10[150..160], &[0.3; 10]);
     }
 
     #[test]
@@ -217,8 +217,8 @@ mod tests {
         let design =
             build_grouped_energy_bias_design(&[0.1], &[vec![0]], 1, 0.1, 10.0).expect("basis");
         assert!((design.basis_by_observation[0][0] - 1.0).abs() < 1.0e-12);
-        assert!((design.basis_by_observation[0][10] - 1.0).abs() < 1.0e-12);
-        assert!((design.basis_by_observation[0][60] - 1.0).abs() < 1.0e-12);
+        assert!((design.basis_by_observation[0][100] - 1.0).abs() < 1.0e-12);
+        assert!((design.basis_by_observation[0][150] - 1.0).abs() < 1.0e-12);
     }
 
     #[test]
