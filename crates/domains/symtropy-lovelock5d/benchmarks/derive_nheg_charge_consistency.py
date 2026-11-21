@@ -42,13 +42,15 @@ def main() -> None:
     T=beta*eps**4
     tau=sp.symbols("tau", nonnegative=True)
     def tau_form(expression: sp.Expr) -> sp.Expr:
-        # Eliminate a using beta=2*a^2/alpha_sym first, then write
-        # tau=beta*epsilon^4 as the independent endpoint variable.
+        # Impose beta=2*a^2/alpha_sym directly through
+        # a^(2n)=(alpha_sym*tau/(2*epsilon^4))^n, tau=beta*epsilon^4.
         value=sp.factor(expression)
         for power in (12,10,8,6,4,2):
-            value=value.subs(a**power,(alpha_sym*beta/2)**(power//2))
-        value=sp.factor(value)
-        return sp.factor(sp.cancel(value.subs(beta,tau/eps**4)))
+            value=value.subs(
+                a**power,
+                (alpha_sym*tau/(2*eps**4))**(power//2)
+            )
+        return sp.factor(sp.cancel(value))
     p=1+T
     q=1-T
     alpha_NH=alpha_sym/4
