@@ -103,7 +103,7 @@ pub fn nested_control_variate_estimate(
 }
 
 fn arithmetic_mean(values: &[f64]) -> f64 {
-    values.iter().sum::<f64>() / values.len() as f64
+    values.iter().map(|value| *value / values.len() as f64).sum::<f64>()
 }
 
 fn sample_variance(values: &[f64], mean: f64) -> f64 {
@@ -165,12 +165,16 @@ pub fn robust_design_scores(
         }
         let worst_case_utility = utilities.iter().copied().fold(f64::INFINITY, f64::min);
         let mean_utility = arithmetic_mean(utilities);
+        let worst_case_utility_per_cost = worst_case_utility / *cost;
+        if !mean_utility.is_finite() || !worst_case_utility_per_cost.is_finite() {
+            return Err(ModelError::InvalidParameter("robust_design_score_overflowed"));
+        }
         scores.push(RobustDesignScore {
             candidate_index: index,
             worst_case_utility,
             mean_utility,
             cost: *cost,
-            worst_case_utility_per_cost: worst_case_utility / *cost,
+            worst_case_utility_per_cost,
         });
     }
     Ok(scores)
@@ -180,6 +184,18 @@ pub fn robust_design_scores(
 pub fn select_maximin_design(scores: &[RobustDesignScore]) -> Result<usize, ModelError> {
     if scores.is_empty() {
         return Err(ModelError::MismatchedDataLengths);
+    }
+    for score in scores {
+        if !score.worst_case_utility.is_finite()
+            || !score.mean_utility.is_finite()
+            || !score.cost.is_finite()
+            || !score.worst_case_utility_per_cost.is_finite()
+        {
+            return Err(ModelError::NonFiniteValue("robust_design_score"));
+        }
+        if score.cost <= 0.0 {
+            return Err(ModelError::NonPositiveValue("design_cost"));
+        }
     }
     let mut best = &scores[0];
     for candidate in scores.iter().skip(1) {
@@ -294,6 +310,26 @@ mod tests {
             robust_design_scores(&[vec![1.0]], &[0.0]),
             Err(ModelError::NonPositiveValue("design_cost"))
         );
+    }
+
+    #[test]
+    fn robust_design_rejects_cost_normalization_overflow() {
+        assert_eq!(
+            robust_design_scores(&[vec![f64::MAX]], &[f64::MIN_POSITIVE]),
+            Err(ModelError::InvalidParameter("robust_design_score_overflowed"))
+        );
+    }
+
+    #[test]
+    fn maximin_selector_rejects_nonfinite_or_invalid_external_scores() {
+        let bad = [RobustDesignScore {
+            candidate_index: 0,
+            worst_case_utility: f64::NAN,
+            mean_utility: 1.0,
+            cost: 1.0,
+            worst_case_utility_per_cost: 1.0,
+        }];
+        assert_eq!(select_maximin_design(&bad), Err(ModelError::NonFiniteValue("robust_design_score")));
     }
 
     #[test]
