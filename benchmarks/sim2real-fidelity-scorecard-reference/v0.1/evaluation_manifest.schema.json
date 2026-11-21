@@ -33,7 +33,8 @@
         },
         "simulator_configuration_digest": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "pattern": "^[0-9a-f]{64}$"
         },
         "robot_article_id": {
           "type": "string",
@@ -45,11 +46,13 @@
         },
         "command_trace_digest": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "pattern": "^[0-9a-f]{64}$"
         },
         "sensor_calibration_digest": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "pattern": "^[0-9a-f]{64}$"
         }
       }
     },
@@ -79,7 +82,8 @@
           "trial_id",
           "source_recording_id",
           "traces",
-          "task_outcome"
+          "task_outcome",
+          "task_id"
         ],
         "properties": {
           "trial_id": {
@@ -180,6 +184,10 @@
                 "type": "boolean"
               }
             }
+          },
+          "task_id": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
