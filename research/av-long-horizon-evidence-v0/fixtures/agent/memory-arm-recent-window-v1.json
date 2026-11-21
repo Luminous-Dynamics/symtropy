@@ -311,6 +311,22 @@
         ],
         "purge_receipts": [],
         "claimed_distinct_event_count": null
+      },
+      {
+        "episode_id": "lh-012-multisegment-15-source-chain",
+        "decision": "abstain",
+        "answer": null,
+        "confidence": 0,
+        "cited_observation_refs": [],
+        "current_observation_refs": [],
+        "claimed_independent_corroboration": false,
+        "claimed_cross_clock_order": false,
+        "evidence_as_of_tick": 7200,
+        "response_tick": 7201,
+        "retrieved_memory_item_refs": [],
+        "retained_memory_item_refs": [],
+        "purge_receipts": [],
+        "claimed_distinct_event_count": null
       }
     ]
   }
