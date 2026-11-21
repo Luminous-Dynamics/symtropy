@@ -623,6 +623,347 @@ pub fn grouped_raw_scale_horseshoe_log_posterior(
     })
 }
 
+/// Prepared grouped horseshoe model with a covariance Cholesky factor cached once.
+///
+/// Experiment scales alter only the predicted mean; the observation covariance
+/// remains anchored to the unscaled physical baseline. The factorization can
+/// therefore be reused across every posterior and leapfrog evaluation.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PreparedGroupedRawScaleHorseshoeModel {
+    observed: Vec<f64>,
+    baseline_mean: Vec<f64>,
+    design_matrix: Vec<Vec<f64>>,
+    covariance_lower: Vec<Vec<f64>>,
+    covariance_log_determinant: f64,
+}
+
+impl PreparedGroupedRawScaleHorseshoeModel {
+    pub fn new(
+        observed: &[f64],
+        baseline_mean: &[f64],
+        design_matrix: &[Vec<f64>],
+        relative_covariance: &[Vec<f64>],
+    ) -> Result<Self, ModelError> {
+        let n = observed.len();
+        if n == 0
+            || baseline_mean.len() != n
+            || design_matrix.len() != n
+            || relative_covariance.len() != n
+            || relative_covariance.iter().any(|row| row.len() != n)
+        {
+            return Err(ModelError::MismatchedDataLengths);
+        }
+        let p = design_matrix.first().map_or(0, Vec::len);
+        if p == 0 || design_matrix.iter().any(|row| row.len() != p) {
+            return Err(ModelError::MismatchedDataLengths);
+        }
+        if observed.iter().any(|v| !v.is_finite() || *v < 0.0) {
+            return Err(ModelError::InvalidParameter(
+                "prepared_grouped_observations_must_be_finite_nonnegative",
+            ));
+        }
+        if baseline_mean.iter().any(|v| !v.is_finite() || *v <= 0.0) {
+            return Err(ModelError::InvalidParameter(
+                "prepared_grouped_baseline_mean_must_be_finite_positive",
+            ));
+        }
+        if design_matrix.iter().flatten().any(|v| !v.is_finite()) {
+            return Err(ModelError::NonFiniteValue("prepared_grouped_design_matrix"));
+        }
+        if relative_covariance.iter().flatten().any(|v| !v.is_finite()) {
+            return Err(ModelError::NonFiniteValue("prepared_grouped_relative_covariance"));
+        }
+        let scale = relative_covariance
+            .iter()
+            .flatten()
+            .map(|v| v.abs())
+            .fold(0.0_f64, f64::max);
+        let tolerance = 1.0e-10 * scale.max(f64::MIN_POSITIVE);
+        for (row_index, row) in relative_covariance.iter().enumerate() {
+            for (column_index, value) in row.iter().enumerate().take(row_index) {
+                if (*value - relative_covariance[column_index][row_index]).abs() > tolerance {
+                    return Err(ModelError::InvalidCovariance(
+                        "prepared_grouped_relative_covariance_must_be_symmetric",
+                    ));
+                }
+            }
+        }
+
+        let mut covariance = vec![vec![0.0; n]; n];
+        for (row_index, row) in covariance.iter_mut().enumerate() {
+            for (column_index, value) in row.iter_mut().enumerate() {
+                *value = baseline_mean[row_index]
+                    * relative_covariance[row_index][column_index]
+                    * baseline_mean[column_index];
+            }
+        }
+        let covariance_lower = cholesky(&covariance)?;
+        let covariance_log_determinant = log_determinant_from_cholesky(&covariance_lower)?;
+        Ok(Self {
+            observed: observed.to_vec(),
+            baseline_mean: baseline_mean.to_vec(),
+            design_matrix: design_matrix.to_vec(),
+            covariance_lower,
+            covariance_log_determinant,
+        })
+    }
+
+    pub fn evaluate(
+        &self,
+        coefficients: &[f64],
+        log_local_scales: &[f64],
+        log_global_scales: &[f64],
+        global_scale_index_by_coefficient: &[usize],
+        log_experiment_scales: &[f64],
+        experiment_scale_index_by_observation: &[usize],
+        fixed_coefficient_scale: f64,
+        global_scale_prior: GlobalScalePrior,
+    ) -> Result<GroupedRawScaleHorseshoePosterior, ModelError> {
+        let n = self.observed.len();
+        let p = self.design_matrix[0].len();
+        let groups = log_global_scales.len();
+        let experiment_groups = log_experiment_scales.len();
+        if coefficients.len() != p
+            || log_local_scales.len() != p
+            || global_scale_index_by_coefficient.len() != p
+            || groups == 0
+            || (experiment_groups == 0 && !experiment_scale_index_by_observation.is_empty())
+            || (experiment_groups > 0 && experiment_scale_index_by_observation.len() != n)
+        {
+            return Err(ModelError::MismatchedDataLengths);
+        }
+        if !fixed_coefficient_scale.is_finite() || fixed_coefficient_scale <= 0.0 {
+            return Err(ModelError::InvalidParameter(
+                "prepared_grouped_fixed_coefficient_scale_invalid",
+            ));
+        }
+        if coefficients.iter().any(|v| !v.is_finite())
+            || log_local_scales
+                .iter()
+                .chain(log_global_scales.iter())
+                .chain(log_experiment_scales.iter())
+                .any(|v| !v.is_finite() || v.abs() > 300.0)
+        {
+            return Err(ModelError::InvalidParameter(
+                "prepared_grouped_parameter_out_of_supported_range",
+            ));
+        }
+        let prior_scale = match global_scale_prior {
+            GlobalScalePrior::HalfNormal { scale }
+            | GlobalScalePrior::HalfCauchy { scale } => scale,
+        };
+        if !prior_scale.is_finite() || prior_scale <= 0.0 {
+            return Err(ModelError::InvalidParameter(
+                "prepared_grouped_global_prior_scale_invalid",
+            ));
+        }
+
+        let local_scales: Vec<f64> = log_local_scales.iter().map(|v| v.exp()).collect();
+        let global_scales: Vec<f64> = log_global_scales.iter().map(|v| v.exp()).collect();
+        if local_scales
+            .iter()
+            .chain(global_scales.iter())
+            .any(|v| !v.is_finite() || *v <= 0.0)
+        {
+            return Err(ModelError::InvalidParameter("prepared_grouped_scale_invalid"));
+        }
+        let mut group_counts = vec![0usize; groups];
+        for group in global_scale_index_by_coefficient {
+            if *group >= groups {
+                return Err(ModelError::InvalidParameter(
+                    "prepared_grouped_coefficient_group_out_of_range",
+                ));
+            }
+            group_counts[*group] += 1;
+        }
+        if group_counts.contains(&0) {
+            return Err(ModelError::InvalidParameter(
+                "prepared_grouped_global_scale_group_empty",
+            ));
+        }
+
+        let mut scale_by_observation = vec![1.0; n];
+        let mut experiment_scales = Vec::with_capacity(experiment_groups);
+        let mut experiment_counts = vec![0usize; experiment_groups];
+        for log_scale in log_experiment_scales {
+            let scale = log_scale.exp();
+            if !scale.is_finite() || !(0.5..=1.5).contains(&scale) {
+                return Err(ModelError::InvalidParameter(
+                    "experiment_scale_outside_aiache_bounds",
+                ));
+            }
+            experiment_scales.push(scale);
+        }
+        if experiment_groups > 0 {
+            for (obs_index, group) in experiment_scale_index_by_observation.iter().enumerate() {
+                if *group >= experiment_groups {
+                    return Err(ModelError::InvalidParameter(
+                        "prepared_grouped_experiment_scale_index_out_of_range",
+                    ));
+                }
+                scale_by_observation[obs_index] = experiment_scales[*group];
+                experiment_counts[*group] += 1;
+            }
+            if experiment_counts.contains(&0) {
+                return Err(ModelError::InvalidParameter(
+                    "prepared_grouped_experiment_scale_group_empty",
+                ));
+            }
+        }
+
+        let mut prediction = vec![0.0; n];
+        for (row_index, value) in prediction.iter_mut().enumerate() {
+            let delta: f64 = self.design_matrix[row_index]
+                .iter()
+                .zip(coefficients.iter())
+                .map(|(basis, beta)| basis * beta)
+                .sum();
+            if !delta.is_finite() || delta.abs() > 700.0 {
+                return Err(ModelError::InvalidParameter(
+                    "prepared_grouped_bias_predictor_out_of_range",
+                ));
+            }
+            *value = self.baseline_mean[row_index] * scale_by_observation[row_index] * delta.exp();
+            if !value.is_finite() || *value <= 0.0 {
+                return Err(ModelError::InvalidParameter(
+                    "prepared_grouped_biased_prediction_invalid",
+                ));
+            }
+        }
+
+        let residual: Vec<f64> = self
+            .observed
+            .iter()
+            .zip(prediction.iter())
+            .map(|(y, mu)| y - mu)
+            .collect();
+        let weighted = solve_cholesky(&self.covariance_lower, &residual)?;
+        let quadratic = dot(&residual, &weighted);
+        if !quadratic.is_finite() || quadratic < -1.0e-9 {
+            return Err(ModelError::InvalidCovariance(
+                "prepared_grouped_likelihood_quadratic_invalid",
+            ));
+        }
+        let log_likelihood = -0.5
+            * (n as f64 * (2.0 * std::f64::consts::PI).ln()
+                + self.covariance_log_determinant
+                + quadratic.max(0.0));
+        let log_mean_gradient: Vec<f64> = prediction
+            .iter()
+            .zip(weighted.iter())
+            .map(|(mu, r)| mu * r)
+            .collect();
+
+        let mut coefficient_gradient = vec![0.0; p];
+        for (feature, gradient) in coefficient_gradient.iter_mut().enumerate() {
+            *gradient = self
+                .design_matrix
+                .iter()
+                .zip(log_mean_gradient.iter())
+                .map(|(row, value)| row[feature] * value)
+                .sum();
+        }
+
+        let mut log_prior = 0.0;
+        let mut local_gradient = vec![0.0; p];
+        let mut global_gradient = vec![0.0; groups];
+        let mut experiment_gradient = vec![0.0; experiment_groups];
+        let mut group_sum_q = vec![0.0; groups];
+        const DATA_SCALE_STD: f64 = 0.01;
+        for (index, scale) in experiment_scales.iter().enumerate() {
+            let z = (scale - 1.0) / DATA_SCALE_STD;
+            log_prior += -0.5 * z * z
+                - DATA_SCALE_STD.ln()
+                - 0.5 * (2.0 * std::f64::consts::PI).ln()
+                + log_experiment_scales[index];
+            experiment_gradient[index] = -(scale - 1.0) * scale / DATA_SCALE_STD.powi(2) + 1.0;
+        }
+        for (obs_index, group) in experiment_scale_index_by_observation.iter().enumerate() {
+            if experiment_groups > 0 {
+                experiment_gradient[*group] += log_mean_gradient[obs_index];
+            }
+        }
+
+        for feature in 0..p {
+            let group = global_scale_index_by_coefficient[feature];
+            let local = local_scales[feature];
+            let global = global_scales[group];
+            let scale = fixed_coefficient_scale * global * local;
+            if !scale.is_finite() || scale <= 0.0 {
+                return Err(ModelError::InvalidParameter(
+                    "prepared_grouped_coefficient_scale_invalid",
+                ));
+            }
+            let beta = coefficients[feature];
+            let q = (beta / scale).powi(2);
+            let local_sq = local * local;
+            if !q.is_finite() || !local_sq.is_finite() {
+                return Err(ModelError::InvalidParameter(
+                    "prepared_grouped_prior_overflow",
+                ));
+            }
+            group_sum_q[group] += q;
+            log_prior += -0.5 * q
+                - scale.ln()
+                - 0.5 * (2.0 * std::f64::consts::PI).ln()
+                + (2.0 / std::f64::consts::PI).ln()
+                - (1.0 + local_sq).ln()
+                + log_local_scales[feature];
+            coefficient_gradient[feature] -= beta / (scale * scale);
+            local_gradient[feature] = q - 2.0 * local_sq / (1.0 + local_sq);
+        }
+
+        for group in 0..groups {
+            let ratio = global_scales[group] / prior_scale;
+            let ratio_sq = ratio * ratio;
+            if !ratio_sq.is_finite() || !group_sum_q[group].is_finite() {
+                return Err(ModelError::InvalidParameter(
+                    "prepared_grouped_global_prior_overflow",
+                ));
+            }
+            match global_scale_prior {
+                GlobalScalePrior::HalfNormal { scale } => {
+                    log_prior += 0.5 * (2.0 / std::f64::consts::PI).ln()
+                        - scale.ln()
+                        - 0.5 * ratio_sq
+                        + log_global_scales[group];
+                    global_gradient[group] =
+                        group_sum_q[group] - group_counts[group] as f64 + 1.0 - ratio_sq;
+                }
+                GlobalScalePrior::HalfCauchy { scale } => {
+                    log_prior += (2.0 / std::f64::consts::PI).ln()
+                        - scale.ln()
+                        - (1.0 + ratio_sq).ln()
+                        + log_global_scales[group];
+                    global_gradient[group] = group_sum_q[group] - group_counts[group] as f64
+                        + 1.0 - 2.0 * ratio_sq / (1.0 + ratio_sq);
+                }
+            }
+        }
+        if !log_likelihood.is_finite()
+            || !log_prior.is_finite()
+            || coefficient_gradient.iter().any(|v| !v.is_finite())
+            || local_gradient.iter().any(|v| !v.is_finite())
+            || global_gradient.iter().any(|v| !v.is_finite())
+            || experiment_gradient.iter().any(|v| !v.is_finite())
+        {
+            return Err(ModelError::InvalidParameter(
+                "prepared_grouped_horseshoe_posterior_nonfinite",
+            ));
+        }
+        Ok(GroupedRawScaleHorseshoePosterior {
+            log_likelihood,
+            log_prior,
+            log_posterior: log_likelihood + log_prior,
+            coefficient_gradient,
+            log_local_scale_gradient: local_gradient,
+            log_global_scale_gradients: global_gradient,
+            log_experiment_scale_gradients: experiment_gradient,
+            biased_prediction: prediction,
+        })
+    }
+}
+
 fn cholesky(matrix: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, ModelError> {
     let dimension = matrix.len();
     let mut lower = vec![vec![0.0; dimension]; dimension];
