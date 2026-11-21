@@ -62,3 +62,14 @@ The DGT CSV fixture is real public-source wording normalized into a frozen claim
 Before a real DGT claim can advance beyond ANNOUNCED, obtain rights-qualified provider records and independent evidence for resource ID, effective window, capability envelope, activation, actual physical output, cargo/visit identity and downstream receipt. For NCT diversions, reconcile the unique cargo unit through NCT discharge, coastwise transfer, Berth 102 / Point Terminal and final inland delivery exactly once. Count donor-terminal capacity displacement and any added feeder-vessel, port, rail, storage, cost and emissions burden.
 
 No operational dispatch, berth booking, train path, cargo-priority or control authority is exposed by this crate.
+
+ 
+## Candidate primary DGT operational snapshots (not ingested)
+
+The source-admission investigation in [#4003](https://github.com/Luminous-Dynamics/symtropy/issues/4003) has identified three DGT/ICTSI-hosted PDF candidates:
+
+- Vessel update stamped 21 November 2026 05:00: https://cdnweb-dgt.ictsi.com/users/user36/DGT%20VESSELS%20UPDATE%20%4005H00_3.pdf
+- Firm 21-day berth plan stamped 20 November 2026 13:19:36: https://cdnweb-dgt.ictsi.com/users/user13/DGT%20Firm%2021%20day%20berth%20plan%2020.11.2026.pdf
+- Export stack dates confirmed as of 20 November 2026: https://cdnweb-dgt.ictsi.com/users/user13/DGT%20EXPORTS%20STACK%20DATES%202026-11-20.pdf
+
+See [source-register.md](./source-register.md) for the source field/state boundaries and admission gates. These files were inspected as PDFs but their bytes are not in this crate, have not been hashed here and have not been rights-cleared for reuse. The v0.1 fixture remains the six-row public-announcement CSV only. Do not convert DGT's raw WORKING, COMPLETED, NIT, FIRM, PROVISIONAL or CANCELLED values to physical port-call/cargo outcomes without a terminal field dictionary and independent evidence.
