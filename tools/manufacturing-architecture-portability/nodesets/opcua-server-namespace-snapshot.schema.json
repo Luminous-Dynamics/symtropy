@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous:symtropy:opcua-server-namespace-snapshot:0.1.0",
+  "title": "OPC UA Read-Only Namespace Metadata Snapshot",
+  "description": "A bounded read-only evidence envelope for comparing server NamespaceMetadata and NamespaceArray to a pinned UANodeSet reference. This does not establish full address-space coverage.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "evidence_class",
+    "endpoint_id",
+    "namespace_uri",
+    "namespace_version",
+    "namespace_publication_date",
+    "is_namespace_subset",
+    "namespace_array",
+    "captured_at",
+    "read_only_probe",
+    "service_calls",
+    "mutation_service_calls",
+    "physical_qualification"
+  ],
+  "properties": {
+    "evidence_class": {
+      "enum": [
+        "synthetic",
+        "recorded"
+      ]
+    },
+    "endpoint_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "namespace_uri": {
+      "type": "string",
+      "format": "uri"
+    },
+    "namespace_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "namespace_publication_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "is_namespace_subset": {
+      "type": "boolean"
+    },
+    "namespace_array": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "format": "uri"
+      }
+    },
+    "captured_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "read_only_probe": {
+      "const": true
+    },
+    "service_calls": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "Read NamespaceArray",
+          "Read NamespaceMetadata"
+        ]
+      }
+    },
+    "mutation_service_calls": {
+      "const": 0
+    },
+    "physical_qualification": {
+      "const": false
+    }
+  }
+}
