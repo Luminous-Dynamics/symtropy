@@ -1,0 +1,24 @@
+{
+  "schema_version":"0.1.0",
+  "model":"uniform_density_3d_capsule",
+  "axis":"local_z",
+  "length_convention":"overall_end_to_end_including_two_caps",
+  "claim_ceiling":"Analytic idealized geometry only; not production or physical validation.",
+  "units":{"mass":"kg","length":"m","volume":"m^3","density":"kg/m^3","second_moment":"kg m^2","inertia":"kg m^2"},
+  "equations":{
+    "cylinder_length":"Lc = L - 2r",
+    "cylinder_volume":"Vc = pi*r^2*Lc",
+    "two_caps_volume":"Vs = 4*pi*r^3/3",
+    "density":"rho = m/(Vc+Vs)",
+    "cylinder_mass":"mc = rho*Vc",
+    "caps_mass":"ms = rho*Vs",
+    "second_moment_radial":"Cxx=Cyy=mc*r^2/4 + ms*r^2/5",
+    "second_moment_axial":"Czz=mc*Lc^2/12 + ms*(19*r^2/320 + (Lc/2+3*r/8)^2)",
+    "principal_inertia":"Ixx=Cyy+Czz; Iyy=Cxx+Czz; Izz=Cxx+Cyy"
+  },
+  "known_answers":[
+    {"id":"sphere-limit","mass_kg":1.0,"overall_length_m":0.06,"radius_m":0.03,"cylinder_length_m":0.0,"cylinder_mass_kg":0.0,"caps_mass_kg":1.0,"C_diagonal_kg_m2":[0.00018,0.00018,0.00018],"principal_inertia_kg_m2":[0.00036,0.00036,0.00036]},
+    {"id":"default-scale-link","mass_kg":1.0,"overall_length_m":0.3,"radius_m":0.03,"cylinder_length_m":0.24,"cylinder_mass_kg":0.8571428571428571,"caps_mass_kg":0.14285714285714285,"C_diagonal_kg_m2":[0.00021857142857142857,0.00021857142857142857,0.006582857142857142],"principal_inertia_kg_m2":[0.006801428571428571,0.006801428571428571,0.00043714285714285714]},
+    {"id":"slender-link","mass_kg":1.0,"overall_length_m":0.5,"radius_m":0.01,"cylinder_length_m":0.48,"C_diagonal_kg_m2":[0.00002486486486486487,0.00002486486486486487,0.020287027027027026],"principal_inertia_kg_m2":[0.02031189189189189,0.02031189189189189,0.00004972972972972974]}
+  ]
+}
