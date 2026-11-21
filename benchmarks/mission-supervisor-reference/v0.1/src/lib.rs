@@ -41,6 +41,8 @@ pub enum SupervisorError {
     InvalidConfidence,
     StaleSourceSequence,
     SourceTimestampRegression,
+    SourceTimeBasisMismatch,
+    InvalidTimeQualification,
     EventIdConflict,
     Halted,
     RecoveryPlanNotApproved,
@@ -109,6 +111,12 @@ impl Display for SupervisorError {
             Self::StaleSourceSequence => write!(formatter, "source sequence is stale or replayed"),
             Self::SourceTimestampRegression => {
                 write!(formatter, "source observation timestamp regressed")
+            }
+            Self::SourceTimeBasisMismatch => {
+                write!(formatter, "source timestamp comparison basis changed")
+            }
+            Self::InvalidTimeQualification => {
+                write!(formatter, "receipt time qualification is incomplete")
             }
             Self::EventIdConflict => write!(
                 formatter,
@@ -248,13 +256,27 @@ impl ObserverRole {
     }
 }
 
+/// Provenance for normalized observed_at_ms. M1 consumes a caller-qualified
+/// result; it does not perform clock conversion. The source receipt digest
+/// commits to the raw reading itself.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ReceiptTimeQualification {
+    pub source_clock_id: String,
+    pub source_boot_epoch_id: String,
+    pub comparison_clock_id: String,
+    pub comparison_boot_epoch_id: String,
+    pub normalization_commitment: Digest,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ReceiptEnvelope {
     pub event_id: String,
     pub content_digest: Digest,
     pub source_id: String,
     pub source_sequence: u64,
+    /// Milliseconds in the comparison clock declared below.
     pub observed_at_ms: u64,
+    pub time_qualification: ReceiptTimeQualification,
     pub observer_role: ObserverRole,
     pub confidence_basis_points: u16,
 }
@@ -269,6 +291,14 @@ impl ReceiptEnvelope {
         }
         if self.confidence_basis_points > MAX_CONFIDENCE_BASIS_POINTS {
             return Err(SupervisorError::InvalidConfidence);
+        }
+        let time = &self.time_qualification;
+        if time.source_clock_id.trim().is_empty()
+            || time.source_boot_epoch_id.trim().is_empty()
+            || time.comparison_clock_id.trim().is_empty()
+            || time.comparison_boot_epoch_id.trim().is_empty()
+        {
+            return Err(SupervisorError::InvalidTimeQualification);
         }
         Ok(())
     }
@@ -435,7 +465,7 @@ pub struct MissionSupervisor {
     active_subgoal: Option<String>,
     used_action_ids: BTreeSet<String>,
     seen_events: BTreeMap<String, Digest>,
-    source_cursors: BTreeMap<String, (u64, u64)>,
+    source_cursors: BTreeMap<String, (u64, u64, String, String)>,
     decisions: Vec<Decision>,
     halted: bool,
 }
@@ -914,10 +944,16 @@ impl MissionSupervisor {
             return Err(SupervisorError::EventIdConflict);
         }
 
-        if let Some((last_sequence, last_timestamp)) = self.source_cursors.get(&envelope.source_id)
+        if let Some((last_sequence, last_timestamp, last_clock, last_epoch)) =
+            self.source_cursors.get(&envelope.source_id)
         {
             if envelope.source_sequence <= *last_sequence {
                 return Err(SupervisorError::StaleSourceSequence);
+            }
+            if envelope.time_qualification.comparison_clock_id != *last_clock
+                || envelope.time_qualification.comparison_boot_epoch_id != *last_epoch
+            {
+                return Err(SupervisorError::SourceTimeBasisMismatch);
             }
             if envelope.observed_at_ms < *last_timestamp {
                 return Err(SupervisorError::SourceTimestampRegression);
@@ -928,7 +964,12 @@ impl MissionSupervisor {
             .insert(envelope.event_id.clone(), envelope.content_digest);
         self.source_cursors.insert(
             envelope.source_id.clone(),
-            (envelope.source_sequence, envelope.observed_at_ms),
+            (
+                envelope.source_sequence,
+                envelope.observed_at_ms,
+                envelope.time_qualification.comparison_clock_id.clone(),
+                envelope.time_qualification.comparison_boot_epoch_id.clone(),
+            ),
         );
         Ok(ReceiptDisposition::Applied)
     }
@@ -956,6 +997,13 @@ mod tests {
             source_id: source_id.to_owned(),
             source_sequence: sequence,
             observed_at_ms: sequence * 10,
+            time_qualification: ReceiptTimeQualification {
+                source_clock_id: format!("source-clock-{source_id}"),
+                source_boot_epoch_id: format!("source-boot-{source_id}"),
+                comparison_clock_id: "mission-comparison-clock".into(),
+                comparison_boot_epoch_id: "mission-comparison-epoch".into(),
+                normalization_commitment: digest(byte.wrapping_add(1)),
+            },
             observer_role: role,
             confidence_basis_points: confidence,
         }
@@ -1091,6 +1139,61 @@ mod tests {
         );
         assert_eq!(supervisor.phase("pick"), Ok(SubgoalPhase::Complete));
         assert_eq!(supervisor.decisions().len(), 3);
+    }
+
+
+    #[test]
+    fn source_timestamp_cannot_cross_comparison_clock_or_boot_epoch() {
+        let mut supervisor = MissionSupervisor::new(plan());
+        let ticket = supervisor
+            .dispatch_action("pick", "pick-action-1")
+            .expect("dispatch");
+        supervisor
+            .report_execution(&ticket, ExecutionDisposition::Acknowledged)
+            .expect("ack");
+        let first = envelope(
+            "basis-first",
+            "sensor-a",
+            1,
+            31,
+            9_900,
+            ObserverRole::IndependentSensor,
+        );
+        supervisor
+            .observe_goal(GoalEvidence {
+                envelope: first,
+                subgoal_id: "pick".to_owned(),
+                action_id: ticket.action_id.clone(),
+                attempt: ticket.attempt,
+                predicate_id: "object-in-gripper".to_owned(),
+                verdict: GoalVerdict::NotSatisfied,
+            })
+            .expect("first receipt");
+
+        let mut changed_basis = envelope(
+            "basis-second",
+            "sensor-a",
+            2,
+            32,
+            9_900,
+            ObserverRole::IndependentSensor,
+        );
+        changed_basis.time_qualification.comparison_clock_id = "other-clock".into();
+        assert_eq!(
+            supervisor.observe_goal(GoalEvidence {
+                envelope: changed_basis,
+                subgoal_id: "pick".to_owned(),
+                action_id: ticket.action_id,
+                attempt: ticket.attempt,
+                predicate_id: "object-in-gripper".to_owned(),
+                verdict: GoalVerdict::NotSatisfied,
+            }),
+            Err(SupervisorError::SourceTimeBasisMismatch)
+        );
+        assert_eq!(
+            supervisor.phase("pick"),
+            Ok(SubgoalPhase::AwaitingEvidence)
+        );
     }
 
     #[test]
