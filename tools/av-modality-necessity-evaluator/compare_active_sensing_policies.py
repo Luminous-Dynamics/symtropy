@@ -27,6 +27,9 @@ def _summary(report: dict[str, Any]) -> dict[str, Any]:
         "catalogue_audio_bytes_total": totals["catalogue_audio_bytes_total"],
         "catalogue_video_frames_total": totals["catalogue_video_frames_total"],
         "catalogue_energy_cost_total": totals["catalogue_energy_cost_total"],
+        "estimated_evsi_count": totals["estimated_evsi_count"],
+        "mean_estimated_evsi_mae": totals["mean_estimated_evsi_mae"],
+        "mean_estimated_evsi_bias": totals["mean_estimated_evsi_bias"],
     }
 
 
