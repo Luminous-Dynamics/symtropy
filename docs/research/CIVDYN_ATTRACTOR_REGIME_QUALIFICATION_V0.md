@@ -69,7 +69,7 @@ This work composes existing authorities. It must not create a competing civiliza
 - Symtropy [#4392](https://github.com/Luminous-Dynamics/symtropy/issues/4392): matched adequacy, causal-policy and runtime evaluation.
 - Symtropy [#4407](https://github.com/Luminous-Dynamics/symtropy/issues/4407): network topology qualification beyond degree-only summaries.
 - Mycelix [#4816](https://github.com/Luminous-Dynamics/mycelix/issues/4816): Civilization Twin subsystem boundaries, causal events and multiscale state.
-- Mycelix [#5699](https://github.com/Luminous-Dynamics/mycelix/issues/5699): endogenous institutional feedback, lock-in and cycle-breaking.
+- Mycelix [#5698](https://github.com/Luminous-Dynamics/mycelix/issues/5698): endogenous institutional feedback, lock-in and cycle-breaking.
 - Mycelix [#4824](https://github.com/Luminous-Dynamics/mycelix/issues/4824): behavioral pluralism and expectation profiles.
 - Mycelix [#5512](https://github.com/Luminous-Dynamics/mycelix/issues/5512): counterexample-guided policy falsification and scenario discovery.
 - Symthaea [#7190](https://github.com/Luminous-Dynamics/symthaea/issues/7190): power, agency, dependency and rights-floor stress laboratory.
