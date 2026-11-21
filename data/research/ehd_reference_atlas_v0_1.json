@@ -1019,6 +1019,37 @@
       "solver_id": "SYMTROPY_RIGID_BODY",
       "role": "deterministic mechanics / scenario projection only",
       "current_claim_boundary": "not a plasma, corona, ion-transport, Maxwell or EHD fluid solver"
+    },
+    {
+      "solver_id": "COMSOL_MULTIPHYSICS",
+      "vendor": "COMSOL",
+      "product_profiles": [
+        "Plasma Module 6.4",
+        "CFD Module 6.4",
+        "Electric Discharge Module 6.3"
+      ],
+      "license": "commercial",
+      "documentation_urls": [
+        "https://www.comsol.com/plasma-module",
+        "https://doc.comsol.com/6.4/doc/com.comsol.help.plasma/plasma_introduction.02.02.html",
+        "https://www.comsol.com/cfd-module",
+        "https://doc.comsol.com/6.3/doc/com.comsol.help.edis/edis_introduction.2.2.html"
+      ],
+      "capabilities": [
+        "0D/1D/2D/3D plasma interfaces (product/version dependent)",
+        "drift-diffusion charged species coupled with Poisson/electrostatics",
+        "heavy-species transport and plasma chemistry",
+        "DC, ICP, CCP, corona and dielectric barrier discharge interfaces (specific add-ons / interfaces required)",
+        "nonisothermal plasma flow and heat transfer coupling",
+        "CFD-module electrohydrodynamics multiphysics capability"
+      ],
+      "important_limits": [
+        "The simplified Corona Discharge interface models the transport region and omits the ionisation layer; electron dynamics are not solved in that simplified interface.",
+        "Use the full Plasma or Electric Discharge interface when the selected problem requires self-consistent discharge physics; exact interface capability depends on licensed modules and version.",
+        "Product feature availability does not qualify a particular EHD thruster geometry, mesh, chemistry, neutral-flow closure or force prediction.",
+        "Commercial license, module entitlement and reproducible model-file availability must be accounted for in any benchmark."
+      ],
+      "recommended_role": "commercial reference baseline for matched corona/DBD plus CFD/EHD cases; record exact COMSOL version, modules, interface, mesh and model files. Do not treat a product feature list as independent validation."
     }
   ],
   "system_integration_references": [
