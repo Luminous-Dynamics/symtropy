@@ -38,7 +38,7 @@
       "provenance_complete_rate": 0.7777777777777778,
       "evidence_compliance_rate": 0.7777777777777778,
       "false_memory_count": 2,
-      "hard_violation_count": 2
+      "hard_violation_count": 3
     },
     "evidence_ledger": {
       "answer_accuracy": 0.8888888888888888,
