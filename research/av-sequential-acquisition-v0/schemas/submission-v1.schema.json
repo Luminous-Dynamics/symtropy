@@ -1,0 +1,32 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://luminousdynamics.io/schemas/av-sequential-acquisition-submission-v1.schema.json",
+  "title":"Sequential Acquisition Candidate Submission v1",
+  "type":"object","additionalProperties":false,
+  "required":["schema_version","benchmark_id","policy_id","run_id","predictions"],
+  "properties":{
+    "schema_version":{"const":1},
+    "benchmark_id":{"const":"av-sequential-acquisition-v0"},
+    "policy_id":{"type":"string","minLength":1},
+    "run_id":{"type":"string","minLength":1},
+    "predictions":{"type":"array","minItems":1,"items":{
+      "type":"object","additionalProperties":false,
+      "required":["episode_id","actions","decision","response_tick"],
+      "properties":{
+        "episode_id":{"type":"string","minLength":1},
+        "actions":{"type":"array","items":{
+          "type":"object","additionalProperties":false,
+          "required":["action_id","request_tick","arrival_tick","outcome_id"],
+          "properties":{
+            "action_id":{"type":"string","minLength":1},
+            "request_tick":{"type":"integer","minimum":0},
+            "arrival_tick":{"type":"integer","minimum":0},
+            "outcome_id":{"type":"string","minLength":1}
+          }
+        }},
+        "decision":{"type":"string","minLength":1},
+        "response_tick":{"type":"integer","minimum":0}
+      }
+    }}
+  }
+}
