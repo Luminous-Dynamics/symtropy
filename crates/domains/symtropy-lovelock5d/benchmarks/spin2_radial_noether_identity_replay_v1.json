@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "5d_egb_spin2_radial_noether_identity_execution_receipt",
+  "status": "exact_symbolic_identity_replayed",
+  "source": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_spin2_radial_noether_identity.py",
+    "git_blob_sha1": "20c33f91c1a2711fc1ed529c9418644ecfbaeaaf",
+    "sha256": "c8e6d34533403ee038b776240d2b3bbad9a5b14a669ab6bc975c2bff9c8730f8",
+    "materialization": "The source was fetched from the public research branch, written byte-for-byte to the local execution container, and its Git blob SHA-1 matched the public file blob."
+  },
+  "execution": {
+    "command": "python3 verify_spin2_radial_noether_identity.py",
+    "python": "3.13.5",
+    "sympy": "1.14.0",
+    "result": "exact_symbolic_zero",
+    "output_sha256": "5f3b143352ff078ac0ce9e4fd5a088eab1729234ded23200dd69b1cd4fa67373",
+    "clean_repository_checkout": false,
+    "ci_run": false
+  },
+  "identity": "b'*E_b + f'*E_f + g'*E_g + h'*E_h + w'*E_w + 2*(f*E_f)' = 0",
+  "interpretation": "After g=r^2 and when E_b, E_f, E_h, E_w vanish with g'=2r != 0, E_g is propagated by the radial Noether identity. E_g remains a full-domain residual and constraint-propagation gate.",
+  "claim_ceiling": "This is an exact local symbolic replay of the committed verifier source. It does not certify the cubic verifier, Fuchsian reduction, finite-coupling BVP, interval enclosure, hyperbolicity, or existence/uniqueness."
+}
