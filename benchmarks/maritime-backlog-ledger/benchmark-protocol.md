@@ -67,7 +67,7 @@ Each active event must match the case terminal, stock unit, ledger event-kind vo
 
 ## 5. Frozen synthetic cases
 
-The fixture contains 31 cases: 15 accepted and 16 rejected.
+The fixture contains 32 cases: 16 accepted and 16 rejected.
 
 Coverage includes:
 - ordinary vessel arrival / berth / diversion / exit flows;
@@ -105,7 +105,7 @@ cargo run --offline --locked
 cargo clippy --offline --locked --all-targets -- -D warnings
 ```
 
-The evaluator canonicalizes active stock-changing events by `(event_tick, event_id)` before checking the intermediate stock trajectory. Input row order must not affect the outcome. The case report includes expected and actual dispositions plus the rejection reason.
+Events at distinct ticks are applied in event-time order. All active stock-changing events sharing the same declared tick are first combined into one net-flow bucket; the evaluator must not invent an intra-tick sequence by sorting event IDs. The V32 fixture deliberately makes the berth-entry ID sort before the arrival ID at the same tick, with opening and closing queue both zero. This is accepted as one atomic bucket. Input row order must not affect the outcome. The case report includes expected and actual dispositions plus the rejection reason.
 
 ## 7. Industry and standards context
 
