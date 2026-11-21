@@ -252,7 +252,7 @@ fn validate_reference_events(events: &[ReferenceEvent]) -> Result<(), String> {
             return Err("reference event identity or payload digest is invalid".to_owned());
         }
         if let Some(sequence) = previous_sequence {
-            if event.sequence != sequence + 1 {
+            if sequence.checked_add(1) != Some(event.sequence) {
                 return Err("independent reference sequence is not contiguous".to_owned());
             }
         }
@@ -296,6 +296,8 @@ fn evaluate_case(case: &CaptureCase) -> Decision {
 
     if !case.reference.available
         || case.reference.system_id.trim().is_empty()
+        || case.reference.failure_domains.is_empty()
+        || case.reference.acquisition_failure_domains.is_empty()
         || shared_failure_domain(
             &case.reference.failure_domains,
             &case.reference.acquisition_failure_domains,
