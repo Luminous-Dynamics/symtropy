@@ -1034,7 +1034,7 @@ pub fn evaluate_shared_fleet(input: &SharedFleetInput) -> Result<SharedFleetRepo
 
     for mask in 1..policy_count {
         let evaluation =
-            evaluate_mask(&canonical, &nodes, &indices, mask, true).map_err(|error| vec![error])?;
+            evaluate_mask(&canonical, &indices, mask, true).map_err(|error| vec![error])?;
         if evaluation.weighted.total_cost < best_expected.weighted.total_cost {
             best_expected_mask = mask;
             best_expected = evaluation.clone();
@@ -1065,7 +1065,7 @@ pub fn evaluate_shared_fleet(input: &SharedFleetInput) -> Result<SharedFleetRepo
     }
 
     let truck_only = outcome(
-        evaluate_mask(&canonical, &nodes, &indices, 0, false).map_err(|error| vec![error])?,
+        evaluate_mask(&canonical, &indices, 0, false).map_err(|error| vec![error])?,
     )
     .map_err(|error| vec![error])?;
 
@@ -1090,7 +1090,7 @@ pub fn evaluate_shared_fleet(input: &SharedFleetInput) -> Result<SharedFleetRepo
             .ok_or_else(|| vec!["fixed baseline multiplier overflow".into()])?;
     }
     let fixed = outcome(
-        evaluate_mask(&canonical, &nodes, &indices, fixed_mask, true)
+        evaluate_mask(&canonical, &indices, fixed_mask, true)
             .map_err(|error| vec![error])?,
     )
     .map_err(|error| vec![error])?;
