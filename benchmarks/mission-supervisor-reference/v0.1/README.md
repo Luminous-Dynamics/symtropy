@@ -33,15 +33,17 @@ Each receipt binds:
 - unique event ID and 32-byte canonical content digest;
 - exact active action ID and attempt number for goal evidence, reconciliation evidence and recovery permits;
 - source ID and monotonically increasing source sequence;
-- observation timestamp;
+- normalized observation timestamp in a declared comparison clock/boot epoch;
+- original source clock/boot identity and a separate clock-normalization commitment;
 - observer role (agent self-report is rejected);
 - confidence in basis points;
 - target subgoal and predicate (for goal evidence).
 
 The caller must authenticate the source and canonicalize/hash the receipt before passing it to the supervisor.
 
-The wire contract is split into `receipt_envelope.schema.json` for receipt metadata and `mission_evidence.schema.json` for the full GoalEvidence, ReconciliationEvidence and RecoveryPermit wrappers, including required `action_id` and `attempt` fields. JSON Schema validity does not authenticate the receipt or prove it is current; the supervisor still enforces the live action attempt.
- This reference checks replay ordering and event identity but does not cryptographically authenticate devices or observers. A fixed-size digest type is an integrity handle, not a signature.
+The wire contract is split into `receipt_envelope.schema.json` for receipt metadata and `mission_evidence.schema.json` for the full GoalEvidence, ReconciliationEvidence and RecoveryPermit wrappers, including required `action_id` and `attempt` fields. JSON Schema validity does not authenticate the receipt or prove it is current; the supervisor still enforces the live action attempt. This reference checks replay ordering and event identity but does not cryptographically authenticate devices or observers. A fixed-size digest type is an integrity handle, not a signature.
+
+M1 does not convert time. It requires the receipt to retain source clock and boot identity, comparison clock and boot identity, and a normalization commitment alongside normalized milliseconds. Source sequence/timestamp ordering is evaluated only while the comparison clock/boot remains stable for that source. Unknown or unqualified time must be held by the upstream adapter and must not be projected into this receipt schema.
 
 Identical duplicate event IDs with the same digest are idempotent. Reuse of an event ID with a different digest halts the supervisor. A source sequence or timestamp regression is rejected. A delayed receipt or recovery permit from a prior action attempt is rejected even when it refers to the same mission, subgoal and predicate; the active action identity and attempt must match exactly.
 
@@ -55,7 +57,7 @@ The decision log is append-only and contains only mission/subgoal identifiers, s
 
 ## Tests
 
-20+ tests exercise dependency order, action acknowledgement vs evidence, independent observer enforcement, predicate binding, low confidence, event idempotency/conflict, stale sequence handling, ambiguous execution hold, reconciliation, explicit safe recovery, exact action/attempt binding for goal evidence, reconciliation and recovery permits, and deterministic decision replay. The dedicated workflow runs formatting, tests and Clippy with warnings denied.
+21+ tests exercise dependency order, action acknowledgement vs evidence, independent observer enforcement, predicate binding, low confidence, event idempotency/conflict, stale sequence handling, ambiguous execution hold, reconciliation, explicit safe recovery, exact action/attempt binding for goal evidence, reconciliation and recovery permits, clock-basis regression, and deterministic decision replay. The dedicated workflow runs formatting, tests and Clippy with warnings denied.
 
 ## Integration path
 
