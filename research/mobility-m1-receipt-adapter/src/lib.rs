@@ -25,6 +25,7 @@ pub enum AdapterError {
     TimeSourceClockMismatch,
     TimeDestinationUnitMismatch,
     TimeValueNotExactMilliseconds,
+    TimeUncertaintyOutOfRange,
     TimeCommitmentEncoding,
     MycelixTime(mycelix_time::TimeCorrelationError),
     OutcomeDispositionMismatch,
@@ -134,6 +135,16 @@ fn qualify_receipt_time(
         return Err(AdapterError::TimeValueNotExactMilliseconds);
     }
 
+    let uncertainty_ns = normalized.normalized_reading.uncertainty_bound_seconds * 1_000_000_000.0;
+    if !uncertainty_ns.is_finite()
+        || uncertainty_ns < 0.0
+        || uncertainty_ns >= u64::MAX as f64
+    {
+        return Err(AdapterError::TimeUncertaintyOutOfRange);
+    }
+    // Round upward: the mission receipt must never understate the Mycelix hard bound.
+    let uncertainty_bound_nanoseconds = uncertainty_ns.ceil() as u64;
+
     let time_qualification = m1::ReceiptTimeQualification {
         source_clock_id: format!("{subject_ref}/{source_clock_id}"),
         source_boot_epoch_id: source_boot_epoch_id.clone(),
@@ -148,6 +159,7 @@ fn qualify_receipt_time(
         normalized_time_commitment: digest_from_mycelix_commitment(
             &normalized.normalized_reading.content_commitment,
         )?,
+        uncertainty_bound_nanoseconds,
     };
     Ok((value as u64, time_qualification))
 }
@@ -282,7 +294,7 @@ mod tests {
             unit: mycelix_time::TimeUnitV2::Milliseconds,
             basis: destination_basis,
             uncertainty_bound_in_reading_units: 0.5,
-            uncertainty_bound_seconds: 0.006,
+            uncertainty_bound_seconds: 0.006_000_001,
             content_commitment: output_commitment.clone(),
         };
         let normalized = mycelix_time::NormalizedInstantV2 {
@@ -612,6 +624,38 @@ mod tests {
         assert_eq!(f.supervisor.phase("pick"), Ok(m1::SubgoalPhase::Complete));
     }
 
+
+    #[test]
+    fn normalized_time_uncertainty_is_rounded_up_and_preserved_in_m1() {
+        let f = fixture(m2::PhysicalOutcome::Satisfied);
+        let (_, qualification) = qualify_receipt_time(
+            &f.receipt_time,
+            &f.evidence.clock,
+            &f.m2_ticket.platform.platform_id,
+        )
+        .expect("qualified time");
+        assert_eq!(qualification.uncertainty_bound_nanoseconds, 6_000_001);
+    }
+
+    #[test]
+    fn non_finite_normalized_time_uncertainty_is_rejected() {
+        let f = fixture(m2::PhysicalOutcome::Satisfied);
+        let mut invalid = f.receipt_time.clone();
+        if let QualifiedReceiptTime::Qualified { normalized, .. } = &mut invalid {
+            normalized.normalized_reading.uncertainty_bound_seconds = f64::INFINITY;
+        }
+        assert_eq!(
+            qualify_receipt_time(
+                &invalid,
+                &f.evidence.clock,
+                &f.m2_ticket.platform.platform_id,
+            ),
+            Err(AdapterError::MycelixTime(
+                mycelix_time::TimeCorrelationError::InvalidUncertainty
+            ))
+        );
+    }
+
     #[test]
     fn source_reading_outside_myclix_correlation_validity_is_rejected() {
         let mut f = fixture(m2::PhysicalOutcome::Satisfied);
@@ -721,6 +765,7 @@ mod tests {
                         source_time_commitment: m1::Digest([15; 32]),
                         correlation_commitment: m1::Digest([16; 32]),
                         normalized_time_commitment: m1::Digest([17; 32]),
+                        uncertainty_bound_nanoseconds: 6_000_000,
                     },
                     observer_role: m1::ObserverRole::IndependentSensor,
                     confidence_basis_points: 9_900,
@@ -748,6 +793,7 @@ mod tests {
                         source_time_commitment: m1::Digest([18; 32]),
                         correlation_commitment: m1::Digest([19; 32]),
                         normalized_time_commitment: m1::Digest([20; 32]),
+                        uncertainty_bound_nanoseconds: 6_000_000,
                     },
                     observer_role: m1::ObserverRole::IndependentSensor,
                     confidence_basis_points: 9_900,
