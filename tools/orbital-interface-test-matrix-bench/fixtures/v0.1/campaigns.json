@@ -1,0 +1,2604 @@
+{
+  "schema": "luminous.orbital-interface-test-matrix.corpus.v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic-test-matrix-coverage-semantics-only",
+  "cases": [
+    {
+      "case_id": "case-01-complete-critical-pair",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "energy-low-and-cold",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low",
+            "temperature": "cold"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "r1",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low",
+            "temperature": "cold"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-r1",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "coverage_complete",
+        "covered_obligations": 1,
+        "missing_obligation_ids": [],
+        "eligible_runs": 1,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 0,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 0,
+        "pairwise_false_coverage_count": 0
+      },
+      "preregistration_ref": "synthetic-preregistration:case-01-complete-critical-pair"
+    },
+    {
+      "case_id": "case-02-many-nominal-cycles-no-low-energy",
+      "cost_budget": 100,
+      "cycle_count_threshold": 10,
+      "obligations": [
+        {
+          "id": "energy-low",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "nominal-0",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "nominal"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-nominal-0",
+          "cost_units": 1
+        },
+        {
+          "run_id": "nominal-1",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "nominal"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-nominal-1",
+          "cost_units": 1
+        },
+        {
+          "run_id": "nominal-2",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "nominal"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-nominal-2",
+          "cost_units": 1
+        },
+        {
+          "run_id": "nominal-3",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "nominal"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-nominal-3",
+          "cost_units": 1
+        },
+        {
+          "run_id": "nominal-4",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "nominal"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-nominal-4",
+          "cost_units": 1
+        },
+        {
+          "run_id": "nominal-5",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "nominal"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-nominal-5",
+          "cost_units": 1
+        },
+        {
+          "run_id": "nominal-6",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "nominal"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-nominal-6",
+          "cost_units": 1
+        },
+        {
+          "run_id": "nominal-7",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "nominal"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-nominal-7",
+          "cost_units": 1
+        },
+        {
+          "run_id": "nominal-8",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "nominal"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-nominal-8",
+          "cost_units": 1
+        },
+        {
+          "run_id": "nominal-9",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "nominal"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-nominal-9",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "coverage_gap",
+        "covered_obligations": 0,
+        "missing_obligation_ids": [
+          "energy-low"
+        ],
+        "eligible_runs": 10,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 0,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": true,
+        "ofat_false_coverage_count": 0,
+        "pairwise_false_coverage_count": 0
+      },
+      "preregistration_ref": "synthetic-preregistration:case-02-many-nominal-cycles-no-low-energy"
+    },
+    {
+      "case_id": "case-03-high-energy-boundary-omitted",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "energy-high",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "high"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "nominal",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "nominal"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-nominal",
+          "cost_units": 1
+        },
+        {
+          "run_id": "low",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-low",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "coverage_gap",
+        "covered_obligations": 0,
+        "missing_obligation_ids": [
+          "energy-high"
+        ],
+        "eligible_runs": 2,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 0,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 0,
+        "pairwise_false_coverage_count": 0
+      },
+      "preregistration_ref": "synthetic-preregistration:case-03-high-energy-boundary-omitted"
+    },
+    {
+      "case_id": "case-04-ofat-does-not-cover-required-pair",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "low-and-cold",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low",
+            "temperature": "cold"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "low-warm",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low",
+            "temperature": "nominal"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-low-warm",
+          "cost_units": 1
+        },
+        {
+          "run_id": "nominal-cold",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "nominal",
+            "temperature": "cold"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-nominal-cold",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "coverage_gap",
+        "covered_obligations": 0,
+        "missing_obligation_ids": [
+          "low-and-cold"
+        ],
+        "eligible_runs": 2,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 0,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 1,
+        "pairwise_false_coverage_count": 1
+      },
+      "preregistration_ref": "synthetic-preregistration:case-04-ofat-does-not-cover-required-pair"
+    },
+    {
+      "case_id": "case-05-pairwise-does-not-cover-critical-triple",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "low-cold-aged",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low",
+            "temperature": "cold",
+            "life_state": "end_of_test"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "low-cold-new",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low",
+            "temperature": "cold",
+            "life_state": "new"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-low-cold-new",
+          "cost_units": 1
+        },
+        {
+          "run_id": "low-nominal-aged",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low",
+            "temperature": "nominal",
+            "life_state": "end_of_test"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-low-nominal-aged",
+          "cost_units": 1
+        },
+        {
+          "run_id": "nominal-cold-aged",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "nominal",
+            "temperature": "cold",
+            "life_state": "end_of_test"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-nominal-cold-aged",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "coverage_gap",
+        "covered_obligations": 0,
+        "missing_obligation_ids": [
+          "low-cold-aged"
+        ],
+        "eligible_runs": 3,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 0,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 1,
+        "pairwise_false_coverage_count": 1
+      },
+      "preregistration_ref": "synthetic-preregistration:case-05-pairwise-does-not-cover-critical-triple"
+    },
+    {
+      "case_id": "case-06-oracle-not-frozen-before-execution",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "required",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "low",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-low",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "rejected",
+        "covered_obligations": 0,
+        "missing_obligation_ids": [
+          "required"
+        ],
+        "eligible_runs": 0,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 0,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 0,
+        "pairwise_false_coverage_count": 0
+      },
+      "preregistration_ref": null
+    },
+    {
+      "case_id": "case-07-not-applicable-without-approval",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "unsafe-combination",
+          "criticality": "critical",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {},
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": "Declared unsafe in note",
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [],
+      "expected": {
+        "disposition": "rejected",
+        "covered_obligations": 0,
+        "missing_obligation_ids": [
+          "unsafe-combination"
+        ],
+        "eligible_runs": 0,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 0,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 0,
+        "pairwise_false_coverage_count": 0
+      },
+      "preregistration_ref": "synthetic-preregistration:case-07-not-applicable-without-approval"
+    },
+    {
+      "case_id": "case-08-approved-not-applicable-with-rationale",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "outside-approved-facility-envelope",
+          "criticality": "informational",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {},
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": "Facility does not support this approved test condition",
+          "not_applicable_review_ref": "synthetic-review-ref:facility-scope"
+        }
+      ],
+      "runs": [],
+      "expected": {
+        "disposition": "coverage_complete",
+        "covered_obligations": 1,
+        "missing_obligation_ids": [],
+        "eligible_runs": 0,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 0,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 0,
+        "pairwise_false_coverage_count": 0
+      },
+      "preregistration_ref": "synthetic-preregistration:case-08-approved-not-applicable-with-rationale"
+    },
+    {
+      "case_id": "case-09-planned-test-is-not-coverage",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "low-energy",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "planned-low",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "outcome": "planned",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-planned-low",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "indeterminate",
+        "covered_obligations": 0,
+        "missing_obligation_ids": [
+          "low-energy"
+        ],
+        "eligible_runs": 0,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 0,
+        "planned_runs": 1,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 0,
+        "pairwise_false_coverage_count": 0
+      },
+      "preregistration_ref": "synthetic-preregistration:case-09-planned-test-is-not-coverage"
+    },
+    {
+      "case_id": "case-10-aborted-test-is-not-coverage",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "low-energy",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "aborted-low",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "outcome": "aborted",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-aborted-low",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "indeterminate",
+        "covered_obligations": 0,
+        "missing_obligation_ids": [
+          "low-energy"
+        ],
+        "eligible_runs": 0,
+        "failed_runs": 0,
+        "aborted_runs": 1,
+        "invalid_runs": 0,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 0,
+        "pairwise_false_coverage_count": 0
+      },
+      "preregistration_ref": "synthetic-preregistration:case-10-aborted-test-is-not-coverage"
+    },
+    {
+      "case_id": "case-11-completed-failure-still-covers-test-condition",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "retention-low-energy",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "failed-low",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "outcome": "failed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-failed-low",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "coverage_complete_with_failures",
+        "covered_obligations": 1,
+        "missing_obligation_ids": [],
+        "eligible_runs": 1,
+        "failed_runs": 1,
+        "aborted_runs": 0,
+        "invalid_runs": 0,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 0,
+        "pairwise_false_coverage_count": 0
+      },
+      "preregistration_ref": "synthetic-preregistration:case-11-completed-failure-still-covers-test-condition"
+    },
+    {
+      "case_id": "case-12-aborted-after-precheck-not-coverage",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "retention-high-energy",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "high"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "abort-high",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "high"
+          },
+          "outcome": "aborted",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-abort-high",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "indeterminate",
+        "covered_obligations": 0,
+        "missing_obligation_ids": [
+          "retention-high-energy"
+        ],
+        "eligible_runs": 0,
+        "failed_runs": 0,
+        "aborted_runs": 1,
+        "invalid_runs": 0,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 0,
+        "pairwise_false_coverage_count": 0
+      },
+      "preregistration_ref": "synthetic-preregistration:case-12-aborted-after-precheck-not-coverage"
+    },
+    {
+      "case_id": "case-13-identical-duplicate-run-is-idempotent-not-independent",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "two-independent-low-runs",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 2,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "same-run",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-same-run",
+          "cost_units": 1
+        },
+        {
+          "run_id": "same-run",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-same-run",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "coverage_gap",
+        "covered_obligations": 0,
+        "missing_obligation_ids": [
+          "two-independent-low-runs"
+        ],
+        "eligible_runs": 1,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 0,
+        "planned_runs": 0,
+        "duplicate_runs": 1,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 1,
+        "pairwise_false_coverage_count": 1
+      },
+      "preregistration_ref": "synthetic-preregistration:case-13-identical-duplicate-run-is-idempotent-not-independent"
+    },
+    {
+      "case_id": "case-14-conflicting-run-id-is-disputed",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "energy-low",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "same-id",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-same-id",
+          "cost_units": 1
+        },
+        {
+          "run_id": "same-id",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "high"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-same-id",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "disputed",
+        "covered_obligations": 0,
+        "missing_obligation_ids": [
+          "energy-low"
+        ],
+        "eligible_runs": 0,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 0,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 0,
+        "pairwise_false_coverage_count": 0
+      },
+      "preregistration_ref": "synthetic-preregistration:case-14-conflicting-run-id-is-disputed"
+    },
+    {
+      "case_id": "case-15-stale-configuration-evidence-does-not-cover",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "current-configuration",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "stale-config",
+          "configuration_id": "cfg-old",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-stale-config",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "coverage_gap",
+        "covered_obligations": 0,
+        "missing_obligation_ids": [
+          "current-configuration"
+        ],
+        "eligible_runs": 1,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 0,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 0,
+        "pairwise_false_coverage_count": 0
+      },
+      "preregistration_ref": "synthetic-preregistration:case-15-stale-configuration-evidence-does-not-cover"
+    },
+    {
+      "case_id": "case-16-stale-procedure-evidence-does-not-cover",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "current-procedure",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "stale-procedure",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-old",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-stale-procedure",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "coverage_gap",
+        "covered_obligations": 0,
+        "missing_obligation_ids": [
+          "current-procedure"
+        ],
+        "eligible_runs": 1,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 0,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 0,
+        "pairwise_false_coverage_count": 0
+      },
+      "preregistration_ref": "synthetic-preregistration:case-16-stale-procedure-evidence-does-not-cover"
+    },
+    {
+      "case_id": "case-17-instrument-out-of-range-is-indeterminate",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "retention-force",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "load": "boundary"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "out-of-range",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "load": "boundary"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": false,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-out-of-range",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "indeterminate",
+        "covered_obligations": 0,
+        "missing_obligation_ids": [
+          "retention-force"
+        ],
+        "eligible_runs": 0,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 1,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 0,
+        "pairwise_false_coverage_count": 0
+      },
+      "preregistration_ref": "synthetic-preregistration:case-17-instrument-out-of-range-is-indeterminate"
+    },
+    {
+      "case_id": "case-18-environment-test-without-post-environment-check",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "post-environment-function",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "post_environment",
+          "conditions": {
+            "environment": "after_hot_cycle"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "environment-only",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "environment_exposure",
+          "conditions": {
+            "environment": "hot"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-environment-only",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "coverage_gap",
+        "covered_obligations": 0,
+        "missing_obligation_ids": [
+          "post-environment-function"
+        ],
+        "eligible_runs": 1,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 0,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 0,
+        "pairwise_false_coverage_count": 0
+      },
+      "preregistration_ref": "synthetic-preregistration:case-18-environment-test-without-post-environment-check"
+    },
+    {
+      "case_id": "case-19-maintenance-without-post-maintenance-acceptance",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "post-maintenance-retention",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "post_maintenance",
+          "conditions": {
+            "maintenance_state": "after_maintenance"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "maintenance-record",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "maintenance",
+          "conditions": {
+            "maintenance_state": "performed"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-maintenance-record",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "coverage_gap",
+        "covered_obligations": 0,
+        "missing_obligation_ids": [
+          "post-maintenance-retention"
+        ],
+        "eligible_runs": 1,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 0,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 0,
+        "pairwise_false_coverage_count": 0
+      },
+      "preregistration_ref": "synthetic-preregistration:case-19-maintenance-without-post-maintenance-acceptance"
+    },
+    {
+      "case_id": "case-20-configuration-change-invalidates-only-affected-obligation",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "old-config-low",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        },
+        {
+          "id": "new-config-low",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-b",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "old-config-test",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-old-config-test",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "coverage_gap",
+        "covered_obligations": 1,
+        "missing_obligation_ids": [
+          "new-config-low"
+        ],
+        "eligible_runs": 1,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 0,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 0,
+        "pairwise_false_coverage_count": 0
+      },
+      "preregistration_ref": "synthetic-preregistration:case-20-configuration-change-invalidates-only-affected-obligation"
+    },
+    {
+      "case_id": "case-21-capture-does-not-substitute-for-release",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "release-boundary",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "release",
+          "conditions": {
+            "release_state": "release"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "capture-only",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "capture",
+          "conditions": {
+            "capture_state": "captured"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-capture-only",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "coverage_gap",
+        "covered_obligations": 0,
+        "missing_obligation_ids": [
+          "release-boundary"
+        ],
+        "eligible_runs": 1,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 0,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 0,
+        "pairwise_false_coverage_count": 0
+      },
+      "preregistration_ref": "synthetic-preregistration:case-21-capture-does-not-substitute-for-release"
+    },
+    {
+      "case_id": "case-22-mechanical-evidence-does-not-cover-fluid-service",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "receiver-fluid-transfer",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "prepared_storable_fluid",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "pressure": "nominal"
+          },
+          "evidence_key": "receiver-mass",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "mechanical-only",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "pressure": "nominal"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-mechanical-only",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "coverage_gap",
+        "covered_obligations": 0,
+        "missing_obligation_ids": [
+          "receiver-fluid-transfer"
+        ],
+        "eligible_runs": 1,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 0,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 0,
+        "pairwise_false_coverage_count": 0
+      },
+      "preregistration_ref": "synthetic-preregistration:case-22-mechanical-evidence-does-not-cover-fluid-service"
+    },
+    {
+      "case_id": "case-23-new-critical-requirement-adds-new-obligation",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "old-requirement",
+          "criticality": "informational",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "nominal"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        },
+        {
+          "id": "new-critical-low-high-interaction",
+          "criticality": "critical",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low",
+            "load": "boundary"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "old-nominal",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "nominal"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-old-nominal",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "coverage_gap",
+        "covered_obligations": 1,
+        "missing_obligation_ids": [
+          "new-critical-low-high-interaction"
+        ],
+        "eligible_runs": 1,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 0,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 0,
+        "pairwise_false_coverage_count": 0
+      },
+      "preregistration_ref": "synthetic-preregistration:case-23-new-critical-requirement-adds-new-obligation"
+    },
+    {
+      "case_id": "case-24-two-samples-from-same-independent-group-count-once",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "two-independent-environments",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "temperature": "cold"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 2,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "sample-a",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "temperature": "cold"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "fixture-A-operator-A-day-1",
+          "cost_units": 1
+        },
+        {
+          "run_id": "sample-b",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "temperature": "cold"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "fixture-A-operator-A-day-1",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "coverage_gap",
+        "covered_obligations": 0,
+        "missing_obligation_ids": [
+          "two-independent-environments"
+        ],
+        "eligible_runs": 2,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 0,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 1,
+        "pairwise_false_coverage_count": 1
+      },
+      "preregistration_ref": "synthetic-preregistration:case-24-two-samples-from-same-independent-group-count-once"
+    },
+    {
+      "case_id": "case-25-malformed-raw-digest-is-invalid-evidence",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "raw-measurement",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "bad-digest",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "not-a-sha256",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-bad-digest",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "indeterminate",
+        "covered_obligations": 0,
+        "missing_obligation_ids": [
+          "raw-measurement"
+        ],
+        "eligible_runs": 0,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 1,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 0,
+        "pairwise_false_coverage_count": 0
+      },
+      "preregistration_ref": "synthetic-preregistration:case-25-malformed-raw-digest-is-invalid-evidence"
+    },
+    {
+      "case_id": "case-26-unresolved-clock-alignment-is-indeterminate",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "time-aligned-retention",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "clock-unknown",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": false,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-clock-unknown",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "indeterminate",
+        "covered_obligations": 0,
+        "missing_obligation_ids": [
+          "time-aligned-retention"
+        ],
+        "eligible_runs": 0,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 1,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 0,
+        "pairwise_false_coverage_count": 0
+      },
+      "preregistration_ref": "synthetic-preregistration:case-26-unresolved-clock-alignment-is-indeterminate"
+    },
+    {
+      "case_id": "case-27-coverage-complete-but-cost-budget-exceeded",
+      "cost_budget": 10,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "energy-low",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "expensive-low",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-expensive-low",
+          "cost_units": 12
+        }
+      ],
+      "expected": {
+        "disposition": "coverage_complete",
+        "covered_obligations": 1,
+        "missing_obligation_ids": [],
+        "eligible_runs": 1,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 0,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": true,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 0,
+        "pairwise_false_coverage_count": 0
+      },
+      "preregistration_ref": "synthetic-preregistration:case-27-coverage-complete-but-cost-budget-exceeded"
+    },
+    {
+      "case_id": "case-28-failed-test-must-remain-visible",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "retention-boundary",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "load": "boundary"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "failed-boundary",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "load": "boundary"
+          },
+          "outcome": "failed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-failed-boundary",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "coverage_complete_with_failures",
+        "covered_obligations": 1,
+        "missing_obligation_ids": [],
+        "eligible_runs": 1,
+        "failed_runs": 1,
+        "aborted_runs": 0,
+        "invalid_runs": 0,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 0,
+        "pairwise_false_coverage_count": 0
+      },
+      "preregistration_ref": "synthetic-preregistration:case-28-failed-test-must-remain-visible"
+    },
+    {
+      "case_id": "case-29-common-fixture-is-not-independent-replication",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "two-independent-replicates",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "temperature": "hot"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 2,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "replicate-1",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "temperature": "hot"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "fixture-shared-1",
+          "cost_units": 1
+        },
+        {
+          "run_id": "replicate-2",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "temperature": "hot"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "fixture-shared-1",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "coverage_gap",
+        "covered_obligations": 0,
+        "missing_obligation_ids": [
+          "two-independent-replicates"
+        ],
+        "eligible_runs": 2,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 0,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 1,
+        "pairwise_false_coverage_count": 1
+      },
+      "preregistration_ref": "synthetic-preregistration:case-29-common-fixture-is-not-independent-replication"
+    },
+    {
+      "case_id": "case-30-samples-before-and-after-maintenance-are-not-interchangeable",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "post-maintenance-test",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "post_maintenance",
+          "conditions": {
+            "maintenance_state": "post"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "pre-maintenance",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "pre_maintenance",
+          "conditions": {
+            "maintenance_state": "pre"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-pre-maintenance",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "coverage_gap",
+        "covered_obligations": 0,
+        "missing_obligation_ids": [
+          "post-maintenance-test"
+        ],
+        "eligible_runs": 1,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 0,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 0,
+        "pairwise_false_coverage_count": 0
+      },
+      "preregistration_ref": "synthetic-preregistration:case-30-samples-before-and-after-maintenance-are-not-interchangeable"
+    },
+    {
+      "case_id": "case-31-test-run-does-not-cover-retention-without-load-factor",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "retention-load-boundary",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "load": "boundary"
+          },
+          "evidence_key": "retention-load",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "geometry-only",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "geometry": "aligned"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "geometry-metrology"
+          ],
+          "run_group_id": "group-geometry-only",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "coverage_gap",
+        "covered_obligations": 0,
+        "missing_obligation_ids": [
+          "retention-load-boundary"
+        ],
+        "eligible_runs": 1,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 0,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 0,
+        "pairwise_false_coverage_count": 0
+      },
+      "preregistration_ref": "synthetic-preregistration:case-31-test-run-does-not-cover-retention-without-load-factor"
+    },
+    {
+      "case_id": "case-32-test-outcome-valid-but-uncertainty-incomplete",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "uncertainty-boundary",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "load": "boundary"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "no-uncertainty",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "load": "boundary"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": false,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-no-uncertainty",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "indeterminate",
+        "covered_obligations": 0,
+        "missing_obligation_ids": [
+          "uncertainty-boundary"
+        ],
+        "eligible_runs": 0,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 1,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 0,
+        "pairwise_false_coverage_count": 0
+      },
+      "preregistration_ref": "synthetic-preregistration:case-32-test-outcome-valid-but-uncertainty-incomplete"
+    },
+    {
+      "case_id": "case-33-test-order-does-not-prove-post-environment-state",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "post-vibration-functional-check",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "post_environment",
+          "conditions": {
+            "environment_sequence": "after_vibration"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "pre-vibration-check",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "pre_environment",
+          "conditions": {
+            "environment_sequence": "before_vibration"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-pre-vibration-check",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "coverage_gap",
+        "covered_obligations": 0,
+        "missing_obligation_ids": [
+          "post-vibration-functional-check"
+        ],
+        "eligible_runs": 1,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 0,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 0,
+        "pairwise_false_coverage_count": 0
+      },
+      "preregistration_ref": "synthetic-preregistration:case-33-test-order-does-not-prove-post-environment-state"
+    },
+    {
+      "case_id": "case-34-input-permutation-positive-control",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "energy-low",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        },
+        {
+          "id": "temperature-cold",
+          "criticality": "mandatory",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "temperature": "cold"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "low",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-low",
+          "cost_units": 1
+        },
+        {
+          "run_id": "cold",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "temperature": "cold"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-cold",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "coverage_complete",
+        "covered_obligations": 2,
+        "missing_obligation_ids": [],
+        "eligible_runs": 2,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 0,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 0,
+        "pairwise_false_coverage_count": 0
+      },
+      "preregistration_ref": "synthetic-preregistration:case-34-input-permutation-positive-control"
+    },
+    {
+      "case_id": "case-35-informational-gap-does-not-mask-critical-gate",
+      "cost_budget": 100,
+      "cycle_count_threshold": 5,
+      "obligations": [
+        {
+          "id": "critical-energy-low",
+          "criticality": "critical",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "energy": "low"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        },
+        {
+          "id": "informational-paint-inspection",
+          "criticality": "informational",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "surface": "paint"
+          },
+          "evidence_key": "metrology-force",
+          "minimum_run_groups": 1,
+          "not_applicable_reason": null,
+          "not_applicable_review_ref": null
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "paint-only",
+          "configuration_id": "cfg-a",
+          "procedure_revision": "proc-a",
+          "service_kind": "mechanical_capture",
+          "lifecycle_phase": "preflight",
+          "conditions": {
+            "surface": "paint"
+          },
+          "outcome": "passed",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_valid": true,
+          "instrument_in_range": true,
+          "uncertainty_complete": true,
+          "clock_aligned": true,
+          "evidence_keys": [
+            "metrology-force"
+          ],
+          "run_group_id": "group-paint-only",
+          "cost_units": 1
+        }
+      ],
+      "expected": {
+        "disposition": "coverage_gap",
+        "covered_obligations": 1,
+        "missing_obligation_ids": [
+          "critical-energy-low"
+        ],
+        "eligible_runs": 1,
+        "failed_runs": 0,
+        "aborted_runs": 0,
+        "invalid_runs": 0,
+        "planned_runs": 0,
+        "duplicate_runs": 0,
+        "budget_exceeded": false,
+        "cycle_count_baseline_pass": false,
+        "ofat_false_coverage_count": 0,
+        "pairwise_false_coverage_count": 0
+      },
+      "preregistration_ref": "synthetic-preregistration:case-35-informational-gap-does-not-mask-critical-gate"
+    }
+  ]
+}

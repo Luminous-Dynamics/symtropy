@@ -1,0 +1,81 @@
+name: Orbital Interface Test-Matrix Benchmark
+
+on:
+  push:
+    branches:
+      - research/orbital-interface-test-matrix-v0-1
+    paths:
+      - "tools/orbital-interface-test-matrix-bench/**"
+      - ".github/workflows/orbital-interface-test-matrix-bench.yml"
+  pull_request:
+    paths:
+      - "tools/orbital-interface-test-matrix-bench/**"
+      - ".github/workflows/orbital-interface-test-matrix-bench.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test-matrix-benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact benchmark head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+
+      - name: Record exact source commit
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          expected="${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$actual" = "$expected"
+          echo "sha=$actual" >> "$GITHUB_OUTPUT"
+
+      - name: Generate standalone lockfile
+        run: cargo generate-lockfile --manifest-path tools/orbital-interface-test-matrix-bench/Cargo.toml
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/orbital-interface-test-matrix-bench/Cargo.toml -- --check
+
+      - name: Run Rust tests
+        run: cargo test --locked --manifest-path tools/orbital-interface-test-matrix-bench/Cargo.toml --all-targets
+
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path tools/orbital-interface-test-matrix-bench/Cargo.toml --all-targets -- -D warnings
+
+      - name: Replay exact-head test-matrix corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run --locked --quiet --manifest-path tools/orbital-interface-test-matrix-bench/Cargo.toml --bin orbital-interface-test-matrix -- \
+            tools/orbital-interface-test-matrix-bench/fixtures/v0.1/campaigns.json \
+            --source-commit "${{ steps.source.outputs.sha }}" > orbital-interface-test-matrix-receipt.json
+          jq -e --arg commit "${{ steps.source.outputs.sha }}" '
+            .receipt_schema == "luminous.orbital-interface-test-matrix.receipt.v0.1"
+            and .source_commit == $commit
+            and .result == "pass"
+            and .campaigns == 35
+            and .report.summary.expected_result_mismatches == 0
+            and .authority_granted == false
+          ' orbital-interface-test-matrix-receipt.json
+
+      - name: Run separate JavaScript reference oracle
+        run: node tools/orbital-interface-test-matrix-bench/tests/reference_oracle.mjs tools/orbital-interface-test-matrix-bench/fixtures/v0.1/campaigns.json
+
+      - name: Upload exact-head receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbital-interface-test-matrix-${{ steps.source.outputs.sha }}
+          path: orbital-interface-test-matrix-receipt.json
+          if-no-files-found: error
+          retention-days: 30
