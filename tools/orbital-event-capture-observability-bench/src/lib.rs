@@ -717,6 +717,16 @@ mod tests {
         );
         assert_eq!(miss_probability_upper_bound_95(5, 5).unwrap(), 1.0);
         assert!(miss_probability_upper_bound_95(6, 5).is_err());
+        assert!(
+            (miss_probability_upper_bound_95(10, 1_000).unwrap() - 0.016903175120562504)
+                .abs()
+                < 1.0e-12
+        );
+        assert!(
+            (miss_probability_upper_bound_95(50, 100_000).unwrap() - 0.0006328286928247063)
+                .abs()
+                < 1.0e-12
+        );
     }
 
     #[test]
