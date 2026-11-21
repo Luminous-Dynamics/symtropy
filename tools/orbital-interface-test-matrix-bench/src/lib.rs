@@ -264,7 +264,7 @@ fn ofat_baseline_covers(obligation: &Obligation, runs: &[TestRun]) -> bool {
 
 fn pairwise_baseline_covers(obligation: &Obligation, runs: &[TestRun]) -> bool {
     let factors: Vec<_> = obligation.conditions.iter().collect();
-    if factors.len() <= 2 {
+    if factors.len() <= 1 {
         return ofat_baseline_covers(obligation, runs);
     }
 
