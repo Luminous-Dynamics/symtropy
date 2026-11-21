@@ -31,7 +31,7 @@ fn production_evaluator_matches_all_frozen_reliability_cases() {
     let corpus: Corpus = serde_json::from_str(fixture()).expect("reliability corpus parses");
     let report = evaluate(&corpus).expect("reliability corpus evaluates");
     assert_eq!(report.result, "pass");
-    assert_eq!(report.summary.case_count, 35);
+    assert_eq!(report.summary.case_count, 36);
     assert_eq!(report.summary.expected_result_mismatches, 0);
     assert!(!report.authority_granted);
 }
