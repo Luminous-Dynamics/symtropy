@@ -483,13 +483,13 @@ def main() -> None:
         +sl2["xi_axial"]["k_density_epsilon"].subs(at_horizon)/2
     )
     # The entropy generator vanishes at the selected bifurcation point.
+    xi_zeta=xi_minus/2-xi_plus+xi_axial/2
     zeta_vector=sp.factor(xi_zeta.subs(at_horizon))
     exact_zero("bifurcation generator vanishes",zeta_vector.norm())
     exact_zero("linearity of bifurcation charge",entropy_from_generators-zeta_direct)
     exact_zero("bifurcation charge equals Wald variation",zeta_direct-wald_variation)
     source_density_minus_j2=sp.factor(source_density-j2_sl2)
     source_identity_residual=sp.factor(2*n_delta_Q-j2_sl2)
-    xi_zeta=xi_minus/2-xi_plus+xi_axial/2
     direct_zeta_data=surface_density_for_generator(xi_zeta,"zeta_H")
     direct_zeta_density=sp.factor(
         direct_zeta_data["k_density_epsilon"].subs(at_horizon)
