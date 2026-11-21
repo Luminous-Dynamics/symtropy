@@ -30,7 +30,7 @@
     "deterministic_order": "sort_by_event_id_and_ordered_maps",
     "compensated_summation": true,
     "frame_policy": "charged_and_neutral_frame_ids_must_match; implicit transforms rejected",
-    "path_policy": "one_force_transfer_method_per_transfer_path_id"
+    "path_policy": "one_force_transfer_method_per_transfer_path_id; solver_pair_and_frame_identity_stable_across_events_in_same_path"
   },
   "required_invariants": [
     "unique_event_ids_within_batch",
@@ -39,7 +39,8 @@
     "one_transfer_method_per_physical_path",
     "matching_coordinate_frame_per_event",
     "deterministic_receipt_under_input_permutation",
-    "finite_impulses_and_case_specific_tolerances"
+    "finite_impulses_and_case_specific_tolerances",
+    "stable_solver_and_frame_identity_per_transfer_path"
   ],
   "tests": [
     "accept_exact_equal_opposite_events",
@@ -47,6 +48,7 @@
     "reject_event_residuals_that_cancel_globally",
     "reject_conflicting_methods_on_one_path",
     "reject_implicit_coordinate_frame_mixing",
+    "reject_solver_or_frame_identity_changes_within_path",
     "reject_non_finite_impulses",
     "deterministic_input_permutation",
     "allow_multiple_events_same_path_same_method",
