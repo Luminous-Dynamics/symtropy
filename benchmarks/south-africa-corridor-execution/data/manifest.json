@@ -1,0 +1,32 @@
+{
+  "schema_version": "0.1.0",
+  "dataset_id": "transnet-trim-fy2025-26-corridor-scorecard",
+  "dataset_status": "source_reported_aggregate_snapshot",
+  "observation_period": "FY2025/26",
+  "report_title": "2026 Rail Infrastructure Manager Operational Performance Review",
+  "publisher": "Transnet Rail Infrastructure Manager",
+  "source_url": "https://www.transnet.net/getFile.ashx?id=27812",
+  "source_retrieved_on": "2026-11-21",
+  "source_report_pages": [8, 9],
+  "record_count": 6,
+  "data_file": "transnet-trim-2026-corridor-scorecard.csv",
+  "data_file_sha256": "e7efc06fcdab70f9e4c91b31522c6c74515d0c40daf07b05bcd588f293d546dd",
+  "unit": "percent",
+  "geographic_scope": "aggregate corridor-level values as reported by TRIM",
+  "metrics": {
+    "train_execution": "Train plan vs ran",
+    "otd_including_80s": "On Time Departures (OTD) including 80s",
+    "otd_excluding_80s": "On Time Departures (OTD) excluding 80s",
+    "ota": "Asset availability: On time arrivals (OTA)"
+  },
+  "semantic_caveats": [
+    "The report labels the two OTD measures as including 80s and excluding 80s. The CSV preserves those labels exactly.",
+    "The report narrative discusses included/excluded exceptions, but this fixture does not define the meaning of code 80, its denominator, or the event-level inclusion rule.",
+    "The source reports percentages, not the underlying train counts, event rows, denominators, or confidence intervals.",
+    "These are aggregate corridor measures. They are not route-section capacity, available train paths, train-level event records, or end-to-end cargo delivery outcomes.",
+    "Targets and actuals remain separate fields. Missing or unavailable values must not be coerced to zero.",
+    "No private train-operator performance is inferred from these Transnet Rail Infrastructure Manager figures."
+  ],
+  "rights_review": "source_accessible; downstream reuse/licensing terms not independently adjudicated; retain attribution and review terms before redistributing source artifacts",
+  "claim_ceiling": "Reproducible transcription and arithmetic validation of a published aggregate FY2025/26 scorecard only."
+}
