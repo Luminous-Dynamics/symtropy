@@ -1,0 +1,548 @@
+{
+  "schema_version": "maritime-contingent-recovery-fixture-v0.1",
+  "dataset_id": "SYNTH-MARITIME-RECOVERY-001",
+  "status": "synthetic_conformance_fixture_not_physical_data",
+  "effects_enabled": false,
+  "purpose": "Frozen contract examples for independent tiny-instance enumeration and hostile evidence/resource tests. Values are synthetic and must never be treated as operational maritime facts.",
+  "time_model": {
+    "epoch": "T0",
+    "unit": "integer_minutes_from_T0",
+    "interval_semantics": "[start,end)",
+    "rule": "All intervals are half-open; physical resource identity, not graph edge identity, governs shared capacity."
+  },
+  "quantity_model": {
+    "energy_unit": "synthetic_energy_unit",
+    "resource_capacity_unit": "concurrent_slots",
+    "rule": "No implicit conversion between rates, concurrent occupancy, and period quotas."
+  },
+  "canonical_policy": {
+    "id": "synthetic-priority-then-earliest-feasible-v0",
+    "priorities": [
+      "urgent_medical_cargo",
+      "time_critical_perishable",
+      "standard_cargo"
+    ],
+    "tie_breaking": [
+      "maximize_served_priority_vector_lexicographically",
+      "minimize_declared_cost",
+      "minimize_delay",
+      "canonical_plan_id"
+    ],
+    "probability_claims": "none",
+    "rule": "Policy ordering is frozen for conformance cases only; it is not a general fairness prescription."
+  },
+  "cases": [
+    {
+      "case_id": "REC-001",
+      "name": "single berth delay with feasible alternate",
+      "inputs": {
+        "demands": [
+          {
+            "id": "D-A",
+            "priority": "standard_cargo",
+            "quantity": 1,
+            "service_window": [
+              600,
+              900
+            ]
+          }
+        ],
+        "resources": [
+          {
+            "id": "BERTH-A",
+            "physical_id": "BERTH-A",
+            "capacity": 1,
+            "interval": [
+              600,
+              720
+            ]
+          },
+          {
+            "id": "BERTH-B",
+            "physical_id": "BERTH-B",
+            "capacity": 1,
+            "interval": [
+              720,
+              840
+            ]
+          }
+        ],
+        "primary_plan": [
+          {
+            "demand_id": "D-A",
+            "resource_id": "BERTH-A",
+            "interval": [
+              600,
+              720
+            ]
+          }
+        ],
+        "options": [
+          {
+            "id": "OPT-B",
+            "demand_id": "D-A",
+            "resource_id": "BERTH-B",
+            "interval": [
+              720,
+              840
+            ],
+            "cost": 3,
+            "expires_at": 700
+          }
+        ],
+        "observed_event": {
+          "id": "EV-1",
+          "type": "resource_unavailable",
+          "resource_id": "BERTH-A",
+          "interval": [
+            600,
+            720
+          ],
+          "known_at": 540
+        }
+      },
+      "expected": {
+        "disposition": "RECOVERED",
+        "chosen_option": "OPT-B",
+        "served_demands": [
+          "D-A"
+        ],
+        "unserved_demands": [],
+        "hard_violations": 0,
+        "optimality_scope": "complete_finite_catalog"
+      }
+    },
+    {
+      "case_id": "REC-002",
+      "name": "two demands compete for one reserve resource",
+      "inputs": {
+        "demands": [
+          {
+            "id": "D-URGENT",
+            "priority": "urgent_medical_cargo",
+            "quantity": 1,
+            "service_window": [
+              800,
+              900
+            ]
+          },
+          {
+            "id": "D-STANDARD",
+            "priority": "standard_cargo",
+            "quantity": 1,
+            "service_window": [
+              800,
+              900
+            ]
+          }
+        ],
+        "resources": [
+          {
+            "id": "RESERVE-CHARGER",
+            "physical_id": "CHARGER-7",
+            "capacity": 1,
+            "interval": [
+              800,
+              900
+            ]
+          }
+        ],
+        "primary_plan": [],
+        "options": [
+          {
+            "id": "OPT-URGENT",
+            "demand_id": "D-URGENT",
+            "resource_id": "RESERVE-CHARGER",
+            "interval": [
+              800,
+              900
+            ],
+            "cost": 5,
+            "expires_at": 780
+          },
+          {
+            "id": "OPT-STANDARD",
+            "demand_id": "D-STANDARD",
+            "resource_id": "RESERVE-CHARGER",
+            "interval": [
+              800,
+              900
+            ],
+            "cost": 1,
+            "expires_at": 780
+          }
+        ],
+        "policy_id": "synthetic-priority-then-earliest-feasible-v0"
+      },
+      "expected": {
+        "disposition": "RECOVERED_WITH_DISPLACEMENT",
+        "chosen_options": [
+          "OPT-URGENT"
+        ],
+        "served_demands": [
+          "D-URGENT"
+        ],
+        "unserved_demands": [
+          "D-STANDARD"
+        ],
+        "hard_violations": 0,
+        "overcommitments": 0,
+        "optimality_scope": "complete_finite_catalog"
+      }
+    },
+    {
+      "case_id": "REC-003",
+      "name": "two graph edges alias one physical resource",
+      "inputs": {
+        "demands": [
+          {
+            "id": "D-A",
+            "priority": "standard_cargo",
+            "quantity": 1,
+            "service_window": [
+              100,
+              200
+            ]
+          },
+          {
+            "id": "D-B",
+            "priority": "standard_cargo",
+            "quantity": 1,
+            "service_window": [
+              100,
+              200
+            ]
+          }
+        ],
+        "resources": [
+          {
+            "id": "EDGE-BERTH-1",
+            "physical_id": "CRANE-9",
+            "capacity": 1,
+            "interval": [
+              100,
+              200
+            ]
+          },
+          {
+            "id": "EDGE-TERMINAL-2",
+            "physical_id": "CRANE-9",
+            "capacity": 1,
+            "interval": [
+              100,
+              200
+            ]
+          }
+        ],
+        "primary_plan": [
+          {
+            "demand_id": "D-A",
+            "resource_id": "EDGE-BERTH-1",
+            "interval": [
+              100,
+              200
+            ]
+          },
+          {
+            "demand_id": "D-B",
+            "resource_id": "EDGE-TERMINAL-2",
+            "interval": [
+              100,
+              200
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "disposition": "REJECTED",
+        "reason": "PHYSICAL_RESOURCE_OVERCOMMITMENT",
+        "overcommitments": 1,
+        "hard_violations": 1
+      }
+    },
+    {
+      "case_id": "REC-004",
+      "name": "option expires before trigger decision",
+      "inputs": {
+        "decision_time": 500,
+        "event": {
+          "id": "EV-DELAY",
+          "type": "berth_delay",
+          "known_at": 480
+        },
+        "options": [
+          {
+            "id": "OPT-EXPIRED",
+            "resource_id": "BERTH-B",
+            "interval": [
+              600,
+              700
+            ],
+            "expires_at": 450
+          }
+        ],
+        "primary_plan": []
+      },
+      "expected": {
+        "disposition": "ABSTAIN_NO_VALID_OPTION",
+        "rejected_options": [
+          {
+            "id": "OPT-EXPIRED",
+            "reason": "OPTION_EXPIRED"
+          }
+        ],
+        "hard_violations": 0
+      }
+    },
+    {
+      "case_id": "REC-005",
+      "name": "recent retrieval does not make stale forecast applicable",
+      "inputs": {
+        "decision_time": 1000,
+        "forecast": {
+          "receipt_id": "F-1",
+          "digest": "synthetic-digest-v1",
+          "retrieved_at": 990,
+          "issued_at": 100,
+          "initialized_at": 80,
+          "valid_interval": [
+            200,
+            1200
+          ],
+          "maximum_issue_age": 300
+        },
+        "requested_target_time": 1100,
+        "policy_id": "synthetic-forecast-freshness-v0"
+      },
+      "expected": {
+        "disposition": "ABSTAIN_EVIDENCE_NOT_APPLICABLE",
+        "reason": "ISSUE_AGE_EXCEEDED",
+        "navigation_authorized": false,
+        "physical_truth_claim_authorized": false
+      }
+    },
+    {
+      "case_id": "REC-006",
+      "name": "unknown contradictory resource state requires abstention",
+      "inputs": {
+        "decision_time": 300,
+        "evidence": [
+          {
+            "source_id": "SYNTH-A",
+            "resource_id": "BERTH-A",
+            "status": "AVAILABLE",
+            "valid_interval": [
+              250,
+              400
+            ]
+          },
+          {
+            "source_id": "SYNTH-B",
+            "resource_id": "BERTH-A",
+            "status": "UNAVAILABLE",
+            "valid_interval": [
+              250,
+              400
+            ]
+          }
+        ],
+        "independent_adjudication_present": false
+      },
+      "expected": {
+        "disposition": "INDETERMINATE_ABSTAIN",
+        "reason": "CONTRADICTORY_CURRENT_EVIDENCE",
+        "resource_mutation": false
+      }
+    },
+    {
+      "case_id": "REC-007",
+      "name": "replayed trigger does not double-consume reserve",
+      "inputs": {
+        "idempotency_key": "SYNTH-TRIGGER-7",
+        "trigger_receipts": [
+          {
+            "key": "SYNTH-TRIGGER-7",
+            "payload_digest": "payload-A"
+          },
+          {
+            "key": "SYNTH-TRIGGER-7",
+            "payload_digest": "payload-A"
+          }
+        ],
+        "reserve_capacity_before": 1,
+        "proposed_consumptions": 1
+      },
+      "expected": {
+        "disposition": "IDEMPOTENT_REPLAY",
+        "unique_trigger_count": 1,
+        "reserve_capacity_after": 0,
+        "duplicate_consumption": 0
+      }
+    },
+    {
+      "case_id": "REC-008",
+      "name": "same idempotency key with changed payload is a conflict",
+      "inputs": {
+        "idempotency_key": "SYNTH-TRIGGER-8",
+        "trigger_receipts": [
+          {
+            "key": "SYNTH-TRIGGER-8",
+            "payload_digest": "payload-A"
+          },
+          {
+            "key": "SYNTH-TRIGGER-8",
+            "payload_digest": "payload-B"
+          }
+        ]
+      },
+      "expected": {
+        "disposition": "REJECTED_CONFLICT",
+        "reason": "IDEMPOTENCY_KEY_PAYLOAD_MISMATCH",
+        "resource_mutation": false
+      }
+    },
+    {
+      "case_id": "REC-009",
+      "name": "no disruption should not trigger needless plan churn",
+      "inputs": {
+        "primary_plan_id": "BASE-1",
+        "observed_events": [],
+        "policy_updates": [],
+        "available_options": [
+          {
+            "id": "OPT-CHEAPER",
+            "cost": 2
+          }
+        ],
+        "current_plan_cost": 3
+      },
+      "expected": {
+        "disposition": "KEEP_PRIMARY",
+        "plan_changes": 0,
+        "option_activated": false,
+        "rule": "No branch activation without its declared trigger."
+      }
+    },
+    {
+      "case_id": "REC-010",
+      "name": "branch search budget exhaustion limits optimality claim",
+      "inputs": {
+        "max_branches": 2,
+        "enumerated_branches": 2,
+        "known_remaining_branches_lower_bound": 1,
+        "candidates": [
+          {
+            "id": "P-A",
+            "cost": 5
+          },
+          {
+            "id": "P-B",
+            "cost": 4
+          }
+        ],
+        "complete_catalog": false
+      },
+      "expected": {
+        "disposition": "INCOMPLETE",
+        "selected_plan_may_be_provisional": true,
+        "global_optimality_claim": false,
+        "reported_remaining_lower_bound": 1
+      }
+    },
+    {
+      "case_id": "REC-011",
+      "name": "half-open adjacent intervals permit reuse when evidence allows",
+      "inputs": {
+        "resource": {
+          "id": "TUG-2",
+          "physical_id": "TUG-2",
+          "capacity": 1
+        },
+        "assignments": [
+          {
+            "demand_id": "D-A",
+            "interval": [
+              100,
+              150
+            ]
+          },
+          {
+            "demand_id": "D-B",
+            "interval": [
+              150,
+              190
+            ]
+          }
+        ],
+        "reuse_allowed": true
+      },
+      "expected": {
+        "disposition": "FEASIBLE",
+        "overcommitments": 0,
+        "interval_semantics": "[start,end)"
+      }
+    },
+    {
+      "case_id": "REC-012",
+      "name": "input permutations preserve canonical output",
+      "inputs": {
+        "demands": [
+          {
+            "id": "D-B",
+            "priority": "standard_cargo"
+          },
+          {
+            "id": "D-A",
+            "priority": "urgent_medical_cargo"
+          }
+        ],
+        "permuted_demands": [
+          {
+            "id": "D-A",
+            "priority": "urgent_medical_cargo"
+          },
+          {
+            "id": "D-B",
+            "priority": "standard_cargo"
+          }
+        ],
+        "resources": [
+          {
+            "id": "RES-B"
+          },
+          {
+            "id": "RES-A"
+          }
+        ],
+        "permuted_resources": [
+          {
+            "id": "RES-A"
+          },
+          {
+            "id": "RES-B"
+          }
+        ],
+        "manifest_seed": "SYNTH-SEED-001"
+      },
+      "expected": {
+        "disposition": "DETERMINISTIC",
+        "canonical_output_digest_equal": true,
+        "required_replays": 100
+      }
+    }
+  ],
+  "claim_ceiling": {
+    "physical_truth_claim_authorized": false,
+    "navigation_authorized": false,
+    "booking_or_dispatch_authorized": false,
+    "synthetic_pass_means": "fixture contract behavior only",
+    "not_established": [
+      "real-world resilience",
+      "fairness outside the frozen policy",
+      "fuel/emissions savings",
+      "seaworthiness",
+      "regulatory compliance",
+      "physical resource availability"
+    ]
+  }
+}
