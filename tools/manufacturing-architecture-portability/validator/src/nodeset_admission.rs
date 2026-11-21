@@ -167,16 +167,38 @@ fn check_browse_name_index(
     Ok(())
 }
 
+fn resolve_node_id_reference<'a>(
+    value: &'a str,
+    aliases: &'a BTreeMap<String, String>,
+    context: &str,
+) -> Result<&'a str, String> {
+    if value.starts_with("ns=")
+        || value.starts_with("nsu=")
+        || value.starts_with("i=")
+        || value.starts_with("s=")
+        || value.starts_with("g=")
+        || value.starts_with("b=")
+    {
+        return Ok(value);
+    }
+    aliases
+        .get(value)
+        .map(String::as_str)
+        .ok_or_else(|| format!("{context}: unknown UANodeSet Alias {value:?}"))
+}
+
 fn check_node_attributes(
     element: &BytesStart<'_>,
     namespace_uris: &[String],
+    aliases: &BTreeMap<String, String>,
 ) -> Result<usize, String> {
     let attributes = attr_map(element)?;
     let mut checked = 0usize;
     for field in ["NodeId", "ParentNodeId", "DataType"] {
         if let Some(value) = attributes.get(field) {
-            check_nodeset_namespace_index(value, namespace_uris, field)?;
-            checked += if value.starts_with("ns=") { 1 } else { 0 };
+            let resolved = resolve_node_id_reference(value, aliases, field)?;
+            check_nodeset_namespace_index(resolved, namespace_uris, field)?;
+            checked += if resolved.starts_with("ns=") { 1 } else { 0 };
         }
     }
     if let Some(value) = attributes.get("BrowseName") {
@@ -204,6 +226,11 @@ pub fn parse_nodeset_xml(xml: &[u8]) -> Result<ParsedNodeSet, String> {
     let mut collecting_uri = false;
     let mut current_uri = String::new();
     let mut namespace_uris = Vec::new();
+    let mut in_aliases = false;
+    let mut collecting_alias = false;
+    let mut current_alias_name = String::new();
+    let mut current_alias_value = String::new();
+    let mut aliases = BTreeMap::new();
     let mut models = Vec::new();
     let mut current_model: Option<NodeSetModel> = None;
     let mut collecting_reference = false;
@@ -225,6 +252,20 @@ pub fn parse_nodeset_xml(xml: &[u8]) -> Result<ParsedNodeSet, String> {
                             attrs.get("xmlns").map(String::as_str) == Some(UANODESET_NAMESPACE);
                     }
                     "NamespaceUris" => in_namespace_uris = true,
+                    "Aliases" => in_aliases = true,
+                    "Alias" if in_aliases => {
+                        if collecting_alias {
+                            return Err("nested Alias elements are not permitted".to_owned());
+                        }
+                        let attributes = attr_map(&element)?;
+                        current_alias_name =
+                            required_attr(&attributes, "Alias", "Alias")?.to_owned();
+                        if aliases.contains_key(&current_alias_name) {
+                            return Err(format!("duplicate UANodeSet Alias {:?}", current_alias_name));
+                        }
+                        current_alias_value.clear();
+                        collecting_alias = true;
+                    }
                     "Uri" if in_namespace_uris => {
                         if collecting_uri {
                             return Err("nested Uri element inside NamespaceUris".to_owned());
@@ -244,13 +285,18 @@ pub fn parse_nodeset_xml(xml: &[u8]) -> Result<ParsedNodeSet, String> {
                         }
                         let attributes = attr_map(&element)?;
                         if let Some(reference_type) = attributes.get("ReferenceType") {
-                            check_nodeset_namespace_index(
+                            let resolved = resolve_node_id_reference(
                                 reference_type,
+                                &aliases,
+                                "ReferenceType",
+                            )?;
+                            check_nodeset_namespace_index(
+                                resolved,
                                 &namespace_uris,
                                 "ReferenceType",
                             )?;
                             checked_node_id_references +=
-                                if reference_type.starts_with("ns=") { 1 } else { 0 };
+                                if resolved.starts_with("ns=") { 1 } else { 0 };
                         }
                         collecting_reference = true;
                         current_reference.clear();
@@ -265,7 +311,7 @@ pub fn parse_nodeset_xml(xml: &[u8]) -> Result<ParsedNodeSet, String> {
                     "UAObject" | "UAObjectType" | "UAVariable" | "UAVariableType"
                     | "UADataType" | "UAReferenceType" | "UAView" | "UAMethod" => {
                         checked_node_id_references +=
-                            check_node_attributes(&element, &namespace_uris)?;
+                            check_node_attributes(&element, &namespace_uris, &aliases)?;
                     }
                     _ => {}
                 }
@@ -284,7 +330,7 @@ pub fn parse_nodeset_xml(xml: &[u8]) -> Result<ParsedNodeSet, String> {
                     "UAObject" | "UAObjectType" | "UAVariable" | "UAVariableType"
                     | "UADataType" | "UAReferenceType" | "UAView" | "UAMethod" => {
                         checked_node_id_references +=
-                            check_node_attributes(&element, &namespace_uris)?;
+                            check_node_attributes(&element, &namespace_uris, &aliases)?;
                     }
                     _ => {}
                 }
@@ -297,6 +343,10 @@ pub fn parse_nodeset_xml(xml: &[u8]) -> Result<ParsedNodeSet, String> {
                 let value = text.xml_content(XmlVersion::Implicit1_0);
                 current_reference.push_str(value.as_ref());
             }
+            Ok(Event::Text(text)) if collecting_alias => {
+                let value = text.xml_content(XmlVersion::Implicit1_0);
+                current_alias_value.push_str(value.as_ref());
+            }
             Ok(Event::End(element)) => match element.local_name().as_ref() {
                 "Uri" if collecting_uri => {
                     let uri = current_uri.trim().to_owned();
@@ -307,14 +357,25 @@ pub fn parse_nodeset_xml(xml: &[u8]) -> Result<ParsedNodeSet, String> {
                     collecting_uri = false;
                 }
                 "NamespaceUris" => in_namespace_uris = false,
+                "Aliases" => in_aliases = false,
+                "Alias" if collecting_alias => {
+                    let value = current_alias_value.trim().to_owned();
+                    if value.is_empty() {
+                        return Err(format!("UANodeSet Alias {:?} has no NodeId value", current_alias_name));
+                    }
+                    check_nodeset_namespace_index(&value, &namespace_uris, "Alias value")?;
+                    aliases.insert(current_alias_name.clone(), value);
+                    collecting_alias = false;
+                }
                 "Reference" if collecting_reference => {
                     let target = current_reference.trim();
                     if target.is_empty() {
                         return Err("Reference element has no target NodeId".to_owned());
                     }
-                    check_nodeset_namespace_index(target, &namespace_uris, "Reference target")?;
+                    let resolved = resolve_node_id_reference(target, &aliases, "Reference target")?;
+                    check_nodeset_namespace_index(resolved, &namespace_uris, "Reference target")?;
                     checked_node_id_references +=
-                        if target.starts_with("ns=") { 1 } else { 0 };
+                        if resolved.starts_with("ns=") { 1 } else { 0 };
                     collecting_reference = false;
                 }
                 "Model" => {
@@ -1105,6 +1166,33 @@ mod tests {
     fn nodeset_namespace_index_zero_resolves_to_opc_ua_core_namespace() {
         let xml = SYNTHETIC_XML.replace("NodeId=\"ns=1;i=1003\"", "NodeId=\"ns=0;i=1003\"");
         assert!(parse_nodeset_xml(xml.as_bytes()).is_ok());
+    }
+
+    #[test]
+    fn aliases_are_resolved_and_their_namespace_indexes_are_validated() {
+        let xml = SYNTHETIC_XML.replace(
+            "<Models>",
+            "<Aliases><Alias Alias=\"HasComponent\">ns=2;i=47</Alias><Alias Alias=\"UInt16\">i=5</Alias></Aliases><Models>",
+        ).replace(
+            "<UAObject NodeId=\"ns=1;i=1003\" BrowseName=\"1:MachineryEquipment\" />",
+            "<UAObject NodeId=\"ns=1;i=1003\" BrowseName=\"1:MachineryEquipment\"><References><Reference ReferenceType=\"HasComponent\">ns=2;i=85</Reference></References></UAObject>",
+        );
+        assert!(parse_nodeset_xml(xml.as_bytes()).is_ok());
+
+        let bad_alias = xml.replace("ns=2;i=47", "ns=4;i=47");
+        assert!(parse_nodeset_xml(bad_alias.as_bytes()).unwrap_err().contains("Alias value"));
+
+        let unknown_alias = xml.replace("ReferenceType=\"HasComponent\"", "ReferenceType=\"MissingAlias\"");
+        assert!(parse_nodeset_xml(unknown_alias.as_bytes()).unwrap_err().contains("unknown UANodeSet Alias"));
+    }
+
+    #[test]
+    fn duplicate_alias_names_are_rejected() {
+        let xml = SYNTHETIC_XML.replace(
+            "<Models>",
+            "<Aliases><Alias Alias=\"Same\">i=1</Alias><Alias Alias=\"Same\">i=2</Alias></Aliases><Models>",
+        );
+        assert!(parse_nodeset_xml(xml.as_bytes()).unwrap_err().contains("duplicate UANodeSet Alias"));
     }
 
     #[test]
