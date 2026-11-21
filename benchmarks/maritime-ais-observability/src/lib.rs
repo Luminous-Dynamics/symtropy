@@ -677,12 +677,10 @@ mod tests {
         let mut first = fix(0, "m0", Zone::Outside, 0);
         first.nav_status_raw = Some("moored".to_string());
         let second = fix(1, "m1", Zone::Outside, 0);
-        let report = evaluate_call(
-            "563123456",
+        let report = evaluate_from_baselined_outside(
             &[first, second],
             &default_profile(),
-        )
-        .expect("valid call");
+        );
 
         assert_eq!(report.nav_status_conflict_count, 1);
         assert_ne!(report.final_state, ServiceState::Berth);
@@ -742,6 +740,33 @@ mod tests {
         let error = evaluate_from_baselined_outside(&[first, second], &default_profile())
             .expect_err("mixed geofence versions must reject");
         assert!(error.contains("geofence identity changed"));
+    }
+
+    #[test]
+    fn receiver_or_spatial_reference_change_within_call_rejects() {
+        let first = fix(0, "m0", Zone::Outside, 0);
+        let mut changed_receiver = fix(1, "m1", Zone::Outside, 0);
+        changed_receiver.receiver_id = "RX_DURBAN_TEST_B".to_string();
+        assert!(
+            evaluate_from_baselined_outside(
+                &[first.clone(), changed_receiver],
+                &default_profile()
+            )
+            .events
+            .is_empty()
+        );
+
+        let mut changed_crs = fix(1, "m1", Zone::Outside, 0);
+        changed_crs.spatial_reference_id = "EPSG:3857".to_string();
+        let error = evaluate_call_with_initial_state(
+            "563123456",
+            ServiceState::Outside,
+            Some("SYNTHETIC_OUTSIDE_BASELINE_V0_1"),
+            &[first, changed_crs],
+            &default_profile(),
+        )
+        .expect_err("mixed spatial reference must reject");
+        assert!(error.contains("spatial reference changed"));
     }
 
     #[test]
@@ -852,10 +877,24 @@ mod tests {
 
     #[test]
     fn mmsi_and_profile_fail_closed() {
-        assert!(evaluate_call("bad", &[fix(0, "m0", Zone::Outside, 0)], &default_profile()).is_err());
+        assert!(
+            evaluate_call(
+                "bad",
+                &[fix(0, "m0", Zone::Outside, 0)],
+                &default_profile()
+            )
+            .is_err()
+        );
 
         let mut bad_profile = default_profile();
         bad_profile.berth_dwell_ticks = 0;
-        assert!(evaluate_call("563123456", &[fix(0, "m0", Zone::Outside, 0)], &bad_profile).is_err());
+        assert!(
+            evaluate_call(
+                "563123456",
+                &[fix(0, "m0", Zone::Outside, 0)],
+                &bad_profile
+            )
+            .is_err()
+        );
     }
 }
