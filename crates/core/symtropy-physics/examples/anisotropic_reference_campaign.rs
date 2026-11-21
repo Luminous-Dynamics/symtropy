@@ -364,8 +364,8 @@ fn intermediate_axis_campaign() -> usize {
     // Carry world momentum as the conserved integration state. Reconstructing
     // it from rounded angular velocity on every step defeats the purpose of
     // step_principal_inertia_from_world_momentum and accumulates avoidable drift.
-    let mut world_momentum =
-        world_angular_momentum(&rotation, &angular_velocity, inertia).expect("finite initial momentum");
+    let mut world_momentum = world_angular_momentum(&rotation, &angular_velocity, inertia)
+        .expect("finite initial momentum");
     let initial_momentum = world_momentum;
     let initial_transverse = (initial_body_omega[0].powi(2) + initial_body_omega[2].powi(2)).sqrt();
     let mut maximum_transverse = initial_transverse;
