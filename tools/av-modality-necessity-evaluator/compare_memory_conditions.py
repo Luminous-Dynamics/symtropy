@@ -154,6 +154,7 @@ def compare_memory_conditions(
             "citation_precision": total["citation_precision"],
             "citation_recall": total["citation_recall"],
             "provenance_complete_rate": total["provenance_complete_rate"],
+            "evidence_qualified_answer_accuracy": total["evidence_qualified_answer_accuracy"],
             "evidence_compliance_rate": total["evidence_compliance_rate"],
             "false_memory_count": total["false_memory_count"],
             "hard_violation_count": total["hard_violation_count"],
