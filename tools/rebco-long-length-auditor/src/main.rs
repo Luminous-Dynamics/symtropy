@@ -27,7 +27,6 @@ struct Reel {
 #[derive(Debug, Clone)]
 struct Segment {
     id: String,
-    parent_reel_id: String,
     longitudinal_start_mm: f64,
     longitudinal_end_mm: f64,
     width_start_mm: f64,
@@ -401,7 +400,6 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
         }
         let segment = Segment {
             id: id.clone(),
-            parent_reel_id,
             longitudinal_start_mm: number_field(item, "longitudinal_start_mm", &path)?,
             longitudinal_end_mm: number_field(item, "longitudinal_end_mm", &path)?,
             width_start_mm: number_field(item, "width_start_mm", &path)?,
@@ -812,7 +810,8 @@ mod tests {
     #[test]
     fn rejects_duplicate_observation_identifiers() {
         let mut value = fixture();
-        value["observations"][1]["observation_id"] = value["observations"][0]["observation_id"].clone();
+        let first_id = value["observations"][0]["observation_id"].clone();
+        value["observations"][1]["observation_id"] = first_id;
         assert!(validate_document(&value).unwrap_err().contains("duplicate observation_id"));
     }
 
