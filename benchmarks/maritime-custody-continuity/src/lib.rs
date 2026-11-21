@@ -199,7 +199,10 @@ pub fn parse_expectations_tsv(input: &str) -> Result<Vec<CustodyExpectation>, St
             require_non_empty(value, name)?;
         }
         if fields[1] == fields[2] {
-            return Err(format!("expectation row {} has identical custodians", index + 2));
+            return Err(format!(
+                "expectation row {} has identical custodians",
+                index + 2
+            ));
         }
         rows.push(CustodyExpectation {
             box_id: fields[0].to_string(),
@@ -339,7 +342,9 @@ fn compare_handoff(release: &CustodyEvent, accept: &CustodyEvent) -> Option<Chai
         return Some(ChainFailure::HandoffFieldMismatch(HandoffField::Location));
     }
     if release.transport_leg_id != accept.transport_leg_id {
-        return Some(ChainFailure::HandoffFieldMismatch(HandoffField::TransportLeg));
+        return Some(ChainFailure::HandoffFieldMismatch(
+            HandoffField::TransportLeg,
+        ));
     }
     if release.quantity != accept.quantity {
         return Some(ChainFailure::HandoffFieldMismatch(HandoffField::Quantity));
@@ -433,12 +438,7 @@ fn evaluate_box(
                     return;
                 }
                 if let Some(failure) = validate_open(event, expectation) {
-                    record_failure(
-                        report,
-                        &expectation.box_id,
-                        failure,
-                        ChainStatus::Rejected,
-                    );
+                    record_failure(report, &expectation.box_id, failure, ChainStatus::Rejected);
                     return;
                 }
                 custodian = Some(event.to_party.clone());
@@ -691,7 +691,10 @@ mod tests {
         assert_eq!(report.complete_chains(), 1);
         assert!(report.complete_box_ids.contains("BOX-0001"));
         assert!(report.incomplete_box_ids.contains("BOX-0002"));
-        assert_eq!(report.failure_counts.get(&ChainFailure::PendingHandoff), Some(&1));
+        assert_eq!(
+            report.failure_counts.get(&ChainFailure::PendingHandoff),
+            Some(&1)
+        );
     }
 
     #[test]
@@ -709,7 +712,10 @@ mod tests {
         event_mut(&mut events, "B1-R1").from_party = "UNRELATED".to_string();
         let report = evaluate(&expectations, &events, 200).unwrap();
         assert!(report.rejected_box_ids.contains("BOX-0001"));
-        assert_eq!(report.failure_counts.get(&ChainFailure::WrongCustodian), Some(&1));
+        assert_eq!(
+            report.failure_counts.get(&ChainFailure::WrongCustodian),
+            Some(&1)
+        );
     }
 
     #[test]
@@ -718,7 +724,9 @@ mod tests {
         event_mut(&mut events, "B1-A1").location_id = "OTHER_LOCATION".to_string();
         let report = evaluate(&expectations, &events, 200).unwrap();
         assert_eq!(
-            report.failure_counts.get(&ChainFailure::HandoffFieldMismatch(HandoffField::Location)),
+            report
+                .failure_counts
+                .get(&ChainFailure::HandoffFieldMismatch(HandoffField::Location)),
             Some(&1)
         );
         assert_eq!(report.complete_chains(), 0);
@@ -730,7 +738,11 @@ mod tests {
         event_mut(&mut events, "B1-A2").transport_leg_id = "WRONG_LEG".to_string();
         let report = evaluate(&expectations, &events, 200).unwrap();
         assert_eq!(
-            report.failure_counts.get(&ChainFailure::HandoffFieldMismatch(HandoffField::TransportLeg)),
+            report
+                .failure_counts
+                .get(&ChainFailure::HandoffFieldMismatch(
+                    HandoffField::TransportLeg
+                )),
             Some(&1)
         );
     }
@@ -741,7 +753,10 @@ mod tests {
         events.retain(|event| event.source_event_id != "B1-A3");
         let report = evaluate(&expectations, &events, 200).unwrap();
         assert_eq!(report.complete_chains(), 0);
-        assert_eq!(report.failure_counts.get(&ChainFailure::PendingHandoff), Some(&2));
+        assert_eq!(
+            report.failure_counts.get(&ChainFailure::PendingHandoff),
+            Some(&2)
+        );
     }
 
     #[test]
@@ -764,7 +779,9 @@ mod tests {
         let (expectations, mut events) = fixtures();
         event_mut(&mut events, "B1-A1").event_time = 15;
         let report = evaluate(&expectations, &events, 200).unwrap();
-        assert_eq!(report.failure_counts.get(&ChainFailure::UnmatchedAcceptance), Some(&1));
+        assert_eq!(report
+                .failure_counts
+                .get(&ChainFailure::UnmatchedAcceptance), Some(&1));
     }
 
     #[test]
@@ -772,7 +789,10 @@ mod tests {
         let (expectations, mut events) = fixtures();
         event_mut(&mut events, "B1-A1").event_time = 20;
         let report = evaluate(&expectations, &events, 200).unwrap();
-        assert_eq!(report.failure_counts.get(&ChainFailure::AmbiguousEventTime), Some(&1));
+        assert_eq!(
+            report.failure_counts.get(&ChainFailure::AmbiguousEventTime),
+            Some(&1)
+        );
     }
 
     #[test]
@@ -793,7 +813,9 @@ mod tests {
         event_mut(&mut events, "B1-A3").evidence_kind = EvidenceKind::ProviderEvent;
         let report = evaluate(&expectations, &events, 200).unwrap();
         assert_eq!(
-            report.failure_counts.get(&ChainFailure::FinalReceiverWithoutReceipt),
+            report
+                .failure_counts
+                .get(&ChainFailure::FinalReceiverWithoutReceipt),
             Some(&1)
         );
         assert_eq!(report.complete_chains(), 0);
@@ -805,7 +827,12 @@ mod tests {
         event_mut(&mut events, "B1-R3").to_party = "WRONG_RECEIVER".to_string();
         event_mut(&mut events, "B1-A3").to_party = "WRONG_RECEIVER".to_string();
         let report = evaluate(&expectations, &events, 200).unwrap();
-        assert_eq!(report.failure_counts.get(&ChainFailure::NotAtExpectedReceiver), Some(&1));
+        assert_eq!(
+            report
+                .failure_counts
+                .get(&ChainFailure::NotAtExpectedReceiver),
+            Some(&1)
+        );
     }
 
     #[test]
@@ -814,7 +841,10 @@ mod tests {
         event_mut(&mut events, "B1-R2").handoff_id = "H1".to_string();
         event_mut(&mut events, "B1-A2").handoff_id = "H1".to_string();
         let report = evaluate(&expectations, &events, 200).unwrap();
-        assert_eq!(report.failure_counts.get(&ChainFailure::HandoffIdReused), Some(&1));
+        assert_eq!(
+            report.failure_counts.get(&ChainFailure::HandoffIdReused),
+            Some(&1)
+        );
     }
 
     #[test]
@@ -885,7 +915,10 @@ mod tests {
         extra.event_time = 2;
         events.push(extra);
         let report = evaluate(&expectations, &events, 200).unwrap();
-        assert_eq!(report.failure_counts.get(&ChainFailure::DuplicateOpening), Some(&1));
+        assert_eq!(
+            report.failure_counts.get(&ChainFailure::DuplicateOpening),
+            Some(&1)
+        );
     }
 
     #[test]
@@ -905,7 +938,10 @@ mod tests {
         assert!(parse_expectations_tsv("box\tinitial\nA\tB").is_err());
         assert!(parse_events_tsv("source_id\tsource_event_id\nx\ty").is_err());
         let mut invalid = include_str!("../data/events.tsv").to_string();
-        invalid = invalid.replace("RECEIVER_RECEIPT\tR-007\tfalse", "RECEIVER_RECEIPT\t\tfalse");
+        invalid = invalid.replace(
+            "RECEIVER_RECEIPT\tR-007\tfalse",
+            "RECEIVER_RECEIPT\t\tfalse",
+        );
         assert!(parse_events_tsv(&invalid).is_err());
     }
 }
