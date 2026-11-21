@@ -17,20 +17,6 @@ pub const MIN_BLIND_TASK_CLUSTERS: usize = 10;
 pub const MIN_BOOTSTRAP_REPLICATES: usize = 1_000;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct Digest(pub [u8; 32]);
-
-impl Digest {
-    pub fn to_hex(self) -> String {
-        let mut output = String::with_capacity(64);
-        for byte in self.0 {
-            use std::fmt::Write as _;
-            let _ = write!(output, "{byte:02x}");
-        }
-        output
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum SignalKind {
     JointPositionRad,
     JointVelocityRadPerSec,
