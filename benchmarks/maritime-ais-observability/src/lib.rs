@@ -981,6 +981,26 @@ mod tests {
     }
 
     #[test]
+    fn event_scorecard_reports_distance_to_interval_and_tolerance() {
+        let truth = [GroundTruthEvent {
+            call_reference_id: "CALL_A".to_string(),
+            kind: ScoredEventKind::BerthEntry,
+            event_tick: 12,
+        }];
+        let prediction = ScoredPrediction {
+            call_reference_id: "CALL_A".to_string(),
+            kind: ScoredEventKind::BerthEntry,
+            lower_tick: 9,
+            upper_tick: 10,
+        };
+        let score = score_events(&truth, &[prediction], 2).expect("within tolerance");
+
+        assert_eq!(score.overall.true_positive, 1);
+        assert_eq!(score.overall.mean_interval_distance_ticks, Some(2.0));
+        assert_eq!(score.overall.mean_matched_interval_width_ticks, Some(1.0));
+    }
+
+    #[test]
     fn event_scorecard_rejects_invalid_prediction_interval() {
         let prediction = ScoredPrediction {
             call_reference_id: "CALL_A".to_string(),
