@@ -62,10 +62,10 @@
   "association_lot_id": "LOT-001",
   "association_operation_id": "OP-MILL-10",
   "measurement_evidence_class": "synthetic",
-  "calibration_disposition": "unknown",
-  "calibration_reference_id": null,
-  "calibration_reference_sha256": null,
-  "uncertainty_disposition": "unknown",
-  "uncertainty_reference_id": null,
-  "uncertainty_reference_sha256": null
+  "instrument_calibration_disposition": "unknown",
+  "calibration_attestation_id": null,
+  "calibration_attestation_sha256": null,
+  "measurement_uncertainty_disposition": "unknown",
+  "uncertainty_budget_id": null,
+  "uncertainty_budget_sha256": null
 }
