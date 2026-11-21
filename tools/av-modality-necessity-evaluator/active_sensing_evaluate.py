@@ -300,6 +300,9 @@ def evaluate(
     total_wasted = sum(row["wasted_acquisition_count"] for row in results)
     total_late = sum(row["late_acquisition_count"] for row in results)
     regret_total = sum(row["decision_regret"] for row in results)
+    total_audio_bytes = sum(row["budget_use"]["audio_bytes"] for row in results)
+    total_video_frames = sum(row["budget_use"]["video_frames"] for row in results)
+    total_energy_cost = sum(row["budget_use"]["energy_joules"] for row in results)
     realized_mean = sum(row["realized_evsi"] for row in results) / count if count else None
     return {
         "schema_version": 1,
@@ -327,7 +330,10 @@ def evaluate(
             "late_acquisition_count": total_late,
             "budget_violation_count": budget_violation_count,
             "evidence_violation_count": evidence_violation_count,
-            "mean_realized_evsi": realized_mean
+            "mean_realized_evsi": realized_mean,
+            "catalogue_audio_bytes_total": total_audio_bytes,
+            "catalogue_video_frames_total": total_video_frames,
+            "catalogue_energy_cost_total": total_energy_cost
         },
         "per_episode": results
     }
