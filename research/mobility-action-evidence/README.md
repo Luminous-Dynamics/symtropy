@@ -49,6 +49,8 @@ BENCHMARK_PROTOCOL_v0.1.md defines the L0–L5 CDAAB assurance ladder, matched b
 
 CDAAB_RESEARCH_AND_TARGETS_v0.2.md compares external baselines and research targets. It does not claim Symtropy has run robot episodes or achieved any proposed target.
 
+CDAAB_RESEARCH_AND_TARGETS_v0.3.md adds the authority-linearizability benchmark definition, updated external comparisons, matched assurance ablations and explicit research targets.
+
 The protocol directory includes:
 - action_ticket.schema.json: action ticket and expected observer dependency path.
 - scenario_manifest.schema.json: controller-visible scenario inputs and budgets, without evaluator truth.
