@@ -461,15 +461,15 @@ mod tests {
     #[test]
     fn gamma_cdf_known_values() {
         let value = regularized_gamma_p(2.0, 2.0).expect("valid gamma arguments");
-        let expected = 1.0 - 5.0 * (-2.0_f64).exp();
+        let expected = 1.0 - 3.0 * (-2.0_f64).exp();
         assert!((value - expected).abs() < 1.0e-12);
     }
 
     #[test]
     fn beta_one_boundary_has_unit_p_value() {
         let event_times = [
-            (10_000.0 * (-0.8_f64).exp()) as u64,
             (10_000.0 * (-1.2_f64).exp()) as u64,
+            (10_000.0 * (-0.8_f64).exp()) as u64,
         ];
         let (beta_hat, likelihood_ratio, p_value) =
             estimate_trend(&event_times, 10_000).expect("valid beta-one history");
