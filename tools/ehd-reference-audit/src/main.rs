@@ -7,6 +7,8 @@
 use serde_json::Value;
 use std::{env, fs, process};
 
+mod exchange;
+
 const EMBEDDED_ATLAS: &str =
     include_str!("../../../data/research/ehd_reference_atlas_v0_1.json");
 const EMBEDDED_FRONTIER_PATTERNS: &str =
@@ -1248,6 +1250,13 @@ fn main() {
     findings.extend(audit_frontier_patterns(&frontier));
     findings.extend(audit_exchange_contract(&exchange));
     findings.extend(audit_array_interaction(&array_interaction));
+    let exchange_kernel_ok = match exchange::reference_self_check() {
+        Ok(()) => true,
+        Err(error) => {
+            findings.push(format!("EXCHANGE_KERNEL_SELF_CHECK: {error}"));
+            false
+        }
+    };
     if findings.is_empty() {
         let count = len_at(&atlas, &["source_records"]).unwrap_or(0);
         let system_count = len_at(&atlas, &["system_integration_references"]).unwrap_or(0);
@@ -1258,6 +1267,9 @@ fn main() {
         println!("frontier design-pattern references: {frontier_count}");
         println!("plasma-neutral exchange contract: audited");
         println!("array interaction protocol: audited");
+        if exchange_kernel_ok {
+            println!("conservative impulse remap kernel self-check: passed");
+        }
         println!("scope: source structure and cohort comparability only; no physical V&V claim");
     } else {
         eprintln!("FAIL: {label} ({} finding(s))", findings.len());
