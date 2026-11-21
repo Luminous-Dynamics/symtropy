@@ -44,7 +44,9 @@ pub use convex_hull::ConvexHull;
 pub use halfspace::HalfSpace;
 pub use hyperbox::HyperBox;
 pub use hyperplane::Hyperplane;
-pub use mass_properties::{combine_mass_properties, MassComponent, MassProperties, MassPropertiesError};
+pub use mass_properties::{
+    MassComponent, MassProperties, MassPropertiesError, combine_mass_properties,
+};
 pub use point::Point;
 pub use rotor::Rotor;
 pub use shape::Shape;
