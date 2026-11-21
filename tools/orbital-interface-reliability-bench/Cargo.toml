@@ -1,0 +1,17 @@
+[package]
+name = "orbital-interface-reliability-bench"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "AGPL-3.0-or-later"
+description = "Bounded statistical reliability-claim auditor for orbital servicing interfaces"
+
+[dependencies]
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.150"
+
+[[bin]]
+name = "orbital-interface-reliability"
+path = "src/main.rs"
+
+[workspace]
