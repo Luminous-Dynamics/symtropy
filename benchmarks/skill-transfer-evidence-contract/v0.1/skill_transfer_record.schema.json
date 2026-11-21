@@ -334,6 +334,10 @@
                 "pattern": "^[0-9a-f]{64}$"
               }
             }
+          },
+          "predecessor_skill_id": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
