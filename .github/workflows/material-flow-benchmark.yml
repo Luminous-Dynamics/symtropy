@@ -38,6 +38,8 @@ jobs:
         run: |
           jq empty tools/material-flow-benchmark/schemas/shared_aircraft_repositioning_v0_1.schema.json
           jq empty tools/material-flow-benchmark/fixtures/synthetic-two-region-shared-aircraft.json
+          jq empty tools/material-flow-benchmark/fixtures/synthetic-two-region-shared-aircraft-tail-risk.json
+          jq empty tools/material-flow-benchmark/fixtures/synthetic-two-region-shared-aircraft-stress.json
       - name: Clippy
         run: cargo clippy --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --all-targets -- -D warnings
       - name: Tests
@@ -102,6 +104,24 @@ jobs:
             and .dispatch_commands_emitted == false
           ' mfb-l1-evidence/shared-aircraft-tail-risk-report.json
           cat mfb-l1-evidence/shared-aircraft-tail-risk-report.json
+      - name: Evaluate unweighted shared-aircraft stress-only trajectories
+        run: |
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-evaluate-shared-fleet -- tools/material-flow-benchmark/fixtures/synthetic-two-region-shared-aircraft-stress.json > mfb-l1-evidence/shared-aircraft-stress-report.json
+          jq -e '
+            .scenario_count == 2
+            and .stress_scenario_count == 1
+            and .probability_basis == "synthetic_fixture"
+            and .nonanticipative_policy_node_count == 7
+            and .exact_policy_count_evaluated == 16384
+            and .optimized_policy.expected_total_cost_units == 524
+            and .optimized_policy.cvar90_total_cost_units == 866
+            and .optimized_policy.worst_stress_case_total_cost_units != null
+            and .optimized_policy.worst_stress_case_unserved_units != null
+            and .worst_case_optimal_policy.worst_stress_case_total_cost_units != null
+            and .physical_dispatch_authorized == false
+            and .dispatch_commands_emitted == false
+          ' mfb-l1-evidence/shared-aircraft-stress-report.json
+          cat mfb-l1-evidence/shared-aircraft-stress-report.json
       - name: Validate synthetic 3D cargo-bay loading
         run: |
           mkdir -p mfb-l1-evidence
@@ -283,7 +303,9 @@ jobs:
             echo "[shared_aircraft_fixture_digest]"
             sha256sum tools/material-flow-benchmark/fixtures/synthetic-two-region-shared-aircraft.json
             sha256sum tools/material-flow-benchmark/fixtures/synthetic-two-region-shared-aircraft-tail-risk.json
+            sha256sum tools/material-flow-benchmark/fixtures/synthetic-two-region-shared-aircraft-stress.json
             sha256sum mfb-l1-evidence/shared-aircraft-tail-risk-report.json
+            sha256sum mfb-l1-evidence/shared-aircraft-stress-report.json
             echo
             echo "[shared_aircraft_source_digest]"
             sha256sum tools/material-flow-benchmark/src/shared_fleet.rs
