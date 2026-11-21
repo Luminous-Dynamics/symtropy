@@ -217,6 +217,10 @@ def main() -> None:
         a*alpha_sym*sine*(T**2+10*T-3)
         /(8*sp.pi*G*eps**3*(1-T)**2)
     )
+    expected_q_e=(
+        a*alpha_sym*sine*(1-T)/(16*sp.pi*G*eps**3)
+    )
+    exact_zero("Einstein Noether density",q_e_density-expected_q_e)
     exact_zero("Einstein-sector calibration",k_e_density-expected_k_e)
     exact_zero("GB Noether density",q_gb_density-expected_q_gb)
 
@@ -247,6 +251,11 @@ def main() -> None:
         sqrt_minus_g*0 + (a*alpha_sym/(8*G*eps**3)*(1-T))*wald_multiplier
     )
     wald_variation=sp.factor(sp.diff(wald_density,a)/(2*sp.pi))
+    expected_wald_density=(
+        a*alpha_sym/(8*G*eps**3)
+        *(-5+17*T+5*T**2-T**3)/(1-T)**2
+    )
+    exact_zero("Wald local density",wald_density-expected_wald_density)
     expected_wald_variation=(
         alpha_sym/(16*sp.pi*G*eps**3)
         *(-5+36*T+42*T**2-12*T**3+3*T**4)/(1-T)**3
@@ -401,17 +410,17 @@ def main() -> None:
         "divergence_free_identity":"Lovelock divergence-free identity assumed as algebraic theorem; a component-by-component divergence replay is a separate gate"
       },
       "source_normalized_noether_density":{
-        "Einstein_density":sp.sstr(q_e_density),
-        "Gauss_Bonnet_density":sp.sstr(q_gb_density),
-        "Einstein_variation":sp.sstr(k_e_density),
-        "Gauss_Bonnet_variation":sp.sstr(k_gb_density),
-        "total_axial_variation":sp.sstr(k_axial_density),
+        "Einstein_density":sp.sstr(expected_q_e),
+        "Gauss_Bonnet_density":sp.sstr(expected_q_gb),
+        "Einstein_variation":sp.sstr(expected_k_e),
+        "Gauss_Bonnet_variation":sp.sstr(expected_k_gb),
+        "total_axial_variation":sp.sstr(expected_k_axial),
         "normalized_total_polynomial":sp.sstr(axial_norm_tau),
         "leading_coefficient":"-5"
       },
       "wald_jacobson_myers":{
-        "local_density":sp.sstr(wald_density),
-        "local_density_variation_over_2pi":sp.sstr(wald_variation),
+        "local_density":sp.sstr(expected_wald_density),
+        "local_density_variation_over_2pi":sp.sstr(expected_wald_variation),
         "normalized_variation":sp.sstr(wald_norm_tau),
         "leading_coefficient":"-5"
       },
@@ -422,6 +431,8 @@ def main() -> None:
       },
       "exact_residuals":{
         "source_minus_axial":sp.sstr(source_minus_axial),
+        "source_minus_wald_variation":sp.sstr(source_minus_wald),
+        "axial_minus_wald_variation":sp.sstr(axial_minus_wald),
         "coordinate_boundary_primitive":{
           "definition":"dB/depsilon = source_density - Wald/axial density",
           "z":"sqrt(beta)*epsilon_cut^2",
@@ -431,8 +442,6 @@ def main() -> None:
           "B_endpoint_leading":"-1605*alpha_sym/(32*pi*G*epsilon_cut^2)",
           "warning":"This is a coordinate primitive of the scalar density difference. It is not yet derived as a covariant phase-space boundary current."
         },
-        "source_minus_wald_variation":sp.sstr(source_minus_wald),
-        "axial_minus_wald_variation":sp.sstr(axial_minus_wald),
         "GB_source_minus_lovelock_leading_coefficient":"+1605",
         "interpretation":"The Lovelock Noether and local Wald variations share the same leading -5 coefficient after the correct -2 E_R Noether prefactor is applied to the separately normalized EH and GB momentum tensors. Their finite-T polynomials are not identical. The source Eq. (24) density still has +1600 leading coefficient; this unresolved difference may involve an SL(2,R) charge-density term, a boundary term, a local-versus-integrated identity, or the expanded source charge formula."
       },
