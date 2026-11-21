@@ -51,6 +51,7 @@ fn ticket() -> ActionTicket {
         expected_observation_frame_id: "frame.local-enu-1".into(),
         expected_calibration_id: "calibration-camera-1".into(),
         expected_effect_digest: digest(7),
+        observer_independence_policy_digest: digest(40),
     }
 }
 
@@ -194,6 +195,11 @@ fn evidence() -> PhysicalOutcomeEvidence {
         event_id: "event-1".into(),
         source_id: "independent-camera-1".into(),
         executing_controller_id: "vehicle-controller-1".into(),
+        observer_failure_domains: vec![
+            "camera-sensor".into(),
+            "camera-processor".into(),
+            "observer-power".into(),
+        ],
         observer_role: ObserverRole::IndependentSensor,
         source_sequence: 31,
         observed_at_ticks: 1_150,
@@ -215,6 +221,17 @@ fn policy() -> OutcomePolicy {
         sequence_source_id: "independent-camera-1".into(),
         last_source_sequence: 30,
         minimum_confidence_basis_points: 9_000,
+        execution_failure_domains: vec![
+            "vehicle-controller".into(),
+            "vehicle-bus".into(),
+            "vehicle-power".into(),
+        ],
+        approved_observer_failure_domains: vec![
+            "camera-sensor".into(),
+            "camera-processor".into(),
+            "observer-power".into(),
+        ],
+        observer_independence_policy_digest: digest(40),
     }
 }
 
@@ -234,6 +251,20 @@ fn independent_outcome_oracle(
     ];
     if nonempty.iter().any(|value| value.trim().is_empty())
         || observed.ticket_commitment != ticket.ticket_commitment
+        || policy.observer_independence_policy_digest
+            != ticket.observer_independence_policy_digest
+        || policy.execution_failure_domains.is_empty()
+        || policy.approved_observer_failure_domains.is_empty()
+        || observed.observer_failure_domains.is_empty()
+        || policy.execution_failure_domains.iter().any(|domain| domain.trim().is_empty())
+        || policy.approved_observer_failure_domains.iter().any(|domain| domain.trim().is_empty())
+        || observed.observer_failure_domains.iter().any(|domain| domain.trim().is_empty())
+        || observed.observer_failure_domains.iter().any(|domain| {
+            !policy.approved_observer_failure_domains.contains(domain)
+        })
+        || observed.observer_failure_domains.iter().any(|domain| {
+            policy.execution_failure_domains.contains(domain)
+        })
         || !matches!(
             observed.observer_role,
             ObserverRole::IndependentSensor | ObserverRole::IndependentEvaluator
@@ -422,6 +453,26 @@ fn physical_outcome_validator_matches_independent_oracle_under_fault_mutations()
     let p = policy();
     let mut cases: Vec<(&str, PhysicalOutcomeEvidence, OutcomePolicy)> =
         vec![("positive-control", e.clone(), p.clone())];
+
+    let mut x = e.clone();
+    x.observer_failure_domains.push("vehicle-power".into());
+    cases.push(("common-cause-domain-overlap", x, p.clone()));
+
+    let mut x = e.clone();
+    x.observer_failure_domains.push("unknown-domain".into());
+    cases.push(("unapproved-observer-domain", x, p.clone()));
+
+    let mut x = e.clone();
+    x.observer_failure_domains.clear();
+    cases.push(("missing-observer-domain-path", x, p.clone()));
+
+    let mut wrong_policy = p.clone();
+    wrong_policy.observer_independence_policy_digest = digest(41);
+    cases.push(("independence-policy-version-mismatch", e.clone(), wrong_policy));
+
+    let mut incomplete_policy = p.clone();
+    incomplete_policy.execution_failure_domains.clear();
+    cases.push(("missing-execution-domain-path", e.clone(), incomplete_policy));
 
     let mut x = e.clone();
     x.ticket_commitment = digest(99);
