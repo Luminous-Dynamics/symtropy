@@ -539,7 +539,7 @@ fn write_manifest<W: Write>(
     records: &[FileResult],
     issues: &[ScanIssue],
 ) -> io::Result<()> {
-    writer.write_all(header_json(revision, root).as_bytes())?;
+    writer.write_all(header_json(revision).as_bytes())?;
     writer.write_all(b"\n")?;
     for record in records {
         writer.write_all(file_record_json(record).as_bytes())?;
