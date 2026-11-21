@@ -29,10 +29,7 @@ pub trait Shape<const D: usize>: Send + Sync {
     /// concrete implementation's documented uniform-density distribution.
     /// Collision support and a bounding sphere are insufficient to infer
     /// density or an internal mass distribution; unsupported shapes abstain.
-    fn mass_properties(
-        &self,
-        _mass: f64,
-    ) -> Result<MassProperties<D>, MassPropertiesError> {
+    fn mass_properties(&self, _mass: f64) -> Result<MassProperties<D>, MassPropertiesError> {
         Err(MassPropertiesError::UnsupportedShape)
     }
 }
