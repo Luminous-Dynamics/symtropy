@@ -31,6 +31,12 @@ It rejects missing channels, mismatched lengths, invalid scalar declarations, ma
 
 The parser uses only the Rust standard library. It validates the entire JSON document, enforces a maximum nesting depth, rejects duplicate object keys and trailing payloads, and decodes JSON string escapes (including surrogate pairs). This avoids adding a third-party dependency to the isolated benchmark crate.
 
+## Acquisition rate versus export rate
+
+The GAUGE paper reports that 16 motion-capture cameras acquire rigid-body trajectories at 180 Hz, then each recording is truncated to the valid interval and downsampled to 30 FPS for the released JSON. Rigid-body and textile simulator states are also exported at 30 Hz from simulations running at 180 Hz.
+
+The raw JSON's `FPS: 30` therefore means **export cadence**, not original acquisition rate. The downsampling filter, sample phase/anchor, timestamp mapping and uncertainty propagation are not established by the inspected raw records. A 30 Hz export has 33.3 ms sample spacing and 15 Hz Nyquist; it cannot alone establish short impact peaks or sub-frame contact timing. Interpolation cannot reconstruct that lost high-frequency information.
+
 ## Derived views
 
 - Position conversion: raw millimetres × 0.001 = metres.
