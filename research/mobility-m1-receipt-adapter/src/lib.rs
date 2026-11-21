@@ -225,6 +225,80 @@ mod tests {
         m2::Digest([byte; 32])
     }
 
+    fn time_commitment(byte: u8) -> mycelix_time::TimeCommitmentV2 {
+        mycelix_time::TimeCommitmentV2 {
+            algorithm: "sha256".into(),
+            digest: format!("{byte:02x}").repeat(32),
+        }
+    }
+
+    fn qualified_receipt_time(
+        clock: &m2::ClockBinding,
+        subject_ref: &str,
+        scale: mycelix_time::TimeScaleIdV2,
+    ) -> QualifiedReceiptTime {
+        let source_clock = mycelix_time::ClockDomainV2::Monotonic {
+            subject_ref: subject_ref.into(),
+            clock_id: clock.clock_id.clone(),
+            boot_epoch_id: clock.boot_epoch_id.clone(),
+        };
+        let destination_basis = mycelix_time::TimeBasisV2::Scale {
+            scale,
+            epoch_id: "mission-epoch-1970".into(),
+        };
+        let source_commitment = time_commitment(0xa1);
+        let correlation_commitment = time_commitment(0xa2);
+        let output_commitment = time_commitment(0xa3);
+        let correlation = mycelix_time::ClockCorrelationV2 {
+            correlation_id: "robot-clock-correlation-v1".into(),
+            source_clock: source_clock.clone(),
+            destination_basis: destination_basis.clone(),
+            destination_unit: mycelix_time::TimeUnitV2::Milliseconds,
+            profile_id: "robot-monotonic-to-tai".into(),
+            profile_version: "1".into(),
+            calibration_or_kernel_commitment: time_commitment(0xc1),
+            valid_source_interval: mycelix_time::SourceClockValidityV2 {
+                start_value: 1_000.0,
+                end_value: 2_000.0,
+                unit: mycelix_time::TimeUnitV2::DeviceTicks,
+                basis: source_clock.clone(),
+            },
+            uncertainty: mycelix_time::ClockCorrelationUncertaintyV2 {
+                maximum_error_bound_seconds: 0.005,
+                standard_deviation_seconds: Some(0.002),
+            },
+            correlation_commitment: correlation_commitment.clone(),
+        };
+        let source_reading = mycelix_time::QualifiedInstantV2 {
+            value: 1_070.0,
+            unit: mycelix_time::TimeUnitV2::DeviceTicks,
+            basis: mycelix_time::TimeBasisV2::Clock(source_clock),
+            uncertainty_bound_in_reading_units: 0.25,
+            uncertainty_bound_seconds: 0.001,
+            content_commitment: source_commitment.clone(),
+        };
+        let normalized_reading = mycelix_time::QualifiedInstantV2 {
+            value: 1_070_000.0,
+            unit: mycelix_time::TimeUnitV2::Milliseconds,
+            basis: destination_basis,
+            uncertainty_bound_in_reading_units: 0.5,
+            uncertainty_bound_seconds: 0.006,
+            content_commitment: output_commitment.clone(),
+        };
+        let normalized = mycelix_time::NormalizedInstantV2 {
+            source_reading,
+            normalized_reading,
+            correlation_id: correlation.correlation_id.clone(),
+            correlation_commitment,
+            input_commitment: source_commitment,
+            output_commitment,
+        };
+        QualifiedReceiptTime::Qualified {
+            correlation,
+            normalized,
+        }
+    }
+
     struct Fixture {
         supervisor: m1::MissionSupervisor,
         m1_ticket: m1::ActionTicket,
@@ -372,12 +446,11 @@ mod tests {
             ],
             observer_independence_policy_digest: digest(40),
         };
-        let receipt_time = QualifiedReceiptTime::Qualified {
-            source_clock: evidence.clock.clone(),
-            comparison_clock: m2_ticket.clock.clone(),
-            normalized_observed_at_ms: 1_070,
-            normalization_commitment: Some(digest(9)),
-        };
+        let receipt_time = qualified_receipt_time(
+            &evidence.clock,
+            &m2_ticket.platform.platform_id,
+            mycelix_time::TimeScaleIdV2::Tai,
+        );
         Fixture {
             supervisor,
             m1_ticket,
@@ -456,18 +529,16 @@ mod tests {
             QualifiedReceiptTime::Unknown,
             QualifiedReceiptTime::Unqualified,
         ];
-        qualifications.push(QualifiedReceiptTime::Qualified {
-            source_clock: m2::ClockBinding {
-                clock_id: "vehicle-monotonic-1".into(),
-                boot_epoch_id: "vehicle-boot-8".into(),
-            },
-            comparison_clock: m2::ClockBinding {
-                clock_id: "vehicle-monotonic-1".into(),
-                boot_epoch_id: "vehicle-boot-8".into(),
-            },
-            normalized_observed_at_ms: 1_070,
-            normalization_commitment: None,
-        });
+        let f = fixture(m2::PhysicalOutcome::Satisfied);
+        let mut uncommitted = qualified_receipt_time(
+            &f.evidence.clock,
+            &f.m2_ticket.platform.platform_id,
+            mycelix_time::TimeScaleIdV2::Tai,
+        );
+        if let QualifiedReceiptTime::Qualified { correlation, .. } = &mut uncommitted {
+            correlation.correlation_commitment.digest.clear();
+        }
+        qualifications.push(uncommitted);
         for qualification in qualifications {
             let mut f = fixture(m2::PhysicalOutcome::Satisfied);
             assert!(
@@ -492,15 +563,15 @@ mod tests {
     #[test]
     fn wrong_time_clock_domain_is_rejected_without_mutating_m1() {
         let mut f = fixture(m2::PhysicalOutcome::Satisfied);
-        let bad = QualifiedReceiptTime::Qualified {
-            source_clock: m2::ClockBinding {
-                clock_id: "other-clock".into(),
-                boot_epoch_id: "other-boot".into(),
-            },
-            comparison_clock: f.m2_ticket.clock.clone(),
-            normalized_observed_at_ms: 1_070,
-            normalization_commitment: Some(digest(9)),
+        let bad_clock = m2::ClockBinding {
+            clock_id: "other-clock".into(),
+            boot_epoch_id: "other-boot".into(),
         };
+        let bad = qualified_receipt_time(
+            &bad_clock,
+            &f.m2_ticket.platform.platform_id,
+            mycelix_time::TimeScaleIdV2::Tai,
+        );
         assert_eq!(
             apply_outcome_to_m1(
                 &mut f.supervisor,
@@ -520,17 +591,13 @@ mod tests {
     }
 
     #[test]
-    fn distinct_comparison_clock_is_preserved_without_raw_tick_cast() {
+    fn distinct_destination_time_scale_is_preserved_without_raw_tick_cast() {
         let mut f = fixture(m2::PhysicalOutcome::Satisfied);
-        let bad = QualifiedReceiptTime::Qualified {
-            source_clock: f.evidence.clock.clone(),
-            comparison_clock: m2::ClockBinding {
-                clock_id: "different-comparison-clock".into(),
-                boot_epoch_id: "different-comparison-boot".into(),
-            },
-            normalized_observed_at_ms: 1_070,
-            normalization_commitment: Some(digest(9)),
-        };
+        let alternate_scale = qualified_receipt_time(
+            &f.evidence.clock,
+            &f.m2_ticket.platform.platform_id,
+            mycelix_time::TimeScaleIdV2::Tt,
+        );
         let result = apply_outcome_to_m1(
             &mut f.supervisor,
             &f.m1_ticket,
@@ -538,11 +605,66 @@ mod tests {
             &f.live,
             &f.evidence,
             f.policy.clone(),
-            &bad,
+            &alternate_scale,
         )
-        .expect("explicitly qualified target comparison clock");
+        .expect("qualified Tt destination scale");
         assert_eq!(result, m1::ReceiptDisposition::Applied);
         assert_eq!(f.supervisor.phase("pick"), Ok(m1::SubgoalPhase::Complete));
+    }
+
+
+    #[test]
+    fn source_reading_outside_myclix_correlation_validity_is_rejected() {
+        let mut f = fixture(m2::PhysicalOutcome::Satisfied);
+        let mut invalid = f.receipt_time.clone();
+        if let QualifiedReceiptTime::Qualified { normalized, .. } = &mut invalid {
+            normalized.source_reading.value = 2_100.0;
+        }
+        assert!(matches!(
+            apply_outcome_to_m1(
+                &mut f.supervisor,
+                &f.m1_ticket,
+                &f.m2_ticket,
+                &f.live,
+                &f.evidence,
+                f.policy.clone(),
+                &invalid,
+            ),
+            Err(AdapterError::MycelixTime(
+                mycelix_time::TimeCorrelationError::SourceOutsideValidity
+            ))
+        ));
+        assert_eq!(
+            f.supervisor.phase("pick"),
+            Ok(m1::SubgoalPhase::AwaitingEvidence)
+        );
+    }
+
+    #[test]
+    fn mycelix_output_not_in_integer_milliseconds_is_rejected() {
+        let mut f = fixture(m2::PhysicalOutcome::Satisfied);
+        let mut invalid = f.receipt_time.clone();
+        if let QualifiedReceiptTime::Qualified { correlation, normalized } = &mut invalid {
+            correlation.destination_unit = mycelix_time::TimeUnitV2::Seconds;
+            normalized.normalized_reading.unit = mycelix_time::TimeUnitV2::Seconds;
+            normalized.normalized_reading.value = 1_070.0;
+        }
+        assert_eq!(
+            apply_outcome_to_m1(
+                &mut f.supervisor,
+                &f.m1_ticket,
+                &f.m2_ticket,
+                &f.live,
+                &f.evidence,
+                f.policy.clone(),
+                &invalid,
+            ),
+            Err(AdapterError::TimeDestinationUnitMismatch)
+        );
+        assert_eq!(
+            f.supervisor.phase("pick"),
+            Ok(m1::SubgoalPhase::AwaitingEvidence)
+        );
     }
 
     #[test]
@@ -591,9 +713,11 @@ mod tests {
                     time_qualification: m1::ReceiptTimeQualification {
                         source_clock_id: "observer-clock".into(),
                         source_boot_epoch_id: "observer-boot".into(),
-                        comparison_clock_id: "mission-time".into(),
-                        comparison_boot_epoch_id: "mission-epoch".into(),
-                        normalization_commitment: m1::Digest([13; 32]),
+                        comparison_basis_id: "tai".into(),
+                        comparison_epoch_id: "tai-epoch-1970".into(),
+                        source_time_commitment: m1::Digest([15; 32]),
+                        correlation_commitment: m1::Digest([16; 32]),
+                        normalized_time_commitment: m1::Digest([17; 32]),
                     },
                     observer_role: m1::ObserverRole::IndependentSensor,
                     confidence_basis_points: 9_900,
@@ -616,9 +740,11 @@ mod tests {
                     time_qualification: m1::ReceiptTimeQualification {
                         source_clock_id: "safety-clock".into(),
                         source_boot_epoch_id: "safety-boot".into(),
-                        comparison_clock_id: "mission-time".into(),
-                        comparison_boot_epoch_id: "mission-epoch".into(),
-                        normalization_commitment: m1::Digest([14; 32]),
+                        comparison_basis_id: "tai".into(),
+                        comparison_epoch_id: "tai-epoch-1970".into(),
+                        source_time_commitment: m1::Digest([18; 32]),
+                        correlation_commitment: m1::Digest([19; 32]),
+                        normalized_time_commitment: m1::Digest([20; 32]),
                     },
                     observer_role: m1::ObserverRole::IndependentSensor,
                     confidence_basis_points: 9_900,
