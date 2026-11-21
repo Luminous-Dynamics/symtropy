@@ -612,7 +612,6 @@ mod tests {
         assert_eq!(f.supervisor.phase("pick"), Ok(m1::SubgoalPhase::Complete));
     }
 
-
     #[test]
     fn source_reading_outside_myclix_correlation_validity_is_rejected() {
         let mut f = fixture(m2::PhysicalOutcome::Satisfied);
@@ -644,7 +643,11 @@ mod tests {
     fn mycelix_output_not_in_integer_milliseconds_is_rejected() {
         let mut f = fixture(m2::PhysicalOutcome::Satisfied);
         let mut invalid = f.receipt_time.clone();
-        if let QualifiedReceiptTime::Qualified { correlation, normalized } = &mut invalid {
+        if let QualifiedReceiptTime::Qualified {
+            correlation,
+            normalized,
+        } = &mut invalid
+        {
             correlation.destination_unit = mycelix_time::TimeUnitV2::Seconds;
             normalized.normalized_reading.unit = mycelix_time::TimeUnitV2::Seconds;
             normalized.normalized_reading.value = 1_070.0;
