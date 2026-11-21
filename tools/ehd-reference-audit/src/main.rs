@@ -27,10 +27,13 @@ fn len_at(value: &Value, path: &[&str]) -> Option<usize> {
 }
 
 fn contains_any(value: &Value, path: &[&str], needle: &str) -> bool {
-    at(value, path)
-        .and_then(Value::as_array)
-        .map(|items| items.iter().any(|item| item.as_str().is_some_and(|s| s.contains(needle))))
-        .unwrap_or(false)
+    match at(value, path) {
+        Some(Value::String(text)) => text.contains(needle),
+        Some(Value::Array(items)) => items
+            .iter()
+            .any(|item| item.as_str().is_some_and(|text| text.contains(needle))),
+        _ => false,
+    }
 }
 
 fn push_if_missing(report: &mut Vec<String>, condition: bool, code: &str, detail: &str) {
