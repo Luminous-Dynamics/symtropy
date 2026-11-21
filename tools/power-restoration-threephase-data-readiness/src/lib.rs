@@ -177,8 +177,8 @@ pub struct BranchPhaseModel {
     pub branch_id: String,
     pub equipment_kind: BranchEquipmentKind,
     pub conductors: Vec<Conductor>,
-    pub primitive_impedance: PrimitiveImpedanceMatrix,
-    pub sequence_impedance: SequenceImpedance,
+    pub primitive_impedance: Option<PrimitiveImpedanceMatrix>,
+    pub sequence_impedance: Option<SequenceImpedance>,
     pub current_ratings: Vec<ConductorCurrentRating>,
     pub evidence: EvidenceRef,
 }
@@ -194,7 +194,7 @@ pub struct TransformerModel {
     pub high_voltage_nominal_kv: f64,
     pub low_voltage_nominal_kv: f64,
     pub rated_power_mva: f64,
-    pub leakage_sequence_impedance: SequenceImpedance,
+    pub leakage_sequence_impedance: Option<SequenceImpedance>,
     pub zero_sequence_transfer: ZeroSequenceTransfer,
     pub high_voltage_neutral_grounded: bool,
     pub low_voltage_neutral_grounded: bool,
@@ -230,7 +230,7 @@ pub struct PhaseVoltage {
 pub struct GridSourceModel {
     pub source_id: String,
     pub phase_voltages: Vec<PhaseVoltage>,
-    pub sequence_impedance: SequenceImpedance,
+    pub sequence_impedance: Option<SequenceImpedance>,
     pub short_circuit_power_mva: f64,
     pub x_over_r_ratio: f64,
     pub evidence: EvidenceRef,
@@ -386,13 +386,24 @@ fn valid_complex(value: &ComplexValue, allow_zero: bool) -> bool {
 }
 
 fn validate_sequence(
-    sequence: &SequenceImpedance,
+    sequence: Option<&SequenceImpedance>,
     blockers: &mut Vec<ReadinessBlocker>,
     kind: &str,
     id: &str,
     field: &str,
     scope: ReadinessScope,
 ) {
+    let Some(sequence) = sequence else {
+        blocker(
+            blockers,
+            scope,
+            kind,
+            id,
+            field,
+            "native positive-, negative- and zero-sequence impedance data is missing",
+        );
+        return;
+    };
     if sequence.unit != "ohm"
         || !valid_complex(&sequence.positive, false)
         || !valid_complex(&sequence.negative, false)
@@ -528,10 +539,10 @@ fn validate_node_model(
 
 fn validate_matrix(
     branch: &BranchPhaseModel,
+    matrix: &PrimitiveImpedanceMatrix,
     blockers: &mut Vec<ReadinessBlocker>,
 ) {
     let n = branch.conductors.len();
-    let matrix = &branch.primitive_impedance;
     let valid_dimensions = n > 0
         && matrix.conductor_order == branch.conductors
         && matrix.resistance_ohm_per_km_or_base.len() == n
@@ -819,10 +830,20 @@ pub fn audit_three_phase_inputs(
             blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "branch", &branch.branch_id, "branchId", "branch model references branch absent from frozen case");
         }
         validate_phase_list(&branch.conductors, true, &mut blockers, "branch", &branch.branch_id, "conductors", ReadinessScope::ThreePhaseLoadFlow);
-        validate_matrix(branch, &mut blockers);
+        match branch.primitive_impedance.as_ref() {
+            Some(matrix) => validate_matrix(branch, matrix, &mut blockers),
+            None => blocker(
+                &mut blockers,
+                ReadinessScope::ThreePhaseLoadFlow,
+                "branch",
+                &branch.branch_id,
+                "primitiveImpedance",
+                "native phase primitive impedance matrix is missing; balanced scalar R/X is not a substitute",
+            ),
+        }
         validate_current_ratings(branch, &mut blockers);
         validate_evidence(&branch.evidence, &source_map, &mut referenced_sources, &mut blockers, ReadinessScope::ThreePhaseLoadFlow, "branch", &branch.branch_id, "evidence");
-        validate_sequence(&branch.sequence_impedance, &mut blockers, "branch", &branch.branch_id, "sequenceImpedance", ReadinessScope::ShortCircuit);
+        validate_sequence(branch.sequence_impedance.as_ref(), &mut blockers, "branch", &branch.branch_id, "sequenceImpedance", ReadinessScope::ShortCircuit);
 
         if let Some(case_branch) = case.network.branches.iter().find(|item| item.branch_id == branch.branch_id) {
             for endpoint in [&case_branch.from_node_id, &case_branch.to_node_id] {
@@ -878,7 +899,7 @@ pub fn audit_three_phase_inputs(
         if transformer.low_voltage_connection == WindingConnection::GroundedWye && !transformer.low_voltage_neutral_grounded {
             blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "transformer", &transformer.branch_id, "lowVoltageNeutralGrounded", "grounded-wye low side must declare neutral grounding");
         }
-        validate_sequence(&transformer.leakage_sequence_impedance, &mut blockers, "transformer", &transformer.branch_id, "leakageSequenceImpedance", ReadinessScope::ShortCircuit);
+        validate_sequence(transformer.leakage_sequence_impedance.as_ref(), &mut blockers, "transformer", &transformer.branch_id, "leakageSequenceImpedance", ReadinessScope::ShortCircuit);
         validate_evidence(&transformer.evidence, &source_map, &mut referenced_sources, &mut blockers, ReadinessScope::ThreePhaseLoadFlow, "transformer", &transformer.branch_id, "evidence");
     }
     for (branch_id, kind) in &branch_kinds {
@@ -978,7 +999,7 @@ pub fn audit_three_phase_inputs(
             "shortCircuitSource",
             "source short-circuit MVA and X/R ratio must be finite and positive",
         );
-        validate_sequence(&source.sequence_impedance, &mut blockers, "gridSource", &source.source_id, "sequenceImpedance", ReadinessScope::ShortCircuit);
+        validate_sequence(source.sequence_impedance.as_ref(), &mut blockers, "gridSource", &source.source_id, "sequenceImpedance", ReadinessScope::ShortCircuit);
         validate_evidence(&source.evidence, &source_map, &mut referenced_sources, &mut blockers, ReadinessScope::ThreePhaseLoadFlow, "gridSource", &source.source_id, "evidence");
     }
     for source_id in &expected_source_ids {
