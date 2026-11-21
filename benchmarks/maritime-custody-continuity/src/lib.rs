@@ -402,7 +402,7 @@ fn evaluate_box(
 
     for (index, event_ref) in actual.iter().enumerate() {
         let event = *event_ref;
-        if event.quantity != 1 || event.unit != "BOX" {
+        if event.kind != EventKind::Accept && (event.quantity != 1 || event.unit != "BOX") {
             record_failure(
                 report,
                 &expectation.box_id,
@@ -860,7 +860,21 @@ mod tests {
         let (expectations, mut events) = fixtures();
         event_mut(&mut events, "B1-A1").quantity = 2;
         let report = evaluate(&expectations, &events, 200).unwrap();
-        assert_eq!(report.failure_counts.get(&ChainFailure::InvalidQuantity), Some(&1));
+        assert_eq!(
+            report.failure_counts.get(&ChainFailure::HandoffFieldMismatch(HandoffField::Quantity)),
+            Some(&1)
+        );
+    }
+
+    #[test]
+    fn acceptance_unit_must_match_release() {
+        let (expectations, mut events) = fixtures();
+        event_mut(&mut events, "B1-A1").unit = "PALLET".to_string();
+        let report = evaluate(&expectations, &events, 200).unwrap();
+        assert_eq!(
+            report.failure_counts.get(&ChainFailure::HandoffFieldMismatch(HandoffField::Unit)),
+            Some(&1)
+        );
     }
 
     #[test]
