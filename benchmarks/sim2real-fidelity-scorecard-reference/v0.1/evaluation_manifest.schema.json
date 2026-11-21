@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/symtropy/sim2real-fidelity-manifest/v0.1",
+  "title": "Blind real-to-sim fidelity evaluation manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "protocol",
+    "training_recording_ids",
+    "calibration_recording_ids",
+    "blind_holdout_trials"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "simulator_commit",
+        "simulator_configuration_digest",
+        "robot_article_id",
+        "asset_revision",
+        "command_trace_digest",
+        "sensor_calibration_digest"
+      ],
+      "properties": {
+        "simulator_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "simulator_configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "robot_article_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asset_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "command_trace_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sensor_calibration_digest": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "training_recording_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "calibration_recording_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "blind_holdout_trials": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "trial_id",
+          "source_recording_id",
+          "traces",
+          "task_outcome"
+        ],
+        "properties": {
+          "trial_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_recording_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "traces": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "signal",
+                "series_id",
+                "normalization_scale",
+                "samples"
+              ],
+              "properties": {
+                "signal": {
+                  "enum": [
+                    "joint_position_rad",
+                    "joint_velocity_rad_per_sec",
+                    "joint_torque_nm",
+                    "current_derived_torque_nm",
+                    "end_effector_position_m",
+                    "object_position_m",
+                    "object_orientation_rad",
+                    "actuator_temperature_c",
+                    "contact_event_time_sec",
+                    "contact_normal_impulse_ns"
+                  ]
+                },
+                "series_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "normalization_scale": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "samples": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "timestamp_ns",
+                      "real_value",
+                      "simulated_value"
+                    ],
+                    "properties": {
+                      "timestamp_ns": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "real_value": {
+                        "type": "number"
+                      },
+                      "simulated_value": {
+                        "type": "number"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "task_outcome": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "real_stage_score",
+              "simulated_stage_score",
+              "real_end_to_end_success",
+              "simulated_end_to_end_success"
+            ],
+            "properties": {
+              "real_stage_score": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "simulated_stage_score": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "real_end_to_end_success": {
+                "type": "boolean"
+              },
+              "simulated_end_to_end_success": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
