@@ -72,6 +72,14 @@ def profile_evidence(profile, reference, required_kind, required_class,
         add_reason(reasons, "EVIDENCE_REFERENCE_MISSING", 1)
         return None
     evidence = found[0]
+    expected_subject = (profile.get("material_lineage_ref")
+                        if required_kind == "material_process"
+                        else profile.get("article_subject_ref"))
+    if (expected_subject != evidence.get("subject_ref")
+            or evidence.get("configuration_id") != profile.get("configuration_id")
+            or evidence.get("icd_id") != profile.get("icd_id")
+            or evidence.get("icd_revision") != profile.get("icd_revision")):
+        add_reason(reasons, "EVIDENCE_SCOPE_MISMATCH", 3)
     if evidence["status"] == "stale":
         add_reason(reasons, "EVIDENCE_STALE", 3)
     if evidence["status"] == "disputed":
@@ -120,12 +128,25 @@ def evaluate(provider, client):
 
     identity_fields = (
         "profile_id", "profile_revision", "icd_id", "icd_revision",
-        "configuration_id", "frame_id", "units_profile_id",
+        "configuration_id", "article_subject_ref", "frame_id", "units_profile_id",
         "geometry_profile_id", "mating_feature_id", "retention_feature_id",
-        "tooling_profile_id")
+        "tooling_profile_id", "material_spec_id", "material_condition_id",
+        "material_lot_id", "process_route_id", "inspection_method_id")
     if any(not isinstance(profile.get(field), str) or not profile[field].strip()
            for profile in (provider, client) for field in identity_fields):
         add_reason(reasons, "IDENTITY_FIELD_EMPTY", 3)
+
+    for profile in (provider, client):
+        load_case_ids = set()
+        for load_case in profile["load_cases"]:
+            case_id = load_case.get("case_id", "")
+            if not case_id.strip() or case_id in load_case_ids:
+                add_reason(reasons, "LOAD_CASE_ID_DUPLICATE_OR_EMPTY", 3)
+            load_case_ids.add(case_id)
+            if not load_case.get("interaction_profile_ref", "").strip():
+                add_reason(reasons, "LOAD_INTERACTION_PROFILE_ID_EMPTY", 1)
+    if not client["load_cases"]:
+        add_reason(reasons, "LOAD_REQUIREMENT_SET_EMPTY", 1)
 
     if provider["icd_id"] != client["icd_id"] or provider["icd_revision"] != client["icd_revision"]:
         add_reason(reasons, "ICD_IDENTITY_MISMATCH", 3)
@@ -280,7 +301,7 @@ def main():
         "results": results,
     }
     print(json.dumps(report, sort_keys=True, indent=2))
-    if len(results) != 40 or matched != 40:
+    if len(results) != 44 or matched != 44:
         raise SystemExit(1)
 
 
