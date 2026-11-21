@@ -261,3 +261,43 @@ The comparator verifies the workload's exact Git blob object ID against the inpu
 ### Evaluator incentive audit
 
 The candidate's declared \`used_modalities\` is no longer treated as the availability mask. The comparator supplies each arm's actual permitted inputs to the evaluator, which independently derives whether the required modality had arrived by the prediction's declared evidence cutoff. This prevents an A+V policy from receiving safe-abstention credit after choosing to ignore an audio observation it was actually given. The regression suite includes both the genuinely missing-input case and the deliberate-underuse case.
+
+
+## Expanded competitive benchmark matrix (checked 21 November 2026)
+
+The field now has several stronger and more diverse baselines than generic video-QA. We should compare within each benchmark's own protocol and then use our evidence scorecards as complementary diagnostics.
+
+| Work | Published scale / result | What it contributes to our evaluation |
+|---|---|---|
+| **SPOT-Bench (NeurIPS 2026 E&D)** | At 1 Hz, Ctrl-SPOT reports T-F1@5 20.9 overall (22.2 ABD, 19.5 PNR); the benchmark reports that roughly half the stream is expected silence | Full-stream detection, timeliness and false-positive/silence control |
+| **ALIVE (2026)** | Its page reports 68.9 OVO-Bench, 76.0 StreamingBench, 51.6 ProactiveVideoQA PAUC, 40.3 IPIBench and 52.8 FSI-Bench EDP | Strong streaming interaction baseline: task coordination, proactive monitoring and feedback-seeking |
+| **Realtime-Venus (September 2026 report)** | Realtime-Venus-Omni reports 70.2 StreamingBench; the separate audio model reports 78.0 MMAU and 97% C_RESUME on Full-Duplex-Bench v1.5 | A two-loop architecture with live interaction, background delegation and retrieved long-video frames |
+| **4DMemory (October 2026)** | LongVideo: about 900 hours and 5,000+ reviewed questions; its harness combines four skills and 22+ specialist models, with >50% improvement over the corresponding standalone model results reported by authors | Large-scale long-horizon spatiotemporal memory; our challenge must add source lineage, corrections, dependence, clock admissibility and revocation |
+| **EgoMemReason (May 2026)** | 500 questions over week-long egocentric streams; average evidence backtracking 25.9 hours; best reported overall accuracy 39.6% | A long-horizon memory reference for entity, event and behavior memory across days |
+| **DIVE (October 2026)** | 525 AV samples / six task types; leading average response-window rate 53.77% despite 0.831 s mean latency | Response-window correctness, proactive intervention timing and full-duplex participation |
+| **OmniInteract (EMNLP 2026)** | 250 videos / 1,430 response slots; best IA-QTF1 0.368 overall and 0.052 on continuous 1QnA | Trigger detection, timing, interruption handling, nested task completion and continuity |
+
+Primary sources:
+- SPOT-Bench: https://dibschat.github.io/SPOT-Bench/
+- ALIVE: https://lijinzhao30.github.io/ALIVE/
+- Realtime-Venus: https://realtime-venus.github.io/ ; technical report https://arxiv.org/abs/2609.13814
+- 4DMemory: https://arxiv.org/abs/2610.32332
+- EgoMemReason: https://arxiv.org/abs/2605.09874
+- DIVE: https://arxiv.org/abs/2610.28405
+- OmniInteract: https://aclanthology.org/2026.emnlp-main.490/
+
+### How to avoid losing to these systems
+
+1. **Do not compare a 9-episode metadata fixture to a 900-hour dataset.** Reproduce official splits and scoring first. Use LongVideo/4DMemory and EgoMemReason as external memory workloads where licensing and artifact access permit; use our own hidden provenance/correction/clock/revocation probes as an orthogonal qualification layer.
+2. **Do not optimize only for response latency.** SPOT-Bench reports spam/unresponsiveness trade-offs and dead-time; DIVE reports response-window failures despite sub-second mean latency. Optimize timeliness-F1/window hit rate and expected-silence false positives together.
+3. **Do not assume a memory harness wins because it stores more.** 4DMemory demonstrates that a specialist harness can materially improve long-horizon results, and Realtime-Venus shows frame selection by relevance and novelty with an asynchronous task loop. Our differentiator must be source-backed, causality-preserving memory that remains correct under correction, dependency, clock reset and revocation—not just recall score.
+4. **Do not use one giant-model baseline only.** Compare single omni, streaming-adapted VLM, specialist composition and evidence-ledger memory. Realtime-Venus and ALIVE show that interaction policy, delegation, feedback-seeking and learned silence are part of the capability.
+5. **Report Pareto frontiers and failure strata.** Accuracy, event retrieval, provenance, abstention/coverage, response-window rate, p95/p99 latency, tokens, memory bytes, energy and hard violations should remain separate dimensions.
+
+### Proposed stretch goals after official reproduction
+
+- SPOT: first reproduce Ctrl-SPOT's published 20.9 T-F1@5 under the same 1 Hz task protocol; then target 23 and 25 on the official hidden split without increasing dead-time false positives. These are aspirational.
+- ALIVE: reproduce the five published comparison metrics; target matched or better FSI-Bench EDP and proactive metrics while preserving evidence citation, cancellation and rights boundaries.
+- DIVE / OmniInteract: reproduce response-window, interruption, nested-chain and continuous 1QnA metrics separately; improve p95 response windows and 1QnA at matched compute, not just aggregate QA.
+- 4DMemory / EgoMemReason: reproduce the official long-horizon test and report quality by evidence span, memory budget, retrieval depth and modality. Target non-inferior event recall with materially lower memory cost, then separately demonstrate correction/revocation/provenance correctness.
+- Every target requires exact model/runtime revision, repeated seeds, hardware disclosure, confidence intervals and evaluator-controlled held-out truth. The current synthetic reference arms are not eligible for external leaderboard claims.
