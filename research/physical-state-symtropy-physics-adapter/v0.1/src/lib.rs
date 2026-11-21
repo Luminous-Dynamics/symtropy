@@ -174,10 +174,27 @@ impl<'a> SymtropyPhysicsAdapter<'a> {
             body.transform.translation.0[1],
             body.transform.translation.0[2],
         ];
-        let angular_matrix = body.angular_velocity.to_matrix();
+        let angular_matrix_native = body.angular_velocity.to_matrix();
+        let angular_matrix = [
+            [
+                angular_matrix_native[(0, 0)],
+                angular_matrix_native[(0, 1)],
+                angular_matrix_native[(0, 2)],
+            ],
+            [
+                angular_matrix_native[(1, 0)],
+                angular_matrix_native[(1, 1)],
+                angular_matrix_native[(1, 2)],
+            ],
+            [
+                angular_matrix_native[(2, 0)],
+                angular_matrix_native[(2, 1)],
+                angular_matrix_native[(2, 2)],
+            ],
+        ];
         if translation.iter().any(|value| !value.is_finite())
             || body.linear_velocity.iter().any(|value| !value.is_finite())
-            || angular_matrix.iter().any(|value| !value.is_finite())
+            || angular_matrix.iter().flatten().any(|value| !value.is_finite())
         {
             return Err(AdapterError::new(format!(
                 "body {:?} contains non-finite native state",
@@ -185,9 +202,13 @@ impl<'a> SymtropyPhysicsAdapter<'a> {
             )));
         }
 
-        let rotor = &body.transform.rotation;
-        let orthogonality_error = rotor.orthogonality_error();
-        let determinant = rotor.determinant();
+        let rotation = body.transform.rotation.to_matrix();
+        let matrix = [
+            [rotation[(0, 0)], rotation[(0, 1)], rotation[(0, 2)]],
+            [rotation[(1, 0)], rotation[(1, 1)], rotation[(1, 2)]],
+            [rotation[(2, 0)], rotation[(2, 1)], rotation[(2, 2)]],
+        ];
+        let (orthogonality_error, determinant) = rotation_matrix_diagnostics(matrix);
         if !orthogonality_error.is_finite()
             || orthogonality_error > ROTATION_TOLERANCE
             || !determinant.is_finite()
@@ -198,13 +219,6 @@ impl<'a> SymtropyPhysicsAdapter<'a> {
                 stable.entity_id
             )));
         }
-
-        let rotation = rotor.to_matrix();
-        let matrix = [
-            [rotation[(0, 0)], rotation[(0, 1)], rotation[(0, 2)]],
-            [rotation[(1, 0)], rotation[(1, 1)], rotation[(1, 2)]],
-            [rotation[(2, 0)], rotation[(2, 1)], rotation[(2, 2)]],
-        ];
         let quaternion = matrix_to_quaternion_xyzw(matrix).ok_or_else(|| {
             AdapterError::new(format!(
                 "body {:?} rotation could not be represented as a unit quaternion",
@@ -250,9 +264,9 @@ impl<'a> SymtropyPhysicsAdapter<'a> {
         // with the right-handed cross-product generator is [-B12, +B02, -B01]
         // for the native lexicographic plane basis.
         let angular_velocity = [
-            -angular_matrix[(1, 2)],
-            angular_matrix[(0, 2)],
-            -angular_matrix[(0, 1)],
+            -angular_matrix[1][2],
+            angular_matrix[0][2],
+            -angular_matrix[0][1],
         ];
         let angular_velocity_rad_s = field_value(
             angular_velocity,
@@ -544,6 +558,30 @@ fn unavailable_field<T>(
     }
 }
 
+fn angular_velocity_from_bivector_matrix(matrix: [[f64; 3]; 3]) -> [f64; 3] {
+    [-matrix[1][2], matrix[0][2], -matrix[0][1]]
+}
+
+fn rotation_matrix_diagnostics(matrix: [[f64; 3]; 3]) -> (f64, f64) {
+    let mut orthogonality_error: f64 = 0.0;
+    for i in 0..3 {
+        for j in 0..3 {
+            let dot = (0..3)
+                .map(|k| matrix[k][i] * matrix[k][j])
+                .sum::<f64>();
+            let expected = if i == j { 1.0 } else { 0.0 };
+            orthogonality_error = orthogonality_error.max((dot - expected).abs());
+        }
+    }
+    let determinant = matrix[0][0]
+        * (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1])
+        - matrix[0][1]
+            * (matrix[1][0] * matrix[2][2] - matrix[1][2] * matrix[2][0])
+        + matrix[0][2]
+            * (matrix[1][0] * matrix[2][1] - matrix[1][1] * matrix[2][0]);
+    (orthogonality_error, determinant)
+}
+
 fn matrix_to_quaternion_xyzw(matrix: [[f64; 3]; 3]) -> Option<[f64; 4]> {
     if matrix.iter().flatten().any(|value| !value.is_finite()) {
         return None;
@@ -608,8 +646,7 @@ fn matrix_to_quaternion_xyzw(matrix: [[f64; 3]; 3]) -> Option<[f64; 4]> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use symtropy_math::Bivector;
-
+    
     fn identity() -> SnapshotIdentity {
         SnapshotIdentity {
             snapshot_sha256: "a".repeat(64),
@@ -681,20 +718,23 @@ mod tests {
     }
 
     #[test]
-    fn angular_bivector_dual_matches_native_apply_to_vector_convention() {
+    fn angular_bivector_dual_matches_native_plane_basis() {
         let cases = [
-            (Bivector::<3>::unit_plane(0, 1), [0.0, 0.0, -1.0]),
-            (Bivector::<3>::unit_plane(0, 2), [0.0, 1.0, 0.0]),
-            (Bivector::<3>::unit_plane(1, 2), [-1.0, 0.0, 0.0]),
+            (
+                [[0.0, 1.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                [0.0, 0.0, -1.0],
+            ),
+            (
+                [[0.0, 0.0, 1.0], [0.0, 0.0, 0.0], [-1.0, 0.0, 0.0]],
+                [0.0, 1.0, 0.0],
+            ),
+            (
+                [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, -1.0, 0.0]],
+                [-1.0, 0.0, 0.0],
+            ),
         ];
-        for (bivector, expected) in cases {
-            let matrix = bivector.to_matrix();
-            let mapped = [
-                -matrix[(1, 2)],
-                matrix[(0, 2)],
-                -matrix[(0, 1)],
-            ];
-            assert_eq!(mapped, expected);
+        for (matrix, expected) in cases {
+            assert_eq!(angular_velocity_from_bivector_matrix(matrix), expected);
         }
     }
 
@@ -705,7 +745,7 @@ mod tests {
         let adapter = adapter(&world, &[handle], false);
         let snapshot = adapter.snapshot().unwrap();
         assert!(matches!(
-            snapshot.entities[0].contact.status,
+            &snapshot.entities[0].contact.status,
             ContactStatus::Unavailable { .. }
         ));
     }
