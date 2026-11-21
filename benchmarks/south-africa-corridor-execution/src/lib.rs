@@ -1,7 +1,6 @@
 use std::collections::BTreeSet;
 
-pub const REFERENCE_CSV: &str =
-    include_str!("../data/transnet-trim-2026-corridor-scorecard.csv");
+pub const REFERENCE_CSV: &str = include_str!("../data/transnet-trim-2026-corridor-scorecard.csv");
 
 const EXPECTED_HEADER: &str = "corridor,train_execution_target_pct,train_execution_actual_pct,otd_target_pct,otd_including_80s_actual_pct,otd_excluding_80s_actual_pct,ota_target_pct,ota_actual_pct";
 
@@ -103,9 +102,7 @@ pub fn parse_scorecard(csv: &str) -> Result<Vec<ScorecardRow>, String> {
 
         let corridor = fields[0].trim();
         if !EXPECTED_CORRIDORS.contains(&corridor) {
-            return Err(format!(
-                "line {line_number}: unknown corridor {corridor:?}"
-            ));
+            return Err(format!("line {line_number}: unknown corridor {corridor:?}"));
         }
 
         if !seen.insert(corridor.to_string()) {
@@ -262,10 +259,7 @@ mod tests {
 
     #[test]
     fn out_of_range_percentages_are_rejected() {
-        let csv = REFERENCE_CSV.replace(
-            "North Corridor,75,69",
-            "North Corridor,75,101",
-        );
+        let csv = REFERENCE_CSV.replace("North Corridor,75,69", "North Corridor,75,101");
         let error = parse_scorecard(&csv).expect_err("101 percent must fail");
         assert!(error.contains("0..=100"));
     }
