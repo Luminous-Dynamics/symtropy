@@ -50,25 +50,49 @@ impl Display for PoseScoreError {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         let message = match self {
             Self::EmptyIdentity => "trial or exchangeability identity must not be empty",
-            Self::InvalidNormalizationScale => "translation and rotation normalization scales must be finite and positive",
-            Self::InvalidScoreDefinitionDigest => "score-definition digest must be a 64-character hexadecimal SHA-256 value",
+            Self::InvalidNormalizationScale => {
+                "translation and rotation normalization scales must be finite and positive"
+            }
+            Self::InvalidScoreDefinitionDigest => {
+                "score-definition digest must be a 64-character hexadecimal SHA-256 value"
+            }
             Self::EmptyExpectedBodyManifest => "expected body manifest must not be empty",
             Self::DuplicateExpectedBody => "expected body identifiers must be unique",
             Self::EmptyBodyId => "body identifier must not be empty",
             Self::ZeroExpectedFrameCount => "each expected body must declare at least one frame",
-            Self::UnexpectedBody => "pose error contains a body outside the frozen expected-body manifest",
+            Self::UnexpectedBody => {
+                "pose error contains a body outside the frozen expected-body manifest"
+            }
             Self::DuplicateBodyFrame => "pose error contains a duplicate body/frame pair",
-            Self::FrameIndexOutOfRange => "pose error frame index is outside the frozen expected range",
-            Self::MissingExpectedSamples => "pose error is missing one or more expected body/frame samples",
-            Self::InvalidPoseError => "translation and rotation errors must be finite and non-negative",
+            Self::FrameIndexOutOfRange => {
+                "pose error frame index is outside the frozen expected range"
+            }
+            Self::MissingExpectedSamples => {
+                "pose error is missing one or more expected body/frame samples"
+            }
+            Self::InvalidPoseError => {
+                "translation and rotation errors must be finite and non-negative"
+            }
             Self::ScoreOverflow => "normalized pose score cannot be represented as u64",
             Self::EmptyTrialSet => "calibration block must contain at least one trial score",
-            Self::DuplicateTrialId => "trial identifiers must be unique within an exchangeability block",
-            Self::InvalidIncompleteOutcome => "an incomplete horizon must have Failed or Aborted outcome",
-            Self::InvalidIncompleteSentinel => "the incomplete-horizon sentinel and disposition disagree",
-            Self::InvalidBlockIdentity => "calibration block identity fields must be valid SHA-256 digests",
-            Self::InvalidTrialSourceIdentity => "trial source, forecast, revision and model identities must be valid digests",
-            Self::MixedBlockIdentity => "trial score identities do not match the declared calibration block identity",
+            Self::DuplicateTrialId => {
+                "trial identifiers must be unique within an exchangeability block"
+            }
+            Self::InvalidIncompleteOutcome => {
+                "an incomplete horizon must have Failed or Aborted outcome"
+            }
+            Self::InvalidIncompleteSentinel => {
+                "the incomplete-horizon sentinel and disposition disagree"
+            }
+            Self::InvalidBlockIdentity => {
+                "calibration block identity fields must be valid SHA-256 digests"
+            }
+            Self::InvalidTrialSourceIdentity => {
+                "trial source, forecast, revision and model identities must be valid digests"
+            }
+            Self::MixedBlockIdentity => {
+                "trial score identities do not match the declared calibration block identity"
+            }
         };
         formatter.write_str(message)
     }
@@ -147,7 +171,10 @@ pub struct TrialScoreIdentity {
 impl TrialScoreIdentity {
     fn validate(&self) -> Result<(), PoseScoreError> {
         if self.dataset_revision.len() != 40
-            || !self.dataset_revision.bytes().all(|byte| byte.is_ascii_hexdigit())
+            || !self
+                .dataset_revision
+                .bytes()
+                .all(|byte| byte.is_ascii_hexdigit())
             || !is_sha256(&self.raw_trial_sha256)
             || !is_sha256(&self.prediction_sha256)
             || !is_sha256(&self.model_digest)
@@ -472,7 +499,8 @@ mod tests {
     const TARGET_DIGEST: &str = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
     const DOMAIN_DIGEST: &str = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
     const RAW_DIGEST: &str = "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
-    const FORECAST_DIGEST: &str = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+    const FORECAST_DIGEST: &str =
+        "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
     const DATASET_REVISION: &str = "f95bb06e7d11142f88ffd3b6b56c7258deb8fff6";
 
     fn normalization() -> PoseScoreNormalization<'static> {
@@ -536,7 +564,8 @@ mod tests {
             target_digest: TARGET_DIGEST.to_owned(),
             domain_digest: DOMAIN_DIGEST.to_owned(),
             score_definition_digest: DIGEST.to_owned(),
-            calibration_split_digest: "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff".to_owned(),
+            calibration_split_digest:
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff".to_owned(),
         }
     }
 
@@ -569,7 +598,7 @@ mod tests {
             &expected(),
             &original,
             normalization(),
-        score_identity(),
+            score_identity(),
         )
         .unwrap();
         let b = score_complete_trial(
@@ -578,7 +607,7 @@ mod tests {
             &expected(),
             &permuted,
             normalization(),
-        score_identity(),
+            score_identity(),
         )
         .unwrap();
         assert_eq!(a.maximum_nonconformity_score, b.maximum_nonconformity_score);
@@ -595,7 +624,7 @@ mod tests {
                 &expected(),
                 &rows,
                 normalization(),
-            score_identity(),
+                score_identity(),
             ),
             Err(PoseScoreError::MissingExpectedSamples)
         );
@@ -611,7 +640,7 @@ mod tests {
                 &expected(),
                 &rows,
                 normalization(),
-            score_identity(),
+                score_identity(),
             ),
             Err(PoseScoreError::DuplicateBodyFrame)
         );
@@ -631,7 +660,7 @@ mod tests {
                 &expected(),
                 &rows,
                 normalization(),
-            score_identity(),
+                score_identity(),
             ),
             Err(PoseScoreError::UnexpectedBody)
         );
@@ -651,7 +680,7 @@ mod tests {
                 &expected(),
                 &rows,
                 normalization(),
-            score_identity(),
+                score_identity(),
             ),
             Err(PoseScoreError::InvalidPoseError)
         );
@@ -666,7 +695,7 @@ mod tests {
                 &expected(),
                 &rows,
                 normalization(),
-            score_identity(),
+                score_identity(),
             ),
             Err(PoseScoreError::InvalidPoseError)
         );
@@ -683,7 +712,7 @@ mod tests {
                 &expected(),
                 &samples(),
                 scale,
-            score_identity(),
+                score_identity(),
             ),
             Err(PoseScoreError::InvalidNormalizationScale)
         );
@@ -696,7 +725,7 @@ mod tests {
                 &expected(),
                 &samples(),
                 scale,
-            score_identity(),
+                score_identity(),
             ),
             Err(PoseScoreError::InvalidScoreDefinitionDigest)
         );
@@ -705,11 +734,28 @@ mod tests {
     #[test]
     fn incomplete_failed_or_aborted_trial_uses_maximum_sentinel_and_is_retained() {
         assert_eq!(
-            TrialPoseScore::incomplete("trial-02", EpisodeOutcome::Completed, score_identity(), DIGEST),
+            TrialPoseScore::incomplete(
+                "trial-02",
+                EpisodeOutcome::Completed,
+                score_identity(),
+                DIGEST
+            ),
             Err(PoseScoreError::InvalidIncompleteOutcome)
         );
-        let failed = TrialPoseScore::incomplete("trial-02", EpisodeOutcome::Failed, score_identity(), DIGEST).unwrap();
-        let aborted = TrialPoseScore::incomplete("trial-03", EpisodeOutcome::Aborted, score_identity(), DIGEST).unwrap();
+        let failed = TrialPoseScore::incomplete(
+            "trial-02",
+            EpisodeOutcome::Failed,
+            score_identity(),
+            DIGEST,
+        )
+        .unwrap();
+        let aborted = TrialPoseScore::incomplete(
+            "trial-03",
+            EpisodeOutcome::Aborted,
+            score_identity(),
+            DIGEST,
+        )
+        .unwrap();
         let block =
             build_calibration_block("session-01", &[failed, aborted], &block_identity()).unwrap();
         assert_eq!(block.calibration_block.episodes.len(), 2);
@@ -717,8 +763,14 @@ mod tests {
             block.calibration_block.maximum_nonconformity_score,
             INCOMPLETE_HORIZON_SCORE
         );
-        assert_eq!(block.calibration_block.episodes[0].outcome, EpisodeOutcome::Failed);
-        assert_eq!(block.calibration_block.episodes[1].outcome, EpisodeOutcome::Aborted);
+        assert_eq!(
+            block.calibration_block.episodes[0].outcome,
+            EpisodeOutcome::Failed
+        );
+        assert_eq!(
+            block.calibration_block.episodes[1].outcome,
+            EpisodeOutcome::Aborted
+        );
         assert_eq!(block.trial_score_records.len(), 2);
     }
 
@@ -730,7 +782,7 @@ mod tests {
             &expected(),
             &samples(),
             normalization(),
-        score_identity(),
+            score_identity(),
         )
         .unwrap();
         let mut lower = samples();
@@ -744,12 +796,15 @@ mod tests {
             &expected(),
             &lower,
             normalization(),
-        score_identity(),
+            score_identity(),
         )
         .unwrap();
         let block =
             build_calibration_block("session-01", &[a.clone(), b], &block_identity()).unwrap();
-        assert_eq!(block.calibration_block.maximum_nonconformity_score, a.maximum_nonconformity_score);
+        assert_eq!(
+            block.calibration_block.maximum_nonconformity_score,
+            a.maximum_nonconformity_score
+        );
         assert_eq!(block.calibration_block.episodes.len(), 2);
     }
 
@@ -761,7 +816,7 @@ mod tests {
             &expected(),
             &samples(),
             normalization(),
-        score_identity(),
+            score_identity(),
         )
         .unwrap();
         assert_eq!(
@@ -781,7 +836,8 @@ mod tests {
             score_identity(),
         )
         .unwrap();
-        trial.identity.model_digest = "9999999999999999999999999999999999999999999999999999999999999999".to_owned();
+        trial.identity.model_digest =
+            "9999999999999999999999999999999999999999999999999999999999999999".to_owned();
         assert_eq!(
             build_calibration_block("session-01", &[trial], &block_identity()),
             Err(PoseScoreError::MixedBlockIdentity)
@@ -801,9 +857,18 @@ mod tests {
         .unwrap();
         let receipt = build_calibration_block("session-01", &[trial], &block_identity()).unwrap();
         assert_eq!(receipt.trial_score_records.len(), 1);
-        assert_eq!(receipt.trial_score_records[0].identity.raw_trial_sha256, RAW_DIGEST);
-        assert_eq!(receipt.trial_score_records[0].identity.prediction_sha256, FORECAST_DIGEST);
-        assert_eq!(receipt.trial_score_records[0].identity.dataset_revision, DATASET_REVISION);
+        assert_eq!(
+            receipt.trial_score_records[0].identity.raw_trial_sha256,
+            RAW_DIGEST
+        );
+        assert_eq!(
+            receipt.trial_score_records[0].identity.prediction_sha256,
+            FORECAST_DIGEST
+        );
+        assert_eq!(
+            receipt.trial_score_records[0].identity.dataset_revision,
+            DATASET_REVISION
+        );
     }
 
     #[test]
@@ -820,7 +885,8 @@ mod tests {
             rank_1based: 19,
             threshold: ConformalThreshold::Finite(INCOMPLETE_HORIZON_SCORE),
             exchangeability_unit: "session/article block".to_owned(),
-            coverage_claim: "finite-sample marginal whole-unit coverage under exchangeability".to_owned(),
+            coverage_claim: "finite-sample marginal whole-unit coverage under exchangeability"
+                .to_owned(),
         };
         let decision = check_pose_set_application(
             &receipt,
