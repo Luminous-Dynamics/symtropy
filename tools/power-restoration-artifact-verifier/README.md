@@ -113,7 +113,7 @@ The resolver verifies every declared artifact. It does not yet enforce a closed-
 
 A trusted signature authenticates that a trusted key signed the bound claim. It **does not prove that the claim is true**. An electrical-validator signature is not a load-flow calculation, protection study, switching safety approval or operator authorization. A service-provider signature is not itself proof that customers received service. The service trajectory's raw source artifacts are separately signed by an EvidenceProvider, and its derived digest is parent-bound to those source digests, but this still authenticates provenance—not meter truth or physical service delivery. Each producer must still execute its independently qualified domain method, and the run receipt must bind the resulting artifacts.
 
-The end-to-end claim gate parses and qualifies the existing #6352 run receipt and #6397 observation batches and derives its own required artifact/signature set. For the final electricity service trajectory it now re-reads the trajectory through the verified-bundle boundary and re-hashes the bytes immediately before parsing, invokes the typed service trajectory auditor, requires every sample/source/calibration artifact as exact bytes in the same closed-world bundle, and derives a separate `EvidenceProvider` attestation for every source artifact. The derived `ServiceProvider` trajectory attestation must include those source digests as parents. The trajectory's `evidenceProviderId` must match a separately pinned `EvidenceProvider` profile; each raw source artifact (including calibration and model-input artifacts) receives an exact-digest EvidenceProvider attestation bound to the case and proposal set. If an identical source was already attested during observation acquisition, the existing obligation may be reused only when issuer and digest match. Service and evidence providers must be distinct identities and cryptographic keys; one producer cannot self-certify both its raw inputs and derived service claim.
+The end-to-end claim gate parses and qualifies the existing #6352 run receipt and #6397 observation batches and derives its own required artifact/signature set. For the final electricity service trajectory it re-reads the trajectory through the verified-bundle boundary and re-hashes the bytes immediately before parsing, invokes the typed service trajectory auditor, requires every sample/source/calibration artifact as exact bytes in the same closed-world bundle, and derives a separate `EvidenceProvider` attestation for every source artifact. The typed service auditor also enforces that every measured-service interval is fully covered by the meter calibration validity window. The derived `ServiceProvider` trajectory attestation must include those source digests as parents. The trajectory's `evidenceProviderId` must match a separately pinned `EvidenceProvider` profile; each raw source artifact (including calibration and model-input artifacts) receives an exact-digest EvidenceProvider attestation bound to the case and proposal set. If an identical source was already attested during observation acquisition, the existing obligation may be reused only when issuer and digest match. Service and evidence providers must be distinct identities and cryptographic keys; one producer cannot self-certify both its raw inputs and derived service claim.
 
 The claim verifier still does not parse domain-specific contents inside arbitrary transition, validator, electrical, field-observer or scorer artifacts beyond their exact digests and signed parent bindings; domain-specific semantic receipt validators remain necessary.
 
@@ -124,13 +124,20 @@ The public fixture uses a deterministic, disposable Ed25519 test key and synthet
 ## Validation
 
 \`\`\`sh
-cargo fmt --manifest-path tools/power-restoration-artifact-verifier/Cargo.toml --all -- --check
-cargo clippy --manifest-path tools/power-restoration-artifact-verifier/Cargo.toml --all-targets -- -D warnings
-cargo test --manifest-path tools/power-restoration-artifact-verifier/Cargo.toml --all-targets
+cargo fmt --manifest-path tools/power-restoration-artifact-verifier/Cargo.toml --package power-restoration-artifact-verifier -- --check
+cargo clippy --manifest-path tools/power-restoration-artifact-verifier/Cargo.toml --package power-restoration-artifact-verifier --all-targets -- -D warnings
+cargo test --manifest-path tools/power-restoration-artifact-verifier/Cargo.toml --package power-restoration-artifact-verifier --all-targets
+cargo fmt --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml --package power-restoration-service-trajectory-audit -- --check
+cargo clippy --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml --package power-restoration-service-trajectory-audit --all-targets -- -D warnings
+cargo test --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml --package power-restoration-service-trajectory-audit --all-targets
 \`\`\`
 
 The exact-path workflow repeats schema checks, formatting, strict Clippy and Rust tests. Runner execution is reported separately from authored tests.
 
+## Integrated service verification
+
+For a completed run with a final electricity trajectory, the claim gate now requires the exact final trajectory bytes in the verified bundle, parses only bytes re-read and re-hashed immediately before use, invokes the typed service-trajectory auditor, and requires every source/calibration artifact named by the trajectory to be present and re-hash correctly. The evidence-provider signs each raw source artifact under a distinct role; the service-provider signs the derived trajectory with the source digests as parents. The service trajectory report is included in the top-level claim report. The service audit crate has 25 authored tests; the claim verifier has 42 authored tests including source omission, post-verification mutation, distinct producer identities and source-parent binding. Exact-head CI must pass both packages before this integration is considered qualified.
+
 ## Claim boundary
 
-Offline artifact byte-identity and pinned Ed25519 attestation verification only. No producer scientific truth, electrical feasibility, physical safety, authority, measured customer service or restoration success is certified.
+Offline artifact byte-identity, pinned Ed25519 attestation verification and electricity service arithmetic/provenance reconciliation only. These checks do not establish producer scientific truth, meter accuracy, electrical feasibility, physical safety, switching authority, commissioning or actual customer receipt of service.
