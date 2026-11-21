@@ -48,9 +48,7 @@ fn central_difference_jacobian(
 fn discrete_two_dimensional_stability(trace: f64, determinant: f64) -> bool {
     // Second-order Jury conditions for both eigenvalues to lie strictly
     // inside the unit circle for a real 2x2 discrete-time Jacobian.
-    1.0 - trace + determinant > 0.0
-        && 1.0 + trace + determinant > 0.0
-        && 1.0 - determinant > 0.0
+    1.0 - trace + determinant > 0.0 && 1.0 + trace + determinant > 0.0 && 1.0 - determinant > 0.0
 }
 
 fn characteristic_polynomial(lambda: f64, trace: f64, determinant: f64) -> f64 {
@@ -118,13 +116,7 @@ fn two_dimensional_jacobian_has_known_discrete_time_stability_class() {
     ));
     for eigenvalue in stable_eigenvalues {
         assert!(
-            characteristic_polynomial(
-                eigenvalue,
-                stable_trace,
-                stable_determinant
-            )
-            .abs()
-                < 1.0e-12
+            characteristic_polynomial(eigenvalue, stable_trace, stable_determinant).abs() < 1.0e-12
         );
     }
 
@@ -138,12 +130,7 @@ fn two_dimensional_jacobian_has_known_discrete_time_stability_class() {
     ));
     for eigenvalue in unstable_eigenvalues {
         assert!(
-            characteristic_polynomial(
-                eigenvalue,
-                unstable_trace,
-                unstable_determinant
-            )
-            .abs()
+            characteristic_polynomial(eigenvalue, unstable_trace, unstable_determinant).abs()
                 < 1.0e-12
         );
     }
@@ -167,7 +154,10 @@ fn saddle_node_fixture_pins_fixed_points_and_bifurcation_parameter() {
 
     assert_eq!(saddle_node_map(0.0, 0.0), 0.0);
     assert!((saddle_node_multiplier(0.0) - 1.0).abs() < 1.0e-12);
-    assert!(4.0 * -0.01 < 0.0, "negative mu has no real fixed-point pair");
+    assert!(
+        4.0 * -0.01 < 0.0,
+        "negative mu has no real fixed-point pair"
+    );
     assert!(4.0 * mu > 0.0, "positive mu has two distinct fixed points");
 }
 
@@ -179,10 +169,11 @@ fn logistic_map_period_doubling_threshold_is_r_three() {
     let critical = logistic_multiplier_at_nonzero_fixed_point(3.0);
     let above = logistic_multiplier_at_nonzero_fixed_point(3.1);
 
-    assert!((logistic_map(logistic_nonzero_fixed_point(3.0), 3.0)
-        - logistic_nonzero_fixed_point(3.0))
-        .abs()
-        < 1.0e-12);
+    assert!(
+        (logistic_map(logistic_nonzero_fixed_point(3.0), 3.0) - logistic_nonzero_fixed_point(3.0))
+            .abs()
+            < 1.0e-12
+    );
     assert!((below + 0.9).abs() < 1.0e-12);
     assert!((critical + 1.0).abs() < 1.0e-12);
     assert!((above + 1.1).abs() < 1.0e-12);
