@@ -55,7 +55,6 @@
       "retries": 0,
       "wall_clock_duration_ms": 3200,
       "energy_wh": null,
-      "predecessor_skill_id": null,
       "predecessor_transition_id": null
     },
     {
