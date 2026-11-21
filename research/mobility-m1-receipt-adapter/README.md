@@ -7,7 +7,7 @@
 The dedicated workflow checks out these exact, public source commits:
 
 - M1 mission supervisor: `9d9b8b223e711d6bc76dd60b9563950ab2a16702`
-- M2 action/effect contract: `189dd53b3fbd352f7dcc3d1773b2476b692604ee`
+- M2 action/effect contract: `16b9f49a31db50b21ef6e463ae70cc3c7612a439`
 
 They are imported as modules from the checkout worktrees; the adapter does not fork or copy their state machines.
 
