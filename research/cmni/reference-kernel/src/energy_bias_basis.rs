@@ -244,6 +244,25 @@ mod tests {
     }
 
     #[test]
+    fn aiache_bias_basis_matches_reference_domain_and_short_medium_long_centres() {
+        let reference_grid = [0.0005, 0.01, 25.01];
+        let (domain_min, domain_max) =
+            aiachne_bias_basis_energy_domain(&reference_grid).expect("AIACHNE domain");
+        let design = build_grouped_energy_bias_design(
+            &[0.0005, 1.0, 25.01],
+            &[vec![0], vec![0], vec![0]],
+            1,
+            domain_min,
+            domain_max,
+        )
+        .expect("AIACHNE grouped bias basis");
+        assert!((design.energy_centres_mev[0] - 0.0004).abs() < 1.0e-15);
+        assert!((design.energy_centres_mev[99] - 30.01).abs() < 1.0e-12);
+        assert!((design.energy_centres_mev[100] - 0.0004).abs() < 1.0e-15);
+        assert!((design.energy_centres_mev[150] - 0.0004).abs() < 1.0e-15);
+    }
+
+    #[test]
     fn notebook_reference_grid_extension_is_reproduced() {
         let domain = aiachne_bias_basis_energy_domain(&[0.0005, 0.01, 25.01])
             .expect("AIACHNE basis energy domain");
