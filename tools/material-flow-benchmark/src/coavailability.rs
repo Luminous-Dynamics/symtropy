@@ -365,6 +365,9 @@ fn find_first_available_launch(
         recovery_service_ms,
     } = request;
     let mut candidate = earliest_launch_ms;
+    let mut aircraft_conflict_observed = false;
+    let mut launch_pad_conflict_observed = false;
+    let mut recovery_pad_conflict_observed = false;
 
     // Every conflict advances the candidate beyond at least one finite
     // reservation. The loop is bounded because there are finitely many
@@ -396,6 +399,10 @@ fn find_first_available_launch(
                 && recovery_start < reservation.end_ms
                 && reservation.start_ms < recovery_end;
 
+            launch_pad_conflict_observed |= overlaps_launch_pad;
+            aircraft_conflict_observed |= overlaps_aircraft;
+            recovery_pad_conflict_observed |= overlaps_recovery_pad;
+
             if overlaps_launch_pad || overlaps_aircraft || overlaps_recovery_pad {
                 blocked = true;
                 if overlaps_launch_pad || overlaps_aircraft {
@@ -420,7 +427,15 @@ fn find_first_available_launch(
         candidate = next_candidate;
     }
 
-    Ok(None)
+    if aircraft_conflict_observed {
+        Err("aircraft is reserved during the proposed flight or turnaround interval".into())
+    } else if launch_pad_conflict_observed {
+        Err("launch pad is reserved throughout the feasible launch window".into())
+    } else if recovery_pad_conflict_observed {
+        Err("recovery pad is reserved throughout the feasible recovery window".into())
+    } else {
+        Ok(None)
+    }
 }
 
 /// Evaluate whether one proposed sortie can fit the carrier's supported stop
