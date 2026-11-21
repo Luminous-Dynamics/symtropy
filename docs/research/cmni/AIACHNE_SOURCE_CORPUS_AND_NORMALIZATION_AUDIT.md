@@ -133,6 +133,23 @@ The implementation is a first-order delta-method primitive. It does not silently
 
 Authored Rust tests cover integral preservation, the fixed-reference normalization null direction, induced cross-experiment covariance, and invalid dimensions/non-finite inputs. These tests are not yet reported as executed; exact-head CI must compile, lint, and run them.
 
+## 4A. Bias-basis coefficient ordering and energy-domain parity
+
+The LANL notebook builds three Gaussian basis blocks in short/medium/long order:
+- short: 100 centres, width 0.05 in log10 energy (`B_s`);
+- medium: 50 centres, width 0.15 (`B_m`);
+- long: 10 centres, width 0.3 (`B_l`).
+
+The public Python helper sorts the supplied widths in ascending order before constructing these blocks. The CMNI flattened basis had previously stored the same 160 functions in long/medium/short order. The functions were present, but a flattened coefficient vector could not be treated as a drop-in AIACHNE vector. CMNI now stores short/medium/long order and has regression assertions for the 100/50/10 block boundaries.
+
+The notebook also derives its log-energy basis domain from the pointwise evaluation grid:
+- lower endpoint = minimum reference energy minus 0.0001 MeV;
+- upper endpoint = maximum reference energy plus 5 MeV.
+
+For the pinned 72-point evaluation grid (0.0005 to 25.01 MeV), this gives 0.0004 to 30.01 MeV. The Rust kernel now exposes `aiachne_bias_basis_energy_domain` to reproduce this recipe explicitly. It must be called with the pinned reference grid; using the observed-data min/max or the unextended reference endpoints would alter every basis centre.
+
+The kernel therefore has separate, explicit reproduction helpers for the upstream energy-grid normalization and the 160-column bias basis. Both remain research code until the independent SciPy/Stan parity checks below pass.
+
 ## 5. Next parity experiments
 
 1. Reconstruct the upstream notebook's exact trapezoidal weights and linear interpolation projection on each experimental energy grid.
