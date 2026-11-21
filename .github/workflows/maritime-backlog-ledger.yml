@@ -1,0 +1,52 @@
+name: Maritime Backlog Ledger
+
+on:
+  pull_request:
+    paths:
+      - "benchmarks/maritime-backlog-ledger/**"
+      - ".github/workflows/maritime-backlog-ledger.yml"
+  push:
+    paths:
+      - "benchmarks/maritime-backlog-ledger/**"
+      - ".github/workflows/maritime-backlog-ledger.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-head:
+    name: Verify exact source head
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact source revision
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+
+      - name: Verify fixture digests
+        working-directory: benchmarks/maritime-backlog-ledger
+        run: (cd data && sha256sum --check SHA256SUMS)
+
+      - name: Check formatting
+        working-directory: benchmarks/maritime-backlog-ledger
+        run: cargo fmt --all --check
+
+      - name: Run offline tests
+        working-directory: benchmarks/maritime-backlog-ledger
+        run: cargo test --offline --locked
+
+      - name: Run strict Clippy
+        working-directory: benchmarks/maritime-backlog-ledger
+        run: cargo clippy --offline --locked --all-targets -- -D warnings
+
+      - name: Execute read-only fixture evaluator
+        working-directory: benchmarks/maritime-backlog-ledger
+        run: cargo run --offline --locked
