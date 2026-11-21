@@ -356,6 +356,40 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
         "Symtropy rigid-body engine must not be represented as a plasma solver",
     );
 
+    let integration_refs = at(root, &["system_integration_references"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        integration_refs.is_some_and(|rows| rows.iter().any(|r| text_at(r, &["source_id"]) == Some("TAO_2026_ION_MICROROBOT_CONTROLLED_HOVER"))),
+        "TAO_SYSTEM_REFERENCE",
+        "missing integrated ion-wind microrobot reference",
+    );
+    let tao = integration_refs.and_then(|rows| rows.iter().find(|r| {
+        text_at(r, &["source_id"]) == Some("TAO_2026_ION_MICROROBOT_CONTROLLED_HOVER")
+    }));
+    if let Some(reference) = tao {
+        push_if_missing(
+            &mut findings,
+            number_at(reference, &["platform", "reported_robot_mass_mg"]) == Some(36.7)
+                && number_at(reference, &["performance", "reported_thrust_to_weight_ratio"]) == Some(5.0)
+                && number_at(reference, &["performance", "reported_hover_duration_hours"]) == Some(1.0),
+            "TAO_SOURCE_VALUES",
+            "microrobot mass, T/W or tethered hover values changed",
+        );
+        push_if_missing(
+            &mut findings,
+            at(reference, &["operating_boundary", "hover_power_boundary"]).and_then(Value::as_str) == Some("tethered")
+                && at(reference, &["operating_boundary", "self_powered_free_flight_demonstrated"]).and_then(Value::as_bool) == Some(false),
+            "TAO_POWER_BOUNDARY",
+            "tethered hover must not be promoted to self-powered free flight",
+        );
+        push_if_missing(
+            &mut findings,
+            at(reference, &["comparability", "leaderboard_eligible_against_bare_thrusters"]).and_then(Value::as_bool) == Some(false),
+            "TAO_COMPARABILITY",
+            "integrated microrobot control result must remain separate from bare-thruster leaderboard",
+        );
+    }
+
     findings
 }
 
@@ -502,6 +536,14 @@ mod tests {
         value["solver_profiles"][2]["current_claim_boundary"] =
             Value::String("qualified plasma PDE solver".into());
         assert!(has_code(&audit_atlas(&value), "SYMTROPY_CLAIM_BOUNDARY"));
+    }
+
+    #[test]
+    fn tethered_microrobot_hover_cannot_be_promoted_to_free_flight() {
+        let mut value = atlas();
+        value["system_integration_references"][0]["operating_boundary"]
+            ["self_powered_free_flight_demonstrated"] = Value::Bool(true);
+        assert!(has_code(&audit_atlas(&value), "TAO_POWER_BOUNDARY"));
     }
 
     #[test]
