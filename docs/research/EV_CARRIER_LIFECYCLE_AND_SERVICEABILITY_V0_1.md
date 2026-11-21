@@ -254,6 +254,22 @@ Do not compare the 25-second aircraft swap time, three-minute car swap time and 
 
 The network target is lower wait and stockout risk at a lower full-lifecycle cost while preserving hard safety/evidence gates—not maximum swap count or maximum charger utilization.
 
+
+### Executable v0.1 contract slice
+
+The first executable battery service network slice is on the same public carrier benchmark branch and is tracked by [BATTERY-SERVICE-NETWORK-001 #6674](https://github.com/Luminous-Dynamics/symtropy/issues/6674):
+
+- `tools/ev-passenger-cost-frontier/src/battery_service_network.rs` implements an exhaustive single-epoch pack-to-mission assignment for at most six packs and six missions.
+- `src/bin/battery_service_network_screen.rs` provides JSON-in / JSON-out evaluation.
+- `schemas/battery_service_network_v0_1.schema.json` defines the strict input shape; `fixtures/battery_service_network_v0_1.json` contains four synthetic packs and four synthetic mission requests.
+- The EV Passenger Cost Frontier workflow now invokes formatting, Rust tests, the CLI and exact jq assertions, and retains the report/hash artifact.
+
+The evaluator checks exact pack/mission configuration, available pack state, identity verification, custody resolution, fresh passed post-test, usable energy including reserve, peak power, and temperature. Identity, custody and post-test each bind freshness, evidence class, evidence reference and value. A fresh energy pass cannot compensate for insufficient peak power. Each pack is used at most once in the common dispatch epoch. The exact objective maximizes served missions, then minimizes energy surplus, then uses a deterministic identifier tie-break.
+
+The fixture is designed to select three compatible packs for three of four missions while excluding a quarantined pack; this is an exact synthetic allocation case, not a measured operational result. The focused workflow has not yet reported an exact-head result for the current branch head, and local Cargo/rustc/rustfmt are unavailable. Therefore no compile, formatting or Rust test pass is claimed at this point.
+
+Explicit v0.1 omissions: charging and cooling trajectories, charger/rack/grid queues, pack degradation, mobile swapping route, time-varying resource occupation, cross-epoch reuse, service van/trailer sizing and physical swap timing. These remain in #6674 and must be added as separate layers rather than implied by this static assignment result.
+
 ## Non-claims
 
 The current fixture does not establish real module failures, warranty cost, maintenance intervals, technician rates, factory cost, reliability, fleet availability, vehicle homologation, airworthiness, battery/fire safety, regulatory compliance or commercial TCO.
