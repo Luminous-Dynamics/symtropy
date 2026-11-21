@@ -51,15 +51,17 @@ A missing capacity or operating range needed for a release-critical family produ
 ### 2.3 Evidence scope
 
 An interface can only be marked compatible when both mating sides have an evidence receipt with:
-- evidence class `independent_test`;
-- exact tested vehicle configuration ID;
-- exact tested module configuration ID;
+- evidence class `independent_test` and result `passed`;
+- exact tested vehicle and module configuration IDs plus the physical test-article serials;
 - exact interface revision;
-- source reference, acceptance-criteria ID and a lowercase SHA-256 report digest.
+- issuer identity, source reference, test-procedure ID/revision and acceptance-criteria ID;
+- report, measurement-dataset and equipment-calibration-bundle SHA-256 digests;
+- an uncertainty-budget reference and UTC test-completion timestamp;
+- explicit limitations (an empty list means none are declared).
 
-Vehicle-side ports can carry multiple receipts because one physical port may have been qualified against several distinct modules. One test record is not silently reused as proof for another configuration pair.
+A failed independent test bound to the exact pair is a known incompatibility. An inconclusive, stale, revoked, measured-only or synthetic record cannot qualify the interface. Vehicle-side ports can carry multiple receipts because one physical port may have been qualified against several distinct modules. One test record is not silently reused as proof for another configuration pair.
 
-The screen checks the digest's syntax and the evidence scope fields. It does **not** retrieve report bytes, recalculate their contents, authenticate signatures or validate the issuer's authority. Those checks remain a separate evidence-admission responsibility.
+The screen checks digest syntax, timestamp shape and scope fields. It does **not** retrieve report bytes, recalculate their contents, authenticate signatures, validate calibration certificates or establish issuer authority. Those checks remain a separate evidence-admission responsibility.
 
 ## 3. Result semantics
 
@@ -90,7 +92,7 @@ The committed fixture has one synthetic vehicle interface inventory and four mod
 
 These are test declarations only. They do not describe a measured carrier, selected connector, qualified mounting pattern, approved electrical envelope, trailer rating or certified AMR dock.
 
-The unit suite also constructs a positive *test-only* case with the required independent-evidence class to prove the compatibility branch. Those in-memory receipts are synthetic fixtures for the test harness and must not be mistaken for real qualification records.
+The unit suite also constructs a positive *test-only* case with a passing, exact-scope independent-test receipt to prove the compatibility branch, plus failed and inconclusive negative controls. Those in-memory receipts are synthetic fixtures for the test harness and must not be mistaken for real qualification records.
 
 ## 5. Paradigm shift: modularity must be earned through verified interfaces
 
