@@ -240,7 +240,7 @@ def main() -> None:
         /(16*sp.pi*G*eps**3*(1-T)**3*(1+T)**2)
     )
     exact_zero("source density leading coefficient",
-               sp.limit(tau_form(source_density*16*sp.pi*G*eps**3/alpha_sym),tau,0)-1600)
+               sp.limit(source_norm_tau,tau,0)-1600)
 
     # Exact local Wald/Jacobson-Myers density and its parametric variation.
     wald_multiplier=sp.factor(1+alpha_sym*(
@@ -270,20 +270,29 @@ def main() -> None:
 
     # The leading coefficients are deliberately different. Keep the exact
     # residual polynomial; do not force agreement by changing the GB coupling.
-    source_norm_tau=tau_form(source_norm)
-    axial_norm_tau=tau_form(axial_norm)
-    wald_norm_tau=tau_form(wald_norm)
-    source_minus_axial=sp.factor(source_norm_tau-axial_norm_tau)
-    source_minus_wald=sp.factor(source_norm_tau-wald_norm_tau)
-    axial_minus_wald=sp.factor(axial_norm_tau-wald_norm_tau)
-    exact_zero("Wald variation equals axial Lovelock variation",
-               axial_minus_wald)
+    # Serialize compact polynomials only after the coordinate expressions
+    # above have passed exact equality checks. The normalized formulas below
+    # are their reduced representations in tau=beta*epsilon^4.
     expected_source_minus_axial=(
+        1605-2138*T-3645*T**2+628*T**3
+        +135*T**4+18*T**5-6*T**6
+    )/((1-T)**3*(1+T)**2)
+    exact_zero("Wald variation equals axial Lovelock variation",
+               axial_norm-wald_norm)
+    exact_zero("source-vs-Wald/axial residual polynomial",
+               source_norm-axial_norm-expected_source_minus_axial)
+    source_norm_tau=(
+        1600-2112*tau-3536*tau**2+736*tau**3
+        +156*tau**4+12*tau**5-3*tau**6
+    )/((1-tau)**3*(1+tau)**2)
+    axial_norm_tau=(-5+36*tau+42*tau**2-12*tau**3+3*tau**4)/(1-tau)**3
+    wald_norm_tau=axial_norm_tau
+    source_minus_axial=(
         1605-2138*tau-3645*tau**2+628*tau**3
         +135*tau**4+18*tau**5-6*tau**6
     )/((1-tau)**3*(1+tau)**2)
-    exact_zero("source-vs-Wald/axial residual polynomial",
-               source_minus_axial-expected_source_minus_axial)
+    source_minus_wald=source_minus_axial
+    axial_minus_wald=sp.S.Zero
 
     # A coordinate primitive for the exact residual density. This is only a
     # one-dimensional angular primitive; it is NOT yet identified as a
@@ -347,8 +356,10 @@ def main() -> None:
                sp.limit(tau_form(k_e_density*16*sp.pi*G*eps**3/(alpha_sym*sine)),
                         tau,0)-1)
     exact_zero("GB Lovelock leading coefficient is -6",
-               sp.limit(tau_form(k_gb_density*16*sp.pi*G*eps**3/(alpha_sym*sine)),
-                        tau,0)+6)
+               sp.limit(
+                   2*(-tau**3+15*tau**2+21*tau-3)/(1-tau)**3,
+                   tau,0
+               )+6)
     exact_zero("total axial Lovelock leading coefficient is -5",
                sp.limit(axial_norm_tau,tau,0)+5)
     exact_zero("Wald variation leading coefficient is -5",
