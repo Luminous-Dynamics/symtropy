@@ -1,0 +1,727 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:power-restoration-run-receipt:0.1.0",
+  "title": "Immutable Power Restoration Benchmark Run Receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "runId",
+    "maturity",
+    "pairing",
+    "case",
+    "planner",
+    "adapter",
+    "simulator",
+    "independentValidator",
+    "objective",
+    "hardware",
+    "budget",
+    "observedUsage",
+    "runStatus",
+    "terminalReason",
+    "decisionSteps",
+    "finalServiceTrajectory",
+    "aggregateScore"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1.0"
+    },
+    "runId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "maturity": {
+      "enum": [
+        "synthetic_fixture",
+        "historical_replay",
+        "field_observed"
+      ]
+    },
+    "pairing": {
+      "$ref": "#/$defs/pairing"
+    },
+    "case": {
+      "$ref": "#/$defs/case"
+    },
+    "planner": {
+      "$ref": "#/$defs/planner"
+    },
+    "adapter": {
+      "$ref": "#/$defs/component"
+    },
+    "simulator": {
+      "$ref": "#/$defs/component"
+    },
+    "independentValidator": {
+      "$ref": "#/$defs/component"
+    },
+    "objective": {
+      "$ref": "#/$defs/objective"
+    },
+    "hardware": {
+      "$ref": "#/$defs/hardware"
+    },
+    "budget": {
+      "$ref": "#/$defs/budget"
+    },
+    "runStatus": {
+      "enum": [
+        "completed",
+        "aborted",
+        "timed_out",
+        "incomplete"
+      ]
+    },
+    "terminalReason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "restoration_complete",
+        "horizon_exhausted",
+        "operator_stopped",
+        "run_aborted",
+        "deadline_exceeded",
+        "system_failure",
+        "evidence_incomplete",
+        null
+      ]
+    },
+    "decisionSteps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/decision"
+      }
+    },
+    "finalServiceTrajectory": {
+      "$ref": "#/$defs/artifactOrNull"
+    },
+    "aggregateScore": {
+      "$ref": "#/$defs/aggregateOrNull"
+    },
+    "observedUsage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "elapsedWallClockMs",
+        "solverTimeMs",
+        "maximumSolverGapBasisPoints",
+        "totalInputTokens",
+        "totalOutputTokens",
+        "totalApiCostMicrousd"
+      ],
+      "properties": {
+        "elapsedWallClockMs": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "solverTimeMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximumSolverGapBasisPoints": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "totalInputTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "totalOutputTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "totalApiCostMicrousd": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "$defs": {
+    "nonEmpty": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "pairing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenarioGroupId",
+        "scenarioSeed",
+        "pairedReplicateId",
+        "observationProfileId"
+      ],
+      "properties": {
+        "scenarioGroupId": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "scenarioSeed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pairedReplicateId": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "observationProfileId": {
+          "$ref": "#/$defs/nonEmpty"
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "caseRef",
+        "caseSha256"
+      ],
+      "properties": {
+        "caseRef": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "caseSha256": {
+          "$ref": "#/$defs/sha"
+        }
+      }
+    },
+    "planner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "plannerId",
+        "plannerRevision",
+        "sourceCommit",
+        "configurationSha256",
+        "promptSha256",
+        "modelProvider",
+        "modelId",
+        "modelRevision"
+      ],
+      "properties": {
+        "plannerId": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "plannerRevision": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "sourceCommit": {
+          "$ref": "#/$defs/commit"
+        },
+        "configurationSha256": {
+          "$ref": "#/$defs/sha"
+        },
+        "promptSha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "modelProvider": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "modelId": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "modelRevision": {
+          "$ref": "#/$defs/nonEmpty"
+        }
+      }
+    },
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "componentRef",
+        "componentId",
+        "version",
+        "sourceCommit",
+        "configurationSha256"
+      ],
+      "properties": {
+        "componentRef": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "componentId": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "version": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "sourceCommit": {
+          "$ref": "#/$defs/commit"
+        },
+        "configurationSha256": {
+          "$ref": "#/$defs/sha"
+        }
+      }
+    },
+    "objective": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "objectiveId",
+        "metric",
+        "unit",
+        "expressionRef",
+        "scorer"
+      ],
+      "properties": {
+        "objectiveId": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "metric": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "unit": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "expressionRef": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "scorer": {
+          "$ref": "#/$defs/component"
+        }
+      }
+    },
+    "hardware": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "measurementStatus",
+        "operatingSystem",
+        "architecture",
+        "cpuModel",
+        "logicalCpuCount",
+        "memoryBytes",
+        "accelerators",
+        "runtimeVersion",
+        "compilerOrSolverVersions"
+      ],
+      "properties": {
+        "measurementStatus": {
+          "enum": [
+            "measured",
+            "not_measured"
+          ]
+        },
+        "operatingSystem": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "architecture": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cpuModel": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "logicalCpuCount": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "memoryBytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "accelerators": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "deviceId",
+              "model",
+              "memoryBytes",
+              "driverVersion"
+            ],
+            "properties": {
+              "deviceId": {
+                "$ref": "#/$defs/nonEmpty"
+              },
+              "model": {
+                "$ref": "#/$defs/nonEmpty"
+              },
+              "memoryBytes": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "driverVersion": {
+                "$ref": "#/$defs/nonEmpty"
+              }
+            }
+          }
+        },
+        "runtimeVersion": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "compilerOrSolverVersions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmpty"
+          }
+        }
+      }
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "wallClockLimitMs",
+        "solverTimeLimitMs",
+        "solverGapLimitBasisPoints",
+        "tokenLimit",
+        "apiCostLimitMicrousd"
+      ],
+      "properties": {
+        "wallClockLimitMs": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "solverTimeLimitMs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "solverGapLimitBasisPoints": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "tokenLimit": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "apiCostLimitMicrousd": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifactRef",
+        "sha256"
+      ],
+      "properties": {
+        "artifactRef": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha"
+        }
+      }
+    },
+    "artifactOrNull": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/artifact"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "metricValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metricId",
+        "unit",
+        "value"
+      ],
+      "properties": {
+        "metricId": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "unit": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "value": {
+          "type": "number"
+        }
+      }
+    },
+    "proposal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "proposalId",
+        "caseRef",
+        "caseSha256",
+        "planner",
+        "observation",
+        "decisionStep",
+        "actions"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "0.1.0"
+        },
+        "proposalId": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "caseRef": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "caseSha256": {
+          "$ref": "#/$defs/sha"
+        },
+        "planner": {
+          "type": "object"
+        },
+        "observation": {
+          "type": "object"
+        },
+        "decisionStep": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "actions": {
+          "type": "array",
+          "minItems": 1
+        }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decisionStep",
+        "disposition",
+        "notRunReason",
+        "observation",
+        "plannerOutcome",
+        "plannerLatencyMs",
+        "solverTimeMs",
+        "solverGapBasisPoints",
+        "plannerOutput",
+        "retryCount",
+        "inputTokens",
+        "outputTokens",
+        "apiCostMicrousd",
+        "proposal",
+        "transitionOutcome",
+        "transitionReceipt",
+        "validatorOutcome",
+        "validatorReceipt",
+        "serviceOutcome",
+        "serviceTrajectory",
+        "serviceMetrics"
+      ],
+      "properties": {
+        "decisionStep": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "disposition": {
+          "enum": [
+            "executed",
+            "not_run_after_termination",
+            "not_run_after_abort"
+          ]
+        },
+        "notRunReason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "restoration_complete",
+            "horizon_exhausted",
+            "operator_stopped",
+            "no_valid_actions",
+            "run_aborted",
+            "deadline_exceeded",
+            "system_failure",
+            "evidence_incomplete",
+            null
+          ]
+        },
+        "observation": {
+          "$ref": "#/$defs/artifactOrNull"
+        },
+        "plannerOutcome": {
+          "enum": [
+            "proposal_emitted",
+            "malformed_output",
+            "timeout",
+            "abstained",
+            "error",
+            "not_run"
+          ]
+        },
+        "plannerLatencyMs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "plannerOutput": {
+          "$ref": "#/$defs/artifactOrNull"
+        },
+        "retryCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "inputTokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "outputTokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "apiCostMicrousd": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "proposal": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "transitionOutcome": {
+          "enum": [
+            "applied",
+            "rejected",
+            "failed",
+            "not_attempted",
+            "human_override",
+            "not_run"
+          ]
+        },
+        "transitionReceipt": {
+          "$ref": "#/$defs/artifactOrNull"
+        },
+        "validatorOutcome": {
+          "enum": [
+            "accepted",
+            "rejected",
+            "inconclusive",
+            "not_run"
+          ]
+        },
+        "validatorReceipt": {
+          "$ref": "#/$defs/artifactOrNull"
+        },
+        "serviceOutcome": {
+          "enum": [
+            "scored",
+            "not_scored",
+            "not_run"
+          ]
+        },
+        "serviceTrajectory": {
+          "$ref": "#/$defs/artifactOrNull"
+        },
+        "serviceMetrics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/metricValue"
+          }
+        },
+        "solverTimeMs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "solverGapBasisPoints": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 10000
+        }
+      }
+    },
+    "aggregateScore": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "metricId",
+            "unit",
+            "value",
+            "scorerReceipt"
+          ],
+          "properties": {
+            "metricId": {
+              "$ref": "#/$defs/nonEmpty"
+            },
+            "unit": {
+              "$ref": "#/$defs/nonEmpty"
+            },
+            "value": {
+              "type": "number"
+            },
+            "scorerReceipt": {
+              "$ref": "#/$defs/artifact"
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}
