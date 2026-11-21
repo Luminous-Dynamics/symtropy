@@ -5185,6 +5185,119 @@
           "event_not_known_at_declared_cutoff"
         ]
       }
+    },
+    {
+      "case_id": "recurrent_events_missing_maintenance_policy",
+      "selected_profile": "homogeneous_poisson_constant_intensity",
+      "analysis_request": "assumption_challenge",
+      "input_resolution": "event_level",
+      "preregistration_ref": "synthetic://prereg/recurrent_events_missing_maintenance_policy",
+      "sampling_frame_ref": "synthetic://sampling/recurrent_events_missing_maintenance_policy",
+      "dependence_assessment_ref": "synthetic://dependence/recurrent_events_missing_maintenance_policy",
+      "assumption_assessment_ref": "synthetic://assumptions/recurrent_events_missing_maintenance_policy",
+      "maintenance_policy_ref": null,
+      "event_capture_assessment_ref": "synthetic://capture/recurrent_events_missing_maintenance_policy",
+      "clock_calibration_ref": "synthetic://clock/recurrent_events_missing_maintenance_policy",
+      "diagnostics_protocol_ref": "synthetic://diagnostics/recurrent_events_missing_maintenance_policy",
+      "multiplicity_policy_ref": "synthetic://multiplicity/recurrent_events_missing_maintenance_policy",
+      "holdout_split_ref": "synthetic://holdout/recurrent_events_missing_maintenance_policy",
+      "population_id": "orbital-interface-population-A",
+      "lot_id": "lot-2026-04",
+      "configuration_id": "interface-config-r5",
+      "operating_mode_id": "service-mating-mode",
+      "environment_profile_id": "thermal-vacuum-profile-v1",
+      "failure_definition_id": "functional-failure-v1",
+      "max_clock_error_seconds": 5,
+      "effective_cutoff": 50,
+      "knowledge_cutoff": 80,
+      "diagnostics_predeclared": true,
+      "thresholds_frozen_before_holdout": true,
+      "articles": [
+        {
+          "record_id": "record-recurrent_events_missing_maintenance_policy-0",
+          "article_serial": "recurrent_events_missing_maintenance_policy-0",
+          "sampling_cluster_id": "recurrent_events_missing_maintenance_policy-cluster-0",
+          "population_id": "orbital-interface-population-A",
+          "lot_id": "lot-2026-04",
+          "configuration_id": "interface-config-r5",
+          "operating_mode_id": "service-mating-mode",
+          "environment_profile_id": "thermal-vacuum-profile-v1",
+          "failure_definition_id": "functional-failure-v1",
+          "exposure_seconds": 36000,
+          "reported_failure_events": 2,
+          "events": [
+            {
+              "event_id": "recurrent_events_missing_maintenance_policy-0-0",
+              "event_time_seconds": 100,
+              "failure_definition_id": "functional-failure-v1",
+              "restoration_state": "minimal_repair",
+              "effective_at": 20,
+              "recorded_at": 20
+            },
+            {
+              "event_id": "recurrent_events_missing_maintenance_policy-0-1",
+              "event_time_seconds": 200,
+              "failure_definition_id": "functional-failure-v1",
+              "restoration_state": "minimal_repair",
+              "effective_at": 20,
+              "recorded_at": 20
+            }
+          ],
+          "raw_artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "evidence_complete": true,
+          "exposure_clock_verified": true,
+          "clock_error_bound_seconds": 1,
+          "event_capture_complete": true,
+          "data_loss_counter_verified": true,
+          "maintenance_history_complete": true,
+          "censoring": "administrative_end"
+        },
+        {
+          "record_id": "record-recurrent_events_missing_maintenance_policy-1",
+          "article_serial": "recurrent_events_missing_maintenance_policy-1",
+          "sampling_cluster_id": "recurrent_events_missing_maintenance_policy-cluster-1",
+          "population_id": "orbital-interface-population-A",
+          "lot_id": "lot-2026-04",
+          "configuration_id": "interface-config-r5",
+          "operating_mode_id": "service-mating-mode",
+          "environment_profile_id": "thermal-vacuum-profile-v1",
+          "failure_definition_id": "functional-failure-v1",
+          "exposure_seconds": 36000,
+          "reported_failure_events": 1,
+          "events": [
+            {
+              "event_id": "recurrent_events_missing_maintenance_policy-1-0",
+              "event_time_seconds": 250,
+              "failure_definition_id": "functional-failure-v1",
+              "restoration_state": "minimal_repair",
+              "effective_at": 20,
+              "recorded_at": 20
+            }
+          ],
+          "raw_artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "evidence_complete": true,
+          "exposure_clock_verified": true,
+          "clock_error_bound_seconds": 1,
+          "event_capture_complete": true,
+          "data_loss_counter_verified": true,
+          "maintenance_history_complete": true,
+          "censoring": "administrative_end"
+        }
+      ],
+      "expected": {
+        "disposition": "indeterminate",
+        "article_count": 2,
+        "cluster_count": 2,
+        "total_exposure_seconds": 72000,
+        "total_failure_events": 3,
+        "event_level_records": 2,
+        "recurrent_event_articles": 1,
+        "assumption_diagnostics_ready": false,
+        "blockers": [
+          "missing_event_capture_clock_or_maintenance_reference",
+          "missing_maintenance_policy_for_recurrent_process"
+        ]
+      }
     }
   ]
 }
