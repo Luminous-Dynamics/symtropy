@@ -226,7 +226,7 @@ The Machinery 1.04.2 and Robotics 1.02 profiles now pin both the normative model
 - UANodeSet Model URI, Version, ModelVersion and Model PublicationDate;
 - complete RequiredModel URI/version/publication-date set.
 
-The offline Rust parser uses `quick-xml 0.42.0`, disables optional features, prohibits DTD/DOCTYPE, and has no network capability. It verifies both raw SHA-256 and Git's canonical `blob <length>\\0` SHA-1. It parses Model / RequiredModel metadata, checks duplicate namespace/dependency URIs and validates namespace indexes used by supported NodeId, ParentNodeId, DataType and BrowseName attributes. Namespace index 0 denotes the OPC UA core namespace; nonzero NodeSet indexes are checked against the artifact NamespaceUris table.
+The offline Rust parser uses `quick-xml 0.42.0`, disables optional features, prohibits DTD/DOCTYPE, and has no network capability. It verifies both raw SHA-256 and Git's canonical `blob <length>\\0` SHA-1. It parses Model / RequiredModel metadata and the UANodeSet Alias table; rejects duplicate/empty aliases; resolves aliases used by NodeId, ParentNodeId, DataType, ReferenceType and Reference targets; and validates namespace indexes in node attributes, BrowseNames, reference types, reference targets and alias values. Namespace index 0 denotes the OPC UA core namespace; nonzero NodeSet indexes are checked against the artifact NamespaceUris table. The alias-aware parser has negative controls for duplicate aliases, unknown alias references and out-of-range alias/reference indexes.
 
 The CLI has three independent operations:
 - `verify`: admit the local XML bytes against one pinned reference manifest;
@@ -249,3 +249,7 @@ Foundry must not duplicate or claim to replace UACTT Lite. The direct comparison
 - Future Foundry endpoint tournament: run UACTT Lite on the same isolated read-only server snapshots where possible, then add cross-backend manufacturing identity, QIF join, calibration/uncertainty, time/units, evidence provenance and task-grounding metrics that API/model conformance alone does not establish.
 
 Any live OPC UA endpoint experiment remains read-only and isolated. No methods, writes, PLC operations or product release calls are permitted.
+
+## FoundryBench protocol
+
+The fixed-client benchmark design is specified in [`benchmark-protocol.md`](benchmark-protocol.md). It fixes the evidence/client/task/hardware envelope before comparison, separates protocol, model, semantic and task/operational scoreboards, and defines the TEP complete-scenario and no-leakage rules. It identifies UACTT Lite/full OPC UA CTT as external comparators rather than claiming to replace them. This protocol is a proposal; no full cross-backend tournament has yet run.
