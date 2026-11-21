@@ -1519,6 +1519,111 @@ mod rotational_inertia_tests {
         );
     }
     #[test]
+    fn fallible_torque_acceleration_matches_legacy_principal_3d_and_static_result() {
+        let mut body = anisotropic_body();
+        body.transform.rotation = Rotor::<3>::from_plane_angle(
+            &Bivector::<3>::unit_plane(0, 2), 0.29,
+        );
+        body.angular_velocity.set(1, 2, 0.8);
+        body.angular_velocity.set(0, 2, -0.6);
+        body.angular_velocity.set(0, 1, 0.35);
+        let mut torque = Bivector::<3>::zero();
+        torque.set(1, 2, 0.2);
+        torque.set(0, 2, -0.1);
+        torque.set(0, 1, 0.3);
+        let typed = body.try_angular_acceleration_from_torque(&torque).unwrap();
+        let legacy = body.angular_acceleration_from_torque(&torque);
+        assert!(matches!(
+            typed,
+            RotationalAcceleration::Applied {
+                angular_acceleration,
+                model: RotationalInertiaModel::PrincipalAxesWorldSpace3D,
+            } if (angular_acceleration.add(&legacy.scale(-1.0))).norm() < 1.0e-12
+        ));
+
+        let static_body = RigidBody::<3>::static_body(
+            BodyHandle(19), Point::origin(), Box::new(symtropy_math::Sphere::unit()),
+        );
+        assert_eq!(
+            static_body.try_angular_acceleration_from_torque(&torque),
+            Ok(RotationalAcceleration::StaticOrKinematic)
+        );
+    }
+
+    #[test]
+    fn fallible_torque_and_energy_reject_unsupported_or_non_finite_models() {
+        let body = RigidBody::<4>::dynamic_sphere(
+            BodyHandle(20), Point::origin(), 0.5, 2.0,
+        );
+        assert_eq!(
+            body.try_angular_acceleration_from_torque(&Bivector::<4>::zero()),
+            Err(RotationalResponseError::UnsupportedModel {
+                model: RotationalInertiaModel::MeanInertiaApproximation,
+            })
+        );
+        assert_eq!(
+            body.try_rotational_kinetic_energy(),
+            Err(RotationalResponseError::UnsupportedModel {
+                model: RotationalInertiaModel::MeanInertiaApproximation,
+            })
+        );
+
+        let mut nan_torque = Bivector::<3>::zero();
+        nan_torque.set(0, 1, f64::NAN);
+        let body3 = anisotropic_body();
+        assert_eq!(
+            body3.try_angular_acceleration_from_torque(&nan_torque),
+            Err(RotationalResponseError::NonFiniteInput)
+        );
+        let mut invalid_state = anisotropic_body();
+        invalid_state.angular_velocity.set(0, 1, f64::INFINITY);
+        assert_eq!(
+            invalid_state.try_rotational_kinetic_energy(),
+            Err(RotationalResponseError::NonFiniteInput)
+        );
+    }
+
+    #[test]
+    fn fallible_rotational_energy_matches_legacy_for_admitted_3d_and_full_4d_models() {
+        let mut body = anisotropic_body();
+        body.angular_velocity.set(1, 2, 0.8);
+        body.angular_velocity.set(0, 2, -0.6);
+        body.angular_velocity.set(0, 1, 0.35);
+        let typed = body.try_rotational_kinetic_energy().unwrap();
+        assert!((typed - body.rotational_kinetic_energy()).abs() < 1.0e-12);
+
+        let operator = RotationalInertiaOperator::<4>::isotropic(2.0).unwrap();
+        let mut four_d = RigidBody::<4>::dynamic_sphere(
+            BodyHandle(21), Point::origin(), 0.5, 2.0,
+        ).with_rotational_inertia_operator(operator);
+        four_d.angular_velocity.set(0, 1, 0.4);
+        four_d.angular_velocity.set(2, 3, -0.7);
+        let typed_4d = four_d.try_rotational_kinetic_energy().unwrap();
+        assert!((typed_4d - four_d.rotational_kinetic_energy()).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn fallible_torque_acceleration_uses_full_operator_without_scalar_fallback() {
+        let operator = RotationalInertiaOperator::<4>::isotropic(2.0).unwrap();
+        let mut body = RigidBody::<4>::dynamic_sphere(
+            BodyHandle(22), Point::origin(), 0.5, 2.0,
+        ).with_rotational_inertia_operator(operator);
+        body.angular_velocity.set(0, 1, 0.3);
+        body.angular_velocity.set(2, 3, -0.2);
+        let mut torque = Bivector::<4>::zero();
+        torque.set(0, 1, 0.8);
+        torque.set(2, 3, -0.4);
+        let typed = body.try_angular_acceleration_from_torque(&torque).unwrap();
+        let legacy = body.angular_acceleration_from_torque(&torque);
+        assert!(matches!(
+            typed,
+            RotationalAcceleration::Applied {
+                angular_acceleration,
+                model: RotationalInertiaModel::ValidatedSpatialBivectorOperator,
+            } if (angular_acceleration.add(&legacy.scale(-1.0))).norm() < 1.0e-12
+        ));
+    }
+    #[test]
     fn fallible_response_uses_validated_full_bivector_operator() {
         let operator = RotationalInertiaOperator::<4>::isotropic(2.0).unwrap();
         let body = RigidBody::<4>::dynamic_sphere(
