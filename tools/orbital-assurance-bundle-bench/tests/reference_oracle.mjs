@@ -277,7 +277,7 @@ if (corpus.schema !== "luminous.orbital-assurance-bundle.corpus.v0.1" ||
     corpus.claim_ceiling !== "synthetic-assurance-graph-structure-only") {
   throw new Error("unsupported corpus contract");
 }
-if (corpus.cases.length !== 56) throw new Error("expected 56 frozen cases");
+if (corpus.cases.length !== 60) throw new Error("expected 60 frozen cases");
 const ids = new Set();
 let mismatches = 0;
 let complete = 0;
@@ -302,4 +302,4 @@ if (mismatches !== 0) {
   process.stderr.write("FAIL: " + mismatches + " expected-result mismatches\n");
   process.exit(1);
 }
-process.stdout.write("PASS: 56 cases; independent graph oracle; " + complete + " positive controls; zero mismatches; zero authority grants\n");
+process.stdout.write("PASS: 60 cases; independent graph oracle; " + complete + " positive controls; zero mismatches; zero authority grants\n");
