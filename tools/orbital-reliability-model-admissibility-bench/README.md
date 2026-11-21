@@ -61,7 +61,7 @@ The output fields constant_intensity_confirmed, reliability_claim_granted and au
 
 ## Frozen corpus
 
-The current fixture contains 58 synthetic cases, including:
+The current fixture contains 59 synthetic cases, including:
 - rate-only aggregate inputs vs event-level assumption challenge;
 - event history completeness, count consistency, time ordering, observation-window boundaries and bitemporal cutoff;
 - shared sampling clusters, duplicate/conflicting article/event identities;
