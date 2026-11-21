@@ -8,9 +8,9 @@
 //! DTD/DOCTYPE declarations are rejected to keep XML entity processing out of scope.
 
 use quick_xml::{
+    XmlVersion,
     events::{BytesStart, Event},
     reader::Reader,
-    XmlVersion,
 };
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
@@ -82,9 +82,7 @@ pub struct NamespaceMetadataDisposition {
     pub mismatches: Vec<String>,
 }
 
-fn attr_map(
-    element: &BytesStart<'_>,
-) -> Result<BTreeMap<String, String>, String> {
+fn attr_map(element: &BytesStart<'_>) -> Result<BTreeMap<String, String>, String> {
     let mut result = BTreeMap::new();
     for attribute in element.attributes().with_checks(true) {
         let attribute = attribute.map_err(|error| format!("invalid XML attribute: {error}"))?;
@@ -196,8 +194,8 @@ pub fn parse_nodeset_xml(xml: &[u8]) -> Result<ParsedNodeSet, String> {
             "NodeSet byte length must be between 1 and {MAX_NODESET_BYTES}"
         ));
     }
-    let source = std::str::from_utf8(xml)
-        .map_err(|error| format!("NodeSet XML must be UTF-8: {error}"))?;
+    let source =
+        std::str::from_utf8(xml).map_err(|error| format!("NodeSet XML must be UTF-8: {error}"))?;
     let mut reader = Reader::from_str(source);
     reader.config_mut().trim_text(true);
 
@@ -222,8 +220,8 @@ pub fn parse_nodeset_xml(xml: &[u8]) -> Result<ParsedNodeSet, String> {
                         }
                         root_seen = true;
                         let attrs = attr_map(&element)?;
-                        root_namespace_ok = attrs.get("xmlns").map(String::as_str)
-                            == Some(UANODESET_NAMESPACE);
+                        root_namespace_ok =
+                            attrs.get("xmlns").map(String::as_str) == Some(UANODESET_NAMESPACE);
                     }
                     "NamespaceUris" => in_namespace_uris = true,
                     "Uri" if in_namespace_uris => {
@@ -241,9 +239,9 @@ pub fn parse_nodeset_xml(xml: &[u8]) -> Result<ParsedNodeSet, String> {
                     }
                     "RequiredModel" => {
                         let required = parse_required_model(&attr_map(&element)?)?;
-                        let model = current_model.as_mut().ok_or_else(|| {
-                            "RequiredModel appears outside a Model".to_owned()
-                        })?;
+                        let model = current_model
+                            .as_mut()
+                            .ok_or_else(|| "RequiredModel appears outside a Model".to_owned())?;
                         model.required_models.push(required);
                     }
                     "UAObject" | "UAObjectType" | "UAVariable" | "UAVariableType"
@@ -259,9 +257,9 @@ pub fn parse_nodeset_xml(xml: &[u8]) -> Result<ParsedNodeSet, String> {
                 match name.as_ref() {
                     "RequiredModel" => {
                         let required = parse_required_model(&attr_map(&element)?)?;
-                        let model = current_model.as_mut().ok_or_else(|| {
-                            "RequiredModel appears outside a Model".to_owned()
-                        })?;
+                        let model = current_model
+                            .as_mut()
+                            .ok_or_else(|| "RequiredModel appears outside a Model".to_owned())?;
                         model.required_models.push(required);
                     }
                     "Model" => models.push(parse_model(&attr_map(&element)?)?),
@@ -296,7 +294,9 @@ pub fn parse_nodeset_xml(xml: &[u8]) -> Result<ParsedNodeSet, String> {
                 _ => {}
             },
             Ok(Event::DocType(_)) => {
-                return Err("DOCTYPE declarations are prohibited in admitted NodeSet XML".to_owned());
+                return Err(
+                    "DOCTYPE declarations are prohibited in admitted NodeSet XML".to_owned(),
+                );
             }
             Ok(Event::Eof) => break,
             Ok(_) => {}
@@ -328,8 +328,11 @@ pub fn parse_nodeset_xml(xml: &[u8]) -> Result<ParsedNodeSet, String> {
         return Err("NodeSet has no Model records".to_owned());
     }
     for model in &models {
-        let unique_required: BTreeSet<&String> =
-            model.required_models.iter().map(|entry| &entry.model_uri).collect();
+        let unique_required: BTreeSet<&String> = model
+            .required_models
+            .iter()
+            .map(|entry| &entry.model_uri)
+            .collect();
         if unique_required.len() != model.required_models.len() {
             return Err(format!(
                 "Model {} contains duplicate RequiredModel URIs",
@@ -349,17 +352,16 @@ pub fn parse_nodeset_xml(xml: &[u8]) -> Result<ParsedNodeSet, String> {
 /// admission binary's cryptographic dependency surface minimal.
 pub fn sha256_hex(input: &[u8]) -> String {
     const K: [u32; 64] = [
-        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1,
-        0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
-        0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786,
-        0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-        0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147,
-        0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
-        0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
-        0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-        0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a,
-        0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
-        0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4,
+        0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe,
+        0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f,
+        0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
+        0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc,
+        0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
+        0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116,
+        0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7,
+        0xc67178f2,
     ];
     let bit_len = (input.len() as u64).wrapping_mul(8);
     let mut data = input.to_vec();
@@ -370,8 +372,14 @@ pub fn sha256_hex(input: &[u8]) -> String {
     data.extend_from_slice(&bit_len.to_be_bytes());
 
     let mut h = [
-        0x6a09e667u32, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c,
-        0x1f83d9ab, 0x5be0cd19,
+        0x6a09e667u32,
+        0xbb67ae85,
+        0x3c6ef372,
+        0xa54ff53a,
+        0x510e527f,
+        0x9b05688c,
+        0x1f83d9ab,
+        0x5be0cd19,
     ];
     let rotate = |value: u32, amount: u32| value.rotate_right(amount);
 
@@ -463,7 +471,10 @@ pub fn verify_nodeset_artifact(
             "content SHA-256 mismatch: expected {expected_digest}, observed {actual_digest}"
         ));
     }
-    let expected_len = artifact.get("byte_length").and_then(Value::as_u64).unwrap_or(0);
+    let expected_len = artifact
+        .get("byte_length")
+        .and_then(Value::as_u64)
+        .unwrap_or(0);
     if expected_len != xml.len() as u64 {
         issues.push(format!(
             "byte length mismatch: expected {expected_len}, observed {}",
@@ -472,19 +483,24 @@ pub fn verify_nodeset_artifact(
     }
 
     let parsed = parse_nodeset_xml(xml).map_err(|error| vec![error])?;
-    let expected_namespace = manifest_namespace_metadata(manifest)
-        .map_err(|error| vec![error])?;
+    let expected_namespace = manifest_namespace_metadata(manifest).map_err(|error| vec![error])?;
     let expected_model = manifest_model(manifest).map_err(|error| vec![error])?;
 
-    let expected_uri = manifest_string(expected_namespace, "/namespace_uri")
-        .map_err(|error| vec![error])?;
-    let expected_version = manifest_string(expected_namespace, "/namespace_version")
-        .map_err(|error| vec![error])?;
+    let expected_uri =
+        manifest_string(expected_namespace, "/namespace_uri").map_err(|error| vec![error])?;
+    let expected_version =
+        manifest_string(expected_namespace, "/namespace_version").map_err(|error| vec![error])?;
     let expected_namespace_date =
         manifest_string(expected_namespace, "/namespace_publication_date")
             .map_err(|error| vec![error])?;
-    let model_uri = expected_model.get("model_uri").and_then(Value::as_str).unwrap_or_default();
-    let model_version = expected_model.get("version").and_then(Value::as_str).unwrap_or_default();
+    let model_uri = expected_model
+        .get("model_uri")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    let model_version = expected_model
+        .get("version")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
     let model_publication_date = expected_model
         .get("publication_date")
         .and_then(Value::as_str)
@@ -498,7 +514,9 @@ pub fn verify_nodeset_artifact(
         issues.push("manifest model URI differs from NamespaceMetadata URI".to_owned());
     }
     if model_version != expected_version {
-        issues.push("NodeSet Model Version differs from NamespaceMetadata NamespaceVersion".to_owned());
+        issues.push(
+            "NodeSet Model Version differs from NamespaceMetadata NamespaceVersion".to_owned(),
+        );
     }
     let target_models: Vec<&NodeSetModel> = parsed
         .models
@@ -550,7 +568,12 @@ pub fn verify_nodeset_artifact(
                 (
                     model.model_uri.clone(),
                     model.version.clone(),
-                    model.publication_date.split('T').next().unwrap_or("").to_owned(),
+                    model
+                        .publication_date
+                        .split('T')
+                        .next()
+                        .unwrap_or("")
+                        .to_owned(),
                 )
             })
             .collect();
@@ -575,7 +598,13 @@ pub fn verify_nodeset_artifact(
             parsed.namespace_uris
         ));
     }
-    if parsed.namespace_uris.iter().filter(|uri| uri.as_str() == expected_uri).count() != 1 {
+    if parsed
+        .namespace_uris
+        .iter()
+        .filter(|uri| uri.as_str() == expected_uri)
+        .count()
+        != 1
+    {
         issues.push(format!(
             "expected namespace URI {expected_uri} exactly once in NodeSet NamespaceUris"
         ));
@@ -610,11 +639,14 @@ pub fn analyze_node_set_bundle(manifests: &[Value]) -> BundleReport {
                     model.get("model_uri").and_then(Value::as_str),
                     model.get("version").and_then(Value::as_str),
                 ) {
-                    requirements
-                        .entry(uri.to_owned())
-                        .or_default()
-                        .insert((version.to_owned(), model.get("publication_date")
-                            .and_then(Value::as_str).unwrap_or_default().to_owned()));
+                    requirements.entry(uri.to_owned()).or_default().insert((
+                        version.to_owned(),
+                        model
+                            .get("publication_date")
+                            .and_then(Value::as_str)
+                            .unwrap_or_default()
+                            .to_owned(),
+                    ));
                 }
             }
         }
@@ -645,7 +677,9 @@ pub fn canonicalize_node_id(
     namespace_array: &[String],
 ) -> Result<CanonicalNodeId, String> {
     if namespace_array.is_empty() || namespace_array[0] != OPC_UA_CORE_NAMESPACE {
-        return Err("server NamespaceArray index 0 must be the OPC UA core namespace URI".to_owned());
+        return Err(
+            "server NamespaceArray index 0 must be the OPC UA core namespace URI".to_owned(),
+        );
     }
     let mut namespace_uri: Option<String> = None;
     let mut identifier: Option<(char, String)> = None;
@@ -655,19 +689,18 @@ pub fn canonicalize_node_id(
             let index: usize = index
                 .parse()
                 .map_err(|_| format!("invalid namespace index in NodeId {value:?}"))?;
-            namespace_uri = Some(
-                namespace_array
-                    .get(index)
-                    .cloned()
-                    .ok_or_else(|| format!("NodeId namespace index {index} is not in NamespaceArray"))?,
-            );
+            namespace_uri = Some(namespace_array.get(index).cloned().ok_or_else(|| {
+                format!("NodeId namespace index {index} is not in NamespaceArray")
+            })?);
         } else if let Some(uri) = part.strip_prefix("nsu=") {
             if uri.is_empty() {
                 return Err("empty namespace URI in NodeId".to_owned());
             }
             namespace_uri = Some(uri.to_owned());
         } else if let Some(index) = part.strip_prefix("svr=") {
-            let _: u32 = index.parse().map_err(|_| "invalid server index in NodeId".to_owned())?;
+            let _: u32 = index
+                .parse()
+                .map_err(|_| "invalid server index in NodeId".to_owned())?;
             server_index_seen = true;
         } else if let Some((kind, id)) = part.split_once('=') {
             if kind.len() != 1 || id.is_empty() {
@@ -678,12 +711,16 @@ pub fn canonicalize_node_id(
                 return Err(format!("unsupported NodeId identifier type {kind:?}"));
             }
             if identifier.replace((kind, id.to_owned())).is_some() {
-                return Err(format!("multiple identifier components in NodeId {value:?}"));
+                return Err(format!(
+                    "multiple identifier components in NodeId {value:?}"
+                ));
             }
         }
     }
     if server_index_seen {
-        return Err("server-indexed ExpandedNodeId requires an explicit server-URI resolver".to_owned());
+        return Err(
+            "server-indexed ExpandedNodeId requires an explicit server-URI resolver".to_owned(),
+        );
     }
     let identifier = identifier.ok_or_else(|| format!("NodeId {value:?} has no identifier"))?;
     let namespace_uri = namespace_uri.unwrap_or_else(|| OPC_UA_CORE_NAMESPACE.to_owned());
@@ -700,7 +737,8 @@ pub fn evaluate_server_namespace_metadata(
 ) -> Result<NamespaceMetadataDisposition, String> {
     let expected_uri = manifest_string(expected, "/namespace_metadata/namespace_uri")?;
     let expected_version = manifest_string(expected, "/namespace_metadata/namespace_version")?;
-    let expected_date = manifest_string(expected, "/namespace_metadata/namespace_publication_date")?;
+    let expected_date =
+        manifest_string(expected, "/namespace_metadata/namespace_publication_date")?;
     let mut mismatches = Vec::new();
     for (field, expected_value) in [
         ("namespace_uri", expected_uri),
@@ -714,40 +752,64 @@ pub fn evaluate_server_namespace_metadata(
     let subset = observed
         .get("is_namespace_subset")
         .and_then(Value::as_bool)
-        .ok_or_else(|| "observed NamespaceMetadata missing boolean is_namespace_subset".to_owned())?;
+        .ok_or_else(|| {
+            "observed NamespaceMetadata missing boolean is_namespace_subset".to_owned()
+        })?;
 
     if observed.get("read_only_probe").and_then(Value::as_bool) != Some(true) {
         mismatches.push("snapshot is not declared read-only".to_owned());
     }
-    if observed.get("mutation_service_calls").and_then(Value::as_u64) != Some(0) {
+    if observed
+        .get("mutation_service_calls")
+        .and_then(Value::as_u64)
+        != Some(0)
+    {
         mismatches.push("snapshot reports a non-zero mutation service-call count".to_owned());
     }
-    if !matches!(observed.get("evidence_class").and_then(Value::as_str), Some("synthetic" | "recorded")) {
+    if !matches!(
+        observed.get("evidence_class").and_then(Value::as_str),
+        Some("synthetic" | "recorded")
+    ) {
         mismatches.push("snapshot evidence_class must be synthetic or recorded".to_owned());
     }
-    let namespace_array = observed.get("namespace_array").and_then(Value::as_array)
+    let namespace_array = observed
+        .get("namespace_array")
+        .and_then(Value::as_array)
         .ok_or_else(|| "snapshot missing namespace_array".to_owned())?;
     let namespace_values: Vec<&str> = namespace_array.iter().filter_map(Value::as_str).collect();
     if namespace_values.len() != namespace_array.len()
         || namespace_values.first().copied() != Some(OPC_UA_CORE_NAMESPACE)
     {
-        mismatches.push("NamespaceArray must contain strings and index 0 must be OPC UA core".to_owned());
+        mismatches
+            .push("NamespaceArray must contain strings and index 0 must be OPC UA core".to_owned());
     }
     let unique_namespace_values: BTreeSet<&str> = namespace_values.iter().copied().collect();
     if unique_namespace_values.len() != namespace_values.len() {
         mismatches.push("NamespaceArray contains duplicate namespace URIs".to_owned());
     }
-    if namespace_values.iter().filter(|uri| **uri == expected_uri).count() != 1 {
-        mismatches.push("NamespaceArray must contain the expected namespace URI exactly once".to_owned());
+    if namespace_values
+        .iter()
+        .filter(|uri| **uri == expected_uri)
+        .count()
+        != 1
+    {
+        mismatches
+            .push("NamespaceArray must contain the expected namespace URI exactly once".to_owned());
     }
 
-    let service_calls = observed.get("service_calls").and_then(Value::as_array)
+    let service_calls = observed
+        .get("service_calls")
+        .and_then(Value::as_array)
         .ok_or_else(|| "snapshot missing service_calls".to_owned())?;
     let mut expected_calls = BTreeSet::from(["Read NamespaceArray", "Read NamespaceMetadata"]);
     for call in service_calls {
-        let call = call.as_str().ok_or_else(|| "service_calls entries must be strings".to_owned())?;
+        let call = call
+            .as_str()
+            .ok_or_else(|| "service_calls entries must be strings".to_owned())?;
         if !expected_calls.remove(call) {
-            mismatches.push(format!("unexpected or duplicate OPC UA service call {call:?}"));
+            mismatches.push(format!(
+                "unexpected or duplicate OPC UA service call {call:?}"
+            ));
         }
     }
     if !expected_calls.is_empty() {
@@ -781,8 +843,7 @@ mod tests {
 
     const MACHINERY_MANIFEST: &str =
         include_str!("../../nodesets/opcua-machinery-1.04.2.nodeset.json");
-    const ROBOTICS_MANIFEST: &str =
-        include_str!("../../nodesets/opcua-robotics-1.02.nodeset.json");
+    const ROBOTICS_MANIFEST: &str = include_str!("../../nodesets/opcua-robotics-1.02.nodeset.json");
 
     const SYNTHETIC_XML: &str = r#"<?xml version="1.0" encoding="utf-8"?>
 <UANodeSet xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
@@ -808,7 +869,6 @@ mod tests {
             "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
         );
     }
-
 
     fn fixture_manifest() -> Value {
         let required_models = json!([
@@ -842,7 +902,8 @@ mod tests {
 
     #[test]
     fn exact_artifact_digest_and_separate_namespace_and_model_dates_are_admitted() {
-        let report = verify_nodeset_artifact(SYNTHETIC_XML.as_bytes(), &fixture_manifest()).unwrap();
+        let report =
+            verify_nodeset_artifact(SYNTHETIC_XML.as_bytes(), &fixture_manifest()).unwrap();
         assert!(report.admitted);
         assert_eq!(report.model_publication_date, "2026-11-02");
         // Normative NamespaceMetadata is 2026-11-01; NodeSet Model PublicationDate is 2026-11-02.
@@ -852,8 +913,12 @@ mod tests {
     fn digest_mismatch_fails_before_model_admission() {
         let mut manifest = fixture_manifest();
         manifest["nodeset_artifact"]["content_sha256"] = json!("00".repeat(32));
-        assert!(verify_nodeset_artifact(SYNTHETIC_XML.as_bytes(), &manifest)
-            .unwrap_err().iter().any(|error| error.contains("SHA-256 mismatch")));
+        assert!(
+            verify_nodeset_artifact(SYNTHETIC_XML.as_bytes(), &manifest)
+                .unwrap_err()
+                .iter()
+                .any(|error| error.contains("SHA-256 mismatch"))
+        );
     }
 
     #[test]
@@ -861,12 +926,16 @@ mod tests {
         let mut xml = SYNTHETIC_XML.replace("Version=\"1.05.07\"", "Version=\"1.05.03\"");
         xml = xml.replace("2026-07-30T00:00:00Z", "2026-07-29T00:00:00Z");
         let parsed = parse_nodeset_xml(xml.as_bytes()).unwrap();
-        assert_eq!(parsed.models[0].required_models[0].version,"1.05.03");
+        assert_eq!(parsed.models[0].required_models[0].version, "1.05.03");
         let mut manifest = fixture_manifest();
         manifest["nodeset_artifact"]["content_sha256"] = json!(sha256_hex(xml.as_bytes()));
         manifest["nodeset_artifact"]["byte_length"] = json!(xml.len());
-        let errors = verify_nodeset_artifact(xml.as_bytes(),&manifest).unwrap_err();
-        assert!(errors.iter().any(|error|error.contains("RequiredModels mismatch")));
+        let errors = verify_nodeset_artifact(xml.as_bytes(), &manifest).unwrap_err();
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("RequiredModels mismatch"))
+        );
     }
 
     #[test]
@@ -874,7 +943,7 @@ mod tests {
         let mut manifest = fixture_manifest();
         manifest["namespace_metadata"]["namespace_publication_date"] = json!("2026-11-01");
         manifest["nodeset_artifact"]["node_set_model"]["publication_date"] = json!("2026-11-02");
-        assert!(verify_nodeset_artifact(SYNTHETIC_XML.as_bytes(),&manifest).is_ok());
+        assert!(verify_nodeset_artifact(SYNTHETIC_XML.as_bytes(), &manifest).is_ok());
     }
 
     #[test]
@@ -892,12 +961,20 @@ mod tests {
             "<?xml version=\"1.0\" encoding=\"utf-8\"?>",
             "<?xml version=\"1.0\" encoding=\"utf-8\"?><!DOCTYPE UANodeSet [<!ENTITY x \"boom\">]>",
         );
-        assert!(parse_nodeset_xml(doctype.as_bytes()).unwrap_err().contains("DOCTYPE"));
+        assert!(
+            parse_nodeset_xml(doctype.as_bytes())
+                .unwrap_err()
+                .contains("DOCTYPE")
+        );
         let duplicate = SYNTHETIC_XML.replace(
             "<Uri>http://opcfoundation.org/UA/IA/</Uri>",
             "<Uri>http://opcfoundation.org/UA/DI/</Uri>",
         );
-        assert!(parse_nodeset_xml(duplicate.as_bytes()).unwrap_err().contains("duplicate"));
+        assert!(
+            parse_nodeset_xml(duplicate.as_bytes())
+                .unwrap_err()
+                .contains("duplicate")
+        );
     }
 
     #[test]
@@ -909,7 +986,11 @@ mod tests {
     #[test]
     fn rejects_out_of_range_nodeset_namespace_index() {
         let invalid = SYNTHETIC_XML.replace("ns=1;i=1003", "ns=4;i=1003");
-        assert!(parse_nodeset_xml(invalid.as_bytes()).unwrap_err().contains("outside"));
+        assert!(
+            parse_nodeset_xml(invalid.as_bytes())
+                .unwrap_err()
+                .contains("outside")
+        );
     }
 
     #[test]
@@ -943,7 +1024,9 @@ mod tests {
         let report = analyze_node_set_bundle(&[machinery, robotics]);
         assert!(!report.ready_for_composition);
         assert_eq!(report.status, "requires_explicit_dependency_resolution");
-        let core = report.dependency_skews.iter()
+        let core = report
+            .dependency_skews
+            .iter()
             .find(|entry| entry.model_uri == OPC_UA_CORE_NAMESPACE)
             .unwrap();
         assert_eq!(core.requirements.len(), 2);
@@ -975,8 +1058,8 @@ mod tests {
             "mutation_service_calls":0,
             "physical_qualification":false
         });
-        let result = evaluate_server_namespace_metadata(&expected,&observed).unwrap();
-        assert_eq!(result.disposition,"matching_declared_subset");
+        let result = evaluate_server_namespace_metadata(&expected, &observed).unwrap();
+        assert_eq!(result.disposition, "matching_declared_subset");
     }
 
     #[test]
@@ -1001,10 +1084,18 @@ mod tests {
             "mutation_service_calls":0
         });
         observed["namespace_array"][1] = json!("urn:vendor:wrong-namespace");
-        assert!(!evaluate_server_namespace_metadata(&expected,&observed).unwrap().metadata_matches);
+        assert!(
+            !evaluate_server_namespace_metadata(&expected, &observed)
+                .unwrap()
+                .metadata_matches
+        );
         observed["namespace_array"][1] = json!("http://opcfoundation.org/UA/Machinery/");
         observed["mutation_service_calls"] = json!(1);
-        assert!(!evaluate_server_namespace_metadata(&expected,&observed).unwrap().metadata_matches);
+        assert!(
+            !evaluate_server_namespace_metadata(&expected, &observed)
+                .unwrap()
+                .metadata_matches
+        );
     }
 
     #[test]
@@ -1031,7 +1122,10 @@ mod tests {
             "mutation_service_calls":0,
             "physical_qualification":false
         });
-        let result = evaluate_server_namespace_metadata(&expected,&observed).unwrap();
-        assert_eq!(result.disposition,"matching_full_namespace_claim_node_coverage_unverified");
+        let result = evaluate_server_namespace_metadata(&expected, &observed).unwrap();
+        assert_eq!(
+            result.disposition,
+            "matching_full_namespace_claim_node_coverage_unverified"
+        );
     }
 }

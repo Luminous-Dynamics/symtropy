@@ -186,33 +186,38 @@ fn validate_semantics(profile: &Value) -> Vec<String> {
         }
     }
 
-
-    if let Some(references) = profile
-        .get("standard_references")
-        .and_then(Value::as_array)
-    {
+    if let Some(references) = profile.get("standard_references").and_then(Value::as_array) {
         for (index, reference) in references.iter().enumerate() {
             let Some(artifact) = reference.get("nodeset_artifact") else {
                 continue;
             };
             let base = format!("/standard_references/{index}/nodeset_artifact");
-            let namespace_uri = string_at(reference, "/namespace_metadata/namespace_uri")
-                .unwrap_or_default();
-            let namespace_version = string_at(reference, "/namespace_metadata/namespace_version")
-                .unwrap_or_default();
-            let model_uri = string_at(artifact, "/node_set_model/model_uri")
-                .unwrap_or_default();
-            let model_version = string_at(artifact, "/node_set_model/version")
-                .unwrap_or_default();
+            let namespace_uri =
+                string_at(reference, "/namespace_metadata/namespace_uri").unwrap_or_default();
+            let namespace_version =
+                string_at(reference, "/namespace_metadata/namespace_version").unwrap_or_default();
+            let model_uri = string_at(artifact, "/node_set_model/model_uri").unwrap_or_default();
+            let model_version = string_at(artifact, "/node_set_model/version").unwrap_or_default();
             if model_uri != namespace_uri {
-                errors.push(format!("{base}/node_set_model/model_uri: must match NamespaceMetadata URI"));
+                errors.push(format!(
+                    "{base}/node_set_model/model_uri: must match NamespaceMetadata URI"
+                ));
             }
             if model_version != namespace_version {
-                errors.push(format!("{base}/node_set_model/version: must match NamespaceMetadata NamespaceVersion"));
+                errors.push(format!(
+                    "{base}/node_set_model/version: must match NamespaceMetadata NamespaceVersion"
+                ));
             }
             let uri_list = strings_at(artifact, "/namespace_uris");
-            if uri_list.iter().filter(|uri| uri.as_str() == namespace_uri).count() != 1 {
-                errors.push(format!("{base}/namespace_uris: expected NamespaceMetadata URI exactly once"));
+            if uri_list
+                .iter()
+                .filter(|uri| uri.as_str() == namespace_uri)
+                .count()
+                != 1
+            {
+                errors.push(format!(
+                    "{base}/namespace_uris: expected NamespaceMetadata URI exactly once"
+                ));
             }
         }
     }

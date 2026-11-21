@@ -6,7 +6,7 @@
 use mfg_architecture_profile_validator::nodeset_admission::{
     analyze_node_set_bundle, evaluate_server_namespace_metadata, verify_nodeset_artifact,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::{env, fs, path::PathBuf, process::ExitCode};
 
 fn read_json(path: &PathBuf) -> Result<Value, String> {
@@ -137,8 +137,8 @@ fn main() -> ExitCode {
                     return ExitCode::FAILURE;
                 }
             };
-            let require_full = rest.len() == 4
-                && rest[3].to_string_lossy().as_ref() == "--require-full";
+            let require_full =
+                rest.len() == 4 && rest[3].to_string_lossy().as_ref() == "--require-full";
             if rest.len() == 4 && !require_full {
                 return usage();
             }
@@ -156,15 +156,20 @@ fn main() -> ExitCode {
                     return ExitCode::FAILURE;
                 }
             };
-            let schema_errors: Vec<String> = validator.iter_errors(&observed)
-                .map(|error| format!("{}: {error}",error.instance_path()))
+            let schema_errors: Vec<String> = validator
+                .iter_errors(&observed)
+                .map(|error| format!("{}: {error}", error.instance_path()))
                 .collect();
             if !schema_errors.is_empty() {
-                println!("{}",serde_json::to_string_pretty(&json!({
-                    "schema_valid":false,
-                    "schema_errors":schema_errors,
-                    "metadata_matches":false
-                })).expect("schema report serializes"));
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&json!({
+                        "schema_valid":false,
+                        "schema_errors":schema_errors,
+                        "metadata_matches":false
+                    }))
+                    .expect("schema report serializes")
+                );
                 return ExitCode::FAILURE;
             }
             match evaluate_server_namespace_metadata(&manifest, &observed) {
