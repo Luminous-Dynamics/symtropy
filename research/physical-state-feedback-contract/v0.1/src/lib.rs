@@ -163,6 +163,75 @@ fn validate_symmetric_psd3(matrix: &[[f64; 3]; 3], path: &str) -> Result<(), Val
     Ok(())
 }
 
+/// Validate the rigid-body inertia tensor's principal-moment triangle inequality.
+fn validate_physical_inertia3(
+    matrix: &[[f64; 3]; 3],
+    path: &str,
+) -> Result<(), ValidationError> {
+    validate_symmetric_psd3(matrix, path)?;
+    let mut diagonalized = *matrix;
+    for _ in 0..24 {
+        let candidates = [
+            (0usize, 1usize),
+            (0usize, 2usize),
+            (1usize, 2usize),
+        ];
+        let (p, q) = candidates
+            .into_iter()
+            .max_by(|(p1, q1), (p2, q2)| {
+                diagonalized[*p1][*q1]
+                    .abs()
+                    .total_cmp(&diagonalized[*p2][*q2].abs())
+            })
+            .expect("fixed candidate set is non-empty");
+        let off_diagonal = diagonalized[p][q];
+        if off_diagonal.abs() <= COVARIANCE_TOLERANCE {
+            break;
+        }
+
+        let tau = (diagonalized[q][q] - diagonalized[p][p]) / (2.0 * off_diagonal);
+        let sign = if tau >= 0.0 { 1.0 } else { -1.0 };
+        let tangent = sign / (tau.abs() + (1.0 + tau * tau).sqrt());
+        let cosine = 1.0 / (1.0 + tangent * tangent).sqrt();
+        let sine = tangent * cosine;
+
+        let pp = diagonalized[p][p];
+        let qq = diagonalized[q][q];
+        diagonalized[p][p] = pp - tangent * off_diagonal;
+        diagonalized[q][q] = qq + tangent * off_diagonal;
+        diagonalized[p][q] = 0.0;
+        diagonalized[q][p] = 0.0;
+
+        for k in 0..3 {
+            if k != p && k != q {
+                let kp = diagonalized[k][p];
+                let kq = diagonalized[k][q];
+                diagonalized[k][p] = cosine * kp - sine * kq;
+                diagonalized[p][k] = diagonalized[k][p];
+                diagonalized[k][q] = sine * kp + cosine * kq;
+                diagonalized[q][k] = diagonalized[k][q];
+            }
+        }
+    }
+
+    let mut principal = [
+        diagonalized[0][0],
+        diagonalized[1][1],
+        diagonalized[2][2],
+    ];
+    principal.sort_by(f64::total_cmp);
+    let largest = principal[2].max(0.0);
+    let lower_two_sum = principal[0].max(0.0) + principal[1].max(0.0);
+    let tolerance = COVARIANCE_TOLERANCE.max(largest * 1.0e-8);
+    if largest > lower_two_sum + tolerance {
+        return Err(ValidationError::new(
+            path,
+            "principal moments violate the rigid-body inertia triangle inequality",
+        ));
+    }
+    Ok(())
+}
+
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Provenance {
     pub source_sha256: Option<String>,
@@ -635,6 +704,12 @@ impl EntityState {
         self.mass_kg
             .validate_expected_unit(&format!("{path}.mass"), "kg")?;
         self.mass_kg.validate_finite(&format!("{path}.mass"))?;
+        if self.mass_kg.value.is_some_and(|mass| mass <= 0.0) {
+            return Err(ValidationError::new(
+                format!("{path}.mass"),
+                "available rigid-body mass must be strictly positive",
+            ));
+        }
         self.inertia_kg_m2
             .validate_expected_unit(&format!("{path}.inertia"), "kg*m^2")?;
         self.inertia_kg_m2
@@ -647,7 +722,7 @@ impl EntityState {
                 [values[3], values[4], values[5]],
                 [values[6], values[7], values[8]],
             ];
-            validate_symmetric_psd3(&matrix, &format!("{path}.inertia"))?;
+            validate_physical_inertia3(&matrix, &format!("{path}.inertia"))?;
         }
         self.contact
             .validate(&format!("{path}.contact"), &self.entity_id, world_frame)?;
@@ -903,15 +978,39 @@ impl StateQuery {
             .iter()
             .map(String::as_str)
             .collect::<BTreeSet<_>>();
-        let returned = result
+        let entity_by_id = result
             .entities
             .iter()
-            .map(|entity| entity.entity_id.as_str())
-            .collect::<BTreeSet<_>>();
-        if !returned.is_superset(&requested) {
+            .map(|entity| (entity.entity_id.as_str(), entity))
+            .collect::<BTreeMap<_, _>>();
+        let mut allowed = BTreeSet::<&str>::new();
+        let mut pending = self.entity_ids.iter().map(String::as_str).collect::<Vec<_>>();
+        while let Some(entity_id) = pending.pop() {
+            if !allowed.insert(entity_id) {
+                continue;
+            }
+            let entity = entity_by_id.get(entity_id).ok_or_else(|| {
+                ValidationError::new(
+                    "query.result.entities",
+                    format!("requested or required context entity {entity_id:?} is missing"),
+                )
+            })?;
+            if let Some(parent) = entity.parent_entity_id.as_deref() {
+                pending.push(parent);
+            }
+            pending.extend(
+                entity
+                    .contact
+                    .partner_entity_ids
+                    .iter()
+                    .map(String::as_str),
+            );
+        }
+        let returned = entity_by_id.keys().copied().collect::<BTreeSet<_>>();
+        if returned != allowed {
             return Err(ValidationError::new(
                 "query.result.entities",
-                "result must include every requested entity; parent/contact context entities may also be returned",
+                "result must contain requested entities and their transitive parent/contact context only",
             ));
         }
         Ok(())
@@ -1544,6 +1643,9 @@ mod tests {
             impulse_ns: None,
         };
         assert!(query.validate_result(&context_result).is_ok());
+
+        context_result.entities.push(valid_entity("unrelated-body"));
+        assert!(query.validate_result(&context_result).is_err());
     }
 
     #[test]
@@ -1631,13 +1733,16 @@ mod tests {
     #[test]
     fn inertia_tensor_must_be_symmetric_positive_semidefinite() {
         let valid = [[2.0, 0.0, 0.0], [0.0, 3.0, 0.0], [0.0, 0.0, 4.0]];
-        assert!(validate_symmetric_psd3(&valid, "inertia").is_ok());
+        assert!(validate_physical_inertia3(&valid, "inertia").is_ok());
 
         let asymmetric = [[2.0, 0.5, 0.0], [0.0, 3.0, 0.0], [0.0, 0.0, 4.0]];
-        assert!(validate_symmetric_psd3(&asymmetric, "inertia").is_err());
+        assert!(validate_physical_inertia3(&asymmetric, "inertia").is_err());
 
         let negative_moment = [[-1.0, 0.0, 0.0], [0.0, 3.0, 0.0], [0.0, 0.0, 4.0]];
-        assert!(validate_symmetric_psd3(&negative_moment, "inertia").is_err());
+        assert!(validate_physical_inertia3(&negative_moment, "inertia").is_err());
+
+        let triangle_violation = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 3.0]];
+        assert!(validate_physical_inertia3(&triangle_violation, "inertia").is_err());
     }
 
     #[test]
