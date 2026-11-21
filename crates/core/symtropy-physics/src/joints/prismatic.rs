@@ -385,14 +385,16 @@ impl<const D: usize> PrismaticJoint<D> {
             }
             let impulse = -rel_vel * self.stiffness / total_inv;
             if body_a.is_dynamic() {
+                let before = body_a.linear_velocity[i];
                 let delta = -impulse * body_a.inv_mass;
                 body_a.linear_velocity[i] += delta;
-                body_state_mutated |= delta != 0.0;
+                body_state_mutated |= body_a.linear_velocity[i] != before;
             }
             if body_b.is_dynamic() {
+                let before = body_b.linear_velocity[i];
                 let delta = impulse * body_b.inv_mass;
                 body_b.linear_velocity[i] += delta;
-                body_state_mutated |= delta != 0.0;
+                body_state_mutated |= body_b.linear_velocity[i] != before;
             }
         }
 
@@ -411,14 +413,16 @@ impl<const D: usize> PrismaticJoint<D> {
             }
 
             if body_a.is_dynamic() {
+                let before = body_a.linear_velocity[self.axis];
                 let delta = -impulse * body_a.inv_mass;
                 body_a.linear_velocity[self.axis] += delta;
-                body_state_mutated |= delta != 0.0;
+                body_state_mutated |= body_a.linear_velocity[self.axis] != before;
             }
             if body_b.is_dynamic() {
+                let before = body_b.linear_velocity[self.axis];
                 let delta = impulse * body_b.inv_mass;
                 body_b.linear_velocity[self.axis] += delta;
-                body_state_mutated |= delta != 0.0;
+                body_state_mutated |= body_b.linear_velocity[self.axis] != before;
             }
         }
 
