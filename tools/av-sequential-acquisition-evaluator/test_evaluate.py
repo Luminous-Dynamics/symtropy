@@ -114,7 +114,7 @@ class SequentialAcquisitionTests(unittest.TestCase):
 
     def test_hidden_realization_must_have_positive_likelihood(self):
         truth = copy.deepcopy(self.truth)
-        truth["episodes"][0]["realized_outcomes"]["hazard_cue"] = "no_cue"
+        truth["episodes"][0]["realized_outcomes"]["subtype_detail"] = "type_b"
         with self.assertRaises(evaluator.EvaluationError):
             self.score(truth=truth)
 
