@@ -215,14 +215,14 @@ pub fn validate_run_receipt(
         if !nonempty(&episode.scenario_id) {
             return Err(RunReceiptError::EmptyScenarioId);
         }
+        if !episode_ids.insert(episode.episode_id.as_str()) {
+            return Err(RunReceiptError::DuplicateEpisodeId);
+        }
         let planned_scenario = planned_by_id
             .get(episode.episode_id.as_str())
             .ok_or(RunReceiptError::UnplannedEpisodeId)?;
         if *planned_scenario != episode.scenario_id {
             return Err(RunReceiptError::PlannedScenarioMismatch);
-        }
-        if !episode_ids.insert(episode.episode_id.as_str()) {
-            return Err(RunReceiptError::DuplicateEpisodeId);
         }
     }
 
