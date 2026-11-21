@@ -958,11 +958,13 @@ mod tests {
         });
         let report = evaluate_coavailability(&test).expect("valid input");
         assert_eq!(report.verdict, FeasibilityVerdict::Infeasible);
+        assert_eq!(report.selected_launch_time_ms, None);
+        assert_eq!(report.selected_recovery_time_ms, None);
         assert!(
             report
                 .findings
                 .iter()
-                .any(|finding| finding.contains("aircraft is reserved"))
+                .any(|finding| finding.contains("no conflict-free launch and recovery slot"))
         );
     }
 
