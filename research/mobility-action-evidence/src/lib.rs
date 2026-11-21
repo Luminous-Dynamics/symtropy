@@ -821,7 +821,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn navigation_freshness_requires_upstream_qualified_time_and_clock_correlation() {
         let mut live = live_context();
@@ -993,7 +992,6 @@ mod tests {
             Err(OutcomeError::BootEpochMismatch)
         );
     }
-
 
     #[test]
     fn outcome_freshness_policy_must_use_ticket_clock_and_boot_epoch() {
