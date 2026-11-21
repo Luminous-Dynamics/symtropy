@@ -1,0 +1,95 @@
+{
+  "schema": "luminous.ehd_temporal_quadrature",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-QUADRATURE-001",
+  "as_of": "2026-11-21",
+  "status": "analytic_quadratic_temporal_oracle_authored_tests_rust_execution_pending",
+  "units": {
+    "drag_rate_coefficient": "kg/s",
+    "time": "s_normalized_to_[0,1]",
+    "relative_velocity": "m/s",
+    "neutral_impulse": "N*s",
+    "elastic_frictional_heating": "J"
+  },
+  "physical_integrals": {
+    "neutral_impulse": "integral_0^1 k(t)*relative_velocity(t) dt",
+    "frictional_heating": "integral_0^1 k(t)*|relative_velocity(t)|^2 dt",
+    "drag_rate_nonnegative": "k(t) >= 0 on the closed interval [0,1]"
+  },
+  "manufactured_polynomial_class": {
+    "drag_rate_degree_max": 2,
+    "each_velocity_component_degree_max": 2,
+    "impulse_integrand_degree_max": 4,
+    "frictional_heating_integrand_degree_max": 6,
+    "exact_reference": "analytic_polynomial_convolution_and_antiderivative"
+  },
+  "quadrature_rules": [
+    {
+      "id": "gauss_legendre_1",
+      "nodes": 1,
+      "algebraic_exactness_degree": 1
+    },
+    {
+      "id": "gauss_legendre_2",
+      "nodes": 2,
+      "algebraic_exactness_degree": 3
+    },
+    {
+      "id": "gauss_legendre_3",
+      "nodes": 3,
+      "algebraic_exactness_degree": 5
+    },
+    {
+      "id": "gauss_legendre_4",
+      "nodes": 4,
+      "algebraic_exactness_degree": 7
+    },
+    {
+      "id": "simpson_3",
+      "nodes": 3,
+      "algebraic_exactness_degree": 3
+    }
+  ],
+  "reference_implementation": {
+    "path": "tools/ehd-reference-audit/src/drag_quadrature.rs",
+    "exact_polynomial_reference": true,
+    "separate_impulse_and_heating_residuals": true,
+    "nonnegative_drag_polynomial_checked_over_interval": true,
+    "case_specific_tolerances": true,
+    "checks": [
+      "impulse_accuracy_per_vector_component",
+      "frictional_heating_accuracy_independently",
+      "effective_integrand_polynomial_degree",
+      "drag_coefficient_nonnegative_on_entire_interval",
+      "deterministic_rule_nodes_and_weights"
+    ]
+  },
+  "test_families": [
+    "gauss_legendre_4_exact_for_quadratic_drag_and_drift",
+    "impulse_pass_heating_fail_with_gauss_legendre_2",
+    "degree_six_heating_fail_gl3_pass_gl4",
+    "simpson_exact_low_degree_control",
+    "interior_negative_drag_rate_rejected",
+    "non_finite_polynomial_coefficient_rejected",
+    "invalid_tolerance_rejected",
+    "offline_reference_self_check"
+  ],
+  "acceptance": {
+    "universal_numeric_tolerance": null,
+    "case_specific_impulse_and_heating_tolerances_required": true,
+    "impulse_and_heating_passed_independently": true,
+    "gl4_exactness_reference_for_declared_polynomial_class": true,
+    "production_quadrature_accuracy_requires_refinement": true,
+    "spatial_quadrature_accuracy_not_covered": true
+  },
+  "limitations": [
+    "temporal_only_spatially_integrated_collision_rate",
+    "quadratic_drag_rate_and_quadratic_drift_manufactured_class",
+    "no_spatial_collision_quadrature",
+    "no_adaptive_quadrature_selection",
+    "no_production_solver_history_validation",
+    "no_plasma_neutral_solver",
+    "no_complete_collisional_energy_closure"
+  ],
+  "claim_ceiling": "This is an analytic temporal quadrature exactness oracle for a spatially integrated quadratic manufactured source. It does not certify production solver quadrature accuracy on arbitrary source histories or establish an EHD physical result."
+}
