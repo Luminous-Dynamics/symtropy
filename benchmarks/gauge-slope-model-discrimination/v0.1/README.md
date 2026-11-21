@@ -123,3 +123,32 @@ The crate has no third-party dependencies and is kept in its own Cargo workspace
 ## Claim ceiling
 
 This v0.1 is a synthetic fixed-angle, diagonal-Gaussian reference for detecting a local acceleration-speed trend. It does not prove that real GAUGE slope-slider friction is speed-dependent; establish a physical friction coefficient from unresolved metadata; deliver a posterior or calibrated confidence coverage; identify full Stribeck/static/kinetic/directional/temperature behaviour; replace #3784; qualify Symtropy's solver; or demonstrate physical or industry superiority.
+
+## Robust model-set separation reference (stacked follow-on)
+
+The stacked module `src/model_set_design.rs` adds a bounded synthetic comparator for two rival acceleration response families:
+
+- linear speed: `a_L(v) = b_L + c1 * v`;
+- quadratic speed: `a_Q(v) = b_Q + c2 * v^2`.
+
+Each family gets its own free constant intercept. The module profiles both intercepts out by weighted-centering the speed and speed-squared regressors, then minimizes the remaining weighted squared response separation over caller-declared closed intervals for `c1` and `c2`.
+
+For conditions with inverse-variance weights `w_i`, define:
+- `x_i = v_i - mean_w(v)`;
+- `z_i = v_i^2 - mean_w(v^2)`.
+
+The robust score is:
+
+`min_[c1,c2] sum_i w_i * (c1*x_i - c2*z_i)^2`
+
+over the declared coefficient rectangle. The implementation checks the constrained convex-quadratic stationary candidates on all four edges and the interior origin when the origin is in the box. It returns the minimizing coefficient witness and the centered design sums.
+
+This is a nuisance-intercept-profiled worst-case separation under a diagonal known-sigma Gaussian response model. It is not a posterior, p-value, expected information gain, generic model-selection statistic or proof of physical causality. Coefficient ranges are caller-supplied assumptions and must be preregistered.
+
+A useful negative control is that two speed levels can make a linear and quadratic curve observationally equivalent after each receives its own fitted intercept, even when both speed coefficients are non-zero. Three or more distinct speed conditions can separate those fixed hypotheses. If the allowed coefficient ranges contain a common zero-effect model, the robust worst-case separation correctly returns zero.
+
+The reference uses the shared dependency-free `DesignCondition`, uncertainty validation and compensated sums from the v0.1 library. It does not reimplement the generic optimizer in #3784 and does not account for speed measurement error or speed/acceleration covariance.
+
+Tests cover two-speed equivalence, three-speed separation, zero-effect overlap, wider speed range, uncertainty scaling, invalid coefficient bounds, repeated-speed rank failure and input permutation invariance.
+
+See [ROBUST-MODEL-SEPARATION-001 #6653](https://github.com/Luminous-Dynamics/symtropy/issues/6653).
