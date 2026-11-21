@@ -390,6 +390,35 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
         );
     }
 
+    let comsol = solvers.and_then(|rows| rows.iter().find(|s| text_at(s, &["solver_id"]) == Some("COMSOL_MULTIPHYSICS")));
+    push_if_missing(
+        &mut findings,
+        comsol.is_some(),
+        "COMSOL_PROFILE",
+        "missing commercial COMSOL solver profile",
+    );
+    if let Some(profile) = comsol {
+        push_if_missing(
+            &mut findings,
+            text_at(profile, &["license"]) == Some("commercial"),
+            "COMSOL_LICENSE",
+            "COMSOL must retain a commercial-license boundary",
+        );
+        push_if_missing(
+            &mut findings,
+            contains_any(profile, &["important_limits"], "omits the ionisation layer")
+                && contains_any(profile, &["important_limits"], "electron dynamics are not solved"),
+            "COMSOL_CORONA_SCOPE",
+            "simplified Corona Discharge interface must retain its ionisation-layer / electron-dynamics limitations",
+        );
+        push_if_missing(
+            &mut findings,
+            contains_any(profile, &["capabilities"], "CFD-module electrohydrodynamics multiphysics capability"),
+            "COMSOL_EHD_CAPABILITY",
+            "commercial EHD flow-coupling capability must remain identified as a distinct profile",
+        );
+    }
+
     findings
 }
 
@@ -553,6 +582,29 @@ mod tests {
         let mut value = atlas();
         value["system_integration_references"] = Value::Array(Vec::new());
         assert!(has_code(&audit_atlas(&value), "TAO_SYSTEM_REFERENCE"));
+    }
+
+    #[test]
+    fn missing_commercial_comsol_profile_is_rejected() {
+        let mut value = atlas();
+        value["solver_profiles"].as_array_mut().unwrap().retain(|p| {
+            p["solver_id"].as_str() != Some("COMSOL_MULTIPHYSICS")
+        });
+        assert!(has_code(&audit_atlas(&value), "COMSOL_PROFILE"));
+    }
+
+    #[test]
+    fn simplified_comsol_corona_interface_cannot_be_promoted_to_full_discharge() {
+        let mut value = atlas();
+        value["solver_profiles"][3]["important_limits"] = Value::Array(Vec::new());
+        assert!(has_code(&audit_atlas(&value), "COMSOL_CORONA_SCOPE"));
+    }
+
+    #[test]
+    fn comsol_ehd_capability_remains_explicit() {
+        let mut value = atlas();
+        value["solver_profiles"][3]["capabilities"] = Value::Array(Vec::new());
+        assert!(has_code(&audit_atlas(&value), "COMSOL_EHD_CAPABILITY"));
     }
 
     #[test]
