@@ -699,8 +699,7 @@ impl<const D: usize> PhysicsWorld<D> {
         // Motor state is allocated once per constraint for this world step and
         // shared across every solver iteration. This keeps actuator effort and
         // mechanical work tied to elapsed dt, not iteration count.
-        let mut motor_step_states =
-            vec![MotorStepState::default(); self.constraints.len()];
+        let mut motor_step_states = vec![MotorStepState::default(); self.constraints.len()];
         for _ in 0..self.solver_iterations {
             for &ci in &active_constraint_indices {
                 if ci >= self.constraints.len() {
@@ -2583,7 +2582,6 @@ mod transformed_halfspace_tests {
     }
 }
 
-
 #[cfg(test)]
 mod motor_step_world_tests {
     use super::*;
@@ -2604,11 +2602,7 @@ mod motor_step_world_tests {
             impulse
         }
 
-        fn friction_multiplier(
-            &self,
-            _contact_point: &SVector<f64, 3>,
-            _body: BodyHandle,
-        ) -> f64 {
+        fn friction_multiplier(&self, _contact_point: &SVector<f64, 3>, _body: BodyHandle) -> f64 {
             1.0
         }
 
@@ -2631,8 +2625,7 @@ mod motor_step_world_tests {
             Point::origin(),
             Box::new(Sphere::new(Point::origin(), 0.1)),
         );
-        let dynamic_body =
-            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        let dynamic_body = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
         let anchor = world.add_body(static_body);
         let slider = world.add_body(dynamic_body);
 
