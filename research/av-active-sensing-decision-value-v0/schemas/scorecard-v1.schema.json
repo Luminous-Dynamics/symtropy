@@ -145,7 +145,8 @@
         "wasted_acquisition_count",
         "late_acquisition_count",
         "budget_violations",
-        "evidence_violations"
+        "evidence_violations",
+        "action_policy_correct"
       ],
       "properties": {
         "episode_id": {
@@ -188,6 +189,9 @@
           "items": {
             "type": "string"
           }
+        },
+        "action_policy_correct": {
+          "type": "boolean"
         }
       }
     }
