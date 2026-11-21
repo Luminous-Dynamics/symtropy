@@ -865,9 +865,15 @@ mod tests {
 
     #[test]
     fn power_law_and_weibull_profiles_are_separate_statistical_claims() {
-        assert!(is_statistical_profile_claim(ClaimType::PowerLawRecurrentIntensity));
-        assert!(is_statistical_profile_claim(ClaimType::WeibullFirstFailureLife));
-        assert!(!is_statistical_profile_claim(ClaimType::LifecycleQualification));
+        assert!(is_statistical_profile_claim(
+            ClaimType::PowerLawRecurrentIntensity
+        ));
+        assert!(is_statistical_profile_claim(
+            ClaimType::WeibullFirstFailureLife
+        ));
+        assert!(!is_statistical_profile_claim(
+            ClaimType::LifecycleQualification
+        ));
 
         let power_law = Claim {
             claim_id: "plp".to_owned(),
