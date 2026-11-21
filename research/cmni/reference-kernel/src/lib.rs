@@ -18,6 +18,7 @@ pub enum ModelError {
     NonPositiveValue(&'static str),
     InvalidIntegrationSteps,
     MismatchedDataLengths,
+    InvalidCovariance(&'static str),
 }
 
 impl fmt::Display for ModelError {
@@ -28,6 +29,7 @@ impl fmt::Display for ModelError {
             Self::NonPositiveValue(name) => write!(f, "non-positive value: {name}"),
             Self::InvalidIntegrationSteps => write!(f, "Simpson integration requires an even step count >= 2"),
             Self::MismatchedDataLengths => write!(f, "observation, prediction, and uncertainty arrays must have equal non-zero length"),
+            Self::InvalidCovariance(name) => write!(f, "invalid covariance matrix: {name}"),
         }
     }
 }
@@ -258,6 +260,66 @@ pub fn prompt_dissociation_beam_components(
             deuteron_flux_fraction: d2_plus_weight,
         },
     ])
+}
+
+/// Total deuterium-atom arrival rate represented by a singly charged
+/// D+ / D2+ ion current. Fractions are ion-current fractions.
+pub fn total_deuteron_rate_per_second(
+    ion_current_a: f64,
+    d_plus_ion_current_fraction: f64,
+    d2_plus_ion_current_fraction: f64,
+) -> Result<f64, ModelError> {
+    let current = checked_nonnegative(ion_current_a, "ion_current_A")?;
+    for (fraction, name) in [
+        (d_plus_ion_current_fraction, "D_plus_ion_current_fraction"),
+        (d2_plus_ion_current_fraction, "D2_plus_ion_current_fraction"),
+    ] {
+        if !fraction.is_finite() || !(0.0..=1.0).contains(&fraction) {
+            return Err(ModelError::InvalidParameter(name));
+        }
+    }
+    if (d_plus_ion_current_fraction + d2_plus_ion_current_fraction - 1.0).abs() > 1.0e-6 {
+        return Err(ModelError::InvalidParameter("ion_current_fractions_must_sum_to_one"));
+    }
+    const ELEMENTARY_CHARGE_C: f64 = 1.602_176_634e-19;
+    Ok((current / ELEMENTARY_CHARGE_C)
+        * (d_plus_ion_current_fraction + 2.0 * d2_plus_ion_current_fraction))
+}
+
+/// Axisymmetric Gaussian footprint used only as an explicit baseline model.
+///
+/// The profile is normalized over the infinite plane, so its spatial integral
+/// equals the supplied total deuteron arrival rate. A measured 2-D beam map
+/// should replace this baseline when available; a reported approximate spot
+/// area does not determine sigma uniquely.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct GaussianBeamFootprint {
+    pub sigma_cm: f64,
+}
+
+impl GaussianBeamFootprint {
+    pub fn new(sigma_cm: f64) -> Result<Self, ModelError> {
+        checked_positive(sigma_cm, "beam_sigma_cm")?;
+        Ok(Self { sigma_cm })
+    }
+
+    /// Deuteron areal flux density at radial distance r, in D cm^-2 s^-1.
+    pub fn deuteron_flux_density_cm2_s(
+        self,
+        total_deuteron_rate_s: f64,
+        radius_cm: f64,
+    ) -> Result<f64, ModelError> {
+        let total_rate = checked_nonnegative(total_deuteron_rate_s, "total_deuteron_rate_s")?;
+        let radius = checked_nonnegative(radius_cm, "beam_radius_cm")?;
+        let sigma_sq = self.sigma_cm * self.sigma_cm;
+        let density = total_rate
+            / (2.0 * std::f64::consts::PI * sigma_sq)
+            * (-(radius * radius) / (2.0 * sigma_sq)).exp();
+        if !density.is_finite() || density < 0.0 {
+            return Err(ModelError::InvalidParameter("beam_flux_density_must_be_finite_and_nonnegative"));
+        }
+        Ok(density)
+    }
 }
 
 /// Homogeneous screened thick-target yield per incident projectile.
@@ -597,6 +659,27 @@ pub fn sigmoid_heterogeneous_enhancement_prose_direction(
     screening_enhancement(energy_cm, gamow_energy_cm, effective)
 }
 
+/// Heterogeneous enhancement under the literal printed Eq. 16 direction.
+/// Retained separately from the prose/Fig. 3c direction until the fit
+/// implementation is source-verified.
+pub fn sigmoid_heterogeneous_enhancement_printed_equation(
+    energy_cm: EnergyKev,
+    gamow_energy_cm: GamowEnergyKev,
+    bulk_screening_kev: f64,
+    surface_screening_kev: f64,
+    crossover_energy_cm: EnergyKev,
+    width_kev: f64,
+) -> Result<f64, ModelError> {
+    let effective = sigmoid_screening_potential_printed_equation(
+        energy_cm,
+        bulk_screening_kev,
+        surface_screening_kev,
+        crossover_energy_cm,
+        width_kev,
+    )?;
+    screening_enhancement(energy_cm, gamow_energy_cm, effective)
+}
+
 /// Weighted log-space least-squares objective (Eq. 17 convention).
 ///
 /// sigma_ln_ratio must be strictly positive. This is a diagnostic objective,
@@ -630,6 +713,120 @@ pub fn weighted_log_space_chi_square(
         return Err(ModelError::InvalidParameter("chi_square must be finite"));
     }
     Ok(sum)
+}
+
+/// Covariance of log relative-yield observations when each ratio shares
+/// one independently measured reference yield.
+///
+/// For r_i = ln(Y_i) - ln(Y_ref), independent numerator measurements imply
+/// Cov(r_i,r_j) = delta_ij Var[ln(Y_i)] + Var[ln(Y_ref)]. This function expects
+/// only non-reference numerator points; do not include the reference point
+/// itself as an independent ratio observation. Additional correlated
+/// systematics must be added to this matrix by the caller.
+pub fn shared_reference_log_covariance(
+    numerator_log_variances: &[f64],
+    reference_log_variance: f64,
+) -> Result<Vec<Vec<f64>>, ModelError> {
+    if numerator_log_variances.is_empty() {
+        return Err(ModelError::MismatchedDataLengths);
+    }
+    let reference_variance = checked_positive(reference_log_variance, "reference_log_variance")?;
+    let mut covariance = vec![vec![reference_variance; numerator_log_variances.len()]; numerator_log_variances.len()];
+    for (i, variance) in numerator_log_variances.iter().enumerate() {
+        let variance = checked_positive(*variance, "numerator_log_variance")?;
+        covariance[i][i] += variance;
+    }
+    Ok(covariance)
+}
+
+/// Cholesky factorization for a symmetric positive-definite covariance matrix.
+/// Returns lower-triangular L such that covariance = L * L^T.
+fn cholesky_lower(covariance: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, ModelError> {
+    let n = covariance.len();
+    if n == 0 || covariance.iter().any(|row| row.len() != n) {
+        return Err(ModelError::InvalidCovariance("matrix must be non-empty and square"));
+    }
+
+    for i in 0..n {
+        for j in 0..n {
+            let value = covariance[i][j];
+            if !value.is_finite() {
+                return Err(ModelError::InvalidCovariance("all entries must be finite"));
+            }
+            let scale = 1.0_f64.max(value.abs()).max(covariance[j][i].abs());
+            if (value - covariance[j][i]).abs() > 1.0e-10 * scale {
+                return Err(ModelError::InvalidCovariance("matrix must be symmetric"));
+            }
+        }
+        if covariance[i][i] <= 0.0 {
+            return Err(ModelError::InvalidCovariance("diagonal entries must be positive"));
+        }
+    }
+
+    let mut lower = vec![vec![0.0; n]; n];
+    for i in 0..n {
+        for j in 0..=i {
+            let mut value = covariance[i][j];
+            for k in 0..j {
+                value -= lower[i][k] * lower[j][k];
+            }
+            if i == j {
+                if !value.is_finite() || value <= 0.0 {
+                    return Err(ModelError::InvalidCovariance("matrix must be positive definite"));
+                }
+                lower[i][j] = value.sqrt();
+            } else {
+                lower[i][j] = value / lower[j][j];
+            }
+        }
+    }
+    Ok(lower)
+}
+
+/// Generalized least-squares objective for log relative yields:
+/// chi-square = (ln R_obs - ln R_pred)^T Sigma^-1 (ln R_obs - ln R_pred).
+///
+/// The implementation uses a Cholesky solve rather than explicitly inverting
+/// Sigma. Covariance should include shared reference counts and correlated
+/// systematic effects. This remains a Gaussian likelihood approximation;
+/// low-count Poisson data may require a count-space likelihood instead.
+pub fn correlated_weighted_log_space_chi_square(
+    observed_ratios: &[f64],
+    predicted_ratios: &[f64],
+    covariance: &[Vec<f64>],
+) -> Result<f64, ModelError> {
+    if observed_ratios.is_empty() || observed_ratios.len() != predicted_ratios.len() {
+        return Err(ModelError::MismatchedDataLengths);
+    }
+    if covariance.len() != observed_ratios.len()
+        || covariance.iter().any(|row| row.len() != observed_ratios.len())
+    {
+        return Err(ModelError::InvalidCovariance("dimensions must match the ratio arrays"));
+    }
+
+    let residuals = observed_ratios.iter().zip(predicted_ratios.iter())
+        .map(|(observed, predicted)| {
+            let observed = checked_positive(*observed, "observed_ratio")?;
+            let predicted = checked_positive(*predicted, "predicted_ratio")?;
+            Ok(observed.ln() - predicted.ln())
+        })
+        .collect::<Result<Vec<f64>, ModelError>>()?;
+
+    let lower = cholesky_lower(covariance)?;
+    // Solve L z = residual with forward substitution; chi-square = z^T z.
+    let mut whitened = vec![0.0; residuals.len()];
+    for i in 0..residuals.len() {
+        let mut value = residuals[i];
+        for j in 0..i {
+            value -= lower[i][j] * whitened[j];
+        }
+        whitened[i] = value / lower[i][i];
+    }
+    let score = whitened.iter().map(|value| value * value).sum::<f64>();
+    if !score.is_finite() || score < 0.0 {
+        return Err(ModelError::InvalidCovariance("generalized chi-square is not finite and nonnegative"));
+    }
+    Ok(score)
 }
 
 #[cfg(test)]
@@ -805,6 +1002,110 @@ mod tests {
         .expect("D2+ component");
         let expected = (0.85 / 1.15) * d_plus + (0.30 / 1.15) * d2_fragment;
         assert!((weighted - expected).abs() / expected < 1.0e-12);
+    }
+
+    #[test]
+    fn printed_sigmoid_enhancement_uses_literal_equation_direction() {
+        let energy = EnergyKev::new(0.01).expect("low energy");
+        let enhancement = sigmoid_heterogeneous_enhancement_printed_equation(
+            energy,
+            GamowEnergyKev::new(986.0).expect("Gamow"),
+            0.8,
+            3.0,
+            EnergyKev::new(0.6).expect("crossover"),
+            0.5,
+        ).expect("printed enhancement");
+        let expected_u = sigmoid_screening_potential_printed_equation(
+            energy, 0.8, 3.0, EnergyKev::new(0.6).expect("crossover"), 0.5
+        ).expect("printed potential");
+        let expected = screening_enhancement(
+            energy, GamowEnergyKev::new(986.0).expect("Gamow"), expected_u
+        ).expect("closed form");
+        assert!((enhancement - expected).abs()/expected < 1.0e-12);
+    }
+
+    #[test]
+    fn shared_reference_covariance_has_positive_off_diagonal_terms() {
+        let covariance = shared_reference_log_covariance(&[0.04, 0.09], 0.01)
+            .expect("shared-reference covariance");
+        assert!((covariance[0][0] - 0.05).abs() < 1.0e-12);
+        assert!((covariance[1][1] - 0.10).abs() < 1.0e-12);
+        assert!((covariance[0][1] - 0.01).abs() < 1.0e-12);
+        assert!((covariance[1][0] - 0.01).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn correlated_chi_square_matches_diagonal_objective_for_diagonal_covariance() {
+        let observed = [1.1, 2.2, 4.4];
+        let predicted = [1.0, 2.0, 4.0];
+        let sigmas = [0.1, 0.2, 0.4];
+        let diagonal = vec![
+            vec![0.01, 0.0, 0.0],
+            vec![0.0, 0.04, 0.0],
+            vec![0.0, 0.0, 0.16],
+        ];
+        let old = weighted_log_space_chi_square(&observed, &predicted, &sigmas)
+            .expect("diagonal score");
+        let new = correlated_weighted_log_space_chi_square(&observed, &predicted, &diagonal)
+            .expect("GLS score");
+        assert!((old - new).abs() < 1.0e-10);
+    }
+
+    #[test]
+    fn correlated_chi_square_accepts_shared_reference_covariance() {
+        let covariance = shared_reference_log_covariance(&[0.04, 0.09], 0.01)
+            .expect("covariance");
+        let score = correlated_weighted_log_space_chi_square(
+            &[1.1, 2.2], &[1.0, 2.0], &covariance
+        ).expect("correlated score");
+        assert!(score.is_finite() && score >= 0.0);
+    }
+
+    #[test]
+    fn correlated_chi_square_rejects_non_positive_definite_covariance() {
+        let covariance = vec![vec![1.0, 2.0], vec![2.0, 1.0]];
+        let result = correlated_weighted_log_space_chi_square(
+            &[1.1, 2.2], &[1.0, 2.0], &covariance
+        );
+        assert_eq!(
+            result,
+            Err(ModelError::InvalidCovariance("matrix must be positive definite"))
+        );
+    }
+
+    #[test]
+    fn correlated_chi_square_rejects_asymmetric_covariance() {
+        let covariance = vec![vec![1.0, 0.2], vec![0.1, 1.0]];
+        let result = correlated_weighted_log_space_chi_square(
+            &[1.1, 2.2], &[1.0, 2.0], &covariance
+        );
+        assert_eq!(
+            result,
+            Err(ModelError::InvalidCovariance("matrix must be symmetric"))
+        );
+    }
+
+    #[test]
+    fn total_deuteron_rate_counts_two_nuclei_per_d2_plus_ion() {
+        let rate = total_deuteron_rate_per_second(1.0e-6, 0.85, 0.15)
+            .expect("valid species fractions");
+        const E_CHARGE: f64 = 1.602_176_634e-19;
+        let expected = 1.0e-6 / E_CHARGE * 1.15;
+        assert!((rate - expected).abs()/expected < 1.0e-12);
+    }
+
+    #[test]
+    fn gaussian_beam_footprint_is_current_normalized() {
+        let footprint = GaussianBeamFootprint::new(0.25).expect("sigma");
+        let rate = total_deuteron_rate_per_second(1.0e-6, 0.85, 0.15)
+            .expect("deuteron rate");
+        let peak = footprint.deuteron_flux_density_cm2_s(rate, 0.0)
+            .expect("peak density");
+        let one_sigma = footprint.deuteron_flux_density_cm2_s(rate, 0.25)
+            .expect("one-sigma density");
+        assert!((one_sigma / peak - (-0.5_f64).exp()).abs() < 1.0e-12);
+        let integrated_rate = peak * 2.0 * std::f64::consts::PI * 0.25_f64.powi(2);
+        assert!((integrated_rate - rate).abs()/rate < 1.0e-12);
     }
 
     #[test]
