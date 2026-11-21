@@ -179,12 +179,12 @@ fn check_node_attributes(
     for field in ["NodeId", "ParentNodeId", "DataType"] {
         if let Some(value) = attributes.get(field) {
             check_nodeset_namespace_index(value, namespace_uris, field)?;
-            checked += usize::from(value.starts_with("ns="));
+            checked += if value.starts_with("ns=") { 1 } else { 0 };
         }
     }
     if let Some(value) = attributes.get("BrowseName") {
         check_browse_name_index(value, namespace_uris, "BrowseName")?;
-        checked += usize::from(value.contains(':'));
+        checked += if value.contains(':') { 1 } else { 0 };
     }
     Ok(checked)
 }
@@ -859,6 +859,12 @@ mod tests {
             "<Uri>http://opcfoundation.org/UA/DI/</Uri>",
         );
         assert!(parse_nodeset_xml(duplicate.as_bytes()).unwrap_err().contains("duplicate"));
+    }
+
+    #[test]
+    fn nodeset_namespace_index_zero_resolves_to_opc_ua_core_namespace() {
+        let xml = SYNTHETIC_XML.replace("NodeId=\"ns=1;i=1003\"", "NodeId=\"ns=0;i=1003\"");
+        assert!(parse_nodeset_xml(xml.as_bytes()).is_ok());
     }
 
     #[test]
