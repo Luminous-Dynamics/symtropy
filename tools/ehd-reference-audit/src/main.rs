@@ -14,6 +14,7 @@ mod exchange_receipt;
 mod polynomial_moments;
 mod drag_dissipation;
 mod drag_trajectory;
+mod control_volume;
 
 const EMBEDDED_ATLAS: &str =
     include_str!("../../../data/research/ehd_reference_atlas_v0_1.json");
@@ -35,6 +36,8 @@ const EMBEDDED_DRAG_TRAJECTORY: &str =
     include_str!("../../../data/research/ehd_drag_trajectory_v0_1.json");
 const EMBEDDED_THRUST_OBSERVABILITY: &str =
     include_str!("../../../data/research/ehd_thrust_observability_v0_1.json");
+const EMBEDDED_CONTROL_VOLUME: &str =
+    include_str!("../../../data/research/ehd_control_volume_v0_1.json");
 
 fn at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
     path.iter().try_fold(value, |node, key| node.get(*key))
@@ -1824,6 +1827,110 @@ pub fn audit_thrust_observability_contract(root: &Value) -> Vec<String> {
 }
 
 
+pub fn audit_control_volume_contract(root: &Value) -> Vec<String> {
+    let mut findings = Vec::new();
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["schema"]) == Some("luminous.ehd_control_volume_reducer")
+            && text_at(root, &["schema_version"]) == Some("0.1.0")
+            && text_at(root, &["benchmark_id"]) == Some("EHD-CV-001")
+            && text_at(root, &["status"])
+                == Some("vector_bookkeeping_reducer_authored_tests_rust_execution_pending"),
+        "CONTROL_VOLUME_IDENTITY",
+        "control-volume reducer identity/version/status changed",
+    );
+    let equation = at(root, &["equation"]);
+    push_if_missing(
+        &mut findings,
+        equation.is_some_and(|value| {
+            text_at(value, &["form"])
+                == Some("S + A = P + V + B + F_solid_to_fluid")
+                && text_at(value, &["reconstructed_solid_on_fluid"])
+                    == Some("S + A - P - V - B")
+                && text_at(value, &["inferred_fluid_on_solid"])
+                    == Some("negative_of_reconstructed_solid_on_fluid")
+                && at(value, &["sign_convention_id_required"]).and_then(Value::as_bool) == Some(true)
+        }),
+        "CONTROL_VOLUME_SIGN_CONVENTION",
+        "control-volume equation/sign convention must remain explicit and fixed",
+    );
+    let required_terms = at(root, &["required_vector_terms"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        required_terms.is_some_and(|rows| rows.len() == 6
+            && ["momentum_storage","advective_momentum_flux_all_surfaces","pressure_traction_all_surfaces",
+                "viscous_traction_all_surfaces","body_force","direct_force_balance_fluid_on_solid"]
+                .iter().all(|wanted| rows.iter().any(|item| item.as_str() == Some(*wanted)))),
+        "CONTROL_VOLUME_REQUIRED_TERMS",
+        "all five fluid-side terms and independent balance measurement must be mandatory",
+    );
+    let uncertainty = at(root, &["uncertainty_policy"]);
+    push_if_missing(
+        &mut findings,
+        uncertainty.is_some_and(|value| {
+            text_at(value, &["cv_uncertainty"])
+                == Some("U_storage + U_advective + U_pressure + U_viscous + U_body")
+                && text_at(value, &["combined_uncertainty"])
+                    == Some("U_cv + U_direct_balance")
+                && text_at(value, &["method"])
+                    .is_some_and(|method| method.contains("worst_case_triangle_inequality"))
+                && at(value, &["rss_allowed_by_default"]).and_then(Value::as_bool) == Some(false)
+                && at(value, &["covariance_aware_future_method_requires_validated_covariance_artifact"])
+                    .and_then(Value::as_bool) == Some(true)
+        }),
+        "CONTROL_VOLUME_UNCERTAINTY_POLICY",
+        "uncertainty must use conservative worst-case addition; RSS is not the default",
+    );
+    let implementation = at(root, &["reference_implementation"]);
+    push_if_missing(
+        &mut findings,
+        implementation.is_some_and(|value| {
+            text_at(value, &["path"]) == Some("tools/ehd-reference-audit/src/control_volume.rs")
+                && text_at(value, &["missing_term_policy"]) == Some("reject_not_zero_fill")
+                && text_at(value, &["duplicate_evidence_id_policy"]) == Some("reject")
+                && at(value, &["outputs"]).and_then(Value::as_array)
+                    .is_some_and(|fields| fields.iter().any(|item| item.as_str() == Some("combined_uncertainty_bound_n"))
+                        && fields.iter().any(|item| item.as_str() == Some("overall_within_combined_bound")))
+        }),
+        "CONTROL_VOLUME_IMPLEMENTATION_SCOPE",
+        "reducer must reject missing terms, reject duplicate evidence and emit uncertainty-aware reconciliation",
+    );
+    let tests = at(root, &["test_families"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        tests.is_some_and(|rows| rows.len() == 10
+            && rows.iter().any(|item| item.as_str() == Some("reject_each_missing_required_term"))
+            && rows.iter().any(|item| item.as_str() == Some("verify_worst_case_uncertainty_sum_not_rss"))
+            && rows.iter().any(|item| item.as_str() == Some("flag_discrepancy_beyond_uncertainty"))
+            && rows.iter().any(|item| item.as_str() == Some("reject_empty_run_and_control_volume_identities"))
+            && rows.iter().any(|item| item.as_str() == Some("offline_reference_self_check"))),
+        "CONTROL_VOLUME_TEST_MATRIX",
+        "nine control-volume analytic/adversarial test families must remain declared",
+    );
+    push_if_missing(
+        &mut findings,
+        at(root, &["acceptance", "all_six_terms_required"]).and_then(Value::as_bool) == Some(true)
+            && at(root, &["acceptance", "unknown_term_is_not_zero"]).and_then(Value::as_bool) == Some(true)
+            && at(root, &["acceptance", "worst_case_sum_is_default"]).and_then(Value::as_bool) == Some(true),
+        "CONTROL_VOLUME_ACCEPTANCE",
+        "all six terms must be present and unknown terms must not become zero",
+    );
+    let limitations = at(root, &["limitations"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        limitations.is_some_and(|rows| rows.iter().any(|item| item.as_str() == Some("no_piv_ldv_image_processing"))
+            && rows.iter().any(|item| item.as_str() == Some("no_velocity_field_surface_integration"))
+            && rows.iter().any(|item| item.as_str() == Some("no_physical_thrust_measurement")))
+            && text_at(root, &["claim_ceiling"])
+                .is_some_and(|claim| claim.contains("not a PIV/LDV pipeline")
+                    && claim.contains("physical thrust measurement")),
+        "CONTROL_VOLUME_CLAIM_BOUNDARY",
+        "vector reducer must not be promoted into field processing or physical thrust validation",
+    );
+    findings
+}
+
+
 fn main() {
     let mut args = env::args().skip(1);
     let path = args.next();
@@ -1924,6 +2031,14 @@ fn main() {
         }
     };
     findings.extend(audit_thrust_observability_contract(&thrust_observability_contract));
+    let control_volume_contract: Value = match serde_json::from_str(EMBEDDED_CONTROL_VOLUME) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("invalid embedded control-volume reducer contract JSON: {error}");
+            process::exit(2);
+        }
+    };
+    findings.extend(audit_control_volume_contract(&control_volume_contract));
     let exchange_kernel_ok = match exchange::reference_self_check() {
         Ok(()) => true,
         Err(error) => {
@@ -1973,6 +2088,13 @@ fn main() {
             false
         }
     };
+    let control_volume_ok = match control_volume::reference_self_check() {
+        Ok(()) => true,
+        Err(error) => {
+            findings.push(format!("CONTROL_VOLUME_SELF_CHECK: {error}"));
+            false
+        }
+    };
     if findings.is_empty() {
         let count = len_at(&atlas, &["source_records"]).unwrap_or(0);
         let system_count = len_at(&atlas, &["system_integration_references"]).unwrap_or(0);
@@ -2005,6 +2127,9 @@ fn main() {
             println!("time-varying ion-neutral drag quadrature receipt self-check: passed");
         }
         println!("thrust observability protocol: audited (no physical measurement performed)");
+        if control_volume_ok {
+            println!("control-volume momentum and force-balance reducer self-check: passed");
+        }
         println!("scope: source structure and analytic reference checks only; no physical V&V, production ALE, TPE(1/2), full collisional-energy closure or durable exactly-once claim");
     } else {
         eprintln!("FAIL: {label} ({} finding(s))", findings.len());
@@ -2609,6 +2734,36 @@ mod thrust_observability_contract_tests {
         value["limitations"] = Value::Array(Vec::new());
         assert!(audit_thrust_observability_contract(&value).iter().any(|finding| {
             finding.starts_with("THRUST_OBSERVABILITY_CLAIM_BOUNDARY")
+        }));
+    }
+}
+
+#[cfg(test)]
+mod control_volume_contract_tests {
+    use super::*;
+
+    #[test]
+    fn control_volume_reducer_contract_passes() {
+        let value: Value = serde_json::from_str(EMBEDDED_CONTROL_VOLUME)
+            .expect("embedded control-volume reducer contract must be valid JSON");
+        assert!(audit_control_volume_contract(&value).is_empty());
+    }
+
+    #[test]
+    fn control_volume_contract_requires_complete_six_term_manifest() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_CONTROL_VOLUME).unwrap();
+        value["required_vector_terms"].as_array_mut().unwrap().pop();
+        assert!(audit_control_volume_contract(&value).iter().any(|finding| {
+            finding.starts_with("CONTROL_VOLUME_REQUIRED_TERMS")
+        }));
+    }
+
+    #[test]
+    fn control_volume_contract_rejects_root_sum_square_as_default() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_CONTROL_VOLUME).unwrap();
+        value["uncertainty_policy"]["rss_allowed_by_default"] = Value::Bool(true);
+        assert!(audit_control_volume_contract(&value).iter().any(|finding| {
+            finding.starts_with("CONTROL_VOLUME_UNCERTAINTY_POLICY")
         }));
     }
 }
