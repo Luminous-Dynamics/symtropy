@@ -962,6 +962,7 @@ mod tests {
             },
             "nodeset_artifact":{
                 "content_sha256":sha256_hex(SYNTHETIC_XML.as_bytes()),
+                "git_blob_sha1":git_blob_sha1_hex(SYNTHETIC_XML.as_bytes()),
                 "byte_length":SYNTHETIC_XML.len(),
                 "namespace_uris":[
                     "http://opcfoundation.org/UA/Machinery/",
@@ -985,6 +986,15 @@ mod tests {
         assert!(report.admitted);
         assert_eq!(report.model_publication_date, "2026-11-02");
         // Normative NamespaceMetadata is 2026-11-01; NodeSet Model PublicationDate is 2026-11-02.
+    }
+
+    #[test]
+    fn git_blob_hash_mismatch_is_rejected_even_when_raw_sha256_matches() {
+        let mut manifest = fixture_manifest();
+        manifest["nodeset_artifact"]["git_blob_sha1"] =
+            json!("0000000000000000000000000000000000000000");
+        let errors = verify_nodeset_artifact(SYNTHETIC_XML.as_bytes(), &manifest).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("Git blob SHA-1 mismatch")));
     }
 
     #[test]
