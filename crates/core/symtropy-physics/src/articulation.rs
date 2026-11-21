@@ -71,7 +71,7 @@ struct LinkPlacement {
 
 fn compute_link_placements(lengths: &[f64]) -> Result<Vec<LinkPlacement>, ChainBuildError> {
     let mut placements = Vec::with_capacity(lengths.len());
-    let mut previous_length = None;
+    let mut previous_length: Option<f64> = None;
 
     for (index, &length) in lengths.iter().enumerate() {
         if !length.is_finite() || length <= 0.0 {
