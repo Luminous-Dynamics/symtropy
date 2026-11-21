@@ -286,10 +286,10 @@ pub fn parse_events_tsv(input: &str) -> Result<Vec<CargoEvent>, String> {
     Ok(events)
 }
 
-fn effective_mappings<'a>(
-    mappings: &'a [IdentityMapping],
+fn effective_mappings(
+    mappings: &[IdentityMapping],
     as_of: i64,
-) -> Result<Vec<&'a IdentityMapping>, IdentityError> {
+) -> Result<Vec<&IdentityMapping>, IdentityError> {
     let mut by_mapping_id: BTreeMap<&str, Vec<&IdentityMapping>> = BTreeMap::new();
     for mapping in mappings
         .iter()
