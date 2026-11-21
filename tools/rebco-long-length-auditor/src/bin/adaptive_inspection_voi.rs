@@ -688,9 +688,13 @@ mod tests {
             .iter()
             .find(|scenario| scenario["scenario_id"] == "ISOLATED-WEAK-CELLS")
             .unwrap();
-        assert!(maximum_true_run(
-            isolated["weak_cells"].as_array().unwrap().iter().map(|v| v.as_bool().unwrap()).collect::<Vec<_>>().as_slice()
-        ) < 2);
+        let cells = isolated["weak_cells"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|value| value.as_bool().unwrap())
+            .collect::<Vec<_>>();
+        assert!(maximum_true_run(&cells) < 2);
     }
 
     #[test]
@@ -794,7 +798,7 @@ mod tests {
     fn rejects_impossible_observed_outcome() {
         let mut value = fixture();
         value["observed_results"] = json!([{
-            "action_id": "PERFECT-DIRECT-ALWAYS-HEALTHY-CELL-001",
+            "action_id": "DIRECT-TRANSPORT-CELL-001",
             "outcome": "positive"
         }]);
         assert!(
@@ -862,8 +866,13 @@ mod tests {
     #[test]
     fn ties_are_resolved_by_action_id_not_input_order() {
         let mut value = fixture();
-        let actions = value["candidate_actions"].as_array_mut().unwrap();
-        actions.swap(0, 2);
+        let mut duplicate = value["candidate_actions"][0].clone();
+        duplicate["action_id"] = json!("DIRECT-TRANSPORT-CELL-003-Z");
+        duplicate["instrument_id"] = json!("SYNTH-TRANSPORT-RIG-02");
+        value["candidate_actions"]
+            .as_array_mut()
+            .unwrap()
+            .insert(0, duplicate);
         let report = audit_document(&value).expect("fixture should validate");
         assert_eq!(
             report["recommendation"]["selected_action_id"],
@@ -886,8 +895,8 @@ mod tests {
     #[test]
     fn rejects_duplicate_candidate_action_ids() {
         let mut value = fixture();
-        value["candidate_actions"][1]["action_id"] =
-            value["candidate_actions"][0]["action_id"].clone();
+        let first_id = value["candidate_actions"][0]["action_id"].clone();
+        value["candidate_actions"][1]["action_id"] = first_id;
         assert!(
             audit_document(&value)
                 .unwrap_err()
