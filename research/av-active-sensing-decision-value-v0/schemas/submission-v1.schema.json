@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/av-active-sensing-submission-v1.schema.json",
+  "title": "AV Active Sensing Candidate Submission v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "policy_id",
+    "run_id",
+    "policy_family",
+    "predictions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "const": "av-active-sensing-decision-value-v0"
+    },
+    "policy_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "policy_family": {
+      "enum": [
+        "always_on",
+        "fixed_cadence",
+        "random_budget_matched",
+        "max_eig",
+        "myopic_evsi",
+        "deadline_aware_evsi",
+        "budget_aware_evsi",
+        "synthetic_reference"
+      ]
+    },
+    "predictions": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "episode_id",
+          "action_requests",
+          "decision",
+          "answer",
+          "response_tick",
+          "evidence_as_of_tick"
+        ],
+        "properties": {
+          "episode_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "action_requests": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "request_id",
+                "action_id",
+                "request_tick",
+                "estimated_eig_nats",
+                "estimated_evsi",
+                "estimated_cost_joules"
+              ],
+              "properties": {
+                "request_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "action_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "request_tick": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "estimated_eig_nats": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "estimated_evsi": {
+                  "type": "number"
+                },
+                "estimated_cost_joules": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "decision": {
+            "enum": [
+              "answer",
+              "abstain",
+              "stop_without_answer"
+            ]
+          },
+          "answer": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "response_tick": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "evidence_as_of_tick": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cited_observation_refs": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "resource_usage": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "audio_bytes",
+              "video_frames",
+              "energy_joules"
+            ],
+            "properties": {
+              "audio_bytes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "video_frames": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "energy_joules": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
