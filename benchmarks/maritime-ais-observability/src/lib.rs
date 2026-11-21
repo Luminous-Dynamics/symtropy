@@ -175,7 +175,9 @@ pub struct AisFix {
     pub mmsi: String,
     pub message_id: String,
     pub source_id: String,
+    pub receiver_id: String,
     pub geofence_digest: String,
+    pub spatial_reference_id: String,
     pub tick: i64,
     pub zone: Zone,
     pub speed_milli_knots: u32,
@@ -197,13 +199,18 @@ pub struct InferredEvent {
 pub struct CallReport {
     pub mmsi: String,
     pub source_id: String,
+    pub receiver_id: String,
     pub geofence_digest: String,
+    pub spatial_reference_id: String,
     pub profile_version: String,
+    pub initial_state: ServiceState,
+    pub initial_state_evidence_id: Option<String>,
     pub final_state: ServiceState,
     pub accepted_fix_count: usize,
     pub duplicate_fix_count: usize,
     pub invalid_fix_count: usize,
     pub nav_status_conflict_count: usize,
+    pub kinematic_conflict_count: usize,
     pub observability_gap_count: usize,
     pub events: Vec<InferredEvent>,
 }
@@ -259,7 +266,30 @@ pub fn evaluate_call(
     fixes: &[AisFix],
     profile: &DwellProfile,
 ) -> Result<CallReport, String> {
+    evaluate_call_with_initial_state(
+        expected_mmsi,
+        ServiceState::Indeterminate,
+        None,
+        fixes,
+        profile,
+    )
+}
+
+pub fn evaluate_call_with_initial_state(
+    expected_mmsi: &str,
+    initial_state: ServiceState,
+    initial_state_evidence_id: Option<&str>,
+    fixes: &[AisFix],
+    profile: &DwellProfile,
+) -> Result<CallReport, String> {
     profile.validate()?;
+    if initial_state != ServiceState::Indeterminate
+        && initial_state_evidence_id.is_none_or(str::is_empty)
+    {
+        return Err(
+            "a non-indeterminate initial state requires an evidence reference".to_string(),
+        );
+    }
     if !valid_mmsi(expected_mmsi) {
         return Err(format!("invalid MMSI {expected_mmsi:?}: expected nine digits"));
     }
@@ -274,14 +304,22 @@ pub fn evaluate_call(
     if first.source_id.trim().is_empty() {
         return Err("source ID must be non-empty".to_string());
     }
+    if first.receiver_id.trim().is_empty() {
+        return Err("receiver ID must be non-empty".to_string());
+    }
+    if first.spatial_reference_id.trim().is_empty() {
+        return Err("spatial reference ID must be non-empty".to_string());
+    }
 
     let source_id = first.source_id.clone();
+    let receiver_id = first.receiver_id.clone();
+    let spatial_reference_id = first.spatial_reference_id.clone();
     if first.geofence_digest.trim().is_empty() {
         return Err("geofence digest must be non-empty".to_string());
     }
     let geofence_digest = first.geofence_digest.clone();
     let mut seen_messages: BTreeMap<String, AisFix> = BTreeMap::new();
-    let mut state = ServiceState::Outside;
+    let mut state = initial_state;
     let mut candidate: Option<Candidate> = None;
     let mut last_tick: Option<i64> = None;
     let mut accepted_fix_count = 0;
@@ -309,6 +347,18 @@ pub fn evaluate_call(
             return Err(format!(
                 "geofence identity changed from {geofence_digest:?} to {:?}",
                 fix.geofence_digest
+            ));
+        }
+        if fix.receiver_id != receiver_id {
+            return Err(format!(
+                "receiver identity changed from {receiver_id:?} to {:?}",
+                fix.receiver_id
+            ));
+        }
+        if fix.spatial_reference_id != spatial_reference_id {
+            return Err(format!(
+                "spatial reference changed from {spatial_reference_id:?} to {:?}",
+                fix.spatial_reference_id
             ));
         }
         if fix.message_id.trim().is_empty() {
@@ -458,8 +508,12 @@ pub fn evaluate_call(
     Ok(CallReport {
         mmsi: expected_mmsi.to_string(),
         source_id,
+        receiver_id,
         geofence_digest,
+        spatial_reference_id,
         profile_version: profile.version.clone(),
+        initial_state,
+        initial_state_evidence_id: initial_state_evidence_id.map(str::to_string),
         final_state: state,
         accepted_fix_count,
         duplicate_fix_count,
@@ -484,8 +538,10 @@ mod tests {
         AisFix {
             mmsi: "563123456".to_string(),
             message_id: message_id.to_string(),
-            source_id: "RX_DURBAN_TEST_A".to_string(),
+            source_id: "AIS_FIXTURE_SOURCE_A".to_string(),
+            receiver_id: "RX_DURBAN_TEST_A".to_string(),
             geofence_digest: "sha256:fixture-geofence-v1".to_string(),
+            spatial_reference_id: "EPSG:4326".to_string(),
             tick,
             zone,
             speed_milli_knots,
