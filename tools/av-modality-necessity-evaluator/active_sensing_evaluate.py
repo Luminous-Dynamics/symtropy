@@ -202,6 +202,7 @@ def evaluate(
             violations.append("invalid_citation_list")
         if len(citations) != len(set(citations)):
             violations.append("duplicate_observation_citation")
+        admissible_citations: set[str] = set()
         for ref in citations:
             if ref not in admitted:
                 violations.append("fabricated_or_unrequested_observation")
@@ -209,6 +210,18 @@ def evaluate(
                 violations.append("future_or_post_cutoff_observation_cited")
             elif admitted[ref][0] > deadline:
                 violations.append("post_deadline_observation_cited")
+            else:
+                admissible_citations.add(ref)
+
+        required_refs = label.get("required_observation_refs", [])
+        if (
+            not isinstance(required_refs, list)
+            or any(not isinstance(ref, str) or not ref for ref in required_refs)
+            or len(required_refs) != len(set(required_refs))
+        ):
+            raise EvaluationError(f"{episode_id}: malformed required_observation_refs in evaluator truth")
+        if not set(required_refs) <= admissible_citations:
+            violations.append("required_action_evidence_missing_or_inadmissible")
 
         if prediction.get("claimed_independent_corroboration") is True:
             groups = [admitted[ref][1] for ref in citations if ref in admitted]
@@ -241,8 +254,7 @@ def evaluate(
         expected_actions = set(optimal_actions)
         if len(expected_actions) != len(optimal_actions) or not expected_actions <= set(catalogue):
             raise EvaluationError(f"{episode_id}: invalid optimal action set")
-        requested_set = set(requested_ids)
-        action_policy_correct = requested_set == expected_actions and len(requested_ids) == len(requested_set)
+        action_policy_correct = requested_ids == optimal_actions
 
         regret = 0.0
         if not action_policy_correct:
