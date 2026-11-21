@@ -11,7 +11,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 
-const MIN_BOOTSTRAP_REPLICATES: usize = 100;
+const MIN_BOOTSTRAP_REPLICATES: usize = 1_000;
+const MIN_BOOTSTRAP_TASK_CLUSTERS: usize = 10;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ScorecardError {
@@ -42,7 +43,7 @@ impl Display for ScorecardError {
             Self::InvalidProtocolDigest => write!(formatter, "protocol digest must be a 64-character lowercase hex SHA-256"),
             Self::EmptyEmbodiment => write!(formatter, "embodiment must not be empty"),
             Self::EmptyEvaluationSplit => write!(formatter, "evaluation split must not be empty"),
-            Self::InsufficientTaskClusters => write!(formatter, "at least two independent task clusters are required for cluster bootstrap"),
+            Self::InsufficientTaskClusters => write!(formatter, "at least ten independent task clusters are required for inferential cluster bootstrap"),
             Self::EmptyTaskSet => write!(formatter, "at least one task cluster is required"),
             Self::EmptyTaskId => write!(formatter, "task ID must not be empty"),
             Self::DuplicateTaskId => write!(formatter, "task cluster IDs must be unique"),
@@ -257,9 +258,6 @@ pub fn evaluate_paired_comparison(
     if tasks.is_empty() {
         return Err(ScorecardError::EmptyTaskSet);
     }
-    if tasks.len() < 2 {
-        return Err(ScorecardError::InsufficientTaskClusters);
-    }
     if bootstrap.replicates < MIN_BOOTSTRAP_REPLICATES {
         return Err(ScorecardError::InvalidBootstrapReplicateCount);
     }
@@ -323,6 +321,9 @@ pub fn evaluate_paired_comparison(
             .push(task);
     }
 
+    if tasks.len() < MIN_BOOTSTRAP_TASK_CLUSTERS {
+        return Err(ScorecardError::InsufficientTaskClusters);
+    }
     if total_pairs == 0 {
         return Err(ScorecardError::NoEpisodes);
     }
@@ -511,10 +512,19 @@ mod tests {
 
     #[test]
     fn matched_episode_scorecard_reports_pooled_and_group_metrics() {
-        let tasks = vec![
+        let mut tasks = vec![
             task("task-a", 1, "in_distribution", &[false, true], &[true, true]),
             task("task-b", 3, "held_out_layout", &[false, false], &[true, false]),
         ];
+        for index in 0..8 {
+            tasks.push(task(
+                &format!("task-extra-{index}"),
+                if index % 2 == 0 { 1 } else { 3 },
+                if index % 2 == 0 { "in_distribution" } else { "held_out_layout" },
+                &[false],
+                &[false],
+            ));
+        }
         let result = evaluate_paired_comparison(
             identity(),
             &tasks,
@@ -522,8 +532,8 @@ mod tests {
         ).expect("scorecard");
         assert_eq!(result.baseline.successes, 1);
         assert_eq!(result.candidate.successes, 3);
-        assert_eq!(result.episode_pair_count, 4);
-        assert!((result.pooled_success_delta - 0.5).abs() < 1.0e-12);
+        assert_eq!(result.episode_pair_count, 12);
+        assert!((result.pooled_success_delta - (2.0 / 12.0)).abs() < 1.0e-12);
         assert_eq!(result.by_horizon.len(), 2);
         assert_eq!(result.by_category.len(), 1);
         assert_eq!(result.by_shift_family.len(), 2);
@@ -531,11 +541,20 @@ mod tests {
 
     #[test]
     fn cluster_bootstrap_is_deterministic_and_paired() {
-        let tasks = vec![
+        let mut tasks = vec![
             task("task-a", 2, "in_distribution", &[false, false, false], &[true, true, true]),
             task("task-b", 4, "held_out_object", &[false, false, false], &[true, true, true]),
             task("task-c", 6, "held_out_layout", &[false, false, false], &[true, true, true]),
         ];
+        for index in 0..7 {
+            tasks.push(task(
+                &format!("task-extra-{index}"),
+                2 + index as u32,
+                "held_out_layout",
+                &[false, false],
+                &[true, true],
+            ));
+        }
         let config = BootstrapConfig { replicates: 5_000, seed: 12345 };
         let first = evaluate_paired_comparison(identity(), &tasks, config).expect("first");
         let second = evaluate_paired_comparison(identity(), &tasks, config).expect("second");
@@ -546,10 +565,19 @@ mod tests {
 
     #[test]
     fn no_improvement_does_not_claim_positive_significance() {
-        let tasks = vec![
+        let mut tasks = vec![
             task("task-a", 1, "in_distribution", &[true, false], &[true, false]),
             task("task-b", 2, "held_out_layout", &[false, true], &[false, true]),
         ];
+        for index in 0..8 {
+            tasks.push(task(
+                &format!("task-extra-{index}"),
+                1 + (index % 2) as u32,
+                if index % 2 == 0 { "in_distribution" } else { "held_out_layout" },
+                &[index % 2 == 0],
+                &[index % 2 == 0],
+            ));
+        }
         let result = evaluate_paired_comparison(
             identity(),
             &tasks,
@@ -646,7 +674,7 @@ mod tests {
             evaluate_paired_comparison(
                 identity(),
                 &[task("task-a", 1, "in_distribution", &[false], &[true])],
-                BootstrapConfig { replicates: 99, seed: 1 }
+                BootstrapConfig { replicates: 999, seed: 1 }
             ),
             Err(ScorecardError::InvalidBootstrapReplicateCount)
         );
