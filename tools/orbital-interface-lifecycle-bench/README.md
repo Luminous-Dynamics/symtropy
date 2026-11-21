@@ -36,7 +36,7 @@ A critical defect or revoked qualification withdraws the relevant service qualif
 
 ## Frozen corpus
 
-The v0.1 corpus contains 42 synthetic known-answer cases. It covers valid service histories, cycle/inspection/qualification expiry, wear limits, measurement uncertainty, calibration, environment, maintenance, repairs, pair/configuration/procedure changes, service-kind separation, missing raw evidence, duplicate/conflicting event lineage, counter resets, revocation and critical-negative precedence.
+The v0.1 corpus contains 43 synthetic known-answer cases. It covers valid service histories, cycle/inspection/qualification expiry, wear limits, measurement uncertainty, calibration, environment, maintenance, repairs, pair/configuration/procedure changes, service-kind separation, missing raw evidence, duplicate/conflicting event lineage, counter resets, revocation and critical-negative precedence.
 
 The integration test contains a separately written reference decision function. It does not call the production evaluator's decision function.
 
