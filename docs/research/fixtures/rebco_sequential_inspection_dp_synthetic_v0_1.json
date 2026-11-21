@@ -1,0 +1,107 @@
+{
+  "schema_version": "rebco-sequential-inspection-dp.v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "finite-horizon-exact-dp-on-small-synthetic-grids-only",
+  "application_profile": {
+    "profile_id": "SYNTH-HIGH-FIELD-REBCO-PROFILE",
+    "condition_profile_id": "SYNTH-77K-SELF-FIELD-1UV-CM",
+    "minimum_contiguous_weak_cells": 2,
+    "false_accept_loss": 50,
+    "false_reject_loss": 80,
+    "total_budget_units": 4
+  },
+  "cell_count": 6,
+  "planning_horizon": 2,
+  "prior_scenarios": [
+    {
+      "scenario_id": "HEALTHY",
+      "prior_weight": 0.4,
+      "weak_cells": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "scenario_id": "WEAK-LEFT",
+      "prior_weight": 0.3,
+      "weak_cells": [
+        false,
+        false,
+        true,
+        true,
+        false,
+        false
+      ]
+    },
+    {
+      "scenario_id": "WEAK-RIGHT",
+      "prior_weight": 0.3,
+      "weak_cells": [
+        false,
+        false,
+        false,
+        false,
+        true,
+        true
+      ]
+    }
+  ],
+  "candidate_actions": [
+    {
+      "action_id": "DIRECT-CELL-2",
+      "method": "direct_transport",
+      "cell_index": 2,
+      "condition_profile_id": "SYNTH-77K-SELF-FIELD-1UV-CM",
+      "sensitivity": 0.95,
+      "specificity": 0.98,
+      "cost_units": 3,
+      "calibration_status": "valid",
+      "instrument_id": "SYNTH-DIRECT-RIG",
+      "calibration_revision": "SYNTH-DIRECT-CAL-01",
+      "validation_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "action_id": "DIRECT-CELL-4",
+      "method": "direct_transport",
+      "cell_index": 4,
+      "condition_profile_id": "SYNTH-77K-SELF-FIELD-1UV-CM",
+      "sensitivity": 0.95,
+      "specificity": 0.98,
+      "cost_units": 3,
+      "calibration_status": "valid",
+      "instrument_id": "SYNTH-DIRECT-RIG",
+      "calibration_revision": "SYNTH-DIRECT-CAL-01",
+      "validation_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "action_id": "PROXY-CELL-2",
+      "method": "calibrated_noncontact_proxy",
+      "cell_index": 2,
+      "condition_profile_id": "SYNTH-77K-SELF-FIELD-1UV-CM",
+      "sensitivity": 0.75,
+      "specificity": 0.85,
+      "cost_units": 1,
+      "calibration_status": "qualified",
+      "instrument_id": "SYNTH-PROXY-MAPPER",
+      "calibration_revision": "SYNTH-PROXY-CAL-01",
+      "validation_artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    {
+      "action_id": "PROXY-CELL-4",
+      "method": "calibrated_noncontact_proxy",
+      "cell_index": 4,
+      "condition_profile_id": "SYNTH-77K-SELF-FIELD-1UV-CM",
+      "sensitivity": 0.75,
+      "specificity": 0.85,
+      "cost_units": 1,
+      "calibration_status": "qualified",
+      "instrument_id": "SYNTH-PROXY-MAPPER",
+      "calibration_revision": "SYNTH-PROXY-CAL-01",
+      "validation_artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  ]
+}
