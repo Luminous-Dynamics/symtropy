@@ -156,21 +156,37 @@ pub fn verify_mk0_bootstrapper_report(report: &Mk0ScenarioReport) -> Mk0Verifica
     let observed_material_grams = material_batches.iter().fold(0u32, |total, batch| {
         total.saturating_add(batch.available_grams)
     });
+    let expected_material_grams = if config.allow_recycled_feedstock {
+        config.initial_feedstock_grams.min(
+            config
+                .subassembly
+                .required_material_grams
+                .saturating_add(70),
+        )
+    } else {
+        0
+    };
+    let expected_material_batches = if expected_material_grams > 0 { 1 } else { 0 };
 
-    let material_batches_valid = material_batches.iter().all(|batch| {
-        batch.recycled && batch.available_grams > 0 && !batch.source.trim().is_empty()
-    });
+    let material_batches_valid = material_batches.len() == expected_material_batches
+        && material_batches.iter().all(|batch| {
+            config.allow_recycled_feedstock
+                && batch.recycled
+                && batch.available_grams > 0
+                && !batch.source.trim().is_empty()
+        });
 
     if !material_batches_valid {
         violations.push(Mk0VerificationViolation::InvalidMaterialBatch);
     }
-    if observed_material_grams != report.recycled_feedstock_grams {
+    if observed_material_grams != report.recycled_feedstock_grams
+        || observed_material_grams != expected_material_grams
+    {
         violations.push(Mk0VerificationViolation::MaterialTotalMismatch);
     }
 
-    let enough_material = config.allow_recycled_feedstock
-        && material_batches_valid
-        && !material_batches.is_empty()
+    let enough_material = material_batches_valid
+        && expected_material_grams > 0
         && config.subassembly.required_material_grams > 0
         && observed_material_grams >= config.subassembly.required_material_grams;
 
@@ -208,7 +224,7 @@ pub fn verify_mk0_bootstrapper_report(report: &Mk0ScenarioReport) -> Mk0Verifica
         .collect();
 
     let should_print = work_order_valid && expected_energy_allowed && enough_material;
-    if should_print && print_claims.is_empty() {
+    if should_print && print_claims.len() != 1 {
         violations.push(Mk0VerificationViolation::MissingPrintClaim);
     } else if !should_print && !print_claims.is_empty() {
         violations.push(Mk0VerificationViolation::UnexpectedPrintClaim);
@@ -235,7 +251,7 @@ pub fn verify_mk0_bootstrapper_report(report: &Mk0ScenarioReport) -> Mk0Verifica
         .collect();
 
     let should_deliver = should_print && has_delivery_route;
-    if should_deliver && deliveries.is_empty() {
+    if should_deliver && deliveries.len() != 1 {
         violations.push(Mk0VerificationViolation::MissingDelivery);
     } else if !should_deliver && !deliveries.is_empty() {
         violations.push(Mk0VerificationViolation::UnexpectedDelivery);
@@ -262,7 +278,7 @@ pub fn verify_mk0_bootstrapper_report(report: &Mk0ScenarioReport) -> Mk0Verifica
         .collect();
 
     let should_handoff = should_deliver;
-    if should_handoff && handoffs.is_empty() {
+    if should_handoff && handoffs.len() != 1 {
         violations.push(Mk0VerificationViolation::MissingHandoff);
     } else if !should_handoff && !handoffs.is_empty() {
         violations.push(Mk0VerificationViolation::UnexpectedHandoff);
