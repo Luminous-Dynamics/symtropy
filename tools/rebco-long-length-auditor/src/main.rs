@@ -45,11 +45,13 @@ struct AuditReport {
     segment_count: usize,
     observation_count: usize,
     evidence_state_counts: BTreeMap<String, usize>,
-    ic_measured_full_width_length_mm: f64,
+    ic_direct_transport_qualified_length_mm: f64,
+    ic_calibrated_proxy_length_mm: f64,
     ic_inferred_full_width_length_mm: f64,
-    ic_measured_unqualified_full_width_length_mm: f64,
+    ic_direct_transport_unqualified_length_mm: f64,
+    ic_proxy_unqualified_length_mm: f64,
     ic_explicitly_unmeasured_full_width_length_mm: f64,
-    ic_measured_full_width_coverage_fraction: f64,
+    ic_direct_transport_coverage_fraction: f64,
     ic_not_directly_measured_length_mm: f64,
     acceptance_disposition: &'static str,
 }
@@ -576,9 +578,11 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
     let observation_values = array(field(value, "observations", "$")?, "$.observations")?;
     let mut observation_ids = BTreeSet::new();
     let mut state_counts = BTreeMap::<String, usize>::new();
-    let mut ic_measured = Vec::<Interval>::new();
+    let mut ic_direct_transport = Vec::<Interval>::new();
+    let mut ic_calibrated_proxy = Vec::<Interval>::new();
     let mut ic_inferred = Vec::<Interval>::new();
-    let mut ic_measured_unqualified = Vec::<Interval>::new();
+    let mut ic_direct_transport_unqualified = Vec::<Interval>::new();
+    let mut ic_proxy_unqualified = Vec::<Interval>::new();
     let mut ic_unmeasured = Vec::<Interval>::new();
 
     for (index, observation) in observation_values.iter().enumerate() {
@@ -591,6 +595,7 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
                 "property",
                 "evidence_state",
                 "authority",
+                "measurement_basis",
                 "coordinate_footprint",
                 "source",
             ],
@@ -660,6 +665,18 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
                 "literature_reported",
                 "synthetic_fixture",
                 "unresolved",
+            ],
+            &path,
+        )?;
+        let measurement_basis = enum_value(
+            observation,
+            "measurement_basis",
+            &[
+                "direct_transport",
+                "noncontact_magnetization_proxy",
+                "structural_inspection",
+                "model_inference",
+                "other",
             ],
             &path,
         )?;
@@ -832,10 +849,18 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
                     .get("calibration_valid_at_measurement")
                     .and_then(Value::as_bool)
                     .unwrap_or(false);
-                    if calibration_valid {
-                        ic_measured.push(footprint_interval);
-                    } else {
-                        ic_measured_unqualified.push(footprint_interval);
+                    match (measurement_basis.as_str(), calibration_valid) {
+                        ("direct_transport", true) => ic_direct_transport.push(footprint_interval),
+                        ("direct_transport", false) => {
+                            ic_direct_transport_unqualified.push(footprint_interval)
+                        }
+                        ("noncontact_magnetization_proxy", true) => {
+                            ic_calibrated_proxy.push(footprint_interval)
+                        }
+                        ("noncontact_magnetization_proxy", false) => {
+                            ic_proxy_unqualified.push(footprint_interval)
+                        }
+                        _ => {}
                     }
                 }
                 "inferred" => ic_inferred.push(footprint_interval),
@@ -956,22 +981,28 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
         )?;
     }
 
-    let measured_length = interval_union_length(ic_measured);
+    let direct_transport_length = interval_union_length(ic_direct_transport);
+    let calibrated_proxy_length = interval_union_length(ic_calibrated_proxy);
     let inferred_length = interval_union_length(ic_inferred);
-    let unqualified_measured_length = interval_union_length(ic_measured_unqualified);
+    let direct_transport_unqualified_length =
+        interval_union_length(ic_direct_transport_unqualified);
+    let proxy_unqualified_length = interval_union_length(ic_proxy_unqualified);
     let explicit_unmeasured_length = interval_union_length(ic_unmeasured);
-    let coverage_fraction = (measured_length / reel.total_length_mm).clamp(0.0, 1.0);
-    let not_directly_measured = (reel.total_length_mm - measured_length).max(0.0);
+    let direct_transport_coverage_fraction =
+        (direct_transport_length / reel.total_length_mm).clamp(0.0, 1.0);
+    let not_directly_measured = (reel.total_length_mm - direct_transport_length).max(0.0);
     Ok(AuditReport {
         reel_id: reel.id,
         segment_count: segments.len(),
         observation_count: observation_values.len(),
         evidence_state_counts: state_counts,
-        ic_measured_full_width_length_mm: measured_length,
+        ic_direct_transport_qualified_length_mm: direct_transport_length,
+        ic_calibrated_proxy_length_mm: calibrated_proxy_length,
         ic_inferred_full_width_length_mm: inferred_length,
-        ic_measured_unqualified_full_width_length_mm: unqualified_measured_length,
+        ic_direct_transport_unqualified_length_mm: direct_transport_unqualified_length,
+        ic_proxy_unqualified_length_mm: proxy_unqualified_length,
         ic_explicitly_unmeasured_full_width_length_mm: explicit_unmeasured_length,
-        ic_measured_full_width_coverage_fraction: coverage_fraction,
+        ic_direct_transport_coverage_fraction: direct_transport_coverage_fraction,
         ic_not_directly_measured_length_mm: not_directly_measured,
         acceptance_disposition: "NOT_EVALUATED_NO_QUALIFIED_APPLICATION_TEST",
     })
@@ -985,11 +1016,13 @@ fn report_value(report: AuditReport) -> Value {
         "observation_count": report.observation_count,
         "evidence_state_counts": report.evidence_state_counts,
         "critical_current_coverage": {
-            "measured_full_width_length_mm": report.ic_measured_full_width_length_mm,
+            "direct_transport_qualified_length_mm": report.ic_direct_transport_qualified_length_mm,
+            "calibrated_noncontact_proxy_length_mm": report.ic_calibrated_proxy_length_mm,
             "inferred_full_width_length_mm": report.ic_inferred_full_width_length_mm,
-            "measured_unqualified_full_width_length_mm": report.ic_measured_unqualified_full_width_length_mm,
+            "direct_transport_unqualified_length_mm": report.ic_direct_transport_unqualified_length_mm,
+            "proxy_unqualified_length_mm": report.ic_proxy_unqualified_length_mm,
             "explicitly_unmeasured_full_width_length_mm": report.ic_explicitly_unmeasured_full_width_length_mm,
-            "measured_full_width_coverage_fraction": report.ic_measured_full_width_coverage_fraction,
+            "direct_transport_coverage_fraction": report.ic_direct_transport_coverage_fraction,
             "not_directly_measured_length_mm": report.ic_not_directly_measured_length_mm
         },
         "acceptance_disposition": report.acceptance_disposition,
@@ -1039,15 +1072,36 @@ mod tests {
     fn synthetic_fixture_reports_coverage_without_promoting_acceptance() {
         let report = validate_document(&fixture()).expect("fixture should validate");
         assert_eq!(report.segment_count, 3);
-        assert_eq!(report.observation_count, 3);
-        assert!((report.ic_measured_full_width_length_mm - 400.0).abs() < 1e-9);
-        assert!((report.ic_measured_full_width_coverage_fraction - 0.4).abs() < 1e-9);
+        assert_eq!(report.observation_count, 4);
+        assert!((report.ic_direct_transport_qualified_length_mm - 400.0).abs() < 1e-9);
+        assert!((report.ic_calibrated_proxy_length_mm - 300.0).abs() < 1e-9);
+        assert!((report.ic_direct_transport_coverage_fraction - 0.4).abs() < 1e-9);
         assert!((report.ic_explicitly_unmeasured_full_width_length_mm - 300.0).abs() < 1e-9);
         assert!((report.ic_not_directly_measured_length_mm - 600.0).abs() < 1e-9);
         assert_eq!(
             report.acceptance_disposition,
             "NOT_EVALUATED_NO_QUALIFIED_APPLICATION_TEST"
         );
+    }
+
+    #[test]
+    fn uncalibrated_noncontact_proxy_does_not_count_as_proxy_coverage() {
+        let mut value = fixture();
+        value["observations"][3]["measurement_system"]["calibration_valid_at_measurement"] =
+            json!(false);
+        let report = validate_document(&value).expect("record remains inspectable");
+        assert_eq!(report.ic_calibrated_proxy_length_mm, 0.0);
+        assert_eq!(report.ic_proxy_unqualified_length_mm, 300.0);
+    }
+
+    #[test]
+    fn noncontact_proxy_never_counts_as_direct_transport_coverage() {
+        let mut value = fixture();
+        value["observations"][0]["measurement_basis"] =
+            json!("noncontact_magnetization_proxy");
+        let report = validate_document(&value).expect("record remains inspectable");
+        assert_eq!(report.ic_direct_transport_qualified_length_mm, 0.0);
+        assert_eq!(report.ic_calibrated_proxy_length_mm, 700.0);
     }
 
     #[test]
@@ -1160,8 +1214,8 @@ mod tests {
             .expect("measurement system object")
             .remove("calibration_valid_at_measurement");
         let report = validate_document(&value).expect("record remains inspectable");
-        assert_eq!(report.ic_measured_full_width_length_mm, 0.0);
-        assert_eq!(report.ic_measured_unqualified_full_width_length_mm, 400.0);
+        assert_eq!(report.ic_direct_transport_qualified_length_mm, 0.0);
+        assert_eq!(report.ic_direct_transport_unqualified_length_mm, 400.0);
     }
 
     #[test]
@@ -1179,8 +1233,8 @@ mod tests {
         let mut value = fixture();
         value["observations"][0]["coordinate_footprint"]["width_end_mm"] = json!(2.0);
         let report = validate_document(&value).expect("partial-width evidence is valid");
-        assert_eq!(report.ic_measured_full_width_length_mm, 0.0);
-        assert_eq!(report.ic_measured_full_width_coverage_fraction, 0.0);
+        assert_eq!(report.ic_direct_transport_qualified_length_mm, 0.0);
+        assert_eq!(report.ic_direct_transport_coverage_fraction, 0.0);
     }
 
     #[test]
