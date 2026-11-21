@@ -114,6 +114,13 @@ if (!path) {
   if (!approximatelyEqual(poissonMeanUpperBound(1, 0.9), 3.889720169867429, 1e-10)) {
     fail("one-event known answer mismatch");
   }
+  if (!approximatelyEqual(
+    poissonMeanUpperBound(1, 0.9) * 1_000_000 / 100,
+    38_897.20169867429,
+    1e-10,
+  )) {
+    fail("one-allowed-failure exposure-sizing known answer mismatch");
+  }
   if (arithmeticCases < 10) fail("expected at least 10 numerical cases, received " + arithmeticCases);
 
   if (process.exitCode !== 1) {
