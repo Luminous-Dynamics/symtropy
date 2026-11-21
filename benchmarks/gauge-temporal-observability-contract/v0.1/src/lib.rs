@@ -396,7 +396,10 @@ mod tests {
             assessment.coverage_disposition,
             CoverageDisposition::MeetsDeclaredThresholds
         );
-        assert_eq!(assessment.provenance_disposition, ProvenanceDisposition::Incomplete);
+        assert_eq!(
+            assessment.provenance_disposition,
+            ProvenanceDisposition::Incomplete
+        );
         assert!(
             assessment
                 .provenance_gaps
