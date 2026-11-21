@@ -23,7 +23,7 @@ cargo run --offline --locked
 cargo clippy --offline --locked --all-targets -- -D warnings
 ```
 
-The package has no third-party dependencies and is isolated by its own Cargo workspace. The 31-case frozen synthetic corpus contains 15 ACCEPT and 16 REJECT expectations.
+The package has no third-party dependencies and is isolated by its own Cargo workspace. The 32-case frozen synthetic corpus contains 16 ACCEPT and 16 REJECT expectations.
 
 ## Explicit unit boundaries
 
@@ -47,7 +47,7 @@ This package does not convert physical boxes to TEU-equivalent, moves, tonnes or
 - Planned, requested and estimated observations cannot mutate actual stock.
 - Terminal identity and quantity units must match the case.
 - Actual events must be inside the declared window and cannot be observed before they occur.
-- Intermediate stock may never become negative.
+- Intermediate stock may never become negative at a declared time-bucket boundary. Events sharing one tick are aggregated atomically; no lexical event-ID order is invented.
 - The final calculated stock must equal the reported closing stock.
 
 Ticks in the synthetic corpus are integer simulation ticks. They are not UTC timestamps, civil timestamps, or a timezone conversion implementation.
