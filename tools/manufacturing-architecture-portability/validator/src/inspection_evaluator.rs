@@ -18,6 +18,7 @@ pub struct JoinViolation {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InspectionJoinEvaluation {
     pub admissible_for_declared_synthetic_join: bool,
+    pub metrology_reference_state: &'static str,
     pub violations: Vec<JoinViolation>,
 }
 
@@ -135,8 +136,31 @@ pub fn evaluate_inspection_join(candidate: &Value) -> InspectionJoinEvaluation {
         });
     }
 
+    let measurement_evidence_class = text_at(candidate, "measurement_evidence_class");
+    if measurement_evidence_class != Some("synthetic") {
+        violations.push(JoinViolation {
+            code: "NON_SYNTHETIC_EVIDENCE_OUTSIDE_THIS_FIXTURE_PROFILE",
+            field: "measurement_evidence_class",
+        });
+    }
+
+    let calibration_reference_present =
+        text_at(candidate, "calibration_disposition") == Some("qualified_reference")
+            && text_at(candidate, "calibration_reference_id").is_some()
+            && text_at(candidate, "calibration_reference_sha256").is_some();
+    let uncertainty_reference_present =
+        text_at(candidate, "uncertainty_disposition") == Some("qualified_reference")
+            && text_at(candidate, "uncertainty_reference_id").is_some()
+            && text_at(candidate, "uncertainty_reference_sha256").is_some();
+    let metrology_reference_state = if calibration_reference_present && uncertainty_reference_present {
+        "references_present_not_authenticated"
+    } else {
+        "unknown_or_unqualified"
+    };
+
     InspectionJoinEvaluation {
         admissible_for_declared_synthetic_join: violations.is_empty(),
+        metrology_reference_state,
         violations,
     }
 }
@@ -179,7 +203,47 @@ mod tests {
     fn exact_explicit_cycle_qif_join_is_admissible_for_fixture() {
         let result = evaluate_inspection_join(&candidate());
         assert!(result.admissible_for_declared_synthetic_join);
+        assert_eq!(result.metrology_reference_state, "unknown_or_unqualified");
         assert!(result.violations.is_empty());
+    }
+
+    #[test]
+    fn qualified_metrology_references_are_reported_but_never_authenticated() {
+        let mut actual = candidate();
+        actual["calibration_disposition"] = json!("qualified_reference");
+        actual["calibration_reference_id"] = json!("CAL-001");
+        actual["calibration_reference_sha256"] =
+            json!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        actual["uncertainty_disposition"] = json!("qualified_reference");
+        actual["uncertainty_reference_id"] = json!("MSA-001");
+        actual["uncertainty_reference_sha256"] =
+            json!("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+        assert!(validate_schema(&actual));
+        let result = evaluate_inspection_join(&actual);
+        assert!(result.admissible_for_declared_synthetic_join);
+        assert_eq!(result.metrology_reference_state, "references_present_not_authenticated");
+    }
+
+    #[test]
+    fn missing_metrology_reference_for_qualified_claim_fails_schema() {
+        let mut actual = candidate();
+        actual["calibration_disposition"] = json!("qualified_reference");
+        assert!(!validate_schema(&actual));
+
+        let mut uncertainty_missing = candidate();
+        uncertainty_missing["uncertainty_disposition"] = json!("qualified_reference");
+        assert!(!validate_schema(&uncertainty_missing));
+    }
+
+    #[test]
+    fn non_synthetic_measurement_cannot_pass_this_synthetic_join_profile() {
+        let mut actual = candidate();
+        actual["measurement_evidence_class"] = json!("physical_observation");
+        let result = evaluate_inspection_join(&actual);
+        assert!(!result.admissible_for_declared_synthetic_join);
+        assert!(result.violations.iter().any(|v| {
+            v.code == "NON_SYNTHETIC_EVIDENCE_OUTSIDE_THIS_FIXTURE_PROFILE"
+        }));
     }
 
     #[test]
