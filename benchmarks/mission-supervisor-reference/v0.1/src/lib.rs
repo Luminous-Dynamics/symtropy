@@ -989,10 +989,7 @@ impl MissionSupervisor {
                 source_clock_id: envelope.time_qualification.source_clock_id.clone(),
                 source_boot_epoch_id: envelope.time_qualification.source_boot_epoch_id.clone(),
                 comparison_basis_id: envelope.time_qualification.comparison_basis_id.clone(),
-                comparison_epoch_id: envelope
-                    .time_qualification
-                    .comparison_epoch_id
-                    .clone(),
+                comparison_epoch_id: envelope.time_qualification.comparison_epoch_id.clone(),
                 correlation_commitment: envelope.time_qualification.correlation_commitment,
             },
         );
