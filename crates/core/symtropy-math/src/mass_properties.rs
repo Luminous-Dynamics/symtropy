@@ -65,9 +65,7 @@ fn minimum_symmetric_eigenvalue<const D: usize>(
     tolerance: f64,
 ) -> Result<f64, MassPropertiesError> {
     let mut matrix = (input + input.transpose()) * 0.5;
-    let max_iterations = 64_usize
-        .saturating_mul(D.max(1))
-        .saturating_mul(D.max(1));
+    let max_iterations = 64_usize.saturating_mul(D.max(1)).saturating_mul(D.max(1));
     let mut converged = D <= 1;
 
     for _ in 0..max_iterations {
@@ -192,8 +190,7 @@ impl<const D: usize> MassProperties<D> {
             }
         }
 
-        let minimum_eigenvalue =
-            minimum_symmetric_eigenvalue(centroidal_second_moment, tolerance)?;
+        let minimum_eigenvalue = minimum_symmetric_eigenvalue(centroidal_second_moment, tolerance)?;
         if minimum_eigenvalue < -tolerance {
             return Err(MassPropertiesError::NonPositiveSemidefiniteTensor);
         }
