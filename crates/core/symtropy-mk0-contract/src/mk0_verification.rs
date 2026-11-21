@@ -236,7 +236,9 @@ pub fn verify_mk0_bootstrapper_report(report: &Mk0ScenarioReport) -> Mk0Verifica
     }
     if print_claims
         .iter()
-        .any(|claim| claim.work_order_id != config.work_order_id || claim.recipe_version.trim().is_empty())
+        .any(|claim| {
+            claim.work_order_id != config.work_order_id || claim.recipe_version.trim().is_empty()
+        })
     {
         violations.push(Mk0VerificationViolation::PrintWorkOrderMismatch);
     }
