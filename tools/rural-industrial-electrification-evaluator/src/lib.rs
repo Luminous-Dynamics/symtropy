@@ -102,7 +102,7 @@ pub struct InterfacePort {
     pub capacity_limit: Option<Quantity>,
     pub capacity_required: Option<Quantity>,
     pub required: bool,
-    pub evidence: QualificationEvidence,
+    pub evidence: Vec<QualificationEvidence>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
@@ -244,18 +244,24 @@ fn validate_ports(
                 "{label}.ports[{index}]: capacity quantities must be finite and nonnegative"
             ));
         }
-        let evidence = &port.evidence;
-        if evidence.evidence_id.trim().is_empty()
-            || evidence.source_reference.trim().is_empty()
-            || evidence.tested_vehicle_configuration_id.trim().is_empty()
-            || evidence.tested_module_configuration_id.trim().is_empty()
-            || evidence.interface_revision.trim().is_empty()
-            || evidence.acceptance_criteria_id.trim().is_empty()
-            || !valid_digest(&evidence.report_digest_sha256)
-        {
+        if port.evidence.is_empty() {
             errors.push(format!(
-                "{label}.ports[{index}].evidence: exact source, scope, criteria and lowercase SHA-256 digest are required"
+                "{label}.ports[{index}].evidence: at least one scoped evidence receipt is required"
             ));
+        }
+        for (evidence_index, evidence) in port.evidence.iter().enumerate() {
+            if evidence.evidence_id.trim().is_empty()
+                || evidence.source_reference.trim().is_empty()
+                || evidence.tested_vehicle_configuration_id.trim().is_empty()
+                || evidence.tested_module_configuration_id.trim().is_empty()
+                || evidence.interface_revision.trim().is_empty()
+                || evidence.acceptance_criteria_id.trim().is_empty()
+                || !valid_digest(&evidence.report_digest_sha256)
+            {
+                errors.push(format!(
+                    "{label}.ports[{index}].evidence[{evidence_index}]: exact source, scope, criteria and lowercase SHA-256 digest are required"
+                ));
+            }
         }
     }
 }
@@ -310,17 +316,23 @@ pub fn validate_input(input: &CompatibilityInput) -> Result<(), Vec<String>> {
     }
 }
 
-fn evidence_is_qualified(
-    evidence: &QualificationEvidence,
+fn qualified_evidence<'a>(
+    evidence: &'a [QualificationEvidence],
     vehicle: &VehicleInterfaceContract,
     module: &ModuleInterfaceContract,
     interface_revision: &str,
-) -> bool {
-    evidence.evidence_class == EvidenceClass::IndependentTest
-        && evidence.tested_vehicle_configuration_id == vehicle.vehicle_configuration_id
-        && evidence.tested_module_configuration_id == module.module_configuration_id
-        && evidence.interface_revision == interface_revision
-        && valid_digest(&evidence.report_digest_sha256)
+) -> Option<&'a QualificationEvidence> {
+    evidence.iter().find(|receipt| {
+        receipt.evidence_class == EvidenceClass::IndependentTest
+            && receipt.tested_vehicle_configuration_id == vehicle.vehicle_configuration_id
+            && receipt.tested_module_configuration_id == module.module_configuration_id
+            && receipt.interface_revision == interface_revision
+            && valid_digest(&receipt.report_digest_sha256)
+    })
+}
+
+fn first_evidence_id(evidence: &[QualificationEvidence]) -> Option<String> {
+    evidence.first().map(|receipt| receipt.evidence_id.clone())
 }
 
 fn directions_mate(vehicle: PortDirection, module: PortDirection) -> bool {
@@ -465,17 +477,19 @@ fn evaluate_interface(
         _ => add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Indeterminate, "capacity_limit_or_demand_incomplete"),
     }
 
-    if !evidence_is_qualified(
+    let vehicle_qualified_evidence = qualified_evidence(
         &vehicle_port.evidence,
         vehicle,
         module,
         &vehicle_port.interface_revision,
-    ) || !evidence_is_qualified(
+    );
+    let module_qualified_evidence = qualified_evidence(
         &module_port.evidence,
         vehicle,
         module,
         &module_port.interface_revision,
-    ) {
+    );
+    if vehicle_qualified_evidence.is_none() || module_qualified_evidence.is_none() {
         add_interface_finding(&mut findings, &mut status, CompatibilityStatus::Indeterminate, "independent_exact_configuration_qualification_not_present_on_both_ports");
     }
 
@@ -487,8 +501,9 @@ fn evaluate_interface(
         family: module_port.family,
         status,
         findings,
-        vehicle_evidence_id: Some(vehicle_port.evidence.evidence_id.clone()),
-        module_evidence_id: module_port.evidence.evidence_id.clone(),
+        vehicle_evidence_id: vehicle_qualified_evidence.map(|receipt| receipt.evidence_id.clone())
+            .or_else(|| first_evidence_id(&vehicle_port.evidence)),
+        module_evidence_id: first_evidence_id(&module_port.evidence).unwrap_or_default(),
     }
 }
 
@@ -555,8 +570,8 @@ pub fn evaluate_compatibility(
                         &canonical.vehicle,
                         &port.mate_port_id,
                     )
-                    .map(|vehicle_port| vehicle_port.evidence.evidence_id.clone()),
-                    module_evidence_id: port.evidence.evidence_id.clone(),
+                    .and_then(|vehicle_port| first_evidence_id(&vehicle_port.evidence)),
+                    module_evidence_id: first_evidence_id(&port.evidence).unwrap_or_default(),
                 };
                 duplicate.findings.sort();
                 interfaces.push(duplicate);
@@ -836,7 +851,7 @@ mod tests {
     #[test]
     fn synthetic_evidence_never_produces_compatible_result() {
         let mut input = qualified_input();
-        input.modules[0].ports[0].evidence.evidence_class = EvidenceClass::Synthetic;
+        input.modules[0].ports[0].evidence[0].evidence_class = EvidenceClass::Synthetic;
         let report = evaluate_compatibility(&input).expect("valid input");
         assert_eq!(report.results[0].status, CompatibilityStatus::Indeterminate);
     }
@@ -889,11 +904,11 @@ mod tests {
     #[test]
     fn stale_or_wrong_scope_evidence_is_indeterminate() {
         let mut input = qualified_input();
-        input.modules[0].ports[0].evidence.evidence_class = EvidenceClass::Stale;
+        input.modules[0].ports[0].evidence[0].evidence_class = EvidenceClass::Stale;
         let report = evaluate_compatibility(&input).expect("valid input");
         assert_eq!(report.results[0].status, CompatibilityStatus::Indeterminate);
         let mut wrong_scope = qualified_input();
-        wrong_scope.vehicle.ports[0].evidence.tested_module_configuration_id =
+        wrong_scope.vehicle.ports[0].evidence[0].tested_module_configuration_id =
             "another-module".into();
         let report = evaluate_compatibility(&wrong_scope).expect("valid input");
         assert_eq!(report.results[0].status, CompatibilityStatus::Indeterminate);
@@ -940,7 +955,7 @@ mod tests {
     #[test]
     fn malformed_digests_and_nonfinite_quantities_are_rejected() {
         let mut input = qualified_input();
-        input.vehicle.ports[0].evidence.report_digest_sha256 = "not-a-digest".into();
+        input.vehicle.ports[0].evidence[0].report_digest_sha256 = "not-a-digest".into();
         assert!(validate_input(&input).is_err());
 
         let mut invalid = qualified_input();
