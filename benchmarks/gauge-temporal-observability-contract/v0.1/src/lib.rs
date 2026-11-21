@@ -14,6 +14,8 @@ pub struct SamplingProfile {
     pub exported_sample_rate_hz: f64,
     /// Original source acquisition rate, if documented independently.
     pub source_acquisition_rate_hz: Option<f64>,
+    /// The resampling filter is documented, or the identity/no-resampling
+    /// path is explicitly declared when source and export rates are equal.
     pub resampling_filter_documented: bool,
     pub sample_phase_documented: bool,
     pub timestamp_mapping_documented: bool,
@@ -318,7 +320,7 @@ mod tests {
             assessment.coverage_disposition,
             CoverageDisposition::Undersampled
         );
-        assert_eq!(assessment.samples_per_event, Some(0.9));
+        assert!((assessment.samples_per_event.unwrap() - 0.9).abs() < 1.0e-12);
         assert_eq!(assessment.nyquist_frequency_hz, 15.0);
         assert!(
             assessment
@@ -346,7 +348,7 @@ mod tests {
             assessment.coverage_disposition,
             CoverageDisposition::MeetsDeclaredThresholds
         );
-        assert_eq!(assessment.samples_per_event, Some(5.4));
+        assert!((assessment.samples_per_event.unwrap() - 5.4).abs() < 1.0e-12);
         assert_eq!(assessment.nyquist_frequency_hz, 90.0);
         assert_eq!(
             assessment.provenance_disposition,
