@@ -1,0 +1,53 @@
+name: Authority-Linearized Mutation Boundary
+
+on:
+  push:
+    branches:
+      - research/cdaab-mutation-linearization-v0-1
+    paths:
+      - "research/mobility-mutation-boundary/**"
+      - "research/mobility-action-evidence/protocol/authority_linearization_cases*"
+      - ".github/workflows/mobility-mutation-boundary.yml"
+  pull_request:
+    paths:
+      - "research/mobility-mutation-boundary/**"
+      - "research/mobility-action-evidence/protocol/authority_linearization_cases*"
+      - ".github/workflows/mobility-mutation-boundary.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/mobility-mutation-boundary/Cargo.toml -- --check
+      - name: Run deterministic reference tests
+        run: cargo test --manifest-path research/mobility-mutation-boundary/Cargo.toml --locked
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --manifest-path research/mobility-mutation-boundary/Cargo.toml --all-targets --locked -- -D warnings
+      - name: Validate JSON syntax and corpus invariants
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          manifest_path = Path("research/mobility-action-evidence/protocol/authority_linearization_cases_v0_1.json")
+          schema_path = Path("research/mobility-action-evidence/protocol/authority_linearization_cases.schema.json")
+          manifest = json.loads(manifest_path.read_text())
+          schema = json.loads(schema_path.read_text())
+          assert schema["$schema"] == "https://json-schema.org/draft/2020-12/schema"
+          cases = manifest["cases"]
+          ids = [case["case_id"] for case in cases]
+          assert len(cases) >= 20
+          assert len(ids) == len(set(ids))
+          assert any(case["family"] == "positive_control" and case["expected_native_sink_calls"] == 1 for case in cases)
+          assert any(case["expected_native_sink_calls"] == 0 for case in cases)
+          assert all(case["expected_disposition"] and case["schedule"] for case in cases)
+          print(f"Validated JSON syntax and {len(cases)} unique public conformance cases.")
+          PY
