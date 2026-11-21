@@ -2047,9 +2047,10 @@ pub fn audit_identifiability_contract(root: &Value) -> Vec<String> {
     push_if_missing(
         &mut findings,
         at(root, &["test_families"]).and_then(Value::as_array)
-            .is_some_and(|rows| rows.len() == 8
+            .is_some_and(|rows| rows.len() == 9
                 && rows.iter().any(|row| row.as_str() == Some("repeated_identical_conditions_do_not_repair_rank_deficiency"))
                 && rows.iter().any(|row| row.as_str() == Some("independent_variance_weights_are_applied"))
+                && rows.iter().any(|row| row.as_str() == Some("jacobi_spectrum_retains_a_small_but_resolvable_singular_direction"))
                 && rows.iter().any(|row| row.as_str() == Some("offline_reference_self_check"))),
         "IDENTIFIABILITY_TEST_MATRIX",
         "identifiability benchmark must retain the eight authored test families",
