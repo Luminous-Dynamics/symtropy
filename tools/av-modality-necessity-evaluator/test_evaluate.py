@@ -142,7 +142,10 @@ class EvaluatorTests(unittest.TestCase):
         row = next(x for x in candidate["predictions"] if x["episode_id"] == "audio-a")
         row.update(answer=None, confidence=0.0, abstained=True,
                    used_modalities=["video"], cited_observation_refs=["v-audio-a"])
-        score = evaluator.evaluate(self.workload, self.truth, candidate)
+        score = evaluator.evaluate(
+            self.workload, self.truth, candidate,
+            permitted_modalities={"video"},
+        )
         result = next(x for x in score["per_episode"] if x["episode_id"] == "audio-a")
         self.assertTrue(result["decision_correct"])
         self.assertFalse(result["answer_correct"])
@@ -167,20 +170,6 @@ class EvaluatorTests(unittest.TestCase):
         result = next(x for x in score["per_episode"] if x["episode_id"] == "audio-a")
         self.assertFalse(result["decision_correct"])
         self.assertFalse(result["answer_correct"])
-
-    def test_abstention_is_safe_when_experiment_did_not_admit_required_audio(self):
-        candidate = copy.deepcopy(self.submission)
-        row = next(x for x in candidate["predictions"] if x["episode_id"] == "audio-a")
-        row.update(answer=None, confidence=0.0, abstained=True,
-                   used_modalities=["video"], cited_observation_refs=["v-audio-a"])
-        score = evaluator.evaluate(
-            self.workload, self.truth, candidate,
-            permitted_modalities={"video"},
-        )
-        result = next(x for x in score["per_episode"] if x["episode_id"] == "audio-a")
-        self.assertTrue(result["decision_correct"])
-        self.assertFalse(result["answer_correct"])
-        self.assertTrue(result["evidence_compliant"])
 
     def test_submission_must_cover_every_episode_once(self):
         candidate = copy.deepcopy(self.submission)
