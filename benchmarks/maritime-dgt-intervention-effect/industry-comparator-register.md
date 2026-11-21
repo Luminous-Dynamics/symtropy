@@ -30,6 +30,20 @@ Source: World Bank, *Container Terminal Performance Improvement Guide: Improving
 | S&P Global Port Performance | Licensed broad port/terminal call and productivity coverage | Candidate external benchmark provider after rights, metric definitions and sample comparability review | Proprietary data and coverage descriptions are not themselves direct ground truth |
 | Robust berth allocation and quay-crane literature (2026) | Li, Xu and Luo's July 2026 review frames uncertainty-aware robust population metaheuristics for berth allocation and quay-crane assignment and gives a proposed benchmark suite | Compare robust evaluation, feasibility preservation/recovery, decoding and adaptive robustness strategies on same instances | Review benchmarks and illustrative baselines are not a universal SOTA ranking; reproduce baselines before comparison |
 
+## Existing terminal and berth-planning platforms
+
+This benchmark should be an **assurance and interoperability layer around existing operating systems**, not a claim that it replaces a TOS.
+
+| Platform / category | Publicly described role | Implication for our design |
+|---|---|---|
+| Kaleris N4 / Navis TOS | Kaleris describes N4 as coordinating vessel, yard, rail, gate and control-room work, with integrated execution and separate RTG/truck/yard optimization capabilities. | Consume existing operational records and decision outputs with lineage; do not reproduce TOS dispatch or equipment control. |
+| Transnet's documented SPARCS N4 use | Transnet Port Terminals describes a relay integration between TFR's City Deep inland facility and South African terminals, allowing container tracking across the inland/port interface. | The South African opportunity is not merely “connect rail to port”; reconcile and independently qualify the events exchanged across an existing integration. |
+| Portchain Quay / Connect | Portchain describes berth planning and berth-window alignment across terminals and carriers, with source integrations, predictive analytics and infeasible-arrival forecasts. | Treat berth allocation as an incumbent capability. Our differentiator should be auditable source admission, uncertainty, evidence-backed realization and network-level outcome evaluation across operators. |
+
+Vendor-described capabilities and customer stories are not matched independent benchmarks. In particular, we should not assume an incumbent TOS lacks functionality because our prototype adds an evidence layer.
+
+**Competitive boundary:** Kaleris/N4 and Portchain are planning/execution products. Symtropy's proposed wedge is independent verification of what was knowable, committed, activated, physically realized and finally delivered; conserved cross-mode stocks; explicit uncertainty/censoring; spillover-aware counterfactual evaluation; and deterministic replay. Integrate through approved APIs, data exports and standards rather than competing to become the new system of record.
+
 ## Fair comparison rules
 
 - Match vessel/call size, trade mix, terminal configuration, arrival process, cargo demand and disruption regime.
@@ -45,6 +59,9 @@ Source: World Bank, *Container Terminal Performance Improvement Guide: Improving
 
 - World Bank, *Container Terminal Performance Improvement Guide* (30 October 2026): https://documents.worldbank.org/en/publication/documents-reports/documentdetail/099103026152033883
 - DCSA, *Port Call Standard v2.0.0 — Purpose & Scope*: https://reference.dcsa.org/content/standards/releases/port-call/v2/pc-v2-purpose-and-scope
+- Kaleris, *N4 Terminal Operating System*: https://kaleris.com/terminal-operating-system/kaleris-n4-tos/
+- Transnet Port Terminals, *Navis / SPARCS N4 and inland relay*: https://www.transnetportterminals.net/About/Pages/Navis.aspx
+- Portchain, berth-alignment platform: https://portchain.com/home
 - DCSA, *Industry Blueprint 2026.Q1 — Vessel Journey*: https://reference.dcsa.org/content/standards/industry-blueprint/current/industry-blueprint-vessel-journey
 - CPPI 2025: https://www.worldbank.org/en/topic/transport/publication/container-port-performance-index
 - S&P Global Port Performance: https://www.spglobal.com/marketintelligence/en/solutions/port-performance
