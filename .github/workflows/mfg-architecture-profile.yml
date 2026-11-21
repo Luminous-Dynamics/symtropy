@@ -79,7 +79,7 @@ jobs:
         run: |
           cargo run --locked --bin opcua-nodeset-admission -- verify ../nodesets/opcua-machinery-1.04.2.nodeset.json /tmp/Opc.Ua.Machinery.NodeSet2.xml
           cargo run --locked --bin opcua-nodeset-admission -- verify ../nodesets/opcua-robotics-1.02.nodeset.json /tmp/Opc.Ua.Robotics.NodeSet2.xml
-          cargo run --locked --bin opcua-nodeset-admission -- server ../nodesets/opcua-machinery-1.04.2.nodeset.json ../nodesets/opcua-machinery-namespace-metadata.synthetic.json
+          cargo run --locked --bin opcua-nodeset-admission -- server ../nodesets/opcua-machinery-1.04.2.nodeset.json ../nodesets/opcua-server-namespace-snapshot.schema.json ../nodesets/opcua-machinery-namespace-metadata.synthetic.json
 
       - name: Expose cross-profile RequiredModel version skew
         working-directory: tools/manufacturing-architecture-portability/validator
