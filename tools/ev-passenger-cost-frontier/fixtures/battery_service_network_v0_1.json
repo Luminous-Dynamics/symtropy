@@ -8,11 +8,6 @@
       "pack_id": "pack-a",
       "configuration_id": "uav-class-a",
       "state": "available",
-      "identity_verified": true,
-      "custody_resolved": true,
-      "post_test_freshness": "fresh",
-      "post_test_passed": true,
-      "post_test_evidence_reference": "urn:synthetic:pack-a-post-test",
       "usable_energy": {
         "freshness": "fresh",
         "evidence_class": "synthetic",
@@ -31,17 +26,30 @@
         "evidence_reference": "urn:synthetic:pack-a-thermal",
         "pack_temperature_c": 25,
         "qualified_max_temperature_c": 60
+      },
+      "identity_verification": {
+        "freshness": "fresh",
+        "evidence_class": "synthetic",
+        "evidence_reference": "urn:synthetic:pack-a-identity",
+        "value": true
+      },
+      "custody_resolution": {
+        "freshness": "fresh",
+        "evidence_class": "synthetic",
+        "evidence_reference": "urn:synthetic:pack-a-custody",
+        "value": true
+      },
+      "post_test": {
+        "freshness": "fresh",
+        "evidence_class": "synthetic",
+        "evidence_reference": "urn:synthetic:pack-a-post-test",
+        "value": true
       }
     },
     {
       "pack_id": "pack-b",
       "configuration_id": "uav-class-a",
       "state": "available",
-      "identity_verified": true,
-      "custody_resolved": true,
-      "post_test_freshness": "fresh",
-      "post_test_passed": true,
-      "post_test_evidence_reference": "urn:synthetic:pack-b-post-test",
       "usable_energy": {
         "freshness": "fresh",
         "evidence_class": "synthetic",
@@ -60,17 +68,30 @@
         "evidence_reference": "urn:synthetic:pack-b-thermal",
         "pack_temperature_c": 26,
         "qualified_max_temperature_c": 55
+      },
+      "identity_verification": {
+        "freshness": "fresh",
+        "evidence_class": "synthetic",
+        "evidence_reference": "urn:synthetic:pack-b-identity",
+        "value": true
+      },
+      "custody_resolution": {
+        "freshness": "fresh",
+        "evidence_class": "synthetic",
+        "evidence_reference": "urn:synthetic:pack-b-custody",
+        "value": true
+      },
+      "post_test": {
+        "freshness": "fresh",
+        "evidence_class": "synthetic",
+        "evidence_reference": "urn:synthetic:pack-b-post-test",
+        "value": true
       }
     },
     {
       "pack_id": "pack-c",
       "configuration_id": "uav-class-b",
       "state": "available",
-      "identity_verified": true,
-      "custody_resolved": true,
-      "post_test_freshness": "fresh",
-      "post_test_passed": true,
-      "post_test_evidence_reference": "urn:synthetic:pack-c-post-test",
       "usable_energy": {
         "freshness": "fresh",
         "evidence_class": "synthetic",
@@ -89,17 +110,30 @@
         "evidence_reference": "urn:synthetic:pack-c-thermal",
         "pack_temperature_c": 24,
         "qualified_max_temperature_c": 58
+      },
+      "identity_verification": {
+        "freshness": "fresh",
+        "evidence_class": "synthetic",
+        "evidence_reference": "urn:synthetic:pack-c-identity",
+        "value": true
+      },
+      "custody_resolution": {
+        "freshness": "fresh",
+        "evidence_class": "synthetic",
+        "evidence_reference": "urn:synthetic:pack-c-custody",
+        "value": true
+      },
+      "post_test": {
+        "freshness": "fresh",
+        "evidence_class": "synthetic",
+        "evidence_reference": "urn:synthetic:pack-c-post-test",
+        "value": true
       }
     },
     {
       "pack_id": "pack-d",
       "configuration_id": "uav-class-a",
       "state": "quarantined",
-      "identity_verified": true,
-      "custody_resolved": true,
-      "post_test_freshness": "fresh",
-      "post_test_passed": true,
-      "post_test_evidence_reference": "urn:synthetic:pack-d-post-test",
       "usable_energy": {
         "freshness": "fresh",
         "evidence_class": "synthetic",
@@ -118,6 +152,24 @@
         "evidence_reference": "urn:synthetic:pack-d-thermal",
         "pack_temperature_c": 25,
         "qualified_max_temperature_c": 60
+      },
+      "identity_verification": {
+        "freshness": "fresh",
+        "evidence_class": "synthetic",
+        "evidence_reference": "urn:synthetic:pack-d-identity",
+        "value": true
+      },
+      "custody_resolution": {
+        "freshness": "fresh",
+        "evidence_class": "synthetic",
+        "evidence_reference": "urn:synthetic:pack-d-custody",
+        "value": true
+      },
+      "post_test": {
+        "freshness": "fresh",
+        "evidence_class": "synthetic",
+        "evidence_reference": "urn:synthetic:pack-d-post-test",
+        "value": true
       }
     }
   ],
