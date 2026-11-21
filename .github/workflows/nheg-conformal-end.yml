@@ -38,8 +38,7 @@ jobs:
         env:
           PYTHONHASHSEED: "0"
         run: |
-          python crates/domains/symtropy-lovelock5d/benchmarks/derive_nheg_conformal_end.py \\
-            --output "$RUNNER_TEMP/nheg_conformal_end_replay.json"
+          python crates/domains/symtropy-lovelock5d/benchmarks/derive_nheg_conformal_end.py --output "$RUNNER_TEMP/nheg_conformal_end_replay.json"
 
       - name: Verify asymptotic curvature and exact volume divergence
         env:
