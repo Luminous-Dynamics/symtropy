@@ -33,7 +33,7 @@ pub mod support_map;
 pub mod world;
 
 pub use articulation::{ArticulatedChain, ChainBuilder, LinkSpec};
-pub use body::{BodyHandle, BodyType, NetId, RigidBody};
+pub use body::{BodyHandle, BodyType, MassPropertyInvariantError, NetId, RigidBody};
 pub use broadphase::{Aabb, Lbvh, morton_encode, morton_prefix};
 pub use constraint::Constraint;
 pub use contact::{CollisionEvent, ContactCache, ContactManifold, SensorEvent};
@@ -42,4 +42,4 @@ pub use epa::EpaResult;
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
 pub use replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
-pub use world::{NoOpCallback, PhysicsCallback, PhysicsWorld};
+pub use world::{NoOpCallback, PhysicsCallback, PhysicsWorld, PhysicsWorldStepError};
