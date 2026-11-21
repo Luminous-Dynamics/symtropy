@@ -114,20 +114,34 @@ pub fn apply_outcome_to_m1(
                 source_clock_id: evidence.clock.clock_id.clone(),
                 source_boot_epoch_id: evidence.clock.boot_epoch_id.clone(),
                 comparison_clock_id: match receipt_time {
-                    QualifiedReceiptTime::Qualified { comparison_clock, .. } => comparison_clock.clock_id.clone(),
-                    QualifiedReceiptTime::Unqualified | QualifiedReceiptTime::Unknown => unreachable!("time qualification was checked above"),
+                    QualifiedReceiptTime::Qualified {
+                        comparison_clock, ..
+                    } => comparison_clock.clock_id.clone(),
+                    QualifiedReceiptTime::Unqualified | QualifiedReceiptTime::Unknown => {
+                        unreachable!("time qualification was checked above")
+                    }
                 },
                 comparison_boot_epoch_id: match receipt_time {
-                    QualifiedReceiptTime::Qualified { comparison_clock, .. } => comparison_clock.boot_epoch_id.clone(),
-                    QualifiedReceiptTime::Unqualified | QualifiedReceiptTime::Unknown => unreachable!("time qualification was checked above"),
+                    QualifiedReceiptTime::Qualified {
+                        comparison_clock, ..
+                    } => comparison_clock.boot_epoch_id.clone(),
+                    QualifiedReceiptTime::Unqualified | QualifiedReceiptTime::Unknown => {
+                        unreachable!("time qualification was checked above")
+                    }
                 },
                 normalization_commitment: match receipt_time {
-                    QualifiedReceiptTime::Qualified { normalization_commitment: Some(commitment), .. } => {
-                        m1::Digest(commitment.0)
+                    QualifiedReceiptTime::Qualified {
+                        normalization_commitment: Some(commitment),
+                        ..
+                    } => m1::Digest(commitment.0),
+                    QualifiedReceiptTime::Qualified {
+                        normalization_commitment: None,
+                        ..
                     }
-                    QualifiedReceiptTime::Qualified { normalization_commitment: None, .. }
                     | QualifiedReceiptTime::Unqualified
-                    | QualifiedReceiptTime::Unknown => unreachable!("normalization commitment was checked above"),
+                    | QualifiedReceiptTime::Unknown => {
+                        unreachable!("normalization commitment was checked above")
+                    }
                 },
             },
             observer_role: match evidence.observer_role {
@@ -449,10 +463,7 @@ mod tests {
         )
         .expect("explicitly qualified target comparison clock");
         assert_eq!(result, m1::ReceiptDisposition::Applied);
-        assert_eq!(
-            f.supervisor.phase("pick"),
-            Ok(m1::SubgoalPhase::Complete)
-        );
+        assert_eq!(f.supervisor.phase("pick"), Ok(m1::SubgoalPhase::Complete));
     }
 
     #[test]
