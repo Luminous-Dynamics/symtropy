@@ -13,6 +13,8 @@ const EMBEDDED_FRONTIER_PATTERNS: &str =
     include_str!("../../../data/research/ehd_frontier_design_patterns_v0_1.json");
 const EMBEDDED_EXCHANGE_CONTRACT: &str =
     include_str!("../../../data/research/ehd_plasma_neutral_exchange_contract_v0_1.json");
+const EMBEDDED_ARRAY_INTERACTION: &str =
+    include_str!("../../../data/research/ehd_array_interaction_benchmark_v0_1.json");
 
 fn at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
     path.iter().try_fold(value, |node, key| node.get(*key))
@@ -1062,6 +1064,138 @@ pub fn audit_exchange_contract(root: &Value) -> Vec<String> {
     findings
 }
 
+
+/// Audit the EHD array-interaction measurement protocol. It validates the
+/// data contract and claim boundaries, not measured coupling or controller performance.
+pub fn audit_array_interaction(root: &Value) -> Vec<String> {
+    let mut findings = Vec::new();
+
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["schema"]) == Some("luminous.ehd_array_interaction_benchmark")
+            && text_at(root, &["schema_version"]) == Some("0.1.0")
+            && text_at(root, &["benchmark_id"]) == Some("EHD-ARRAY-INTERACTION-001")
+            && text_at(root, &["status"]) == Some("measurement_protocol_only_no_luminous_array_measurements"),
+        "ARRAY_BENCHMARK_IDENTITY",
+        "array benchmark identity, version or protocol-only status changed",
+    );
+
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["source_anchor", "source_id"])
+            == Some("kitamura-2023-multianode-force-vector")
+            && text_at(root, &["source_anchor", "doi"])
+                == Some("10.1109/ISIE51358.2023.10228184")
+            && text_at(root, &["source_anchor", "evidence_boundary"])
+                .is_some_and(|value| value.contains("not a universal array law")),
+        "ARRAY_SOURCE_ANCHOR",
+        "paired-anode evidence and configuration-specific limitation must remain explicit",
+    );
+
+    let stages = at(root, &["experiment_hierarchy"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        stages.is_some_and(|rows| rows.len() == 5
+            && rows.iter().any(|row| text_at(row, &["stage"]) == Some("isolated_cell_baseline"))
+            && rows.iter().any(|row| text_at(row, &["stage"]) == Some("paired_cell_interaction"))
+            && rows.iter().any(|row| text_at(row, &["stage"]) == Some("small_array_transfer"))
+            && rows.iter().any(|row| text_at(row, &["stage"]) == Some("dynamic_drive_interaction"))
+            && rows.iter().any(|row| text_at(row, &["stage"]) == Some("holdout_transfer"))),
+        "ARRAY_EXPERIMENT_HIERARCHY",
+        "five-stage isolated/pair/array/dynamic/holdout experiment ladder is required",
+    );
+
+    let measured = at(root, &["measured_configuration_fields"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        measured.is_some_and(|rows| {
+            ["geometry_hash", "cell_positions_m", "orientation_angles_deg",
+             "pairwise_spacing_m", "drive_waveform_hash_by_cell",
+             "voltage_waveform_by_cell", "current_waveform_by_cell",
+             "terminal_power_by_cell", "gas_composition", "freestream_velocity_m_s",
+             "force_balance_calibration_id", "session_id", "run_order"]
+            .iter().all(|wanted| rows.iter().any(|field| field.as_str() == Some(*wanted)))
+        }),
+        "ARRAY_MEASURED_CONFIGURATION_FIELDS",
+        "array configuration manifest must bind geometry, orientation, spacing, per-cell electrical waveforms, environment, calibration and session identity",
+    );
+
+    let observations = at(root, &["observation_fields"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        observations.is_some_and(|rows| {
+            ["measured_total_force_vector_n", "isolated_cell_force_vectors_n",
+             "measured_pairwise_or_array_force_vector_n", "force_vector_covariance_n2",
+             "terminal_electrical_energy_j"]
+            .iter().all(|wanted| rows.iter().any(|field| field.as_str() == Some(*wanted)))
+        }),
+        "ARRAY_OBSERVATION_FIELDS",
+        "vector force, isolated baselines, combined force, covariance and electrical energy are required",
+    );
+
+    let model = at(root, &["model_contract"]);
+    push_if_missing(
+        &mut findings,
+        model.is_some_and(|value| {
+            text_at(value, &["isolated_cell_additivity_is_default"]).is_some_and(|v| v == "false")
+                && text_at(value, &["optional_local_linearization"])
+                    .is_some_and(|v| v.contains("J(configuration, operating_point)"))
+                && text_at(value, &["linearity_scope"]).is_some_and(|v| {
+                    v.contains("local") && v.contains("must not be extrapolated")
+                })
+                && at(value, &["training_holdouts"]).and_then(Value::as_array)
+                    .is_some_and(|rows| rows.len() >= 4
+                        && rows.iter().any(|v| v.as_str() == Some("orientation_family"))
+                        && rows.iter().any(|v| v.as_str() == Some("spacing_family"))
+                        && rows.iter().any(|v| v.as_str() == Some("experimental_session")))
+        }),
+        "ARRAY_MODEL_SCOPE",
+        "array model must reject default additivity and limit local Jacobians to a held-out qualified envelope",
+    );
+
+    let factors = at(root, &["design_factors"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        factors.is_some_and(|rows| rows.len() == 6
+            && rows.iter().any(|r| text_at(r, &["id"]) == Some("anode_orientation"))
+            && rows.iter().any(|r| text_at(r, &["id"]) == Some("inter_cell_spacing"))
+            && rows.iter().any(|r| text_at(r, &["id"]) == Some("polarity"))
+            && rows.iter().any(|r| text_at(r, &["id"]) == Some("voltage_and_duty"))
+            && rows.iter().any(|r| text_at(r, &["id"]) == Some("freestream"))
+            && rows.iter().any(|r| text_at(r, &["id"]) == Some("cell_count"))),
+        "ARRAY_DESIGN_FACTORS",
+        "orientation, spacing, polarity, drive, freestream and cell-count factors are required",
+    );
+
+    let gates = at(root, &["proposed_acceptance_gates"]);
+    push_if_missing(
+        &mut findings,
+        gates.is_some_and(|value| {
+            number_at(value, &["force_direction_error_degrees_max"]) == Some(5.0)
+                && number_at(value, &["force_magnitude_relative_error_max"]) == Some(0.10)
+                && at(value, &["all_targets_prospective"]).and_then(Value::as_bool) == Some(true)
+                && at(value, &["holdout_requirements"]).and_then(Value::as_array)
+                    .is_some_and(|rows| rows.len() == 3)
+        }),
+        "ARRAY_PROSPECTIVE_GATES",
+        "array accuracy targets and all three independent holdout requirements must remain prospective",
+    );
+
+    push_if_missing(
+        &mut findings,
+        contains_any(root, &["exclusion_rules"], "Do not assume isolated-cell force vectors superpose")
+            && contains_any(root, &["exclusion_rules"], "Do not use a static force map as a transient switching model")
+            && text_at(root, &["claim_ceiling"]).is_some_and(|value| {
+                value.contains("No Luminous multi-anode force map")
+                    && value.contains("physical result")
+            }),
+        "ARRAY_CLAIM_BOUNDARY",
+        "do not assume superposition, reuse static maps for transients, or claim Luminous physical results",
+    );
+
+    findings
+}
+
 fn main() {
     let mut args = env::args().skip(1);
     let path = args.next();
@@ -1103,9 +1237,17 @@ fn main() {
             process::exit(2);
         }
     };
+    let array_interaction: Value = match serde_json::from_str(EMBEDDED_ARRAY_INTERACTION) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("invalid embedded array-interaction JSON: {error}");
+            process::exit(2);
+        }
+    };
     let mut findings = audit_atlas(&atlas);
     findings.extend(audit_frontier_patterns(&frontier));
     findings.extend(audit_exchange_contract(&exchange));
+    findings.extend(audit_array_interaction(&array_interaction));
     if findings.is_empty() {
         let count = len_at(&atlas, &["source_records"]).unwrap_or(0);
         let system_count = len_at(&atlas, &["system_integration_references"]).unwrap_or(0);
@@ -1115,6 +1257,7 @@ fn main() {
         let frontier_count = len_at(&frontier, &["records"]).unwrap_or(0);
         println!("frontier design-pattern references: {frontier_count}");
         println!("plasma-neutral exchange contract: audited");
+        println!("array interaction protocol: audited");
         println!("scope: source structure and cohort comparability only; no physical V&V claim");
     } else {
         eprintln!("FAIL: {label} ({} finding(s))", findings.len());
@@ -1450,6 +1593,53 @@ mod tests {
         let mut value: Value = serde_json::from_str(EMBEDDED_FRONTIER_PATTERNS).unwrap();
         value["records"][9]["missing_or_unverified"] = Value::Array(Vec::new());
         assert!(has_code(&audit_frontier_patterns(&value), "FRONTIER_SWITCHING_SCOPE"));
+    }
+
+
+    #[test]
+    fn array_interaction_protocol_passes_declared_contract() {
+        let value: Value = serde_json::from_str(EMBEDDED_ARRAY_INTERACTION)
+            .expect("embedded array-interaction contract must be valid JSON");
+        assert!(audit_array_interaction(&value).is_empty());
+    }
+
+    #[test]
+    fn isolated_cell_force_additivity_is_not_a_default() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_ARRAY_INTERACTION).unwrap();
+        value["model_contract"]["isolated_cell_additivity_is_default"] = Value::String("true".into());
+        assert!(has_code(&audit_array_interaction(&value), "ARRAY_MODEL_SCOPE"));
+    }
+
+    #[test]
+    fn local_array_jacobian_requires_orientation_spacing_and_session_holdouts() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_ARRAY_INTERACTION).unwrap();
+        value["model_contract"]["training_holdouts"] = Value::Array(vec![
+            Value::String("random_rows".into())
+        ]);
+        assert!(has_code(&audit_array_interaction(&value), "ARRAY_MODEL_SCOPE"));
+    }
+
+    #[test]
+    fn array_experiment_requires_per_cell_waveforms_and_calibration_identity() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_ARRAY_INTERACTION).unwrap();
+        value["measured_configuration_fields"] = Value::Array(vec![
+            Value::String("configuration_id".into())
+        ]);
+        assert!(has_code(&audit_array_interaction(&value), "ARRAY_MEASURED_CONFIGURATION_FIELDS"));
+    }
+
+    #[test]
+    fn array_direction_and_magnitude_gates_must_remain_prospective() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_ARRAY_INTERACTION).unwrap();
+        value["proposed_acceptance_gates"]["all_targets_prospective"] = Value::Bool(false);
+        assert!(has_code(&audit_array_interaction(&value), "ARRAY_PROSPECTIVE_GATES"));
+    }
+
+    #[test]
+    fn array_claims_must_not_promote_protocol_to_measurement() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_ARRAY_INTERACTION).unwrap();
+        value["claim_ceiling"] = Value::String("Luminous measured a global array law".into());
+        assert!(has_code(&audit_array_interaction(&value), "ARRAY_CLAIM_BOUNDARY"));
     }
 
 }
