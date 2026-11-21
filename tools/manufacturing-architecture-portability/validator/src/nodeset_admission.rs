@@ -155,15 +155,14 @@ fn check_browse_name_index(
     namespace_uris: &[String],
     context: &str,
 ) -> Result<(), String> {
-    if let Some((prefix, _)) = value.split_once(':') {
-        if let Ok(index) = prefix.parse::<usize>() {
-            if index > namespace_uris.len() {
-                return Err(format!(
-                    "{context}: BrowseName namespace index {index} is outside 0..={} for {value:?}",
-                    namespace_uris.len()
-                ));
-            }
-        }
+    if let Some((prefix, _)) = value.split_once(':')
+        && let Ok(index) = prefix.parse::<usize>()
+        && index > namespace_uris.len()
+    {
+        return Err(format!(
+            "{context}: BrowseName namespace index {index} is outside 0..={} for {value:?}",
+            namespace_uris.len()
+        ));
     }
     Ok(())
 }
