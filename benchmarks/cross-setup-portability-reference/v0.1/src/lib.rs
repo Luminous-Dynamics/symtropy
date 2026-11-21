@@ -64,22 +64,61 @@ impl Display for PortabilityError {
             Self::EmptyRobotArticleId => write!(formatter, "robot article ID must not be empty"),
             Self::EmptyEmbodiment => write!(formatter, "embodiment ID must not be empty"),
             Self::EmptyPhysicsEngineId => write!(formatter, "physics-engine ID must not be empty"),
-            Self::InvalidAssetDigest => write!(formatter, "asset digest must be a 64-character lowercase hex SHA-256"),
-            Self::InvalidControllerDigest => write!(formatter, "controller digest must be a 64-character lowercase hex SHA-256"),
-            Self::InvalidTaskContractDigest => write!(formatter, "task contract digest must be a 64-character lowercase hex SHA-256"),
+            Self::InvalidAssetDigest => write!(
+                formatter,
+                "asset digest must be a 64-character lowercase hex SHA-256"
+            ),
+            Self::InvalidControllerDigest => write!(
+                formatter,
+                "controller digest must be a 64-character lowercase hex SHA-256"
+            ),
+            Self::InvalidTaskContractDigest => write!(
+                formatter,
+                "task contract digest must be a 64-character lowercase hex SHA-256"
+            ),
             Self::InvalidPolicyId => write!(formatter, "policy ID must not be empty"),
-            Self::InvalidPolicyCheckpointDigest => write!(formatter, "policy checkpoint digest must be a 64-character lowercase hex SHA-256"),
+            Self::InvalidPolicyCheckpointDigest => write!(
+                formatter,
+                "policy checkpoint digest must be a 64-character lowercase hex SHA-256"
+            ),
             Self::InvalidTaskId => write!(formatter, "task ID must not be empty"),
-            Self::InvalidSuccessCounts => write!(formatter, "trial count must be positive and successes cannot exceed trials"),
-            Self::DuplicateOutcome => write!(formatter, "a policy may have only one aggregate outcome per task and setup"),
-            Self::DuplicatePolicyId => write!(formatter, "policy IDs must be unique within a setup"),
-            Self::InconsistentTaskContract => write!(formatter, "source and target setups must use the same pinned task contract"),
-            Self::PolicyCheckpointMismatch => write!(formatter, "the same policy ID must reference the same immutable checkpoint in both setups"),
-            Self::InsufficientCommonPolicies => write!(formatter, "at least two identical policy checkpoints must be present in both setups"),
-            Self::InsufficientCommonTasks => write!(formatter, "at least ten common task clusters are required"),
-            Self::IncompletePolicyTaskMatrix => write!(formatter, "each common task must contain outcomes for every common policy in both setups"),
-            Self::InvalidComparisonTier => write!(formatter, "setup identities do not satisfy the declared comparison tier"),
-            Self::InvalidBootstrapReplicateCount => write!(formatter, "at least 1000 bootstrap replicates are required"),
+            Self::InvalidSuccessCounts => write!(
+                formatter,
+                "trial count must be positive and successes cannot exceed trials"
+            ),
+            Self::DuplicateOutcome => write!(
+                formatter,
+                "a policy may have only one aggregate outcome per task and setup"
+            ),
+            Self::DuplicatePolicyId => {
+                write!(formatter, "policy IDs must be unique within a setup")
+            }
+            Self::InconsistentTaskContract => write!(
+                formatter,
+                "source and target setups must use the same pinned task contract"
+            ),
+            Self::PolicyCheckpointMismatch => write!(
+                formatter,
+                "the same policy ID must reference the same immutable checkpoint in both setups"
+            ),
+            Self::InsufficientCommonPolicies => write!(
+                formatter,
+                "at least two identical policy checkpoints must be present in both setups"
+            ),
+            Self::InsufficientCommonTasks => {
+                write!(formatter, "at least ten common task clusters are required")
+            }
+            Self::IncompletePolicyTaskMatrix => write!(
+                formatter,
+                "each common task must contain outcomes for every common policy in both setups"
+            ),
+            Self::InvalidComparisonTier => write!(
+                formatter,
+                "setup identities do not satisfy the declared comparison tier"
+            ),
+            Self::InvalidBootstrapReplicateCount => {
+                write!(formatter, "at least 1000 bootstrap replicates are required")
+            }
         }
     }
 }
@@ -189,10 +228,7 @@ impl SetupEvaluation {
                     return Err(PortabilityError::DuplicatePolicyId);
                 }
             }
-            if !outcomes.insert((
-                outcome.task_id.as_str(),
-                outcome.policy.policy_id.as_str(),
-            )) {
+            if !outcomes.insert((outcome.task_id.as_str(), outcome.policy.policy_id.as_str())) {
                 return Err(PortabilityError::DuplicateOutcome);
             }
         }
@@ -216,9 +252,7 @@ pub fn wilson_90(successes: u64, trials: u64) -> Option<WilsonInterval> {
     let z2 = WILSON_Z_90 * WILSON_Z_90;
     let denominator = 1.0 + z2 / n;
     let center = (p + z2 / (2.0 * n)) / denominator;
-    let half = WILSON_Z_90
-        * (p * (1.0 - p) / n + z2 / (4.0 * n * n)).sqrt()
-        / denominator;
+    let half = WILSON_Z_90 * (p * (1.0 - p) / n + z2 / (4.0 * n * n)).sqrt() / denominator;
     Some(WilsonInterval {
         rate: p,
         lower: (center - half).clamp(0.0, 1.0),
@@ -328,10 +362,14 @@ pub fn compare_setup_portability(
         }
     }
 
-    let source_policies: BTreeSet<String> =
-        source_policy_versions.keys().map(|id| (*id).to_owned()).collect();
-    let target_policies: BTreeSet<String> =
-        target_policy_versions.keys().map(|id| (*id).to_owned()).collect();
+    let source_policies: BTreeSet<String> = source_policy_versions
+        .keys()
+        .map(|id| (*id).to_owned())
+        .collect();
+    let target_policies: BTreeSet<String> = target_policy_versions
+        .keys()
+        .map(|id| (*id).to_owned())
+        .collect();
     let common_policies: Vec<String> = source_policies
         .intersection(&target_policies)
         .cloned()
@@ -344,10 +382,7 @@ pub fn compare_setup_portability(
     let target_data = build_outcome_map(target);
     let source_tasks: BTreeSet<String> = source_data.keys().cloned().collect();
     let target_tasks: BTreeSet<String> = target_data.keys().cloned().collect();
-    let common_tasks: Vec<String> = source_tasks
-        .intersection(&target_tasks)
-        .cloned()
-        .collect();
+    let common_tasks: Vec<String> = source_tasks.intersection(&target_tasks).cloned().collect();
     if common_tasks.len() < MIN_COMMON_TASK_CLUSTERS {
         return Err(PortabilityError::InsufficientCommonTasks);
     }
@@ -391,11 +426,17 @@ pub fn compare_setup_portability(
                     .expect("validated target counts"),
             );
 
-            source_decided += if source_winner != PairWinner::Undecided { 1 } else { 0 };
-            target_decided += if target_winner != PairWinner::Undecided { 1 } else { 0 };
-            if source_winner != PairWinner::Undecided
-                && target_winner != PairWinner::Undecided
-            {
+            source_decided += if source_winner != PairWinner::Undecided {
+                1
+            } else {
+                0
+            };
+            target_decided += if target_winner != PairWinner::Undecided {
+                1
+            } else {
+                0
+            };
+            if source_winner != PairWinner::Undecided && target_winner != PairWinner::Undecided {
                 jointly_decided += 1;
                 task_joint_decided += 1;
                 if source_winner == target_winner {
@@ -429,18 +470,17 @@ pub fn compare_setup_portability(
         .filter(|(_, jointly)| *jointly > 0)
         .count();
     let agreement_interval = if inferential_task_clusters >= MIN_COMMON_TASK_CLUSTERS {
-        Some(bootstrap_agreement_interval(&task_cluster_counts, bootstrap))
+        Some(bootstrap_agreement_interval(
+            &task_cluster_counts,
+            bootstrap,
+        ))
     } else {
         None
     };
 
     let source_macro = macro_policy_rates(&source_data, &common_tasks, &common_policies);
     let target_macro = macro_policy_rates(&target_data, &common_tasks, &common_policies);
-    let policy_rank_spearman = spearman_common(
-        &common_policies,
-        &source_macro,
-        &target_macro,
-    );
+    let policy_rank_spearman = spearman_common(&common_policies, &source_macro, &target_macro);
 
     Ok(CrossSetupReport {
         source_setup: source.setup.clone(),
@@ -566,9 +606,7 @@ fn average_ranks(values: &[f64]) -> Vec<f64> {
     let mut index = 0;
     while index < order.len() {
         let mut end = index + 1;
-        while end < order.len()
-            && values[order[end]].total_cmp(&values[order[index]]).is_eq()
-        {
+        while end < order.len() && values[order[end]].total_cmp(&values[order[index]]).is_eq() {
             end += 1;
         }
         let average_rank = (index + 1 + end) as f64 / 2.0;
@@ -701,7 +739,8 @@ mod tests {
     fn make_eval(setup: SetupIdentity, rates: [u64; 3]) -> SetupEvaluation {
         let mut outcomes = Vec::new();
         for task_index in 0..MIN_COMMON_TASK_CLUSTERS {
-            for (policy_index, policy_id) in ["policy-a", "policy-b", "policy-c"].iter().enumerate() {
+            for (policy_index, policy_id) in ["policy-a", "policy-b", "policy-c"].iter().enumerate()
+            {
                 outcomes.push(PolicyTaskOutcome {
                     task_id: format!("task-{task_index}"),
                     policy: PolicyIdentity {
@@ -719,18 +758,35 @@ mod tests {
     #[test]
     fn matched_twin_preserves_policy_winners_and_reports_full_coverage() {
         let source = make_eval(
-            setup("sim-a", "lab-a", "robot-a", "franka", "mujoco", SetupKind::Simulation),
+            setup(
+                "sim-a",
+                "lab-a",
+                "robot-a",
+                "franka",
+                "mujoco",
+                SetupKind::Simulation,
+            ),
             [20, 10, 0],
         );
         let target = make_eval(
-            setup("real-a", "lab-a", "robot-a", "franka", "real-hardware", SetupKind::Physical),
+            setup(
+                "real-a",
+                "lab-a",
+                "robot-a",
+                "franka",
+                "real-hardware",
+                SetupKind::Physical,
+            ),
             [20, 10, 0],
         );
         let report = compare_setup_portability(
             &source,
             &target,
             ComparisonTier::MatchedSimulatorTwin,
-            BootstrapConfig { replicates: 2_000, seed: 9 },
+            BootstrapConfig {
+                replicates: 2_000,
+                seed: 9,
+            },
         )
         .expect("matched twin");
         assert_eq!(report.common_task_clusters, 10);
@@ -743,25 +799,45 @@ mod tests {
         assert_eq!(report.policy_rank_spearman, Some(1.0));
         assert_eq!(
             report.winner_agreement_cluster_bootstrap_90,
-            Some(ConfidenceInterval { lower: 1.0, upper: 1.0 })
+            Some(ConfidenceInterval {
+                lower: 1.0,
+                upper: 1.0
+            })
         );
     }
 
     #[test]
     fn cross_setup_rank_reversal_is_reported_not_averaged_away() {
         let source = make_eval(
-            setup("sim-a", "lab-a", "robot-a", "franka", "mujoco", SetupKind::Simulation),
+            setup(
+                "sim-a",
+                "lab-a",
+                "robot-a",
+                "franka",
+                "mujoco",
+                SetupKind::Simulation,
+            ),
             [20, 10, 0],
         );
         let target = make_eval(
-            setup("real-b", "lab-b", "robot-b", "ur10", "real-hardware", SetupKind::Physical),
+            setup(
+                "real-b",
+                "lab-b",
+                "robot-b",
+                "ur10",
+                "real-hardware",
+                SetupKind::Physical,
+            ),
             [0, 10, 20],
         );
         let report = compare_setup_portability(
             &source,
             &target,
             ComparisonTier::CrossTeamOrLab,
-            BootstrapConfig { replicates: 2_000, seed: 9 },
+            BootstrapConfig {
+                replicates: 2_000,
+                seed: 9,
+            },
         )
         .expect("cross team");
         assert_eq!(report.agreements, 0);
@@ -774,11 +850,25 @@ mod tests {
     #[test]
     fn overlapping_intervals_remain_undecided_and_reduce_coverage() {
         let source = make_eval(
-            setup("sim-a", "lab-a", "robot-a", "franka", "mujoco", SetupKind::Simulation),
+            setup(
+                "sim-a",
+                "lab-a",
+                "robot-a",
+                "franka",
+                "mujoco",
+                SetupKind::Simulation,
+            ),
             [10, 10, 10],
         );
         let target = make_eval(
-            setup("real-a", "lab-a", "robot-a", "franka", "real-hardware", SetupKind::Physical),
+            setup(
+                "real-a",
+                "lab-a",
+                "robot-a",
+                "franka",
+                "real-hardware",
+                SetupKind::Physical,
+            ),
             [10, 10, 10],
         );
         let report = compare_setup_portability(
@@ -796,11 +886,25 @@ mod tests {
     #[test]
     fn same_policy_name_with_different_checkpoint_is_rejected() {
         let source = make_eval(
-            setup("sim-a", "lab-a", "robot-a", "franka", "mujoco", SetupKind::Simulation),
+            setup(
+                "sim-a",
+                "lab-a",
+                "robot-a",
+                "franka",
+                "mujoco",
+                SetupKind::Simulation,
+            ),
             [20, 10, 0],
         );
         let mut target = make_eval(
-            setup("real-a", "lab-a", "robot-a", "franka", "real-hardware", SetupKind::Physical),
+            setup(
+                "real-a",
+                "lab-a",
+                "robot-a",
+                "franka",
+                "real-hardware",
+                SetupKind::Physical,
+            ),
             [20, 10, 0],
         );
         target.outcomes[0].policy.checkpoint_digest = digest("f");
@@ -818,11 +922,25 @@ mod tests {
     #[test]
     fn mismatched_task_contract_is_rejected() {
         let source = make_eval(
-            setup("sim-a", "lab-a", "robot-a", "franka", "mujoco", SetupKind::Simulation),
+            setup(
+                "sim-a",
+                "lab-a",
+                "robot-a",
+                "franka",
+                "mujoco",
+                SetupKind::Simulation,
+            ),
             [20, 10, 0],
         );
         let mut target = make_eval(
-            setup("real-a", "lab-a", "robot-a", "franka", "real-hardware", SetupKind::Physical),
+            setup(
+                "real-a",
+                "lab-a",
+                "robot-a",
+                "franka",
+                "real-hardware",
+                SetupKind::Physical,
+            ),
             [20, 10, 0],
         );
         target.setup.task_contract_digest = digest("d");
@@ -840,11 +958,25 @@ mod tests {
     #[test]
     fn invalid_tier_label_is_rejected() {
         let source = make_eval(
-            setup("sim-a", "lab-a", "robot-a", "franka", "mujoco", SetupKind::Simulation),
+            setup(
+                "sim-a",
+                "lab-a",
+                "robot-a",
+                "franka",
+                "mujoco",
+                SetupKind::Simulation,
+            ),
             [20, 10, 0],
         );
         let target = make_eval(
-            setup("real-a", "lab-a", "robot-a", "franka", "real-hardware", SetupKind::Physical),
+            setup(
+                "real-a",
+                "lab-a",
+                "robot-a",
+                "franka",
+                "real-hardware",
+                SetupKind::Physical,
+            ),
             [20, 10, 0],
         );
         assert_eq!(
@@ -861,11 +993,25 @@ mod tests {
     #[test]
     fn incomplete_common_task_policy_matrix_is_rejected() {
         let source = make_eval(
-            setup("sim-a", "lab-a", "robot-a", "franka", "mujoco", SetupKind::Simulation),
+            setup(
+                "sim-a",
+                "lab-a",
+                "robot-a",
+                "franka",
+                "mujoco",
+                SetupKind::Simulation,
+            ),
             [20, 10, 0],
         );
         let mut target = make_eval(
-            setup("real-a", "lab-a", "robot-a", "franka", "real-hardware", SetupKind::Physical),
+            setup(
+                "real-a",
+                "lab-a",
+                "robot-a",
+                "franka",
+                "real-hardware",
+                SetupKind::Physical,
+            ),
             [20, 10, 0],
         );
         target.outcomes.retain(|outcome| {
@@ -885,11 +1031,25 @@ mod tests {
     #[test]
     fn cross_engine_tier_requires_two_distinct_simulators() {
         let source = make_eval(
-            setup("sim-mujoco", "lab-a", "robot-a", "franka", "mujoco", SetupKind::Simulation),
+            setup(
+                "sim-mujoco",
+                "lab-a",
+                "robot-a",
+                "franka",
+                "mujoco",
+                SetupKind::Simulation,
+            ),
             [20, 10, 0],
         );
         let target = make_eval(
-            setup("sim-physx", "lab-a", "robot-a", "franka", "physx", SetupKind::Simulation),
+            setup(
+                "sim-physx",
+                "lab-a",
+                "robot-a",
+                "franka",
+                "physx",
+                SetupKind::Simulation,
+            ),
             [20, 10, 0],
         );
         let report = compare_setup_portability(
@@ -906,11 +1066,25 @@ mod tests {
     #[test]
     fn cross_embodiment_tier_requires_a_different_robot_form() {
         let source = make_eval(
-            setup("sim-franka", "lab-a", "franka-a", "franka", "mujoco", SetupKind::Simulation),
+            setup(
+                "sim-franka",
+                "lab-a",
+                "franka-a",
+                "franka",
+                "mujoco",
+                SetupKind::Simulation,
+            ),
             [20, 10, 0],
         );
         let target = make_eval(
-            setup("sim-widowx", "lab-a", "widowx-a", "widowx", "mujoco", SetupKind::Simulation),
+            setup(
+                "sim-widowx",
+                "lab-a",
+                "widowx-a",
+                "widowx",
+                "mujoco",
+                SetupKind::Simulation,
+            ),
             [20, 10, 0],
         );
         assert_eq!(
@@ -929,48 +1103,115 @@ mod tests {
     #[test]
     fn duplicate_outcomes_and_invalid_counts_are_rejected() {
         let mut evaluation = make_eval(
-            setup("sim-a", "lab-a", "robot-a", "franka", "mujoco", SetupKind::Simulation),
+            setup(
+                "sim-a",
+                "lab-a",
+                "robot-a",
+                "franka",
+                "mujoco",
+                SetupKind::Simulation,
+            ),
             [20, 10, 0],
         );
         evaluation.outcomes.push(evaluation.outcomes[0].clone());
-        assert_eq!(evaluation.validate(), Err(PortabilityError::DuplicateOutcome));
+        assert_eq!(
+            evaluation.validate(),
+            Err(PortabilityError::DuplicateOutcome)
+        );
 
         let mut invalid = make_eval(
-            setup("sim-b", "lab-a", "robot-a", "franka", "mujoco", SetupKind::Simulation),
+            setup(
+                "sim-b",
+                "lab-a",
+                "robot-a",
+                "franka",
+                "mujoco",
+                SetupKind::Simulation,
+            ),
             [20, 10, 0],
         );
         invalid.outcomes[0].successes = 21;
-        assert_eq!(invalid.validate(), Err(PortabilityError::InvalidSuccessCounts));
+        assert_eq!(
+            invalid.validate(),
+            Err(PortabilityError::InvalidSuccessCounts)
+        );
     }
 
     #[test]
     fn bootstrap_is_deterministic_and_clustered_by_task() {
         let source = make_eval(
-            setup("sim-a", "lab-a", "robot-a", "franka", "mujoco", SetupKind::Simulation),
+            setup(
+                "sim-a",
+                "lab-a",
+                "robot-a",
+                "franka",
+                "mujoco",
+                SetupKind::Simulation,
+            ),
             [20, 10, 0],
         );
         let target = make_eval(
-            setup("real-a", "lab-a", "robot-a", "franka", "real-hardware", SetupKind::Physical),
+            setup(
+                "real-a",
+                "lab-a",
+                "robot-a",
+                "franka",
+                "real-hardware",
+                SetupKind::Physical,
+            ),
             [20, 10, 0],
         );
-        let config = BootstrapConfig { replicates: 2_000, seed: 77 };
-        let first = compare_setup_portability(&source, &target, ComparisonTier::MatchedSimulatorTwin, config).unwrap();
-        let second = compare_setup_portability(&source, &target, ComparisonTier::MatchedSimulatorTwin, config).unwrap();
+        let config = BootstrapConfig {
+            replicates: 2_000,
+            seed: 77,
+        };
+        let first = compare_setup_portability(
+            &source,
+            &target,
+            ComparisonTier::MatchedSimulatorTwin,
+            config,
+        )
+        .unwrap();
+        let second = compare_setup_portability(
+            &source,
+            &target,
+            ComparisonTier::MatchedSimulatorTwin,
+            config,
+        )
+        .unwrap();
         assert_eq!(first, second);
     }
 
     #[test]
     fn task_count_and_bootstrap_floor_are_enforced() {
         let mut source = make_eval(
-            setup("sim-a", "lab-a", "robot-a", "franka", "mujoco", SetupKind::Simulation),
+            setup(
+                "sim-a",
+                "lab-a",
+                "robot-a",
+                "franka",
+                "mujoco",
+                SetupKind::Simulation,
+            ),
             [20, 10, 0],
         );
         let mut target = make_eval(
-            setup("real-a", "lab-a", "robot-a", "franka", "real-hardware", SetupKind::Physical),
+            setup(
+                "real-a",
+                "lab-a",
+                "robot-a",
+                "franka",
+                "real-hardware",
+                SetupKind::Physical,
+            ),
             [20, 10, 0],
         );
-        source.outcomes.retain(|outcome| outcome.task_id != "task-9");
-        target.outcomes.retain(|outcome| outcome.task_id != "task-9");
+        source
+            .outcomes
+            .retain(|outcome| outcome.task_id != "task-9");
+        target
+            .outcomes
+            .retain(|outcome| outcome.task_id != "task-9");
         assert_eq!(
             compare_setup_portability(
                 &source,
