@@ -569,6 +569,8 @@ mod tests {
         DragTrajectoryEvent {
             event_id: 1,
             quadrature_rule_id: 3,
+            charged_frame_id: 7,
+            neutral_frame_id: 7,
             samples: vec![
                 sample(1, 0.0, 1.0 / 3.0, [1.0, -1.0, 0.5]),
                 sample(2, 0.5, 4.0 / 3.0, [2.0, -0.5, 0.5]),
