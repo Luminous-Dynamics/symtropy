@@ -423,9 +423,11 @@ fn main() {
     let findings = audit_atlas(&atlas);
     if findings.is_empty() {
         let count = len_at(&atlas, &["source_records"]).unwrap_or(0);
+        let system_count = len_at(&atlas, &["system_integration_references"]).unwrap_or(0);
         println!("PASS: {label}");
-        println!("source records: {count}");
-        println!("scope: source integrity and cohort comparability only; no physical V&V claim");
+        println!("physical source cohorts: {count}");
+        println!("integrated-system references: {system_count}");
+        println!("scope: source structure and cohort comparability only; no physical V&V claim");
     } else {
         eprintln!("FAIL: {label} ({} finding(s))", findings.len());
         for finding in findings {
@@ -544,6 +546,13 @@ mod tests {
         value["system_integration_references"][0]["operating_boundary"]
             ["self_powered_free_flight_demonstrated"] = Value::Bool(true);
         assert!(has_code(&audit_atlas(&value), "TAO_POWER_BOUNDARY"));
+    }
+
+    #[test]
+    fn missing_integrated_system_reference_is_rejected() {
+        let mut value = atlas();
+        value["system_integration_references"] = Value::Array(Vec::new());
+        assert!(has_code(&audit_atlas(&value), "TAO_SYSTEM_REFERENCE"));
     }
 
     #[test]
