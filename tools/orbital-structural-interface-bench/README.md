@@ -88,3 +88,10 @@ The v0.1 target is 100% expected disposition/reason agreement and zero false-com
 - No physical interface, joint, specimen or spacecraft has been tested.
 
 Compose with Symthaea #5686/#5074/#5763/#6224, Symtropy #5818/#4263/#4165, and Mycelix #5149. Do not duplicate those canonical owners. The next implementation step is an adapter that resolves exact references and applicability through those owners while preserving their authority boundaries.
+
+
+## Cross-toolchain composition
+
+This crate deliberately does not parse STEP/AP242, QIF, MTConnect or native CAD. Consume semantic identity and quality records from the existing [Symthaea MBD-INTEROP #10595](https://github.com/Luminous-Dynamics/symthaea/issues/10595), [Mycelix AP242-to-QIF semantic benchmark #6348](https://github.com/Luminous-Dynamics/mycelix/issues/6348), and [AeroCommons component packet #6345](https://github.com/Luminous-Dynamics/mycelix/issues/6345). Compose them with Symtropy #4165 inspection observability and #4263 as-built structural acceptance. NIST STEP File Analyzer and CAx-IF AP242/QIF cases are external comparison references, not code to fork or replace.
+
+The composition path is: product definition / semantic PMI → exact characteristic and component identity → manufacturing process and serialized article → QIF inspection evidence → structural-interface profile → as-built assembly acceptance. Every transition needs a declared supported semantic subset and explicit loss/Unknown behavior. A parser pass, a structurally complete packet or a signed trace alone does not establish physical conformance.
