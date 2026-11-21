@@ -86,7 +86,6 @@ impl HazardProfile {
     fn total(self) -> f64 {
         self.berth + self.diversion + self.cancellation
     }
-
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -223,11 +222,7 @@ impl SplitMix64 {
 }
 
 fn profile(stratum: u8) -> HazardProfile {
-    if stratum == 0 {
-        STRATUM_0
-    } else {
-        STRATUM_1
-    }
+    if stratum == 0 { STRATUM_0 } else { STRATUM_1 }
 }
 
 fn sample_latent_event(stratum: u8, rng: &mut SplitMix64) -> LatentCall {
@@ -260,10 +255,7 @@ fn sample_latent_event(stratum: u8, rng: &mut SplitMix64) -> LatentCall {
     }
 }
 
-fn sample_administrative_censor_tick(
-    probability_per_tick: f64,
-    rng: &mut SplitMix64,
-) -> u8 {
+fn sample_administrative_censor_tick(probability_per_tick: f64, rng: &mut SplitMix64) -> u8 {
     for tick in 1..=HORIZON {
         if rng.next_f64() < probability_per_tick {
             return tick;
@@ -272,11 +264,7 @@ fn sample_administrative_censor_tick(
     HORIZON + 1
 }
 
-fn censor(
-    stratum: u8,
-    duration_tick: u8,
-    reason: CensorReason,
-) -> ObservedCall {
+fn censor(stratum: u8, duration_tick: u8, reason: CensorReason) -> ObservedCall {
     ObservedCall {
         stratum,
         duration_tick,
@@ -294,14 +282,9 @@ fn event(stratum: u8, duration_tick: u8, cause: Cause) -> ObservedCall {
     }
 }
 
-fn observe_call(
-    scenario: ScenarioKind,
-    latent: LatentCall,
-    rng: &mut SplitMix64,
-) -> ObservedCall {
+fn observe_call(scenario: ScenarioKind, latent: LatentCall, rng: &mut SplitMix64) -> ObservedCall {
     match scenario {
-        ScenarioKind::IndependentAdministrative
-        | ScenarioKind::MeasuredStratumDependent => {
+        ScenarioKind::IndependentAdministrative | ScenarioKind::MeasuredStratumDependent => {
             let censor_probability = match scenario {
                 ScenarioKind::IndependentAdministrative => 0.10,
                 ScenarioKind::MeasuredStratumDependent if latent.stratum == 0 => 0.03,
@@ -324,52 +307,32 @@ fn observe_call(
                 CensorReason::Administrative,
             )
         }
-        ScenarioKind::OutcomeDependentReportingLag => {
-            match (latent.cause, latent.event_tick) {
-                (Some(cause), Some(event_tick)) => {
-                    let delay = if cause == Cause::Berth { 4 } else { 0 };
-                    if event_tick.saturating_add(delay) <= HORIZON {
-                        event(latent.stratum, event_tick, cause)
-                    } else {
-                        censor(
-                            latent.stratum,
-                            HORIZON,
-                            CensorReason::ReportingLag,
-                        )
-                    }
+        ScenarioKind::OutcomeDependentReportingLag => match (latent.cause, latent.event_tick) {
+            (Some(cause), Some(event_tick)) => {
+                let delay = if cause == Cause::Berth { 4 } else { 0 };
+                if event_tick.saturating_add(delay) <= HORIZON {
+                    event(latent.stratum, event_tick, cause)
+                } else {
+                    censor(latent.stratum, HORIZON, CensorReason::ReportingLag)
                 }
-                _ => censor(
-                    latent.stratum,
-                    HORIZON,
-                    CensorReason::Administrative,
-                ),
             }
-        }
-        ScenarioKind::PositivityFailure => {
-            match (latent.cause, latent.event_tick) {
-                (Some(cause), Some(event_tick)) => {
-                    let delay = if latent.stratum == 1 && cause == Cause::Berth {
-                        HORIZON + 1
-                    } else {
-                        0
-                    };
-                    if event_tick.saturating_add(delay) <= HORIZON {
-                        event(latent.stratum, event_tick, cause)
-                    } else {
-                        censor(
-                            latent.stratum,
-                            HORIZON,
-                            CensorReason::ReportingLag,
-                        )
-                    }
+            _ => censor(latent.stratum, HORIZON, CensorReason::Administrative),
+        },
+        ScenarioKind::PositivityFailure => match (latent.cause, latent.event_tick) {
+            (Some(cause), Some(event_tick)) => {
+                let delay = if latent.stratum == 1 && cause == Cause::Berth {
+                    HORIZON + 1
+                } else {
+                    0
+                };
+                if event_tick.saturating_add(delay) <= HORIZON {
+                    event(latent.stratum, event_tick, cause)
+                } else {
+                    censor(latent.stratum, HORIZON, CensorReason::ReportingLag)
                 }
-                _ => censor(
-                    latent.stratum,
-                    HORIZON,
-                    CensorReason::Administrative,
-                ),
             }
-        }
+            _ => censor(latent.stratum, HORIZON, CensorReason::Administrative),
+        },
     }
 }
 
@@ -528,7 +491,10 @@ fn observed_cause_share(observed: &[ObservedCall]) -> Incidence {
 }
 
 fn unresolved_fraction(observed: &[ObservedCall]) -> f64 {
-    observed.iter().filter(|call| call.outcome.is_none()).count() as f64
+    observed
+        .iter()
+        .filter(|call| call.outcome.is_none())
+        .count() as f64
         / observed.len() as f64
 }
 
@@ -545,10 +511,7 @@ fn partial_bounds(observed: &[ObservedCall]) -> IncidenceBounds {
     }
 }
 
-fn generate_scenario(
-    scenario: ScenarioKind,
-    count: usize,
-) -> (Vec<LatentCall>, Vec<ObservedCall>) {
+fn generate_scenario(scenario: ScenarioKind, count: usize) -> (Vec<LatentCall>, Vec<ObservedCall>) {
     // Separate deterministic streams prevent event-dependent PRNG draw
     // counts from coupling the latent event and censoring processes.
     let mut latent_rng = SplitMix64::new(scenario.seed() ^ 0xA076_1D64_78BD_642F);
@@ -567,26 +530,15 @@ fn generate_scenario(
     (latent, observed)
 }
 
-fn observe_with_berth_reporting_delay(
-    latent: LatentCall,
-    berth_delay_ticks: u8,
-) -> ObservedCall {
+fn observe_with_berth_reporting_delay(latent: LatentCall, berth_delay_ticks: u8) -> ObservedCall {
     match (latent.cause, latent.event_tick) {
         (Some(Cause::Berth), Some(event_tick))
             if event_tick.saturating_add(berth_delay_ticks) > HORIZON =>
         {
-            censor(
-                latent.stratum,
-                HORIZON,
-                CensorReason::ReportingLag,
-            )
+            censor(latent.stratum, HORIZON, CensorReason::ReportingLag)
         }
         (Some(cause), Some(event_tick)) => event(latent.stratum, event_tick, cause),
-        _ => censor(
-            latent.stratum,
-            HORIZON,
-            CensorReason::Administrative,
-        ),
+        _ => censor(latent.stratum, HORIZON, CensorReason::Administrative),
     }
 }
 
@@ -594,8 +546,7 @@ fn evaluate_reporting_delay_sweep() -> Vec<LagSensitivityStep> {
     // Hold the latent cohort fixed across all delay values. Only publication
     // latency changes, so the sensitivity curve has no cohort-composition noise.
     let scenario = ScenarioKind::OutcomeDependentReportingLag;
-    let mut latent_rng =
-        SplitMix64::new(scenario.seed() ^ 0xA076_1D64_78BD_642F);
+    let mut latent_rng = SplitMix64::new(scenario.seed() ^ 0xA076_1D64_78BD_642F);
     let latent: Vec<LatentCall> = (0..CALLS_PER_SCENARIO)
         .map(|index| sample_latent_event((index % 2) as u8, &mut latent_rng))
         .collect();
@@ -649,8 +600,7 @@ fn evaluate_scenario(scenario: ScenarioKind) -> ScenarioReport {
         .count();
 
     let qualification = match scenario {
-        ScenarioKind::IndependentAdministrative
-        | ScenarioKind::MeasuredStratumDependent => {
+        ScenarioKind::IndependentAdministrative | ScenarioKind::MeasuredStratumDependent => {
             Qualification::IdentifiableUnderDeclaredMechanism
         }
         ScenarioKind::OutcomeDependentReportingLag => {
