@@ -54,6 +54,37 @@ jobs:
     - name: Cache dependencies
       uses: Swatinem/rust-cache@v2
 
+    - name: Detect anisotropic reference changes
+      id: anisotropic_reference_changes
+      if: runner.os == 'Linux'
+      shell: bash
+      env:
+        EVENT_BEFORE: ${{ github.event.before }}
+      run: |
+        if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+          git fetch --no-tags --depth=1 origin "$GITHUB_BASE_REF"
+          changed_files="$(git diff --name-only FETCH_HEAD HEAD)"
+        elif [[ -n "$EVENT_BEFORE" && "$EVENT_BEFORE" != "0000000000000000000000000000000000000000" ]]; then
+          changed_files="$(git diff --name-only "$EVENT_BEFORE" "$GITHUB_SHA")"
+        else
+          changed_files="$(git ls-tree --name-only -r HEAD)"
+        fi
+        while IFS= read -r changed_path; do
+          case "$changed_path" in
+            .github/workflows/ci.yml|.github/workflows/anisotropic-reference.yml|\
+            crates/core/symtropy-math/Cargo.toml|crates/core/symtropy-math/src/bivector.rs|\
+            crates/core/symtropy-physics/Cargo.toml|crates/core/symtropy-physics/src/lib.rs|crates/core/symtropy-physics/src/angular_dynamics.rs|\
+            crates/core/symtropy-physics/src/bivector_inertia.rs|crates/core/symtropy-physics/src/compound_inertia_3d.rs|\
+            crates/core/symtropy-physics/src/mass_properties_3d.rs|crates/core/symtropy-physics/tests/angular_convention_reference.rs|\
+            crates/core/symtropy-physics/examples/anisotropic_reference_campaign.rs|crates/core/symtropy-physics/*_VALIDATION.md|\
+            crates/core/symtropy-physics/README.md|Cargo.lock)
+              echo 'changed=true' >> "$GITHUB_OUTPUT"
+              exit 0
+              ;;
+          esac
+        done <<< "$changed_files"
+        echo 'changed=false' >> "$GITHUB_OUTPUT"
+
     - name: Check Formatting
       run: cargo fmt --all -- --check
 
@@ -79,6 +110,14 @@ jobs:
 
     - name: Run Tests (Physics Core)
       run: cargo test -p symtropy-math -p symtropy-physics -p symtropy-consciousness-physics --lib
+
+    - name: Qualify anisotropic reference campaign (D=2..9)
+      if: runner.os == 'Linux' && github.event_name == 'pull_request' && steps.anisotropic_reference_changes.outputs.changed == 'true'
+      run: |
+        cargo test --locked -p symtropy-math --lib --features nd-bivector-9
+        cargo test --locked -p symtropy-physics --lib --features nd-bivector-9
+        cargo test --locked -p symtropy-physics --example anisotropic_reference_campaign --features nd-bivector-9
+        cargo run --locked --release -p symtropy-physics --example anisotropic_reference_campaign --features nd-bivector-9
 
     - name: Test Airborne Energy Observability Oracle
       if: ${{ hashFiles('tools/airborne-energy-observability-validator/Cargo.toml') != '' }}

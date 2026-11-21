@@ -18,6 +18,8 @@ rustdoc-args = ["--cfg", "docsrs"]
 ## each integration step, ensuring bit-identical simulation across machines for
 ## peer-to-peer multiplayer and deterministic replay files.
 deterministic-net = []
+## Enable the expanded D=5..9 bivector storage for research/reference work.
+nd-bivector-9 = ["symtropy-math/nd-bivector-9"]
 
 [dependencies]
 symtropy-math = { version = "0.2.1", path = "../symtropy-math" }
