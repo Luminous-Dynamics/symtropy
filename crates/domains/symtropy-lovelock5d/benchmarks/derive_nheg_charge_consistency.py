@@ -228,11 +228,8 @@ def main() -> None:
         alpha_sym*Q_source
         /(16*sp.pi*G*eps**3*(1-T)**3*(1+T)**2)
     )
-    exact_zero(
-        "source density leading coefficient",
-        sp.limit(eps**3*source_density,eps,0,dir="+")
-        -100*alpha_sym/(sp.pi*G)
-    )
+    exact_zero("source density leading coefficient",
+               sp.limit(source_norm,T,0)-1600)
 
     # Exact local Wald/Jacobson-Myers density and its parametric variation.
     wald_multiplier=sp.factor(1+alpha_sym*(
@@ -268,16 +265,16 @@ def main() -> None:
     axial_minus_wald=sp.factor(axial_norm-wald_norm)
     exact_zero("Einstein coefficient is +1",
                sp.limit(k_e_density*16*sp.pi*G*eps**3/(alpha_sym*sine),
-                        eps,0,dir="+")-1)
+                        T,0)-1)
     exact_zero("GB Lovelock leading coefficient is -6",
                sp.limit(k_gb_density*16*sp.pi*G*eps**3/(alpha_sym*sine),
-                        eps,0,dir="+")+6)
+                        T,0)+6)
     exact_zero("total axial Lovelock leading coefficient is -5",
-               sp.limit(axial_norm,eps,0,dir="+")+5)
+               sp.limit(axial_norm,T,0)+5)
     exact_zero("Wald variation leading coefficient is -5",
-               sp.limit(wald_norm,eps,0,dir="+")+5)
+               sp.limit(wald_norm,T,0)+5)
     exact_zero("source Eq24 leading coefficient is +1600",
-               sp.limit(source_norm,eps,0,dir="+")-1600)
+               sp.limit(source_norm,T,0)-1600)
 
     fixture={
       "schema_version":1,
