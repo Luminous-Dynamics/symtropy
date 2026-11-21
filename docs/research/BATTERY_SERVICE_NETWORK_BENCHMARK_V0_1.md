@@ -321,7 +321,45 @@ For future engineering verification, derive a design-specific test matrix coveri
 
 This is a **preliminary engineering verification matrix**, not a normative compliance checklist. The full standards and actual certification basis must be reviewed by competent specialists; the public abstracts/product pages do not establish clause-level conformity or exact acceptance limits.
 
-## 10. Next implementation phases
+## 10. Compatibility graph and statistical reliability
+
+### 10.1 Interchangeability is a qualified graph
+
+The strict v0.1 equality check on pack/mission configuration ID and digest is intentionally conservative. A future shared battery pool should not infer interchangeability from a similar connector, nominal voltage, battery outline, chemistry family or vendor label.
+
+Represent compatibility as explicit, versioned edges joining:
+- exact serialized pack and cell/module/BMS configuration;
+- aircraft battery bay, latch/retention and power interface;
+- dock/carrier exchange mechanism and handling envelope;
+- any adapter/harness (a new configuration requiring its own qualification);
+- charger, charging profile, firmware/BMS protocol and thermal system;
+- software, firmware and safety-interlock versions.
+
+Each edge must bind exact endpoint configuration digests, qualification owner/issuer, evidence references, scope, effective date, expiry/revocation, and relevant operating conditions. The qualification scope includes voltage/current transients, peak power, thermal range, cooling, mechanical loads/vibration, insertion/removal life, contact resistance, communication behavior, firmware, emergency isolation and environmental exposure.
+
+Compatibility is not necessarily symmetric or transitive: A↔B and B↔C do not imply A↔C. An adapter creates a new configuration and must not silently inherit all endpoint approvals. A missing, stale, revoked or out-of-scope edge blocks allocation. An optimizer cannot create or widen compatibility. #6308 remains physical interface owner; Mycelix remains identity/custody/provenance owner; qualified engineering/certification authorities own approval.
+
+### 10.2 Reliability needs declared event denominators
+
+Keep six distinct success measures:
+1. swap mechanism attempt → completed/verified exchange;
+2. aircraft landing → next takeoff (operational turnaround);
+3. post-swap inspection/electrical check passed;
+4. next mission launched and completed;
+5. requested delivery completed on time;
+6. network service request completed on time despite asset/charger/grid/weather/permission constraints.
+
+High mechanical swap success does not prove high fleet service reliability. Stockouts, charger queues, site outages, weather/airspace no-go, maintenance and mission failure must remain visible.
+
+For a simple independent Bernoulli model with zero observed failures, the one-sided 95% upper failure-probability bound is:
+
+`p_{upper}=1-0.05^{1/n}`
+
+It takes 2,995 zero-failure attempts to bound failure probability below 10^-3 (99.9% reliability), and 29,956 zero-failure attempts below 10^-4 (99.99% reliability). These sample sizes rely on independence and a defined trial/failure event. A supplier claim such as >99.99% without attempt count, failure count, confidence interval, test conditions and failure definition cannot be used as a statistical reliability comparison.
+
+Physical validation should stratify by distinct dock/mechanism units, pack serial/age/cycle count, temperature/humidity, dust/salt/moisture/contamination, vibration, insertion misalignment, mechanical wear, connector resistance, partial insertion, communication loss/replay, pack mismatch, charger/grid disturbances, emergency stops and operator interventions. Repeated tests on one dock are correlated; use cluster-aware or hierarchical reliability analysis where needed. Publish exact binomial intervals for independent cohorts and separate mechanism reliability from network service availability.
+
+## 11. Next implementation phases
 
 **v0.2 — exact multi-period charging and inventory**
 - model pack-state transitions, charge curves, cooldown/balancing, parallel charger/rack occupancy and grid caps;
