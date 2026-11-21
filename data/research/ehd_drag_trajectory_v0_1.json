@@ -48,7 +48,21 @@
       "event_and_aggregate_momentum_energy_checks",
       "deterministic_event_and_sample_ordering"
     ],
-    "summation": "compensated_sorted_samples"
+    "summation": "compensated_sorted_samples",
+    "receipt_fields": [
+      "event_count",
+      "sample_count",
+      "quadrature_rule_ids_by_event",
+      "total_integrated_drag_weight_kg",
+      "total_neutral_impulse_ns",
+      "total_charged_reaction_impulse_ns",
+      "aggregate_impulse_residual_ns",
+      "predicted_frictional_heating_j",
+      "reported_frictional_heating_j",
+      "aggregate_energy_residual_j",
+      "max_event_impulse_residual_ns",
+      "max_event_energy_residual_j"
+    ]
   },
   "manufactured_solution": {
     "duration_seconds": 1,
@@ -83,7 +97,9 @@
     "event_error_cancellation_rejected",
     "duplicate_event_and_sample_ids_rejected",
     "invalid_time_and_non_finite_velocity_rejected",
-    "input_order_determinism_empty_inputs_and_invalid_tolerances"
+    "input_order_determinism",
+    "empty_inputs_and_invalid_tolerances",
+    "offline_reference_self_check"
   ],
   "acceptance": {
     "universal_numeric_tolerance": null,
