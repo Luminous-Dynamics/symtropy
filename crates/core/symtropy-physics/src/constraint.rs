@@ -5,6 +5,24 @@
 
 use crate::body::{BodyHandle, RigidBody};
 
+/// Observable disposition of one velocity-level constraint invocation.
+///
+/// This reports execution only. It is not an independent physical-validity or
+/// simulation-qualification verdict.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ConstraintSolveOutcome {
+    /// The constraint applied a velocity correction. The optional residual is
+    /// expressed in the constraint's declared residual norm.
+    Applied { residual_inf: Option<f64> },
+    /// The constraint had no correction to apply.
+    NoOp,
+    /// The constraint declined an operation without claiming its result.
+    Rejected { code: &'static str },
+    /// A legacy implementation ran through the compatibility method and did
+    /// not provide a typed outcome.
+    Unreported,
+}
+
 /// A constraint between two rigid bodies.
 pub trait Constraint<const D: usize>: Send + Sync + std::any::Any {
     /// The two bodies this constraint connects.
@@ -30,6 +48,22 @@ pub trait Constraint<const D: usize>: Send + Sync + std::any::Any {
         _dt: f64,
         _callback: Option<&mut dyn crate::world::PhysicsCallback<D>>,
     ) {
+    }
+
+    /// Solve velocity constraints and return a typed execution outcome.
+    ///
+    /// The default adapter preserves source compatibility: it invokes the
+    /// existing method exactly once and labels the outcome Unreported. It does
+    /// not infer NoOp or Applied from the absence of an error.
+    fn solve_velocity_with_outcome(
+        &self,
+        body_a: &mut RigidBody<D>,
+        body_b: &mut RigidBody<D>,
+        dt: f64,
+        callback: Option<&mut dyn crate::world::PhysicsCallback<D>>,
+    ) -> ConstraintSolveOutcome {
+        self.solve_velocity(body_a, body_b, dt, callback);
+        ConstraintSolveOutcome::Unreported
     }
 }
 
