@@ -268,6 +268,7 @@ fn multiply(a: &Mat3, b: &Mat3) -> Mat3 {
     out
 }
 #[cfg(test)]
+#[cfg(test)]
 fn multiply_vec(a: Mat3, b: Vec3) -> Vec3 {
     [dot(a[0], b), dot(a[1], b), dot(a[2], b)]
 }
@@ -368,11 +369,11 @@ fn solve3(a: Mat3, b: Vec3) -> Result<Vec3, ContactError> {
         return Err(ContactError::SingularInertia);
     }
     let mut aug = [[0.0; 4]; 3];
-    for i in 0..3 {
-        for j in 0..3 {
-            aug[i][j] = a[i][j];
+    for (row_index, row_values) in aug.iter_mut().enumerate() {
+        for (column_index, value) in row_values.iter_mut().take(3).enumerate() {
+            *value = a[row_index][column_index];
         }
-        aug[i][3] = b[i];
+        row_values[3] = b[row_index];
     }
     for col in 0..3 {
         let mut pivot = col;
