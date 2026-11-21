@@ -29,6 +29,8 @@ pub struct HorseshoeHmcDraw {
     pub log_local_scales: Vec<f64>,
     pub log_global_scale: f64,
     pub log_posterior: f64,
+    /// Joint Hamiltonian energy at the start of the transition producing this draw.
+    pub hamiltonian_energy: f64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -69,12 +71,13 @@ impl HmcState {
         })
     }
 
-    fn draw(&self, log_posterior: f64) -> HorseshoeHmcDraw {
+    fn draw(&self, log_posterior: f64, hamiltonian_energy: f64) -> HorseshoeHmcDraw {
         HorseshoeHmcDraw {
             coefficients: self.coefficients.clone(),
             log_local_scales: self.log_local_scales.clone(),
             log_global_scale: self.log_global_scale,
             log_posterior,
+            hamiltonian_energy,
         }
     }
 }
@@ -129,7 +132,7 @@ pub fn run_horseshoe_hmc_chain(
     let mut divergences = 0usize;
 
     for transition in 0..transitions {
-        let (next_state, next_target, accepted, divergent) = hmc_transition(
+        let (next_state, next_target, accepted, divergent, sampled_energy) = hmc_transition(
             model,
             &state,
             &target,
@@ -146,7 +149,7 @@ pub fn run_horseshoe_hmc_chain(
             divergences += 1;
         }
         if transition >= config.discarded_transitions {
-            draws.push(state.draw(target.log_posterior));
+            draws.push(state.draw(target.log_posterior, sampled_energy));
         }
     }
 
@@ -166,7 +169,7 @@ fn hmc_transition(
     prior: GlobalScalePrior,
     config: HorseshoeHmcConfig,
     rng: &mut SplitMix64,
-) -> (HmcState, RawScaleHorseshoePosterior, bool, bool) {
+) -> (HmcState, RawScaleHorseshoePosterior, bool, bool, f64) {
     let current = current_state.flatten();
     let dimension = current.len();
     let mut position = current.clone();
@@ -207,7 +210,7 @@ fn hmc_transition(
     if !energy_error.is_finite()
         || energy_error.abs() > config.divergence_energy_error_threshold
     {
-        return (current_state.clone(), current_target.clone(), false, true);
+        return (current_state.clone(), current_target.clone(), false, true, initial_hamiltonian);
     }
     let log_acceptance = -energy_error;
     let accepted = log_acceptance >= 0.0 || rng.uniform_open().ln() < log_acceptance;
@@ -216,9 +219,9 @@ fn hmc_transition(
             Ok(state) => state,
             Err(_) => return (current_state.clone(), current_target.clone(), false, true),
         };
-        (next_state, proposal_target, true, false)
+        (next_state, proposal_target, true, false, initial_hamiltonian)
     } else {
-        (current_state.clone(), current_target.clone(), false, false)
+        (current_state.clone(), current_target.clone(), false, false, initial_hamiltonian)
     }
 }
 
@@ -408,6 +411,7 @@ mod tests {
             log_local_scales: vec![0.0],
             log_global_scale: -1.0,
             log_posterior: -3.0,
+            hamiltonian_energy: 4.0,
         };
         let chain = HorseshoeHmcChain {
             draws: vec![draw.clone(); 8],
@@ -427,6 +431,7 @@ mod tests {
                 log_local_scales: vec![0.0],
                 log_global_scale: -1.0,
                 log_posterior: -1.0,
+                hamiltonian_energy: 2.0,
             }).collect(),
             transitions: 8,
             accepted_transitions: 8,
