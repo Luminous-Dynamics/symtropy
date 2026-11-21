@@ -32,7 +32,7 @@ These counts are consequences of the independent Bernoulli mission-outcome model
 The evaluator requires exact population, lot, configuration, mission profile, failure definition, pre-registration, sampling-frame reference and dependence-assessment reference. Each trial must identify one article and one declared sampling cluster.
 
 - One article is one experimental unit in v0.1.
-- Byte-identical replay of one trial ID is DuplicateNoOp.
+- A structurally identical typed trial record replayed under the same trial ID is DuplicateNoOp; a conflicting record under that ID is Disputed.
 - A second distinct trial ID for the same article is pseudoreplication (Indeterminate) or Disputed if outcomes/bytes conflict.
 - A repeated sampling-cluster ID is Indeterminate.
 - Restricted outcomes count as failures against full mission success.
