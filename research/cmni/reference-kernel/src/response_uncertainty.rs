@@ -187,7 +187,6 @@ fn log_factorial(value: u64) -> f64 {
     // powers to avoid overflow for the full u64 domain.
     let n = value as f64;
     let inverse = 1.0 / n;
-    let inverse_sq = inverse * inverse;
     let correction = inverse / 12.0 - inverse.powi(3) / 360.0 + inverse.powi(5) / 1260.0
         - inverse.powi(7) / 1680.0
         + inverse.powi(9) / 1188.0;
