@@ -123,7 +123,7 @@ impl Bivector {
     }
 
     pub fn from_matrix(matrix: &Matrix) -> Result<Self, MassPropertiesError> {
-        validate_square(matrix)?;
+        validate_square(matrix, matrix.len())?;
         let dimension = matrix.len();
         validate_dimension(dimension)?;
         let mut result = Self::zero(dimension)?;
