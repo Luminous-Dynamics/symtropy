@@ -53,7 +53,7 @@ The evaluator checks declared adjudicator independence and provenance fields but
 
 ## Operational dimensions
 
-Elapsed latency, tokens, API cost, solver calls/time, observation requests and peak memory are summarized independently. Missing operational data remains missing; each distribution reports the number of observed values. Do not collapse quality, tail risk, safety, runtime and cost into one weighted scalar by default.
+Episode elapsed latency and per-action decision latency, tokens, API cost, solver calls/time, observation requests and peak memory are summarized independently. Distribution reports include observed count and sum as well as mean/median/P95/CVaR95/max, so total resource costs can be compared directly. Missing operational data remains missing and is never imputed. Do not collapse quality, tail risk, safety, runtime and cost into one weighted scalar by default.
 
 ## Run
 
