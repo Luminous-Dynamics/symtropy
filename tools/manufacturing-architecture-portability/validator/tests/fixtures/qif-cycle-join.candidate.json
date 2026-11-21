@@ -51,5 +51,14 @@
   "derived_value": 15020,
   "derived_unit": "um",
   "unit_transform_revision": "UNIT-MAP-1",
-  "qif_source_locator": "/QIFDocument/QIFResults/Results[1]"
+  "qif_source_locator": "/QIFDocument/QIFResults/Results[1]",
+  "cycle_clock_uncertainty_ns": 100,
+  "association_cycle_id": "CYCLE-001",
+  "association_qif_result_id": "QIF-RESULT-001",
+  "association_cycle_source_document_sha256": "9000000000000000000000000000000000000000000000000000000000000000",
+  "association_mtconnect_document_sha256": "a000000000000000000000000000000000000000000000000000000000000000",
+  "association_qif_document_sha256": "b000000000000000000000000000000000000000000000000000000000000000",
+  "association_part_id": "PART-001",
+  "association_lot_id": "LOT-001",
+  "association_operation_id": "OP-MILL-10"
 }
