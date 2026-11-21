@@ -128,6 +128,8 @@ pub struct ConstraintVelocityEvent {
 /// independent simulation certificate. The world has already integrated
 /// bodies and resolved contacts before velocity-level constraint outcomes are
 /// collected. Therefore a rejection can occur after prior world mutations.
+/// Rejection reporting is observational and non-interrupting: the existing
+/// velocity-constraint iteration schedule continues, and no rollback is tried.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct PhysicsStepReport {
     pub constraint_velocity_events: Vec<ConstraintVelocityEvent>,
