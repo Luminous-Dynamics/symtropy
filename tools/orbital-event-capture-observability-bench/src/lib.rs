@@ -141,14 +141,13 @@ pub struct DeclaredEvidenceBindings {
 }
 
 fn declared_evidence_bindings(case: &CaptureCase) -> DeclaredEvidenceBindings {
-    let derived_reference_event_rate_per_second = if case.test_window_seconds.is_finite()
-        && case.test_window_seconds > 0.0
-    {
-        let rate = case.reference_events.len() as f64 / case.test_window_seconds;
-        rate.is_finite().then_some(rate)
-    } else {
-        None
-    };
+    let derived_reference_event_rate_per_second =
+        if case.test_window_seconds.is_finite() && case.test_window_seconds > 0.0 {
+            let rate = case.reference_events.len() as f64 / case.test_window_seconds;
+            rate.is_finite().then_some(rate)
+        } else {
+            None
+        };
     DeclaredEvidenceBindings {
         qualified_scope: case.qualified_scope.clone(),
         test_scope: case.test_scope.clone(),
@@ -718,13 +717,11 @@ mod tests {
         assert_eq!(miss_probability_upper_bound_95(5, 5).unwrap(), 1.0);
         assert!(miss_probability_upper_bound_95(6, 5).is_err());
         assert!(
-            (miss_probability_upper_bound_95(10, 1_000).unwrap() - 0.016903175120562504)
-                .abs()
+            (miss_probability_upper_bound_95(10, 1_000).unwrap() - 0.016903175120562504).abs()
                 < 1.0e-12
         );
         assert!(
-            (miss_probability_upper_bound_95(50, 100_000).unwrap() - 0.0006328286928247063)
-                .abs()
+            (miss_probability_upper_bound_95(50, 100_000).unwrap() - 0.0006328286928247063).abs()
                 < 1.0e-12
         );
     }
@@ -791,10 +788,9 @@ mod tests {
 
     #[test]
     fn receipt_preserves_declared_observation_and_metrology_bindings() {
-        let corpus: Corpus = serde_json::from_str(include_str!(
-            "../fixtures/v0.1/capture-cases.json"
-        ))
-        .expect("frozen capture corpus parses");
+        let corpus: Corpus =
+            serde_json::from_str(include_str!("../fixtures/v0.1/capture-cases.json"))
+                .expect("frozen capture corpus parses");
         let report = evaluate(&corpus).expect("frozen capture corpus evaluates");
         let first = report.cases.first().expect("first case exists");
         let bindings = &first.declared_evidence_bindings;
@@ -805,10 +801,7 @@ mod tests {
         );
         assert_eq!(bindings.test_scope, bindings.qualified_scope);
         assert_eq!(bindings.reference_event_count, 5);
-        assert_eq!(
-            bindings.derived_reference_event_rate_per_second,
-            Some(1.0)
-        );
+        assert_eq!(bindings.derived_reference_event_rate_per_second, Some(1.0));
         assert_eq!(
             bindings.reference.system_id,
             "independent-pulse-reference-01"
