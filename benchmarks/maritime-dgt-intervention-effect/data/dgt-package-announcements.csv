@@ -1,0 +1,7 @@
+fixture_id|intervention_id|resource_id|claim|source_id|stage
+DGT_BERTH_102|DGT_BERTH_102_GEARED_SERVICE|BERTH_102|TNPA dedicated Berth 102 for geared-vessel direct discharge and coastwise transfer pathway|TRANSNET_STATEMENT_2026_11_18|ANNOUNCED
+DGT_NCT_DIVERSION|DGT_NCT_DIVERSION|NCT_AND_COASTWISE_LEG|Transnet Port Terminals and DGT coordinating suitable vessel diversions to Ngqura|TRANSNET_STATEMENT_2026_11_18|ANNOUNCED
+DGT_PIER1_CRANES|DGT_PIER1_CRANES|PIER_1_STS_FLEET|The final Pier 1 ship-to-shore crane was stated to be handed to operations on 21 November 2026|TRANSNET_STATEMENT_2026_11_18|ANNOUNCED
+DGT_EQUIPMENT_TRANSFER|DGT_EQUIPMENT_TRANSFER|CAPE_TOWN_DONOR_TERMINALS|Potential equipment transfer was considered; donor terminals could not release equipment during peak export season|TRANSNET_STATEMENT_2026_11_18|ANNOUNCED
+DGT_GAUTENG_RAIL|DGT_GAUTENG_RAIL_EVACUATION|TFR_GAUTENG_TRAIN_SERVICE|Transnet Freight Rail stated that trains were available for Gauteng-bound import-container evacuation|TRANSNET_STATEMENT_2026_11_18|ANNOUNCED
+DGT_ESSENTIAL_PRIORITY|DGT_ESSENTIAL_CARGO_PRIORITY|DGT_PRE_BERTH_PRIORITY_RULE|Essential cargo including pharmaceuticals and automotive parts was to receive pre-berthing priority|TRANSNET_STATEMENT_2026_11_18|ANNOUNCED
