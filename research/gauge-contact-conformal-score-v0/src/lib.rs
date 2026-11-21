@@ -99,12 +99,24 @@ impl Display for PoseScoreError {
             Self::MixedBlockIdentity => {
                 "trial score identities do not match the declared calibration block identity"
             }
-            Self::EmptyCalibrationBlockSet => "at least one calibrated exchangeability block is required",
-            Self::DuplicateExchangeabilityUnit => "calibration block exchangeability-unit identifiers must be unique",
-            Self::CalibrationBlockCountMismatch => "conformal receipt independent-unit count does not match supplied block receipts",
-            Self::CalibrationEpisodeCountMismatch => "conformal receipt episode count does not match supplied block receipts",
-            Self::CalibrationBlockReceiptMismatch => "calibration block contents do not match their source-bound score receipts",
-            Self::InvalidSourceManifestDigest => "source or prediction manifest must be a 64-character hexadecimal SHA-256 value",
+            Self::EmptyCalibrationBlockSet => {
+                "at least one calibrated exchangeability block is required"
+            }
+            Self::DuplicateExchangeabilityUnit => {
+                "calibration block exchangeability-unit identifiers must be unique"
+            }
+            Self::CalibrationBlockCountMismatch => {
+                "conformal receipt independent-unit count does not match supplied block receipts"
+            }
+            Self::CalibrationEpisodeCountMismatch => {
+                "conformal receipt episode count does not match supplied block receipts"
+            }
+            Self::CalibrationBlockReceiptMismatch => {
+                "calibration block contents do not match their source-bound score receipts"
+            }
+            Self::InvalidSourceManifestDigest => {
+                "source or prediction manifest must be a 64-character hexadecimal SHA-256 value"
+            }
         };
         formatter.write_str(message)
     }
@@ -509,7 +521,12 @@ pub fn bind_pose_calibration_receipt(
         if identity != first_identity {
             return Err(PoseScoreError::MixedBlockIdentity);
         }
-        if !exchangeability_units.insert(block_receipt.calibration_block.exchangeability_unit_id.as_str()) {
+        if !exchangeability_units.insert(
+            block_receipt
+                .calibration_block
+                .exchangeability_unit_id
+                .as_str(),
+        ) {
             return Err(PoseScoreError::DuplicateExchangeabilityUnit);
         }
 
@@ -525,7 +542,11 @@ pub fn bind_pose_calibration_receipt(
         }
 
         let mut maximum_score = 0u64;
-        for (episode, trial) in block.episodes.iter().zip(block_receipt.trial_score_records.iter()) {
+        for (episode, trial) in block
+            .episodes
+            .iter()
+            .zip(block_receipt.trial_score_records.iter())
+        {
             if episode.episode_id != trial.trial_id
                 || episode.outcome != trial.outcome
                 || trial.identity.dataset_revision != identity.dataset_revision
@@ -627,7 +648,9 @@ pub fn check_pose_set_application(
                 ApplicationMismatch::ModelDigest => PoseSetApplicationMismatch::ModelDigest,
                 ApplicationMismatch::TargetDigest => PoseSetApplicationMismatch::TargetDigest,
                 ApplicationMismatch::DomainDigest => PoseSetApplicationMismatch::DomainDigest,
-                ApplicationMismatch::ScoreDefinitionDigest => PoseSetApplicationMismatch::ScoreDefinitionDigest,
+                ApplicationMismatch::ScoreDefinitionDigest => {
+                    PoseSetApplicationMismatch::ScoreDefinitionDigest
+                }
             };
             PoseSetApplicationDecision::NotApplicable { reason }
         }
