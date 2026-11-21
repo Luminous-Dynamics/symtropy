@@ -41,7 +41,7 @@ The pure-Rust reference module is:
 
 `tools/ehd-reference-audit/src/drag_trajectory.rs`
 
-Each sample carries:
+Each event also binds the charged and neutral coordinate-frame identities; a mismatch is rejected rather than implicitly transformed. The output receipt retains the shared frame identity per event. Each sample carries:
 - a unique sample ID and normalized time fraction;
 - a non-negative integrated drag weight \(\Delta\Gamma_q\) in kg, which already includes quadrature weight, spatial measure, time measure and the local \(m n\nu\) coefficient;
 - local charged-minus-neutral relative velocity in m/s.
@@ -79,7 +79,7 @@ This known-answer case demonstrates why a single constant-drift approximation is
 
 ## 4. Authored test matrix
 
-Twelve module tests are currently authored:
+Thirteen module tests are currently authored:
 1. Variable-drift Simpson impulse and heating known answer.
 2. Constant-drift reduction to the integrated drag identity.
 3. Reject negative integrated drag measure.
@@ -89,9 +89,10 @@ Twelve module tests are currently authored:
 7. Reject event-level momentum errors that cancel globally.
 8. Reject duplicate event and quadrature sample IDs.
 9. Reject out-of-range time and non-finite velocity.
-10. Deterministic result under event/sample permutation.
-11. Reject empty batches/events and invalid tolerances.
-12. Offline reference self-check.
+10. Reject implicit charged/neutral coordinate-frame mismatch.
+11. Deterministic result under event/sample permutation.
+12. Reject empty batches/events and invalid tolerances.
+13. Offline reference self-check.
 
 These are authored tests, not executed Rust tests.
 
