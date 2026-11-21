@@ -272,6 +272,11 @@ mod tests {
         }
     }
 
+    struct BindingMutation {
+        apply: fn(&mut ExpectedRunBinding),
+        expected_error: RunReceiptError,
+    }
+
     fn receipt() -> RunReceipt {
         RunReceipt {
             run_id: "cdaab-run-001".into(),
@@ -333,40 +338,43 @@ mod tests {
 
     #[test]
     fn frozen_plan_build_and_evaluator_bindings_must_match() {
-        let cases: Vec<(fn(&mut ExpectedRunBinding), RunReceiptError)> = vec![
-            (
-                |x| x.plan_digest = digest(80),
-                RunReceiptError::PlanDigestMismatch,
-            ),
-            (
-                |x| x.manifest_digest = digest(80),
-                RunReceiptError::ManifestDigestMismatch,
-            ),
-            (
-                |x| x.evaluator_digest = digest(80),
-                RunReceiptError::EvaluatorDigestMismatch,
-            ),
-            (
-                |x| x.candidate_artifact_digest = digest(80),
-                RunReceiptError::CandidateArtifactMismatch,
-            ),
-            (
-                |x| x.candidate_runtime_digest = digest(80),
-                RunReceiptError::CandidateRuntimeMismatch,
-            ),
-            (
-                |x| x.scenario_set_digest = digest(80),
-                RunReceiptError::ScenarioSetDigestMismatch,
-            ),
-            (
-                |x| x.expected_evaluator_receipt_digest = digest(80),
-                RunReceiptError::EvaluatorReceiptDigestMismatch,
-            ),
+        let cases = vec![
+            BindingMutation {
+                apply: |x| x.plan_digest = digest(80),
+                expected_error: RunReceiptError::PlanDigestMismatch,
+            },
+            BindingMutation {
+                apply: |x| x.manifest_digest = digest(80),
+                expected_error: RunReceiptError::ManifestDigestMismatch,
+            },
+            BindingMutation {
+                apply: |x| x.evaluator_digest = digest(80),
+                expected_error: RunReceiptError::EvaluatorDigestMismatch,
+            },
+            BindingMutation {
+                apply: |x| x.candidate_artifact_digest = digest(80),
+                expected_error: RunReceiptError::CandidateArtifactMismatch,
+            },
+            BindingMutation {
+                apply: |x| x.candidate_runtime_digest = digest(80),
+                expected_error: RunReceiptError::CandidateRuntimeMismatch,
+            },
+            BindingMutation {
+                apply: |x| x.scenario_set_digest = digest(80),
+                expected_error: RunReceiptError::ScenarioSetDigestMismatch,
+            },
+            BindingMutation {
+                apply: |x| x.expected_evaluator_receipt_digest = digest(80),
+                expected_error: RunReceiptError::EvaluatorReceiptDigestMismatch,
+            },
         ];
-        for (mutate, error) in cases {
+        for case in cases {
             let mut binding = expected();
-            mutate(&mut binding);
-            assert_eq!(validate_run_receipt(&binding, &receipt()), Err(error));
+            (case.apply)(&mut binding);
+            assert_eq!(
+                validate_run_receipt(&binding, &receipt()),
+                Err(case.expected_error)
+            );
         }
         let mut run = receipt();
         run.candidate_source_commit = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".into();
