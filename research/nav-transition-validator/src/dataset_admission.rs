@@ -146,7 +146,8 @@ fn validate_admitted_record(
         issue(issues, format!("{base}.source_url"), "an admitted dataset requires an HTTPS source URL");
     }
 
-    let snapshot = dataset.get("snapshot").unwrap_or(&Value::Null);
+    let null = Value::Null;
+    let snapshot = dataset.get("snapshot").unwrap_or(&null);
     if snapshot.get("immutable").and_then(Value::as_bool) != Some(true) {
         issue(
             issues,
@@ -181,7 +182,7 @@ fn validate_admitted_record(
         ),
     }
 
-    let rights = dataset.get("rights").unwrap_or(&Value::Null);
+    let rights = dataset.get("rights").unwrap_or(&null);
     if string_at(rights, "status") != Some("explicit") {
         issue(
             issues,
@@ -227,7 +228,7 @@ fn validate_admitted_record(
         );
     }
 
-    let metadata = dataset.get("metadata").unwrap_or(&Value::Null);
+    let metadata = dataset.get("metadata").unwrap_or(&null);
     validate_split(metadata, &format!("{base}.metadata"), issues);
     let split_basis = string_at(metadata, "split_basis").unwrap_or("none");
     let train_count = metadata
@@ -358,6 +359,24 @@ pub fn validate_dataset_admission(
             }
             _ => issue(&mut errors, format!("{base}.status"), "unsupported dataset admission status"),
         }
+    }
+
+
+    let expected_manifest_status = if admitted_count == 0 {
+        "rights_and_snapshot_candidates_only"
+    } else if admitted_count == datasets.len() {
+        "admitted"
+    } else {
+        "partially_admitted"
+    };
+    if string_at(manifest, "manifest_status") != Some(expected_manifest_status) {
+        issue(
+            &mut errors,
+            "$.manifest_status",
+            format!(
+                "manifest status must be {expected_manifest_status:?} for the record statuses"
+            ),
+        );
     }
 
     if !errors.is_empty() {
