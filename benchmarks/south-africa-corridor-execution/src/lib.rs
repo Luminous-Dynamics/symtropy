@@ -184,6 +184,36 @@ mod tests {
     }
 
     #[test]
+    fn all_values_match_the_frozen_published_table() {
+        let expected = [
+            ("Central Corridor", 60, 40, 95, 88, 56, 60, 50),
+            ("Container Corridor", 60, 24, 95, 96, 18, 60, 56),
+            ("North Corridor", 75, 69, 95, 92, 6, 60, 23),
+            ("North-East Corridor", 75, 71, 95, 82, 36, 60, 52),
+            ("Ore Corridor", 95, 91, 95, 93, 1, 60, 35),
+            ("Cape Corridor", 95, 75, 95, 97, 70, 60, 36),
+        ];
+        let rows = load_reference_scorecard().expect("reference corpus should validate");
+
+        for (row, expected) in rows.iter().zip(expected) {
+            let observed = &row.observation;
+            assert_eq!(
+                (
+                    observed.corridor.as_str(),
+                    observed.train_execution_target_pct,
+                    observed.train_execution_actual_pct,
+                    observed.otd_target_pct,
+                    observed.otd_including_80s_actual_pct,
+                    observed.otd_excluding_80s_actual_pct,
+                    observed.ota_target_pct,
+                    observed.ota_actual_pct,
+                ),
+                expected
+            );
+        }
+    }
+
+    #[test]
     fn container_corridor_gaps_are_percentage_points() {
         let rows = load_reference_scorecard().expect("reference corpus should validate");
         let row = rows
