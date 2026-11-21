@@ -395,12 +395,11 @@ fn evaluate_case(case: &CampaignCase) -> Result<Decision, String> {
         .iter()
         .filter(|run| run.outcome == TestOutcome::Planned)
         .count();
-    let executed_cost: u64 = unique_runs
+    let executed_cost = unique_runs
         .iter()
         .filter(|run| run.outcome != TestOutcome::Planned)
-        .map(|run| run.cost_units)
-        .sum();
-    let budget_exceeded = executed_cost > case.cost_budget;
+        .try_fold(0u64, |total, run| total.checked_add(run.cost_units));
+    let budget_exceeded = executed_cost.is_none_or(|cost| cost > case.cost_budget);
 
     let passed_cycle_count = unique_runs
         .iter()
