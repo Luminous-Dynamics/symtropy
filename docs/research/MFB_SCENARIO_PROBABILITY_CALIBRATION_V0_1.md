@@ -102,6 +102,19 @@ The shared-fleet solver's CVaR90 and worst-case objectives are exact **condition
 
 The 5% tail in the current synthetic shared-aircraft fixture remains a synthetic stress weight. Do not describe it as a calibrated South African event frequency.
 
+## Next executable increment: calibration uncertainty and conditional support (v0.2)
+
+The current v0.1 corpus is a 20-case synthetic arithmetic fixture. Its Brier/log-loss/ECE outputs validate scoring code, not empirical calibration. The next evaluator increment should add **uncertainty and support accounting**, not just another aggregate score:
+
+1. Per-event / per-class / region / forecast-lead / season / operating-regime sample counts, with an explicit `INSUFFICIENT_SUPPORT` disposition rather than unstable estimates for sparse strata.
+2. Reliability-bin observed-frequency intervals (Wilson or another declared interval with its assumptions) and Brier/log-loss uncertainty estimates. If observations are temporally or geographically clustered, resample clusters/blocks, not independent rows.
+3. Rare-event numerator/denominator, effective sample size and one-sided uncertainty bounds; a low observed event count must not be described as a reliable low event probability.
+4. Joint-path coverage and explicit residual/other-event mass; marginal calibration does not establish calibrated dependence among demand, weather, permission and equipment states.
+5. Calibration drift and distribution-shift reports across rolling-origin windows, with probability perturbation sensitivity carried into decision-level regret, CVaR and service tails.
+6. A minimum support policy that is versioned by event class and risk consequence. Do not choose a universal minimum sample count without an operational/statistical justification.
+
+Keep stress-only scenarios outside probability-weighted scoring. Keep zero-probability observed outcomes explicit (raw log loss undefined/infinite under the unmodified score) rather than silently clipping. Any uncertainty interval is conditional on the declared sampling/resampling assumptions and observed support; it is not a safety guarantee or an out-of-distribution guarantee.
+
 ## Non-claims
 
 The evaluator is not a forecast model, scenario generator, calibration algorithm, distributionally robust optimizer or physical safety case. Brier score, log loss, ECE and a training-climatology comparison do not prove probability correctness under unobserved shifts. CVaR90 over a finite support is not a guarantee against outcomes absent from that support. No report authorizes dispatch or changes the hard weather, regulatory, energy-reserve, cargo or physical-feasibility gates.
