@@ -23,6 +23,10 @@ For two orthogonal bearings, the D-optimal determinant actually increases with p
 
 The finite envelope rejects a three-sensor correlation matrix that is not positive definite, as well as missing, duplicate and unknown sensor-pair declarations. Run `cargo run --manifest-path research/nav-observation-toy-fim/Cargo.toml --bin correlation_envelope_demo` for the reproducible known-answer output.
 
+## Exact robust subset selection
+
+`robust_select_correlation_envelope` enumerates candidate subsets under a hard integer budget. It validates all full-set correlation matrices before projection, then evaluates each subset in every declared scenario. Its objective is lexicographic: maximize worst-case observable rank, maximize minimum FIM eigenvalue across scenarios, minimize cost, then choose stable action IDs. It never assumes missing pairs are independent. The exact oracle is limited to 16 candidate actions and a finite, frozen scenario set. It is a small-instance reference for later scalable methods, not a continuous correlation-uncertainty certificate.
+
 ## Claim limits
 
 - The finite scenario set is not a continuous interval guarantee.
