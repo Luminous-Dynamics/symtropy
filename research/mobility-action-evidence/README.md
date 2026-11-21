@@ -42,7 +42,7 @@ A transport acknowledgement is not physical completion. The physical-outcome val
 - observation frame, calibration and freshness;
 - a declared outcome (Satisfied, NoEffect, PartialEffect or Unknown).
 
-Observer independence is now a ticket-bound policy commitment. The outcome policy declares the executor's failure-domain path and an approved observer-domain allowlist; the observation must declare its dependency-domain path. Empty/duplicate/unapproved domains, policy-version mismatch, or any shared domain between observer and executor cause rejection. Different source IDs or an `IndependentSensor` label alone are not enough. The dependency inventory remains an upstream authenticated claim; this crate checks set separation but cannot prove that the inventory is complete or truthful.
+Observer independence is now a ticket-bound policy commitment. The outcome policy declares the executor's failure-domain path and the exact expected observer dependency path for the selected source. The receipt's observer path must exactly equal that policy path; it must not omit or add dependencies. Empty/duplicate/mismatched paths, policy-version mismatch, or any shared domain between observer and executor cause rejection. Different source IDs or an `IndependentSensor` label alone are not enough. The policy digest and dependency inventory must be authenticated by upstream platform/trust owners; this crate checks structural consistency and set separation but cannot prove that the inventory is complete or truthful.
 
 The result is one of:
 
@@ -81,6 +81,7 @@ The unit-test corpus contains positive controls and table-driven negative contro
 - unknown/unqualified/missing navigation source time, mismatched comparison clock and absent cross-clock correlation;
 - acknowledgement versus independent physical effect;
 - self-report and executor-as-observer rejection;
+- missing/duplicate/mismatched observer dependency paths, ticket-bound policy revision mismatch, and common-cause overlap with executor dependencies;
 - wrong ticket, configuration, predicate, calibration and frame;
 - stale, future-dated, low-confidence and out-of-order outcome evidence;
 - outcome freshness evaluated under a mismatched clock or boot epoch;
