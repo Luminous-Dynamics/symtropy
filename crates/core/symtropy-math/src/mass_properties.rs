@@ -212,15 +212,15 @@ mod tests {
 
         assert_matrix_near(
             &sphere2.centroidal_second_moment,
-            &(SMatrix::<f64, 2, 2>::identity() * 4.0),
+            &(SMatrix::<f64, 2, 2>::identity() * 3.0),
         );
         assert_matrix_near(
             &sphere3.centroidal_second_moment,
-            &(SMatrix::<f64, 3, 3>::identity() * 4.0),
+            &(SMatrix::<f64, 3, 3>::identity() * 2.4),
         );
         assert_matrix_near(
             &sphere4.centroidal_second_moment,
-            &(SMatrix::<f64, 4, 4>::identity() * 4.0),
+            &(SMatrix::<f64, 4, 4>::identity() * 2.0),
         );
     }
 
