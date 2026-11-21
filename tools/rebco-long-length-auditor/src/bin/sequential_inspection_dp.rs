@@ -7,7 +7,7 @@
 //! It returns a contingent policy tree and never executes a measurement, releases
 //! a reel, or asserts that synthetic priors / likelihoods are physically calibrated.
 
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
@@ -169,8 +169,11 @@ fn parse_profile(value: &Value) -> Result<Profile, String> {
         "total_budget_units",
     ];
     exact_keys(value, KEYS, "$.application_profile")?;
-    let minimum_contiguous_weak_cells =
-        usize_field(value, "minimum_contiguous_weak_cells", "$.application_profile")?;
+    let minimum_contiguous_weak_cells = usize_field(
+        value,
+        "minimum_contiguous_weak_cells",
+        "$.application_profile",
+    )?;
     if minimum_contiguous_weak_cells == 0 {
         return Err(fail(
             "$.application_profile",
@@ -179,23 +182,11 @@ fn parse_profile(value: &Value) -> Result<Profile, String> {
     }
     Ok(Profile {
         profile_id: text_field(value, "profile_id", "$.application_profile")?.to_owned(),
-        condition_profile_id: text_field(
-            value,
-            "condition_profile_id",
-            "$.application_profile",
-        )?
-        .to_owned(),
+        condition_profile_id: text_field(value, "condition_profile_id", "$.application_profile")?
+            .to_owned(),
         minimum_contiguous_weak_cells,
-        false_accept_loss: positive_number(
-            value,
-            "false_accept_loss",
-            "$.application_profile",
-        )?,
-        false_reject_loss: positive_number(
-            value,
-            "false_reject_loss",
-            "$.application_profile",
-        )?,
+        false_accept_loss: positive_number(value, "false_accept_loss", "$.application_profile")?,
+        false_reject_loss: positive_number(value, "false_reject_loss", "$.application_profile")?,
         total_budget_units: u64_field(value, "total_budget_units", "$.application_profile")?,
     })
 }
@@ -220,7 +211,10 @@ fn parse_scenarios(
     minimum_run: usize,
 ) -> Result<Vec<Scenario>, String> {
     if values.len() < 2 {
-        return Err(fail("$.prior_scenarios", "must contain at least two scenarios"));
+        return Err(fail(
+            "$.prior_scenarios",
+            "must contain at least two scenarios",
+        ));
     }
     let mut ids = BTreeSet::new();
     let mut scenarios = Vec::with_capacity(values.len());
@@ -252,10 +246,7 @@ fn parse_scenarios(
         for (cell_index, cell) in cell_values.iter().enumerate() {
             weak_cells.push(
                 cell.as_bool().ok_or_else(|| {
-                    fail(
-                        &path,
-                        format!("weak_cells[{cell_index}] must be boolean"),
-                    )
+                    fail(&path, format!("weak_cells[{cell_index}] must be boolean"))
                 })?,
             );
         }
@@ -282,7 +273,10 @@ fn parse_actions(
     cell_count: usize,
 ) -> Result<Vec<Action>, String> {
     if values.is_empty() {
-        return Err(fail("$.candidate_actions", "must contain at least one action"));
+        return Err(fail(
+            "$.candidate_actions",
+            "must contain at least one action",
+        ));
     }
     if values.len() > MAX_ACTIONS {
         return Err(fail(
@@ -319,9 +313,7 @@ fn parse_actions(
                 "method must be direct_transport or calibrated_noncontact_proxy",
             ));
         }
-        if text_field(value, "condition_profile_id", &path)?
-            != profile.condition_profile_id
-        {
+        if text_field(value, "condition_profile_id", &path)? != profile.condition_profile_id {
             return Err(fail(
                 &path,
                 "action condition profile does not match the application profile",
@@ -442,17 +434,10 @@ fn state_key(
     }
 }
 
-fn stop_plan(
-    scenarios: &[Scenario],
-    weights: &[f64],
-    profile: &Profile,
-) -> Plan {
+fn stop_plan(scenarios: &[Scenario], weights: &[f64], profile: &Profile) -> Plan {
     let risk = failure_probability(scenarios, weights);
-    let (loss, disposition) = terminal_decision(
-        risk,
-        profile.false_accept_loss,
-        profile.false_reject_loss,
-    );
+    let (loss, disposition) =
+        terminal_decision(risk, profile.false_accept_loss, profile.false_reject_loss);
     Plan {
         expected_total_loss: loss,
         selected_action_index: None,
@@ -530,7 +515,8 @@ fn solve_state(
             }
 
             let is_better = expected_value + EPSILON < best.expected_total_loss;
-            let tie_is_lexically_better = (expected_value - best.expected_total_loss).abs() <= EPSILON
+            let tie_is_lexically_better = (expected_value - best.expected_total_loss).abs()
+                <= EPSILON
                 && best
                     .selected_action_index
                     .is_some_and(|best_index| action.id < actions[best_index].id);
@@ -625,7 +611,10 @@ fn audit(value: &Value, fixture_bytes: &[u8]) -> Result<Value, String> {
         return Err(fail("$.schema_version", "unsupported schema version"));
     }
     if text_field(value, "evidence_class", "$")? != "synthetic" {
-        return Err(fail("$.evidence_class", "v0.1 accepts synthetic fixture only"));
+        return Err(fail(
+            "$.evidence_class",
+            "v0.1 accepts synthetic fixture only",
+        ));
     }
     if text_field(value, "claim_ceiling", "$")? != CLAIM_CEILING {
         return Err(fail("$.claim_ceiling", "claim ceiling mismatch"));
@@ -665,7 +654,9 @@ fn audit(value: &Value, fixture_bytes: &[u8]) -> Result<Value, String> {
     let dp = solve(&scenarios, &actions, &profile, planning_horizon);
     let myopic = solve(&scenarios, &actions, &profile, 1);
     if dp.plan.expected_total_loss > myopic.plan.expected_total_loss + 1.0e-9 {
-        return Err("exact finite-horizon value exceeded its one-step restricted policy".to_owned());
+        return Err(
+            "exact finite-horizon value exceeded its one-step restricted policy".to_owned(),
+        );
     }
     let initial_weights = scenarios
         .iter()
@@ -712,8 +703,7 @@ fn run() -> Result<(), String> {
     let path = env::args()
         .nth(1)
         .unwrap_or_else(|| DEFAULT_FIXTURE.to_owned());
-    let source = fs::read(&path)
-        .map_err(|error| format!("cannot read fixture {path}: {error}"))?;
+    let source = fs::read(&path).map_err(|error| format!("cannot read fixture {path}: {error}"))?;
     let value: Value = serde_json::from_slice(&source)
         .map_err(|error| format!("invalid JSON in {path}: {error}"))?;
     let receipt = audit(&value, &source)?;
@@ -772,22 +762,20 @@ mod tests {
     #[test]
     fn exact_dp_never_exceeds_one_step_restricted_policy() {
         let receipt = run();
-        let dp = receipt["finite_horizon_optimal_expected_total_loss"].as_f64().unwrap();
-        let myopic = receipt["one_step_greedy_expected_total_loss"].as_f64().unwrap();
+        let dp = receipt["finite_horizon_optimal_expected_total_loss"]
+            .as_f64()
+            .unwrap();
+        let myopic = receipt["one_step_greedy_expected_total_loss"]
+            .as_f64()
+            .unwrap();
         assert!(dp <= myopic + 1.0e-9);
     }
 
     #[test]
     fn fixture_demonstrates_value_of_sequential_adaptation() {
         let receipt = run();
-        assert_eq!(
-            receipt["one_step_greedy_first_action"],
-            "DIRECT-CELL-2"
-        );
-        assert_eq!(
-            receipt["finite_horizon_first_action"],
-            "PROXY-CELL-2"
-        );
+        assert_eq!(receipt["one_step_greedy_first_action"], "DIRECT-CELL-2");
+        assert_eq!(receipt["finite_horizon_first_action"], "PROXY-CELL-2");
         let one_step = receipt["one_step_greedy_expected_total_loss"]
             .as_f64()
             .unwrap();
@@ -836,26 +824,15 @@ mod tests {
                 }
             }
         }
-        check(
-            &receipt["finite_horizon_policy_tree"],
-            &mut BTreeSet::new(),
-        );
+        check(&receipt["finite_horizon_policy_tree"], &mut BTreeSet::new());
     }
 
     #[test]
     fn deterministic_tie_breaking_does_not_depend_on_input_action_order() {
         let mut value = fixture();
-        let report_a = audit(
-            &value,
-            &serde_json::to_vec(&value).unwrap(),
-        )
-        .unwrap();
+        let report_a = audit(&value, &serde_json::to_vec(&value).unwrap()).unwrap();
         value["candidate_actions"].as_array_mut().unwrap().reverse();
-        let report_b = audit(
-            &value,
-            &serde_json::to_vec(&value).unwrap(),
-        )
-        .unwrap();
+        let report_b = audit(&value, &serde_json::to_vec(&value).unwrap()).unwrap();
         assert_eq!(
             report_a["finite_horizon_policy_tree"]["action_id"],
             report_b["finite_horizon_policy_tree"]["action_id"]
@@ -866,9 +843,11 @@ mod tests {
     fn rejects_action_condition_profile_mismatch() {
         let mut value = fixture();
         value["candidate_actions"][0]["condition_profile_id"] = json!("20K-5T");
-        assert!(audit(&value, &serde_json::to_vec(&value).unwrap())
-            .unwrap_err()
-            .contains("does not match the application profile"));
+        assert!(
+            audit(&value, &serde_json::to_vec(&value).unwrap())
+                .unwrap_err()
+                .contains("does not match the application profile")
+        );
     }
 
     #[test]
@@ -881,18 +860,22 @@ mod tests {
             .position(|action| action["method"] == "calibrated_noncontact_proxy")
             .unwrap();
         value["candidate_actions"][index]["calibration_status"] = json!("pending");
-        assert!(audit(&value, &serde_json::to_vec(&value).unwrap())
-            .unwrap_err()
-            .contains("calibration_status=qualified"));
+        assert!(
+            audit(&value, &serde_json::to_vec(&value).unwrap())
+                .unwrap_err()
+                .contains("calibration_status=qualified")
+        );
     }
 
     #[test]
     fn rejects_budget_that_cannot_represent_nonnegative_integer_cost() {
         let mut value = fixture();
         value["application_profile"]["total_budget_units"] = json!(-1);
-        assert!(audit(&value, &serde_json::to_vec(&value).unwrap())
-            .unwrap_err()
-            .contains("non-negative integer"));
+        assert!(
+            audit(&value, &serde_json::to_vec(&value).unwrap())
+                .unwrap_err()
+                .contains("non-negative integer")
+        );
     }
 
     #[test]
@@ -900,27 +883,33 @@ mod tests {
         let mut value = fixture();
         let first = value["candidate_actions"][0]["action_id"].clone();
         value["candidate_actions"][1]["action_id"] = first;
-        assert!(audit(&value, &serde_json::to_vec(&value).unwrap())
-            .unwrap_err()
-            .contains("duplicate action_id"));
+        assert!(
+            audit(&value, &serde_json::to_vec(&value).unwrap())
+                .unwrap_err()
+                .contains("duplicate action_id")
+        );
     }
 
     #[test]
     fn rejects_prior_weights_that_do_not_sum_to_one() {
         let mut value = fixture();
         value["prior_scenarios"][0]["prior_weight"] = json!(0.3);
-        assert!(audit(&value, &serde_json::to_vec(&value).unwrap())
-            .unwrap_err()
-            .contains("prior weights must sum to 1"));
+        assert!(
+            audit(&value, &serde_json::to_vec(&value).unwrap())
+                .unwrap_err()
+                .contains("prior weights must sum to 1")
+        );
     }
 
     #[test]
     fn rejects_horizon_larger_than_action_count() {
         let mut value = fixture();
         value["planning_horizon"] = json!(100);
-        assert!(audit(&value, &serde_json::to_vec(&value).unwrap())
-            .unwrap_err()
-            .contains("must be between 1"));
+        assert!(
+            audit(&value, &serde_json::to_vec(&value).unwrap())
+                .unwrap_err()
+                .contains("must be between 1")
+        );
     }
 
     #[test]
@@ -948,7 +937,10 @@ mod tests {
             value["cell_count"].as_u64().unwrap() as usize,
         )
         .unwrap();
-        let weights = scenarios.iter().map(|scenario| scenario.prior_weight).collect::<Vec<_>>();
+        let weights = scenarios
+            .iter()
+            .map(|scenario| scenario.prior_weight)
+            .collect::<Vec<_>>();
         let mut memo = BTreeMap::new();
         let exact = solve_state(
             &scenarios,
