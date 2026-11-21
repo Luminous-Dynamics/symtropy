@@ -2817,15 +2817,15 @@ mod staged_world_integration_tests {
             let mut world = PhysicsWorld::<4>::new(SVector::zeros());
             let valid = valid_body(40, -10.0);
             let invalid = unsupported_body(41, 10.0);
-            let valid_handle = valid.handle;
-            let invalid_handle = invalid.handle;
-            if invalid_first {
-                world.add_body(invalid);
-                world.add_body(valid);
+            let (valid_handle, invalid_handle) = if invalid_first {
+                let invalid_handle = world.add_body(invalid);
+                let valid_handle = world.add_body(valid);
+                (valid_handle, invalid_handle)
             } else {
-                world.add_body(valid);
-                world.add_body(invalid);
-            }
+                let valid_handle = world.add_body(valid);
+                let invalid_handle = world.add_body(invalid);
+                (valid_handle, invalid_handle)
+            };
 
             world.collision_events.push(CollisionEvent {
                 body_a: valid_handle,
