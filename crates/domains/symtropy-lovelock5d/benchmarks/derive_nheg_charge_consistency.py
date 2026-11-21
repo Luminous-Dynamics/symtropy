@@ -181,12 +181,19 @@ def main() -> None:
     exact_zero("Einstein momentum contraction",
                contraction_e-2*p_einstein*nabla_xi[0,1])
 
-    # The source's k_E convention is twice the un-dualized tensor Noether
-    # potential in this component. Fix this normalization only by matching Eq. (29).
-    source_prefactor=-sp.Rational(1,1)/(16*sp.pi*G)
-    q_e_density=sp.factor(sqrt_minus_g*source_prefactor*p_einstein*nabla_xi[0,1])
+    # Iyer-Wald Noether potential: Q^{ab}=-2 E_R^{abcd} nabla_c xi_d.
+    # E_R^EH=(1/16piG)*P_EH with P_EH=1/2(g^ac g^bd-g^ad g^bc).
+    # The complete antisymmetric sum is 2*P_EH^{tr01} nabla_0 xi_1,
+    # hence the EH single-pair coefficient is -4/(16piG).
+    # For GB, E_R^GB=(alpha_NH/16piG)*P_GB, where P_GB is
+    # already 2 times the bracket; its complete sum gets coefficient -2.
+    q_e_density=sp.factor(
+        sqrt_minus_g*(-sp.Rational(4,1)/(16*sp.pi*G))
+        *p_einstein*nabla_xi[0,1]
+    )
     q_gb_density=sp.factor(
-        sqrt_minus_g*source_prefactor*alpha_NH*contraction_gb
+        sqrt_minus_g*(-sp.Rational(2,1)/(16*sp.pi*G))
+        *alpha_NH*contraction_gb
     )
     k_e_density=sp.factor(sp.diff(q_e_density,a))
     k_gb_density=sp.factor(sp.diff(q_gb_density,a))
@@ -197,17 +204,17 @@ def main() -> None:
     )
     expected_q_gb=(
         a*alpha_sym*sine*(T**2+10*T-3)
-        /(16*sp.pi*G*eps**3*(1-T)**2)
+        /(8*sp.pi*G*eps**3*(1-T)**2)
     )
     exact_zero("Einstein-sector calibration",k_e_density-expected_k_e)
     exact_zero("GB Noether density",q_gb_density-expected_q_gb)
 
     expected_k_gb=(
-        alpha_sym*sine*(-T**3+15*T**2+21*T-3)
+        alpha_sym*sine*2*(-T**3+15*T**2+21*T-3)
         /(16*sp.pi*G*eps**3*(1-T)**3)
     )
     expected_k_axial=(
-        alpha_sym*sine*(3*T**4-11*T**3+27*T**2+15*T-2)
+        alpha_sym*sine*(-5+36*T+42*T**2-12*T**3+3*T**4)
         /(16*sp.pi*G*eps**3*(1-T)**3)
     )
     exact_zero("GB axial variation",k_gb_density-expected_k_gb)
@@ -262,8 +269,11 @@ def main() -> None:
     exact_zero("Einstein coefficient is +1",
                sp.limit(k_e_density*16*sp.pi*G*eps**3/(alpha_sym*sine),
                         eps,0,dir="+")-1)
-    exact_zero("axial Lovelock leading coefficient is -2",
-               sp.limit(axial_norm,eps,0,dir="+")+2)
+    exact_zero("GB Lovelock leading coefficient is -6",
+               sp.limit(k_gb_density*16*sp.pi*G*eps**3/(alpha_sym*sine),
+                        eps,0,dir="+")+6)
+    exact_zero("total axial Lovelock leading coefficient is -5",
+               sp.limit(axial_norm,eps,0,dir="+")+5)
     exact_zero("Wald variation leading coefficient is -5",
                sp.limit(wald_norm,eps,0,dir="+")+5)
     exact_zero("source Eq24 leading coefficient is +1600",
@@ -312,7 +322,7 @@ def main() -> None:
         "Gauss_Bonnet_variation":sp.sstr(k_gb_density),
         "total_axial_variation":sp.sstr(k_axial_density),
         "normalized_total_polynomial":sp.sstr(axial_norm),
-        "leading_coefficient":"-2"
+        "leading_coefficient":"-5"
       },
       "wald_jacobson_myers":{
         "local_density":sp.sstr(wald_density),
@@ -329,8 +339,8 @@ def main() -> None:
         "source_minus_axial":sp.sstr(source_minus_axial),
         "source_minus_wald_variation":sp.sstr(source_minus_wald),
         "axial_minus_wald_variation":sp.sstr(axial_minus_wald),
-        "GB_source_minus_lovelock_leading_coefficient":"+1602",
-        "interpretation":"Nonzero exact local residuals. The paper identity may require a missing boundary/SL(2,R) density term, a different charge normalization, or a correction to one expression; unresolved."
+        "GB_source_minus_lovelock_leading_coefficient":"+1605",
+        "interpretation":"The Lovelock Noether and local Wald variations share the same leading -5 coefficient after the correct -2 E_R Noether prefactor is applied to the separately normalized EH and GB momentum tensors. Their finite-T polynomials are not identical. The source Eq. (24) density still has +1600 leading coefficient; this unresolved difference may involve an SL(2,R) charge-density term, a boundary term, a local-versus-integrated identity, or the expanded source charge formula."
       },
       "validation":{
         "coordinate_determinant_exact":True,
@@ -338,6 +348,7 @@ def main() -> None:
         "Einstein_sector_matches_source_Eq29_exactly":True,
         "GB_Noether_potential_exact":True,
         "axial_variation_exact":True,
+        "Einstein_and_GB_Noether_prefactors_individually_calibrated":True,
         "Wald_variation_exact":True,
         "source_density_conversion_exact":True,
         "three_way_discrepancy_exact":True,
