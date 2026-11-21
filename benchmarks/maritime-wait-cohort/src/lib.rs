@@ -653,36 +653,96 @@ mod tests {
         );
     }
 
+    #[derive(Clone, Copy)]
+    struct ExpectedRiskStep {
+        duration_ticks: u64,
+        at_risk: usize,
+        berth_events: usize,
+        diverted_events: usize,
+        cancelled_events: usize,
+        censored: usize,
+        event_free_survival: f64,
+        berth_cumulative_incidence: f64,
+        diversion_cumulative_incidence: f64,
+        cancellation_cumulative_incidence: f64,
+    }
+
     #[test]
     fn exact_risk_sets_and_tied_competing_events_are_pinned() {
         let report = evaluate_reference_cohorts().expect("cohort corpus");
         let s01 = cohort(&report, "S01");
-        let expected: [(u64, usize, usize, usize, usize, usize, f64, f64, f64, f64); 4] = [
-            (2, 6, 1, 0, 0, 0, 5.0 / 6.0, 1.0 / 6.0, 0.0, 0.0),
-            (3, 5, 0, 1, 0, 0, 4.0 / 6.0, 1.0 / 6.0, 1.0 / 6.0, 0.0),
-            (4, 4, 2, 0, 1, 0, 1.0 / 6.0, 0.5, 1.0 / 6.0, 1.0 / 6.0),
-            (5, 1, 0, 0, 0, 1, 1.0 / 6.0, 0.5, 1.0 / 6.0, 1.0 / 6.0),
+        let expected = [
+            ExpectedRiskStep {
+                duration_ticks: 2,
+                at_risk: 6,
+                berth_events: 1,
+                diverted_events: 0,
+                cancelled_events: 0,
+                censored: 0,
+                event_free_survival: 5.0 / 6.0,
+                berth_cumulative_incidence: 1.0 / 6.0,
+                diversion_cumulative_incidence: 0.0,
+                cancellation_cumulative_incidence: 0.0,
+            },
+            ExpectedRiskStep {
+                duration_ticks: 3,
+                at_risk: 5,
+                berth_events: 0,
+                diverted_events: 1,
+                cancelled_events: 0,
+                censored: 0,
+                event_free_survival: 4.0 / 6.0,
+                berth_cumulative_incidence: 1.0 / 6.0,
+                diversion_cumulative_incidence: 1.0 / 6.0,
+                cancellation_cumulative_incidence: 0.0,
+            },
+            ExpectedRiskStep {
+                duration_ticks: 4,
+                at_risk: 4,
+                berth_events: 2,
+                diverted_events: 0,
+                cancelled_events: 1,
+                censored: 0,
+                event_free_survival: 1.0 / 6.0,
+                berth_cumulative_incidence: 0.5,
+                diversion_cumulative_incidence: 1.0 / 6.0,
+                cancellation_cumulative_incidence: 1.0 / 6.0,
+            },
+            ExpectedRiskStep {
+                duration_ticks: 5,
+                at_risk: 1,
+                berth_events: 0,
+                diverted_events: 0,
+                cancelled_events: 0,
+                censored: 1,
+                event_free_survival: 1.0 / 6.0,
+                berth_cumulative_incidence: 0.5,
+                diversion_cumulative_incidence: 1.0 / 6.0,
+                cancellation_cumulative_incidence: 1.0 / 6.0,
+            },
         ];
 
         assert_eq!(s01.risk_steps.len(), expected.len());
         for (step, expected) in s01.risk_steps.iter().zip(expected) {
-            assert_eq!(
-                (
-                    step.duration_ticks,
-                    step.at_risk,
-                    step.berth_events,
-                    step.diverted_events,
-                    step.cancelled_events,
-                    step.censored
-                ),
-                (
-                    expected.0, expected.1, expected.2, expected.3, expected.4, expected.5
-                )
+            assert_eq!(step.duration_ticks, expected.duration_ticks);
+            assert_eq!(step.at_risk, expected.at_risk);
+            assert_eq!(step.berth_events, expected.berth_events);
+            assert_eq!(step.diverted_events, expected.diverted_events);
+            assert_eq!(step.cancelled_events, expected.cancelled_events);
+            assert_eq!(step.censored, expected.censored);
+            close(step.event_free_survival, expected.event_free_survival);
+            close(
+                step.berth_cumulative_incidence,
+                expected.berth_cumulative_incidence,
             );
-            close(step.event_free_survival, expected.6);
-            close(step.berth_cumulative_incidence, expected.7);
-            close(step.diversion_cumulative_incidence, expected.8);
-            close(step.cancellation_cumulative_incidence, expected.9);
+            close(
+                step.diversion_cumulative_incidence,
+                expected.diversion_cumulative_incidence,
+            );
+            close(
+                step.cancellation_cumulative_incidence,
+                expected.cancellation_cumulative_incidence,
+            );
         }
 
         let s04 = cohort(&report, "S04");
