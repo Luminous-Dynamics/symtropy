@@ -3,8 +3,8 @@ import fs from "node:fs";
 
 const allowedTypes = new Set([
   "orbital_review_bundle", "lifecycle_qualification", "test_matrix_adequacy",
-  "event_history_integrity", "mission_success_probability", "constant_failure_intensity",
-  "physical_test_observation", "measurement_calibration", "model_credibility",
+  "event_history_integrity", "mission_success_probability", "constant_failure_intensity", "power_law_recurrent_intensity",
+  "weibull_first_failure_life", "physical_test_observation", "measurement_calibration", "model_credibility",
   "evidence_custody", "external_authority_decision", "defeater",
 ]);
 const priorities = [
@@ -89,6 +89,16 @@ function evaluate(scenario) {
       typed = claim.estimand === "constant_failure_intensity" &&
         claim.unit === "events_per_million_operating_hours" &&
         claim.model_profile === "homogeneous_poisson_constant_intensity";
+    }
+    if (claim.claim_type === "power_law_recurrent_intensity") {
+      typed = claim.estimand === "power_law_recurrent_failure_intensity" &&
+        claim.unit === "events_per_operating_second" &&
+        claim.model_profile === "power_law_nhpp_minimal_repair_v0_1";
+    }
+    if (claim.claim_type === "weibull_first_failure_life") {
+      typed = claim.estimand === "first_failure_life_distribution" &&
+        claim.unit === "operating_seconds" &&
+        claim.model_profile === "weibull_first_failure_life_v0_1";
     }
     if (!typed) {
       add("CLAIM_TYPE_MISMATCH", claim.claim_id, "estimand, unit and model profile do not match the claim type");
@@ -188,11 +198,18 @@ function evaluate(scenario) {
         add("GRAPH_INVALID", from.claim_id, "v0.1 permits direct support edges only into the review root");
       }
     }
+    const statisticalProfiles = new Set([
+      "mission_success_probability",
+      "constant_failure_intensity",
+      "power_law_recurrent_intensity",
+      "weibull_first_failure_life",
+    ]);
     if (edge.relation === "derived_from" &&
-        ((from.claim_type === "mission_success_probability" && to.claim_type === "constant_failure_intensity") ||
-         (from.claim_type === "constant_failure_intensity" && to.claim_type === "mission_success_probability"))) {
+        from.claim_type !== to.claim_type &&
+        statisticalProfiles.has(from.claim_type) &&
+        statisticalProfiles.has(to.claim_type)) {
       add("CLAIM_TYPE_MISMATCH", from.claim_id,
-        "mission-success probability and constant failure intensity are non-interchangeable estimands");
+        "Bernoulli, constant-intensity, power-law recurrent-event and first-failure Weibull estimands are non-interchangeable");
     }
   }
 
