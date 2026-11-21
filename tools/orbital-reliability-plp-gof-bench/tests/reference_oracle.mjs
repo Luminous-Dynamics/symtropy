@@ -87,8 +87,8 @@ class SplitMix64 {
     return (z ^ (z >> 31n)) & MASK64;
   }
   uniformOpen() {
-    const mantissa = Number(this.nextU64() >> 11n);
-    return Math.max(Number.EPSILON, Math.min(1 - Number.EPSILON, (mantissa + 0.5) / 9007199254740992));
+    const numerator = Number(this.nextU64() >> 12n) + 1;
+    return numerator / 4503599627370497;
   }
   exponentialUnit() { return -Math.log(this.uniformOpen()); }
 }
