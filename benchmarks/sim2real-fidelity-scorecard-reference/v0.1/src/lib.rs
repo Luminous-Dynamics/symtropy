@@ -454,7 +454,7 @@ pub struct TaskAgreement {
     pub mean_signed_stage_gap: f64,
     pub stage_score_mae: f64,
     pub stage_score_rmse: f64,
-    /// Pearson correlation across paired physical recordings; None if variance is zero.
+    /// Pearson correlation across equal-weight task-cluster means; None if variance is zero.
     pub stage_score_pearson_r: Option<f64>,
     pub real_end_to_end_success_rate: f64,
     pub simulated_end_to_end_success_rate: f64,
@@ -726,8 +726,8 @@ mod tests {
             simulator_configuration_digest: "ab".repeat(32),
             robot_article_id: "robot-article-01".to_owned(),
             asset_revision: "asset-revision-a".to_owned(),
-            command_trace_digest: "command-trace-a".to_owned(),
-            sensor_calibration_digest: "sensor-calibration-a".to_owned(),
+            command_trace_digest: "cd".repeat(32),
+            sensor_calibration_digest: "ef".repeat(32),
         }
     }
 
@@ -961,7 +961,7 @@ mod tests {
     }
 
     #[test]
-    fn bootstrap_intervals_are_deterministic_over_physical_trials() {
+    fn bootstrap_intervals_are_deterministic_over_task_clusters() {
         let input = manifest();
         let config = BootstrapConfig {
             replicates: 3_000,
