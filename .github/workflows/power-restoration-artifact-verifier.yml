@@ -9,6 +9,7 @@ on:
   push:
     paths:
       - "tools/power-restoration-artifact-verifier/**"
+      - "tools/power-restoration-service-trajectory-audit/**"
       - ".github/workflows/power-restoration-artifact-verifier.yml"
   workflow_dispatch:
 
@@ -100,7 +101,7 @@ jobs:
       - name: Run Rust tests
         run: cargo test --locked --manifest-path tools/power-restoration-artifact-verifier/Cargo.toml --all-targets
       - name: Check service auditor formatting
-        run: cargo fmt --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml --all -- --check
+        run: cargo fmt --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml --package power-restoration-service-trajectory-audit -- --check
       - name: Resolve service auditor dependency graph
         run: cargo generate-lockfile --manifest-path tools/power-restoration-service-trajectory-audit/Cargo.toml
       - name: Run service auditor strict Clippy
