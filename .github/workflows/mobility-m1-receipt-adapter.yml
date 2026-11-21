@@ -32,7 +32,7 @@ jobs:
       - name: Checkout exact M2 contract
         uses: actions/checkout@v4
         with:
-          ref: c52dbca141501fb14dd0b3c1a0fcd0fe7d56990a
+          ref: 189dd53b3fbd352f7dcc3d1773b2476b692604ee
           path: m2-src
       - uses: dtolnay/rust-toolchain@stable
         with:
