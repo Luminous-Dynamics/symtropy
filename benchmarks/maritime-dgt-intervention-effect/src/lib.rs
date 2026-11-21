@@ -2,8 +2,7 @@ use std::collections::BTreeMap;
 use std::fmt;
 
 pub const ANNOUNCEMENT_SOURCE_ID: &str = "TRANSNET_STATEMENT_2026_11_18";
-const ANNOUNCEMENT_HEADER: &str =
-    "fixture_id|intervention_id|resource_id|claim|source_id|stage";
+const ANNOUNCEMENT_HEADER: &str = "fixture_id|intervention_id|resource_id|claim|source_id|stage";
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum LifecycleStage {
@@ -105,7 +104,10 @@ impl EvidenceKind {
                 matches!(issuer, IssuerRole::PublicSource | IssuerRole::Provider)
             }
             Self::ProviderSchedule => {
-                matches!(issuer, IssuerRole::Provider | IssuerRole::AuthorizedOperator)
+                matches!(
+                    issuer,
+                    IssuerRole::Provider | IssuerRole::AuthorizedOperator
+                )
             }
             Self::AuthorizedCommitment | Self::OperatorActivation => {
                 issuer == IssuerRole::AuthorizedOperator
@@ -114,11 +116,12 @@ impl EvidenceKind {
                 issuer,
                 IssuerRole::AuthorizedOperator | IssuerRole::IndependentObserver
             ),
-            Self::IndependentPhysicalObservation => {
-                issuer == IssuerRole::IndependentObserver
-            }
+            Self::IndependentPhysicalObservation => issuer == IssuerRole::IndependentObserver,
             Self::IndependentHandoffReceipt => {
-                matches!(issuer, IssuerRole::ReceivingParty | IssuerRole::IndependentObserver)
+                matches!(
+                    issuer,
+                    IssuerRole::ReceivingParty | IssuerRole::IndependentObserver
+                )
             }
         }
     }
@@ -183,7 +186,10 @@ impl InterventionLedger {
             };
         }
 
-        if let Some(resource_id) = self.resource_by_intervention.get(&assertion.intervention_id) {
+        if let Some(resource_id) = self
+            .resource_by_intervention
+            .get(&assertion.intervention_id)
+        {
             if resource_id != &assertion.evidence.resource_id {
                 return Err(format!(
                     "resource identity changed for intervention {:?}: {:?} -> {:?}",
@@ -325,7 +331,9 @@ fn validate_assertion(assertion: &StageAssertion) -> Result<(), String> {
     if evidence.kind != assertion.stage.required_evidence() {
         return Err(format!(
             "{} requires {:?}, not {:?}",
-            assertion.stage, assertion.stage.required_evidence(), evidence.kind
+            assertion.stage,
+            assertion.stage.required_evidence(),
+            evidence.kind
         ));
     }
     if !evidence.kind.permits_issuer(evidence.issuer_role) {
@@ -360,7 +368,10 @@ pub fn parse_announcement_fixture(input: &str) -> Result<Vec<AnnouncementFixture
         }
         let fields: Vec<&str> = line.split('|').map(str::trim).collect();
         if fields.len() != 6 || fields.iter().any(|field| field.is_empty()) {
-            return Err(format!("invalid six-field fixture row at line {}", index + 2));
+            return Err(format!(
+                "invalid six-field fixture row at line {}",
+                index + 2
+            ));
         }
         let stage = LifecycleStage::parse(fields[5])?;
         if stage != LifecycleStage::Announced {
@@ -369,7 +380,10 @@ pub fn parse_announcement_fixture(input: &str) -> Result<Vec<AnnouncementFixture
             ));
         }
         if fields[4] != ANNOUNCEMENT_SOURCE_ID {
-            return Err(format!("unexpected source ID {:?} in fixture row", fields[4]));
+            return Err(format!(
+                "unexpected source ID {:?} in fixture row",
+                fields[4]
+            ));
         }
         rows.push(AnnouncementFixtureRow {
             fixture_id: fields[0].to_string(),
@@ -430,13 +444,18 @@ mod tests {
 
     #[test]
     fn public_statement_fixture_contains_six_announced_measures_only() {
-        let rows = parse_announcement_fixture(include_str!("../data/dgt-package-announcements.csv"))
-            .expect("frozen public statement claims");
+        let rows =
+            parse_announcement_fixture(include_str!("../data/dgt-package-announcements.csv"))
+                .expect("frozen public statement claims");
         assert_eq!(rows.len(), 6);
-        assert!(rows.iter().all(|row| row.stage == LifecycleStage::Announced));
-        assert!(rows
-            .iter()
-            .all(|row| row.source_id == ANNOUNCEMENT_SOURCE_ID));
+        assert!(
+            rows.iter()
+                .all(|row| row.stage == LifecycleStage::Announced)
+        );
+        assert!(
+            rows.iter()
+                .all(|row| row.source_id == ANNOUNCEMENT_SOURCE_ID)
+        );
     }
 
     #[test]
@@ -463,7 +482,10 @@ mod tests {
         let mut ledger = InterventionLedger::default();
         ledger.apply(announced).expect("announcement is admissible");
         assert!(ledger.apply(unrealized).unwrap_err().contains("requires"));
-        assert_eq!(ledger.current_stage("CRANE_1"), Some(LifecycleStage::Announced));
+        assert_eq!(
+            ledger.current_stage("CRANE_1"),
+            Some(LifecycleStage::Announced)
+        );
     }
 
     #[test]
@@ -496,7 +518,12 @@ mod tests {
             210,
         );
         let result = InterventionLedger::default()
-            .apply(assertion("A_DELIVERY", "CONTAINER_1", LifecycleStage::Delivered, record))
+            .apply(assertion(
+                "A_DELIVERY",
+                "CONTAINER_1",
+                LifecycleStage::Delivered,
+                record,
+            ))
             .expect("counterparty receipt");
         assert!(matches!(
             result,
@@ -589,7 +616,12 @@ mod tests {
         );
         let mut ledger = InterventionLedger::default();
         ledger.apply(first).expect("first resource claim");
-        assert!(ledger.apply(second).unwrap_err().contains("resource identity changed"));
+        assert!(
+            ledger
+                .apply(second)
+                .unwrap_err()
+                .contains("resource identity changed")
+        );
     }
 
     #[test]
@@ -609,7 +641,10 @@ mod tests {
         );
         let mut ledger = InterventionLedger::default();
         ledger.apply(first.clone()).expect("first assertion");
-        assert_eq!(ledger.apply(first.clone()).expect("exact replay"), ApplyResult::Replayed);
+        assert_eq!(
+            ledger.apply(first.clone()).expect("exact replay"),
+            ApplyResult::Replayed
+        );
 
         let conflict = assertion(
             "A1",
@@ -639,9 +674,11 @@ mod tests {
             150,
         );
         let assertion = assertion("A_LATE", "CRANE_1", LifecycleStage::Realized, record);
-        assert!(InterventionLedger::replay_as_of(&[assertion], 149)
-            .unwrap_err()
-            .contains("post-cutoff"));
+        assert!(
+            InterventionLedger::replay_as_of(&[assertion], 149)
+                .unwrap_err()
+                .contains("post-cutoff")
+        );
     }
 
     #[test]
@@ -679,7 +716,12 @@ mod tests {
             110,
         );
         let result = InterventionLedger::default()
-            .apply(assertion("A_REALIZED", "CRANE_1", LifecycleStage::Realized, record))
+            .apply(assertion(
+                "A_REALIZED",
+                "CRANE_1",
+                LifecycleStage::Realized,
+                record,
+            ))
             .expect("independent physical evidence");
         match result {
             ApplyResult::Applied {
@@ -735,10 +777,12 @@ mod tests {
         );
         record.artifact_sha256 = "not-a-digest".to_string();
         let bad_digest = assertion("A_BAD", "BERTH_102", LifecycleStage::Announced, record);
-        assert!(InterventionLedger::default()
-            .apply(bad_digest)
-            .unwrap_err()
-            .contains("SHA-256"));
+        assert!(
+            InterventionLedger::default()
+                .apply(bad_digest)
+                .unwrap_err()
+                .contains("SHA-256")
+        );
 
         let mut record = evidence(
             "E_CLOCK",
@@ -750,9 +794,11 @@ mod tests {
         );
         record.received_time_utc = 109;
         let bad_clock = assertion("A_CLOCK", "BERTH_102", LifecycleStage::Announced, record);
-        assert!(InterventionLedger::default()
-            .apply(bad_clock)
-            .unwrap_err()
-            .contains("receipt time"));
+        assert!(
+            InterventionLedger::default()
+                .apply(bad_clock)
+                .unwrap_err()
+                .contains("receipt time")
+        );
     }
 }
