@@ -64,7 +64,7 @@ This creates a strong separation between:
 
 The public branch now contains a pure-Rust reference implementation at `tools/ehd-reference-audit/src/exchange.rs`. It maps already-integrated vector impulse contributions from source cell × time slabs to destination cells using explicit overlap fractions. It checks complete coverage for every source event, rejects malformed weights and unmapped events, aggregates deterministically, uses compensated summation, and reports componentwise source/destination impulse residuals against caller-supplied case-specific tolerances.
 
-The v0.1 kernel assumes piecewise-constant impulse density over each source space-time element. The overlap fractions must come from a non-overlapping geometric/time intersection backend. The kernel does **not** calculate intersections, reconstruct high-order fields, rotate coordinate frames, validate the geometry backend, or infer boundary impulse. This is a narrow reference oracle, not a replacement for a general mesh-coupling library.
+The v0.1 impulse kernel assumes piecewise-constant impulse density over each source space-time element. It does **not** calculate intersections, reconstruct high-order fields, rotate coordinate frames, validate arbitrary geometry backends, or infer boundary impulse. The separate AABB geometry backend below calculates intersections only for axis-aligned boxes. Together these form a narrow reference oracle, not a replacement for a general mesh-coupling library.
 
 ### Do not reinvent mature coupling infrastructure
 
@@ -82,7 +82,7 @@ The independent test plan is:
 5. compare integrated forces using a preCICE conservative mapping path with identical quantities and boundaries;
 6. measure performance only after correctness and semantics match.
 
-The CLI now runs a small synthetic remap self-check. This only confirms the arithmetic path on its fixture; it does not validate real mesh intersections or a solver adapter.
+The CLI runs two synthetic self-checks: the impulse remap arithmetic fixture and an end-to-end axis-aligned geometry-to-impulse fixture. These only validate the reference fixtures; they do not validate real production mesh readers, arbitrary unstructured intersections or a solver adapter.
 
 ## 3. Three independent ledgers
 
