@@ -98,10 +98,15 @@
         "additionalProperties": false,
         "required": [
           "episode_id",
+          "scenario_id",
           "reason"
         ],
         "properties": {
           "episode_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scenario_id": {
             "type": "string",
             "minLength": 1
           },
