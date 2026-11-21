@@ -286,7 +286,10 @@ fn evaluate_case(case: &CaptureCase) -> Decision {
         || case.maximum_event_rate_per_second < case.minimum_event_rate_per_second
         || case.maximum_event_rate_per_second > MAX_RATE
     {
-        return blocked(Disposition::Rejected, "malformed_scope_rate_or_evidence_digest");
+        return blocked(
+            Disposition::Rejected,
+            "malformed_scope_rate_or_evidence_digest",
+        );
     }
 
     let reference_event_rate = case.reference_events.len() as f64 / case.test_window_seconds;
@@ -296,36 +299,55 @@ fn evaluate_case(case: &CaptureCase) -> Decision {
         || reference_event_rate < case.minimum_event_rate_per_second
         || reference_event_rate > case.maximum_event_rate_per_second
     {
-        return blocked(Disposition::OutOfEnvelope, "test_configuration_or_event_rate_outside_declared_envelope");
+        return blocked(
+            Disposition::OutOfEnvelope,
+            "test_configuration_or_event_rate_outside_declared_envelope",
+        );
     }
 
     if !case.reference.available
         || case.reference.system_id.trim().is_empty()
         || case.reference.failure_domains.is_empty()
         || case.reference.acquisition_failure_domains.is_empty()
-        || case.reference.failure_domains.iter().any(|domain| domain.trim().is_empty())
-        || case.reference.acquisition_failure_domains.iter().any(|domain| domain.trim().is_empty())
+        || case
+            .reference
+            .failure_domains
+            .iter()
+            .any(|domain| domain.trim().is_empty())
+        || case
+            .reference
+            .acquisition_failure_domains
+            .iter()
+            .any(|domain| domain.trim().is_empty())
         || shared_failure_domain(
             &case.reference.failure_domains,
             &case.reference.acquisition_failure_domains,
         )
     {
-        return blocked(Disposition::Indeterminate, "independent_reference_missing_or_common_cause_unresolved");
+        return blocked(
+            Disposition::Indeterminate,
+            "independent_reference_missing_or_common_cause_unresolved",
+        );
     }
 
     if !case.calibration.valid_at_test_time || !case.calibration.scope_matches {
-        return blocked(Disposition::Indeterminate, "calibration_missing_invalid_or_out_of_scope");
+        return blocked(
+            Disposition::Indeterminate,
+            "calibration_missing_invalid_or_out_of_scope",
+        );
     }
 
     if !case.clock.synchronized
         || !case.clock.monotonic
         || case.clock.allowed_max_error_ticks > MAX_SAFE_INTEGER
-        || case
-            .clock
-            .measured_max_error_ticks
-            .is_none_or(|error| error > case.clock.allowed_max_error_ticks || error > MAX_SAFE_INTEGER)
+        || case.clock.measured_max_error_ticks.is_none_or(|error| {
+            error > case.clock.allowed_max_error_ticks || error > MAX_SAFE_INTEGER
+        })
     {
-        return blocked(Disposition::Indeterminate, "clock_integrity_or_error_bound_not_established");
+        return blocked(
+            Disposition::Indeterminate,
+            "clock_integrity_or_error_bound_not_established",
+        );
     }
     let measured_clock_error = case.clock.measured_max_error_ticks.unwrap_or(0);
 
@@ -336,16 +358,28 @@ fn evaluate_case(case: &CaptureCase) -> Decision {
         case.counters.reset_count,
         case.counters.sequence_gap_count,
     ];
-    if counter_values.iter().any(|value| value.is_none_or(|count| count > MAX_SAFE_INTEGER)) {
-        return blocked(Disposition::Indeterminate, "required_capture_loss_counter_missing");
+    if counter_values
+        .iter()
+        .any(|value| value.is_none_or(|count| count > MAX_SAFE_INTEGER))
+    {
+        return blocked(
+            Disposition::Indeterminate,
+            "required_capture_loss_counter_missing",
+        );
     }
     let loss_counters_nonzero = counter_values.iter().any(|value| value.unwrap_or(0) > 0);
 
     if validate_reference_events(&case.reference_events).is_err() {
-        return blocked(Disposition::Rejected, "independent_reference_event_stream_invalid");
+        return blocked(
+            Disposition::Rejected,
+            "independent_reference_event_stream_invalid",
+        );
     }
     if case.observed_events.len() > MAX_EVENTS {
-        return blocked(Disposition::Rejected, "observed_event_count_exceeds_v0_1_limit");
+        return blocked(
+            Disposition::Rejected,
+            "observed_event_count_exceeds_v0_1_limit",
+        );
     }
 
     let reference_by_id: HashMap<&str, &ReferenceEvent> = case
@@ -367,7 +401,10 @@ fn evaluate_case(case: &CaptureCase) -> Decision {
             || !valid_hex(&observed.payload_sha256, 64)
             || !record_ids.insert(observed.record_id.as_str())
         {
-            let mut decision = blocked(Disposition::Disputed, "duplicate_record_identity_or_malformed_observation");
+            let mut decision = blocked(
+                Disposition::Disputed,
+                "duplicate_record_identity_or_malformed_observation",
+            );
             return decision;
         }
         let Some(reference) = reference_by_id.get(observed.reference_event_id.as_str()) else {
@@ -390,7 +427,12 @@ fn evaluate_case(case: &CaptureCase) -> Decision {
 
     let mut missed_count = 0usize;
     for reference in &case.reference_events {
-        if captured_by_reference.get(reference.event_id.as_str()).copied().unwrap_or(0) == 0 {
+        if captured_by_reference
+            .get(reference.event_id.as_str())
+            .copied()
+            .unwrap_or(0)
+            == 0
+        {
             missed_count += 1;
         } else {
             captured_count += 1;
