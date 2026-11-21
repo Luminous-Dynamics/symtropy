@@ -5,6 +5,7 @@ on:
     paths:
       - "research/nav-transition-validator/**"
       - "research/nav-observation-toy-fim/**"
+      - "research/miluv-ingest/**"
       - ".github/workflows/navigation-research-rust.yml"
 
 permissions:
