@@ -454,8 +454,8 @@ mod tests {
     }
 
     #[test]
-    fn grouped_hmc_rejects_duplicate_or_missing_group_mapping() {
-        let (model, _, experiment_groups) = fixture();
+    fn grouped_hmc_rejects_empty_global_scale_group() {
+        let (model, _, _) = fixture();
         let result = run_grouped_horseshoe_hmc_chain(
             &model,
             &[0.001, -0.002, 0.003],
@@ -476,8 +476,7 @@ mod tests {
             },
         );
         assert!(matches!(result, Err(ModelError::InvalidParameter(
-            "every_grouped_global_scale_must_own_coefficients"
+            "prepared_grouped_global_scale_group_empty"
         ))));
-        let _ = (model, experiment_groups);
     }
 }
