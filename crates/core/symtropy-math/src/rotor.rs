@@ -241,6 +241,20 @@ impl<const D: usize> Rotor<D> {
 
     /// Rotate a vector.
     #[inline]
+    /// Rotate an so(D) bivector by the induced adjoint action.
+    ///
+    /// If this rotor represents R, the returned bivector represents
+    /// R * B * R^T. This is the natural transformation for angular velocity,
+    /// angular momentum, and rotational inertia under a change of frame.
+    /// The rotor is assumed to be a proper rotation; use
+    /// is_proper_rotation(tolerance) when accepting externally supplied data.
+    #[inline]
+    pub fn rotate_bivector(&self, bivector: &Bivector<D>) -> Bivector<D> {
+        let rotation = self.to_matrix();
+        let transformed = rotation * bivector.to_matrix() * rotation.transpose();
+        Bivector::from_matrix(&transformed)
+    }
+
     pub fn rotate_vector(&self, v: &SVector<f64, D>) -> SVector<f64, D> {
         self.mat * v
     }
@@ -498,6 +512,59 @@ mod tests {
             &composed.rotate_point(&p).0
         ));
     }
+    #[test]
+    fn rotates_bivectors_by_the_induced_adjoint_action() {
+        let mut generator = Bivector::<4>::zero();
+        generator.set(0, 1, 0.31);
+        generator.set(0, 3, -0.27);
+        generator.set(1, 2, 0.73);
+        let rotation = Rotor::<4>::from_bivector(&generator);
+
+        let mut value = Bivector::<4>::zero();
+        value.set(0, 2, 0.4);
+        value.set(1, 3, -0.8);
+        value.set(2, 3, 1.1);
+
+        let rotated = rotation.rotate_bivector(&value);
+        let expected_matrix =
+            rotation.to_matrix() * value.to_matrix() * rotation.to_matrix().transpose();
+        assert!((rotated.to_matrix() - expected_matrix).norm() < 1.0e-12);
+        assert!((rotated.norm() - value.norm()).abs() < 1.0e-12);
+
+        let recovered = rotation.reverse().rotate_bivector(&rotated);
+        assert!((recovered.to_matrix() - value.to_matrix()).norm() < 1.0e-12);
+    }
+
+    #[test]
+    fn adjoint_action_preserves_the_so_d_commutator() {
+        let mut left = Bivector::<4>::zero();
+        left.set(0, 1, 0.4);
+        left.set(1, 3, -0.2);
+        let mut right = Bivector::<4>::zero();
+        right.set(0, 2, 0.7);
+        right.set(2, 3, 0.5);
+        let rotation =
+            Rotor::<4>::from_bivector(&Bivector::<4>::unit_plane(0, 3).scale(0.83));
+
+        let left_matrix = -left.to_matrix();
+        let right_matrix = -right.to_matrix();
+        let bracket = Bivector::<4>::from_matrix(
+            &(-(left_matrix * right_matrix - right_matrix * left_matrix)),
+        );
+
+        let rotated_left = rotation.rotate_bivector(&left);
+        let rotated_right = rotation.rotate_bivector(&right);
+        let rotated_bracket = rotation.rotate_bivector(&bracket);
+        let rotated_left_matrix = -rotated_left.to_matrix();
+        let rotated_right_matrix = -rotated_right.to_matrix();
+        let expected = Bivector::<4>::from_matrix(
+            &(-(rotated_left_matrix * rotated_right_matrix
+                - rotated_right_matrix * rotated_left_matrix)),
+        );
+        assert!((rotated_bracket.to_matrix() - expected.to_matrix()).norm() < 2.0e-12);
+    }
+
+
 }
 
 #[cfg(test)]

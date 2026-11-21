@@ -3,10 +3,14 @@
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 //! Semi-implicit Euler integrator for ND rigid body dynamics.
 //!
-//! Angular velocity is a bivector (element of `so(D)`) integrated through the
-//! rotation-group exponential map. This is exact for simultaneous independent
-//! rotation planes (including 4D double rotations); it does not rely on the
-//! single-plane Rodrigues formula.
+//! Stored angular velocity is a bivector (element of `so(D)`) integrated
+//! through the rotation-group exponential map. The convention is paired with
+//! `Rotor::from_bivector(B) = exp(-B)`: a material point at world offset `r`
+//! therefore has physical angular velocity `-B*r`. Contact, friction and
+//! restitution must use `angular_point_velocity`, while off-centre impulses
+//! use `angular_impulse_from_point`. This is exact for simultaneous
+//! independent rotation planes (including 4D double rotations); it does not
+//! rely on the single-plane Rodrigues formula.
 
 use crate::body::RigidBody;
 use nalgebra::SVector;
@@ -25,6 +29,37 @@ pub static NAN_ZEROED_COUNT: AtomicU64 = AtomicU64::new(0);
 #[inline]
 pub fn nan_zeroed_count() -> u64 {
     NAN_ZEROED_COUNT.load(Ordering::Relaxed)
+}
+
+/**
+ * Physical material-point velocity induced by the stored world-space
+ * angular-velocity bivector.
+ *
+ * Rotor::from_bivector(B) advances orientation by exp(-B). Therefore the
+ * derivative of a rotated world-space offset is -B * offset, not +B * offset.
+ * This helper is the one contact, friction and restitution code must use.
+ */
+#[inline]
+pub fn angular_point_velocity<const D: usize>(
+    angular_velocity: &Bivector<D>,
+    offset_world: &SVector<f64, D>,
+) -> SVector<f64, D> {
+    -angular_velocity.apply_to_vector(offset_world)
+}
+
+/**
+ * Encode the physical angular impulse from an impulse applied at a world-space
+ * offset, using the stored-bivector sign convention paired with Rotor's exp(-B).
+ *
+ * The resulting bivector is offset ∧ impulse. For D=3 this corresponds to the
+ * conventional torque impulse r × j under Symtropy's e01/e02/e12 mapping.
+ */
+#[inline]
+pub fn angular_impulse_from_point<const D: usize>(
+    offset_world: &SVector<f64, D>,
+    impulse_world: &SVector<f64, D>,
+) -> Bivector<D> {
+    Bivector::from_wedge(offset_world, impulse_world)
 }
 
 /// Integrate a single rigid body forward by dt seconds.
@@ -74,29 +109,16 @@ pub fn integrate<const D: usize>(body: &mut RigidBody<D>, gravity: &SVector<f64,
 
     // --- Angular dynamics ---
 
-    // Angular acceleration = torque / inertia (scalar approximation)
-    // Per-axis inertia: use mean of principal moments for each bivector plane.
-    // For spheres (isotropic), this is exact. For asymmetric bodies, it's the
-    // average inertia of the two axes spanning each rotation plane.
-    //
-    // TODO(isotropic-inertia): this scalar mean makes ALL rotation isotropic,
-    // which is only physically correct for spheres. A non-spherical body
-    // (box, capsule, compound shape) will rotate as if it had a sphere's mass
-    // distribution — e.g. a long thin rod will resist tumbling about its long
-    // axis exactly as much as about a short axis, which is wrong. Fixing this
-    // properly requires per-bivector-plane inertia (a full D×D inertia tensor
-    // or at least per-plane scalars derived from the collider's actual mass
-    // distribution) plumbed through `RigidBody`'s `inertia`/`inv_inertia`
-    // fields (currently `SVector<f64, D>`, one scalar per *axis*, then
-    // averaged pairwise here — not one scalar per *bivector plane*, and not
-    // tracked as the body rotates, i.e. no world-space inertia tensor
-    // update). That's a larger data-layout change to `body.rs` than is safe
-    // to make alongside the contact-solver fixes in this change; deferred.
-    let inv_i_avg = body.inv_inertia.sum() / D as f64;
-    let ang_accel = body.torque_accumulator.scale(inv_i_avg);
+    // Apply torque through the body's selected, explicitly reported inertia
+    // model. In 3D this includes frame-aware inertia and Euler gyroscopic
+    // coupling; a validated full bivector operator supports general D.
+    let angular_acceleration =
+        body.angular_acceleration_from_torque(&body.torque_accumulator);
 
     // Update angular velocity
-    body.angular_velocity = body.angular_velocity.add(&ang_accel.scale(dt));
+    body.angular_velocity = body
+        .angular_velocity
+        .add(&angular_acceleration.scale(dt));
 
     // LTC angular damping (same closed-form)
     if body.angular_damping > 1e-15 {
@@ -165,13 +187,12 @@ pub fn apply_impulse<const D: usize>(body: &mut RigidBody<D>, impulse: &SVector<
 }
 
 /// Apply an angular impulse (as a bivector) to a body.
+/// Apply a world-space angular impulse through the body's declared
+/// rotational inertia model.
 pub fn apply_angular_impulse<const D: usize>(body: &mut RigidBody<D>, impulse: &Bivector<D>) {
     if body.is_dynamic() {
-        // TODO(isotropic-inertia): same scalar-mean-inertia limitation as in
-        // `integrate` above — see that TODO for why this is only exact for
-        // spheres and what a real fix would require.
-        let inv_i_avg = body.inv_inertia.sum() / D as f64;
-        body.angular_velocity = body.angular_velocity.add(&impulse.scale(inv_i_avg));
+        let delta_omega = body.apply_inverse_angular_inertia(impulse);
+        body.angular_velocity = body.angular_velocity.add(&delta_omega);
     }
 }
 
@@ -179,6 +200,134 @@ pub fn apply_angular_impulse<const D: usize>(body: &mut RigidBody<D>, impulse: &
 mod tests {
     use super::*;
     use crate::body::BodyHandle;
+
+    fn measured_rotor_point_velocity(
+        generator: &Bivector<3>,
+        offset: &SVector<f64, 3>,
+        dt: f64,
+    ) -> SVector<f64, 3> {
+        let delta = Rotor::from_bivector(&generator.scale(dt));
+        (delta.rotate_vector(offset) - offset) / dt
+    }
+
+    #[test]
+    fn physical_point_velocity_matches_rotor_finite_difference_for_all_3d_planes() {
+        let offset = SVector::from([0.37, -0.61, 0.82]);
+        let mut generators = Vec::new();
+        for (i, j) in [(0, 1), (0, 2), (1, 2)] {
+            let mut generator = Bivector::<3>::zero();
+            generator.set(i, j, 0.73);
+            generators.push(generator);
+        }
+        let mut generic = Bivector::<3>::zero();
+        generic.set(0, 1, 0.41);
+        generic.set(0, 2, -0.63);
+        generic.set(1, 2, 0.29);
+        generators.push(generic);
+
+        for (case, generator) in generators.iter().enumerate() {
+            let expected = angular_point_velocity(generator, &offset);
+            let coarse = measured_rotor_point_velocity(generator, &offset, 1.0e-3);
+            let fine = measured_rotor_point_velocity(generator, &offset, 5.0e-4);
+            let coarse_error = (coarse - expected).norm();
+            let fine_error = (fine - expected).norm();
+
+            assert!(
+                fine_error < coarse_error * 0.6,
+                "finite-difference error did not converge for case {case}: coarse={coarse_error:e}, fine={fine_error:e}"
+            );
+            assert!(
+                fine_error < 5.0e-4,
+                "point-velocity sign/magnitude mismatch for case {case}: error={fine_error:e}"
+            );
+        }
+    }
+
+    #[test]
+    fn angular_point_velocity_and_impulse_are_rotation_covariant() {
+        let mut angular_velocity = Bivector::<3>::zero();
+        angular_velocity.set(0, 1, 0.41);
+        angular_velocity.set(0, 2, -0.63);
+        angular_velocity.set(1, 2, 0.29);
+        let offset = SVector::from([0.7, -0.2, 1.1]);
+        let impulse = SVector::from([-0.4, 0.9, 0.3]);
+
+        let mut frame_generator = Bivector::<3>::zero();
+        frame_generator.set(0, 1, -0.37);
+        frame_generator.set(0, 2, 0.58);
+        frame_generator.set(1, 2, 0.22);
+        let frame_change = Rotor::<3>::from_bivector(&frame_generator);
+        let rotation = *frame_change.to_matrix();
+
+        let original_point_velocity = angular_point_velocity(&angular_velocity, &offset);
+        let rotated_angular_matrix = rotation * angular_velocity.to_matrix() * rotation.transpose();
+        let rotated_angular_velocity = Bivector::<3>::from_matrix(&rotated_angular_matrix);
+        let rotated_offset = frame_change.rotate_vector(&offset);
+        let rotated_point_velocity =
+            angular_point_velocity(&rotated_angular_velocity, &rotated_offset);
+        let expected_rotated_velocity = frame_change.rotate_vector(&original_point_velocity);
+        assert!(
+            (rotated_point_velocity - expected_rotated_velocity).norm() < 2.0e-12,
+            "physical point velocity did not transform covariantly"
+        );
+
+        let original_impulse = angular_impulse_from_point(&offset, &impulse);
+        let rotated_offset = frame_change.rotate_vector(&offset);
+        let rotated_impulse = frame_change.rotate_vector(&impulse);
+        let transformed_impulse = angular_impulse_from_point(&rotated_offset, &rotated_impulse);
+        let expected_impulse_matrix =
+            rotation * original_impulse.to_matrix() * rotation.transpose();
+        let expected_impulse = Bivector::<3>::from_matrix(&expected_impulse_matrix);
+        assert!(
+            transformed_impulse
+                .add(&expected_impulse.scale(-1.0))
+                .norm()
+                < 2.0e-12,
+            "off-centre angular impulse did not transform covariantly"
+        );
+    }
+
+    #[test]
+    fn off_centre_impulse_matches_rotor_motion_and_physical_torque_sign() {
+        let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 1.0, 1.0);
+        body.angular_damping = 0.0;
+
+        let offset = SVector::from([1.0, 0.0, 0.0]);
+        let impulse = SVector::from([0.0, 1.0, 0.0]);
+        let angular_impulse = angular_impulse_from_point(&offset, &impulse);
+
+        // r × j is +z, represented by positive e01 in Symtropy's bivector
+        // convention. The old j ∧ r ordering produced the opposite sign.
+        assert!((angular_impulse.get(0, 1) - 1.0).abs() < 1.0e-14);
+        assert!(angular_impulse.get(0, 2).abs() < 1.0e-14);
+        assert!(angular_impulse.get(1, 2).abs() < 1.0e-14);
+
+        apply_angular_impulse(&mut body, &angular_impulse);
+        assert!(body.angular_velocity.get(0, 1) > 0.0);
+
+        let expected_unit_inertia_response =
+            impulse * offset.norm_squared() - offset * offset.dot(&impulse);
+        let inverse_inertia = body.inv_inertia[0];
+        let predicted_point_velocity = angular_point_velocity(&body.angular_velocity, &offset);
+        assert!(
+            (predicted_point_velocity - expected_unit_inertia_response * inverse_inertia).norm()
+                < 1.0e-12,
+            "angular impulse did not produce the expected r × j response"
+        );
+
+        // Compare the production integrator's actual Transform::transform_point
+        // trajectory with the contact-point velocity prediction.
+        let material_point = Point::new([offset[0], offset[1], offset[2]]);
+        let before = body.transform.transform_point(&material_point);
+        let dt = 1.0e-7;
+        integrate(&mut body, &SVector::zeros(), dt);
+        let after = body.transform.transform_point(&material_point);
+        let measured = (after.0 - before.0) / dt;
+        assert!(
+            (measured - predicted_point_velocity).norm() < 2.0e-6,
+            "off-centre impulse / Rotor / contact-point velocity disagreement: measured={measured:?}, predicted={predicted_point_velocity:?}"
+        );
+    }
 
     #[test]
     fn free_fall_3d() {
