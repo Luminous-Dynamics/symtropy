@@ -1075,9 +1075,13 @@ mod tests {
     #[test]
     fn sentinel_threshold_becomes_unbounded_pose_set() {
         let block_identity = block_identity();
-        let trial =
-            TrialPoseScore::incomplete("failed-trial", EpisodeOutcome::Failed, score_identity(), DIGEST)
-                .unwrap();
+        let trial = TrialPoseScore::incomplete(
+            "failed-trial",
+            EpisodeOutcome::Failed,
+            score_identity(),
+            DIGEST,
+        )
+        .unwrap();
         let block = build_calibration_block("session-01", &[trial], &block_identity).unwrap();
         let conformal = CalibrationReceipt {
             model_digest: MODEL_DIGEST.to_owned(),
@@ -1094,13 +1098,9 @@ mod tests {
             coverage_claim: "finite-sample marginal whole-unit coverage under exchangeability"
                 .to_owned(),
         };
-        let receipt = bind_pose_calibration_receipt(
-            conformal,
-            &[block],
-            RAW_DIGEST,
-            FORECAST_DIGEST,
-        )
-        .unwrap();
+        let receipt =
+            bind_pose_calibration_receipt(conformal, &[block], RAW_DIGEST, FORECAST_DIGEST)
+                .unwrap();
         let identity = PoseSetApplicationIdentity {
             dataset_revision: DATASET_REVISION,
             source_manifest_sha256: RAW_DIGEST,
@@ -1123,9 +1123,13 @@ mod tests {
     #[test]
     fn pose_calibration_receipt_refuses_a_different_dataset_or_source_manifest() {
         let block_identity = block_identity();
-        let trial =
-            TrialPoseScore::incomplete("failed-trial", EpisodeOutcome::Failed, score_identity(), DIGEST)
-                .unwrap();
+        let trial = TrialPoseScore::incomplete(
+            "failed-trial",
+            EpisodeOutcome::Failed,
+            score_identity(),
+            DIGEST,
+        )
+        .unwrap();
         let block = build_calibration_block("session-01", &[trial], &block_identity).unwrap();
         let conformal = CalibrationReceipt {
             model_digest: MODEL_DIGEST.to_owned(),
@@ -1142,13 +1146,9 @@ mod tests {
             coverage_claim: "finite-sample marginal whole-unit coverage under exchangeability"
                 .to_owned(),
         };
-        let receipt = bind_pose_calibration_receipt(
-            conformal,
-            &[block],
-            RAW_DIGEST,
-            FORECAST_DIGEST,
-        )
-        .unwrap();
+        let receipt =
+            bind_pose_calibration_receipt(conformal, &[block], RAW_DIGEST, FORECAST_DIGEST)
+                .unwrap();
         let base = PoseSetApplicationIdentity {
             dataset_revision: DATASET_REVISION,
             source_manifest_sha256: RAW_DIGEST,
