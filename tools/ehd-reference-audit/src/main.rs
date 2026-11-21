@@ -11,6 +11,7 @@ mod exchange;
 mod geometry;
 mod gcl;
 mod exchange_receipt;
+mod polynomial_moments;
 
 const EMBEDDED_ATLAS: &str =
     include_str!("../../../data/research/ehd_reference_atlas_v0_1.json");
@@ -24,6 +25,8 @@ const EMBEDDED_GCL_BENCHMARK: &str =
     include_str!("../../../data/research/ehd_moving_mesh_gcl_benchmark_v0_1.json");
 const EMBEDDED_EXCHANGE_RECEIPT: &str =
     include_str!("../../../data/research/ehd_exchange_event_receipt_v0_1.json");
+const EMBEDDED_POLYNOMIAL_MOMENTS: &str =
+    include_str!("../../../data/research/ehd_polynomial_moments_v0_1.json");
 
 fn at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
     path.iter().try_fold(value, |node, key| node.get(*key))
@@ -1440,6 +1443,83 @@ pub fn audit_exchange_receipt_contract(root: &Value) -> Vec<String> {
     findings
 }
 
+/// Audit the P0/P1/P2 polynomial-moment oracle's contract and explicit limits.
+/// It must not be promoted to reconstruction, moving-mesh TPE, or a production remapper.
+pub fn audit_polynomial_moments_contract(root: &Value) -> Vec<String> {
+    let mut findings = Vec::new();
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["schema"]) == Some("luminous.ehd_polynomial_moment_remap")
+            && text_at(root, &["schema_version"]) == Some("0.1.0")
+            && text_at(root, &["benchmark_id"]) == Some("EHD-POLYNOMIAL-MOMENTS-001")
+            && text_at(root, &["status"])
+                == Some("analytic_p0_p1_p2_integral_oracle_authored_tests_rust_execution_pending"),
+        "POLY_MOMENT_IDENTITY",
+        "polynomial-moment benchmark identity/version/status changed",
+    );
+    let implementation = at(root, &["reference_implementation"]);
+    push_if_missing(
+        &mut findings,
+        implementation.is_some_and(|value| {
+            text_at(value, &["path"]) == Some("tools/ehd-reference-audit/src/polynomial_moments.rs")
+                && text_at(value, &["geometry_backend"]) == Some("tools/ehd-reference-audit/src/geometry.rs")
+                && text_at(value, &["supported_geometry"])
+                    == Some("axis_aligned_boxes_in_compile_time_dimensions")
+                && text_at(value, &["reconstruction"])
+                    .is_some_and(|scope| scope.contains("caller_supplies_coefficients"))
+                && at(value, &["checks"]).and_then(Value::as_array)
+                    .is_some_and(|checks| checks.iter().any(|item| item.as_str() == Some("destination_integral_per_cell"))
+                        && checks.iter().any(|item| item.as_str() == Some("global_destination_integral")))
+        }),
+        "POLY_MOMENT_IMPLEMENTATION_SCOPE",
+        "polynomial-moment path, geometry scope, supplied-coefficient boundary or local/global checks changed",
+    );
+    push_if_missing(
+        &mut findings,
+        at(root, &["supported_polynomial_degrees"]).and_then(Value::as_array)
+            .is_some_and(|degrees| degrees.len() == 3
+                && degrees[0].as_u64() == Some(0)
+                && degrees[1].as_u64() == Some(1)
+                && degrees[2].as_u64() == Some(2)),
+        "POLY_MOMENT_DEGREES",
+        "P0/P1/P2 polynomial degree support must remain explicit",
+    );
+    let tests = at(root, &["test_families"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        tests.is_some_and(|rows| rows.len() == 10
+            && rows.iter().any(|item| item.as_str() == Some("p1_linear_exact_destination_integrals"))
+            && rows.iter().any(|item| item.as_str() == Some("p2_quadratic_exact_destination_integrals"))
+            && rows.iter().any(|item| item.as_str() == Some("reject_requested_maximum_degree_above_p2_scope"))
+            && rows.iter().any(|item| item.as_str() == Some("reject_geometry_gap_before_transfer"))),
+        "POLY_MOMENT_TEST_MATRIX",
+        "nine P0/P1/P2 analytic and adversarial tests must remain declared",
+    );
+    push_if_missing(
+        &mut findings,
+        at(root, &["acceptance", "universal_numeric_tolerance"]).is_some_and(Value::is_null)
+            && at(root, &["acceptance", "per_destination_integral_checked"]).and_then(Value::as_bool) == Some(true)
+            && at(root, &["acceptance", "global_integral_checked"]).and_then(Value::as_bool) == Some(true)
+            && at(root, &["acceptance", "polynomial_exactness_not_equivalent_to_tpe"]).and_then(Value::as_bool) == Some(true),
+        "POLY_MOMENT_ACCEPTANCE",
+        "local and global integral checks plus case-specific tolerances and TPE distinction are mandatory",
+    );
+    let limitations = at(root, &["limitations"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        limitations.is_some_and(|rows| rows.iter().any(|item| item.as_str() == Some("caller_supplies_polynomial_coefficients"))
+            && rows.iter().any(|item| item.as_str() == Some("no_cell_average_reconstruction"))
+            && rows.iter().any(|item| item.as_str() == Some("no_tpe_1_or_tpe_2_implementation"))
+            && rows.iter().any(|item| item.as_str() == Some("no_production_remapping_solver")))
+            && text_at(root, &["claim_ceiling"])
+                .is_some_and(|claim| claim.contains("does not establish production higher-order remapping")
+                    && claim.contains("TPE(1/2)")),
+        "POLY_MOMENT_CLAIM_BOUNDARY",
+        "analytic moment integration must not be represented as a reconstruction or TPE solver",
+    );
+    findings
+}
+
 fn main() {
     let mut args = env::args().skip(1);
     let path = args.next();
@@ -1508,6 +1588,14 @@ fn main() {
         }
     };
     findings.extend(audit_exchange_receipt_contract(&exchange_receipt_contract));
+    let polynomial_moments_contract: Value = match serde_json::from_str(EMBEDDED_POLYNOMIAL_MOMENTS) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("invalid embedded polynomial-moment contract JSON: {error}");
+            process::exit(2);
+        }
+    };
+    findings.extend(audit_polynomial_moments_contract(&polynomial_moments_contract));
     let exchange_kernel_ok = match exchange::reference_self_check() {
         Ok(()) => true,
         Err(error) => {
@@ -1536,6 +1624,13 @@ fn main() {
             false
         }
     };
+    let polynomial_moments_ok = match polynomial_moments::reference_self_check() {
+        Ok(()) => true,
+        Err(error) => {
+            findings.push(format!("POLYNOMIAL_MOMENTS_SELF_CHECK: {error}"));
+            false
+        }
+    };
     if findings.is_empty() {
         let count = len_at(&atlas, &["source_records"]).unwrap_or(0);
         let system_count = len_at(&atlas, &["system_integration_references"]).unwrap_or(0);
@@ -1558,7 +1653,10 @@ fn main() {
         if exchange_receipt_ok {
             println!("event-level equal-and-opposite exchange receipt self-check: passed");
         }
-        println!("scope: source structure and analytic reference checks only; no physical V&V, production ALE or durable exactly-once claim");
+        if polynomial_moments_ok {
+            println!("P0/P1/P2 exact polynomial-moment integration self-check: passed");
+        }
+        println!("scope: source structure and analytic reference checks only; no physical V&V, production ALE, TPE(1/2) or durable exactly-once claim");
     } else {
         eprintln!("FAIL: {label} ({} finding(s))", findings.len());
         for finding in findings {
@@ -2025,6 +2123,36 @@ mod exchange_event_receipt_contract_tests {
         ]);
         assert!(audit_exchange_receipt_contract(&value).iter().any(|finding| {
             finding.starts_with("EXCHANGE_RECEIPT_INVARIANTS")
+        }));
+    }
+}
+
+#[cfg(test)]
+mod polynomial_moment_contract_tests {
+    use super::*;
+
+    #[test]
+    fn polynomial_moment_contract_passes_declared_scope() {
+        let value: Value = serde_json::from_str(EMBEDDED_POLYNOMIAL_MOMENTS)
+            .expect("embedded polynomial-moment contract must be valid JSON");
+        assert!(audit_polynomial_moments_contract(&value).is_empty());
+    }
+
+    #[test]
+    fn polynomial_moment_oracle_cannot_claim_tpe_1_or_tpe_2() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_POLYNOMIAL_MOMENTS).unwrap();
+        value["limitations"] = Value::Array(Vec::new());
+        assert!(audit_polynomial_moments_contract(&value).iter().any(|finding| {
+            finding.starts_with("POLY_MOMENT_CLAIM_BOUNDARY")
+        }));
+    }
+
+    #[test]
+    fn polynomial_moment_oracle_requires_local_and_global_integral_checks() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_POLYNOMIAL_MOMENTS).unwrap();
+        value["acceptance"]["per_destination_integral_checked"] = Value::Bool(false);
+        assert!(audit_polynomial_moments_contract(&value).iter().any(|finding| {
+            finding.starts_with("POLY_MOMENT_ACCEPTANCE")
         }));
     }
 }

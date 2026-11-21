@@ -1,0 +1,90 @@
+{
+  "schema": "luminous.ehd_polynomial_moment_remap",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-POLYNOMIAL-MOMENTS-001",
+  "as_of": "2026-11-21",
+  "status": "analytic_p0_p1_p2_integral_oracle_authored_tests_rust_execution_pending",
+  "units": "declared_quantity_times_space_time_measure",
+  "reference_implementation": {
+    "path": "tools/ehd-reference-audit/src/polynomial_moments.rs",
+    "geometry_backend": "tools/ehd-reference-audit/src/geometry.rs",
+    "supported_geometry": "axis_aligned_boxes_in_compile_time_dimensions",
+    "polynomial_representation": "sum_of_monomials_with_explicit_coefficients_and_integer_powers",
+    "integration": "separable_analytic_antiderivative_per_axis",
+    "reconstruction": "caller_supplies_coefficients_no_cell_average_reconstruction",
+    "checks": [
+      "source_integral",
+      "destination_integral_per_cell",
+      "global_destination_integral",
+      "conservation_residual_with_case_specific_tolerance",
+      "declared_total_degree"
+    ]
+  },
+  "supported_polynomial_degrees": [
+    0,
+    1,
+    2
+  ],
+  "test_families": [
+    "p0_constant_split",
+    "p1_linear_exact_destination_integrals",
+    "p2_quadratic_exact_destination_integrals",
+    "space_time_linear_polynomial",
+    "reject_degree_exceeded",
+    "reject_requested_maximum_degree_above_p2_scope",
+    "reject_non_finite_coefficient",
+    "reject_geometry_gap_before_transfer",
+    "destination_permutation_determinism",
+    "offline_reference_self_check"
+  ],
+  "acceptance": {
+    "universal_numeric_tolerance": null,
+    "case_specific_absolute_plus_relative_integral_tolerance_required": true,
+    "per_destination_integral_checked": true,
+    "global_integral_checked": true,
+    "geometry_partition_must_pass_first": true,
+    "polynomial_exactness_not_equivalent_to_tpe": true
+  },
+  "research_comparison_families": [
+    {
+      "id": "intersection_moment_remap",
+      "description": "reconstruct a source polynomial and integrate it over exact source/destination intersections",
+      "comparison_dimensions": [
+        "geometry_cost",
+        "local_conservation",
+        "moment_accuracy",
+        "positivity_bounds",
+        "mesh_motion_robustness",
+        "total_workflow_cost"
+      ]
+    },
+    {
+      "id": "evolved_geometric_moments",
+      "description": "evolve geometric moments required for polynomial transport rather than repeatedly constructing all intersections",
+      "source_preprints": [
+        "arXiv:2602.09729",
+        "arXiv:2610.15650"
+      ],
+      "comparison_dimensions": [
+        "tpe_degree",
+        "local_conservation",
+        "mesh_motion_regularness",
+        "time_subcycling",
+        "geometry_cost",
+        "total_workflow_cost"
+      ]
+    }
+  ],
+  "limitations": [
+    "caller_supplies_polynomial_coefficients",
+    "no_cell_average_reconstruction",
+    "no_p1_or_p2_reconstruction_operator",
+    "axis_aligned_geometry_only",
+    "no_moving_mesh_transport",
+    "no_tpe_1_or_tpe_2_implementation",
+    "no_production_remapping_solver",
+    "no_physical_ehd_solver",
+    "polynomial_degree_limited_to_p2"
+  ],
+  "claim_ceiling": "This is an analytic P0/P1/P2 polynomial integration oracle over axis-aligned intersections. It does not establish production higher-order remapping, TPE(1/2), moving-mesh solution accuracy, Rust execution, physical EHD results or SOTA superiority."
+}
