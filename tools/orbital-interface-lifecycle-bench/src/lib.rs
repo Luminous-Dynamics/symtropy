@@ -131,9 +131,7 @@ fn decide(case: &LifecycleCase) -> Decision {
             "configuration_changed_since_qualification",
         );
     }
-    if case.current_procedure_revision.is_empty()
-        || case.qualified_procedure_revision.is_empty()
-    {
+    if case.current_procedure_revision.is_empty() || case.qualified_procedure_revision.is_empty() {
         return Decision::new(Disposition::Indeterminate, "procedure_revision_missing");
     }
     if case.current_procedure_revision != case.qualified_procedure_revision {
@@ -167,7 +165,10 @@ fn decide(case: &LifecycleCase) -> Decision {
         return Decision::new(Disposition::Indeterminate, "qualification_validity_missing");
     };
     if case.at_tick > valid_until {
-        return Decision::new(Disposition::RequalificationRequired, "qualification_expired");
+        return Decision::new(
+            Disposition::RequalificationRequired,
+            "qualification_expired",
+        );
     }
     let Some(cycle_limit) = case.qualified_cycle_limit else {
         return Decision::new(Disposition::Indeterminate, "qualified_cycle_limit_missing");
@@ -185,7 +186,10 @@ fn decide(case: &LifecycleCase) -> Decision {
         return Decision::new(Disposition::Indeterminate, "inspection_interval_missing");
     };
     if inspection_age > inspection_interval {
-        return Decision::new(Disposition::RequalificationRequired, "inspection_interval_expired");
+        return Decision::new(
+            Disposition::RequalificationRequired,
+            "inspection_interval_expired",
+        );
     }
     if case.calibration_valid != Some(true) {
         return Decision::new(Disposition::Indeterminate, "calibration_evidence_not_valid");
@@ -270,8 +274,8 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
             Disposition::Rejected => summary.rejected += 1,
             Disposition::Indeterminate => summary.indeterminate += 1,
         }
-        let expected_result_matched = decision.status == case.expected_status
-            && decision.reason == case.expected_reason;
+        let expected_result_matched =
+            decision.status == case.expected_status && decision.reason == case.expected_reason;
         if !expected_result_matched {
             summary.expected_result_mismatches += 1;
         }
