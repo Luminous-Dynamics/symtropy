@@ -76,6 +76,37 @@ Metric definitions:
 - Diagnosis quality is measured after detection, and states whether classes were seen in training.
 - Abstention reports task coverage, selective accuracy and correctness of abstention on ambiguous/out-of-domain tasks.
 
+### Feature-set stability and diagnostic reproducibility
+
+A 2026 evolutionary WFIF study adds feature-subset stability to discriminative power and dimensionality. It reports average F1 of 95.79% across the 21 TEP faults, improved F1 on d03/d09/d15, and very low variability in the *number* of selected features across ten repeated experiments. This is a useful comparator, but stability of subset size does not establish stability of selected feature identity.
+
+FoundryBench therefore reports both:
+
+- **Subset-size stability:** mean and standard deviation of selected feature count per fault across seeds/splits.
+- **Feature-identity stability:** pairwise Jaccard similarity between selected feature sets across independently repeated training partitions, per fault. Report mean, median and 10th percentile; publish each selected set and its feature provenance.
+- **Chance-adjusted stability:** where compared sets have equal cardinality, also report the Kuncheva index. Do not use it for unequal-cardinality sets without a clearly stated generalized definition.
+- **Selection reproducibility:** feature selection occurs inside each training partition only. Test labels, post-onset test windows and the blind test set must not influence feature selection or weights.
+- **Causal/engineering validity:** report whether selected variables have an admitted relationship to the known process topology or fault propagation evidence. Statistical stability is not causal truth; a consistently selected spurious proxy remains spurious.
+- **Compactness/performance trade-off:** publish feature count, per-fault F1/recall, stability and inference cost together. Do not rank a method by dimensionality reduction alone.
+
+A stronger target is a stable, compact feature subset that retains difficult-fault recall under run-level and operating-mode shifts. The benchmark should test whether stability survives those shifts, not only random resampling from one stationary run.
+
+### Onset-based early diagnosis and safe deferral
+
+A 2026 Five-Stage Cascade study uses an onset protocol: models see only the first post-fault observations at predeclared times and compare early diagnosis against nine baselines under a matched tuning budget. It reports fewer confident incorrect fault labels and false alarms at an early horizon, with some ambiguous cases safely deferred. Its TEP data are described as available on request, so this is a literature comparator; do not claim reproduction until the exact dataset and protocol are admitted.
+
+FoundryBench should pre-register the following onset experiment:
+
+- Establish fault onset from the source simulator's fault schedule, not from a model-detected signal.
+- Evaluate at fixed post-onset horizons (for example, 5, 15, 30 and 60 minutes) and also at a fixed number of samples only when the source cadence is pinned.
+- Give every method the same pre-onset history, post-onset cutoff, labels, compute budget and tuning opportunity.
+- Separate fault detection, diagnosis, and root-cause attribution. A correct detection with an uncertain class is not a correct diagnosis.
+- Report at each horizon: detection recall, false-alarm rate, diagnosis macro-F1, confident-wrong rate, safe-deferral rate, time-to-first-detection and time-to-correct-diagnosis.
+- Score a deferral as safe only when the method explicitly marks its uncertainty and avoids a confident wrong class or unauthorized action. Report coverage and decision loss so a system cannot look good by abstaining on everything.
+- Test causal propagation explanations against an independently admitted process graph; explanations are a separate score and do not upgrade diagnosis accuracy.
+
+The core paradigm is **earliest defensible decision**, not earliest forced label. Optimize decision loss over time, accounting for missed faults, false alarms, confident misdiagnosis and safe deferral.
+
 No headline average without all 21 rows and the exact aggregation rule.
 
 ## 5. Semantic portability tasks and negative controls
@@ -129,6 +160,8 @@ These are programme targets, not achieved results:
 - Zero wrong accepted critical joins in the declared corpus; ambiguous cases reject/abstain.
 - 100% of canonical TEP scenarios reported; no run leakage; at least five seeds for stochastic systems.
 - No promotion of metadata/NodeSet presence into functional, cybersecurity, safety, metrology or physical qualification.
+- Report feature-set identity stability, not only feature-count stability, across independent seeds and run-level partitions.
+- Report onset-horizon risk (confident wrong diagnoses, false alarms and safe deferrals) at each pre-registered cutoff; do not reward earliest forced classification.
 - Pareto improvement over the strongest same-task baseline in at least one material operational dimension without regression in critical semantic/authority invariants.
 
 Do not collapse results into one weighted score. Publish Pareto frontiers and failure categories. Lower latency with wrong part/lot association is not an improvement.
