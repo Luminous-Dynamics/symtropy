@@ -184,7 +184,8 @@
         "evidence_compliance_rate",
         "false_memory_count",
         "hard_violation_count",
-        "resource_usage"
+        "resource_usage",
+        "evidence_qualified_answer_accuracy"
       ],
       "properties": {
         "answer_accuracy": {
@@ -313,6 +314,14 @@
               "minimum": 0
             }
           }
+        },
+        "evidence_qualified_answer_accuracy": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
         }
       }
     },
