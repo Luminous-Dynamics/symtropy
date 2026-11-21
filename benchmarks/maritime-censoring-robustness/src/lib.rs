@@ -67,7 +67,7 @@ impl ScenarioKind {
 
     fn seed(self) -> u64 {
         match self {
-            Self::IndependentAdministrative => 0x1234_5678_9,
+            Self::IndependentAdministrative => 0x0001_2345_6789,
             Self::MeasuredStratumDependent => 0x23_4567_89ab,
             Self::OutcomeDependentReportingLag => 0x34_5678_9abc,
             Self::PositivityFailure => 0x45_6789_abcd,
