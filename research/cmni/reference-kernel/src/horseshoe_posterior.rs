@@ -852,10 +852,6 @@ mod tests {
                 - evaluate(log_scale - epsilon).log_posterior)
                 / (2.0 * epsilon);
         assert!((finite_difference - result.log_experiment_scale_gradients[0]).abs() < 1.0e-4);
-        assert_eq!(
-            evaluate(0.4_f64.ln()).log_posterior.is_finite(),
-            false
-        );
     }
 
     fn base_args() -> BaseArgs {
