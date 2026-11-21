@@ -55,7 +55,10 @@ fn completed_failure_is_coverage_but_never_a_pass() {
         .iter()
         .find(|item| item.case_id == "case-11-completed-failure-still-covers-test-condition")
         .expect("completed failure case exists");
-    assert_eq!(failed.disposition, Disposition::CoverageCompleteWithFailures);
+    assert_eq!(
+        failed.disposition,
+        Disposition::CoverageCompleteWithFailures
+    );
     assert_eq!(failed.failed_runs, 1);
     assert_eq!(failed.covered_obligations, 1);
 }
@@ -68,7 +71,9 @@ fn duplicates_and_run_group_ids_are_not_double_counted() {
     let duplicate = report
         .cases
         .iter()
-        .find(|item| item.case_id == "case-13-identical-duplicate-run-is-idempotent-not-independent")
+        .find(|item| {
+            item.case_id == "case-13-identical-duplicate-run-is-idempotent-not-independent"
+        })
         .expect("duplicate case exists");
     assert_eq!(duplicate.duplicate_runs, 1);
     assert_eq!(duplicate.eligible_runs, 1);
