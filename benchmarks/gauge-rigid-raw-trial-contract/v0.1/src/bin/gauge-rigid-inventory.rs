@@ -1,7 +1,6 @@
 use gauge_rigid_raw_trial_contract::validate_trial_json;
 use std::collections::BTreeMap;
 use std::env;
-use std::error::Error;
 use std::ffi::OsStr;
 use std::fs::{self, File};
 use std::io::{self, BufWriter, Read, Write};
@@ -534,7 +533,7 @@ fn run(arguments: Arguments) -> Result<bool, String> {
         return Err("--root must identify a directory".to_owned());
     }
 
-    let (paths, mut issues) = sorted_json_files(&root);
+    let (paths, issues) = sorted_json_files(&root);
     let mut records = Vec::with_capacity(paths.len());
     let mut hash_or_read_failure = false;
 
@@ -613,9 +612,6 @@ fn run(arguments: Arguments) -> Result<bool, String> {
         && records
             .iter()
             .all(|record| record.disposition == "VALID_OBSERVED_PROFILE");
-    if !passed {
-        issues.clear();
-    }
     Ok(passed)
 }
 
