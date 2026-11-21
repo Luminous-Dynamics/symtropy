@@ -95,7 +95,7 @@ fn parse_i64(value: &str, name: &str, line: usize) -> Result<i64, String> {
         .map_err(|_| format!("line {line}: {name} must be an integer, got {value:?}"))
 }
 
-fn split_row<'a>(line: &'a str, line_number: usize) -> Result<Vec<&'a str>, String> {
+fn split_row(line: &str, line_number: usize) -> Result<Vec<&str>, String> {
     let fields: Vec<&str> = line.split(',').map(str::trim).collect();
     if fields.len() != 7 {
         return Err(format!(
