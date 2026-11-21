@@ -284,6 +284,65 @@ def main() -> None:
     )/((1-tau)**3*(1+tau)**2)
     exact_zero("source-vs-Wald/axial residual polynomial",
                source_minus_axial-expected_source_minus_axial)
+
+    # A coordinate primitive for the exact residual density. This is only a
+    # one-dimensional angular primitive; it is NOT yet identified as a
+    # covariant phase-space boundary current.
+    beta_bdy,e_cut=sp.symbols("beta_bdy epsilon_cut", positive=True, finite=True)
+    z_bdy=sp.sqrt(beta_bdy)*e_cut**2
+    z0_bdy=sp.sqrt(beta_bdy)
+    I_bdy=(
+        12*z_bdy
+        +(-40889*z_bdy**6+42878*z_bdy**4+35759*z_bdy**2-51360)
+          /(16*z_bdy*(1-z_bdy**2)**2*(1+z_bdy**2))
+        +sp.Rational(19813,32)*sp.log((1+z_bdy)/(1-z_bdy))
+        -sp.Rational(5365,4)*sp.atan(z_bdy)
+    )
+    I_z=(
+        12*sp.Symbol("z")
+        +(-40889*sp.Symbol("z")**6+42878*sp.Symbol("z")**4
+          +35759*sp.Symbol("z")**2-51360)
+          /(16*sp.Symbol("z")*(1-sp.Symbol("z")**2)**2
+            *(1+sp.Symbol("z")**2))
+        +sp.Rational(19813,32)*sp.log((1+sp.Symbol("z"))/(1-sp.Symbol("z")))
+        -sp.Rational(5365,4)*sp.atan(sp.Symbol("z"))
+    )
+    z_sym=sp.Symbol("z", positive=True)
+    I_z=I_z.subs(sp.Symbol("z"),z_sym)
+    residual_poly_bdy=(
+        1605-2138*beta_bdy*e_cut**4-3645*beta_bdy**2*e_cut**8
+        +628*beta_bdy**3*e_cut**12+135*beta_bdy**4*e_cut**16
+        +18*beta_bdy**5*e_cut**20-6*beta_bdy**6*e_cut**24
+    )
+    residual_density_bdy=(
+        alpha_sym*residual_poly_bdy
+        /(16*sp.pi*G*e_cut**3
+          *(1-beta_bdy*e_cut**4)**3*(1+beta_bdy*e_cut**4)**2)
+    )
+    boundary_primitive=sp.factor(
+        alpha_sym*sp.sqrt(beta_bdy)/(64*sp.pi*G)
+        *(I_bdy-I_z.subs(z_sym,z0_bdy))
+    )
+    exact_zero(
+        "source residual is derivative of coordinate angular primitive",
+        sp.diff(boundary_primitive,e_cut)-residual_density_bdy
+    )
+    exact_zero(
+        "boundary primitive vanishes at regular axis",
+        boundary_primitive.subs(e_cut,1)
+    )
+    I_series=sp.series(I_z,z_sym,0,9).removeO()
+    I_expected_series=(
+        -3210/z_sym-1066*z_sym-sp.Rational(1936,3)*z_sym**3
+        -sp.Rational(9232,5)*z_sym**5-sp.Rational(13912,7)*z_sym**7
+    )
+    exact_zero("coordinate primitive endpoint series",I_series-I_expected_series)
+    exact_zero(
+        "coordinate primitive leading divergence",
+        sp.limit(e_cut**2*boundary_primitive,e_cut,0)
+        +1605*alpha_sym/(32*sp.pi*G)
+    )
+
     exact_zero("Einstein coefficient is +1",
                sp.limit(tau_form(k_e_density*16*sp.pi*G*eps**3/(alpha_sym*sine)),
                         tau,0)-1)
@@ -355,6 +414,15 @@ def main() -> None:
       },
       "exact_residuals":{
         "source_minus_axial":sp.sstr(source_minus_axial),
+        "coordinate_boundary_primitive":{
+          "definition":"dB/depsilon = source_density - Wald/axial density",
+          "z":"sqrt(beta)*epsilon_cut^2",
+          "I_z":"12*z+(-40889*z^6+42878*z^4+35759*z^2-51360)/(16*z*(1-z^2)^2*(1+z^2))+19813/32*log((1+z)/(1-z))-5365/4*atan(z)",
+          "B":"alpha_sym*sqrt(beta)/(64*pi*G)*(I(sqrt(beta)*epsilon_cut^2)-I(sqrt(beta)))",
+          "I_endpoint_series":"-3210/z-1066*z-1936*z^3/3-9232*z^5/5-13912*z^7/7+O(z^9)",
+          "B_endpoint_leading":"-1605*alpha_sym/(32*pi*G*epsilon_cut^2)",
+          "warning":"This is a coordinate primitive of the scalar density difference. It is not yet derived as a covariant phase-space boundary current."
+        },
         "source_minus_wald_variation":sp.sstr(source_minus_wald),
         "axial_minus_wald_variation":sp.sstr(axial_minus_wald),
         "GB_source_minus_lovelock_leading_coefficient":"+1605",
@@ -372,6 +440,9 @@ def main() -> None:
         "wald_variation_equals_axial_lovelock_charge_exactly":True,
         "source_minus_axial_residual_polynomial_exact":True,
         "source_density_disagrees_with_both_exactly":True,
+        "source_residual_coordinate_boundary_primitive_exact":True,
+        "boundary_primitive_vanishes_at_regular_axis":True,
+        "boundary_primitive_leading_divergence_exact":True,
         "three_way_discrepancy_exact":True,
         "source_charge_formula_term_by_term_replayed":False,
         "Lovelock_divergence_free_component_replay":False,
