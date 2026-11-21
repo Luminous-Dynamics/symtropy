@@ -517,6 +517,25 @@ mod tests {
     }
 
     #[test]
+    fn does_not_renormalize_coverage_within_loose_fraction_tolerance() {
+        let permissive_coverage = MappingTolerance {
+            fraction_sum_abs: 0.01,
+            impulse_abs_ns: 1.0e-12,
+            impulse_rel: 0.0,
+        };
+        let error = map_integrated_impulses(
+            &[event(1, [10.0, 0.0, 0.0])],
+            &[weight(1, 2, 0.999)],
+            permissive_coverage,
+        )
+        .unwrap_err();
+        assert!(matches!(
+            error,
+            MappingError::ConservationFailure { component: 0, .. }
+        ));
+    }
+
+    #[test]
     fn checks_each_source_even_when_global_impulses_cancel() {
         let error = map_integrated_impulses(
             &[event(1, [100.0, 0.0, 0.0]), event(2, [-100.0, 0.0, 0.0])],
