@@ -14,8 +14,11 @@ fn ticket() -> ActionTicket {
         ticket_commitment: digest(1),
         mission_id: "mission-1".into(),
         mission_generation: 7,
+        subgoal_id: "subgoal-1".into(),
         action_id: "action-1".into(),
+        attempt: 1,
         action_digest: digest(2),
+        expected_effect_predicate_id: "predicate.reached-waypoint".into(),
         platform: PlatformBinding {
             platform_id: "vehicle-1".into(),
             configuration_digest: digest(3),
@@ -56,6 +59,10 @@ fn live() -> LiveContext {
     LiveContext {
         mission_id: t.mission_id.clone(),
         mission_generation: t.mission_generation,
+        active_subgoal_id: t.subgoal_id.clone(),
+        active_action_id: t.action_id.clone(),
+        active_attempt: t.attempt,
+        active_effect_predicate_id: t.expected_effect_predicate_id.clone(),
         platform: t.platform.clone(),
         operation: t.operation.clone(),
         authority_id: t.authority.authority_id.clone(),
@@ -81,7 +88,9 @@ fn live() -> LiveContext {
 fn independent_admission_oracle(ticket: &ActionTicket, context: &LiveContext) -> bool {
     let nonempty = [
         ticket.mission_id.as_str(),
+        ticket.subgoal_id.as_str(),
         ticket.action_id.as_str(),
+        ticket.expected_effect_predicate_id.as_str(),
         ticket.platform.platform_id.as_str(),
         ticket.operation.odd_id.as_str(),
         ticket.operation.mode_id.as_str(),
@@ -94,6 +103,9 @@ fn independent_admission_oracle(ticket: &ActionTicket, context: &LiveContext) ->
         ticket.expected_observation_frame_id.as_str(),
         ticket.expected_calibration_id.as_str(),
         context.mission_id.as_str(),
+        context.active_subgoal_id.as_str(),
+        context.active_action_id.as_str(),
+        context.active_effect_predicate_id.as_str(),
         context.platform.platform_id.as_str(),
         context.operation.odd_id.as_str(),
         context.operation.mode_id.as_str(),
@@ -120,6 +132,10 @@ fn independent_admission_oracle(ticket: &ActionTicket, context: &LiveContext) ->
         || context.now_ticks >= ticket.expires_at_ticks
         || ticket.mission_id != context.mission_id
         || ticket.mission_generation != context.mission_generation
+        || ticket.subgoal_id != context.active_subgoal_id
+        || ticket.action_id != context.active_action_id
+        || ticket.attempt != context.active_attempt
+        || ticket.expected_effect_predicate_id != context.active_effect_predicate_id
         || ticket.platform != context.platform
         || ticket.operation != context.operation
         || ticket.authority.authority_id != context.authority_id
@@ -174,6 +190,7 @@ fn evidence() -> PhysicalOutcomeEvidence {
     let t = ticket();
     PhysicalOutcomeEvidence {
         ticket_commitment: t.ticket_commitment,
+        content_digest: digest(8),
         event_id: "event-1".into(),
         source_id: "independent-camera-1".into(),
         executing_controller_id: "vehicle-controller-1".into(),
@@ -259,6 +276,22 @@ fn admission_validator_matches_independent_oracle_under_fault_mutations() {
     let mut c = base_live.clone();
     c.now_ticks = 2_000;
     cases.push(("expiry-boundary", base_ticket.clone(), c));
+
+    let mut c = base_live.clone();
+    c.active_subgoal_id = "different-subgoal".into();
+    cases.push(("active-subgoal-mismatch", base_ticket.clone(), c));
+
+    let mut c = base_live.clone();
+    c.active_action_id = "different-action".into();
+    cases.push(("active-action-mismatch", base_ticket.clone(), c));
+
+    let mut c = base_live.clone();
+    c.active_attempt += 1;
+    cases.push(("active-attempt-mismatch", base_ticket.clone(), c));
+
+    let mut c = base_live.clone();
+    c.active_effect_predicate_id = "different-predicate".into();
+    cases.push(("active-predicate-mismatch", base_ticket.clone(), c));
 
     let mut c = base_live.clone();
     c.platform.configuration_digest = digest(90);
