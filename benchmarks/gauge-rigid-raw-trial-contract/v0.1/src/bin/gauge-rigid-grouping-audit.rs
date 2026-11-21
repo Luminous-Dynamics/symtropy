@@ -14,8 +14,10 @@ use std::process::{Command, Stdio};
 const MAPPING_HEADER: &str = "raw_path\traw_sha256\tmetadata_path\tmetadata_sha256\tmapping_status\tevidence_path\tevidence_field\tevidence_value\treviewer\treview_id\tfamily\tsubtask\tmaterial";
 const GROUPING_HEADER: &str = "raw_path\traw_sha256\tunit_disposition\texchangeability_unit_id\tgroup_evidence_path\tgroup_evidence_field\tgroup_evidence_value\treviewer\treview_id\tdependence_keys\tsplit";
 const SPLITS: [&str; 4] = ["FIT", "CALIBRATION", "TEST", "UNASSIGNED"];
-const DEPENDENCE_KINDS: [&str; 7] = [
+const DEPENDENCE_KINDS: [&str; 9] = [
     "article",
+    "lot",
+    "recording",
     "session",
     "setup",
     "fixture",
@@ -907,6 +909,47 @@ fn main() {
 mod tests {
     use super::*;
 
+    fn synthetic_row(
+        path: &str,
+        digest: &str,
+        disposition: &str,
+        unit_id: Option<&str>,
+        dependence_keys: &[&str],
+        split: &str,
+    ) -> Row {
+        let source_backed = disposition == "SOURCE_BACKED";
+        Row {
+            mapping: Mapping {
+                raw_path: path.to_owned(),
+                raw_sha: digest.to_owned(),
+                metadata_path: Some("metadata.json".to_owned()),
+                metadata_sha: Some("b".repeat(64)),
+                status: "EXPLICIT_SOURCE_MAPPING".to_owned(),
+                evidence_path: Some("metadata.json".to_owned()),
+                evidence_field: Some("/raw".to_owned()),
+                evidence_value: Some(path.to_owned()),
+                reviewer: Some("reviewer".to_owned()),
+                review_id: Some("review-1".to_owned()),
+                family: "bouncing ball".to_owned(),
+                subtask: "drop".to_owned(),
+                material: "steel".to_owned(),
+            },
+            grouping: Grouping {
+                raw_path: path.to_owned(),
+                raw_sha: digest.to_owned(),
+                disposition: disposition.to_owned(),
+                unit_id: unit_id.map(str::to_owned),
+                dependence_keys: dependence_keys.iter().map(|key| (*key).to_owned()).collect(),
+                split: split.to_owned(),
+                group_evidence_path: source_backed.then(|| "metadata/metadata.json".to_owned()),
+                group_evidence_field: source_backed.then(|| "/article_id".to_owned()),
+                group_evidence_value: source_backed.then(|| unit_id.unwrap_or("UNKNOWN").to_owned()),
+                reviewer: source_backed.then(|| "reviewer".to_owned()),
+                review_id: source_backed.then(|| "review-1".to_owned()),
+            },
+        }
+    }
+
     #[test]
     fn union_find_connects_transitive_shared_dependencies() {
         let mut union = UnionFind::with_len(4);
@@ -928,8 +971,13 @@ mod tests {
     #[test]
     fn dependence_keys_are_namespaced_and_strict() {
         assert_eq!(
-            parse_dependence_keys("article:A-1;session:S-2", 2).unwrap(),
-            vec!["article:A-1".to_owned(), "session:S-2".to_owned()]
+            parse_dependence_keys("article:A-1;lot:L-2;recording:R-3;session:S-4", 2).unwrap(),
+            vec![
+                "article:A-1".to_owned(),
+                "lot:L-2".to_owned(),
+                "recording:R-3".to_owned(),
+                "session:S-4".to_owned()
+            ]
         );
         assert!(parse_dependence_keys("article:", 2).is_err());
         assert!(parse_dependence_keys("unknown:X", 2).is_err());
@@ -939,6 +987,101 @@ mod tests {
     #[test]
     fn json_escape_handles_quotes_slashes_and_controls() {
         assert_eq!(json_escape("a\"b\\c\n"), "\"a\\\"b\\\\c\\n\"".to_owned());
+    }
+
+    #[test]
+    fn dependence_components_join_shared_physical_groups_and_exclude_unknown_units() {
+        let rows = vec![
+            synthetic_row(
+                "one.json",
+                &"a".repeat(64),
+                "SOURCE_BACKED",
+                Some("trial-1"),
+                &["article:specimen-1", "recording:rec-1"],
+                "FIT",
+            ),
+            synthetic_row(
+                "two.json",
+                &"b".repeat(64),
+                "SOURCE_BACKED",
+                Some("trial-2"),
+                &["article:specimen-1", "session:session-1"],
+                "TEST",
+            ),
+            synthetic_row(
+                "three.json",
+                &"c".repeat(64),
+                "SOURCE_BACKED",
+                Some("trial-3"),
+                &["lot:lot-2"],
+                "CALIBRATION",
+            ),
+            synthetic_row(
+                "four.json",
+                &"d".repeat(64),
+                "UNKNOWN",
+                None,
+                &[],
+                "UNASSIGNED",
+            ),
+        ];
+
+        let (_, components) = grouping_components(&rows);
+        assert_eq!(components.len(), 2);
+        assert_eq!(components.values().map(Vec::len).sum::<usize>(), 3);
+
+        let args = Args {
+            revision: "f".repeat(40),
+            raw_root: PathBuf::from("data/rigid"),
+            metadata_root: PathBuf::from("metadata/rigid"),
+            mapping_tsv: PathBuf::from("mapping.tsv"),
+            grouping_tsv: PathBuf::from("grouping.tsv"),
+            output: None,
+        };
+        let receipt = output_jsonl(&args, &rows, &format!("{}:{}", "e".repeat(64), "f".repeat(64)))
+            .unwrap();
+        assert!(receipt.contains("\\\"source_backed_rows\\\":3"));
+        assert!(receipt.contains("\\\"unknown_group_rows\\\":1"));
+        assert!(receipt.contains("\\\"cross_split_dependence_components\\\":1"));
+        assert!(receipt.contains("FAIL_CROSS_SPLIT_DEPENDENCE"));
+        assert!(receipt.contains("UNBOUNDED_REQUIRED_BELOW_19_INDEPENDENT_UNITS"));
+    }
+
+    #[test]
+    fn identical_raw_content_cannot_be_split_across_calibration_and_test() {
+        let same_digest = "a".repeat(64);
+        let rows = vec![
+            synthetic_row(
+                "copy-a.json",
+                &same_digest,
+                "SOURCE_BACKED",
+                Some("trial-a"),
+                &[],
+                "CALIBRATION",
+            ),
+            synthetic_row(
+                "copy-b.json",
+                &same_digest,
+                "SOURCE_BACKED",
+                Some("trial-b"),
+                &[],
+                "TEST",
+            ),
+        ];
+        let (_, components) = grouping_components(&rows);
+        assert_eq!(components.len(), 1);
+
+        let args = Args {
+            revision: "f".repeat(40),
+            raw_root: PathBuf::from("data/rigid"),
+            metadata_root: PathBuf::from("metadata/rigid"),
+            mapping_tsv: PathBuf::from("mapping.tsv"),
+            grouping_tsv: PathBuf::from("grouping.tsv"),
+            output: None,
+        };
+        let receipt = output_jsonl(&args, &rows, &format!("{}:{}", "e".repeat(64), "f".repeat(64)))
+            .unwrap();
+        assert!(receipt.contains("FAIL_CROSS_SPLIT_DEPENDENCE"));
     }
 
     #[test]
