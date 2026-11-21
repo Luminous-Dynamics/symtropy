@@ -288,13 +288,13 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    const SCHEMA: &str = include_str!("../profile.schema.json");
-    const MQTT: &str = include_str!("../profiles/uns-mqtt.synthetic.json");
-    const I3X: &str = include_str!("../profiles/i3x-1.0.reference.json");
+    const SCHEMA: &str = include_str!("../../profile.schema.json");
+    const MQTT: &str = include_str!("../../profiles/uns-mqtt.synthetic.json");
+    const I3X: &str = include_str!("../../profiles/i3x-1.0.reference.json");
     const OPC_MACHINERY: &str =
-        include_str!("../profiles/opcua-machinery-1.04.2.reference.json");
+        include_str!("../../profiles/opcua-machinery-1.04.2.reference.json");
     const OPC_ROBOTICS: &str =
-        include_str!("../profiles/opcua-robotics-1.02.reference.json");
+        include_str!("../../profiles/opcua-robotics-1.02.reference.json");
 
     fn schema() -> Value {
         serde_json::from_str(SCHEMA).expect("schema JSON must parse")
