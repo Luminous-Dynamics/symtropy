@@ -182,7 +182,11 @@ pub fn parse_crosswalk_tsv(input: &str) -> Result<Vec<IdentityMapping>, String> 
         }
         let fields: Vec<&str> = line.split('\t').collect();
         if fields.len() != 11 {
-            return Err(format!("crosswalk row {} has {} fields, expected 11", index + 2, fields.len()));
+            return Err(format!(
+                "crosswalk row {} has {} fields, expected 11",
+                index + 2,
+                fields.len()
+            ));
         }
         for (field_index, field_name) in [
             (0, "mapping_id"),
@@ -200,7 +204,10 @@ pub fn parse_crosswalk_tsv(input: &str) -> Result<Vec<IdentityMapping>, String> 
             Some(parse_number(fields[6], "valid_until")?)
         };
         if valid_until.is_some_and(|end| end <= valid_from) {
-            return Err(format!("crosswalk row {} has a non-positive validity window", index + 2));
+            return Err(format!(
+                "crosswalk row {} has a non-positive validity window",
+                index + 2
+            ));
         }
         let revision: u32 = parse_number(fields[7], "mapping revision")?;
         if revision == 0 {
@@ -238,7 +245,11 @@ pub fn parse_events_tsv(input: &str) -> Result<Vec<CargoEvent>, String> {
         }
         let fields: Vec<&str> = line.split('\t').collect();
         if fields.len() != 12 {
-            return Err(format!("event row {} has {} fields, expected 12", index + 2, fields.len()));
+            return Err(format!(
+                "event row {} has {} fields, expected 12",
+                index + 2,
+                fields.len()
+            ));
         }
         for (field_index, field_name) in [
             (0, "source_id"),
@@ -280,8 +291,14 @@ fn effective_mappings<'a>(
     as_of: i64,
 ) -> Result<Vec<&'a IdentityMapping>, IdentityError> {
     let mut by_mapping_id: BTreeMap<&str, Vec<&IdentityMapping>> = BTreeMap::new();
-    for mapping in mappings.iter().filter(|mapping| mapping.published_at <= as_of) {
-        by_mapping_id.entry(&mapping.mapping_id).or_default().push(mapping);
+    for mapping in mappings
+        .iter()
+        .filter(|mapping| mapping.published_at <= as_of)
+    {
+        by_mapping_id
+            .entry(&mapping.mapping_id)
+            .or_default()
+            .push(mapping);
     }
 
     let mut effective = Vec::new();
@@ -297,7 +314,9 @@ fn effective_mappings<'a>(
             .collect();
         let first = latest[0];
         if latest.iter().any(|candidate| *candidate != first) {
-            return Err(IdentityError::ConflictingMappingRevision(mapping_id.to_string()));
+            return Err(IdentityError::ConflictingMappingRevision(
+                mapping_id.to_string(),
+            ));
         }
         effective.push(first);
     }
@@ -330,14 +349,19 @@ pub fn resolve_identity(
         .into_iter()
         .filter(|mapping| {
             mapping.valid_from <= event_time
-                && mapping.valid_until.is_none_or(|valid_until| event_time < valid_until)
+                && mapping
+                    .valid_until
+                    .is_none_or(|valid_until| event_time < valid_until)
         })
         .collect();
 
     if in_window.is_empty() {
         return Err(IdentityError::OutOfWindow);
     }
-    if in_window.iter().any(|mapping| mapping.status == MappingStatus::Revoked) {
+    if in_window
+        .iter()
+        .any(|mapping| mapping.status == MappingStatus::Revoked)
+    {
         return Err(IdentityError::Revoked);
     }
 
@@ -571,11 +595,25 @@ mod tests {
         });
 
         assert_eq!(
-            resolve_identity(&mappings, EntityKind::ContainerBox, "SRC_TEST", "REUSED-ID", 20, 200),
+            resolve_identity(
+                &mappings,
+                EntityKind::ContainerBox,
+                "SRC_TEST",
+                "REUSED-ID",
+                20,
+                200
+            ),
             Ok("BOX-OLD".to_string())
         );
         assert_eq!(
-            resolve_identity(&mappings, EntityKind::ContainerBox, "SRC_TEST", "REUSED-ID", 60, 200),
+            resolve_identity(
+                &mappings,
+                EntityKind::ContainerBox,
+                "SRC_TEST",
+                "REUSED-ID",
+                60,
+                200
+            ),
             Ok("BOX-NEW".to_string())
         );
     }
@@ -598,7 +636,14 @@ mod tests {
         });
 
         assert_eq!(
-            resolve_identity(&mappings, EntityKind::ContainerBox, "SRC_DGT", "DGT-BOX-A", 6, 200),
+            resolve_identity(
+                &mappings,
+                EntityKind::ContainerBox,
+                "SRC_DGT",
+                "DGT-BOX-A",
+                6,
+                200
+            ),
             Err(IdentityError::Ambiguous)
         );
     }
@@ -622,7 +667,14 @@ mod tests {
             Err(IdentityError::Revoked)
         );
         assert_eq!(
-            resolve_identity(&mappings, EntityKind::ContainerBox, "SRC_DGT", "DGT-BOX-A", 6, 40),
+            resolve_identity(
+                &mappings,
+                EntityKind::ContainerBox,
+                "SRC_DGT",
+                "DGT-BOX-A",
+                6,
+                40
+            ),
             Ok("BOX-0001".to_string())
         );
     }
@@ -636,7 +688,9 @@ mod tests {
 
         assert_eq!(
             resolve_identity(&mappings, EntityKind::ContainerBox, "SRC_DGT", "DGT-BOX-A", 6, 200),
-            Err(IdentityError::ConflictingMappingRevision("M-001".to_string()))
+            Err(IdentityError::ConflictingMappingRevision(
+                "M-001".to_string()
+            ))
         );
     }
 
@@ -658,7 +712,14 @@ mod tests {
         });
 
         assert_eq!(
-            resolve_identity(&mappings, EntityKind::ContainerBox, "SRC_TEST", "EXPIRED-ID", 10, 200),
+            resolve_identity(
+                &mappings,
+                EntityKind::ContainerBox,
+                "SRC_TEST",
+                "EXPIRED-ID",
+                10,
+                200
+            ),
             Err(IdentityError::OutOfWindow)
         );
     }
@@ -703,7 +764,14 @@ mod tests {
     fn source_aliases_do_not_cross_entity_kinds() {
         let (mappings, _) = fixtures();
         assert_eq!(
-            resolve_identity(&mappings, EntityKind::VesselVisit, "SRC_DGT", "DGT-BOX-A", 6, 200),
+            resolve_identity(
+                &mappings,
+                EntityKind::VesselVisit,
+                "SRC_DGT",
+                "DGT-BOX-A",
+                6,
+                200
+            ),
             Err(IdentityError::Unmatched)
         );
     }
@@ -714,8 +782,10 @@ mod tests {
             .replace("DGT-BOX-A\tBOX-0001\t0\t*", "DGT-BOX-A\tBOX-0001\t20\t10");
         assert!(parse_crosswalk_tsv(&bad_window).is_err());
 
-        let missing_evidence = include_str!("../data/events.tsv")
-            .replace("RECEIVER_RECEIPT\tRECEIPT-EV-006\tfalse", "RECEIVER_RECEIPT\t\tfalse");
+        let missing_evidence = include_str!("../data/events.tsv").replace(
+            "RECEIVER_RECEIPT\tRECEIPT-EV-006\tfalse",
+            "RECEIVER_RECEIPT\t\tfalse",
+        );
         assert!(parse_events_tsv(&missing_evidence).is_err());
     }
 
