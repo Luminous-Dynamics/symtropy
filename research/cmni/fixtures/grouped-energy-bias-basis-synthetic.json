@@ -57,5 +57,17 @@
     "Only basis and overlapping group structure are implemented.",
     "No horseshoe prior, global tau hyperprior or Bayesian Monte Carlo sampler.",
     "Feature group membership is supplied by the curator."
-  ]
+  ],
+  "projection_example": {
+    "sparse_coefficients_by_group": {
+      "group_0_basis_column_0": 0.5,
+      "group_1_basis_column_159": -0.25,
+      "all_other_coefficients": 0
+    },
+    "expected_observation_log_bias": [
+      0.5,
+      -0.25
+    ],
+    "note": "The projected vector is supplied as delta(E) to the raw-scale PFNS bias likelihood."
+  }
 }
