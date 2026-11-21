@@ -474,6 +474,15 @@ fn finite_result(value: f64) -> Result<f64, InertiaError> {
 mod tests {
     use super::*;
 
+    fn identity_matrix(dimension: usize) -> Result<Matrix, InertiaError> {
+        validate_dimension(dimension)?;
+        let mut matrix = zero_matrix(dimension);
+        for (index, row) in matrix.iter_mut().enumerate() {
+            row[index] = 1.0;
+        }
+        Ok(matrix)
+    }
+
     fn close(actual: f64, expected: f64, tolerance: f64) {
         assert!(
             (actual - expected).abs() <= tolerance,
