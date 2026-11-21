@@ -75,6 +75,7 @@ pub enum ChainFailure {
     PendingHandoff,
     HandoffIdReused,
     InvalidQuantity,
+    InvalidHandoff,
     MissingEvidenceReference,
     FinalReceiverWithoutReceipt,
     NotAtExpectedReceiver,
@@ -431,12 +432,12 @@ fn evaluate_box(
                     return;
                 }
                 if let Some(failure) = validate_open(event, expectation) {
-                    let status = if failure == ChainFailure::WrongInitialCustodian {
-                        ChainStatus::Rejected
-                    } else {
-                        ChainStatus::Rejected
-                    };
-                    record_failure(report, &expectation.box_id, failure, status);
+                    record_failure(
+                        report,
+                        &expectation.box_id,
+                        failure,
+                        ChainStatus::Rejected,
+                    );
                     return;
                 }
                 custodian = Some(event.to_party.clone());
@@ -477,7 +478,7 @@ fn evaluate_box(
                     record_failure(
                         report,
                         &expectation.box_id,
-                        ChainFailure::InvalidQuantity,
+                        ChainFailure::InvalidHandoff,
                         ChainStatus::Rejected,
                     );
                     return;
@@ -745,10 +746,11 @@ mod tests {
     #[test]
     fn overlapping_release_is_rejected() {
         let (expectations, mut events) = fixtures();
+        event_mut(&mut events, "B1-A2").event_time = 40;
         let mut extra = event_mut(&mut events, "B1-R2").clone();
         extra.source_event_id = "B1-R-OVERLAP".to_string();
         extra.handoff_id = "H-OVERLAP".to_string();
-        extra.event_time = 45;
+        extra.event_time = 35;
         extra.from_party = "COASTAL_FEEDER".to_string();
         extra.to_party = "OTHER_CARRIER".to_string();
         events.push(extra);
