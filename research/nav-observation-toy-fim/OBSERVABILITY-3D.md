@@ -73,3 +73,12 @@ Known-answer demo outputs:
 - shared-error E-optimal selector chose [east-a, north, up], rank 3, eigenvalues approximately [0.609756, 1, 1].
 
 These are deterministic synthetic linear-model results, not measured navigation accuracy or a claim of 3D field qualification. The full test breakdown is 13 base FIM + 8 common-mode + 11 correlation-envelope + 7 correlation-audit + 3 audit-gated planning + 5 sensitivity + 2 expected-error + 8 independent 3D + 6 correlated 3D tests.
+
+
+### Scale-invariant correlated covariance
+
+The 3D correlated covariance is normalized by its maximum diagonal before Cholesky factorization, then the solved inverse action is rescaled by the reciprocal covariance scale. A regression verifies the expected inverse-square information scaling when all private and shared standard deviations are multiplied by both 10^-8 and 10^8. This avoids a unit-dependent absolute Cholesky pivot threshold invalidating otherwise equivalent models.
+
+### Current exact-head validation
+
+On current active-sensing PR head 536bc760a8f37065f4a6a404e363eca3d831ccf8, the expanded exact-head workflow passed **64/64 Rust tests, 0 failures**, Clippy with no warnings, formatting normalization, and all seven research demo binaries. The test total includes eight independent 3D geometry tests and seven correlated 3D tests, one of which verifies scale invariance. This is mathematical and synthetic validation only.
