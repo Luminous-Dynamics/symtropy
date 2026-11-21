@@ -221,10 +221,7 @@ fn upper_ratio_root(deviance: f64) -> Result<f64, String> {
 /// Conditional on n events under a homogeneous Poisson process, the event
 /// locations are iid uniform on (0, T). Therefore S = sum(log(T / t_i))
 /// follows Gamma(n, 1), and beta_hat = n / S.
-pub fn exact_conditional_trend_p_value(
-    event_count: usize,
-    ratio: f64,
-) -> Result<f64, String> {
+pub fn exact_conditional_trend_p_value(event_count: usize, ratio: f64) -> Result<f64, String> {
     if event_count < 2 || event_count > MAX_EVENTS {
         return Err("event count is outside the supported v0.1 range".to_owned());
     }
@@ -260,7 +257,9 @@ pub fn estimate_trend(
     let mut previous = 0u64;
     for time in event_times_seconds {
         if *time == 0 || *time >= exposure_end_seconds || *time <= previous {
-            return Err("event times must be strictly increasing inside the observation window".to_owned());
+            return Err(
+                "event times must be strictly increasing inside the observation window".to_owned(),
+            );
         }
         sum_log_ratio += (exposure / *time as f64).ln();
         previous = *time;
@@ -279,7 +278,10 @@ pub fn estimate_trend(
 fn evaluate_case(case: &TrendCase) -> Decision {
     let mut blockers = Vec::new();
     if case.model_profile != "power_law_process_repairable_minimal_repair" {
-        push_blocker(&mut blockers, "selected_model_profile_is_not_power_law_minimal_repair");
+        push_blocker(
+            &mut blockers,
+            "selected_model_profile_is_not_power_law_minimal_repair",
+        );
         return Decision {
             disposition: Disposition::ModelNotSupported,
             event_count: case.event_times_seconds.len(),
