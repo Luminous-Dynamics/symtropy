@@ -183,6 +183,21 @@ Source:
 - https://doi.org/10.1038/s41540-026-00722-2
 - https://pmc.ncbi.nlm.nih.gov/articles/PMC13287743/
 
+## 4D. Prepared grouped sampler and independent-chain qualification
+
+The standalone kernel now has `PreparedGroupedRawScaleHorseshoeModel`. It constructs the observation covariance from the unscaled baseline mean and relative covariance, computes the Cholesky factor and log determinant once, and reuses both across repeated target evaluations. This is important because AIACHNE's experiment scales alter the mean but the original Stan likelihood anchors the residual covariance to the unscaled physical mean.
+
+A regression test compares prepared and unprepared grouped evaluations for:
+- log likelihood and log posterior;
+- biased predictions;
+- coefficient gradients;
+- local/global horseshoe gradients;
+- experiment-scale gradients.
+
+The branch also has `run_grouped_horseshoe_hmc_chain` and `run_grouped_horseshoe_hmc_chains`. The phase-space vector includes coefficients, local log-scales, multiple global log-scales, and optional experiment log-scales. The multi-chain runner requires at least four chains and unique seeds, freezes the same HMC configuration across chains, and preserves each chain's draws, Hamiltonian energies, acceptance, divergence and seed receipts. `diagnose_grouped_hmc_quantity` projects a selected coefficient, local scale, global scale or experiment scale into the existing rank-normalized/folded R-hat, bulk/tail ESS, MCSE and E-BFMI diagnostics.
+
+This is fixed-step HMC with no NUTS tree building, dual-averaging adaptation, or mass-matrix adaptation. Unique seeds do not guarantee overdispersed initial states; the initial-state dispersion policy must be preregistered and checked. The tests are authored and not yet reported as executed. No NUTS/BMC or posterior qualification claim is made.
+
 ## 5. Next parity experiments
 
 1. Reconstruct the upstream notebook's exact trapezoidal weights and linear interpolation projection on each experimental energy grid.
