@@ -155,15 +155,16 @@ def main() -> None:
     pgb_components={}
     for rho,sigma in relevant:
         pgb_components[f"{rho},{sigma}"]=p_gb(0,1,rho,sigma)
+    relevant_ordered={(0,1),(1,0),(0,2),(2,0),(2,4),(4,2)}
     contraction_gb=sp.factor(sum(
         p_gb(0,1,rho,sigma)*nabla_xi[rho,sigma]
-        for rho in range(5) for sigma in range(5)
+        for rho,sigma in relevant_ordered
     ))
     contraction_expected=(
         256*eps**4*(4*a**4*eps**8+20*a**2*alpha_sym*eps**4-3*alpha_sym**2)
         /(2*a**2*eps**4-alpha_sym)**3
         /(2*a**2*eps**4+alpha_sym)**2
-        *nabla_xi[0,1]
+        *nabla_xi[0,1]*2
     )
     exact_zero("Lovelock PGB contraction",contraction_gb-contraction_expected)
 
@@ -175,13 +176,14 @@ def main() -> None:
         sp.Rational(1,2)*(inverse[0,rho]*inverse[1,sigma]
                           -inverse[0,sigma]*inverse[1,rho])
         *nabla_xi[rho,sigma]
-        for rho in range(5) for sigma in range(5)
+        for rho,sigma in relevant_ordered
     )
-    exact_zero("Einstein momentum contraction",contraction_e-p_einstein*nabla_xi[0,1])
+    exact_zero("Einstein momentum contraction",
+               contraction_e-2*p_einstein*nabla_xi[0,1])
 
     # The source's k_E convention is twice the un-dualized tensor Noether
     # potential in this component. Fix this normalization only by matching Eq. (29).
-    source_prefactor=-sp.Rational(2,1)/(16*sp.pi*G)
+    source_prefactor=-sp.Rational(1,1)/(16*sp.pi*G)
     q_e_density=sp.factor(sqrt_minus_g*source_prefactor*p_einstein*nabla_xi[0,1])
     q_gb_density=sp.factor(
         sqrt_minus_g*source_prefactor*alpha_NH*contraction_gb
