@@ -1,0 +1,48 @@
+name: South African Corridor Execution Benchmark
+
+on:
+  pull_request:
+    paths:
+      - "benchmarks/south-africa-corridor-execution/**"
+      - ".github/workflows/sa-corridor-execution-bench.yml"
+  push:
+    paths:
+      - "benchmarks/south-africa-corridor-execution/**"
+      - ".github/workflows/sa-corridor-execution-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-head:
+    name: Validate benchmark source head
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact source revision
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        working-directory: benchmarks/south-africa-corridor-execution
+        run: cargo fmt --all --check
+
+      - name: Run offline tests
+        working-directory: benchmarks/south-africa-corridor-execution
+        run: cargo test --offline --locked
+
+      - name: Run strict Clippy
+        working-directory: benchmarks/south-africa-corridor-execution
+        run: cargo clippy --offline --locked --all-targets -- -D warnings
+
+      - name: Execute read-only scorecard
+        working-directory: benchmarks/south-africa-corridor-execution
+        run: cargo run --offline --locked
