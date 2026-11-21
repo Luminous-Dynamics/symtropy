@@ -201,6 +201,8 @@ pub fn map_integrated_impulses(
         .map(|event| (event.source_event_id, event))
         .collect();
 
+    // Do not renormalize incomplete or near-complete weights. Preserve the
+    // supplied measure and expose any resulting impulse residual to the caller.
     let mut max_source_coverage_error: f64 = 0.0;
     for event in &sorted_events {
         let Some(sum) = fractions_by_source.get(&event.source_event_id).copied() else {
