@@ -137,7 +137,7 @@
       "capture_source_commit": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       "analysis_protocol_id": "preregistered-plp-cvm-protocol-v0-1",
       "multiplicity_policy_id": "single-primary-diagnostic-v0-1",
-      "significance_level": 0.05,
+      "significance_level": 0.1,
       "monte_carlo_replicates": 999,
       "random_seed": 103,
       "expected": {
@@ -450,7 +450,7 @@
       "capture_source_commit": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       "analysis_protocol_id": "preregistered-plp-cvm-protocol-v0-1",
       "multiplicity_policy_id": "single-primary-diagnostic-v0-1",
-      "significance_level": 0.05,
+      "significance_level": 0.01,
       "monte_carlo_replicates": 999,
       "random_seed": 110,
       "expected": {
