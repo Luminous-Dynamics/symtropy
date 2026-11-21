@@ -698,6 +698,126 @@
         "query_text": "Retrieve the rare vibration from the start with exact supporting observation and time; do not substitute a routine later noise.",
         "response_deadline_tick": 5430
       }
+    },
+    {
+      "episode_id": "lh-010-correction-before-arrival",
+      "horizon_seconds": 601,
+      "memory_budget_bytes": 196608,
+      "stream_events": [
+        {
+          "event_id": "ev-machine-state-v1",
+          "kind": "observation",
+          "availability_tick": 0,
+          "observation_ref": "obs-machine-state-v1",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 0,
+          "artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "source_dependency_group": "root-machine-state",
+          "clock_domain_id": "clock-room-b",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-machine-audio-v1",
+          "kind": "observation",
+          "availability_tick": 60,
+          "observation_ref": "obs-machine-audio-v1",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 60,
+          "artifact_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "source_dependency_group": "root-machine-audio",
+          "clock_domain_id": "clock-room-b",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-machine-state-corrected",
+          "kind": "observation",
+          "availability_tick": 600,
+          "observation_ref": "obs-machine-state-corrected",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 600,
+          "artifact_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "source_dependency_group": "root-machine-state-corrected",
+          "clock_domain_id": "clock-room-b",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-correction-1",
+          "kind": "correction",
+          "availability_tick": 601,
+          "supersedes_observation_ref": "obs-machine-state-v1",
+          "replacement_observation_ref": "obs-machine-state-corrected"
+        }
+      ],
+      "query": {
+        "query_id": "q-lh010",
+        "query_tick": 300,
+        "query_text": "As of this checkpoint, before the later correction arrives, what machine state is currently supported?",
+        "response_deadline_tick": 330
+      }
+    },
+    {
+      "episode_id": "lh-011-revocation-before-effect",
+      "horizon_seconds": 1800,
+      "memory_budget_bytes": 196608,
+      "stream_events": [
+        {
+          "event_id": "ev-private-utterance-pre-revoke",
+          "kind": "observation",
+          "availability_tick": 0,
+          "observation_ref": "obs-private-utterance-pre-revoke",
+          "modalities": [
+            "audio"
+          ],
+          "capture_tick": 0,
+          "artifact_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "source_dependency_group": "root-private-pre-revoke",
+          "clock_domain_id": "clock-room-f",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-public-action-pre-revoke",
+          "kind": "observation",
+          "availability_tick": 120,
+          "observation_ref": "obs-public-action-pre-revoke",
+          "modalities": [
+            "video"
+          ],
+          "capture_tick": 120,
+          "artifact_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+          "source_dependency_group": "root-public-pre-revoke",
+          "clock_domain_id": "clock-room-f",
+          "clock_generation": 0
+        },
+        {
+          "event_id": "ev-revoke-private-after-query",
+          "kind": "revocation",
+          "availability_tick": 1800,
+          "target_observation_ref": "obs-private-utterance-pre-revoke"
+        }
+      ],
+      "derived_memory_items": [
+        {
+          "item_ref": "mem-private-pre-revoke-summary",
+          "kind": "summary",
+          "created_tick": 600,
+          "derived_from_observation_refs": [
+            "obs-private-utterance-pre-revoke"
+          ],
+          "derived_from_item_refs": []
+        }
+      ],
+      "query": {
+        "query_id": "q-lh011",
+        "query_tick": 1200,
+        "query_text": "At this pre-revocation checkpoint, is the earlier private audio observation still eligible evidence?",
+        "response_deadline_tick": 1230
+      }
     }
   ]
 }
