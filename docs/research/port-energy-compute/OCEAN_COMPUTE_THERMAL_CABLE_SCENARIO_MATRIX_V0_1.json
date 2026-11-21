@@ -1,0 +1,264 @@
+{
+  "schema": "luminous.ocean_compute_thermal_cable_scenarios",
+  "schema_version": "0.1.0",
+  "snapshot_date": "2026-11-19",
+  "evidence_class": "research_scenario_matrix",
+  "claim_ceiling": "Scenario planning only; no site-specific physical values, field qualification, marine authorization, cable reliability probability or commercial performance claim.",
+  "source_register": [
+    {
+      "source_id": "mahmood-et-al-hybrid-seawater-cooling-2026",
+      "title": "Thermo-economic analysis of depth-optimised hybrid seawater cooling for offshore data centres in the shallow Arabian Gulf",
+      "publication": "Applied Thermal Engineering 309, article 133740",
+      "publication_month": "2026-11",
+      "doi": "10.1016/j.applthermaleng.2026.133740",
+      "url": "https://doi.org/10.1016/j.applthermaleng.2026.133740",
+      "evidence_class": "published_model_study",
+      "scope_limit": "Modeled 15 MW Arabian Gulf case; not a measured field trial and not transferable as a South African site result.",
+      "reported_comparators": {
+        "hybrid_three_mode_system_electricity_gwh_per_year": 17,
+        "air_cooled_baseline_electricity_gwh_per_year": 33.1,
+        "binary_water_side_economiser_electricity_gwh_per_year": 19.5,
+        "modeled_lifecycle_cost_reduction_percent": 22.1,
+        "modeled_payback_years": 3.8,
+        "electricity_cost_change_for_plus_minus_1c_percent": {
+          "minus_1c": -6.4,
+          "plus_1c": 7.4
+        }
+      },
+      "boundary_note": "Verify paper meter boundary and whether reported annual electricity corresponds to the cooling/system boundary before any numerical comparison. Do not compare it with whole-facility energy without normalization."
+    },
+    {
+      "source_id": "palmer-felgate-submarine-telecom-repair-2026",
+      "title": "Global Submarine Cable Faults and Repair Dynamics: A Statistical Analysis",
+      "first_published": "2026-09-16",
+      "doi": "10.3233/NICSP260018",
+      "url": "https://doi.org/10.3233/NICSP260018",
+      "evidence_class": "published_global_telecommunications_repair_analysis",
+      "reported_context": {
+        "valid_repair_records": 3224,
+        "countries": 137,
+        "historical_span_years": 18,
+        "global_telecom_repairs_per_year_approx": [
+          150,
+          200
+        ],
+        "fishing_and_anchoring_share_approx_percent": 80,
+        "recent_repair_time_context_days_approx": 50,
+        "multiple_cable_events_per_year_approx": [
+          7,
+          8
+        ]
+      },
+      "strict_scope_limit": "These figures apply to submarine telecommunications cables in the source's global dataset. They are not submarine power cable failure rates or a site-specific outage probability."
+    }
+  ],
+  "thermal_scenarios": [
+    {
+      "scenario_id": "TH-BASELINE-SEASONAL",
+      "mode": "seasonal_baseline",
+      "evidence_class": "site_measurements_required",
+      "intake_temperature_series": null,
+      "depth_profile": null,
+      "current_profile": null,
+      "stratification_profile": null,
+      "fouling_state": null,
+      "status": "not_evaluable_without_site_data"
+    },
+    {
+      "scenario_id": "TH-PLUS-1C",
+      "mode": "temperature_perturbation",
+      "delta_intake_temperature_c": 1,
+      "evidence_class": "synthetic_stress_case",
+      "status": "synthetic_only"
+    },
+    {
+      "scenario_id": "TH-PLUS-2C",
+      "mode": "temperature_perturbation",
+      "delta_intake_temperature_c": 2,
+      "evidence_class": "synthetic_stress_case",
+      "status": "synthetic_only"
+    },
+    {
+      "scenario_id": "TH-MARINE-HEATWAVE",
+      "mode": "marine_heatwave",
+      "temperature_series": null,
+      "event_duration_hours": null,
+      "evidence_class": "site_event_data_required",
+      "status": "not_evaluable_without_site_data"
+    },
+    {
+      "scenario_id": "TH-STRATIFICATION-CHANGE",
+      "mode": "stratification_and_intake_depth",
+      "vertical_temperature_profile": null,
+      "mixed_layer_depth_m": null,
+      "evidence_class": "site_measurements_required",
+      "status": "not_evaluable_without_site_data"
+    },
+    {
+      "scenario_id": "TH-FOULING",
+      "mode": "heat_exchanger_fouling",
+      "heat_transfer_derate_fraction": null,
+      "pressure_drop_increase_fraction": null,
+      "evidence_class": "test_or_vendor_characterization_required",
+      "status": "not_evaluable_without_component_data"
+    },
+    {
+      "scenario_id": "TH-PUMP-FAILURE",
+      "mode": "pump_failure",
+      "failed_pump_id": null,
+      "redundancy_state": null,
+      "evidence_class": "synthetic_fault_case",
+      "status": "synthetic_only"
+    },
+    {
+      "scenario_id": "TH-CHILLER-FAILURE",
+      "mode": "chiller_failure",
+      "failed_chiller_id": null,
+      "remaining_capacity_kw": null,
+      "evidence_class": "synthetic_fault_case",
+      "status": "synthetic_only"
+    },
+    {
+      "scenario_id": "TH-INTAKE-OBSTRUCTION",
+      "mode": "intake_obstruction",
+      "flow_derate_fraction": null,
+      "evidence_class": "synthetic_fault_case",
+      "status": "synthetic_only"
+    },
+    {
+      "scenario_id": "TH-SENSOR-FAULT",
+      "mode": "sensor_fault",
+      "sensor_id": null,
+      "bias_c": null,
+      "missing_interval_count": null,
+      "evidence_class": "synthetic_fault_case",
+      "status": "synthetic_only"
+    }
+  ],
+  "cooling_mode_comparators": [
+    {
+      "mode_id": "AIR-COOLED",
+      "description": "Conventional air-cooled reference",
+      "site_specific_performance": null
+    },
+    {
+      "mode_id": "CLOSED-LOOP-LIQUID",
+      "description": "Onshore closed-loop liquid cooling",
+      "site_specific_performance": null
+    },
+    {
+      "mode_id": "BINARY-WSE",
+      "description": "Binary seawater water-side economiser",
+      "site_specific_performance": null
+    },
+    {
+      "mode_id": "THREE-MODE-HYBRID",
+      "description": "Direct seawater, partial economiser plus chiller, and chiller-only fallback",
+      "site_specific_performance": null
+    },
+    {
+      "mode_id": "FLOATING-OR-SUBSEA",
+      "description": "Actual floating/subsea geometry with access, intake/discharge and maintenance costs",
+      "site_specific_performance": null
+    }
+  ],
+  "cable_scenarios": [
+    {
+      "scenario_id": "CB-SINGLE-ROUTE",
+      "topology": "single_fibre_and_power_route",
+      "common_failure_domains_unknown": true,
+      "evidence_class": "design_scenario"
+    },
+    {
+      "scenario_id": "CB-SHARED-CORRIDOR-DUAL",
+      "topology": "dual_logical_routes_shared_seabed_corridor",
+      "expected_disposition": "not_independent",
+      "evidence_class": "design_scenario"
+    },
+    {
+      "scenario_id": "CB-DIVERSE-LANDINGS",
+      "topology": "geographically_diverse_routes_and_landings",
+      "common_failure_domains_unknown": true,
+      "evidence_class": "design_scenario"
+    },
+    {
+      "scenario_id": "CB-COMMON-LANDING-OUTAGE",
+      "topology": "two_cables_one_landing_station",
+      "expected_disposition": "common_mode_failure",
+      "evidence_class": "synthetic_fault_case"
+    },
+    {
+      "scenario_id": "CB-DOUBLE-CUT",
+      "topology": "multiple_cables_damaged_by_one_corridor_event",
+      "expected_disposition": "common_mode_failure",
+      "evidence_class": "synthetic_fault_case"
+    },
+    {
+      "scenario_id": "CB-REPAIR-1D",
+      "repair_delay_days": 1,
+      "evidence_class": "deterministic_stress_case"
+    },
+    {
+      "scenario_id": "CB-REPAIR-7D",
+      "repair_delay_days": 7,
+      "evidence_class": "deterministic_stress_case"
+    },
+    {
+      "scenario_id": "CB-REPAIR-14D",
+      "repair_delay_days": 14,
+      "evidence_class": "deterministic_stress_case"
+    },
+    {
+      "scenario_id": "CB-REPAIR-30D",
+      "repair_delay_days": 30,
+      "evidence_class": "deterministic_stress_case"
+    },
+    {
+      "scenario_id": "CB-REPAIR-50D",
+      "repair_delay_days": 50,
+      "evidence_class": "deterministic_stress_case",
+      "source_context": "Recent submarine telecommunications repair analysis reports contemporary repair times approaching 50 days in some contexts; this is not a universal power-cable repair distribution."
+    },
+    {
+      "scenario_id": "CB-REPAIR-VESSEL-UNAVAILABLE",
+      "repair_vessel_available": false,
+      "repair_access_time_days": null,
+      "evidence_class": "synthetic_fault_case"
+    },
+    {
+      "scenario_id": "CB-LOCAL-AUTONOMY",
+      "backhaul_available": false,
+      "local_port_safety_services_available": null,
+      "evidence_class": "synthetic_fault_case"
+    }
+  ],
+  "required_measurements": {
+    "thermal": [
+      "IT heat load and meter boundary",
+      "cooling electrical input by pump/chiller/auxiliary",
+      "intake and discharge temperature",
+      "seawater flow and pressure drop",
+      "vertical temperature profile and intake depth",
+      "discharge plume and recirculation observations",
+      "freshwater withdrawal and seawater intake/discharge volumes",
+      "fouling/cleaning/corrosion maintenance observations"
+    ],
+    "cables": [
+      "telecommunications fibre route and cable identity",
+      "submarine power cable route and separate type/rating",
+      "landing station, beach manhole, ducts and inland backhaul",
+      "seabed burial and protection evidence",
+      "fishing/anchoring/dredging and geohazard overlays",
+      "repair-vessel contracts, spare cable and permitting times",
+      "common-mode dependencies and autonomous fallback"
+    ]
+  },
+  "prohibited_inferences": [
+    "Do not transfer global submarine telecommunications cable fault percentages to submarine power cables.",
+    "Do not infer a local annual cable-failure probability from repair counts without cable-km, age, route exposure and observation window.",
+    "Do not equate seawater cooling with zero thermal impact or free cooling.",
+    "Do not compare cooling-system electricity with whole-facility PUE or energy without an explicit common boundary.",
+    "Do not infer route independence from two circuits with shared corridors, landings, ducts, substations or repair dependencies.",
+    "Do not promote simplified SPH or basic thermofluid calculators to validated CFD, plume, geotechnical or environmental authority."
+  ]
+}
