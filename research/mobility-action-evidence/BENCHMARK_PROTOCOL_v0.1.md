@@ -39,7 +39,7 @@ The levels are non-substitutable. A pass at one level never implies a pass at a 
 
 ## 3. Frozen M2 contract corpus
 
-The current integration-test oracle compares two separately written implementations over deterministic fault mutations. It covers 28 admission cases and 18 physical-outcome cases across positive controls, expired tickets, configuration changes, mission generation, active M1 subgoal/action/attempt/predicate binding, ODD/mode revision, authority epoch/revocation/scope, clock restart, navigation profile/service/frame/source/sequence, unknown/unqualified/missing navigation time, mismatched comparison clock, missing cross-clock correlation, stale observations, observer identity, event sequence, ticket/configuration/frame/calibration/predicate binding, canonical outcome-content digest carriage, confidence, and no-effect/partial/unknown dispositions.
+The current integration-test oracle compares two separately written implementations over deterministic fault mutations. It covers 28 admission cases and 23 physical-outcome cases across positive controls, expired tickets, configuration changes, mission generation, active M1 subgoal/action/attempt/predicate binding, ODD/mode revision, authority epoch/revocation/scope, clock restart, navigation profile/service/frame/source/sequence, unknown/unqualified/missing navigation time, mismatched comparison clock, missing cross-clock correlation, stale observations, observer identity and failure-domain separation, event sequence, ticket/configuration/frame/calibration/predicate binding, canonical outcome-content digest carriage, confidence, and no-effect/partial/unknown dispositions.
 
 The next corpus expansion should keep three files separate:
 
@@ -81,7 +81,7 @@ Publish each dimension, its denominator and its uncertainty. Never average safet
 - unqualified-time promotion and clock/boot mismatch acceptance;
 - time from invalidation to hold / local safe-state.
 
-**Contract gate:** zero false accepts in every frozen negative control; 100% of invalidation cases must resolve to explicit reject/hold/reconciliation. No unsafe mutation is permitted after an unknown effect.
+**Contract gate:** zero false accepts in every frozen negative control, including same-source-label/different-source-name common-cause mutations; 100% of invalidation cases must resolve to explicit reject/hold/reconciliation. No unsafe mutation is permitted after an unknown effect.
 
 ### Capability / utility
 
