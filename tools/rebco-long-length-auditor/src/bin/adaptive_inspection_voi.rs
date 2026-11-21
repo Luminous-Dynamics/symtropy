@@ -7,7 +7,7 @@
 //! The policy recommends one next action. It never executes a measurement,
 //! releases a reel, or treats a synthetic scenario ensemble as physical truth.
 
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
@@ -68,11 +68,7 @@ fn array<'a>(value: &'a Value, path: &str) -> Result<&'a Vec<Value>, String> {
         .ok_or_else(|| fail(path, "must be an array"))
 }
 
-fn exact_keys(
-    value: &Value,
-    required: &[&str],
-    path: &str,
-) -> Result<(), String> {
+fn exact_keys(value: &Value, required: &[&str], path: &str) -> Result<(), String> {
     let map = object(value, path)?;
     for key in required {
         if !map.contains_key(*key) {
@@ -151,8 +147,7 @@ fn parse_profile(value: &Value) -> Result<Profile, String> {
     ];
     exact_keys(value, KEYS, "$.application_profile")?;
     let path = "$.application_profile";
-    let minimum_contiguous_weak_cells =
-        usize_field(value, "minimum_contiguous_weak_cells", path)?;
+    let minimum_contiguous_weak_cells = usize_field(value, "minimum_contiguous_weak_cells", path)?;
     if minimum_contiguous_weak_cells == 0 {
         return Err(fail(
             path,
@@ -190,7 +185,10 @@ fn parse_scenarios(
     minimum_run: usize,
 ) -> Result<Vec<Scenario>, String> {
     if values.len() < 2 {
-        return Err(fail("$.prior_scenarios", "must contain at least two scenarios"));
+        return Err(fail(
+            "$.prior_scenarios",
+            "must contain at least two scenarios",
+        ));
     }
     let mut ids = BTreeSet::new();
     let mut scenarios = Vec::with_capacity(values.len());
@@ -204,20 +202,26 @@ fn parse_scenarios(
         }
         let weight = positive_number(value, "prior_weight", &path)?;
         let cells = array(
-            value.get("weak_cells").ok_or_else(|| fail(&path, "missing weak_cells"))?,
+            value
+                .get("weak_cells")
+                .ok_or_else(|| fail(&path, "missing weak_cells"))?,
             &format!("{path}.weak_cells"),
         )?;
         if cells.len() != cell_count {
             return Err(fail(
                 &path,
-                format!("weak_cells length {} does not match cell_count {cell_count}", cells.len()),
+                format!(
+                    "weak_cells length {} does not match cell_count {cell_count}",
+                    cells.len()
+                ),
             ));
         }
         let mut weak_cells = Vec::with_capacity(cell_count);
         for (cell_index, cell) in cells.iter().enumerate() {
             weak_cells.push(
-                cell.as_bool()
-                    .ok_or_else(|| fail(&path, format!("weak_cells[{cell_index}] must be boolean")))?,
+                cell.as_bool().ok_or_else(|| {
+                    fail(&path, format!("weak_cells[{cell_index}] must be boolean"))
+                })?,
             );
         }
         total_weight += weight;
@@ -243,7 +247,10 @@ fn parse_actions(
     cell_count: usize,
 ) -> Result<Vec<Action>, String> {
     if values.is_empty() {
-        return Err(fail("$.candidate_actions", "must contain at least one action"));
+        return Err(fail(
+            "$.candidate_actions",
+            "must contain at least one action",
+        ));
     }
     const KEYS: &[&str] = &[
         "action_id",
@@ -269,7 +276,10 @@ fn parse_actions(
         }
         let method = string_field(value, "method", &path)?.to_owned();
         if !["direct_transport", "calibrated_noncontact_proxy"].contains(&method.as_str()) {
-            return Err(fail(&path, "method must be direct_transport or calibrated_noncontact_proxy"));
+            return Err(fail(
+                &path,
+                "method must be direct_transport or calibrated_noncontact_proxy",
+            ));
         }
         let condition_profile_id = string_field(value, "condition_profile_id", &path)?;
         if condition_profile_id != profile.condition_profile_id {
@@ -280,7 +290,10 @@ fn parse_actions(
         }
         let cell_index = usize_field(value, "cell_index", &path)?;
         if cell_index >= cell_count {
-            return Err(fail(&path, "cell_index lies outside the declared reel grid"));
+            return Err(fail(
+                &path,
+                "cell_index lies outside the declared reel grid",
+            ));
         }
         let sensitivity = number_field(value, "sensitivity", &path)?;
         let specificity = number_field(value, "specificity", &path)?;
@@ -375,11 +388,7 @@ fn condition_failure_probability(
     (probability, (joint_failure / probability).clamp(0.0, 1.0))
 }
 
-fn evaluate_action(
-    scenarios: &[Scenario],
-    action: &Action,
-    profile: &Profile,
-) -> Value {
+fn evaluate_action(scenarios: &[Scenario], action: &Action, profile: &Profile) -> Value {
     let current_failure_probability = failure_probability(scenarios);
     let (current_loss, _) = minimum_decision_loss(
         current_failure_probability,
@@ -429,8 +438,10 @@ fn parse_observed_results(
     actions: &[Action],
     scenarios: &mut [Scenario],
 ) -> Result<(BTreeSet<String>, f64), String> {
-    let actions_by_id: BTreeMap<&str, &Action> =
-        actions.iter().map(|action| (action.id.as_str(), action)).collect();
+    let actions_by_id: BTreeMap<&str, &Action> = actions
+        .iter()
+        .map(|action| (action.id.as_str(), action))
+        .collect();
     let mut used = BTreeSet::new();
     let mut total_cost = 0.0;
     for (index, value) in values.iter().enumerate() {
@@ -452,8 +463,8 @@ fn parse_observed_results(
         total_cost += action.cost;
         let mut evidence_probability = 0.0;
         for scenario in scenarios.iter() {
-            evidence_probability +=
-                scenario.weight * likelihood(action, scenario.weak_cells[action.cell_index], positive);
+            evidence_probability += scenario.weight
+                * likelihood(action, scenario.weak_cells[action.cell_index], positive);
         }
         if evidence_probability <= EPSILON {
             return Err(fail(
@@ -488,7 +499,10 @@ fn audit_document(value: &Value) -> Result<Value, String> {
         return Err(fail("$.schema_version", "unsupported schema version"));
     }
     if string_field(value, "evidence_class", "$")? != "synthetic" {
-        return Err(fail("$.evidence_class", "v0.1 accepts synthetic fixtures only"));
+        return Err(fail(
+            "$.evidence_class",
+            "v0.1 accepts synthetic fixtures only",
+        ));
     }
     if string_field(value, "claim_ceiling", "$")? != CLAIM_CEILING {
         return Err(fail("$.claim_ceiling", "claim ceiling does not match v0.1"));
@@ -567,9 +581,9 @@ fn audit_document(value: &Value) -> Result<Value, String> {
             .total_cmp(&left.0)
             .then_with(|| left.1.cmp(&right.1))
     });
-    let selected = ranked.first().filter(|(net_voi, _, _)| {
-        *net_voi > profile.minimum_positive_net_voi
-    });
+    let selected = ranked
+        .first()
+        .filter(|(net_voi, _, _)| *net_voi > profile.minimum_positive_net_voi);
     let selected_action_id = selected.map(|(_, id, _)| id.as_str());
     let recommendation_status = if selected_action_id.is_some() {
         "RECOMMEND_ONE_INSPECTION"
@@ -683,7 +697,14 @@ mod tests {
             report["recommendation"]["selected_action_id"],
             "DIRECT-TRANSPORT-CELL-003"
         );
-        assert!((report["posterior_application_failure_probability"].as_f64().unwrap() - 0.40).abs() < 1.0e-9);
+        assert!(
+            (report["posterior_application_failure_probability"]
+                .as_f64()
+                .unwrap()
+                - 0.40)
+                .abs()
+                < 1.0e-9
+        );
     }
 
     #[test]
@@ -691,7 +712,14 @@ mod tests {
         let mut value = fixture();
         value["application_profile"]["minimum_contiguous_weak_cells"] = json!(2);
         let report = audit_document(&value).expect("fixture should validate");
-        assert!((report["posterior_application_failure_probability"].as_f64().unwrap() - 0.40).abs() < 1.0e-9);
+        assert!(
+            (report["posterior_application_failure_probability"]
+                .as_f64()
+                .unwrap()
+                - 0.40)
+                .abs()
+                < 1.0e-9
+        );
         let scenarios = array(&value["prior_scenarios"], "prior_scenarios").unwrap();
         let isolated = scenarios
             .iter()
@@ -715,11 +743,12 @@ mod tests {
         }]);
         let report = audit_document(&value).expect("posterior update should validate");
         assert_eq!(report["used_action_count"], 1);
+        assert!(report["recommendation"]["selected_action_id"] != "DIRECT-TRANSPORT-CELL-003");
         assert!(
-            report["recommendation"]["selected_action_id"] != "DIRECT-TRANSPORT-CELL-003"
-        );
-        assert!(
-            report["posterior_application_failure_probability"].as_f64().unwrap() > 0.90
+            report["posterior_application_failure_probability"]
+                .as_f64()
+                .unwrap()
+                > 0.90
         );
     }
 
@@ -732,7 +761,10 @@ mod tests {
         }]);
         let report = audit_document(&value).expect("posterior update should validate");
         assert!(
-            report["posterior_application_failure_probability"].as_f64().unwrap() < 0.25
+            report["posterior_application_failure_probability"]
+                .as_f64()
+                .unwrap()
+                < 0.25
         );
     }
 
@@ -774,11 +806,7 @@ mod tests {
     fn rejects_malformed_validation_artifact_digest() {
         let mut value = fixture();
         value["candidate_actions"][0]["validation_artifact_sha256"] = json!("not-a-digest");
-        assert!(
-            audit_document(&value)
-                .unwrap_err()
-                .contains("SHA-256")
-        );
+        assert!(audit_document(&value).unwrap_err().contains("SHA-256"));
     }
 
     #[test]
