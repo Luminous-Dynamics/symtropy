@@ -42,7 +42,8 @@ class RevocationEvaluatorTests(unittest.TestCase):
         self.assertEqual(totals["post_reference_reuse_count"], 0)
         self.assertEqual(totals["unrelated_control_count"], 1)
         self.assertEqual(totals["unrelated_control_retained"], 1)
-        self.assertEqual(totals["derived_item_count"], 10)
+        self.assertEqual(totals["derived_item_count"], 11)
+        self.assertEqual(totals["in_scope_derived_item_count"], 10)
         self.assertEqual(totals["purge_receipt_count"], 10)
         self.assertEqual(totals["purge_receipt_coverage"], 1.0)
         self.assertEqual(totals["policy_ineligibility_claim_coverage"], 1.0)
@@ -91,6 +92,37 @@ class RevocationEvaluatorTests(unittest.TestCase):
         self.assertLess(score["totals"]["purge_receipt_coverage"], 1.0)
         self.assertTrue(any("purge_receipt_coverage_incomplete" in x for x in
                             next(y for y in score["per_episode"] if y["episode_id"] == row["episode_id"])["violations"]))
+
+    def test_out_of_purge_scope_derivative_must_still_be_policy_ineligible(self):
+        candidate = copy.deepcopy(self.submission)
+        row = next(x for x in candidate["predictions"] if x["episode_id"] == "rev-002-summary-residual")
+        row["reported_policy_ineligible_refs"].remove("mem-rev-002-embedding")
+        score = evaluator.evaluate(self.workload, self.truth, candidate)
+        self.assertLess(score["totals"]["policy_ineligibility_claim_coverage"], 1.0)
+        result = next(x for x in score["per_episode"] if x["episode_id"] == row["episode_id"])
+        self.assertTrue(any("policy_ineligibility_scope_not_fully_reported" in x for x in result["violations"]))
+
+    def test_out_of_purge_scope_derivative_retrieval_is_still_a_policy_leak(self):
+        candidate = copy.deepcopy(self.submission)
+        row = next(x for x in candidate["predictions"] if x["episode_id"] == "rev-002-summary-residual")
+        row["probe_results"][1]["retrieved_memory_item_refs"] = ["mem-rev-002-embedding"]
+        score = evaluator.evaluate(self.workload, self.truth, candidate)
+        self.assertEqual(score["totals"]["post_canary_leaks"], 1)
+        self.assertEqual(score["totals"]["post_reference_reuse_count"], 1)
+
+    def test_receipt_for_item_outside_declared_storage_scope_is_not_counted(self):
+        candidate = copy.deepcopy(self.submission)
+        row = next(x for x in candidate["predictions"] if x["episode_id"] == "rev-002-summary-residual")
+        row["purge_receipts"].append({
+            "item_ref": "mem-rev-002-embedding",
+            "status": "purged",
+            "purge_tick": 1000,
+            "receipt_id": "synthetic-out-of-scope-purge",
+            "attestation_level": "candidate_self_reported",
+        })
+        score = evaluator.evaluate(self.workload, self.truth, candidate)
+        result = next(x for x in score["per_episode"] if x["episode_id"] == row["episode_id"])
+        self.assertTrue(any("purge_receipt_outside_declared_storage_scope" in x for x in result["violations"]))
 
     def test_pre_revocation_positive_control_must_be_retrievable(self):
         candidate = copy.deepcopy(self.submission)
