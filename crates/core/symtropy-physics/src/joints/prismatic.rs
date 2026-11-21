@@ -586,13 +586,14 @@ mod tests {
             .with_rotational_inertia_operator(operator_a.clone());
         let mut b = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.2, 1.0)
             .with_rotational_inertia_operator(operator_b.clone());
-        let before_a = a.angular_velocity;
         a.angular_velocity.set(0, 1, -0.1);
         a.angular_velocity.set(0, 2, 0.2);
         a.angular_velocity.set(1, 2, -0.3);
         b.angular_velocity.set(0, 1, 0.6);
         b.angular_velocity.set(0, 2, -0.4);
         b.angular_velocity.set(1, 2, 0.5);
+        let before_a = a.angular_velocity;
+        let before_b = b.angular_velocity;
         let mut before = Bivector::<3>::zero();
         for i in 0..3 {
             for j in (i + 1)..3 {
