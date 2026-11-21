@@ -32,6 +32,8 @@
     "event_fields": [
       "event_id",
       "quadrature_rule_id",
+      "charged_frame_id",
+      "neutral_frame_id",
       "samples",
       "neutral_impulse_ns",
       "charged_reaction_impulse_ns",
@@ -46,13 +48,15 @@
       "reported_frictional_heating_matches_same_samples",
       "nonnegative_frictional_heating",
       "event_and_aggregate_momentum_energy_checks",
-      "deterministic_event_and_sample_ordering"
+      "deterministic_event_and_sample_ordering",
+      "reject_implicit_charged_neutral_coordinate_frame_mismatch"
     ],
     "summation": "compensated_sorted_samples",
     "receipt_fields": [
       "event_count",
       "sample_count",
       "quadrature_rule_ids_by_event",
+      "coordinate_frame_ids_by_event",
       "total_integrated_drag_weight_kg",
       "total_neutral_impulse_ns",
       "total_charged_reaction_impulse_ns",
@@ -97,6 +101,7 @@
     "event_error_cancellation_rejected",
     "duplicate_event_and_sample_ids_rejected",
     "invalid_time_and_non_finite_velocity_rejected",
+    "implicit_coordinate_frame_mismatch_rejected",
     "input_order_determinism",
     "empty_inputs_and_invalid_tolerances",
     "offline_reference_self_check"
@@ -107,7 +112,8 @@
     "same_space_time_quadrature_for_impulse_and_heating": true,
     "event_local_checks_required": true,
     "aggregate_checks_required": true,
-    "quadrature_accuracy_requires_independent_refinement": true
+    "quadrature_accuracy_requires_independent_refinement": true,
+    "frame_identity_match_required": true
   },
   "limitations": [
     "validates_supplied_quadrature_receipt_only",
