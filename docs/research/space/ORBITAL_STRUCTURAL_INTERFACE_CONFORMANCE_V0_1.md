@@ -471,3 +471,23 @@ The current South African pathway is a distributed ecosystem hypothesis, not a c
 A mapped site, geospatial polygon, legacy brochure, announced facility or project milestone is not evidence that a specific machine, chamber, test fixture, metrology system or production process is qualified and available. Before using a facility in a transfer or test plan, require the exact asset identity, owner/operator, permitted scope, current operational state, capacity, calibration/maintenance currentness, environment, safety approvals, access window and supporting evidence. Keep facility-context uncertainty visible.
 
 The geographic system may recommend a site or logistics alternative. It cannot grant test authorization, facility qualification, range clearance, production capability or airworthiness authority.
+
+
+## 15. CAD/PMI, inspection and serialized-component interoperation
+
+This structural-interface benchmark must not become a parallel STEP/QIF parser, CAD identity store or component-provenance ledger. Compose the existing cross-project interoperability work:
+
+- Symthaea [MBD-INTEROP-001 #10595](https://github.com/Luminous-Dynamics/symthaea/issues/10595): semantic round-trip fidelity across CAD, semantic PMI, inspection and manufacturing exchange;
+- Mycelix [AEROCOMMONS-SEMANTIC-INTEROP-001 #6348](https://github.com/Luminous-Dynamics/mycelix/issues/6348): AP242-to-QIF semantic preservation, including CAx-IF reference cases;
+- Mycelix [AEROCOMMONS-COMPONENT-PILOT-001 #6345](https://github.com/Luminous-Dynamics/mycelix/issues/6345): exact serialized non-flight-critical component packet and evidence-link verification;
+- Symtropy #4165: aerospace inspection observability and method-/defect-specific NDE evidence.
+
+The intended composition is:
+
+`AP242 / semantic PMI -> canonical component + characteristic identity -> process and article records -> QIF inspection evidence -> structural-interface profile -> as-built assembly acceptance`
+
+Each stage has its own schema, parser, claim ceiling and authority. A CAD/PMI semantic round-trip pass does not prove that a manufacturing operation was conforming. A structurally complete component packet does not prove physical part acceptance. A QIF inspection result does not prove the inspector used a capable method for the critical defect class. This evaluator consumes only the bounded profile/evidence references it is given; it does not parse AP242, QIF, STEP, MTConnect or native CAD.
+
+The independent baseline set should therefore include NIST's STEP File Analyzer and Viewer, CAx-IF AP242/QIF test cases, a manual engineering/quality review, and any rights-cleared commercial CAD/QMS/PLM exchange path available for the same fixtures. NIST describes ongoing conformance work for semantic PMI, persistent identifiers, hybrid geometry, composite representation and secure digital-thread integration: [NIST Digital Thread for Manufacturing](https://www.nist.gov/programs-projects/digital-thread-manufacturing). CAx-IF publishes AP242 recommended practices and exchange test cases: [CAx-IF Recommended Practices](https://www.mbx-if.org/home/cax/recpractices/). NIST's STEP File Analyzer is an external reference validator, not a substitute for the independent semantic oracle: [NIST STEP File Analyzer and Viewer](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer).
+
+Benchmark the composed chain for semantic preservation, exact identity joins, stale-revision rejection, loss/Unknown behavior, false joins, replay determinism and engineering-review time. Do not claim superiority over NIST or a commercial tool based only on synthetic evaluator agreement. Use matched fixtures, declared feature support, identical inputs and blinded held-out models.
