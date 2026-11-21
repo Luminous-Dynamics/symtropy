@@ -60,7 +60,7 @@ Illustrative sample sizes:
 - 2,995 zero-miss injections put it below 0.1%.
 - 29,956 zero-miss injections put it below 0.01%.
 
-The crate reports the exact one-sided upper bound for zero or nonzero misses when the reference/observation reconciliation is otherwise determinate. Duplicate captures, unmatched observations, or payload/time disputes suppress the bound because the Bernoulli capture outcome cannot be reliably adjudicated. A positive loss counter or a missing injection produces \`INCOMPLETE\`; a confidence bound does not turn that result into a pass.
+The crate reports the exact one-sided upper bound for zero or nonzero misses when the reference/observation reconciliation is otherwise determinate. Duplicate captures, unmatched observations, payload/time disputes, or any positive capture-loss counter suppress the bound because the observation channel is not fully reconciled. A missing injection produces \`INCOMPLETE\`; an upper bound quantifies the miss probability but never turns that disposition into a pass.
 
 These sample-size illustrations assume independent, representative trials from one unchanged detection regime. Burst loss, common-cause faults, event-rate dependence, time-varying capture probability or untested event classes invalidate a naïve iid interpretation. The responsible technical authority must allocate risk and define strata; these values are not universal qualification requirements.
 
