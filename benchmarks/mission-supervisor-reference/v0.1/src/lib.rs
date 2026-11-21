@@ -272,6 +272,8 @@ pub struct ReceiptTimeQualification {
     pub correlation_commitment: Digest,
     /// Commitment to the exact normalized destination reading.
     pub normalized_time_commitment: Digest,
+    /// Conservative hard error bound of the normalized instant, rounded up.
+    pub uncertainty_bound_nanoseconds: u64,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1027,6 +1029,7 @@ mod tests {
                 source_time_commitment: digest(byte.wrapping_add(1)),
                 correlation_commitment: digest(byte.wrapping_add(2)),
                 normalized_time_commitment: digest(byte.wrapping_add(3)),
+                uncertainty_bound_nanoseconds: 6_000_000,
             },
             observer_role: role,
             confidence_basis_points: confidence,
