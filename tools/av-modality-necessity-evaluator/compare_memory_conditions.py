@@ -178,7 +178,7 @@ def compare_memory_conditions(
             "status": "synthetic_matched_memory_reference",
             "limitations": [
                 "The four reference arms are hand-authored synthetic policies, not executed memory systems.",
-                "The benchmark contains nine metadata-only episodes and placeholder content digests, not raw PCM/RGB evidence.",
+                "The benchmark contains twelve metadata-only episodes and placeholder content digests, not raw PCM/RGB evidence.",
                 "Paired differences are fixture-mechanics checks and are not statistical evidence of memory-system superiority.",
                 "Synthetic reference arms are forbidden from claiming memory, token, latency or energy measurements.",
                 "A public evaluator-truth file is not a blind holdout or a security boundary."
