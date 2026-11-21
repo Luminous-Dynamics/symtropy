@@ -205,7 +205,7 @@ mod tests {
         }
 
         let eigenvalue = -4.0 * diffusion / (dx * dx) * (theta / 2.0).sin().powi(2);
-        let expected_amplitude = 0.2e20 * (eigenvalue * dt * steps as f64).exp();
+        let expected_amplitude = 0.2e20 * (1.0 + eigenvalue * dt).powi(steps as i32);
         for i in 0..n {
             let expected = 1.0e20 + expected_amplitude * (theta * (i as f64 + 0.5)).cos();
             assert!((state[i] - expected).abs() / 1.0e20 < 1.0e-12);
