@@ -525,7 +525,6 @@ mod tests {
             dataset_revision: DATASET_REVISION.to_owned(),
             raw_trial_sha256: RAW_DIGEST.to_owned(),
             prediction_sha256: FORECAST_DIGEST.to_owned(),
-            dataset_revision: DATASET_REVISION.to_owned(),
             model_digest: MODEL_DIGEST.to_owned(),
             target_digest: TARGET_DIGEST.to_owned(),
             domain_digest: DOMAIN_DIGEST.to_owned(),
