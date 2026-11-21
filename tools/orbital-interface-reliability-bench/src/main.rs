@@ -46,6 +46,7 @@ fn run() -> Result<ExitCode, String> {
         "validator_version": env!("CARGO_PKG_VERSION"),
         "source_commit": source_commit,
         "corpus_sha256": sha256_hex(&input),
+        "cases": report.summary.case_count,
         "result": report.result,
         "report": report,
         "authority_granted": false
