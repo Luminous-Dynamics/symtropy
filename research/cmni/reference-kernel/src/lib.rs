@@ -58,6 +58,9 @@ pub use experiment_design::{
     poisson_fisher_information, poisson_kl_divergence, IdentifiabilitySummary,
 };
 
+mod nuisance_identifiability;
+pub use nuisance_identifiability::profile_nuisance_fisher_information;
+
 mod response_uncertainty;
 pub use response_uncertainty::{DetectorResponseEnsemble, PredictiveCountMoments};
 
