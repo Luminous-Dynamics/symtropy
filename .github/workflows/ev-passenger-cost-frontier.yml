@@ -146,6 +146,7 @@ jobs:
           jq -e '
             .benchmark_id == "BATTERY-SERVICE-NETWORK-001"
             and .dispatch_epoch_id == "synthetic-common-epoch-001"
+            and .dispatch_time_unix_ms == 1795219200000
             and .pack_count == 4
             and .mission_count == 4
             and .serviceable_mission_count == 3
