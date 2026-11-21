@@ -1,0 +1,294 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-response-window-v0",
+  "policy_id": "reference-response-window-policy-v1",
+  "run_id": "synthetic-known-answer-reference-v1",
+  "model_revision": null,
+  "runtime_revision": "offline-reference-v1",
+  "responses": [
+    {
+      "response_id": "r1",
+      "episode_id": "rw-001-spi-on-time",
+      "response_start_tick": 12,
+      "content": "safety_correction",
+      "assigned_trigger_ref": "trig-1",
+      "response_end_tick": 14,
+      "playback_start_event_ref": "render-start-r1",
+      "playback_end_event_ref": "render-end-r1",
+      "playback_end_kind": "playback_ended",
+      "controller_permission_event_ref": "controller-permit-r1",
+      "session_epoch": 1,
+      "turn_id": "turn-r1"
+    },
+    {
+      "response_id": "r2",
+      "episode_id": "rw-002-vti-start-boundary",
+      "response_start_tick": 20,
+      "content": "visual_hazard_warning",
+      "assigned_trigger_ref": "trig-2",
+      "response_end_tick": 22,
+      "playback_start_event_ref": "render-start-r2",
+      "playback_end_event_ref": "render-end-r2",
+      "playback_end_kind": "playback_ended",
+      "controller_permission_event_ref": "controller-permit-r2",
+      "session_epoch": 1,
+      "turn_id": "turn-r2"
+    },
+    {
+      "response_id": "r3",
+      "episode_id": "rw-003-cqi-end-minus-one",
+      "response_start_tick": 19,
+      "content": "identified_object",
+      "assigned_trigger_ref": "trig-3",
+      "response_end_tick": 21,
+      "playback_start_event_ref": "render-start-r3",
+      "playback_end_event_ref": "render-end-r3",
+      "playback_end_kind": "playback_ended",
+      "controller_permission_event_ref": "controller-permit-r3",
+      "session_epoch": 1,
+      "turn_id": "turn-r3"
+    },
+    {
+      "response_id": "r4a",
+      "episode_id": "rw-004-overlapping-windows",
+      "response_start_tick": 15,
+      "content": "speaker_a_reply",
+      "assigned_trigger_ref": "trig-4a",
+      "response_end_tick": 17,
+      "playback_start_event_ref": "render-start-r4a",
+      "playback_end_event_ref": "render-end-r4a",
+      "playback_end_kind": "playback_ended",
+      "controller_permission_event_ref": "controller-permit-r4a",
+      "session_epoch": 1,
+      "turn_id": "turn-r4a"
+    },
+    {
+      "response_id": "r4b",
+      "episode_id": "rw-004-overlapping-windows",
+      "response_start_tick": 20,
+      "content": "speaker_b_reply",
+      "assigned_trigger_ref": "trig-4b",
+      "response_end_tick": 22,
+      "playback_start_event_ref": "render-start-r4b",
+      "playback_end_event_ref": "render-end-r4b",
+      "playback_end_kind": "playback_ended",
+      "controller_permission_event_ref": "controller-permit-r4b",
+      "session_epoch": 1,
+      "turn_id": "turn-r4b"
+    },
+    {
+      "response_id": "r5",
+      "episode_id": "rw-005-cat-action-tracking",
+      "response_start_tick": 45,
+      "content": "completed_action_count",
+      "assigned_trigger_ref": "trig-5",
+      "response_end_tick": 47,
+      "playback_start_event_ref": "render-start-r5",
+      "playback_end_event_ref": "render-end-r5",
+      "playback_end_kind": "playback_ended",
+      "controller_permission_event_ref": "controller-permit-r5",
+      "session_epoch": 1,
+      "turn_id": "turn-r5"
+    },
+    {
+      "response_id": "r6",
+      "episode_id": "rw-006-spi-second",
+      "response_start_tick": 35,
+      "content": "corrected_claim",
+      "assigned_trigger_ref": "trig-6",
+      "response_end_tick": 37,
+      "playback_start_event_ref": "render-start-r6",
+      "playback_end_event_ref": "render-end-r6",
+      "playback_end_kind": "playback_ended",
+      "controller_permission_event_ref": "controller-permit-r6",
+      "session_epoch": 1,
+      "turn_id": "turn-r6"
+    },
+    {
+      "response_id": "r9",
+      "episode_id": "rw-009-duplicate-trigger",
+      "response_start_tick": 18,
+      "content": "single_intervention",
+      "assigned_trigger_ref": "trig-9",
+      "response_end_tick": 20,
+      "playback_start_event_ref": "render-start-r9",
+      "playback_end_event_ref": "render-end-r9",
+      "playback_end_kind": "playback_ended",
+      "controller_permission_event_ref": "controller-permit-r9",
+      "session_epoch": 1,
+      "turn_id": "turn-r9"
+    }
+  ],
+  "timing_evidence_mode": "synthetic_reference",
+  "clock_relation_ref": "synthetic:logical-replay-tick-v1",
+  "renderer_lifecycle_events": [
+    {
+      "event_ref": "controller-permit-r1",
+      "session_epoch": 1,
+      "turn_id": "turn-r1",
+      "event_kind": "assistant_speech_permitted",
+      "tick": 11
+    },
+    {
+      "event_ref": "render-start-r1",
+      "session_epoch": 1,
+      "turn_id": "turn-r1",
+      "event_kind": "playback_started",
+      "tick": 12
+    },
+    {
+      "event_ref": "controller-permit-r4a",
+      "session_epoch": 1,
+      "turn_id": "turn-r4a",
+      "event_kind": "assistant_speech_permitted",
+      "tick": 14
+    },
+    {
+      "event_ref": "render-end-r1",
+      "session_epoch": 1,
+      "turn_id": "turn-r1",
+      "event_kind": "playback_ended",
+      "tick": 14
+    },
+    {
+      "event_ref": "render-start-r4a",
+      "session_epoch": 1,
+      "turn_id": "turn-r4a",
+      "event_kind": "playback_started",
+      "tick": 15
+    },
+    {
+      "event_ref": "controller-permit-r9",
+      "session_epoch": 1,
+      "turn_id": "turn-r9",
+      "event_kind": "assistant_speech_permitted",
+      "tick": 17
+    },
+    {
+      "event_ref": "render-end-r4a",
+      "session_epoch": 1,
+      "turn_id": "turn-r4a",
+      "event_kind": "playback_ended",
+      "tick": 17
+    },
+    {
+      "event_ref": "controller-permit-r3",
+      "session_epoch": 1,
+      "turn_id": "turn-r3",
+      "event_kind": "assistant_speech_permitted",
+      "tick": 18
+    },
+    {
+      "event_ref": "render-start-r9",
+      "session_epoch": 1,
+      "turn_id": "turn-r9",
+      "event_kind": "playback_started",
+      "tick": 18
+    },
+    {
+      "event_ref": "controller-permit-r2",
+      "session_epoch": 1,
+      "turn_id": "turn-r2",
+      "event_kind": "assistant_speech_permitted",
+      "tick": 19
+    },
+    {
+      "event_ref": "controller-permit-r4b",
+      "session_epoch": 1,
+      "turn_id": "turn-r4b",
+      "event_kind": "assistant_speech_permitted",
+      "tick": 19
+    },
+    {
+      "event_ref": "render-start-r3",
+      "session_epoch": 1,
+      "turn_id": "turn-r3",
+      "event_kind": "playback_started",
+      "tick": 19
+    },
+    {
+      "event_ref": "render-end-r9",
+      "session_epoch": 1,
+      "turn_id": "turn-r9",
+      "event_kind": "playback_ended",
+      "tick": 20
+    },
+    {
+      "event_ref": "render-start-r2",
+      "session_epoch": 1,
+      "turn_id": "turn-r2",
+      "event_kind": "playback_started",
+      "tick": 20
+    },
+    {
+      "event_ref": "render-start-r4b",
+      "session_epoch": 1,
+      "turn_id": "turn-r4b",
+      "event_kind": "playback_started",
+      "tick": 20
+    },
+    {
+      "event_ref": "render-end-r3",
+      "session_epoch": 1,
+      "turn_id": "turn-r3",
+      "event_kind": "playback_ended",
+      "tick": 21
+    },
+    {
+      "event_ref": "render-end-r2",
+      "session_epoch": 1,
+      "turn_id": "turn-r2",
+      "event_kind": "playback_ended",
+      "tick": 22
+    },
+    {
+      "event_ref": "render-end-r4b",
+      "session_epoch": 1,
+      "turn_id": "turn-r4b",
+      "event_kind": "playback_ended",
+      "tick": 22
+    },
+    {
+      "event_ref": "controller-permit-r6",
+      "session_epoch": 1,
+      "turn_id": "turn-r6",
+      "event_kind": "assistant_speech_permitted",
+      "tick": 34
+    },
+    {
+      "event_ref": "render-start-r6",
+      "session_epoch": 1,
+      "turn_id": "turn-r6",
+      "event_kind": "playback_started",
+      "tick": 35
+    },
+    {
+      "event_ref": "render-end-r6",
+      "session_epoch": 1,
+      "turn_id": "turn-r6",
+      "event_kind": "playback_ended",
+      "tick": 37
+    },
+    {
+      "event_ref": "controller-permit-r5",
+      "session_epoch": 1,
+      "turn_id": "turn-r5",
+      "event_kind": "assistant_speech_permitted",
+      "tick": 44
+    },
+    {
+      "event_ref": "render-start-r5",
+      "session_epoch": 1,
+      "turn_id": "turn-r5",
+      "event_kind": "playback_started",
+      "tick": 45
+    },
+    {
+      "event_ref": "render-end-r5",
+      "session_epoch": 1,
+      "turn_id": "turn-r5",
+      "event_kind": "playback_ended",
+      "tick": 47
+    }
+  ]
+}

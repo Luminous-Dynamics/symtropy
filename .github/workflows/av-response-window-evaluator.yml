@@ -1,0 +1,119 @@
+name: AV Response Window Exact-Head Evaluation
+
+on:
+  push:
+    branches:
+      - research/av-response-window-v0
+    paths:
+      - "research/av-response-window-v0/**"
+      - "tools/av-response-window-evaluator/**"
+      - ".github/workflows/av-response-window-evaluator.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/av-response-window-v0/**"
+      - "tools/av-response-window-evaluator/**"
+      - ".github/workflows/av-response-window-evaluator.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: av-response-window-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  QUALIFIED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  response-window:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.QUALIFIED_SHA }}
+          persist-credentials: false
+      - name: Assert exact checkout
+        run: test "$(git rev-parse HEAD)" = "$QUALIFIED_SHA"
+      - name: Install JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.26.0
+      - name: Validate schemas and three data planes
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          base = "research/av-response-window-v0/"
+          schema_names = ["workload-v1.schema.json", "truth-v1.schema.json", "submission-v1.schema.json", "scorecard-v1.schema.json"]
+          schemas = {}
+          for name in schema_names:
+              schema = json.load(open(base + "schemas/" + name, encoding="utf-8"))
+              Draft202012Validator.check_schema(schema)
+              schemas[name] = schema
+          workload = json.load(open(base + "fixtures/agent/workload-v1.json", encoding="utf-8"))
+          truth = json.load(open(base + "fixtures/evaluator-only/truth-v1.json", encoding="utf-8"))
+          submission = json.load(open(base + "fixtures/agent/reference-submission-v1.json", encoding="utf-8"))
+          Draft202012Validator(schemas["workload-v1.schema.json"]).validate(workload)
+          Draft202012Validator(schemas["truth-v1.schema.json"]).validate(truth)
+          Draft202012Validator(schemas["submission-v1.schema.json"]).validate(submission)
+          assert len(workload["episodes"]) == 10
+          assert [x["episode_id"] for x in workload["episodes"]] == [x["episode_id"] for x in truth["episodes"]]
+          workload_ids = {x["episode_id"] for x in workload["episodes"]}
+          assert all(x["episode_id"] in workload_ids for x in submission["responses"])
+          forbidden = {"expected_participation", "window_start_tick", "window_end_tick", "expected_content", "opportunity_id"}
+          def scan(value):
+              if isinstance(value, dict):
+                  assert not (forbidden & set(value)), "evaluator truth label leaked into candidate workload"
+                  for child in value.values(): scan(child)
+              elif isinstance(value, list):
+                  for child in value: scan(child)
+          scan(workload)
+          PY
+      - name: Assert candidate-visible triggers and monotonic stream events
+        run: |
+          python - <<'PY'
+          import json
+          base = "research/av-response-window-v0/fixtures/"
+          workload = json.load(open(base + "agent/workload-v1.json", encoding="utf-8"))
+          truth = json.load(open(base + "evaluator-only/truth-v1.json", encoding="utf-8"))
+          for episode in workload["episodes"]:
+              events = episode["stream_events"]
+              ticks = [event["tick"] for event in events]
+              assert ticks == sorted(ticks), episode["episode_id"]
+              refs = {event.get("trigger_ref") for event in events if event.get("trigger_ref")}
+              for opportunity in next(row for row in truth["episodes"] if row["episode_id"] == episode["episode_id"])["opportunities"]:
+                  assert opportunity["trigger_ref"] in refs, (episode["episode_id"], opportunity["trigger_ref"])
+          PY
+      - name: Run response-window adversarial tests
+        run: python -m unittest discover -s tools/av-response-window-evaluator -p "test_*.py" -v
+      - name: Score finite reference submission
+        run: |
+          python tools/av-response-window-evaluator/evaluate.py \
+            --workload research/av-response-window-v0/fixtures/agent/workload-v1.json \
+            --truth research/av-response-window-v0/fixtures/evaluator-only/truth-v1.json \
+            --submission research/av-response-window-v0/fixtures/agent/reference-submission-v1.json \
+            --output /tmp/av-response-window-scorecard.json
+      - name: Validate exact known-answer response-window scorecard
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          schema = json.load(open("research/av-response-window-v0/schemas/scorecard-v1.schema.json", encoding="utf-8"))
+          actual = json.load(open("/tmp/av-response-window-scorecard.json", encoding="utf-8"))
+          Draft202012Validator(schema).validate(actual)
+          assert actual["timing_evidence_mode"] == "synthetic_reference"
+          assert actual["clock_relation_ref"] == "synthetic:logical-replay-tick-v1"
+          assert actual["interpretation"]["status"] == "synthetic_response_window_score"
+          t = actual["totals"]
+          assert t["opportunity_count"] == 11
+          assert t["response_required_count"] == 8
+          assert t["expected_silence_count"] == 3
+          assert t["interaction_decision_correct_count"] == 11
+          assert t["on_time_count"] == 8 and t["window_response_rate"] == 1.0
+          assert t["early_count"] == 0 and t["late_count"] == 0 and t["missed_count"] == 0
+          assert t["false_intervention_count"] == 0
+          assert t["content_correct_count"] == 8 and t["content_accuracy"] == 1.0
+          assert t["duplicate_response_count"] == 0 and t["hard_violation_count"] == 0
+          PY

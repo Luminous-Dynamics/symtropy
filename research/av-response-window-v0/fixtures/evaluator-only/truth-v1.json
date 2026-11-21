@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-response-window-v0",
+  "warning": "Evaluator-only participation, valid response windows and content truth. Public repository fixture is not a blind test set.",
+  "episodes": [
+    {
+      "episode_id": "rw-001-spi-on-time",
+      "opportunities": [
+        {
+          "opportunity_id": "opp-1",
+          "trigger_ref": "trig-1",
+          "expected_participation": "respond",
+          "window_start_tick": 10,
+          "window_end_tick": 20,
+          "expected_content": "safety_correction"
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-002-vti-start-boundary",
+      "opportunities": [
+        {
+          "opportunity_id": "opp-2",
+          "trigger_ref": "trig-2",
+          "expected_participation": "respond",
+          "window_start_tick": 20,
+          "window_end_tick": 30,
+          "expected_content": "visual_hazard_warning"
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-003-cqi-end-minus-one",
+      "opportunities": [
+        {
+          "opportunity_id": "opp-3",
+          "trigger_ref": "trig-3",
+          "expected_participation": "respond",
+          "window_start_tick": 10,
+          "window_end_tick": 20,
+          "expected_content": "identified_object"
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-004-overlapping-windows",
+      "opportunities": [
+        {
+          "opportunity_id": "opp-4a",
+          "trigger_ref": "trig-4a",
+          "expected_participation": "respond",
+          "window_start_tick": 10,
+          "window_end_tick": 20,
+          "expected_content": "speaker_a_reply"
+        },
+        {
+          "opportunity_id": "opp-4b",
+          "trigger_ref": "trig-4b",
+          "expected_participation": "respond",
+          "window_start_tick": 15,
+          "window_end_tick": 25,
+          "expected_content": "speaker_b_reply"
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-005-cat-action-tracking",
+      "opportunities": [
+        {
+          "opportunity_id": "opp-5",
+          "trigger_ref": "trig-5",
+          "expected_participation": "respond",
+          "window_start_tick": 40,
+          "window_end_tick": 50,
+          "expected_content": "completed_action_count"
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-006-spi-second",
+      "opportunities": [
+        {
+          "opportunity_id": "opp-6",
+          "trigger_ref": "trig-6",
+          "expected_participation": "respond",
+          "window_start_tick": 30,
+          "window_end_tick": 40,
+          "expected_content": "corrected_claim"
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-007-expected-silence",
+      "opportunities": [
+        {
+          "opportunity_id": "opp-7",
+          "trigger_ref": "silence-7",
+          "expected_participation": "silent"
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-008-canceled-trigger",
+      "opportunities": [
+        {
+          "opportunity_id": "opp-8",
+          "trigger_ref": "trig-8",
+          "expected_participation": "silent"
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-009-duplicate-trigger",
+      "opportunities": [
+        {
+          "opportunity_id": "opp-9",
+          "trigger_ref": "trig-9",
+          "expected_participation": "respond",
+          "window_start_tick": 15,
+          "window_end_tick": 25,
+          "expected_content": "single_intervention"
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-010-silence-again",
+      "opportunities": [
+        {
+          "opportunity_id": "opp-10",
+          "trigger_ref": "silence-10",
+          "expected_participation": "silent"
+        }
+      ]
+    }
+  ]
+}

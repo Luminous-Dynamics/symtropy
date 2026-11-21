@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/av-response-window-workload-v1.schema.json",
+  "title": "AV Response Window Workload v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "note",
+    "episodes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "const": "av-response-window-v0"
+    },
+    "note": {
+      "type": "string"
+    },
+    "episodes": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "$ref": "#/$defs/episode"
+      }
+    }
+  },
+  "$defs": {
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "kind",
+        "tick"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "observation",
+            "trigger",
+            "cancel",
+            "duplicate_trigger"
+          ]
+        },
+        "tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "trigger_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observation_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "trigger",
+                  "duplicate_trigger",
+                  "cancel"
+                ]
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "trigger_ref"
+            ]
+          }
+        }
+      ]
+    },
+    "episode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_id",
+        "task_class",
+        "prompt",
+        "query_tick",
+        "response_deadline_tick",
+        "stream_events"
+      ],
+      "properties": {
+        "episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "task_class": {
+          "enum": [
+            "vti",
+            "spi",
+            "cqi",
+            "ora",
+            "avat",
+            "cat"
+          ]
+        },
+        "prompt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "query_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "response_deadline_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stream_events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/event"
+          }
+        }
+      }
+    }
+  }
+}
