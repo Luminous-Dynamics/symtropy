@@ -207,11 +207,22 @@
                     "evidence_id",
                     "evidence_class",
                     "source_reference",
+                    "issuer_id",
                     "report_digest_sha256",
+                    "measurement_dataset_sha256",
+                    "calibration_bundle_sha256",
                     "tested_vehicle_configuration_id",
+                    "test_article_vehicle_serial",
                     "tested_module_configuration_id",
+                    "test_article_module_serial",
                     "interface_revision",
-                    "acceptance_criteria_id"
+                    "test_procedure_id",
+                    "test_procedure_revision",
+                    "acceptance_criteria_id",
+                    "uncertainty_budget_reference",
+                    "test_completed_at_utc",
+                    "test_result",
+                    "limitations"
                   ],
                   "properties": {
                     "evidence_id": {
@@ -252,6 +263,56 @@
                     "acceptance_criteria_id": {
                       "type": "string",
                       "minLength": 1
+                    },
+                    "issuer_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "measurement_dataset_sha256": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "calibration_bundle_sha256": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "test_article_vehicle_serial": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "test_article_module_serial": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "test_procedure_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "test_procedure_revision": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "uncertainty_budget_reference": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "test_completed_at_utc": {
+                      "type": "string",
+                      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+                    },
+                    "test_result": {
+                      "enum": [
+                        "passed",
+                        "failed",
+                        "inconclusive"
+                      ]
+                    },
+                    "limitations": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
                     }
                   }
                 }
