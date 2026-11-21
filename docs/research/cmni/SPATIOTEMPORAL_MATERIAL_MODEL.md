@@ -111,3 +111,18 @@ A standalone research module, research/cmni/reference-kernel/src/material_state.
 This is a numerical kernel, not a complete hydride model. It has no calibrated Pd/Ti diffusion coefficients, no beam implantation source profile, no surface Robin boundary, no defect-trapping constitutive law, and no coupled thermal/phase solver. The current manufactured tests cover a uniform invariant, inventory conservation, smoothing, a discrete Neumann cosine mode, stability rejection and exact source/loss limits.
 
 There are 8 additional Rust tests in this module. The combined crate currently has 42 authored tests, still unexecuted in this environment because the Rust toolchain is absent.
+
+
+## 9. Arbitrary measured 2-D beam-map reconciliation
+
+The research kernel now includes `BeamProfileCell` and `reconcile_measured_beam_profile`. The helper:
+- accepts arbitrary cells with x/y coordinates, area and combined singly charged ion-current density;
+- integrates area × current density across cells;
+- compares the map current to an independent Faraday-cup total;
+- fails closed when the relative mismatch exceeds a caller-declared tolerance;
+- converts the reconciled cell currents to deuteron rates using separately supplied D+ / D2+ ion-current fractions;
+- returns per-cell deuteron rate, normalized deuteron-flux fraction and areal flux density.
+
+It does not silently renormalize an inconsistent map to force agreement. The synthetic fixture `research/cmni/fixtures/arbitrary-2d-beam-profile-faraday-reconciliation-synthetic.json` demonstrates a nonuniform map whose integrated current equals 1.0 µA and a 50%-mismatch negative control that should be rejected.
+
+Current limitations: this helper assumes a combined D+ / D2+ current-density map with uniform species fractions across cells. A production measured input should preserve species-resolved maps when available and support spatially varying species composition and energy distributions.
