@@ -1,0 +1,141 @@
+{
+  "schema_version": "rebco-adaptive-inspection-voi.v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "single-step-posterior-decision-voi-only",
+  "application_profile": {
+    "profile_id": "SYNTH-HIGH-FIELD-REBCO-PROFILE",
+    "condition_profile_id": "SYNTH-77K-SELF-FIELD-1UV-CM",
+    "minimum_contiguous_weak_cells": 2,
+    "false_accept_loss": 50,
+    "false_reject_loss": 80,
+    "total_inspection_budget_loss_units": 8,
+    "minimum_positive_net_voi": 0.1
+  },
+  "cell_count": 8,
+  "prior_scenarios": [
+    {
+      "scenario_id": "NOMINAL-HEALTHY",
+      "prior_weight": 0.55,
+      "weak_cells": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "scenario_id": "WEAK-SEGMENT-LEFT",
+      "prior_weight": 0.25,
+      "weak_cells": [
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "scenario_id": "WEAK-SEGMENT-RIGHT",
+      "prior_weight": 0.15,
+      "weak_cells": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true
+      ]
+    },
+    {
+      "scenario_id": "ISOLATED-WEAK-CELLS",
+      "prior_weight": 0.05,
+      "weak_cells": [
+        true,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false
+      ]
+    }
+  ],
+  "candidate_actions": [
+    {
+      "action_id": "DIRECT-TRANSPORT-CELL-003",
+      "method": "direct_transport",
+      "cell_index": 3,
+      "condition_profile_id": "SYNTH-77K-SELF-FIELD-1UV-CM",
+      "sensitivity": 0.98,
+      "specificity": 0.99,
+      "cost_loss_units": 2.5,
+      "calibration_status": "valid",
+      "instrument_id": "SYNTH-TRANSPORT-RIG-01",
+      "calibration_revision": "SYNTH-CAL-DIRECT-01",
+      "validation_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "action_id": "PROXY-CELL-003",
+      "method": "calibrated_noncontact_proxy",
+      "cell_index": 3,
+      "condition_profile_id": "SYNTH-77K-SELF-FIELD-1UV-CM",
+      "sensitivity": 0.85,
+      "specificity": 0.9,
+      "cost_loss_units": 0.7,
+      "calibration_status": "qualified",
+      "instrument_id": "SYNTH-MAGNETIZATION-MAP-01",
+      "calibration_revision": "SYNTH-CAL-PROXY-01",
+      "validation_artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    {
+      "action_id": "DIRECT-TRANSPORT-CELL-007",
+      "method": "direct_transport",
+      "cell_index": 7,
+      "condition_profile_id": "SYNTH-77K-SELF-FIELD-1UV-CM",
+      "sensitivity": 0.98,
+      "specificity": 0.99,
+      "cost_loss_units": 2.5,
+      "calibration_status": "valid",
+      "instrument_id": "SYNTH-TRANSPORT-RIG-01",
+      "calibration_revision": "SYNTH-CAL-DIRECT-01",
+      "validation_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "action_id": "DIRECT-TRANSPORT-CELL-000",
+      "method": "direct_transport",
+      "cell_index": 0,
+      "condition_profile_id": "SYNTH-77K-SELF-FIELD-1UV-CM",
+      "sensitivity": 0.98,
+      "specificity": 0.99,
+      "cost_loss_units": 2.5,
+      "calibration_status": "valid",
+      "instrument_id": "SYNTH-TRANSPORT-RIG-01",
+      "calibration_revision": "SYNTH-CAL-DIRECT-01",
+      "validation_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "action_id": "DIRECT-TRANSPORT-CELL-001",
+      "method": "direct_transport",
+      "cell_index": 1,
+      "condition_profile_id": "SYNTH-77K-SELF-FIELD-1UV-CM",
+      "sensitivity": 1,
+      "specificity": 1,
+      "cost_loss_units": 0.5,
+      "calibration_status": "valid",
+      "instrument_id": "SYNTH-TRANSPORT-RIG-01",
+      "calibration_revision": "SYNTH-CAL-DIRECT-01",
+      "validation_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  ],
+  "observed_results": []
+}
