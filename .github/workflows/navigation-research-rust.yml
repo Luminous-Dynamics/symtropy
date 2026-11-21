@@ -75,11 +75,11 @@ jobs:
           set -euo pipefail
           if [[ -f docs/research/navigation-transition-v0.1/dataset-admission.schema.json \
              && -f docs/research/navigation-transition-v0.1/datasets.v0.1.json ]]; then
-            cargo run --manifest-path research/nav-transition-validator/Cargo.toml --bin nav-dataset-admission-validate -- \
+            cargo run --manifest-path research/nav-transition-validator/Cargo.toml --bin dataset_admission_validate -- \
               docs/research/navigation-transition-v0.1/dataset-admission.schema.json \
               docs/research/navigation-transition-v0.1/datasets.v0.1.json \
               research_noncommercial
-            cargo run --manifest-path research/nav-transition-validator/Cargo.toml --bin nav-dataset-admission-validate -- \
+            cargo run --manifest-path research/nav-transition-validator/Cargo.toml --bin dataset_admission_validate -- \
               docs/research/navigation-transition-v0.1/dataset-admission.schema.json \
               docs/research/navigation-transition-v0.1/datasets.v0.1.json \
               commercial
