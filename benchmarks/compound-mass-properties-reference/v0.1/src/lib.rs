@@ -32,14 +32,29 @@ impl Display for MassPropertiesError {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::InvalidDimension => write!(formatter, "dimension must be in 2..=9"),
-            Self::DimensionMismatch => write!(formatter, "vector or matrix dimensions do not match"),
+            Self::DimensionMismatch => {
+                write!(formatter, "vector or matrix dimensions do not match")
+            }
             Self::NonFiniteInput => write!(formatter, "input values must be finite"),
             Self::NonPositiveMass => write!(formatter, "component mass must be positive"),
-            Self::NonSymmetricSecondMoment => write!(formatter, "second-moment tensor must be symmetric"),
-            Self::NonPositiveSemidefiniteSecondMoment => write!(formatter, "second-moment tensor must be positive semidefinite"),
-            Self::InvalidRotation => write!(formatter, "component rotation must be proper and orthogonal"),
-            Self::SingularInertiaOperator => write!(formatter, "bivector inertia operator is singular"),
-            Self::NonFiniteResult => write!(formatter, "mass-property calculation produced a non-finite result"),
+            Self::NonSymmetricSecondMoment => {
+                write!(formatter, "second-moment tensor must be symmetric")
+            }
+            Self::NonPositiveSemidefiniteSecondMoment => write!(
+                formatter,
+                "second-moment tensor must be positive semidefinite"
+            ),
+            Self::InvalidRotation => write!(
+                formatter,
+                "component rotation must be proper and orthogonal"
+            ),
+            Self::SingularInertiaOperator => {
+                write!(formatter, "bivector inertia operator is singular")
+            }
+            Self::NonFiniteResult => write!(
+                formatter,
+                "mass-property calculation produced a non-finite result"
+            ),
         }
     }
 }
@@ -61,7 +76,10 @@ impl Bivector {
         if components.iter().any(|x| !x.is_finite()) {
             return Err(MassPropertiesError::NonFiniteInput);
         }
-        Ok(Self { dimension, components })
+        Ok(Self {
+            dimension,
+            components,
+        })
     }
 
     pub fn zero(dimension: usize) -> Result<Self, MassPropertiesError> {
@@ -189,9 +207,7 @@ impl CompoundMassProperties {
     /// Compose components using the full tensor parallel-axis theorem.
     ///
     /// C_total = sum(R_k C_k R_k^T + m_k d_k d_k^T), with d_k = r_k - c.
-    pub fn compose(
-        components: &[ComponentMassProperties],
-    ) -> Result<Self, MassPropertiesError> {
+    pub fn compose(components: &[ComponentMassProperties]) -> Result<Self, MassPropertiesError> {
         if components.is_empty() {
             return Err(MassPropertiesError::InvalidDimension);
         }
@@ -232,8 +248,8 @@ impl CompoundMassProperties {
 
             for row in 0..dimension {
                 for column in 0..dimension {
-                    second_moment_at_com_kg_m2[row][column] +=
-                        rotated_component_moment[row][column]
+                    second_moment_at_com_kg_m2[row][column] += rotated_component_moment[row]
+                        [column]
                         + component.mass_kg * displacement[row] * displacement[column];
                 }
             }
@@ -277,8 +293,10 @@ impl CompoundMassProperties {
             let (i, j) = plane_from_index(self.dimension, column);
             basis.set(i, j, 1.0)?;
             let omega = basis.to_matrix();
-            let image = add(&multiply(&self.second_moment_at_com_kg_m2, &omega)?,
-                            &multiply(&omega, &self.second_moment_at_com_kg_m2)?)?;
+            let image = add(
+                &multiply(&self.second_moment_at_com_kg_m2, &omega)?,
+                &multiply(&omega, &self.second_moment_at_com_kg_m2)?,
+            )?;
             let image_bivector = Bivector::from_matrix(&image)?;
             for row in 0..count {
                 operator[row][column] = image_bivector.components[row];
@@ -299,18 +317,19 @@ impl CompoundMassProperties {
         Bivector::new(self.dimension, solution)
     }
 
-    pub fn kinetic_energy(
-        &self,
-        angular_velocity: &Bivector,
-    ) -> Result<f64, MassPropertiesError> {
+    pub fn kinetic_energy(&self, angular_velocity: &Bivector) -> Result<f64, MassPropertiesError> {
         if angular_velocity.dimension != self.dimension {
             return Err(MassPropertiesError::DimensionMismatch);
         }
         let operator = self.bivector_inertia_operator()?;
         let applied = matrix_vector(&operator, angular_velocity.components())?;
         finite_result(
-            0.5 * angular_velocity.components().iter().zip(applied)
-                .map(|(w, momentum)| w * momentum).sum::<f64>(),
+            0.5 * angular_velocity
+                .components()
+                .iter()
+                .zip(applied)
+                .map(|(w, momentum)| w * momentum)
+                .sum::<f64>(),
         )
     }
 
@@ -328,8 +347,12 @@ impl CompoundMassProperties {
             midpoint.push(omega_before.components[index] + 0.5 * delta_omega.components[index]);
         }
         finite_result(
-            angular_impulse.components.iter().zip(midpoint)
-                .map(|(impulse, omega_mid)| impulse * omega_mid).sum(),
+            angular_impulse
+                .components
+                .iter()
+                .zip(midpoint)
+                .map(|(impulse, omega_mid)| impulse * omega_mid)
+                .sum(),
         )
     }
 }
@@ -379,7 +402,11 @@ fn validate_square(matrix: &Matrix, dimension: usize) -> Result<(), MassProperti
 
 fn validate_second_moment(matrix: &Matrix, dimension: usize) -> Result<(), MassPropertiesError> {
     validate_square(matrix, dimension)?;
-    let scale = matrix.iter().flatten().fold(0.0_f64, |a, b| a.max(b.abs())).max(f64::MIN_POSITIVE);
+    let scale = matrix
+        .iter()
+        .flatten()
+        .fold(0.0_f64, |a, b| a.max(b.abs()))
+        .max(f64::MIN_POSITIVE);
     let tolerance = RELATIVE_TOLERANCE * scale;
     for i in 0..dimension {
         for j in 0..dimension {
@@ -400,7 +427,11 @@ fn validate_second_moment(matrix: &Matrix, dimension: usize) -> Result<(), MassP
 fn symmetric_eigenvalues_jacobi(matrix: &Matrix) -> Result<Vector, MassPropertiesError> {
     let dimension = matrix.len();
     let mut work = matrix.clone();
-    let scale = matrix.iter().flatten().fold(0.0_f64, |a, b| a.max(b.abs())).max(f64::MIN_POSITIVE);
+    let scale = matrix
+        .iter()
+        .flatten()
+        .fold(0.0_f64, |a, b| a.max(b.abs()))
+        .max(f64::MIN_POSITIVE);
     let tolerance = 1.0e-14 * scale;
 
     for _ in 0..(100 * dimension * dimension) {
@@ -607,7 +638,10 @@ fn matrix_vector(matrix: &Matrix, vector: &[f64]) -> Result<Vector, MassProperti
     if matrix.iter().any(|row| row.len() != vector.len()) {
         return Err(MassPropertiesError::DimensionMismatch);
     }
-    let output: Vector = matrix.iter().map(|row| row.iter().zip(vector).map(|(a, b)| a * b).sum()).collect();
+    let output: Vector = matrix
+        .iter()
+        .map(|row| row.iter().zip(vector).map(|(a, b)| a * b).sum())
+        .collect();
     if output.iter().all(|x| x.is_finite()) {
         Ok(output)
     } else {
@@ -668,7 +702,11 @@ mod tests {
         }
         for i in 0..3 {
             for j in 0..3 {
-                close(compound.second_moment_at_com_kg_m2()[i][j], component.local_second_moment_kg_m2()[i][j], 1.0e-12);
+                close(
+                    compound.second_moment_at_com_kg_m2()[i][j],
+                    component.local_second_moment_kg_m2()[i][j],
+                    1.0e-12,
+                );
             }
         }
     }
@@ -700,8 +738,16 @@ mod tests {
     #[test]
     fn component_rotation_preserves_products_of_inertia() {
         let rotation = vec![
-            vec![std::f64::consts::FRAC_1_SQRT_2, -std::f64::consts::FRAC_1_SQRT_2, 0.0],
-            vec![std::f64::consts::FRAC_1_SQRT_2, std::f64::consts::FRAC_1_SQRT_2, 0.0],
+            vec![
+                std::f64::consts::FRAC_1_SQRT_2,
+                -std::f64::consts::FRAC_1_SQRT_2,
+                0.0,
+            ],
+            vec![
+                std::f64::consts::FRAC_1_SQRT_2,
+                std::f64::consts::FRAC_1_SQRT_2,
+                0.0,
+            ],
             vec![0.0, 0.0, 1.0],
         ];
         let local = vec![
@@ -731,9 +777,17 @@ mod tests {
         let second = CompoundMassProperties::compose(&[b, a]).expect("second");
         close(first.total_mass_kg(), second.total_mass_kg(), 1.0e-12);
         for axis in 0..3 {
-            close(first.center_of_mass_m()[axis], second.center_of_mass_m()[axis], 1.0e-12);
+            close(
+                first.center_of_mass_m()[axis],
+                second.center_of_mass_m()[axis],
+                1.0e-12,
+            );
             for column in 0..3 {
-                close(first.second_moment_at_com_kg_m2()[axis][column], second.second_moment_at_com_kg_m2()[axis][column], 1.0e-12);
+                close(
+                    first.second_moment_at_com_kg_m2()[axis][column],
+                    second.second_moment_at_com_kg_m2()[axis][column],
+                    1.0e-12,
+                );
             }
         }
     }
@@ -741,8 +795,16 @@ mod tests {
     #[test]
     fn dense_bivector_operator_matches_direct_tensor_action() {
         let rotation = vec![
-            vec![std::f64::consts::FRAC_1_SQRT_2, -std::f64::consts::FRAC_1_SQRT_2, 0.0],
-            vec![std::f64::consts::FRAC_1_SQRT_2, std::f64::consts::FRAC_1_SQRT_2, 0.0],
+            vec![
+                std::f64::consts::FRAC_1_SQRT_2,
+                -std::f64::consts::FRAC_1_SQRT_2,
+                0.0,
+            ],
+            vec![
+                std::f64::consts::FRAC_1_SQRT_2,
+                std::f64::consts::FRAC_1_SQRT_2,
+                0.0,
+            ],
             vec![0.0, 0.0, 1.0],
         ];
         let component = ComponentMassProperties::new(
@@ -750,7 +812,11 @@ mod tests {
             1.0,
             vec![0.0, 0.0, 0.0],
             rotation,
-            vec![vec![1.0, 0.0, 0.0], vec![0.0, 2.0, 0.0], vec![0.0, 0.0, 3.0]],
+            vec![
+                vec![1.0, 0.0, 0.0],
+                vec![0.0, 2.0, 0.0],
+                vec![0.0, 0.0, 3.0],
+            ],
         )
         .expect("component");
         let compound = CompoundMassProperties::compose(&[component]).expect("compound");
@@ -760,8 +826,11 @@ mod tests {
 
         let omega_matrix = omega.to_matrix();
         let c = compound.second_moment_at_com_kg_m2();
-        let direct = add(&multiply(c, &omega_matrix).expect("C Omega"),
-                         &multiply(&omega_matrix, c).expect("Omega C")).expect("sum");
+        let direct = add(
+            &multiply(c, &omega_matrix).expect("C Omega"),
+            &multiply(&omega_matrix, c).expect("Omega C"),
+        )
+        .expect("sum");
         let direct_bivector = Bivector::from_matrix(&direct).expect("direct");
         for (actual, expected) in generalized.iter().zip(direct_bivector.components()) {
             close(*actual, *expected, 1.0e-12);
@@ -781,12 +850,16 @@ mod tests {
         let mut omega_after = omega_before.clone();
         for i in 0..3 {
             for j in i + 1..3 {
-                omega_after.set(i, j, omega_before.get(i, j) + delta.get(i, j)).expect("set");
+                omega_after
+                    .set(i, j, omega_before.get(i, j) + delta.get(i, j))
+                    .expect("set");
             }
         }
         let energy_delta = compound.kinetic_energy(&omega_after).expect("after")
             - compound.kinetic_energy(&omega_before).expect("before");
-        let work = compound.midpoint_mechanical_work(&impulse, &omega_before).expect("work");
+        let work = compound
+            .midpoint_mechanical_work(&impulse, &omega_before)
+            .expect("work");
         close(work, energy_delta, 1.0e-11);
     }
 
@@ -797,16 +870,38 @@ mod tests {
             Err(MassPropertiesError::NonPositiveMass)
         );
         assert_eq!(
-            ComponentMassProperties::new("bad-symmetry", 1.0, vec![0.0; 3], identity(3),
-                vec![vec![1.0, 0.3, 0.0], vec![0.0, 1.0, 0.0], vec![0.0, 0.0, 1.0]]),
+            ComponentMassProperties::new(
+                "bad-symmetry",
+                1.0,
+                vec![0.0; 3],
+                identity(3),
+                vec![
+                    vec![1.0, 0.3, 0.0],
+                    vec![0.0, 1.0, 0.0],
+                    vec![0.0, 0.0, 1.0]
+                ]
+            ),
             Err(MassPropertiesError::NonSymmetricSecondMoment)
         );
         assert_eq!(
-            ComponentMassProperties::new("bad-psd", 1.0, vec![0.0; 3], identity(3),
-                vec![vec![1.0, 0.0, 0.0], vec![0.0, -0.1, 0.0], vec![0.0, 0.0, 1.0]]),
+            ComponentMassProperties::new(
+                "bad-psd",
+                1.0,
+                vec![0.0; 3],
+                identity(3),
+                vec![
+                    vec![1.0, 0.0, 0.0],
+                    vec![0.0, -0.1, 0.0],
+                    vec![0.0, 0.0, 1.0]
+                ]
+            ),
             Err(MassPropertiesError::NonPositiveSemidefiniteSecondMoment)
         );
-        let reflection = vec![vec![-1.0, 0.0, 0.0], vec![0.0, 1.0, 0.0], vec![0.0, 0.0, 1.0]];
+        let reflection = vec![
+            vec![-1.0, 0.0, 0.0],
+            vec![0.0, 1.0, 0.0],
+            vec![0.0, 0.0, 1.0],
+        ];
         assert_eq!(
             ComponentMassProperties::new("reflection", 1.0, vec![0.0; 3], reflection, identity(3)),
             Err(MassPropertiesError::InvalidRotation)
