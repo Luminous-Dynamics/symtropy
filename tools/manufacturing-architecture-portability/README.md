@@ -74,3 +74,13 @@ cargo clippy --all-targets -- -D warnings
 The validator performs both formal JSON Schema validation (including format assertions) and independent semantic checks for duplicate standard/layer identities, unresolved standard references, layer-kind/reference-role mismatch, invalid access paths, implementation/evidence-state promotion, reference-only source misuse, synthetic-to-conformance promotion and semantic-field contradictions.
 
 The dedicated workflow bootstraps this isolated tool's `Cargo.lock` once and uploads the generated lockfile as an artifact. Commit that exact lockfile before changing this workflow to `--locked`. Until that artifact is reviewed and the lock is committed, dependency resolution is not yet frozen. The validator has no endpoint access and cannot establish runtime conformance.
+
+## Portable observation projection and semantic referee
+
+`portable-observation.schema.json` defines the exact candidate projection shape for a source-preserving observation. It requires the adapter-profile identity, original source-document digest, source schema identifier/version, machine and data-item identities, source and reference timestamps, clock mapping and uncertainty, native kind/unit/value, source locator and opaque-extension manifests.
+
+The validator's `semantic_evaluator` compares candidate projections against evaluator-owned truth one required field at a time. It does not normalize or silently coerce values. The current test-only truth is one finite synthetic MTConnect sample record; it is deliberately compiled only in the test module. A passing comparison establishes exact agreement for that fixture only.
+
+The negative controls cover wrong machine identity, missing sequence, altered unit, changed clock mapping, dropped opaque extension, and additional candidate fields. Additional fields are surfaced in the evaluator report rather than silently discarded. The candidate projection schema separately rejects undeclared root fields; unknown source-standard extensions belong in the explicit opaque-extension manifest.
+
+The observation timestamp numbers in this fixture are synthetic and are not admitted as real plant-clock or physical measurement values. Time-unit and clock-domain claims still require source-specific clock and unit qualification. The exact comparator intentionally does not invent tolerances.
