@@ -305,7 +305,10 @@ fn verify_case(case: &CaseDefinition, input_events: &[SourceEvent]) -> Result<u6
         by_event.entry(event.event_id.clone()).or_default().push(event);
     }
 
-    let mut active: Vec<SourceEvent> = Vec::new();
+    // Events sharing the same source time resolution are aggregated into
+    // one atomic stock-flow bucket. A lexical event-ID order must not invent
+    // an intra-tick sequence that the source did not observe.
+    let mut net_flow_by_tick: BTreeMap<i64, i128> = BTreeMap::new();
 
     for (event_id, mut revisions) in by_event {
         revisions.sort_by_key(|event| event.revision);
@@ -371,25 +374,20 @@ fn verify_case(case: &CaseDefinition, input_events: &[SourceEvent]) -> Result<u6
             return Err(format!("actual event {event_id:?} has zero quantity"));
         }
 
-        signed_delta(case.ledger, &current.event_kind, current.quantity)?;
-        active.push(current.clone());
+        let delta = signed_delta(case.ledger, &current.event_kind, current.quantity)?;
+        let tick_total = net_flow_by_tick.entry(current.event_tick).or_insert(0);
+        *tick_total = tick_total
+            .checked_add(delta)
+            .ok_or_else(|| format!("same-tick flow overflow at tick {}", current.event_tick))?;
     }
 
-    // Canonical event-time order gives a stable stock trajectory independent
-    // of source row order or ingestion order.
-    active.sort_by(|a, b| (a.event_tick, &a.event_id).cmp(&(b.event_tick, &b.event_id)));
-
     let mut stock = i128::from(case.opening_stock);
-    for event in &active {
-        let delta = signed_delta(case.ledger, &event.event_kind, event.quantity)?;
+    for (tick, delta) in net_flow_by_tick {
         stock = stock
             .checked_add(delta)
             .ok_or_else(|| "stock arithmetic overflow".to_string())?;
         if stock < 0 {
-            return Err(format!(
-                "stock underflow after event {:?} at tick {}",
-                event.event_id, event.event_tick
-            ));
+            return Err(format!("stock underflow after the event bucket at tick {tick}"));
         }
     }
 
@@ -551,6 +549,14 @@ mod tests {
         let original = evaluate_reference_corpus().expect("original corpus");
         let permuted = evaluate_corpus(CASES_CSV, &reordered).expect("permuted corpus");
         assert_eq!(original, permuted);
+    }
+
+    #[test]
+    fn same_tick_events_are_aggregated_without_inventing_lexical_order() {
+        let report = evaluate_reference_corpus().expect("corpus parses");
+        let case = report.cases.iter().find(|case| case.case_id == "V32").expect("V32 exists");
+        assert_eq!(case.actual, "ACCEPT");
+        assert_eq!(case.detail, "closing stock = 0");
     }
 
     #[test]
