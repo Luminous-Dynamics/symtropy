@@ -1119,6 +1119,17 @@ mod tests {
     }
 
     #[test]
+    fn rejects_nonpositive_sampling_spacing() {
+        let mut value = fixture();
+        value["observations"][0]["coordinate_footprint"]["sampling_spacing_mm"] = json!(0.0);
+        assert!(
+            validate_document(&value)
+                .unwrap_err()
+                .contains("sampling_spacing_mm must be positive")
+        );
+    }
+
+    #[test]
     fn rejects_segment_outside_reel_bounds() {
         let mut value = fixture();
         value["segments"][0]["longitudinal_end_mm"] = json!(1100.0);
