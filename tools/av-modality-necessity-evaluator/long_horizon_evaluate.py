@@ -399,6 +399,19 @@ def evaluate(
         ):
             raise EvaluationError(f"{episode_id}: truth contains invalid required observation refs")
         required = set(raw_required)
+        ordered_required = label.get("required_ordered_observation_refs")
+        sequence_correct = True
+        if ordered_required is not None:
+            if (
+                not isinstance(ordered_required, list)
+                or any(not isinstance(ref, str) or not ref for ref in ordered_required)
+                or len(ordered_required) != len(set(ordered_required))
+                or set(ordered_required) != required
+            ):
+                raise EvaluationError(f"{episode_id}: ordered truth refs must be a unique permutation of required refs")
+            sequence_correct = current_refs == ordered_required
+            if not sequence_correct:
+                violations.append("current_observation_order_mismatch")
         if not required <= set(observations):
             raise EvaluationError(f"{episode_id}: truth requires an observation not present in stream")
         if not required <= eligible:
@@ -503,7 +516,7 @@ def evaluate(
             decision_correct = abstained and answer is None
             false_memory = not abstained
         else:
-            answer_correct = not abstained and answer == expected_answer and count_correct
+            answer_correct = not abstained and answer == expected_answer and count_correct and sequence_correct
             decision_correct = answer_correct
             false_memory = not abstained and not answer_correct
 
