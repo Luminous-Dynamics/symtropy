@@ -728,6 +728,7 @@ fn main() -> ExitCode {
     }
 }
 
+#[cfg(test)]
 fn solve_state_exhaustive(
     scenarios: &[Scenario],
     actions: &[Action],
