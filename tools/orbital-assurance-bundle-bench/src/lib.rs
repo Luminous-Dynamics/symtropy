@@ -438,6 +438,16 @@ fn evaluate_case(case: &Case) -> CaseResult {
                 "estimand, unit and model profile do not match the claim type",
             );
         }
+        if claim.claim_type == ClaimType::ModelCredibility
+            && claim.validation_domain.as_deref().is_none_or(|domain| domain.trim().is_empty())
+        {
+            add_blocker(
+                &mut blockers,
+                "INCOMPLETE",
+                Some(&claim.claim_id),
+                "model credibility claim lacks a declared validation domain",
+            );
+        }
 
         if claim.state != ClaimState::Supported {
             let (code, detail) = match claim.state {
@@ -450,9 +460,7 @@ fn evaluate_case(case: &Case) -> CaseResult {
                 ),
                 ClaimState::Supported => unreachable!(),
             };
-            if claim.mandatory {
-                add_blocker(&mut blockers, code, Some(&claim.claim_id), detail);
-            }
+            add_blocker(&mut blockers, code, Some(&claim.claim_id), detail);
         }
 
         if claim.claim_type == ClaimType::ExternalAuthorityDecision && claim.mandatory {
