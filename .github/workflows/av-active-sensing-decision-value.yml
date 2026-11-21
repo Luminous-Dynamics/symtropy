@@ -12,6 +12,7 @@ on:
     branches: [main]
     paths:
       - "research/av-active-sensing-decision-value-v0/**"
+      - "tools/av-modality-necessity-evaluator/active_sensing*"
       - ".github/workflows/av-active-sensing-decision-value.yml"
   workflow_dispatch:
 
