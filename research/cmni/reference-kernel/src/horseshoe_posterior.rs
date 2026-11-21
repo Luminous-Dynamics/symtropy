@@ -310,6 +310,11 @@ pub struct GroupedHorseshoePosteriorInput<'a> {
     pub log_local_scales: &'a [f64],
     pub log_global_scales: &'a [f64],
     pub global_scale_index_by_coefficient: &'a [usize],
+    /// Log experiment scales. Empty means the caller supplies an already-scaled baseline.
+    /// Otherwise each observation is assigned through experiment_scale_index_by_observation.
+    pub log_experiment_scales: &'a [f64],
+    /// One scale-group index per observation when log_experiment_scales is non-empty.
+    pub experiment_scale_index_by_observation: &'a [usize],
     pub relative_covariance: &'a [Vec<f64>],
     /// Fixed multiplicative factor on coefficient scales (AIACHNE tau_scale).
     pub fixed_coefficient_scale: f64,
@@ -325,6 +330,7 @@ pub struct GroupedRawScaleHorseshoePosterior {
     pub coefficient_gradient: Vec<f64>,
     pub log_local_scale_gradient: Vec<f64>,
     pub log_global_scale_gradients: Vec<f64>,
+    pub log_experiment_scale_gradients: Vec<f64>,
     pub biased_prediction: Vec<f64>,
 }
 
@@ -338,11 +344,18 @@ pub fn grouped_raw_scale_horseshoe_log_posterior(
     input: GroupedHorseshoePosteriorInput<'_>,
 ) -> Result<GroupedRawScaleHorseshoePosterior, ModelError> {
     let coefficient_count = input.coefficients.len();
+    let observation_count = input.observed.len();
     let group_count = input.log_global_scales.len();
+    let experiment_scale_count = input.log_experiment_scales.len();
     if coefficient_count == 0
+        || observation_count == 0
         || group_count == 0
         || input.log_local_scales.len() != coefficient_count
         || input.global_scale_index_by_coefficient.len() != coefficient_count
+        || (experiment_scale_count == 0
+            && !input.experiment_scale_index_by_observation.is_empty())
+        || (experiment_scale_count > 0
+            && input.experiment_scale_index_by_observation.len() != observation_count)
     {
         return Err(ModelError::MismatchedDataLengths);
     }
@@ -387,17 +400,86 @@ pub fn grouped_raw_scale_horseshoe_log_posterior(
         ));
     }
 
+    // AIACHNE's original interpolation_horseshoe model has one multiplicative
+    // data_scale per experiment with Normal(1, 0.01), bounded to [0.5, 1.5].
+    // Parameterize it in log coordinates and include the log-Jacobian.
+    let mut experiment_scale_by_observation = vec![1.0; observation_count];
+    let mut experiment_scale_counts = vec![0usize; experiment_scale_count];
+    let mut experiment_scale_values = Vec::with_capacity(experiment_scale_count);
+    for log_scale in input.log_experiment_scales {
+        if !log_scale.is_finite() || log_scale.abs() > 300.0 {
+            return Err(ModelError::InvalidParameter(
+                "log_experiment_scale_out_of_supported_range",
+            ));
+        }
+        let scale = log_scale.exp();
+        if !scale.is_finite() || !(0.5..=1.5).contains(&scale) {
+            return Err(ModelError::InvalidParameter(
+                "experiment_scale_outside_aiache_bounds",
+            ));
+        }
+        experiment_scale_values.push(scale);
+    }
+    if experiment_scale_count > 0 {
+        for (observation_index, scale_index) in input
+            .experiment_scale_index_by_observation
+            .iter()
+            .enumerate()
+        {
+            if *scale_index >= experiment_scale_count {
+                return Err(ModelError::InvalidParameter(
+                    "experiment_scale_index_out_of_range",
+                ));
+            }
+            experiment_scale_by_observation[observation_index] =
+                experiment_scale_values[*scale_index];
+            experiment_scale_counts[*scale_index] += 1;
+        }
+        if experiment_scale_counts.contains(&0) {
+            return Err(ModelError::InvalidParameter(
+                "every_experiment_scale_must_own_observations",
+            ));
+        }
+    }
+
+    // The likelihood covariance is anchored to the unscaled physical mean.
+    // Divide the relative covariance by the observation scale pairs so that
+    // the base target reconstructs that unchanged covariance after scaling mu.
+    let scaled_baseline: Vec<f64> = input
+        .baseline_mean
+        .iter()
+        .zip(experiment_scale_by_observation.iter())
+        .map(|(mean, scale)| mean * scale)
+        .collect();
+    if scaled_baseline.len() != observation_count {
+        return Err(ModelError::MismatchedDataLengths);
+    }
+    let mut scaled_relative_covariance = input.relative_covariance.to_vec();
+    if scaled_relative_covariance.len() != observation_count
+        || scaled_relative_covariance
+            .iter()
+            .any(|row| row.len() != observation_count)
+    {
+        return Err(ModelError::MismatchedDataLengths);
+    }
+    for (row_index, row) in scaled_relative_covariance.iter_mut().enumerate() {
+        for (column_index, value) in row.iter_mut().enumerate() {
+            *value /= experiment_scale_by_observation[row_index]
+                * experiment_scale_by_observation[column_index];
+        }
+    }
+
     // Reuse the independently tested likelihood and log-coordinate local-prior
     // path with unit global scales. Replace its coefficient/global-prior terms
     // with the corresponding grouped terms below.
     let base = raw_scale_horseshoe_log_posterior(
         input.observed,
-        input.baseline_mean,
+        &scaled_baseline,
         input.design_matrix,
         input.coefficients,
         input.log_local_scales,
         0.0,
-        input.relative_covariance,
+        &scaled_relative_covariance,
         GlobalScalePrior::HalfNormal { scale: 1.0 },
     )?;
 
@@ -424,8 +506,32 @@ pub fn grouped_raw_scale_horseshoe_log_posterior(
     let mut coefficient_gradient = base.coefficient_gradient.clone();
     let mut log_local_scale_gradient = vec![0.0; coefficient_count];
     let mut log_global_scale_gradients = vec![0.0; group_count];
+    let mut log_experiment_scale_gradients = vec![0.0; experiment_scale_count];
     let mut sum_scaled_squares = vec![0.0; group_count];
     let mut log_prior = 0.0;
+
+    // Stan's data_scale ~ normal(1, 0.01), constrained to [0.5, 1.5].
+    // Since this target uses log(scale) coordinates, include the log-Jacobian.
+    const EXPERIMENT_SCALE_PRIOR_STD: f64 = 0.01;
+    for (scale_index, scale) in experiment_scale_values.iter().enumerate() {
+        let standardized = (scale - 1.0) / EXPERIMENT_SCALE_PRIOR_STD;
+        log_prior += -0.5 * standardized * standardized
+            - EXPERIMENT_SCALE_PRIOR_STD.ln()
+            - 0.5 * (2.0 * std::f64::consts::PI).ln()
+            + input.log_experiment_scales[scale_index];
+        log_experiment_scale_gradients[scale_index] =
+            -(scale - 1.0) * scale / EXPERIMENT_SCALE_PRIOR_STD.powi(2) + 1.0;
+    }
+    for (observation_index, scale_index) in input
+        .experiment_scale_index_by_observation
+        .iter()
+        .enumerate()
+    {
+        if experiment_scale_count > 0 {
+            log_experiment_scale_gradients[*scale_index] +=
+                base.log_mean_gradient[observation_index];
+        }
+    }
 
     for feature in 0..coefficient_count {
         let group_index = input.global_scale_index_by_coefficient[feature];
@@ -512,6 +618,7 @@ pub fn grouped_raw_scale_horseshoe_log_posterior(
         coefficient_gradient,
         log_local_scale_gradient,
         log_global_scale_gradients,
+        log_experiment_scale_gradients,
         biased_prediction: base.biased_prediction,
     })
 }
