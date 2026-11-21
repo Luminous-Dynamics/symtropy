@@ -25,15 +25,17 @@ The crate has no third-party dependencies. Its tests are synthetic; it does not 
 
 - Accepts an upstream-qualified zone label (OUTSIDE, ANCHORAGE, APPROACH, BERTH); it does not implement geospatial polygons or CRS transformations.
 - Requires stable MMSI, source, receiver, geofence digest and spatial-reference identity for one trajectory.
+- Preserves sender event tick separately from receiver `received_tick`; it never assumes the two clock domains are synchronized.
+- Breaks dwell if either the source-event gap or receiver-observation gap exceeds its own configured threshold. Inferred events carry both confirmation clocks and gap evidence.
 - Makes message identity explicit: exact message replay is idempotent; conflicting reuse rejects.
 - Enforces monotonic message time.
 - Requires dwell confirmation before a zone transition is emitted.
 - Breaks candidate dwell across any observation gap larger than the declared maximum.
 - Emits an observability-gap event and changes the state to INDETERMINATE when continuity is lost.
 - Invalid position or implausible speed inside a stable zone invalidates the state claim.
-- Retains raw AIS navigation-status lexemes as observations; a conflict counter is diagnostic only and never overrides the zone/motion evidence.
+- Accepts raw AIS navigation-status lexemes as input observations; a conflict counter is diagnostic only and never overrides zone/motion evidence. The upstream feed owner must retain the original raw messages; this reference verifier is not a raw-message archive.
 - Requires an evidence reference when a caller supplies a non-INDETERMINATE initial state. Without one, a first observed berth dwell is reported as zone reacquisition—not a fabricated berth arrival.
-- Carries the entire dwell profile, profile version, receiver, source, geofence digest and spatial reference in the call report.
+- Carries the entire dwell profile, profile version, evidence-referenced initial state, receiver, source, geofence digest and spatial reference in the call report.
 
 ## Event semantics and claim ceiling
 
@@ -52,7 +54,7 @@ They are **not** DCSA actual port-call timestamps, pilot boarding, first/last li
 ## Synthetic profile
 
 The frozen default profile uses integer ticks:
-- maximum observation gap: 2 ticks;
+- maximum sender-event gap: 2 ticks;\n- maximum receiver-observation gap: 2 ticks;
 - anchorage dwell: 2 ticks, speed at most 1.5 knots;
 - approach dwell: 1 tick, speed at most 12 knots;
 - berth dwell: 3 ticks, speed at most 0.5 knots;
