@@ -372,7 +372,7 @@ pub struct CandidateViewV1 {
 }
 
 /// Completion state of the benchmark episode.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EpisodeStatusV1 {
     /// Candidate may submit another turn.
