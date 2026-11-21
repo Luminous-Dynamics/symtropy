@@ -1,0 +1,577 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "EV-CARRIER-LIFECYCLE-001",
+  "claim_ceiling": "Synthetic per-module lifecycle task/cost screen only. All populated event frequencies, labor times, materials, tariffs and downtime values are illustrative placeholders, not measured failures, service data, quotes or TCO. No return-to-service or production release is granted.",
+  "profiles": [
+    {
+      "config_id": "detachable-uav-pod-synthetic-demo",
+      "architecture": "detachable_drone_pod",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic://EV-CARRIER-LIFECYCLE-001/pod-profile",
+      "currency": "USD",
+      "currency_year": 2026,
+      "horizon_years": 8,
+      "annual_operating_hours_per_module": 2000,
+      "material_cost_usd_per_good_module": 8000,
+      "direct_labor_minutes_per_good_module": 180,
+      "manufacturing_labor_rate_usd_per_hour": 35,
+      "electricity_price_usd_per_kwh": 0.12,
+      "thermal_energy_price_usd_per_kwh": 0.12,
+      "equipment_amortization_years": 10,
+      "technician_labor_rate_usd_per_hour": 45,
+      "downtime_cost_usd_per_hour": 60,
+      "scheduled_inspections_per_module_year": 1,
+      "scheduled_inspection_evidence_class": "synthetic",
+      "scheduled_inspection_evidence_reference": "synthetic://inspection-rate/pod",
+      "scheduled_inspection_path": {
+        "path_id": "scheduled-inspection",
+        "evidence_class": "synthetic",
+        "evidence_reference": "synthetic://inspection/path",
+        "phases": [
+          {
+            "phase": "safe_isolation",
+            "elapsed_hours": 0.25,
+            "technician_hours": 0.25,
+            "evidence_reference": "synthetic://inspection/isolation"
+          },
+          {
+            "phase": "access_disassembly",
+            "elapsed_hours": 0.5,
+            "technician_hours": 0.5,
+            "evidence_reference": "synthetic://inspection/access"
+          },
+          {
+            "phase": "diagnose_inspect",
+            "elapsed_hours": 0.75,
+            "technician_hours": 0.75,
+            "evidence_reference": "synthetic://inspection/inspect"
+          },
+          {
+            "phase": "reinstall_reconfigure",
+            "elapsed_hours": 0.25,
+            "technician_hours": 0.25,
+            "evidence_reference": "synthetic://inspection/reinstall"
+          },
+          {
+            "phase": "post_maintenance_test",
+            "elapsed_hours": 0.25,
+            "technician_hours": 0.25,
+            "evidence_reference": "synthetic://inspection/test"
+          },
+          {
+            "phase": "authorized_signoff",
+            "elapsed_hours": 0.1,
+            "technician_hours": 0.1,
+            "evidence_reference": "synthetic://inspection/signoff"
+          }
+        ],
+        "parts_and_consumables_cost_usd": 10,
+        "replacement_module_cost_usd": 0,
+        "parts_wait_hours": 0,
+        "post_test_status": "passed_fresh"
+      },
+      "unscheduled_fault_count": 3,
+      "fault_exposure_module_years": 10,
+      "fault_rate_evidence_class": "synthetic",
+      "fault_rate_evidence_reference": "synthetic://fault-exposure/pod-10-module-years",
+      "repair_path": {
+        "path_id": "repair-path",
+        "evidence_class": "synthetic",
+        "evidence_reference": "synthetic://service-path/repair-path",
+        "phases": [
+          {
+            "phase": "safe_isolation",
+            "elapsed_hours": 0.5,
+            "technician_hours": 0.5,
+            "evidence_reference": "synthetic://phase/repair-path/isolation"
+          },
+          {
+            "phase": "access_disassembly",
+            "elapsed_hours": 0.5,
+            "technician_hours": 0.5,
+            "evidence_reference": "synthetic://phase/repair-path/access"
+          },
+          {
+            "phase": "diagnose_inspect",
+            "elapsed_hours": 1,
+            "technician_hours": 1,
+            "evidence_reference": "synthetic://phase/repair-path/diagnose"
+          },
+          {
+            "phase": "remove_module",
+            "elapsed_hours": 0.5,
+            "technician_hours": 0.5,
+            "evidence_reference": "synthetic://phase/repair-path/remove"
+          },
+          {
+            "phase": "repair_module",
+            "elapsed_hours": 2,
+            "technician_hours": 2,
+            "evidence_reference": "synthetic://phase/repair-path/action"
+          },
+          {
+            "phase": "reinstall_reconfigure",
+            "elapsed_hours": 0.5,
+            "technician_hours": 0.5,
+            "evidence_reference": "synthetic://phase/repair-path/reinstall"
+          },
+          {
+            "phase": "post_maintenance_test",
+            "elapsed_hours": 0.5,
+            "technician_hours": 0.5,
+            "evidence_reference": "synthetic://phase/repair-path/test"
+          },
+          {
+            "phase": "authorized_signoff",
+            "elapsed_hours": 0.25,
+            "technician_hours": 0.25,
+            "evidence_reference": "synthetic://phase/repair-path/signoff"
+          }
+        ],
+        "parts_and_consumables_cost_usd": 250,
+        "replacement_module_cost_usd": 0,
+        "parts_wait_hours": 0,
+        "post_test_status": "passed_fresh"
+      },
+      "replacement_path": {
+        "path_id": "replacement-path",
+        "evidence_class": "synthetic",
+        "evidence_reference": "synthetic://service-path/replacement-path",
+        "phases": [
+          {
+            "phase": "safe_isolation",
+            "elapsed_hours": 0.5,
+            "technician_hours": 0.5,
+            "evidence_reference": "synthetic://phase/replacement-path/isolation"
+          },
+          {
+            "phase": "access_disassembly",
+            "elapsed_hours": 0.5,
+            "technician_hours": 0.5,
+            "evidence_reference": "synthetic://phase/replacement-path/access"
+          },
+          {
+            "phase": "diagnose_inspect",
+            "elapsed_hours": 1,
+            "technician_hours": 1,
+            "evidence_reference": "synthetic://phase/replacement-path/diagnose"
+          },
+          {
+            "phase": "remove_module",
+            "elapsed_hours": 0.5,
+            "technician_hours": 0.5,
+            "evidence_reference": "synthetic://phase/replacement-path/remove"
+          },
+          {
+            "phase": "replace_module",
+            "elapsed_hours": 0.5,
+            "technician_hours": 0.5,
+            "evidence_reference": "synthetic://phase/replacement-path/action"
+          },
+          {
+            "phase": "reinstall_reconfigure",
+            "elapsed_hours": 0.5,
+            "technician_hours": 0.5,
+            "evidence_reference": "synthetic://phase/replacement-path/reinstall"
+          },
+          {
+            "phase": "post_maintenance_test",
+            "elapsed_hours": 0.5,
+            "technician_hours": 0.5,
+            "evidence_reference": "synthetic://phase/replacement-path/test"
+          },
+          {
+            "phase": "authorized_signoff",
+            "elapsed_hours": 0.25,
+            "technician_hours": 0.25,
+            "evidence_reference": "synthetic://phase/replacement-path/signoff"
+          }
+        ],
+        "parts_and_consumables_cost_usd": 300,
+        "replacement_module_cost_usd": 18000,
+        "parts_wait_hours": 24,
+        "post_test_status": "passed_fresh"
+      }
+    },
+    {
+      "config_id": "amr-handoff-synthetic-demo",
+      "architecture": "amr_cargo_handoff",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic://EV-CARRIER-LIFECYCLE-001/amr-profile",
+      "currency": "USD",
+      "currency_year": 2026,
+      "horizon_years": 8,
+      "annual_operating_hours_per_module": 1800,
+      "material_cost_usd_per_good_module": 6500,
+      "direct_labor_minutes_per_good_module": 150,
+      "manufacturing_labor_rate_usd_per_hour": 35,
+      "electricity_price_usd_per_kwh": 0.12,
+      "thermal_energy_price_usd_per_kwh": 0.12,
+      "equipment_amortization_years": 10,
+      "technician_labor_rate_usd_per_hour": 40,
+      "downtime_cost_usd_per_hour": 35,
+      "scheduled_inspections_per_module_year": 2,
+      "scheduled_inspection_evidence_class": "synthetic",
+      "scheduled_inspection_evidence_reference": "synthetic://inspection-rate/amr",
+      "scheduled_inspection_path": {
+        "path_id": "scheduled-inspection",
+        "evidence_class": "synthetic",
+        "evidence_reference": "synthetic://inspection/path",
+        "phases": [
+          {
+            "phase": "safe_isolation",
+            "elapsed_hours": 0.25,
+            "technician_hours": 0.25,
+            "evidence_reference": "synthetic://inspection/isolation"
+          },
+          {
+            "phase": "access_disassembly",
+            "elapsed_hours": 0.5,
+            "technician_hours": 0.5,
+            "evidence_reference": "synthetic://inspection/access"
+          },
+          {
+            "phase": "diagnose_inspect",
+            "elapsed_hours": 0.75,
+            "technician_hours": 0.75,
+            "evidence_reference": "synthetic://inspection/inspect"
+          },
+          {
+            "phase": "reinstall_reconfigure",
+            "elapsed_hours": 0.25,
+            "technician_hours": 0.25,
+            "evidence_reference": "synthetic://inspection/reinstall"
+          },
+          {
+            "phase": "post_maintenance_test",
+            "elapsed_hours": 0.25,
+            "technician_hours": 0.25,
+            "evidence_reference": "synthetic://inspection/test"
+          },
+          {
+            "phase": "authorized_signoff",
+            "elapsed_hours": 0.1,
+            "technician_hours": 0.1,
+            "evidence_reference": "synthetic://inspection/signoff"
+          }
+        ],
+        "parts_and_consumables_cost_usd": 10,
+        "replacement_module_cost_usd": 0,
+        "parts_wait_hours": 0,
+        "post_test_status": "passed_fresh"
+      },
+      "unscheduled_fault_count": 4,
+      "fault_exposure_module_years": 10,
+      "fault_rate_evidence_class": "synthetic",
+      "fault_rate_evidence_reference": "synthetic://fault-exposure/amr-10-module-years",
+      "repair_path": {
+        "path_id": "repair-path",
+        "evidence_class": "synthetic",
+        "evidence_reference": "synthetic://service-path/repair-path",
+        "phases": [
+          {
+            "phase": "safe_isolation",
+            "elapsed_hours": 0.5,
+            "technician_hours": 0.5,
+            "evidence_reference": "synthetic://phase/repair-path/isolation"
+          },
+          {
+            "phase": "access_disassembly",
+            "elapsed_hours": 0.5,
+            "technician_hours": 0.5,
+            "evidence_reference": "synthetic://phase/repair-path/access"
+          },
+          {
+            "phase": "diagnose_inspect",
+            "elapsed_hours": 1,
+            "technician_hours": 1,
+            "evidence_reference": "synthetic://phase/repair-path/diagnose"
+          },
+          {
+            "phase": "remove_module",
+            "elapsed_hours": 0.5,
+            "technician_hours": 0.5,
+            "evidence_reference": "synthetic://phase/repair-path/remove"
+          },
+          {
+            "phase": "repair_module",
+            "elapsed_hours": 2,
+            "technician_hours": 2,
+            "evidence_reference": "synthetic://phase/repair-path/action"
+          },
+          {
+            "phase": "reinstall_reconfigure",
+            "elapsed_hours": 0.5,
+            "technician_hours": 0.5,
+            "evidence_reference": "synthetic://phase/repair-path/reinstall"
+          },
+          {
+            "phase": "post_maintenance_test",
+            "elapsed_hours": 0.5,
+            "technician_hours": 0.5,
+            "evidence_reference": "synthetic://phase/repair-path/test"
+          },
+          {
+            "phase": "authorized_signoff",
+            "elapsed_hours": 0.25,
+            "technician_hours": 0.25,
+            "evidence_reference": "synthetic://phase/repair-path/signoff"
+          }
+        ],
+        "parts_and_consumables_cost_usd": 180,
+        "replacement_module_cost_usd": 0,
+        "parts_wait_hours": 0,
+        "post_test_status": "passed_fresh"
+      },
+      "replacement_path": {
+        "path_id": "replacement-path",
+        "evidence_class": "synthetic",
+        "evidence_reference": "synthetic://service-path/replacement-path",
+        "phases": [
+          {
+            "phase": "safe_isolation",
+            "elapsed_hours": 0.5,
+            "technician_hours": 0.5,
+            "evidence_reference": "synthetic://phase/replacement-path/isolation"
+          },
+          {
+            "phase": "access_disassembly",
+            "elapsed_hours": 0.5,
+            "technician_hours": 0.5,
+            "evidence_reference": "synthetic://phase/replacement-path/access"
+          },
+          {
+            "phase": "diagnose_inspect",
+            "elapsed_hours": 1,
+            "technician_hours": 1,
+            "evidence_reference": "synthetic://phase/replacement-path/diagnose"
+          },
+          {
+            "phase": "remove_module",
+            "elapsed_hours": 0.5,
+            "technician_hours": 0.5,
+            "evidence_reference": "synthetic://phase/replacement-path/remove"
+          },
+          {
+            "phase": "replace_module",
+            "elapsed_hours": 0.5,
+            "technician_hours": 0.5,
+            "evidence_reference": "synthetic://phase/replacement-path/action"
+          },
+          {
+            "phase": "reinstall_reconfigure",
+            "elapsed_hours": 0.5,
+            "technician_hours": 0.5,
+            "evidence_reference": "synthetic://phase/replacement-path/reinstall"
+          },
+          {
+            "phase": "post_maintenance_test",
+            "elapsed_hours": 0.5,
+            "technician_hours": 0.5,
+            "evidence_reference": "synthetic://phase/replacement-path/test"
+          },
+          {
+            "phase": "authorized_signoff",
+            "elapsed_hours": 0.25,
+            "technician_hours": 0.25,
+            "evidence_reference": "synthetic://phase/replacement-path/signoff"
+          }
+        ],
+        "parts_and_consumables_cost_usd": 300,
+        "replacement_module_cost_usd": 12000,
+        "parts_wait_hours": 16,
+        "post_test_status": "passed_fresh"
+      }
+    },
+    {
+      "config_id": "integrated-drone-bay-production-intent-unknown",
+      "architecture": "integrated_enclosed_bay",
+      "evidence_class": "unknown",
+      "evidence_reference": "unknown://integrated-bay-lifecycle-study-not-performed",
+      "currency": "USD",
+      "currency_year": 2026,
+      "horizon_years": 8,
+      "annual_operating_hours_per_module": 2000,
+      "material_cost_usd_per_good_module": null,
+      "direct_labor_minutes_per_good_module": null,
+      "manufacturing_labor_rate_usd_per_hour": null,
+      "electricity_price_usd_per_kwh": null,
+      "thermal_energy_price_usd_per_kwh": null,
+      "equipment_amortization_years": null,
+      "technician_labor_rate_usd_per_hour": null,
+      "downtime_cost_usd_per_hour": null,
+      "scheduled_inspections_per_module_year": null,
+      "scheduled_inspection_evidence_class": "unknown",
+      "scheduled_inspection_evidence_reference": "unknown://integrated-bay-inspection-rate",
+      "scheduled_inspection_path": {
+        "path_id": "scheduled-inspection",
+        "evidence_class": "unknown",
+        "evidence_reference": "unknown://inspection/path",
+        "phases": [
+          {
+            "phase": "safe_isolation",
+            "elapsed_hours": null,
+            "technician_hours": null,
+            "evidence_reference": "unknown://inspection/isolation"
+          },
+          {
+            "phase": "access_disassembly",
+            "elapsed_hours": null,
+            "technician_hours": null,
+            "evidence_reference": "unknown://inspection/access"
+          },
+          {
+            "phase": "diagnose_inspect",
+            "elapsed_hours": null,
+            "technician_hours": null,
+            "evidence_reference": "unknown://inspection/inspect"
+          },
+          {
+            "phase": "reinstall_reconfigure",
+            "elapsed_hours": null,
+            "technician_hours": null,
+            "evidence_reference": "unknown://inspection/reinstall"
+          },
+          {
+            "phase": "post_maintenance_test",
+            "elapsed_hours": null,
+            "technician_hours": null,
+            "evidence_reference": "unknown://inspection/test"
+          },
+          {
+            "phase": "authorized_signoff",
+            "elapsed_hours": null,
+            "technician_hours": null,
+            "evidence_reference": "unknown://inspection/signoff"
+          }
+        ],
+        "parts_and_consumables_cost_usd": null,
+        "replacement_module_cost_usd": null,
+        "parts_wait_hours": null,
+        "post_test_status": "unknown"
+      },
+      "unscheduled_fault_count": null,
+      "fault_exposure_module_years": null,
+      "fault_rate_evidence_class": "unknown",
+      "fault_rate_evidence_reference": "unknown://integrated-bay-fault-exposure",
+      "repair_path": {
+        "path_id": "repair-path",
+        "evidence_class": "unknown",
+        "evidence_reference": "synthetic://service-path/repair-path",
+        "phases": [
+          {
+            "phase": "safe_isolation",
+            "elapsed_hours": null,
+            "technician_hours": null,
+            "evidence_reference": "unknown://phase/isolation"
+          },
+          {
+            "phase": "access_disassembly",
+            "elapsed_hours": null,
+            "technician_hours": null,
+            "evidence_reference": "unknown://phase/access"
+          },
+          {
+            "phase": "diagnose_inspect",
+            "elapsed_hours": null,
+            "technician_hours": null,
+            "evidence_reference": "unknown://phase/diagnosis"
+          },
+          {
+            "phase": "remove_module",
+            "elapsed_hours": null,
+            "technician_hours": null,
+            "evidence_reference": "unknown://phase/remove"
+          },
+          {
+            "phase": "repair_module",
+            "elapsed_hours": null,
+            "technician_hours": null,
+            "evidence_reference": "unknown://phase/action"
+          },
+          {
+            "phase": "reinstall_reconfigure",
+            "elapsed_hours": null,
+            "technician_hours": null,
+            "evidence_reference": "unknown://phase/reinstall"
+          },
+          {
+            "phase": "post_maintenance_test",
+            "elapsed_hours": null,
+            "technician_hours": null,
+            "evidence_reference": "unknown://phase/test"
+          },
+          {
+            "phase": "authorized_signoff",
+            "elapsed_hours": null,
+            "technician_hours": null,
+            "evidence_reference": "unknown://phase/signoff"
+          }
+        ],
+        "parts_and_consumables_cost_usd": null,
+        "replacement_module_cost_usd": null,
+        "parts_wait_hours": null,
+        "post_test_status": "unknown"
+      },
+      "replacement_path": {
+        "path_id": "replacement-path",
+        "evidence_class": "unknown",
+        "evidence_reference": "synthetic://service-path/replacement-path",
+        "phases": [
+          {
+            "phase": "safe_isolation",
+            "elapsed_hours": null,
+            "technician_hours": null,
+            "evidence_reference": "unknown://phase/isolation"
+          },
+          {
+            "phase": "access_disassembly",
+            "elapsed_hours": null,
+            "technician_hours": null,
+            "evidence_reference": "unknown://phase/access"
+          },
+          {
+            "phase": "diagnose_inspect",
+            "elapsed_hours": null,
+            "technician_hours": null,
+            "evidence_reference": "unknown://phase/diagnosis"
+          },
+          {
+            "phase": "remove_module",
+            "elapsed_hours": null,
+            "technician_hours": null,
+            "evidence_reference": "unknown://phase/remove"
+          },
+          {
+            "phase": "replace_module",
+            "elapsed_hours": null,
+            "technician_hours": null,
+            "evidence_reference": "unknown://phase/action"
+          },
+          {
+            "phase": "reinstall_reconfigure",
+            "elapsed_hours": null,
+            "technician_hours": null,
+            "evidence_reference": "unknown://phase/reinstall"
+          },
+          {
+            "phase": "post_maintenance_test",
+            "elapsed_hours": null,
+            "technician_hours": null,
+            "evidence_reference": "unknown://phase/test"
+          },
+          {
+            "phase": "authorized_signoff",
+            "elapsed_hours": null,
+            "technician_hours": null,
+            "evidence_reference": "unknown://phase/signoff"
+          }
+        ],
+        "parts_and_consumables_cost_usd": null,
+        "replacement_module_cost_usd": null,
+        "parts_wait_hours": null,
+        "post_test_status": "unknown"
+      }
+    }
+  ]
+}
