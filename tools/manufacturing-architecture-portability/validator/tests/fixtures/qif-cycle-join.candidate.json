@@ -67,5 +67,12 @@
   "calibration_attestation_sha256": null,
   "measurement_uncertainty_disposition": "unknown",
   "uncertainty_budget_id": null,
-  "uncertainty_budget_sha256": null
+  "uncertainty_budget_sha256": null,
+  "calibration_subject_instrument_id": null,
+  "calibration_valid_from_ns": null,
+  "calibration_valid_until_ns": null,
+  "uncertainty_characteristic_id": null,
+  "uncertainty_original_unit": null,
+  "uncertainty_valid_from_ns": null,
+  "uncertainty_valid_until_ns": null
 }
