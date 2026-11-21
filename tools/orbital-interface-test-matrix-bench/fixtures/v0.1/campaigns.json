@@ -5,7 +5,6 @@
   "cases": [
     {
       "case_id": "case-01-complete-critical-pair",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -23,7 +22,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -64,11 +63,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 0,
         "pairwise_false_coverage_count": 0
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-01-complete-critical-pair"
     },
     {
       "case_id": "case-02-many-nominal-cycles-no-low-energy",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 10,
       "obligations": [
@@ -85,7 +84,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -316,11 +315,11 @@
         "cycle_count_baseline_pass": true,
         "ofat_false_coverage_count": 0,
         "pairwise_false_coverage_count": 0
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-02-many-nominal-cycles-no-low-energy"
     },
     {
       "case_id": "case-03-high-energy-boundary-omitted",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -337,7 +336,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -400,11 +399,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 0,
         "pairwise_false_coverage_count": 0
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-03-high-energy-boundary-omitted"
     },
     {
       "case_id": "case-04-ofat-does-not-cover-required-pair",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -422,7 +421,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -487,11 +486,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 1,
         "pairwise_false_coverage_count": 1
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-04-ofat-does-not-cover-required-pair"
     },
     {
       "case_id": "case-05-pairwise-does-not-cover-critical-triple",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -510,7 +509,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -600,11 +599,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 1,
         "pairwise_false_coverage_count": 1
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-05-pairwise-does-not-cover-critical-triple"
     },
     {
       "case_id": "case-06-oracle-not-frozen-before-execution",
-      "frozen_before_execution": false,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -621,7 +620,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -663,11 +662,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 0,
         "pairwise_false_coverage_count": 0
-      }
+      },
+      "preregistration_ref": null
     },
     {
       "case_id": "case-07-not-applicable-without-approval",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -682,7 +681,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": "Declared unsafe in note",
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [],
@@ -702,11 +701,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 0,
         "pairwise_false_coverage_count": 0
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-07-not-applicable-without-approval"
     },
     {
       "case_id": "case-08-approved-not-applicable-with-rationale",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -721,7 +720,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": "Facility does not support this approved test condition",
-          "not_applicable_approved": true
+          "not_applicable_review_ref": "synthetic-review-ref:facility-scope"
         }
       ],
       "runs": [],
@@ -739,11 +738,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 0,
         "pairwise_false_coverage_count": 0
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-08-approved-not-applicable-with-rationale"
     },
     {
       "case_id": "case-09-planned-test-is-not-coverage",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -760,7 +759,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -802,11 +801,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 0,
         "pairwise_false_coverage_count": 0
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-09-planned-test-is-not-coverage"
     },
     {
       "case_id": "case-10-aborted-test-is-not-coverage",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -823,7 +822,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -865,11 +864,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 0,
         "pairwise_false_coverage_count": 0
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-10-aborted-test-is-not-coverage"
     },
     {
       "case_id": "case-11-completed-failure-still-covers-test-condition",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -886,7 +885,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -926,11 +925,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 0,
         "pairwise_false_coverage_count": 0
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-11-completed-failure-still-covers-test-condition"
     },
     {
       "case_id": "case-12-aborted-after-precheck-not-coverage",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -947,7 +946,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -989,11 +988,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 0,
         "pairwise_false_coverage_count": 0
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-12-aborted-after-precheck-not-coverage"
     },
     {
       "case_id": "case-13-identical-duplicate-run-is-idempotent-not-independent",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -1010,7 +1009,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 2,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -1073,11 +1072,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 1,
         "pairwise_false_coverage_count": 1
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-13-identical-duplicate-run-is-idempotent-not-independent"
     },
     {
       "case_id": "case-14-conflicting-run-id-is-disputed",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -1094,7 +1093,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -1157,11 +1156,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 0,
         "pairwise_false_coverage_count": 0
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-14-conflicting-run-id-is-disputed"
     },
     {
       "case_id": "case-15-stale-configuration-evidence-does-not-cover",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -1178,7 +1177,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -1220,11 +1219,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 0,
         "pairwise_false_coverage_count": 0
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-15-stale-configuration-evidence-does-not-cover"
     },
     {
       "case_id": "case-16-stale-procedure-evidence-does-not-cover",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -1241,7 +1240,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -1283,11 +1282,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 0,
         "pairwise_false_coverage_count": 0
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-16-stale-procedure-evidence-does-not-cover"
     },
     {
       "case_id": "case-17-instrument-out-of-range-is-indeterminate",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -1304,7 +1303,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -1346,11 +1345,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 0,
         "pairwise_false_coverage_count": 0
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-17-instrument-out-of-range-is-indeterminate"
     },
     {
       "case_id": "case-18-environment-test-without-post-environment-check",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -1367,7 +1366,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -1409,11 +1408,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 0,
         "pairwise_false_coverage_count": 0
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-18-environment-test-without-post-environment-check"
     },
     {
       "case_id": "case-19-maintenance-without-post-maintenance-acceptance",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -1430,7 +1429,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -1472,11 +1471,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 0,
         "pairwise_false_coverage_count": 0
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-19-maintenance-without-post-maintenance-acceptance"
     },
     {
       "case_id": "case-20-configuration-change-invalidates-only-affected-obligation",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -1493,7 +1492,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         },
         {
           "id": "new-config-low",
@@ -1508,7 +1507,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -1550,11 +1549,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 0,
         "pairwise_false_coverage_count": 0
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-20-configuration-change-invalidates-only-affected-obligation"
     },
     {
       "case_id": "case-21-capture-does-not-substitute-for-release",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -1571,7 +1570,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -1613,11 +1612,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 0,
         "pairwise_false_coverage_count": 0
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-21-capture-does-not-substitute-for-release"
     },
     {
       "case_id": "case-22-mechanical-evidence-does-not-cover-fluid-service",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -1634,7 +1633,7 @@
           "evidence_key": "receiver-mass",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -1676,11 +1675,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 0,
         "pairwise_false_coverage_count": 0
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-22-mechanical-evidence-does-not-cover-fluid-service"
     },
     {
       "case_id": "case-23-new-critical-requirement-adds-new-obligation",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -1697,7 +1696,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         },
         {
           "id": "new-critical-low-high-interaction",
@@ -1713,7 +1712,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -1755,11 +1754,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 0,
         "pairwise_false_coverage_count": 0
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-23-new-critical-requirement-adds-new-obligation"
     },
     {
       "case_id": "case-24-two-samples-from-same-independent-group-count-once",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -1776,7 +1775,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 2,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -1839,11 +1838,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 1,
         "pairwise_false_coverage_count": 1
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-24-two-samples-from-same-independent-group-count-once"
     },
     {
       "case_id": "case-25-malformed-raw-digest-is-invalid-evidence",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -1860,7 +1859,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -1902,11 +1901,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 0,
         "pairwise_false_coverage_count": 0
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-25-malformed-raw-digest-is-invalid-evidence"
     },
     {
       "case_id": "case-26-unresolved-clock-alignment-is-indeterminate",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -1923,7 +1922,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -1965,11 +1964,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 0,
         "pairwise_false_coverage_count": 0
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-26-unresolved-clock-alignment-is-indeterminate"
     },
     {
       "case_id": "case-27-coverage-complete-but-cost-budget-exceeded",
-      "frozen_before_execution": true,
       "cost_budget": 10,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -1986,7 +1985,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -2026,11 +2025,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 0,
         "pairwise_false_coverage_count": 0
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-27-coverage-complete-but-cost-budget-exceeded"
     },
     {
       "case_id": "case-28-failed-test-must-remain-visible",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -2047,7 +2046,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -2087,11 +2086,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 0,
         "pairwise_false_coverage_count": 0
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-28-failed-test-must-remain-visible"
     },
     {
       "case_id": "case-29-common-fixture-is-not-independent-replication",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -2108,7 +2107,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 2,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -2171,11 +2170,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 1,
         "pairwise_false_coverage_count": 1
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-29-common-fixture-is-not-independent-replication"
     },
     {
       "case_id": "case-30-samples-before-and-after-maintenance-are-not-interchangeable",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -2192,7 +2191,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -2234,11 +2233,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 0,
         "pairwise_false_coverage_count": 0
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-30-samples-before-and-after-maintenance-are-not-interchangeable"
     },
     {
       "case_id": "case-31-test-run-does-not-cover-retention-without-load-factor",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -2255,7 +2254,7 @@
           "evidence_key": "retention-load",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -2297,11 +2296,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 0,
         "pairwise_false_coverage_count": 0
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-31-test-run-does-not-cover-retention-without-load-factor"
     },
     {
       "case_id": "case-32-test-outcome-valid-but-uncertainty-incomplete",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -2318,7 +2317,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -2360,11 +2359,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 0,
         "pairwise_false_coverage_count": 0
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-32-test-outcome-valid-but-uncertainty-incomplete"
     },
     {
       "case_id": "case-33-test-order-does-not-prove-post-environment-state",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -2381,7 +2380,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -2423,11 +2422,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 0,
         "pairwise_false_coverage_count": 0
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-33-test-order-does-not-prove-post-environment-state"
     },
     {
       "case_id": "case-34-input-permutation-positive-control",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -2444,7 +2443,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         },
         {
           "id": "temperature-cold",
@@ -2459,7 +2458,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -2520,11 +2519,11 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 0,
         "pairwise_false_coverage_count": 0
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-34-input-permutation-positive-control"
     },
     {
       "case_id": "case-35-informational-gap-does-not-mask-critical-gate",
-      "frozen_before_execution": true,
       "cost_budget": 100,
       "cycle_count_threshold": 5,
       "obligations": [
@@ -2541,7 +2540,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         },
         {
           "id": "informational-paint-inspection",
@@ -2556,7 +2555,7 @@
           "evidence_key": "metrology-force",
           "minimum_independent_groups": 1,
           "not_applicable_reason": null,
-          "not_applicable_approved": false
+          "not_applicable_review_ref": null
         }
       ],
       "runs": [
@@ -2598,7 +2597,8 @@
         "cycle_count_baseline_pass": false,
         "ofat_false_coverage_count": 0,
         "pairwise_false_coverage_count": 0
-      }
+      },
+      "preregistration_ref": "synthetic-preregistration:case-35-informational-gap-does-not-mask-critical-gate"
     }
   ]
 }
