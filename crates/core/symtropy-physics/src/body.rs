@@ -34,7 +34,8 @@ pub enum RotationalInertiaModel {
     MeanInertiaApproximation,
     /// Invalid 3D principal moments or reciprocal values; angular response fails closed.
     InvalidPrincipalMoments,
-    /// A validated full bivector inertia operator in body coordinates.
+    /// An algebraically SPD full bivector operator in body coordinates.
+    /// This does not by itself establish geometry/material/COM provenance.
     ValidatedSpatialBivectorOperator,
 }
 
@@ -58,6 +59,11 @@ pub enum RotationalResponseError {
 }
 
 /// Typed result of applying an inverse rotational-inertia response.
+///
+/// The model identifies the response algorithm, not physical-source
+/// qualification. An algebraically SPD attached operator does not prove that
+/// it was derived from the current collider, material, density or centre of
+/// mass; that provenance remains a separate admission boundary.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum RotationalResponse<const D: usize> {
     /// Static and kinematic bodies correctly have no angular response.
@@ -395,7 +401,8 @@ impl<const D: usize> RigidBody<D> {
     /// Unlike the legacy compatibility method, this method rejects the
     /// higher-dimensional mean-inertia approximation and distinguishes a
     /// legitimate static/kinematic zero response from an applied zero impulse
-    /// and from an invalid/stale model.
+    /// and from an invalid/stale model. It does not independently establish
+    /// geometry/material/COM provenance for the selected inertia model.
     pub fn try_apply_inverse_angular_inertia(
         &self,
         angular_impulse: &Bivector<D>,
@@ -413,6 +420,8 @@ impl<const D: usize> RigidBody<D> {
         }
         if self.mass_properties_mass_bits != Some(self.mass.to_bits())
             || self.rotational_inertia_operator_invalidated
+            || (self.rotational_inertia_operator.is_some()
+                && self.rotational_inertia_operator_mass_bits != Some(self.mass.to_bits()))
         {
             return Err(RotationalResponseError::StaleMassProperties);
         }
@@ -431,7 +440,12 @@ impl<const D: usize> RigidBody<D> {
                 )?;
                 let view = operator
                     .in_spatial_frame(&self.transform.rotation)
-                    .map_err(RotationalResponseError::MassProperties)?;
+                    .map_err(|error| match error {
+                        crate::mass_properties::MassPropertiesError::InvalidRotation => {
+                            RotationalResponseError::InvalidRotation
+                        }
+                        other => RotationalResponseError::MassProperties(other),
+                    })?;
                 view.solve_bivector(angular_impulse)
                     .map_err(RotationalResponseError::MassProperties)?
             }
@@ -481,6 +495,7 @@ impl<const D: usize> RigidBody<D> {
             model,
         })
     }
+
     /// Apply the inverse rotational inertia operator to a world-space angular
     /// impulse, returning the world-space angular-velocity change.
     ///
