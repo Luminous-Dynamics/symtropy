@@ -110,6 +110,9 @@ jobs:
           assert actual["totals"]["late_acquisition_count"] == 0
           assert actual["totals"]["budget_violation_count"] == 0
           assert actual["totals"]["evidence_violation_count"] == 0
+          assert actual["totals"]["estimated_evsi_count"] == 3
+          assert actual["totals"]["mean_estimated_evsi_mae"] == 0
+          assert actual["totals"]["mean_estimated_evsi_bias"] == 0
           PY
       - name: Compare decision-value policy with greedy maximum-EIG baseline
         run: |
