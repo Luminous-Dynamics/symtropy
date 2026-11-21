@@ -487,6 +487,27 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
             "MERLINO_CSV_PIN",
             "experimental comparator CSV blob identity changed",
         );
+        push_if_missing(
+            &mut findings,
+            text_at(case, &["experimental_comparator", "evidence_class"])
+                == Some("repository_supplied_experimental_csv_linked_by_upstream_plot_script_to_Kiousis_2014"),
+            "MERLINO_EVIDENCE_CLASS",
+            "repository CSV must not be promoted to independently authenticated raw acquisition",
+        );
+        push_if_missing(
+            &mut findings,
+            number_at(case, &["geometry", "geo_distance_parameter_mm"]) == Some(30.0)
+                && number_at(case, &["geometry", "derived_minimum_electrode_surface_clearance_mm"]) == Some(29.95),
+            "MERLINO_GEOMETRY_CLEARANCE",
+            "source geometry parameter and derived metal-surface clearance must remain distinct",
+        );
+        push_if_missing(
+            &mut findings,
+            text_at(case, &["experimental_comparator", "plot_conversion", "simulated_current_to_microamp"])
+                .is_some_and(|s| s.contains("2e6") && s.contains("half-domain")),
+            "MERLINO_CURRENT_SCALING",
+            "half-domain model-current ×2 conversion must remain explicit",
+        );
     }
 
     findings
@@ -698,6 +719,22 @@ mod tests {
         value["solver_reference_cases"][0]["claim_boundary"] =
             Value::String("full thrust and neutral-flow validation".into());
         assert!(has_code(&audit_atlas(&value), "MERLINO_REFERENCE_CLAIM"));
+    }
+
+    #[test]
+    fn half_domain_current_correction_is_mandatory() {
+        let mut value = atlas();
+        value["solver_reference_cases"][0]["experimental_comparator"]["plot_conversion"]
+            ["simulated_current_to_microamp"] = Value::String("multiply by 1e6".into());
+        assert!(has_code(&audit_atlas(&value), "MERLINO_CURRENT_SCALING"));
+    }
+
+    #[test]
+    fn wire_cylinder_surface_gap_is_not_conflated_with_geo_parameter() {
+        let mut value = atlas();
+        value["solver_reference_cases"][0]["geometry"]
+            ["derived_minimum_electrode_surface_clearance_mm"] = Value::from(30.0);
+        assert!(has_code(&audit_atlas(&value), "MERLINO_GEOMETRY_CLEARANCE"));
     }
 
     #[test]
