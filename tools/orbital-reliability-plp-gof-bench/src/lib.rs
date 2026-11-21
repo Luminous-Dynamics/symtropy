@@ -5,7 +5,7 @@ const CORPUS_SCHEMA: &str = "luminous.orbital-plp-conditional-gof.corpus.v0.1";
 const CLAIM_CEILING: &str = "synthetic-conditional-plp-goodness-of-fit-only";
 const MODEL_PROFILE: &str = "power_law_process_repairable_minimal_repair";
 const TERMINATION_PROFILE: &str = "administrative_time_terminated_complete_window";
-const PRNG_ID: &str = "splitmix64-open-uniform-exp-normalize-v1";
+const PRNG_ID: &str = "splitmix64-top52-open-uniform-exp-normalize-v1";
 const STATISTIC_ID: &str = "fitted-plp-uniform-order-statistics-cramer-von-mises-v1";
 const MIN_EVENTS: usize = 5;
 const MAX_EVENTS: usize = 10_000;
@@ -162,9 +162,8 @@ impl SplitMix64 {
     }
 
     fn uniform_open(&mut self) -> f64 {
-        let mantissa = (self.next_u64() >> 11) as f64;
-        ((mantissa + 0.5) / 9_007_199_254_740_992.0)
-            .clamp(f64::EPSILON, 1.0 - f64::EPSILON)
+        let numerator = (self.next_u64() >> 12) + 1;
+        numerator as f64 / ((1_u64 << 52) + 1) as f64
     }
 
     fn exponential_unit(&mut self) -> f64 {
