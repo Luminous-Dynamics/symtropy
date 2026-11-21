@@ -53,6 +53,21 @@ fn repeated_cycles_on_one_article_do_not_establish_mission_reliability() {
 }
 
 #[test]
+fn pseudoreplicated_article_rows_cannot_pass_the_cycle_baseline() {
+    let corpus: Corpus = serde_json::from_str(fixture()).expect("reliability corpus parses");
+    let report = evaluate(&corpus).expect("reliability corpus evaluates");
+    let case = report
+        .cases
+        .iter()
+        .find(|item| item.case_id == "case-11-repeated-cycles-on-one-article-are-pseudoreplication")
+        .expect("repeated article case exists");
+    assert_eq!(case.disposition, Disposition::Indeterminate);
+    assert_eq!(case.unique_trials, 0);
+    assert!(case.naive_cycle_false_assurance);
+    assert!(case.naive_cycle_lower_bound.unwrap() >= 0.90);
+}
+
+#[test]
 fn repeated_daq_samples_do_not_create_additional_trials() {
     let corpus: Corpus = serde_json::from_str(fixture()).expect("reliability corpus parses");
     let report = evaluate(&corpus).expect("reliability corpus evaluates");
