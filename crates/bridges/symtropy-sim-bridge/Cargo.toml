@@ -11,6 +11,7 @@ default = []
 mycelix = []
 
 [dependencies]
+symtropy-mk0-contract = { path = "../../core/symtropy-mk0-contract" }
 # Mycelix pure-Rust crates (no Holochain dependency)
 mycelix-multiworld-sim = { path = "../../../../mycelix-multiworld-sim" }
 mycelix-bridge-common = { path = "../../../../mycelix-workspace/crates/mycelix-bridge-common", default-features = false }
