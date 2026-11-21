@@ -1,6 +1,19 @@
 use orbital_interface_lifecycle_bench::event_replay::{Corpus, ReplayStatus};
 use serde_json::Value;
 use std::collections::{BTreeMap, HashMap};
+use sha2::{Digest, Sha256};
+
+
+fn expected_authority(kind: &str) -> &'static str {
+    match kind {
+        "qualification_issued" | "qualification_revoked" => "qualification-authority",
+        "cycle_completed" => "service-event-source",
+        "inspection_recorded" | "environment_exposure" => "metrology-authority",
+        "maintenance_performed" | "component_replaced" => "maintenance-authority",
+        "configuration_changed" | "procedure_changed" | "interface_changed" | "cycle_counter_reset" => "configuration-authority",
+        _ => "unsupported-authority",
+    }
+}
 
 fn reference(case_events: &[orbital_interface_lifecycle_bench::event_replay::EventRecord], at_tick: u64)
     -> (ReplayStatus, &'static str, u64, usize)
@@ -10,10 +23,18 @@ fn reference(case_events: &[orbital_interface_lifecycle_bench::event_replay::Eve
     let mut duplicates = 0usize;
 
     for record in case_events {
+        let digest = Sha256::digest(record.raw_event.as_bytes());
+        let actual_digest = digest.iter().map(|byte| format!("{byte:02x}")).collect::<String>();
+        if actual_digest != record.claimed_sha256 {
+            return (ReplayStatus::Disputed, "event_byte_digest_mismatch", 0, duplicates);
+        }
         let event: Value = match serde_json::from_str(&record.raw_event) {
             Ok(value) => value,
             Err(_) => return (ReplayStatus::Rejected, "event_schema_invalid", 0, duplicates),
         };
+        if event["event_schema"] != "luminous.orbital-interface-lifecycle.event.v0.1" {
+            return (ReplayStatus::Rejected, "unsupported_event_schema", 0, duplicates);
+        }
         let id = event["event_id"].as_str().unwrap_or("");
         if id.is_empty() {
             return (ReplayStatus::Indeterminate, "event_identity_missing", 0, duplicates);
@@ -38,6 +59,22 @@ fn reference(case_events: &[orbital_interface_lifecycle_bench::event_replay::Eve
     let service = parsed[0]["service_kind"].as_str().unwrap_or("");
     if parsed.iter().any(|e| e["stream_id"] != sid || e["pair_id"] != pair || e["service_kind"] != service) {
         return (ReplayStatus::Rejected, "stream_pair_or_service_scope_mismatch", 0, duplicates);
+    }
+
+    for e in &parsed {
+        let kind = e["event_type"].as_str().unwrap_or("");
+        if e["producer_id"] != "luminous-synthetic-lab" {
+            return (ReplayStatus::Indeterminate, "producer_not_in_v0_1_allowlist", 0, duplicates);
+        }
+        if e["authority_scope"] != expected_authority(kind) {
+            return (ReplayStatus::Rejected, "event_authority_scope_mismatch", 0, duplicates);
+        }
+        let event_tick = e["event_tick"].as_u64().unwrap_or(0);
+        let observation_tick = e["observation_tick"].as_u64().unwrap_or(0);
+        let ingestion_tick = e["ingestion_tick"].as_u64().unwrap_or(0);
+        if observation_tick < event_tick || ingestion_tick < observation_tick {
+            return (ReplayStatus::Indeterminate, "event_observation_ingestion_time_order_invalid", 0, duplicates);
+        }
     }
 
     let mut ordered = BTreeMap::<u64, Value>::new();
@@ -103,9 +140,9 @@ fn reference(case_events: &[orbital_interface_lifecycle_bench::event_replay::Eve
                 || e["component_id"].as_str()!=Some(&component) {
                 return (ReplayStatus::Rejected, "article_pair_component_or_service_identity_mismatch", cycles, duplicates);
             }
-            if e["configuration_id"].as_str()!=Some(&config)
-                || e["procedure_revision"].as_str()!=Some(&procedure)
-                || e["interface_revision"].as_str()!=Some(&interface) {
+            if e["configuration_id"].as_str()!=Some(config.as_str())
+                || e["procedure_revision"].as_str()!=Some(procedure.as_str())
+                || e["interface_revision"].as_str()!=Some(interface.as_str()) {
                 return (ReplayStatus::Rejected, "event_uses_stale_configuration_or_interface", cycles, duplicates);
             }
             match kind {
@@ -207,6 +244,6 @@ fn production_replay_matches_frozen_expected_outcomes() {
     assert_eq!(report.result,"pass");
     assert_eq!(report.summary.case_count,55);
     assert_eq!(report.summary.expected_result_mismatches,0);
-    assert_eq!(report.summary.duplicate_events,4);
+    assert_eq!(report.summary.duplicate_events,2);
     assert!(!report.authority_granted);
 }
