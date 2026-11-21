@@ -82,6 +82,7 @@ pub struct BatteryPack {
     pub configuration_id: String,
     pub configuration_digest: String,
     pub state: PackState,
+    pub state_evidence: EvidenceEnvelope,
     pub identity_verification: BooleanEvidence,
     pub custody_resolution: BooleanEvidence,
     pub post_test: BooleanEvidence,
@@ -334,6 +335,15 @@ fn evaluate_pair(
 ) -> PairEvaluation {
     let mut findings = Vec::new();
     let mut status = EligibilityStatus::Eligible;
+
+    let _state_evidence_admissible = evidence_is_admissible(
+        &pack.state_evidence,
+        pack,
+        dispatch_time_unix_ms,
+        &mut findings,
+        &mut status,
+        "pack_state",
+    );
 
     match pack.state {
         PackState::Available => {}
@@ -730,7 +740,8 @@ pub fn evaluate_battery_service_network(
         pair_evaluations,
         status: status.to_string(),
         all_pack_evidence_synthetic: packs.iter().all(|pack| {
-            pack.identity_verification.evidence.evidence_class == EvidenceClass::Synthetic
+            pack.state_evidence.evidence_class == EvidenceClass::Synthetic
+                && pack.identity_verification.evidence.evidence_class == EvidenceClass::Synthetic
                 && pack.custody_resolution.evidence.evidence_class == EvidenceClass::Synthetic
                 && pack.post_test.evidence.evidence_class == EvidenceClass::Synthetic
                 && pack.usable_energy.evidence.evidence_class == EvidenceClass::Synthetic
@@ -799,6 +810,7 @@ mod tests {
             configuration_id: configuration_id.to_string(),
             configuration_digest: configuration_digest.clone(),
             state: PackState::Available,
+            state_evidence: evidence(id, &configuration_digest, "state"),
             identity_verification: boolean(id, &configuration_digest, "identity", Some(true)),
             custody_resolution: boolean(id, &configuration_digest, "custody", Some(true)),
             post_test: boolean(id, &configuration_digest, "post-test", Some(true)),
@@ -886,6 +898,16 @@ mod tests {
         assert_eq!(
             pair_status(&battery, &mission("m1", "uav-a", 1_000, 1_000)),
             EligibilityStatus::Blocked
+        );
+    }
+
+    #[test]
+    fn expired_pack_state_evidence_is_indeterminate() {
+        let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
+        battery.state_evidence.valid_until_unix_ms = Some(DISPATCH_TIME_MS - 1);
+        assert_eq!(
+            pair_status(&battery, &mission("m1", "uav-a", 1_000, 1_000)),
+            EligibilityStatus::Indeterminate
         );
     }
 
