@@ -83,6 +83,12 @@ The evaluator's private truth set must be held separately from the controller-vi
 
 The Rust module `protocol_semantics` now implements the contract-level cross-field checks for a typed run receipt against a preregistered `ExpectedRunBinding`: frozen plan/manifest/evaluator/build/runtime/scenario identities; independent evaluator identity and receipt digest; unique executed/excluded episode IDs; exact membership and scenario matching against the preregistered episode manifest for both executions and exclusions; transparent exclusion reasons whose machine-readable reason codes were preregistered; exact planned-episode ID/scenario accounting; unique metrics; nonzero denominators; numerator ≤ denominator; and all executed episodes complete before the run can be marked Complete. It is a validator for already parsed data, not a JSON parser or cryptographic authenticator. Cluster-aware confidence intervals and evaluator-truth isolation remain evaluator responsibilities.
 
+## Active assurance: observation is a control action
+
+`src/active_assurance.rs` implements a deterministic observation selector. It requires the candidate to target the same predicate, carries calibration/risk-model/time-correlation/independence commitments, rejects observer/executor common-cause overlap, and enforces residual-risk, latency, energy and cost ceilings as separate hard constraints. It returns the non-dominated Pareto frontier rather than a weighted aggregate. Budget-infeasible candidates are returned with their failed gates; dominated candidates are separately identified. If no candidate satisfies all gates, the result is Hold.
+
+The selector accepts caller-supplied conservative risk forecasts; it does not compute, calibrate or authenticate them, execute a sensor query, or change mission state. A domain owner must validate the forecast model and source qualification before treating a returned frontier as decision evidence.
+
 ## Tests
 
 The unit-test corpus contains positive controls and table-driven negative controls for:
@@ -101,7 +107,8 @@ The unit-test corpus contains positive controls and table-driven negative contro
 - wrong ticket, configuration, predicate, calibration and frame;
 - stale, future-dated, low-confidence and out-of-order outcome evidence;
 - outcome freshness evaluated under a mismatched clock or boot epoch;
-- no-effect, partial-effect and unknown-outcome disposition.
+- no-effect, partial-effect and unknown-outcome disposition;
+- active-assurance predicate mismatch, missing qualification commitment, common-cause observer overlap, budget failure, Pareto dominance and deterministic frontier ordering.
 
 ## Run
 
