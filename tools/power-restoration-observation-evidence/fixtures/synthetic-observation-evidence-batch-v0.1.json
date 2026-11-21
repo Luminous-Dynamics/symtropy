@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "0.1.0",
+  "batchId": "synthetic-scada-result-batch-001",
+  "caseRef": "power-restoration-case://synthetic-feeder-repair-mps-six-node-v1",
+  "caseSha256": "428e0a9f6ca8ea95a970ae4ee486be5814be727f4dc59e8117def374732c49c1",
+  "proposalId": "synthetic-initial-scada-request-001",
+  "proposalSha256": "3e75acb738101b5cf5c2cd6e1ffd3e50b112603b0667e5292f104b2340bb1894",
+  "presentationStep": 2,
+  "sources": [
+    {
+      "sourceId": "scada-gateway-a",
+      "sourceKind": "scada",
+      "producerId": "synthetic-scada-gateway-a",
+      "producerVersion": "fixture-1",
+      "sourceSnapshotSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "producerAttestationRef": "synthetic://attestation/scada-gateway-a/v1",
+      "producerAttestationSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "parentSourceIds": [],
+      "commonCauseGroupIds": ["regional-telemetry-platform"],
+      "lineageCompleteness": "complete"
+    }
+  ],
+  "results": [
+    {
+      "requestId": "request-scada-0001",
+      "actionKind": "observe_scada",
+      "requestedStep": 0,
+      "outcome": "fulfilled",
+      "requestedAtUnixMs": 1000,
+      "completedAtUnixMs": 2000,
+      "availableAtStep": 2,
+      "availableAtUnixMs": 2100,
+      "evidence": [
+        {
+          "evidenceId": "evidence-scada-n3-001",
+          "evidenceSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observedStep": 1,
+          "observedAtUnixMs": 1500,
+          "availableStep": 2,
+          "availableAtUnixMs": 2100,
+          "maxAgeSteps": 3,
+          "quality": "current",
+          "sourceId": "scada-gateway-a"
+        }
+      ]
+    }
+  ]
+}
