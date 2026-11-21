@@ -69,7 +69,10 @@
         "late_acquisition_count",
         "budget_violation_count",
         "evidence_violation_count",
-        "mean_realized_evsi"
+        "mean_realized_evsi",
+        "catalogue_audio_bytes_total",
+        "catalogue_video_frames_total",
+        "catalogue_energy_cost_total"
       ],
       "properties": {
         "episode_count": {
@@ -129,6 +132,18 @@
             "number",
             "null"
           ]
+        },
+        "catalogue_audio_bytes_total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "catalogue_video_frames_total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "catalogue_energy_cost_total": {
+          "type": "number",
+          "minimum": 0
         }
       }
     },
@@ -146,7 +161,10 @@
         "late_acquisition_count",
         "budget_violations",
         "evidence_violations",
-        "action_policy_correct"
+        "action_policy_correct",
+        "answered",
+        "realized_evsi",
+        "budget_use"
       ],
       "properties": {
         "episode_id": {
@@ -192,6 +210,35 @@
         },
         "action_policy_correct": {
           "type": "boolean"
+        },
+        "answered": {
+          "type": "boolean"
+        },
+        "realized_evsi": {
+          "type": "number"
+        },
+        "budget_use": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "audio_bytes",
+            "video_frames",
+            "energy_joules"
+          ],
+          "properties": {
+            "audio_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "video_frames": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "energy_joules": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
         }
       }
     }
