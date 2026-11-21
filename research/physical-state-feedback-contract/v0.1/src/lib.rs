@@ -1277,6 +1277,61 @@ mod tests {
     }
 
     #[test]
+    fn contact_classification_must_have_its_own_provenance() {
+        let mut snapshot = valid_snapshot(0, 0);
+        let reason = "contact channel not implemented by this engine".to_owned();
+        let mut unavailable_metadata = metadata(FieldStatus::Unavailable, "1", Some("world"), None);
+        unavailable_metadata.unavailable_reason = Some(reason.clone());
+        snapshot.entities[0].contact = ContactObservation {
+            status: ContactStatus::Unavailable {
+                reason: reason.clone(),
+            },
+            metadata: unavailable_metadata,
+            partner_entity_ids: Vec::new(),
+            impulse_ns: None,
+        };
+        assert!(snapshot.validate().is_ok());
+
+        snapshot.entities[0].contact = ContactObservation {
+            status: ContactStatus::NoContact,
+            metadata: metadata(FieldStatus::Unavailable, "1", Some("world"), None),
+            partner_entity_ids: Vec::new(),
+            impulse_ns: None,
+        };
+        assert!(snapshot.validate().is_err());
+    }
+
+    #[test]
+    fn entity_inertia_must_be_symmetric_positive_semidefinite() {
+        let mut snapshot = valid_snapshot(0, 0);
+        snapshot.entities[0].inertia_kg_m2 = available(
+            [2.0, 0.0, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 4.0],
+            "kg*m^2",
+            Some("body-1/frame"),
+            Uncertainty::NotQuantified {
+                reason: "synthetic fixture does not quantify inertia uncertainty".to_owned(),
+            },
+        );
+        assert!(snapshot.validate().is_ok());
+
+        snapshot.entities[0].inertia_kg_m2.value =
+            Some([2.0, 0.5, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 4.0]);
+        assert!(snapshot.validate().is_err());
+    }
+
+    #[test]
+    fn snapshot_sequence_rejects_world_frame_or_clock_changes() {
+        let first = valid_snapshot(0, 0);
+        let mut second = valid_snapshot(1, 1_000_000);
+        second.identity.clock_source = "other_clock".to_owned();
+        assert!(validate_snapshot_sequence(&[first.clone(), second]).is_err());
+
+        let mut second = valid_snapshot(1, 1_000_000);
+        second.identity.world_frame = "other_world_frame".to_owned();
+        assert!(validate_snapshot_sequence(&[first, second]).is_err());
+    }
+
+    #[test]
     fn duplicate_entity_ids_are_rejected() {
         let mut snapshot = valid_snapshot(0, 0);
         snapshot.entities.push(valid_entity("body-1"));
