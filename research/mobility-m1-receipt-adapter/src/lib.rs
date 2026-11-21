@@ -483,11 +483,12 @@ mod tests {
         assert_eq!(f.supervisor.phase("pick"), Ok(m1::SubgoalPhase::Complete));
     }
 
-
     #[test]
     fn common_cause_observer_is_rejected_before_m1_receipt_mutation() {
         let mut f = fixture(m2::PhysicalOutcome::Satisfied);
-        f.evidence.observer_failure_domains.push("vehicle-power".into());
+        f.evidence
+            .observer_failure_domains
+            .push("vehicle-power".into());
         assert_eq!(
             apply_outcome_to_m1(
                 &mut f.supervisor,
