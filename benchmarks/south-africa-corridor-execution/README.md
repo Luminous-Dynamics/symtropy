@@ -18,6 +18,7 @@ This is the first bounded implementation under [SOUTH-AFRICA-CORRIDOR-EXECUTION-
 From this directory:
 
 ```bash
+sha256sum --check data/SHA256SUMS
 cargo test --offline --locked
 cargo run --offline --locked
 cargo clippy --offline --locked --all-targets -- -D warnings
