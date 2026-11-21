@@ -20,7 +20,7 @@ This crate owns step 4 and the associated falsification tests. It does not own r
 Each synthetic fix has:
 - MMSI and source-local message ID;
 - source and receiver identity;
-- event tick (integer simulation tick);
+- sender event tick (integer simulation tick);\n- receiver observation tick (a separate integer simulation clock);
 - upstream zone label;
 - geofence digest and spatial-reference identifier;
 - speed in integer milli-knots;
@@ -29,7 +29,7 @@ Each synthetic fix has:
 
 MMSI is a broadcast vessel reference, not an authoritative globally unique port-call or ship identity. A separate, qualified vessel/visit identity mapping is required before call-level aggregation.
 
-All fixes in one call trajectory must retain the same source, receiver, geofence digest and spatial reference. A changed identity rejects rather than silently mixing observations from different sensing configurations.
+All fixes in one call trajectory must retain the same source, receiver, geofence digest and spatial reference. A changed identity rejects rather than silently mixing observations from different sensing configurations. Sender event ticks and receiver observation ticks are independent clock domains; no offset or synchronization is inferred, and the two values are never subtracted from one another.
 
 ## 3. State observer
 
@@ -38,7 +38,7 @@ The local vocabulary is OUTSIDE, ANCHORAGE, APPROACH, BERTH and DEPARTURE, plus 
 Each zone has a dwell and speed envelope. A transition is emitted only after:
 - at least two supporting fixes;
 - uninterrupted fix gaps no larger than the declared maximum;
-- total observed candidate dwell meets the configured threshold;
+- total observed candidate dwell meets the configured threshold;\n- both sender-event gaps and receiver-observation gaps remain within their separately declared limits;
 - speed is within the zone envelope.
 
 An inferred event carries:
@@ -47,13 +47,13 @@ An inferred event carries:
 - confirmation time = the time at which the dwell condition became satisfied;
 - supporting fix count and FSM profile version.
 
-These bounds reflect the finite sampling frequency. The true polygon crossing can happen between the last fix in the previous zone and the first candidate fix; this v0.1 reports the candidate-zone evidence interval, not a confidence interval around physical arrival.
+These bounds reflect the finite sampling frequency. The true polygon crossing can happen between the last fix in the previous zone and the first candidate fix; this v0.1 reports the candidate-zone evidence interval, not a confidence interval around physical arrival. Every inferred transition also carries its receiver confirmation tick, while each observability-gap event reports sender-event and receiver-time gaps separately.
 
 ## 4. Initial-state and continuity rules
 
 The default API starts in INDETERMINATE. If the receiver starts while a ship is already in the berth polygon, the first stable dwell must be labelled as zone reacquisition, not arrival.
 
-A caller may specify OUTSIDE or another known initial state only with a non-empty evidence reference. A production caller must bind that reference to an independently qualified pre-observation baseline, not a manually assumed value.
+A caller may specify OUTSIDE or another known initial state only with a non-empty evidence reference. A production caller must bind that reference to an independently qualified pre-observation baseline, not a manually assumed value. The reference ID is copied into the report for audit.
 
 A gap longer than the maximum observation interval:
 - emits an observability-gap event;
@@ -83,7 +83,7 @@ The Rust test suite covers:
 - a candidate dwell broken by a long observation gap;
 - exact duplicate message replay;
 - conflicting message-ID reuse;
-- out-of-order timestamps;
+- out-of-order sender timestamps and receiver timestamps;
 - contradictory nav-status lexeme that cannot grant berth state;
 - dwell sensitivity across one to four ticks on the same fix sequence;
 - departure as an AIS geofence-exit inference, not physical lines-untied;
