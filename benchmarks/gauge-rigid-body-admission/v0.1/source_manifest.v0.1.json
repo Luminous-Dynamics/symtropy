@@ -52,7 +52,7 @@
       "source_id": "gauge-dataset",
       "source_role": "physical_measurements_and_assets",
       "url": "https://huggingface.co/datasets/InternRobotics/GAUGE-Dataset",
-      "revision_full": null,
+      "revision_full": "f95bb06e7d11142f88ffd3b6b56c7258deb8fff6",
       "revision_observed_short": "f95bb06",
       "license": {
         "declared_expression": "MIT",
@@ -71,17 +71,24 @@
       },
       "admission_state": "not_admitted",
       "blockers": [
-        "The Hub root displayed only the abbreviated revision f95bb06 in the inspected page; the full immutable dataset commit SHA has not been captured.",
         "No file-level SHA-256 inventory for the rigid-body physical measurement payloads has been captured.",
-        "The dataset viewer was unavailable; its single preview row describes a pipeline-status record, not the physical-trial record schema.",
-        "Rigid-body trial JSON structure, units, coordinate frames, synchronization, calibration uncertainty and repeat identities have not been audited from the raw files.",
-        "The MIT license is a Hub metadata declaration; its application to every downloaded artifact and any external media dependency has not been independently reviewed.",
+        "Only representative bouncing-ball and Newton's-cradle trial JSON files have been structurally inspected; all eight rigid task families, material branches and trial files still require a complete schema audit.",
+        "The observed trial files provide FPS=30, translation unit mm, Euler order ZYX, per-body x/y/z, qx/qy/qz/qw and ex/ey/ez arrays. Quaternion handedness/algebra, world/body transform direction, Euler angle units/active-passive convention, frame identity, clock origin and timestamp reconstruction semantics are not fully declared in the inspected records.",
+        "Per-sample measurement uncertainty/covariance, calibration uncertainty propagation, missing-frame policy, outlier policy and recording-level grouping have not yet been fully audited.",
+        "The MIT license is a Hub metadata declaration; its application to every data artifact, embedded asset and external dependency has not been independently reviewed.",
         "No use/mirroring approval decision has been made for the exact physical-trial payloads."
       ],
       "observed_inventory": [
-        "Hub root: assets/, data/, input/, media/, metadata/, world_models/, .gitattributes and README.md; page displayed 13.2 GB and 51 commits.",
-        "assets/usd/ listing exposes eight rigid-body scene assets: bouncing ball, newton's cradle, nonsmooth contact, pendulum, slope contact, slope slider, turntable and wall breaking.",
-        "The assets/usd subdirectory page displayed abbreviated commit 34ffeaf; it is not used as the full dataset revision.",
+        "Pinned Hub repository revision: f95bb06e7d11142f88ffd3b6b56c7258deb8fff6 (resolved from the main branch commit link).",
+        "Hub root exposes assets/, data/, input/, media/, metadata/ and world_models/; the repository UI reports 13.2 GB and 51 commits.",
+        "data/ directory UI reports 9.87 GB and includes rigid/, rope/, textile/ and deformable/ subtrees.",
+        "data/rigid/ contains eight task directories; its UI reports 3.83 GB in total.",
+        "metadata/rigid/ contains eight task metadata JSON files and reports 111 kB.",
+        "Representative trial file data/rigid/bouncing ball/json/1.json is 12.3 kB and declares FPS=30, translation unit mm, Euler order ZYX, with per-body x/y/z, qx/qy/qz/qw and ex/ey/ez arrays.",
+        "Representative data/rigid/newton's cradle/json/1.json is 416 kB and contains multiple named body streams, including ball_passive.",
+        "Rigid task data is separated into json/ and video/ subdirectories. The observed bouncing-ball json directory reports 280 kB; Newton's-cradle json reports 9.19 MB.",
+        "The dataset preview split is validation; the preview row is a video/trajectory pipeline status record (3249 videos and 3249 trajectories), not the raw trial schema.",
+        "Observed abbreviated subtree commits: data/rigid root e5655c5; metadata/rigid root c2d8cd1; bouncing-ball JSON cba0206. These short subtree refs are not substituted for the full dataset revision.",
         "Hub metadata declares license mit; this is recorded as a declaration, not as an independently reviewed artifact-level rights conclusion."
       ],
       "data_card_preview": {
