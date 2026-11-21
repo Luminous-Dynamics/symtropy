@@ -58,6 +58,11 @@ fn ticket() -> ActionTicket {
         expected_observation_frame_id: "frame.local-enu-1".into(),
         expected_calibration_id: "calibration-camera-1".into(),
         expected_effect_digest: digest(7),
+        expected_observer_failure_domains: vec![
+            "camera-sensor".into(),
+            "camera-processor".into(),
+            "observer-power".into(),
+        ],
         observer_independence_policy_digest: digest(40),
     }
 }
@@ -259,6 +264,7 @@ fn independent_outcome_oracle(
     if nonempty.iter().any(|value| value.trim().is_empty())
         || observed.ticket_commitment != ticket.ticket_commitment
         || policy.observer_independence_policy_digest != ticket.observer_independence_policy_digest
+        || policy.expected_observer_failure_domains != ticket.expected_observer_failure_domains
         || policy.execution_failure_domains.is_empty()
         || policy.expected_observer_failure_domains.is_empty()
         || observed.observer_failure_domains.is_empty()
@@ -473,7 +479,13 @@ fn physical_outcome_validator_matches_independent_oracle_under_fault_mutations()
 
     let mut x = e.clone();
     x.observer_failure_domains.push("vehicle-power".into());
-    cases.push(("common-cause-domain-overlap", x, p.clone()));
+    let mut policy = p.clone();
+    policy.expected_observer_failure_domains.push("vehicle-power".into());
+    cases.push(("common-cause-domain-overlap", x, policy));
+
+    let mut policy = p.clone();
+    policy.expected_observer_failure_domains.push("unbound-domain".into());
+    cases.push(("ticket-observer-dependency-path-mismatch", e.clone(), policy));
 
     let mut x = e.clone();
     x.observer_failure_domains.push("unknown-domain".into());
