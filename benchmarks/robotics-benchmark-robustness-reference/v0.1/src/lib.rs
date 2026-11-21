@@ -17,6 +17,10 @@ const MIN_BOOTSTRAP_REPLICATES: usize = 100;
 pub enum ScorecardError {
     EmptyBenchmarkId,
     InvalidBenchmarkCommit,
+    InvalidProtocolDigest,
+    EmptyEmbodiment,
+    EmptyEvaluationSplit,
+    InsufficientTaskClusters,
     EmptyTaskSet,
     EmptyTaskId,
     DuplicateTaskId,
@@ -28,7 +32,6 @@ pub enum ScorecardError {
     DuplicateEpisodeId,
     NoEpisodes,
     InvalidBootstrapReplicateCount,
-    InvalidConfidenceZ,
 }
 
 impl Display for ScorecardError {
@@ -36,6 +39,10 @@ impl Display for ScorecardError {
         match self {
             Self::EmptyBenchmarkId => write!(formatter, "benchmark ID must not be empty"),
             Self::InvalidBenchmarkCommit => write!(formatter, "benchmark commit must be a 40-character lowercase hex SHA"),
+            Self::InvalidProtocolDigest => write!(formatter, "protocol digest must be a 64-character lowercase hex SHA-256"),
+            Self::EmptyEmbodiment => write!(formatter, "embodiment must not be empty"),
+            Self::EmptyEvaluationSplit => write!(formatter, "evaluation split must not be empty"),
+            Self::InsufficientTaskClusters => write!(formatter, "at least two independent task clusters are required for cluster bootstrap"),
             Self::EmptyTaskSet => write!(formatter, "at least one task cluster is required"),
             Self::EmptyTaskId => write!(formatter, "task ID must not be empty"),
             Self::DuplicateTaskId => write!(formatter, "task cluster IDs must be unique"),
@@ -47,7 +54,6 @@ impl Display for ScorecardError {
             Self::DuplicateEpisodeId => write!(formatter, "episode IDs must be unique within a task cluster"),
             Self::NoEpisodes => write!(formatter, "no matched episodes supplied"),
             Self::InvalidBootstrapReplicateCount => write!(formatter, "at least 100 bootstrap replicates are required"),
-            Self::InvalidConfidenceZ => write!(formatter, "Wilson z critical value must be finite and positive"),
         }
     }
 }
@@ -145,6 +151,20 @@ impl BenchmarkIdentity {
         {
             return Err(ScorecardError::InvalidBenchmarkCommit);
         }
+        if self.protocol_digest_hex.len() != 64
+            || !self
+                .protocol_digest_hex
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        {
+            return Err(ScorecardError::InvalidProtocolDigest);
+        }
+        if self.embodiment.trim().is_empty() {
+            return Err(ScorecardError::EmptyEmbodiment);
+        }
+        if self.evaluation_split.trim().is_empty() {
+            return Err(ScorecardError::EmptyEvaluationSplit);
+        }
         Ok(())
     }
 }
@@ -185,6 +205,7 @@ pub struct RobustnessScorecard {
     /// Equal-weight task macro average; useful when clusters have unequal sizes.
     pub macro_task_success_delta: f64,
     pub by_horizon: Vec<GroupComparison>,
+    pub by_category: Vec<GroupComparison>,
     pub by_shift_family: Vec<GroupComparison>,
     /// True only when the 95% paired cluster-bootstrap interval lies above zero.
     pub positive_improvement_supported: bool,
@@ -236,6 +257,9 @@ pub fn evaluate_paired_comparison(
     if tasks.is_empty() {
         return Err(ScorecardError::EmptyTaskSet);
     }
+    if tasks.len() < 2 {
+        return Err(ScorecardError::InsufficientTaskClusters);
+    }
     if bootstrap.replicates < MIN_BOOTSTRAP_REPLICATES {
         return Err(ScorecardError::InvalidBootstrapReplicateCount);
     }
@@ -247,6 +271,7 @@ pub fn evaluate_paired_comparison(
     let mut macro_task_delta_sum = 0.0;
 
     let mut horizon_groups: BTreeMap<u32, Vec<&TaskCluster>> = BTreeMap::new();
+    let mut category_groups: BTreeMap<String, Vec<&TaskCluster>> = BTreeMap::new();
     let mut shift_groups: BTreeMap<String, Vec<&TaskCluster>> = BTreeMap::new();
 
     for task in tasks {
@@ -288,6 +313,10 @@ pub fn evaluate_paired_comparison(
         let task_n = task.episodes.len() as f64;
         macro_task_delta_sum += task_candidate as f64 / task_n - task_baseline as f64 / task_n;
         horizon_groups.entry(task.horizon).or_default().push(task);
+        category_groups
+            .entry(task.category.clone())
+            .or_default()
+            .push(task);
         shift_groups
             .entry(task.shift_family.clone())
             .or_default()
@@ -313,6 +342,7 @@ pub fn evaluate_paired_comparison(
             .map(|(horizon, group_tasks)| (horizon.to_string(), group_tasks))
             .collect(),
     );
+    let by_category = compare_groups(category_groups.into_iter().collect());
     let by_shift_family = compare_groups(shift_groups.into_iter().collect());
 
     Ok(RobustnessScorecard {
@@ -324,6 +354,7 @@ pub fn evaluate_paired_comparison(
         macro_task_success_delta: macro_task_delta_sum / tasks.len() as f64,
         positive_improvement_supported: paired_task_cluster_delta_95.lower > 0.0,
         by_horizon,
+        by_category,
         by_shift_family,
         task_cluster_count: tasks.len(),
         episode_pair_count: total_pairs as usize,
@@ -494,6 +525,7 @@ mod tests {
         assert_eq!(result.episode_pair_count, 4);
         assert!((result.pooled_success_delta - 0.5).abs() < 1.0e-12);
         assert_eq!(result.by_horizon.len(), 2);
+        assert_eq!(result.by_category.len(), 1);
         assert_eq!(result.by_shift_family.len(), 2);
     }
 
@@ -572,6 +604,39 @@ mod tests {
                 BootstrapConfig::default()
             ),
             Err(ScorecardError::InvalidBenchmarkCommit)
+        );
+    }
+
+    #[test]
+    fn rejects_single_cluster_as_inferential_comparison() {
+        assert_eq!(
+            evaluate_paired_comparison(
+                identity(),
+                &[task("task-a", 1, "in_distribution", &[false], &[true])],
+                BootstrapConfig::default()
+            ),
+            Err(ScorecardError::InsufficientTaskClusters)
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_protocol_digest_and_empty_run_identity() {
+        let invalid_digest = BenchmarkIdentity::new(
+            "LADDER",
+            "e4e204073cc64b0dc49f9669c2951e6bc91fe0af",
+            "not-a-digest",
+            "widowx",
+            "full",
+            false,
+        );
+        assert_eq!(
+            evaluate_paired_comparison(
+                invalid_digest,
+                &[task("task-a", 1, "in_distribution", &[false], &[true]),
+                  task("task-b", 2, "held_out_layout", &[false], &[true])],
+                BootstrapConfig::default()
+            ),
+            Err(ScorecardError::InvalidProtocolDigest)
         );
     }
 
