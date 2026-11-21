@@ -56,3 +56,16 @@ The overlay inherits productive minutes/cell-year, shifts, target good-carrier t
 This is an incremental capacity/resource overlay, not a second factory costing engine. Base building, general overhead, site labor/energy rates and vehicle assembly costs remain with `ev_factory_frontier`. Module production release remains false in v0.1, including synthetic-screen passes.
 
 Research dossier: [EV Carrier Module Manufacturing Screen v0.1](../../docs/research/EV_CARRIER_MODULE_MANUFACTURING_SCREEN_V0_1.md).
+
+
+## EV-CARRIER-SHARED-CELLS-001 — mixed-model shared station capacity
+
+The ev_carrier_shared_cell_screen binary overlays product-specific module work onto explicitly mapped stations in the base EV factory report. It calculates base station load, residual minutes, module processing and setup/changeover minutes, supplemental cells, capacity margin and potential base vehicle displacement. Unknown or incompatible station mappings cannot credit shared capacity.
+
+Run:
+
+    cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_carrier_shared_cell_screen -- ev-factory-design-report.json tools/ev-passenger-cost-frontier/fixtures/ev_carrier_module_processes_v0_1.json tools/ev-passenger-cost-frontier/fixtures/ev_carrier_shared_cell_mappings_v0_1.json
+
+The committed fixture reports 108 cases (3 sites × 3 factory templates × 4 volumes × 9 template/config mappings): 72 synthetic-compatible arithmetic screens and 36 unknown integrated-bay mappings. No module production release is granted.
+
+Research dossier: [EV Carrier Shared Cells v0.1](../../docs/research/EV_CARRIER_SHARED_CELLS_V0_1.md). The screen builds on the dedicated-cell overlay [EV-CARRIER-MODULE-MFG-001 #6176](https://github.com/Luminous-Dynamics/symtropy/issues/6176) and implements [EV-CARRIER-SHARED-CELLS-001 #6250](https://github.com/Luminous-Dynamics/symtropy/issues/6250).

@@ -40,11 +40,20 @@ struct BaseFactoryScenario {
     site_id: String,
     template_id: String,
     target_good_vehicles_per_year: u64,
+    planned_attempts_per_year: u64,
     shifts_per_day: u32,
     productive_minutes_per_cell_year: f64,
     good_vehicle_yield_fraction: f64,
     production_release_ready: bool,
     evidence_gaps: Vec<String>,
+    stations: Vec<BaseFactoryStation>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct BaseFactoryStation {
+    process_id: String,
+    cycle_minutes_per_attempt: f64,
+    parallel_cells_required: u64,
 }
 
 #[derive(Debug, Deserialize)]
@@ -212,10 +221,28 @@ fn validate_inputs(
                 "base.results[{index}]: duplicate scenario identity"
             ));
         }
+        let mut station_ids = BTreeSet::new();
+        for (station_index, station) in scenario.stations.iter().enumerate() {
+            if station.process_id.trim().is_empty()
+                || !station_ids.insert(station.process_id.as_str())
+                || !station.cycle_minutes_per_attempt.is_finite()
+                || station.cycle_minutes_per_attempt <= 0.0
+                || station.cycle_minutes_per_attempt > 1_000_000.0
+                || station.parallel_cells_required == 0
+                || station.parallel_cells_required > 100_000
+            {
+                errors.push(format!(
+                    "base.results[{index}].stations[{station_index}]: invalid station identity/capacity"
+                ));
+            }
+        }
         if scenario.site_id.trim().is_empty()
             || scenario.template_id.trim().is_empty()
+            || scenario.stations.is_empty()
             || scenario.target_good_vehicles_per_year == 0
             || scenario.target_good_vehicles_per_year > 10_000_000
+            || scenario.planned_attempts_per_year < scenario.target_good_vehicles_per_year
+            || scenario.planned_attempts_per_year > 10_000_000
             || scenario.shifts_per_day == 0
             || scenario.shifts_per_day > 4
             || !scenario.productive_minutes_per_cell_year.is_finite()
@@ -616,6 +643,529 @@ fn evaluate_pair(base: &BaseFactoryScenario, config: &ModuleConfiguration) -> Sc
     }
 }
 
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum SharedCellCompatibility {
+    SyntheticCompatible,
+    VerifiedCompatible,
+    Unknown,
+    Incompatible,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct SharedCellCatalog {
+    schema_version: String,
+    benchmark_id: String,
+    claim_ceiling: String,
+    mappings: Vec<SharedCellMapping>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct SharedCellMapping {
+    mapping_id: String,
+    config_id: String,
+    template_id: String,
+    module_process_id: String,
+    base_station_process_id: String,
+    compatibility: SharedCellCompatibility,
+    evidence_class: EvidenceClass,
+    evidence_reference: String,
+    setup_minutes_per_changeover: Option<f64>,
+    changeovers_per_year: Option<u64>,
+    maximum_supplemental_cells: Option<u32>,
+    notes: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct SharedCellScenarioResult {
+    site_id: String,
+    template_id: String,
+    config_id: String,
+    mapping_id: String,
+    module_process_id: String,
+    base_station_process_id: String,
+    evidence_class: EvidenceClass,
+    compatibility: SharedCellCompatibility,
+    target_good_vehicles_per_year: u64,
+    target_good_modules_per_year: Option<u64>,
+    planned_module_attempts_per_year: Option<u64>,
+    base_station_cells: Option<u64>,
+    base_station_available_minutes_per_year: Option<f64>,
+    base_vehicle_station_load_minutes_per_year: Option<f64>,
+    base_station_residual_minutes_per_year: Option<f64>,
+    module_processing_minutes_per_year: Option<f64>,
+    module_changeover_minutes_per_year: Option<f64>,
+    total_module_work_minutes_per_year: Option<f64>,
+    module_work_minutes_fitted_to_residual: Option<f64>,
+    excess_module_work_minutes_after_residual: Option<f64>,
+    required_supplemental_cells: Option<u64>,
+    maximum_supplemental_cells: Option<u32>,
+    supplemental_capacity_minutes_per_year: Option<f64>,
+    shared_capacity_margin_minutes_per_year: Option<f64>,
+    dedicated_module_cells_baseline: Option<u64>,
+    supplemental_cells_used: Option<u64>,
+    dedicated_cells_avoided: Option<i64>,
+    supplemental_equipment_capex_usd: Option<f64>,
+    supplemental_footprint_sqm: Option<f64>,
+    supplemental_operators_per_shift: Option<u64>,
+    base_vehicle_attempts_displaced_if_shortfall_is_forced: Option<u64>,
+    base_factory_production_release_ready: bool,
+    base_factory_evidence_gaps: Vec<String>,
+    status: Status,
+    missing_fields: Vec<String>,
+    findings: Vec<String>,
+    module_production_release_ready: bool,
+    claim_ceiling: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SharedCellReport {
+    schema_version: String,
+    benchmark_id: String,
+    base_factory_benchmark_id: String,
+    module_factory_benchmark_id: String,
+    scenario_count: usize,
+    result_count: usize,
+    results: Vec<SharedCellScenarioResult>,
+    claim_ceiling: &'static str,
+}
+
+fn validate_shared_cell_catalog(
+    base: &FactoryReport,
+    modules: &ModuleProcessCatalog,
+    catalog: &SharedCellCatalog,
+) -> Result<(), Vec<String>> {
+    let mut errors = Vec::new();
+    if catalog.schema_version != "0.1.0"
+        || catalog.benchmark_id != "EV-CARRIER-SHARED-CELLS-001"
+        || catalog.claim_ceiling.trim().is_empty()
+        || catalog.mappings.is_empty()
+        || catalog.mappings.len() > MAX_CONFIGS * 16
+    {
+        errors.push("unsupported_shared_cell_catalog_or_empty_mapping_set".into());
+    }
+
+    let mut mapping_ids = BTreeSet::new();
+    let mut mapping_keys = BTreeSet::new();
+    for (index, mapping) in catalog.mappings.iter().enumerate() {
+        if mapping.mapping_id.trim().is_empty() || !mapping_ids.insert(mapping.mapping_id.as_str())
+        {
+            errors.push(format!(
+                "mappings[{index}].mapping_id: nonempty unique identity required"
+            ));
+        }
+        let key = (
+            mapping.config_id.as_str(),
+            mapping.template_id.as_str(),
+            mapping.module_process_id.as_str(),
+        );
+        if !mapping_keys.insert(key) {
+            errors.push(format!(
+                "mappings[{index}]: duplicate configuration/template/process mapping"
+            ));
+        }
+        if mapping.evidence_reference.trim().is_empty()
+            || mapping.notes.is_empty()
+            || mapping.notes.iter().any(|note| note.trim().is_empty())
+            || mapping.config_id.trim().is_empty()
+            || mapping.template_id.trim().is_empty()
+            || mapping.module_process_id.trim().is_empty()
+            || mapping.base_station_process_id.trim().is_empty()
+        {
+            errors.push(format!(
+                "mappings[{index}]: identities, evidence reference and notes are required"
+            ));
+        }
+        for (name, value) in [(
+            "setup_minutes_per_changeover",
+            mapping.setup_minutes_per_changeover,
+        )] {
+            if value.is_some_and(|value| !value.is_finite() || value < 0.0 || value > 1_000_000.0) {
+                errors.push(format!(
+                    "mappings[{index}].{name}: must be finite and within v1 bounds"
+                ));
+            }
+        }
+        if mapping
+            .changeovers_per_year
+            .is_some_and(|value| value > 1_000_000)
+        {
+            errors.push(format!(
+                "mappings[{index}].changeovers_per_year: exceeds v1 limit"
+            ));
+        }
+        if mapping
+            .maximum_supplemental_cells
+            .is_some_and(|value| value > 100_000)
+        {
+            errors.push(format!(
+                "mappings[{index}].maximum_supplemental_cells: exceeds v1 limit"
+            ));
+        }
+        match mapping.compatibility {
+            SharedCellCompatibility::SyntheticCompatible
+                if mapping.evidence_class != EvidenceClass::Synthetic =>
+            {
+                errors.push(format!(
+                    "mappings[{index}]: synthetic compatibility must use synthetic evidence"
+                ));
+            }
+            SharedCellCompatibility::VerifiedCompatible
+                if !matches!(
+                    mapping.evidence_class,
+                    EvidenceClass::Measured | EvidenceClass::IndependentTest
+                ) =>
+            {
+                errors.push(format!("mappings[{index}]: verified compatibility requires measured or independent-test evidence"));
+            }
+            _ => {}
+        }
+
+        let config = modules
+            .configurations
+            .iter()
+            .find(|config| config.config_id == mapping.config_id);
+        let Some(config) = config else {
+            errors.push(format!(
+                "mappings[{index}]: references unknown module configuration"
+            ));
+            continue;
+        };
+        if !config
+            .station_processes
+            .iter()
+            .any(|station| station.process_id == mapping.module_process_id)
+        {
+            errors.push(format!(
+                "mappings[{index}]: references unknown module process"
+            ));
+        }
+        let matching_base_scenarios: Vec<&BaseFactoryScenario> = base
+            .results
+            .iter()
+            .filter(|scenario| scenario.template_id == mapping.template_id)
+            .collect();
+        if matching_base_scenarios.is_empty() {
+            errors.push(format!(
+                "mappings[{index}]: references unknown factory template"
+            ));
+        } else if !matching_base_scenarios.iter().any(|scenario| {
+            scenario
+                .stations
+                .iter()
+                .any(|station| station.process_id == mapping.base_station_process_id)
+        }) {
+            errors.push(format!(
+                "mappings[{index}]: base station does not exist in the selected factory template"
+            ));
+        }
+    }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
+}
+
+fn ceil_supplemental_cells(required_minutes: f64, productive_minutes: f64) -> Option<u64> {
+    if !required_minutes.is_finite()
+        || required_minutes < 0.0
+        || !productive_minutes.is_finite()
+        || productive_minutes <= 0.0
+    {
+        return None;
+    }
+    let required = (required_minutes / productive_minutes).ceil();
+    if !required.is_finite() || required > MAX_CELLS_PER_STATION {
+        return None;
+    }
+    Some(required as u64)
+}
+
+fn evaluate_shared_cell_pair(
+    base: &BaseFactoryScenario,
+    config: &ModuleConfiguration,
+    mapping: &SharedCellMapping,
+) -> SharedCellScenarioResult {
+    let module_result = evaluate_pair(base, config);
+    let base_station = base
+        .stations
+        .iter()
+        .find(|station| station.process_id == mapping.base_station_process_id);
+    let module_station = config
+        .station_processes
+        .iter()
+        .find(|station| station.process_id == mapping.module_process_id);
+
+    let mut missing = Vec::new();
+    let mut findings = Vec::new();
+    if mapping.compatibility == SharedCellCompatibility::Unknown {
+        missing.push("shared_station_compatibility_evidence".into());
+    }
+    if mapping.setup_minutes_per_changeover.is_none() {
+        missing.push("setup_minutes_per_changeover".into());
+    }
+    if mapping.changeovers_per_year.is_none() {
+        missing.push("changeovers_per_year".into());
+    }
+    if mapping.maximum_supplemental_cells.is_none() {
+        missing.push("maximum_supplemental_cells".into());
+    }
+    if base_station.is_none() {
+        missing.push("base_station_process".into());
+    }
+    if module_station.is_none() {
+        missing.push("module_station_process".into());
+    }
+    if module_result.planned_module_attempts_per_year.is_none() {
+        missing.push("planned_module_attempts_per_year".into());
+    }
+    if module_station
+        .and_then(|station| station.cycle_minutes_per_attempt)
+        .is_none()
+    {
+        missing.push("module_cycle_minutes_per_attempt".into());
+    }
+
+    let base_station_available_minutes = base_station.map(|station| {
+        station.parallel_cells_required as f64 * base.productive_minutes_per_cell_year
+    });
+    let base_vehicle_station_load_minutes = base_station
+        .map(|station| base.planned_attempts_per_year as f64 * station.cycle_minutes_per_attempt);
+    let base_station_residual_minutes = base_station_available_minutes
+        .zip(base_vehicle_station_load_minutes)
+        .map(|(available, load)| available - load);
+    let module_processing_minutes = match (
+        module_result.planned_module_attempts_per_year,
+        module_station.and_then(|station| station.cycle_minutes_per_attempt),
+    ) {
+        (Some(attempts), Some(cycle)) => Some(attempts as f64 * cycle),
+        _ => None,
+    };
+    let module_changeover_minutes = match (
+        mapping.setup_minutes_per_changeover,
+        mapping.changeovers_per_year,
+    ) {
+        (Some(setup), Some(changes)) => Some(setup * changes as f64),
+        _ => None,
+    };
+    let total_module_work_minutes = module_processing_minutes
+        .zip(module_changeover_minutes)
+        .map(|(processing, setup)| processing + setup);
+    let compatibility_allows_sharing = matches!(
+        mapping.compatibility,
+        SharedCellCompatibility::SyntheticCompatible | SharedCellCompatibility::VerifiedCompatible
+    );
+    let fitted = compatibility_allows_sharing
+        .then(|| {
+            total_module_work_minutes
+                .zip(base_station_residual_minutes)
+                .map(|(work, residual)| work.min(residual.max(0.0)))
+        })
+        .flatten();
+    let excess = compatibility_allows_sharing
+        .then(|| {
+            total_module_work_minutes
+                .zip(base_station_residual_minutes)
+                .map(|(work, residual)| (work - residual.max(0.0)).max(0.0))
+        })
+        .flatten();
+    let required_supplemental = excess.and_then(|minutes| {
+        ceil_supplemental_cells(minutes, base.productive_minutes_per_cell_year)
+    });
+    let supplemental_capacity = compatibility_allows_sharing
+        .then(|| {
+            mapping
+                .maximum_supplemental_cells
+                .map(|cells| cells as f64 * base.productive_minutes_per_cell_year)
+        })
+        .flatten();
+    let shared_capacity_margin = base_station_residual_minutes
+        .zip(supplemental_capacity)
+        .zip(total_module_work_minutes)
+        .map(|((residual, supplemental), work)| residual + supplemental - work);
+    let dedicated_station = module_result
+        .stations
+        .iter()
+        .find(|station| station.process_id == mapping.module_process_id);
+    let dedicated_cells = dedicated_station.and_then(|station| station.parallel_cells_required);
+    let supplemental_cells_used = required_supplemental
+        .zip(mapping.maximum_supplemental_cells)
+        .map(|(required, available)| required.min(u64::from(available)));
+    let dedicated_cells_avoided =
+        dedicated_cells
+            .zip(supplemental_cells_used)
+            .and_then(|(dedicated, shared)| {
+                i64::try_from(dedicated)
+                    .ok()?
+                    .checked_sub(i64::try_from(shared).ok()?)
+            });
+    let supplemental_equipment_capex = supplemental_cells_used
+        .zip(module_station.and_then(|station| station.equipment_capex_usd_per_cell))
+        .map(|(cells, capex)| cells as f64 * capex);
+    let supplemental_footprint = supplemental_cells_used
+        .zip(module_station.and_then(|station| station.footprint_sqm_per_cell))
+        .map(|(cells, area)| cells as f64 * area);
+    let supplemental_operators = supplemental_cells_used
+        .zip(module_station.and_then(|station| station.operators_per_cell_per_shift))
+        .map(|(cells, operators)| cells * u64::from(operators));
+    let shortfall_minutes = match (excess, supplemental_capacity) {
+        (Some(excess), Some(capacity)) => Some((excess - capacity).max(0.0)),
+        _ => None,
+    };
+    let base_vehicle_attempts_displaced = shortfall_minutes
+        .zip(base_station.map(|station| station.cycle_minutes_per_attempt))
+        .and_then(|(minutes, cycle)| {
+            if cycle <= 0.0 {
+                None
+            } else {
+                ceil_supplemental_cells(minutes, cycle)
+            }
+        });
+
+    if mapping.compatibility == SharedCellCompatibility::Incompatible {
+        findings.push("base_station_process_is_not_qualified_for_module_process".into());
+    }
+    if shortfall_minutes.is_some_and(|minutes| minutes > 1e-9) {
+        findings.push(
+            "shared_station_capacity_plus_supplemental_cells_cannot_preserve_base_vehicle_output"
+                .into(),
+        );
+    }
+    if mapping.compatibility == SharedCellCompatibility::SyntheticCompatible {
+        findings.push(
+            "shared_station_mapping_is_synthetic_and_only_validates_screen_arithmetic".into(),
+        );
+    }
+    if !missing.is_empty() {
+        findings
+            .push("missing_shared_station_mapping_or_capacity_inputs_prevent_qualification".into());
+    }
+    findings.sort();
+
+    let shortfall = shortfall_minutes.is_some_and(|minutes| minutes > 1e-9);
+    let status = if mapping.compatibility == SharedCellCompatibility::Incompatible || shortfall {
+        Status::Blocked
+    } else if !missing.is_empty() {
+        Status::Indeterminate
+    } else if mapping.evidence_class == EvidenceClass::Synthetic {
+        Status::PassesSyntheticScreen
+    } else if base.production_release_ready
+        && base.evidence_gaps.is_empty()
+        && module_result.status == Status::PassesEvidenceBackedScreen
+    {
+        Status::PassesEvidenceBackedScreen
+    } else {
+        Status::Indeterminate
+    };
+
+    SharedCellScenarioResult {
+        site_id: base.site_id.clone(),
+        template_id: base.template_id.clone(),
+        config_id: config.config_id.clone(),
+        mapping_id: mapping.mapping_id.clone(),
+        module_process_id: mapping.module_process_id.clone(),
+        base_station_process_id: mapping.base_station_process_id.clone(),
+        evidence_class: mapping.evidence_class,
+        compatibility: mapping.compatibility,
+        target_good_vehicles_per_year: base.target_good_vehicles_per_year,
+        target_good_modules_per_year: module_result.target_good_modules_per_year,
+        planned_module_attempts_per_year: module_result.planned_module_attempts_per_year,
+        base_station_cells: base_station.map(|station| station.parallel_cells_required),
+        base_station_available_minutes_per_year: base_station_available_minutes,
+        base_vehicle_station_load_minutes_per_year: base_vehicle_station_load_minutes,
+        base_station_residual_minutes_per_year: base_station_residual_minutes,
+        module_processing_minutes_per_year: module_processing_minutes,
+        module_changeover_minutes_per_year: module_changeover_minutes,
+        total_module_work_minutes_per_year: total_module_work_minutes,
+        module_work_minutes_fitted_to_residual: fitted,
+        excess_module_work_minutes_after_residual: excess,
+        required_supplemental_cells: required_supplemental,
+        maximum_supplemental_cells: mapping.maximum_supplemental_cells,
+        supplemental_capacity_minutes_per_year: supplemental_capacity,
+        shared_capacity_margin_minutes_per_year: shared_capacity_margin,
+        dedicated_module_cells_baseline: dedicated_cells,
+        supplemental_cells_used,
+        dedicated_cells_avoided,
+        supplemental_equipment_capex_usd: supplemental_equipment_capex,
+        supplemental_footprint_sqm: supplemental_footprint,
+        supplemental_operators_per_shift: supplemental_operators,
+        base_vehicle_attempts_displaced_if_shortfall_is_forced: base_vehicle_attempts_displaced,
+        base_factory_production_release_ready: base.production_release_ready,
+        base_factory_evidence_gaps: base.evidence_gaps.clone(),
+        status,
+        missing_fields: missing,
+        findings,
+        module_production_release_ready: false,
+        claim_ceiling: CLAIM_CEILING,
+    }
+}
+
+/// Evaluate module processes against the real residual capacity of explicitly
+/// mapped base EV factory stations. Unknown/incompatible reuse never grants capacity.
+pub fn evaluate_shared_cells(
+    base: &FactoryReport,
+    modules: &ModuleProcessCatalog,
+    catalog: &SharedCellCatalog,
+) -> Result<SharedCellReport, Vec<String>> {
+    validate_inputs(base, modules)?;
+    validate_shared_cell_catalog(base, modules, catalog)?;
+    let mut base_scenarios = base.results.clone();
+    let mut configs = modules.configurations.clone();
+    let mut mappings = catalog.mappings.clone();
+    base_scenarios.sort_by(|left, right| {
+        (
+            &left.site_id,
+            &left.template_id,
+            left.target_good_vehicles_per_year,
+        )
+            .cmp(&(
+                &right.site_id,
+                &right.template_id,
+                right.target_good_vehicles_per_year,
+            ))
+    });
+    configs.sort_by(|left, right| left.config_id.cmp(&right.config_id));
+    mappings.sort_by(|left, right| left.mapping_id.cmp(&right.mapping_id));
+    let mut results = Vec::new();
+    for base_scenario in &base_scenarios {
+        for config in &configs {
+            for mapping in mappings.iter().filter(|mapping| {
+                mapping.config_id == config.config_id
+                    && mapping.template_id == base_scenario.template_id
+            }) {
+                results.push(evaluate_shared_cell_pair(base_scenario, config, mapping));
+            }
+        }
+    }
+    results.sort_by(|left, right| {
+        (
+            &left.site_id,
+            &left.template_id,
+            &left.config_id,
+            &left.mapping_id,
+        )
+            .cmp(&(
+                &right.site_id,
+                &right.template_id,
+                &right.config_id,
+                &right.mapping_id,
+            ))
+    });
+    Ok(SharedCellReport {
+        schema_version: catalog.schema_version.clone(),
+        benchmark_id: catalog.benchmark_id.clone(),
+        base_factory_benchmark_id: base.benchmark_id.clone(),
+        module_factory_benchmark_id: modules.benchmark_id.clone(),
+        scenario_count: base_scenarios.len(),
+        result_count: results.len(),
+        results,
+        claim_ceiling: "Synthetic/shared-station capacity overlay only; no verified fixture compatibility, production release, supplier quotation, physical plant layout or cost superiority is established".into(),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -625,11 +1175,17 @@ mod tests {
             site_id: "south-africa-example".into(),
             template_id: "contract-assembly-flex".into(),
             target_good_vehicles_per_year: 1_000,
+            planned_attempts_per_year: 1_075,
             shifts_per_day: 2,
             productive_minutes_per_cell_year: 150_000.0,
             good_vehicle_yield_fraction: 0.93,
             production_release_ready: false,
             evidence_gaps: vec!["synthetic".into()],
+            stations: vec![BaseFactoryStation {
+                process_id: "battery-drive-install".into(),
+                cycle_minutes_per_attempt: 8.0,
+                parallel_cells_required: 1,
+            }],
         }
     }
 
@@ -667,6 +1223,189 @@ mod tests {
             ],
             notes: vec!["synthetic".into()],
         }
+    }
+
+    fn shared_mapping(compatibility: SharedCellCompatibility) -> SharedCellMapping {
+        SharedCellMapping {
+            mapping_id: "pod-harness-to-battery-drive".into(),
+            config_id: "synthetic-pod".into(),
+            template_id: "contract-assembly-flex".into(),
+            module_process_id: "assembly".into(),
+            base_station_process_id: "battery-drive-install".into(),
+            compatibility,
+            evidence_class: if compatibility == SharedCellCompatibility::Unknown {
+                EvidenceClass::Unknown
+            } else {
+                EvidenceClass::Synthetic
+            },
+            evidence_reference: "synthetic://shared-cell/pod-harness".into(),
+            setup_minutes_per_changeover: Some(30.0),
+            changeovers_per_year: Some(24),
+            maximum_supplemental_cells: Some(4),
+            notes: vec!["synthetic arithmetic fixture only".into()],
+        }
+    }
+
+    fn shared_catalog(mapping: SharedCellMapping) -> SharedCellCatalog {
+        SharedCellCatalog {
+            schema_version: "0.1.0".into(),
+            benchmark_id: "EV-CARRIER-SHARED-CELLS-001".into(),
+            claim_ceiling: "synthetic".into(),
+            mappings: vec![mapping],
+        }
+    }
+
+    fn shared_factory_report(factory: BaseFactoryScenario) -> FactoryReport {
+        FactoryReport {
+            schema_version: "0.1.0".into(),
+            benchmark_id: "EV-FACTORY-DESIGN-001".into(),
+            results: vec![factory],
+        }
+    }
+
+    #[test]
+    fn shared_module_work_consumes_only_residual_base_station_minutes() {
+        let factory = shared_factory_report(base());
+        let modules = ModuleProcessCatalog {
+            schema_version: "0.1.0".into(),
+            benchmark_id: "EV-CARRIER-MODULE-MFG-001".into(),
+            configurations: vec![config()],
+            claim_ceiling: "synthetic".into(),
+        };
+        let mapping = shared_mapping(SharedCellCompatibility::SyntheticCompatible);
+        let report = evaluate_shared_cells(&factory, &modules, &shared_catalog(mapping))
+            .expect("valid shared-cell input");
+        assert_eq!(report.result_count, 1);
+        let result = &report.results[0];
+        assert_eq!(result.status, Status::PassesSyntheticScreen);
+        assert_eq!(result.required_supplemental_cells, Some(0));
+        assert_eq!(result.supplemental_cells_used, Some(0));
+        assert!(
+            result.base_station_residual_minutes_per_year.unwrap()
+                >= result.total_module_work_minutes_per_year.unwrap()
+        );
+        assert_eq!(result.module_production_release_ready, false);
+    }
+
+    #[test]
+    fn insufficient_shared_and_supplemental_capacity_blocks_and_reports_displacement() {
+        let mut factory = base();
+        factory.productive_minutes_per_cell_year = 10_000.0;
+        let factory = shared_factory_report(factory);
+        let modules = ModuleProcessCatalog {
+            schema_version: "0.1.0".into(),
+            benchmark_id: "EV-CARRIER-MODULE-MFG-001".into(),
+            configurations: vec![config()],
+            claim_ceiling: "synthetic".into(),
+        };
+        let mut mapping = shared_mapping(SharedCellCompatibility::SyntheticCompatible);
+        mapping.maximum_supplemental_cells = Some(0);
+        let report = evaluate_shared_cells(&factory, &modules, &shared_catalog(mapping))
+            .expect("valid but under-capacity fixture");
+        let result = &report.results[0];
+        assert_eq!(result.status, Status::Blocked);
+        assert_eq!(result.supplemental_cells_used, Some(0));
+        assert!(
+            result
+                .base_vehicle_attempts_displaced_if_shortfall_is_forced
+                .unwrap()
+                > 0
+        );
+        assert!(result.shared_capacity_margin_minutes_per_year.unwrap() < 0.0);
+    }
+
+    #[test]
+    fn unknown_shared_station_compatibility_remains_indeterminate() {
+        let factory = shared_factory_report(base());
+        let modules = ModuleProcessCatalog {
+            schema_version: "0.1.0".into(),
+            benchmark_id: "EV-CARRIER-MODULE-MFG-001".into(),
+            configurations: vec![config()],
+            claim_ceiling: "synthetic".into(),
+        };
+        let mapping = shared_mapping(SharedCellCompatibility::Unknown);
+        let report = evaluate_shared_cells(&factory, &modules, &shared_catalog(mapping))
+            .expect("valid unknown evidence fixture");
+        assert_eq!(report.results[0].status, Status::Indeterminate);
+        assert!(
+            report.results[0]
+                .shared_capacity_margin_minutes_per_year
+                .is_none()
+        );
+        assert!(report.results[0].required_supplemental_cells.is_none());
+        assert!(
+            report.results[0]
+                .module_work_minutes_fitted_to_residual
+                .is_none()
+        );
+        assert!(report.results[0].supplemental_cells_used.is_none());
+        assert!(
+            report.results[0]
+                .missing_fields
+                .contains(&"shared_station_compatibility_evidence".into())
+        );
+    }
+
+    #[test]
+    fn incompatible_shared_station_is_blocked_even_with_spare_capacity() {
+        let factory = shared_factory_report(base());
+        let modules = ModuleProcessCatalog {
+            schema_version: "0.1.0".into(),
+            benchmark_id: "EV-CARRIER-MODULE-MFG-001".into(),
+            configurations: vec![config()],
+            claim_ceiling: "synthetic".into(),
+        };
+        let mapping = shared_mapping(SharedCellCompatibility::Incompatible);
+        let report = evaluate_shared_cells(&factory, &modules, &shared_catalog(mapping))
+            .expect("valid incompatible fixture");
+        assert_eq!(report.results[0].status, Status::Blocked);
+        assert!(
+            report.results[0]
+                .shared_capacity_margin_minutes_per_year
+                .is_none()
+        );
+        assert!(
+            report.results[0]
+                .findings
+                .iter()
+                .any(|finding| finding.contains("not_qualified"))
+        );
+    }
+
+    #[test]
+    fn measured_shared_station_data_do_not_pass_when_base_factory_is_unreleased() {
+        let factory = shared_factory_report(base());
+        let modules = ModuleProcessCatalog {
+            schema_version: "0.1.0".into(),
+            benchmark_id: "EV-CARRIER-MODULE-MFG-001".into(),
+            configurations: vec![config()],
+            claim_ceiling: "synthetic".into(),
+        };
+        let mut mapping = shared_mapping(SharedCellCompatibility::VerifiedCompatible);
+        mapping.evidence_class = EvidenceClass::Measured;
+        let report = evaluate_shared_cells(&factory, &modules, &shared_catalog(mapping))
+            .expect("valid but unreleased factory");
+        assert_eq!(report.results[0].status, Status::Indeterminate);
+        assert!(!report.results[0].base_factory_production_release_ready);
+        assert!(!report.results[0].base_factory_evidence_gaps.is_empty());
+    }
+
+    #[test]
+    fn verified_compatibility_requires_measured_or_independent_evidence() {
+        let factory = shared_factory_report(base());
+        let modules = ModuleProcessCatalog {
+            schema_version: "0.1.0".into(),
+            benchmark_id: "EV-CARRIER-MODULE-MFG-001".into(),
+            configurations: vec![config()],
+            claim_ceiling: "synthetic".into(),
+        };
+        let mapping = shared_mapping(SharedCellCompatibility::VerifiedCompatible);
+        assert!(
+            validate_shared_cell_catalog(&factory, &modules, &shared_catalog(mapping))
+                .unwrap_err()
+                .iter()
+                .any(|error| error.contains("verified compatibility requires"))
+        );
     }
 
     #[test]

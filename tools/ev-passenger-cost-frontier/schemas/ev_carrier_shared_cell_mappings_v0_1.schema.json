@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EV carrier shared factory cell mapping catalog v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "claim_ceiling",
+    "mappings"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "EV-CARRIER-SHARED-CELLS-001"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mappings": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 512,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "mapping_id",
+          "config_id",
+          "template_id",
+          "module_process_id",
+          "base_station_process_id",
+          "compatibility",
+          "evidence_class",
+          "evidence_reference",
+          "setup_minutes_per_changeover",
+          "changeovers_per_year",
+          "maximum_supplemental_cells",
+          "notes"
+        ],
+        "properties": {
+          "mapping_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "config_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "template_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "module_process_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "base_station_process_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "compatibility": {
+            "enum": [
+              "synthetic_compatible",
+              "verified_compatible",
+              "unknown",
+              "incompatible"
+            ]
+          },
+          "evidence_class": {
+            "enum": [
+              "synthetic",
+              "public_market_data",
+              "manufacturer_spec",
+              "official_record",
+              "measured",
+              "independent_test",
+              "audited_cost",
+              "unknown"
+            ]
+          },
+          "evidence_reference": {
+            "type": "string",
+            "minLength": 1
+          },
+          "setup_minutes_per_changeover": {
+            "oneOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1000000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "changeovers_per_year": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "maximum_supplemental_cells": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "notes": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    }
+  }
+}

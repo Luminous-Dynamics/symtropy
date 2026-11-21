@@ -1,0 +1,160 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "EV-CARRIER-SHARED-CELLS-001",
+  "claim_ceiling": "Synthetic compatibility mappings validate shared-station arithmetic only. They do not establish fixture compatibility, process capability, EOL acceptance equivalence, production release or cost superiority.",
+  "mappings": [
+    {
+      "mapping_id": "pod-harness-contract-assembly-flex",
+      "config_id": "detachable-uav-pod-synthetic-demo",
+      "template_id": "contract-assembly-flex",
+      "module_process_id": "hv-lv-harness-and-charger",
+      "base_station_process_id": "battery-drive-install",
+      "compatibility": "synthetic_compatible",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic://shared-cell/pod-harness/contract-assembly-flex",
+      "setup_minutes_per_changeover": 30,
+      "changeovers_per_year": 24,
+      "maximum_supplemental_cells": 64,
+      "notes": [
+        "Synthetic mapping tests arithmetic only.",
+        "Physical HV work, protection, isolation, charger calibration and EOL equivalence remain independently unqualified."
+      ]
+    },
+    {
+      "mapping_id": "amr-eol-contract-assembly-flex",
+      "config_id": "amr-handoff-synthetic-demo",
+      "template_id": "contract-assembly-flex",
+      "module_process_id": "amr-eol-test",
+      "base_station_process_id": "end-of-line-safety",
+      "compatibility": "synthetic_compatible",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic://shared-cell/amr-eol/contract-assembly-flex",
+      "setup_minutes_per_changeover": 45,
+      "changeovers_per_year": 36,
+      "maximum_supplemental_cells": 64,
+      "notes": [
+        "Synthetic mapping tests shared-station workload arithmetic only.",
+        "AMR navigation, braking, functional safety and product EOL acceptance require separate qualified tests."
+      ]
+    },
+    {
+      "mapping_id": "integrated-bay-hv-contract-assembly-flex",
+      "config_id": "integrated-drone-bay-production-intent-unknown",
+      "template_id": "contract-assembly-flex",
+      "module_process_id": "high-voltage-and-thermal-integration",
+      "base_station_process_id": "battery-drive-install",
+      "compatibility": "unknown",
+      "evidence_class": "unknown",
+      "evidence_reference": "unknown://shared-cell-compatibility/contract-assembly-flex",
+      "setup_minutes_per_changeover": null,
+      "changeovers_per_year": null,
+      "maximum_supplemental_cells": null,
+      "notes": [
+        "No compatibility study, cycle time, setup study or available-cell study exists.",
+        "This route must remain indeterminate and cannot consume base-factory capacity."
+      ]
+    },
+    {
+      "mapping_id": "pod-harness-modular-ckd-line",
+      "config_id": "detachable-uav-pod-synthetic-demo",
+      "template_id": "modular-ckd-line",
+      "module_process_id": "hv-lv-harness-and-charger",
+      "base_station_process_id": "battery-drive-install",
+      "compatibility": "synthetic_compatible",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic://shared-cell/pod-harness/modular-ckd-line",
+      "setup_minutes_per_changeover": 30,
+      "changeovers_per_year": 24,
+      "maximum_supplemental_cells": 64,
+      "notes": [
+        "Synthetic mapping tests arithmetic only.",
+        "Physical HV work, protection, isolation, charger calibration and EOL equivalence remain independently unqualified."
+      ]
+    },
+    {
+      "mapping_id": "amr-eol-modular-ckd-line",
+      "config_id": "amr-handoff-synthetic-demo",
+      "template_id": "modular-ckd-line",
+      "module_process_id": "amr-eol-test",
+      "base_station_process_id": "end-of-line-test",
+      "compatibility": "synthetic_compatible",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic://shared-cell/amr-eol/modular-ckd-line",
+      "setup_minutes_per_changeover": 45,
+      "changeovers_per_year": 36,
+      "maximum_supplemental_cells": 64,
+      "notes": [
+        "Synthetic mapping tests shared-station workload arithmetic only.",
+        "AMR navigation, braking, functional safety and product EOL acceptance require separate qualified tests."
+      ]
+    },
+    {
+      "mapping_id": "integrated-bay-hv-modular-ckd-line",
+      "config_id": "integrated-drone-bay-production-intent-unknown",
+      "template_id": "modular-ckd-line",
+      "module_process_id": "high-voltage-and-thermal-integration",
+      "base_station_process_id": "battery-drive-install",
+      "compatibility": "unknown",
+      "evidence_class": "unknown",
+      "evidence_reference": "unknown://shared-cell-compatibility/modular-ckd-line",
+      "setup_minutes_per_changeover": null,
+      "changeovers_per_year": null,
+      "maximum_supplemental_cells": null,
+      "notes": [
+        "No compatibility study, cycle time, setup study or available-cell study exists.",
+        "This route must remain indeterminate and cannot consume base-factory capacity."
+      ]
+    },
+    {
+      "mapping_id": "pod-harness-integrated-flexible-plant",
+      "config_id": "detachable-uav-pod-synthetic-demo",
+      "template_id": "integrated-flexible-plant",
+      "module_process_id": "hv-lv-harness-and-charger",
+      "base_station_process_id": "battery-drive-install",
+      "compatibility": "synthetic_compatible",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic://shared-cell/pod-harness/integrated-flexible-plant",
+      "setup_minutes_per_changeover": 30,
+      "changeovers_per_year": 24,
+      "maximum_supplemental_cells": 64,
+      "notes": [
+        "Synthetic mapping tests arithmetic only.",
+        "Physical HV work, protection, isolation, charger calibration and EOL equivalence remain independently unqualified."
+      ]
+    },
+    {
+      "mapping_id": "amr-eol-integrated-flexible-plant",
+      "config_id": "amr-handoff-synthetic-demo",
+      "template_id": "integrated-flexible-plant",
+      "module_process_id": "amr-eol-test",
+      "base_station_process_id": "end-of-line-test",
+      "compatibility": "synthetic_compatible",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic://shared-cell/amr-eol/integrated-flexible-plant",
+      "setup_minutes_per_changeover": 45,
+      "changeovers_per_year": 36,
+      "maximum_supplemental_cells": 64,
+      "notes": [
+        "Synthetic mapping tests shared-station workload arithmetic only.",
+        "AMR navigation, braking, functional safety and product EOL acceptance require separate qualified tests."
+      ]
+    },
+    {
+      "mapping_id": "integrated-bay-hv-integrated-flexible-plant",
+      "config_id": "integrated-drone-bay-production-intent-unknown",
+      "template_id": "integrated-flexible-plant",
+      "module_process_id": "high-voltage-and-thermal-integration",
+      "base_station_process_id": "battery-drive-install",
+      "compatibility": "unknown",
+      "evidence_class": "unknown",
+      "evidence_reference": "unknown://shared-cell-compatibility/integrated-flexible-plant",
+      "setup_minutes_per_changeover": null,
+      "changeovers_per_year": null,
+      "maximum_supplemental_cells": null,
+      "notes": [
+        "No compatibility study, cycle time, setup study or available-cell study exists.",
+        "This route must remain indeterminate and cannot consume base-factory capacity."
+      ]
+    }
+  ]
+}

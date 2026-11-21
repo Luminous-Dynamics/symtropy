@@ -35,6 +35,8 @@ jobs:
           jq empty tools/ev-passenger-cost-frontier/fixtures/ev_factory_design_v0_1.json
           jq empty tools/ev-passenger-cost-frontier/schemas/ev_carrier_module_processes_v0_1.schema.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/ev_carrier_module_processes_v0_1.json
+          jq empty tools/ev-passenger-cost-frontier/schemas/ev_carrier_shared_cell_mappings_v0_1.schema.json
+          jq empty tools/ev-passenger-cost-frontier/fixtures/ev_carrier_shared_cell_mappings_v0_1.json
           jq -e '
             .benchmark_id == "EV-PUBLIC-COMPONENT-BENCHMARKS-001"
             and .observed_as_of == "2026-10-20"
@@ -120,6 +122,24 @@ jobs:
             and all(.results[] | select(.config_id == "integrated-drone-bay-production-intent-unknown"); .status == "indeterminate" and .equivalent_good_vehicle_capacity_per_year == null)
             and all(.results[]; .base_factory_production_release_ready == false)
           ' ev-carrier-module-factory-report.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_carrier_shared_cell_screen -- \
+            ev-factory-design-report.json \
+            tools/ev-passenger-cost-frontier/fixtures/ev_carrier_module_processes_v0_1.json \
+            tools/ev-passenger-cost-frontier/fixtures/ev_carrier_shared_cell_mappings_v0_1.json \
+            > ev-carrier-shared-cell-report.json
+          jq -e '
+            .benchmark_id == "EV-CARRIER-SHARED-CELLS-001"
+            and .base_factory_benchmark_id == "EV-FACTORY-DESIGN-001"
+            and .module_factory_benchmark_id == "EV-CARRIER-MODULE-MFG-001"
+            and .scenario_count == 36
+            and .result_count == 108
+            and ([.results[].mapping_id] | unique | length == 9)
+            and all(.results[] | select(.compatibility == "synthetic_compatible"); .status == "passes_synthetic_screen")
+            and all(.results[] | select(.compatibility == "synthetic_compatible"); .shared_capacity_margin_minutes_per_year >= 0)
+            and all(.results[] | select(.compatibility == "synthetic_compatible"); .module_production_release_ready == false)
+            and all(.results[] | select(.config_id == "integrated-drone-bay-production-intent-unknown"); .status == "indeterminate")
+            and all(.results[]; .base_factory_production_release_ready == false)
+          ' ev-carrier-shared-cell-report.json
           sha256sum \
             tools/ev-passenger-cost-frontier/schemas/ev_passenger_cost_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/ev_passenger_cost_v0_1.json \
@@ -134,6 +154,10 @@ jobs:
             tools/ev-passenger-cost-frontier/src/carrier_module_factory.rs \
             tools/ev-passenger-cost-frontier/src/lib.rs \
             tools/ev-passenger-cost-frontier/src/bin/ev_carrier_module_factory_screen.rs \
+            tools/ev-passenger-cost-frontier/schemas/ev_carrier_shared_cell_mappings_v0_1.schema.json \
+            tools/ev-passenger-cost-frontier/fixtures/ev_carrier_shared_cell_mappings_v0_1.json \
+            tools/ev-passenger-cost-frontier/src/bin/ev_carrier_shared_cell_screen.rs \
+            ev-carrier-shared-cell-report.json \
             ev-passenger-cost-report.json ev-localization-cost-report.json ev-factory-design-report.json ev-carrier-module-factory-report.json > ev-passenger-cost-report.sha256
       - uses: actions/upload-artifact@v4
         with:
@@ -143,7 +167,10 @@ jobs:
             ev-localization-cost-report.json
             ev-factory-design-report.json
             ev-carrier-module-factory-report.json
+            ev-carrier-shared-cell-report.json
             tools/ev-passenger-cost-frontier/fixtures/ev_carrier_module_processes_v0_1.json
+            tools/ev-passenger-cost-frontier/fixtures/ev_carrier_shared_cell_mappings_v0_1.json
+            tools/ev-passenger-cost-frontier/schemas/ev_carrier_shared_cell_mappings_v0_1.schema.json
             tools/ev-passenger-cost-frontier/schemas/ev_carrier_module_processes_v0_1.schema.json
             ev-passenger-cost-report.sha256
           if-no-files-found: error
