@@ -288,7 +288,7 @@ impl EvaluationManifest {
 
         let mut trial_ids = BTreeSet::new();
         let mut task_ids = BTreeSet::new();
-        let mut expected_series: Option<BTreeSet<(SignalKind, String)>> = None;
+        let mut expected_series: Option<BTreeMap<(SignalKind, String), u64>> = None;
         for trial in &self.blind_holdout_trials {
             if trial.trial_id.trim().is_empty() {
                 return Err(FidelityError::EmptyTrialId);
@@ -311,10 +311,16 @@ impl EvaluationManifest {
                 return Err(FidelityError::EmptyTraceSet);
             }
 
-            let mut series_keys = BTreeSet::new();
+            let mut series_keys = BTreeMap::new();
             for trace in &trial.traces {
                 trace.validate()?;
-                if !series_keys.insert((trace.signal, trace.series_id.clone())) {
+                if series_keys
+                    .insert(
+                        (trace.signal, trace.series_id.clone()),
+                        trace.normalization_scale.to_bits(),
+                    )
+                    .is_some()
+                {
                     return Err(FidelityError::DuplicateSignalSeries);
                 }
             }
@@ -849,6 +855,27 @@ mod tests {
         assert_eq!(
             input.validate(),
             Err(FidelityError::InvalidSimulatorCommit)
+        );
+    }
+
+    #[test]
+    fn normalization_scale_is_frozen_for_each_channel_across_trials() {
+        let mut input = manifest();
+        input.blind_holdout_trials[3].traces[0].normalization_scale = 0.2;
+        assert_eq!(
+            input.validate(),
+            Err(FidelityError::InconsistentSignalSeries)
+        );
+    }
+
+    #[test]
+    fn repeated_recording_cannot_be_counted_as_an_independent_trial() {
+        let mut input = manifest();
+        input.blind_holdout_trials[1].source_recording_id =
+            input.blind_holdout_trials[0].source_recording_id.clone();
+        assert_eq!(
+            input.validate(),
+            Err(FidelityError::RecordingSplitLeakage)
         );
     }
 
