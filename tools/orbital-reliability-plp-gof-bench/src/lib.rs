@@ -10,6 +10,8 @@ const STATISTIC_ID: &str = "fitted-plp-uniform-order-statistics-cramer-von-mises
 const MIN_EVENTS: usize = 5;
 const MAX_EVENTS: usize = 10_000;
 const MIN_REPLICATES: usize = 999;
+const MIN_ALPHA: f64 = 0.01;
+const MAX_ALPHA: f64 = 0.10;
 const MAX_REPLICATES: usize = 100_000;
 const MAX_EXPOSURE_SECONDS: u64 = 9_007_199_254_740_991;
 const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
@@ -259,7 +261,7 @@ fn conditional_reference_cvm(count: usize, rng: &mut SplitMix64) -> Result<f64, 
     proportions.sort_by(|left, right| right.total_cmp(left));
     let fitted: Vec<f64> = proportions
         .iter()
-        .map(|proportion| (-count as f64 * proportion / total).exp())
+        .map(|proportion| (-((count as f64) * proportion / total)).exp())
         .collect();
     cramer_von_mises(&fitted)
 }
@@ -403,8 +405,8 @@ fn evaluate_case(case: &GofCase) -> Decision {
         };
     }
     if !(case.significance_level.is_finite()
-        && 0.0 < case.significance_level
-        && case.significance_level < 1.0)
+        && MIN_ALPHA <= case.significance_level
+        && case.significance_level <= MAX_ALPHA)
     {
         return Decision {
             disposition: Disposition::Rejected,
@@ -606,7 +608,7 @@ mod tests {
     #[test]
     fn cvm_known_value() {
         let statistic = cramer_von_mises(&[0.1, 0.5, 0.9]).expect("valid ordered values");
-        assert!((statistic - 0.045_555_555_555_555_56).abs() < 1.0e-14);
+        assert!((statistic - 0.036_666_666_666_666_67).abs() < 1.0e-14);
     }
 
     #[test]
