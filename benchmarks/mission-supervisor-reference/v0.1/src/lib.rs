@@ -50,29 +50,65 @@ impl Display for SupervisorError {
         match self {
             Self::InvalidMissionId => write!(formatter, "mission ID must not be empty"),
             Self::EmptyMission => write!(formatter, "mission must contain at least one subgoal"),
-            Self::InvalidConfidenceThreshold => write!(formatter, "confidence threshold must be in 0..=10000 basis points"),
+            Self::InvalidConfidenceThreshold => write!(
+                formatter,
+                "confidence threshold must be in 0..=10000 basis points"
+            ),
             Self::InvalidSubgoalId => write!(formatter, "subgoal ID must not be empty"),
             Self::DuplicateSubgoalId => write!(formatter, "subgoal IDs must be unique"),
             Self::UnknownDependency => write!(formatter, "subgoal dependency does not exist"),
-            Self::DependencyMustPrecedeSubgoal => write!(formatter, "dependencies must appear before dependent subgoals"),
-            Self::DuplicateDependency => write!(formatter, "dependency IDs must be unique per subgoal"),
+            Self::DependencyMustPrecedeSubgoal => write!(
+                formatter,
+                "dependencies must appear before dependent subgoals"
+            ),
+            Self::DuplicateDependency => {
+                write!(formatter, "dependency IDs must be unique per subgoal")
+            }
             Self::InvalidPredicateId => write!(formatter, "predicate ID must not be empty"),
-            Self::InvalidRecoveryPlanSet => write!(formatter, "recovery plan digests must be unique"),
+            Self::InvalidRecoveryPlanSet => {
+                write!(formatter, "recovery plan digests must be unique")
+            }
             Self::UnknownSubgoal => write!(formatter, "subgoal does not exist"),
-            Self::DependencyNotComplete => write!(formatter, "all declared dependencies must be complete before dispatch"),
-            Self::ActionAlreadyInFlight => write!(formatter, "another action has unresolved effects"),
-            Self::WrongActiveSubgoal => write!(formatter, "receipt does not refer to the active subgoal"),
-            Self::InvalidStateTransition => write!(formatter, "operation is invalid for the current subgoal state"),
+            Self::DependencyNotComplete => write!(
+                formatter,
+                "all declared dependencies must be complete before dispatch"
+            ),
+            Self::ActionAlreadyInFlight => {
+                write!(formatter, "another action has unresolved effects")
+            }
+            Self::WrongActiveSubgoal => {
+                write!(formatter, "receipt does not refer to the active subgoal")
+            }
+            Self::InvalidStateTransition => write!(
+                formatter,
+                "operation is invalid for the current subgoal state"
+            ),
             Self::ActionIdReused => write!(formatter, "action IDs must be unique within a mission"),
             Self::InvalidActionId => write!(formatter, "action ID must not be empty"),
-            Self::UntrustedObserver => write!(formatter, "agent self-reports cannot authorize state transitions"),
-            Self::InvalidConfidence => write!(formatter, "confidence must be in 0..=10000 basis points"),
+            Self::UntrustedObserver => write!(
+                formatter,
+                "agent self-reports cannot authorize state transitions"
+            ),
+            Self::InvalidConfidence => {
+                write!(formatter, "confidence must be in 0..=10000 basis points")
+            }
             Self::StaleSourceSequence => write!(formatter, "source sequence is stale or replayed"),
-            Self::SourceTimestampRegression => write!(formatter, "source observation timestamp regressed"),
-            Self::EventIdConflict => write!(formatter, "event ID was reused with a different digest; supervisor halted"),
+            Self::SourceTimestampRegression => {
+                write!(formatter, "source observation timestamp regressed")
+            }
+            Self::EventIdConflict => write!(
+                formatter,
+                "event ID was reused with a different digest; supervisor halted"
+            ),
             Self::Halted => write!(formatter, "supervisor is halted"),
-            Self::RecoveryPlanNotApproved => write!(formatter, "recovery plan digest is not pre-approved for this subgoal"),
-            Self::UnsafeRecoveryPermit => write!(formatter, "recovery permit does not prove a safe, sufficiently confident recovery"),
+            Self::RecoveryPlanNotApproved => write!(
+                formatter,
+                "recovery plan digest is not pre-approved for this subgoal"
+            ),
+            Self::UnsafeRecoveryPermit => write!(
+                formatter,
+                "recovery permit does not prove a safe, sufficiently confident recovery"
+            ),
         }
     }
 }
@@ -289,19 +325,49 @@ pub enum SubgoalPhase {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DecisionKind {
-    ActionIssued { action_id: String, attempt: u32 },
-    ExecutionAcknowledged { action_id: String },
-    ExecutionNoEffect { action_id: String },
-    ExecutionOutcomeUnknown { action_id: String },
-    GoalCompleted { event_id: String, evidence_digest: Digest },
-    GoalNotSatisfied { event_id: String },
-    EvidenceAmbiguous { event_id: String },
-    ReconciliationCompleted { event_id: String },
-    ReconciliationNoEffect { event_id: String },
-    ReconciliationPartialEffect { event_id: String },
-    ReconciliationUnknown { event_id: String },
-    RecoveryAuthorized { event_id: String, plan_digest: Digest, next_attempt: u32 },
-    EventIdentityConflict { event_id: String },
+    ActionIssued {
+        action_id: String,
+        attempt: u32,
+    },
+    ExecutionAcknowledged {
+        action_id: String,
+    },
+    ExecutionNoEffect {
+        action_id: String,
+    },
+    ExecutionOutcomeUnknown {
+        action_id: String,
+    },
+    GoalCompleted {
+        event_id: String,
+        evidence_digest: Digest,
+    },
+    GoalNotSatisfied {
+        event_id: String,
+    },
+    EvidenceAmbiguous {
+        event_id: String,
+    },
+    ReconciliationCompleted {
+        event_id: String,
+    },
+    ReconciliationNoEffect {
+        event_id: String,
+    },
+    ReconciliationPartialEffect {
+        event_id: String,
+    },
+    ReconciliationUnknown {
+        event_id: String,
+    },
+    RecoveryAuthorized {
+        event_id: String,
+        plan_digest: Digest,
+        next_attempt: u32,
+    },
+    EventIdentityConflict {
+        event_id: String,
+    },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -318,7 +384,10 @@ enum RuntimeState {
     AwaitingEvidence(ActionTicket),
     ReconciliationRequired(ActionTicket),
     RecoveryRequired(ActionTicket),
-    Complete { event_id: String, evidence_digest: Digest },
+    Complete {
+        event_id: String,
+        evidence_digest: Digest,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -394,7 +463,11 @@ impl MissionSupervisor {
             .states
             .get(subgoal_id)
             .ok_or(SupervisorError::UnknownSubgoal)?;
-        if self.active_subgoal.as_deref().is_some_and(|active| active != subgoal_id) {
+        if self
+            .active_subgoal
+            .as_deref()
+            .is_some_and(|active| active != subgoal_id)
+        {
             return Err(SupervisorError::ActionAlreadyInFlight);
         }
         if runtime.state != RuntimeState::Pending {
@@ -501,9 +574,7 @@ impl MissionSupervisor {
             ReceiptDisposition::Applied => {}
         }
 
-        if evidence.envelope.confidence_basis_points
-            < self.plan.min_confidence_basis_points
-        {
+        if evidence.envelope.confidence_basis_points < self.plan.min_confidence_basis_points {
             let ticket = self.current_ticket(&subgoal_id)?;
             self.states.get_mut(&subgoal_id).expect("present").state =
                 RuntimeState::ReconciliationRequired(ticket);
@@ -520,11 +591,10 @@ impl MissionSupervisor {
         let ticket = self.current_ticket(&subgoal_id)?;
         let kind = match evidence.verdict {
             GoalVerdict::Satisfied => {
-                self.states.get_mut(&subgoal_id).expect("present").state =
-                    RuntimeState::Complete {
-                        event_id: evidence.envelope.event_id.clone(),
-                        evidence_digest: evidence.envelope.content_digest,
-                    };
+                self.states.get_mut(&subgoal_id).expect("present").state = RuntimeState::Complete {
+                    event_id: evidence.envelope.event_id.clone(),
+                    evidence_digest: evidence.envelope.content_digest,
+                };
                 self.active_subgoal = None;
                 DecisionKind::GoalCompleted {
                     event_id: evidence.envelope.event_id,
@@ -576,9 +646,7 @@ impl MissionSupervisor {
             ReceiptDisposition::Duplicate => return Ok(ReceiptDisposition::Duplicate),
             ReceiptDisposition::Applied => {}
         }
-        if evidence.envelope.confidence_basis_points
-            < self.plan.min_confidence_basis_points
-        {
+        if evidence.envelope.confidence_basis_points < self.plan.min_confidence_basis_points {
             self.decisions.push(Decision {
                 mission_id: self.plan.mission_id.clone(),
                 subgoal_id,
@@ -592,11 +660,10 @@ impl MissionSupervisor {
         let ticket = self.current_ticket(&subgoal_id)?;
         let kind = match evidence.verdict {
             ReconciliationVerdict::GoalSatisfied => {
-                self.states.get_mut(&subgoal_id).expect("present").state =
-                    RuntimeState::Complete {
-                        event_id: evidence.envelope.event_id.clone(),
-                        evidence_digest: evidence.envelope.content_digest,
-                    };
+                self.states.get_mut(&subgoal_id).expect("present").state = RuntimeState::Complete {
+                    event_id: evidence.envelope.event_id.clone(),
+                    evidence_digest: evidence.envelope.content_digest,
+                };
                 self.active_subgoal = None;
                 DecisionKind::ReconciliationCompleted {
                     event_id: evidence.envelope.event_id,
@@ -616,11 +683,9 @@ impl MissionSupervisor {
                     event_id: evidence.envelope.event_id,
                 }
             }
-            ReconciliationVerdict::Unknown => {
-                DecisionKind::ReconciliationUnknown {
-                    event_id: evidence.envelope.event_id,
-                }
-            }
+            ReconciliationVerdict::Unknown => DecisionKind::ReconciliationUnknown {
+                event_id: evidence.envelope.event_id,
+            },
         };
         self.decisions.push(Decision {
             mission_id: self.plan.mission_id.clone(),
@@ -657,8 +722,7 @@ impl MissionSupervisor {
             ReceiptDisposition::Applied => {}
         }
         if !permit.safe_to_mutate
-            || permit.envelope.confidence_basis_points
-                < self.plan.min_confidence_basis_points
+            || permit.envelope.confidence_basis_points < self.plan.min_confidence_basis_points
         {
             return Err(SupervisorError::UnsafeRecoveryPermit);
         }
@@ -776,8 +840,7 @@ impl MissionSupervisor {
             return Err(SupervisorError::EventIdConflict);
         }
 
-        if let Some((last_sequence, last_timestamp)) =
-            self.source_cursors.get(&envelope.source_id)
+        if let Some((last_sequence, last_timestamp)) = self.source_cursors.get(&envelope.source_id)
         {
             if envelope.source_sequence <= *last_sequence {
                 return Err(SupervisorError::StaleSourceSequence);
@@ -893,10 +956,7 @@ mod tests {
     #[test]
     fn transport_acknowledgement_does_not_complete_goal() {
         let (supervisor, _) = started_supervisor();
-        assert_eq!(
-            supervisor.phase("pick"),
-            Ok(SubgoalPhase::AwaitingEvidence)
-        );
+        assert_eq!(supervisor.phase("pick"), Ok(SubgoalPhase::AwaitingEvidence));
         assert!(!supervisor.is_complete());
     }
 
@@ -909,10 +969,7 @@ mod tests {
             supervisor.observe_goal(evidence),
             Err(SupervisorError::UntrustedObserver)
         );
-        assert_eq!(
-            supervisor.phase("pick"),
-            Ok(SubgoalPhase::AwaitingEvidence)
-        );
+        assert_eq!(supervisor.phase("pick"), Ok(SubgoalPhase::AwaitingEvidence));
     }
 
     #[test]
@@ -937,7 +994,11 @@ mod tests {
             supervisor.phase("pick"),
             Ok(SubgoalPhase::ReconciliationRequired)
         );
-        assert!(supervisor.dispatch_action("place", "place-action-1").is_err());
+        assert!(
+            supervisor
+                .dispatch_action("place", "place-action-1")
+                .is_err()
+        );
     }
 
     #[test]
@@ -1084,10 +1145,7 @@ mod tests {
                 verdict: ReconciliationVerdict::NoEffect,
             })
             .expect("reconcile no effect");
-        assert_eq!(
-            supervisor.phase("pick"),
-            Ok(SubgoalPhase::RecoveryRequired)
-        );
+        assert_eq!(supervisor.phase("pick"), Ok(SubgoalPhase::RecoveryRequired));
         assert_eq!(
             supervisor.dispatch_action("pick", "pick-action-2"),
             Err(SupervisorError::InvalidStateTransition)
@@ -1137,10 +1195,7 @@ mod tests {
             supervisor.authorize_recovery(unsafe_permit),
             Err(SupervisorError::UnsafeRecoveryPermit)
         );
-        assert_eq!(
-            supervisor.phase("pick"),
-            Ok(SubgoalPhase::RecoveryRequired)
-        );
+        assert_eq!(supervisor.phase("pick"), Ok(SubgoalPhase::RecoveryRequired));
     }
 
     #[test]
@@ -1192,10 +1247,7 @@ mod tests {
                 verdict: GoalVerdict::NotSatisfied,
             })
             .expect("negative observation");
-        assert_eq!(
-            supervisor.phase("pick"),
-            Ok(SubgoalPhase::RecoveryRequired)
-        );
+        assert_eq!(supervisor.phase("pick"), Ok(SubgoalPhase::RecoveryRequired));
         assert!(supervisor.dispatch_action("pick", "pick-action-2").is_err());
     }
 
