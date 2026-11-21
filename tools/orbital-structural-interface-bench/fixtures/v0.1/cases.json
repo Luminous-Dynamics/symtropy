@@ -189,6 +189,7 @@
       "expected": {
         "disposition": "malformed_or_stale",
         "reasons": [
+          "EVIDENCE_SCOPE_MISMATCH",
           "ICD_IDENTITY_MISMATCH"
         ]
       }
@@ -716,7 +717,8 @@
       "expected": {
         "disposition": "malformed_or_stale",
         "reasons": [
-          "CONFIGURATION_IDENTITY_MISMATCH"
+          "CONFIGURATION_IDENTITY_MISMATCH",
+          "EVIDENCE_SCOPE_MISMATCH"
         ]
       }
     },
