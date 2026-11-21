@@ -364,7 +364,11 @@ fn add_residual_edge(
     forward_index
 }
 
-fn augment_min_cost_matching(graph: &mut [Vec<ResidualEdge>], source: usize, sink: usize) -> Result<(), String> {
+fn augment_min_cost_matching(
+    graph: &mut [Vec<ResidualEdge>],
+    source: usize,
+    sink: usize,
+) -> Result<(), String> {
     let node_count = graph.len();
 
     loop {
