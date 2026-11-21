@@ -45,15 +45,17 @@ The module also includes Simpson's three-point rule for comparison.
 
 ## 3. Exactness and adversarial fixtures
 
-The authored tests include:
+The ten authored tests include:
 1. Four-point Gauss–Legendre exactly integrating quadratic drag-rate and quadratic drift, including degree-six heating.
 2. A Gauss–Legendre two-point case where impulse passes but heating fails.
 3. A degree-six heating case that fails three-point Gauss–Legendre and passes four-point Gauss–Legendre.
 4. A low-degree case exactly integrated by Simpson's rule.
-5. A drag-rate polynomial that is positive at both endpoints but negative inside the interval, which must be rejected.
-6. Non-finite polynomial coefficient rejection.
-7. Invalid tolerance rejection.
-8. Offline reference self-check.
+5. Every supported rule reproduces all monomial moments through its declared algebraic exactness degree.
+6. Every supported rule fails its first higher even monomial moment.
+7. A drag-rate polynomial that is positive at both endpoints but negative inside the interval, which must be rejected.
+8. Non-finite polynomial coefficient rejection.
+9. Invalid tolerance rejection.
+10. Offline reference self-check.
 
 These are authored Rust tests, not executed Rust tests.
 
