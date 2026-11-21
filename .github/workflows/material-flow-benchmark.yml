@@ -65,6 +65,8 @@ jobs:
           grep -q '"dispatch_commands_emitted": false' mfb-l1-evidence/shared-aircraft-report.json
           grep -q '"unauthorized_aerial_dispatches": 0' mfb-l1-evidence/shared-aircraft-report.json
           grep -q '"protected_reserve_violations": 0' mfb-l1-evidence/shared-aircraft-report.json
+          grep -q '"probability_basis": "synthetic_fixture"' mfb-l1-evidence/shared-aircraft-report.json
+          grep -q 'not calibrated event probabilities' mfb-l1-evidence/shared-aircraft-report.json
           jq -e '
             .optimized_policy.expected_total_cost_units == 1511
             and .fixed_initial_region_baseline.expected_total_cost_units == 1576
@@ -81,6 +83,8 @@ jobs:
           cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-evaluate-shared-fleet -- tools/material-flow-benchmark/fixtures/synthetic-two-region-shared-aircraft-tail-risk.json > mfb-l1-evidence/shared-aircraft-tail-risk-report.json
           jq -e '
             .scenario_count == 2
+            and .probability_basis == "synthetic_fixture"
+            and (.risk_claim_ceiling | contains("not calibrated event probabilities"))
             and .nonanticipative_policy_node_count == 5
             and .exact_policy_count_evaluated == 243
             and .optimized_policy.expected_total_cost_units == 524
