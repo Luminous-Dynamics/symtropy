@@ -114,10 +114,11 @@ This is a generic forward operator only. It does not model scintillator light pr
 
 - `poisson_fisher_information` builds local Fisher information for conditionally independent Poisson channels from caller-supplied expected counts and Jacobians.
 - `combine_fisher_information` adds independent run contributions; `identifiability_summary` reports eigenvalues, effective rank, log determinant and condition number using a symmetric Jacobi eigensolver.
-- `DetectorResponseEnsemble` propagates equally weighted response-matrix calibration realizations into predictive mean counts and total covariance using the law of total covariance.
+- `DetectorResponseEnsemble` propagates equally weighted response-matrix calibration realizations into predictive mean counts and total covariance using the law of total covariance;
+- `DetectorResponseEnsemble::log_predictive_probability` evaluates observed integer counts under a finite equal-weight mixture of conditional Poisson likelihoods using log-sum-exp.
 - Synthetic fixtures: `research/cmni/fixtures/identifiability-design-synthetic.json`, `research/cmni/fixtures/poisson-model-discrimination-synthetic.json` and `research/cmni/fixtures/detector-response-ensemble-uncertainty-synthetic.json`.
-- Eight local-identifiability tests, six discrete Poisson-KL model-discrimination tests and six response-ensemble tests have been authored. The total is now **84 authored Rust tests** (37 root, 12 detector, 7 measurement, 8 material-state, 14 experiment-design, 6 response-uncertainty). They have not been executed; no Cargo test or CI pass is claimed.
-- The Poisson Fisher helper assumes fixed response and conditionally independent Poisson bins. It does not, by itself, account for the cross-bin covariance from uncertain response matrices. The ensemble-moment helper is a forward covariance primitive, not a hierarchical likelihood or an unfolding algorithm.
+- Eight local-identifiability tests, six discrete Poisson-KL model-discrimination tests and eleven response-uncertainty tests have been authored. The total is now **89 authored Rust tests** (37 root, 12 detector, 7 measurement, 8 material-state, 14 experiment-design, 11 response-uncertainty). They have not been executed; no Cargo test or CI pass is claimed.
+- The Poisson Fisher helper assumes fixed response and conditionally independent Poisson bins. It does not, by itself, account for the cross-bin covariance from uncertain response matrices. The response-ensemble log score uses equal fixed weights and fixed background; it is not a general nuisance-aware hierarchical likelihood or an unfolding algorithm.
 - Neither module proves global identifiability, distinguishes all competing physical mechanisms, nor provides experimental evidence.
 
 See [IDENTIFIABILITY_AND_DESIGN.md](../../../docs/research/cmni/IDENTIFIABILITY_AND_DESIGN.md) for the proposed design architecture, SOTA comparison and benchmark ladder.
