@@ -1,0 +1,101 @@
+# CMNI detector observation model: 2025 EJ-309 neutron chain
+
+**Status:** source-grounded forward-model specification, v0  
+**Tracking:** https://github.com/Luminous-Dynamics/symtropy/issues/6486
+
+## 1. Purpose
+
+Reaction yield is not measured detector counts. The 2025 Thunderbird neutron measurement chain includes scintillator response, photomultiplier gain, digitization, pulse-shape discrimination, light-output threshold, pileup rejection, magnetic shielding, calibration, Monte Carlo response and spectrum unfolding.
+
+A digital twin that starts at "neutrons per second" and skips this chain cannot independently test instrumental alternatives.
+
+## 2. Source-reported apparatus
+
+From Chen et al. (2025) and Supplementary Note 5:
+- One EJ-309 liquid-scintillator detector is described for the Thunderbird apparatus.
+- Cylindrical detector: 12.7 cm diameter × 12.7 cm length.
+- Hamamatsu R1250 photomultiplier tube.
+- CAEN DT5730S waveform digitizer, 14 bit / 500 MHz, DPP-PSD firmware.
+- Detector about 12 cm from the Pd target, outside the vacuum chamber.
+- Mu-metal magnetic shielding reduces the PMT magnetic field from about 40 G to below 0.3 G at detector front.
+
+These are source-specific facts, not general detector-design recommendations.
+
+## 3. PSD and event-selection model
+
+The published PSD feature is tail-gate integral divided by total-gate integral. Supplementary Information describes:
+- Light-output slices 5 keVee wide.
+- Gaussian fit to gamma PSD distribution in each slice, giving `mu_gamma` and `sigma_gamma`.
+- Lower neutron-window boundary: `mu_gamma + 5*sigma_gamma`.
+- Upper boundary: lower boundary + 0.2 PSD units.
+- Lower light-output threshold: 50 keVee.
+- Pileup rejection configured to keep pileup contribution below 2% of total neutron count rate.
+
+The PSD window and light-output threshold must be represented independently. `mu_gamma` and `sigma_gamma` are calibration/source data, not guessed constants. Gate values can vary with light-output slice and acquisition campaign.
+
+The article reports >99.9999% gamma rejection under the stated method. This is not a universal detector guarantee, a false-positive bound for another setup, or independent multi-detector confirmation.
+
+## 4. Calibration and response
+
+The SI reports:
+- Light-output calibration using 60Co, 137Cs and 152Eu gamma sources.
+- Neutron response modelling with MCNP6.2 and DRiFT.
+- Comparison with Geant4 response simulation.
+- A 2.45 MeV D-D neutron source model with 0.5 MeV standard deviation, positioned 0.12 m from detector, with detector-resolution function.
+- 10^7 simulated neutrons; adequate Monte Carlo statistics reported up to 1000 keVee, with few experimental counts beyond.
+- Spectrum unfolding using a Geant4 detector response matrix and GRAVEL.
+
+The reported simulated/observed response agreement is strongest over 200–1000 keVee. The discrepancy below 200 keVee is attributed to the 50-keVee acquisition cutoff truncating part of the response. Preserve these limits rather than extrapolating calibration validity beyond the measured range.
+
+## 5. Observation graph
+
+`D-D reaction products → transport/geometry → scintillator energy deposition → optical/PMT response → digitizer waveform → PSD and threshold → accepted counts → efficiency/background correction → spectrum unfolding`
+
+Track independently:
+- emitted reaction-product spectrum;
+- detector-intercepting flux;
+- scintillator interaction and light output;
+- digitized pulses;
+- PSD-accepted counts;
+- efficiency-corrected inferred rate;
+- unfolded source spectrum.
+
+Required uncertainty includes source spectrum, geometry, efficiency, resolution, PMT gain, magnetic field, calibration, digitizer baseline/saturation, PSD gate, pileup, threshold, live/dead time, background and unfolding regularization.
+
+## 6. Blinded diagnostics challenge
+
+Build synthetic waveforms/spectra with known truth:
+- neutron-only, gamma-only and mixed neutron/gamma samples;
+- gain and baseline drift;
+- PSD distribution shift/broadening;
+- threshold changes and low-energy censoring;
+- pulse pileup, saturation and missing samples;
+- background changes and correlated noise;
+- detector-distance/solid-angle changes;
+- response-matrix mismatch and unfolding instability.
+
+Report sensitivity, specificity, gamma-only false neutron rate, confidence intervals, energy-dependent acceptance and spectrum reconstruction error. Gamma-only null datasets are essential negative controls.
+
+## 7. Independent validation gates
+
+1. Reproduce the stated PSD selection and calibration from source metadata.
+2. Recover MCNP6.2/DRiFT and Geant4 response comparisons when source code/inputs are accessible.
+3. Quantify response-matrix mismatch, Monte Carlo statistics and GRAVEL regularization.
+4. Test on held-out calibration sources and blinded spectra.
+5. For new physical experiments, use a second independently calibrated detector or a different neutron-detection modality.
+6. Preserve background intervals and control runs as immutable source artifacts.
+
+The published apparatus describes one EJ-309 detector. Do not call its response simulation a second detector or independent replication.
+
+## 8. Source limits
+
+- The 14.7 GB Zenodo archive has not been inspected. Do not assume it contains raw waveforms until its manifest is verified.
+- The paper says supporting measurements are in the paper/SI; availability of complete raw waveform time series still requires archive inspection.
+- Gamma-rejection performance is a reported source result; our challenge must test it rather than assume it.
+- This observation model concerns accelerator-driven D-D neutron measurements, not room-temperature accelerator-free LENR or net energy.
+
+## 9. References
+
+- Chen et al. (2025): https://doi.org/10.1038/s41586-025-09042-7
+- Supplementary Information: https://assets-eu.researchsquare.com/files/rs-5046357/v1/267adeeb10150099b6fa9938.pdf
+- Zenodo source/CAD archive record: https://zenodo.org/records/14752388
