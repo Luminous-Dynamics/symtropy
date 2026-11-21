@@ -606,7 +606,11 @@ mod tests {
             inertia,
         )
         .unwrap();
-        assert!(vec_close(&conserved_world_momentum, &initial_momentum, 1.0e-14));
+        assert!(vec_close(
+            &conserved_world_momentum,
+            &initial_momentum,
+            1.0e-14
+        ));
         assert!(vec_close(&final_momentum, &initial_momentum, 2.0e-9));
         assert!(rotation.is_proper_rotation(1.0e-9));
     }
