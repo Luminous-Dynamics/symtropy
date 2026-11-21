@@ -1,0 +1,53 @@
+name: AV Active Sensing Multi-Round Executor
+
+on:
+  push:
+    branches:
+      - research/av-active-sensing-multiround-v0
+    paths:
+      - "research/av-active-sensing-multiround-v0/**"
+      - ".github/workflows/av-active-sensing-multiround.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/av-active-sensing-multiround-v0/**"
+      - ".github/workflows/av-active-sensing-multiround.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: av-active-sensing-multiround-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  QUALIFIED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  rust-executor:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-14, windows-2025]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Assert exact checkout
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "$QUALIFIED_SHA"
+      - name: Install stable Rust with format and lint tools
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Format check
+        run: cargo fmt --manifest-path research/av-active-sensing-multiround-v0/Cargo.toml --all -- --check
+      - name: Test exact locked dependency graph
+        run: cargo test --manifest-path research/av-active-sensing-multiround-v0/Cargo.toml --locked
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path research/av-active-sensing-multiround-v0/Cargo.toml --locked --all-targets -- -D warnings
