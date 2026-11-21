@@ -778,7 +778,10 @@ mod tests {
         extra.to_party = "OTHER_CARRIER".to_string();
         events.push(extra);
         let report = evaluate(&expectations, &events, 200).unwrap();
-        assert_eq!(report.failure_counts.get(&ChainFailure::OverlappingRelease), Some(&1));
+        assert_eq!(
+            report.failure_counts.get(&ChainFailure::OverlappingRelease),
+            Some(&1)
+        );
     }
 
     #[test]
@@ -786,9 +789,12 @@ mod tests {
         let (expectations, mut events) = fixtures();
         event_mut(&mut events, "B1-A1").event_time = 15;
         let report = evaluate(&expectations, &events, 200).unwrap();
-        assert_eq!(report
+        assert_eq!(
+            report
                 .failure_counts
-                .get(&ChainFailure::UnmatchedAcceptance), Some(&1));
+                .get(&ChainFailure::UnmatchedAcceptance),
+            Some(&1)
+        );
     }
 
     #[test]
@@ -856,7 +862,9 @@ mod tests {
         event_mut(&mut events, "B1-OPEN").evidence_kind = EvidenceKind::ProviderEvent;
         let report = evaluate(&expectations, &events, 200).unwrap();
         assert_eq!(
-            report.failure_counts.get(&ChainFailure::OpeningNotIndependent),
+            report
+                .failure_counts
+                .get(&ChainFailure::OpeningNotIndependent),
             Some(&1)
         );
         assert_eq!(report.complete_chains(), 0);
@@ -898,7 +906,12 @@ mod tests {
         events.push(void_revision);
         let report = evaluate(&expectations, &events, 200).unwrap();
         assert_eq!(report.voided_event_rows, 1);
-        assert_eq!(report.failure_counts.get(&ChainFailure::UnmatchedAcceptance), Some(&1));
+        assert_eq!(
+            report
+                .failure_counts
+                .get(&ChainFailure::UnmatchedAcceptance),
+            Some(&1)
+        );
     }
 
     #[test]
@@ -932,7 +945,9 @@ mod tests {
         event_mut(&mut events, "B1-A1").quantity = 2;
         let report = evaluate(&expectations, &events, 200).unwrap();
         assert_eq!(
-            report.failure_counts.get(&ChainFailure::HandoffFieldMismatch(HandoffField::Quantity)),
+            report
+                .failure_counts
+                .get(&ChainFailure::HandoffFieldMismatch(HandoffField::Quantity)),
             Some(&1)
         );
     }
@@ -943,7 +958,9 @@ mod tests {
         event_mut(&mut events, "B1-A1").unit = "PALLET".to_string();
         let report = evaluate(&expectations, &events, 200).unwrap();
         assert_eq!(
-            report.failure_counts.get(&ChainFailure::HandoffFieldMismatch(HandoffField::Unit)),
+            report
+                .failure_counts
+                .get(&ChainFailure::HandoffFieldMismatch(HandoffField::Unit)),
             Some(&1)
         );
     }
