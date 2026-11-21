@@ -31,6 +31,7 @@ All other states hold the mutation gate. There can be only one unresolved mutati
 
 Each receipt binds:
 - unique event ID and 32-byte canonical content digest;
+- exact active action ID and attempt number for goal evidence, reconciliation evidence and recovery permits;
 - source ID and monotonically increasing source sequence;
 - observation timestamp;
 - observer role (agent self-report is rejected);
@@ -39,7 +40,7 @@ Each receipt binds:
 
 The caller must authenticate the source and canonicalize/hash the receipt before passing it to the supervisor. This reference checks replay ordering and event identity but does not cryptographically authenticate devices or observers. A fixed-size digest type is an integrity handle, not a signature.
 
-Identical duplicate event IDs with the same digest are idempotent. Reuse of an event ID with a different digest halts the supervisor. A source sequence or timestamp regression is rejected.
+Identical duplicate event IDs with the same digest are idempotent. Reuse of an event ID with a different digest halts the supervisor. A source sequence or timestamp regression is rejected. A delayed receipt or recovery permit from a prior action attempt is rejected even when it refers to the same mission, subgoal and predicate; the active action identity and attempt must match exactly.
 
 ## Plan constraints
 
@@ -51,7 +52,7 @@ The decision log is append-only and contains only mission/subgoal identifiers, s
 
 ## Tests
 
-16+ tests exercise dependency order, action acknowledgement vs evidence, independent observer enforcement, predicate binding, low confidence, event idempotency/conflict, stale sequence handling, ambiguous execution hold, reconciliation, explicit safe recovery, attempt identity and deterministic decision replay. The dedicated workflow runs formatting, tests and Clippy with warnings denied.
+20+ tests exercise dependency order, action acknowledgement vs evidence, independent observer enforcement, predicate binding, low confidence, event idempotency/conflict, stale sequence handling, ambiguous execution hold, reconciliation, explicit safe recovery, exact action/attempt binding for goal evidence, reconciliation and recovery permits, and deterministic decision replay. The dedicated workflow runs formatting, tests and Clippy with warnings denied.
 
 ## Integration path
 
