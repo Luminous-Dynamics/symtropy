@@ -57,13 +57,20 @@ jobs:
           set -euo pipefail
           actual_commit="$(git rev-parse HEAD)"
           test "$actual_commit" = "$BENCHMARK_COMMIT"
+          set +e
           cargo run --locked --quiet --manifest-path tools/orbital-assurance-bundle-bench/Cargo.toml -- \
             tools/orbital-assurance-bundle-bench/fixtures/v0.1/assurance-cases.json \
             --source-commit "$actual_commit" > orbital-assurance-bundle-receipt.json
+          replay_status=$?
+          set -e
           echo "Assurance receipt summary:"
           jq '.report.summary' orbital-assurance-bundle-receipt.json
           echo "Cases whose computed result differs from frozen expectation:"
           jq -r '.report.cases[] | select(.expected_result_matched == false) | [.case_id, .disposition, .blocker_count, (.blockers | map(.code + ":" + (.claim_id // "-") + ":" + .detail) | join(";"))] | @tsv' orbital-assurance-bundle-receipt.json
+          if [ "$replay_status" -ne 0 ]; then
+            echo "Corpus replay returned $replay_status; refusing to treat mismatches as success."
+            exit "$replay_status"
+          fi
           jq -e --arg expected_commit "$BENCHMARK_COMMIT" '
             .receipt_schema == "luminous.orbital-assurance-bundle.receipt.v0.1"
             and .source_commit == $expected_commit
