@@ -67,7 +67,14 @@
     "association_qif_document_sha256",
     "association_part_id",
     "association_lot_id",
-    "association_operation_id"
+    "association_operation_id",
+    "measurement_evidence_class",
+    "calibration_disposition",
+    "calibration_reference_id",
+    "calibration_reference_sha256",
+    "uncertainty_disposition",
+    "uncertainty_reference_id",
+    "uncertainty_reference_sha256"
   ],
   "properties": {
     "projection_schema_version": {
@@ -318,6 +325,111 @@
     "association_operation_id": {
       "type": "string",
       "minLength": 1
+    },
+    "measurement_evidence_class": {
+      "enum": [
+        "synthetic",
+        "recorded",
+        "physical_observation"
+      ]
+    },
+    "calibration_disposition": {
+      "enum": [
+        "not_applicable",
+        "qualified_reference",
+        "missing",
+        "stale",
+        "unknown",
+        "unsupported"
+      ]
+    },
+    "calibration_reference_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "calibration_reference_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "uncertainty_disposition": {
+      "enum": [
+        "not_applicable",
+        "qualified_reference",
+        "missing",
+        "stale",
+        "unknown",
+        "unsupported"
+      ]
+    },
+    "uncertainty_reference_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "uncertainty_reference_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-fA-F0-9]{64}$"
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "calibration_disposition": {
+            "const": "qualified_reference"
+          }
+        },
+        "required": [
+          "calibration_disposition"
+        ]
+      },
+      "then": {
+        "properties": {
+          "calibration_reference_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "calibration_reference_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "uncertainty_disposition": {
+            "const": "qualified_reference"
+          }
+        },
+        "required": [
+          "uncertainty_disposition"
+        ]
+      },
+      "then": {
+        "properties": {
+          "uncertainty_reference_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uncertainty_reference_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          }
+        }
+      }
+    }
+  ]
 }
