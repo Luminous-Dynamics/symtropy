@@ -141,6 +141,42 @@
           "reference_uri": {
             "type": "string",
             "format": "uri"
+          },
+          "namespace_metadata": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "namespace_uri",
+              "namespace_version",
+              "namespace_publication_date",
+              "nodeset_uri",
+              "nodeset_scope"
+            ],
+            "properties": {
+              "namespace_uri": {
+                "type": "string",
+                "format": "uri"
+              },
+              "namespace_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "namespace_publication_date": {
+                "type": "string",
+                "format": "date"
+              },
+              "nodeset_uri": {
+                "type": "string",
+                "format": "uri"
+              },
+              "nodeset_scope": {
+                "enum": [
+                  "complete_namespace",
+                  "declared_subset",
+                  "not_admitted"
+                ]
+              }
+            }
           }
         }
       }
