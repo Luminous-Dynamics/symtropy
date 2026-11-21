@@ -1,0 +1,51 @@
+# GAUGE slope identifiability and experiment design v0.1
+
+**Parent:** [GAUGE rigid-body qualification #6446](https://github.com/Luminous-Dynamics/symtropy/issues/6446)  
+**Domain child:** [#6584](https://github.com/Luminous-Dynamics/symtropy/issues/6584)  
+**Generic calibration owner:** [#3784](https://github.com/Luminous-Dynamics/symtropy/issues/3784)
+
+## Why this is a separate benchmark slice
+
+A simulator can match one measured trajectory while its fitted physical parameters remain non-identifiable. This fixture isolates one such ambiguity: sliding friction versus incline-angle registration bias.
+
+It does not implement a second calibration engine. It contributes one GAUGE-specific analytic model and equal-budget excitation comparison to the generic sensitivity/Fisher/SVD/experiment-design work owned by #3784.
+
+## Analytic model
+
+For an ideal rigid block sliding down a fixed incline with Coulomb friction:
+
+`a = g (sin(phi) - mu cos(phi))`, `phi = theta + delta`
+
+where `mu` is friction coefficient and `delta` is an unknown angle-registration bias.
+
+The local physical sensitivity is:
+
+`da/dmu = -g cos(phi)`
+
+`da/ddelta = g (cos(phi) + mu sin(phi))`
+
+A single angle produces one sensitivity direction for two unknowns. Repeating that angle adds information in the same direction but cannot raise the local Jacobian rank above one. Distinct inclinations can make the local information full rank.
+
+## Implemented reference
+
+- Explicit characteristic scales for friction and angle-bias coordinates.
+- Local scaled Jacobian for each candidate excitation.
+- Fisher information for independent acceleration measurements with declared standard deviations.
+- Eigenvalues, singular values, effective rank, condition number and D-optimal log determinant.
+- Exhaustive D-optimal two-trial selection from a declared candidate set, with deterministic tie handling.
+- Rank-one and near-duplicate-angle negative controls.
+- Equal-budget comparison: every candidate pair contains exactly two trials.
+
+## Synthetic example
+
+The analytical fixture uses `mu=0.25`, `delta=0.02 rad`, `g=9.81 m/s^2`, and acceleration standard deviation `0.05 m/s^2`.
+
+Twelve repeated measurements at 30 degrees remain rank one. A two-trial design at 5 and 75 degrees becomes locally full rank and has a much better-conditioned information matrix. These values are deterministic analytic outputs, not GAUGE physical results.
+
+## Important limitations
+
+- The ideal Coulomb block model omits compliance, contact transients, velocity-dependent friction, rolling, surface variability and solver effects.
+- Fisher information is a local-linear diagnostic under an independent Gaussian observation-noise model. It is not a posterior, global-identifiability proof or confidence interval.
+- Parameter scale choices affect condition numbers and are explicit in every model input.
+- The public GAUGE slope-slider metadata contains orientation declarations, but the trial data's Euler units/frame semantics still need source verification. The synthetic angle values here are **not** inferred from those records.
+- Real-data use requires source admission, actual geometry/units, measurement uncertainty and blind recording-level holdouts. No raw data is imported or score reproduced.
