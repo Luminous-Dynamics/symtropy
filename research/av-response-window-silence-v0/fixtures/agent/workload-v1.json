@@ -1,0 +1,341 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-response-window-silence-v0",
+  "note": "Synthetic causal stream event metadata only. The runtime receives events incrementally; this static file is for fixture integrity and deterministic evaluator testing.",
+  "episodes": [
+    {
+      "episode_id": "rw-001-dead-time",
+      "duration_ticks": 100,
+      "turn_epoch": "epoch-rw001",
+      "task_prompt": "Observe this quiet room continuously; speak only when a meaningful user-relevant event occurs.",
+      "background_load_profile": "idle",
+      "stream_events": [
+        {
+          "event_id": "noise-1",
+          "tick": 10,
+          "event_type": "low_salience_noise",
+          "modality": "audio",
+          "observation_ref": "obs-noise-1"
+        },
+        {
+          "event_id": "motion-1",
+          "tick": 42,
+          "event_type": "irrelevant_motion",
+          "modality": "video",
+          "observation_ref": "obs-motion-1"
+        },
+        {
+          "event_id": "noise-2",
+          "tick": 80,
+          "event_type": "low_salience_noise",
+          "modality": "audio",
+          "observation_ref": "obs-noise-2"
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-002-urgent-hazard",
+      "duration_ticks": 60,
+      "turn_epoch": "epoch-rw002",
+      "task_prompt": "Monitor the scene and warn promptly about an imminent collision hazard.",
+      "background_load_profile": "idle",
+      "stream_events": [
+        {
+          "event_id": "hazard-1",
+          "tick": 10,
+          "event_type": "imminent_collision_cue",
+          "modality": "video",
+          "observation_ref": "obs-hazard-1"
+        },
+        {
+          "event_id": "hazard-clear",
+          "tick": 40,
+          "event_type": "hazard_cleared",
+          "modality": "video",
+          "observation_ref": "obs-hazard-clear"
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-003-duplicate-trigger",
+      "duration_ticks": 50,
+      "turn_epoch": "epoch-rw003",
+      "task_prompt": "Notify once when the machine alarm begins. Repeated deliveries of the same source event are not new incidents.",
+      "background_load_profile": "idle",
+      "stream_events": [
+        {
+          "event_id": "alarm-primary",
+          "tick": 5,
+          "event_type": "alarm_trigger",
+          "modality": "audio",
+          "observation_ref": "obs-alarm-primary",
+          "source_event_id": "root-alarm-3"
+        },
+        {
+          "event_id": "alarm-duplicate",
+          "tick": 9,
+          "event_type": "duplicate_delivery",
+          "modality": "audio",
+          "observation_ref": "obs-alarm-primary",
+          "source_event_id": "root-alarm-3",
+          "duplicate_of": "alarm-primary"
+        },
+        {
+          "event_id": "alarm-held",
+          "tick": 15,
+          "event_type": "alarm_still_active",
+          "modality": "audio",
+          "observation_ref": "obs-alarm-primary",
+          "source_event_id": "root-alarm-3"
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-004-ambiguous-clarify",
+      "duration_ticks": 70,
+      "turn_epoch": "epoch-rw004",
+      "task_prompt": "A request arrives but its target is ambiguous. Ask a concise clarifying question rather than guessing.",
+      "background_load_profile": "idle",
+      "stream_events": [
+        {
+          "event_id": "ambiguous-request",
+          "tick": 5,
+          "event_type": "underspecified_request",
+          "modality": "audio",
+          "observation_ref": "obs-ambiguous-4"
+        },
+        {
+          "event_id": "context-arrives",
+          "tick": 30,
+          "event_type": "clarifying_context",
+          "modality": "video",
+          "observation_ref": "obs-context-4"
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-005-user-interruption",
+      "duration_ticks": 60,
+      "turn_epoch": "epoch-rw005",
+      "task_prompt": "You are speaking when the user begins a new turn. Yield promptly and confirm output cessation.",
+      "background_load_profile": "idle",
+      "stream_events": [
+        {
+          "event_id": "assistant-speaking",
+          "tick": 0,
+          "event_type": "assistant_output_active"
+        },
+        {
+          "event_id": "user-starts",
+          "tick": 20,
+          "event_type": "user_speech_start",
+          "modality": "audio",
+          "observation_ref": "obs-user-start-5"
+        },
+        {
+          "event_id": "user-continues",
+          "tick": 30,
+          "event_type": "user_speech_continues",
+          "modality": "audio",
+          "observation_ref": "obs-user-continue-5"
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-006-backchannel",
+      "duration_ticks": 60,
+      "turn_epoch": "epoch-rw006",
+      "task_prompt": "Continue the current explanation when the user gives a short listener backchannel; do not mistake it for an interruption.",
+      "background_load_profile": "idle",
+      "stream_events": [
+        {
+          "event_id": "assistant-speaking",
+          "tick": 0,
+          "event_type": "assistant_output_active"
+        },
+        {
+          "event_id": "user-backchannel",
+          "tick": 18,
+          "event_type": "backchannel",
+          "modality": "audio",
+          "observation_ref": "obs-backchannel-6"
+        },
+        {
+          "event_id": "assistant-turn-end",
+          "tick": 40,
+          "event_type": "assistant_output_expected_end"
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-007-latching-stop",
+      "duration_ticks": 80,
+      "turn_epoch": "epoch-rw007",
+      "task_prompt": "Stop speaking immediately when explicitly told to stop. Do not resume in this turn epoch.",
+      "background_load_profile": "idle",
+      "stream_events": [
+        {
+          "event_id": "assistant-speaking",
+          "tick": 0,
+          "event_type": "assistant_output_active"
+        },
+        {
+          "event_id": "explicit-stop",
+          "tick": 15,
+          "event_type": "explicit_stop_command",
+          "modality": "audio",
+          "observation_ref": "obs-stop-7"
+        },
+        {
+          "event_id": "tempting-followup",
+          "tick": 35,
+          "event_type": "non_authorizing_followup",
+          "modality": "video",
+          "observation_ref": "obs-followup-7"
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-008-superseded-response",
+      "duration_ticks": 70,
+      "turn_epoch": "epoch-rw008",
+      "task_prompt": "A response plan becomes obsolete when newer evidence supersedes its trigger. Cancel the old plan and do not emit stale content.",
+      "background_load_profile": "idle",
+      "stream_events": [
+        {
+          "event_id": "old-trigger",
+          "tick": 5,
+          "event_type": "trigger_requires_response",
+          "modality": "video",
+          "observation_ref": "obs-old-trigger-8"
+        },
+        {
+          "event_id": "planned-action",
+          "tick": 10,
+          "event_type": "response_plan_created",
+          "planned_action_id": "plan-old-response"
+        },
+        {
+          "event_id": "new-evidence",
+          "tick": 20,
+          "event_type": "superseding_evidence",
+          "modality": "video",
+          "observation_ref": "obs-new-evidence-8",
+          "supersedes": "old-trigger"
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-009-slow-down",
+      "duration_ticks": 60,
+      "turn_epoch": "epoch-rw009",
+      "task_prompt": "When the user asks you to slow down, acknowledge and latch the de-escalated delivery requirement for this turn.",
+      "background_load_profile": "idle",
+      "stream_events": [
+        {
+          "event_id": "assistant-speaking",
+          "tick": 0,
+          "event_type": "assistant_output_active"
+        },
+        {
+          "event_id": "slow-down",
+          "tick": 15,
+          "event_type": "slow_down_command",
+          "modality": "audio",
+          "observation_ref": "obs-slowdown-9"
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-010-background-load",
+      "duration_ticks": 90,
+      "turn_epoch": "epoch-rw010",
+      "task_prompt": "Respond inside the required window to an urgent cue while background memory maintenance is heavily loaded.",
+      "background_load_profile": "saturated_memory_compaction_and_search",
+      "stream_events": [
+        {
+          "event_id": "background-work-start",
+          "tick": 0,
+          "event_type": "background_work_started"
+        },
+        {
+          "event_id": "urgent-cue",
+          "tick": 30,
+          "event_type": "urgent_response_cue",
+          "modality": "audio",
+          "observation_ref": "obs-urgent-10"
+        },
+        {
+          "event_id": "background-work-continues",
+          "tick": 70,
+          "event_type": "background_work_active"
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-011-cross-modal-incomparable",
+      "duration_ticks": 80,
+      "turn_epoch": "epoch-rw011",
+      "task_prompt": "Do not claim an audio/visual association when the observations are from incomparable clock domains and no qualified transform is supplied.",
+      "background_load_profile": "idle",
+      "stream_events": [
+        {
+          "event_id": "video-event",
+          "tick": 10,
+          "event_type": "visual_event",
+          "modality": "video",
+          "observation_ref": "obs-video-11",
+          "clock_domain_id": "camera-clock",
+          "clock_generation": 2
+        },
+        {
+          "event_id": "audio-event",
+          "tick": 12,
+          "event_type": "audio_event",
+          "modality": "audio",
+          "observation_ref": "obs-audio-11",
+          "clock_domain_id": "microphone-clock",
+          "clock_generation": 7
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-012-mixed-silence-then-trigger",
+      "duration_ticks": 140,
+      "turn_epoch": "epoch-rw012",
+      "task_prompt": "Remain silent during irrelevant monitoring, then provide one concise response when the relevant trigger occurs.",
+      "background_load_profile": "moderate_retrieval",
+      "stream_events": [
+        {
+          "event_id": "irrelevant-1",
+          "tick": 10,
+          "event_type": "irrelevant_motion",
+          "modality": "video",
+          "observation_ref": "obs-irrelevant-1"
+        },
+        {
+          "event_id": "irrelevant-2",
+          "tick": 40,
+          "event_type": "low_salience_noise",
+          "modality": "audio",
+          "observation_ref": "obs-irrelevant-2"
+        },
+        {
+          "event_id": "relevant-trigger",
+          "tick": 95,
+          "event_type": "relevant_user_question",
+          "modality": "audio",
+          "observation_ref": "obs-question-12"
+        },
+        {
+          "event_id": "duplicate-trigger",
+          "tick": 105,
+          "event_type": "duplicate_delivery",
+          "modality": "audio",
+          "observation_ref": "obs-question-12",
+          "duplicate_of": "relevant-trigger"
+        }
+      ]
+    }
+  ]
+}
