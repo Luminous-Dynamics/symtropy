@@ -155,7 +155,23 @@ def main():
     mFp  = (0, 0, 0, 0, 1, 0, 0, 0)
     mH   = (0, 0, 0, 0, 0, 1, 0, 0)
     mHp  = (0, 0, 0, 0, 0, 0, 1, 0)
+    mHpp = (0, 0, 0, 0, 0, 0, 0, 1)
     m0   = (0, 0, 0, 0, 0, 0, 0, 0)
+
+    # The cubic assembly below uses only h0 and (for E_g) h1. Assert
+    # explicitly that no omitted h1/h2 contribution enters at order <=3.
+    for key, series in rows.items():
+        for monomial in (mH, mHp):
+            coeffs = series.get(monomial, [sp.Integer(0)] * 4)
+            if any(sp.simplify(coeffs[n]) != 0 for n in (1, 2)):
+                raise AssertionError(
+                    f"{key}: H2/H2_prime contributes below cubic order"
+                )
+        hpp_coeffs = series.get(mHpp, [sp.Integer(0)] * 4)
+        if any(sp.simplify(hpp_coeffs[n]) != 0 for n in (0, 1, 2, 3)):
+            raise AssertionError(
+                f"{key}: H2_second contributes to the cubic horizon coefficient"
+            )
 
     cubic = {}
     for key, series in rows.items():
