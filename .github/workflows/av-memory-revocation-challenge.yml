@@ -109,6 +109,8 @@ jobs:
       - name: Run revocation evaluator unit and adversarial tests
         run: python -m unittest discover -s tools/av-modality-necessity-evaluator -p "test_evaluate_revocation.py" -v
       - name: Score reference revocation submission
+        env:
+          SCORECARD_PATH: ${{ runner.temp }}/av-memory-revocation-scorecard.json
         run: |
           python tools/av-modality-necessity-evaluator/evaluate_revocation.py \
             --workload research/av-memory-revocation-challenge-v0/fixtures/agent/workload-v1.json \
