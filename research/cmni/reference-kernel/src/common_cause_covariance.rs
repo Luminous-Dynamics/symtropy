@@ -489,4 +489,83 @@ mod tests {
             ))
         );
     }
+    #[test]
+    fn common_cause_batch_design_oracle_reverses_naive_portfolio_ranking() {
+        let shared_calibration = || SharedUncertaintyContribution {
+            source_id: "calibration:A-B".to_owned(),
+            source_covariance: vec![vec![9.0]],
+            observation_jacobian: vec![vec![1.0]],
+        };
+        let experiment_a = ExperimentNoiseModel {
+            experiment_id: "A".to_owned(),
+            independent_observation_covariance: vec![vec![0.1]],
+            shared_sources: vec![shared_calibration()],
+            lineage_coverage_complete: true,
+        };
+        let experiment_b = ExperimentNoiseModel {
+            experiment_id: "B".to_owned(),
+            independent_observation_covariance: vec![vec![0.1]],
+            shared_sources: vec![shared_calibration()],
+            lineage_coverage_complete: true,
+        };
+        let experiment_c = ExperimentNoiseModel {
+            experiment_id: "C".to_owned(),
+            independent_observation_covariance: vec![vec![20.0]],
+            shared_sources: Vec::new(),
+            lineage_coverage_complete: true,
+        };
+
+        let shared_portfolio =
+            assemble_joint_experiment_covariance(&[experiment_a.clone(), experiment_b.clone()])
+                .expect("shared A+B portfolio");
+        let complementary_portfolio =
+            assemble_joint_experiment_covariance(&[experiment_a, experiment_c])
+                .expect("complementary A+C portfolio");
+
+        let close = |left: f64, right: f64| (left - right).abs() < 1.0e-12;
+        assert!(close(shared_portfolio.covariance[0][0], 9.1));
+        assert!(close(shared_portfolio.covariance[0][1], 9.0));
+        assert!(close(shared_portfolio.covariance[1][0], 9.0));
+        assert!(close(shared_portfolio.covariance[1][1], 9.1));
+        assert!(shared_portfolio.lineage_coverage_complete);
+
+        assert!(close(complementary_portfolio.covariance[0][0], 9.1));
+        assert!(close(complementary_portfolio.covariance[0][1], 0.0));
+        assert!(close(complementary_portfolio.covariance[1][0], 0.0));
+        assert!(close(complementary_portfolio.covariance[1][1], 20.0));
+        assert!(complementary_portfolio.lineage_coverage_complete);
+
+        // Exact linear-Gaussian posterior oracle with prior covariance I_2.
+        let shared_a_utility = 20.0 / 201.0;
+        let shared_d_utility = (201.0_f64 / 181.0).ln();
+        let complementary_a_utility = 311.0 / 2121.0;
+        let complementary_d_utility = (2121.0_f64 / 1820.0).ln();
+        assert!(complementary_a_utility > shared_a_utility);
+        assert!(complementary_d_utility > shared_d_utility);
+
+        // Negative control: retain each marginal variance but drop known covariance.
+        let naive_independence_portfolio = assemble_joint_experiment_covariance(&[
+            ExperimentNoiseModel {
+                experiment_id: "A-naive".to_owned(),
+                independent_observation_covariance: vec![vec![9.1]],
+                shared_sources: Vec::new(),
+                lineage_coverage_complete: false,
+            },
+            ExperimentNoiseModel {
+                experiment_id: "B-naive".to_owned(),
+                independent_observation_covariance: vec![vec![9.1]],
+                shared_sources: Vec::new(),
+                lineage_coverage_complete: false,
+            },
+        ])
+        .expect("naive independence negative control");
+        assert!(close(naive_independence_portfolio.covariance[0][1], 0.0));
+        assert!(!naive_independence_portfolio.lineage_coverage_complete);
+
+        let naive_a_utility = 20.0 / 111.0;
+        let naive_d_utility = (111.0_f64 / 91.0).ln();
+        assert!(naive_a_utility > complementary_a_utility);
+        assert!(naive_d_utility > complementary_d_utility);
+    }
+
 }
