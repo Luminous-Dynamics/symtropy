@@ -173,13 +173,27 @@ class MemoryTournamentTests(unittest.TestCase):
             "recent_window", "summary_only", "episodic_retrieval", "evidence_ledger"
         })
         ledger = report["per_condition"]["evidence_ledger"]
-        self.assertEqual(ledger["answer_accuracy"], 8 / 9)
+        self.assertEqual(ledger["answer_accuracy"], 10 / 11)
         self.assertEqual(ledger["provenance_complete_rate"], 1.0)
-        self.assertEqual(report["per_condition"]["summary_only"]["answer_accuracy"], 2 / 9)
+        self.assertEqual(report["per_condition"]["summary_only"]["answer_accuracy"], 4 / 11)
         self.assertLess(
             report["per_condition"]["summary_only"]["provenance_complete_rate"],
             ledger["provenance_complete_rate"],
         )
+
+    def test_future_correction_checkpoint_preserves_old_state_in_all_conditions(self):
+        report = comparator.compare_memory_conditions(self.workload,self.truth,self.runs)
+        self.assertEqual(report["per_condition"]["evidence_ledger"]["answer_accuracy"],10/11)
+        for run in self.runs:
+            prediction=next(x for x in run["submission"]["predictions"] if x["episode_id"]=="lh-010-correction-before-arrival")
+            self.assertEqual(prediction["answer"],"initial_machine_state")
+            self.assertEqual(prediction["current_observation_refs"],["obs-machine-state-v1"])
+
+    def test_future_revocation_checkpoint_preserves_pre_revocation_eligibility(self):
+        for run in self.runs:
+            prediction=next(x for x in run["submission"]["predictions"] if x["episode_id"]=="lh-011-revocation-before-effect")
+            self.assertEqual(prediction["answer"],"private_utterance_still_eligible")
+            self.assertEqual(prediction["current_observation_refs"],["obs-private-utterance-pre-revoke"])
 
     def test_mismatched_budget_profile_is_rejected(self):
         runs = copy.deepcopy(self.runs)
