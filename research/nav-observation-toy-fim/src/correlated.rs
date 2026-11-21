@@ -184,9 +184,12 @@ fn cholesky(matrix: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, CorrelatedError> {
     for i in 0..n {
         for j in 0..=i {
             let mut value = matrix[i][j];
-            for k in 0..j {
-                value -= lower[i][k] * lower[j][k];
-            }
+            let correction = lower[i][..j]
+                .iter()
+                .zip(lower[j][..j].iter())
+                .map(|(left, right)| left * right)
+                .sum::<f64>();
+            value -= correction;
 
             if i == j {
                 if !value.is_finite() || value <= 0.0 {
@@ -272,13 +275,12 @@ pub fn correlated_fisher(actions: &[CorrelatedRangeAction]) -> Result<Fisher2, C
         for j in 0..n {
             if let (Some(group_i), Some(group_j)) =
                 (&ordered[i].common_mode_group, &ordered[j].common_mode_group)
+                && group_i == group_j
             {
-                if group_i == group_j {
-                    let sigma = *group_sigmas.get(group_i).ok_or_else(|| {
-                        CorrelatedError::MissingCommonModeSigma(ordered[i].id.clone())
-                    })?;
-                    covariance[i][j] += sigma * sigma;
-                }
+                let sigma = *group_sigmas.get(group_i).ok_or_else(|| {
+                    CorrelatedError::MissingCommonModeSigma(ordered[i].id.clone())
+                })?;
+                covariance[i][j] += sigma * sigma;
             }
         }
     }
