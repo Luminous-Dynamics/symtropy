@@ -186,6 +186,37 @@ fn validate_semantics(profile: &Value) -> Vec<String> {
         }
     }
 
+
+    if let Some(references) = profile
+        .get("standard_references")
+        .and_then(Value::as_array)
+    {
+        for (index, reference) in references.iter().enumerate() {
+            let Some(artifact) = reference.get("nodeset_artifact") else {
+                continue;
+            };
+            let base = format!("/standard_references/{index}/nodeset_artifact");
+            let namespace_uri = string_at(reference, "/namespace_metadata/namespace_uri")
+                .unwrap_or_default();
+            let namespace_version = string_at(reference, "/namespace_metadata/namespace_version")
+                .unwrap_or_default();
+            let model_uri = string_at(artifact, "/node_set_model/model_uri")
+                .unwrap_or_default();
+            let model_version = string_at(artifact, "/node_set_model/version")
+                .unwrap_or_default();
+            if model_uri != namespace_uri {
+                errors.push(format!("{base}/node_set_model/model_uri: must match NamespaceMetadata URI"));
+            }
+            if model_version != namespace_version {
+                errors.push(format!("{base}/node_set_model/version: must match NamespaceMetadata NamespaceVersion"));
+            }
+            let uri_list = strings_at(artifact, "/namespace_uris");
+            if uri_list.iter().filter(|uri| uri.as_str() == namespace_uri).count() != 1 {
+                errors.push(format!("{base}/namespace_uris: expected NamespaceMetadata URI exactly once"));
+            }
+        }
+    }
+
     let mut layer_ids = BTreeSet::new();
     if let Some(layers) = profile.get("layers").and_then(Value::as_array) {
         for (index, layer) in layers.iter().enumerate() {
@@ -336,6 +367,19 @@ mod tests {
         let mut profile = parse_profile(MQTT);
         profile["layers"][0]["intelligence_scope"] = json!("global_factory_superintelligence");
         assert_invalid(&profile, "intelligence_scope");
+    }
+
+    #[test]
+    fn rejects_nodeset_artifact_namespace_or_version_mismatch() {
+        let mut profile = parse_profile(OPC_MACHINERY);
+        profile["standard_references"][0]["nodeset_artifact"]["node_set_model"]["version"] =
+            json!("1.04.1");
+        assert_invalid(&profile, "must match NamespaceMetadata NamespaceVersion");
+
+        let mut wrong_uri = parse_profile(OPC_MACHINERY);
+        wrong_uri["standard_references"][0]["nodeset_artifact"]["node_set_model"]["model_uri"] =
+            json!("http://vendor.example/machinery/");
+        assert_invalid(&wrong_uri, "must match NamespaceMetadata URI");
     }
 
     #[test]
