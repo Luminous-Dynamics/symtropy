@@ -1,0 +1,94 @@
+name: AV Memory Revocation Challenge Fixture Integrity
+
+on:
+  push:
+    branches:
+      - research/av-revocation-noninterference-v0
+    paths:
+      - "research/av-memory-revocation-challenge-v0/**"
+      - ".github/workflows/av-memory-revocation-challenge.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/av-memory-revocation-challenge-v0/**"
+      - ".github/workflows/av-memory-revocation-challenge.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: av-memory-revocation-challenge-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  QUALIFIED_SHA: ${{ env.QUALIFIED_SHA }}
+
+jobs:
+  fixture-integrity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.QUALIFIED_SHA }}
+          persist-credentials: false
+      - name: Assert exact checkout
+        run: test "$(git rev-parse HEAD)" = "$QUALIFIED_SHA"
+      - name: Install JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.26.0
+      - name: Validate workload schema and three data planes
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          base = "research/av-memory-revocation-challenge-v0/"
+          schema = json.load(open(base + "schemas/workload-v1.schema.json", encoding="utf-8"))
+          Draft202012Validator.check_schema(schema)
+          workload = json.load(open(base + "fixtures/agent/workload-v1.json", encoding="utf-8"))
+          truth = json.load(open(base + "fixtures/evaluator-only/truth-v1.json", encoding="utf-8"))
+          expected = json.load(open(base + "fixtures/expected/known-answer-v1.json", encoding="utf-8"))
+          Draft202012Validator(schema).validate(workload)
+          for name, doc in (("truth", truth), ("expected", expected)):
+              assert doc["schema_version"] == 1 and doc["benchmark_id"] == workload["benchmark_id"], name
+              assert len(doc["episodes"]) == 8, name
+          ids = [e["episode_id"] for e in workload["episodes"]]
+          assert len(ids) == len(set(ids)) == 8
+          assert ids == [e["episode_id"] for e in truth["episodes"]]
+          assert ids == [e["episode_id"] for e in expected["episodes"]]
+          PY
+      - name: Validate probe chronology and dependency DAGs
+        run: |
+          python - <<'PY'
+          import json
+          p = "research/av-memory-revocation-challenge-v0/fixtures/agent/workload-v1.json"
+          doc = json.load(open(p, encoding="utf-8"))
+          for episode in doc["episodes"]:
+              source = episode["source"]
+              revoke = episode["revocation"]
+              assert revoke["target_observation_ref"] == source["observation_ref"]
+              assert source["availability_tick"] < revoke["availability_tick"]
+              probes = episode["probes"]
+              assert any(x["stage"] == "pre_revocation" for x in probes), episode["episode_id"]
+              assert any(x["stage"] == "post_revocation" for x in probes), episode["episode_id"]
+              assert all(x["after_tick"] < revoke["availability_tick"] for x in probes if x["stage"] == "pre_revocation")
+              assert all(x["after_tick"] > revoke["availability_tick"] for x in probes if x["stage"] != "pre_revocation")
+              parents = {source["observation_ref"]}
+              known_items = set()
+              for item in episode["derived_items"]:
+                  refs = item["derived_from_refs"]
+                  assert refs and all(x in parents or x in known_items for x in refs), (episode["episode_id"], item["item_ref"])
+                  known_items.add(item["item_ref"])
+          PY
+      - name: Require coverage of all declared residual attack paths
+        run: |
+          python - <<'PY'
+          import json
+          p = "research/av-memory-revocation-challenge-v0/fixtures/agent/workload-v1.json"
+          doc = json.load(open(p, encoding="utf-8"))
+          kinds = {probe["kind"] for ep in doc["episodes"] for probe in ep["probes"]}
+          required = {"direct", "paraphrase", "nearest_neighbor", "cache_replay", "restart", "cross_modal", "replica_recall", "unrelated_control"}
+          assert required <= kinds, sorted(required - kinds)
+          assert any(probe["stage"] == "unrelated_control" for ep in doc["episodes"] for probe in ep["probes"])
+          PY
