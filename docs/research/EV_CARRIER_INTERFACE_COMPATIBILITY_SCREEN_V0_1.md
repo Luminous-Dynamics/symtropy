@@ -61,6 +61,8 @@ An interface can only be marked compatible when both mating sides have an eviden
 
 A failed independent test bound to the exact pair is a known incompatibility. An inconclusive, stale, revoked, measured-only or synthetic record cannot qualify the interface. Vehicle-side ports can carry multiple receipts because one physical port may have been qualified against several distinct modules. One test record is not silently reused as proof for another configuration pair.
 
+The report carries the selected full evidence receipt for both the vehicle and module side of every interface finding, including receipt ID, issuer, exact test-article serials, procedure revision, source reference, report/measurement/calibration digests, uncertainty reference, completion timestamp, result and limitations. This makes the trace usable by a later evidence-admission workflow.
+
 The screen checks digest syntax, timestamp shape and scope fields. It does **not** retrieve report bytes, recalculate their contents, authenticate signatures, validate calibration certificates or establish issuer authority. Those checks remain a separate evidence-admission responsibility.
 
 ## 3. Result semantics
