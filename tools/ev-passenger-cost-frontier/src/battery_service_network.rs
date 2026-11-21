@@ -912,6 +912,45 @@ mod tests {
     }
 
     #[test]
+    fn state_evidence_from_another_pack_is_blocked() {
+        let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
+        battery.state_evidence.asset_id = "different-pack".to_string();
+        assert_eq!(
+            pair_status(&battery, &mission("m1", "uav-a", 1_000, 1_000)),
+            EligibilityStatus::Blocked
+        );
+    }
+
+    #[test]
+    fn unknown_pack_state_is_indeterminate() {
+        let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
+        battery.state = PackState::Unknown;
+        assert_eq!(
+            pair_status(&battery, &mission("m1", "uav-a", 1_000, 1_000)),
+            EligibilityStatus::Indeterminate
+        );
+    }
+
+    #[test]
+    fn usable_energy_below_required_reserve_is_blocked() {
+        let battery = pack("p1", "uav-a", Some(999), Some(2_000));
+        assert_eq!(
+            pair_status(&battery, &mission("m1", "uav-a", 1_000, 1_000)),
+            EligibilityStatus::Blocked
+        );
+    }
+
+    #[test]
+    fn thermal_limit_exceeded_is_blocked() {
+        let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
+        battery.thermal.pack_temperature_c = Some(51);
+        assert_eq!(
+            pair_status(&battery, &mission("m1", "uav-a", 1_000, 1_000)),
+            EligibilityStatus::Blocked
+        );
+    }
+
+    #[test]
     fn unknown_evidence_class_is_indeterminate() {
         let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
         battery.usable_energy.evidence.evidence_class = EvidenceClass::Unknown;
