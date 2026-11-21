@@ -48,7 +48,7 @@ jobs:
           cmp /tmp/structural-interface-a.json /tmp/structural-interface-b.json
           jq -e '
             .schema == "luminous.orbital-structural-interface.receipt.v0.1" and
-            .case_count == 40 and .matched_cases == 40 and
+            .case_count == 44 and .matched_cases == 44 and
             .mismatched_cases == 0 and .authority_granted == false and
             .claim_ceiling == "synthetic_structural_profile_compatibility_only" and
             (.input_sha256 | test("^[0-9a-f]{64}$"))
@@ -58,5 +58,5 @@ jobs:
           python3 tools/orbital-structural-interface-bench/tests/reference_oracle.py \
             tools/orbital-structural-interface-bench/fixtures/v0.1/cases.json \
             "$GITHUB_SHA" > /tmp/structural-interface-oracle.json
-          jq -e '.case_count == 40 and .matched_cases == 40 and .mismatched_cases == 0' \
+          jq -e '.case_count == 44 and .matched_cases == 44 and .mismatched_cases == 0' \
             /tmp/structural-interface-oracle.json
