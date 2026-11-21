@@ -235,6 +235,23 @@ mod tests {
     }
 
     #[test]
+    fn hyperbox_second_moments_match_2d_and_4d_known_answers() {
+        let rectangle = crate::HyperBox::<2>::new([1.0, 2.0])
+            .mass_properties(6.0)
+            .expect("rectangle");
+        let expected_2d =
+            SMatrix::<f64, 2, 2>::from_diagonal(&SVector::from([2.0, 8.0]));
+        assert_matrix_near(&rectangle.centroidal_second_moment, &expected_2d);
+
+        let tesseract = crate::HyperBox::<4>::new([1.0, 2.0, 3.0, 4.0])
+            .mass_properties(3.0)
+            .expect("4D hyperbox");
+        let expected_4d =
+            SMatrix::<f64, 4, 4>::from_diagonal(&SVector::from([1.0, 4.0, 9.0, 16.0]));
+        assert_matrix_near(&tesseract.centroidal_second_moment, &expected_4d);
+    }
+
+    #[test]
     fn shape_mass_properties_preserve_the_geometric_centroid() {
         let sphere = Sphere::<3>::new(Point::new([1.0, -2.0, 0.5]), 2.0)
             .mass_properties(1.0)
@@ -346,6 +363,33 @@ mod tests {
         assert_eq!(
             MassProperties::new(1.0, Point::origin(), non_psd),
             Err(MassPropertiesError::NonPositiveSemidefiniteTensor)
+        );
+    }
+
+    #[test]
+    fn rejects_nonfinite_mass_centroid_and_tensor_entries() {
+        let tensor = SMatrix::<f64, 2, 2>::identity();
+        assert_eq!(
+            MassProperties::new(f64::INFINITY, Point::origin(), tensor),
+            Err(MassPropertiesError::InvalidMass)
+        );
+        assert_eq!(
+            MassProperties::new(1.0, Point::new([f64::NAN, 0.0]), tensor),
+            Err(MassPropertiesError::NonFiniteCentroid)
+        );
+        let mut invalid_tensor = tensor;
+        invalid_tensor[(1, 1)] = f64::NAN;
+        assert_eq!(
+            MassProperties::new(1.0, Point::origin(), invalid_tensor),
+            Err(MassPropertiesError::NonFiniteTensor)
+        );
+    }
+
+    #[test]
+    fn empty_compound_mass_properties_are_rejected() {
+        assert_eq!(
+            combine_mass_properties::<3>(&[]),
+            Err(MassPropertiesError::EmptyComponents)
         );
     }
 
