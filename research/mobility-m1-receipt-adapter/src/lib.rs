@@ -497,6 +497,9 @@ mod tests {
         f.policy
             .expected_observer_failure_domains
             .push("vehicle-power".into());
+        f.m2_ticket
+            .expected_observer_failure_domains
+            .push("vehicle-power".into());
         assert_eq!(
             apply_outcome_to_m1(
                 &mut f.supervisor,
