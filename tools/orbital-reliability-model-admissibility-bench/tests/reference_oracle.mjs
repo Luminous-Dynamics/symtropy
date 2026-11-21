@@ -267,7 +267,7 @@ if (corpus.schema !== "luminous.orbital-reliability-model-admissibility.corpus.v
     corpus.claim_ceiling !== "synthetic-model-input-admissibility-only") {
   throw new Error("unsupported model-admissibility corpus contract");
 }
-if (corpus.cases.length !== 59) throw new Error("expected 59 frozen model-admissibility cases");
+if (corpus.cases.length !== 63) throw new Error("expected 63 frozen model-admissibility cases");
 
 let mismatches = 0;
 let supported = 0;
@@ -293,5 +293,5 @@ for (const scenario of corpus.cases) {
 }
 if (supported < 1) throw new Error("reject-all behavior is not accepted: no positive control");
 if (mismatches > 0) process.exit(1);
-process.stdout.write("PASS: 59 cases; independent admissibility oracle; " +
+process.stdout.write("PASS: 63 cases; independent admissibility oracle; " +
   supported + " supported-for-analysis controls; zero mismatches; no hazard confirmation\n");
