@@ -1236,6 +1236,20 @@ mod tests {
     }
 
     #[test]
+    fn inconclusive_independent_test_does_not_qualify_interface() {
+        let mut input = qualified_input();
+        input.modules[0].ports[0].evidence[0].test_result =
+            QualificationTestResult::Inconclusive;
+        let report = evaluate_compatibility(&input).expect("valid inconclusive evidence");
+        let hv = report.results[0]
+            .interfaces
+            .iter()
+            .find(|interface| interface.module_port_id == "module-hv")
+            .expect("HV result");
+        assert_eq!(hv.status, CompatibilityStatus::Indeterminate);
+    }
+
+    #[test]
     fn synthetic_evidence_never_produces_compatible_result() {
         let mut input = qualified_input();
         input.modules[0].ports[0].evidence[0].evidence_class = EvidenceClass::Synthetic;
@@ -1388,6 +1402,19 @@ mod tests {
         }
         let second = evaluate_compatibility(&input).expect("permuted report");
         assert_eq!(first, second);
+    }
+
+    #[test]
+    fn malformed_test_timestamp_and_calibration_digest_are_rejected() {
+        let mut bad_time = qualified_input();
+        bad_time.modules[0].ports[0].evidence[0].test_completed_at_utc =
+            "not-a-time".into();
+        assert!(validate_input(&bad_time).is_err());
+
+        let mut bad_calibration = qualified_input();
+        bad_calibration.vehicle.ports[0].evidence[0].calibration_bundle_sha256 =
+            "invalid".into();
+        assert!(validate_input(&bad_calibration).is_err());
     }
 
     #[test]
