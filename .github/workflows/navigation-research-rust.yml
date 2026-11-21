@@ -61,7 +61,7 @@ jobs:
              && -f docs/research/navigation-transition-v0.1/nav_transition_case.schema.json \
              && -f docs/research/navigation-transition-v0.1/fixtures/nav_transition_cases.v0.1.json \
              && -f docs/research/navigation-transition-v0.1/manifest.v0.1.json ]]; then
-            cargo run --manifest-path research/nav-transition-validator/Cargo.toml -- \
+            cargo run --manifest-path research/nav-transition-validator/Cargo.toml --bin nav-transition-validate -- \
               docs/research/navigation-transition-v0.1/nav_transition_case.schema.json \
               docs/research/navigation-transition-v0.1/fixtures/nav_transition_cases.v0.1.json \
               docs/research/navigation-transition-v0.1/manifest.v0.1.json
