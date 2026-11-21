@@ -31,7 +31,7 @@ class LongHorizonEvaluatorTests(unittest.TestCase):
         score = self.score()
         totals = score["totals"]
         self.assertEqual(totals["episode_count"], 12)
-        self.assertEqual(totals["answer_correct_count"], 10)
+        self.assertEqual(totals["answer_correct_count"], 11)
         self.assertEqual(totals["decision_correct_count"], 12)
         self.assertEqual(totals["answer_accuracy"], 11 / 12)
         self.assertEqual(totals["coverage"], 11 / 12)
@@ -39,7 +39,7 @@ class LongHorizonEvaluatorTests(unittest.TestCase):
         self.assertEqual(totals["citation_precision"], 1.0)
         self.assertEqual(totals["citation_recall"], 1.0)
         self.assertEqual(totals["provenance_complete_count"], 12)
-        self.assertEqual(totals["evidence_qualified_answer_correct_count"], 10)
+        self.assertEqual(totals["evidence_qualified_answer_correct_count"], 11)
         self.assertEqual(totals["evidence_qualified_answer_accuracy"], 11 / 12)
         self.assertEqual(totals["evidence_compliant_count"], 12)
         self.assertEqual(totals["false_memory_count"], 0)
