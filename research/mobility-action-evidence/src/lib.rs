@@ -135,6 +135,8 @@ pub struct ActionTicket {
     pub expected_observation_frame_id: String,
     pub expected_calibration_id: String,
     pub expected_effect_digest: Digest,
+    /// Digest of the approved observer-vs-executor failure-domain policy.
+    pub observer_independence_policy_digest: Digest,
 }
 
 /// Latest locally available platform/authority/navigation context.
@@ -216,6 +218,13 @@ impl std::error::Error for AdmissionError {}
 
 fn is_nonempty(value: &str) -> bool {
     !value.trim().is_empty()
+}
+
+fn has_duplicates(values: &[String]) -> bool {
+    values
+        .iter()
+        .enumerate()
+        .any(|(index, value)| values[..index].contains(value))
 }
 
 /// Recheck ticket applicability against current context immediately before
@@ -418,6 +427,9 @@ pub struct PhysicalOutcomeEvidence {
     pub event_id: String,
     pub source_id: String,
     pub executing_controller_id: String,
+    /// Canonical dependency domains declared for the observing source.
+    /// These must come from an authenticated upstream inventory.
+    pub observer_failure_domains: Vec<String>,
     pub observer_role: ObserverRole,
     pub source_sequence: u64,
     pub observed_at_ticks: u64,
@@ -451,6 +463,11 @@ pub struct OutcomePolicy {
     pub sequence_source_id: String,
     pub last_source_sequence: u64,
     pub minimum_confidence_basis_points: u16,
+    /// Dependency domains of the executor/platform path for this action.
+    pub execution_failure_domains: Vec<String>,
+    /// Approved observer dependency domains under the ticket-bound policy.
+    pub approved_observer_failure_domains: Vec<String>,
+    pub observer_independence_policy_digest: Digest,
 }
 
 /// Why an outcome receipt cannot establish the expected physical effect.
@@ -474,6 +491,10 @@ pub enum OutcomeError {
     PredicateMismatch,
     InvalidConfidence,
     ConfidenceInsufficient,
+    IndependencePolicyMismatch,
+    FailureDomainPolicyInvalid,
+    ObserverFailureDomainUnapproved,
+    CommonCauseFailureDomainOverlap,
 }
 
 impl fmt::Display for OutcomeError {
@@ -521,6 +542,40 @@ pub fn validate_physical_outcome(
     }
     if evidence.ticket_commitment != ticket.ticket_commitment {
         return Err(OutcomeError::TicketCommitmentMismatch);
+    }
+    if policy.observer_independence_policy_digest
+        != ticket.observer_independence_policy_digest
+    {
+        return Err(OutcomeError::IndependencePolicyMismatch);
+    }
+    if policy.execution_failure_domains.is_empty()
+        || policy.approved_observer_failure_domains.is_empty()
+        || evidence.observer_failure_domains.is_empty()
+        || policy
+            .execution_failure_domains
+            .iter()
+            .chain(policy.approved_observer_failure_domains.iter())
+            .chain(evidence.observer_failure_domains.iter())
+            .any(|domain| !is_nonempty(domain))
+        || has_duplicates(&policy.execution_failure_domains)
+        || has_duplicates(&policy.approved_observer_failure_domains)
+        || has_duplicates(&evidence.observer_failure_domains)
+    {
+        return Err(OutcomeError::FailureDomainPolicyInvalid);
+    }
+    if evidence
+        .observer_failure_domains
+        .iter()
+        .any(|domain| !policy.approved_observer_failure_domains.contains(domain))
+    {
+        return Err(OutcomeError::ObserverFailureDomainUnapproved);
+    }
+    if evidence
+        .observer_failure_domains
+        .iter()
+        .any(|domain| policy.execution_failure_domains.contains(domain))
+    {
+        return Err(OutcomeError::CommonCauseFailureDomainOverlap);
     }
     if !evidence.observer_role.is_independent() {
         return Err(OutcomeError::SelfReportNotAccepted);
@@ -634,6 +689,7 @@ mod tests {
             expected_observation_frame_id: "frame.local-enu-1".into(),
             expected_calibration_id: "calibration-camera-1".into(),
             expected_effect_digest: digest(7),
+            observer_independence_policy_digest: digest(40),
         }
     }
 
@@ -676,6 +732,11 @@ mod tests {
             event_id: "event-1".into(),
             source_id: "independent-camera-1".into(),
             executing_controller_id: "vehicle-controller-1".into(),
+            observer_failure_domains: vec![
+                "camera-sensor".into(),
+                "camera-processor".into(),
+                "observer-power".into(),
+            ],
             observer_role: ObserverRole::IndependentSensor,
             source_sequence: 31,
             observed_at_ticks: 1_150,
@@ -697,6 +758,17 @@ mod tests {
             sequence_source_id: "independent-camera-1".into(),
             last_source_sequence: 30,
             minimum_confidence_basis_points: 9_000,
+            execution_failure_domains: vec![
+                "vehicle-controller".into(),
+                "vehicle-bus".into(),
+                "vehicle-power".into(),
+            ],
+            approved_observer_failure_domains: vec![
+                "camera-sensor".into(),
+                "camera-processor".into(),
+                "observer-power".into(),
+            ],
+            observer_independence_policy_digest: digest(40),
         }
     }
 
@@ -1050,6 +1122,64 @@ mod tests {
         assert_eq!(
             validate_physical_outcome(&ticket(), &physical_evidence(), policy),
             Err(OutcomeError::PolicyClockMismatch)
+        );
+    }
+
+
+    #[test]
+    fn observer_independence_requires_nonempty_declared_failure_domains() {
+        let mut evidence = physical_evidence();
+        evidence.observer_failure_domains.clear();
+        assert_eq!(
+            validate_physical_outcome(&ticket(), &evidence, outcome_policy()),
+            Err(OutcomeError::FailureDomainPolicyInvalid)
+        );
+
+        let mut policy = outcome_policy();
+        policy.execution_failure_domains.clear();
+        assert_eq!(
+            validate_physical_outcome(&ticket(), &physical_evidence(), policy),
+            Err(OutcomeError::FailureDomainPolicyInvalid)
+        );
+    }
+
+    #[test]
+    fn common_cause_failure_domain_overlap_rejects_independent_observer() {
+        let mut evidence = physical_evidence();
+        evidence.observer_failure_domains.push("vehicle-power".into());
+        assert_eq!(
+            validate_physical_outcome(&ticket(), &evidence, outcome_policy()),
+            Err(OutcomeError::CommonCauseFailureDomainOverlap)
+        );
+    }
+
+    #[test]
+    fn observer_failure_domains_must_be_approved_by_ticket_bound_policy() {
+        let mut evidence = physical_evidence();
+        evidence.observer_failure_domains.push("unregistered-clock".into());
+        assert_eq!(
+            validate_physical_outcome(&ticket(), &evidence, outcome_policy()),
+            Err(OutcomeError::ObserverFailureDomainUnapproved)
+        );
+    }
+
+    #[test]
+    fn independence_policy_version_is_bound_to_action_ticket() {
+        let mut policy = outcome_policy();
+        policy.observer_independence_policy_digest = digest(41);
+        assert_eq!(
+            validate_physical_outcome(&ticket(), &physical_evidence(), policy),
+            Err(OutcomeError::IndependencePolicyMismatch)
+        );
+    }
+
+    #[test]
+    fn duplicate_failure_domain_labels_are_rejected() {
+        let mut evidence = physical_evidence();
+        evidence.observer_failure_domains.push("camera-sensor".into());
+        assert_eq!(
+            validate_physical_outcome(&ticket(), &evidence, outcome_policy()),
+            Err(OutcomeError::FailureDomainPolicyInvalid)
         );
     }
 
