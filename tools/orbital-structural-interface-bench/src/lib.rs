@@ -386,7 +386,7 @@ fn evaluate(provider: &Profile, client: &Profile) -> (String, Vec<String>) {
             add_reason(&mut reasons, "LOAD_CASE_MISSING", Severity::Indeterminate);
             continue;
         };
-        if offered.frame_id != required.frame_id || offered.frame_id != provider.frame_id {
+        if offered.frame_id != required.frame_id {
             add_reason(&mut reasons, "LOAD_FRAME_MISMATCH", Severity::Indeterminate);
         }
         if offered.interaction_profile_ref != required.interaction_profile_ref {
