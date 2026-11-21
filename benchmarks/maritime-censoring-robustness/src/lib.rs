@@ -145,8 +145,7 @@ pub struct IncidenceBounds {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Qualification {
     CalibratableUnderDeclaredMechanism,
-    SensitivityRequired,
-    NotIdentified,
+    SensitivityRequiredNotIdentified,
     NotEvaluable,
 }
 
@@ -154,8 +153,7 @@ impl Qualification {
     pub fn label(self) -> &'static str {
         match self {
             Self::CalibratableUnderDeclaredMechanism => "CALIBRATABLE_UNDER_DECLARED_MECHANISM",
-            Self::SensitivityRequired => "SENSITIVITY_REQUIRED",
-            Self::NotIdentified => "NOT_IDENTIFIED",
+            Self::SensitivityRequiredNotIdentified => "SENSITIVITY_REQUIRED_NOT_IDENTIFIED",
             Self::NotEvaluable => "NOT_EVALUABLE",
         }
     }
@@ -590,7 +588,9 @@ fn evaluate_scenario(scenario: ScenarioKind) -> ScenarioReport {
         | ScenarioKind::MeasuredStratumDependent => {
             Qualification::CalibratableUnderDeclaredMechanism
         }
-        ScenarioKind::OutcomeDependentReportingLag => Qualification::NotIdentified,
+        ScenarioKind::OutcomeDependentReportingLag => {
+            Qualification::SensitivityRequiredNotIdentified
+        }
         ScenarioKind::PositivityFailure => Qualification::NotEvaluable,
     };
 
@@ -720,7 +720,10 @@ mod tests {
             dependent.true_empirical.berth - dependent.pooled_aalen_johansen.berth > 0.05,
             "outcome-dependent lag did not create the expected naive A-J bias"
         );
-        assert_eq!(dependent.qualification, Qualification::NotIdentified);
+        assert_eq!(
+            dependent.qualification,
+            Qualification::SensitivityRequiredNotIdentified
+        );
         assert!(contains(
             dependent.partial_identification_bounds,
             dependent.true_empirical
@@ -751,6 +754,24 @@ mod tests {
                 scenario.true_empirical
             ));
         }
+    }
+
+    #[test]
+    fn administrative_and_reporting_lag_censors_remain_distinct() {
+        let report = evaluate_reference_scenarios();
+        let independent = report_for(&report, "INDEPENDENT_ADMIN");
+        let measured = report_for(&report, "MEASURED_STRATUM_DEPENDENT");
+        let delayed = report_for(&report, "OUTCOME_DEPENDENT_REPORTING_LAG");
+        let positivity = report_for(&report, "POSITIVITY_FAILURE");
+
+        assert_eq!(independent.administrative_censored_calls, 22_094);
+        assert_eq!(independent.reporting_lag_censored_calls, 0);
+        assert_eq!(measured.administrative_censored_calls, 22_600);
+        assert_eq!(measured.reporting_lag_censored_calls, 0);
+        assert_eq!(delayed.administrative_censored_calls, 9_267);
+        assert_eq!(delayed.reporting_lag_censored_calls, 5_824);
+        assert_eq!(positivity.administrative_censored_calls, 9_376);
+        assert_eq!(positivity.reporting_lag_censored_calls, 10_501);
     }
 
     #[test]
