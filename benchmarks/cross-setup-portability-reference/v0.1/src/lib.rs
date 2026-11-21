@@ -219,10 +219,9 @@ impl SetupEvaluation {
             if let Some(previous) = policy_versions.insert(
                 outcome.policy.policy_id.as_str(),
                 outcome.policy.checkpoint_digest.as_str(),
-            ) {
-                if previous != outcome.policy.checkpoint_digest {
-                    return Err(PortabilityError::PolicyCheckpointMismatch);
-                }
+            ) && previous != outcome.policy.checkpoint_digest
+            {
+                return Err(PortabilityError::PolicyCheckpointMismatch);
             }
             if !outcomes.insert((outcome.task_id.as_str(), outcome.policy.policy_id.as_str())) {
                 return Err(PortabilityError::DuplicateOutcome);
@@ -351,10 +350,10 @@ pub fn compare_setup_portability(
     let source_policy_versions = policy_versions(source);
     let target_policy_versions = policy_versions(target);
     for (policy_id, source_digest) in &source_policy_versions {
-        if let Some(target_digest) = target_policy_versions.get(policy_id) {
-            if source_digest != target_digest {
-                return Err(PortabilityError::PolicyCheckpointMismatch);
-            }
+        if let Some(target_digest) = target_policy_versions.get(policy_id)
+            && source_digest != target_digest
+        {
+            return Err(PortabilityError::PolicyCheckpointMismatch);
         }
     }
 
@@ -542,7 +541,7 @@ fn validate_tier(
     }
 }
 
-fn policy_versions<'a>(evaluation: &'a SetupEvaluation) -> BTreeMap<&'a str, &'a str> {
+fn policy_versions(evaluation: &SetupEvaluation) -> BTreeMap<&str, &str> {
     let mut versions = BTreeMap::new();
     for outcome in &evaluation.outcomes {
         versions.insert(
@@ -553,9 +552,9 @@ fn policy_versions<'a>(evaluation: &'a SetupEvaluation) -> BTreeMap<&'a str, &'a
     versions
 }
 
-fn build_outcome_map<'a>(
-    evaluation: &'a SetupEvaluation,
-) -> BTreeMap<String, BTreeMap<String, &'a PolicyTaskOutcome>> {
+fn build_outcome_map(
+    evaluation: &SetupEvaluation,
+) -> BTreeMap<String, BTreeMap<String, &PolicyTaskOutcome>> {
     let mut output = BTreeMap::new();
     for outcome in &evaluation.outcomes {
         output
