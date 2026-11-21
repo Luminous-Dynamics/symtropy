@@ -28,6 +28,7 @@ pub use energy_bias_basis::{
     ENERGY_BIAS_BASIS_COLUMNS_PER_GROUP,
     ENERGY_BIAS_CENTRES_PER_SCALE,
     ENERGY_BIAS_LENGTH_SCALES_LOG10,
+    project_grouped_energy_bias_field,
 };
 
 mod correlated_bias_inference;
