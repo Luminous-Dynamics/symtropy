@@ -87,7 +87,8 @@ fn main() {
     println!("Same-latent-cohort reporting-delay sensitivity:");
     for step in &report.reporting_delay_sweep {
         println!(
-            "  delay={} ticks true_berth_CIF={:.6} observed_AJ={:.6} underestimation={:.6} unresolved={:.4}",
+            "  delay={} ticks true_berth_CIF={:.6} observed_AJ={:.6} \
+             underestimation={:.6} unresolved={:.4}",
             step.reporting_delay_ticks,
             step.true_berth_cif,
             step.observed_berth_cif,
