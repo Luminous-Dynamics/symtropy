@@ -122,6 +122,22 @@ class ActiveSensingEvaluatorTests(unittest.TestCase):
         result = self.result(self.score(candidate), "as-004-common-cause-duplicate")
         self.assertIn("common_cause_evidence_claimed_independent", result["evidence_violations"])
 
+    def test_wrong_final_answer_has_regret_even_with_optimal_sensor_action(self):
+        candidate = copy.deepcopy(self.submission)
+        row = self.prediction(candidate, "as-003-audio-necessary")
+        row["answer"] = "idle"
+        result = self.result(self.score(candidate), "as-003-audio-necessary")
+        self.assertTrue(result["action_policy_correct"])
+        self.assertFalse(result["answer_correct"])
+        self.assertEqual(result["decision_regret"], 4)
+
+    def test_response_after_deadline_has_regret(self):
+        candidate = copy.deepcopy(self.submission)
+        self.prediction(candidate, "as-005-deadline-late-observation")["response_tick"] = 21
+        result = self.result(self.score(candidate), "as-005-deadline-late-observation")
+        self.assertFalse(result["decision_correct"])
+        self.assertEqual(result["decision_regret"], 2)
+
     def test_budget_overrun_fails_closed(self):
         candidate = copy.deepcopy(self.submission)
         workload = copy.deepcopy(self.workload)
