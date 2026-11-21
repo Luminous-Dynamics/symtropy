@@ -693,7 +693,10 @@ mod tests {
                 );
                 assert!((0.0..=1.0).contains(&upper));
             }
-            assert_eq!(miss_probability_upper_bound_95(trials, trials).unwrap(), 1.0);
+            assert_eq!(
+                miss_probability_upper_bound_95(trials, trials).unwrap(),
+                1.0
+            );
         }
     }
 
