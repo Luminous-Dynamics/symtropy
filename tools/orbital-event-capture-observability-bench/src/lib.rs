@@ -5,6 +5,7 @@ const CORPUS_SCHEMA: &str = "luminous.orbital-event-capture.corpus.v0.1";
 const CLAIM_CEILING: &str = "synthetic-capture-reconciliation-only";
 const MAX_EVENTS: usize = 100_000;
 const MAX_RATE: f64 = 1.0e9;
+const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -246,6 +247,8 @@ fn validate_reference_events(events: &[ReferenceEvent]) -> Result<(), String> {
     let mut previous_time = None;
     for event in events {
         if event.event_id.trim().is_empty()
+            || event.sequence > MAX_SAFE_INTEGER
+            || event.time_ticks > MAX_SAFE_INTEGER
             || !valid_hex(&event.payload_sha256, 64)
             || !ids.insert(event.event_id.as_str())
         {
@@ -316,10 +319,11 @@ fn evaluate_case(case: &CaptureCase) -> Decision {
 
     if !case.clock.synchronized
         || !case.clock.monotonic
+        || case.clock.allowed_max_error_ticks > MAX_SAFE_INTEGER
         || case
             .clock
             .measured_max_error_ticks
-            .is_none_or(|error| error > case.clock.allowed_max_error_ticks)
+            .is_none_or(|error| error > case.clock.allowed_max_error_ticks || error > MAX_SAFE_INTEGER)
     {
         return blocked(Disposition::Indeterminate, "clock_integrity_or_error_bound_not_established");
     }
@@ -332,7 +336,7 @@ fn evaluate_case(case: &CaptureCase) -> Decision {
         case.counters.reset_count,
         case.counters.sequence_gap_count,
     ];
-    if counter_values.iter().any(Option::is_none) {
+    if counter_values.iter().any(|value| value.is_none_or(|count| count > MAX_SAFE_INTEGER)) {
         return blocked(Disposition::Indeterminate, "required_capture_loss_counter_missing");
     }
     let loss_counters_nonzero = counter_values.iter().any(|value| value.unwrap_or(0) > 0);
@@ -359,6 +363,7 @@ fn evaluate_case(case: &CaptureCase) -> Decision {
     for observed in &case.observed_events {
         if observed.record_id.trim().is_empty()
             || observed.reference_event_id.trim().is_empty()
+            || observed.time_ticks > MAX_SAFE_INTEGER
             || !valid_hex(&observed.payload_sha256, 64)
             || !record_ids.insert(observed.record_id.as_str())
         {
