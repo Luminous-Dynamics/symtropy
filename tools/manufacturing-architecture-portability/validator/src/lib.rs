@@ -449,3 +449,5 @@ mod tests {
 pub mod semantic_evaluator;
 
 pub mod inspection_evaluator;
+
+pub mod nodeset_admission;
