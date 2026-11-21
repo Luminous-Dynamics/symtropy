@@ -1,0 +1,17 @@
+{
+  "projection_schema_version": "0.1.0",
+  "adapter_profile_id": "urn:luminous:symtropy:mfg-arch:uns-mqtt-synthetic-v0.1",
+  "device_uuid": "urn:uuid:machine-001",
+  "asset_type": "CuttingTool",
+  "asset_id": "TOOL-0001",
+  "source_document_id": "MT-ASSET-DOC-0001",
+  "source_document_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "source_uri": "fixture://MT/asset-document.json",
+  "schema_version": "2.8",
+  "schema_identifier": "https://schemas.mtconnect.org/schemas/MTConnectAssets_2.8.schema.json",
+  "schema_bundle_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+  "validation_receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+  "raw_asset_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "source_locator": "/MTConnectAssets/Assets/Asset[1]",
+  "evidence_class": "synthetic"
+}
