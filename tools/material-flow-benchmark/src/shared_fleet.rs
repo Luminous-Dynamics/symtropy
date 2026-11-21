@@ -288,11 +288,14 @@ fn validate_input(input: &SharedFleetInput) -> Result<(), Vec<String>> {
     }
     match input.probability_basis {
         ScenarioProbabilityBasis::CalibratedOutOfSample => {
-            let valid_digest = input.calibration_report_sha256.as_ref().is_some_and(|digest| {
-                digest.len() == 64
-                    && digest.bytes().all(|byte| byte.is_ascii_hexdigit())
-                    && digest == &digest.to_ascii_lowercase()
-            });
+            let valid_digest = input
+                .calibration_report_sha256
+                .as_ref()
+                .is_some_and(|digest| {
+                    digest.len() == 64
+                        && digest.bytes().all(|byte| byte.is_ascii_hexdigit())
+                        && digest == &digest.to_ascii_lowercase()
+                });
             if !valid_digest {
                 errors.push(
                     "calibration_report_sha256: calibrated out-of-sample weights require a 64-character lowercase SHA-256 digest"
@@ -650,29 +653,64 @@ fn simulate_scenario(
                         let route_domain_clear = flight_domain_is_current(
                             origin_observation.weather,
                             origin_observation.permission,
-                        ) && flight_domain_is_current(target_observation.weather, target_observation.permission);
-                        if link.evidence_status != SharedEvidenceStatus::FreshInDomain || !route_domain_clear {
-                            checked_add(&mut metrics.hard_gate_blocked_actions, 1, "hard-gate blocked actions")?;
+                        ) && flight_domain_is_current(
+                            target_observation.weather,
+                            target_observation.permission,
+                        );
+                        if link.evidence_status != SharedEvidenceStatus::FreshInDomain
+                            || !route_domain_clear
+                        {
+                            checked_add(
+                                &mut metrics.hard_gate_blocked_actions,
+                                1,
+                                "hard-gate blocked actions",
+                            )?;
                         } else if energy
                             .checked_sub(link.energy_units)
-                            .is_none_or(|remaining| remaining < input.protected_energy_reserve_units)
+                            .is_none_or(|remaining| {
+                                remaining < input.protected_energy_reserve_units
+                            })
                         {
-                            checked_add(&mut metrics.energy_blocked_actions, 1, "energy-blocked actions")?;
+                            checked_add(
+                                &mut metrics.energy_blocked_actions,
+                                1,
+                                "energy-blocked actions",
+                            )?;
                         } else {
-                            energy = energy
-                                .checked_sub(link.energy_units)
-                                .ok_or_else(|| "reposition energy underflow after validation".to_string())?;
-                            checked_add(&mut metrics.reposition_energy_units, u128::from(link.energy_units), "reposition energy")?;
-                            checked_add(&mut metrics.reposition_cost_units, u128::from(link.cost_units), "reposition cost")?;
+                            energy = energy.checked_sub(link.energy_units).ok_or_else(|| {
+                                "reposition energy underflow after validation".to_string()
+                            })?;
+                            checked_add(
+                                &mut metrics.reposition_energy_units,
+                                u128::from(link.energy_units),
+                                "reposition energy",
+                            )?;
+                            checked_add(
+                                &mut metrics.reposition_cost_units,
+                                u128::from(link.cost_units),
+                                "reposition cost",
+                            )?;
                             add_cost(&mut metrics, u128::from(link.cost_units))?;
-                            checked_add(&mut metrics.repositioning_events, 1, "repositioning events")?;
-                            checked_add(&mut metrics.repositioning_periods, 1, "repositioning periods")?;
+                            checked_add(
+                                &mut metrics.repositioning_events,
+                                1,
+                                "repositioning events",
+                            )?;
+                            checked_add(
+                                &mut metrics.repositioning_periods,
+                                1,
+                                "repositioning periods",
+                            )?;
                             // v0.1 reserves the complete decision period for repositioning.
                             // The target region can only be served from the next period onward.
                             aircraft_region = target.clone();
                         }
                     } else {
-                        checked_add(&mut metrics.hard_gate_blocked_actions, 1, "hard-gate blocked actions")?;
+                        checked_add(
+                            &mut metrics.hard_gate_blocked_actions,
+                            1,
+                            "hard-gate blocked actions",
+                        )?;
                     }
                 }
             }
@@ -1129,7 +1167,8 @@ mod tests {
             schema_version: 1,
             scenario_set_id: "two-region-shared-aircraft-v1".into(),
             probability_basis: ScenarioProbabilityBasis::SyntheticFixture,
-            probability_evidence_reference: "synthetic://scenario-weights/two-region-shared-aircraft-v1".into(),
+            probability_evidence_reference:
+                "synthetic://scenario-weights/two-region-shared-aircraft-v1".into(),
             calibration_report_sha256: None,
             held_out_window_reference: None,
             period_count: 3,
@@ -1278,11 +1317,16 @@ mod tests {
     fn calibrated_probability_basis_requires_digest_and_held_out_window() {
         let mut test = input();
         test.probability_basis = ScenarioProbabilityBasis::CalibratedOutOfSample;
-        test.probability_evidence_reference = "evidence://calibration-report/shared-fleet-v1".into();
+        test.probability_evidence_reference =
+            "evidence://calibration-report/shared-fleet-v1".into();
         test.calibration_report_sha256 = Some("not-a-digest".into());
         test.held_out_window_reference = Some("2026-Q3".into());
         let errors = validate_input(&test).expect_err("invalid calibration digest");
-        assert!(errors.iter().any(|error| error.contains("64-character lowercase SHA-256")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("64-character lowercase SHA-256"))
+        );
 
         test.calibration_report_sha256 = Some("a".repeat(64));
         assert!(validate_input(&test).is_ok());
@@ -1298,7 +1342,11 @@ mod tests {
         test.calibration_report_sha256 = Some("a".repeat(64));
         test.held_out_window_reference = Some("2026-Q3".into());
         let errors = validate_input(&test).expect_err("calibration fields contradict basis");
-        assert!(errors.iter().any(|error| error.contains("only valid with calibrated_out_of_sample")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("only valid with calibrated_out_of_sample"))
+        );
     }
 
     #[test]
@@ -1708,14 +1756,8 @@ mod tests {
         assert!(validate_input(&test).is_ok());
         let canonical = canonicalize(&test);
         let (_nodes, indices, mask) = forced_region_mask(&canonical, "rural");
-        let metrics = simulate_scenario(
-            &canonical,
-            &canonical.scenarios[0],
-            &indices,
-            mask,
-            true,
-        )
-        .expect("missing transfer edge is a blocked action");
+        let metrics = simulate_scenario(&canonical, &canonical.scenarios[0], &indices, mask, true)
+            .expect("missing transfer edge is a blocked action");
         assert_eq!(metrics.repositioning_events, 0);
         assert_eq!(metrics.hard_gate_blocked_actions, 1);
         assert_eq!(metrics.end_energy_units, 16);
