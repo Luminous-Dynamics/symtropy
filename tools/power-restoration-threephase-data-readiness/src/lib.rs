@@ -231,8 +231,8 @@ pub struct GridSourceModel {
     pub source_id: String,
     pub phase_voltages: Vec<PhaseVoltage>,
     pub sequence_impedance: Option<SequenceImpedance>,
-    pub short_circuit_power_mva: f64,
-    pub x_over_r_ratio: f64,
+    pub short_circuit_power_mva: Option<f64>,
+    pub x_over_r_ratio: Option<f64>,
     pub evidence: EvidenceRef,
 }
 
@@ -260,12 +260,12 @@ pub struct ProtectionDeviceModel {
     pub device_id: String,
     pub device_kind: ProtectionDeviceKind,
     pub protected_branch_ids: Vec<String>,
-    pub current_transformer_primary_a: f64,
-    pub current_transformer_secondary_a: f64,
+    pub current_transformer_primary_a: Option<f64>,
+    pub current_transformer_secondary_a: Option<f64>,
     pub voltage_transformer_ratio: Option<f64>,
-    pub phase_pickup_primary_a: f64,
-    pub ground_pickup_primary_a: f64,
-    pub interruption_capacity_ka: f64,
+    pub phase_pickup_primary_a: Option<f64>,
+    pub ground_pickup_primary_a: Option<f64>,
+    pub interruption_capacity_ka: Option<f64>,
     pub phase_time_current_curve: Vec<TimeCurrentPoint>,
     pub ground_time_current_curve: Vec<TimeCurrentPoint>,
     pub coordination_group_id: String,
@@ -1044,10 +1044,8 @@ pub fn audit_three_phase_inputs(
             blocker(&mut blockers, ReadinessScope::ThreePhaseLoadFlow, "gridSource", &source.source_id, "nodeId", "source node lacks native phase model");
         }
         add_blocker_if(
-            !source.short_circuit_power_mva.is_finite()
-                || source.short_circuit_power_mva <= 0.0
-                || !source.x_over_r_ratio.is_finite()
-                || source.x_over_r_ratio <= 0.0,
+            source.short_circuit_power_mva.is_none_or(|value| !value.is_finite() || value <= 0.0)
+                || source.x_over_r_ratio.is_none_or(|value| !value.is_finite() || value <= 0.0),
             &mut blockers,
             ReadinessScope::ShortCircuit,
             "gridSource",
@@ -1126,17 +1124,12 @@ pub fn audit_three_phase_inputs(
             protected_branches.insert(branch_id.as_str());
         }
         add_blocker_if(
-            !device.current_transformer_primary_a.is_finite()
-                || !device.current_transformer_secondary_a.is_finite()
-                || device.current_transformer_primary_a <= 0.0
-                || device.current_transformer_secondary_a <= 0.0
+            device.current_transformer_primary_a.is_none_or(|value| !value.is_finite() || value <= 0.0)
+                || device.current_transformer_secondary_a.is_none_or(|value| !value.is_finite() || value <= 0.0)
                 || device.voltage_transformer_ratio.is_some_and(|ratio| !ratio.is_finite() || ratio <= 0.0)
-                || !device.phase_pickup_primary_a.is_finite()
-                || !device.ground_pickup_primary_a.is_finite()
-                || device.phase_pickup_primary_a <= 0.0
-                || device.ground_pickup_primary_a <= 0.0
-                || !device.interruption_capacity_ka.is_finite()
-                || device.interruption_capacity_ka <= 0.0,
+                || device.phase_pickup_primary_a.is_none_or(|value| !value.is_finite() || value <= 0.0)
+                || device.ground_pickup_primary_a.is_none_or(|value| !value.is_finite() || value <= 0.0)
+                || device.interruption_capacity_ka.is_none_or(|value| !value.is_finite() || value <= 0.0),
             &mut blockers,
             ReadinessScope::ProtectionCoordination,
             "protectionDevice",
@@ -1323,8 +1316,8 @@ mod tests {
                 zero: ComplexValue { real: 0.15, imaginary: 0.9 },
                 unit: "ohm".to_string(),
             }),
-            short_circuit_power_mva: 250.0,
-            x_over_r_ratio: 8.0,
+            short_circuit_power_mva: Some(250.0),
+            x_over_r_ratio: Some(8.0),
             evidence: evidence(&format!("source-{}", source.source_id)),
         }).collect::<Vec<_>>();
 
@@ -1352,12 +1345,12 @@ mod tests {
             device_id: format!("relay-{}", branch.branch_id),
             device_kind: ProtectionDeviceKind::Relay,
             protected_branch_ids: vec![branch.branch_id.clone()],
-            current_transformer_primary_a: 400.0,
-            current_transformer_secondary_a: 5.0,
+            current_transformer_primary_a: Some(400.0),
+            current_transformer_secondary_a: Some(5.0),
             voltage_transformer_ratio: Some(60.0),
-            phase_pickup_primary_a: 240.0,
-            ground_pickup_primary_a: 60.0,
-            interruption_capacity_ka: 25.0,
+            phase_pickup_primary_a: Some(240.0),
+            ground_pickup_primary_a: Some(60.0),
+            interruption_capacity_ka: Some(25.0),
             phase_time_current_curve: vec![
                 TimeCurrentPoint { current_multiple_of_pickup: 1.5, trip_time_seconds: 1.0 },
                 TimeCurrentPoint { current_multiple_of_pickup: 5.0, trip_time_seconds: 0.2 },
@@ -1552,6 +1545,29 @@ mod tests {
         resistance[1][0] = 0.3;
         let report = audit_three_phase_inputs(&case, &package).unwrap();
         assert!(report.blockers.iter().any(|b| b.field_path == "primitiveImpedance.resistance"));
+    }
+
+    #[test]
+    fn missing_source_short_circuit_strength_blocks_short_circuit_only() {
+        let case = case();
+        let mut package = build_valid_package(&case);
+        package.grid_source_models[0].short_circuit_power_mva = None;
+        package.grid_source_models[0].x_over_r_ratio = None;
+        let report = audit_three_phase_inputs(&case, &package).unwrap();
+        assert_eq!(report.three_phase_load_flow.state, ReadinessState::ReadyForIndependentDomainSolver);
+        assert_eq!(report.short_circuit.state, ReadinessState::InconclusiveMissingOrInvalidNativeInputs);
+    }
+
+    #[test]
+    fn missing_protection_ct_or_interruption_rating_blocks_protection_only() {
+        let case = case();
+        let mut package = build_valid_package(&case);
+        package.protection_devices[0].current_transformer_primary_a = None;
+        package.protection_devices[0].interruption_capacity_ka = None;
+        let report = audit_three_phase_inputs(&case, &package).unwrap();
+        assert_eq!(report.three_phase_load_flow.state, ReadinessState::ReadyForIndependentDomainSolver);
+        assert_eq!(report.short_circuit.state, ReadinessState::ReadyForIndependentDomainSolver);
+        assert_eq!(report.protection_coordination.state, ReadinessState::InconclusiveMissingOrInvalidNativeInputs);
     }
 
     #[test]
