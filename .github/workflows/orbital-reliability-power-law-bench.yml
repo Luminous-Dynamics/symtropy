@@ -1,0 +1,100 @@
+name: Orbital Reliability Power-Law Process Benchmark
+
+on:
+  push:
+    branches: ["research/orbital-reliability-power-law-v0-1"]
+    paths:
+      - "tools/orbital-reliability-power-law-bench/**"
+      - ".github/workflows/orbital-reliability-power-law-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/orbital-reliability-power-law-bench/**"
+      - ".github/workflows/orbital-reliability-power-law-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: orbital-reliability-power-law-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  power-law:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      BENCHMARK_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact benchmark head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Generate standalone lockfile
+        run: cargo generate-lockfile --manifest-path tools/orbital-reliability-power-law-bench/Cargo.toml
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/orbital-reliability-power-law-bench/Cargo.toml -- --check
+
+      - name: Run Rust unit tests
+        run: cargo test --locked --manifest-path tools/orbital-reliability-power-law-bench/Cargo.toml --all-targets
+
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path tools/orbital-reliability-power-law-bench/Cargo.toml --all-targets -- -D warnings
+
+      - name: Replay frozen power-law corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_commit="$(git rev-parse HEAD)"
+          test "$actual_commit" = "$BENCHMARK_COMMIT"
+          set +e
+          cargo run --locked --quiet --manifest-path tools/orbital-reliability-power-law-bench/Cargo.toml -- \
+            tools/orbital-reliability-power-law-bench/fixtures/v0.1/power-law-cases.json \
+            --source-commit "$actual_commit" > orbital-reliability-power-law-receipt.json
+          replay_status=$?
+          set -e
+          jq '.report.summary' orbital-reliability-power-law-receipt.json
+          jq -r '.report.cases[] | select(.expected_result_matched == false) | [.case_id, .disposition, (.blockers | join(";"))] | @tsv' orbital-reliability-power-law-receipt.json
+          if [ "$replay_status" -ne 0 ]; then
+            echo "Power-law corpus replay returned $replay_status."
+            exit "$replay_status"
+          fi
+          jq -e --arg expected_commit "$BENCHMARK_COMMIT" '
+            .receipt_schema == "luminous.orbital-reliability-power-law.receipt.v0.1"
+            and .source_commit == $expected_commit
+            and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
+            and .result == "pass"
+            and .report.evidence_class == "synthetic"
+            and .report.claim_ceiling == "synthetic-power-law-parameter-estimation-only"
+            and .report.summary.case_count == 67
+            and .report.summary.expected_result_mismatches == 0
+            and .report.summary.estimate_produced >= 3
+            and .report.summary.inferential_fit_acceptances == 0
+            and .report.summary.reliability_claims_granted == 0
+            and .report.summary.authority_grants == 0
+            and .report.authority_granted == false
+            and .authority_granted == false
+            and ([.report.cases[] | select(.inferential_fit_accepted == true or .reliability_claim_granted == true or .authority_granted == true)] | length) == 0
+          ' orbital-reliability-power-law-receipt.json
+
+      - name: Run independent power-law likelihood oracle
+        run: node tools/orbital-reliability-power-law-bench/tests/reference_oracle.mjs tools/orbital-reliability-power-law-bench/fixtures/v0.1/power-law-cases.json
+
+      - name: Upload reproducible power-law receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbital-reliability-power-law-${{ github.event.pull_request.head.sha || github.sha }}
+          path: orbital-reliability-power-law-receipt.json
+          if-no-files-found: warn
+          retention-days: 30
