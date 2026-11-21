@@ -17,7 +17,9 @@ use crate::ModelError;
 pub enum AttributionConfounding {
     Orthogonal,
     /// Correlation between the normalized physical and measurement energy bases.
-    Partial { correlation: f64 },
+    Partial {
+        correlation: f64,
+    },
     /// Identical energy signatures and constant experiment feature: only the sum
     /// of the two amplitudes is observable.
     ExactAlias,
@@ -159,18 +161,18 @@ pub fn generate_blind_attribution_dataset(
             .iter()
             .zip(orthogonal_basis.iter())
             .map(|(physical, orthogonal)| {
-                correlation * physical
-                    + (1.0 - correlation * correlation).sqrt() * orthogonal
+                correlation * physical + (1.0 - correlation * correlation).sqrt() * orthogonal
             })
             .collect(),
         AttributionConfounding::ExactAlias => physical_basis.clone(),
     };
 
-    let observation_count = energy_count
-        .checked_mul(experiment_count)
-        .ok_or(ModelError::InvalidParameter(
-            "blind_attribution_observation_count_overflow",
-        ))?;
+    let observation_count =
+        energy_count
+            .checked_mul(experiment_count)
+            .ok_or(ModelError::InvalidParameter(
+                "blind_attribution_observation_count_overflow",
+            ))?;
     let mut observations = Vec::with_capacity(observation_count);
     let mut baseline_mean = Vec::with_capacity(observation_count);
     let mut physical_design = Vec::with_capacity(observation_count);
@@ -183,9 +185,7 @@ pub fn generate_blind_attribution_dataset(
     // have unit expectation and keeps the declared noiseless mean interpretable.
     let lognormal_mean_correction = -0.5 * sigma * sigma;
 
-    for (experiment_index, feature_value) in
-        config.experiment_feature_values.iter().enumerate()
-    {
+    for (experiment_index, feature_value) in config.experiment_feature_values.iter().enumerate() {
         for (energy_index, energy) in config.energy_grid_mev.iter().enumerate() {
             let baseline = energy.sqrt() * (-energy / 1.42).exp();
             if !baseline.is_finite() || baseline <= 0.0 {
@@ -193,13 +193,10 @@ pub fn generate_blind_attribution_dataset(
                     "blind_attribution_baseline_mean_invalid",
                 ));
             }
-            let physical_component =
-                config.physical_amplitude * physical_basis[energy_index];
-            let measurement_component = config.measurement_amplitude
-                * feature_value
-                * measurement_basis[energy_index];
-            let expected_mean = baseline
-                * (physical_component + measurement_component).exp();
+            let physical_component = config.physical_amplitude * physical_basis[energy_index];
+            let measurement_component =
+                config.measurement_amplitude * feature_value * measurement_basis[energy_index];
+            let expected_mean = baseline * (physical_component + measurement_component).exp();
             let noise = sigma * rng.normal() + lognormal_mean_correction;
             let observed = expected_mean * noise.exp();
             if !expected_mean.is_finite()
@@ -308,15 +305,17 @@ mod tests {
         let second = generate_blind_attribution_dataset(&config).expect("second fixture");
         assert_eq!(first, second);
         assert_eq!(first.public_data.observation_count, 18);
-        assert!(first.public_data.observations.iter().all(|value| *value > 0.0));
+        assert!(first
+            .public_data
+            .observations
+            .iter()
+            .all(|value| *value > 0.0));
     }
 
     #[test]
     fn orthogonal_design_has_zero_basis_inner_product() {
-        let data = generate_blind_attribution_dataset(&fixture(
-            AttributionConfounding::Orthogonal,
-        ))
-        .expect("orthogonal fixture");
+        let data = generate_blind_attribution_dataset(&fixture(AttributionConfounding::Orthogonal))
+            .expect("orthogonal fixture");
         let inner: f64 = data
             .public_data
             .physical_design
@@ -333,9 +332,9 @@ mod tests {
     #[test]
     fn partial_confounding_has_the_requested_energy_basis_correlation() {
         let rho = 0.6;
-        let data = generate_blind_attribution_dataset(&fixture(
-            AttributionConfounding::Partial { correlation: rho },
-        ))
+        let data = generate_blind_attribution_dataset(&fixture(AttributionConfounding::Partial {
+            correlation: rho,
+        }))
         .expect("partial fixture");
         let physical: Vec<f64> = data.public_data.physical_design
             [..data.public_data.energy_grid_mev.len()]
@@ -347,7 +346,9 @@ mod tests {
             .iter()
             .map(|row| row[0])
             .collect();
-        let inner: f64 = physical.iter().zip(measurement.iter())
+        let inner: f64 = physical
+            .iter()
+            .zip(measurement.iter())
             .map(|(left, right)| left * right)
             .sum();
         let feature = data.public_data.experiment_feature_values[0];
@@ -356,12 +357,13 @@ mod tests {
 
     #[test]
     fn exact_alias_emits_identical_public_design_columns() {
-        let data = generate_blind_attribution_dataset(&fixture(
-            AttributionConfounding::ExactAlias,
-        ))
-        .expect("exact-alias fixture");
+        let data = generate_blind_attribution_dataset(&fixture(AttributionConfounding::ExactAlias))
+            .expect("exact-alias fixture");
         assert!(data.truth.exact_observational_alias);
-        assert_eq!(data.public_data.physical_design, data.public_data.measurement_design);
+        assert_eq!(
+            data.public_data.physical_design,
+            data.public_data.measurement_design
+        );
     }
 
     #[test]

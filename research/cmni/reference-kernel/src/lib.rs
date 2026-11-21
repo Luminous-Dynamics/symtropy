@@ -39,14 +39,14 @@ pub use raw_scale_bias_likelihood::{
 
 mod grouped_horseshoe_hmc;
 pub use grouped_horseshoe_hmc::{
-    run_grouped_horseshoe_hmc_chain, run_grouped_horseshoe_hmc_chains,
-    GroupedHmcChain, GroupedHmcDraw, GroupedHmcInitialization,
+    run_grouped_horseshoe_hmc_chain, run_grouped_horseshoe_hmc_chains, GroupedHmcChain,
+    GroupedHmcDraw, GroupedHmcInitialization,
 };
 
 mod horseshoe_posterior;
 pub use horseshoe_posterior::{
-    grouped_raw_scale_horseshoe_log_posterior, raw_scale_horseshoe_log_posterior,
-    GlobalScalePrior, GroupedHorseshoePosteriorInput, GroupedRawScaleHorseshoePosterior,
+    grouped_raw_scale_horseshoe_log_posterior, raw_scale_horseshoe_log_posterior, GlobalScalePrior,
+    GroupedHorseshoePosteriorInput, GroupedRawScaleHorseshoePosterior,
     PreparedGroupedRawScaleHorseshoeModel, RawScaleHorseshoePosterior,
 };
 
@@ -75,8 +75,8 @@ mod shared_reference_normalization;
 pub use shared_reference_normalization::{
     aiachne_compatible_overlap_geometry, linear_reference_projection,
     normalize_spectrum_with_shared_reference, shared_reference_cross_covariance,
-    trapezoidal_integration_weights, ReferenceOverlapGeometry,
-    SharedReferenceNormalizationInput, SharedReferenceNormalizationResult,
+    trapezoidal_integration_weights, ReferenceOverlapGeometry, SharedReferenceNormalizationInput,
+    SharedReferenceNormalizationResult,
 };
 
 mod blind_attribution;

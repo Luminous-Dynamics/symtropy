@@ -50,7 +50,10 @@ pub fn trapezoidal_integration_weights(energies: &[f64]) -> Result<Vec<f64>, Mod
     }
     let last = energies.len() - 1;
     weights[last] = 0.5 * (energies[last] - energies[last - 1]);
-    if weights.iter().any(|value| !value.is_finite() || *value <= 0.0) {
+    if weights
+        .iter()
+        .any(|value| !value.is_finite() || *value <= 0.0)
+    {
         return Err(ModelError::InvalidParameter("trapezoid_weights_invalid"));
     }
     Ok(weights)
@@ -76,8 +79,7 @@ pub fn linear_reference_projection(
         }
     }
 
-    let mut projection =
-        vec![vec![0.0; reference_energies.len()]; observation_energies.len()];
+    let mut projection = vec![vec![0.0; reference_energies.len()]; observation_energies.len()];
     for (row_index, energy) in observation_energies.iter().enumerate() {
         if *energy < reference_energies[0]
             || *energy > reference_energies[reference_energies.len() - 1]
@@ -135,8 +137,7 @@ pub fn aiachne_compatible_overlap_geometry(
 
     let reference_min = reference_energies[0];
     let reference_max = reference_energies[reference_energies.len() - 1];
-    let mut projection =
-        vec![vec![0.0; reference_energies.len()]; observation_energies.len()];
+    let mut projection = vec![vec![0.0; reference_energies.len()]; observation_energies.len()];
     for (row_index, energy) in observation_energies.iter().enumerate() {
         if *energy < reference_min || *energy > reference_max {
             continue;
@@ -291,20 +292,22 @@ pub fn normalize_spectrum_with_shared_reference(
         ));
     }
 
-    let projected_reference = matrix_vector_multiply(
-        input.reference_projection,
-        input.reference_values,
-    )?;
+    let projected_reference =
+        matrix_vector_multiply(input.reference_projection, input.reference_values)?;
     let observation_integral = dot(input.observations, input.integration_weights);
     let reference_integral_on_experiment_grid =
         dot(&projected_reference, input.integration_weights);
     if !observation_integral.is_finite() || observation_integral <= 0.0 {
-        return Err(ModelError::NonPositiveValue("normalization_observation_integral"));
+        return Err(ModelError::NonPositiveValue(
+            "normalization_observation_integral",
+        ));
     }
     if !reference_integral_on_experiment_grid.is_finite()
         || reference_integral_on_experiment_grid <= 0.0
     {
-        return Err(ModelError::NonPositiveValue("normalization_reference_integral"));
+        return Err(ModelError::NonPositiveValue(
+            "normalization_reference_integral",
+        ));
     }
 
     let scale_factor = reference_integral_on_experiment_grid / observation_integral;
@@ -325,12 +328,9 @@ pub fn normalize_spectrum_with_shared_reference(
     }
 
     // u = A^T w, so q = u^T r and J_r = y u^T / p.
-    let projected_weights = transpose_matrix_vector_multiply(
-        input.reference_projection,
-        input.integration_weights,
-    )?;
-    let mut observation_jacobian =
-        vec![vec![0.0; observation_count]; observation_count];
+    let projected_weights =
+        transpose_matrix_vector_multiply(input.reference_projection, input.integration_weights)?;
+    let mut observation_jacobian = vec![vec![0.0; observation_count]; observation_count];
     for (row_index, row) in observation_jacobian.iter_mut().enumerate() {
         for (column_index, value) in row.iter_mut().enumerate() {
             let identity = if row_index == column_index { 1.0 } else { 0.0 };
@@ -349,14 +349,10 @@ pub fn normalize_spectrum_with_shared_reference(
         }
     }
 
-    let observation_covariance_contribution = propagate_covariance(
-        &observation_jacobian,
-        input.observation_covariance,
-    )?;
-    let shared_reference_covariance_contribution = propagate_covariance(
-        &reference_jacobian,
-        input.reference_covariance,
-    )?;
+    let observation_covariance_contribution =
+        propagate_covariance(&observation_jacobian, input.observation_covariance)?;
+    let shared_reference_covariance_contribution =
+        propagate_covariance(&reference_jacobian, input.reference_covariance)?;
     let total_covariance = add_matrices(
         &observation_covariance_contribution,
         &shared_reference_covariance_contribution,
@@ -406,12 +402,8 @@ pub fn shared_reference_cross_covariance(
     validate_finite_matrix(left_reference_jacobian, "left_reference_jacobian")?;
     validate_finite_matrix(right_reference_jacobian, "right_reference_jacobian")?;
 
-    let left_times_covariance =
-        matrix_multiply(left_reference_jacobian, reference_covariance)?;
-    matrix_multiply(
-        &left_times_covariance,
-        &transpose(right_reference_jacobian),
-    )
+    let left_times_covariance = matrix_multiply(left_reference_jacobian, reference_covariance)?;
+    matrix_multiply(&left_times_covariance, &transpose(right_reference_jacobian))
 }
 
 fn validate_symmetric_finite_covariance(
@@ -464,11 +456,7 @@ fn validate_positive_semidefinite(
                 if value < -tolerance {
                     return Err(ModelError::InvalidCovariance(name));
                 }
-                lower[row_index][column_index] = if value > 0.0 {
-                    value.sqrt()
-                } else {
-                    0.0
-                };
+                lower[row_index][column_index] = if value > 0.0 { value.sqrt() } else { 0.0 };
             } else {
                 let pivot = lower[column_index][column_index];
                 if pivot > 0.0 {
@@ -482,20 +470,14 @@ fn validate_positive_semidefinite(
     Ok(())
 }
 
-fn validate_finite_matrix(
-    matrix: &[Vec<f64>],
-    name: &'static str,
-) -> Result<(), ModelError> {
+fn validate_finite_matrix(matrix: &[Vec<f64>], name: &'static str) -> Result<(), ModelError> {
     if matrix.iter().flatten().any(|value| !value.is_finite()) {
         return Err(ModelError::NonFiniteValue(name));
     }
     Ok(())
 }
 
-fn matrix_vector_multiply(
-    matrix: &[Vec<f64>],
-    vector: &[f64],
-) -> Result<Vec<f64>, ModelError> {
+fn matrix_vector_multiply(matrix: &[Vec<f64>], vector: &[f64]) -> Result<Vec<f64>, ModelError> {
     if matrix.is_empty() || matrix.iter().any(|row| row.len() != vector.len()) {
         return Err(ModelError::MismatchedDataLengths);
     }
@@ -617,11 +599,8 @@ mod tests {
 
     #[test]
     fn linear_reference_projection_matches_piecewise_linear_interpolation() {
-        let projection = linear_reference_projection(
-            &[1.0, 2.0, 4.0],
-            &[1.5, 3.0, 4.0],
-        )
-        .expect("projection");
+        let projection =
+            linear_reference_projection(&[1.0, 2.0, 4.0], &[1.5, 3.0, 4.0]).expect("projection");
         assert_eq!(
             projection,
             vec![
@@ -650,27 +629,19 @@ mod tests {
 
     #[test]
     fn aiachne_overlap_geometry_skips_only_lower_out_of_domain_left_intervals() {
-        let geometry = aiachne_compatible_overlap_geometry(
-            &[0.5, 1.0, 2.0, 4.0],
-            &[0.25, 1.0, 2.0, 3.0],
-        )
-        .expect("overlap geometry");
+        let geometry =
+            aiachne_compatible_overlap_geometry(&[0.5, 1.0, 2.0, 4.0], &[0.25, 1.0, 2.0, 3.0])
+                .expect("overlap geometry");
         assert_eq!(geometry.included_trapezoid_intervals, 2);
         assert_eq!(geometry.integration_weights, vec![0.0, 0.5, 1.0, 0.5]);
         assert_eq!(geometry.reference_projection[0], vec![0.0; 4]);
-        assert_eq!(
-            geometry.reference_projection[3],
-            vec![0.0, 0.0, 0.5, 0.5]
-        );
+        assert_eq!(geometry.reference_projection[3], vec![0.0, 0.0, 0.5, 0.5]);
     }
 
     #[test]
     fn aiachne_overlap_geometry_fails_closed_on_upper_nan_trapezoid_endpoint() {
         assert_eq!(
-            aiachne_compatible_overlap_geometry(
-                &[0.5, 1.0, 2.0],
-                &[1.0, 2.0, 3.0],
-            ),
+            aiachne_compatible_overlap_geometry(&[0.5, 1.0, 2.0], &[1.0, 2.0, 3.0],),
             Err(ModelError::InvalidParameter(
                 "aiache_reference_interpolation_nan_at_right_trapezoid_endpoint",
             ))
@@ -695,55 +666,47 @@ mod tests {
         let weights = [0.5, 0.5];
         let projection = [vec![1.0, 0.0], vec![0.0, 1.0]];
         let identity_covariance = [vec![1.0, 0.0], vec![0.0, 1.0]];
-        let baseline = normalize_spectrum_with_shared_reference(
-            SharedReferenceNormalizationInput {
+        let baseline =
+            normalize_spectrum_with_shared_reference(SharedReferenceNormalizationInput {
                 observations: &observed,
                 observation_covariance: &identity_covariance,
                 reference_values: &reference,
                 reference_covariance: &identity_covariance,
                 reference_projection: &projection,
                 integration_weights: &weights,
-            },
-        )
-        .expect("baseline normalization");
+            })
+            .expect("baseline normalization");
         let epsilon = 1.0e-6;
         let perturbed_observations = [observed[0] + epsilon, observed[1]];
-        let observation_perturbation = normalize_spectrum_with_shared_reference(
-            SharedReferenceNormalizationInput {
+        let observation_perturbation =
+            normalize_spectrum_with_shared_reference(SharedReferenceNormalizationInput {
                 observations: &perturbed_observations,
                 observation_covariance: &identity_covariance,
                 reference_values: &reference,
                 reference_covariance: &identity_covariance,
                 reference_projection: &projection,
                 integration_weights: &weights,
-            },
-        )
-        .expect("observation perturbation");
+            })
+            .expect("observation perturbation");
         let observed_derivative = (observation_perturbation.normalized_values[0]
             - baseline.normalized_values[0])
             / epsilon;
-        assert!(
-            (observed_derivative - baseline.observation_jacobian[0][0]).abs() < 1.0e-6
-        );
+        assert!((observed_derivative - baseline.observation_jacobian[0][0]).abs() < 1.0e-6);
 
         let perturbed_reference = [reference[0] + epsilon, reference[1]];
-        let reference_perturbation = normalize_spectrum_with_shared_reference(
-            SharedReferenceNormalizationInput {
+        let reference_perturbation =
+            normalize_spectrum_with_shared_reference(SharedReferenceNormalizationInput {
                 observations: &observed,
                 observation_covariance: &identity_covariance,
                 reference_values: &perturbed_reference,
                 reference_covariance: &identity_covariance,
                 reference_projection: &projection,
                 integration_weights: &weights,
-            },
-        )
-        .expect("reference perturbation");
-        let reference_derivative = (reference_perturbation.normalized_values[0]
-            - baseline.normalized_values[0])
-            / epsilon;
-        assert!(
-            (reference_derivative - baseline.reference_jacobian[0][0]).abs() < 1.0e-6
-        );
+            })
+            .expect("reference perturbation");
+        let reference_derivative =
+            (reference_perturbation.normalized_values[0] - baseline.normalized_values[0]) / epsilon;
+        assert!((reference_derivative - baseline.reference_jacobian[0][0]).abs() < 1.0e-6);
     }
 
     #[test]
@@ -761,7 +724,9 @@ mod tests {
         };
         let result = normalize_spectrum_with_shared_reference(input).expect("normalization");
         let normalized_integral = dot(&result.normalized_values, &weights);
-        assert!((normalized_integral - result.reference_integral_on_experiment_grid).abs() < 1.0e-12);
+        assert!(
+            (normalized_integral - result.reference_integral_on_experiment_grid).abs() < 1.0e-12
+        );
         assert!((result.scale_factor - 4.0 / 3.0).abs() < 1.0e-12);
     }
 
@@ -776,20 +741,18 @@ mod tests {
             vec![0.01, 0.2, 0.02],
             vec![0.0, 0.02, 0.15],
         ];
-        let result = normalize_spectrum_with_shared_reference(
-            SharedReferenceNormalizationInput {
-                observations: &observed,
-                observation_covariance: &covariance,
-                reference_values: &reference,
-                reference_covariance: &zero_reference_covariance,
-                reference_projection: &[
-                    vec![1.0, 0.0, 0.0],
-                    vec![0.0, 1.0, 0.0],
-                    vec![0.0, 0.0, 1.0],
-                ],
-                integration_weights: &weights,
-            },
-        )
+        let result = normalize_spectrum_with_shared_reference(SharedReferenceNormalizationInput {
+            observations: &observed,
+            observation_covariance: &covariance,
+            reference_values: &reference,
+            reference_covariance: &zero_reference_covariance,
+            reference_projection: &[
+                vec![1.0, 0.0, 0.0],
+                vec![0.0, 1.0, 0.0],
+                vec![0.0, 0.0, 1.0],
+            ],
+            integration_weights: &weights,
+        })
         .expect("normalized covariance");
         let projected: Vec<f64> = result
             .total_covariance
@@ -805,12 +768,9 @@ mod tests {
         let shared_covariance = vec![vec![0.04, 0.01], vec![0.01, 0.09]];
         let left_jacobian = vec![vec![0.5, 0.5], vec![0.25, 0.25]];
         let right_jacobian = vec![vec![0.2, 0.8], vec![0.1, 0.4], vec![0.3, 1.2]];
-        let cross = shared_reference_cross_covariance(
-            &left_jacobian,
-            &shared_covariance,
-            &right_jacobian,
-        )
-        .expect("shared reference cross covariance");
+        let cross =
+            shared_reference_cross_covariance(&left_jacobian, &shared_covariance, &right_jacobian)
+                .expect("shared reference cross covariance");
         assert_eq!(cross.len(), 2);
         assert_eq!(cross[0].len(), 3);
         assert!(cross.iter().flatten().all(|value| value.is_finite()));
@@ -826,27 +786,23 @@ mod tests {
         let weights = [0.5, 0.5];
         let left_observations = [2.0, 4.0];
         let right_observations = [1.0, 6.0];
-        let left = normalize_spectrum_with_shared_reference(
-            SharedReferenceNormalizationInput {
-                observations: &left_observations,
-                observation_covariance: &identity,
-                reference_values: &reference,
-                reference_covariance: &reference_covariance,
-                reference_projection: &projection,
-                integration_weights: &weights,
-            },
-        )
+        let left = normalize_spectrum_with_shared_reference(SharedReferenceNormalizationInput {
+            observations: &left_observations,
+            observation_covariance: &identity,
+            reference_values: &reference,
+            reference_covariance: &reference_covariance,
+            reference_projection: &projection,
+            integration_weights: &weights,
+        })
         .expect("left normalization");
-        let right = normalize_spectrum_with_shared_reference(
-            SharedReferenceNormalizationInput {
-                observations: &right_observations,
-                observation_covariance: &identity,
-                reference_values: &reference,
-                reference_covariance: &reference_covariance,
-                reference_projection: &projection,
-                integration_weights: &weights,
-            },
-        )
+        let right = normalize_spectrum_with_shared_reference(SharedReferenceNormalizationInput {
+            observations: &right_observations,
+            observation_covariance: &identity,
+            reference_values: &reference,
+            reference_covariance: &reference_covariance,
+            reference_projection: &projection,
+            integration_weights: &weights,
+        })
         .expect("right normalization");
 
         let cross = shared_reference_cross_covariance(
@@ -886,7 +842,9 @@ mod tests {
                 reference_projection: &[vec![1.0, 0.0], vec![0.0, 1.0]],
                 integration_weights: &weights,
             }),
-            Err(ModelError::NonFiniteValue("normalization_observation_covariance"))
+            Err(ModelError::NonFiniteValue(
+                "normalization_observation_covariance"
+            ))
         );
     }
 }

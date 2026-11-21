@@ -91,11 +91,9 @@ pub fn assemble_joint_experiment_covariance(
             "independent_observation_covariance",
         )?;
         observation_counts.push(observation_count);
-        total_observations = total_observations
-            .checked_add(observation_count)
-            .ok_or(ModelError::InvalidParameter(
-                "joint_observation_dimension_overflow",
-            ))?;
+        total_observations = total_observations.checked_add(observation_count).ok_or(
+            ModelError::InvalidParameter("joint_observation_dimension_overflow"),
+        )?;
 
         let mut local_source_ids = BTreeSet::new();
         for contribution in &experiment.shared_sources {
@@ -106,10 +104,7 @@ pub fn assemble_joint_experiment_covariance(
                     "shared_source_ids_must_be_nonempty_and_unique_per_experiment",
                 ));
             }
-            validate_covariance(
-                &contribution.source_covariance,
-                "shared_source_covariance",
-            )?;
+            validate_covariance(&contribution.source_covariance, "shared_source_covariance")?;
             let source_dimension = contribution.source_covariance.len();
             if contribution.observation_jacobian.len() != observation_count
                 || contribution
@@ -284,11 +279,9 @@ fn validate_covariance(matrix: &[Vec<f64>], name: &'static str) -> Result<(), Mo
                 if value < -tolerance {
                     return Err(ModelError::InvalidCovariance(name));
                 }
-                lower[row_index][column_index] =
-                    if value > 0.0 { value.sqrt() } else { 0.0 };
+                lower[row_index][column_index] = if value > 0.0 { value.sqrt() } else { 0.0 };
             } else if lower[column_index][column_index] > 0.0 {
-                lower[row_index][column_index] =
-                    value / lower[column_index][column_index];
+                lower[row_index][column_index] = value / lower[column_index][column_index];
             } else if value.abs() > tolerance {
                 return Err(ModelError::InvalidCovariance(name));
             }
@@ -384,22 +377,18 @@ mod tests {
             },
         ])
         .expect("shared calibration portfolio");
-        assert_eq!(
-            result.covariance,
-            vec![vec![17.0, 24.0], vec![24.0, 37.0]]
-        );
+        assert_eq!(result.covariance, vec![vec![17.0, 24.0], vec![24.0, 37.0]]);
         assert_eq!(result.shared_source_ids, vec!["detector-calibration-v1"]);
     }
 
     #[test]
     fn multiple_shared_sources_add_independent_cross_covariance_terms() {
-        let contribution = |source_id: &str, variance: f64, sensitivity: f64| {
-            SharedUncertaintyContribution {
+        let contribution =
+            |source_id: &str, variance: f64, sensitivity: f64| SharedUncertaintyContribution {
                 source_id: source_id.to_owned(),
                 source_covariance: vec![vec![variance]],
                 observation_jacobian: vec![vec![sensitivity]],
-            }
-        };
+            };
         let result = assemble_joint_experiment_covariance(&[
             ExperimentNoiseModel {
                 experiment_id: "exp-a".to_owned(),
@@ -473,10 +462,7 @@ mod tests {
             },
         ])
         .expect("partial-lineage portfolio");
-        assert_eq!(
-            result.covariance,
-            vec![vec![1.0, 0.0], vec![0.0, 1.0]]
-        );
+        assert_eq!(result.covariance, vec![vec![1.0, 0.0], vec![0.0, 1.0]]);
         assert!(!result.lineage_coverage_complete);
     }
 

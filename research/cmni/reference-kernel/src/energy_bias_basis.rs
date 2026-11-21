@@ -32,14 +32,18 @@ pub fn aiachne_global_scale_index_by_coefficient(
         ))?;
     let mut indices = Vec::with_capacity(coefficient_count);
     for group in 0..feature_group_count {
-        let base = group
-            .checked_mul(3)
-            .ok_or(ModelError::InvalidParameter(
-                "aiachne_horseshoe_group_index_overflow",
-            ))?;
+        let base = group.checked_mul(3).ok_or(ModelError::InvalidParameter(
+            "aiachne_horseshoe_group_index_overflow",
+        ))?;
         indices.extend(std::iter::repeat_n(base, ENERGY_BIAS_CENTRES_PER_SCALE[0]));
-        indices.extend(std::iter::repeat_n(base + 1, ENERGY_BIAS_CENTRES_PER_SCALE[1]));
-        indices.extend(std::iter::repeat_n(base + 2, ENERGY_BIAS_CENTRES_PER_SCALE[2]));
+        indices.extend(std::iter::repeat_n(
+            base + 1,
+            ENERGY_BIAS_CENTRES_PER_SCALE[1],
+        ));
+        indices.extend(std::iter::repeat_n(
+            base + 2,
+            ENERGY_BIAS_CENTRES_PER_SCALE[2],
+        ));
     }
     if indices.len() != coefficient_count {
         return Err(ModelError::InvalidParameter(
@@ -55,7 +59,10 @@ pub fn aiachne_bias_basis_energy_domain(
     if reference_energies_mev.len() < 2 {
         return Err(ModelError::MismatchedDataLengths);
     }
-    if reference_energies_mev.iter().any(|value| !value.is_finite()) {
+    if reference_energies_mev
+        .iter()
+        .any(|value| !value.is_finite())
+    {
         return Err(ModelError::NonFiniteValue("aiachne_reference_energy_grid"));
     }
     if reference_energies_mev

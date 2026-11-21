@@ -215,8 +215,7 @@ pub fn raw_scale_horseshoe_log_posterior(
     let mut coefficient_gradient = vec![0.0; coefficient_count];
     for feature in 0..coefficient_count {
         for row in 0..observation_count {
-            coefficient_gradient[feature] +=
-                design_matrix[row][feature] * log_mean_gradient[row];
+            coefficient_gradient[feature] += design_matrix[row][feature] * log_mean_gradient[row];
         }
     }
 
@@ -352,8 +351,7 @@ pub fn grouped_raw_scale_horseshoe_log_posterior(
         || group_count == 0
         || input.log_local_scales.len() != coefficient_count
         || input.global_scale_index_by_coefficient.len() != coefficient_count
-        || (experiment_scale_count == 0
-            && !input.experiment_scale_index_by_observation.is_empty())
+        || (experiment_scale_count == 0 && !input.experiment_scale_index_by_observation.is_empty())
         || (experiment_scale_count > 0
             && input.experiment_scale_index_by_observation.len() != observation_count)
     {
@@ -366,8 +364,7 @@ pub fn grouped_raw_scale_horseshoe_log_posterior(
         return Err(ModelError::NonPositiveValue("fixed_coefficient_scale"));
     }
     let prior_scale = match input.global_scale_prior {
-        GlobalScalePrior::HalfNormal { scale }
-        | GlobalScalePrior::HalfCauchy { scale } => scale,
+        GlobalScalePrior::HalfNormal { scale } | GlobalScalePrior::HalfCauchy { scale } => scale,
     };
     if !prior_scale.is_finite() {
         return Err(ModelError::NonFiniteValue("global_scale_prior_scale"));
@@ -554,20 +551,16 @@ pub fn grouped_raw_scale_horseshoe_log_posterior(
         }
 
         sum_scaled_squares[group_index] += q;
-        log_prior += -0.5 * q
-            - scale.ln()
-            - 0.5 * (2.0 * std::f64::consts::PI).ln();
+        log_prior += -0.5 * q - scale.ln() - 0.5 * (2.0 * std::f64::consts::PI).ln();
         // Half-Cauchy local scale with the log-coordinate Jacobian.
-        log_prior += (2.0 / std::f64::consts::PI).ln()
-            - (1.0 + local_sq).ln()
+        log_prior += (2.0 / std::f64::consts::PI).ln() - (1.0 + local_sq).ln()
             + input.log_local_scales[feature];
 
         // Remove the base unit-global coefficient prior, then apply the grouped
         // coefficient prior with fixed_coefficient_scale * tau[group] * lambda.
         coefficient_gradient[feature] += coefficient / (local * local);
         coefficient_gradient[feature] -= coefficient / (scale * scale);
-        log_local_scale_gradient[feature] =
-            q - 2.0 * local_sq / (1.0 + local_sq);
+        log_local_scale_gradient[feature] = q - 2.0 * local_sq / (1.0 + local_sq);
     }
 
     for group_index in 0..group_count {
@@ -581,30 +574,30 @@ pub fn grouped_raw_scale_horseshoe_log_posterior(
         }
         match input.global_scale_prior {
             GlobalScalePrior::HalfNormal { scale } => {
-                log_prior += 0.5 * (2.0 / std::f64::consts::PI).ln()
-                    - scale.ln()
-                    - 0.5 * ratio_sq
+                log_prior += 0.5 * (2.0 / std::f64::consts::PI).ln() - scale.ln() - 0.5 * ratio_sq
                     + input.log_global_scales[group_index];
                 log_global_scale_gradients[group_index] =
-                    sum_scaled_squares[group_index] - group_counts[group_index] as f64
-                        + 1.0 - ratio_sq;
+                    sum_scaled_squares[group_index] - group_counts[group_index] as f64 + 1.0
+                        - ratio_sq;
             }
             GlobalScalePrior::HalfCauchy { scale } => {
-                log_prior += (2.0 / std::f64::consts::PI).ln()
-                    - scale.ln()
-                    - (1.0 + ratio_sq).ln()
+                log_prior += (2.0 / std::f64::consts::PI).ln() - scale.ln() - (1.0 + ratio_sq).ln()
                     + input.log_global_scales[group_index];
                 log_global_scale_gradients[group_index] =
-                    sum_scaled_squares[group_index] - group_counts[group_index] as f64
-                        + 1.0 - 2.0 * ratio_sq / (1.0 + ratio_sq);
+                    sum_scaled_squares[group_index] - group_counts[group_index] as f64 + 1.0
+                        - 2.0 * ratio_sq / (1.0 + ratio_sq);
             }
         }
     }
 
     if !log_prior.is_finite()
         || coefficient_gradient.iter().any(|value| !value.is_finite())
-        || log_local_scale_gradient.iter().any(|value| !value.is_finite())
-        || log_global_scale_gradients.iter().any(|value| !value.is_finite())
+        || log_local_scale_gradient
+            .iter()
+            .any(|value| !value.is_finite())
+        || log_global_scale_gradients
+            .iter()
+            .any(|value| !value.is_finite())
     {
         return Err(ModelError::InvalidParameter(
             "grouped_horseshoe_posterior_nonfinite",
@@ -671,7 +664,9 @@ impl PreparedGroupedRawScaleHorseshoeModel {
             return Err(ModelError::NonFiniteValue("prepared_grouped_design_matrix"));
         }
         if relative_covariance.iter().flatten().any(|v| !v.is_finite()) {
-            return Err(ModelError::NonFiniteValue("prepared_grouped_relative_covariance"));
+            return Err(ModelError::NonFiniteValue(
+                "prepared_grouped_relative_covariance",
+            ));
         }
         let scale = relative_covariance
             .iter()
@@ -749,8 +744,9 @@ impl PreparedGroupedRawScaleHorseshoeModel {
             ));
         }
         let prior_scale = match global_scale_prior {
-            GlobalScalePrior::HalfNormal { scale }
-            | GlobalScalePrior::HalfCauchy { scale } => scale,
+            GlobalScalePrior::HalfNormal { scale } | GlobalScalePrior::HalfCauchy { scale } => {
+                scale
+            }
         };
         if !prior_scale.is_finite() || prior_scale <= 0.0 {
             return Err(ModelError::InvalidParameter(
@@ -765,7 +761,9 @@ impl PreparedGroupedRawScaleHorseshoeModel {
             .chain(global_scales.iter())
             .any(|v| !v.is_finite() || *v <= 0.0)
         {
-            return Err(ModelError::InvalidParameter("prepared_grouped_scale_invalid"));
+            return Err(ModelError::InvalidParameter(
+                "prepared_grouped_scale_invalid",
+            ));
         }
         let mut group_counts = vec![0usize; groups];
         for group in global_scale_index_by_coefficient {
@@ -872,10 +870,9 @@ impl PreparedGroupedRawScaleHorseshoeModel {
         const DATA_SCALE_STD: f64 = 0.01;
         for (index, scale) in experiment_scales.iter().enumerate() {
             let z = (scale - 1.0) / DATA_SCALE_STD;
-            log_prior += -0.5 * z * z
-                - DATA_SCALE_STD.ln()
-                - 0.5 * (2.0 * std::f64::consts::PI).ln()
-                + log_experiment_scales[index];
+            log_prior +=
+                -0.5 * z * z - DATA_SCALE_STD.ln() - 0.5 * (2.0 * std::f64::consts::PI).ln()
+                    + log_experiment_scales[index];
             experiment_gradient[index] = -(scale - 1.0) * scale / DATA_SCALE_STD.powi(2) + 1.0;
         }
         for (obs_index, group) in experiment_scale_index_by_observation.iter().enumerate() {
@@ -903,9 +900,7 @@ impl PreparedGroupedRawScaleHorseshoeModel {
                 ));
             }
             group_sum_q[group] += q;
-            log_prior += -0.5 * q
-                - scale.ln()
-                - 0.5 * (2.0 * std::f64::consts::PI).ln()
+            log_prior += -0.5 * q - scale.ln() - 0.5 * (2.0 * std::f64::consts::PI).ln()
                 + (2.0 / std::f64::consts::PI).ln()
                 - (1.0 + local_sq).ln()
                 + log_local_scales[feature];
@@ -923,20 +918,18 @@ impl PreparedGroupedRawScaleHorseshoeModel {
             }
             match global_scale_prior {
                 GlobalScalePrior::HalfNormal { scale } => {
-                    log_prior += 0.5 * (2.0 / std::f64::consts::PI).ln()
-                        - scale.ln()
-                        - 0.5 * ratio_sq
-                        + log_global_scales[group];
+                    log_prior +=
+                        0.5 * (2.0 / std::f64::consts::PI).ln() - scale.ln() - 0.5 * ratio_sq
+                            + log_global_scales[group];
                     global_gradient[group] =
                         group_sum_q[group] - group_counts[group] as f64 + 1.0 - ratio_sq;
                 }
                 GlobalScalePrior::HalfCauchy { scale } => {
-                    log_prior += (2.0 / std::f64::consts::PI).ln()
-                        - scale.ln()
-                        - (1.0 + ratio_sq).ln()
-                        + log_global_scales[group];
-                    global_gradient[group] = group_sum_q[group] - group_counts[group] as f64
-                        + 1.0 - 2.0 * ratio_sq / (1.0 + ratio_sq);
+                    log_prior +=
+                        (2.0 / std::f64::consts::PI).ln() - scale.ln() - (1.0 + ratio_sq).ln()
+                            + log_global_scales[group];
+                    global_gradient[group] = group_sum_q[group] - group_counts[group] as f64 + 1.0
+                        - 2.0 * ratio_sq / (1.0 + ratio_sq);
                 }
             }
         }
@@ -1054,13 +1047,9 @@ mod tests {
         let covariance = vec![vec![0.04, 0.005], vec![0.005, 0.09]];
         let prior = GlobalScalePrior::HalfNormal { scale: 1.0 };
 
-        let prepared = PreparedGroupedRawScaleHorseshoeModel::new(
-            &observed,
-            &baseline,
-            &design,
-            &covariance,
-        )
-        .expect("prepared grouped model");
+        let prepared =
+            PreparedGroupedRawScaleHorseshoeModel::new(&observed, &baseline, &design, &covariance)
+                .expect("prepared grouped model");
         let prepared_result = prepared
             .evaluate(
                 &coefficients,
@@ -1073,8 +1062,8 @@ mod tests {
                 prior,
             )
             .expect("prepared posterior");
-        let unprepared_result = grouped_raw_scale_horseshoe_log_posterior(
-            GroupedHorseshoePosteriorInput {
+        let unprepared_result =
+            grouped_raw_scale_horseshoe_log_posterior(GroupedHorseshoePosteriorInput {
                 observed: &observed,
                 baseline_mean: &baseline,
                 design_matrix: &design,
@@ -1087,17 +1076,33 @@ mod tests {
                 relative_covariance: &covariance,
                 fixed_coefficient_scale: 1.0e-2,
                 global_scale_prior: prior,
-            },
-        )
-        .expect("unprepared grouped target");
+            })
+            .expect("unprepared grouped target");
 
-        assert!((prepared_result.log_likelihood - unprepared_result.log_likelihood).abs() < 1.0e-10);
+        assert!(
+            (prepared_result.log_likelihood - unprepared_result.log_likelihood).abs() < 1.0e-10
+        );
         assert!((prepared_result.log_posterior - unprepared_result.log_posterior).abs() < 1.0e-10);
-        assert_eq!(prepared_result.biased_prediction, unprepared_result.biased_prediction);
-        assert_eq!(prepared_result.coefficient_gradient, unprepared_result.coefficient_gradient);
-        assert_eq!(prepared_result.log_local_scale_gradient, unprepared_result.log_local_scale_gradient);
-        assert_eq!(prepared_result.log_global_scale_gradients, unprepared_result.log_global_scale_gradients);
-        assert_eq!(prepared_result.log_experiment_scale_gradients, unprepared_result.log_experiment_scale_gradients);
+        assert_eq!(
+            prepared_result.biased_prediction,
+            unprepared_result.biased_prediction
+        );
+        assert_eq!(
+            prepared_result.coefficient_gradient,
+            unprepared_result.coefficient_gradient
+        );
+        assert_eq!(
+            prepared_result.log_local_scale_gradient,
+            unprepared_result.log_local_scale_gradient
+        );
+        assert_eq!(
+            prepared_result.log_global_scale_gradients,
+            unprepared_result.log_global_scale_gradients
+        );
+        assert_eq!(
+            prepared_result.log_experiment_scale_gradients,
+            unprepared_result.log_experiment_scale_gradients
+        );
     }
 
     #[test]
@@ -1119,8 +1124,8 @@ mod tests {
                 prior,
             )
             .expect("single-scale target");
-            let grouped = grouped_raw_scale_horseshoe_log_posterior(
-                GroupedHorseshoePosteriorInput {
+            let grouped =
+                grouped_raw_scale_horseshoe_log_posterior(GroupedHorseshoePosteriorInput {
                     observed: &observed,
                     baseline_mean: &baseline,
                     design_matrix: &design,
@@ -1133,9 +1138,8 @@ mod tests {
                     relative_covariance: &covariance,
                     fixed_coefficient_scale: 1.0,
                     global_scale_prior: prior,
-                },
-            )
-            .expect("grouped single-group target");
+                })
+                .expect("grouped single-group target");
             assert!((single.log_likelihood - grouped.log_likelihood).abs() < 1.0e-12);
             assert!((single.log_prior - grouped.log_prior).abs() < 1.0e-10);
             assert_eq!(single.biased_prediction, grouped.biased_prediction);
@@ -1153,7 +1157,10 @@ mod tests {
             {
                 assert!((left - right).abs() < 1.0e-10);
             }
-            assert!((single.log_global_scale_gradient - grouped.log_global_scale_gradients[0]).abs() < 1.0e-10);
+            assert!(
+                (single.log_global_scale_gradient - grouped.log_global_scale_gradients[0]).abs()
+                    < 1.0e-10
+            );
         }
     }
 
@@ -1248,10 +1255,9 @@ mod tests {
         let log_scale = 1.02_f64.ln();
         let result = evaluate(log_scale);
         let epsilon = 1.0e-6;
-        let finite_difference =
-            (evaluate(log_scale + epsilon).log_posterior
-                - evaluate(log_scale - epsilon).log_posterior)
-                / (2.0 * epsilon);
+        let finite_difference = (evaluate(log_scale + epsilon).log_posterior
+            - evaluate(log_scale - epsilon).log_posterior)
+            / (2.0 * epsilon);
         assert!((finite_difference - result.log_experiment_scale_gradients[0]).abs() < 1.0e-4);
     }
 

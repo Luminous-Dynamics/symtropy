@@ -30,9 +30,7 @@ pub fn profile_nuisance_fisher_information(
 ) -> Result<Vec<Vec<f64>>, ModelError> {
     let dimension = joint_information.len();
     if dimension < 2
-        || joint_information
-            .iter()
-            .any(|row| row.len() != dimension)
+        || joint_information.iter().any(|row| row.len() != dimension)
         || interest_parameter_count == 0
         || interest_parameter_count >= dimension
     {
@@ -46,7 +44,11 @@ pub fn profile_nuisance_fisher_information(
             "relative_pivot_tolerance_must_be_between_zero_and_one",
         ));
     }
-    if joint_information.iter().flatten().any(|value| !value.is_finite()) {
+    if joint_information
+        .iter()
+        .flatten()
+        .any(|value| !value.is_finite())
+    {
         return Err(ModelError::NonFiniteValue("joint_fisher_information"));
     }
 
@@ -58,9 +60,7 @@ pub fn profile_nuisance_fisher_information(
     let symmetry_tolerance = 1.0e-10 * matrix_scale.max(f64::MIN_POSITIVE);
     for (row_index, row) in joint_information.iter().enumerate() {
         for (column_index, value) in row.iter().enumerate().take(row_index) {
-            if (*value - joint_information[column_index][row_index]).abs()
-                > symmetry_tolerance
-            {
+            if (*value - joint_information[column_index][row_index]).abs() > symmetry_tolerance {
                 return Err(ModelError::InvalidCovariance(
                     "joint_fisher_information_must_be_symmetric",
                 ));
@@ -177,8 +177,7 @@ fn solve_cholesky(lower: &[Vec<f64>], right_hand_side: &[f64]) -> Result<Vec<f64
             .zip(forward.iter())
             .map(|(coefficient, solved)| coefficient * solved)
             .sum();
-        forward[row_index] =
-            (right_hand_side[row_index] - known_sum) / row[row_index];
+        forward[row_index] = (right_hand_side[row_index] - known_sum) / row[row_index];
     }
 
     let mut solution = vec![0.0; dimension];
@@ -207,8 +206,7 @@ mod tests {
     #[test]
     fn profiling_nuisance_matches_analytic_schur_complement() {
         let joint = vec![vec![5.0, 4.0], vec![4.0, 5.0]];
-        let profiled =
-            profile_nuisance_fisher_information(&joint, 1, 1.0e-12).expect("profiled");
+        let profiled = profile_nuisance_fisher_information(&joint, 1, 1.0e-12).expect("profiled");
         assert!((profiled[0][0] - 1.8).abs() < 1.0e-12);
     }
 
@@ -219,8 +217,7 @@ mod tests {
         // rank one, and profiling one out must leave zero information for the
         // other. This is a mathematical gauge freedom, not a sampler failure.
         let joint = vec![vec![100.0, 100.0], vec![100.0, 100.0]];
-        let profiled =
-            profile_nuisance_fisher_information(&joint, 1, 1.0e-12).expect("profiled");
+        let profiled = profile_nuisance_fisher_information(&joint, 1, 1.0e-12).expect("profiled");
         assert!(profiled[0][0].abs() < 1.0e-12);
         let summary = identifiability_summary(&profiled, 1.0e-10).expect("summary");
         assert_eq!(summary.effective_rank, 0);
@@ -234,8 +231,7 @@ mod tests {
             vec![1.0, 8.0, 0.5],
             vec![2.0, 0.5, 9.0],
         ];
-        let profiled =
-            profile_nuisance_fisher_information(&joint, 1, 1.0e-12).expect("profiled");
+        let profiled = profile_nuisance_fisher_information(&joint, 1, 1.0e-12).expect("profiled");
         assert_eq!(profiled.len(), 1);
         assert_eq!(profiled[0].len(), 1);
         assert!(profiled[0][0] > 0.0);
@@ -259,11 +255,7 @@ mod tests {
             Err(ModelError::MismatchedDataLengths)
         );
         assert_eq!(
-            profile_nuisance_fisher_information(
-                &[vec![1.0, 0.2], vec![0.1, 1.0]],
-                1,
-                1.0e-12
-            ),
+            profile_nuisance_fisher_information(&[vec![1.0, 0.2], vec![0.1, 1.0]], 1, 1.0e-12),
             Err(ModelError::InvalidCovariance(
                 "joint_fisher_information_must_be_symmetric",
             ))

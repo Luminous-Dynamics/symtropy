@@ -63,7 +63,11 @@ pub fn diagnose_grouped_hmc_quantity(
         ));
     }
     let expected_draws = chains.first().map_or(0, |chain| chain.draws.len());
-    if expected_draws < 8 || chains.iter().any(|chain| chain.draws.len() != expected_draws) {
+    if expected_draws < 8
+        || chains
+            .iter()
+            .any(|chain| chain.draws.len() != expected_draws)
+    {
         return Err(ModelError::InvalidParameter(
             "grouped_sampler_diagnostics_require_equal_chains_with_at_least_eight_draws",
         ));
@@ -74,9 +78,7 @@ pub fn diagnose_grouped_hmc_quantity(
         let mut draws = Vec::with_capacity(chain.draws.len());
         for draw in &chain.draws {
             let value = match quantity {
-                GroupedHmcQuantity::Coefficient(index) => {
-                    draw.coefficients.get(index).copied()
-                }
+                GroupedHmcQuantity::Coefficient(index) => draw.coefficients.get(index).copied(),
                 GroupedHmcQuantity::LocalScale(index) => {
                     draw.log_local_scales.get(index).map(|value| value.exp())
                 }
@@ -89,9 +91,10 @@ pub fn diagnose_grouped_hmc_quantity(
                 GroupedHmcQuantity::LogGlobalScale(index) => {
                     draw.log_global_scales.get(index).copied()
                 }
-                GroupedHmcQuantity::ExperimentScale(index) => {
-                    draw.log_experiment_scales.get(index).map(|value| value.exp())
-                }
+                GroupedHmcQuantity::ExperimentScale(index) => draw
+                    .log_experiment_scales
+                    .get(index)
+                    .map(|value| value.exp()),
                 GroupedHmcQuantity::LogExperimentScale(index) => {
                     draw.log_experiment_scales.get(index).copied()
                 }

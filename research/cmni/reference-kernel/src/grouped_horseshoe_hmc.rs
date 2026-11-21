@@ -9,12 +9,11 @@
 //! adaptation, mass-matrix adaptation, or the original AIACHNE Bayesian Monte
 //! Carlo algorithm. Independent-chain qualification is separate.
 
-use crate::{
-    GlobalScalePrior, HorseshoeHmcConfig, ModelError,
-    PreparedGroupedRawScaleHorseshoeModel,
-};
 use crate::horseshoe_hmc::SplitMix64;
 use crate::GroupedRawScaleHorseshoePosterior;
+use crate::{
+    GlobalScalePrior, HorseshoeHmcConfig, ModelError, PreparedGroupedRawScaleHorseshoeModel,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct GroupedHmcDraw {
@@ -124,8 +123,7 @@ pub fn run_grouped_horseshoe_hmc_chain(
         || initial_log_local_scales.len() != coefficient_count
         || global_scale_count == 0
         || global_scale_index_by_coefficient.len() != coefficient_count
-        || (experiment_scale_count == 0
-            && !experiment_scale_index_by_observation.is_empty())
+        || (experiment_scale_count == 0 && !experiment_scale_index_by_observation.is_empty())
         || (experiment_scale_count > 0
             && experiment_scale_index_by_observation.len() != model.observation_count())
     {
@@ -293,8 +291,7 @@ fn transition_state(
             1.0
         };
         for (momentum_value, gradient_value) in momentum.iter_mut().zip(gradient.iter()) {
-            *momentum_value +=
-                momentum_fraction * config.step_size * gradient_value;
+            *momentum_value += momentum_fraction * config.step_size * gradient_value;
         }
     }
 
@@ -303,9 +300,7 @@ fn transition_state(
     }
     let proposal_hamiltonian = -proposal_target.log_posterior + kinetic_energy(&momentum);
     let energy_error = proposal_hamiltonian - initial_hamiltonian;
-    if !energy_error.is_finite()
-        || energy_error.abs() > config.divergence_energy_error_threshold
-    {
+    if !energy_error.is_finite() || energy_error.abs() > config.divergence_energy_error_threshold {
         return (
             current_state.clone(),
             current_target.clone(),
@@ -475,8 +470,11 @@ mod tests {
                 seed: 7,
             },
         );
-        assert!(matches!(result, Err(ModelError::InvalidParameter(
-            "prepared_grouped_global_scale_group_empty"
-        ))));
+        assert!(matches!(
+            result,
+            Err(ModelError::InvalidParameter(
+                "prepared_grouped_global_scale_group_empty"
+            ))
+        ));
     }
 }
