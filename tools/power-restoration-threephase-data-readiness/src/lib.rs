@@ -1272,7 +1272,11 @@ mod tests {
             evidence: evidence(&format!("source-{}", source.source_id)),
         }).collect::<Vec<_>>();
 
+        let contributing_source_ids = case.network.grid_sources.iter()
+            .map(|source| source.source_id.clone())
+            .collect::<Vec<_>>();
         let fault_scenarios = case.faults.iter().flat_map(|fault| {
+            let contributing_source_ids = contributing_source_ids.clone();
             [
                 (FaultType::SingleLineToGround, vec![Conductor::A]),
                 (FaultType::LineToLine, vec![Conductor::A, Conductor::B]),
@@ -1283,7 +1287,7 @@ mod tests {
                 fault_type,
                 phases_involved: phases,
                 fault_impedance_ohm: ComplexValue { real: 0.01, imaginary: 0.0 },
-                contributing_source_ids: case.network.grid_sources.iter().map(|source| source.source_id.clone()).collect(),
+                contributing_source_ids: contributing_source_ids.clone(),
                 evidence: evidence(&format!("fault-{}-{fault_type:?}", fault.fault_id)),
             })
         }).collect::<Vec<_>>();
@@ -1383,8 +1387,9 @@ mod tests {
     fn missing_negative_or_zero_sequence_data_blocks_short_circuit_readiness() {
         let case = case();
         let mut package = build_valid_package(&case);
-        package.branch_models[0].sequence_impedance.zero.real = 0.0;
-        package.branch_models[0].sequence_impedance.zero.imaginary = 0.0;
+        let sequence = package.branch_models[0].sequence_impedance.as_mut().unwrap();
+        sequence.zero.real = 0.0;
+        sequence.zero.imaginary = 0.0;
         let report = audit_three_phase_inputs(&case, &package).unwrap();
         assert_eq!(report.three_phase_load_flow.state, ReadinessState::ReadyForIndependentDomainSolver);
         assert_eq!(report.short_circuit.state, ReadinessState::InconclusiveMissingOrInvalidNativeInputs);
@@ -1395,7 +1400,7 @@ mod tests {
     fn balanced_scalar_impedance_cannot_replace_native_matrix() {
         let case = case();
         let mut package = build_valid_package(&case);
-        package.branch_models[0].primitive_impedance.resistance_ohm_per_km_or_base.clear();
+        package.branch_models[0].primitive_impedance.as_mut().unwrap().resistance_ohm_per_km_or_base.clear();
         let report = audit_three_phase_inputs(&case, &package).unwrap();
         assert_eq!(report.three_phase_load_flow.state, ReadinessState::InconclusiveMissingOrInvalidNativeInputs);
         assert!(report.blockers.iter().any(|b| b.field_path == "primitiveImpedance"));
@@ -1476,7 +1481,7 @@ mod tests {
     fn impedance_matrix_requires_symmetric_primitive_entries() {
         let case = case();
         let mut package = build_valid_package(&case);
-        package.branch_models[0].primitive_impedance.resistance_ohm_per_km_or_base[0][1] = 0.2;
+        package.branch_models[0].primitive_impedance.as_mut().unwrap().resistance_ohm_per_km_or_base[0][1] = 0.2;
         let report = audit_three_phase_inputs(&case, &package).unwrap();
         assert!(report.blockers.iter().any(|b| b.reason.contains("symmetric")));
     }
