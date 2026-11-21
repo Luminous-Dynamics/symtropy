@@ -186,6 +186,7 @@ jobs:
             tools/ev-passenger-cost-frontier/fixtures/battery_service_network_v0_1.json \
             tools/ev-passenger-cost-frontier/README.md \
             docs/research/EV_CARRIER_LIFECYCLE_AND_SERVICEABILITY_V0_1.md \
+            docs/research/BATTERY_SERVICE_NETWORK_BENCHMARK_V0_1.md \
             ev-passenger-cost-report.json ev-localization-cost-report.json ev-factory-design-report.json ev-carrier-module-factory-report.json ev-carrier-module-lifecycle-report.json > ev-passenger-cost-report.sha256
       - uses: actions/upload-artifact@v4
         with:
@@ -197,6 +198,7 @@ jobs:
             ev-carrier-module-factory-report.json
             ev-carrier-module-lifecycle-report.json
             battery-service-network-report.json
+            docs/research/BATTERY_SERVICE_NETWORK_BENCHMARK_V0_1.md
             tools/ev-passenger-cost-frontier/fixtures/battery_service_network_v0_1.json
             tools/ev-passenger-cost-frontier/schemas/battery_service_network_v0_1.schema.json
             tools/ev-passenger-cost-frontier/fixtures/ev_carrier_module_processes_v0_1.json
