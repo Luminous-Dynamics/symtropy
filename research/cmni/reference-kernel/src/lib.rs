@@ -34,6 +34,9 @@ pub use multifidelity_design::{
     RobustDesignScore,
 };
 
+mod spectrum_metrics;
+pub use spectrum_metrics::{covariance_profiled_spectrum_shape_chi_square, SpectrumShapeScore};
+
 mod measurement;
 pub use measurement::{
     apply_depth_observation_operator,
