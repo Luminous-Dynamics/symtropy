@@ -85,7 +85,7 @@ def _episode_state(
             if (
                 not isinstance(modalities, list)
                 or not modalities
-                or any(modality not in {"audio", "video"} for modality in modalities)
+                or any(not isinstance(modality, str) or modality not in {"audio", "video"} for modality in modalities)
                 or len(modalities) != len(set(modalities))
                 or isinstance(capture_tick, bool)
                 or not isinstance(capture_tick, int)
@@ -122,14 +122,20 @@ def _episode_state(
             old_ref = event.get("supersedes_observation_ref")
             new_ref = event.get("replacement_observation_ref")
             if (
-                old_ref not in observations or new_ref not in observations
+                not isinstance(old_ref, str) or not old_ref
+                or not isinstance(new_ref, str) or not new_ref
+                or old_ref == new_ref
+                or old_ref not in observations or new_ref not in observations
                 or observations[old_ref] > tick or observations[new_ref] > tick
             ):
                 raise EvaluationError(f"{episode.get('episode_id')}: correction ancestry is unresolved")
             superseded.add(old_ref)
         elif event["kind"] == "revocation":
             target = event.get("target_observation_ref")
-            if target not in observations or observations[target] > tick:
+            if (
+                not isinstance(target, str) or not target
+                or target not in observations or observations[target] > tick
+            ):
                 raise EvaluationError(f"{episode.get('episode_id')}: revocation target is unresolved")
             revoked.add(target)
     return observations, superseded, revoked
@@ -284,7 +290,7 @@ def evaluate(
         raise EvaluationError("workload, truth and submission episode IDs must match exactly")
 
     condition = submission.get("memory_condition")
-    if condition not in MEMORY_CONDITIONS:
+    if not isinstance(condition, str) or condition not in MEMORY_CONDITIONS:
         raise EvaluationError(f"unsupported memory_condition: {condition!r}")
 
     results: list[dict[str, Any]] = []
@@ -304,7 +310,7 @@ def evaluate(
         answer = prediction.get("answer")
         confidence = prediction.get("confidence")
         violations: list[str] = []
-        if declared_decision not in {"answer", "abstain"}:
+        if not isinstance(declared_decision, str) or declared_decision not in {"answer", "abstain"}:
             violations.append("invalid_decision")
 
         if isinstance(query_tick, bool) or not isinstance(query_tick, int):
@@ -385,9 +391,14 @@ def evaluate(
             else:
                 valid_current_refs.add(ref)
 
-        required = set(label.get("required_observation_refs") or [])
-        if any(not isinstance(ref, str) or not ref for ref in required):
-            raise EvaluationError(f"{episode_id}: truth contains invalid required observation ref")
+        raw_required = label.get("required_observation_refs") or []
+        if (
+            not isinstance(raw_required, list)
+            or any(not isinstance(ref, str) or not ref for ref in raw_required)
+            or len(raw_required) != len(set(raw_required))
+        ):
+            raise EvaluationError(f"{episode_id}: truth contains invalid required observation refs")
+        required = set(raw_required)
         if not required <= set(observations):
             raise EvaluationError(f"{episode_id}: truth requires an observation not present in stream")
         if not required <= eligible:
@@ -407,7 +418,11 @@ def evaluate(
             if not isinstance(refs, list) or any(not isinstance(ref, str) or not ref for ref in refs):
                 violations.append(f"invalid_{field_name}")
                 refs = []
-            if len(refs) != len(set(refs)):
+                if field_name == "retrieved_memory_item_refs":
+                    retrieved_refs = []
+                else:
+                    retained_refs = []
+            elif len(refs) != len(set(refs)):
                 violations.append(f"duplicate_{field_name}")
             for ref in refs:
                 if ref not in known_memory_refs:
@@ -429,9 +444,16 @@ def evaluate(
                 violations.append("invalid_purge_receipt")
                 continue
             item_ref = receipt.get("item_ref")
+            receipt_id = receipt.get("receipt_id")
             if not isinstance(item_ref, str) or not item_ref or item_ref in purge_by_ref:
                 violations.append("invalid_or_duplicate_purge_receipt_item")
                 continue
+            if not isinstance(receipt_id, str) or not receipt_id:
+                violations.append("purge_receipt_missing_identity")
+            if receipt.get("attestation_level") != "candidate_self_reported":
+                violations.append("purge_receipt_attestation_level_invalid")
+            if receipt.get("status") not in {"purged", "retained"}:
+                violations.append("purge_receipt_status_invalid")
             purge_by_ref[item_ref] = receipt
 
         purge_incomplete = False
@@ -469,7 +491,7 @@ def evaluate(
 
         expected_decision = label.get("expected_decision")
         expected_answer = label.get("expected_answer")
-        if expected_decision not in {"answer", "abstain"}:
+        if not isinstance(expected_decision, str) or expected_decision not in {"answer", "abstain"}:
             raise EvaluationError(f"{episode_id}: unsupported expected_decision")
         count_correct = (
             label.get("expected_distinct_event_count") is None
@@ -534,7 +556,8 @@ def evaluate(
                 "Artifact digests are placeholders; no PCM/RGB bytes or physical sensor qualification is present.",
                 "The public evaluator-truth file is not a blind holdout or security boundary.",
                 "Memory bytes, tokens, latency and energy are not inferred from logical replay ticks and are not claimed by this reference submission.",
-                "A complete provenance score is a source-citation contract check, not proof that a model internally used the cited evidence."
+                "A complete provenance score is a source-citation contract check, not proof that a model internally used the cited evidence.",
+                "Purge receipts are candidate-self-reported claims; they do not independently prove deletion from live storage, indexes, caches, backups or external providers."
             ]
         },
         "totals": totals,
