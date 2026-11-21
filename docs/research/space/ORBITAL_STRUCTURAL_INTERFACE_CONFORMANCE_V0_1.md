@@ -537,3 +537,35 @@ NASA Langley's Design for Inspection work proposes simulation-based tests to mea
 For real NDE studies, report defect-family/method-specific probability of detection and false-call rates using a qualified study design. ASTM E2862-23 covers statistical POD analysis for hit/miss data under a specific set of examination parameters; it is not a universal design score or a replacement for physical inspection evidence: [ASTM E2862-23](https://store.astm.org/e2862-23.html).
 
 A NASA 2026 data-driven-qualification white paper discusses a future architecture combining multimodal anomaly detection, probabilistic mapping of indications to failure risk, and disposition logic. It also emphasizes that digital certification needs further validation of physics models and data management. Treat this as a research direction, not an existing certification route or permission to replace physical verification: [NASA data-driven qualification white paper](https://ntrs.nasa.gov/api/citations/20260009117/downloads/ISM-ASTRO%20White%20Paper%20Augmenting%20NASA-STD-6030.pdf).
+
+
+## 17. Current standards and commercial baseline (21 November 2026)
+
+The competitive landscape has moved materially since the original protocol draft. Structural-interface conformance should be embedded into an interoperable evidence workflow, not presented as a replacement for CAD, CMM, PLM or SPDM products.
+
+### Published standards
+
+- [ISO 23247-5:2026](https://www.iso.org/standard/87425.html) is the published digital-thread part of the manufacturing digital-twin framework. It defines creation, connection, management and maintenance of lifecycle threads across design, planning, production and testing.
+- [ISO 23247-6:2026](https://www.iso.org/standard/87426.html) is the published digital-twin-composition part. It defines integrated, unified and federated composition approaches for combining twins from different parties.
+- [CAx-IF AP242 recommended practices](https://www.mbx-if.org/home/cax/recpractices/) provide persistent-ID guidance (v1.8, March 2026), cross-domain AP242/QIF traceability guidance and Test Cases 7 and 8 with STEP/QIF trace information.
+- [NIST STEP File Analyzer and Viewer 5.41](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer) remains a useful external AP242/PMI analysis and conformance reference.
+
+The Mycelix AeroCommons component-packet and semantic-assertion work should be treated as inputs to these interfaces, not duplicate standard parsers. NIST has explicitly identified the gap between syntactic/structural checking and semantic PMI/trace conformance; use CAx-IF/NIST cases to exercise that gap. Do not claim AP242/QIF standards conformance from a normalized assertion comparator alone.
+
+### Commercial workflow baseline
+
+Hexagon's [PC-DMIS 2026.2 release](https://hexagon.com/about/news-media/media-alerts/2026/pc-dmis) explicitly advertises STEP AP242 semantic-PMI import into QIF-based measurement planning, UUID mapping, advanced point-cloud/CMM workflows and enhanced Teamcenter traceability. Siemens Teamcenter SPDM supports simulation/test data management, multidisciplinary traceability and integrated model/analysis workflows. Dassault's 3DEXPERIENCE has a strategic lifecycle deployment at Airbus across future civil/military aircraft and helicopters. These are mature platforms with extensive feature depth; the Luminous work should interoperate with them rather than attempt a direct feature-for-feature replacement.
+
+References: [Siemens Teamcenter SPDM](https://www.siemens.com/en-us/products/teamcenter/solutions/simulation-process-data-management-spdm/), [Airbus–Dassault virtual-twin programme](https://www.3ds.com/newsroom/press-releases/dassault-systemes-and-airbus-extend-strategic-partnership-use-virtual-twins-next-generation-programs), [Ansys digital engineering](https://www.ansys.com/blog/defense-digital-engineering).
+
+### The Luminous differentiator to test
+
+Start with federated evidence composition:
+- Mycelix owns serialized physical-unit, configuration, custody and authority/provenance references;
+- Symtropy owns qualified physics, as-built structural acceptance and method-specific inspection/test dispositions;
+- Symthaea consumes those records to rank next admissible evidence actions;
+- Sol-Atlas contributes site/facility/logistics context without implying that a facility is operational, calibrated or available.
+
+For the same CAx-IF/NIST and vendor-workflow inputs, measure semantic assertion retention, persistent-ID stability, wrong-serial/configuration/revision rejection, explicit semantic-loss handling, evidence freshness/revocation effects, re-entry/reconciliation labour, and deterministic replay. Target zero silent semantic drops and zero false joins; target >=20% reduction in human reconciliation time only after a matched, held-out manual/vendor baseline demonstrates it. These are proposed targets, not measured results.
+
+Do not claim superiority to PC-DMIS, Teamcenter, 3DEXPERIENCE, NIST SFA or ISO 23247 conformance until identical source models, versions, outputs and rights-cleared test evidence have been evaluated.
