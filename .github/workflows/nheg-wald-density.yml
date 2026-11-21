@@ -38,8 +38,7 @@ jobs:
         env:
           PYTHONHASHSEED: "0"
         run: |
-          python crates/domains/symtropy-lovelock5d/benchmarks/derive_nheg_wald_density.py \\
-            --output "$RUNNER_TEMP/nheg_wald_density_replay.json"
+          python crates/domains/symtropy-lovelock5d/benchmarks/derive_nheg_wald_density.py --output "$RUNNER_TEMP/nheg_wald_density_replay.json"
 
       - name: Check Wald divergence and defining-function mutation
         env:
