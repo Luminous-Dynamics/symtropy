@@ -8,6 +8,7 @@
 //! prove sensor independence, or provide runtime-assurance authority.
 
 pub mod protocol_semantics;
+pub mod active_assurance;
 
 use std::fmt;
 
