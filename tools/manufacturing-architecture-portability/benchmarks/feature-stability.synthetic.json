@@ -1,0 +1,32 @@
+{
+  "feature_universe": [
+    "x1",
+    "x2",
+    "x3",
+    "x4",
+    "x5"
+  ],
+  "runs": [
+    {
+      "run_id": "seed-1",
+      "selected_features": [
+        "x1",
+        "x2"
+      ]
+    },
+    {
+      "run_id": "seed-2",
+      "selected_features": [
+        "x3",
+        "x4"
+      ]
+    },
+    {
+      "run_id": "seed-3",
+      "selected_features": [
+        "x1",
+        "x4"
+      ]
+    }
+  ]
+}
