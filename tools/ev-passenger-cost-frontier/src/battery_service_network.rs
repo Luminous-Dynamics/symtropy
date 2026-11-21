@@ -741,11 +741,42 @@ pub fn evaluate_battery_service_network(
 mod tests {
     use super::*;
 
-    fn metric(value: Option<u32>, freshness: EvidenceFreshness) -> MetricEvidence {
-        MetricEvidence {
-            freshness,
+    const DISPATCH_TIME_MS: u64 = 1_795_219_200_000;
+
+    fn evidence(asset_id: &str, configuration_digest: &str, suffix: &str) -> EvidenceEnvelope {
+        EvidenceEnvelope {
+            asset_id: asset_id.to_string(),
+            configuration_digest: configuration_digest.to_string(),
+            producer_id: "urn:synthetic:producer:testbench".to_string(),
+            method_id: "urn:synthetic:method:reference-test".to_string(),
+            evidence_reference: format!("urn:synthetic:evidence:{suffix}"),
             evidence_class: EvidenceClass::Synthetic,
-            evidence_reference: "urn:synthetic:battery-network:test".to_string(),
+            observed_at_unix_ms: Some(DISPATCH_TIME_MS - 1_000),
+            valid_from_unix_ms: Some(DISPATCH_TIME_MS - 10_000),
+            valid_until_unix_ms: Some(DISPATCH_TIME_MS + 10_000),
+        }
+    }
+
+    fn metric(
+        asset_id: &str,
+        configuration_digest: &str,
+        suffix: &str,
+        value: Option<u32>,
+    ) -> MetricEvidence {
+        MetricEvidence {
+            evidence: evidence(asset_id, configuration_digest, suffix),
+            value,
+        }
+    }
+
+    fn boolean(
+        asset_id: &str,
+        configuration_digest: &str,
+        suffix: &str,
+        value: Option<bool>,
+    ) -> BooleanEvidence {
+        BooleanEvidence {
+            evidence: evidence(asset_id, configuration_digest, suffix),
             value,
         }
     }
@@ -756,55 +787,50 @@ mod tests {
         energy_wh: Option<u32>,
         peak_power_w: Option<u32>,
     ) -> BatteryPack {
+        let configuration_digest = format!("urn:synthetic:configuration:{configuration_id}");
         BatteryPack {
             pack_id: id.to_string(),
             configuration_id: configuration_id.to_string(),
+            configuration_digest: configuration_digest.clone(),
             state: PackState::Available,
-            identity_verification: BooleanEvidence {
-                freshness: EvidenceFreshness::Fresh,
-                evidence_class: EvidenceClass::Synthetic,
-                evidence_reference: "urn:synthetic:identity".to_string(),
-                value: Some(true),
-            },
-            custody_resolution: BooleanEvidence {
-                freshness: EvidenceFreshness::Fresh,
-                evidence_class: EvidenceClass::Synthetic,
-                evidence_reference: "urn:synthetic:custody".to_string(),
-                value: Some(true),
-            },
-            post_test: BooleanEvidence {
-                freshness: EvidenceFreshness::Fresh,
-                evidence_class: EvidenceClass::Synthetic,
-                evidence_reference: "urn:synthetic:post-test".to_string(),
-                value: Some(true),
-            },
-            usable_energy: metric(energy_wh, EvidenceFreshness::Fresh),
-            peak_power: metric(peak_power_w, EvidenceFreshness::Fresh),
+            identity_verification: boolean(id, &configuration_digest, "identity", Some(true)),
+            custody_resolution: boolean(id, &configuration_digest, "custody", Some(true)),
+            post_test: boolean(id, &configuration_digest, "post-test", Some(true)),
+            usable_energy: metric(id, &configuration_digest, "energy", energy_wh),
+            peak_power: metric(id, &configuration_digest, "peak-power", peak_power_w),
             thermal: ThermalEvidence {
-                freshness: EvidenceFreshness::Fresh,
-                evidence_class: EvidenceClass::Synthetic,
-                evidence_reference: "urn:synthetic:thermal".to_string(),
+                evidence: evidence(id, &configuration_digest, "thermal"),
                 pack_temperature_c: Some(25),
                 qualified_max_temperature_c: Some(60),
             },
         }
     }
 
-    fn mission(id: &str, configuration_id: &str, energy_wh: u32, peak_power_w: u32) -> MissionDemand {
+    fn mission(
+        id: &str,
+        configuration_id: &str,
+        energy_wh: u32,
+        peak_power_w: u32,
+    ) -> MissionDemand {
         MissionDemand {
             mission_id: id.to_string(),
             configuration_id: configuration_id.to_string(),
+            configuration_digest: format!("urn:synthetic:configuration:{configuration_id}"),
             required_energy_with_reserve_wh: energy_wh,
             required_peak_power_w: peak_power_w,
             maximum_pack_temperature_c: 50,
         }
     }
 
-    fn input(packs: Vec<BatteryPack>, missions: Vec<MissionDemand>) -> BatteryServiceNetworkInput {
+    fn input(
+        packs: Vec<BatteryPack>,
+        missions: Vec<MissionDemand>,
+    ) -> BatteryServiceNetworkInput {
         BatteryServiceNetworkInput {
             schema_version: "0.1.0".to_string(),
             benchmark_id: "BATTERY-SERVICE-NETWORK-001".to_string(),
             dispatch_epoch_id: "epoch-1".to_string(),
+            dispatch_time_unix_ms: DISPATCH_TIME_MS,
             packs,
             missions,
             claim_ceiling: "synthetic exact allocation only".to_string(),
@@ -812,16 +838,19 @@ mod tests {
     }
 
     fn pair_status(pack: &BatteryPack, mission: &MissionDemand) -> EligibilityStatus {
-        evaluate_pair(mission, pack).status
+        evaluate_pair(mission, pack, DISPATCH_TIME_MS).status
     }
 
     #[test]
     fn energy_pass_does_not_override_peak_power_failure() {
         let battery = pack("p1", "uav-a", Some(2_000), Some(900));
         let demand = mission("m1", "uav-a", 1_000, 1_000);
-        let result = evaluate_pair(&demand, &battery);
+        let result = evaluate_pair(&demand, &battery, DISPATCH_TIME_MS);
         assert_eq!(result.status, EligibilityStatus::Blocked);
-        assert!(result.findings.iter().any(|finding| finding == "peak_power_below_mission_requirement"));
+        assert!(result
+            .findings
+            .iter()
+            .any(|finding| finding == "peak_power_below_mission_requirement"));
     }
 
     #[test]
@@ -832,11 +861,46 @@ mod tests {
     }
 
     #[test]
-    fn stale_energy_evidence_is_indeterminate() {
+    fn expired_evidence_window_is_indeterminate() {
         let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
-        battery.usable_energy.freshness = EvidenceFreshness::Stale;
-        let demand = mission("m1", "uav-a", 1_000, 1_000);
-        assert_eq!(pair_status(&battery, &demand), EligibilityStatus::Indeterminate);
+        battery.usable_energy.evidence.valid_until_unix_ms =
+            Some(DISPATCH_TIME_MS - 1);
+        assert_eq!(
+            pair_status(&battery, &mission("m1", "uav-a", 1_000, 1_000)),
+            EligibilityStatus::Indeterminate
+        );
+    }
+
+    #[test]
+    fn future_observation_is_blocked_to_prevent_information_leakage() {
+        let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
+        battery.peak_power.evidence.observed_at_unix_ms = Some(DISPATCH_TIME_MS + 1);
+        battery.peak_power.evidence.valid_until_unix_ms =
+            Some(DISPATCH_TIME_MS + 10_000);
+        assert_eq!(
+            pair_status(&battery, &mission("m1", "uav-a", 1_000, 1_000)),
+            EligibilityStatus::Blocked
+        );
+    }
+
+    #[test]
+    fn mismatched_evidence_asset_identity_is_blocked() {
+        let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
+        battery.usable_energy.evidence.asset_id = "different-pack".to_string();
+        assert_eq!(
+            pair_status(&battery, &mission("m1", "uav-a", 1_000, 1_000)),
+            EligibilityStatus::Blocked
+        );
+    }
+
+    #[test]
+    fn mismatched_evidence_configuration_digest_is_blocked() {
+        let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
+        battery.thermal.evidence.configuration_digest = "other-digest".to_string();
+        assert_eq!(
+            pair_status(&battery, &mission("m1", "uav-a", 1_000, 1_000)),
+            EligibilityStatus::Blocked
+        );
     }
 
     #[test]
@@ -850,16 +914,20 @@ mod tests {
     fn quarantined_pack_is_never_allocated() {
         let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
         battery.state = PackState::Quarantined;
-        let demand = mission("m1", "uav-a", 1_000, 1_000);
-        assert_eq!(pair_status(&battery, &demand), EligibilityStatus::Blocked);
+        assert_eq!(
+            pair_status(&battery, &mission("m1", "uav-a", 1_000, 1_000)),
+            EligibilityStatus::Blocked
+        );
     }
 
     #[test]
     fn unresolved_custody_is_blocked() {
         let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
         battery.custody_resolution.value = Some(false);
-        let demand = mission("m1", "uav-a", 1_000, 1_000);
-        assert_eq!(pair_status(&battery, &demand), EligibilityStatus::Blocked);
+        assert_eq!(
+            pair_status(&battery, &mission("m1", "uav-a", 1_000, 1_000)),
+            EligibilityStatus::Blocked
+        );
     }
 
     #[test]
@@ -887,6 +955,7 @@ mod tests {
         assert_eq!(assigned_pack_ids.len(), report.assignments.len());
         assert!(!report.dispatch_authority_granted);
         assert!(!report.return_to_service_authority_granted);
+        assert_eq!(report.dispatch_time_unix_ms, DISPATCH_TIME_MS);
     }
 
     #[test]
@@ -899,12 +968,14 @@ mod tests {
             mission("mission-b", "uav-a", 1_200, 1_200),
             mission("mission-a", "uav-a", 1_700, 1_800),
         ];
-        let first = evaluate_battery_service_network(&input(packs.clone(), missions.clone())).unwrap();
+        let first =
+            evaluate_battery_service_network(&input(packs.clone(), missions.clone())).unwrap();
         let mut reversed_packs = packs;
         reversed_packs.reverse();
         let mut reversed_missions = missions;
         reversed_missions.reverse();
-        let second = evaluate_battery_service_network(&input(reversed_packs, reversed_missions)).unwrap();
+        let second =
+            evaluate_battery_service_network(&input(reversed_packs, reversed_missions)).unwrap();
         assert_eq!(first.assignments, second.assignments);
         assert_eq!(first.unserved_missions, second.unserved_missions);
     }
@@ -913,24 +984,30 @@ mod tests {
     fn failed_post_test_blocks_pack() {
         let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
         battery.post_test.value = Some(false);
-        let demand = mission("m1", "uav-a", 1_000, 1_000);
-        assert_eq!(pair_status(&battery, &demand), EligibilityStatus::Blocked);
-    }
-
-    #[test]
-    fn stale_custody_evidence_is_indeterminate() {
-        let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
-        battery.custody_resolution.freshness = EvidenceFreshness::Stale;
-        let demand = mission("m1", "uav-a", 1_000, 1_000);
-        assert_eq!(pair_status(&battery, &demand), EligibilityStatus::Indeterminate);
+        assert_eq!(
+            pair_status(&battery, &mission("m1", "uav-a", 1_000, 1_000)),
+            EligibilityStatus::Blocked
+        );
     }
 
     #[test]
     fn unknown_identity_is_indeterminate_not_eligible() {
         let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
         battery.identity_verification.value = None;
-        let demand = mission("m1", "uav-a", 1_000, 1_000);
-        assert_eq!(pair_status(&battery, &demand), EligibilityStatus::Indeterminate);
+        assert_eq!(
+            pair_status(&battery, &mission("m1", "uav-a", 1_000, 1_000)),
+            EligibilityStatus::Indeterminate
+        );
+    }
+
+    #[test]
+    fn incomplete_evidence_window_is_indeterminate() {
+        let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
+        battery.custody_resolution.evidence.observed_at_unix_ms = None;
+        assert_eq!(
+            pair_status(&battery, &mission("m1", "uav-a", 1_000, 1_000)),
+            EligibilityStatus::Indeterminate
+        );
     }
 
     #[test]
