@@ -419,6 +419,73 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
         );
     }
 
+    let reference_cases = at(root, &["solver_reference_cases"]).and_then(Value::as_array);
+    let merlino_wire_cylinder = reference_cases.and_then(|rows| rows.iter().find(|case| {
+        text_at(case, &["case_id"]) == Some("MERLINO2D_WIRE_CYLINDER_KIOUSIS_2014_IV")
+    }));
+    push_if_missing(
+        &mut findings,
+        merlino_wire_cylinder.is_some(),
+        "MERLINO_REFERENCE_CASE",
+        "missing source-pinned wire-cylinder I-V reference case",
+    );
+    if let Some(case) = merlino_wire_cylinder {
+        push_if_missing(
+            &mut findings,
+            text_at(case, &["upstream", "commit"]) == Some("08f70dbeba5c9a8cccacbd21f5511896110581f8"),
+            "MERLINO_UPSTREAM_PIN",
+            "Merlino2D upstream source commit changed; requalify all pinned files",
+        );
+        push_if_missing(
+            &mut findings,
+            number_at(case, &["operating_conditions", "pressure_pa"]) == Some(101325.0)
+                && number_at(case, &["operating_conditions", "temperature_k"]) == Some(300.0),
+            "MERLINO_REFERENCE_CONDITIONS",
+            "wire-cylinder baseline must retain its declared default pressure and temperature",
+        );
+        push_if_missing(
+            &mut findings,
+            number_at(case, &["model", "resistor_ohms"]) == Some(0.001)
+                && text_at(case, &["model", "ode_solver"]) == Some("IDAS"),
+            "MERLINO_REFERENCE_CIRCUIT",
+            "external-circuit resistance or solver choice changed; rebuild exact baseline identity",
+        );
+        let csv_rows = at(case, &["experimental_comparator", "source_rows"])
+            .and_then(Value::as_array);
+        let csv_points_match = csv_rows.is_some_and(|rows| {
+            rows.len() == 10
+                && rows.first().is_some_and(|row| row_matches(row, &[
+                    ("voltage_kv", 10.99520219328307),
+                    ("current_ma", 0.04150943396226414),
+                    ("current_ua", 41.50943396226414),
+                ]))
+                && rows.get(9).is_some_and(|row| row_matches(row, &[
+                    ("voltage_kv", 20.021932830705964),
+                    ("current_ma", 0.40452830188679245),
+                    ("current_ua", 404.52830188679246),
+                ]))
+        });
+        push_if_missing(
+            &mut findings,
+            csv_points_match,
+            "MERLINO_REFERENCE_DATA",
+            "repository-supplied ten-point I-V comparator changed or its current-unit conversion is inconsistent",
+        );
+        push_if_missing(
+            &mut findings,
+            text_at(case, &["claim_boundary"]).is_some_and(|s| s.contains("discharge/current") && s.contains("not a thrust")),
+            "MERLINO_REFERENCE_CLAIM",
+            "wire-cylinder I-V case must not be promoted to thrust or neutral-flow validation",
+        );
+        push_if_missing(
+            &mut findings,
+            text_at(case, &["pinned_files", "experimental_csv", "git_blob_sha"])
+                == Some("00d64d517ce18c1779477eb3a02ee8c55c4080d2"),
+            "MERLINO_CSV_PIN",
+            "experimental comparator CSV blob identity changed",
+        );
+    }
+
     findings
 }
 
@@ -605,6 +672,29 @@ mod tests {
         let mut value = atlas();
         value["solver_profiles"][3]["capabilities"] = Value::Array(Vec::new());
         assert!(has_code(&audit_atlas(&value), "COMSOL_EHD_CAPABILITY"));
+    }
+
+    #[test]
+    fn missing_merlino_wire_cylinder_reference_case_is_rejected() {
+        let mut value = atlas();
+        value["solver_reference_cases"] = Value::Array(Vec::new());
+        assert!(has_code(&audit_atlas(&value), "MERLINO_REFERENCE_CASE"));
+    }
+
+    #[test]
+    fn repository_iva_csv_known_answer_is_enforced() {
+        let mut value = atlas();
+        value["solver_reference_cases"][0]["experimental_comparator"]["source_rows"][0]
+            ["current_ma"] = Value::from(0.05);
+        assert!(has_code(&audit_atlas(&value), "MERLINO_REFERENCE_DATA"));
+    }
+
+    #[test]
+    fn wire_cylinder_iv_case_cannot_be_promoted_to_thrust_validation() {
+        let mut value = atlas();
+        value["solver_reference_cases"][0]["claim_boundary"] =
+            Value::String("full thrust and neutral-flow validation".into());
+        assert!(has_code(&audit_atlas(&value), "MERLINO_REFERENCE_CLAIM"));
     }
 
     #[test]
