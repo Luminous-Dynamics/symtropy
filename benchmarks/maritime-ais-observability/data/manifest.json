@@ -21,7 +21,8 @@
     "anchorage_max_speed_milli_knots": 1500,
     "approach_max_speed_milli_knots": 12000,
     "berth_max_speed_milli_knots": 500,
-    "outside_max_speed_milli_knots": 50000
+    "outside_max_speed_milli_knots": 50000,
+    "max_receive_gap_ticks": 2
   },
   "zones_are_upstream_qualified": true,
   "geometry_engine": "not included; consumes zone labels and upstream geometry provenance",
@@ -33,5 +34,21 @@
     "DEPARTURE",
     "INDETERMINATE"
   ],
-  "claim_ceiling": "Synthetic FSM, dwell and gap conformance only. Does not infer line-fast, physical berth arrival, cargo operations, actual Durban AIS performance or navigation state."
+  "claim_ceiling": "Synthetic FSM, dwell and gap conformance only. Does not infer line-fast, physical berth arrival, cargo operations, actual Durban AIS performance or navigation state.",
+  "clock_semantics": {
+    "sender_event_time": "tick",
+    "receiver_observation_time": "received_tick",
+    "relation": "separate clock domains; do not subtract one from the other or assume synchronization",
+    "gap_rule": "Candidate dwell continuity is broken if either within-clock event-time gap or within-clock receiver-time gap exceeds its independently declared threshold."
+  },
+  "initialization_policy": "INDETERMINATE by default; OUTSIDE or another non-indeterminate starting state requires a non-empty evidence reference.",
+  "provenance_fields": [
+    "source_id",
+    "receiver_id",
+    "geofence_digest",
+    "spatial_reference_id",
+    "profile_version",
+    "full_dwell_profile",
+    "initial_state_evidence_id"
+  ]
 }
