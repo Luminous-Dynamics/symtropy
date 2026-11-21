@@ -45,17 +45,20 @@ function evaluateCase(c) {
       || !sha256(c.clock.synchronization_artifact_sha256)
       || !Number.isFinite(c.minimum_event_rate_per_second)
       || !Number.isFinite(c.maximum_event_rate_per_second)
-      || !Number.isFinite(c.test_event_rate_per_second)
+      || !Number.isFinite(c.test_window_seconds)
+      || c.test_window_seconds <= 0
       || c.minimum_event_rate_per_second < 0
       || c.maximum_event_rate_per_second < c.minimum_event_rate_per_second
       || c.maximum_event_rate_per_second > 1e9
-      || c.test_event_rate_per_second < 0 || c.test_event_rate_per_second > 1e9) {
+ ) {
     return blocked("rejected", "malformed_scope_rate_or_evidence_digest");
   }
 
-  if (!sameScope(c.qualified_scope, c.test_scope)
-      || c.test_event_rate_per_second < c.minimum_event_rate_per_second
-      || c.test_event_rate_per_second > c.maximum_event_rate_per_second) {
+  const referenceEventRate = c.reference_events.length / c.test_window_seconds;
+  if (!Number.isFinite(referenceEventRate) || referenceEventRate > 1e9
+      || !sameScope(c.qualified_scope, c.test_scope)
+      || referenceEventRate < c.minimum_event_rate_per_second
+      || referenceEventRate > c.maximum_event_rate_per_second) {
     return blocked("out_of_envelope", "test_configuration_or_event_rate_outside_declared_envelope");
   }
 
