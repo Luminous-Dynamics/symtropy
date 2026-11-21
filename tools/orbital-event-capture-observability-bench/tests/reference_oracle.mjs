@@ -65,6 +65,8 @@ function evaluateCase(c) {
   if (!c.reference.available || !c.reference.system_id.trim()
       || c.reference.failure_domains.length === 0
       || c.reference.acquisition_failure_domains.length === 0
+      || c.reference.failure_domains.some((domain) => !domain.trim())
+      || c.reference.acquisition_failure_domains.some((domain) => !domain.trim())
       || sharedDomain(c.reference.failure_domains, c.reference.acquisition_failure_domains)) {
     return blocked("indeterminate", "independent_reference_missing_or_common_cause_unresolved");
   }
