@@ -663,7 +663,7 @@ fn simulate_scenario<S: SharedFleetScenarioPath>(
     let mut energy = input.initial_aircraft_energy_units;
     let mut history: Vec<Vec<SharedFleetObservation>> = Vec::new();
 
-    for (period_index, period) in scenario.periods.iter().enumerate() {
+    for (period_index, period) in scenario.periods().iter().enumerate() {
         let mut observations = period.observations.clone();
         observations.sort_by(|left, right| left.region_id.cmp(&right.region_id));
         history.push(observations);
@@ -961,10 +961,19 @@ fn evaluate_mask(
         scenario_unserved.push((metrics.unserved_units, scenario.probability_bps));
         add_weighted_metrics(&mut weighted, metrics, scenario.probability_bps)?;
     }
+    let mut stress_scenario_costs = Vec::with_capacity(input.stress_scenarios.len());
+    let mut stress_scenario_unserved = Vec::with_capacity(input.stress_scenarios.len());
+    for scenario in &input.stress_scenarios {
+        let metrics = simulate_scenario(input, scenario, indices, mask, aircraft_enabled)?;
+        stress_scenario_costs.push(metrics.total_cost);
+        stress_scenario_unserved.push(metrics.unserved_units);
+    }
     Ok(PolicyEvaluation {
         weighted,
         scenario_costs,
         scenario_unserved,
+        stress_scenario_costs,
+        stress_scenario_unserved,
     })
 }
 
@@ -1001,19 +1010,35 @@ fn upper_tail_cvar90(scenario_costs: &[(u128, u16)]) -> Result<u128, String> {
         .ok_or_else(|| "CVaR rounding overflow".into())
 }
 
-fn worst_case_cost(scenario_costs: &[(u128, u16)]) -> Result<u128, String> {
+fn worst_case_cost(
+    scenario_costs: &[(u128, u16)],
+    stress_scenario_costs: &[u128],
+) -> Result<u128, String> {
     scenario_costs
         .iter()
         .map(|(cost, _)| *cost)
+        .chain(stress_scenario_costs.iter().copied())
         .max()
-        .ok_or_else(|| "worst-case cost requires at least one scenario".into())
+        .ok_or_else(|| "worst-case cost requires at least one probabilistic or stress scenario".into())
+}
+
+fn worst_stress_case_cost(stress_scenario_costs: &[u128]) -> Option<u128> {
+    stress_scenario_costs.iter().copied().max()
 }
 
 fn outcome(evaluation: PolicyEvaluation) -> Result<SharedFleetOutcome, String> {
     let cvar90 = upper_tail_cvar90(&evaluation.scenario_costs)?;
-    let worst_case = worst_case_cost(&evaluation.scenario_costs)?;
+    let worst_case = worst_case_cost(
+        &evaluation.scenario_costs,
+        &evaluation.stress_scenario_costs,
+    )?;
     let cvar90_unserved = upper_tail_cvar90(&evaluation.scenario_unserved)?;
-    let worst_case_unserved = worst_case_cost(&evaluation.scenario_unserved)?;
+    let worst_case_unserved = worst_case_cost(
+        &evaluation.scenario_unserved,
+        &evaluation.stress_scenario_unserved,
+    )?;
+    let worst_stress_cost = worst_stress_case_cost(&evaluation.stress_scenario_costs);
+    let worst_stress_unserved = worst_stress_case_cost(&evaluation.stress_scenario_unserved);
     let metrics = evaluation.weighted;
     Ok(SharedFleetOutcome {
         expected_total_cost_units: weighted_average(metrics.total_cost, "expected cost")?,
@@ -1025,6 +1050,14 @@ fn outcome(evaluation: PolicyEvaluation) -> Result<SharedFleetOutcome, String> {
             .map_err(|_| "CVaR90 unserved units exceed report range".to_string())?,
         worst_case_unserved_units: u64::try_from(worst_case_unserved)
             .map_err(|_| "worst-case unserved units exceed report range".to_string())?,
+        worst_stress_case_total_cost_units: worst_stress_cost
+            .map(u64::try_from)
+            .transpose()
+            .map_err(|_| "worst stress cost exceeds report range".to_string())?,
+        worst_stress_case_unserved_units: worst_stress_unserved
+            .map(u64::try_from)
+            .transpose()
+            .map_err(|_| "worst stress unserved exceeds report range".to_string())?,
         expected_road_deliveries: weighted_average(
             metrics.road_deliveries,
             "expected road deliveries",
