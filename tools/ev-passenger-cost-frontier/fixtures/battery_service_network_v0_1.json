@@ -93,7 +93,18 @@
         },
         "value": true
       },
-      "configuration_digest": "urn:synthetic:configuration:uav-class-a"
+      "configuration_digest": "urn:synthetic:configuration:uav-class-a",
+      "state_evidence": {
+        "asset_id": "pack-a",
+        "configuration_digest": "urn:synthetic:configuration:uav-class-a",
+        "producer_id": "urn:synthetic:producer:testbench",
+        "method_id": "urn:synthetic:method:state-record",
+        "evidence_reference": "urn:synthetic:evidence:pack-a-state",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1795219199000,
+        "valid_from_unix_ms": 1795219190000,
+        "valid_until_unix_ms": 1795219210000
+      }
     },
     {
       "pack_id": "pack-b",
@@ -184,7 +195,18 @@
         },
         "value": true
       },
-      "configuration_digest": "urn:synthetic:configuration:uav-class-a"
+      "configuration_digest": "urn:synthetic:configuration:uav-class-a",
+      "state_evidence": {
+        "asset_id": "pack-b",
+        "configuration_digest": "urn:synthetic:configuration:uav-class-a",
+        "producer_id": "urn:synthetic:producer:testbench",
+        "method_id": "urn:synthetic:method:state-record",
+        "evidence_reference": "urn:synthetic:evidence:pack-b-state",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1795219199000,
+        "valid_from_unix_ms": 1795219190000,
+        "valid_until_unix_ms": 1795219210000
+      }
     },
     {
       "pack_id": "pack-c",
@@ -275,7 +297,18 @@
         },
         "value": true
       },
-      "configuration_digest": "urn:synthetic:configuration:uav-class-b"
+      "configuration_digest": "urn:synthetic:configuration:uav-class-b",
+      "state_evidence": {
+        "asset_id": "pack-c",
+        "configuration_digest": "urn:synthetic:configuration:uav-class-b",
+        "producer_id": "urn:synthetic:producer:testbench",
+        "method_id": "urn:synthetic:method:state-record",
+        "evidence_reference": "urn:synthetic:evidence:pack-c-state",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1795219199000,
+        "valid_from_unix_ms": 1795219190000,
+        "valid_until_unix_ms": 1795219210000
+      }
     },
     {
       "pack_id": "pack-d",
@@ -366,7 +399,18 @@
         },
         "value": true
       },
-      "configuration_digest": "urn:synthetic:configuration:uav-class-a"
+      "configuration_digest": "urn:synthetic:configuration:uav-class-a",
+      "state_evidence": {
+        "asset_id": "pack-d",
+        "configuration_digest": "urn:synthetic:configuration:uav-class-a",
+        "producer_id": "urn:synthetic:producer:testbench",
+        "method_id": "urn:synthetic:method:state-record",
+        "evidence_reference": "urn:synthetic:evidence:pack-d-state",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1795219199000,
+        "valid_from_unix_ms": 1795219190000,
+        "valid_until_unix_ms": 1795219210000
+      }
     }
   ],
   "missions": [
