@@ -1224,8 +1224,8 @@ mod tests {
         value["observations"][0]["measurement_system"]["calibration_valid_at_measurement"] =
             json!(false);
         let report = validate_document(&value).expect("record remains inspectable");
-        assert_eq!(report.ic_measured_full_width_length_mm, 0.0);
-        assert_eq!(report.ic_measured_unqualified_full_width_length_mm, 400.0);
+        assert_eq!(report.ic_direct_transport_qualified_length_mm, 0.0);
+        assert_eq!(report.ic_direct_transport_unqualified_length_mm, 400.0);
     }
 
     #[test]
