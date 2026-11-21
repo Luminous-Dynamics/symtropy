@@ -125,6 +125,7 @@
       "additionalProperties": false,
       "required": [
         "case_id",
+        "declared_analysis_bindings",
         "disposition",
         "event_count",
         "beta_hat",
@@ -199,6 +200,9 @@
           "items": {
             "type": "string"
           }
+        },
+        "declared_analysis_bindings": {
+          "$ref": "#/$defs/bindings"
         }
       }
     },
@@ -309,6 +313,99 @@
           "items": {
             "$ref": "#/$defs/case"
           }
+        }
+      }
+    },
+    "bindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_profile",
+        "termination_profile",
+        "subject_group_id",
+        "configuration_sha256",
+        "environment_id",
+        "exposure_clock_id",
+        "observation_start_seconds",
+        "exposure_end_seconds",
+        "complete_event_history",
+        "repair_policy",
+        "admissibility_receipt_sha256",
+        "admissibility_source_commit",
+        "capture_receipt_sha256",
+        "capture_source_commit",
+        "analysis_protocol_id",
+        "multiplicity_policy_id",
+        "significance_level",
+        "monte_carlo_replicates",
+        "random_seed"
+      ],
+      "properties": {
+        "model_profile": {
+          "type": "string"
+        },
+        "termination_profile": {
+          "type": "string"
+        },
+        "subject_group_id": {
+          "type": "string"
+        },
+        "configuration_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "environment_id": {
+          "type": "string"
+        },
+        "exposure_clock_id": {
+          "type": "string"
+        },
+        "observation_start_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "exposure_end_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "complete_event_history": {
+          "type": "boolean"
+        },
+        "repair_policy": {
+          "type": "string"
+        },
+        "admissibility_receipt_sha256": {
+          "type": "string"
+        },
+        "admissibility_source_commit": {
+          "type": "string"
+        },
+        "capture_receipt_sha256": {
+          "type": "string"
+        },
+        "capture_source_commit": {
+          "type": "string"
+        },
+        "analysis_protocol_id": {
+          "type": "string"
+        },
+        "multiplicity_policy_id": {
+          "type": "string"
+        },
+        "significance_level": {
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 0.1
+        },
+        "monte_carlo_replicates": {
+          "type": "integer",
+          "minimum": 999,
+          "maximum": 100000
+        },
+        "random_seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
         }
       }
     }
