@@ -89,7 +89,8 @@
         "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         "rights_status": "unknown",
         "review_state": "unreviewed"
-      }
+      },
+      "measurement_basis": "direct_transport"
     },
     {
       "observation_id": "SYNTH-OBS-002",
@@ -124,7 +125,8 @@
         "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "rights_status": "unknown",
         "review_state": "unreviewed"
-      }
+      },
+      "measurement_basis": "structural_inspection"
     },
     {
       "observation_id": "SYNTH-OBS-003",
@@ -141,6 +143,48 @@
       },
       "source": {
         "artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "rights_status": "unknown",
+        "review_state": "unreviewed"
+      },
+      "measurement_basis": "direct_transport"
+    },
+    {
+      "observation_id": "SYNTH-OBS-004",
+      "segment_id": "SYNTH-SEG-B",
+      "property": "ic",
+      "evidence_state": "measured",
+      "authority": "synthetic_fixture",
+      "measurement_basis": "noncontact_magnetization_proxy",
+      "value": 285,
+      "unit": "A",
+      "method": "synthetic calibrated non-contact magnetization proxy",
+      "coordinate_footprint": {
+        "longitudinal_start_mm": 400,
+        "longitudinal_end_mm": 700,
+        "width_start_mm": 0,
+        "width_end_mm": 4,
+        "face": "a",
+        "spatial_resolution_mm": 5,
+        "registration_uncertainty_mm": 1
+      },
+      "conditions": {
+        "temperature_k": 77,
+        "field_magnitude_t": 0,
+        "field_orientation": "self-field",
+        "current_criterion": "synthetic proxy calibration target criterion",
+        "geometry": "full-width calibrated non-contact mapping"
+      },
+      "uncertainty": {
+        "type": "standard_uncertainty",
+        "standard_uncertainty": 8
+      },
+      "measurement_system": {
+        "instrument_id": "SYNTH-TAPESTAR-001",
+        "calibration_revision": "SYNTH-PROXY-CAL-001",
+        "calibration_valid_at_measurement": true
+      },
+      "source": {
+        "artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
         "rights_status": "unknown",
         "review_state": "unreviewed"
       }
