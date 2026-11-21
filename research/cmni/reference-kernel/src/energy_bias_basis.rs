@@ -279,7 +279,7 @@ mod tests {
     }
 
     #[test]
-    fn aiache_bias_basis_matches_reference_domain_and_short_medium_long_centres() {
+    fn aiachne_bias_basis_matches_reference_domain_and_short_medium_long_centres() {
         let reference_grid = [0.0005, 0.01, 25.01];
         let (domain_min, domain_max) =
             aiachne_bias_basis_energy_domain(&reference_grid).expect("AIACHNE domain");
