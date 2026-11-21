@@ -1,0 +1,315 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/orbital-interface-reliability-corpus-v0.1.schema.json",
+  "title": "Orbital Interface Reliability Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "evidence_class",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-interface-reliability.corpus.v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic-independent-mission-binomial-semantics-only"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "preregistration_ref",
+          "population_id",
+          "lot_id",
+          "configuration_id",
+          "mission_profile_id",
+          "failure_definition_id",
+          "sampling_design",
+          "sampling_frame_ref",
+          "dependence_assessment_ref",
+          "reliability_target",
+          "confidence",
+          "reported_cycle_successes",
+          "reported_cycle_failures",
+          "trials",
+          "expected"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "preregistration_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "population_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "lot_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "configuration_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "mission_profile_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "failure_definition_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sampling_design": {
+            "type": "string"
+          },
+          "sampling_frame_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "dependence_assessment_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reliability_target": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "exclusiveMaximum": 1
+          },
+          "confidence": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "exclusiveMaximum": 1
+          },
+          "reported_cycle_successes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reported_cycle_failures": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "trials": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "trial_id",
+                "article_serial",
+                "sampling_cluster_id",
+                "population_id",
+                "lot_id",
+                "configuration_id",
+                "mission_profile_id",
+                "failure_definition_id",
+                "raw_artifact_sha256",
+                "evidence_complete",
+                "mission_profile_verified",
+                "intervention_during_mission",
+                "exposure_cycles",
+                "daq_sample_count"
+              ],
+              "properties": {
+                "trial_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "article_serial": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "sampling_cluster_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "population_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "lot_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "configuration_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "mission_profile_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "failure_definition_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "outcome": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "success",
+                    "failure",
+                    "restricted",
+                    "aborted",
+                    "withdrawn",
+                    "invalid",
+                    "right_censored",
+                    null
+                  ]
+                },
+                "raw_artifact_sha256": {
+                  "type": "string"
+                },
+                "evidence_complete": {
+                  "type": "boolean"
+                },
+                "mission_profile_verified": {
+                  "type": "boolean"
+                },
+                "intervention_during_mission": {
+                  "type": "boolean"
+                },
+                "exposure_cycles": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "daq_sample_count": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "expected": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "disposition",
+              "unique_trials",
+              "successes",
+              "failures",
+              "restricted_outcomes",
+              "invalid_trials",
+              "aborted_trials",
+              "withdrawn_trials",
+              "censored_trials",
+              "duplicate_trials",
+              "lower_confidence_bound",
+              "meets_reliability_target",
+              "naive_success_fraction",
+              "naive_baseline_false_assurance",
+              "minimum_zero_failure_trials",
+              "naive_cycle_lower_bound",
+              "naive_cycle_false_assurance"
+            ],
+            "properties": {
+              "disposition": {
+                "enum": [
+                  "reliability_demonstrated",
+                  "reliability_not_demonstrated",
+                  "indeterminate",
+                  "model_not_supported",
+                  "rejected",
+                  "disputed"
+                ]
+              },
+              "unique_trials": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "successes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "failures": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "restricted_outcomes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "invalid_trials": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "aborted_trials": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "withdrawn_trials": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "censored_trials": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "duplicate_trials": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "lower_confidence_bound": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "meets_reliability_target": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "naive_success_fraction": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "naive_baseline_false_assurance": {
+                "type": "boolean"
+              },
+              "minimum_zero_failure_trials": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "naive_cycle_lower_bound": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "naive_cycle_false_assurance": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
