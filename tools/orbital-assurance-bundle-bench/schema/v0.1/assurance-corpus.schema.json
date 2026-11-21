@@ -201,7 +201,9 @@
             "model_credibility",
             "evidence_custody",
             "external_authority_decision",
-            "defeater"
+            "defeater",
+            "power_law_recurrent_intensity",
+            "weibull_first_failure_life"
           ]
         },
         "state": {
