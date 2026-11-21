@@ -14,6 +14,7 @@
 
 use crate::ModelError;
 
+#[cfg(test)]
 type BaseArgs = (
     Vec<f64>,
     Vec<f64>,
