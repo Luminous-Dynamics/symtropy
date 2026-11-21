@@ -77,3 +77,14 @@ There are now **45 authored Rust tests** in the prototype: 37 in the main refere
 - Lateral spatial point-spread and depth response are distinct and not yet combined in the current kernel.
 
 There are now **52 authored Rust tests**: 37 in the root reference kernel, 8 in material_state.rs and 7 in measurement.rs. They remain unexecuted because cargo/rustc/nix are unavailable in this environment.
+
+
+## Detector response matrix forward model
+
+- DetectorResponseMatrix maps incident true-neutron-energy bin rates into expected measured pulse-height bin rates.
+- Rows are measured bins; columns are true-energy bins. Each column sum is an explicitly represented detection probability/efficiency and must not exceed one.
+- Background rates and exposure time are separate from the matrix.
+- Seven authored tests cover identity response, energy migration, efficiency loss, expected counts, invalid probabilities, ragged matrices and background/exposure validation.
+- Synthetic fixture: research/cmni/fixtures/detector-response-matrix-forward-synthetic.json.
+
+The forward matrix is a numerical interface only. There is no Geant4/MCNP/DRiFT model, no scintillation or PSD response, and no unfolding algorithm in this prototype.
