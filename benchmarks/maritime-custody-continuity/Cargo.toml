@@ -1,0 +1,11 @@
+[package]
+name = "maritime-custody-continuity"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "MIT"
+description = "Synthetic source-event custody and physical handoff continuity benchmark"
+
+[dependencies]
+
+[workspace]
