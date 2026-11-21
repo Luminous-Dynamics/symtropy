@@ -26,7 +26,7 @@ cargo clippy --offline --locked --all-targets -- -D warnings
 
 ## Contract
 
-- One declared opening custodian per physical box.
+- One declared opening custodian per physical box, supported by an `INDEPENDENT_OBSERVATION` event class in the synthetic contract.
 - A release is valid only from the current custodian.
 - One open handoff is allowed at a time.
 - Release and acceptance must agree on handoff ID, parties, location, transport leg, quantity and unit.
