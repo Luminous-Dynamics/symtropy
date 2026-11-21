@@ -348,7 +348,8 @@ mod tests {
                 boot_epoch_id: "vehicle-boot-8".into(),
             },
             comparison_clock: m2::ClockBinding {
-                clock_id: "vehicle-monotonic-1".into(), boot_epoch_id: "vehicle-boot-8".into(),
+                clock_id: "vehicle-monotonic-1".into(),
+                boot_epoch_id: "vehicle-boot-8".into(),
             },
             normalized_observed_at_ms: 1_070,
             normalization_commitment: None,
@@ -397,6 +398,36 @@ mod tests {
                 &bad,
             ),
             Err(AdapterError::TimeSourceClockMismatch)
+        );
+        assert_eq!(
+            f.supervisor.phase("pick"),
+            Ok(m1::SubgoalPhase::AwaitingEvidence)
+        );
+    }
+
+    #[test]
+    fn wrong_comparison_clock_is_rejected_without_mutating_m1() {
+        let mut f = fixture(m2::PhysicalOutcome::Satisfied);
+        let bad = QualifiedReceiptTime::Qualified {
+            source_clock: f.evidence.clock.clone(),
+            comparison_clock: m2::ClockBinding {
+                clock_id: "different-comparison-clock".into(),
+                boot_epoch_id: "different-comparison-boot".into(),
+            },
+            normalized_observed_at_ms: 1_070,
+            normalization_commitment: Some(digest(9)),
+        };
+        assert_eq!(
+            apply_outcome_to_m1(
+                &mut f.supervisor,
+                &f.m1_ticket,
+                &f.m2_ticket,
+                &f.live,
+                &f.evidence,
+                f.policy.clone(),
+                &bad,
+            ),
+            Err(AdapterError::TimeComparisonClockMismatch)
         );
         assert_eq!(
             f.supervisor.phase("pick"),
