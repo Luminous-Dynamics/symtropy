@@ -132,8 +132,8 @@
         },
         "significance_level": {
           "type": "number",
-          "minimum": 1e-19,
-          "maximum": 1
+          "minimum": 0.01,
+          "maximum": 0.1
         },
         "monte_carlo_replicates": {
           "type": "integer",
@@ -143,7 +143,7 @@
         "random_seed": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 9007199254740992
+          "maximum": 9007199254740991
         },
         "expected": {
           "$ref": "#/$defs/expected"
