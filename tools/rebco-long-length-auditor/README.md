@@ -51,3 +51,22 @@ cargo run --locked --quiet -p rebco-long-length-auditor --bin sequential_inspect
 This exact finite-horizon dynamic program minimizes inspection cost plus terminal asymmetric false-accept / false-reject decision loss over a contingent policy tree. It uses a canonical posterior-weight state key and exact memoization for small synthetic grids. At each policy node, it can inspect once or stop; each action is used at most once per path, and cost / horizon / exact condition-profile / calibration gates are enforced. The receipt compares the optimal finite-horizon policy with the best one-step policy on the same fixture and hashes the exact fixture bytes.
 
 This v0.1 is intentionally capped at 16 actions and horizon 6. It is a correctness/oracle prototype, not a scalable planner, globally optimal policy for continuous spatial fields, physical inspection, manufacturer-calibrated sensitivity model or product-release authority.
+
+
+## Exact finite-horizon sequential inspection planner
+
+Schema: `docs/research/schemas/rebco_sequential_inspection_dp_v0_1.schema.json`.
+
+Synthetic joint-scenario fixture: `docs/research/fixtures/rebco_sequential_inspection_dp_synthetic_v0_1.json`.
+
+Run:
+
+```bash
+cargo test --locked -p rebco-long-length-auditor --bin sequential_inspection_dp
+cargo run --locked --quiet -p rebco-long-length-auditor --bin sequential_inspection_dp -- \
+  docs/research/fixtures/rebco_sequential_inspection_dp_synthetic_v0_1.json
+```
+
+The exact finite-horizon planner minimizes total inspection cost plus terminal asymmetric false-accept/false-reject decision loss. It creates a contingent policy tree, uses a canonical posterior belief state with memoization and can stop at any node. It has a hard action-count/horizon ceiling for v0.1 and validates exact condition profile, calibration status, method identity, input digest, prior weights and total budget. Its tests compare the memoized planner against an exhaustive recursive oracle on a small grid, demonstrate a myopic-vs-sequential case, and validate path constraints. It recommends; it never performs a measurement or releases a reel.
+
+The fixture's numbers are synthetic decision-loss units, not money or validated risk estimates. The result is not a scalable planner or a globally optimal policy over real continuous spatial fields. Use it as a correctness prototype before implementing robust uncertain-likelihood planning or larger-grid approximations.
