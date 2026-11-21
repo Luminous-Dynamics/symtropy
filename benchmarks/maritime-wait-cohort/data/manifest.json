@@ -13,7 +13,9 @@
     "BERTH": 9,
     "DIVERTED": 4,
     "CANCELLED": 4,
-    "CENSORED_EFFECTIVE": 9
+    "CENSORED_EFFECTIVE": 9,
+    "CENSORED_ADMINISTRATIVE": 8,
+    "CENSORED_REPORTING_LAG": 1
   },
   "fixture_families": [
     "competing berth/diversion/cancellation outcomes",
@@ -30,5 +32,6 @@
     "hours": false
   },
   "rights": "All observations are original synthetic values; no vessel, carrier, operator, terminal or source-provider records are included.",
-  "claim_ceiling": "Synthetic estimator/cutoff conformance only; no port-performance or causal claim."
+  "claim_ceiling": "Synthetic estimator/cutoff conformance only; no port-performance or causal claim.",
+  "censoring_assumption": "Aalen-Johansen requires non-informative censoring conditional on cohort/strata. Reporting-lag censoring is separately identified but not modeled; real-data probabilities require reporting-delay diagnostics and sensitivity analysis."
 }
