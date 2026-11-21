@@ -819,6 +819,18 @@ mod tests {
         assert!(bindings.clock.synchronized);
         assert!(bindings.clock.monotonic);
         assert_eq!(bindings.clock.measured_max_error_ticks, Some(1));
+
+        let zero_window = report
+            .cases
+            .iter()
+            .find(|case| case.case_id == "zero-test-window")
+            .expect("invalid-window case exists");
+        assert_eq!(
+            zero_window
+                .declared_evidence_bindings
+                .derived_reference_event_rate_per_second,
+            None
+        );
     }
 
     #[test]
