@@ -1,0 +1,53 @@
+{
+  "standard_ref_id": "opcua-machinery-1.04.2-reference",
+  "name": "OPC UA for Machinery — Part 1: Basic Building Blocks",
+  "publisher": "OPC Foundation",
+  "edition": "1.04.2 (published 2026-11-01)",
+  "role": "machine_information_model",
+  "publication_state": "published_specification",
+  "reference_uri": "https://reference.opcfoundation.org/specs/OPC-40001-1",
+  "namespace_metadata": {
+    "namespace_uri": "http://opcfoundation.org/UA/Machinery/",
+    "namespace_version": "1.04.2",
+    "namespace_publication_date": "2026-11-01",
+    "nodeset_uri": "https://reference.opcfoundation.org/nodesets/?u=http://opcfoundation.org/UA/Machinery/&v=1.04.2&i=1",
+    "nodeset_scope": "complete_namespace"
+  },
+  "nodeset_artifact": {
+    "artifact_admission_status": "pinned_not_imported",
+    "repository_url": "https://github.com/OPCFoundation/UA-Nodeset",
+    "source_commit_sha": "ed0b821f6a6f1f0c440c442ed95a9146ae8b7f8d",
+    "source_path": "Machinery/Opc.Ua.Machinery.NodeSet2.xml",
+    "git_blob_sha1": "1a0bd4292d47809419cf2739054c2add87d6396e",
+    "content_sha256": "7b0e4132b83c8c8bdbf9d1a0d09ed67adc7c8aa9e97a4beac1622664b3096376",
+    "byte_length": 107329,
+    "namespace_uris": [
+      "http://opcfoundation.org/UA/Machinery/",
+      "http://opcfoundation.org/UA/DI/",
+      "http://opcfoundation.org/UA/IA/"
+    ],
+    "node_set_model": {
+      "model_uri": "http://opcfoundation.org/UA/Machinery/",
+      "version": "1.04.2",
+      "model_version": "1.4.2",
+      "publication_date": "2026-11-02"
+    },
+    "required_models": [
+      {
+        "model_uri": "http://opcfoundation.org/UA/",
+        "version": "1.05.07",
+        "publication_date": "2026-07-30"
+      },
+      {
+        "model_uri": "http://opcfoundation.org/UA/DI/",
+        "version": "1.04.0",
+        "publication_date": "2022-11-03"
+      },
+      {
+        "model_uri": "http://opcfoundation.org/UA/IA/",
+        "version": "1.01.4",
+        "publication_date": "2025-05-23"
+      }
+    ]
+  }
+}
