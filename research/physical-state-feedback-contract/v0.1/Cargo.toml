@@ -8,3 +8,5 @@ description = "Evidence-aware, read-only state feedback contract for physical si
 
 [lib]
 path = "src/lib.rs"
+
+[workspace]
