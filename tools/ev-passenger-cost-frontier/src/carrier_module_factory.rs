@@ -1203,6 +1203,9 @@ pub fn evaluate_shared_cells(
             .expect("valid unknown evidence fixture");
         assert_eq!(report.results[0].status, Status::Indeterminate);
         assert!(report.results[0].shared_capacity_margin_minutes_per_year.is_none());
+        assert!(report.results[0].required_supplemental_cells.is_none());
+        assert!(report.results[0].module_work_minutes_fitted_to_residual.is_none());
+        assert!(report.results[0].supplemental_cells_used.is_none());
         assert!(report.results[0].missing_fields.contains(&"shared_station_compatibility_evidence".into()));
     }
 
@@ -1219,6 +1222,7 @@ pub fn evaluate_shared_cells(
         let report = evaluate_shared_cells(&factory, &modules, &shared_catalog(mapping))
             .expect("valid incompatible fixture");
         assert_eq!(report.results[0].status, Status::Blocked);
+        assert!(report.results[0].shared_capacity_margin_minutes_per_year.is_none());
         assert!(report.results[0].findings.iter().any(|finding| finding.contains("not qualified")));
     }
 
