@@ -109,6 +109,6 @@ A module is:
 - `incompatible` when a declared interface or target-vehicle mismatch is known;
 - `indeterminate` when qualification, inventories, operating ranges or required capacity data are incomplete.
 
-The synthetic fixture intentionally produces two indeterminate configurations and two incompatible negative controls. No module is production released. The evaluator does not verify evidence file contents or authenticate issuer signatures; it checks digest syntax and exact references only. It does not grant electrical, mechanical, flight or vehicle authority.
+The synthetic fixture intentionally produces two indeterminate configurations and two incompatible negative controls. No module is production released. The evaluator does not verify evidence file contents, calibration certificates or issuer signatures; it checks digest syntax, test-result state, timestamp shape and exact references only. Failed exact-scope independent tests block compatibility; inconclusive results remain indeterminate. It does not grant electrical, mechanical, flight or vehicle authority.
 
 Detailed interface model, result semantics, negative controls, current research and standards-applicability limits: [EV Carrier Interface Compatibility Screen v0.1](../../docs/research/EV_CARRIER_INTERFACE_COMPATIBILITY_SCREEN_V0_1.md).
