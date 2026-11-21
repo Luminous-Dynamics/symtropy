@@ -1,0 +1,33 @@
+{
+  "schema_version": "0.1.0",
+  "claim_scope": "Synthetic test fixture only; no empirical portability result.",
+  "common_task_count": 10,
+  "common_policies": [
+    "policy-a",
+    "policy-b",
+    "policy-c"
+  ],
+  "source_rates": {
+    "policy_a": 20,
+    "policy_b": 10,
+    "policy_c": 0
+  },
+  "target_scenarios": {
+    "matched_same_order": {
+      "policy_a": 20,
+      "policy_b": 10,
+      "policy_c": 0
+    },
+    "cross_team_rank_reversal": {
+      "policy_a": 0,
+      "policy_b": 10,
+      "policy_c": 20
+    },
+    "ambiguous": {
+      "policy_a": 10,
+      "policy_b": 10,
+      "policy_c": 10
+    }
+  },
+  "note": "All source/target outcome rows in the Rust tests use 20 trials per policy-task cell."
+}
