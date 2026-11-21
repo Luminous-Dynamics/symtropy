@@ -50,9 +50,16 @@ pub enum FieldStatus {
 #[derive(Clone, Debug, PartialEq)]
 pub enum Uncertainty {
     /// Uncertainty was not quantified. This is not a zero-width interval.
-    NotQuantified { reason: String },
-    ScalarStdDev { standard_deviation: f64 },
-    Interval { lower: f64, upper: f64 },
+    NotQuantified {
+        reason: String,
+    },
+    ScalarStdDev {
+        standard_deviation: f64,
+    },
+    Interval {
+        lower: f64,
+        upper: f64,
+    },
     Covariance3 {
         matrix: [[f64; 3]; 3],
         /// Product unit of the vector component units, e.g. m^2 or m^2/s^2.
@@ -60,7 +67,9 @@ pub enum Uncertainty {
         /// Coordinate frame in which this covariance is expressed.
         frame_id: String,
     },
-    EmpiricalSamples { values: Vec<f64> },
+    EmpiricalSamples {
+        values: Vec<f64>,
+    },
 }
 
 impl Uncertainty {
@@ -116,16 +125,10 @@ impl Uncertainty {
     }
 }
 
-fn validate_symmetric_psd3(
-    matrix: &[[f64; 3]; 3],
-    path: &str,
-) -> Result<(), ValidationError> {
+fn validate_symmetric_psd3(matrix: &[[f64; 3]; 3], path: &str) -> Result<(), ValidationError> {
     for row in matrix {
         if row.iter().any(|value| !value.is_finite()) {
-            return Err(ValidationError::new(
-                path,
-                "matrix entries must be finite",
-            ));
+            return Err(ValidationError::new(path, "matrix entries must be finite"));
         }
     }
     for (i, row) in matrix.iter().enumerate() {
@@ -137,10 +140,7 @@ fn validate_symmetric_psd3(
         }
         for (j, _) in row.iter().enumerate().skip(i + 1) {
             if (matrix[i][j] - matrix[j][i]).abs() > COVARIANCE_TOLERANCE {
-                return Err(ValidationError::new(
-                    path,
-                    "matrix must be symmetric",
-                ));
+                return Err(ValidationError::new(path, "matrix must be symmetric"));
             }
             let minor = matrix[i][i] * matrix[j][j] - matrix[i][j] * matrix[j][i];
             if minor < -COVARIANCE_TOLERANCE {
@@ -151,12 +151,9 @@ fn validate_symmetric_psd3(
             }
         }
     }
-    let determinant = matrix[0][0]
-        * (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1])
-        - matrix[0][1]
-            * (matrix[1][0] * matrix[2][2] - matrix[1][2] * matrix[2][0])
-        + matrix[0][2]
-            * (matrix[1][0] * matrix[2][1] - matrix[1][1] * matrix[2][0]);
+    let determinant = matrix[0][0] * (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1])
+        - matrix[0][1] * (matrix[1][0] * matrix[2][2] - matrix[1][2] * matrix[2][0])
+        + matrix[0][2] * (matrix[1][0] * matrix[2][1] - matrix[1][1] * matrix[2][0]);
     if determinant < -COVARIANCE_TOLERANCE {
         return Err(ValidationError::new(
             path,
@@ -277,12 +274,7 @@ impl FieldMetadata {
             ));
         }
         self.provenance.validate(self.status, path)?;
-        if let Some(Uncertainty::Covariance3 {
-            unit,
-            frame_id,
-            ..
-        }) = &self.uncertainty
-        {
+        if let Some(Uncertainty::Covariance3 { unit, frame_id, .. }) = &self.uncertainty {
             let expected_unit = match self.unit.as_str() {
                 "m" => "m^2",
                 "m/s" => "m^2/s^2",
@@ -299,7 +291,10 @@ impl FieldMetadata {
             if unit != expected_unit {
                 return Err(ValidationError::new(
                     path,
-                    format!("covariance unit must be {expected_unit:?} for field unit {:?}", self.unit),
+                    format!(
+                        "covariance unit must be {expected_unit:?} for field unit {:?}",
+                        self.unit
+                    ),
                 ));
             }
             if self.frame_id.as_deref() != Some(frame_id.as_str()) {
@@ -378,17 +373,16 @@ impl<T> FieldValue<T> {
         if self.metadata.unit != expected_unit {
             return Err(ValidationError::new(
                 path,
-                format!("expected canonical unit {expected_unit:?}, got {:?}", self.metadata.unit),
+                format!(
+                    "expected canonical unit {expected_unit:?}, got {:?}",
+                    self.metadata.unit
+                ),
             ));
         }
         Ok(())
     }
 
-    pub fn validate_frame(
-        &self,
-        path: &str,
-        expected_frame: &str,
-    ) -> Result<(), ValidationError> {
+    pub fn validate_frame(&self, path: &str, expected_frame: &str) -> Result<(), ValidationError> {
         self.validate(path)?;
         if self.metadata.frame_id.as_deref() != Some(expected_frame) {
             return Err(ValidationError::new(
@@ -480,7 +474,11 @@ impl Pose3 {
         let quaternion = self.rotation_xyzw.value.as_ref().ok_or_else(|| {
             ValidationError::new(path, "entity pose rotation cannot be unavailable")
         })?;
-        let norm = quaternion.iter().map(|value| value * value).sum::<f64>().sqrt();
+        let norm = quaternion
+            .iter()
+            .map(|value| value * value)
+            .sum::<f64>()
+            .sqrt();
         if (norm - 1.0).abs() > QUATERNION_NORM_TOLERANCE {
             return Err(ValidationError::new(
                 path,
@@ -620,12 +618,15 @@ impl EntityState {
                 "parent ID must be non-empty and cannot be self",
             ));
         }
-        self.pose
-            .validate(&format!("{path}.pose"), world_frame)?;
+        self.pose.validate(&format!("{path}.pose"), world_frame)?;
         for (name, field, unit) in [
             ("linear_velocity", &self.linear_velocity_m_s, "m/s"),
             ("angular_velocity", &self.angular_velocity_rad_s, "rad/s"),
-            ("linear_acceleration", &self.linear_acceleration_m_s2, "m/s^2"),
+            (
+                "linear_acceleration",
+                &self.linear_acceleration_m_s2,
+                "m/s^2",
+            ),
         ] {
             field.validate_expected_unit(&format!("{path}.{name}"), unit)?;
             field.validate_frame(&format!("{path}.{name}"), world_frame)?;
@@ -648,11 +649,8 @@ impl EntityState {
             ];
             validate_symmetric_psd3(&matrix, &format!("{path}.inertia"))?;
         }
-        self.contact.validate(
-            &format!("{path}.contact"),
-            &self.entity_id,
-            world_frame,
-        )?;
+        self.contact
+            .validate(&format!("{path}.contact"), &self.entity_id, world_frame)?;
         Ok(())
     }
 }
@@ -687,10 +685,7 @@ impl SnapshotIdentity {
     fn validate(&self) -> Result<(), ValidationError> {
         validate_sha256(&self.snapshot_sha256, "identity.snapshot_sha256")?;
         validate_sha256(&self.model_build_sha256, "identity.model_build_sha256")?;
-        validate_sha256(
-            &self.configuration_sha256,
-            "identity.configuration_sha256",
-        )?;
+        validate_sha256(&self.configuration_sha256, "identity.configuration_sha256")?;
         for (name, value) in [
             ("world_id", self.world_id.as_str()),
             ("episode_id", self.episode_id.as_str()),
@@ -740,10 +735,7 @@ impl StateSnapshot {
         let mut entity_ids = BTreeSet::new();
         let mut frame_ids = BTreeSet::new();
         for (index, entity) in self.entities.iter().enumerate() {
-            entity.validate(
-                &format!("entities[{index}]"),
-                &self.identity.world_frame,
-            )?;
+            entity.validate(&format!("entities[{index}]"), &self.identity.world_frame)?;
             if !entity_ids.insert(entity.entity_id.as_str()) {
                 return Err(ValidationError::new(
                     format!("entities[{index}].entity_id"),
@@ -779,9 +771,7 @@ impl StateSnapshot {
     }
 }
 
-pub fn validate_snapshot_sequence(
-    snapshots: &[StateSnapshot],
-) -> Result<(), ValidationError> {
+pub fn validate_snapshot_sequence(snapshots: &[StateSnapshot]) -> Result<(), ValidationError> {
     if snapshots.is_empty() {
         return Err(ValidationError::new(
             "snapshots",
@@ -908,7 +898,11 @@ impl StateQuery {
                 "returned snapshot does not match the requested immutable snapshot",
             ));
         }
-        let requested = self.entity_ids.iter().map(String::as_str).collect::<BTreeSet<_>>();
+        let requested = self
+            .entity_ids
+            .iter()
+            .map(String::as_str)
+            .collect::<BTreeSet<_>>();
         let returned = result
             .entities
             .iter()
@@ -981,10 +975,7 @@ impl StepRequest {
     pub fn validate(&self) -> Result<(), ValidationError> {
         validate_sha256(&self.pre_snapshot_sha256, "step.pre_snapshot_sha256")?;
         validate_sha256(&self.model_build_sha256, "step.model_build_sha256")?;
-        validate_sha256(
-            &self.configuration_sha256,
-            "step.configuration_sha256",
-        )?;
+        validate_sha256(&self.configuration_sha256, "step.configuration_sha256")?;
         validate_sha256(&self.action_stream_sha256, "step.action_stream_sha256")?;
         for (name, value) in [
             ("world_id", self.world_id.as_str()),
@@ -1013,14 +1004,12 @@ impl StepRequest {
                 "step duration must be positive",
             ));
         }
-        self.pre_step_index.checked_add(1).ok_or_else(|| {
-            ValidationError::new("step.pre_step_index", "step index overflow")
-        })?;
+        self.pre_step_index
+            .checked_add(1)
+            .ok_or_else(|| ValidationError::new("step.pre_step_index", "step index overflow"))?;
         self.pre_simulation_time_ns
             .checked_add(self.duration_ns)
-            .ok_or_else(|| {
-                ValidationError::new("step.duration_ns", "simulation time overflow")
-            })?;
+            .ok_or_else(|| ValidationError::new("step.duration_ns", "simulation time overflow"))?;
         Ok(())
     }
 
@@ -1051,9 +1040,7 @@ impl StepRequest {
                 "result must preserve model, configuration, world, episode and trajectory identity",
             ));
         }
-        if identity.step_index != expected_step
-            || identity.simulation_time_ns != expected_time
-        {
+        if identity.step_index != expected_step || identity.simulation_time_ns != expected_time {
             return Err(ValidationError::new(
                 "step.result.identity",
                 "result step and simulation time must equal the pre-state plus one step and the requested duration",
@@ -1472,9 +1459,7 @@ mod tests {
         );
 
         reappeared_old_generation.entities[0].generation = 1;
-        assert!(
-            validate_snapshot_sequence(&[first, middle, reappeared_old_generation]).is_ok()
-        );
+        assert!(validate_snapshot_sequence(&[first, middle, reappeared_old_generation]).is_ok());
     }
 
     #[test]
@@ -1517,7 +1502,8 @@ mod tests {
                 "1",
                 Some("world"),
                 Some(Uncertainty::NotQuantified {
-                    reason: "synthetic contact fixture has no calibrated classifier error".to_owned(),
+                    reason: "synthetic contact fixture has no calibrated classifier error"
+                        .to_owned(),
                 }),
             ),
             partner_entity_ids: vec!["partner-1".to_owned()],
@@ -1529,8 +1515,7 @@ mod tests {
     #[test]
     fn step_request_binds_the_result_to_pre_state_action_duration_and_identity() {
         let pre_state = valid_snapshot(0, 0);
-        let request =
-            StepRequest::from_snapshot(&pre_state, "d".repeat(64), 1_000_000).unwrap();
+        let request = StepRequest::from_snapshot(&pre_state, "d".repeat(64), 1_000_000).unwrap();
         let result = valid_snapshot(1, 1_000_000);
         assert!(request.validate_result(&result).is_ok());
 
