@@ -62,6 +62,9 @@ pub use horseshoe_hmc::{
     HorseshoeHmcDraw,
 };
 
+mod sampler_diagnostics;
+pub use sampler_diagnostics::{diagnose_horseshoe_coefficient, HmcDiagnosticSummary};
+
 
 mod experiment_design;
 pub use experiment_design::{
