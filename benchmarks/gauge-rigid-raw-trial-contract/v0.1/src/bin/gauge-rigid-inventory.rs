@@ -151,8 +151,8 @@ fn scan_directory(
     let entries = match fs::read_dir(directory) {
         Ok(entries) => entries,
         Err(error) => {
-            let path = relative_utf8(root, directory)
-                .unwrap_or_else(|_| directory.display().to_string());
+            let path =
+                relative_utf8(root, directory).unwrap_or_else(|_| directory.display().to_string());
             issues.push(ScanIssue {
                 path,
                 reason: format!("cannot read directory: {error}"),
@@ -162,9 +162,12 @@ fn scan_directory(
     };
 
     let mut entries = entries.collect::<Vec<_>>();
-    entries.sort_by(|left, right| left.as_ref().ok().map(|e| e.file_name()).cmp(
-        &right.as_ref().ok().map(|e| e.file_name())
-    ));
+    entries.sort_by(|left, right| {
+        left.as_ref()
+            .ok()
+            .map(|e| e.file_name())
+            .cmp(&right.as_ref().ok().map(|e| e.file_name()))
+    });
 
     for entry in entries {
         let entry = match entry {
@@ -179,8 +182,7 @@ fn scan_directory(
             }
         };
         let path = entry.path();
-        let relative = relative_utf8(root, &path)
-            .unwrap_or_else(|_| path.display().to_string());
+        let relative = relative_utf8(root, &path).unwrap_or_else(|_| path.display().to_string());
         let metadata = match fs::symlink_metadata(&path) {
             Ok(metadata) => metadata,
             Err(error) => {
@@ -200,9 +202,7 @@ fn scan_directory(
             });
         } else if file_type.is_dir() {
             scan_directory(root, &path, files, issues);
-        } else if file_type.is_file()
-            && path.extension().and_then(OsStr::to_str) == Some("json")
-        {
+        } else if file_type.is_file() && path.extension().and_then(OsStr::to_str) == Some("json") {
             files.push(path);
         }
     }
@@ -431,7 +431,10 @@ fn file_record_json(record: &FileResult) -> String {
         json_optional_string(record.euler_order),
         json_optional_string(record.quaternion_component_order),
         streams,
-        record.semantics.clone().unwrap_or_else(|| "null".to_owned()),
+        record
+            .semantics
+            .clone()
+            .unwrap_or_else(|| "null".to_owned()),
     )
 }
 
@@ -521,7 +524,11 @@ fn summary_json(
         issues.len(),
         missing,
         families,
-        if passed { "PASS_STRUCTURE_ONLY" } else { "FAIL_INCOMPLETE_OR_INVALID" },
+        if passed {
+            "PASS_STRUCTURE_ONLY"
+        } else {
+            "FAIL_INCOMPLETE_OR_INVALID"
+        },
     )
 }
 
@@ -569,8 +576,7 @@ fn run(arguments: Arguments) -> Result<bool, String> {
     let mut hash_or_read_failure = false;
 
     for path in paths {
-        let relative = relative_utf8(&root, &path)
-            .unwrap_or_else(|_| path.display().to_string());
+        let relative = relative_utf8(&root, &path).unwrap_or_else(|_| path.display().to_string());
         match inspect_file(&root, &path) {
             Ok(record) => records.push(record),
             Err(error) => {
@@ -612,8 +618,9 @@ fn run(arguments: Arguments) -> Result<bool, String> {
         .collect::<Vec<_>>();
 
     if let Some(output_path) = arguments.output {
-        let file = File::create(&output_path)
-            .map_err(|error| format!("cannot create manifest {}: {error}", output_path.display()))?;
+        let file = File::create(&output_path).map_err(|error| {
+            format!("cannot create manifest {}: {error}", output_path.display())
+        })?;
         let mut writer = BufWriter::new(file);
         write_manifest(
             &mut writer,
@@ -674,10 +681,7 @@ mod tests {
     fn json_string_escapes_quotes_control_characters_and_unicode_safely() {
         let input = format!(
             "trail \"quote\" {}{}{}{} / café",
-            '\\',
-            '\n',
-            '\t',
-            '\u{0001}'
+            '\\', '\n', '\t', '\u{0001}'
         );
         let escaped = json_string(&input);
         assert!(escaped.contains(r#"\"quote\""#));
@@ -688,9 +692,8 @@ mod tests {
 
     #[test]
     fn path_labels_preserve_family_material_and_subtask_segments() {
-        let (family, material, subtask, record) = path_labels(
-            "slope slider/json/metal/task-2/record 1.json",
-        );
+        let (family, material, subtask, record) =
+            path_labels("slope slider/json/metal/task-2/record 1.json");
         assert_eq!(family, "slope slider");
         assert_eq!(material.as_deref(), Some("metal"));
         assert_eq!(subtask.as_deref(), Some("task-2"));
@@ -699,8 +702,7 @@ mod tests {
 
     #[test]
     fn path_labels_do_not_invent_material_for_direct_record_layout() {
-        let (family, material, subtask, record) =
-            path_labels("newton's cradle/json/1.json");
+        let (family, material, subtask, record) = path_labels("newton's cradle/json/1.json");
         assert_eq!(family, "newton's cradle");
         assert_eq!(material, None);
         assert_eq!(subtask, None);
@@ -713,7 +715,10 @@ mod tests {
             sha256_bytes(b"abc").unwrap(),
             "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
         );
-        assert_ne!(sha256_bytes(b"abc").unwrap(), sha256_bytes(b"abc\n").unwrap());
+        assert_ne!(
+            sha256_bytes(b"abc").unwrap(),
+            sha256_bytes(b"abc\n").unwrap()
+        );
     }
 
     #[test]
@@ -746,8 +751,7 @@ mod tests {
         for family in REQUIRED_FAMILIES {
             let directory = root.join(family).join("json");
             fs::create_dir_all(&directory).expect("create family directory");
-            fs::write(directory.join("record 1.json"), VALID_TRIAL)
-                .expect("write synthetic trial");
+            fs::write(directory.join("record 1.json"), VALID_TRIAL).expect("write synthetic trial");
         }
 
         let (paths, issues) = sorted_json_files(&root);
