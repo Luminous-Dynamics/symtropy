@@ -117,8 +117,14 @@ pub struct ActionTicket {
     pub ticket_commitment: Digest,
     pub mission_id: String,
     pub mission_generation: u64,
+    /// M1 mission subgoal identity; must equal the active supervisor ticket.
+    pub subgoal_id: String,
     pub action_id: String,
+    /// Monotonic M1 attempt number; retries always receive a new attempt.
+    pub attempt: u32,
     pub action_digest: Digest,
+    /// Exact M1 MissionPlan predicate identifier for this action's expected effect.
+    pub expected_effect_predicate_id: String,
     pub platform: PlatformBinding,
     pub operation: OperationBinding,
     pub authority: AuthorityBinding,
@@ -140,6 +146,11 @@ pub struct ActionTicket {
 pub struct LiveContext {
     pub mission_id: String,
     pub mission_generation: u64,
+    /// Active M1 supervisor ticket fields observed at the commit boundary.
+    pub active_subgoal_id: String,
+    pub active_action_id: String,
+    pub active_attempt: u32,
+    pub active_effect_predicate_id: String,
     pub platform: PlatformBinding,
     pub operation: OperationBinding,
     pub authority_id: String,
@@ -165,6 +176,10 @@ pub enum AdmissionError {
     TicketExpired,
     MissionMismatch,
     MissionGenerationMismatch,
+    SubgoalMismatch,
+    ActionMismatch,
+    ActionAttemptMismatch,
+    EffectPredicateMismatch,
     PlatformMismatch,
     ConfigurationMismatch,
     OddMismatch,
@@ -214,7 +229,9 @@ pub fn validate_ticket_applicability(
 ) -> Result<(), AdmissionError> {
     let required_references = [
         ticket.mission_id.as_str(),
+        ticket.subgoal_id.as_str(),
         ticket.action_id.as_str(),
+        ticket.expected_effect_predicate_id.as_str(),
         ticket.platform.platform_id.as_str(),
         ticket.operation.odd_id.as_str(),
         ticket.operation.mode_id.as_str(),
@@ -227,6 +244,9 @@ pub fn validate_ticket_applicability(
         ticket.expected_observation_frame_id.as_str(),
         ticket.expected_calibration_id.as_str(),
         live.mission_id.as_str(),
+        live.active_subgoal_id.as_str(),
+        live.active_action_id.as_str(),
+        live.active_effect_predicate_id.as_str(),
         live.platform.platform_id.as_str(),
         live.operation.odd_id.as_str(),
         live.operation.mode_id.as_str(),
@@ -264,6 +284,18 @@ pub fn validate_ticket_applicability(
     }
     if ticket.mission_generation != live.mission_generation {
         return Err(AdmissionError::MissionGenerationMismatch);
+    }
+    if ticket.subgoal_id != live.active_subgoal_id {
+        return Err(AdmissionError::SubgoalMismatch);
+    }
+    if ticket.action_id != live.active_action_id {
+        return Err(AdmissionError::ActionMismatch);
+    }
+    if ticket.attempt != live.active_attempt {
+        return Err(AdmissionError::ActionAttemptMismatch);
+    }
+    if ticket.expected_effect_predicate_id != live.active_effect_predicate_id {
+        return Err(AdmissionError::EffectPredicateMismatch);
     }
     if ticket.platform.platform_id != live.platform.platform_id {
         return Err(AdmissionError::PlatformMismatch);
@@ -380,6 +412,9 @@ impl ObserverRole {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PhysicalOutcomeEvidence {
     pub ticket_commitment: Digest,
+    /// Canonical digest of the complete physical-outcome receipt payload.
+    /// The caller/evidence owner computes and authenticates it; this crate does not.
+    pub content_digest: Digest,
     pub event_id: String,
     pub source_id: String,
     pub executing_controller_id: String,
@@ -562,8 +597,11 @@ mod tests {
             ticket_commitment: digest(1),
             mission_id: "mission-1".into(),
             mission_generation: 7,
+            subgoal_id: "subgoal-1".into(),
             action_id: "action-1".into(),
+            attempt: 1,
             action_digest: digest(2),
+            expected_effect_predicate_id: "predicate.reached-waypoint".into(),
             platform: PlatformBinding {
                 platform_id: "vehicle-1".into(),
                 configuration_digest: digest(3),
@@ -604,6 +642,10 @@ mod tests {
         LiveContext {
             mission_id: action.mission_id.clone(),
             mission_generation: action.mission_generation,
+            active_subgoal_id: action.subgoal_id.clone(),
+            active_action_id: action.action_id.clone(),
+            active_attempt: action.attempt,
+            active_effect_predicate_id: action.expected_effect_predicate_id.clone(),
             platform: action.platform.clone(),
             operation: action.operation.clone(),
             authority_id: action.authority.authority_id.clone(),
@@ -630,6 +672,7 @@ mod tests {
         let action = ticket();
         PhysicalOutcomeEvidence {
             ticket_commitment: action.ticket_commitment,
+            content_digest: digest(8),
             event_id: "event-1".into(),
             source_id: "independent-camera-1".into(),
             executing_controller_id: "vehicle-controller-1".into(),
