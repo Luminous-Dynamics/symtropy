@@ -28,6 +28,10 @@ jobs:
         with:
           toolchain: 1.96.0
           components: clippy, rustfmt
+      - name: Validate evidence schema JSON syntax
+        run: |
+          jq empty benchmarks/mission-supervisor-reference/v0.1/receipt_envelope.schema.json
+          jq empty benchmarks/mission-supervisor-reference/v0.1/mission_evidence.schema.json
       - name: Check formatting
         run: cargo fmt --manifest-path benchmarks/mission-supervisor-reference/v0.1/Cargo.toml -- --check
       - name: Run state-machine and negative-control tests
