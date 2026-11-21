@@ -1,0 +1,206 @@
+{
+  "schema": "luminous.ehd_thrust_observability",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-THRUST-OBSERVABILITY-001",
+  "as_of": "2026-11-21",
+  "status": "measurement_protocol_only_no_luminous_measurement",
+  "units": "SI",
+  "independent_observables": [
+    {
+      "id": "direct_force_balance",
+      "required_fields": [
+        "instrument_id",
+        "calibration_id",
+        "calibration_trace_hash",
+        "force_time_series_hash",
+        "tare_intervals",
+        "on_off_or_modulation_protocol",
+        "run_order",
+        "temperature_log",
+        "cable_force_characterization",
+        "shielding_and_grounding",
+        "cross_axis_sensitivity",
+        "zero_drift",
+        "repeatability",
+        "expanded_uncertainty_n"
+      ]
+    },
+    {
+      "id": "velocity_field",
+      "methods": [
+        "PIV",
+        "LDV",
+        "hot_wire_or_qualified_alternative"
+      ],
+      "required_fields": [
+        "sensor_calibration_id",
+        "processing_config_hash",
+        "synchronized_time_base",
+        "coordinate_frame_id",
+        "measured_planes",
+        "velocity_field_hash",
+        "missing_vector_mask_hash",
+        "spatial_resolution_m",
+        "velocity_uncertainty_m_s",
+        "gas_density_kg_m3",
+        "temperature_k",
+        "pressure_pa",
+        "humidity_fraction",
+        "gas_composition"
+      ]
+    },
+    {
+      "id": "control_volume_momentum",
+      "required_terms": [
+        "momentum_storage",
+        "advective_momentum_flux_all_surfaces",
+        "pressure_traction_all_surfaces",
+        "viscous_traction_all_surfaces",
+        "body_force_integral",
+        "fluid_solid_interaction_force"
+      ],
+      "required_fields": [
+        "control_volume_geometry_hash",
+        "surface_normal_convention",
+        "sign_convention_id",
+        "inflow_boundary",
+        "outflow_boundary",
+        "side_boundary_treatment",
+        "ambient_return_flow_treatment",
+        "recirculation_treatment",
+        "term_uncertainties",
+        "closure_residual_n"
+      ]
+    },
+    {
+      "id": "solver_prediction",
+      "required_fields": [
+        "solver_identity",
+        "solver_version",
+        "model_hash",
+        "mesh_hash",
+        "time_grid_hash",
+        "chemistry_transport_hashes",
+        "predicted_force_vector_n",
+        "prediction_uncertainty_n",
+        "heldout_case_id"
+      ]
+    }
+  ],
+  "momentum_equation": {
+    "form": "d/dt integral_CV rho*u dV + integral_CS rho*u*(u dot n) dA = integral_CS (-p*I+tau) dot n dA + integral_CV f_body dV + F_solid_to_fluid",
+    "inferred_fluid_on_solid_sign": "negative_of_solid_to_fluid",
+    "one_exit_plane_rho_u2_sufficient_for_net_thrust": false,
+    "terms_must_be_measured_or_bounded": [
+      "momentum_storage",
+      "inflow",
+      "side_flux",
+      "pressure_traction",
+      "viscous_traction",
+      "body_force"
+    ]
+  },
+  "electrical_boundary": {
+    "real_power_definition": "time_average_of_integral_v_terminal(t)*i_terminal(t)",
+    "synchronous_voltage_current_required": true,
+    "prohibit_rms_product_when_phase_or_waveform_distortion_invalidates_it": true,
+    "separately_report": [
+      "electrode_terminal_power",
+      "hv_supply_input",
+      "converter_loss",
+      "switching_loss",
+      "wiring_loss",
+      "auxiliary_load"
+    ]
+  },
+  "mass_boundary": {
+    "required_components": [
+      "electrodes",
+      "frame",
+      "guide_and_collector",
+      "duct",
+      "insulation",
+      "converter",
+      "cables_and_support_hardware",
+      "controls"
+    ],
+    "separate_bare_thruster_and_integrated_platform_cohorts": true,
+    "tethered_or_externally_powered_not_self_powered_flight": true
+  },
+  "holdouts": [
+    "entire_experimental_session",
+    "geometry_family",
+    "waveform_family"
+  ],
+  "holdout_policy": "Do not split time samples from one run across train and holdout; freeze sensor processing and control-volume boundaries before unblinding.",
+  "comparability_rules": [
+    "Do not rank absolute thrust across unmatched geometry, atmosphere, voltage waveform, power boundary or mass boundary.",
+    "Velocity at one downstream point is not a control-volume momentum integral.",
+    "A balance reading does not by itself identify the full momentum/pressure/viscous budget.",
+    "Self-induced electrode, collector, duct and frame drag must be declared separately.",
+    "Unknown terms remain unknown or bounded; they are not silently set to zero."
+  ],
+  "proposed_acceptance_gates": {
+    "force_balance_expanded_uncertainty_relative_target": 0.02,
+    "field_integral_uncertainty_relative_target": 0.05,
+    "heldout_thrust_prediction_error_relative_target": 0.1,
+    "cross_observable_rule": "difference_between_force_balance_and_control_volume_estimates_within_combined_expanded_uncertainty",
+    "targets_prospective": true,
+    "no_posthoc_uncertainty_inflation": true
+  },
+  "required_evidence_receipt_fields": [
+    "raw_force_balance_hash",
+    "raw_velocity_field_hash",
+    "calibration_identities",
+    "processing_config_hash",
+    "control_volume_geometry_hash",
+    "gas_environment_manifest",
+    "synchronous_terminal_waveform_hashes",
+    "real_terminal_power_w",
+    "momentum_storage_term_n",
+    "advective_flux_term_n",
+    "pressure_traction_term_n",
+    "viscous_traction_term_n",
+    "body_force_term_n",
+    "system_mass_kg",
+    "uncertainty_covariance_hash",
+    "model_identity",
+    "holdout_disposition"
+  ],
+  "literature_comparators": [
+    {
+      "id": "poeppe_eucass_2025_piv_load_cell",
+      "doi": "10.13009/EUCASS2025-301",
+      "url": "https://www.eucass.eu/doi/EUCASS2025-301.pdf",
+      "evidence_scope": "specific wire-to-droplet airfoil EAD PIV/load-cell/electrical experiment"
+    },
+    {
+      "id": "terenzi_scirep_2025_grid_collectors",
+      "doi": "10.1038/s41598-025-25308-6",
+      "url": "https://doi.org/10.1038/s41598-025-25308-6",
+      "evidence_scope": "grid collector direct balance, on/off difference, 0.1 mN stated accuracy, 20 acquisitions; correction dated 2026-04-03"
+    },
+    {
+      "id": "polk_jpp_2017_thrust_measurement_practice",
+      "doi": "10.2514/1.B35564",
+      "url": "https://doi.org/10.2514/1.B35564",
+      "evidence_scope": "thrust stand calibration, systematic errors, repeatability and uncertainty budget"
+    },
+    {
+      "id": "nature_communications_2026_ion_microrobot",
+      "doi": "10.1038/s41467-026-76462-y",
+      "url": "https://doi.org/10.1038/s41467-026-76462-y",
+      "evidence_scope": "integrated platform balance and calibrated downstream velocity sensor; system boundary is distinct from bare thruster"
+    }
+  ],
+  "limitations": [
+    "protocol_only_no_measurement_data",
+    "no_force_balance_estimator_implementation",
+    "no_piv_ldv_processing_implementation",
+    "no_control_volume_integral_implementation",
+    "no_uncertainty_covariance_implementation",
+    "no_solver_validation",
+    "no_sota_superiority_claim"
+  ],
+  "claim_ceiling": "This is a measurement and qualification protocol only. No Luminous physical EHD thrust measurement or cross-observable agreement is claimed."
+}

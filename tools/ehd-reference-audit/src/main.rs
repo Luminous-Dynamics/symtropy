@@ -33,6 +33,8 @@ const EMBEDDED_DRAG_DISSIPATION: &str =
     include_str!("../../../data/research/ehd_drag_dissipation_v0_1.json");
 const EMBEDDED_DRAG_TRAJECTORY: &str =
     include_str!("../../../data/research/ehd_drag_trajectory_v0_1.json");
+const EMBEDDED_THRUST_OBSERVABILITY: &str =
+    include_str!("../../../data/research/ehd_thrust_observability_v0_1.json");
 
 fn at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
     path.iter().try_fold(value, |node, key| node.get(*key))
@@ -1718,6 +1720,110 @@ pub fn audit_drag_trajectory_contract(root: &Value) -> Vec<String> {
     findings
 }
 
+pub fn audit_thrust_observability_contract(root: &Value) -> Vec<String> {
+    let mut findings = Vec::new();
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["schema"]) == Some("luminous.ehd_thrust_observability")
+            && text_at(root, &["schema_version"]) == Some("0.1.0")
+            && text_at(root, &["benchmark_id"]) == Some("EHD-THRUST-OBSERVABILITY-001")
+            && text_at(root, &["status"])
+                == Some("measurement_protocol_only_no_luminous_measurement"),
+        "THRUST_OBSERVABILITY_IDENTITY",
+        "thrust observability protocol identity/version/status changed",
+    );
+    let observables = at(root, &["independent_observables"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        observables.is_some_and(|rows| rows.len() == 4
+            && rows.iter().any(|row| text_at(row, &["id"]) == Some("direct_force_balance"))
+            && rows.iter().any(|row| text_at(row, &["id"]) == Some("velocity_field"))
+            && rows.iter().any(|row| text_at(row, &["id"]) == Some("control_volume_momentum"))
+            && rows.iter().any(|row| text_at(row, &["id"]) == Some("solver_prediction"))),
+        "THRUST_OBSERVABILITY_METHODS",
+        "direct balance, field measurement, control volume and solver prediction must remain independent observables",
+    );
+    let cv = at(root, &["momentum_equation"]);
+    push_if_missing(
+        &mut findings,
+        cv.is_some_and(|value| {
+            at(value, &["one_exit_plane_rho_u2_sufficient_for_net_thrust"])
+                .and_then(Value::as_bool) == Some(false)
+                && text_at(value, &["inferred_fluid_on_solid_sign"])
+                    == Some("negative_of_solid_to_fluid")
+                && at(value, &["terms_must_be_measured_or_bounded"]).and_then(Value::as_array)
+                    .is_some_and(|terms| terms.len() == 6
+                        && terms.iter().any(|item| item.as_str() == Some("momentum_storage"))
+                        && terms.iter().any(|item| item.as_str() == Some("pressure_traction"))
+                        && terms.iter().any(|item| item.as_str() == Some("viscous_traction")))
+        }),
+        "THRUST_CONTROL_VOLUME_COMPLETENESS",
+        "control-volume momentum, traction and boundary terms/sign convention must remain explicit",
+    );
+    let electrical = at(root, &["electrical_boundary"]);
+    push_if_missing(
+        &mut findings,
+        electrical.is_some_and(|value| {
+            text_at(value, &["real_power_definition"])
+                .is_some_and(|expr| expr.contains("integral_v_terminal(t)*i_terminal(t)"))
+                && at(value, &["synchronous_voltage_current_required"])
+                    .and_then(Value::as_bool) == Some(true)
+                && at(value, &["separately_report"]).and_then(Value::as_array)
+                    .is_some_and(|fields| fields.iter().any(|item| item.as_str() == Some("electrode_terminal_power"))
+                        && fields.iter().any(|item| item.as_str() == Some("switching_loss")))
+        }),
+        "THRUST_ELECTRICAL_BOUNDARY",
+        "real terminal power and separate conversion/switching losses must be required",
+    );
+    push_if_missing(
+        &mut findings,
+        at(root, &["mass_boundary", "separate_bare_thruster_and_integrated_platform_cohorts"])
+            .and_then(Value::as_bool) == Some(true)
+            && at(root, &["mass_boundary", "tethered_or_externally_powered_not_self_powered_flight"])
+                .and_then(Value::as_bool) == Some(true),
+        "THRUST_MASS_BOUNDARY",
+        "bare/integrated and tethered/self-powered system boundaries must remain separate",
+    );
+    let holdouts = at(root, &["holdouts"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        holdouts.is_some_and(|rows| rows.len() == 3
+            && rows.iter().any(|item| item.as_str() == Some("entire_experimental_session"))
+            && rows.iter().any(|item| item.as_str() == Some("geometry_family"))
+            && rows.iter().any(|item| item.as_str() == Some("waveform_family")))
+            && text_at(root, &["holdout_policy"]).is_some_and(|policy| {
+                policy.contains("Do not split time samples") && policy.contains("before unblinding")
+            }),
+        "THRUST_HOLDOUT_POLICY",
+        "session/geometry/waveform holdouts must be enforced before unblinding",
+    );
+    let gates = at(root, &["proposed_acceptance_gates"]);
+    push_if_missing(
+        &mut findings,
+        gates.is_some_and(|value| {
+            at(value, &["targets_prospective"]).and_then(Value::as_bool) == Some(true)
+                && text_at(value, &["cross_observable_rule"])
+                    .is_some_and(|rule| rule.contains("combined_expanded_uncertainty"))
+        }),
+        "THRUST_RECONCILIATION_POLICY",
+        "independent measurement estimates must reconcile within combined uncertainty and targets must remain prospective",
+    );
+    let limits = at(root, &["limitations"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        limits.is_some_and(|rows| rows.iter().any(|item| item.as_str() == Some("protocol_only_no_measurement_data"))
+            && rows.iter().any(|item| item.as_str() == Some("no_control_volume_integral_implementation"))
+            && rows.iter().any(|item| item.as_str() == Some("no_sota_superiority_claim")))
+            && text_at(root, &["claim_ceiling"])
+                .is_some_and(|claim| claim.contains("No Luminous physical EHD thrust measurement")
+                    && claim.contains("no cross-observable agreement")),
+        "THRUST_OBSERVABILITY_CLAIM_BOUNDARY",
+        "measurement protocol must not be represented as an executed thrust test or SOTA result",
+    );
+    findings
+}
+
+
 fn main() {
     let mut args = env::args().skip(1);
     let path = args.next();
@@ -1810,6 +1916,14 @@ fn main() {
         }
     };
     findings.extend(audit_drag_trajectory_contract(&drag_trajectory_contract));
+    let thrust_observability_contract: Value = match serde_json::from_str(EMBEDDED_THRUST_OBSERVABILITY) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("invalid embedded thrust observability contract JSON: {error}");
+            process::exit(2);
+        }
+    };
+    findings.extend(audit_thrust_observability_contract(&thrust_observability_contract));
     let exchange_kernel_ok = match exchange::reference_self_check() {
         Ok(()) => true,
         Err(error) => {
@@ -1890,6 +2004,7 @@ fn main() {
         if drag_trajectory_ok {
             println!("time-varying ion-neutral drag quadrature receipt self-check: passed");
         }
+        println!("thrust observability protocol: audited (no physical measurement performed)");
         println!("scope: source structure and analytic reference checks only; no physical V&V, production ALE, TPE(1/2), full collisional-energy closure or durable exactly-once claim");
     } else {
         eprintln!("FAIL: {label} ({} finding(s))", findings.len());
@@ -2464,6 +2579,36 @@ mod drag_trajectory_frame_contract_tests {
         ]);
         assert!(audit_drag_trajectory_contract(&value).iter().any(|finding| {
             finding.starts_with("DRAG_TRAJECTORY_IMPLEMENTATION")
+        }));
+    }
+}
+
+#[cfg(test)]
+mod thrust_observability_contract_tests {
+    use super::*;
+
+    #[test]
+    fn thrust_observability_protocol_passes_declared_contract() {
+        let value: Value = serde_json::from_str(EMBEDDED_THRUST_OBSERVABILITY)
+            .expect("embedded thrust observability protocol must be valid JSON");
+        assert!(audit_thrust_observability_contract(&value).is_empty());
+    }
+
+    #[test]
+    fn thrust_observability_rejects_single_plane_momentum_shortcut() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_THRUST_OBSERVABILITY).unwrap();
+        value["momentum_equation"]["one_exit_plane_rho_u2_sufficient_for_net_thrust"] = Value::Bool(true);
+        assert!(audit_thrust_observability_contract(&value).iter().any(|finding| {
+            finding.starts_with("THRUST_CONTROL_VOLUME_COMPLETENESS")
+        }));
+    }
+
+    #[test]
+    fn thrust_observability_protocol_cannot_claim_measurements_or_sota() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_THRUST_OBSERVABILITY).unwrap();
+        value["limitations"] = Value::Array(Vec::new());
+        assert!(audit_thrust_observability_contract(&value).iter().any(|finding| {
+            finding.starts_with("THRUST_OBSERVABILITY_CLAIM_BOUNDARY")
         }));
     }
 }
