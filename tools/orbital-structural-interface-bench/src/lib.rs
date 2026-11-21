@@ -408,7 +408,7 @@ fn evaluate(provider: &Profile, client: &Profile) -> (String, Vec<String>) {
         }
     }
 
-    for (profile, _label) in [(provider, "PROVIDER"), (client, "CLIENT")] {
+    for profile in [provider, client] {
         let mut load_case_ids = BTreeSet::new();
         for load_case in &profile.load_cases {
             if load_case.case_id.trim().is_empty()
@@ -873,8 +873,8 @@ mod tests {
     #[test]
     fn frozen_corpus_matches_every_expected_disposition_and_reason() {
         let receipt = run_corpus(FIXTURE, SOURCE).expect("fixture should parse");
-        assert_eq!(receipt.case_count, 40);
-        assert_eq!(receipt.matched_cases, 40);
+        assert_eq!(receipt.case_count, 44);
+        assert_eq!(receipt.matched_cases, 44);
         assert_eq!(receipt.mismatched_cases, 0);
         assert!(!receipt.authority_granted);
     }
