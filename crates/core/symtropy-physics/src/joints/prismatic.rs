@@ -951,13 +951,7 @@ mod tests {
         assert_eq!(b.angular_velocity, before_b);
     }
 
-    fn dynamic_with_full_inertia_4d(handle: usize) -> RigidBody<4> {
-        let mut matrix = vec![0.0; 36];
-        for index in 0..6 {
-            matrix[index * 6 + index] = 2.0 + index as f64;
-        }
-        matrix[3] = 0.2;
-        matrix[18] = 0.2;
+    fn dynamic_with_full_inertia_4d(handle: usize, matrix: Vec<f64>) -> RigidBody<4> {
         let operator = crate::mass_properties::RotationalInertiaOperator::<4>::try_from_row_major(
             matrix,
         )
@@ -968,30 +962,112 @@ mod tests {
 
     #[test]
     fn full_four_dimensional_operator_solves_all_six_planes() {
-        let mut a = dynamic_with_full_inertia_4d(0);
-        let mut b = dynamic_with_full_inertia_4d(1);
-        a.angular_velocity.set(0, 1, -0.1);
-        a.angular_velocity.set(0, 3, 0.2);
-        a.angular_velocity.set(1, 2, -0.3);
-        b.angular_velocity.set(0, 1, 0.6);
-        b.angular_velocity.set(0, 3, -0.4);
-        b.angular_velocity.set(1, 2, 0.5);
-        b.angular_velocity.set(1, 3, 0.3);
-        let before = b.angular_velocity.add(&a.angular_velocity.scale(-1.0));
+        // Canonical lexicographic basis: (01, 02, 03, 12, 13, 23).
+        let matrix_a = vec![
+            4.0, 0.2, -0.1, 0.3, 0.0, 0.0,
+            0.2, 3.5, 0.15, 0.0, 0.25, 0.0,
+            -0.1, 0.15, 5.0, 0.1, 0.0, 0.2,
+            0.3, 0.0, 0.1, 2.5, 0.2, 0.0,
+            0.0, 0.25, 0.0, 0.2, 4.5, -0.15,
+            0.0, 0.0, 0.2, 0.0, -0.15, 3.2,
+        ];
+        let matrix_b = vec![
+            2.8, -0.1, 0.0, 0.2, 0.0, 0.1,
+            -0.1, 4.4, 0.2, 0.0, -0.15, 0.0,
+            0.0, 0.2, 3.2, 0.1, 0.0, 0.15,
+            0.2, 0.0, 0.1, 5.0, 0.25, 0.0,
+            0.0, -0.15, 0.0, 0.25, 3.8, 0.1,
+            0.1, 0.0, 0.15, 0.0, 0.1, 4.8,
+        ];
+        let operator_a = crate::mass_properties::RotationalInertiaOperator::<4>::try_from_row_major(
+            matrix_a.clone(),
+        )
+        .expect("test 4D inertia A must be SPD");
+        let operator_b = crate::mass_properties::RotationalInertiaOperator::<4>::try_from_row_major(
+            matrix_b.clone(),
+        )
+        .expect("test 4D inertia B must be SPD");
+        let mut a = dynamic_with_full_inertia_4d(0, matrix_a.clone());
+        let mut b = dynamic_with_full_inertia_4d(1, matrix_b.clone());
+
+        let mut initial_a = Bivector::<4>::zero();
+        let mut initial_b = Bivector::<4>::zero();
+        let initial_values_a = [0.1, -0.2, 0.3, 0.4, -0.5, 0.6];
+        let initial_values_b = [0.7, 0.5, -0.4, 0.2, 0.1, -0.3];
+        let planes = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)];
+        for index in 0..6 {
+            let (i, j) = planes[index];
+            initial_a.set(i, j, initial_values_a[index]);
+            initial_b.set(i, j, initial_values_b[index]);
+        }
+        a.angular_velocity = initial_a;
+        b.angular_velocity = initial_b;
+        let before_relative = initial_b.add(&initial_a.scale(-1.0));
+        let stiffness = 0.375;
 
         let mut joint = PrismaticJoint::new(BodyHandle(0), BodyHandle(1), 0);
-        joint.stiffness = 0.5;
+        joint.stiffness = stiffness;
         let outcome = joint.solve_angular_velocity_lock(&mut a, &mut b);
         assert!(matches!(outcome, PrismaticAngularLockOutcome::Applied { .. }));
-        for i in 0..4 {
-            for j in (i + 1)..4 {
-                let after = b.angular_velocity.get(i, j) - a.angular_velocity.get(i, j);
-                assert!(
-                    (after - 0.5 * before.get(i, j)).abs() < 1.0e-9,
-                    "4D plane ({i},{j}) did not retain the declared 50% residual"
-                );
-            }
+
+        for (index, (i, j)) in planes.iter().enumerate() {
+            let after = b.angular_velocity.get(*i, *j) - a.angular_velocity.get(*i, *j);
+            let expected = (1.0 - stiffness) * before_relative.get(*i, *j);
+            assert!(
+                (after - expected).abs() < 1.0e-9,
+                "4D plane ({i},{j}) residual mismatch: expected={expected:e}, observed={after:e}"
+            );
+            assert_ne!(
+                before_relative.get(*i, *j),
+                0.0,
+                "fixture must excite all six planes (index {index})"
+            );
         }
+
+        // Independent 6x6 dense-LU oracle, structurally distinct from the
+        // production fixed-stack Cholesky solve.
+        let dense_inertia_a =
+            nalgebra::SMatrix::<f64, 6, 6>::from_row_slice(&matrix_a);
+        let dense_inertia_b =
+            nalgebra::SMatrix::<f64, 6, 6>::from_row_slice(&matrix_b);
+        let dense_delassus = dense_inertia_a
+            .try_inverse()
+            .expect("dense 4D inertia A is invertible")
+            + dense_inertia_b
+                .try_inverse()
+                .expect("dense 4D inertia B is invertible");
+        let dense_rhs = nalgebra::SVector::<f64, 6>::from_fn(|index, _| {
+            stiffness * before_relative.get(planes[index].0, planes[index].1)
+        });
+        let expected_impulse = dense_delassus
+            .lu()
+            .solve(&dense_rhs)
+            .expect("independent 4D Delassus oracle is nonsingular");
+
+        let delta_a = a.angular_velocity.add(&initial_a.scale(-1.0));
+        let delta_b = b.angular_velocity.add(&initial_b.scale(-1.0));
+        let momentum_delta_a = operator_a
+            .apply_bivector(&delta_a)
+            .expect("finite 4D angular momentum change for A");
+        let momentum_delta_b = operator_b
+            .apply_bivector(&delta_b)
+            .expect("finite 4D angular momentum change for B");
+        let observed_impulse = nalgebra::SVector::<f64, 6>::from_fn(|index, _| {
+            let (i, j) = planes[index];
+            momentum_delta_a.get(i, j)
+        });
+        let observed_negative_impulse = nalgebra::SVector::<f64, 6>::from_fn(|index, _| {
+            let (i, j) = planes[index];
+            momentum_delta_b.get(i, j)
+        });
+        assert!(
+            (observed_impulse - expected_impulse).norm() < 1.0e-9,
+            "4D common impulse disagrees with dense-LU oracle"
+        );
+        assert!(
+            (observed_impulse + observed_negative_impulse).norm() < 1.0e-9,
+            "4D total angular momentum exchange is not balanced"
+        );
     }
 
     #[test]
