@@ -769,6 +769,17 @@ mod tests {
     }
 
     #[test]
+    fn receiver_observation_clock_rollback_rejects() {
+        let first = fix(0, "m0", Zone::Outside, 0);
+        let mut second = fix(1, "m1", Zone::Outside, 0);
+        second.received_tick = 99;
+
+        let error = evaluate_from_baselined_outside(&[first, second], &default_profile())
+            .expect_err("receiver clock rollback must reject");
+        assert!(error.contains("out-of-order receiver tick"));
+    }
+
+    #[test]
     fn nav_status_is_preserved_as_a_conflict_not_used_as_authority() {
         let mut first = fix(0, "m0", Zone::Outside, 0);
         first.nav_status_raw = Some("moored".to_string());
