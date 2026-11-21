@@ -316,7 +316,7 @@ fn profile_evidence<'a>(
     } else {
         Some(profile.article_subject_ref.as_str())
     };
-    if expected_subject.is_some_and(|subject| subject != evidence.subject_ref)
+    if expected_subject.is_some_and(|subject| subject != evidence.subject_ref.as_str())
         || evidence.configuration_id != profile.configuration_id
         || evidence.icd_id != profile.icd_id
         || evidence.icd_revision != profile.icd_revision
