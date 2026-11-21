@@ -29,9 +29,10 @@ jobs:
           python-version: '3.12'
       - name: Install pinned JSON Schema validator
         run: python -m pip install --disable-pip-version-check jsonschema==4.24.0
-      - name: Validate schema and synthetic local/handoff fixtures
+      - name: Validate schema, fixtures and semantic negative controls
         run: |
           python - <<'PY'
+          import copy
           import json
           from pathlib import Path
           from jsonschema import Draft202012Validator
@@ -39,12 +40,46 @@ jobs:
           root = Path("benchmarks/skill-transfer-evidence-contract/v0.1")
           schema = json.loads((root / "skill_transfer_record.schema.json").read_text())
           fixture = json.loads((root / "synthetic_skill_transfer_fixture_v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
           validator = Draft202012Validator(schema)
-          errors = []
+
+          local, handoff = fixture["records"]
+          assert local["evaluation_mode"] == "local_restored"
+          assert handoff["evaluation_mode"] == "handoff_inherited"
+
           for index, record in enumerate(fixture["records"]):
-              errors.extend((index, error.json_path, error.message) for error in validator.iter_errors(record))
-          if errors:
-              raise SystemExit("\\n".join(map(str, errors)))
-          assert fixture["records"][0]["evaluation_mode"] == "local_restored"
-          assert fixture["records"][1]["evaluation_mode"] == "handoff_inherited"
+              errors = list(validator.iter_errors(record))
+              if errors:
+                  raise SystemExit(f"fixture {index} invalid: " + "; ".join(
+                      f"{error.json_path}: {error.message}" for error in errors
+                  ))
+
+          negative_cases = []
+          bad = copy.deepcopy(local)
+          bad["postcondition"]["verdict"] = "not_satisfied"
+          negative_cases.append(("success-with-failed-postcondition", bad))
+
+          bad = copy.deepcopy(local)
+          bad["predecessor_skill_id"] = "should-not-exist"
+          negative_cases.append(("local-with-predecessor", bad))
+
+          bad = copy.deepcopy(handoff)
+          del bad["predecessor_skill_id"]
+          negative_cases.append(("handoff-without-predecessor", bad))
+
+          bad = copy.deepcopy(handoff)
+          bad["skill_outcome"] = "not_attempted"
+          bad["attempts"] = 0
+          bad["postcondition"]["verdict"] = "not_assessed"
+          negative_cases.append(("not-attempted-with-inherited-transition", bad))
+
+          bad = copy.deepcopy(local)
+          bad["precondition"]["verdict"] = "not_satisfied"
+          negative_cases.append(("success-with-unsatisfied-precondition", bad))
+
+          for name, record in negative_cases:
+              errors = list(validator.iter_errors(record))
+              if not errors:
+                  raise SystemExit(f"negative control unexpectedly passed: {name}")
+          print(f"validated {len(fixture['records'])} positive fixtures and {len(negative_cases)} negative controls")
           PY
