@@ -570,6 +570,7 @@ mod tests {
 
     fn block_identity() -> CalibrationBlockIdentity {
         CalibrationBlockIdentity {
+            dataset_revision: DATASET_REVISION.to_owned(),
             model_digest: MODEL_DIGEST.to_owned(),
             target_digest: TARGET_DIGEST.to_owned(),
             domain_digest: DOMAIN_DIGEST.to_owned(),
