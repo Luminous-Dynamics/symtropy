@@ -769,7 +769,7 @@ mod tests {
     #[test]
     fn overlapping_release_is_rejected() {
         let (expectations, mut events) = fixtures();
-        event_mut(&mut events, "B1-A2").event_time = 40;
+        event_mut(&mut events, "B1-A2").event_time = 45;
         let mut extra = event_mut(&mut events, "B1-R2").clone();
         extra.source_event_id = "B1-R-OVERLAP".to_string();
         extra.handoff_id = "H-OVERLAP".to_string();
