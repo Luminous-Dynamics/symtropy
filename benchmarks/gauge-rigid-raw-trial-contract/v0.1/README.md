@@ -59,3 +59,31 @@ The report marks these as unresolved. Its `XYZW` label describes the component k
 ## Claim boundary
 
 A structurally valid file is not necessarily calibrated, physically accurate, licensed for arbitrary reuse, or eligible for physical scoring. This parser does not validate all eight rigid task families, import raw data, reproduce GAUGE metrics, or qualify Symtropy's physics. Complete family/material/trial schema review, file hashes, rights review and uncertainty/split audit remain gates under #6446.
+
+## Exhaustive local source inventory CLI
+
+The stacked follow-on adds `gauge-rigid-inventory`, which reuses the exact parser above rather than implementing a second JSON reader.
+
+Run it against an already downloaded, immutable GAUGE rigid subtree:
+
+```bash
+cargo run --release --manifest-path benchmarks/gauge-rigid-raw-trial-contract/v0.1/Cargo.toml --bin gauge-rigid-inventory -- \
+  --root /path/to/GAUGE-Dataset/data/rigid \
+  --dataset-revision f95bb06e7d11142f88ffd3b6b56c7258deb8fff6 \
+  --output gauge-rigid-inventory.jsonl
+```
+
+The inventory command:
+- recursively enumerates regular `.json` files only, in deterministic root-relative path order;
+- never follows symlinks and records any symlink/scan failure as a blocker;
+- reads exact raw bytes, hashes them with the system `sha256sum` executable **before** UTF-8/JSON parsing, and fails closed if SHA-256 tooling is unavailable;
+- invokes the existing `validate_trial_json` API unchanged;
+- emits one header record, one record per JSON file and one summary record as JSONL;
+- includes raw digest/byte length, source family/material/subtask path labels, parse disposition, dynamic sorted body stream IDs, sample counts, quaternion norm deviation and unresolved parser semantics;
+- marks metadata mapping `NOT_ASSESSED` and physical trial/session grouping `UNKNOWN`;
+- reports eight-family coverage, malformed/unsupported/unassessable counts and unknown-family paths;
+- exits non-zero after writing the manifest when any file is invalid/unassessable, any family is absent, an unknown family is encountered, or a scan/symlink issue exists.
+
+`sha256sum` is an explicit system requirement for this Linux inventory command; the binary does not implement cryptography itself. The dataset is not downloaded, copied, normalized or modified. Only the JSONL manifest is written to the requested output path.
+
+**Important:** this is still a source-structure inventory, not an independent-trial manifest. File counts are not trial counts; filename numbering does not prove session/article independence. It does not join metadata, verify rights, resolve transform/timebase semantics, qualify measurement uncertainty or calculate physical scores. Review the generated manifest and separately source the recording/article/session grouping before creating data splits.
