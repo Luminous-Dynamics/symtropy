@@ -57,7 +57,7 @@ Unix epoch time is the unambiguous time authority. The timezone label is preserv
 ## Producer evidence
 
 - Modelled service requires a model ID, pinned producer source commit/configuration and source artifacts.
-- Measured service requires a meter/instrument ID, calibration artifact and exact calibration digest in the source artifact inventory.
+- Measured service requires a meter/instrument ID, calibration artifact and exact calibration digest in the source artifact inventory, plus a validity interval that fully covers every measured service sample interval.
 - Modelled and measured service require a distinct evidence-provider identity. In the end-to-end claim package, that producer signs each exact source artifact under the EvidenceProvider role; the ServiceProvider separately signs the derived trajectory. The same producer identity/key must not self-certify both roles.
 - Each known row's evidence reference/digest must occur in the same source inventory.
 - Conflicting rows retain at least two distinct source artifact references/digests.
@@ -88,13 +88,13 @@ CLI exit codes:
 
 ## Tests
 
-24 authored Rust tests cover:
+25 authored Rust tests cover:
 - full measured-service weighted-kWh hand calculation, per-load cascade output and explicit multi-load endpoint aggregation;
 - modelled versus measured producer roles;
 - planned forecast and observed work non-promotion;
 - unknown/conflicting data handling;
 - exact load × interval coverage, order, timestamps and demand denominator;
-- sample evidence, source inventory, calibration and parent-artifact binding;
+- sample evidence, source inventory, calibration validity and parent-artifact binding;
 - scorer mismatch, incomplete run and forecast-as-final negative controls;
 - exact load-to-cascade mapping coverage, source-digest binding and demand-weighted multi-load endpoint aggregation.
 
