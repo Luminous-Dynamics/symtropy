@@ -170,7 +170,8 @@
       "optimal_final_decision": "insufficient evidence",
       "decision_regret_if_fabricated_delivery": 3,
       "required_observation_refs": [],
-      "decision_regret_if_wrong_answer": 3
+      "decision_regret_if_wrong_answer": 3,
+      "decision_regret_if_request": 3
     },
     {
       "episode_id": "as-008-sufficient-stop",
