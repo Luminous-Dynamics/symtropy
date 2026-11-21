@@ -217,11 +217,17 @@ fn try_prismatic_angular_lock_impulse<const D: usize>(
             row_sum += delassus[row][column].abs();
             reconstructed += delassus[row][column] * solution[column];
         }
+        if !row_sum.is_finite() || !reconstructed.is_finite() {
+            return Err(PrismaticAngularLockRejection::NonFiniteResponse);
+        }
         matrix_inf = matrix_inf.max(row_sum);
         solution_inf = solution_inf.max(solution[row].abs());
         solve_residual_inf = solve_residual_inf.max((reconstructed - rhs[row]).abs());
     }
-    let solve_scale = (matrix_inf * solution_inf + rhs_inf).max(f64::MIN_POSITIVE);
+    let solve_scale = matrix_inf * solution_inf + rhs_inf;
+    if !solve_scale.is_finite() || solve_scale <= 0.0 {
+        return Err(PrismaticAngularLockRejection::NonFiniteResponse);
+    }
     if !solve_residual_inf.is_finite() || solve_residual_inf > 1.0e-10 * solve_scale {
         return Err(PrismaticAngularLockRejection::SolveResidualTooLarge);
     }
@@ -565,15 +571,22 @@ mod tests {
     }
 
     #[test]
-    fn unequal_off_diagonal_inertias_obey_stiffness_residual() {
-        let mut a = dynamic_with_full_inertia(
-            0,
-            vec![4.0, 0.8, 0.0, 0.8, 3.0, 0.35, 0.0, 0.35, 2.0],
-        );
-        let mut b = dynamic_with_full_inertia(
-            1,
-            vec![2.5, -0.3, 0.1, -0.3, 5.0, 0.6, 0.1, 0.6, 3.5],
-        );
+    fn unequal_off_diagonal_inertias_obey_stiffness_residual_and_conserve_momentum() {
+        let matrix_a = vec![4.0, 0.8, 0.0, 0.8, 3.0, 0.35, 0.0, 0.35, 2.0];
+        let matrix_b = vec![2.5, -0.3, 0.1, -0.3, 5.0, 0.6, 0.1, 0.6, 3.5];
+        let operator_a = crate::mass_properties::RotationalInertiaOperator::<3>::try_from_row_major(
+            matrix_a,
+        )
+        .expect("test inertia A must be SPD");
+        let operator_b = crate::mass_properties::RotationalInertiaOperator::<3>::try_from_row_major(
+            matrix_b,
+        )
+        .expect("test inertia B must be SPD");
+        let mut a = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.2, 1.0)
+            .with_rotational_inertia_operator(operator_a.clone());
+        let mut b = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.2, 1.0)
+            .with_rotational_inertia_operator(operator_b.clone());
+        let before_a = a.angular_velocity;
         a.angular_velocity.set(0, 1, -0.1);
         a.angular_velocity.set(0, 2, 0.2);
         a.angular_velocity.set(1, 2, -0.3);
@@ -601,6 +614,23 @@ mod tests {
                 assert!(
                     (after - 0.75 * before.get(i, j)).abs() < 1.0e-9,
                     "plane ({i},{j}) did not retain the declared 75% residual"
+                );
+            }
+        }
+
+        let delta_a = a.angular_velocity.add(&before_a.scale(-1.0));
+        let delta_b = b.angular_velocity.add(&before_b.scale(-1.0));
+        let momentum_delta_a = operator_a
+            .apply_bivector(&delta_a)
+            .expect("finite angular momentum change for A");
+        let momentum_delta_b = operator_b
+            .apply_bivector(&delta_b)
+            .expect("finite angular momentum change for B");
+        for i in 0..3 {
+            for j in (i + 1)..3 {
+                assert!(
+                    (momentum_delta_a.get(i, j) + momentum_delta_b.get(i, j)).abs() < 1.0e-9,
+                    "equal-and-opposite angular impulse must conserve total angular momentum"
                 );
             }
         }
