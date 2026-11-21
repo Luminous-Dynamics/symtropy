@@ -451,7 +451,7 @@ fn known_g_ipcw(
         let Some(cause) = call.outcome else {
             continue;
         };
-        let q = match scenario {
+        let q: f64 = match scenario {
             ScenarioKind::IndependentAdministrative => 0.10,
             ScenarioKind::MeasuredStratumDependent if call.stratum == 0 => 0.03,
             ScenarioKind::MeasuredStratumDependent => 0.22,
@@ -652,7 +652,7 @@ pub fn evaluate_reference_scenarios() -> RobustnessReport {
 mod tests {
     use super::*;
 
-    fn report_for(report: &RobustnessReport, name: &str) -> &ScenarioReport {
+    fn report_for<'a>(report: &'a RobustnessReport, name: &str) -> &'a ScenarioReport {
         report
             .scenarios
             .iter()
