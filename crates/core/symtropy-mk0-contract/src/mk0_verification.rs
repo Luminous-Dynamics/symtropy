@@ -560,7 +560,7 @@ mod tests {
                 .contains(&Mk0VerificationViolation::ReportCountersMismatch)
         );
     }
-} 
+
     #[test]
     fn verifies_energy_constrained_room_as_valid_noncompletion() {
         let config = Mk0ScenarioConfig {
@@ -597,7 +597,11 @@ mod tests {
         let verified = verify_mk0_bootstrapper_report(&report);
 
         assert!(!verified.contract_valid);
-        assert!(verified.violations.contains(&Mk0VerificationViolation::InvalidEnergyReserve));
+        assert!(
+            verified
+                .violations
+                .contains(&Mk0VerificationViolation::InvalidEnergyReserve)
+        );
     }
 
     #[test]
@@ -622,7 +626,16 @@ mod tests {
 
         let verified = verify_mk0_bootstrapper_report(&report);
         assert!(!verified.contract_valid);
-        assert!(verified.violations.contains(&Mk0VerificationViolation::DuplicateHandoff));
-        assert!(verified.violations.contains(&Mk0VerificationViolation::ReportCountersMismatch));
+        assert!(
+            verified
+                .violations
+                .contains(&Mk0VerificationViolation::DuplicateHandoff)
+        );
+        assert!(
+            verified
+                .violations
+                .contains(&Mk0VerificationViolation::ReportCountersMismatch)
+        );
     }
 
+}
