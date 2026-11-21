@@ -149,7 +149,7 @@ def build_run(workload, truth, condition, run_id):
         "policy_id": "matched-memory-reference-v1", "run_id": run_id,
         "memory_condition": condition, "model_revision": None, "runtime_revision": "synthetic-v1",
         "hardware_id": "synthetic-no-device", "seed": 0,
-        "workload_ref": "git-blob-sha1:99d87aa69914a3ad8cdde0aed9ac8fc336b2f566",
+        "workload_ref": "git-blob-sha1:17dfedb940e2439c3e4e59c76e3ffc22f90ae917",
         "protocol_id": "long-horizon-memory-ablation-v1",
         "memory_budget_profile_id": "workload-per-episode-budget-v1",
         "measurement_status": "synthetic_reference",
