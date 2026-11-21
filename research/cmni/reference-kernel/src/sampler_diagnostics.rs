@@ -8,7 +8,7 @@
 //! the Stan posterior package / reference diagnostics before scientific use.
 //! It is deliberately kept separate from the sampler.
 
-use crate::{HorseshoeHmcChain, ModelError};
+use crate::{GroupedHmcChain, HorseshoeHmcChain, HorseshoeHmcDraw, ModelError};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct HmcDiagnosticSummary {
@@ -27,6 +27,76 @@ pub struct HmcDiagnosticSummary {
     pub minimum_energy_bfmi: f64,
     pub divergence_count: usize,
     pub meets_proposed_thresholds: bool,
+}
+
+/// Select a scalar quantity from each grouped HMC draw for convergence diagnostics.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GroupedHmcQuantity {
+    Coefficient(usize),
+    LocalScale(usize),
+    GlobalScale(usize),
+    ExperimentScale(usize),
+}
+
+/// Apply the same rank-normalized diagnostics to a named grouped-HMC quantity.
+///
+/// The implementation projects the selected scalar trace into the existing
+/// independently tested single-parameter diagnostic path. It preserves the
+/// grouped chain seeds, retained energies, divergence counts and exact draw
+/// counts; no samples are resampled or truncated.
+pub fn diagnose_grouped_hmc_quantity(
+    chains: &[GroupedHmcChain],
+    quantity: GroupedHmcQuantity,
+) -> Result<HmcDiagnosticSummary, ModelError> {
+    if chains.len() < 4 {
+        return Err(ModelError::InvalidParameter(
+            "sampler_diagnostics_require_at_least_four_chains",
+        ));
+    }
+    let expected_draws = chains.first().map_or(0, |chain| chain.draws.len());
+    if expected_draws < 8 || chains.iter().any(|chain| chain.draws.len() != expected_draws) {
+        return Err(ModelError::InvalidParameter(
+            "grouped_sampler_diagnostics_require_equal_chains_with_at_least_eight_draws",
+        ));
+    }
+
+    let mut projected = Vec::with_capacity(chains.len());
+    for chain in chains {
+        let mut draws = Vec::with_capacity(chain.draws.len());
+        for draw in &chain.draws {
+            let value = match quantity {
+                GroupedHmcQuantity::Coefficient(index) => draw.coefficients.get(index),
+                GroupedHmcQuantity::LocalScale(index) => draw.log_local_scales.get(index),
+                GroupedHmcQuantity::GlobalScale(index) => draw.log_global_scales.get(index),
+                GroupedHmcQuantity::ExperimentScale(index) => {
+                    draw.log_experiment_scales.get(index)
+                }
+            }
+            .copied()
+            .ok_or(ModelError::MismatchedDataLengths)?;
+            if !value.is_finite() || !draw.hamiltonian_energy.is_finite() {
+                return Err(ModelError::NonFiniteValue(
+                    "grouped_sampler_diagnostic_trace",
+                ));
+            }
+            draws.push(HorseshoeHmcDraw {
+                coefficients: vec![value],
+                log_local_scales: Vec::new(),
+                log_global_scale: 0.0,
+                log_posterior: draw.log_posterior,
+                hamiltonian_energy: draw.hamiltonian_energy,
+            });
+        }
+        projected.push(HorseshoeHmcChain {
+            seed: chain.seed,
+            draws,
+            transitions: chain.transitions,
+            accepted_transitions: chain.accepted_transitions,
+            divergences: chain.divergences,
+            acceptance_rate: chain.acceptance_rate,
+        });
+    }
+    diagnose_horseshoe_coefficient(&projected, 0)
 }
 
 /// Diagnose one coefficient across independently run HMC chains.
