@@ -172,6 +172,75 @@
         "full raw CFD and measurement data audit"
       ],
       "comparability": "Research watchlist only; do not put on a performance leaderboard."
+    },
+    {
+      "id": "shibata-2026-multistage-ducted-optimization",
+      "title": "Multi-objective exploration of multistaged ducted thrusters",
+      "authors": [
+        "H. Shibata",
+        "S. Shimizu",
+        "X. Jiang",
+        "H. I. Krebs",
+        "T. Nozaki"
+      ],
+      "venue": "AIP Advances",
+      "volume": 16,
+      "article_number": "015101",
+      "published": "2026-01-02",
+      "doi": "10.1063/5.0300448",
+      "url": "https://doi.org/10.1063/5.0300448",
+      "evidence_class": "peer_reviewed_numerical_optimization_not_experimental_validation",
+      "regime": "atmospheric_air_corona_ssep",
+      "geometry_family": "multistaged_ducted_collector_airfoil",
+      "method": {
+        "optimizer": "CMA-ES",
+        "simulator": "ANEMONE-lite",
+        "plasma_model": "2D corona discharge with Poisson space-charge extension",
+        "neutral_flow": "2D unsteady incompressible Navier-Stokes with SUPG-FEM",
+        "mesh": "hierarchical Cartesian/quadtree grid",
+        "latent_design_variables": 4,
+        "population_per_generation": 7,
+        "operating_regime": "stationary zero-freestream",
+        "air_density_kg_m3": 1.2,
+        "kinematic_viscosity_m2_s": 0.000015,
+        "single_stage_collector_count": 9,
+        "two_stage_collector_count": 18,
+        "collector_chord_cm": 1,
+        "emitter_collector_gap_cm": 2,
+        "duct_cross_section_length_cm": 18
+      },
+      "reported_values": {
+        "thrust_per_span_gain_vs_initial_design_approx_factor": 6,
+        "thrust_to_power_ratio_vs_initial_design_approx_factor": 0.5,
+        "metric_name_in_paper": "thrust density",
+        "metric_unit_n_per_m": "N/m",
+        "note": "The article defines thrust density per unit span. It is not area-normalized N/m^2 thrust density."
+      },
+      "thrust_estimation": {
+        "included": [
+          "duct inlet/outlet static-pressure difference",
+          "electrode pressure drag"
+        ],
+        "excluded": [
+          "friction drag on electrodes",
+          "friction drag on duct"
+        ],
+        "force_measurement": "numerical pressure/flow estimate",
+        "physical_force_measurement_performed": false
+      },
+      "design_search_limitations": [
+        "2D simulation only",
+        "zero freestream velocity",
+        "stationary operating conditions for target design",
+        "collector airfoil shapes restricted to NACA four-digit parameterisation",
+        "four latent design variables",
+        "individual collectors not independently parameterised",
+        "duct geometry not jointly optimised",
+        "constant air density and kinematic viscosity",
+        "no physical validation in the article; experiments described as future work"
+      ],
+      "data_availability": "Underlying data available from corresponding author on reasonable request, not a fully open benchmark dataset.",
+      "comparability": "Computational optimisation comparator. Its N/m thrust-per-span measure must not be compared directly to area-normalized N/m^2. Reported gains are relative to the paper's initial design plan, not independently measured SOTA gains."
     }
   ],
   "proposed_design_factors": [
@@ -244,6 +313,21 @@
         "wall_plug_power",
         "latency"
       ]
+    },
+    {
+      "id": "multistage_duct_geometry",
+      "levels": [
+        "single_stage",
+        "two_stage",
+        "jointly_optimised_multistage"
+      ],
+      "response_targets": [
+        "thrust_per_span_n_per_m",
+        "thrust_to_power",
+        "pressure_drop",
+        "friction_drag",
+        "freestream_response"
+      ]
     }
   ],
   "comparability_rules": [
@@ -252,6 +336,8 @@
     "Keep bare thruster, integrated platform and tethered system boundaries separate.",
     "Keep article abstract transcriptions separate from full-article/raw-data transcriptions.",
     "A missing condition remains null; do not infer it from another paper.",
-    "Treat online-ahead-of-issue modelling as a watchlist entry until publication status and model/measurement provenance are reconciled."
+    "Treat online-ahead-of-issue modelling as a watchlist entry until publication status and model/measurement provenance are reconciled.",
+    "The Shibata 2026 multistage ducted optimization reports thrust per span in N/m; do not equate this with area-normalized thrust density in N/m^2.",
+    "Numerically optimized geometry is not an experimentally validated propulsion improvement; retain simulation and physical evidence classes."
   ]
 }
