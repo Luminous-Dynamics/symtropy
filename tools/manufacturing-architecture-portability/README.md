@@ -54,3 +54,23 @@ No live broker, endpoint, CNC machine, robot, PLC, write method or physical asse
 - `profiles/opcua-robotics-1.02.reference.json`: independently pins OPC UA for Robotics Part 1 v1.02. Do not conflate this with Machinery or infer robot safety conformance.
 
 Reference profiles are source-reviewed specifications only. Their runtime semantics have not been implemented or tested. The `required_fields_to_preserve` list is a future adapter/evaluator requirement, not a claim that fields are currently preserved. `preserved_fields` remains empty and every profile stays `not_run`.
+
+## Offline Rust profile validator
+
+A standalone Rust validator lives in `validator/`. It pins the Draft 2020-12 implementation to `jsonschema = 0.62.0` and disables the crate's default remote/file reference-resolution features. The Foundry profile schema is self-contained, so profile validation must not retrieve schemas or other data from the network.
+
+Run from the validator directory:
+
+```sh
+cargo test
+cargo run -- ../profile.schema.json \
+  ../profiles/uns-mqtt.synthetic.json \
+  ../profiles/i3x-1.0.reference.json \
+  ../profiles/opcua-machinery-1.04.2.reference.json \
+  ../profiles/opcua-robotics-1.02.reference.json
+cargo clippy --all-targets -- -D warnings
+```
+
+The validator performs both formal JSON Schema validation (including format assertions) and independent semantic checks for duplicate standard/layer identities, unresolved standard references, layer-kind/reference-role mismatch, invalid access paths, implementation/evidence-state promotion, reference-only source misuse, synthetic-to-conformance promotion and semantic-field contradictions.
+
+The dedicated workflow bootstraps this isolated tool's `Cargo.lock` once and uploads the generated lockfile as an artifact. Commit that exact lockfile before changing this workflow to `--locked`. Until that artifact is reviewed and the lock is committed, dependency resolution is not yet frozen. The validator has no endpoint access and cannot establish runtime conformance.
