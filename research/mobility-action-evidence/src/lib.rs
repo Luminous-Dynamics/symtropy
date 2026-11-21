@@ -408,6 +408,9 @@ pub enum PhysicalOutcome {
 /// The last source sequence must be tracked by the caller/M1 event ledger.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OutcomePolicy {
+    /// Clock/boot epoch that produced now_ticks. It must match the ticket and
+    /// physical-outcome receipt before any freshness comparison is performed.
+    pub clock: ClockBinding,
     pub now_ticks: u64,
     pub maximum_age_ticks: u64,
     pub sequence_source_id: String,
@@ -426,6 +429,7 @@ pub enum OutcomeError {
     SequenceSourceMismatch,
     ClockMismatch,
     BootEpochMismatch,
+    PolicyClockMismatch,
     OutcomePredatesAction,
     OutcomeFromFuture,
     OutcomeStale,
@@ -494,6 +498,9 @@ pub fn validate_physical_outcome(
     }
     if evidence.source_sequence <= policy.last_source_sequence {
         return Err(OutcomeError::StaleSourceSequence);
+    }
+    if policy.clock != ticket.clock {
+        return Err(OutcomeError::PolicyClockMismatch);
     }
     if ticket.clock.clock_id != evidence.clock.clock_id {
         return Err(OutcomeError::ClockMismatch);
@@ -641,6 +648,7 @@ mod tests {
 
     fn outcome_policy() -> OutcomePolicy {
         OutcomePolicy {
+            clock: ticket().clock.clone(),
             now_ticks: 1_160,
             maximum_age_ticks: 100,
             sequence_source_id: "independent-camera-1".into(),
@@ -983,6 +991,24 @@ mod tests {
         assert_eq!(
             validate_physical_outcome(&ticket(), &evidence, outcome_policy()),
             Err(OutcomeError::BootEpochMismatch)
+        );
+    }
+
+
+    #[test]
+    fn outcome_freshness_policy_must_use_ticket_clock_and_boot_epoch() {
+        let mut policy = outcome_policy();
+        policy.clock.clock_id = "different-clock".into();
+        assert_eq!(
+            validate_physical_outcome(&ticket(), &physical_evidence(), policy),
+            Err(OutcomeError::PolicyClockMismatch)
+        );
+
+        let mut policy = outcome_policy();
+        policy.clock.boot_epoch_id = "different-boot".into();
+        assert_eq!(
+            validate_physical_outcome(&ticket(), &physical_evidence(), policy),
+            Err(OutcomeError::PolicyClockMismatch)
         );
     }
 
