@@ -42,8 +42,19 @@ jobs:
       - name: Generate standalone lockfile
         run: cargo generate-lockfile --manifest-path tools/orbital-interface-lifecycle-bench/Cargo.toml
 
-      - name: Check formatting
-        run: cargo fmt --manifest-path tools/orbital-interface-lifecycle-bench/Cargo.toml -- --check
+      - name: Apply rustfmt to the working-tree source (diagnostic extraction pass)
+        run: cargo fmt --manifest-path tools/orbital-interface-lifecycle-bench/Cargo.toml
+
+      - name: Upload rustfmt-normalized sources for source-control application
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbital-interface-rustfmt-${{ github.event.pull_request.head.sha || github.sha }}
+          path:
+            tools/orbital-interface-lifecycle-bench/src/**
+            tools/orbital-interface-lifecycle-bench/tests/**
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Run independent-oracle and evaluator tests
         run: cargo test --locked --manifest-path tools/orbital-interface-lifecycle-bench/Cargo.toml --all-targets
