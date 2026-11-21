@@ -676,6 +676,89 @@ mod tests {
         );
     }
 
+    #[test]
+    fn prismatic_angular_lock_is_symmetric_under_body_order_reversal() {
+        let matrix_a = vec![4.0, 0.8, 0.0, 0.8, 3.0, 0.35, 0.0, 0.35, 2.0];
+        let matrix_b = vec![2.5, -0.3, 0.1, -0.3, 5.0, 0.6, 0.1, 0.6, 3.5];
+
+        let mut a = dynamic_with_full_inertia(0, matrix_a.clone());
+        let mut b = dynamic_with_full_inertia(1, matrix_b.clone());
+        a.angular_velocity.set(0, 1, -0.1);
+        a.angular_velocity.set(0, 2, 0.2);
+        a.angular_velocity.set(1, 2, -0.3);
+        b.angular_velocity.set(0, 1, 0.6);
+        b.angular_velocity.set(0, 2, -0.4);
+        b.angular_velocity.set(1, 2, 0.5);
+
+        let mut reversed_a = dynamic_with_full_inertia(0, matrix_a);
+        let mut reversed_b = dynamic_with_full_inertia(1, matrix_b);
+        reversed_a.angular_velocity = a.angular_velocity;
+        reversed_b.angular_velocity = b.angular_velocity;
+
+        let mut forward_joint = PrismaticJoint::new(BodyHandle(0), BodyHandle(1), 0);
+        forward_joint.stiffness = 0.35;
+        let mut reverse_joint = PrismaticJoint::new(BodyHandle(1), BodyHandle(0), 0);
+        reverse_joint.stiffness = 0.35;
+
+        assert!(matches!(
+            forward_joint.solve_angular_velocity_lock(&mut a, &mut b),
+            PrismaticAngularLockOutcome::Applied { .. }
+        ));
+        assert!(matches!(
+            reverse_joint.solve_angular_velocity_lock(&mut reversed_b, &mut reversed_a),
+            PrismaticAngularLockOutcome::Applied { .. }
+        ));
+
+        for i in 0..3 {
+            for j in (i + 1)..3 {
+                assert!(
+                    (a.angular_velocity.get(i, j) - reversed_a.angular_velocity.get(i, j)).abs()
+                        < 1.0e-10,
+                    "body A changed when endpoint order was reversed in plane ({i},{j})"
+                );
+                assert!(
+                    (b.angular_velocity.get(i, j) - reversed_b.angular_velocity.get(i, j)).abs()
+                        < 1.0e-10,
+                    "body B changed when endpoint order was reversed in plane ({i},{j})"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn prismatic_angular_lock_stiffness_endpoints_are_exact() {
+        let mut a = dynamic_with_full_inertia(0, vec![3.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 1.0]);
+        let mut b = dynamic_with_full_inertia(1, vec![2.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 5.0]);
+        a.angular_velocity.set(0, 1, -0.2);
+        a.angular_velocity.set(0, 2, 0.1);
+        a.angular_velocity.set(1, 2, -0.4);
+        b.angular_velocity.set(0, 1, 0.5);
+        b.angular_velocity.set(0, 2, -0.3);
+        b.angular_velocity.set(1, 2, 0.7);
+        let before_a = a.angular_velocity;
+        let before_b = b.angular_velocity;
+
+        let mut no_op_joint = PrismaticJoint::new(BodyHandle(0), BodyHandle(1), 0);
+        no_op_joint.stiffness = 0.0;
+        assert_eq!(
+            no_op_joint.solve_angular_velocity_lock(&mut a, &mut b),
+            PrismaticAngularLockOutcome::NoOp
+        );
+        assert_eq!(a.angular_velocity, before_a);
+        assert_eq!(b.angular_velocity, before_b);
+
+        let mut full_lock_joint = PrismaticJoint::new(BodyHandle(0), BodyHandle(1), 0);
+        full_lock_joint.stiffness = 1.0;
+        assert!(matches!(
+            full_lock_joint.solve_angular_velocity_lock(&mut a, &mut b),
+            PrismaticAngularLockOutcome::Applied { .. }
+        ));
+        assert!(
+            b.angular_velocity.add(&a.angular_velocity.scale(-1.0)).norm() < 1.0e-9,
+            "unit stiffness must eliminate relative angular velocity"
+        );
+    }
+
     fn rotate_bivector_3(
         rotation: &symtropy_math::Rotor<3>,
         value: &Bivector<3>,
