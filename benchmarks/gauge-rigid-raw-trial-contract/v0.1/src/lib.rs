@@ -170,8 +170,7 @@ impl<'a> JsonParser<'a> {
                                     return Err(());
                                 }
                                 0x10000
-                                    + (((first as u32 - 0xd800) << 10)
-                                        | (second as u32 - 0xdc00))
+                                    + (((first as u32 - 0xd800) << 10) | (second as u32 - 0xdc00))
                             } else if (0xdc00..=0xdfff).contains(&first) {
                                 return Err(());
                             } else {
@@ -475,7 +474,9 @@ impl TrialReport {
 /// 4 quaternion-component and 3 Euler-component arrays per body, all finite
 /// and sample-aligned. Other quaternion/frame/Euler semantics remain unresolved.
 pub fn validate_trial_json(input: &str) -> Result<TrialReport, TrialError> {
-    let root = JsonParser::new(input).parse().map_err(|_| TrialError::InvalidJson)?;
+    let root = JsonParser::new(input)
+        .parse()
+        .map_err(|_| TrialError::InvalidJson)?;
     let root_object = root.as_object().ok_or(TrialError::RootNotObject)?;
 
     let fps = root_object
