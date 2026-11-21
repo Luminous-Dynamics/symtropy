@@ -327,7 +327,11 @@ fn evaluate_boolean_evidence(
     }
 }
 
-fn evaluate_pair(\n    mission: &MissionDemand,\n    pack: &BatteryPack,\n    dispatch_time_unix_ms: u64,\n) -> PairEvaluation {
+fn evaluate_pair(
+    mission: &MissionDemand,
+    pack: &BatteryPack,
+    dispatch_time_unix_ms: u64,
+) -> PairEvaluation {
     let mut findings = Vec::new();
     let mut status = EligibilityStatus::Eligible;
 
