@@ -35,7 +35,8 @@ The crate has no third-party dependencies. Its tests are synthetic; it does not 
 - Invalid position or implausible speed inside a stable zone invalidates the state claim.
 - Accepts raw AIS navigation-status lexemes as input observations; a conflict counter is diagnostic only and never overrides zone/motion evidence. The upstream feed owner must retain the original raw messages; this reference verifier is not a raw-message archive.
 - Requires an evidence reference when a caller supplies a non-INDETERMINATE initial state. Without one, a first observed berth dwell is reported as zone reacquisition—not a fabricated berth arrival.
-- Carries the entire dwell profile, profile version, evidence-referenced initial state, receiver, source, geofence digest and spatial reference in the call report.
+- Carries the entire dwell profile, profile version, evidence-referenced initial state, source-local call reference, receiver, source, geofence digest and spatial reference in the call report.
+- Scores inferred transition intervals against independent ground-truth event labels using deterministic one-to-one matching by call reference and event kind.
 
 ## Event semantics and claim ceiling
 
@@ -63,6 +64,18 @@ The frozen default profile uses integer ticks:
 - outside dwell: 2 ticks.
 
 These are synthetic fixture parameters, not universal thresholds or a claimed reproduction of the 2026 edge-AIS field study. The dwell-sensitivity test uses the same observations while varying berth dwell from one to four ticks.
+
+## Event-detection scorecard
+
+The module provides `predictions_from_report` and `score_events` for independent, source-local ground-truth labels. It reports:
+- true positives, false positives and false negatives by event type and overall;
+- precision and recall;
+- mean distance from the true event tick to the predicted interval;
+- mean width of matched event intervals.
+
+A prediction matches only one truth label, and a truth label matches only one prediction. Exact duplicates therefore count as additional false positives rather than additional detections. Matching is restricted to the same source-local call reference and event type. Predictions outside the declared interval-distance tolerance are false positives; unmatched truths are false negatives. Reacquisition, observability gaps, invalid positions and kinematic conflicts are not scored as berth or port-call events.
+
+The ground-truth call reference must be independently adjudicated; MMSI alone is not a visit identity. The tolerance and clock domain are part of the benchmark protocol and are not automatically converted to hours.
 
 ## Claim ceiling
 
