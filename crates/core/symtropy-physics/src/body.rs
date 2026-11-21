@@ -263,13 +263,13 @@ mod dimensioned_sphere_inertia_tests {
         );
         for (axis, actual) in body.inertia.iter().enumerate() {
             assert!(
-                (actual - expected).abs() < 1.0e-12,
+                (*actual - expected).abs() < 1.0e-12,
                 "D={D}, plane {axis}: actual={actual}, expected={expected}"
             );
         }
         for (axis, actual) in body.inv_inertia.iter().enumerate() {
             assert!(
-                (actual - 1.0 / expected).abs() < 1.0e-12,
+                (*actual - 1.0 / expected).abs() < 1.0e-12,
                 "D={D}, inverse plane {axis}: actual={actual}, expected={}",
                 1.0 / expected
             );
@@ -306,9 +306,14 @@ mod dimensioned_sphere_inertia_tests {
             4.0,
             3.0,
         );
-        for axis in 0..3 {
-            assert!((doubled_mass.inertia[axis] - 2.0 * body.inertia[axis]).abs() < 1.0e-12);
-            assert!((doubled_radius.inertia[axis] - 4.0 * body.inertia[axis]).abs() < 1.0e-12);
+        for ((mass_value, original), radius_value) in doubled_mass
+            .inertia
+            .iter()
+            .zip(body.inertia.iter())
+            .zip(doubled_radius.inertia.iter())
+        {
+            assert!((*mass_value - 2.0 * original).abs() < 1.0e-12);
+            assert!((*radius_value - 4.0 * original).abs() < 1.0e-12);
         }
     }
 
