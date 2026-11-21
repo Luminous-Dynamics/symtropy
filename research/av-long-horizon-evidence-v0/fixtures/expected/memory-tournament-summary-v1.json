@@ -14,7 +14,8 @@
       "provenance_complete_rate": 0.5555555555555556,
       "evidence_compliance_rate": 1,
       "false_memory_count": 0,
-      "hard_violation_count": 0
+      "hard_violation_count": 0,
+      "evidence_qualified_answer_accuracy": 0.4444444444444444
     },
     "summary_only": {
       "answer_accuracy": 0.2222222222222222,
@@ -26,7 +27,8 @@
       "provenance_complete_rate": 0.4444444444444444,
       "evidence_compliance_rate": 0.4444444444444444,
       "false_memory_count": 6,
-      "hard_violation_count": 6
+      "hard_violation_count": 6,
+      "evidence_qualified_answer_accuracy": 0.2222222222222222
     },
     "episodic_retrieval": {
       "answer_accuracy": 0.6666666666666666,
@@ -38,7 +40,8 @@
       "provenance_complete_rate": 0.7777777777777778,
       "evidence_compliance_rate": 0.7777777777777778,
       "false_memory_count": 2,
-      "hard_violation_count": 3
+      "hard_violation_count": 3,
+      "evidence_qualified_answer_accuracy": 0.6666666666666666
     },
     "evidence_ledger": {
       "answer_accuracy": 0.8888888888888888,
@@ -50,7 +53,8 @@
       "provenance_complete_rate": 1,
       "evidence_compliance_rate": 1,
       "false_memory_count": 0,
-      "hard_violation_count": 0
+      "hard_violation_count": 0,
+      "evidence_qualified_answer_accuracy": 0.8888888888888888
     }
   },
   "paired": {
