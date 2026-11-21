@@ -55,7 +55,7 @@ jobs:
               "wald_multiplier_exact",
               "wald_density_exact",
               "wald_density_primitive_exact",
-              "cutoff_entropy_derivative_exact",
+              "wald_cutoff_entropy_exact",
               "leading_density_coefficient_exact",
               "leading_entropy_divergence_exact",
               "area_regulator_shift_exact",
