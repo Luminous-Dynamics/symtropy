@@ -774,6 +774,47 @@ mod tests {
         }
     }
 
+    fn calibration_receipt_for_blocks(
+        blocks: &[CalibrationBlockReceipt],
+        alpha_ppm: u32,
+    ) -> CalibrationReceipt {
+        let identity = &blocks[0].identity;
+        calibrate(&CalibrationDataset {
+            model_digest: identity.model_digest.clone(),
+            target_digest: identity.target_digest.clone(),
+            domain_digest: identity.domain_digest.clone(),
+            score_definition_digest: identity.score_definition_digest.clone(),
+            calibration_split_digest: identity.calibration_split_digest.clone(),
+            alpha_ppm,
+            blocks: blocks
+                .iter()
+                .map(|block| block.calibration_block.clone())
+                .collect(),
+            forbidden_episode_ids: Vec::new(),
+        })
+        .unwrap()
+    }
+
+    fn incomplete_blocks(count: usize) -> Vec<CalibrationBlockReceipt> {
+        (0..count)
+            .map(|index| {
+                let trial = TrialPoseScore::incomplete(
+                    format!("failed-trial-{index:02}"),
+                    EpisodeOutcome::Failed,
+                    score_identity(),
+                    DIGEST,
+                )
+                .unwrap();
+                build_calibration_block(
+                    &format!("session-{index:02}"),
+                    &[trial],
+                    &block_identity(),
+                )
+                .unwrap()
+            })
+            .collect()
+    }
+
     #[test]
     fn score_is_the_maximum_over_all_bodies_and_frames_with_upward_quantization() {
         let score = score_complete_trial(
@@ -1096,33 +1137,20 @@ mod tests {
 
     #[test]
     fn sentinel_threshold_becomes_unbounded_pose_set() {
-        let block_identity = block_identity();
-        let trial = TrialPoseScore::incomplete(
-            "failed-trial",
-            EpisodeOutcome::Failed,
-            score_identity(),
-            DIGEST,
+        let blocks = incomplete_blocks(19);
+        let conformal = calibration_receipt_for_blocks(&blocks, 50_000);
+        assert_eq!(
+            conformal.threshold,
+            ConformalThreshold::Finite(INCOMPLETE_HORIZON_SCORE)
+        );
+        assert_eq!(conformal.rank_1based, 19);
+        let receipt = bind_pose_calibration_receipt(
+            conformal,
+            &blocks,
+            RAW_DIGEST,
+            FORECAST_DIGEST,
         )
         .unwrap();
-        let block = build_calibration_block("session-01", &[trial], &block_identity).unwrap();
-        let conformal = CalibrationReceipt {
-            model_digest: MODEL_DIGEST.to_owned(),
-            target_digest: TARGET_DIGEST.to_owned(),
-            domain_digest: DOMAIN_DIGEST.to_owned(),
-            score_definition_digest: DIGEST.to_owned(),
-            calibration_split_digest: block_identity.calibration_split_digest.clone(),
-            alpha_ppm: 50_000,
-            independent_unit_count: 1,
-            episode_count: 1,
-            rank_1based: 1,
-            threshold: ConformalThreshold::Finite(INCOMPLETE_HORIZON_SCORE),
-            exchangeability_unit: "session/article block".to_owned(),
-            coverage_claim: "finite-sample marginal whole-unit coverage under exchangeability"
-                .to_owned(),
-        };
-        let receipt =
-            bind_pose_calibration_receipt(conformal, &[block], RAW_DIGEST, FORECAST_DIGEST)
-                .unwrap();
         let identity = PoseSetApplicationIdentity {
             dataset_revision: DATASET_REVISION,
             source_manifest_sha256: RAW_DIGEST,
@@ -1144,33 +1172,15 @@ mod tests {
 
     #[test]
     fn pose_calibration_receipt_refuses_a_different_dataset_or_source_manifest() {
-        let block_identity = block_identity();
-        let trial = TrialPoseScore::incomplete(
-            "failed-trial",
-            EpisodeOutcome::Failed,
-            score_identity(),
-            DIGEST,
+        let blocks = incomplete_blocks(1);
+        let conformal = calibration_receipt_for_blocks(&blocks, 50_000);
+        let receipt = bind_pose_calibration_receipt(
+            conformal,
+            &blocks,
+            RAW_DIGEST,
+            FORECAST_DIGEST,
         )
         .unwrap();
-        let block = build_calibration_block("session-01", &[trial], &block_identity).unwrap();
-        let conformal = CalibrationReceipt {
-            model_digest: MODEL_DIGEST.to_owned(),
-            target_digest: TARGET_DIGEST.to_owned(),
-            domain_digest: DOMAIN_DIGEST.to_owned(),
-            score_definition_digest: DIGEST.to_owned(),
-            calibration_split_digest: block_identity.calibration_split_digest.clone(),
-            alpha_ppm: 50_000,
-            independent_unit_count: 1,
-            episode_count: 1,
-            rank_1based: 1,
-            threshold: ConformalThreshold::Finite(10),
-            exchangeability_unit: "session/article block".to_owned(),
-            coverage_claim: "finite-sample marginal whole-unit coverage under exchangeability"
-                .to_owned(),
-        };
-        let receipt =
-            bind_pose_calibration_receipt(conformal, &[block], RAW_DIGEST, FORECAST_DIGEST)
-                .unwrap();
         let base = PoseSetApplicationIdentity {
             dataset_revision: DATASET_REVISION,
             source_manifest_sha256: RAW_DIGEST,
