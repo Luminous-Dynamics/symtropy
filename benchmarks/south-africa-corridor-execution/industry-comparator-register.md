@@ -94,6 +94,16 @@ The stretch goal is not "beat one paper by 5%". It is to beat or match strong ex
 
 ## 7. Existing Luminous work to compose
 
+### Cross-stack owners
+- Mycelix #5968 — Maritime Commons cross-stack integration architecture.
+- Mycelix #5974 / draft PR #5980, stacked on draft PR #5972 — 35-case four-owner golden trace and independent oracle. The declared owner outputs are synthetic fixtures; this is not yet proof of four live production systems integrating.
+- Mycelix #5920 / #5185 / #5963 — federated provider/resource authority, participant-authorized schedule flexibility and adapter semantic fidelity.
+- Sol-Atlas #654 / #115 — source-reversible spatial/temporal maritime evidence projection.
+- Sol-Atlas #377 / #380 — coast–hinterland opportunity discovery and ex-post port/corridor outcome evaluation.
+- Symthaea #7444 / draft PR #7629 — evidence-bounded marine freight screening and interval qualification. This is not a naval-architecture solver or physical vessel approval.
+- Symthaea draft PR #7705 and #11080 — concept-stage marine vessel families and mass/loading-condition evidence.
+
+### Symtropy operational, physical and manufacturing owners
 - Symtropy #1601 / PR #1602 — multimodal whole-life optimization and modular cargo.
 - Symtropy #1631 / #3243 — South African route/capacity source qualification and Southern African freight baseline.
 - Symtropy #1858 / PR #1859 — JIT arrival and port energy.
