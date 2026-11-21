@@ -939,11 +939,15 @@ mod tests {
                 raw_sha: digest.to_owned(),
                 disposition: disposition.to_owned(),
                 unit_id: unit_id.map(str::to_owned),
-                dependence_keys: dependence_keys.iter().map(|key| (*key).to_owned()).collect(),
+                dependence_keys: dependence_keys
+                    .iter()
+                    .map(|key| (*key).to_owned())
+                    .collect(),
                 split: split.to_owned(),
                 group_evidence_path: source_backed.then(|| "metadata/metadata.json".to_owned()),
                 group_evidence_field: source_backed.then(|| "/article_id".to_owned()),
-                group_evidence_value: source_backed.then(|| unit_id.unwrap_or("UNKNOWN").to_owned()),
+                group_evidence_value: source_backed
+                    .then(|| unit_id.unwrap_or("UNKNOWN").to_owned()),
                 reviewer: source_backed.then(|| "reviewer".to_owned()),
                 review_id: source_backed.then(|| "review-1".to_owned()),
             },
@@ -1038,8 +1042,12 @@ mod tests {
             grouping_tsv: PathBuf::from("grouping.tsv"),
             output: None,
         };
-        let receipt = output_jsonl(&args, &rows, &format!("{}:{}", "e".repeat(64), "f".repeat(64)))
-            .unwrap();
+        let receipt = output_jsonl(
+            &args,
+            &rows,
+            &format!("{}:{}", "e".repeat(64), "f".repeat(64)),
+        )
+        .unwrap();
         assert!(receipt.contains("\"source_backed_rows\":3"));
         assert!(receipt.contains("\"unknown_group_rows\":1"));
         assert!(receipt.contains("\"cross_split_dependence_components\":1"));
