@@ -1,0 +1,220 @@
+{
+  "schema_version": "0.1.0",
+  "identity": {
+    "benchmark_id": "LADDER",
+    "benchmark_commit": "e4e204073cc64b0dc49f9669c2951e6bc91fe0af",
+    "protocol_digest_hex": "abababababababababababababababababababababababababababababababab",
+    "embodiment": "widowx",
+    "evaluation_split": "illustrative-heldout",
+    "tuned_on_benchmark": false
+  },
+  "bootstrap": {
+    "replicates": 10000,
+    "seed": 123456789
+  },
+  "task_clusters": [
+    {
+      "task_id": "synthetic-task-1",
+      "category": "transfer",
+      "horizon": 1,
+      "episodes": [
+        {
+          "episode_id": "synthetic-1-a",
+          "baseline_success": false,
+          "candidate_success": true,
+          "shift_family": "in_distribution"
+        },
+        {
+          "episode_id": "synthetic-1-b",
+          "baseline_success": false,
+          "candidate_success": false,
+          "shift_family": "in_distribution"
+        }
+      ]
+    },
+    {
+      "task_id": "synthetic-task-2",
+      "category": "ordered",
+      "horizon": 2,
+      "episodes": [
+        {
+          "episode_id": "synthetic-2-a",
+          "baseline_success": false,
+          "candidate_success": true,
+          "shift_family": "in_distribution"
+        },
+        {
+          "episode_id": "synthetic-2-b",
+          "baseline_success": false,
+          "candidate_success": true,
+          "shift_family": "in_distribution"
+        }
+      ]
+    },
+    {
+      "task_id": "synthetic-task-3",
+      "category": "transfer",
+      "horizon": 3,
+      "episodes": [
+        {
+          "episode_id": "synthetic-3-a",
+          "baseline_success": false,
+          "candidate_success": true,
+          "shift_family": "in_distribution"
+        },
+        {
+          "episode_id": "synthetic-3-b",
+          "baseline_success": false,
+          "candidate_success": true,
+          "shift_family": "in_distribution"
+        }
+      ]
+    },
+    {
+      "task_id": "synthetic-task-4",
+      "category": "ordered",
+      "horizon": 4,
+      "episodes": [
+        {
+          "episode_id": "synthetic-4-a",
+          "baseline_success": false,
+          "candidate_success": true,
+          "shift_family": "in_distribution"
+        },
+        {
+          "episode_id": "synthetic-4-b",
+          "baseline_success": false,
+          "candidate_success": false,
+          "shift_family": "in_distribution"
+        }
+      ]
+    },
+    {
+      "task_id": "synthetic-task-5",
+      "category": "transfer",
+      "horizon": 5,
+      "episodes": [
+        {
+          "episode_id": "synthetic-5-a",
+          "baseline_success": false,
+          "candidate_success": true,
+          "shift_family": "in_distribution"
+        },
+        {
+          "episode_id": "synthetic-5-b",
+          "baseline_success": false,
+          "candidate_success": true,
+          "shift_family": "in_distribution"
+        }
+      ]
+    },
+    {
+      "task_id": "synthetic-task-6",
+      "category": "ordered",
+      "horizon": 1,
+      "episodes": [
+        {
+          "episode_id": "synthetic-6-a",
+          "baseline_success": false,
+          "candidate_success": true,
+          "shift_family": "held_out_layout"
+        },
+        {
+          "episode_id": "synthetic-6-b",
+          "baseline_success": false,
+          "candidate_success": true,
+          "shift_family": "held_out_layout"
+        }
+      ]
+    },
+    {
+      "task_id": "synthetic-task-7",
+      "category": "transfer",
+      "horizon": 2,
+      "episodes": [
+        {
+          "episode_id": "synthetic-7-a",
+          "baseline_success": false,
+          "candidate_success": true,
+          "shift_family": "held_out_layout"
+        },
+        {
+          "episode_id": "synthetic-7-b",
+          "baseline_success": false,
+          "candidate_success": false,
+          "shift_family": "held_out_layout"
+        }
+      ]
+    },
+    {
+      "task_id": "synthetic-task-8",
+      "category": "ordered",
+      "horizon": 3,
+      "episodes": [
+        {
+          "episode_id": "synthetic-8-a",
+          "baseline_success": false,
+          "candidate_success": true,
+          "shift_family": "held_out_layout"
+        },
+        {
+          "episode_id": "synthetic-8-b",
+          "baseline_success": false,
+          "candidate_success": true,
+          "shift_family": "held_out_layout"
+        }
+      ]
+    },
+    {
+      "task_id": "synthetic-task-9",
+      "category": "transfer",
+      "horizon": 4,
+      "episodes": [
+        {
+          "episode_id": "synthetic-9-a",
+          "baseline_success": false,
+          "candidate_success": true,
+          "shift_family": "held_out_layout"
+        },
+        {
+          "episode_id": "synthetic-9-b",
+          "baseline_success": false,
+          "candidate_success": true,
+          "shift_family": "held_out_layout"
+        }
+      ]
+    },
+    {
+      "task_id": "synthetic-task-10",
+      "category": "ordered",
+      "horizon": 5,
+      "episodes": [
+        {
+          "episode_id": "synthetic-10-a",
+          "baseline_success": false,
+          "candidate_success": true,
+          "shift_family": "held_out_layout"
+        },
+        {
+          "episode_id": "synthetic-10-b",
+          "baseline_success": false,
+          "candidate_success": false,
+          "shift_family": "held_out_layout"
+        }
+      ]
+    }
+  ],
+  "required_negative_controls": [
+    "no_language",
+    "masked_image",
+    "swapped_image",
+    "swapped_instruction",
+    "held_out_object",
+    "held_out_layout",
+    "lighting",
+    "material",
+    "camera",
+    "compositional",
+    "recovery"
+  ]
+}
