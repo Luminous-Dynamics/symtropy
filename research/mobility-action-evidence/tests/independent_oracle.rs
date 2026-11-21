@@ -180,8 +180,8 @@ fn independent_admission_oracle(ticket: &ActionTicket, context: &LiveContext) ->
             let Some(observed) = normalized_observed_at_ticks else {
                 return false;
             };
-            observed <= context.now_ticks
-                && context.now_ticks - observed <= ticket.navigation.maximum_age_ticks
+            *observed <= context.now_ticks
+                && context.now_ticks - *observed <= ticket.navigation.maximum_age_ticks
         }
     }
 }
