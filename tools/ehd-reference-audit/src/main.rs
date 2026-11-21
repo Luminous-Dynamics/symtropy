@@ -1977,7 +1977,7 @@ pub fn audit_identifiability_contract(root: &Value) -> Vec<String> {
     let cases = at(root, &["manufactured_cases"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        cases.is_some_and(|rows| rows.len() == 2),
+        cases.is_some_and(|rows| rows.len() == 3),
         "IDENTIFIABILITY_CASE_COUNT",
         "exactly one rank-deficient and one full-rank manufactured case are required",
     );
@@ -2042,6 +2042,28 @@ pub fn audit_identifiability_contract(root: &Value) -> Vec<String> {
                         && rows[1].as_f64() == Some(0.5)),
             "IDENTIFIABILITY_BALANCED_EXPECTATION",
             "balanced design must retain its full-rank expected parameter recovery",
+        );
+    }
+    let near_collinear = cases.and_then(|rows| rows.iter().find(|row| {
+        text_at(row, &["case_id"]) == Some("E0-NEAR-COLLINEAR-RANK-2")
+    }));
+    push_if_missing(
+        &mut findings,
+        near_collinear.is_some(),
+        "IDENTIFIABILITY_NEAR_COLLINEAR_CASE",
+        "missing near-collinear full-rank numerical-stability control",
+    );
+    if let Some(case) = near_collinear {
+        push_if_missing(
+            &mut findings,
+            at(case, &["expected_rank"]).and_then(Value::as_u64) == Some(2)
+                && text_at(case, &["expected_disposition"]) == Some("identifiable")
+                && number_at(case, &["expected_condition_number_approx"])
+                    .is_some_and(|value| (value - 2.0e9).abs() / 2.0e9 < 1.0e-6)
+                && at(case, &["practical_warning_required"])
+                    .and_then(Value::as_bool) == Some(true),
+            "IDENTIFIABILITY_NEAR_COLLINEAR_EXPECTATION",
+            "near-collinear fixture must remain numerically full-rank while exposing severe conditioning",
         );
     }
     push_if_missing(
