@@ -78,8 +78,7 @@ fn main() {
         }
         println!(
             "  stratum-1 berth count: latent={} observed={}",
-            scenario.stratum_1_true_berths,
-            scenario.stratum_1_observed_berths
+            scenario.stratum_1_true_berths, scenario.stratum_1_observed_berths
         );
     }
 
