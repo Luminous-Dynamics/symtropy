@@ -58,7 +58,7 @@ jobs:
           assert len(ids) == 8 and len(set(ids)) == 8
           assert ids == [e["episode_id"] for e in truth["episodes"]]
           assert ids == [e["episode_id"] for e in expected["episodes"]]
-          forbidden = {"optimal_action_ids", "expected_answer", "action_outcomes", "optimal_final_decision", "initial_optimal_decision", "decision_after", "realized_eig_nats", "evsi", "required_observation_refs", "decision_regret_if_request", "decision_regret_if_no_request", "decision_regret_if_wrong_action", "decision_regret_if_wait_past_deadline"}
+          forbidden = {"optimal_action_ids", "expected_answer", "action_outcomes", "optimal_final_decision", "initial_optimal_decision", "decision_after", "realized_eig_nats", "evsi", "required_observation_refs", "decision_regret_if_request", "decision_regret_if_no_request", "decision_regret_if_wrong_action", "decision_regret_if_wait_past_deadline", "decision_regret_if_wrong_answer"}
           def scan(value):
               if isinstance(value, dict):
                   assert not forbidden.intersection(value.keys()), "evaluator truth leaked into candidate workload"
