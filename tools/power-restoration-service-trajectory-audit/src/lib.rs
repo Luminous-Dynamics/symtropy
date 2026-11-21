@@ -2005,6 +2005,8 @@ mod tests {
         trajectory.producer.instrument_id = None;
         trajectory.producer.calibration_artifact_ref = None;
         trajectory.producer.calibration_artifact_sha256 = None;
+        trajectory.producer.calibration_valid_from_unix_ms = None;
+        trajectory.producer.calibration_valid_until_unix_ms = None;
         trajectory.source_artifacts = vec![ServiceSourceArtifact {
             artifact_ref: "forecast-model://load-profile/v1".to_string(),
             sha256: "9".repeat(64),
@@ -2033,6 +2035,8 @@ mod tests {
         trajectory.producer.instrument_id = None;
         trajectory.producer.calibration_artifact_ref = None;
         trajectory.producer.calibration_artifact_sha256 = None;
+        trajectory.producer.calibration_valid_from_unix_ms = None;
+        trajectory.producer.calibration_valid_until_unix_ms = None;
         trajectory.source_artifacts = vec![ServiceSourceArtifact {
             artifact_ref: "field://repair-ticket/0001".to_string(),
             sha256: "6".repeat(64),
