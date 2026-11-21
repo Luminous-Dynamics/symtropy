@@ -42,9 +42,13 @@ def main() -> None:
     T=beta*eps**4
     tau=sp.symbols("tau", nonnegative=True)
     def tau_form(expression: sp.Expr) -> sp.Expr:
-        # Express a normalized asymptotic density as a rational function
-        # of the dimensionless endpoint variable tau=beta*epsilon^4.
-        return sp.factor(sp.cancel(expression.subs(beta,tau/eps**4)))
+        # Eliminate a using beta=2*a^2/alpha_sym first, then write
+        # tau=beta*epsilon^4 as the independent endpoint variable.
+        value=sp.factor(expression)
+        for power in (12,10,8,6,4,2):
+            value=value.subs(a**power,(alpha_sym*beta/2)**(power//2))
+        value=sp.factor(value)
+        return sp.factor(sp.cancel(value.subs(beta,tau/eps**4)))
     p=1+T
     q=1-T
     alpha_NH=alpha_sym/4
