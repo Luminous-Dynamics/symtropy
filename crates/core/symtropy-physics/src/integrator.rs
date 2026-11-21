@@ -196,7 +196,6 @@ pub fn try_integrate<const D: usize>(
         || !body.force_accumulator.iter().all(|value| value.is_finite())
         || !body.linear_velocity.iter().all(|value| value.is_finite())
         || !body.transform.translation.0.iter().all(|value| value.is_finite())
-        || !body.transform.rotation.is_proper_rotation(1.0e-8)
     {
         return Err(RotationalResponseError::NonFiniteInput);
     }
@@ -204,6 +203,15 @@ pub fn try_integrate<const D: usize>(
         return Err(RotationalResponseError::MassProperties(
             crate::mass_properties::MassPropertiesError::InvalidMass,
         ));
+    }
+    let mass_reciprocal_check = body.mass * body.inv_mass;
+    if !mass_reciprocal_check.is_finite() || (mass_reciprocal_check - 1.0).abs() > 1.0e-8 {
+        return Err(RotationalResponseError::MassProperties(
+            crate::mass_properties::MassPropertiesError::InvalidMass,
+        ));
+    }
+    if !body.transform.rotation.is_proper_rotation(1.0e-8) {
+        return Err(RotationalResponseError::InvalidRotation);
     }
     if !body.linear_damping.is_finite()
         || body.linear_damping < 0.0
