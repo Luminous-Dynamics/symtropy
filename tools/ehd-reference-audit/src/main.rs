@@ -2450,3 +2450,20 @@ mod drag_trajectory_contract_tests {
         }));
     }
 }
+
+#[cfg(test)]
+mod drag_trajectory_frame_contract_tests {
+    use super::*;
+
+    #[test]
+    fn time_varying_drag_contract_requires_explicit_frame_identity() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_DRAG_TRAJECTORY).unwrap();
+        value["reference_implementation"]["event_fields"] = Value::Array(vec![
+            Value::String("event_id".into()),
+            Value::String("quadrature_rule_id".into()),
+        ]);
+        assert!(audit_drag_trajectory_contract(&value).iter().any(|finding| {
+            finding.starts_with("DRAG_TRAJECTORY_IMPLEMENTATION")
+        }));
+    }
+}
