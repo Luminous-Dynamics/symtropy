@@ -260,3 +260,57 @@ The four reference lanes intentionally differ:
 - evidence ledger: it retrieves all 15 references in the correct order.
 
 The resulting synthetic reference scorecard is now 12 episodes: the evidence-ledger policy produces 11/12 answer correctness, 12/12 correct decisions, 11/12 coverage, complete provenance and zero hard violations. The four-way tournament expected summary is updated for all 12 matched episodes. These are hand-authored reference-policy checks, not model results or comparative evidence against StreamArena.
+
+
+## Closed-loop evidence lifecycle: cross-benchmark integration
+
+The longer-term paradigm is to qualify a continuous system as one evidence lifecycle, not a collection of independent perception demos. The repository now has separate benchmark owners for each stage:
+
+| Lifecycle stage | Existing owner | Qualification question |
+|---|---|---|
+| Decide what to observe | Symtropy #6222 / #6225 and active-sensing PR #6549 | Does the next observation have positive decision value after cost, latency and privacy? |
+| Decide which sensor path matters | Modality necessity PR #6307 | Does audio, video or their combination actually change the answer on matched counterfactuals? |
+| Acquire and preserve observations | Symtropy #6201, camera adapter #6302, audio adapter issue #6339 | Are source bytes, availability, capture time, transport duplicates/drops and clock identity preserved? |
+| Retain and retrieve evidence | Symtropy #6357 / PR #6359; Symthaea #10644, #9075 and #9177 | Can the system reconstruct exact events and source spans after long delays, corrections and distraction? |
+| Track physical identity | EgoWitness adapter PR #6576 | Does the same physical instance remain distinct from lookalikes across rooms, days and wearers? |
+| Decide whether and when to respond | Response-window PR #6433 | Does it speak only when useful, within the valid response window, and stop on cancellation? |
+| Revoke and qualify residuals | Post-revocation PR #6489 | Do revoked source facts and every derived descendant become ineligible, with residual probes checking for information leakage? |
+
+### Shared invariants for future end-to-end runs
+
+1. **Immutable source identity:** one observation reference cannot silently change its content digest, source interval, clock domain/generation or dependency lineage.
+2. **Two times, never one:** capture/measurement time and availability/receipt time remain distinct. A system can only use evidence at or before its decision cutoff.
+3. **Causal lineage across stages:** active sensing requests, sensor deliveries, memory items, answers and playback events carry stable parent/child identities. A downstream summary must not invent stronger provenance than its sources.
+4. **No double-counted corroboration:** two modalities or viewpoints from the same dependency root remain dependent evidence unless an independent source is established.
+5. **Correction is bitemporal:** preserve what was believed at each earlier cutoff while applying a correction only after it becomes available.
+6. **Revocation is transitive:** source revocation invalidates derived summaries, embeddings, indexes, caches and response context; candidate self-reports are not treated as independent proof of physical deletion.
+7. **Response is an evidenced action:** controller permission is not playback; renderer-confirmed start/end and stop receipts qualify the actual intervention interval.
+8. **Independent qualification:** candidate processes never receive evaluator truth. Public fixture separation is for mechanics only; blind claims need separately controlled media, truth, credentials and logs.
+
+A future full-loop episode should therefore look like:
+
+**uncertainty → request an observation → receive an immutable sensor event → update/revise evidence memory → retrieve a source-linked answer → respond or remain silent → stop/cancel if superseded → propagate later corrections or revocations.**
+
+The per-stage benchmarks remain separate and keep their own official metrics. An end-to-end report should publish the joint trace and a Pareto profile—task quality, coverage, temporal correctness, evidence compliance, false intervention, long-horizon retrieval, p95 latency, input bytes, memory bytes, compute/energy—rather than one weighted score that can conceal a failure at an earlier stage.
+
+## A more ambitious benchmark ladder
+
+After reproducing the official external protocols, expand the synthetic 15-span chain along axes that can falsify brittle memory strategies:
+
+- **Span count:** 2 / 5 / 15 / 30 distinct evidence intervals; measure exact set and order recovery.
+- **Retrospection gap:** 1 / 10 / 60 minutes / 4 hours / 24 hours / 7 days.
+- **Entity cardinality:** one actor/object, then many similar instances, then cross-wearer and cross-room continuity.
+- **Evidence topology:** linear chain, branching causal event, contradictory sources, shared common cause, corrected history and revoked ancestor.
+- **Memory pressure:** fixed-byte budgets, forced eviction, summary compression and retrieval latency measured under the same stream.
+- **Intervention:** proactive response-required events, expected silence, overlapping opportunities, user interruption and cancellation.
+
+Proposed research acceptance targets, not achieved results:
+- at least 95% exact ordered-chain retrieval on a powered held-out 15-span cohort;
+- zero future-source, superseded-current-state or revoked-source qualification;
+- zero silent duplicate-event inflation;
+- zero false instance merges on explicit same-category/lookalike controls;
+- non-inferior ordered evidence recall under a preregistered memory-budget reduction;
+- improve DIVE-style response-window correctness at matched p95 latency;
+- publish a complete trace from observation request to renderer stop, with independent digest and exact-head receipts.
+
+The 15-span synthetic episode validates only one finite sequence contract. Official StreamArena, DIVE, OmniInteract and EgoWitness scores must still be reproduced independently using their own splits, annotations and protocols. No benchmark numbers are transferred or conflated.
