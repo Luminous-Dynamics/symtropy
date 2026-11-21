@@ -110,6 +110,8 @@ The unit-test corpus contains positive controls and table-driven negative contro
 - no-effect, partial-effect and unknown-outcome disposition;
 - active-assurance predicate mismatch, missing qualification commitment, common-cause observer overlap, budget failure, Pareto dominance and deterministic frontier ordering.
 
+Two independent integration-test files compare the action/effect validators and active-assurance Pareto selection against separately expressed reference oracles. The active-assurance oracle exercises multiple risk/latency/energy/cost matrices and the no-feasible-candidate hold path.
+
 ## Run
 
 ```sh
