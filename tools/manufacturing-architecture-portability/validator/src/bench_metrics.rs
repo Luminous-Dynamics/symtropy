@@ -545,8 +545,8 @@ mod tests {
         assert_eq!(metrics.safe_deferral_count, 2);
         assert_eq!(metrics.confident_wrong_rate_detected, Some(1.0 / 21.0));
         assert_eq!(metrics.safe_deferral_rate_detected, Some(2.0 / 21.0));
-        assert_eq!(metrics.diagnosis_coverage, Some(18.0 / 21.0));
-        assert_eq!(metrics.selective_diagnosis_accuracy, Some(17.0 / 18.0));
+        assert_eq!(metrics.diagnosis_coverage, Some(19.0 / 21.0));
+        assert_eq!(metrics.selective_diagnosis_accuracy, Some(18.0 / 19.0));
         assert_eq!(metrics.mean_detection_delay_ns, Some(30_000_000_000.0));
         assert_eq!(metrics.false_alarm_rate_per_normal_hour, 1.0);
         assert_eq!(metrics.scenarios.len(), 21);
