@@ -437,7 +437,7 @@ pub fn sha256_hex(input: &[u8]) -> String {
 /// Git's SHA-1 object identity for exact blob bytes, including the canonical
 /// `blob <length>\\0` object header.
 pub fn git_blob_sha1_hex(input: &[u8]) -> String {
-    let header = format!("blob {}\\0", input.len());
+    let header = format!("blob {}\0", input.len());
     let mut data = Vec::with_capacity(header.len() + input.len() + 72);
     data.extend_from_slice(header.as_bytes());
     data.extend_from_slice(input);
