@@ -49,7 +49,7 @@ The evaluator never returns a global \`COMPLETE\`, \`LOSSLESS\`, \`RELIABILITY_P
 
 ## Exact zero-miss bound
 
-When zero known events are missed in \(N\) independent, representative Bernoulli injection trials, the one-sided exact 95% upper confidence bound on the miss probability \(q\) is:
+For \(k\) missed events among \(N\) independent, representative Bernoulli injection trials, the one-sided exact 95% Clopper–Pearson upper confidence bound on miss probability \(q\) is the solution to \(P_{q_U}(X\\leq k)=0.05\), where \(X\\sim\\mathrm{Binomial}(N,q_U)\). For zero misses this reduces to:
 
 \[
 q_U=1-0.05^{1/N}.
@@ -60,7 +60,7 @@ Illustrative sample sizes:
 - 2,995 zero-miss injections put it below 0.1%.
 - 29,956 zero-miss injections put it below 0.01%.
 
-The crate reports this bound only when the fixture has zero missing reference IDs and no duplicate capture, unmatched observation, or conflicting payload/time record. If one or more injected events are missed, the disposition is \`INCOMPLETE\` and the current v0.1 profile omits the confidence bound rather than claiming a pass. Disputed records also suppress the bound. A later profile should add an independently cross-checked one-sided Clopper–Pearson upper bound for arbitrary miss counts.
+The crate reports the exact one-sided upper bound for zero or nonzero misses when the reference/observation reconciliation is otherwise determinate. Duplicate captures, unmatched observations, or payload/time disputes suppress the bound because the Bernoulli capture outcome cannot be reliably adjudicated. A positive loss counter or a missing injection produces \`INCOMPLETE\`; a confidence bound does not turn that result into a pass.
 
 These sample-size illustrations assume independent, representative trials from one unchanged detection regime. Burst loss, common-cause faults, event-rate dependence, time-varying capture probability or untested event classes invalidate a naïve iid interpretation. The responsible technical authority must allocate risk and define strata; these values are not universal qualification requirements.
 
@@ -79,9 +79,9 @@ A reference path sharing a clock, power source, sensor front-end, firmware, tran
 
 ## Frozen adversarial corpus
 
-The v0.1 corpus contains 20 synthetic cases:
+The v0.1 corpus contains 22 synthetic cases:
 1. all known injections reconciled;
-2. one missing injection;
+2. one and multiple missing injections with exact binomial upper bounds;
 3. duplicate capture of one reference event;
 4. observation with no reference event;
 5. missing independent reference;
@@ -101,7 +101,7 @@ The v0.1 corpus contains 20 synthetic cases:
 19. shared firmware failure domain;
 20. non-monotonic clock declaration.
 
-The independent JavaScript oracle implements the reconciliation decisions separately from Rust. Integer event clocks, sequence values and counters are restricted to the exact interoperable range shared by Rust and JavaScript numbers. The frozen corpus is an expected-result fixture, not a statistical validation of a physical sensor or a statistically representative capture campaign.
+The independent JavaScript oracle implements the reconciliation decisions and binomial upper-bound inversion separately from Rust. Integer event clocks, sequence values and counters are restricted to the exact interoperable range shared by Rust and JavaScript numbers. The frozen corpus is an expected-result fixture, not a statistical validation of a physical sensor or a statistically representative capture campaign.
 
 ## Standards and industry positioning
 
