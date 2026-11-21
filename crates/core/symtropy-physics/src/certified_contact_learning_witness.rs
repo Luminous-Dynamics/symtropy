@@ -223,4 +223,64 @@ mod tests {
         // alpha ||x||^2 for every x. This exact null direction disproves any
         // alpha>0, so the learned single-valued oracle must abstain.
     }
+
+    #[test]
+    fn primal_dual_gap_gives_an_independent_strong_convexity_error_bound() {
+        // This fixture's primal candidate and exact minimizer are both strictly
+        // inside the product of Coulomb disks. The dual multipliers are therefore
+        // zero, and stationarity at j_star supplies a feasible dual lower bound.
+        assert_product_of_disks_feasible(&J_HAT_NUM_OVER_10, 10);
+        assert_product_of_disks_feasible(&J_STAR_NUM_OVER_10, 10);
+
+        let h_j_star_num = mat_vec(&H_NUM, &J_STAR_NUM_OVER_10);
+        for index in 0..4 {
+            assert_eq!(h_j_star_num[index] + C_NUM_OVER_100[index], 0);
+        }
+
+        // For e = j_hat - j_star = [1,-1,-1,1]/10, the objective
+        // gap is exactly 1/2 e^T H e. H=H_NUM/10 and e=e_num/10.
+        // The integer numerator e_num^T H_NUM e_num is 36, so
+        // f(j_hat)-d(0) = 18/1000 = 9/500.
+        let error_numerator: Vector4 =
+            std::array::from_fn(|index| J_HAT_NUM_OVER_10[index] - J_STAR_NUM_OVER_10[index]);
+        assert_eq!(error_numerator, [1, -1, -1, 1]);
+        let h_error_numerator = mat_vec(&H_NUM, &error_numerator);
+        let twice_gap_numerator = dot(&error_numerator, &h_error_numerator);
+        assert_eq!(twice_gap_numerator, 36);
+
+        let gap_numerator = 18_i128;
+        let gap_denominator = 1_000_i128;
+        let alpha_numerator = 9_i128;
+        let alpha_denominator = 10_i128;
+        let actual_error_squared_numerator = squared_norm(&error_numerator);
+        let actual_error_squared_denominator = 100_i128;
+        assert_eq!(actual_error_squared_numerator, 4);
+
+        // Strong convexity gives ||j_hat-j_star||^2 <= 2*gap/alpha.
+        // Here the gap enclosure is exact and the resulting bound is tight:
+        // 2*(18/1000)/(9/10) = 4/100 = ||j_hat-j_star||^2.
+        assert_eq!(
+            2 * gap_numerator
+                * alpha_denominator
+                * actual_error_squared_denominator,
+            actual_error_squared_numerator * gap_denominator * alpha_numerator
+        );
+
+        // The same frozen input also satisfies the independently derived
+        // residual/alpha bound in the preceding test. Keep this equality as
+        // an exact cross-check between the two certificate constructions.
+        let residual_squared_numerator = squared_norm(&RESIDUAL_NUM_OVER_100);
+        assert_eq!(residual_squared_numerator, 324);
+        assert_eq!(
+            residual_squared_numerator
+                * alpha_denominator
+                * alpha_denominator
+                * actual_error_squared_denominator,
+            actual_error_squared_numerator
+                * 10_000_i128
+                * alpha_numerator
+                * alpha_numerator
+        );
+    }
+
 }
