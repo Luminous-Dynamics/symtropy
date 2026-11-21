@@ -1,6 +1,4 @@
-use power_restoration_benchmark_case::{
-    BenchmarkCase, canonical_case_sha256,
-};
+use power_restoration_benchmark_case::{BenchmarkCase, canonical_case_sha256};
 use power_restoration_run_receipt::{
     RunReceipt, RunStatus, ServiceOutcome, StepDisposition, qualify as qualify_run_receipt,
 };
@@ -67,6 +65,9 @@ pub struct ServiceProducer {
     /// Required for measured service; calibration evidence is not inferred.
     pub calibration_artifact_ref: Option<String>,
     pub calibration_artifact_sha256: Option<String>,
+    /// Inclusive start and exclusive end of the calibration's validity window.
+    pub calibration_valid_from_unix_ms: Option<u64>,
+    pub calibration_valid_until_unix_ms: Option<u64>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -238,42 +239,71 @@ fn expected_demand_kwh(active_power_kw: f64, interval_duration_seconds: u32) -> 
     active_power_kw * f64::from(interval_duration_seconds) / 3_600.0
 }
 
-fn validate_producer(
-    trajectory: &ServiceTrajectoryRecord,
-    errors: &mut Vec<String>,
-) {
+fn validate_producer(trajectory: &ServiceTrajectoryRecord, errors: &mut Vec<String>) {
     let producer = &trajectory.producer;
     if !valid_id(&producer.producer_id)
         || !is_lower_hex(&producer.source_commit, 40)
         || !is_lower_hex(&producer.configuration_sha256, 64)
     {
-        errors.push("service producer identity, source commit or configuration digest is invalid".to_string());
+        errors.push(
+            "service producer identity, source commit or configuration digest is invalid"
+                .to_string(),
+        );
     }
 
     match trajectory.stream_kind {
         ServiceStreamKind::ModelledService => {
             if producer.model_id.as_deref().is_none_or(|id| !valid_id(id))
-                || producer.evidence_provider_id.as_deref().is_none_or(|id| !valid_id(id))
+                || producer
+                    .evidence_provider_id
+                    .as_deref()
+                    .is_none_or(|id| !valid_id(id))
             {
                 errors.push("modelled service requires an explicit model ID".to_string());
             }
             if producer.instrument_id.is_some()
                 || producer.calibration_artifact_ref.is_some()
                 || producer.calibration_artifact_sha256.is_some()
+                || producer.calibration_valid_from_unix_ms.is_some()
+                || producer.calibration_valid_until_unix_ms.is_some()
             {
-                errors.push("modelled service must not claim a metering instrument/calibration identity".to_string());
+                errors.push(
+                    "modelled service must not claim a metering instrument/calibration identity"
+                        .to_string(),
+                );
             }
         }
         ServiceStreamKind::MeasuredService => {
-            if producer.evidence_provider_id.as_deref().is_none_or(|id| !valid_id(id))
-                || producer.instrument_id.as_deref().is_none_or(|id| !valid_id(id))
-                || producer.calibration_artifact_ref.as_deref().is_none_or(|id| !valid_id(id))
-                || producer.calibration_artifact_sha256.as_deref().is_none_or(|hash| !is_lower_hex(hash, 64))
+            if producer
+                .evidence_provider_id
+                .as_deref()
+                .is_none_or(|id| !valid_id(id))
+                || producer
+                    .instrument_id
+                    .as_deref()
+                    .is_none_or(|id| !valid_id(id))
+                || producer
+                    .calibration_artifact_ref
+                    .as_deref()
+                    .is_none_or(|id| !valid_id(id))
+                || producer
+                    .calibration_artifact_sha256
+                    .as_deref()
+                    .is_none_or(|hash| !is_lower_hex(hash, 64))
+                || producer.calibration_valid_from_unix_ms.is_none()
+                || producer.calibration_valid_until_unix_ms.is_none()
+                || producer.calibration_valid_from_unix_ms >= producer.calibration_valid_until_unix_ms
             {
-                errors.push("measured service requires an instrument ID and calibration artifact/digest".to_string());
+                errors.push(
+                    "measured service requires an instrument ID and calibration artifact/digest"
+                        .to_string(),
+                );
             }
             if producer.model_id.is_some() {
-                errors.push("measured service must not substitute a model ID for metering identity".to_string());
+                errors.push(
+                    "measured service must not substitute a model ID for metering identity"
+                        .to_string(),
+                );
             }
         }
         ServiceStreamKind::PlannedForecast => {
@@ -281,6 +311,8 @@ fn validate_producer(
                 || producer.instrument_id.is_some()
                 || producer.calibration_artifact_ref.is_some()
                 || producer.calibration_artifact_sha256.is_some()
+                || producer.calibration_valid_from_unix_ms.is_some()
+                || producer.calibration_valid_until_unix_ms.is_some()
             {
                 errors.push("planned forecast requires an explicit forecast model and must not claim a metering instrument".to_string());
             }
@@ -290,6 +322,8 @@ fn validate_producer(
                 || producer.instrument_id.is_some()
                 || producer.calibration_artifact_ref.is_some()
                 || producer.calibration_artifact_sha256.is_some()
+                || producer.calibration_valid_from_unix_ms.is_some()
+                || producer.calibration_valid_until_unix_ms.is_some()
             {
                 errors.push("observed work producer must not claim a modelled service model or metering calibration".to_string());
             }
@@ -297,19 +331,19 @@ fn validate_producer(
     }
 }
 
-fn validate_sample_source_linkage(
-    trajectory: &ServiceTrajectoryRecord,
-    errors: &mut Vec<String>,
-) {
-    let source_digests: BTreeMap<&str, &str> = trajectory.source_artifacts.iter()
+fn validate_sample_source_linkage(trajectory: &ServiceTrajectoryRecord, errors: &mut Vec<String>) {
+    let source_digests: BTreeMap<&str, &str> = trajectory
+        .source_artifacts
+        .iter()
         .map(|source| (source.artifact_ref.as_str(), source.sha256.as_str()))
         .collect();
     for sample in &trajectory.samples {
         match sample.status {
             ServiceSampleStatus::Known | ServiceSampleStatus::Unavailable => {
-                if let (Some(reference), Some(digest)) =
-                    (sample.evidence_ref.as_deref(), sample.evidence_sha256.as_deref())
-                {
+                if let (Some(reference), Some(digest)) = (
+                    sample.evidence_ref.as_deref(),
+                    sample.evidence_sha256.as_deref(),
+                ) {
                     if source_digests.get(reference).copied() != Some(digest) {
                         errors.push(format!(
                             "sample {} source evidence is not present in the trajectory source-artifact inventory with the exact digest",
@@ -319,9 +353,10 @@ fn validate_sample_source_linkage(
                 }
             }
             ServiceSampleStatus::Unknown => {
-                if let (Some(reference), Some(digest)) =
-                    (sample.evidence_ref.as_deref(), sample.evidence_sha256.as_deref())
-                {
+                if let (Some(reference), Some(digest)) = (
+                    sample.evidence_ref.as_deref(),
+                    sample.evidence_sha256.as_deref(),
+                ) {
                     if source_digests.get(reference).copied() != Some(digest) {
                         errors.push(format!(
                             "unknown sample {} optional source evidence is not in the source-artifact inventory",
@@ -389,7 +424,10 @@ fn validate_sample_evidence(
                     sample.sample_id
                 ));
             }
-            if sample.unknown_reason.as_deref().is_none_or(|reason| !valid_id(reason))
+            if sample
+                .unknown_reason
+                .as_deref()
+                .is_none_or(|reason| !valid_id(reason))
                 || sample.conflict_reason.is_some()
                 || !sample.conflict_evidence.is_empty()
             {
@@ -399,7 +437,10 @@ fn validate_sample_evidence(
                 ));
             }
             if sample.evidence_ref.is_some() != sample.evidence_sha256.is_some()
-                || sample.evidence_sha256.as_deref().is_some_and(|digest| !is_lower_hex(digest, 64))
+                || sample
+                    .evidence_sha256
+                    .as_deref()
+                    .is_some_and(|digest| !is_lower_hex(digest, 64))
             {
                 errors.push(format!(
                     "unknown sample {} has an incomplete optional source evidence reference",
@@ -414,7 +455,10 @@ fn validate_sample_evidence(
                     sample.sample_id
                 ));
             }
-            if sample.conflict_reason.as_deref().is_none_or(|reason| !valid_id(reason))
+            if sample
+                .conflict_reason
+                .as_deref()
+                .is_none_or(|reason| !valid_id(reason))
                 || sample.unknown_reason.is_some()
                 || sample.conflict_evidence.len() < 2
             {
@@ -439,22 +483,35 @@ fn validate_sample_evidence(
     }
 
     if sample.evidence_ref.is_some() != sample.evidence_sha256.is_some() {
-        errors.push(format!("sample {} has an incomplete optional evidence reference/digest pair", sample.sample_id));
+        errors.push(format!(
+            "sample {} has an incomplete optional evidence reference/digest pair",
+            sample.sample_id
+        ));
     }
     if let Some(reference) = sample.evidence_ref.as_deref() {
         if !valid_id(reference) {
-            errors.push(format!("sample {} has an empty evidence reference", sample.sample_id));
+            errors.push(format!(
+                "sample {} has an empty evidence reference",
+                sample.sample_id
+            ));
         }
     }
     if let Some(hash) = sample.evidence_sha256.as_deref() {
         if !is_lower_hex(hash, 64) {
-            errors.push(format!("sample {} has an invalid evidence digest", sample.sample_id));
+            errors.push(format!(
+                "sample {} has an invalid evidence digest",
+                sample.sample_id
+            ));
         }
     }
-    if sample.uncertainty_kwh.is_some_and(|uncertainty| {
-        !uncertainty.is_finite() || uncertainty < 0.0
-    }) {
-        errors.push(format!("sample {} has invalid uncertainty", sample.sample_id));
+    if sample
+        .uncertainty_kwh
+        .is_some_and(|uncertainty| !uncertainty.is_finite() || uncertainty < 0.0)
+    {
+        errors.push(format!(
+            "sample {} has invalid uncertainty",
+            sample.sample_id
+        ));
     }
 }
 
@@ -473,7 +530,10 @@ fn validate_work_milestones(
             || !is_lower_hex(&milestone.evidence_sha256, 64)
             || milestone.step >= case.timebase.horizon_steps
         {
-            errors.push(format!("work milestone {} has invalid identity, evidence or time", milestone.milestone_id));
+            errors.push(format!(
+                "work milestone {} has invalid identity, evidence or time",
+                milestone.milestone_id
+            ));
             continue;
         }
 
@@ -488,24 +548,56 @@ fn validate_work_milestones(
             ));
         }
 
-        let asset_known = case.network.nodes.iter().any(|item| item.node_id == milestone.asset_id)
-            || case.network.branches.iter().any(|item| item.branch_id == milestone.asset_id)
-            || case.network.switches.iter().any(|item| item.switch_id == milestone.asset_id)
-            || case.network.loads.iter().any(|item| item.load_id == milestone.asset_id)
-            || case.network.grid_sources.iter().any(|item| item.source_id == milestone.asset_id)
-            || case.faults.iter().any(|item| item.fault_id == milestone.asset_id)
-            || case.repair_crews.iter().any(|item| item.crew_id == milestone.asset_id)
-            || case.mobile_power_sources.iter().any(|item| item.mobile_source_id == milestone.asset_id);
+        let asset_known = case
+            .network
+            .nodes
+            .iter()
+            .any(|item| item.node_id == milestone.asset_id)
+            || case
+                .network
+                .branches
+                .iter()
+                .any(|item| item.branch_id == milestone.asset_id)
+            || case
+                .network
+                .switches
+                .iter()
+                .any(|item| item.switch_id == milestone.asset_id)
+            || case
+                .network
+                .loads
+                .iter()
+                .any(|item| item.load_id == milestone.asset_id)
+            || case
+                .network
+                .grid_sources
+                .iter()
+                .any(|item| item.source_id == milestone.asset_id)
+            || case
+                .faults
+                .iter()
+                .any(|item| item.fault_id == milestone.asset_id)
+            || case
+                .repair_crews
+                .iter()
+                .any(|item| item.crew_id == milestone.asset_id)
+            || case
+                .mobile_power_sources
+                .iter()
+                .any(|item| item.mobile_source_id == milestone.asset_id);
         if !asset_known {
             errors.push(format!(
                 "work milestone {} references unknown asset {}",
                 milestone.milestone_id, milestone.asset_id
             ));
         }
-        let start = trajectory.timebase.first_interval_start_unix_ms
+        let start = trajectory
+            .timebase
+            .first_interval_start_unix_ms
             .checked_add(u64::from(milestone.step).saturating_mul(interval_ms));
         let end = start.and_then(|value| value.checked_add(interval_ms));
-        if !matches!((start, end), (Some(start), Some(end)) if milestone.observed_at_unix_ms >= start && milestone.observed_at_unix_ms < end) {
+        if !matches!((start, end), (Some(start), Some(end)) if milestone.observed_at_unix_ms >= start && milestone.observed_at_unix_ms < end)
+        {
             errors.push(format!(
                 "work milestone {} timestamp falls outside its declared interval",
                 milestone.milestone_id
@@ -527,9 +619,9 @@ fn validate_parent_service_artifacts(
                 && step.service_outcome == ServiceOutcome::Scored
         })
         .filter_map(|step| {
-            step.service_trajectory.as_ref().map(|artifact| {
-                (artifact.artifact_ref.clone(), artifact.sha256.clone())
-            })
+            step.service_trajectory
+                .as_ref()
+                .map(|artifact| (artifact.artifact_ref.clone(), artifact.sha256.clone()))
         })
         .collect();
     let mut actual: Vec<(String, String)> = trajectory
@@ -545,14 +637,17 @@ fn validate_parent_service_artifacts(
     }
     let mut unique = BTreeSet::new();
     for (uri, digest) in actual {
-        if !valid_id(&uri)
-            || !is_lower_hex(&digest, 64)
-            || !unique.insert(uri.clone())
-        {
-            errors.push(format!("aggregate service trajectory has invalid or duplicate parent artifact {uri}"));
+        if !valid_id(&uri) || !is_lower_hex(&digest, 64) || !unique.insert(uri.clone()) {
+            errors.push(format!(
+                "aggregate service trajectory has invalid or duplicate parent artifact {uri}"
+            ));
         }
     }
-    if errors.is_empty() { Ok(()) } else { Err(errors) }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
 }
 
 fn validate_common(
@@ -591,12 +686,16 @@ fn validate_common(
 
     let expected_interval_ms = case_interval_duration_ms(case);
     let timezone_id_valid = valid_id(&trajectory.timebase.timezone_id)
-        && !trajectory.timebase.timezone_id.bytes().any(|byte| byte.is_ascii_whitespace());
+        && !trajectory
+            .timebase
+            .timezone_id
+            .bytes()
+            .any(|byte| byte.is_ascii_whitespace());
     if !timezone_id_valid
         || trajectory.timebase.horizon_steps != case.timebase.horizon_steps
-        || expected_interval_ms
-            .ok()
-            .is_none_or(|interval_ms| interval_ms != u64::from(trajectory.timebase.interval_duration_seconds) * 1_000)
+        || expected_interval_ms.ok().is_none_or(|interval_ms| {
+            interval_ms != u64::from(trajectory.timebase.interval_duration_seconds) * 1_000
+        })
     {
         errors.push("service trajectory timezone, horizon or interval does not match the frozen case timebase".to_string());
     }
@@ -617,7 +716,10 @@ fn validate_common(
             || !is_lower_hex(&source.sha256, 64)
             || !source_uris.insert(source.artifact_ref.as_str())
         {
-            errors.push(format!("service source artifact {} is invalid or duplicated", source.artifact_ref));
+            errors.push(format!(
+                "service source artifact {} is invalid or duplicated",
+                source.artifact_ref
+            ));
         }
         source_digests.insert(source.artifact_ref.as_str(), source.sha256.as_str());
     }
@@ -629,6 +731,24 @@ fn validate_common(
         ) {
             if source_digests.get(calibration_ref).copied() != Some(calibration_digest) {
                 errors.push("meter calibration artifact must be present in the source artifact set with its exact digest".to_string());
+            }
+            let valid_from = trajectory.producer.calibration_valid_from_unix_ms;
+            let valid_until = trajectory.producer.calibration_valid_until_unix_ms;
+            if let (Some(valid_from), Some(valid_until)) = (valid_from, valid_until) {
+                let interval_ms = u64::from(trajectory.timebase.interval_duration_seconds) * 1_000;
+                for sample in &trajectory.samples {
+                    let sample_end = sample.interval_start_unix_ms.checked_add(interval_ms);
+                    if sample.interval_start_unix_ms < valid_from
+                        || sample_end.is_none_or(|end| end > valid_until)
+                    {
+                        errors.push(format!(
+                            "measured service sample {} falls outside the meter calibration validity window",
+                            sample.sample_id
+                        ));
+                    }
+                }
+            } else {
+                errors.push("measured service requires an explicit calibration validity window".to_string());
             }
         }
     }
@@ -645,7 +765,10 @@ fn validate_forecast_samples(
     case: &BenchmarkCase,
 ) -> Result<(), Vec<String>> {
     let mut errors = Vec::new();
-    let expected_count = case.network.loads.len()
+    let expected_count = case
+        .network
+        .loads
+        .len()
         .checked_mul(case.timebase.horizon_steps as usize)
         .ok_or_else(|| vec!["expected forecast sample count overflowed".to_string()])?;
     if trajectory.samples.len() != expected_count {
@@ -654,7 +777,10 @@ fn validate_forecast_samples(
             trajectory.samples.len()
         ));
     }
-    let loads: BTreeMap<&str, _> = case.network.loads.iter()
+    let loads: BTreeMap<&str, _> = case
+        .network
+        .loads
+        .iter()
         .map(|load| (load.load_id.as_str(), load))
         .collect();
     let interval_ms = u64::from(trajectory.timebase.interval_duration_seconds) * 1_000;
@@ -663,53 +789,91 @@ fn validate_forecast_samples(
     let mut prior_key: Option<(u32, String)> = None;
     for sample in &trajectory.samples {
         if !valid_id(&sample.sample_id) || !ids.insert(sample.sample_id.as_str()) {
-            errors.push(format!("forecast sample {} has an empty or duplicate ID", sample.sample_id));
+            errors.push(format!(
+                "forecast sample {} has an empty or duplicate ID",
+                sample.sample_id
+            ));
         }
         let key = (sample.step, sample.load_id.clone());
         if prior_key.as_ref().is_some_and(|prior| prior >= &key) {
-            errors.push("planned forecast samples must be in strict step/load-ID order".to_string());
+            errors
+                .push("planned forecast samples must be in strict step/load-ID order".to_string());
         }
         prior_key = Some(key);
         if sample.utc_offset_minutes.unsigned_abs() > 14 * 60
             || sample.step >= case.timebase.horizon_steps
             || !keys.insert((sample.load_id.as_str(), sample.step))
         {
-            errors.push(format!("forecast sample {} has an invalid offset, step or duplicate load/step key", sample.sample_id));
+            errors.push(format!(
+                "forecast sample {} has an invalid offset, step or duplicate load/step key",
+                sample.sample_id
+            ));
             continue;
         }
         let Some(load) = loads.get(sample.load_id.as_str()) else {
-            errors.push(format!("forecast sample {} references unknown load {}", sample.sample_id, sample.load_id));
+            errors.push(format!(
+                "forecast sample {} references unknown load {}",
+                sample.sample_id, sample.load_id
+            ));
             continue;
         };
-        let expected_start = trajectory.timebase.first_interval_start_unix_ms
+        let expected_start = trajectory
+            .timebase
+            .first_interval_start_unix_ms
             .checked_add(u64::from(sample.step).saturating_mul(interval_ms));
         if expected_start != Some(sample.interval_start_unix_ms) {
-            errors.push(format!("forecast sample {} timestamp does not match its interval index", sample.sample_id));
+            errors.push(format!(
+                "forecast sample {} timestamp does not match its interval index",
+                sample.sample_id
+            ));
         }
-        let expected_demand = expected_demand_kwh(load.active_power_kw, trajectory.timebase.interval_duration_seconds);
+        let expected_demand = expected_demand_kwh(
+            load.active_power_kw,
+            trajectory.timebase.interval_duration_seconds,
+        );
         if !sample.demand_kwh.is_finite() || !nearly_equal(sample.demand_kwh, expected_demand) {
-            errors.push(format!("forecast sample {} demand denominator differs from frozen case load", sample.sample_id));
+            errors.push(format!(
+                "forecast sample {} demand denominator differs from frozen case load",
+                sample.sample_id
+            ));
         }
-        if sample.uncertainty_kwh.is_some_and(|value| !value.is_finite() || value < 0.0) {
-            errors.push(format!("forecast sample {} has invalid uncertainty", sample.sample_id));
+        if sample
+            .uncertainty_kwh
+            .is_some_and(|value| !value.is_finite() || value < 0.0)
+        {
+            errors.push(format!(
+                "forecast sample {} has invalid uncertainty",
+                sample.sample_id
+            ));
         }
         validate_sample_evidence(sample, ServiceStreamKind::PlannedForecast, &mut errors);
         match sample.status {
             ServiceSampleStatus::Known => {
                 if sample.delivered_kwh.is_none_or(|value| {
-                    !value.is_finite() || value <= 0.0 || value > sample.demand_kwh + FLOAT_TOLERANCE
+                    !value.is_finite()
+                        || value <= 0.0
+                        || value > sample.demand_kwh + FLOAT_TOLERANCE
                 }) {
-                    errors.push(format!("forecast sample {} has invalid predicted delivered kWh", sample.sample_id));
+                    errors.push(format!(
+                        "forecast sample {} has invalid predicted delivered kWh",
+                        sample.sample_id
+                    ));
                 }
             }
             ServiceSampleStatus::Unavailable => {
                 if sample.delivered_kwh != Some(0.0) {
-                    errors.push(format!("unavailable forecast sample {} must have predicted delivered_kwh=0", sample.sample_id));
+                    errors.push(format!(
+                        "unavailable forecast sample {} must have predicted delivered_kwh=0",
+                        sample.sample_id
+                    ));
                 }
             }
             ServiceSampleStatus::Unknown | ServiceSampleStatus::Conflicting => {
                 if sample.delivered_kwh.is_some() {
-                    errors.push(format!("unknown/conflicting forecast sample {} must not carry numeric delivery", sample.sample_id));
+                    errors.push(format!(
+                        "unknown/conflicting forecast sample {} must not carry numeric delivery",
+                        sample.sample_id
+                    ));
                 }
             }
         }
@@ -718,7 +882,11 @@ fn validate_forecast_samples(
         errors.push("planned forecast load/interval mapping is incomplete".to_string());
     }
     validate_sample_source_linkage(trajectory, &mut errors);
-    if errors.is_empty() { Ok(()) } else { Err(errors) }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
 }
 
 fn validate_stream_separation(
@@ -729,13 +897,18 @@ fn validate_stream_separation(
     match trajectory.stream_kind {
         ServiceStreamKind::ObservedWork => {
             if !trajectory.samples.is_empty() {
-                errors.push("observed_work stream must not contain delivered-service samples".to_string());
+                errors.push(
+                    "observed_work stream must not contain delivered-service samples".to_string(),
+                );
             }
             if !trajectory.parent_service_artifacts.is_empty() {
-                errors.push("observed_work stream must not reference scored service artifacts".to_string());
+                errors.push(
+                    "observed_work stream must not reference scored service artifacts".to_string(),
+                );
             }
             if trajectory.work_milestones.is_empty() {
-                errors.push("observed_work stream requires at least one work milestone".to_string());
+                errors
+                    .push("observed_work stream requires at least one work milestone".to_string());
             }
             validate_work_milestones(trajectory, case, &mut errors);
             if errors.is_empty() {
@@ -746,10 +919,15 @@ fn validate_stream_separation(
         }
         ServiceStreamKind::PlannedForecast => {
             if !trajectory.parent_service_artifacts.is_empty() {
-                errors.push("planned_forecast stream must not reference scored service artifacts".to_string());
+                errors.push(
+                    "planned_forecast stream must not reference scored service artifacts"
+                        .to_string(),
+                );
             }
             if !trajectory.work_milestones.is_empty() {
-                errors.push("planned_forecast stream must not contain observed work milestones".to_string());
+                errors.push(
+                    "planned_forecast stream must not contain observed work milestones".to_string(),
+                );
             }
             if let Err(forecast_errors) = validate_forecast_samples(trajectory, case) {
                 errors.extend(forecast_errors);
@@ -762,10 +940,15 @@ fn validate_stream_separation(
         }
         ServiceStreamKind::ModelledService | ServiceStreamKind::MeasuredService => {
             if !trajectory.work_milestones.is_empty() {
-                errors.push("modelled/measured service stream must not carry work milestones".to_string());
+                errors.push(
+                    "modelled/measured service stream must not carry work milestones".to_string(),
+                );
             }
             if trajectory.samples.is_empty() {
-                errors.push("modelled/measured service stream requires per-load/per-interval samples".to_string());
+                errors.push(
+                    "modelled/measured service stream requires per-load/per-interval samples"
+                        .to_string(),
+                );
             }
             if errors.is_empty() {
                 Ok(None)
@@ -783,9 +966,11 @@ fn verify_no_forecast_work_as_final_service(
     if matches!(
         trajectory.stream_kind,
         ServiceStreamKind::PlannedForecast | ServiceStreamKind::ObservedWork
-    ) && receipt.final_service_trajectory.as_ref().is_some_and(|final_ref| {
-        final_ref.artifact_ref == trajectory.artifact_uri
-    }) {
+    ) && receipt
+        .final_service_trajectory
+        .as_ref()
+        .is_some_and(|final_ref| final_ref.artifact_ref == trajectory.artifact_uri)
+    {
         return Err(vec![
             "planned_forecast/observed_work artifact cannot satisfy final delivered-service trajectory reference".to_string()
         ]);
@@ -808,10 +993,16 @@ fn summarize_service(
     let mut sample_ids = BTreeSet::new();
     let mut sample_keys = BTreeSet::new();
     let mut prior_key: Option<(u32, String)> = None;
-    let loads: BTreeMap<&str, _> = case.network.loads.iter()
+    let loads: BTreeMap<&str, _> = case
+        .network
+        .loads
+        .iter()
         .map(|load| (load.load_id.as_str(), load))
         .collect();
-    let expected_count = case.network.loads.len()
+    let expected_count = case
+        .network
+        .loads
+        .len()
         .checked_mul(case.timebase.horizon_steps as usize)
         .ok_or_else(|| vec!["expected load/interval sample count overflowed".to_string()])?;
 
@@ -837,18 +1028,30 @@ fn summarize_service(
 
     for sample in &trajectory.samples {
         if !valid_id(&sample.sample_id) || !sample_ids.insert(sample.sample_id.as_str()) {
-            errors.push(format!("sample {} has an empty or duplicate ID", sample.sample_id));
+            errors.push(format!(
+                "sample {} has an empty or duplicate ID",
+                sample.sample_id
+            ));
         }
         if sample.utc_offset_minutes.unsigned_abs() > 14 * 60 {
-            errors.push(format!("sample {} has an invalid UTC offset", sample.sample_id));
+            errors.push(format!(
+                "sample {} has an invalid UTC offset",
+                sample.sample_id
+            ));
         }
         if sample.step >= case.timebase.horizon_steps {
-            errors.push(format!("sample {} is outside the case horizon", sample.sample_id));
+            errors.push(format!(
+                "sample {} is outside the case horizon",
+                sample.sample_id
+            ));
             continue;
         }
 
         let Some(load) = loads.get(sample.load_id.as_str()) else {
-            errors.push(format!("sample {} references unknown load {}", sample.sample_id, sample.load_id));
+            errors.push(format!(
+                "sample {} references unknown load {}",
+                sample.sample_id, sample.load_id
+            ));
             continue;
         };
         if !sample_keys.insert((sample.load_id.as_str(), sample.step)) {
@@ -858,12 +1061,17 @@ fn summarize_service(
             ));
         }
         let current_key = (sample.step, sample.load_id.clone());
-        if prior_key.as_ref().is_some_and(|prior| prior >= &current_key) {
+        if prior_key
+            .as_ref()
+            .is_some_and(|prior| prior >= &current_key)
+        {
             errors.push("service samples must be in strict step/load-ID order".to_string());
         }
         prior_key = Some(current_key);
 
-        let expected_time = trajectory.timebase.first_interval_start_unix_ms
+        let expected_time = trajectory
+            .timebase
+            .first_interval_start_unix_ms
             .checked_add(u64::from(sample.step).saturating_mul(interval_duration_ms));
         if expected_time != Some(sample.interval_start_unix_ms) {
             errors.push(format!(
@@ -882,10 +1090,14 @@ fn summarize_service(
                 sample.sample_id
             ));
         }
-        if sample.uncertainty_kwh.is_some_and(|uncertainty| {
-            !uncertainty.is_finite() || uncertainty < 0.0
-        }) {
-            errors.push(format!("sample {} has invalid uncertainty", sample.sample_id));
+        if sample
+            .uncertainty_kwh
+            .is_some_and(|uncertainty| !uncertainty.is_finite() || uncertainty < 0.0)
+        {
+            errors.push(format!(
+                "sample {} has invalid uncertainty",
+                sample.sample_id
+            ));
         }
         validate_sample_evidence(sample, trajectory.stream_kind, &mut errors);
 
@@ -894,30 +1106,53 @@ fn summarize_service(
             ServiceSampleStatus::Known => {
                 known_count += 1;
                 let Some(delivered) = sample.delivered_kwh else {
-                    errors.push(format!("known sample {} is missing delivered_kwh", sample.sample_id));
+                    errors.push(format!(
+                        "known sample {} is missing delivered_kwh",
+                        sample.sample_id
+                    ));
                     continue;
                 };
-                if !delivered.is_finite() || delivered <= 0.0 || delivered > sample.demand_kwh + FLOAT_TOLERANCE {
-                    errors.push(format!("known sample {} has delivered_kwh outside (0, demand]", sample.sample_id));
+                if !delivered.is_finite()
+                    || delivered <= 0.0
+                    || delivered > sample.demand_kwh + FLOAT_TOLERANCE
+                {
+                    errors.push(format!(
+                        "known sample {} has delivered_kwh outside (0, demand]",
+                        sample.sample_id
+                    ));
                     continue;
                 }
                 let fraction = (delivered / sample.demand_kwh).clamp(0.0, 1.0);
-                per_load_fraction.entry(sample.load_id.clone()).or_default().push(fraction);
-                *per_load_delivered.entry(sample.load_id.clone()).or_default() += delivered;
+                per_load_fraction
+                    .entry(sample.load_id.clone())
+                    .or_default()
+                    .push(fraction);
+                *per_load_delivered
+                    .entry(sample.load_id.clone())
+                    .or_default() += delivered;
                 total_delivered += delivered;
                 total_unserved += (sample.demand_kwh - delivered).max(0.0);
                 weighted_delivered += delivered * load.priority_weight;
-                weighted_unserved += (sample.demand_kwh - delivered).max(0.0) * load.priority_weight;
+                weighted_unserved +=
+                    (sample.demand_kwh - delivered).max(0.0) * load.priority_weight;
                 total_demand += sample.demand_kwh;
             }
             ServiceSampleStatus::Unavailable => {
                 unavailable_count += 1;
                 if sample.delivered_kwh != Some(0.0) {
-                    errors.push(format!("unavailable sample {} must have delivered_kwh=0", sample.sample_id));
+                    errors.push(format!(
+                        "unavailable sample {} must have delivered_kwh=0",
+                        sample.sample_id
+                    ));
                     continue;
                 }
-                per_load_fraction.entry(sample.load_id.clone()).or_default().push(0.0);
-                per_load_delivered.entry(sample.load_id.clone()).or_default();
+                per_load_fraction
+                    .entry(sample.load_id.clone())
+                    .or_default()
+                    .push(0.0);
+                per_load_delivered
+                    .entry(sample.load_id.clone())
+                    .or_default();
                 total_demand += sample.demand_kwh;
                 total_unserved += sample.demand_kwh;
                 weighted_unserved += sample.demand_kwh * load.priority_weight;
@@ -976,7 +1211,12 @@ fn summarize_service(
     for load in &case.network.loads {
         let demand = per_load_demand.get(&load.load_id).copied().unwrap_or(0.0);
         let delivered = if complete {
-            Some(per_load_delivered.get(&load.load_id).copied().unwrap_or(0.0))
+            Some(
+                per_load_delivered
+                    .get(&load.load_id)
+                    .copied()
+                    .unwrap_or(0.0),
+            )
         } else {
             None
         };
@@ -1000,8 +1240,12 @@ fn summarize_service(
         "inconclusive_unknown_or_conflicting_service".to_string()
     } else if aggregate_score_match == Some(true) {
         match trajectory.stream_kind {
-            ServiceStreamKind::ModelledService => "modelled_service_and_score_reconciled".to_string(),
-            ServiceStreamKind::MeasuredService => "measured_service_and_score_reconciled".to_string(),
+            ServiceStreamKind::ModelledService => {
+                "modelled_service_and_score_reconciled".to_string()
+            }
+            ServiceStreamKind::MeasuredService => {
+                "measured_service_and_score_reconciled".to_string()
+            }
             _ => "invalid_service_stream".to_string(),
         }
     } else if !run_completed {
@@ -1045,8 +1289,12 @@ pub fn audit_service_trajectory(
     receipt: &RunReceipt,
     case: &BenchmarkCase,
 ) -> Result<ServiceTrajectoryAuditReport, Vec<String>> {
-    qualify_run_receipt(receipt, case)
-        .map_err(|errors| errors.into_iter().map(|error| format!("run receipt: {error}")).collect::<Vec<_>>())?;
+    qualify_run_receipt(receipt, case).map_err(|errors| {
+        errors
+            .into_iter()
+            .map(|error| format!("run receipt: {error}"))
+            .collect::<Vec<_>>()
+    })?;
     validate_common(trajectory, receipt, case)?;
     verify_no_forecast_work_as_final_service(trajectory, receipt)?;
 
@@ -1099,12 +1347,20 @@ pub fn per_load_cascade_availability(
     let mut result = BTreeMap::new();
     for load in &report.load_summaries {
         let Some(values) = load.service_fraction_by_step.as_ref() else {
-            return Err(vec![format!("load {} has no complete service fraction series", load.load_id)]);
+            return Err(vec![format!(
+                "load {} has no complete service fraction series",
+                load.load_id
+            )]);
         };
         if values.len() != report.horizon_steps as usize
-            || values.iter().any(|value| !value.is_finite() || !(0.0..=1.0).contains(value))
+            || values
+                .iter()
+                .any(|value| !value.is_finite() || !(0.0..=1.0).contains(value))
         {
-            return Err(vec![format!("load {} availability series has invalid horizon or values", load.load_id)]);
+            return Err(vec![format!(
+                "load {} availability series has invalid horizon or values",
+                load.load_id
+            )]);
         }
         result.insert(load.load_id.clone(), values.clone());
     }
@@ -1128,7 +1384,10 @@ pub fn aggregate_cascade_endpoint_availability(
         report.result_status.as_str(),
         "modelled_service_and_score_reconciled" | "measured_service_and_score_reconciled"
     ) {
-        errors.push("cascade mapping requires a complete, reconciled modelled/measured service trajectory".to_string());
+        errors.push(
+            "cascade mapping requires a complete, reconciled modelled/measured service trajectory"
+                .to_string(),
+        );
     }
     if report.case_sha256 != case_sha
         || mapping.case_sha256 != case_sha
@@ -1148,7 +1407,10 @@ pub fn aggregate_cascade_endpoint_availability(
         || !valid_id(&mapping.mapping_source_ref)
         || !is_lower_hex(&mapping.mapping_source_sha256, 64)
     {
-        errors.push("cascade endpoint mapping identity, service boundary or case binding is invalid".to_string());
+        errors.push(
+            "cascade endpoint mapping identity, service boundary or case binding is invalid"
+                .to_string(),
+        );
     }
 
     let rows_digest = canonical_sha256(&mapping.rows)
@@ -1157,17 +1419,25 @@ pub fn aggregate_cascade_endpoint_availability(
         errors.push("cascade mapping rows do not match mapping_sha256".to_string());
     }
 
-    let expected_loads: BTreeMap<&str, &power_restoration_benchmark_case::Load> =
-        case.network.loads.iter().map(|load| (load.load_id.as_str(), load)).collect();
+    let expected_loads: BTreeMap<&str, &power_restoration_benchmark_case::Load> = case
+        .network
+        .loads
+        .iter()
+        .map(|load| (load.load_id.as_str(), load))
+        .collect();
     let mut mapped_loads = BTreeSet::new();
     let mut by_node = BTreeMap::<String, Vec<(f64, Vec<f64>)>>::new();
     let mut prior_load: Option<&str> = None;
-    let summaries: BTreeMap<&str, &LoadServiceSummary> = report.load_summaries.iter()
+    let summaries: BTreeMap<&str, &LoadServiceSummary> = report
+        .load_summaries
+        .iter()
         .map(|summary| (summary.load_id.as_str(), summary))
         .collect();
 
     if mapping.rows.len() != expected_loads.len() {
-        errors.push("cascade mapping must contain exactly one row for every frozen case load".to_string());
+        errors.push(
+            "cascade mapping must contain exactly one row for every frozen case load".to_string(),
+        );
     }
 
     for row in &mapping.rows {
@@ -1177,38 +1447,55 @@ pub fn aggregate_cascade_endpoint_availability(
             || prior_load.is_some_and(|prior| prior >= row.load_id.as_str())
             || !mapped_loads.insert(row.load_id.as_str())
         {
-            errors.push(format!("cascade mapping row for load {} is invalid, duplicated or not canonically ordered", row.load_id));
+            errors.push(format!(
+                "cascade mapping row for load {} is invalid, duplicated or not canonically ordered",
+                row.load_id
+            ));
             continue;
         }
         prior_load = Some(row.load_id.as_str());
         let Some(load) = expected_loads.get(row.load_id.as_str()) else {
-            errors.push(format!("cascade mapping references unknown feeder load {}", row.load_id));
+            errors.push(format!(
+                "cascade mapping references unknown feeder load {}",
+                row.load_id
+            ));
             continue;
         };
         let Some(summary) = summaries.get(row.load_id.as_str()) else {
-            errors.push(format!("service report has no summary for mapped load {}", row.load_id));
+            errors.push(format!(
+                "service report has no summary for mapped load {}",
+                row.load_id
+            ));
             continue;
         };
         let Some(fractions) = summary.service_fraction_by_step.as_ref() else {
-            errors.push(format!("mapped load {} has no complete interval fraction series", row.load_id));
+            errors.push(format!(
+                "mapped load {} has no complete interval fraction series",
+                row.load_id
+            ));
             continue;
         };
         if fractions.len() != report.horizon_steps as usize {
-            errors.push(format!("mapped load {} service fraction length does not equal report horizon", row.load_id));
+            errors.push(format!(
+                "mapped load {} service fraction length does not equal report horizon",
+                row.load_id
+            ));
             continue;
         }
-        let demand_kwh_per_step = expected_demand_kwh(
-            load.active_power_kw,
-            report.interval_duration_seconds,
-        );
-        by_node.entry(row.cascade_node_id.clone())
+        let demand_kwh_per_step =
+            expected_demand_kwh(load.active_power_kw, report.interval_duration_seconds);
+        by_node
+            .entry(row.cascade_node_id.clone())
             .or_default()
             .push((demand_kwh_per_step, fractions.clone()));
     }
 
     let expected_ids: BTreeSet<&str> = expected_loads.keys().copied().collect();
     if mapped_loads != expected_ids {
-        errors.push("cascade mapping does not provide exact one-to-one coverage of the frozen case loads".to_string());
+        errors.push(
+            "cascade mapping does not provide exact one-to-one coverage of the frozen case loads"
+                .to_string(),
+        );
     }
     if by_node.is_empty() {
         errors.push("cascade mapping has no valid endpoint nodes".to_string());
@@ -1227,11 +1514,18 @@ pub fn aggregate_cascade_endpoint_availability(
                 numerator[step] += demand * fractions[step];
             }
         }
-        let values = denominator.iter().zip(numerator.iter())
+        let values = denominator
+            .iter()
+            .zip(numerator.iter())
             .map(|(demand, delivered)| delivered / demand)
             .collect::<Vec<_>>();
-        if values.iter().any(|value| !value.is_finite() || !(0.0..=1.0).contains(value)) {
-            return Err(vec![format!("cascade endpoint {node_id} has an invalid aggregated service fraction")]);
+        if values
+            .iter()
+            .any(|value| !value.is_finite() || !(0.0..=1.0).contains(value))
+        {
+            return Err(vec![format!(
+                "cascade endpoint {node_id} has an invalid aggregated service fraction"
+            )]);
         }
         output.insert(node_id, values);
     }
@@ -1259,7 +1553,8 @@ mod tests {
     fn case() -> BenchmarkCase {
         serde_json::from_str(include_str!(
             "../../power-restoration-benchmark-case/fixtures/synthetic-restoration-case-v0.1.json"
-        )).unwrap()
+        ))
+        .unwrap()
     }
 
     fn receipt(case: &BenchmarkCase) -> RunReceipt {
@@ -1271,18 +1566,23 @@ mod tests {
         receipt
     }
 
-    fn fully_served_trajectory(case: &BenchmarkCase, receipt: &RunReceipt) -> ServiceTrajectoryRecord {
+    fn fully_served_trajectory(
+        case: &BenchmarkCase,
+        receipt: &RunReceipt,
+    ) -> ServiceTrajectoryRecord {
         let interval_duration_seconds = case.timebase.step_size * 60;
         let interval_duration_ms = u64::from(interval_duration_seconds) * 1_000;
         let mut samples = Vec::new();
         for step in 0..case.timebase.horizon_steps {
             for load in &case.network.loads {
-                let demand_kwh = expected_demand_kwh(load.active_power_kw, interval_duration_seconds);
+                let demand_kwh =
+                    expected_demand_kwh(load.active_power_kw, interval_duration_seconds);
                 samples.push(ServiceSample {
                     sample_id: format!("sample-{}-{step}", load.load_id),
                     load_id: load.load_id.clone(),
                     step,
-                    interval_start_unix_ms: 1_800_000_000_000 + u64::from(step) * interval_duration_ms,
+                    interval_start_unix_ms: 1_800_000_000_000
+                        + u64::from(step) * interval_duration_ms,
                     utc_offset_minutes: 0,
                     demand_kwh,
                     delivered_kwh: Some(demand_kwh),
@@ -1339,6 +1639,8 @@ mod tests {
                 instrument_id: Some("meter-set-001".to_string()),
                 calibration_artifact_ref: Some("calibration://meter-set-001".to_string()),
                 calibration_artifact_sha256: Some("3".repeat(64)),
+                calibration_valid_from_unix_ms: Some(1_799_999_000_000),
+                calibration_valid_until_unix_ms: Some(1_800_010_000_000),
             },
             source_artifacts,
             samples,
@@ -1352,12 +1654,14 @@ mod tests {
 
     fn mark_receipt_incomplete(receipt: &mut RunReceipt) {
         receipt.run_status = RunStatus::Incomplete;
-        receipt.terminal_reason = Some(power_restoration_run_receipt::TerminalReason::EvidenceIncomplete);
+        receipt.terminal_reason =
+            Some(power_restoration_run_receipt::TerminalReason::EvidenceIncomplete);
         receipt.final_service_trajectory = None;
         receipt.aggregate_score = None;
         for step in receipt.decision_steps.iter_mut().skip(1) {
             step.disposition = StepDisposition::NotRunAfterAbort;
-            step.not_run_reason = Some(power_restoration_run_receipt::NotRunReason::EvidenceIncomplete);
+            step.not_run_reason =
+                Some(power_restoration_run_receipt::NotRunReason::EvidenceIncomplete);
         }
     }
 
@@ -1388,20 +1692,32 @@ mod tests {
         receipt: &mut RunReceipt,
         trajectory: &mut ServiceTrajectoryRecord,
     ) -> ServiceTrajectoryAuditReport {
-        trajectory.parent_service_artifacts = receipt.decision_steps.iter()
-            .filter(|step| step.disposition == StepDisposition::Executed
-                && step.service_outcome == ServiceOutcome::Scored)
+        trajectory.parent_service_artifacts = receipt
+            .decision_steps
+            .iter()
+            .filter(|step| {
+                step.disposition == StepDisposition::Executed
+                    && step.service_outcome == ServiceOutcome::Scored
+            })
             .filter_map(|step| step.service_trajectory.as_ref())
             .map(|artifact| ServiceSourceArtifact {
                 artifact_ref: artifact.artifact_ref.clone(),
                 sha256: artifact.sha256.clone(),
-            }).collect();
-        let loads: BTreeMap<&str, _> = case.network.loads.iter()
-            .map(|load| (load.load_id.as_str(), load)).collect();
-        let expected = trajectory.samples.iter().map(|sample| {
-            sample.delivered_kwh.unwrap_or(0.0)
-                * loads[sample.load_id.as_str()].priority_weight
-        }).sum::<f64>();
+            })
+            .collect();
+        let loads: BTreeMap<&str, _> = case
+            .network
+            .loads
+            .iter()
+            .map(|load| (load.load_id.as_str(), load))
+            .collect();
+        let expected = trajectory
+            .samples
+            .iter()
+            .map(|sample| {
+                sample.delivered_kwh.unwrap_or(0.0) * loads[sample.load_id.as_str()].priority_weight
+            })
+            .sum::<f64>();
         bind_final_and_score(trajectory, receipt, expected);
         audit_service_trajectory(trajectory, receipt, case).unwrap()
     }
@@ -1410,15 +1726,20 @@ mod tests {
         report: &ServiceTrajectoryAuditReport,
         case: &BenchmarkCase,
     ) -> CascadeEndpointMapping {
-        let rows = case.network.loads.iter().map(|load| CascadeLoadMappingRow {
-            load_id: load.load_id.clone(),
-            cascade_node_id: if load.load_id == "L5" {
-                "cascade-clinic-electricity".to_string()
-            } else {
-                "cascade-community-electricity".to_string()
-            },
-            service_type: report.service_type.clone(),
-        }).collect::<Vec<_>>();
+        let rows = case
+            .network
+            .loads
+            .iter()
+            .map(|load| CascadeLoadMappingRow {
+                load_id: load.load_id.clone(),
+                cascade_node_id: if load.load_id == "L5" {
+                    "cascade-clinic-electricity".to_string()
+                } else {
+                    "cascade-community-electricity".to_string()
+                },
+                service_type: report.service_type.clone(),
+            })
+            .collect::<Vec<_>>();
         let rows_sha256 = canonical_sha256(&rows).unwrap();
         CascadeEndpointMapping {
             mapping_id: "mapping-feeder-loads-to-cascade-v1".to_string(),
@@ -1438,25 +1759,40 @@ mod tests {
         let case = case();
         let mut receipt = receipt(&case);
         let mut trajectory = fully_served_trajectory(&case, &receipt);
-        let expected = case.network.loads.iter().map(|load| {
-            load.active_power_kw
-                * f64::from(case.timebase.step_size) / 60.0
-                * f64::from(case.timebase.horizon_steps)
-                * load.priority_weight
-        }).sum::<f64>();
-        trajectory.parent_service_artifacts = receipt.decision_steps.iter()
-            .filter(|step| step.disposition == StepDisposition::Executed
-                && step.service_outcome == ServiceOutcome::Scored)
+        let expected = case
+            .network
+            .loads
+            .iter()
+            .map(|load| {
+                load.active_power_kw * f64::from(case.timebase.step_size) / 60.0
+                    * f64::from(case.timebase.horizon_steps)
+                    * load.priority_weight
+            })
+            .sum::<f64>();
+        trajectory.parent_service_artifacts = receipt
+            .decision_steps
+            .iter()
+            .filter(|step| {
+                step.disposition == StepDisposition::Executed
+                    && step.service_outcome == ServiceOutcome::Scored
+            })
             .filter_map(|step| step.service_trajectory.as_ref())
             .map(|artifact| ServiceSourceArtifact {
                 artifact_ref: artifact.artifact_ref.clone(),
                 sha256: artifact.sha256.clone(),
-            }).collect();
+            })
+            .collect();
         bind_final_and_score(&trajectory, &mut receipt, expected);
 
         let report = audit_service_trajectory(&trajectory, &receipt, &case).unwrap();
-        assert_eq!(report.result_status, "measured_service_and_score_reconciled");
-        assert!(nearly_equal(report.weighted_delivered_kwh.unwrap(), expected));
+        assert_eq!(
+            report.result_status,
+            "measured_service_and_score_reconciled"
+        );
+        assert!(nearly_equal(
+            report.weighted_delivered_kwh.unwrap(),
+            expected
+        ));
         let cascade = per_load_cascade_availability(&report).unwrap();
         assert_eq!(cascade["L5"], vec![1.0; 24]);
     }
@@ -1472,23 +1808,35 @@ mod tests {
         trajectory.producer.instrument_id = None;
         trajectory.producer.calibration_artifact_ref = None;
         trajectory.producer.calibration_artifact_sha256 = None;
-        trajectory.source_artifacts.retain(|source| {
-            source.artifact_ref.starts_with("evidence://")
-        });
+        trajectory.producer.calibration_valid_from_unix_ms = None;
+        trajectory.producer.calibration_valid_until_unix_ms = None;
+        trajectory
+            .source_artifacts
+            .retain(|source| source.artifact_ref.starts_with("evidence://"));
         trajectory.source_artifacts.push(ServiceSourceArtifact {
             artifact_ref: "model://opendss-ac-service-model-v1".to_string(),
             sha256: "a".repeat(64),
         });
-        let expected = case.network.loads.iter().map(|load| {
-            load.active_power_kw
-                * f64::from(case.timebase.step_size) / 60.0
-                * f64::from(case.timebase.horizon_steps)
-                * load.priority_weight
-        }).sum::<f64>();
+        let expected = case
+            .network
+            .loads
+            .iter()
+            .map(|load| {
+                load.active_power_kw * f64::from(case.timebase.step_size) / 60.0
+                    * f64::from(case.timebase.horizon_steps)
+                    * load.priority_weight
+            })
+            .sum::<f64>();
         bind_final_and_score(&trajectory, &mut receipt, expected);
         let report = audit_service_trajectory(&trajectory, &receipt, &case).unwrap();
-        assert_eq!(report.result_status, "modelled_service_and_score_reconciled");
-        assert!(nearly_equal(report.weighted_delivered_kwh.unwrap(), expected));
+        assert_eq!(
+            report.result_status,
+            "modelled_service_and_score_reconciled"
+        );
+        assert!(nearly_equal(
+            report.weighted_delivered_kwh.unwrap(),
+            expected
+        ));
     }
 
     #[test]
@@ -1511,7 +1859,9 @@ mod tests {
         let receipt = receipt(&case);
         let mut trajectory = fully_served_trajectory(&case, &receipt);
         let sample_ref = trajectory.samples[0].evidence_ref.clone().unwrap();
-        let source = trajectory.source_artifacts.iter_mut()
+        let source = trajectory
+            .source_artifacts
+            .iter_mut()
             .find(|artifact| artifact.artifact_ref == sample_ref)
             .unwrap();
         source.sha256 = "9".repeat(64);
@@ -1532,17 +1882,25 @@ mod tests {
         let case = case();
         let mut receipt = receipt(&case);
         let mut trajectory = fully_served_trajectory(&case, &receipt);
-        trajectory.parent_service_artifacts = receipt.decision_steps.iter()
-            .filter(|step| step.disposition == StepDisposition::Executed
-                && step.service_outcome == ServiceOutcome::Scored)
+        trajectory.parent_service_artifacts = receipt
+            .decision_steps
+            .iter()
+            .filter(|step| {
+                step.disposition == StepDisposition::Executed
+                    && step.service_outcome == ServiceOutcome::Scored
+            })
             .filter_map(|step| step.service_trajectory.as_ref())
             .map(|artifact| ServiceSourceArtifact {
                 artifact_ref: artifact.artifact_ref.clone(),
                 sha256: artifact.sha256.clone(),
-            }).collect();
+            })
+            .collect();
         mark_receipt_incomplete(&mut receipt);
         let report = audit_service_trajectory(&trajectory, &receipt, &case).unwrap();
-        assert_eq!(report.result_status, "service_trajectory_recomputed_for_incomplete_run");
+        assert_eq!(
+            report.result_status,
+            "service_trajectory_recomputed_for_incomplete_run"
+        );
         assert!(report.weighted_delivered_kwh.is_some());
         assert!(per_load_cascade_availability(&report).is_err());
     }
@@ -1695,18 +2053,26 @@ mod tests {
         sample.evidence_ref = None;
         sample.evidence_sha256 = None;
         sample.unknown_reason = Some("meter data missing".to_string());
-        trajectory.parent_service_artifacts = receipt.decision_steps.iter()
-            .filter(|step| step.disposition == StepDisposition::Executed
-                && step.service_outcome == ServiceOutcome::Scored)
+        trajectory.parent_service_artifacts = receipt
+            .decision_steps
+            .iter()
+            .filter(|step| {
+                step.disposition == StepDisposition::Executed
+                    && step.service_outcome == ServiceOutcome::Scored
+            })
             .filter_map(|step| step.service_trajectory.as_ref())
             .map(|artifact| ServiceSourceArtifact {
                 artifact_ref: artifact.artifact_ref.clone(),
                 sha256: artifact.sha256.clone(),
-            }).collect();
+            })
+            .collect();
         // Incomplete runs cannot publish a completed aggregate score/final trajectory.
         mark_receipt_incomplete(&mut receipt);
         let report = audit_service_trajectory(&trajectory, &receipt, &case).unwrap();
-        assert_eq!(report.result_status, "inconclusive_unknown_or_conflicting_service");
+        assert_eq!(
+            report.result_status,
+            "inconclusive_unknown_or_conflicting_service"
+        );
         assert!(report.weighted_delivered_kwh.is_none());
         assert!(report.load_summaries[0].delivered_kwh.is_none());
     }
@@ -1733,19 +2099,27 @@ mod tests {
         trajectory.samples[0].conflict_evidence = vec![conflict_a.clone(), conflict_b.clone()];
         trajectory.source_artifacts.push(conflict_a);
         trajectory.source_artifacts.push(conflict_b);
-        trajectory.parent_service_artifacts = receipt.decision_steps.iter()
-            .filter(|step| step.disposition == StepDisposition::Executed
-                && step.service_outcome == ServiceOutcome::Scored)
+        trajectory.parent_service_artifacts = receipt
+            .decision_steps
+            .iter()
+            .filter(|step| {
+                step.disposition == StepDisposition::Executed
+                    && step.service_outcome == ServiceOutcome::Scored
+            })
             .filter_map(|step| step.service_trajectory.as_ref())
             .map(|artifact| ServiceSourceArtifact {
                 artifact_ref: artifact.artifact_ref.clone(),
                 sha256: artifact.sha256.clone(),
-            }).collect();
+            })
+            .collect();
         let mut receipt = receipt;
         mark_receipt_incomplete(&mut receipt);
         let report = audit_service_trajectory(&trajectory, &receipt, &case).unwrap();
         assert_eq!(report.conflicting_sample_count, 1);
-        assert_eq!(report.result_status, "inconclusive_unknown_or_conflicting_service");
+        assert_eq!(
+            report.result_status,
+            "inconclusive_unknown_or_conflicting_service"
+        );
     }
 
     #[test]
@@ -1803,10 +2177,27 @@ mod tests {
         let case = case();
         let receipt = receipt(&case);
         let mut trajectory = fully_served_trajectory(&case, &receipt);
-        let calibration = trajectory.source_artifacts.iter_mut()
+        let calibration = trajectory
+            .source_artifacts
+            .iter_mut()
             .find(|source| source.artifact_ref == "calibration://meter-set-001")
             .unwrap();
         calibration.sha256 = "9".repeat(64);
+        assert!(audit_service_trajectory(&trajectory, &receipt, &case).is_err());
+    }
+
+    #[test]
+    fn measured_service_samples_must_fall_inside_calibration_validity_window() {
+        let case = case();
+        let receipt = receipt(&case);
+        let mut trajectory = fully_served_trajectory(&case, &receipt);
+        trajectory.producer.calibration_valid_until_unix_ms =
+            Some(1_800_000_000_000);
+        assert!(audit_service_trajectory(&trajectory, &receipt, &case).is_err());
+
+        let mut trajectory = fully_served_trajectory(&case, &receipt);
+        trajectory.producer.calibration_valid_from_unix_ms =
+            Some(1_800_000_060_000);
         assert!(audit_service_trajectory(&trajectory, &receipt, &case).is_err());
     }
 
@@ -1824,12 +2215,16 @@ mod tests {
         let case = case();
         let mut receipt = receipt(&case);
         let mut trajectory = fully_served_trajectory(&case, &receipt);
-        let expected = case.network.loads.iter().map(|load| {
-            load.active_power_kw
-                * f64::from(case.timebase.step_size) / 60.0
-                * f64::from(case.timebase.horizon_steps)
-                * load.priority_weight
-        }).sum::<f64>();
+        let expected = case
+            .network
+            .loads
+            .iter()
+            .map(|load| {
+                load.active_power_kw * f64::from(case.timebase.step_size) / 60.0
+                    * f64::from(case.timebase.horizon_steps)
+                    * load.priority_weight
+            })
+            .sum::<f64>();
         bind_final_and_score(&trajectory, &mut receipt, expected);
         trajectory.parent_service_artifacts.clear();
         assert!(audit_service_trajectory(&trajectory, &receipt, &case).is_err());
