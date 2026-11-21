@@ -38,6 +38,14 @@ pub fn evaluate_inspection_join(candidate: &Value) -> InspectionJoinEvaluation {
     let mut violations = Vec::new();
     let equalities = [
         ("cycle_part_id", "qif_part_id", "PART_ID_MISMATCH"),
+        ("cycle_id", "association_cycle_id", "ASSOCIATION_CYCLE_ID_MISMATCH"),
+        ("qif_result_id", "association_qif_result_id", "ASSOCIATION_QIF_RESULT_ID_MISMATCH"),
+        ("cycle_part_id", "association_part_id", "ASSOCIATION_PART_ID_MISMATCH"),
+        ("cycle_lot_id", "association_lot_id", "ASSOCIATION_LOT_ID_MISMATCH"),
+        ("cycle_operation_id", "association_operation_id", "ASSOCIATION_OPERATION_ID_MISMATCH"),
+        ("cycle_source_document_sha256", "association_cycle_source_document_sha256", "ASSOCIATION_CYCLE_DOCUMENT_MISMATCH"),
+        ("mtconnect_document_sha256", "association_mtconnect_document_sha256", "ASSOCIATION_MTCONNECT_DOCUMENT_MISMATCH"),
+        ("qif_document_sha256", "association_qif_document_sha256", "ASSOCIATION_QIF_DOCUMENT_MISMATCH"),
         ("cycle_lot_id", "qif_lot_id", "LOT_ID_MISMATCH"),
         ("cycle_operation_id", "qif_operation_id", "OPERATION_ID_MISMATCH"),
         (
@@ -94,13 +102,21 @@ pub fn evaluate_inspection_join(candidate: &Value) -> InspectionJoinEvaluation {
         }),
     }
 
+    // Unknown correlation between clock transforms is handled conservatively:
+    // add the two declared absolute uncertainty bounds rather than assuming
+    // statistical independence and combining them by root-sum-square.
+    let expected_combined = integer_at(candidate, "cycle_clock_uncertainty_ns")
+        .zip(integer_at(candidate, "qif_clock_uncertainty_ns"))
+        .and_then(|(cycle, qif)| cycle.checked_add(qif));
     match (
+        expected_combined,
         integer_at(candidate, "combined_clock_uncertainty_ns"),
         integer_at(candidate, "max_admitted_combined_clock_uncertainty_ns"),
     ) {
-        (Some(observed), Some(maximum)) if observed <= maximum => {}
+        (Some(expected), Some(observed), Some(maximum))
+            if observed == expected && observed <= maximum => {}
         _ => violations.push(JoinViolation {
-            code: "CLOCK_UNCERTAINTY_EXCEEDS_ADMITTED_BOUND",
+            code: "CLOCK_UNCERTAINTY_NOT_CONSERVATIVELY_RECONSTRUCTED_OR_OVER_BOUND",
             field: "combined_clock_uncertainty_ns",
         }),
     }
@@ -218,11 +234,38 @@ mod tests {
     #[test]
     fn rejects_clock_uncertainty_above_declared_bound() {
         let mut actual = candidate();
+        actual["qif_clock_uncertainty_ns"] = json!(401);
         actual["combined_clock_uncertainty_ns"] = json!(501);
         let result = evaluate_inspection_join(&actual);
         assert!(result.violations.iter().any(|v| {
-            v.code == "CLOCK_UNCERTAINTY_EXCEEDS_ADMITTED_BOUND"
+            v.code == "CLOCK_UNCERTAINTY_NOT_CONSERVATIVELY_RECONSTRUCTED_OR_OVER_BOUND"
         }));
+    }
+
+    #[test]
+    fn rejects_understated_combined_clock_uncertainty() {
+        let mut actual = candidate();
+        actual["combined_clock_uncertainty_ns"] = json!(150);
+        let result = evaluate_inspection_join(&actual);
+        assert!(result.violations.iter().any(|v| {
+            v.code == "CLOCK_UNCERTAINTY_NOT_CONSERVATIVELY_RECONSTRUCTED_OR_OVER_BOUND"
+        }));
+    }
+
+    #[test]
+    fn rejects_association_replayed_for_different_source_documents_or_result() {
+        for (field, wrong) in [
+            ("association_cycle_id", "CYCLE-OTHER"),
+            ("association_qif_result_id", "QIF-RESULT-OTHER"),
+            ("association_cycle_source_document_sha256", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+            ("association_mtconnect_document_sha256", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+            ("association_qif_document_sha256", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+        ] {
+            let mut actual = candidate();
+            actual[field] = json!(wrong);
+            let result = evaluate_inspection_join(&actual);
+            assert!(!result.admissible_for_declared_synthetic_join, "{field}");
+        }
     }
 
     #[test]
