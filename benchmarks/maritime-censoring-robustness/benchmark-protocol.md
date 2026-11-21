@@ -23,7 +23,7 @@ For stratum (x), cause (k), and horizon (H):
 
 The population analytic CIF is the 50/50 standardized sum of stratum CIFs. The synthetic full-cohort empirical CIF is separately computed from all latent outcomes.
 
-PRNG: SplitMix64 with frozen per-scenario seeds in `data/manifest.json`. Population size: 60,000 calls per scenario. The generator is dependency-free.
+PRNG: SplitMix64 with frozen per-scenario seeds in `data/manifest.json`. Latent-event and administrative-censor processes use distinct deterministic streams derived from the scenario seed. Population size: 60,000 calls per scenario. The generator is dependency-free.
 
 ## 3. Observation mechanisms
 
@@ -73,7 +73,28 @@ A tighter interval must state the additional dependence model, explain why its s
 - Event-before-censor tie order is frozen and tested.
 - Repeated runs with identical seed reproduce the exact result.
 
-## 7. Interpretation
+## 7. Fixed-seed preflight results
+
+A separate JavaScript implementation, using the same published generator equations, independent SplitMix64 streams and estimator definitions, produced:
+
+| Scenario | Full empirical berth CIF | Pooled A-J berth CIF | Standardized A-J | Known-G IPCW | Unresolved |
+|---|---:|---:|---:|---:|---:|
+| Independent admin | 0.47135 | 0.47070 | 0.47097 | 0.47041 | 36.82% |
+| Measured-stratum dependent | 0.47125 | 0.50954 | 0.47229 | 0.47133 | 37.67% |
+| Outcome-dependent lag | 0.47157 | 0.37450 | 0.37450 | NOT_IDENTIFIED | 25.15% |
+| Positivity failure | 0.47325 | 0.29823 | 0.29823 | NOT_EVALUABLE | 33.13% |
+
+Maximum absolute errors across all three cause incidences:
+- Independent admin: pooled A-J 0.00151; known-G IPCW 0.00160.
+- Measured-stratum dependent: pooled A-J 0.03829; standardized A-J 0.00167; known-G IPCW 0.00137.
+- Outcome-dependent lag: pooled A-J berth underestimation 0.09707.
+- Positivity failure: pooled A-J berth underestimation 0.17502.
+
+For the outcome-dependent and positivity scenarios, the observed-share-plus-unresolved-fraction bounds contain the full latent CIF in the finite simulated cohort. The bounds are intentionally broad.
+
+The separate JavaScript run is a semantic preflight only. It does not compile or execute the Rust code.
+
+## 8. Interpretation
 
 This simulator demonstrates assumption failure. It does not establish which mechanism applies to Durban. In a real feed, source delay may depend on terminal, outcome, congestion, provider availability, communications loss or data-cleaning rules. Those mechanisms must be empirically diagnosed using event/publication timestamps, source coverage and independent references.
 
