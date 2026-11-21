@@ -43,6 +43,13 @@ pub use raw_scale_bias_likelihood::{
     RawScaleGaussianBiasLikelihood,
 };
 
+mod horseshoe_posterior;
+pub use horseshoe_posterior::{
+    raw_scale_horseshoe_log_posterior,
+    GlobalScalePrior,
+    RawScaleHorseshoePosterior,
+};
+
 mod experiment_design;
 pub use experiment_design::{
     combine_fisher_information,
