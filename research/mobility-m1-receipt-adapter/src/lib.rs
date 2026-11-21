@@ -502,6 +502,13 @@ mod tests {
                     source_id: "safety-monitor".into(),
                     source_sequence: 1,
                     observed_at_ms: 1_060,
+                    time_qualification: m1::ReceiptTimeQualification {
+                        source_clock_id: "safety-clock".into(),
+                        source_boot_epoch_id: "safety-boot".into(),
+                        comparison_clock_id: "mission-time".into(),
+                        comparison_boot_epoch_id: "mission-epoch".into(),
+                        normalization_commitment: m1::Digest([14; 32]),
+                    },
                     observer_role: m1::ObserverRole::IndependentSensor,
                     confidence_basis_points: 9_900,
                 },
