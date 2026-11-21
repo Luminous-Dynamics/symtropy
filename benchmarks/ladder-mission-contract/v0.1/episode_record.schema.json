@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/symtropy/ladder/episode-record/v0.1",
+  "title": "LADDER episode record plus separate optional Luminous evidence extension",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "suite",
+    "task",
+    "success",
+    "subgoals_completed",
+    "steps",
+    "episode_index",
+    "benchmark_commit"
+  ],
+  "properties": {
+    "suite": {
+      "enum": [
+        "robolab_long",
+        "simplerenv_long",
+        "robotarena_long"
+      ]
+    },
+    "task": {
+      "type": "string",
+      "minLength": 1
+    },
+    "success": {
+      "type": "boolean",
+      "description": "Derived from official LADDER episode logs; never manually asserted."
+    },
+    "subgoals_completed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "steps": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "episode_index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "benchmark_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "luminous_evidence_extension": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "accepted_subgoal_events": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "subgoal_index",
+              "event_type",
+              "observed_at",
+              "evidence_digest"
+            ],
+            "properties": {
+              "subgoal_index": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "event_type": {
+                "type": "string",
+                "minLength": 1
+              },
+              "observed_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "object_or_goal_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "evidence_digest": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "uncertainty": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "retries": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "resets": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "collisions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "drops": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "recoveries_attempted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "recoveries_succeeded": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "energy_wh": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "thermal_state_digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^([0-9a-f]{64})?$"
+        }
+      }
+    }
+  }
+}
