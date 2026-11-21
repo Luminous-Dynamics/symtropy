@@ -2841,6 +2841,7 @@ mod staged_world_integration_tests {
             let collision_count = world.collision_events.len();
             let sensor_count = world.sensor_events.len();
             let contact_count = world.contacts.len();
+            world.static_tree_dirty = true;
             let dirty_before = world.static_tree_dirty;
             let bodies_before = world.bodies.iter().map(|body| {
                 (body.handle, body.transform.translation, body.transform.rotation,
@@ -2891,7 +2892,10 @@ mod staged_world_integration_tests {
         let mut strict = world_with_two_valid_operator_bodies();
 
         legacy.step(0.001);
-        strict.try_step(0.001).expect("all strict integration candidates are admitted");
+        let mut callback = CountingCallback::new();
+        strict.try_step_with_callback(0.001, &mut callback)
+            .expect("all strict integration candidates are admitted");
+        assert_eq!(callback.force_calls.get(), 2);
 
         assert_eq!(legacy.bodies.len(), strict.bodies.len());
         for (legacy_body, strict_body) in legacy.bodies.iter().zip(strict.bodies.iter()) {
