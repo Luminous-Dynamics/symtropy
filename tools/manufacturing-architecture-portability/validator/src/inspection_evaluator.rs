@@ -149,14 +149,81 @@ pub fn evaluate_inspection_join(candidate: &Value) -> InspectionJoinEvaluation {
         text_at(candidate, "instrument_calibration_disposition") == Some("qualified_reference")
             && text_at(candidate, "calibration_attestation_id").is_some()
             && text_at(candidate, "calibration_attestation_sha256").is_some();
-    let uncertainty_reference_present =
-        text_at(candidate, "measurement_uncertainty_disposition") == Some("qualified_reference")
-            && text_at(candidate, "uncertainty_budget_id").is_some()
-            && text_at(candidate, "uncertainty_budget_sha256").is_some();
-    let metrology_reference_state = match (calibration_reference_present, uncertainty_reference_present) {
-        (true, true) => "references_present_not_authenticated",
-        (false, false) => "unknown_or_unqualified",
-        _ => "partial_metrology_reference_set",
+    let calibration_applies = if calibration_reference_present {
+        let interval_valid = integer_at(candidate, "calibration_valid_from_ns")
+            .zip(integer_at(candidate, "calibration_valid_until_ns"))
+            .is_some_and(|(start, end)| {
+                start <= end
+                    && integer_at(candidate, "source_measured_at_ns")
+                        .is_some_and(|time| start <= time && time <= end)
+                    && integer_at(candidate, "decision_time_ns")
+                        .is_some_and(|time| start <= time && time <= end)
+            });
+        let instrument_matches = text_at(candidate, "calibration_subject_instrument_id")
+            == text_at(candidate, "instrument_resource_id");
+        if !interval_valid {
+            violations.push(JoinViolation {
+                code: "CALIBRATION_ATTESTATION_OUTSIDE_EFFECTIVITY",
+                field: "calibration_valid_from_ns",
+            });
+        }
+        if !instrument_matches {
+            violations.push(JoinViolation {
+                code: "CALIBRATION_ATTESTATION_WRONG_INSTRUMENT",
+                field: "calibration_subject_instrument_id",
+            });
+        }
+        interval_valid && instrument_matches
+    } else {
+        false
+    };
+
+    let uncertainty_applies = if uncertainty_reference_present {
+        let interval_valid = integer_at(candidate, "uncertainty_valid_from_ns")
+            .zip(integer_at(candidate, "uncertainty_valid_until_ns"))
+            .is_some_and(|(start, end)| {
+                start <= end
+                    && integer_at(candidate, "source_measured_at_ns")
+                        .is_some_and(|time| start <= time && time <= end)
+                    && integer_at(candidate, "decision_time_ns")
+                        .is_some_and(|time| start <= time && time <= end)
+            });
+        let characteristic_matches = text_at(candidate, "uncertainty_characteristic_id")
+            == text_at(candidate, "qif_characteristic_id");
+        let unit_matches = text_at(candidate, "uncertainty_original_unit")
+            == text_at(candidate, "original_unit");
+        if !interval_valid {
+            violations.push(JoinViolation {
+                code: "UNCERTAINTY_BUDGET_OUTSIDE_EFFECTIVITY",
+                field: "uncertainty_valid_from_ns",
+            });
+        }
+        if !characteristic_matches {
+            violations.push(JoinViolation {
+                code: "UNCERTAINTY_BUDGET_WRONG_CHARACTERISTIC",
+                field: "uncertainty_characteristic_id",
+            });
+        }
+        if !unit_matches {
+            violations.push(JoinViolation {
+                code: "UNCERTAINTY_BUDGET_WRONG_UNIT",
+                field: "uncertainty_original_unit",
+            });
+        }
+        interval_valid && characteristic_matches && unit_matches
+    } else {
+        false
+    };
+
+    let metrology_reference_state = match (
+        calibration_reference_present,
+        uncertainty_reference_present,
+        calibration_applies,
+        uncertainty_applies,
+    ) {
+        (true, true, true, true) => "applicability_matched_references_not_authenticated",
+        (false, false, _, _) => "unknown_or_unqualified",
+        _ => "partial_or_inapplicable_metrology_references",
     };
 
     InspectionJoinEvaluation {
@@ -253,6 +320,63 @@ mod tests {
         }));
     }
 
+
+
+    #[test]
+    fn qualified_references_must_match_exact_instrument_characteristic_unit_and_time() {
+        let mut actual = candidate();
+        actual["instrument_calibration_disposition"] = json!("qualified_reference");
+        actual["calibration_attestation_id"] = json!("CAL-001");
+        actual["calibration_attestation_sha256"] =
+            json!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        actual["calibration_subject_instrument_id"] = json!("CMM-01");
+        actual["calibration_valid_from_ns"] = json!(1750000000_u64);
+        actual["calibration_valid_until_ns"] = json!(1750001000_u64);
+
+        actual["measurement_uncertainty_disposition"] = json!("qualified_reference");
+        actual["uncertainty_budget_id"] = json!("MSA-001");
+        actual["uncertainty_budget_sha256"] =
+            json!("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+        actual["uncertainty_characteristic_id"] = json!("SHAFT-DIAMETER-01");
+        actual["uncertainty_original_unit"] = json!("mm");
+        actual["uncertainty_valid_from_ns"] = json!(1750000000_u64);
+        actual["uncertainty_valid_until_ns"] = json!(1750001000_u64);
+
+        assert!(validate_schema(&actual));
+        let valid = evaluate_inspection_join(&actual);
+        assert_eq!(
+            valid.metrology_reference_state,
+            "applicability_matched_references_not_authenticated"
+        );
+        assert!(!valid.physical_metrology_qualified);
+
+        actual["calibration_subject_instrument_id"] = json!("OTHER-CMM");
+        let wrong_instrument = evaluate_inspection_join(&actual);
+        assert!(wrong_instrument.violations.iter().any(|v| {
+            v.code == "CALIBRATION_ATTESTATION_WRONG_INSTRUMENT"
+        }));
+
+        actual["calibration_subject_instrument_id"] = json!("CMM-01");
+        actual["uncertainty_characteristic_id"] = json!("OTHER-CHAR");
+        let wrong_characteristic = evaluate_inspection_join(&actual);
+        assert!(wrong_characteristic.violations.iter().any(|v| {
+            v.code == "UNCERTAINTY_BUDGET_WRONG_CHARACTERISTIC"
+        }));
+
+        actual["uncertainty_characteristic_id"] = json!("SHAFT-DIAMETER-01");
+        actual["uncertainty_original_unit"] = json!("um");
+        let wrong_unit = evaluate_inspection_join(&actual);
+        assert!(wrong_unit.violations.iter().any(|v| {
+            v.code == "UNCERTAINTY_BUDGET_WRONG_UNIT"
+        }));
+
+        actual["uncertainty_original_unit"] = json!("mm");
+        actual["calibration_valid_until_ns"] = json!(1750000480_u64);
+        let expired = evaluate_inspection_join(&actual);
+        assert!(expired.violations.iter().any(|v| {
+            v.code == "CALIBRATION_ATTESTATION_OUTSIDE_EFFECTIVITY"
+        }));
+    }
 
     #[test]
     fn partial_metrology_reference_set_is_not_complete() {
