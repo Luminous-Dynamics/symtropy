@@ -126,8 +126,65 @@ pub struct Corpus {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct DeclaredEvidenceBindings {
+    pub qualified_scope: Scope,
+    pub test_scope: Scope,
+    pub test_window_seconds: f64,
+    pub minimum_event_rate_per_second: f64,
+    pub maximum_event_rate_per_second: f64,
+    pub reference_event_count: usize,
+    pub derived_reference_event_rate_per_second: Option<f64>,
+    pub reference_system_id: String,
+    pub reference_artifact_sha256: String,
+    pub reference_failure_domains: Vec<String>,
+    pub acquisition_failure_domains: Vec<String>,
+    pub counter_artifact_sha256: String,
+    pub calibration_certificate_sha256: String,
+    pub calibration_valid_at_test_time: bool,
+    pub calibration_scope_matches: bool,
+    pub clock_synchronization_artifact_sha256: String,
+    pub clock_synchronized: bool,
+    pub clock_monotonic: bool,
+    pub clock_measured_max_error_ticks: Option<u64>,
+    pub clock_allowed_max_error_ticks: u64,
+}
+
+fn declared_evidence_bindings(case: &CaptureCase) -> DeclaredEvidenceBindings {
+    let derived_reference_event_rate_per_second = if case.test_window_seconds.is_finite()
+        && case.test_window_seconds > 0.0
+    {
+        Some(case.reference_events.len() as f64 / case.test_window_seconds)
+    } else {
+        None
+    };
+    DeclaredEvidenceBindings {
+        qualified_scope: case.qualified_scope.clone(),
+        test_scope: case.test_scope.clone(),
+        test_window_seconds: case.test_window_seconds,
+        minimum_event_rate_per_second: case.minimum_event_rate_per_second,
+        maximum_event_rate_per_second: case.maximum_event_rate_per_second,
+        reference_event_count: case.reference_events.len(),
+        derived_reference_event_rate_per_second,
+        reference_system_id: case.reference.system_id.clone(),
+        reference_artifact_sha256: case.reference.reference_artifact_sha256.clone(),
+        reference_failure_domains: case.reference.failure_domains.clone(),
+        acquisition_failure_domains: case.reference.acquisition_failure_domains.clone(),
+        counter_artifact_sha256: case.counters.counter_artifact_sha256.clone(),
+        calibration_certificate_sha256: case.calibration.certificate_sha256.clone(),
+        calibration_valid_at_test_time: case.calibration.valid_at_test_time,
+        calibration_scope_matches: case.calibration.scope_matches,
+        clock_synchronization_artifact_sha256: case.clock.synchronization_artifact_sha256.clone(),
+        clock_synchronized: case.clock.synchronized,
+        clock_monotonic: case.clock.monotonic,
+        clock_measured_max_error_ticks: case.clock.measured_max_error_ticks,
+        clock_allowed_max_error_ticks: case.clock.allowed_max_error_ticks,
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct CaseResult {
     pub case_id: String,
+    pub declared_evidence_bindings: DeclaredEvidenceBindings,
     pub disposition: Disposition,
     pub injected_count: usize,
     pub captured_count: usize,
@@ -614,6 +671,7 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
 
         results.push(CaseResult {
             case_id: case.case_id.clone(),
+            declared_evidence_bindings: declared_evidence_bindings(case),
             disposition: decision.disposition,
             injected_count: decision.injected_count,
             captured_count: decision.captured_count,
