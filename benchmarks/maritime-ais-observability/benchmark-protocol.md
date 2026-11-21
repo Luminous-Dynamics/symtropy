@@ -128,7 +128,7 @@ For truth event (g=(call,kind,t)) and prediction (p=(call',kind',[l,u])), a matc
 - `kind == kind'`;
 - distance from (t) to interval ([l,u]) is no greater than the pre-registered tolerance.
 
-Interval distance is zero when the truth tick lies inside [l,u], otherwise the distance to the nearest endpoint. The scorer constructs all eligible pairs and performs deterministic global minimum-distance one-to-one matching, tie-breaking by truth and prediction input index.
+Interval distance is zero when the truth tick lies inside [l,u], otherwise the distance to the nearest endpoint. The scorer constructs all eligible pairs and performs maximum-cardinality, minimum-total-interval-distance one-to-one matching using a residual min-cost-flow solver. Equal-cost path selection is deterministic under input ordering. This maximizes TP count before optimizing timing distance and avoids the recall loss possible with a greedy nearest-pair rule.
 
 - matched pair: true positive;
 - unmatched prediction: false positive;
