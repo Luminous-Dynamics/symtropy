@@ -214,12 +214,16 @@ impl PreparedRawScaleHorseshoeModel {
                 + self.covariance_log_determinant
                 + quadratic.max(0.0));
 
+        let log_mean_gradient: Vec<f64> = biased_prediction
+            .iter()
+            .zip(weighted_residual.iter())
+            .map(|(prediction, residual)| prediction * residual)
+            .collect();
         let mut coefficient_gradient = vec![0.0; coefficient_count];
         for feature in 0..coefficient_count {
             for row in 0..observation_count {
-                coefficient_gradient[feature] += self.design_matrix[row][feature]
-                    * biased_prediction[row]
-                    * weighted_residual[row];
+                coefficient_gradient[feature] +=
+                    self.design_matrix[row][feature] * log_mean_gradient[row];
             }
         }
 
@@ -288,6 +292,7 @@ impl PreparedRawScaleHorseshoeModel {
             log_prior,
             log_posterior: log_likelihood + log_prior,
             coefficient_gradient,
+            log_mean_gradient,
             log_local_scale_gradient,
             log_global_scale_gradient,
             biased_prediction,
