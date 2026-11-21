@@ -19,7 +19,10 @@ fn independent_reference(case: &LifecycleCase) -> (Disposition, &'static str) {
         return (Indeterminate, "configuration_identity_missing");
     }
     if case.provider_configuration != case.qualified_configuration {
-        return (RequalificationRequired, "configuration_changed_since_qualification");
+        return (
+            RequalificationRequired,
+            "configuration_changed_since_qualification",
+        );
     }
     if case.current_procedure_revision.is_empty() || case.qualified_procedure_revision.is_empty() {
         return (Indeterminate, "procedure_revision_missing");
@@ -144,8 +147,8 @@ fn product_evaluator_matches_the_independent_oracle_on_the_frozen_corpus() {
 fn critical_withdrawal_cannot_be_hidden_by_a_restricted_flag() {
     let raw = include_str!("../fixtures/v0.1/cases.json");
     let corpus: Corpus = serde_json::from_str(raw).expect("fixture corpus parses");
-    let report = orbital_interface_lifecycle_bench::evaluate(&corpus)
-        .expect("lifecycle corpus is valid");
+    let report =
+        orbital_interface_lifecycle_bench::evaluate(&corpus).expect("lifecycle corpus is valid");
     let case = report
         .cases
         .iter()
