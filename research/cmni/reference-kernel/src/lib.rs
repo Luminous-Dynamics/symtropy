@@ -36,6 +36,12 @@ pub use correlated_bias_inference::{
     CorrelatedLogBiasResult,
 };
 
+mod raw_scale_bias_likelihood;
+pub use raw_scale_bias_likelihood::{
+    raw_scale_gaussian_multiplicative_bias_log_likelihood,
+    RawScaleGaussianBiasLikelihood,
+};
+
 mod experiment_design;
 pub use experiment_design::{
     combine_fisher_information,
