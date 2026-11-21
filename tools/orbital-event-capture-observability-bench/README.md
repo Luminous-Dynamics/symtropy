@@ -27,7 +27,7 @@ This is an identifiability boundary, not a weakness that can be fixed by a more 
 
 ## V0.1 scope
 
-This standalone Rust 2024 crate implements a deterministic synthetic reconciliation contract. It accepts:
+This standalone Rust 2024 crate implements a deterministic synthetic reconciliation contract. Every per-case receipt echoes the complete declared evidence bindings (qualified/tested subject scope, event window and derived rate, reference identity/failure domains, loss counters, calibration declaration and clock declaration) so downstream consumers can inspect what was supplied. These are preserved declarations, not authenticated physical facts. The output shape is defined in `schema/v0.1/capture-receipt.schema.json`. It accepts:
 - an exact qualified sensor / firmware / acquisition-configuration / event-class / mode / environment scope;
 - an independently declared reference-event stream with unique IDs, contiguous sequence numbers, monotonic event times and payload digests;
 - observed records linked to reference-event IDs;
