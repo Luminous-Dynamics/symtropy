@@ -1137,7 +1137,7 @@ pub fn audit_array_interaction(root: &Value) -> Vec<String> {
     push_if_missing(
         &mut findings,
         model.is_some_and(|value| {
-            text_at(value, &["isolated_cell_additivity_is_default"]).is_some_and(|v| v == "false")
+            at(value, &["isolated_cell_additivity_is_default"]).and_then(Value::as_bool) == Some(false)
                 && text_at(value, &["optional_local_linearization"])
                     .is_some_and(|v| v.contains("J(configuration, operating_point)"))
                 && text_at(value, &["linearity_scope"]).is_some_and(|v| {
@@ -1606,7 +1606,7 @@ mod tests {
     #[test]
     fn isolated_cell_force_additivity_is_not_a_default() {
         let mut value: Value = serde_json::from_str(EMBEDDED_ARRAY_INTERACTION).unwrap();
-        value["model_contract"]["isolated_cell_additivity_is_default"] = Value::String("true".into());
+        value["model_contract"]["isolated_cell_additivity_is_default"] = Value::Bool(true);
         assert!(has_code(&audit_array_interaction(&value), "ARRAY_MODEL_SCOPE"));
     }
 
