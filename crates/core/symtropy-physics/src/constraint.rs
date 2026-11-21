@@ -11,8 +11,8 @@ use crate::body::{BodyHandle, RigidBody};
 /// simulation-qualification verdict. Residual norms and units are constraint-specific.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ConstraintSolveOutcome {
-    /// The constraint applied a velocity correction. The optional residual is
-    /// expressed in the constraint's declared residual norm.
+    /// The constraint applied a correction. The optional residual is
+    /// expressed in the constraint's declared residual norm and units.
     Applied { residual_inf: Option<f64> },
     /// The constraint had no correction to apply.
     NoOp,
