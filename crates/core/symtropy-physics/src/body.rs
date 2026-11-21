@@ -42,8 +42,10 @@ pub enum RotationalInertiaModel {
 /// Why an exact rotational-response request could not be evaluated.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RotationalResponseError {
-    /// The angular impulse contains a NaN or infinity.
+    /// A torque, impulse or state used by the requested operation is non-finite.
     NonFiniteInput,
+    /// The requested integration timestep is not finite and strictly positive.
+    InvalidTimeStep,
     /// The body's mass-property revision no longer matches its current mass.
     StaleMassProperties,
     /// The body's 3D principal moments or their reciprocals are invalid.
