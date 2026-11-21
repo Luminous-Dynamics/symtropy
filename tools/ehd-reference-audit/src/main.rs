@@ -14,6 +14,7 @@ mod exchange_receipt;
 mod polynomial_moments;
 mod drag_dissipation;
 mod drag_trajectory;
+mod drag_quadrature;
 
 const EMBEDDED_ATLAS: &str =
     include_str!("../../../data/research/ehd_reference_atlas_v0_1.json");
@@ -33,6 +34,8 @@ const EMBEDDED_DRAG_DISSIPATION: &str =
     include_str!("../../../data/research/ehd_drag_dissipation_v0_1.json");
 const EMBEDDED_DRAG_TRAJECTORY: &str =
     include_str!("../../../data/research/ehd_drag_trajectory_v0_1.json");
+const EMBEDDED_TEMPORAL_QUADRATURE: &str =
+    include_str!("../../../data/research/ehd_temporal_quadrature_v0_1.json");
 
 fn at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
     path.iter().try_fold(value, |node, key| node.get(*key))
@@ -1718,6 +1721,95 @@ pub fn audit_drag_trajectory_contract(root: &Value) -> Vec<String> {
     findings
 }
 
+/// Audit the temporal collision-source quadrature benchmark. It qualifies
+/// analytic manufactured polynomials, not arbitrary production source histories.
+pub fn audit_temporal_quadrature_contract(root: &Value) -> Vec<String> {
+    let mut findings = Vec::new();
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["schema"]) == Some("luminous.ehd_temporal_quadrature")
+            && text_at(root, &["schema_version"]) == Some("0.1.0")
+            && text_at(root, &["benchmark_id"]) == Some("EHD-QUADRATURE-001")
+            && text_at(root, &["status"])
+                == Some("analytic_quadratic_temporal_oracle_authored_tests_rust_execution_pending"),
+        "TEMPORAL_QUADRATURE_IDENTITY",
+        "temporal quadrature benchmark identity/version/status changed",
+    );
+    let manufactured = at(root, &["manufactured_polynomial_class"]);
+    push_if_missing(
+        &mut findings,
+        manufactured.is_some_and(|value| {
+            number_at(value, &["drag_rate_degree_max"]) == Some(2.0)
+                && number_at(value, &["each_velocity_component_degree_max"]) == Some(2.0)
+                && number_at(value, &["impulse_integrand_degree_max"]) == Some(4.0)
+                && number_at(value, &["frictional_heating_integrand_degree_max"]) == Some(6.0)
+                && text_at(value, &["exact_reference"])
+                    == Some("analytic_polynomial_convolution_and_antiderivative")
+        }),
+        "TEMPORAL_QUADRATURE_POLYNOMIAL_CLASS",
+        "quadratic source class and degree-four impulse/degree-six heating exactness basis changed",
+    );
+    let rules = at(root, &["quadrature_rules"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        rules.is_some_and(|rows| rows.len() == 5
+            && rows.iter().any(|row| text_at(row, &["id"]) == Some("gauss_legendre_2")
+                && number_at(row, &["algebraic_exactness_degree"]) == Some(3.0))
+            && rows.iter().any(|row| text_at(row, &["id"]) == Some("gauss_legendre_3")
+                && number_at(row, &["algebraic_exactness_degree"]) == Some(5.0))
+            && rows.iter().any(|row| text_at(row, &["id"]) == Some("gauss_legendre_4")
+                && number_at(row, &["algebraic_exactness_degree"]) == Some(7.0))),
+        "TEMPORAL_QUADRATURE_RULES",
+        "Gauss-Legendre exactness degrees and Simpson comparator must remain declared",
+    );
+    let implementation = at(root, &["reference_implementation"]);
+    push_if_missing(
+        &mut findings,
+        implementation.is_some_and(|value| {
+            text_at(value, &["path"]) == Some("tools/ehd-reference-audit/src/drag_quadrature.rs")
+                && at(value, &["exact_polynomial_reference"]).and_then(Value::as_bool) == Some(true)
+                && at(value, &["separate_impulse_and_heating_residuals"]).and_then(Value::as_bool) == Some(true)
+                && at(value, &["nonnegative_drag_polynomial_checked_over_interval"]).and_then(Value::as_bool) == Some(true)
+        }),
+        "TEMPORAL_QUADRATURE_IMPLEMENTATION",
+        "analytic reference, independent impulse/heating residuals and full-interval drag positivity checks are required",
+    );
+    let tests = at(root, &["test_families"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        tests.is_some_and(|rows| rows.len() == 10
+            && rows.iter().any(|item| item.as_str() == Some("impulse_pass_heating_fail_with_gauss_legendre_2"))
+            && rows.iter().any(|item| item.as_str() == Some("degree_six_heating_fail_gl3_pass_gl4"))
+            && rows.iter().any(|item| item.as_str() == Some("each_rule_matches_monomial_moments_through_declared_exactness"))
+            && rows.iter().any(|item| item.as_str() == Some("each_rule_fails_first_higher_even_monomial_moment"))
+            && rows.iter().any(|item| item.as_str() == Some("interior_negative_drag_rate_rejected"))
+            && rows.iter().any(|item| item.as_str() == Some("offline_reference_self_check"))),
+        "TEMPORAL_QUADRATURE_TEST_MATRIX",
+        "eight temporal quadrature analytic and adversarial test families must remain declared",
+    );
+    push_if_missing(
+        &mut findings,
+        at(root, &["acceptance", "universal_numeric_tolerance"]).is_some_and(Value::is_null)
+            && at(root, &["acceptance", "impulse_and_heating_passed_independently"]).and_then(Value::as_bool) == Some(true)
+            && at(root, &["acceptance", "production_quadrature_accuracy_requires_refinement"]).and_then(Value::as_bool) == Some(true),
+        "TEMPORAL_QUADRATURE_ACCEPTANCE",
+        "impulse/heating errors must be gated independently; production quadrature still needs refinement",
+    );
+    let limits = at(root, &["limitations"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        limits.is_some_and(|rows| rows.iter().any(|item| item.as_str() == Some("temporal_only_spatially_integrated_collision_rate"))
+            && rows.iter().any(|item| item.as_str() == Some("no_spatial_collision_quadrature"))
+            && rows.iter().any(|item| item.as_str() == Some("no_production_solver_history_validation")))
+            && text_at(root, &["claim_ceiling"])
+                .is_some_and(|claim| claim.contains("does not certify production solver quadrature accuracy")
+                    && claim.contains("arbitrary source histories")),
+        "TEMPORAL_QUADRATURE_CLAIM_BOUNDARY",
+        "temporal manufactured oracle must not be promoted to spatial or production solver quadrature validation",
+    );
+    findings
+}
+
 fn main() {
     let mut args = env::args().skip(1);
     let path = args.next();
@@ -1810,6 +1902,14 @@ fn main() {
         }
     };
     findings.extend(audit_drag_trajectory_contract(&drag_trajectory_contract));
+    let temporal_quadrature_contract: Value = match serde_json::from_str(EMBEDDED_TEMPORAL_QUADRATURE) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("invalid embedded temporal quadrature contract JSON: {error}");
+            process::exit(2);
+        }
+    };
+    findings.extend(audit_temporal_quadrature_contract(&temporal_quadrature_contract));
     let exchange_kernel_ok = match exchange::reference_self_check() {
         Ok(()) => true,
         Err(error) => {
@@ -1859,6 +1959,13 @@ fn main() {
             false
         }
     };
+    let drag_quadrature_ok = match drag_quadrature::reference_self_check() {
+        Ok(()) => true,
+        Err(error) => {
+            findings.push(format!("DRAG_QUADRATURE_SELF_CHECK: {error}"));
+            false
+        }
+    };
     if findings.is_empty() {
         let count = len_at(&atlas, &["source_records"]).unwrap_or(0);
         let system_count = len_at(&atlas, &["system_integration_references"]).unwrap_or(0);
@@ -1889,6 +1996,9 @@ fn main() {
         }
         if drag_trajectory_ok {
             println!("time-varying ion-neutral drag quadrature receipt self-check: passed");
+        }
+        if drag_quadrature_ok {
+            println!("analytic temporal drag quadrature reference self-check: passed");
         }
         println!("scope: source structure and analytic reference checks only; no physical V&V, production ALE, TPE(1/2), full collisional-energy closure or durable exactly-once claim");
     } else {
@@ -2464,6 +2574,52 @@ mod drag_trajectory_frame_contract_tests {
         ]);
         assert!(audit_drag_trajectory_contract(&value).iter().any(|finding| {
             finding.starts_with("DRAG_TRAJECTORY_IMPLEMENTATION")
+        }));
+    }
+}
+
+#[cfg(test)]
+mod temporal_quadrature_contract_tests {
+    use super::*;
+
+    #[test]
+    fn temporal_quadrature_contract_passes_declared_scope() {
+        let value: Value = serde_json::from_str(EMBEDDED_TEMPORAL_QUADRATURE)
+            .expect("embedded temporal quadrature contract must be valid JSON");
+        assert!(audit_temporal_quadrature_contract(&value).is_empty());
+    }
+
+    #[test]
+    fn temporal_quadrature_contract_requires_separate_impulse_and_heating_gates() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_TEMPORAL_QUADRATURE).unwrap();
+        value["acceptance"]["impulse_and_heating_passed_independently"] = Value::Bool(false);
+        assert!(audit_temporal_quadrature_contract(&value).iter().any(|finding| {
+            finding.starts_with("TEMPORAL_QUADRATURE_ACCEPTANCE")
+        }));
+    }
+
+    #[test]
+    fn temporal_quadrature_oracle_cannot_claim_production_source_history_validation() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_TEMPORAL_QUADRATURE).unwrap();
+        value["limitations"] = Value::Array(Vec::new());
+        assert!(audit_temporal_quadrature_contract(&value).iter().any(|finding| {
+            finding.starts_with("TEMPORAL_QUADRATURE_CLAIM_BOUNDARY")
+        }));
+    }
+}
+
+#[cfg(test)]
+mod temporal_quadrature_moment_contract_tests {
+    use super::*;
+
+    #[test]
+    fn temporal_quadrature_contract_requires_rule_moment_controls() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_TEMPORAL_QUADRATURE).unwrap();
+        value["test_families"].as_array_mut().unwrap().retain(|item| {
+            item.as_str() != Some("each_rule_fails_first_higher_even_monomial_moment")
+        });
+        assert!(audit_temporal_quadrature_contract(&value).iter().any(|finding| {
+            finding.starts_with("TEMPORAL_QUADRATURE_TEST_MATRIX")
         }));
     }
 }
