@@ -35,8 +35,8 @@ pub mod world;
 
 pub use articulation::{ArticulatedChain, ChainBuilder, LinkSpec};
 pub use body::{
-    BodyHandle, BodyType, NetId, RigidBody, RotationalInertiaModel, RotationalResponse,
-    RotationalResponseError,
+    BodyHandle, BodyType, NetId, RigidBody, RotationalAcceleration, RotationalInertiaModel,
+    RotationalResponse, RotationalResponseError,
 };
 pub use broadphase::{Aabb, Lbvh, morton_encode, morton_prefix};
 pub use constraint::Constraint;
