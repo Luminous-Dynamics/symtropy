@@ -132,6 +132,67 @@ where
     Ok(cross_section)
 }
 
+/// One per-deuteron component in a prompt-dissociation beam model.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct BeamEnergyComponent {
+    /// Center-of-mass energy for D projectile on stationary D target, keV.
+    pub energy_cm_kev: f64,
+    /// Fraction of the total deuteron flux carried by this component.
+    pub deuteron_flux_fraction: f64,
+}
+
+/// Prompt-dissociation limit for a singly charged D+ / D2+ beam.
+///
+/// Fractions are **ion-current fractions**, not deuteron-flux fractions, and
+/// must sum to one. A singly charged ion accelerated through V kV receives
+/// approximately V keV total kinetic energy. D+ therefore has Ecm ~= V/2.
+/// If D2+ promptly dissociates into two D fragments that retain the molecular
+/// velocity, each fragment receives approximately V/2 keV lab energy and
+/// Ecm ~= V/4. This is a limiting scenario, not an assertion that prompt
+/// dissociation occurred in a particular experiment.
+///
+/// The returned component weights are normalized by deuteron flux:
+/// f_D+ = f_ion(D+) / [f_ion(D+) + 2 f_ion(D2+)]
+/// f_D2+ = 2 f_ion(D2+) / [f_ion(D+) + 2 f_ion(D2+)].
+pub fn prompt_dissociation_beam_components(
+    accelerating_potential_kv: f64,
+    d_plus_ion_current_fraction: f64,
+    d2_plus_ion_current_fraction: f64,
+) -> Result<[BeamEnergyComponent; 2], ModelError> {
+    let potential = checked_positive(accelerating_potential_kv, "accelerating_potential_kV")?;
+    for (fraction, name) in [
+        (d_plus_ion_current_fraction, "D_plus_ion_current_fraction"),
+        (d2_plus_ion_current_fraction, "D2_plus_ion_current_fraction"),
+    ] {
+        if !fraction.is_finite() || !(0.0..=1.0).contains(&fraction) {
+            return Err(ModelError::InvalidParameter(name));
+        }
+    }
+    if (d_plus_ion_current_fraction + d2_plus_ion_current_fraction - 1.0).abs() > 1.0e-6 {
+        return Err(ModelError::InvalidParameter("D_plus_and_D2_plus_ion_current_fractions_must_sum_to_one"));
+    }
+
+    let deuterons_per_charge = d_plus_ion_current_fraction
+        + 2.0 * d2_plus_ion_current_fraction;
+    if deuterons_per_charge <= 0.0 {
+        return Err(ModelError::NonPositiveValue("deuterons_per_charge"));
+    }
+
+    let d_plus_weight = d_plus_ion_current_fraction / deuterons_per_charge;
+    let d2_plus_weight = (2.0 * d2_plus_ion_current_fraction) / deuterons_per_charge;
+
+    Ok([
+        BeamEnergyComponent {
+            energy_cm_kev: potential / 2.0,
+            deuteron_flux_fraction: d_plus_weight,
+        },
+        BeamEnergyComponent {
+            energy_cm_kev: potential / 4.0,
+            deuteron_flux_fraction: d2_plus_weight,
+        },
+    ])
+}
+
 /// Homogeneous screened thick-target yield per incident projectile.
 ///
 /// Implements
