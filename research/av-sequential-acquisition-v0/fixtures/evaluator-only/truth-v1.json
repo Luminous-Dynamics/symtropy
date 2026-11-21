@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-sequential-acquisition-v0",
+  "warning": "Evaluator-only hidden states and realized sensor outcomes. Do not expose to candidate policy.",
+  "episodes": [
+    {
+      "episode_id": "sa-001-eig-trap",
+      "hidden_state": "hazard_a",
+      "realized_outcomes": {
+        "subtype_detail": "type_a",
+        "hazard_cue": "cue"
+      }
+    },
+    {
+      "episode_id": "sa-002-sequential-complementarity",
+      "hidden_state": "s00",
+      "realized_outcomes": {
+        "read_x": "x0",
+        "read_y": "y0"
+      }
+    },
+    {
+      "episode_id": "sa-003-deadline-inversion",
+      "hidden_state": "hazard",
+      "realized_outcomes": {
+        "high_resolution_review": "hazard_seen",
+        "quick_audio_cue": "cue"
+      }
+    },
+    {
+      "episode_id": "sa-004-permission-fallback",
+      "hidden_state": "threat",
+      "realized_outcomes": {
+        "secure_camera_review": "threat_seen",
+        "audio_triage": "cue"
+      }
+    }
+  ]
+}
