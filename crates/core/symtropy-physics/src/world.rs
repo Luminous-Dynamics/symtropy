@@ -111,6 +111,17 @@ pub trait PhysicsCallback<const D: usize> {
 /// No-op callback for physics-only usage (no consciousness coupling).
 pub struct NoOpCallback;
 
+/// One positional constraint invocation observed during a report-enabled
+/// world step. Constraint indices and iteration numbers are zero-based.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ConstraintPositionEvent {
+    pub constraint_index: usize,
+    pub body_a: BodyHandle,
+    pub body_b: BodyHandle,
+    pub iteration: usize,
+    pub outcome: ConstraintSolveOutcome,
+}
+
 /// One velocity-level constraint invocation observed during a report-enabled
 /// world step. Constraint indices and iteration numbers are zero-based.
 #[derive(Clone, Debug, PartialEq)]
@@ -132,6 +143,7 @@ pub struct ConstraintVelocityEvent {
 /// velocity-constraint iteration schedule continues, and no rollback is tried.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct PhysicsStepReport {
+    pub constraint_position_events: Vec<ConstraintPositionEvent>,
     pub constraint_velocity_events: Vec<ConstraintVelocityEvent>,
     /// True when at least one constraint rejected after earlier world phases
     /// had already executed. The world step does not roll those phases back.
@@ -141,12 +153,20 @@ pub struct PhysicsStepReport {
 impl PhysicsStepReport {
     fn with_capacity(capacity: usize) -> Self {
         Self {
+            constraint_position_events: Vec::with_capacity(capacity),
             constraint_velocity_events: Vec::with_capacity(capacity),
             world_state_may_have_mutated_before_rejection: false,
         }
     }
 
-    fn record_constraint_event(&mut self, event: ConstraintVelocityEvent) {
+    fn record_position_event(&mut self, event: ConstraintPositionEvent) {
+        if matches!(event.outcome, ConstraintSolveOutcome::Rejected { .. }) {
+            self.world_state_may_have_mutated_before_rejection = true;
+        }
+        self.constraint_position_events.push(event);
+    }
+
+    fn record_velocity_event(&mut self, event: ConstraintVelocityEvent) {
         if matches!(event.outcome, ConstraintSolveOutcome::Rejected { .. }) {
             self.world_state_may_have_mutated_before_rejection = true;
         }
@@ -155,18 +175,28 @@ impl PhysicsStepReport {
 
     /// Count typed constraint rejections in this step.
     pub fn rejected_constraint_count(&self) -> usize {
-        self.constraint_velocity_events
+        self.constraint_position_events
             .iter()
             .filter(|event| matches!(event.outcome, ConstraintSolveOutcome::Rejected { .. }))
             .count()
+            + self
+                .constraint_velocity_events
+                .iter()
+                .filter(|event| matches!(event.outcome, ConstraintSolveOutcome::Rejected { .. }))
+                .count()
     }
 
     /// Count legacy constraint invocations whose outcomes were not reported.
     pub fn unreported_constraint_count(&self) -> usize {
-        self.constraint_velocity_events
+        self.constraint_position_events
             .iter()
             .filter(|event| event.outcome == ConstraintSolveOutcome::Unreported)
             .count()
+            + self
+                .constraint_velocity_events
+                .iter()
+                .filter(|event| event.outcome == ConstraintSolveOutcome::Unreported)
+                .count()
     }
 }
 
@@ -784,7 +814,7 @@ impl<const D: usize> PhysicsWorld<D> {
             .flat_map(|island| island.constraint_indices.iter().copied())
             .collect();
 
-        for _ in 0..self.solver_iterations {
+        for iteration in 0..self.solver_iterations {
             for &ci in &active_constraint_indices {
                 if ci >= self.constraints.len() {
                     continue;
@@ -792,7 +822,30 @@ impl<const D: usize> PhysicsWorld<D> {
                 let (ha, hb) = self.constraints[ci].bodies();
                 let (idx_a, idx_b) = self.find_body_indices(ha, hb);
                 if let (Some(a), Some(b)) = (idx_a, idx_b) {
-                    if a < b {
+                    if let Some(step_report) = report.as_deref_mut() {
+                        let outcome = if a < b {
+                            let (left, right) = self.bodies.split_at_mut(b);
+                            self.constraints[ci].solve_with_outcome(
+                                &mut left[a],
+                                &mut right[0],
+                                dt,
+                            )
+                        } else {
+                            let (left, right) = self.bodies.split_at_mut(a);
+                            self.constraints[ci].solve_with_outcome(
+                                &mut right[0],
+                                &mut left[b],
+                                dt,
+                            )
+                        };
+                        step_report.record_position_event(ConstraintPositionEvent {
+                            constraint_index: ci,
+                            body_a: ha,
+                            body_b: hb,
+                            iteration,
+                            outcome,
+                        });
+                    } else if a < b {
                         let (left, right) = self.bodies.split_at_mut(b);
                         self.constraints[ci].solve(&mut left[a], &mut right[0], dt);
                     } else {
@@ -830,7 +883,7 @@ impl<const D: usize> PhysicsWorld<D> {
                                 Some(callback),
                             )
                         };
-                        step_report.record_constraint_event(ConstraintVelocityEvent {
+                        step_report.record_velocity_event(ConstraintVelocityEvent {
                             constraint_index: ci,
                             body_a: ha,
                             body_b: hb,
@@ -2790,6 +2843,11 @@ mod constraint_outcome_report_tests {
 
         let report = world.step_with_report(0.016);
 
+        assert_eq!(report.constraint_position_events.len(), 1);
+        assert_eq!(
+            report.constraint_position_events[0].outcome,
+            ConstraintSolveOutcome::Unreported
+        );
         assert_eq!(report.constraint_velocity_events.len(), 1);
         let event = &report.constraint_velocity_events[0];
         assert_eq!(event.constraint_index, 0);
@@ -2837,6 +2895,11 @@ mod constraint_outcome_report_tests {
         ordinary_world.step(0.016);
         let report = report_world.step_with_report(0.016);
 
+        assert_eq!(report.constraint_position_events.len(), 1);
+        assert_eq!(
+            report.constraint_position_events[0].outcome,
+            ConstraintSolveOutcome::Unreported
+        );
         assert_eq!(report.constraint_velocity_events.len(), 1);
         assert!(matches!(
             report.constraint_velocity_events[0].outcome,
@@ -2872,13 +2935,109 @@ mod constraint_outcome_report_tests {
 
         let report = world.step_with_report(0.016);
 
+        assert_eq!(report.constraint_position_events.len(), 2);
         assert_eq!(report.constraint_velocity_events.len(), 2);
-        assert_eq!(report.unreported_constraint_count(), 2);
+        assert_eq!(report.unreported_constraint_count(), 4);
+        assert_eq!(report.constraint_position_events[0].iteration, 0);
+        assert_eq!(report.constraint_position_events[1].iteration, 1);
         assert_eq!(report.constraint_velocity_events[0].iteration, 0);
         assert_eq!(report.constraint_velocity_events[1].iteration, 1);
+        assert!(report
+            .constraint_position_events
+            .iter()
+            .all(|event| event.outcome == ConstraintSolveOutcome::Unreported));
         assert!(report
             .constraint_velocity_events
             .iter()
             .all(|event| event.outcome == ConstraintSolveOutcome::Unreported));
     }
+
+    struct TypedPositionConstraint {
+        body_a: BodyHandle,
+        body_b: BodyHandle,
+        outcome: ConstraintSolveOutcome,
+        typed_calls: Arc<std::sync::atomic::AtomicUsize>,
+        legacy_calls: Arc<std::sync::atomic::AtomicUsize>,
+    }
+
+    impl Constraint<3> for TypedPositionConstraint {
+        fn bodies(&self) -> (BodyHandle, BodyHandle) {
+            (self.body_a, self.body_b)
+        }
+
+        fn as_any(&self) -> &dyn std::any::Any {
+            self
+        }
+
+        fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+            self
+        }
+
+        fn solve(&self, _body_a: &mut RigidBody<3>, _body_b: &mut RigidBody<3>, _dt: f64) {
+            self.legacy_calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        }
+
+        fn solve_with_outcome(
+            &self,
+            _body_a: &mut RigidBody<3>,
+            _body_b: &mut RigidBody<3>,
+            _dt: f64,
+        ) -> ConstraintSolveOutcome {
+            self.typed_calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            self.outcome
+        }
+    }
+
+    #[test]
+    fn positional_phase_reports_typed_outcomes_once_in_constraint_order() {
+        use std::sync::atomic::AtomicUsize;
+
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let base = world.add_body(RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(Sphere::new(Point::origin(), 0.1)),
+        ));
+        let dynamic = world.add_sphere(Point::new([5.0, 0.0, 0.0]), 0.1, 1.0);
+        let outcomes = [
+            ConstraintSolveOutcome::Applied { residual_inf: Some(1.0e-9) },
+            ConstraintSolveOutcome::NoOp,
+            ConstraintSolveOutcome::Rejected {
+                code: "test.position_rejected",
+                body_state_mutated_before_rejection: false,
+            },
+        ];
+        let calls = outcomes.iter().map(|_| {
+            (
+                Arc::new(AtomicUsize::new(0)),
+                Arc::new(AtomicUsize::new(0)),
+            )
+        }).collect::<Vec<_>>();
+        for (outcome, (typed_calls, legacy_calls)) in outcomes.into_iter().zip(calls.iter()) {
+            world.add_constraint(Box::new(TypedPositionConstraint {
+                body_a: base,
+                body_b: dynamic,
+                outcome,
+                typed_calls: Arc::clone(typed_calls),
+                legacy_calls: Arc::clone(legacy_calls),
+            }));
+        }
+        world.solver_iterations = 1;
+
+        let report = world.step_with_report(0.016);
+
+        assert_eq!(report.constraint_position_events.len(), 3);
+        assert_eq!(report.rejected_constraint_count(), 1);
+        assert_eq!(report.unreported_constraint_count(), 3);
+        assert!(report.world_state_may_have_mutated_before_rejection);
+        for (index, outcome) in outcomes.into_iter().enumerate() {
+            let event = &report.constraint_position_events[index];
+            assert_eq!(event.constraint_index, index);
+            assert_eq!(event.iteration, 0);
+            assert_eq!(event.outcome, outcome);
+            assert_eq!(calls[index].0.load(std::sync::atomic::Ordering::SeqCst), 1);
+            assert_eq!(calls[index].1.load(std::sync::atomic::Ordering::SeqCst), 0);
+        }
+    }
+
 }
