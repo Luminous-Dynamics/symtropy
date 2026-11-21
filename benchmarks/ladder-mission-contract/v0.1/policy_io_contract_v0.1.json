@@ -1,0 +1,55 @@
+{
+  "schema_version": "0.1.0",
+  "protocol": "ZeroMQ REP request/response with MessagePack payloads (per official LADDER examples/policy_server.py)",
+  "transport": {
+    "socket_type": "REP",
+    "framing": "one MessagePack request per call; one MessagePack response per call",
+    "request": {
+      "required_fields": [
+        "observations"
+      ],
+      "observations": "array of one or more independent environment observations"
+    },
+    "response": {
+      "required_fields": [
+        "actions"
+      ],
+      "actions": "same-length array of policy actions in request observation order"
+    }
+  },
+  "observation": {
+    "instruction": "string",
+    "images": "map camera_name -> HxWx3 uint8 RGB array",
+    "eef_pose": "4x4 absolute end-effector transform in robot base frame; metres",
+    "gripper": "number: 1.0 open to 0.0 closed",
+    "joints": "array of joint positions in radians",
+    "robot": "widowx or franka",
+    "env": "environment identity; policy must keep state isolated by this key",
+    "first": "boolean; true at episode start, reset only this environment's recurrent state",
+    "step": "nonnegative integer control step index"
+  },
+  "action": {
+    "pose": "4x4 absolute end-effector transform in robot base frame; metres",
+    "gripper": "number in [0,1], 1.0 open and 0.0 closed",
+    "optional_chunk": {
+      "pose": "Kx4x4 absolute end-effector transforms",
+      "gripper": "K gripper values",
+      "semantics": "one action is applied per future control step"
+    }
+  },
+  "invariants": [
+    "Response action count must equal request observation count.",
+    "State must be keyed by env; never share task state across simultaneously active environments.",
+    "Reset only the current environment state when observations[].first is true.",
+    "Never infer or fabricate privileged simulator state; only use fields exposed by the standard observation contract.",
+    "Action poses must be finite, valid transforms in metres and the declared robot base frame.",
+    "If perception/planning is indeterminate, return a documented safe/no-op action or fail closed; do not emit a guessed task-completion event.",
+    "Official episode success is still decided by LADDER's evaluator, not by the policy-server adapter."
+  ],
+  "rust_first_architecture": {
+    "core": "Symtropy Rust process owns planning, capability constraints, state, uncertainty and evidence decisions.",
+    "adapter": "A thin ZeroMQ/MessagePack bridge maps LADDER observations to versioned Rust request structs and returns actions. It may be implemented in Rust; if an official example shim is used, it remains transport-only and outside the Symtropy core.",
+    "receipts": "Luminous extension receipts are stored separately from official LADDER episode logs and never used to relabel official success."
+  },
+  "source_file": "https://github.com/insait-institute/ladder/blob/e4e204073cc64b0dc49f9669c2951e6bc91fe0af/examples/policy_server.py"
+}

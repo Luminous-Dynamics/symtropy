@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/symtropy/ladder/luminous-episode-evidence/v0.1",
+  "title": "Separate Symtropy LADDER episode evidence sidecar",
+  "description": "Additional Symtropy evidence and resource telemetry. This file is not an official LADDER episode row and must never be inserted into official episodes.jsonl.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_commit",
+    "suite",
+    "task",
+    "episode",
+    "evidence_status"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "suite": {
+      "enum": [
+        "simplerenv_long",
+        "robotarena_long",
+        "robolab_long"
+      ]
+    },
+    "task": {
+      "type": "string",
+      "minLength": 1
+    },
+    "episode": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "official_episode_row_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^([0-9a-f]{64})?$"
+    },
+    "evidence_status": {
+      "enum": [
+        "complete",
+        "partial",
+        "unavailable",
+        "invalid"
+      ]
+    },
+    "accepted_subgoal_events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "subgoal_index",
+          "event_type",
+          "observed_at",
+          "evidence_digest"
+        ],
+        "properties": {
+          "subgoal_index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "event_type": {
+            "type": "string",
+            "minLength": 1
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "object_or_goal_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "evidence_digest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "uncertainty": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "false_completion_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "retries": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "resets": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "collisions": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "drops": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "recoveries_attempted": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "recoveries_succeeded": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "energy_wh": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "energy_boundary": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "thermal_state_digest": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^([0-9a-f]{64})?$"
+    },
+    "wall_clock_seconds": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "$comment": "Join key is (benchmark_commit, suite, task, episode). Official leaderboard scoring ignores this file entirely."
+}
