@@ -1,6 +1,5 @@
 {
   "schema_version": "0.1.0",
-  "claim_scope": "Synthetic software fixture only. These are not real physical measurements or simulator results.",
   "protocol": {
     "simulator_commit": "1212121212121212121212121212121212121212",
     "simulator_configuration_digest": "abababababababababababababababababababababababababababababababab",
