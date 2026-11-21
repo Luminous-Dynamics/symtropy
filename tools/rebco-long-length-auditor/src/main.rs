@@ -1424,8 +1424,9 @@ mod tests {
             .expect("measurement system object")
             .remove("calibration_valid_at_measurement");
         let report = validate_document(&value).expect("record remains inspectable");
-        assert_eq!(report.ic_direct_transport_qualified_length_mm, 0.0);
-        assert_eq!(report.ic_direct_transport_unqualified_length_mm, 400.0);
+        let profile = profile_at_temperature(&report, 77.0);
+        assert_eq!(profile["direct_transport_qualified_length_mm"], 0.0);
+        assert_eq!(profile["direct_transport_unqualified_length_mm"], 400.0);
     }
 
     #[test]
@@ -1434,8 +1435,9 @@ mod tests {
         value["observations"][0]["measurement_system"]["calibration_valid_at_measurement"] =
             json!(false);
         let report = validate_document(&value).expect("record remains inspectable");
-        assert_eq!(report.ic_direct_transport_qualified_length_mm, 0.0);
-        assert_eq!(report.ic_direct_transport_unqualified_length_mm, 400.0);
+        let profile = profile_at_temperature(&report, 77.0);
+        assert_eq!(profile["direct_transport_qualified_length_mm"], 0.0);
+        assert_eq!(profile["direct_transport_unqualified_length_mm"], 400.0);
     }
 
     #[test]
@@ -1443,8 +1445,9 @@ mod tests {
         let mut value = fixture();
         value["observations"][0]["coordinate_footprint"]["width_end_mm"] = json!(2.0);
         let report = validate_document(&value).expect("partial-width evidence is valid");
-        assert_eq!(report.ic_direct_transport_qualified_length_mm, 0.0);
-        assert_eq!(report.ic_direct_transport_coverage_fraction, 0.0);
+        let profile = profile_at_temperature(&report, 77.0);
+        assert_eq!(profile["direct_transport_qualified_length_mm"], 0.0);
+        assert_eq!(profile["direct_transport_coverage_fraction"], 0.0);
     }
 
     #[test]
