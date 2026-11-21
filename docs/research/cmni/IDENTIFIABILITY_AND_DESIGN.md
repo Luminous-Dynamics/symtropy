@@ -155,9 +155,24 @@ References:
 - *Geant4 simulation of EJ309 and EJ276D scintillators: A comparative study for fast neutron spectroscopy* (2026), DOI: https://doi.org/10.1016/j.net.2026.104376
 - López-Fidalgo & Wong (2026), *Optimal Designs for Correlated Data*, DOI: https://doi.org/10.1146/annurev-statistics-042324-012947
 - Zhang et al. (2025 online / 2026 volume), *High-fidelity unfolding of 252Cf neutron spectra in EJ-301 scintillators via calibrated response matrices and Monte Carlo simulations*, DOI: https://doi.org/10.1038/s41598-025-30154-7
+- Neudecker et al. (2025), *Re-evaluating the prompt fission neutron spectrum of spontaneously fissioning 252Cf*, DOI: https://doi.org/10.1051/epjn/2025061
+- AIACHNE (2026), independent 252Cf PFNS measurement using 12C and 9Be elastic scattering, DOI: https://doi.org/10.1103/w7z1-l32n
+- IAEA Neutron Metrology File NMF-90: https://www-nds.iaea.org/public/libraries/nmf/
 - Coons & Huan (2025), *A Multifidelity Estimator of the Expected Information Gain for Bayesian Optimal Experimental Design*, DOI: https://doi.org/10.1137/25M1731812
 - Chowdhary, Attia & Alexanderian (2026), *Robust Optimal Experimental Design of Infinite-Dimensional Bayesian Nonlinear Inverse Problems*, DOI: https://doi.org/10.1137/24M1693921
 - NIST, *Assessment of measurement uncertainty via observation equations*: https://www.nist.gov/publications/assessment-measurement-uncertainty-observation-equations
+
+### Layer F — reference-spectrum uncertainty and shape-only scoring
+
+A spectrum reference is not automatically exact ground truth. The historical ²⁵²Cf prompt-fission neutron spectrum (PFNS) standard dates to 1987; a 2025 AIACHNE re-evaluation reports that original evaluation inputs and experimental covariances were lost. It could only reproduce the historical result within its stated one-sigma uncertainties, while the new evaluation incorporates reviewed datasets and covariance estimates, differs below 300 keV, and extends the evaluated range to approximately 500 eV–25 MeV. The authors provide pointwise spectra, correlation/covariance files and JSON experimental databases as supplementary material.
+
+A separate 2026 AIACHNE measurement used ¹²C and ⁹Be elastic-neutron-scattering efficiency determinations, a method independent of the previous measurements, and reports a detailed covariance treatment. It supports the overall existing PFNS shape while pointing out possible deficiencies in angle-differential ¹²C and ⁹Be evaluated nuclear data that create structures in the inferred spectrum. Thus even an independent reference can carry nuclear-data model uncertainty.
+
+The kernel now provides a full-covariance generalized-least-squares shape score with one nonnegative multiplicative scale profiled analytically. Its scale is a nuisance parameter removed to compare shapes; it is **not** an absolute fluence estimate. Report shape error and absolute normalization / fluence error separately. Use the full reference covariance, compare alternate evaluated versions, and document any reference-grid interpolation or binning. Never treat a sparse reference grid as permission for arbitrary linear interpolation.
+
+A complementary public source is the IAEA Neutron Metrology File NMF-90: it includes four spectrum-adjustment codes, IRDF-90/NMF-G reaction cross sections with covariance files, and six consistent neutron-field benchmark datasets with calculated spectra, measured reaction rates and covariance information. It is an older static resource (last update listed as 2006) and is not a scintillator pulse-height benchmark; it is useful for validating covariance-aware adjustment, input/output reproducibility and nuclear-data uncertainty handling.
+
+The best published EJ-301 result identified in this audit remains a distinct detector benchmark: a 1-inch/2-inch EJ-301 Geant4 + calibrated response + MLEM/GRAVEL study reports 0.35-MeV lower threshold, below-4.28% average deviation and 1.42% best case against ISO 8529-1. It uses a different detector from EJ-309, and its paper says supporting data are unavailable publicly due to commercial-contract restrictions. The reported response matrices have 80 neutron groups over 0–16 MeV and 50 gamma groups over 0–3 MeV. This should be listed as an external result pending author data access, not as a reproducible benchmark in the current repository.
 
 ## Current implementation and limits
 
@@ -166,11 +181,13 @@ Implemented in this research-only Rust crate:
 - independent-Poisson Fisher information from caller-supplied expected counts and Jacobian;
 - combination of Fisher contributions from independent candidate runs;
 - exact pairwise directed KL divergence for fixed independent-Poisson predictions from candidate discrete hypotheses;
+- full-covariance spectrum-shape chi-square with an analytically profiled multiplicative normalization;
 - symmetric Jacobi eigenvalue decomposition and local effective-rank / logdet / condition diagnostics;
 - equal-weight detector response ensemble and predictive mean/count covariance using the law of total covariance;
 - finite equal-weight response-ensemble Poisson mixture log predictive probability for observed integer counts, evaluated in log space;
 - nested two-level scalar approximate-control-variate estimation with frozen beta and a nested-sample variance estimate;
-- finite-scenario maximin candidate-design scoring with cost metadata and deterministic tie-breaking.
+- finite-scenario maximin candidate-design scoring with cost metadata and deterministic tie-breaking;
+- covariance-aware reference-spectrum shape comparison with profiled scale.
 
 Not implemented yet:
 
@@ -180,7 +197,7 @@ Not implemented yet:
 - a continuous robust-design optimizer, uncertainty-set calibration or Pareto frontier;
 - a nuisance-integrated or posterior-predictive model-discrimination score;
 - a general nuisance-aware hierarchical likelihood for response, background, live time, PSD and other calibration dimensions;
-- bootstrap/calibration-data ingestion and covariance provenance;
+- versioned PFNS reference evaluation ingestion, JSON experimental covariance database reader, interpolation audit and absolute-fluence comparison;
 - Geant4, GRAVEL, or the cited 2026 Bayesian method;
 - real 2025/2026 waveform or source-dataset reconstruction.
 
