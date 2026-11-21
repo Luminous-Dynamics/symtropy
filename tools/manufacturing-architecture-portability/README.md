@@ -146,3 +146,11 @@ A `qualified_reference` status requires a non-empty reference ID and 64-characte
 The current QIF join fixture deliberately declares both calibration and measurement uncertainty as `unknown`, with no reference. It is still admissible as an internally coherent **synthetic identity/time join**, but the CLI reports `metrology_reference_state=unknown_or_unqualified` and `physical_metrology_qualified=false`. Supplying both qualified-reference fields changes the report to `references_present_not_authenticated`, never to physically qualified.
 
 The first fixture evaluator accepts only `measurement_evidence_class=synthetic`. Recorded/physical evidence requires a distinct owner-admitted profile, source-rights and signature/authority checks, and the canonical calibration/metrology owners; it cannot pass through the synthetic lane.
+
+The QIF inspection join follows existing metrology owners rather than inventing a calibration/uncertainty engine:
+- Symtropy #2995 owns traceable measurement uncertainty budgets, Gage R&R, calibration, drift, covariance and verified combined uncertainty.
+- Mycelix #4704 owns immutable inspection criteria and the independent qualification-attestation boundary; the measurement record must not supply its own permissive acceptance limits.
+- Mycelix #6034 owns numerical instrument capability, calibration and sample-level measurement evidence.
+- Symtropy #4947 owns source/master clock transforms and multirate event-time uncertainty.
+
+The portability adapter carries only exact references and explicit evidence states. It does not recompute the MSA budget, authenticate an attestation, certify the instrument or classify the part. The synthetic fixture therefore labels measurement evidence as synthetic and calibration/uncertainty as unknown.
