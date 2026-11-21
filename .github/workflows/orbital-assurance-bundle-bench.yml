@@ -60,6 +60,10 @@ jobs:
           cargo run --locked --quiet --manifest-path tools/orbital-assurance-bundle-bench/Cargo.toml -- \
             tools/orbital-assurance-bundle-bench/fixtures/v0.1/assurance-cases.json \
             --source-commit "$actual_commit" > orbital-assurance-bundle-receipt.json
+          echo "Assurance receipt summary:"
+          jq '.report.summary' orbital-assurance-bundle-receipt.json
+          echo "Cases whose computed result differs from frozen expectation:"
+          jq -r '.report.cases[] | select(.expected_result_matched == false) | [.case_id, .disposition, .blocker_count, (.blockers | map(.code + ":" + (.claim_id // "-") + ":" + .detail) | join(";"))] | @tsv' orbital-assurance-bundle-receipt.json
           jq -e --arg expected_commit "$BENCHMARK_COMMIT" '
             .receipt_schema == "luminous.orbital-assurance-bundle.receipt.v0.1"
             and .source_commit == $expected_commit
