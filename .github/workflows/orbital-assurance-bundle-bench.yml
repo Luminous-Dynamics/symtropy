@@ -90,6 +90,7 @@ jobs:
         run: node tools/orbital-assurance-bundle-bench/tests/reference_oracle.mjs tools/orbital-assurance-bundle-bench/fixtures/v0.1/assurance-cases.json
 
       - name: Upload reproducible assurance receipt
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: orbital-assurance-bundle-${{ github.event.pull_request.head.sha || github.sha }}
