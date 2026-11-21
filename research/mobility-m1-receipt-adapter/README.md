@@ -25,11 +25,11 @@ M1 remains responsible for checking the active action ID/attempt, predicate, mis
 
 ## Time qualification is mandatory
 
-M2 monotonic ticks are **not** milliseconds. The adapter refuses Unknown/Unqualified time, source/comparison clock mismatch and missing normalization commitment. A Mycelix Position time/correlation owner must supply a normalized millisecond value and commitment for the exact source clock → M1 comparison clock/unit conversion. The adapter does not cast or guess.
+M2 monotonic ticks are **not** milliseconds. The adapter refuses Unknown/Unqualified time, source/comparison clock mismatch and missing normalization commitment. A Mycelix Position time/correlation owner must supply a normalized millisecond value and commitment for the exact source clock → M1 comparison clock/unit conversion. The adapter does not cast or guess. In this v0.1 test harness, `QualifiedReceiptTime` is a local boundary type populated by a hypothetical caller; it is **not yet imported from or verified against a concrete Mycelix API type**, and its commitment is opaque/unverified here. Wiring it to the real Mycelix qualified-time API is a separate integration gate.
 
 ## Tests
 
-Six adapter regressions cover successful content-digest projection, no-effect/partial/unknown mapping, unknown/unqualified/uncommitted time hold, mismatched clock rejection, stale M1 attempt rejection after M2 validation, and M1/M2 ticket identity mismatch. The harness also compiles and runs the imported M1 and M2 unit-test suites.
+Seven adapter regressions cover successful content-digest projection, no-effect/partial/unknown mapping, unknown/unqualified/uncommitted time hold, source- and comparison-clock mismatch rejection, stale M1 attempt rejection after M2 validation, and M1/M2 ticket identity mismatch. The harness also compiles and runs the imported M1 and M2 unit-test suites.
 
 ## Claim ceiling
 
