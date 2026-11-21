@@ -412,6 +412,67 @@ mod tests {
         }
     }
 
+    fn deterministic_normal_samples(seed: u64, count: usize) -> Vec<f64> {
+        let mut state = seed;
+        let mut next_uniform = || {
+            state = state.wrapping_add(0x9E37_79B9_7F4A_7C15);
+            let mut value = state;
+            value = (value ^ (value >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+            value = (value ^ (value >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+            value ^= value >> 31;
+            let mantissa = value >> 11;
+            (mantissa as f64 + 0.5) / 9_007_199_254_740_992.0
+        };
+        let mut values = Vec::with_capacity(count);
+        while values.len() < count {
+            let first = next_uniform();
+            let second = next_uniform();
+            let radius = (-2.0 * first.ln()).sqrt();
+            let angle = std::f64::consts::TAU * second;
+            values.push(radius * angle.cos());
+            if values.len() < count {
+                values.push(radius * angle.sin());
+            }
+        }
+        values
+    }
+
+    fn iid_like_chain(seed: u64, count: usize) -> HorseshoeHmcChain {
+        let values = deterministic_normal_samples(seed, count);
+        let energies = deterministic_normal_samples(seed.wrapping_add(17), count);
+        let draws = values.iter().zip(energies.iter())
+            .map(|(value, energy)| crate::HorseshoeHmcDraw {
+                coefficients: vec![*value],
+                log_local_scales: vec![0.0],
+                log_global_scale: -1.0,
+                log_posterior: -0.5 * value * value,
+                hamiltonian_energy: *energy,
+            })
+            .collect();
+        HorseshoeHmcChain {
+            draws,
+            transitions: count,
+            accepted_transitions: count,
+            divergences: 0,
+            acceptance_rate: 1.0,
+        }
+    }
+
+    #[test]
+    fn independent_normal_control_meets_proposed_diagnostic_thresholds() {
+        let chains: Vec<HorseshoeHmcChain> = (0..4)
+            .map(|index| iid_like_chain(0xC0FFEE_u64 + index * 97, 2_000))
+            .collect();
+        let summary = diagnose_horseshoe_coefficient(&chains, 0)
+            .expect("IID-like diagnostic control");
+        assert!(summary.maximum_rhat < 1.01, "Rhat={}", summary.maximum_rhat);
+        assert!(summary.bulk_ess >= 400.0, "bulk ESS={}", summary.bulk_ess);
+        assert!(summary.tail_ess >= 400.0, "tail ESS={}", summary.tail_ess);
+        assert_eq!(summary.divergence_count, 0);
+        assert!(summary.minimum_energy_bfmi >= 0.3);
+        assert!(summary.meets_proposed_thresholds);
+    }
+
     #[test]
     fn modern_diagnostics_require_at_least_four_chains() {
         let values: Vec<f64> = (0..20).map(|index| (index as f64).sin()).collect();
