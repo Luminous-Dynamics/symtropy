@@ -122,3 +122,13 @@ This is a generic forward operator only. It does not model scintillator light pr
 - Neither module proves global identifiability, distinguishes all competing physical mechanisms, nor provides experimental evidence.
 
 See [IDENTIFIABILITY_AND_DESIGN.md](../../../docs/research/cmni/IDENTIFIABILITY_AND_DESIGN.md) for the proposed design architecture, SOTA comparison and benchmark ladder.
+
+
+## Multifidelity and robust experiment-design primitives
+
+- `nested_control_variate_estimate` implements a two-level nested approximate-control-variate estimator for a scalar expectation, using paired high/low samples and extra low-fidelity samples.
+- The control-variate coefficient `beta` must be frozen independently of production samples. The result includes an estimate, nested-sample variance estimate, high-fidelity baseline variance and variance-reduction factor.
+- `robust_design_scores` evaluates supplied design utilities across a finite declared nuisance-scenario set; `select_maximin_design` chooses the design with best worst-case utility, breaking ties by lower cost.
+- Synthetic fixture: `research/cmni/fixtures/multifidelity-design-synthetic.json`.
+- Eleven additional tests cover the nested estimator, variance identity, malformed inputs, finite-scenario maximin selection and cost/error handling. The total is now **100 authored Rust tests** (37 root, 12 detector, 7 measurement, 8 material-state, 14 experiment-design, 11 response-uncertainty, 11 multifidelity-design). They remain unexecuted in this environment.
+- This is not a full multifidelity EIG method, ACV budget optimizer or robust Bayesian design engine. It does not learn beta, bound fidelity discrepancy, or establish continuous worst-case guarantees.
