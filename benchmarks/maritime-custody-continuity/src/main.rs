@@ -1,8 +1,8 @@
 use maritime_custody_continuity::{evaluate, parse_events_tsv, parse_expectations_tsv};
 
 fn main() {
-    let expectations =
-        parse_expectations_tsv(include_str!("../data/expectations.tsv")).unwrap_or_else(|error| {
+    let expectations = parse_expectations_tsv(include_str!("../data/expectations.tsv"))
+        .unwrap_or_else(|error| {
             eprintln!("expectation fixture rejected: {error}");
             std::process::exit(2);
         });
