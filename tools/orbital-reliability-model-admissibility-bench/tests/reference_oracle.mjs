@@ -180,10 +180,14 @@ function oracle(caseData) {
     disposition = "model_not_supported";
   }
   if (caseData.selected_profile === "homogeneous_poisson_constant_intensity" &&
-      has(caseData.maintenance_policy_ref) &&
-      uniqueArticles.some(article => article.reported_failure_events > 0 &&
+      uniqueArticles.some(article => article.reported_failure_events > 1)) {
+    if (!has(caseData.maintenance_policy_ref)) {
+      add("missing_maintenance_policy_for_recurrent_process");
+    }
+    if (uniqueArticles.some(article => article.reported_failure_events > 1 &&
         !article.maintenance_history_complete)) {
-    add("repair_restoration_history_missing_for_recurrent_process");
+      add("repair_restoration_history_missing_for_recurrent_process");
+    }
   }
 
   const hardDispute = disposition === "disputed";
@@ -239,7 +243,7 @@ if (corpus.schema !== "luminous.orbital-reliability-model-admissibility.corpus.v
     corpus.claim_ceiling !== "synthetic-model-input-admissibility-only") {
   throw new Error("unsupported model-admissibility corpus contract");
 }
-if (corpus.cases.length !== 58) throw new Error("expected 58 frozen model-admissibility cases");
+if (corpus.cases.length !== 59) throw new Error("expected 59 frozen model-admissibility cases");
 
 let mismatches = 0;
 let supported = 0;
@@ -265,5 +269,5 @@ for (const scenario of corpus.cases) {
 }
 if (supported < 1) throw new Error("reject-all behavior is not accepted: no positive control");
 if (mismatches > 0) process.exit(1);
-process.stdout.write("PASS: 58 cases; independent admissibility oracle; " +
+process.stdout.write("PASS: 59 cases; independent admissibility oracle; " +
   supported + " supported-for-analysis controls; zero mismatches; no hazard confirmation\n");
