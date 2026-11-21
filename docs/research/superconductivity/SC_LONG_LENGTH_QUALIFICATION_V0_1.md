@@ -25,6 +25,24 @@ A useful independent product-performance cohort is the 2026 REBCO anisotropy stu
 
 The initial benchmark should preserve model, architecture, sample, source batch, substrate, REBCO thickness, stabilizer, field orientation, criterion and test lab. It must not average or rank across mismatched conditions.
 
+## Industry observability comparator: direct transport vs calibrated proxy
+
+SuperPower's public process description states that it measures transport critical current at 3 m intervals along conductor and also uses a calibrated non-contact magnetization system ("TapeStar") to produce a lengthwise Ic trace. The same page illustrates a transport measurement on approximately 630 m of 4 mm tape and a TapeStar trace of that same length. This is unusually useful because it documents a real industrial metrology architecture, rather than merely a product headline: https://www.superpower-inc.com/Technology.aspx
+
+The v0.1 auditor therefore separates:
+- `direct_transport`: a transport-current measurement used for the direct-Ic spatial coverage metric;
+- `noncontact_magnetization_proxy`: a calibrated indirect Ic estimate, reported separately and never counted as direct transport coverage;
+- `structural_inspection`: e.g. defect / surface inspection, not an Ic measurement;
+- `model_inference` / `other`: non-direct evidence that must not be silently promoted to direct Ic.
+
+The benchmark should compare direct transport sampling and calibrated proxy traces on common reel coordinates, using the direct measurements as matched validation anchors. Required outputs include proxy bias and uncertainty versus direct transport, false-negative probability for local low-Ic segments, spatial resolution / blind-zone effects, registration error, drift across calibration revisions, and inspection cost per accepted kA·m. A denser proxy map may improve coverage, but it is not more authoritative merely because it is spatially dense.
+
+SuperPower's published specification lists 200–500 m pieces with some above 900 m depending on specification; its 77 K self-field values are stated by width and tape type, with a 1 μV/cm transport criterion. Fujikura's FESC-SCH04 page lists 130 A at 77 K self-field and 640 A at 20 K / 5 T for its specified 4 mm artificial-pin tape, while explicitly warning that the 20 K / 5 T figure is a reference value and not a performance guarantee. These are manufacturer specifications and product-specific comparators, not matched cross-vendor measurements or universal acceptance thresholds:
+- https://superpower-inc.com/specification.aspx
+- https://www.fujikura.co.jp/en/products/superconductors/superconductingwire-reel/superconductingwire-reel.html
+
+A separate 2026 IEEE Transactions on Applied Superconductivity study compares electrical, thermal and mechanical performance across four industrial REBCO manufacturers and compares two production-year batches from one manufacturer. It supports a second benchmark principle: compare actual measured product cohorts and batch changes under common test methods, not only manufacturer specification sheets. DOI: https://doi.org/10.1109/TASC.2026.3672426
+
 ## Paradigm shift
 
 Replace:
@@ -43,6 +61,7 @@ The companion JSON Schema is `docs/research/schemas/rebco_long_length_segment_v0
 
 Every observation binds:
 - parent reel, segment, lot, campaign and process-run identities;
+- measurement basis: direct transport, non-contact magnetization proxy, structural inspection, model inference or other declared method;
 - a declared reel datum, positive longitudinal direction, width datum and face / side;
 - a bounded longitudinal and widthwise measurement footprint;
 - property, value / interval, unit, evidence state and measurement method;
@@ -65,7 +84,7 @@ Evidence state, measurement authority and product acceptance are separate dimens
 
 ## Spatial evaluation
 
-Report all statistics with the sampling design, spatial resolution and dependence assumptions:
+Report direct transport coverage and calibrated proxy coverage separately. Report all statistics with the sampling design, spatial resolution and dependence assumptions:
 - observed coverage by length and width;
 - length-weighted mean, median, p01, p05, p10 and minimum;
 - contiguous under-specification length and number of failing runs;
