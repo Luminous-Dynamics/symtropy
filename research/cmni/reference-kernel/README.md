@@ -76,7 +76,7 @@ There are now **45 authored Rust tests** in the prototype: 37 in the main refere
 - Isotope scope matters: the 6.385-MeV `1H(15N,αγ)12C` resonance measures protium; deuterium needs a D-sensitive reaction/measurement and its own calibrated response.
 - Lateral spatial point-spread and depth response are distinct and not yet combined in the current kernel.
 
-There are now **59 authored Rust tests**: 37 in the root reference kernel, 7 in detector.rs, 7 in measurement.rs and 8 in material_state.rs. They remain unexecuted because cargo/rustc/nix are unavailable in this environment.
+There are now **64 authored Rust tests**: 37 in the root reference kernel, 12 in detector.rs, 7 in measurement.rs and 8 in material_state.rs. They remain unexecuted because cargo/rustc/nix are unavailable in this environment.
 
 
 ## Detector response matrix forward model
