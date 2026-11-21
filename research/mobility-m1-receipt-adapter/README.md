@@ -6,8 +6,9 @@
 
 The dedicated workflow checks out these exact, public source commits:
 
-- M1 mission supervisor: `03c43fa531174f02348edccb55f745ae49382318`
+- M1 mission supervisor: `769522d2b1e28194eb6d8a48418f9feccc53b926`
 - M2 action/effect contract: `884bcfbd4474b31ed395fbedf63f0a4091eefa14`
+- Mycelix Position clock-correlation API: `fb92acb62c3b2b9c040de8ebc34fe371f4efd8a7`
 
 They are imported as modules from the checkout worktrees; the adapter does not fork or copy their state machines.
 
@@ -25,11 +26,11 @@ M1 remains responsible for checking the active action ID/attempt, predicate, mis
 
 ## Time qualification is mandatory
 
-M2 monotonic ticks are **not** milliseconds. The adapter refuses Unknown/Unqualified time, source/comparison clock mismatch and missing normalization commitment. A Mycelix Position time/correlation owner must supply a normalized millisecond value and commitment for the exact source clock → M1 comparison clock/unit conversion. The adapter does not cast or guess. It projects source-clock/boot, comparison-clock/boot and the normalization commitment into the M1 receipt rather than discarding them. M1 keeps these fields and rejects comparisons across changing target clock/boot identities for the same observer source. In this v0.1 test harness, `QualifiedReceiptTime` is a local boundary type populated by a hypothetical caller; it is **not yet imported from or verified against a concrete Mycelix API type**, and its commitment is opaque/unverified here. Wiring it to the real Mycelix qualified-time API is a separate integration gate.
+M2 monotonic ticks are **not** milliseconds. The adapter consumes the real Mycelix `ClockCorrelationV2` and `NormalizedInstantV2` types from the pinned Position package; there is no local clock/correlation data model. Before M1 can receive the receipt, the adapter validates the normalized result against the exact correlation record, requires the entire bounded source reading to lie inside the correlation's valid interval, matches the source clock and boot epoch to M2's physical evidence and platform subject, and requires the destination scale/profile, epoch and output unit to agree. M1 currently accepts integer milliseconds only, so fractional values, other units and out-of-range values are rejected rather than cast or rounded. The adapter carries separate commitments for the raw source reading, the correlation profile and the normalized output into M1's receipt. M1 uses a basis-neutral destination time scale/epoch and rejects per-source ordering if the source clock/boot, destination basis/epoch or correlation commitment changes. The Mycelix validator checks the caller-supplied output and lineage; it does not perform conversion, authenticate the correlation, or synchronize a physical clock.
 
 ## Tests
 
-Eight adapter regressions cover successful content-digest projection, no-effect/partial/unknown mapping, unknown/unqualified/uncommitted time hold, source-clock mismatch rejection and comparison-clock lineage preservation under the M1 per-source cursor, stale M1 attempt rejection after M2 validation, and M1/M2 ticket identity mismatch, and common-cause observer/executor failure-domain overlap before M1 mutation. The harness also compiles and runs the imported M1 and M2 unit-test suites, including the CDAAB semantic run-receipt validator with exact planned episode/scenario and preregistered exclusion-reason checks.
+Ten adapter regressions cover Mycelix-qualified time projection, no-effect/partial/unknown mapping, unknown/unqualified/uncommitted time hold, source-clock mismatch, TAI/TT destination-basis preservation, correlation-validity rejection, non-millisecond output rejection, stale M1 attempt rejection after M2 validation, M1/M2 ticket identity mismatch, and common-cause observer/executor failure-domain overlap before M1 mutation. The harness also compiles and runs the imported M1 and M2 unit-test suites, including the CDAAB semantic run-receipt validator with exact planned episode/scenario and preregistered exclusion-reason checks. It also compiles against the exact Mycelix Position API package. That API's own dedicated workflow passes 96 tests in each mirrored Position workspace; the adapter target does not rerun Mycelix's package tests.
 
 ## Claim ceiling
 
