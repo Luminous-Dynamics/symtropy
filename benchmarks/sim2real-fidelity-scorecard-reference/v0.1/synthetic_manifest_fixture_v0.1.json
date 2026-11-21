@@ -26,19 +26,22 @@
           "normalization_scale": 0.1,
           "samples": [
             {
-              "timestamp_ns": 0,
               "real_value": 0,
-              "simulated_value": 0.01
+              "simulated_value": 0.01,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
             },
             {
-              "timestamp_ns": 1000000,
               "real_value": 0.2,
-              "simulated_value": 0.21
+              "simulated_value": 0.21,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
             },
             {
-              "timestamp_ns": 2000000,
               "real_value": 0.4,
-              "simulated_value": 0.41
+              "simulated_value": 0.41,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
             }
           ]
         },
@@ -48,19 +51,22 @@
           "normalization_scale": 0.5,
           "samples": [
             {
-              "timestamp_ns": 0,
               "real_value": 0,
-              "simulated_value": 0.02
+              "simulated_value": 0.02,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
             },
             {
-              "timestamp_ns": 1000000,
               "real_value": 1,
-              "simulated_value": 1.05
+              "simulated_value": 1.05,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
             },
             {
-              "timestamp_ns": 2000000,
               "real_value": 0.5,
-              "simulated_value": 0.55
+              "simulated_value": 0.55,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
             }
           ]
         }
@@ -83,19 +89,22 @@
           "normalization_scale": 0.1,
           "samples": [
             {
-              "timestamp_ns": 0,
               "real_value": 0,
-              "simulated_value": 0.011
+              "simulated_value": 0.011,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
             },
             {
-              "timestamp_ns": 1000000,
               "real_value": 0.2,
-              "simulated_value": 0.211
+              "simulated_value": 0.211,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
             },
             {
-              "timestamp_ns": 2000000,
               "real_value": 0.4,
-              "simulated_value": 0.411
+              "simulated_value": 0.411,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
             }
           ]
         },
@@ -105,19 +114,22 @@
           "normalization_scale": 0.5,
           "samples": [
             {
-              "timestamp_ns": 0,
               "real_value": 0,
-              "simulated_value": 0.02
+              "simulated_value": 0.02,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
             },
             {
-              "timestamp_ns": 1000000,
               "real_value": 1,
-              "simulated_value": 1.05
+              "simulated_value": 1.05,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
             },
             {
-              "timestamp_ns": 2000000,
               "real_value": 0.5,
-              "simulated_value": 0.55
+              "simulated_value": 0.55,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
             }
           ]
         }
@@ -140,19 +152,22 @@
           "normalization_scale": 0.1,
           "samples": [
             {
-              "timestamp_ns": 0,
               "real_value": 0,
-              "simulated_value": 0.012
+              "simulated_value": 0.012,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
             },
             {
-              "timestamp_ns": 1000000,
               "real_value": 0.2,
-              "simulated_value": 0.212
+              "simulated_value": 0.212,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
             },
             {
-              "timestamp_ns": 2000000,
               "real_value": 0.4,
-              "simulated_value": 0.412
+              "simulated_value": 0.412,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
             }
           ]
         },
@@ -162,19 +177,22 @@
           "normalization_scale": 0.5,
           "samples": [
             {
-              "timestamp_ns": 0,
               "real_value": 0,
-              "simulated_value": 0.02
+              "simulated_value": 0.02,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
             },
             {
-              "timestamp_ns": 1000000,
               "real_value": 1,
-              "simulated_value": 1.05
+              "simulated_value": 1.05,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
             },
             {
-              "timestamp_ns": 2000000,
               "real_value": 0.5,
-              "simulated_value": 0.55
+              "simulated_value": 0.55,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
             }
           ]
         }
@@ -197,19 +215,22 @@
           "normalization_scale": 0.1,
           "samples": [
             {
-              "timestamp_ns": 0,
               "real_value": 0,
-              "simulated_value": 0.013000000000000001
+              "simulated_value": 0.013000000000000001,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
             },
             {
-              "timestamp_ns": 1000000,
               "real_value": 0.2,
-              "simulated_value": 0.213
+              "simulated_value": 0.213,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
             },
             {
-              "timestamp_ns": 2000000,
               "real_value": 0.4,
-              "simulated_value": 0.413
+              "simulated_value": 0.413,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
             }
           ]
         },
@@ -219,19 +240,22 @@
           "normalization_scale": 0.5,
           "samples": [
             {
-              "timestamp_ns": 0,
               "real_value": 0,
-              "simulated_value": 0.02
+              "simulated_value": 0.02,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
             },
             {
-              "timestamp_ns": 1000000,
               "real_value": 1,
-              "simulated_value": 1.05
+              "simulated_value": 1.05,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
             },
             {
-              "timestamp_ns": 2000000,
               "real_value": 0.5,
-              "simulated_value": 0.55
+              "simulated_value": 0.55,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
             }
           ]
         }
@@ -254,19 +278,22 @@
           "normalization_scale": 0.1,
           "samples": [
             {
-              "timestamp_ns": 0,
               "real_value": 0,
-              "simulated_value": 0.014
+              "simulated_value": 0.014,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
             },
             {
-              "timestamp_ns": 1000000,
               "real_value": 0.2,
-              "simulated_value": 0.214
+              "simulated_value": 0.214,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
             },
             {
-              "timestamp_ns": 2000000,
               "real_value": 0.4,
-              "simulated_value": 0.414
+              "simulated_value": 0.414,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
             }
           ]
         },
@@ -276,19 +303,22 @@
           "normalization_scale": 0.5,
           "samples": [
             {
-              "timestamp_ns": 0,
               "real_value": 0,
-              "simulated_value": 0.02
+              "simulated_value": 0.02,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
             },
             {
-              "timestamp_ns": 1000000,
               "real_value": 1,
-              "simulated_value": 1.05
+              "simulated_value": 1.05,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
             },
             {
-              "timestamp_ns": 2000000,
               "real_value": 0.5,
-              "simulated_value": 0.55
+              "simulated_value": 0.55,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
             }
           ]
         }
@@ -311,19 +341,22 @@
           "normalization_scale": 0.1,
           "samples": [
             {
-              "timestamp_ns": 0,
               "real_value": 0,
-              "simulated_value": 0.015
+              "simulated_value": 0.015,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
             },
             {
-              "timestamp_ns": 1000000,
               "real_value": 0.2,
-              "simulated_value": 0.215
+              "simulated_value": 0.215,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
             },
             {
-              "timestamp_ns": 2000000,
               "real_value": 0.4,
-              "simulated_value": 0.415
+              "simulated_value": 0.415,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
             }
           ]
         },
@@ -333,19 +366,22 @@
           "normalization_scale": 0.5,
           "samples": [
             {
-              "timestamp_ns": 0,
               "real_value": 0,
-              "simulated_value": 0.02
+              "simulated_value": 0.02,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
             },
             {
-              "timestamp_ns": 1000000,
               "real_value": 1,
-              "simulated_value": 1.05
+              "simulated_value": 1.05,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
             },
             {
-              "timestamp_ns": 2000000,
               "real_value": 0.5,
-              "simulated_value": 0.55
+              "simulated_value": 0.55,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
             }
           ]
         }
@@ -368,19 +404,22 @@
           "normalization_scale": 0.1,
           "samples": [
             {
-              "timestamp_ns": 0,
               "real_value": 0,
-              "simulated_value": 0.016
+              "simulated_value": 0.016,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
             },
             {
-              "timestamp_ns": 1000000,
               "real_value": 0.2,
-              "simulated_value": 0.216
+              "simulated_value": 0.216,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
             },
             {
-              "timestamp_ns": 2000000,
               "real_value": 0.4,
-              "simulated_value": 0.416
+              "simulated_value": 0.416,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
             }
           ]
         },
@@ -390,19 +429,22 @@
           "normalization_scale": 0.5,
           "samples": [
             {
-              "timestamp_ns": 0,
               "real_value": 0,
-              "simulated_value": 0.02
+              "simulated_value": 0.02,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
             },
             {
-              "timestamp_ns": 1000000,
               "real_value": 1,
-              "simulated_value": 1.05
+              "simulated_value": 1.05,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
             },
             {
-              "timestamp_ns": 2000000,
               "real_value": 0.5,
-              "simulated_value": 0.55
+              "simulated_value": 0.55,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
             }
           ]
         }
@@ -425,19 +467,22 @@
           "normalization_scale": 0.1,
           "samples": [
             {
-              "timestamp_ns": 0,
               "real_value": 0,
-              "simulated_value": 0.017
+              "simulated_value": 0.017,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
             },
             {
-              "timestamp_ns": 1000000,
               "real_value": 0.2,
-              "simulated_value": 0.217
+              "simulated_value": 0.217,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
             },
             {
-              "timestamp_ns": 2000000,
               "real_value": 0.4,
-              "simulated_value": 0.417
+              "simulated_value": 0.417,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
             }
           ]
         },
@@ -447,19 +492,22 @@
           "normalization_scale": 0.5,
           "samples": [
             {
-              "timestamp_ns": 0,
               "real_value": 0,
-              "simulated_value": 0.02
+              "simulated_value": 0.02,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
             },
             {
-              "timestamp_ns": 1000000,
               "real_value": 1,
-              "simulated_value": 1.05
+              "simulated_value": 1.05,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
             },
             {
-              "timestamp_ns": 2000000,
               "real_value": 0.5,
-              "simulated_value": 0.55
+              "simulated_value": 0.55,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
             }
           ]
         }
@@ -482,19 +530,22 @@
           "normalization_scale": 0.1,
           "samples": [
             {
-              "timestamp_ns": 0,
               "real_value": 0,
-              "simulated_value": 0.018000000000000002
+              "simulated_value": 0.018000000000000002,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
             },
             {
-              "timestamp_ns": 1000000,
               "real_value": 0.2,
-              "simulated_value": 0.218
+              "simulated_value": 0.218,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
             },
             {
-              "timestamp_ns": 2000000,
               "real_value": 0.4,
-              "simulated_value": 0.418
+              "simulated_value": 0.418,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
             }
           ]
         },
@@ -504,19 +555,22 @@
           "normalization_scale": 0.5,
           "samples": [
             {
-              "timestamp_ns": 0,
               "real_value": 0,
-              "simulated_value": 0.02
+              "simulated_value": 0.02,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
             },
             {
-              "timestamp_ns": 1000000,
               "real_value": 1,
-              "simulated_value": 1.05
+              "simulated_value": 1.05,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
             },
             {
-              "timestamp_ns": 2000000,
               "real_value": 0.5,
-              "simulated_value": 0.55
+              "simulated_value": 0.55,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
             }
           ]
         }
@@ -539,19 +593,22 @@
           "normalization_scale": 0.1,
           "samples": [
             {
-              "timestamp_ns": 0,
               "real_value": 0,
-              "simulated_value": 0.019000000000000003
+              "simulated_value": 0.019000000000000003,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
             },
             {
-              "timestamp_ns": 1000000,
               "real_value": 0.2,
-              "simulated_value": 0.219
+              "simulated_value": 0.219,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
             },
             {
-              "timestamp_ns": 2000000,
               "real_value": 0.4,
-              "simulated_value": 0.419
+              "simulated_value": 0.419,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
             }
           ]
         },
@@ -561,19 +618,22 @@
           "normalization_scale": 0.5,
           "samples": [
             {
-              "timestamp_ns": 0,
               "real_value": 0,
-              "simulated_value": 0.02
+              "simulated_value": 0.02,
+              "real_timestamp_ns": 0,
+              "simulated_timestamp_ns": 0
             },
             {
-              "timestamp_ns": 1000000,
               "real_value": 1,
-              "simulated_value": 1.05
+              "simulated_value": 1.05,
+              "real_timestamp_ns": 1000000,
+              "simulated_timestamp_ns": 1000000
             },
             {
-              "timestamp_ns": 2000000,
               "real_value": 0.5,
-              "simulated_value": 0.55
+              "simulated_value": 0.55,
+              "real_timestamp_ns": 2000000,
+              "simulated_timestamp_ns": 2000000
             }
           ]
         }
