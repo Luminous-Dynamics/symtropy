@@ -1,9 +1,11 @@
 use maritime_ais_observability::{
-    evaluate_call, evaluate_call_with_initial_state, AisFix, DwellProfile, ServiceState, Zone,
+    evaluate_call, evaluate_call_with_initial_state, predictions_from_report, score_events,
+    AisFix, DwellProfile, GroundTruthEvent, ScoredEventKind, ServiceState, Zone,
 };
 
 fn fix(tick: i64, id: &str, zone: Zone, speed: u32) -> AisFix {
     AisFix {
+        call_reference_id: "SYNTHETIC_CALL_001".to_string(),
         mmsi: "563123456".to_string(),
         message_id: id.to_string(),
         source_id: "SYNTHETIC_AIS_SOURCE".to_string(),
@@ -73,6 +75,25 @@ fn main() {
             event.supporting_fix_count
         );
     }
+
+    let truth = [GroundTruthEvent {
+        call_reference_id: "SYNTHETIC_CALL_001".to_string(),
+        kind: ScoredEventKind::BerthEntry,
+        event_tick: 2,
+    }];
+    let predictions = predictions_from_report(&qualified);
+    let score = score_events(&truth, &predictions, 0).unwrap_or_else(|error| {
+        eprintln!("event scorecard failed: {error}");
+        std::process::exit(2);
+    });
+    println!(
+        "Synthetic event score: TP={} FP={} FN={} precision={:?} recall={:?}",
+        score.overall.true_positive,
+        score.overall.false_positive,
+        score.overall.false_negative,
+        score.overall.precision,
+        score.overall.recall
+    );
 
     let late_start = [
         fix(20, "B0", Zone::Berth, 100),
