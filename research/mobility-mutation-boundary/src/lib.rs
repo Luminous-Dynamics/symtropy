@@ -106,7 +106,7 @@ pub struct NativeApplicationContext<'a> {
 
 struct BoundaryState {
     live: LiveAuthoritySnapshot,
-    consumed: BTreeSet<(String, String)>,
+    consumed: BTreeSet<String>,
     next_application_sequence: u64,
 }
 
@@ -184,7 +184,7 @@ impl ApplicationBoundary {
             return Err(Rejection::Expired);
         }
 
-        let consumption_key = (ticket.ticket_id.clone(), ticket.attempt_key.clone());
+        let consumption_key = ticket.ticket_id.clone();
         if state.consumed.contains(&consumption_key) {
             return Err(Rejection::Replay);
         }
@@ -438,10 +438,80 @@ mod tests {
         assert_eq!(
             results
                 .iter()
-                .filter(|result| **result == Err(Rejection::Replay))
+                .filter(|result| result.as_ref().err() == Some(&Rejection::Replay))
                 .count(),
             1
         );
+    }
+
+
+    #[test]
+    fn a_ticket_id_cannot_be_reused_for_a_later_attempt() {
+        let boundary = ApplicationBoundary::new(live("attempt-1", 7, 3));
+        let calls = AtomicUsize::new(0);
+        boundary
+            .apply(&ticket("attempt-1"), &now(150), |_| {
+                calls.fetch_add(1, Ordering::SeqCst);
+                NativeApplicationResult::Accepted
+            })
+            .unwrap();
+
+        boundary.replace_live_snapshot(live("attempt-2", 8, 4)).unwrap();
+        let mut later_attempt = ticket("attempt-2");
+        later_attempt.binding = binding(8, 4);
+        let result = boundary.apply(&later_attempt, &now(151), |_| {
+            calls.fetch_add(1, Ordering::SeqCst);
+            NativeApplicationResult::Accepted
+        });
+
+        assert_eq!(result, Err(Rejection::Replay));
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+    }
+
+    #[test]
+    fn authority_update_waits_until_native_application_callback_finishes() {
+        use std::sync::mpsc::channel;
+
+        let boundary = Arc::new(ApplicationBoundary::new(live("attempt-1", 7, 3)));
+        let apply_boundary = Arc::clone(&boundary);
+        let (callback_entered_tx, callback_entered_rx) = channel();
+        let (release_callback_tx, release_callback_rx) = channel();
+
+        let apply_thread = std::thread::spawn(move || {
+            apply_boundary.apply(&ticket("attempt-1"), &now(150), |_| {
+                callback_entered_tx.send(()).unwrap();
+                release_callback_rx.recv().unwrap();
+                NativeApplicationResult::Accepted
+            })
+        });
+
+        callback_entered_rx.recv().unwrap();
+
+        let update_boundary = Arc::clone(&boundary);
+        let (update_started_tx, update_started_rx) = channel();
+        let update_thread = std::thread::spawn(move || {
+            update_started_tx.send(()).unwrap();
+            update_boundary.replace_live_snapshot(live("attempt-1", 8, 4))
+        });
+        update_started_rx.recv().unwrap();
+
+        // The callback is still inside apply's critical section. Releasing it
+        // establishes application-before-invalidation as the legal order.
+        release_callback_tx.send(()).unwrap();
+        let receipt = apply_thread.join().unwrap().unwrap();
+        update_thread.join().unwrap().unwrap();
+
+        assert_eq!(receipt.disposition, ReceiptDisposition::AcceptedByNativeController);
+        assert_eq!(receipt.binding_commitment, [7; 32]);
+        assert_eq!(receipt.controller_epoch, 3);
+
+        let calls = AtomicUsize::new(0);
+        let stale = boundary.apply(&ticket("attempt-1"), &now(151), |_| {
+            calls.fetch_add(1, Ordering::SeqCst);
+            NativeApplicationResult::Accepted
+        });
+        assert_eq!(stale, Err(Rejection::BindingMismatch));
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
     }
 
     #[test]
