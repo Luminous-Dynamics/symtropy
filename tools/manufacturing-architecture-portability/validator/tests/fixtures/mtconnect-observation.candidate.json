@@ -22,5 +22,8 @@
       "raw_payload_sha256": "3000000000000000000000000000000000000000000000000000000000000000",
       "source_locator": "/Document/Extensions/VendorTrace[1]"
     }
-  ]
+  ],
+  "projection_schema_version": "0.1.0",
+  "adapter_profile_id": "urn:luminous:symtropy:mfg-arch:uns-mqtt-synthetic-v0.1",
+  "source_schema_version": "2.8"
 }
