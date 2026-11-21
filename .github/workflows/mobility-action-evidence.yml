@@ -25,6 +25,7 @@ jobs:
       - name: Validate CDAAB protocol schemas
         run: |
           jq empty research/mobility-action-evidence/protocol/scenario_manifest.schema.json
+          jq empty research/mobility-action-evidence/protocol/action_ticket.schema.json
           jq empty research/mobility-action-evidence/protocol/evaluation_plan.schema.json
           jq empty research/mobility-action-evidence/protocol/run_receipt.schema.json
       - name: Check formatting
