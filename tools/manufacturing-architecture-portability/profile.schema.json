@@ -195,7 +195,8 @@
           "implementation",
           "access_contract",
           "semantic_contract",
-          "admission"
+          "admission",
+          "intelligence_scope"
         ],
         "properties": {
           "layer_id": {
@@ -372,6 +373,14 @@
                 }
               }
             }
+          },
+          "intelligence_scope": {
+            "enum": [
+              "asset",
+              "site_area",
+              "enterprise",
+              "cross_layer"
+            ]
           }
         }
       }
