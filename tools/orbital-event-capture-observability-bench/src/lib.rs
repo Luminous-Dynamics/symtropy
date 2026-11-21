@@ -400,7 +400,11 @@ fn evaluate_case(case: &CaptureCase) -> Decision {
         Disposition::ReconciledFixtureOnly
     };
 
-    let upper_miss_probability_95 = if missed_count == 0 {
+    let upper_miss_probability_95 = if missed_count == 0
+        && duplicate_count == 0
+        && unexpected_count == 0
+        && !disputed_payload_or_time
+    {
         zero_miss_upper_bound_95(case.reference_events.len()).ok()
     } else {
         None
