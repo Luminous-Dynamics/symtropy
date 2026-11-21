@@ -727,8 +727,14 @@ mod tests {
 
     #[test]
     fn prismatic_angular_lock_stiffness_endpoints_are_exact() {
-        let mut a = dynamic_with_full_inertia(0, vec![3.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 1.0]);
-        let mut b = dynamic_with_full_inertia(1, vec![2.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 5.0]);
+        let mut a = dynamic_with_full_inertia(
+            0,
+            vec![3.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 1.0],
+        );
+        let mut b = dynamic_with_full_inertia(
+            1,
+            vec![2.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 5.0],
+        );
         a.angular_velocity.set(0, 1, -0.2);
         a.angular_velocity.set(0, 2, 0.1);
         a.angular_velocity.set(1, 2, -0.4);
