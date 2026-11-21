@@ -182,3 +182,8 @@ These values are **synthetic evaluator known answers**, not measured model behav
 The current evaluator is a single decision-round action-choice harness: the candidate emits an ordered list of requests for one decision round, while the evaluator controls which resulting observation refs are actually admitted. It does not yet expose an observation to the candidate and solicit a fresh action after each returned result. The multi-round, event-by-event interaction protocol is tracked in [#6555](https://github.com/Luminous-Dynamics/symtropy/issues/6555).
 
 This is intentional separation: first qualify action, cost, time, evidence and regret semantics; then qualify interactive event sequencing, re-planning, cancellation, concurrency and budget reservation/settlement.
+
+
+### EVSI-estimate calibration
+
+The evaluator now reports mean absolute error and signed bias between each candidate's estimated EVSI and evaluator-known realized EVSI for actions the candidate actually requested. This is a selected-action calibration diagnostic: it does **not** measure whether the policy correctly values actions it never considered, so it must not be presented as full action-space calibration or decision-policy calibration. A future round-based executor (#6555) should elicit estimates for candidate sets before selection and score calibration across selected and unselected alternatives without leaking outcomes.
