@@ -1,0 +1,37 @@
+name: Navigation Research Isolated Rust Crates
+
+on:
+  pull_request:
+    paths:
+      - "research/nav-transition-validator/**"
+      - "research/nav-observation-toy-fim/**"
+      - ".github/workflows/navigation-research-rust.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-rust:
+    name: Isolated navigation research crates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Test standalone crates
+        shell: bash
+        run: |
+          set -euo pipefail
+          for manifest in \
+            research/nav-transition-validator/Cargo.toml \
+            research/nav-observation-toy-fim/Cargo.toml
+          do
+            if [[ -f "$manifest" ]]; then
+              echo "::group::cargo test --all-targets --manifest-path $manifest"
+              cargo test --all-targets --manifest-path "$manifest"
+              echo "::endgroup::"
+            fi
+          done
