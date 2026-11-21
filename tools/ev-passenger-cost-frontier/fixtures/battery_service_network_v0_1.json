@@ -1,0 +1,154 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "BATTERY-SERVICE-NETWORK-001",
+  "dispatch_epoch_id": "synthetic-common-epoch-001",
+  "claim_ceiling": "Synthetic exact one-epoch assignment only; no physical battery qualification or dispatch authority.",
+  "packs": [
+    {
+      "pack_id": "pack-a",
+      "configuration_id": "uav-class-a",
+      "state": "available",
+      "identity_verified": true,
+      "custody_resolved": true,
+      "post_test_freshness": "fresh",
+      "post_test_passed": true,
+      "post_test_evidence_reference": "urn:synthetic:pack-a-post-test",
+      "usable_energy": {
+        "freshness": "fresh",
+        "evidence_class": "synthetic",
+        "evidence_reference": "urn:synthetic:pack-a-energy",
+        "value": 2000
+      },
+      "peak_power": {
+        "freshness": "fresh",
+        "evidence_class": "synthetic",
+        "evidence_reference": "urn:synthetic:pack-a-power",
+        "value": 2000
+      },
+      "thermal": {
+        "freshness": "fresh",
+        "evidence_class": "synthetic",
+        "evidence_reference": "urn:synthetic:pack-a-thermal",
+        "pack_temperature_c": 25,
+        "qualified_max_temperature_c": 60
+      }
+    },
+    {
+      "pack_id": "pack-b",
+      "configuration_id": "uav-class-a",
+      "state": "available",
+      "identity_verified": true,
+      "custody_resolved": true,
+      "post_test_freshness": "fresh",
+      "post_test_passed": true,
+      "post_test_evidence_reference": "urn:synthetic:pack-b-post-test",
+      "usable_energy": {
+        "freshness": "fresh",
+        "evidence_class": "synthetic",
+        "evidence_reference": "urn:synthetic:pack-b-energy",
+        "value": 1500
+      },
+      "peak_power": {
+        "freshness": "fresh",
+        "evidence_class": "synthetic",
+        "evidence_reference": "urn:synthetic:pack-b-power",
+        "value": 1500
+      },
+      "thermal": {
+        "freshness": "fresh",
+        "evidence_class": "synthetic",
+        "evidence_reference": "urn:synthetic:pack-b-thermal",
+        "pack_temperature_c": 26,
+        "qualified_max_temperature_c": 55
+      }
+    },
+    {
+      "pack_id": "pack-c",
+      "configuration_id": "uav-class-b",
+      "state": "available",
+      "identity_verified": true,
+      "custody_resolved": true,
+      "post_test_freshness": "fresh",
+      "post_test_passed": true,
+      "post_test_evidence_reference": "urn:synthetic:pack-c-post-test",
+      "usable_energy": {
+        "freshness": "fresh",
+        "evidence_class": "synthetic",
+        "evidence_reference": "urn:synthetic:pack-c-energy",
+        "value": 1200
+      },
+      "peak_power": {
+        "freshness": "fresh",
+        "evidence_class": "synthetic",
+        "evidence_reference": "urn:synthetic:pack-c-power",
+        "value": 1800
+      },
+      "thermal": {
+        "freshness": "fresh",
+        "evidence_class": "synthetic",
+        "evidence_reference": "urn:synthetic:pack-c-thermal",
+        "pack_temperature_c": 24,
+        "qualified_max_temperature_c": 58
+      }
+    },
+    {
+      "pack_id": "pack-d",
+      "configuration_id": "uav-class-a",
+      "state": "quarantined",
+      "identity_verified": true,
+      "custody_resolved": true,
+      "post_test_freshness": "fresh",
+      "post_test_passed": true,
+      "post_test_evidence_reference": "urn:synthetic:pack-d-post-test",
+      "usable_energy": {
+        "freshness": "fresh",
+        "evidence_class": "synthetic",
+        "evidence_reference": "urn:synthetic:pack-d-energy",
+        "value": 2500
+      },
+      "peak_power": {
+        "freshness": "fresh",
+        "evidence_class": "synthetic",
+        "evidence_reference": "urn:synthetic:pack-d-power",
+        "value": 2500
+      },
+      "thermal": {
+        "freshness": "fresh",
+        "evidence_class": "synthetic",
+        "evidence_reference": "urn:synthetic:pack-d-thermal",
+        "pack_temperature_c": 25,
+        "qualified_max_temperature_c": 60
+      }
+    }
+  ],
+  "missions": [
+    {
+      "mission_id": "mission-1",
+      "configuration_id": "uav-class-a",
+      "required_energy_with_reserve_wh": 1700,
+      "required_peak_power_w": 1800,
+      "maximum_pack_temperature_c": 50
+    },
+    {
+      "mission_id": "mission-2",
+      "configuration_id": "uav-class-a",
+      "required_energy_with_reserve_wh": 1200,
+      "required_peak_power_w": 1200,
+      "maximum_pack_temperature_c": 50
+    },
+    {
+      "mission_id": "mission-3",
+      "configuration_id": "uav-class-b",
+      "required_energy_with_reserve_wh": 1000,
+      "required_peak_power_w": 1500,
+      "maximum_pack_temperature_c": 50
+    },
+    {
+      "mission_id": "mission-4",
+      "configuration_id": "uav-class-a",
+      "required_energy_with_reserve_wh": 900,
+      "required_peak_power_w": 1000,
+      "maximum_pack_temperature_c": 50
+    }
+  ]
+}
