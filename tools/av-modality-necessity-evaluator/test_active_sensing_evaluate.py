@@ -40,6 +40,9 @@ class ActiveSensingEvaluatorTests(unittest.TestCase):
         self.assertEqual(score["totals"]["budget_violation_count"], 0)
         self.assertEqual(score["totals"]["evidence_violation_count"], 0)
         self.assertEqual(score["totals"]["mean_realized_evsi"], 15 / 8)
+        self.assertEqual(score["totals"]["estimated_evsi_count"], 3)
+        self.assertEqual(score["totals"]["mean_estimated_evsi_mae"], 0)
+        self.assertEqual(score["totals"]["mean_estimated_evsi_bias"], 0)
 
     def test_high_eig_zero_evsi_acquisition_is_wasted(self):
         candidate = copy.deepcopy(self.submission)
