@@ -180,7 +180,8 @@ impl ProtocolIdentity {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct PairedSample {
-    pub timestamp_ns: u64,
+    pub real_timestamp_ns: u64,
+    pub simulated_timestamp_ns: u64,
     pub real_value: f64,
     pub simulated_value: f64,
 }
@@ -207,8 +208,15 @@ impl TraceSeries {
         if self.samples.len() < 2 {
             return Err(FidelityError::InsufficientSamples);
         }
+        for sample in &self.samples {
+            if sample.real_timestamp_ns != sample.simulated_timestamp_ns {
+                return Err(FidelityError::TimestampMismatch);
+            }
+        }
         for pair in self.samples.windows(2) {
-            if pair[1].timestamp_ns <= pair[0].timestamp_ns {
+            if pair[1].real_timestamp_ns <= pair[0].real_timestamp_ns
+                || pair[1].simulated_timestamp_ns <= pair[0].simulated_timestamp_ns
+            {
                 return Err(FidelityError::NonMonotonicTimestamp);
             }
         }
@@ -375,9 +383,16 @@ pub fn score_trace(trace: &TraceSeries) -> Result<TraceMetrics, FidelityError> {
     let root_mean_square_error = (squared_sum / count as f64).sqrt();
     let signed_bias = signed_sum / count as f64;
     let p95_absolute_error = percentile(&absolute_errors, 0.95);
-    let duration_ns =
-        trace.samples.last().expect("validated samples").timestamp_ns
-            - trace.samples.first().expect("validated samples").timestamp_ns;
+    let duration_ns = trace
+        .samples
+        .last()
+        .expect("validated samples")
+        .real_timestamp_ns
+        - trace
+            .samples
+            .first()
+            .expect("validated samples")
+            .real_timestamp_ns;
 
     Ok(TraceMetrics {
         sample_count: count,
@@ -727,7 +742,8 @@ mod tests {
                 .zip(simulated)
                 .enumerate()
                 .map(|(index, (real, simulated))| PairedSample {
-                    timestamp_ns: index as u64 * 1_000_000,
+                    real_timestamp_ns: index as u64 * 1_000_000,
+                    simulated_timestamp_ns: index as u64 * 1_000_000,
                     real_value: *real,
                     simulated_value: *simulated,
                 })
@@ -801,11 +817,24 @@ mod tests {
             &[0.0, 1.0, 2.0],
             &[0.0, 1.0, 2.0],
         );
-        series.samples[1].timestamp_ns = series.samples[0].timestamp_ns;
+        series.samples[1].real_timestamp_ns = series.samples[0].real_timestamp_ns;
+        series.samples[1].simulated_timestamp_ns = series.samples[0].simulated_timestamp_ns;
         assert_eq!(
             score_trace(&series),
             Err(FidelityError::NonMonotonicTimestamp)
         );
+    }
+
+    #[test]
+    fn rejects_real_simulated_timestamp_misalignment() {
+        let mut series = trace(
+            SignalKind::JointPositionRad,
+            "left_j1",
+            &[0.0, 1.0, 2.0],
+            &[0.0, 1.0, 2.0],
+        );
+        series.samples[1].simulated_timestamp_ns += 500_000;
+        assert_eq!(score_trace(&series), Err(FidelityError::TimestampMismatch));
     }
 
     #[test]
