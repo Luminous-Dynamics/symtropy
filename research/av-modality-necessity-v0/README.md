@@ -301,3 +301,14 @@ Primary sources:
 - DIVE / OmniInteract: reproduce response-window, interruption, nested-chain and continuous 1QnA metrics separately; improve p95 response windows and 1QnA at matched compute, not just aggregate QA.
 - 4DMemory / EgoMemReason: reproduce the official long-horizon test and report quality by evidence span, memory budget, retrieval depth and modality. Target non-inferior event recall with materially lower memory cost, then separately demonstrate correction/revocation/provenance correctness.
 - Every target requires exact model/runtime revision, repeated seeds, hardware disclosure, confidence intervals and evaluator-controlled held-out truth. The current synthetic reference arms are not eligible for external leaderboard claims.
+
+
+## Newly relevant streaming-evaluation work (checked 21 November 2026)
+
+Three recent benchmarks sharpen the comparison protocol:
+
+- **SPOT-Bench (NeurIPS 2026 E&D):** it scores every prediction across the full stream with Timeliness-F1. Its posted 1Hz T-F1@5 baseline Ctrl-SPOT is 20.9 overall (22.2 ABD / 19.5 PNR). Its analysis notes roughly half the stream is dead-time where no response is expected; always-on output spam and over-conservative silence are distinct failure modes. https://dibschat.github.io/SPOT-Bench/
+- **TRACE (25 September 2026):** 1,240 records from 517 videos; the central contribution is the causal Core–Adapter protocol plus explicit temporal validity, history processing, response timing, false alarms, misses, workload and completion. Similar QA accuracy can mask very different execution behavior. https://arxiv.org/abs/2609.30670
+- **OmniInteract (EMNLP 2026):** the benchmark reports 1,430 response slots across 250 videos, including 368 continuous 1QnA slots. The best reported continuous 1QnA IA-QTF1 is 0.052, and overall IA-QTF1 peaks at 0.368. https://aclanthology.org/2026.emnlp-main.490/
+
+**Implication:** do not report just response correctness and latency. Include every candidate output (including silence), exact evidence-validity window, false-alarm intervals, missed trigger windows, interrupted/nested task resumption, history workload and response timing. Use SPOT's published protocol as a proactive baseline and TRACE as a causal-execution audit. These are separate external benchmarks; the synthetic AV evaluator is complementary, not a replacement.
