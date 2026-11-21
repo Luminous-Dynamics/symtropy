@@ -103,6 +103,7 @@ def evaluate(workload: dict[str, Any], truth: dict[str, Any], submission: dict[s
         "background_window_misses": 0,
     }
     per_episode: list[dict[str, Any]] = []
+    silence_windows_with_false_positive = 0
 
     for episode_id in sorted(ids):
         episode, label, candidate = work[episode_id], labels[episode_id], predictions[episode_id]
@@ -186,8 +187,11 @@ def evaluate(workload: dict[str, Any], truth: dict[str, Any], submission: dict[s
             decision_ok = False
 
             if expected_action == "silence":
-                has_speech = any(a.get("action_type") in SPEECH_ACTIONS for a in candidates)
-                decision_ok = not has_speech
+                floor_disrupting = any(
+                    a.get("action_type") in (SPEECH_ACTIONS | {"yield", "stop"})
+                    for a in candidates
+                )
+                decision_ok = not floor_disrupting
             elif expected_action in {"respond", "clarify"}:
                 response_windows += 1
                 candidate_action = expected_match
@@ -251,6 +255,13 @@ def evaluate(workload: dict[str, Any], truth: dict[str, Any], submission: dict[s
                 unsolicited_responses += 1
             if action_type in SPEECH_ACTIONS and trigger in label.get("duplicate_event_ids", []):
                 duplicate_responses += 1
+        for decision in decisions:
+            if decision.get("expected_action") in SPEECH_ACTIONS:
+                matching_outputs = [
+                    action for action in actions_by_trigger.get(decision["trigger_event_id"], [])
+                    if action.get("action_type") == decision["expected_action"]
+                ]
+                duplicate_responses += max(0, len(matching_outputs) - 1)
             if action_type == "yield" and any(
                 item.get("trigger_event_id") == trigger and item.get("action_type") == "yield"
                 for item in label.get("forbidden_actions", [])
@@ -277,16 +288,13 @@ def evaluate(workload: dict[str, Any], truth: dict[str, Any], submission: dict[s
                     silence_false_positives += 1
                     silence_windows_hit.add(window_index)
                     break
-
-        for trigger in label.get("duplicate_event_ids", []):
-            if any(a.get("action_type") in SPEECH_ACTIONS for a in actions_by_trigger.get(trigger, [])):
-                pass
+        silence_windows_with_false_positive += len(silence_windows_hit)
 
         latching = label.get("latching_stop")
         if isinstance(latching, dict):
             for action in action_rows:
                 if (
-                    action.get("action_type") in SPEECH_ACTIONS
+                    action.get("action_type") in OUTPUT_ACTIONS
                     and action.get("turn_epoch") == latching.get("turn_epoch")
                     and isinstance(action.get("output_start_tick"), int)
                     and action["output_start_tick"] >= latching.get("after_tick", 0)
@@ -298,7 +306,7 @@ def evaluate(workload: dict[str, Any], truth: dict[str, Any], submission: dict[s
         superseded_at = label.get("superseded_at_tick")
         for action in action_rows:
             if (
-                action.get("action_type") in SPEECH_ACTIONS
+                action.get("action_type") in OUTPUT_ACTIONS
                 and action.get("trigger_event_id") in superseded_ids
                 and isinstance(action.get("output_start_tick"), int)
                 and isinstance(superseded_at, int)
@@ -384,7 +392,7 @@ def evaluate(workload: dict[str, Any], truth: dict[str, Any], submission: dict[s
     for key, numerator, denominator in (
         ("decision_accuracy", totals["correct_decision_count"], totals["decision_count"]),
         ("response_window_rate", totals["response_window_hits"], totals["required_response_count"]),
-        ("silence_precision", totals["silence_window_count"] - totals["silence_false_positives"], totals["silence_window_count"]),
+        ("silence_precision", totals["silence_window_count"] - silence_windows_with_false_positive, totals["silence_window_count"]),
     ):
         totals[key] = ratio(numerator, denominator)
 
