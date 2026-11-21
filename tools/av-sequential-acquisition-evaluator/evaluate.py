@@ -265,6 +265,15 @@ def check_plan(episode: dict[str, Any], hidden: dict[str, Any], prediction: dict
     hidden_outcomes = hidden.get("realized_outcomes")
     if not isinstance(hidden_outcomes, dict):
         raise EvaluationError(f"{episode_id}: realized_outcomes must be an object")
+    if set(hidden_outcomes) != set(actions):
+        raise EvaluationError(f"{episode_id}: hidden realizations must cover every available action exactly once")
+    for action_id, action in actions.items():
+        outcome_id = hidden_outcomes.get(action_id)
+        outcome_index = action_outcome_index(action)
+        if not isinstance(outcome_id, str) or outcome_id not in outcome_index:
+            raise EvaluationError(f"{episode_id}/{action_id}: hidden realization is not a declared outcome")
+        if outcome_index[outcome_id][hidden_state] <= 0.0:
+            raise EvaluationError(f"{episode_id}/{action_id}: hidden realization has zero likelihood under hidden state")
     granted = set(episode.get("granted_permissions", []))
     budget = episode["budget"]
     trace = prediction.get("actions")
