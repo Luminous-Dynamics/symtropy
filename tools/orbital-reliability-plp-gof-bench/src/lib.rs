@@ -460,7 +460,7 @@ fn evaluate_case(case: &GofCase) -> Decision {
             monte_carlo: Some(monte_carlo),
             blockers: Vec::new(),
         },
-        Err(error) => {
+        Err(_error) => {
             let invalid_window = case.exposure_end_seconds == 0
                 || case.exposure_end_seconds > MAX_EXPOSURE_SECONDS
                 || case
@@ -476,7 +476,6 @@ fn evaluate_case(case: &GofCase) -> Decision {
             } else {
                 "insufficient_or_numerically_invalid_event_history"
             };
-            let _ = error;
             Decision {
                 disposition: Disposition::Rejected,
                 event_count: case.event_times_seconds.len(),
