@@ -85,5 +85,21 @@
     "latent_event_seed": "scenario_seed XOR 0xA0761D6478BD642F",
     "administrative_censor_seed": "scenario_seed XOR 0xE7037ED1A0B428DB",
     "note": "Separate deterministic SplitMix64 streams prevent variable latent-event draw counts from coupling event-time and administrative-censor sequences."
+  },
+  "reporting_delay_sweep": {
+    "delays_ticks": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      8,
+      10
+    ],
+    "fixed_latent_cohort": true,
+    "latent_stream": "same SplitMix64 latent-event stream as OUTCOME_DEPENDENT_REPORTING_LAG",
+    "purpose": "Quantify Aalen-Johansen berth-CIF bias as berth-publication latency grows, without changing latent event composition."
   }
 }
