@@ -2413,3 +2413,33 @@ mod drag_dissipation_contract_tests {
         }));
     }
 }
+
+#[cfg(test)]
+mod drag_trajectory_contract_tests {
+    use super::*;
+
+    #[test]
+    fn time_varying_drag_quadrature_contract_passes_declared_scope() {
+        let value: Value = serde_json::from_str(EMBEDDED_DRAG_TRAJECTORY)
+            .expect("embedded time-varying drag quadrature contract must be valid JSON");
+        assert!(audit_drag_trajectory_contract(&value).is_empty());
+    }
+
+    #[test]
+    fn time_varying_drag_contract_requires_same_quadrature_for_impulse_and_heating() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_DRAG_TRAJECTORY).unwrap();
+        value["acceptance"]["same_space_time_quadrature_for_impulse_and_heating"] = Value::Bool(false);
+        assert!(audit_drag_trajectory_contract(&value).iter().any(|finding| {
+            finding.starts_with("DRAG_TRAJECTORY_ACCEPTANCE")
+        }));
+    }
+
+    #[test]
+    fn time_varying_drag_contract_cannot_claim_full_collisional_energy_closure() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_DRAG_TRAJECTORY).unwrap();
+        value["limitations"] = Value::Array(Vec::new());
+        assert!(audit_drag_trajectory_contract(&value).iter().any(|finding| {
+            finding.starts_with("DRAG_TRAJECTORY_CLAIM_BOUNDARY")
+        }));
+    }
+}
