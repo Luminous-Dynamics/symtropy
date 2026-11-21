@@ -40,6 +40,11 @@ def main() -> None:
     sine=sp.sin(theta)
     beta=2*a**2/alpha_sym
     T=beta*eps**4
+    tau=sp.symbols("tau", nonnegative=True)
+    def tau_form(expression: sp.Expr) -> sp.Expr:
+        # Express a normalized asymptotic density as a rational function
+        # of the dimensionless endpoint variable tau=beta*epsilon^4.
+        return sp.factor(sp.cancel(expression.subs(beta,tau/eps**4)))
     p=1+T
     q=1-T
     alpha_NH=alpha_sym/4
@@ -229,7 +234,7 @@ def main() -> None:
         /(16*sp.pi*G*eps**3*(1-T)**3*(1+T)**2)
     )
     exact_zero("source density leading coefficient",
-               sp.limit(source_density*16*sp.pi*G*eps**3/alpha_sym,T,0)-1600)
+               sp.limit(tau_form(source_density*16*sp.pi*G*eps**3/alpha_sym),tau,0)-1600)
 
     # Exact local Wald/Jacobson-Myers density and its parametric variation.
     wald_multiplier=sp.factor(1+alpha_sym*(
@@ -260,21 +265,24 @@ def main() -> None:
 
     # The leading coefficients are deliberately different. Keep the exact
     # residual polynomial; do not force agreement by changing the GB coupling.
-    source_minus_axial=sp.factor(source_norm-axial_norm)
-    source_minus_wald=sp.factor(source_norm-wald_norm)
-    axial_minus_wald=sp.factor(axial_norm-wald_norm)
+    source_norm_tau=tau_form(source_norm)
+    axial_norm_tau=tau_form(axial_norm)
+    wald_norm_tau=tau_form(wald_norm)
+    source_minus_axial=sp.factor(source_norm_tau-axial_norm_tau)
+    source_minus_wald=sp.factor(source_norm_tau-wald_norm_tau)
+    axial_minus_wald=sp.factor(axial_norm_tau-wald_norm_tau)
     exact_zero("Einstein coefficient is +1",
-               sp.limit(k_e_density*16*sp.pi*G*eps**3/(alpha_sym*sine),
-                        T,0)-1)
+               sp.limit(tau_form(k_e_density*16*sp.pi*G*eps**3/(alpha_sym*sine)),
+                        tau,0)-1)
     exact_zero("GB Lovelock leading coefficient is -6",
-               sp.limit(k_gb_density*16*sp.pi*G*eps**3/(alpha_sym*sine),
-                        T,0)+6)
+               sp.limit(tau_form(k_gb_density*16*sp.pi*G*eps**3/(alpha_sym*sine)),
+                        tau,0)+6)
     exact_zero("total axial Lovelock leading coefficient is -5",
-               sp.limit(axial_norm,T,0)+5)
+               sp.limit(axial_norm_tau,tau,0)+5)
     exact_zero("Wald variation leading coefficient is -5",
-               sp.limit(wald_norm,T,0)+5)
+               sp.limit(wald_norm_tau,tau,0)+5)
     exact_zero("source Eq24 leading coefficient is +1600",
-               sp.limit(source_norm,T,0)-1600)
+               sp.limit(source_norm_tau,tau,0)-1600)
 
     fixture={
       "schema_version":1,
@@ -318,18 +326,18 @@ def main() -> None:
         "Einstein_variation":sp.sstr(k_e_density),
         "Gauss_Bonnet_variation":sp.sstr(k_gb_density),
         "total_axial_variation":sp.sstr(k_axial_density),
-        "normalized_total_polynomial":sp.sstr(axial_norm),
+        "normalized_total_polynomial":sp.sstr(axial_norm_tau),
         "leading_coefficient":"-5"
       },
       "wald_jacobson_myers":{
         "local_density":sp.sstr(wald_density),
         "local_density_variation_over_2pi":sp.sstr(wald_variation),
-        "normalized_variation":sp.sstr(wald_norm),
+        "normalized_variation":sp.sstr(wald_norm_tau),
         "leading_coefficient":"-5"
       },
       "source_published_density":{
         "Eq24_epsilon_density":sp.sstr(source_density),
-        "normalized_polynomial":sp.sstr(source_norm),
+        "normalized_polynomial":sp.sstr(source_norm_tau),
         "leading_coefficient":"+1600"
       },
       "exact_residuals":{
@@ -366,12 +374,12 @@ def main() -> None:
                    sp.Rational(1,20),sp.Rational(1,50),
                    sp.Rational(1,100)):
             tv=bv*ev**4
-            sub={T:tv}
+            sub={tau:tv}
             samples.append({
                 "beta":str(bv),"epsilon":str(ev),"T":str(tv),
-                "source_norm_60d":str(sp.N(source_norm.subs(sub),60)),
-                "axial_norm_60d":str(sp.N(axial_norm.subs(sub),60)),
-                "wald_variation_norm_60d":str(sp.N(wald_norm.subs(sub),60))
+                "source_norm_60d":str(sp.N(source_norm_tau.subs(sub),60)),
+                "axial_norm_60d":str(sp.N(axial_norm_tau.subs(sub),60)),
+                "wald_variation_norm_60d":str(sp.N(wald_norm_tau.subs(sub),60))
             })
     fixture["reference_grid"]={
       "point_count":len(samples),"precision_digits":60,
