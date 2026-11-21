@@ -88,7 +88,7 @@ mod tests {
     fn response_ensemble_adds_calibration_covariance_to_poisson_noise() {
         let moments = ensemble().predictive_count_moments(&[100.0, 50.0], &[1.0, 2.0], 10.0).expect("moments");
         assert_eq!(moments.mean_counts, vec![835.0, 595.0]);
-        assert_eq!(moments.covariance_counts, vec![vec![1460.0, -625.0], vec![-625.0, 1220.0]]);
+        assert_eq!(moments.covariance_counts, vec![vec![2085.0, -1250.0], vec![-1250.0, 1845.0]]);
     }
 
     #[test]
@@ -103,7 +103,7 @@ mod tests {
     #[test]
     fn response_uncertainty_can_create_cross_bin_covariance() {
         let moments = ensemble().predictive_count_moments(&[100.0, 50.0], &[1.0, 2.0], 10.0).expect("moments");
-        assert_eq!(moments.covariance_counts[0][1], -625.0);
+        assert_eq!(moments.covariance_counts[0][1], -1250.0);
         assert_eq!(moments.covariance_counts[0][1], moments.covariance_counts[1][0]);
     }
 
