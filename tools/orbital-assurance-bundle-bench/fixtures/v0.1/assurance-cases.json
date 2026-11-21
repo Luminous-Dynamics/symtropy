@@ -27629,6 +27629,2233 @@
         "blocker_count": 1,
         "authority_granted": false
       }
+    },
+    {
+      "case_id": "positive_power_law_recurrent_intensity",
+      "root_claim_id": "root",
+      "scope": {
+        "subject_id": "interface-assembly-07",
+        "configuration_id": "cfg-r4",
+        "operating_mode_id": "mating-cycle",
+        "mission_profile_id": "service-mission-v2",
+        "environment_profile_id": "thermal-vacuum-envelope-v1",
+        "valid_from": 0,
+        "valid_until": 100
+      },
+      "effective_cutoff": 50,
+      "knowledge_cutoff": 80,
+      "required_claim_types": [
+        "lifecycle_qualification",
+        "test_matrix_adequacy",
+        "event_history_integrity",
+        "mission_success_probability",
+        "constant_failure_intensity",
+        "physical_test_observation",
+        "measurement_calibration",
+        "model_credibility",
+        "evidence_custody",
+        "external_authority_decision",
+        "power_law_recurrent_intensity"
+      ],
+      "receipt_pins": [
+        {
+          "receipt_id": "receipt-lifecycle-qualification",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/lifecycle-qualification.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.lifecycle_qualification.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-test-matrix-adequacy",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/test-matrix-adequacy.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.test_matrix_adequacy.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-event-history-integrity",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/event-history-integrity.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.event_history_integrity.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-mission-success-probability",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/mission-success-probability.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.mission_success_probability.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-constant-failure-intensity",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/constant-failure-intensity.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.constant_failure_intensity.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-physical-test-observation",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/physical-test-observation.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.physical_test_observation.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-measurement-calibration",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/measurement-calibration.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.measurement_calibration.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-model-credibility",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/model-credibility.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.model_credibility.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-evidence-custody",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/evidence-custody.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.evidence_custody.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-external-authority-decision",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/external-authority-decision.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.external_authority_decision.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-power-law",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/power-law.json",
+          "source_commit": "cccccccccccccccccccccccccccccccccccccccc",
+          "receipt_schema": "luminous.power-law.receipt.v0.1",
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "root",
+          "claim_type": "orbital_review_bundle",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": null,
+          "mandatory": false,
+          "evidence": null
+        },
+        {
+          "claim_id": "claim-lifecycle-qualification",
+          "claim_type": "lifecycle_qualification",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-lifecycle-qualification",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/lifecycle-qualification.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.lifecycle_qualification.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "bench",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-test-matrix-adequacy",
+          "claim_type": "test_matrix_adequacy",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-test-matrix-adequacy",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/test-matrix-adequacy.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.test_matrix_adequacy.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "bench",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-event-history-integrity",
+          "claim_type": "event_history_integrity",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-event-history-integrity",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/event-history-integrity.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.event_history_integrity.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "bench",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-mission-success-probability",
+          "claim_type": "mission_success_probability",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": "mission_success_probability",
+          "unit": "probability",
+          "model_profile": "bernoulli_single_mission",
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-mission-success-probability",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/mission-success-probability.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.mission_success_probability.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "bench",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-constant-failure-intensity",
+          "claim_type": "constant_failure_intensity",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": "constant_failure_intensity",
+          "unit": "events_per_million_operating_hours",
+          "model_profile": "homogeneous_poisson_constant_intensity",
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-constant-failure-intensity",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/constant-failure-intensity.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.constant_failure_intensity.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "bench",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-physical-test-observation",
+          "claim_type": "physical_test_observation",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-physical-test-observation",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/physical-test-observation.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.physical_test_observation.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "physical",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-measurement-calibration",
+          "claim_type": "measurement_calibration",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-measurement-calibration",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/measurement-calibration.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.measurement_calibration.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "physical",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-model-credibility",
+          "claim_type": "model_credibility",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-model-credibility",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/model-credibility.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.model_credibility.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "bench",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-evidence-custody",
+          "claim_type": "evidence_custody",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-evidence-custody",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/evidence-custody.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.evidence_custody.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "software",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-external-authority-decision",
+          "claim_type": "external_authority_decision",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-external-authority-decision",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/external-authority-decision.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.external_authority_decision.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "authority",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-power-law",
+          "claim_type": "power_law_recurrent_intensity",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": "power_law_recurrent_failure_intensity",
+          "unit": "events_per_operating_second",
+          "model_profile": "power_law_nhpp_minimal_repair_v0_1",
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-power-law",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/power-law.json",
+            "source_commit": "cccccccccccccccccccccccccccccccccccccccc",
+            "receipt_schema": "luminous.power-law.receipt.v0.1",
+            "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_class": "bench",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        }
+      ],
+      "edges": [
+        {
+          "from_claim_id": "claim-lifecycle-qualification",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-test-matrix-adequacy",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-event-history-integrity",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-mission-success-probability",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-constant-failure-intensity",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-physical-test-observation",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-measurement-calibration",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-model-credibility",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-evidence-custody",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-external-authority-decision",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-power-law",
+          "to_claim_id": "root",
+          "relation": "supports"
+        }
+      ],
+      "expected": {
+        "disposition": "review_bundle_complete",
+        "blocker_count": 0,
+        "authority_granted": false
+      }
+    },
+    {
+      "case_id": "power_law_to_constant_poisson_conversion_rejected",
+      "root_claim_id": "root",
+      "scope": {
+        "subject_id": "interface-assembly-07",
+        "configuration_id": "cfg-r4",
+        "operating_mode_id": "mating-cycle",
+        "mission_profile_id": "service-mission-v2",
+        "environment_profile_id": "thermal-vacuum-envelope-v1",
+        "valid_from": 0,
+        "valid_until": 100
+      },
+      "effective_cutoff": 50,
+      "knowledge_cutoff": 80,
+      "required_claim_types": [
+        "lifecycle_qualification",
+        "test_matrix_adequacy",
+        "event_history_integrity",
+        "mission_success_probability",
+        "constant_failure_intensity",
+        "physical_test_observation",
+        "measurement_calibration",
+        "model_credibility",
+        "evidence_custody",
+        "external_authority_decision",
+        "power_law_recurrent_intensity"
+      ],
+      "receipt_pins": [
+        {
+          "receipt_id": "receipt-lifecycle-qualification",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/lifecycle-qualification.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.lifecycle_qualification.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-test-matrix-adequacy",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/test-matrix-adequacy.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.test_matrix_adequacy.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-event-history-integrity",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/event-history-integrity.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.event_history_integrity.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-mission-success-probability",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/mission-success-probability.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.mission_success_probability.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-constant-failure-intensity",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/constant-failure-intensity.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.constant_failure_intensity.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-physical-test-observation",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/physical-test-observation.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.physical_test_observation.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-measurement-calibration",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/measurement-calibration.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.measurement_calibration.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-model-credibility",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/model-credibility.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.model_credibility.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-evidence-custody",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/evidence-custody.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.evidence_custody.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-external-authority-decision",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/external-authority-decision.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.external_authority_decision.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-plp-conversion",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/plp-conversion.json",
+          "source_commit": "cccccccccccccccccccccccccccccccccccccccc",
+          "receipt_schema": "luminous.plp-conversion.receipt.v0.1",
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "root",
+          "claim_type": "orbital_review_bundle",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": null,
+          "mandatory": false,
+          "evidence": null
+        },
+        {
+          "claim_id": "claim-lifecycle-qualification",
+          "claim_type": "lifecycle_qualification",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-lifecycle-qualification",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/lifecycle-qualification.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.lifecycle_qualification.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "bench",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-test-matrix-adequacy",
+          "claim_type": "test_matrix_adequacy",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-test-matrix-adequacy",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/test-matrix-adequacy.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.test_matrix_adequacy.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "bench",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-event-history-integrity",
+          "claim_type": "event_history_integrity",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-event-history-integrity",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/event-history-integrity.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.event_history_integrity.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "bench",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-mission-success-probability",
+          "claim_type": "mission_success_probability",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": "mission_success_probability",
+          "unit": "probability",
+          "model_profile": "bernoulli_single_mission",
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-mission-success-probability",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/mission-success-probability.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.mission_success_probability.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "bench",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-constant-failure-intensity",
+          "claim_type": "constant_failure_intensity",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": "constant_failure_intensity",
+          "unit": "events_per_million_operating_hours",
+          "model_profile": "homogeneous_poisson_constant_intensity",
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-constant-failure-intensity",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/constant-failure-intensity.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.constant_failure_intensity.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "bench",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-physical-test-observation",
+          "claim_type": "physical_test_observation",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-physical-test-observation",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/physical-test-observation.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.physical_test_observation.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "physical",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-measurement-calibration",
+          "claim_type": "measurement_calibration",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-measurement-calibration",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/measurement-calibration.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.measurement_calibration.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "physical",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-model-credibility",
+          "claim_type": "model_credibility",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-model-credibility",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/model-credibility.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.model_credibility.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "bench",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-evidence-custody",
+          "claim_type": "evidence_custody",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-evidence-custody",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/evidence-custody.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.evidence_custody.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "software",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-external-authority-decision",
+          "claim_type": "external_authority_decision",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-external-authority-decision",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/external-authority-decision.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.external_authority_decision.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "authority",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-plp-conversion",
+          "claim_type": "power_law_recurrent_intensity",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": "power_law_recurrent_failure_intensity",
+          "unit": "events_per_operating_second",
+          "model_profile": "power_law_nhpp_minimal_repair_v0_1",
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-plp-conversion",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/plp-conversion.json",
+            "source_commit": "cccccccccccccccccccccccccccccccccccccccc",
+            "receipt_schema": "luminous.plp-conversion.receipt.v0.1",
+            "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_class": "bench",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        }
+      ],
+      "edges": [
+        {
+          "from_claim_id": "claim-lifecycle-qualification",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-test-matrix-adequacy",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-event-history-integrity",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-mission-success-probability",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-constant-failure-intensity",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-physical-test-observation",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-measurement-calibration",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-model-credibility",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-evidence-custody",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-external-authority-decision",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-plp-conversion",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-plp-conversion",
+          "to_claim_id": "claim-constant-failure-intensity",
+          "relation": "derived_from"
+        }
+      ],
+      "expected": {
+        "disposition": "blocked_by_claim_type_mismatch",
+        "blocker_count": 1,
+        "authority_granted": false
+      }
+    },
+    {
+      "case_id": "weibull_to_power_law_conversion_rejected",
+      "root_claim_id": "root",
+      "scope": {
+        "subject_id": "interface-assembly-07",
+        "configuration_id": "cfg-r4",
+        "operating_mode_id": "mating-cycle",
+        "mission_profile_id": "service-mission-v2",
+        "environment_profile_id": "thermal-vacuum-envelope-v1",
+        "valid_from": 0,
+        "valid_until": 100
+      },
+      "effective_cutoff": 50,
+      "knowledge_cutoff": 80,
+      "required_claim_types": [
+        "lifecycle_qualification",
+        "test_matrix_adequacy",
+        "event_history_integrity",
+        "mission_success_probability",
+        "constant_failure_intensity",
+        "physical_test_observation",
+        "measurement_calibration",
+        "model_credibility",
+        "evidence_custody",
+        "external_authority_decision",
+        "weibull_first_failure_life",
+        "power_law_recurrent_intensity"
+      ],
+      "receipt_pins": [
+        {
+          "receipt_id": "receipt-lifecycle-qualification",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/lifecycle-qualification.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.lifecycle_qualification.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-test-matrix-adequacy",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/test-matrix-adequacy.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.test_matrix_adequacy.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-event-history-integrity",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/event-history-integrity.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.event_history_integrity.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-mission-success-probability",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/mission-success-probability.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.mission_success_probability.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-constant-failure-intensity",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/constant-failure-intensity.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.constant_failure_intensity.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-physical-test-observation",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/physical-test-observation.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.physical_test_observation.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-measurement-calibration",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/measurement-calibration.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.measurement_calibration.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-model-credibility",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/model-credibility.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.model_credibility.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-evidence-custody",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/evidence-custody.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.evidence_custody.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-external-authority-decision",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/external-authority-decision.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.external_authority_decision.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-weibull-conversion",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/weibull-conversion.json",
+          "source_commit": "cccccccccccccccccccccccccccccccccccccccc",
+          "receipt_schema": "luminous.weibull-conversion.receipt.v0.1",
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        {
+          "receipt_id": "receipt-plp-conversion-2",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/plp-conversion-2.json",
+          "source_commit": "cccccccccccccccccccccccccccccccccccccccc",
+          "receipt_schema": "luminous.plp-conversion-2.receipt.v0.1",
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "root",
+          "claim_type": "orbital_review_bundle",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": null,
+          "mandatory": false,
+          "evidence": null
+        },
+        {
+          "claim_id": "claim-lifecycle-qualification",
+          "claim_type": "lifecycle_qualification",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-lifecycle-qualification",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/lifecycle-qualification.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.lifecycle_qualification.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "bench",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-test-matrix-adequacy",
+          "claim_type": "test_matrix_adequacy",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-test-matrix-adequacy",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/test-matrix-adequacy.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.test_matrix_adequacy.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "bench",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-event-history-integrity",
+          "claim_type": "event_history_integrity",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-event-history-integrity",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/event-history-integrity.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.event_history_integrity.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "bench",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-mission-success-probability",
+          "claim_type": "mission_success_probability",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": "mission_success_probability",
+          "unit": "probability",
+          "model_profile": "bernoulli_single_mission",
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-mission-success-probability",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/mission-success-probability.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.mission_success_probability.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "bench",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-constant-failure-intensity",
+          "claim_type": "constant_failure_intensity",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": "constant_failure_intensity",
+          "unit": "events_per_million_operating_hours",
+          "model_profile": "homogeneous_poisson_constant_intensity",
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-constant-failure-intensity",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/constant-failure-intensity.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.constant_failure_intensity.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "bench",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-physical-test-observation",
+          "claim_type": "physical_test_observation",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-physical-test-observation",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/physical-test-observation.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.physical_test_observation.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "physical",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-measurement-calibration",
+          "claim_type": "measurement_calibration",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-measurement-calibration",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/measurement-calibration.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.measurement_calibration.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "physical",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-model-credibility",
+          "claim_type": "model_credibility",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-model-credibility",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/model-credibility.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.model_credibility.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "bench",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-evidence-custody",
+          "claim_type": "evidence_custody",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-evidence-custody",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/evidence-custody.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.evidence_custody.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "software",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-external-authority-decision",
+          "claim_type": "external_authority_decision",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-external-authority-decision",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/external-authority-decision.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.external_authority_decision.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "authority",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-weibull-conversion",
+          "claim_type": "weibull_first_failure_life",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": "first_failure_life_distribution",
+          "unit": "operating_seconds",
+          "model_profile": "weibull_first_failure_life_v0_1",
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-weibull-conversion",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/weibull-conversion.json",
+            "source_commit": "cccccccccccccccccccccccccccccccccccccccc",
+            "receipt_schema": "luminous.weibull-conversion.receipt.v0.1",
+            "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_class": "bench",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-plp-conversion-2",
+          "claim_type": "power_law_recurrent_intensity",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": "power_law_recurrent_failure_intensity",
+          "unit": "events_per_operating_second",
+          "model_profile": "power_law_nhpp_minimal_repair_v0_1",
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-plp-conversion-2",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/plp-conversion-2.json",
+            "source_commit": "cccccccccccccccccccccccccccccccccccccccc",
+            "receipt_schema": "luminous.plp-conversion-2.receipt.v0.1",
+            "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_class": "bench",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        }
+      ],
+      "edges": [
+        {
+          "from_claim_id": "claim-lifecycle-qualification",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-test-matrix-adequacy",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-event-history-integrity",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-mission-success-probability",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-constant-failure-intensity",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-physical-test-observation",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-measurement-calibration",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-model-credibility",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-evidence-custody",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-external-authority-decision",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-weibull-conversion",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-plp-conversion-2",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-weibull-conversion",
+          "to_claim_id": "claim-plp-conversion-2",
+          "relation": "derived_from"
+        }
+      ],
+      "expected": {
+        "disposition": "blocked_by_claim_type_mismatch",
+        "blocker_count": 1,
+        "authority_granted": false
+      }
+    },
+    {
+      "case_id": "power_law_profile_wrong_model_contract",
+      "root_claim_id": "root",
+      "scope": {
+        "subject_id": "interface-assembly-07",
+        "configuration_id": "cfg-r4",
+        "operating_mode_id": "mating-cycle",
+        "mission_profile_id": "service-mission-v2",
+        "environment_profile_id": "thermal-vacuum-envelope-v1",
+        "valid_from": 0,
+        "valid_until": 100
+      },
+      "effective_cutoff": 50,
+      "knowledge_cutoff": 80,
+      "required_claim_types": [
+        "lifecycle_qualification",
+        "test_matrix_adequacy",
+        "event_history_integrity",
+        "mission_success_probability",
+        "constant_failure_intensity",
+        "physical_test_observation",
+        "measurement_calibration",
+        "model_credibility",
+        "evidence_custody",
+        "external_authority_decision",
+        "power_law_recurrent_intensity"
+      ],
+      "receipt_pins": [
+        {
+          "receipt_id": "receipt-lifecycle-qualification",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/lifecycle-qualification.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.lifecycle_qualification.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-test-matrix-adequacy",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/test-matrix-adequacy.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.test_matrix_adequacy.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-event-history-integrity",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/event-history-integrity.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.event_history_integrity.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-mission-success-probability",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/mission-success-probability.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.mission_success_probability.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-constant-failure-intensity",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/constant-failure-intensity.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.constant_failure_intensity.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-physical-test-observation",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/physical-test-observation.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.physical_test_observation.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-measurement-calibration",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/measurement-calibration.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.measurement_calibration.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-model-credibility",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/model-credibility.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.model_credibility.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-evidence-custody",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/evidence-custody.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.evidence_custody.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-external-authority-decision",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/external-authority-decision.json",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "receipt_schema": "luminous.external_authority_decision.receipt.v0.1",
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "receipt_id": "receipt-plp-wrong-model",
+          "source_repo": "Luminous-Dynamics/symtropy",
+          "source_path": "artifacts/plp-wrong-model.json",
+          "source_commit": "cccccccccccccccccccccccccccccccccccccccc",
+          "receipt_schema": "luminous.plp-wrong-model.receipt.v0.1",
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "root",
+          "claim_type": "orbital_review_bundle",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": null,
+          "mandatory": false,
+          "evidence": null
+        },
+        {
+          "claim_id": "claim-lifecycle-qualification",
+          "claim_type": "lifecycle_qualification",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-lifecycle-qualification",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/lifecycle-qualification.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.lifecycle_qualification.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "bench",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-test-matrix-adequacy",
+          "claim_type": "test_matrix_adequacy",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-test-matrix-adequacy",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/test-matrix-adequacy.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.test_matrix_adequacy.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "bench",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-event-history-integrity",
+          "claim_type": "event_history_integrity",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-event-history-integrity",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/event-history-integrity.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.event_history_integrity.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "bench",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-mission-success-probability",
+          "claim_type": "mission_success_probability",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": "mission_success_probability",
+          "unit": "probability",
+          "model_profile": "bernoulli_single_mission",
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-mission-success-probability",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/mission-success-probability.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.mission_success_probability.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "bench",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-constant-failure-intensity",
+          "claim_type": "constant_failure_intensity",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": "constant_failure_intensity",
+          "unit": "events_per_million_operating_hours",
+          "model_profile": "homogeneous_poisson_constant_intensity",
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-constant-failure-intensity",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/constant-failure-intensity.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.constant_failure_intensity.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "bench",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-physical-test-observation",
+          "claim_type": "physical_test_observation",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-physical-test-observation",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/physical-test-observation.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.physical_test_observation.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "physical",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-measurement-calibration",
+          "claim_type": "measurement_calibration",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-measurement-calibration",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/measurement-calibration.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.measurement_calibration.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "physical",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-model-credibility",
+          "claim_type": "model_credibility",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-model-credibility",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/model-credibility.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.model_credibility.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "bench",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-evidence-custody",
+          "claim_type": "evidence_custody",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-evidence-custody",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/evidence-custody.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.evidence_custody.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "software",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-external-authority-decision",
+          "claim_type": "external_authority_decision",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": null,
+          "unit": null,
+          "model_profile": null,
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-external-authority-decision",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/external-authority-decision.json",
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "receipt_schema": "luminous.external_authority_decision.receipt.v0.1",
+            "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_class": "authority",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        },
+        {
+          "claim_id": "claim-plp-wrong-model",
+          "claim_type": "power_law_recurrent_intensity",
+          "state": "supported",
+          "scope": {
+            "subject_id": "interface-assembly-07",
+            "configuration_id": "cfg-r4",
+            "operating_mode_id": "mating-cycle",
+            "mission_profile_id": "service-mission-v2",
+            "environment_profile_id": "thermal-vacuum-envelope-v1",
+            "valid_from": 0,
+            "valid_until": 100
+          },
+          "estimand": "power_law_recurrent_failure_intensity",
+          "unit": "events_per_operating_second",
+          "model_profile": "homogeneous_poisson_constant_intensity",
+          "validation_domain": "declared-domain-v1",
+          "mandatory": true,
+          "evidence": {
+            "receipt_id": "receipt-plp-wrong-model",
+            "source_repo": "Luminous-Dynamics/symtropy",
+            "source_path": "artifacts/plp-wrong-model.json",
+            "source_commit": "cccccccccccccccccccccccccccccccccccccccc",
+            "receipt_schema": "luminous.plp-wrong-model.receipt.v0.1",
+            "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_class": "bench",
+            "recorded_at": 20,
+            "effective_from": 0,
+            "effective_until": 100
+          }
+        }
+      ],
+      "edges": [
+        {
+          "from_claim_id": "claim-lifecycle-qualification",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-test-matrix-adequacy",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-event-history-integrity",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-mission-success-probability",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-constant-failure-intensity",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-physical-test-observation",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-measurement-calibration",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-model-credibility",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-evidence-custody",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-external-authority-decision",
+          "to_claim_id": "root",
+          "relation": "supports"
+        },
+        {
+          "from_claim_id": "claim-plp-wrong-model",
+          "to_claim_id": "root",
+          "relation": "supports"
+        }
+      ],
+      "expected": {
+        "disposition": "blocked_by_claim_type_mismatch",
+        "blocker_count": 1,
+        "authority_granted": false
+      }
     }
   ]
 }
