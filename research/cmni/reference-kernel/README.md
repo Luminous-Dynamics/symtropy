@@ -220,3 +220,11 @@ See [IDENTIFIABILITY_AND_DESIGN.md](../../../docs/research/cmni/IDENTIFIABILITY_
 
 - There are **169 authored Rust tests** across 17 Rust source files. They have not been executed in this environment because cargo/rustc/nix are unavailable.
 - Current per-module count: 37 root, 12 detector, 7 measurement, 8 material-state, 14 experiment-design, 11 response-uncertainty, 11 multifidelity-design, 8 spectrum-metrics, 7 measurement-bias, 8 sparse-Poisson-bias, 10 energy-bias-basis, 8 correlated-Gaussian-bias, 6 raw-scale-likelihood, 5 horseshoe-posterior, 3 prepared-horseshoe, 6 horseshoe-HMC, and 8 sampler-diagnostics.
+
+
+## PFNS supplementary archive admission
+
+- `research/cmni/schemas/pfns-archive-admission.schema.json` validates a fixed seven-artifact intake manifest for the 2025 AIACHNE / 252Cf PFNS supplementary archive.
+- `research/cmni/fixtures/aiachne-pfns-2025-archive-admission-manifest.json` lists the seven scientific roles: two pointwise spectra, two associated correlation/covariance files, two JSON experimental-input databases, and a smoothed normalized spectrum.
+- All seven records are currently marked `not_accessible`; filenames, byte counts, retrieval timestamps and SHA-256 values remain null. This is an admission manifest, not an ingested dataset.
+- Do not promote the manifest to `sha256_verified` until the original publisher file bytes have been retrieved, exact names and lengths recorded, and hashes computed. Keep the raw files immutable; derived parsing and interpolation artifacts must be separate.
