@@ -70,7 +70,7 @@ Each requires its own estimand, exposure, censoring, independence assumptions, m
 
 ## Frozen corpus and commands
 
-The v0.1 corpus contains 35 synthetic cases covering exact sample-size boundaries, failures-allowed confidence bounds, duplicate trial IDs, repeat article serials, shared declared clusters, replacement after failure, withdrawn/aborted/invalid/censored outcomes, configuration/lot/mission mismatch, convenience sampling, restricted outcomes, cycle pseudoreplication and model boundaries.
+The v0.1 corpus contains 36 synthetic cases covering exact sample-size boundaries, failures-allowed confidence bounds, duplicate trial IDs, repeat article serials, shared declared clusters, replacement after failure, withdrawn/aborted/invalid/censored outcomes, configuration/lot/mission mismatch, convenience sampling, restricted outcomes, cycle pseudoreplication and model boundaries.
 
 ```bash
 cargo fmt --manifest-path tools/orbital-interface-reliability-bench/Cargo.toml -- --check
