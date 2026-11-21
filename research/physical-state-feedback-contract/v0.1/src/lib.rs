@@ -1345,6 +1345,41 @@ mod tests {
     }
 
     #[test]
+    fn covariance_requires_matching_squared_unit_and_frame() {
+        let valid = Uncertainty::Covariance3 {
+            matrix: [[0.0; 3]; 3],
+            unit: "m^2".to_owned(),
+            frame_id: "world".to_owned(),
+        };
+        let field = available([0.0, 0.0, 0.0], "m", Some("world"), valid);
+        assert!(field.validate("position").is_ok());
+
+        let wrong_unit = available(
+            [0.0, 0.0, 0.0],
+            "m",
+            Some("world"),
+            Uncertainty::Covariance3 {
+                matrix: [[0.0; 3]; 3],
+                unit: "m".to_owned(),
+                frame_id: "world".to_owned(),
+            },
+        );
+        assert!(wrong_unit.validate("position").is_err());
+
+        let wrong_frame = available(
+            [0.0, 0.0, 0.0],
+            "m",
+            Some("world"),
+            Uncertainty::Covariance3 {
+                matrix: [[0.0; 3]; 3],
+                unit: "m^2".to_owned(),
+                frame_id: "body".to_owned(),
+            },
+        );
+        assert!(wrong_frame.validate("position").is_err());
+    }
+
+    #[test]
     fn non_unit_quaternion_is_rejected() {
         let mut snapshot = valid_snapshot(0, 0);
         snapshot.entities[0].pose.rotation_xyzw.value = Some([0.0, 0.0, 0.0, 2.0]);
@@ -1445,8 +1480,7 @@ mod tests {
     fn reappearing_entity_id_requires_a_new_generation() {
         let first = valid_snapshot(0, 0);
         let mut middle = valid_snapshot(1, 1_000_000);
-        middle.entities[0].entity_id = "other-body".to_owned();
-        middle.entities[0].pose.child_frame_id = "other-body/frame".to_owned();
+        middle.entities[0] = valid_entity("other-body");
 
         let mut reappeared_old_generation = valid_snapshot(2, 2_000_000);
         assert!(
