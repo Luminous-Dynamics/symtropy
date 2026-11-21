@@ -57,6 +57,24 @@ The demo uses \(P(S_1)=0.9\), so the prior Bayes risk is 0.1.
 
 The two policies therefore choose different candidates from the same action set: information-gain selects **balanced_entropy**; the exact one-step decision-value oracle selects **decision_relevant_alert**. This is a constructed counterexample, not an empirical navigation result.
 
+## Asymmetric integrity loss
+
+The decision objective can also use separate costs for the two wrong service claims. Let StateZero be unsafe/outside the declared envelope and StateOne be safe/inside it. A false-safe claim costs \(L_{FS}\); a false-degraded claim costs \(L_{FD}\). The prior Bayes risk becomes
+
+\[
+R_0=\min(p_0L_{FS},\;p_1L_{FD}),
+\]
+
+and each observation outcome contributes
+
+\[
+\min\left(p_0P(o\mid S_0)L_{FS},\;p_1P(o\mid S_1)L_{FD}\right).
+\]
+
+The default wrapper remains symmetric zero-one loss. The explicit-loss API rejects negative, non-finite, or jointly zero losses.
+
+For the same alert candidate, setting \(L_{FS}=10\) and \(L_{FD}=1\) changes the baseline risk to 0.9 and its failure-adjusted decision value to 0.4512 (versus 0.0272 under symmetric loss). This is a synthetic cost-sensitivity demonstration, not an empirically calibrated ratio of navigation harms. The loss ratio must be justified by the application and independently reviewed before it is used operationally.
+
 ## Implemented checks
 
 - finite prior and acquisition probabilities;
