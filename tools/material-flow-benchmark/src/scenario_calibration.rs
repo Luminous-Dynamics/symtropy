@@ -6,6 +6,9 @@
 //! This module scores forecast distributions against later-observed outcomes.
 //! It does not create a forecast, certify a probability model, or authorize
 //! operations. Synthetic arithmetic remains explicitly non-empirical.
+//!
+//! v0.1 reports point diagnostics only; it does not estimate interval uncertainty,
+//! effective sample size, or the adequacy of rare-event support by stratum.
 
 use std::collections::{BTreeMap, BTreeSet};
 
