@@ -792,7 +792,7 @@ mod tests {
         let report = evaluate_battery_service_network(&input(packs, missions)).unwrap();
         assert_eq!(report.serviceable_mission_count, 3);
         assert_eq!(report.assignments.len(), 3);
-        assert_eq!(report.unserved_missions, vec!["mission-4"]);
+        assert_eq!(report.unserved_missions, vec!["mission-4".to_string()]);
         let assigned_pack_ids: BTreeSet<_> = report
             .assignments
             .iter()
@@ -821,6 +821,22 @@ mod tests {
         let second = evaluate_battery_service_network(&input(reversed_packs, reversed_missions)).unwrap();
         assert_eq!(first.assignments, second.assignments);
         assert_eq!(first.unserved_missions, second.unserved_missions);
+    }
+
+    #[test]
+    fn failed_post_test_blocks_pack() {
+        let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
+        battery.post_test.value = Some(false);
+        let demand = mission("m1", "uav-a", 1_000, 1_000);
+        assert_eq!(pair_status(&battery, &demand), EligibilityStatus::Blocked);
+    }
+
+    #[test]
+    fn stale_custody_evidence_is_indeterminate() {
+        let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
+        battery.custody_resolution.freshness = EvidenceFreshness::Stale;
+        let demand = mission("m1", "uav-a", 1_000, 1_000);
+        assert_eq!(pair_status(&battery, &demand), EligibilityStatus::Indeterminate);
     }
 
     #[test]
