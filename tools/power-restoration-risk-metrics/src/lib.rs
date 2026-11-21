@@ -1030,6 +1030,29 @@ mod tests {
     }
 
     #[test]
+    fn invalid_action_evidence_digest_is_rejected() {
+        let mut item = action("one", ActionDisposition::Executed, SafetyAdjudication::Unsafe);
+        item.evidence_artifact.sha256 = "not-a-sha256".to_string();
+        assert!(evaluate_risk_metrics(&input(
+            vec![episode("episode-1", EpisodeDisposition::Completed, Some(0.1))],
+            vec![item],
+            UnscoredEpisodePolicy::StrictComplete,
+        )).is_err());
+    }
+
+    #[test]
+    fn no_action_rows_produce_no_unsafe_rate_not_zero_risk() {
+        let report = evaluate_risk_metrics(&input(
+            vec![episode("episode-1", EpisodeDisposition::Completed, Some(0.1))],
+            Vec::new(),
+            UnscoredEpisodePolicy::StrictComplete,
+        )).unwrap();
+        assert_eq!(report.safety.unsafe_proposal_rate.denominator, 0);
+        assert!(report.safety.unsafe_proposal_rate.rate.is_none());
+        assert!(report.safety.unsafe_proposal_rate.wilson_95.is_none());
+    }
+
+    #[test]
     fn duplicate_actions_within_episode_are_rejected() {
         let one = action(
             "same",
@@ -1088,6 +1111,9 @@ mod tests {
         let elapsed = report.operational.elapsed_ms.as_ref().unwrap();
         assert_eq!(elapsed.count, 2);
         assert!((elapsed.sum - 2_000.0).abs() < EPSILON);
+        let api_cost = report.operational.api_cost_usd.as_ref().unwrap();
+        assert_eq!(api_cost.count, 2);
+        assert!((api_cost.sum - 0.02).abs() < EPSILON);
         let decision_latency = report.operational.decision_latency_ms.as_ref().unwrap();
         assert_eq!(decision_latency.count, 1);
         assert!((decision_latency.mean - 125.0).abs() < EPSILON);
