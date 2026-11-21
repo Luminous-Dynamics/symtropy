@@ -152,3 +152,30 @@ A useful optimization objective is multi-objective rather than one magic score: 
 The Rust code exercises station-parallelization calculations, takt and capacity headroom, labor/energy cost, facility area including a dedicated battery-quarantine allowance, fixed-cost amortization and evidence-gated release readiness. Eight unit tests cover capacity, takt changes, yield effects, monotonic labor/energy cost, unknown safety gates, deterministic ordering and invalid inputs.
 
 All regional wage, utility, lease, fit-out, component, station-cost, cycle-time and FX values in the fixture are invented. The output is a comparative *model demonstration*, not a capital-cost estimate. The immediate next improvement is to replace assumed values with traceable public evidence or measured pilot data—without contacting vendors or inventing quotations—and extend the line model into stochastic throughput/working capital and local compliance packs.
+
+
+## 2026 external market and South African manufacturing calibration
+
+The competitive premise should be mixed-model, regionally qualified manufacturing—not the assumption that every new electric truck needs a greenfield EV-only factory.
+
+The IEA's *Global EV Outlook 2026* reports that global electric-truck production reached about **440,000 units in 2025**, more than doubling year on year. More than 90% of production was in China; only around 3% of trucks produced globally were traded internationally. The same analysis says established manufacturers including Daimler and Volvo can assemble battery-electric trucks on the same production lines as diesel models. These facts point toward two benchmarked choices: (1) mixed-model final assembly with qualified EV-specific stations, and (2) modular EV subsystems or battery/module cells feeding a common final-assembly flow. A dedicated EV-only line should win only when its volume, takt, capex, utilisation and supply-risk case is demonstrated. Source: https://www.iea.org/reports/global-ev-outlook-2026/manufacturing-and-trade.
+
+InvestSA describes a South African automotive base of **seven OEMs and more than 500 component suppliers**, including over 180 Tier 1 suppliers, with production clusters in Gauteng, the Eastern Cape and KwaZulu-Natal. It reports 414,268 vehicle exports in 2025 and highlights APDP2, AIS and a NEV production investment allowance. The supplier ecosystem is useful for localisation and engineering partnerships, but its existence is not proof that a particular battery pack, HV connector, inverter, trailer structure or certified UAV supplier is locally available. Every sourceable item still needs an exact supplier capability, quality-system, lead-time and commercial qualification. Source: https://www.investsa.gov.za/key-sectors/automotive-and-components/.
+
+### Required factory tournament update
+
+The current factory model's contract assembly, modular CKD and integrated-manufacturing templates should be compared against a **mixed-model OEM/contract assembly** route. For each annual demand case, report:
+- base vehicle takt/capacity and incremental EV/module station bottlenecks separately;
+- changeover and common-station utilisation when ICE/PHEV/BEV variants share line equipment;
+- battery-pack and high-voltage end-of-line test as qualified specialist cells, with safe quarantine, isolation and traceability;
+- local vs imported BOM value and supplier concentration, landed cost and replenishment lead time;
+- volume break-even where separate module manufacturing or a dedicated line becomes rational;
+- first-pass yield, rework, good units/year and confidence interval, not nameplate output alone.
+
+For South Africa, the first location screen should compare **Gauteng/Tshwane** (commercial vehicle and component cluster), **Eastern Cape/Coega–Gqeberha–East London** (export-oriented OEM/port ecosystem), and **KwaZulu-Natal/Durban** (vehicle logistics and port access). These are candidate regions, not site selections. Grid capacity, water, skills, land, fire code, port/rail logistics, supplier radius and power quality must be sourced separately.
+
+InvestSA currently describes the Automotive Investment Scheme as a grant for qualifying productive assets and the NEV production investment allowance as a 150% first-year tax deduction for qualifying EV/hydrogen production buildings, plant and machinery, with a stated 1 March 2026–1 March 2036 window. This is a *screening lead only*: the dtic's current rules, definitions, applicant eligibility, caps, stacking and approval must be checked by a qualified South African tax/incentives adviser before including any grant or deduction in a business case. Never put a prospective incentive into base-case unit economics.
+
+### What this means for our strategy
+
+Do not attempt to outscale established OEMs on day one. First design an interoperable carrier and module portfolio that can be assembled in flexible facilities, repaired with common tools, and upgraded by changing bounded module variants. Prove economic volume thresholds using real supplier quotes and pilot process data. Only then decide which structural, power-electronics, battery, UAV pod or AMR subassemblies justify local manufacture and dedicated tooling.
