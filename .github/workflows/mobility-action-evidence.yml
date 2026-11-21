@@ -1,0 +1,36 @@
+name: Mobility Action Evidence Contract
+
+on:
+  pull_request:
+    paths:
+      - "research/mobility-action-evidence/**"
+      - ".github/workflows/mobility-action-evidence.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobility-action-evidence-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Validate CDAAB protocol schemas
+        run: |
+          jq empty research/mobility-action-evidence/protocol/scenario_manifest.schema.json
+          jq empty research/mobility-action-evidence/protocol/action_ticket.schema.json
+          jq empty research/mobility-action-evidence/protocol/evaluation_plan.schema.json
+          jq empty research/mobility-action-evidence/protocol/run_receipt.schema.json
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/mobility-action-evidence/Cargo.toml -- --check
+      - name: Run contract tests
+        run: cargo test --manifest-path research/mobility-action-evidence/Cargo.toml --locked
+      - name: Run Clippy
+        run: cargo clippy --manifest-path research/mobility-action-evidence/Cargo.toml --all-targets --locked -- -D warnings

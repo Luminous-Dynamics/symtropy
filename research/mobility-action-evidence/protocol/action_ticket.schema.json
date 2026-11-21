@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/symtropy/mobility-action-ticket/v0.1",
+  "title": "Mobility action ticket v0.1",
+  "description": "Wire contract for the M2 action commitment. Observer dependency expectations are carried by the ticket itself; the opaque ticket commitment and policy digest must be authenticated by their issuing owners.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ticket_commitment", "mission_id", "mission_generation", "subgoal_id",
+    "action_id", "attempt", "action_digest", "expected_effect_predicate_id",
+    "platform", "operation", "authority", "clock", "issued_at_ticks",
+    "expires_at_ticks", "navigation", "expected_observation_frame_id",
+    "expected_calibration_id", "expected_effect_digest",
+    "expected_observer_failure_domains", "observer_independence_policy_digest"
+  ],
+  "properties": {
+    "ticket_commitment": {"$ref": "#/$defs/digest"},
+    "mission_id": {"type": "string", "minLength": 1},
+    "mission_generation": {"type": "integer", "minimum": 0},
+    "subgoal_id": {"type": "string", "minLength": 1},
+    "action_id": {"type": "string", "minLength": 1},
+    "attempt": {"type": "integer", "minimum": 1},
+    "action_digest": {"$ref": "#/$defs/digest"},
+    "expected_effect_predicate_id": {"type": "string", "minLength": 1},
+    "platform": {
+      "type": "object", "additionalProperties": false,
+      "required": ["platform_id", "configuration_digest"],
+      "properties": {
+        "platform_id": {"type": "string", "minLength": 1},
+        "configuration_digest": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "operation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["odd_id", "odd_revision", "mode_id", "mode_revision"],
+      "properties": {
+        "odd_id": {"type": "string", "minLength": 1},
+        "odd_revision": {"$ref": "#/$defs/digest"},
+        "mode_id": {"type": "string", "minLength": 1},
+        "mode_revision": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "authority": {
+      "type": "object", "additionalProperties": false,
+      "required": ["authority_id", "epoch", "required_scope"],
+      "properties": {
+        "authority_id": {"type": "string", "minLength": 1},
+        "epoch": {"type": "integer", "minimum": 0},
+        "required_scope": {"type": "string", "minLength": 1}
+      }
+    },
+    "clock": {
+      "type": "object", "additionalProperties": false,
+      "required": ["clock_id", "boot_epoch_id"],
+      "properties": {
+        "clock_id": {"type": "string", "minLength": 1},
+        "boot_epoch_id": {"type": "string", "minLength": 1}
+      }
+    },
+    "issued_at_ticks": {"type": "integer", "minimum": 0},
+    "expires_at_ticks": {"type": "integer", "minimum": 1},
+    "navigation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["profile_digest", "required_service", "spatial_frame_id", "source_id", "minimum_source_sequence", "maximum_age_ticks"],
+      "properties": {
+        "profile_digest": {"$ref": "#/$defs/digest"},
+        "required_service": {"enum": ["Qualified", "Degraded", "Unqualified", "Unknown"]},
+        "spatial_frame_id": {"type": "string", "minLength": 1},
+        "source_id": {"type": "string", "minLength": 1},
+        "minimum_source_sequence": {"type": "integer", "minimum": 0},
+        "maximum_age_ticks": {"type": "integer", "minimum": 1}
+      }
+    },
+    "expected_observation_frame_id": {"type": "string", "minLength": 1},
+    "expected_calibration_id": {"type": "string", "minLength": 1},
+    "expected_effect_digest": {"$ref": "#/$defs/digest"},
+    "expected_observer_failure_domains": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1},
+      "description": "Exact canonical dependency path for the chosen observer. The issuer must bind this array into ticket_commitment."
+    },
+    "observer_independence_policy_digest": {"$ref": "#/$defs/digest"}
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}
