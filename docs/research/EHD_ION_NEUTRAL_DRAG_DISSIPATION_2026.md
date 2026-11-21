@@ -74,16 +74,17 @@ For time-varying drift, a production adapter must integrate the instantaneous wo
 
 ## 4. Authored test matrix
 
-Nine module tests are currently authored:
+Ten module tests are currently authored:
 1. Exact constant-drift momentum and energy identity.
 2. Zero-drift zero-impulse/zero-heating limit.
 3. Reject negative drag coefficient.
 4. Reject anti-drag impulse.
-5. Reject equal-and-opposite but incorrect impulse magnitude.
-6. Reject duplicate event IDs.
-7. Reject non-finite drift and invalid tolerances.
-8. Deterministic result under event permutation.
-9. Offline reference self-check.
+5. Reject negative frictional work even with a relaxed impulse tolerance.
+6. Reject equal-and-opposite but incorrect impulse magnitude.
+7. Reject duplicate event IDs.
+8. Reject non-finite drift and invalid tolerances.
+9. Deterministic result under event permutation.
+10. Offline reference self-check.
 
 These tests are authored, not executed Rust tests.
 
