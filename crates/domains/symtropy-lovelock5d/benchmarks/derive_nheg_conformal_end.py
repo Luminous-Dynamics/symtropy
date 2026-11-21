@@ -92,7 +92,7 @@ def main() -> None:
 
     # Proper distance to the end and hyperbolic limiting radius.
     d_sigma_d_log=sp.factor(lapse*eps)
-    exact_zero("proper-distance lapse",d_sigma_d_log-L*q/sp.sqrt(p*(1-eps**2)))
+    exact_zero("proper-distance lapse squared",d_sigma_d_log**2-L**2*q**2/(p*(1-eps**2)))
     sigma_lapse_limit=sp.limit(d_sigma_d_log,eps,0,dir="+")
     exact_zero("asymptotic hyperbolic radius",sigma_lapse_limit-L)
 
