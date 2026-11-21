@@ -52,7 +52,8 @@ fn main() {
         qualified.profile_version
     );
     println!(
-        "state={} accepted_fixes={} duplicate={} invalid={} nav_conflicts={} kinematic_conflicts={} gaps={}",
+        "state={} accepted_fixes={} duplicate={} invalid={} nav_conflicts={} \
+         kinematic_conflicts={} gaps={}",
         qualified.final_state.label(),
         qualified.accepted_fix_count,
         qualified.duplicate_fix_count,
@@ -63,11 +64,12 @@ fn main() {
     );
     for event in &qualified.events {
         println!(
-            "  {} interval=[{},{}] confirmed={} fixes={}",
+            "  {} interval=[{},{}] confirmed_source={} confirmed_receiver={} fixes={}",
             event.kind.label(),
             event.lower_tick,
             event.upper_tick,
             event.confirmation_tick,
+            event.confirmation_received_tick,
             event.supporting_fix_count
         );
     }
@@ -118,7 +120,10 @@ fn main() {
             .events
             .iter()
             .find(|event| event.kind.label() == "AIS_INFERRED_BERTH_ZONE_ENTRY")
-            .map_or_else(|| "NOT_DETECTED".to_string(), |event| event.confirmation_tick.to_string());
+            .map_or_else(
+                || "NOT_DETECTED".to_string(),
+                |event| event.confirmation_tick.to_string(),
+            );
         println!("  berth_dwell_ticks={dwell} confirmation_tick={confirmation}");
     }
 
