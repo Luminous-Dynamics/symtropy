@@ -358,7 +358,7 @@ def evaluate(
             violations.append("current_observation_not_in_citation_set")
 
         observations, superseded, revoked = _episode_state(episode, max(as_of_tick, 0))
-        eligible = set(observations) - superseded - revoked
+        eligible = {ref for ref, available_tick in observations.items() if available_tick <= as_of_tick} - superseded - revoked
         valid_historical_citations: set[str] = set()
         invalid_cited_refs: set[str] = set()
         revoked_citation = False
