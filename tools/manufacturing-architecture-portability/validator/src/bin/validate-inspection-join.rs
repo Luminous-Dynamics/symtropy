@@ -93,7 +93,7 @@ fn main() -> ExitCode {
         "schema_valid": true,
         "admissible_for_declared_synthetic_join": evaluation.admissible_for_declared_synthetic_join,
         "metrology_reference_state": evaluation.metrology_reference_state,
-        "physical_metrology_qualified": false,
+        "physical_metrology_qualified": evaluation.physical_metrology_qualified,
         "violations": violations,
         "claim_ceiling": "synthetic structural consistency only; no source authority, clock map, metrology, conformity, product release or physical manufacturing is qualified"
     });
