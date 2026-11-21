@@ -119,3 +119,17 @@ cargo run --locked --bin validate-inspection-join -- \
 ```
 
 The command validates the candidate against the strict Draft 2020-12 schema, independently checks exact cycle/QIF/association identity and timing relationships, recomputes the conservative clock-uncertainty sum and emits a machine-readable JSON disposition. A schema or semantic failure exits non-zero. It is read-only and has no live endpoint or mutation capability.
+
+## Standards metadata and the NIST TIDAL benchmark direction
+
+The OPC UA reference profiles pin the standard *and* the model identity:
+- Machinery: namespace `http://opcfoundation.org/UA/Machinery/`, model 1.04.2, publication date 2026-11-01, and the exact 1.04.2 NodeSet URI.
+- Robotics: namespace `http://opcfoundation.org/UA/Robotics/`, model 1.02, publication date 2025-09-08, and the exact 1.02 NodeSet URI.
+
+The published NodeSets describe the complete namespace. A server may expose a declared subset; any live adapter must report its actual server namespace metadata and subset status and must not assume complete NodeSet implementation from the standard reference alone.
+
+NIST's TIDAL direction layers intelligence across asset, site/area and enterprise ISA-95 levels. Its planned integration bench explicitly compares UNS/MQTT + knowledge graphs/type models, i3X and OPC UA profiles, with the Tennessee Eastman Process as the initial test case and planned extension to NIST digital-twin and additive-manufacturing test beds. It evaluates accuracy, latency, cost and grounding; fault-detection recall is emphasized ahead of precision. The Foundry tournament should preserve that recall-oriented fault-detection stratum while reporting false alarms, decision cost, grounding and latency separately. The NIST programme currently describes these as a developing test bench and future software products; Foundry should align when its public fixtures/harness are released rather than imply that those future datasets are already admitted.
+
+## i3X conformance policy
+
+The i3X 1.0 upstream suite covers 60 MUST and declared MAY behaviors, including transport, `/info`, object/relationship exploration, current/historical queries and subscription lifecycle. Update (write-back) tests run when a server declares update capability. For Foundry read-only profiles, the conformance command must include `--no-writes`; update functionality remains unverified and must not be advertised. The official suite is a protocol/API conformance referee, not a manufacturing semantic/identity or physical-quality oracle.
