@@ -276,3 +276,7 @@ The Rust validator exposes `bench_metrics`:
 - `inspect_run_partition_leakage` verifies the train/validation/test simulation-run ID sets do not overlap. Apply it before generating sample windows so the same trajectory cannot leak across splits.
 
 The adversarial unit test `equal_subset_size_can_hide_identity_instability` proves that zero selected-feature-count variance does not imply stable feature identities. These are metric primitives only; the current test fixtures are synthetic and no TEP data is included.
+
+## Next OPC UA milestone
+
+The follow-on workstream [MFG-ARCH-OPCUA-ADDRESS-SPACE-001 #6615](https://github.com/Luminous-Dynamics/symtropy/issues/6615) addresses a remaining boundary: exact NodeSet provenance and matching NamespaceMetadata do not establish that the actual server address space contains the expected Nodes, attributes and references. It will use OPC Foundation UACTT Lite/CTT as external comparators rather than duplicating them, then add canonical NodeId and manufacturing semantic checks under a read-only snapshot contract.
