@@ -110,15 +110,21 @@ impl Bivector {
 
     /// Convert to the antisymmetric matrix used by the rotor Lie algebra.
     pub fn to_matrix(&self) -> Matrix {
-        let mut matrix = zero_matrix(self.dimension);
-        for i in 0..self.dimension {
-            for j in (i + 1)..self.dimension {
-                let value = self.get(i, j);
-                matrix[i][j] = value;
-                matrix[j][i] = -value;
-            }
-        }
-        matrix
+        (0..self.dimension)
+            .map(|i| {
+                (0..self.dimension)
+                    .map(|j| {
+                        if i < j {
+                            self.get(i, j)
+                        } else if i > j {
+                            -self.get(j, i)
+                        } else {
+                            0.0
+                        }
+                    })
+                    .collect()
+            })
+            .collect()
     }
 
     /// Recover the antisymmetric part of a square matrix as a bivector.
@@ -127,9 +133,9 @@ impl Bivector {
         let dimension = matrix.len();
         validate_dimension(dimension)?;
         let mut result = Self::zero(dimension)?;
-        for i in 0..dimension {
-            for j in (i + 1)..dimension {
-                result.set(i, j, 0.5 * (matrix[i][j] - matrix[j][i]))?;
+        for (i, row) in matrix.iter().enumerate() {
+            for (j, value) in row.iter().enumerate().skip(i + 1) {
+                result.set(i, j, 0.5 * (value - matrix[j][i]))?;
             }
         }
         Ok(result)
@@ -377,10 +383,10 @@ fn validate_rotation(rotation: &Matrix, dimension: usize) -> Result<(), InertiaE
     }
 
     let product = multiply(&transpose(rotation), rotation)?;
-    for i in 0..dimension {
-        for j in 0..dimension {
+    for (i, row) in product.iter().enumerate() {
+        for (j, value) in row.iter().enumerate() {
             let expected = if i == j { 1.0 } else { 0.0 };
-            if (product[i][j] - expected).abs() > 1.0e-10 {
+            if (value - expected).abs() > 1.0e-10 {
                 return Err(InertiaError::InvalidRotation);
             }
         }
@@ -452,10 +458,11 @@ fn determinant(matrix: &Matrix) -> Result<f64, InertiaError> {
         }
         let diagonal = work[column][column];
         result *= diagonal;
-        for row in column + 1..dimension {
-            let factor = work[row][column] / diagonal;
-            for j in column + 1..dimension {
-                work[row][j] -= factor * work[column][j];
+        let pivot_row = work[column].clone();
+        for row in work.iter_mut().skip(column + 1) {
+            let factor = row[column] / diagonal;
+            for (value, pivot_value) in row.iter_mut().zip(&pivot_row).skip(column + 1) {
+                *value -= factor * pivot_value;
             }
         }
     }
