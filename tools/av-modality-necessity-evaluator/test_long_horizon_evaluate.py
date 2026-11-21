@@ -278,6 +278,20 @@ class LongHorizonEvaluatorTests(unittest.TestCase):
         self.assertFalse(result["answer_correct"])
         self.assertTrue(result["false_memory"])
 
+    def test_truth_cannot_require_future_observation_at_query_cutoff(self):
+        workload = copy.deepcopy(self.workload)
+        truth = copy.deepcopy(self.truth)
+        episode = next(x for x in workload["episodes"] if x["episode_id"] == "lh-001-delayed-recall-10m")
+        episode["stream_events"].append({
+            "event_id": "ev-future-truth-test", "kind": "observation", "availability_tick": 700,
+            "observation_ref": "obs-future-truth-test", "modalities": ["video"], "capture_tick": 700,
+            "artifact_sha256": "f" * 64, "clock_domain_id": "test-clock", "clock_generation": 0
+        })
+        label = next(x for x in truth["episodes"] if x["episode_id"] == "lh-001-delayed-recall-10m")
+        label["required_observation_refs"] = ["obs-future-truth-test"]
+        with self.assertRaises(evaluator.EvaluationError):
+            self.score(workload=workload, truth=truth)
+
     def test_truth_cannot_require_revoked_observation(self):
         truth = copy.deepcopy(self.truth)
         label = next(x for x in truth["episodes"] if x["episode_id"] == "lh-008-memory-revocation")
