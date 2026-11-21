@@ -46,6 +46,8 @@ pub enum RotationalResponseError {
     NonFiniteInput,
     /// The requested integration timestep is not finite and strictly positive.
     InvalidTimeStep,
+    /// A body damping parameter is negative or non-finite.
+    InvalidDamping,
     /// The body's mass-property revision no longer matches its current mass.
     StaleMassProperties,
     /// The body's 3D principal moments or their reciprocals are invalid.
