@@ -188,6 +188,21 @@ A unit test separately pins fractional-tail arithmetic: a 5% scenario costing 10
 Next steps are distributionally robust ambiguity sets, chance constraints for explicit service-level requirements, probability-source provenance, held-out stress scenarios and out-of-sample calibration. CVaR over supplied scenarios is not a calibrated guarantee against distribution shift.
 
 
+## Unweighted stress scenarios: keep adversarial cases out of probability distributions
+
+The input now separates two different kinds of scenario path:
+
+- `scenarios` are **probabilistic scenarios**. Their integer weights sum to 10,000 basis points and they alone contribute to expected cost and CVaR90.
+- `stress_scenarios` are **unweighted stress trajectories**. They have no `probability_bps` field, do not contribute to expected cost or CVaR90, and cannot be accidentally turned into a 0.5% or 1% “risk” by fixture authors. They do contribute to worst-case cost, worst-case unserved demand, minimax-cost selection and service-robust policy selection.
+
+Both sets contribute their observed histories to the nonanticipative policy tree. This means the policy is defined for a possible stress path, and matching observed prefixes share the same decision across probabilistic and stress-only paths. The stress path cannot be anticipated before its distinguishing observation occurs.
+
+The third fixture, `synthetic-two-region-shared-aircraft-stress.json`, reuses the tail-risk fixture's probabilistic scenarios and adds one severe rural demand / weather-closure trajectory with no probability. It has two probabilistic scenarios, one stress scenario, seven nonanticipative nodes and (3^7=2,187) exact policies. Its expected-cost and CVaR90 outputs remain the same as the probabilistic-only tail-risk fixture; the new stress fields expose the unweighted worst case and allow minimax / service-robust policies to account for it.
+
+The report includes `stress_scenario_count` and, for each policy/baseline, `worst_stress_case_total_cost_units` and `worst_stress_case_unserved_units`. If no stress scenarios are supplied, those per-outcome values are `null`. `worst_case_total_cost_units` and `worst_case_unserved_units` are the maximum over both probabilistic and stress-only paths. The CVaR tail remains computed only from probabilistic scenario weights.
+
+This implements the key separation in [MFB-SCENARIO-CALIBRATION-001 #6460](https://github.com/Luminous-Dynamics/symtropy/issues/6460): a stress case is an adversarial test, not a probability estimate. Stress tests can reveal brittleness but cannot be reported as empirical event likelihoods. The finite stress set is not a guarantee against unknown unknowns or distribution shift.
+
 ## 2026 SOTA and commercial deployment update
 
 An August 2026 *Drones* paper jointly optimizes fleet sizing and routing for multiple trucks and drones. Its two-stage framework adjusts the initial fleet configuration after route-feasibility and utilization are assessed; multi-visit delivery is identified as the primary mechanism in its ablation, while cross-vehicle retrieval adds scheduling flexibility. The authors report average cost savings of 15.4–15.5% against four simplified fleet-sizing strategies on their own medium- and large-scale numerical instances. This should be a required reproduction target, not an external number to compare directly with the two-region synthetic fixture. DOI: https://doi.org/10.3390/drones10090658.
