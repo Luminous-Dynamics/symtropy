@@ -5254,7 +5254,8 @@
         "event_level_records": 1,
         "recurrent_event_articles": 1,
         "assumption_diagnostics_ready": false,
-        "blockers": []
+        "blockers": [],
+        "total_failure_events": 2
       }
     },
     {
@@ -5417,7 +5418,8 @@
         "assumption_diagnostics_ready": false,
         "blockers": [
           "power_law_profile_requires_minimal_repair_event_history"
-        ]
+        ],
+        "total_failure_events": 2
       }
     },
     {
