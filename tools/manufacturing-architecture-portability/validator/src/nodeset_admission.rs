@@ -298,11 +298,8 @@ pub fn parse_nodeset_xml(xml: &[u8]) -> Result<ParsedNodeSet, String> {
                                 &namespace_uris,
                                 "ReferenceType",
                             )?;
-                            checked_node_id_references += if resolved.starts_with("ns=") {
-                                1
-                            } else {
-                                0
-                            };
+                            checked_node_id_references +=
+                                if resolved.starts_with("ns=") { 1 } else { 0 };
                         }
                         collecting_reference = true;
                         current_reference.clear();
