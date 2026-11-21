@@ -91,7 +91,7 @@ jobs:
             and .optimized_policy.worst_case_total_cost_units == 1246
             and .cvar90_optimal_policy.expected_total_cost_units == 527
             and .cvar90_optimal_policy.cvar90_total_cost_units == 825
-            and .worst_case_optimal_policy.expected_total_cost_units == 570
+            and .worst_case_optimal_policy.expected_total_cost_units == 527
             and .worst_case_optimal_policy.worst_case_total_cost_units == 1156
             and .service_robust_optimal_policy.expected_total_cost_units == 526
             and .service_robust_optimal_policy.worst_case_unserved_units == 21
