@@ -135,6 +135,9 @@ pub struct ActionTicket {
     pub expected_observation_frame_id: String,
     pub expected_calibration_id: String,
     pub expected_effect_digest: Digest,
+    /// Exact expected observer dependency path included in the upstream ticket
+    /// commitment. The issuer must authenticate this path and commitment.
+    pub expected_observer_failure_domains: Vec<String>,
     /// Digest of the approved observer-vs-executor failure-domain policy.
     /// This is an opaque upstream commitment, not authenticated by this crate.
     pub observer_independence_policy_digest: Digest,
@@ -498,6 +501,7 @@ pub enum OutcomeError {
     IndependencePolicyMismatch,
     FailureDomainPolicyInvalid,
     ObserverFailureDomainMismatch,
+    TicketObserverDependencyPathMismatch,
     CommonCauseFailureDomainOverlap,
 }
 
@@ -549,6 +553,9 @@ pub fn validate_physical_outcome(
     }
     if policy.observer_independence_policy_digest != ticket.observer_independence_policy_digest {
         return Err(OutcomeError::IndependencePolicyMismatch);
+    }
+    if policy.expected_observer_failure_domains != ticket.expected_observer_failure_domains {
+        return Err(OutcomeError::TicketObserverDependencyPathMismatch);
     }
     if policy.execution_failure_domains.is_empty()
         || policy.expected_observer_failure_domains.is_empty()
@@ -687,6 +694,11 @@ mod tests {
             expected_observation_frame_id: "frame.local-enu-1".into(),
             expected_calibration_id: "calibration-camera-1".into(),
             expected_effect_digest: digest(7),
+            expected_observer_failure_domains: vec![
+                "camera-sensor".into(),
+                "camera-processor".into(),
+                "observer-power".into(),
+            ],
             observer_independence_policy_digest: digest(40),
         }
     }
@@ -1142,6 +1154,10 @@ mod tests {
 
     #[test]
     fn common_cause_failure_domain_overlap_rejects_independent_observer() {
+        let mut ticket = ticket();
+        ticket
+            .expected_observer_failure_domains
+            .push("vehicle-power".into());
         let mut evidence = physical_evidence();
         evidence
             .observer_failure_domains
@@ -1151,7 +1167,7 @@ mod tests {
             .expected_observer_failure_domains
             .push("vehicle-power".into());
         assert_eq!(
-            validate_physical_outcome(&ticket(), &evidence, policy),
+            validate_physical_outcome(&ticket, &evidence, policy),
             Err(OutcomeError::CommonCauseFailureDomainOverlap)
         );
     }
@@ -1165,6 +1181,19 @@ mod tests {
         assert_eq!(
             validate_physical_outcome(&ticket(), &evidence, outcome_policy()),
             Err(OutcomeError::ObserverFailureDomainMismatch)
+        );
+    }
+
+
+    #[test]
+    fn observer_dependency_path_is_bound_to_action_ticket() {
+        let mut policy = outcome_policy();
+        policy
+            .expected_observer_failure_domains
+            .push("different-processor".into());
+        assert_eq!(
+            validate_physical_outcome(&ticket(), &physical_evidence(), policy),
+            Err(OutcomeError::TicketObserverDependencyPathMismatch)
         );
     }
 
