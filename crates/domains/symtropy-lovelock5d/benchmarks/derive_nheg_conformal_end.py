@@ -68,7 +68,7 @@ def main() -> None:
     K_psi_expected=sp.sqrt(1-eps**2)/(L*sp.sqrt(p))
     exact_zero("phi principal extrinsic curvature",K_phi/K_phi_expected-1)
     exact_zero("psi principal extrinsic curvature",K_psi/K_psi_expected-1)
-    exact_zero("mean extrinsic curvature",K_trace-K_phi_expected-K_psi_expected)
+    exact_zero("mean extrinsic curvature is the sum of principal curvatures",K_trace-K_phi-K_psi)
 
     # Exact induced volume density and cutoff area.
     exact_zero("positive radial lapse square",lapse**2-h_eps_eps)
