@@ -100,6 +100,89 @@ pub fn linear_reference_projection(
     Ok(projection)
 }
 
+/// Piecewise-linear projection and trapezoidal weights over the common
+/// reference/observation energy domain.
+///
+/// This matches the control-flow of the public AIACHNE `get_scale_factor`
+/// helper for strictly increasing grids: an interval whose left observation
+/// energy is below the reference domain is skipped; an interval whose left
+/// endpoint is in-domain but whose right endpoint is outside is rejected
+/// because the upstream interpolation would yield NaN for that trapezoid.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ReferenceOverlapGeometry {
+    pub reference_projection: Vec<Vec<f64>>,
+    pub integration_weights: Vec<f64>,
+    pub included_trapezoid_intervals: usize,
+}
+
+pub fn aiache_compatible_overlap_geometry(
+    reference_energies: &[f64],
+    observation_energies: &[f64],
+) -> Result<ReferenceOverlapGeometry, ModelError> {
+    if reference_energies.len() < 2 || observation_energies.len() < 2 {
+        return Err(ModelError::MismatchedDataLengths);
+    }
+    for grid in [reference_energies, observation_energies] {
+        if grid.iter().any(|value| !value.is_finite()) {
+            return Err(ModelError::NonFiniteValue("overlap_energy_grid"));
+        }
+        if grid.windows(2).any(|pair| pair[1] <= pair[0]) {
+            return Err(ModelError::InvalidParameter(
+                "overlap_energy_grid_must_be_strictly_increasing",
+            ));
+        }
+    }
+
+    let reference_min = reference_energies[0];
+    let reference_max = reference_energies[reference_energies.len() - 1];
+    let mut projection =
+        vec![vec![0.0; reference_energies.len()]; observation_energies.len()];
+    for (row_index, energy) in observation_energies.iter().enumerate() {
+        if *energy < reference_min || *energy > reference_max {
+            continue;
+        }
+        match reference_energies.binary_search_by(|probe| probe.total_cmp(energy)) {
+            Ok(exact_index) => projection[row_index][exact_index] = 1.0,
+            Err(upper_index) => {
+                let lower_index = upper_index - 1;
+                let fraction = (energy - reference_energies[lower_index])
+                    / (reference_energies[upper_index] - reference_energies[lower_index]);
+                projection[row_index][lower_index] = 1.0 - fraction;
+                projection[row_index][upper_index] = fraction;
+            }
+        }
+    }
+
+    let mut integration_weights = vec![0.0; observation_energies.len()];
+    let mut included_trapezoid_intervals = 0usize;
+    for (index, pair) in observation_energies.windows(2).enumerate() {
+        let left_in_reference_domain = pair[0] >= reference_min && pair[0] <= reference_max;
+        if !left_in_reference_domain {
+            continue;
+        }
+        let right_in_reference_domain = pair[1] >= reference_min && pair[1] <= reference_max;
+        if !right_in_reference_domain {
+            return Err(ModelError::InvalidParameter(
+                "aiache_reference_interpolation_nan_at_right_trapezoid_endpoint",
+            ));
+        }
+        let half_width = 0.5 * (pair[1] - pair[0]);
+        integration_weights[index] += half_width;
+        integration_weights[index + 1] += half_width;
+        included_trapezoid_intervals += 1;
+    }
+    if included_trapezoid_intervals == 0 {
+        return Err(ModelError::InvalidParameter(
+            "aiache_normalization_has_no_reference_overlap_intervals",
+        ));
+    }
+    Ok(ReferenceOverlapGeometry {
+        reference_projection: projection,
+        integration_weights,
+        included_trapezoid_intervals,
+    })
+}
+
 /// Inputs for one experiment normalized against a shared reference.
 pub struct SharedReferenceNormalizationInput<'a> {
     /// Raw, unnormalized observations on this experiment's energy grid.
@@ -561,6 +644,35 @@ mod tests {
             trapezoidal_integration_weights(&[1.0, 1.0]),
             Err(ModelError::InvalidParameter(
                 "trapezoid_energy_grid_must_be_strictly_increasing",
+            ))
+        );
+    }
+
+    #[test]
+    fn aiachne_overlap_geometry_skips_only_lower_out_of_domain_left_intervals() {
+        let geometry = aiache_compatible_overlap_geometry(
+            &[0.5, 1.0, 2.0, 4.0],
+            &[0.25, 1.0, 2.0, 3.0],
+        )
+        .expect("overlap geometry");
+        assert_eq!(geometry.included_trapezoid_intervals, 2);
+        assert_eq!(geometry.integration_weights, vec![0.0, 0.5, 1.0, 0.5]);
+        assert_eq!(geometry.reference_projection[0], vec![0.0; 4]);
+        assert_eq!(
+            geometry.reference_projection[3],
+            vec![0.0, 0.0, 0.5, 0.5]
+        );
+    }
+
+    #[test]
+    fn aiachne_overlap_geometry_fails_closed_on_upper_nan_trapezoid_endpoint() {
+        assert_eq!(
+            aiache_compatible_overlap_geometry(
+                &[0.5, 1.0, 2.0],
+                &[1.0, 2.0, 3.0],
+            ),
+            Err(ModelError::InvalidParameter(
+                "aiache_reference_interpolation_nan_at_right_trapezoid_endpoint",
             ))
         );
     }
