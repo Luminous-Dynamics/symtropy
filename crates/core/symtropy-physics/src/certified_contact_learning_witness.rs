@@ -260,9 +260,7 @@ mod tests {
         // Here the gap enclosure is exact and the resulting bound is tight:
         // 2*(18/1000)/(9/10) = 4/100 = ||j_hat-j_star||^2.
         assert_eq!(
-            2 * gap_numerator
-                * alpha_denominator
-                * actual_error_squared_denominator,
+            2 * gap_numerator * alpha_denominator * actual_error_squared_denominator,
             actual_error_squared_numerator * gap_denominator * alpha_numerator
         );
 
@@ -276,11 +274,7 @@ mod tests {
                 * alpha_denominator
                 * alpha_denominator
                 * actual_error_squared_denominator,
-            actual_error_squared_numerator
-                * 10_000_i128
-                * alpha_numerator
-                * alpha_numerator
+            actual_error_squared_numerator * 10_000_i128 * alpha_numerator * alpha_numerator
         );
     }
-
 }
