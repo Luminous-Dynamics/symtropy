@@ -259,20 +259,25 @@ fn structural_errors(input: &CoAvailabilityInput) -> Vec<String> {
         errors.push("aircraft capability limits must be non-zero".into());
     }
     if input.aircraft.reserve_energy_wh == 0 {
-        errors.push("aircraft.reserve_energy_wh: an explicit non-zero protected reserve is required".into());
+        errors.push(
+            "aircraft.reserve_energy_wh: an explicit non-zero protected reserve is required".into(),
+        );
     }
     if input.aircraft.maximum_continuous_power_w > input.aircraft.maximum_peak_power_w {
         errors.push("aircraft continuous power limit cannot exceed peak power limit".into());
     }
     let mut reservation_ids = BTreeSet::new();
     for (index, reservation) in input.existing_reservations.iter().enumerate() {
-        if reservation.reservation_id.trim().is_empty()
-            || reservation.resource_id.trim().is_empty()
+        if reservation.reservation_id.trim().is_empty() || reservation.resource_id.trim().is_empty()
         {
-            errors.push(format!("existing_reservations[{index}]: identifiers must be non-empty"));
+            errors.push(format!(
+                "existing_reservations[{index}]: identifiers must be non-empty"
+            ));
         }
         if reservation.start_ms >= reservation.end_ms {
-            errors.push(format!("existing_reservations[{index}]: interval must be non-empty"));
+            errors.push(format!(
+                "existing_reservations[{index}]: interval must be non-empty"
+            ));
         }
         if !reservation_ids.insert(reservation.reservation_id.as_str()) {
             errors.push(format!(
@@ -315,33 +320,51 @@ fn record_evidence_status(
 ) {
     if status != EvidenceStatus::FreshInDomain {
         *indeterminate = true;
-        findings.push(format!(
-            "INDETERMINATE: {label} evidence is {status:?}"
-        ));
+        findings.push(format!("INDETERMINATE: {label} evidence is {status:?}"));
     }
 }
 
 fn find_stop(input: &CoAvailabilityInput, stop_id: &str) -> Option<StopWindow> {
-    input.carrier.route_stops.iter().enumerate().find_map(|(index, stop)| {
-        (stop.stop_id == stop_id).then_some(StopWindow {
-            index,
-            arrival_latest_ms: stop.arrival_latest_ms,
-            departure_earliest_ms: stop.departure_earliest_ms,
+    input
+        .carrier
+        .route_stops
+        .iter()
+        .enumerate()
+        .find_map(|(index, stop)| {
+            (stop.stop_id == stop_id).then_some(StopWindow {
+                index,
+                arrival_latest_ms: stop.arrival_latest_ms,
+                departure_earliest_ms: stop.departure_earliest_ms,
+            })
         })
-    })
 }
 
-fn find_first_available_launch(
-    reservations: &[ResourceReservation],
-    launch_pad_id: &str,
-    aircraft_id: &str,
-    recovery_pad_id: &str,
+struct LaunchReservationRequest<'a> {
+    reservations: &'a [ResourceReservation],
+    launch_pad_id: &'a str,
+    aircraft_id: &'a str,
+    recovery_pad_id: &'a str,
     earliest_launch_ms: u64,
     latest_launch_ms: u64,
     launch_service_ms: u64,
     launch_to_recovery_offset_ms: u64,
     recovery_service_ms: u64,
+}
+
+fn find_first_available_launch(
+    request: LaunchReservationRequest<'_>,
 ) -> Result<Option<(u64, u64)>, String> {
+    let LaunchReservationRequest {
+        reservations,
+        launch_pad_id,
+        aircraft_id,
+        recovery_pad_id,
+        earliest_launch_ms,
+        latest_launch_ms,
+        launch_service_ms,
+        launch_to_recovery_offset_ms,
+        recovery_service_ms,
+    } = request;
     let mut candidate = earliest_launch_ms;
 
     // Every conflict advances the candidate beyond at least one finite
@@ -413,8 +436,7 @@ pub fn evaluate_coavailability(
     if !errors.is_empty() {
         return Err(errors);
     }
-    let input_digest_sha256 =
-        canonical_input_digest(input).map_err(|error| vec![error])?;
+    let input_digest_sha256 = canonical_input_digest(input).map_err(|error| vec![error])?;
 
     let mut findings = Vec::new();
     let mut known_infeasible = false;
@@ -423,15 +445,19 @@ pub fn evaluate_coavailability(
     let sortie = &input.sortie;
     let aircraft = &input.aircraft;
 
-    let payload_margin = aircraft.maximum_payload_mass_g.checked_sub(sortie.payload_mass_g);
+    let payload_margin = aircraft
+        .maximum_payload_mass_g
+        .checked_sub(sortie.payload_mass_g);
     if payload_margin.is_none() {
         known_infeasible = true;
         findings.push("INFEASIBLE: payload exceeds aircraft maximum".into());
     }
 
-    let required_energy = sortie.flight_energy_wh.checked_add(aircraft.reserve_energy_wh);
-    let energy_margin = required_energy
-        .and_then(|required| aircraft.usable_energy_wh.checked_sub(required));
+    let required_energy = sortie
+        .flight_energy_wh
+        .checked_add(aircraft.reserve_energy_wh);
+    let energy_margin =
+        required_energy.and_then(|required| aircraft.usable_energy_wh.checked_sub(required));
     match (required_energy, energy_margin) {
         (None, _) => {
             known_infeasible = true;
@@ -446,7 +472,9 @@ pub fn evaluate_coavailability(
         (Some(_), Some(_)) => {}
     }
 
-    let peak_margin = aircraft.maximum_peak_power_w.checked_sub(sortie.peak_power_w);
+    let peak_margin = aircraft
+        .maximum_peak_power_w
+        .checked_sub(sortie.peak_power_w);
     if peak_margin.is_none() {
         known_infeasible = true;
         findings.push("INFEASIBLE: peak power demand exceeds aircraft capability".into());
@@ -518,9 +546,8 @@ pub fn evaluate_coavailability(
         (Some(launch), Some(recovery)) => {
             if launch.index > recovery.index {
                 known_infeasible = true;
-                findings.push(
-                    "INFEASIBLE: recovery stop precedes launch stop on carrier route".into(),
-                );
+                findings
+                    .push("INFEASIBLE: recovery stop precedes launch stop on carrier route".into());
             } else {
                 let launch_pad_available = input.carrier.route_stops[launch.index]
                     .available_pad_resource_ids
@@ -556,8 +583,9 @@ pub fn evaluate_coavailability(
                     .departure_earliest_ms
                     .checked_sub(sortie.recovery_service_ms);
                 // Recovery follows the launch service interval and then the flight.
-                let launch_to_recovery_offset =
-                    sortie.launch_service_ms.checked_add(sortie.flight_duration_ms);
+                let launch_to_recovery_offset = sortie
+                    .launch_service_ms
+                    .checked_add(sortie.flight_duration_ms);
 
                 match (
                     launch_latest_from_window,
@@ -582,24 +610,23 @@ pub fn evaluate_coavailability(
 
                         let recovery_launch_lo =
                             recovery_lo.saturating_sub(launch_to_recovery_offset);
-                        let recovery_launch_hi =
-                            recovery_hi.checked_sub(launch_to_recovery_offset);
+                        let recovery_launch_hi = recovery_hi.checked_sub(launch_to_recovery_offset);
 
                         if let Some(recovery_launch_hi) = recovery_launch_hi {
                             let feasible_launch_lo = launch_lo.max(recovery_launch_lo);
                             let feasible_launch_hi = launch_hi.min(recovery_launch_hi);
                             if feasible_launch_lo <= feasible_launch_hi {
-                                match find_first_available_launch(
-                                    &input.existing_reservations,
-                                    &sortie.launch_pad_resource_id,
-                                    &aircraft.aircraft_id,
-                                    &sortie.recovery_pad_resource_id,
-                                    feasible_launch_lo,
-                                    feasible_launch_hi,
-                                    sortie.launch_service_ms,
-                                    launch_to_recovery_offset,
-                                    sortie.recovery_service_ms,
-                                ) {
+                                match find_first_available_launch(LaunchReservationRequest {
+                                    reservations: &input.existing_reservations,
+                                    launch_pad_id: &sortie.launch_pad_resource_id,
+                                    aircraft_id: &aircraft.aircraft_id,
+                                    recovery_pad_id: &sortie.recovery_pad_resource_id,
+                                    earliest_launch_ms: feasible_launch_lo,
+                                    latest_launch_ms: feasible_launch_hi,
+                                    launch_service_ms: sortie.launch_service_ms,
+                                    launch_to_recovery_offset_ms: launch_to_recovery_offset,
+                                    recovery_service_ms: sortie.recovery_service_ms,
+                                }) {
                                     Ok(Some((launch_time, recovery_time))) => {
                                         selected_launch = Some(launch_time);
                                         selected_recovery = Some(recovery_time);
@@ -833,7 +860,12 @@ mod tests {
         test.sortie.peak_power_w = 1_501;
         let report = evaluate_coavailability(&test).expect("valid structure");
         assert_eq!(report.verdict, FeasibilityVerdict::Infeasible);
-        assert!(report.findings.iter().any(|finding| finding.contains("peak power")));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| finding.contains("peak power"))
+        );
     }
 
     #[test]
@@ -891,7 +923,12 @@ mod tests {
         test.sortie.recovery_pad_resource_id = "pad-at-another-site".into();
         let report = evaluate_coavailability(&test).expect("valid structure");
         assert_eq!(report.verdict, FeasibilityVerdict::Infeasible);
-        assert!(report.findings.iter().any(|finding| finding.contains("not declared")));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| finding.contains("not declared"))
+        );
     }
 
     #[test]
@@ -976,7 +1013,12 @@ mod tests {
         test.carrier.route_stops[1].departure_latest_ms = 1_700_000;
         let report = evaluate_coavailability(&test).expect("valid structure");
         assert_eq!(report.verdict, FeasibilityVerdict::Infeasible);
-        assert!(report.findings.iter().any(|finding| finding.contains("no launch time")));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| finding.contains("no launch time"))
+        );
     }
 
     #[test]
@@ -985,7 +1027,12 @@ mod tests {
         test.sortie.continuous_power_w = 801;
         let report = evaluate_coavailability(&test).expect("valid structure");
         assert_eq!(report.verdict, FeasibilityVerdict::Infeasible);
-        assert!(report.findings.iter().any(|finding| finding.contains("continuous power")));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| finding.contains("continuous power"))
+        );
     }
 
     #[test]
@@ -1057,7 +1104,11 @@ mod tests {
         test.carrier.route_stops[1].arrival_earliest_ms = 900_000;
         test.carrier.route_stops[1].arrival_latest_ms = 1_300_000;
         let errors = evaluate_coavailability(&test).expect_err("overlapping route chronology");
-        assert!(errors.iter().any(|error| error.contains("time envelopes overlap or reverse")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("time envelopes overlap or reverse"))
+        );
     }
 
     #[test]
@@ -1065,7 +1116,11 @@ mod tests {
         let mut test = input();
         test.aircraft.reserve_energy_wh = 0;
         let errors = evaluate_coavailability(&test).expect_err("reserve must be explicit");
-        assert!(errors.iter().any(|error| error.contains("non-zero protected reserve")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("non-zero protected reserve"))
+        );
     }
 
     #[test]
