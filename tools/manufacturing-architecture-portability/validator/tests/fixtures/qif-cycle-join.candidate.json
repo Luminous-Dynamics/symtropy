@@ -60,5 +60,12 @@
   "association_qif_document_sha256": "b000000000000000000000000000000000000000000000000000000000000000",
   "association_part_id": "PART-001",
   "association_lot_id": "LOT-001",
-  "association_operation_id": "OP-MILL-10"
+  "association_operation_id": "OP-MILL-10",
+  "measurement_evidence_class": "synthetic",
+  "calibration_disposition": "unknown",
+  "calibration_reference_id": null,
+  "calibration_reference_sha256": null,
+  "uncertainty_disposition": "unknown",
+  "uncertainty_reference_id": null,
+  "uncertainty_reference_sha256": null
 }
