@@ -15,8 +15,8 @@ function eligible(run) {
     && run.instrument_in_range === true
     && run.uncertainty_complete === true
     && run.clock_aligned === true
-    && typeof run.independence_group === "string"
-    && run.independence_group.length > 0
+    && typeof run.run_group_id === "string"
+    && run.run_group_id.length > 0
     && Array.isArray(run.evidence_keys)
     && run.evidence_keys.length > 0;
 }
@@ -51,7 +51,7 @@ function baselinePairwise(obligation, runs) {
 }
 function strictGroups(obligation, runs) {
   return new Set(runs.filter(run => eligible(run) && scoped(run, obligation) && exact(run, obligation))
-    .map(run => run.independence_group));
+    .map(run => run.run_group_id));
 }
 function inspect(caseInput) {
   if (typeof caseInput.preregistration_ref !== "string" || !caseInput.preregistration_ref.trim()) {
@@ -112,7 +112,7 @@ function inspect(caseInput) {
       continue;
     }
     const groups = strictGroups(obligation, unique);
-    const strict = groups.size >= obligation.minimum_independent_groups;
+    const strict = groups.size >= obligation.minimum_run_groups;
     const required = obligation.criticality !== "informational";
     if (strict) {
       covered += 1;
