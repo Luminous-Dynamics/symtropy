@@ -1,4 +1,4 @@
-use orbital_interface_lifecycle_bench::event_replay::{evaluate, sha256_hex, Corpus};
+use orbital_interface_lifecycle_bench::event_replay::{Corpus, evaluate, sha256_hex};
 use serde_json::json;
 use std::env;
 use std::fs;
@@ -7,14 +7,17 @@ use std::process::ExitCode;
 fn run() -> Result<ExitCode, String> {
     let mut args = env::args().skip(1);
     let fixture_path = args.next().ok_or_else(|| {
-        "usage: orbital-interface-event-replay <cases.json> --source-commit <40-hex-sha>"
-            .to_owned()
+        "usage: orbital-interface-event-replay <cases.json> --source-commit <40-hex-sha>".to_owned()
     })?;
-    let flag = args.next().ok_or_else(|| "missing --source-commit".to_owned())?;
+    let flag = args
+        .next()
+        .ok_or_else(|| "missing --source-commit".to_owned())?;
     if flag != "--source-commit" {
         return Err("expected --source-commit".to_owned());
     }
-    let source_commit = args.next().ok_or_else(|| "missing source commit value".to_owned())?;
+    let source_commit = args
+        .next()
+        .ok_or_else(|| "missing source commit value".to_owned())?;
     if source_commit.len() != 40
         || !source_commit
             .bytes()
