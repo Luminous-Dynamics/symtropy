@@ -78,6 +78,29 @@ class ActiveSensingEvaluatorTests(unittest.TestCase):
         self.assertIn("post_deadline_observation_cited", result["evidence_violations"])
         self.assertEqual(result["late_acquisition_count"], 1)
 
+    def test_required_action_evidence_must_be_cited(self):
+        candidate = copy.deepcopy(self.submission)
+        row = self.prediction(candidate, "as-002-low-eig-high-evsi")
+        row["cited_observation_refs"] = ["obs-cart-visual"]
+        result = self.result(self.score(candidate), "as-002-low-eig-high-evsi")
+        self.assertIn("required_action_evidence_missing_or_inadmissible", result["evidence_violations"])
+        self.assertFalse(result["decision_correct"])
+
+    def test_late_observation_is_admitted_only_as_ineligible_evidence(self):
+        candidate = copy.deepcopy(self.submission)
+        row = self.prediction(candidate, "as-005-deadline-late-observation")
+        row["action_requests"] = [{
+            "request_id": "late-camera", "action_id": "request-delayed-camera-frame",
+            "request_tick": 10, "estimated_eig_nats": 1.2,
+            "estimated_evsi": 1, "estimated_cost_joules": 0.6
+        }]
+        row["response_tick"] = 26
+        row["evidence_as_of_tick"] = 25
+        row["cited_observation_refs"] = ["obs-delayed-frame"]
+        result = self.result(self.score(candidate), "as-005-deadline-late-observation")
+        self.assertIn("post_deadline_observation_cited", result["evidence_violations"])
+        self.assertNotIn("fabricated_or_unrequested_observation", result["evidence_violations"])
+
     def test_fabricated_observation_reference_is_rejected(self):
         candidate = copy.deepcopy(self.submission)
         self.prediction(candidate, "as-001-high-eig-zero-evsi")["cited_observation_refs"].append("made-up")
