@@ -113,6 +113,13 @@ def main() -> None:
     expected_compat = (fp-2*lam*hh/(3*(lam+1)**2)
                       +hp/(3*(lam+1))+2*(lam+2)**2/(3*(lam+1)**2))
     require_zero(compatibility-expected_compat, "first horizon compatibility")
+    mp_horizon = {lam: sp.Integer(0), fp: sp.Integer(-2),
+                  hh: sp.Integer(1), hp: sp.Integer(-2)}
+    mp_compatibility = sp.factor(expected_compat.subs(mp_horizon))
+    require_zero(mp_compatibility, "Myers-Perry horizon compatibility control")
+    wrong_sign_mp = sp.factor(expected_compat.subs({**mp_horizon, hp: sp.Integer(2)}))
+    if wrong_sign_mp == 0:
+        raise AssertionError("wrong-sign Myers-Perry H2' negative control unexpectedly passed")
 
     fixture = {
       "schema_version":1,
@@ -141,12 +148,18 @@ def main() -> None:
       "first_nontrivial_horizon_compatibility":{"assumptions":["Bhat2(1)=0","Fhat2(1)=0","analytic Bhat2,Fhat2,Hhat2"],
         "unreduced":"3*(lambda+2)^2*Fhat2'(1)-2*lambda*(lambda+2)^2/(lambda+1)^2*Hhat2(1)+(lambda+2)^2/(lambda+1)*Hhat2'(1)+2*(lambda+2)^4/(lambda+1)^2=0",
         "reduced":sp.sstr(expected_compat),"Bhat2_prime_cancels":True,
+        "myers_perry_alpha_zero_control":{"lambda":0,"Fhat2_prime_horizon":-2,
+          "Hhat2_horizon":1,"Hhat2_prime_horizon":-2,"compatibility_residual":sp.sstr(mp_compatibility),
+          "passed":True},
+        "negative_control_wrong_sign_Hhat2_prime":{"mutated_Hhat2_prime":2,
+          "compatibility_residual":sp.sstr(wrong_sign_mp),"rejected":True},
         "interpretation":"One horizon compatibility condition from E_f only; E_b/E_h recurrence and independent E_g constraint remain open."},
       "validation":{"python":platform.python_version(),"sympy":sp.__version__,
         "generator_equation_fingerprint_matches_pinned_source":True,
         "equation_text_sha256":text_sha,"full_scaled_row_decomposition_exact":True,
         "all_denominators_exact_and_positive":True,"all_horizon_values_exact":True,
-        "all_horizon_slopes_exact":True,"first_order_horizon_compatibility_exact":True},
+        "all_horizon_slopes_exact":True,"first_order_horizon_compatibility_exact":True,
+        "myers_perry_horizon_control_exact":True,"wrong_sign_horizon_negative_control_rejected":True},
       "claim_ceiling":"The complete scaled algebraic E_f^(2) row is analytically regular at the horizon and its first nontrivial horizon compatibility condition is derived. This is not the coupled Frobenius recurrence, a finite-alpha BVP solution, an interval enclosure, or an existence/uniqueness theorem."
     }
     rendered=json.dumps(fixture,indent=2,sort_keys=True)+"\n"
