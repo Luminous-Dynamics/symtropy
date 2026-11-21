@@ -94,16 +94,36 @@ For the outcome-dependent and positivity scenarios, the observed-share-plus-unre
 
 The separate JavaScript run is a semantic preflight only. It does not compile or execute the Rust code.
 
-## 8. Interpretation
+## 8. Same-latent-cohort reporting-delay sweep
+
+Reuse the exact same latent event cohort and latent PRNG stream for berth publication delays of 0, 1, 2, 3, 4, 5, 6, 8 and 10 ticks. Only event visibility changes. This prevents different latent samples from being mistaken for a delay effect.
+
+Independent preflight results:
+
+| Delay | Full-cohort berth CIF | Observed pooled A-J | Underestimation | Unresolved |
+|---:|---:|---:|---:|---:|
+| 0 | 0.47157 | 0.47157 | 0.00000 | 15.45% |
+| 1 | 0.47157 | 0.45358 | 0.01798 | 17.24% |
+| 2 | 0.47157 | 0.43190 | 0.03967 | 19.41% |
+| 3 | 0.47157 | 0.40523 | 0.06633 | 22.08% |
+| 4 | 0.47157 | 0.37450 | 0.09707 | 25.15% |
+| 5 | 0.47157 | 0.33730 | 0.13427 | 28.87% |
+| 6 | 0.47157 | 0.29147 | 0.18010 | 33.46% |
+| 8 | 0.47157 | 0.17267 | 0.29890 | 45.34% |
+| 10 | 0.47157 | 0.00000 | 0.47157 | 62.60% |
+
+The Rust tests pin that the latent cohort is unchanged, the berth underestimation is monotonic for these frozen delays, and the four-tick result matches the principal outcome-dependent scenario. These are synthetic mechanism results, not a real source-delay model.
+
+## 9. Interpretation
 
 This simulator demonstrates assumption failure. It does not establish which mechanism applies to Durban. In a real feed, source delay may depend on terminal, outcome, congestion, provider availability, communications loss or data-cleaning rules. Those mechanisms must be empirically diagnosed using event/publication timestamps, source coverage and independent references.
 
-## 9. Industry / methodological baselines
+## 10. Industry / methodological baselines
 
 - World Bank / S&P Global CPPI methodology uses AIS/geofence-verified call events and size-stratified comparisons. It reports a 95% match rate in its methodology note. This is a valuable data-validation baseline, not proof that any locally built receiver has the same coverage.
 - The 2026 edge-AIS FSM study demonstrates low-cost vendor-independent port-call KPI monitoring but shows sensitivity to dwell/gap parameters; compare exact service-state definitions, validation labels, detection recall/precision, timing error and parameter robustness.
 - 2026 dependent-censoring IPCW reviews and competing-risk sensitivity methods are methodological references. The maritime benchmark should reuse the censoring-aware scorecard work in #3763 / PR #3791 and the RUL benchmark #4028 / PR #4035 rather than duplicate a generic survival scoring engine.
 
-## 10. Non-claims
+## 11. Non-claims
 
 No real port-performance estimate, data-source authentication, causal effect, SOTA claim, terminal capacity validation or operational authorization is produced.
