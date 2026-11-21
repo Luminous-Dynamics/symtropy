@@ -1,0 +1,74 @@
+name: EGB NHEG Wald-charge density consistency replay
+
+on:
+  push:
+    branches:
+      - research/egb-nheg-wald-charge-consistency-2026-11-21
+    paths:
+      - crates/domains/symtropy-lovelock5d/benchmarks/derive_nheg_wald_charge_consistency.py
+      - crates/domains/symtropy-lovelock5d/benchmarks/nheg_wald_charge_consistency_v1.json
+      - .github/workflows/nheg-wald-charge-consistency.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nheg-wald-charge-consistency
+  cancel-in-progress: false
+
+jobs:
+  exact-density-comparison:
+    name: Exact same-measure Wald/source density comparison
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install pinned symbolic engine
+        run: python -m pip install --disable-pip-version-check sympy==1.14.0
+      - name: Derive both densities at fixed coupling
+        env:
+          PYTHONHASHSEED: "0"
+        run: |
+          OUT="$RUNNER_TEMP/nheg_wald_charge_consistency.json"
+          python crates/domains/symtropy-lovelock5d/benchmarks/derive_nheg_wald_charge_consistency.py --output "$OUT"
+          python - "$OUT" <<'PY'
+          import json, sys
+          from pathlib import Path
+          data=json.loads(Path(sys.argv[1]).read_text())
+          v=data["validation"]
+          required=(
+              "factor_four_coupling_map_exact",
+              "wald_multiplier_exact",
+              "fixed_alpha_wald_variation_exact",
+              "source_polynomial_conversion_exact",
+              "source_and_wald_same_measure_exact",
+              "difference_polynomial_exact",
+              "leading_source_coefficient_exact",
+              "leading_wald_coefficient_exact",
+              "leading_ratio_minus_320_exact",
+              "leading_difference_exact",
+              "fixed_beta_negative_control_detects_chain_rule",
+          )
+          for key in required:
+              assert v[key] is True, (key,v[key])
+          assert v["source_formula_attribution"] == "unresolved"
+          assert v["finite_entropy_or_charge_claimed"] is False
+          grid=data["reference_grid"]
+          assert grid["point_count"] == 95 and len(grid["samples"]) == 95
+          mismatch=data["exact_discrepancy"]
+          assert mismatch["source_to_wald_leading_ratio"] == "-320"
+          print("PASS: fixed-coupling Wald derivative and source polynomial conversion.")
+          print("PASS: exact same-measure discrepancy polynomial and -320 leading ratio.")
+          print("PASS: attribution remains unresolved; no finite charge claimed.")
+          PY
+      - name: Preserve exact comparison receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: egb-nheg-wald-charge-consistency-replay
+          path: ${{ runner.temp }}/nheg_wald_charge_consistency.json
+          if-no-files-found: error
+          retention-days: 30
