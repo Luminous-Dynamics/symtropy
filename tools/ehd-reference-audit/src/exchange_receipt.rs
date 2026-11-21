@@ -71,6 +71,9 @@ pub enum ReceiptError {
         first: TransferMethod,
         second: TransferMethod,
     },
+    TransferPathIdentityConflict {
+        transfer_path_id: u64,
+    },
     NonFiniteImpulse(u64),
     EventBalanceFailure {
         event_id: u64,
@@ -100,6 +103,10 @@ impl fmt::Display for ReceiptError {
                 f,
                 "physical transfer path {transfer_path_id} selects conflicting methods {first:?} and {second:?}"
             ),
+            Self::TransferPathIdentityConflict { transfer_path_id } => write!(
+                f,
+                "physical transfer path {transfer_path_id} changed solver-pair or coordinate-frame identity between events"
+            ),
             Self::NonFiniteImpulse(id) => write!(f, "exchange event {id} has a non-finite impulse component"),
             Self::EventBalanceFailure { event_id, component, residual_ns, allowed_ns } => write!(
                 f,
@@ -115,6 +122,14 @@ impl fmt::Display for ReceiptError {
 }
 
 impl Error for ReceiptError {}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct TransferPathIdentity {
+    method: TransferMethod,
+    charged_solver_id: u64,
+    neutral_solver_id: u64,
+    frame_id: u64,
+}
 
 #[derive(Clone, Copy, Debug, Default)]
 struct CompensatedSum {
@@ -167,6 +182,7 @@ pub fn validate_exchange_events(
 
     let mut seen_event_ids = BTreeSet::new();
     let mut path_methods = BTreeMap::new();
+    let mut path_identities: BTreeMap<u64, TransferPathIdentity> = BTreeMap::new();
     let mut charged_totals = [CompensatedSum::default(); 3];
     let mut neutral_totals = [CompensatedSum::default(); 3];
     let mut aggregate_scales = [CompensatedSum::default(); 3];
@@ -196,6 +212,24 @@ pub fn validate_exchange_events(
             Some(_) => {}
             None => {
                 path_methods.insert(event.transfer_path_id, event.method);
+            }
+        }
+
+        let path_identity = TransferPathIdentity {
+            method: event.method,
+            charged_solver_id: event.charged_solver_id,
+            neutral_solver_id: event.neutral_solver_id,
+            frame_id: event.charged_frame_id,
+        };
+        match path_identities.get(&event.transfer_path_id) {
+            Some(previous) if *previous != path_identity => {
+                return Err(ReceiptError::TransferPathIdentityConflict {
+                    transfer_path_id: event.transfer_path_id,
+                });
+            }
+            Some(_) => {}
+            None => {
+                path_identities.insert(event.transfer_path_id, path_identity);
             }
         }
 
@@ -421,6 +455,32 @@ mod tests {
             error,
             ReceiptError::TransferMethodConflict { transfer_path_id: 5, .. }
         ));
+    }
+
+    #[test]
+    fn rejects_solver_or_frame_identity_changes_within_one_path() {
+        let mut second = event(
+            2,
+            5,
+            TransferMethod::ExplicitSpeciesCollisionDrag,
+            7,
+            7,
+            [-1.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+        );
+        second.neutral_solver_id = 21;
+        let error = validate_exchange_events(
+            &[
+                event(1, 5, TransferMethod::ExplicitSpeciesCollisionDrag, 7, 7,
+                    [-1.0, 0.0, 0.0], [1.0, 0.0, 0.0]),
+                second,
+            ],
+            tolerance(),
+        ).unwrap_err();
+        assert_eq!(
+            error,
+            ReceiptError::TransferPathIdentityConflict { transfer_path_id: 5 }
+        );
     }
 
     #[test]
