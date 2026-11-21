@@ -454,9 +454,11 @@ pub fn wilson_interval_95(successes: u64, trials: u64) -> Result<Option<WilsonIn
     let denominator = 1.0 + z2 / n;
     let centre = (p + z2 / (2.0 * n)) / denominator;
     let half_width = WILSON_Z_95 * (p * (1.0 - p) / n + z2 / (4.0 * n * n)).sqrt() / denominator;
+    let raw_lower = (centre - half_width).max(0.0);
+    let lower = if successes == 0 { 0.0 } else { raw_lower };
     Ok(Some(WilsonInterval {
         confidence_level: 0.95,
-        lower: (centre - half_width).max(0.0),
+        lower,
         upper: (centre + half_width).min(1.0),
     }))
 }
