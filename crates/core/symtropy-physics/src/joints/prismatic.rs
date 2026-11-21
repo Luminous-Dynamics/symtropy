@@ -112,6 +112,14 @@ fn try_prismatic_angular_lock_impulse<const D: usize>(
         if !response_a.is_finite() || !response_b.is_finite() {
             return Err(PrismaticAngularLockRejection::NonFiniteResponse);
         }
+        // Body response helpers fail closed to zero when a frame/operator
+        // evaluation fails. Do not accidentally reinterpret that silent
+        // sentinel as a valid dynamic endpoint with zero mobility.
+        if (body_a.is_dynamic() && response_a.get(basis_i, basis_j) <= 0.0)
+            || (body_b.is_dynamic() && response_b.get(basis_i, basis_j) <= 0.0)
+        {
+            return Err(PrismaticAngularLockRejection::UnsupportedInertiaModel);
+        }
         for row in 0..dof {
             let (row_i, row_j) = planes[row];
             let value = response_a.get(row_i, row_j) + response_b.get(row_i, row_j);
