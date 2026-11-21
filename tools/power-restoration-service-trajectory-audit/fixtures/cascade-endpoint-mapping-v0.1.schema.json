@@ -1,0 +1,30 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://luminousdynamics.io/schemas/power-restoration-cascade-endpoint-mapping-v0.1.schema.json",
+  "title":"Power restoration feeder load to cascade endpoint mapping v0.1",
+  "type":"object",
+  "additionalProperties":false,
+  "required":["mappingId","caseSha256","serviceId","serviceType","serviceBoundaryId","mappingSha256","mappingSourceRef","mappingSourceSha256","rows"],
+  "properties":{
+    "mappingId":{"type":"string","minLength":1},
+    "caseSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+    "serviceId":{"type":"string","minLength":1},
+    "serviceType":{"const":"electricity"},
+    "serviceBoundaryId":{"const":"load-terminal"},
+    "mappingSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+    "mappingSourceRef":{"type":"string","minLength":1},
+    "mappingSourceSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+    "rows":{
+      "type":"array","minItems":1,
+      "items":{
+        "type":"object","additionalProperties":false,
+        "required":["loadId","cascadeNodeId","serviceType"],
+        "properties":{
+          "loadId":{"type":"string","minLength":1},
+          "cascadeNodeId":{"type":"string","minLength":1},
+          "serviceType":{"const":"electricity"}
+        }
+      }
+    }
+  }
+}

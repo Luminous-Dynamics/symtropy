@@ -1,0 +1,17 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://luminousdynamics.io/schemas/power-restoration-producer-profiles-v0.1.schema.json",
+  "title":"Pinned power restoration producer profiles v0.1",
+  "type":"array",
+  "items":{
+    "type":"object",
+    "additionalProperties":false,
+    "required":["signerRole","issuerId","toolSourceCommit","toolConfigurationSha256"],
+    "properties":{
+      "signerRole":{"enum":["service_provider","evidence_provider","run_recorder"]},
+      "issuerId":{"type":"string","minLength":1},
+      "toolSourceCommit":{"type":"string","pattern":"^[0-9a-f]{40}$"},
+      "toolConfigurationSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"}
+    }
+  }
+}

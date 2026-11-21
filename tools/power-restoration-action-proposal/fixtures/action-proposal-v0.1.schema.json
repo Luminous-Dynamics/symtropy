@@ -142,7 +142,16 @@
             "connect_mobile_source",
             "disconnect_mobile_source",
             "set_switch_state",
-            "wait"
+            "wait",
+            "observe_scada",
+            "observe_calls",
+            "observe_network_model",
+            "crew_inspect",
+            "read_fault_indicator",
+            "test_switch",
+            "simulate_switch",
+            "forecast_load",
+            "escalate_to_human"
           ]
         },
         "targetId": {
@@ -172,7 +181,7 @@
         },
         "preconditionEvidence": {
           "type": "array",
-          "minItems": 1,
+          "minItems": 0,
           "items": {
             "type": "object",
             "additionalProperties": false,
@@ -201,7 +210,67 @@
           "type": "string",
           "minLength": 1
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "actionKind": {
+                "enum": [
+                  "observe_scada",
+                  "observe_calls",
+                  "observe_network_model",
+                  "crew_inspect",
+                  "read_fault_indicator",
+                  "test_switch",
+                  "simulate_switch",
+                  "forecast_load",
+                  "escalate_to_human"
+                ]
+              }
+            },
+            "required": [
+              "actionKind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "preconditionEvidence": {
+                "minItems": 0
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "preconditionEvidence": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "actionKind": {
+                "const": "simulate_switch"
+              }
+            },
+            "required": [
+              "actionKind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "desiredSwitchState": {
+                "enum": [
+                  "open",
+                  "closed"
+                ]
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

@@ -1,0 +1,23 @@
+{
+  "keyId": "synthetic-validator-key-1",
+  "payload": {
+    "schemaVersion": "0.1.0",
+    "predicateType": "power-restoration/electrical-validation/v1",
+    "issuerId": "synthetic-independent-validator",
+    "signerRole": "electrical_validator",
+    "subjectUri": "bundle://validator/decision-0.json",
+    "subjectSha256": "4ac0258529aca07bcc9c5c45cf0c23f05eb8176212b6af732f80c9bd8ad5f987",
+    "runId": "synthetic-run-0001",
+    "caseSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "decisionStep": 0,
+    "proposalSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "toolSourceCommit": "1111111111111111111111111111111111111111",
+    "toolConfigurationSha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "issuedAtUnixMs": 1000,
+    "expiresAtUnixMs": 9000,
+    "parentArtifactSha256": [
+      "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    ]
+  },
+  "signatureHex": "df595e4df33f26ed7203130e6b13641b0552b92fe42258ef4c14170ce400fb31377c7a13a6d31b91f48dda69f88f8137d34b6b51e17e71251fbd4c5a14907c03"
+}

@@ -61,6 +61,15 @@ pub enum ActionKind {
     ConnectMobileSource,
     DisconnectMobileSource,
     SetSwitchState,
+    ObserveScada,
+    ObserveCalls,
+    ObserveNetworkModel,
+    CrewInspect,
+    ReadFaultIndicator,
+    TestSwitch,
+    SimulateSwitch,
+    ForecastLoad,
+    EscalateToHuman,
     Wait,
 }
 
@@ -113,6 +122,22 @@ fn actor_exists(case: &BenchmarkCase, kind: ActorKind, actor_id: &str) -> bool {
     }
 }
 
+fn is_power_node_or_branch(case: &BenchmarkCase, target: &str) -> bool {
+    case.network.nodes.iter().any(|node| node.node_id == target)
+        || case.network.branches.iter().any(|branch| branch.branch_id == target)
+}
+
+fn is_load_or_power_node(case: &BenchmarkCase, target: &str) -> bool {
+    case.network.loads.iter().any(|load| load.load_id == target)
+        || case.network.nodes.iter().any(|node| node.node_id == target)
+}
+
+fn crew_can_inspect_fault(case: &BenchmarkCase, crew_id: &str, fault_id: &str) -> bool {
+    let crew = case.repair_crews.iter().find(|crew| crew.crew_id == crew_id);
+    let fault = case.faults.iter().find(|fault| fault.fault_id == fault_id);
+    matches!((crew, fault), (Some(crew), Some(fault)) if crew.skill_refs.contains(&fault.required_skill_ref))
+}
+
 fn validate_action(action: &Action, case: &BenchmarkCase, proposal: &ActionProposal, errors: &mut Vec<String>) {
     if !valid_id(&action.action_id)
         || !valid_id(&action.actor_id)
@@ -132,7 +157,19 @@ fn validate_action(action: &Action, case: &BenchmarkCase, proposal: &ActionPropo
     if action.decision_step >= case.timebase.horizon_steps {
         errors.push(format!("action {} decision step is outside the case horizon", action.action_id));
     }
-    if action.precondition_evidence.is_empty() {
+    let is_information_request = matches!(
+        action.action_kind,
+        ActionKind::ObserveScada
+            | ActionKind::ObserveCalls
+            | ActionKind::ObserveNetworkModel
+            | ActionKind::CrewInspect
+            | ActionKind::ReadFaultIndicator
+            | ActionKind::TestSwitch
+            | ActionKind::SimulateSwitch
+            | ActionKind::ForecastLoad
+            | ActionKind::EscalateToHuman
+    );
+    if action.precondition_evidence.is_empty() && !is_information_request {
         errors.push(format!("action {} has no precondition evidence references", action.action_id));
     }
     let mut evidence_ids = BTreeSet::new();
@@ -193,6 +230,78 @@ fn validate_action(action: &Action, case: &BenchmarkCase, proposal: &ActionPropo
                 || action.desired_switch_state.is_none()
             {
                 errors.push(format!("action {} must set a known switch to an explicit state using a grid-operator actor", action.action_id));
+            }
+        }
+        ActionKind::ObserveScada => {
+            if !matches!(action.actor_kind, ActorKind::System | ActorKind::GridOperator)
+                || target.is_none_or(|id| !is_power_node_or_branch(case, id))
+                || action.desired_switch_state.is_some()
+            {
+                errors.push(format!("action {} observe_scada requires a system/operator actor and known node/branch", action.action_id));
+            }
+        }
+        ActionKind::ObserveCalls => {
+            if !matches!(action.actor_kind, ActorKind::System | ActorKind::GridOperator)
+                || target.is_none_or(|id| !is_load_or_power_node(case, id))
+                || action.desired_switch_state.is_some()
+            {
+                errors.push(format!("action {} observe_calls requires a system/operator actor and known load/node", action.action_id));
+            }
+        }
+        ActionKind::ObserveNetworkModel => {
+            if action.actor_kind != ActorKind::System
+                || target.is_some()
+                || action.desired_switch_state.is_some()
+            {
+                errors.push(format!("action {} observe_network_model must use the system actor without a target", action.action_id));
+            }
+        }
+        ActionKind::CrewInspect => {
+            if action.actor_kind != ActorKind::RepairCrew
+                || target.is_none_or(|id| !crew_can_inspect_fault(case, &action.actor_id, id))
+                || action.desired_switch_state.is_some()
+            {
+                errors.push(format!("action {} crew_inspect requires a skilled repair crew and known fault", action.action_id));
+            }
+        }
+        ActionKind::ReadFaultIndicator => {
+            if !matches!(action.actor_kind, ActorKind::System | ActorKind::GridOperator)
+                || target.is_none_or(|id| !case.faults.iter().any(|fault| fault.fault_id == id))
+                || action.desired_switch_state.is_some()
+            {
+                errors.push(format!("action {} read_fault_indicator requires a system/operator actor and known fault", action.action_id));
+            }
+        }
+        ActionKind::TestSwitch => {
+            if action.actor_kind != ActorKind::GridOperator
+                || target.is_none_or(|id| !case.network.switches.iter().any(|switch| switch.switch_id == id))
+                || action.desired_switch_state.is_some()
+            {
+                errors.push(format!("action {} test_switch requires a grid-operator actor and known switch", action.action_id));
+            }
+        }
+        ActionKind::SimulateSwitch => {
+            if action.actor_kind != ActorKind::System
+                || target.is_none_or(|id| !case.network.switches.iter().any(|switch| switch.switch_id == id))
+                || action.desired_switch_state.is_none()
+            {
+                errors.push(format!("action {} simulate_switch requires a system actor, known switch and explicit counterfactual state", action.action_id));
+            }
+        }
+        ActionKind::ForecastLoad => {
+            if action.actor_kind != ActorKind::System
+                || target.is_none_or(|id| !case.network.loads.iter().any(|load| load.load_id == id))
+                || action.desired_switch_state.is_some()
+            {
+                errors.push(format!("action {} forecast_load requires a system actor and known load", action.action_id));
+            }
+        }
+        ActionKind::EscalateToHuman => {
+            if action.actor_kind != ActorKind::System
+                || target.is_some()
+                || action.desired_switch_state.is_some()
+            {
+                errors.push(format!("action {} escalate_to_human must use the system actor without a target", action.action_id));
             }
         }
         ActionKind::Wait => {
@@ -537,6 +646,123 @@ mod tests {
         let mut value = serde_json::to_value(proposal()).unwrap();
         value["actions"][0]["preconditionEvidence"][0]["authorityGranted"] = serde_json::Value::Bool(true);
         assert!(serde_json::from_value::<ActionProposal>(value).is_err());
+    }
+
+    fn information_action(kind: ActionKind, actor_kind: ActorKind, actor_id: &str, target: Option<&str>) -> ActionProposal {
+        let mut proposal = proposal();
+        let step = proposal.decision_step;
+        let observation_ref = proposal.observation.observation_ref.clone();
+        proposal.actions = vec![Action {
+            action_id: "information-action-1".to_string(),
+            actor_kind,
+            actor_id: actor_id.to_string(),
+            action_kind: kind,
+            target_id: target.map(str::to_string),
+            desired_switch_state: if kind == ActionKind::SimulateSwitch { Some(SwitchState::Closed) } else { None },
+            decision_step: step,
+            observation_ref,
+            precondition_evidence: Vec::new(),
+            authority_requirement_ref: "synthetic://authority/information-request".to_string(),
+        }];
+        proposal
+    }
+
+    #[test]
+    fn initial_scada_request_is_valid_without_prior_evidence() {
+        let case = case();
+        let proposal = information_action(ActionKind::ObserveScada, ActorKind::System, "system", Some("N3"));
+        let digest = canonical_case_sha256(&case).unwrap();
+        assert!(validate_proposal(&proposal, &case, &digest).is_ok());
+    }
+
+    #[test]
+    fn scada_request_rejects_unknown_power_target() {
+        let case = case();
+        let proposal = information_action(ActionKind::ObserveScada, ActorKind::System, "system", Some("N999"));
+        let digest = canonical_case_sha256(&case).unwrap();
+        assert!(validate_proposal(&proposal, &case, &digest).is_err());
+    }
+
+    #[test]
+    fn network_model_request_has_no_target() {
+        let case = case();
+        let proposal = information_action(ActionKind::ObserveNetworkModel, ActorKind::System, "system", None);
+        let digest = canonical_case_sha256(&case).unwrap();
+        assert!(validate_proposal(&proposal, &case, &digest).is_ok());
+    }
+
+    #[test]
+    fn crew_inspection_requires_matching_declared_skill() {
+        let case = case();
+        let proposal = information_action(ActionKind::CrewInspect, ActorKind::RepairCrew, "CREW-A", Some("F23-A"));
+        let digest = canonical_case_sha256(&case).unwrap();
+        assert!(validate_proposal(&proposal, &case, &digest).is_ok());
+    }
+
+    #[test]
+    fn fault_indicator_request_rejects_unknown_fault() {
+        let case = case();
+        let proposal = information_action(ActionKind::ReadFaultIndicator, ActorKind::System, "system", Some("F-UNKNOWN"));
+        let digest = canonical_case_sha256(&case).unwrap();
+        assert!(validate_proposal(&proposal, &case, &digest).is_err());
+    }
+
+    #[test]
+    fn switch_test_requires_operator_and_known_switch() {
+        let case = case();
+        let valid = information_action(ActionKind::TestSwitch, ActorKind::GridOperator, "operator-1", Some("T56"));
+        let invalid = information_action(ActionKind::TestSwitch, ActorKind::System, "system", Some("T56"));
+        let digest = canonical_case_sha256(&case).unwrap();
+        assert!(validate_proposal(&valid, &case, &digest).is_ok());
+        assert!(validate_proposal(&invalid, &case, &digest).is_err());
+    }
+
+    #[test]
+    fn switch_simulation_requires_explicit_counterfactual_state() {
+        let case = case();
+        let mut proposal = information_action(ActionKind::SimulateSwitch, ActorKind::System, "system", Some("T56"));
+        let digest = canonical_case_sha256(&case).unwrap();
+        assert!(validate_proposal(&proposal, &case, &digest).is_ok());
+        proposal.actions[0].desired_switch_state = None;
+        assert!(validate_proposal(&proposal, &case, &digest).is_err());
+    }
+
+    #[test]
+    fn load_forecast_requires_known_load() {
+        let case = case();
+        let valid = information_action(ActionKind::ForecastLoad, ActorKind::System, "system", Some("L5"));
+        let invalid = information_action(ActionKind::ForecastLoad, ActorKind::System, "system", Some("N5"));
+        let digest = canonical_case_sha256(&case).unwrap();
+        assert!(validate_proposal(&valid, &case, &digest).is_ok());
+        assert!(validate_proposal(&invalid, &case, &digest).is_err());
+    }
+
+    #[test]
+    fn physical_action_still_requires_precondition_evidence() {
+        let case = case();
+        let proposal = information_action(ActionKind::RepairFault, ActorKind::RepairCrew, "CREW-A", Some("F23-A"));
+        let digest = canonical_case_sha256(&case).unwrap();
+        assert!(validate_proposal(&proposal, &case, &digest).is_err());
+    }
+
+    #[test]
+    fn calls_observation_uses_known_load_or_node() {
+        let case = case();
+        let valid = information_action(ActionKind::ObserveCalls, ActorKind::System, "system", Some("L5"));
+        let invalid = information_action(ActionKind::ObserveCalls, ActorKind::System, "system", Some("UNKNOWN"));
+        let digest = canonical_case_sha256(&case).unwrap();
+        assert!(validate_proposal(&valid, &case, &digest).is_ok());
+        assert!(validate_proposal(&invalid, &case, &digest).is_err());
+    }
+
+    #[test]
+    fn human_escalation_is_an_explicit_system_action() {
+        let case = case();
+        let valid = information_action(ActionKind::EscalateToHuman, ActorKind::System, "system", None);
+        let invalid = information_action(ActionKind::EscalateToHuman, ActorKind::RepairCrew, "CREW-A", None);
+        let digest = canonical_case_sha256(&case).unwrap();
+        assert!(validate_proposal(&valid, &case, &digest).is_ok());
+        assert!(validate_proposal(&invalid, &case, &digest).is_err());
     }
 
     #[test]

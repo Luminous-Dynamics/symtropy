@@ -1,0 +1,80 @@
+name: Power restoration observation evidence
+
+on:
+  pull_request:
+    paths:
+      - "tools/power-restoration-observation-evidence/**"
+      - "tools/power-restoration-action-proposal/**"
+      - "tools/power-restoration-benchmark-case/**"
+      - ".github/workflows/power-restoration-observation-evidence.yml"
+  push:
+    paths:
+      - "tools/power-restoration-observation-evidence/**"
+      - ".github/workflows/power-restoration-observation-evidence.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  observation-evidence:
+    name: Qualify request results, time and declared source dependence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.26.0
+      - name: Validate schema and content-addressed bindings
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator, FormatChecker
+
+          root = Path("tools/power-restoration-observation-evidence")
+          batch = json.loads((root / "fixtures/synthetic-observation-evidence-batch-v0.1.json").read_text())
+          schema = json.loads((root / "fixtures/observation-evidence-v0.1.schema.json").read_text())
+          proposal = json.loads(Path("tools/power-restoration-action-proposal/fixtures/synthetic-information-request-proposal-v0.1.json").read_text())
+          case = json.loads(Path("tools/power-restoration-benchmark-case/fixtures/synthetic-restoration-case-v0.1.json").read_text())
+
+          def canonical_sha256(value):
+              payload = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+              return hashlib.sha256(payload).hexdigest()
+
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(
+              Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(batch),
+              key=lambda error: list(error.path),
+          )
+          assert not errors, "\n".join(f"{list(error.path)}: {error.message}" for error in errors)
+          assert batch["caseSha256"] == canonical_sha256(case)
+          assert batch["proposalSha256"] == canonical_sha256(proposal)
+          assert batch["proposalId"] == proposal["proposalId"]
+          expected_requests = {
+              action["actionId"] for action in proposal["actions"]
+              if action["actionKind"] in {
+                  "observe_scada", "observe_calls", "observe_network_model", "crew_inspect",
+                  "read_fault_indicator", "test_switch", "simulate_switch", "forecast_load",
+                  "escalate_to_human",
+              }
+          }
+          actual_requests = {result["requestId"] for result in batch["results"]}
+          assert expected_requests == actual_requests
+          print("PASS: evidence schema, case/proposal digests and request/result set equality")
+          PY
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/power-restoration-observation-evidence/Cargo.toml --all -- --check
+      - name: Resolve dependency graph for this run
+        run: cargo generate-lockfile --manifest-path tools/power-restoration-observation-evidence/Cargo.toml
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path tools/power-restoration-observation-evidence/Cargo.toml --all-targets -- -D warnings
+      - name: Run Rust tests
+        run: cargo test --locked --manifest-path tools/power-restoration-observation-evidence/Cargo.toml --all-targets
