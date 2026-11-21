@@ -66,3 +66,14 @@ There are **21 Rust tests authored** in the current source. They have not been e
 - 1-D finite-volume diffusion with zero-flux boundaries, explicit stability guard and an exact local constant-source / first-order-loss update in src/material_state.rs.
 
 There are now **45 authored Rust tests** in the prototype: 37 in the main reference kernel and 8 in the material-state module. They remain unexecuted in the current environment because cargo, rustc, and nix are unavailable. Independent calculations in this session checked the shared-reference covariance algebra, diagonal GLS limit, Gaussian profile normalization and both sigmoid asymptotes; these checks are not a Rust test pass.
+
+
+## Measurement observability
+
+- `DepthResponseKernel` and `apply_depth_observation_operator` forward-project a latent 1-D profile through arbitrary normalized response rows. These can represent a non-Gaussian, asymmetric or energy-dependent depth-response function.
+- Seven authored tests cover identity recovery, broadening, constant-profile invariance and malformed-kernel rejection.
+- The synthetic fixture `research/cmni/fixtures/depth-response-observability-synthetic.json` deliberately separates literature metadata from artificial response weights.
+- Isotope scope matters: the 6.385-MeV `1H(15N,αγ)12C` resonance measures protium; deuterium needs a D-sensitive reaction/measurement and its own calibrated response.
+- Lateral spatial point-spread and depth response are distinct and not yet combined in the current kernel.
+
+There are now **52 authored Rust tests**: 37 in the root reference kernel, 8 in material_state.rs and 7 in measurement.rs. They remain unexecuted because cargo/rustc/nix are unavailable in this environment.
