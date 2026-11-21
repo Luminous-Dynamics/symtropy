@@ -616,9 +616,22 @@ mod tests {
                 "d-antidiagonal-diverse".to_owned()
             ]
         );
+        let shared_clock_only = CorrelationScenario {
+            scenario_id: "shared-clock-a-b".to_owned(),
+            pairs: vec![PairwiseCorrelation {
+                action_a: "a-east-precise".to_owned(),
+                action_b: "b-north-precise".to_owned(),
+                rho: 0.9,
+            }],
+        };
+        let nominal_plan_under_shared_clock =
+            correlation_scenario_fisher(&actions[..2], &shared_clock_only).unwrap();
+        let (nominal_plan_worst_direction, _) = nominal_plan_under_shared_clock.eigenvalues();
+
         assert!(robust.envelope.worst_case_minimum_eigenvalue > 82.0);
+        assert!(nominal_plan_worst_direction < 53.0);
         assert!(robust.envelope.worst_case_minimum_eigenvalue
-            > nominal.envelope.worst_case_minimum_eigenvalue * 0.82);
+            > nominal_plan_worst_direction * 1.5);
     }
 
     #[test]
