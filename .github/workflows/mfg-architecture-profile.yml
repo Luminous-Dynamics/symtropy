@@ -36,9 +36,7 @@ jobs:
           workspaces: |
             tools/manufacturing-architecture-portability/validator -> target
 
-      # The first run bootstraps Cargo.lock for this isolated validator package.
-      # The generated lockfile is uploaded and then committed; subsequent runs
-      # switch to --locked so dependency resolution is reproducible.
+      # Cargo.lock is committed and every dependency operation is locked.
       - name: Validate Draft 2020-12 schema and profile fixtures
         working-directory: tools/manufacturing-architecture-portability/validator
         run: cargo test --locked
