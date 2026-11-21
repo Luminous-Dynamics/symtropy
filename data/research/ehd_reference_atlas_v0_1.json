@@ -1013,7 +1013,7 @@
       "formulation": "MOOSE finite-element plasma fluid solver",
       "published_validation_envelope": "1D/2D RF capacitively coupled plasma, 0.1–1 Torr",
       "recommended_role": "RF-CCP cohort only unless separate verification/validation establishes suitability for another discharge regime",
-      "important_limit": "published CCP validation is not automatic validation for atmospheric corona EHD or flight DBD thrusters"
+      "important_limit": "The 2023 published V&V paper validates 1D/2D RF capacitively coupled plasma at 0.1–1 Torr; a 2019 meeting abstract also reports comparisons for atmospheric devices such as the COST plasma jet. Neither establishes a validated atmospheric corona EHD thruster or a complete neutral-flow/thrust model."
     },
     {
       "solver_id": "SYMTROPY_RIGID_BODY",
