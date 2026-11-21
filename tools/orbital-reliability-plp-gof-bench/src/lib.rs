@@ -13,6 +13,7 @@ const MIN_REPLICATES: usize = 999;
 const MIN_ALPHA: f64 = 0.01;
 const MAX_ALPHA: f64 = 0.10;
 const MAX_REPLICATES: usize = 100_000;
+const MAX_TOTAL_DRAWS: usize = 10_000_000;
 const MAX_EXPOSURE_SECONDS: u64 = 9_007_199_254_740_991;
 const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 const WILSON_Z_95: f64 = 1.959_963_984_540_054;
@@ -298,6 +299,9 @@ pub fn conditional_gof(
     if seed > MAX_SAFE_INTEGER {
         return Err("random seed exceeds the interoperable safe-integer range".to_owned());
     }
+    if event_times_seconds.len().saturating_mul(replicates) > MAX_TOTAL_DRAWS {
+        return Err("conditional Monte Carlo draw budget is exceeded".to_owned());
+    }
 
     let (beta_hat, observed_cvm) =
         estimate_beta_and_cvm(event_times_seconds, exposure_end_seconds)?;
@@ -438,6 +442,22 @@ fn evaluate_case(case: &GofCase) -> Decision {
             observed_cvm: None,
             monte_carlo: None,
             blockers: blocker("insufficient_event_count_for_v0_1_diagnostic"),
+        };
+    }
+
+    if case
+        .event_times_seconds
+        .len()
+        .saturating_mul(case.monte_carlo_replicates)
+        > MAX_TOTAL_DRAWS
+    {
+        return Decision {
+            disposition: Disposition::Rejected,
+            event_count: case.event_times_seconds.len(),
+            beta_hat: None,
+            observed_cvm: None,
+            monte_carlo: None,
+            blockers: blocker("monte_carlo_total_draw_budget_exceeded"),
         };
     }
 
@@ -644,6 +664,14 @@ mod tests {
                 .expect("scaled history");
         assert!((first.0 - second.0).abs() < 1.0e-12);
         assert!((first.1 - second.1).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn conditional_gof_rejects_excessive_draw_budget() {
+        let events = vec![10_000; 200];
+        assert!(
+            conditional_gof(&events, 100_000, 100_000, 123).is_err()
+        );
     }
 
     #[test]
