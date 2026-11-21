@@ -365,6 +365,11 @@ fn validate_input(input: &SharedFleetInput) -> Result<(), Vec<String>> {
     if input.scenarios.is_empty() || input.scenarios.len() > MAX_SHARED_SCENARIOS {
         errors.push(format!("scenarios: expected 1..={MAX_SHARED_SCENARIOS}"));
     }
+    if input.stress_scenarios.len() > MAX_SHARED_STRESS_SCENARIOS {
+        errors.push(format!(
+            "stress_scenarios: expected 0..={MAX_SHARED_STRESS_SCENARIOS}"
+        ));
+    }
     if input.maximum_aircraft_energy_units == 0
         || input.initial_aircraft_energy_units > input.maximum_aircraft_energy_units
         || input.protected_energy_reserve_units >= input.maximum_aircraft_energy_units
@@ -449,7 +454,7 @@ fn validate_input(input: &SharedFleetInput) -> Result<(), Vec<String>> {
                 input.period_count
             ));
         }
-        for (period_index, period) in scenario.periods.iter().enumerate() {
+        for (period_index, period) in scenario.periods().iter().enumerate() {
             if period.observations.len() != input.regions.len() {
                 errors.push(format!("scenarios[{scenario_index}].periods[{period_index}].observations: expected one per region"));
             }
@@ -481,6 +486,58 @@ fn validate_input(input: &SharedFleetInput) -> Result<(), Vec<String>> {
             }
         }
     }
+    for (stress_index, scenario) in input.stress_scenarios.iter().enumerate() {
+        if scenario.scenario_id.trim().is_empty()
+            || !scenario_ids.insert(scenario.scenario_id.as_str())
+        {
+            errors.push(format!(
+                "stress_scenarios[{stress_index}].scenario_id: nonempty unique identity required across probabilistic and stress scenarios"
+            ));
+        }
+        if scenario.periods.len() != usize::from(input.period_count) {
+            errors.push(format!(
+                "stress_scenarios[{stress_index}].periods: expected {}",
+                input.period_count
+            ));
+        }
+        for (period_index, period) in scenario.periods.iter().enumerate() {
+            if period.observations.len() != input.regions.len() {
+                errors.push(format!(
+                    "stress_scenarios[{stress_index}].periods[{period_index}].observations: expected one per region"
+                ));
+            }
+            let mut seen = BTreeSet::new();
+            for observation in &period.observations {
+                if !region_ids.contains(observation.region_id.as_str())
+                    || !seen.insert(observation.region_id.as_str())
+                {
+                    errors.push(format!(
+                        "stress_scenarios[{stress_index}].periods[{period_index}]: unknown or duplicate region observation"
+                    ));
+                }
+                if observation.weather_evidence_reference.trim().is_empty()
+                    || observation.permission_evidence_reference.trim().is_empty()
+                {
+                    errors.push(format!(
+                        "stress_scenarios[{stress_index}].periods[{period_index}]: weather and permission evidence references are required"
+                    ));
+                }
+                if observation.demand_units > 1_000_000 {
+                    errors.push(format!(
+                        "stress_scenarios[{stress_index}].periods[{period_index}]: demand exceeds v1 limit"
+                    ));
+                }
+            }
+            for region_id in &region_ids {
+                if !seen.iter().any(|seen_region| *seen_region == region_id.as_str()) {
+                    errors.push(format!(
+                        "stress_scenarios[{stress_index}].periods[{period_index}]: missing region {region_id}"
+                    ));
+                }
+            }
+        }
+    }
+
     if probability_sum != SHARED_FLEET_PROBABILITY_BPS {
         errors.push(format!(
             "scenarios.probability_bps: expected sum {}, got {probability_sum}",
@@ -522,9 +579,19 @@ fn build_decision_nodes(
     input: &SharedFleetInput,
 ) -> Result<(Vec<SharedDecisionNode>, BTreeMap<SharedDecisionKey, usize>), String> {
     let mut nodes = BTreeMap::<SharedDecisionKey, ()>::new();
-    for scenario in &input.scenarios {
+    for periods in input
+        .scenarios
+        .iter()
+        .map(|scenario| scenario.periods.as_slice())
+        .chain(
+            input
+                .stress_scenarios
+                .iter()
+                .map(|scenario| scenario.periods.as_slice()),
+        )
+    {
         let mut history: Vec<Vec<SharedFleetObservation>> = Vec::new();
-        for (period_index, period) in scenario.periods.iter().enumerate() {
+        for (period_index, period) in periods.iter().enumerate() {
             let mut observations = period.observations.clone();
             observations.sort_by(|left, right| left.region_id.cmp(&right.region_id));
             history.push(observations);
@@ -584,9 +651,9 @@ fn add_cost(metrics: &mut ScenarioMetrics, cost: u128) -> Result<(), String> {
     checked_add(&mut metrics.total_cost, cost, "scenario total cost")
 }
 
-fn simulate_scenario(
+fn simulate_scenario<S: SharedFleetScenarioPath>(
     input: &SharedFleetInput,
-    scenario: &SharedFleetScenario,
+    scenario: &S,
     indices: &BTreeMap<SharedDecisionKey, usize>,
     mask: u64,
     aircraft_enabled: bool,
@@ -875,6 +942,8 @@ struct PolicyEvaluation {
     weighted: WeightedMetrics,
     scenario_costs: Vec<(u128, u16)>,
     scenario_unserved: Vec<(u128, u16)>,
+    stress_scenario_costs: Vec<u128>,
+    stress_scenario_unserved: Vec<u128>,
 }
 
 fn evaluate_mask(
