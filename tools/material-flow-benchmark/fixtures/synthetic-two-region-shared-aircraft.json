@@ -184,5 +184,6 @@
   "probability_basis": "synthetic_fixture",
   "probability_evidence_reference": "synthetic://scenario-weights/two-region-shared-aircraft-v1",
   "calibration_report_sha256": null,
-  "held_out_window_reference": null
+  "held_out_window_reference": null,
+  "stress_scenarios": []
 }
