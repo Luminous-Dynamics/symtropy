@@ -43,7 +43,9 @@ The roadmap should distinguish research rigs, manufacturer laboratories, accredi
 
 **Relevant draft areas:** Indicator I (MEPS), indicator J (Energy Labelling Systems), Objective 2.1.
 
-We support regular benchmarking and progressive strengthening of MEPS and the redesign of appliance labels. We recommend that the revision process:
+We support regular benchmarking and progressive strengthening of MEPS and the redesign of appliance labels. For washing machines, a specific transition issue merits attention: IEC 60456:2024 (Edition 6) is now the current IEC household performance method and adds/updates cleaning performance, rinse/LAS, textile gentleness, low-power modes, load temperature and other measures; IEC 60704-2-4:2025 updates the aligned noise test method. Public South African documents still expose legacy and differing references (including SANS 60456 / IEC 60456:2003 and SANS 1695 / EN 60456 in a 2018 UNDP/SABS tender). These records do not establish the present SANS adoption or the current accredited laboratory scope. We therefore recommend that the Department publish a product-class-by-product-class standards crosswalk (current SANS edition, IEC/ISO source edition, transition/equivalence status, test method and laboratory scope) before setting compliance deadlines against a revised test method.
+
+We recommend that the revision process:
 
 - Uses current international test methods and market data while confirming exact South African adoption, product scope and measurement conditions.
 - Defines a functional unit for each product family, such as energy per standardized wash load, per accepted dishwasher load, per usable litre-day of refrigeration, or per unit of hot water delivered at a stated temperature and draw profile.
