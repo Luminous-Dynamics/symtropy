@@ -1,0 +1,12 @@
+[package]
+name = "symtropy-mk0-contract"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Dependency-light deterministic contract and replay oracle for the Mk0 manufacturing bootstrapper"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+
+[dev-dependencies]
+serde_json = "1.0"
