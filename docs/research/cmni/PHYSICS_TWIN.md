@@ -249,3 +249,28 @@ The source-reported >99.9999% gamma rejection is not a universal guarantee. Mode
 The reported 2025 apparatus describes one EJ-309 neutron detector. Do not present its response model as an independent second detector or multi-detector replication. Future independent validation should use a separately calibrated second detector or different neutron-detection physics.
 
 Tracking: https://github.com/Luminous-Dynamics/symtropy/issues/6486
+
+
+## 13. Spatial beam footprint and spatiotemporal target state
+
+A depth-only state is an intermediate model, not the final physical representation. The 2026 Methods report an approximately 1 cm² spot, voltage-dependent focusing above 5 kV, and implantation depths from about 4.4 nm at 0.25 keV to 67.5 nm at 6.5 keV. The foils are 250 µm thick. The beam-induced region is therefore an extremely shallow fraction of the total membrane.
+
+The target-state field should evolve over space and time:
+c_D(x,y,z,t), d_defect(x,y,z,t), local phase/strain and temperature where measured or calibrated.
+
+The incident beam should be represented by a species- and energy-resolved intensity map J_s(x,y,E,t), normalized so that its spatial/energy/species integral matches the Faraday-cup charge and independent beam diagnostics.
+
+Required coupling:
+1. Measured 2-D beam footprint / profile (Gaussian only as an explicit synthetic baseline).
+2. Voltage-dependent spot size and current-density distribution; do not equate total beam current with uniform local fluence.
+3. Species-resolved D+ / D2+ energy components and mass-resolved uncertainty.
+4. Depth-dependent implantation and damage from a validated specialist solver.
+5. D diffusion, replenishment from the bulk/electrochemical boundary, beam-induced depletion, defect trapping/detrapping and surface loss.
+6. Reaction-yield integration over x,y,z with the local per-deuteron energy and target state.
+7. Detector forward model using the product distribution and true detector geometry.
+
+The isolated Rust prototype now includes a current-normalized axisymmetric Gaussian footprint as a synthetic baseline. Its integral is normalized to the supplied D arrival rate. It does not infer a Gaussian sigma from the paper's approximate 1 cm² spot area; a measured map should take precedence.
+
+Tracking:
+- https://github.com/Luminous-Dynamics/symtropy/issues/6518 (space-time target model)
+- https://github.com/Luminous-Dynamics/symtropy/issues/6483 (species-resolved beam)
