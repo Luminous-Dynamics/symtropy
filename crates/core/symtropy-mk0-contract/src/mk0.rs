@@ -410,7 +410,8 @@ pub fn run_mk0_bootstrapper_scenario(config: Mk0ScenarioConfig) -> Mk0ScenarioRe
         });
     }
 
-    if energy_window_open && recycled_feedstock_grams >= config.subassembly.required_material_grams {
+    if energy_window_open && recycled_feedstock_grams >= config.subassembly.required_material_grams
+    {
         let print_claim = Mk0PrintClaim {
             id: format!("print-{}", config.work_order_id),
             work_order_id: config.work_order_id.clone(),
