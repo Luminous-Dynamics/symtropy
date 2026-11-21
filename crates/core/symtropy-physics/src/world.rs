@@ -10,7 +10,7 @@ use std::sync::Arc;
 use nalgebra::SVector;
 use symtropy_math::{Bivector, Capsule, HalfSpace, HyperBox, Point, Sphere, Transform};
 
-use crate::body::{BodyHandle, NetId, RigidBody};
+use crate::body::{BodyHandle, MassPropertyInvariantError, NetId, RigidBody};
 use crate::broadphase;
 use crate::ccd;
 use crate::constraint::Constraint;
@@ -109,6 +109,15 @@ impl<const D: usize> PhysicsCallback<D> for NoOpCallback {
     fn apply_trauma(&mut self, _: &CollisionEvent<D>) {}
 }
 
+/// A physics step rejected before simulation state was advanced.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PhysicsWorldStepError {
+    InvalidMassProperties {
+        body: BodyHandle,
+        reason: MassPropertyInvariantError,
+    },
+}
+
 /// Signature of an injected non-convex (mesh) contact generator: `(shape_a,
 /// transform_a, shape_b, transform_b, handle_a, handle_b) -> contacts`.
 /// See [`PhysicsWorld::register_mesh_contact_transform_fn`].
@@ -128,6 +137,7 @@ type MeshContactFn<const D: usize> = Arc<
 /// The physics world manages all rigid bodies and steps the simulation.
 pub struct PhysicsWorld<const D: usize> {
     pub bodies: Vec<RigidBody<D>>,
+    last_step_error: Option<PhysicsWorldStepError>,
     pub constraints: Vec<Box<dyn Constraint<D>>>,
     pub gravity: SVector<f64, D>,
     /// Contacts from the last step.
@@ -204,6 +214,7 @@ impl<const D: usize> PhysicsWorld<D> {
     pub fn new(gravity: SVector<f64, D>) -> Self {
         Self {
             bodies: Vec::new(),
+            last_step_error: None,
             constraints: Vec::new(),
             gravity,
             contacts: Vec::new(),
@@ -282,6 +293,37 @@ impl<const D: usize> PhysicsWorld<D> {
         self.bodies.len()
     }
 
+    /// Validate mass/inverse-mass and inertia/inverse-inertia consistency for
+    /// every body, including bodies mutated through public legacy accessors.
+    pub fn validate_mass_properties(&self) -> Result<(), PhysicsWorldStepError> {
+        for body in &self.bodies {
+            if let Err(reason) = body.validate_mass_properties() {
+                return Err(PhysicsWorldStepError::InvalidMassProperties {
+                    body: body.handle,
+                    reason,
+                });
+            }
+        }
+        Ok(())
+    }
+
+    /// The most recent pre-step mass-property error, if a compatibility
+    /// `step` wrapper rejected an invalid world.
+    pub fn last_step_error(&self) -> Option<PhysicsWorldStepError> {
+        self.last_step_error
+    }
+
+    /// Insert a body only if its canonical mass properties and inverse caches
+    /// are consistent. Existing `add_body` remains available for compatibility;
+    /// any invalid body it inserts will cause the next checked step to fail.
+    pub fn try_add_body(
+        &mut self,
+        body: RigidBody<D>,
+    ) -> Result<BodyHandle, MassPropertyInvariantError> {
+        body.validate_mass_properties()?;
+        Ok(self.add_body(body))
+    }
+
     /// Get the total kinetic energy of all dynamic bodies in the world.
     pub fn total_kinetic_energy(&self) -> f64 {
         self.bodies
@@ -329,6 +371,10 @@ impl<const D: usize> PhysicsWorld<D> {
         &mut self,
         mut bodies: Vec<(NetId, RigidBody<D>)>,
     ) -> Result<Vec<BodyHandle>, String> {
+        for (_, body) in &bodies {
+            body.validate_mass_properties()
+                .map_err(|error| format!("invalid mass properties before insertion: {error:?}"))?;
+        }
         bodies.sort_by_key(|(id, _)| *id);
         let mut handles = Vec::with_capacity(bodies.len());
         for (net_id, mut body) in bodies {
@@ -407,13 +453,41 @@ impl<const D: usize> PhysicsWorld<D> {
     /// The callback modulates forces, impulses, and friction based on
     /// consciousness state, closing the consciousness-physics loop.
     pub fn step_with_callback(&mut self, dt: f64, callback: &mut dyn PhysicsCallback<D>) {
+        let _ = self.try_step_with_callback(dt, callback);
+    }
+
+    /// Checked step with consciousness coupling. The mass-property gate runs
+    /// before clearing events, swapping caches, integrating or solving contacts.
+    pub fn try_step_with_callback(
+        &mut self,
+        dt: f64,
+        callback: &mut dyn PhysicsCallback<D>,
+    ) -> Result<(), PhysicsWorldStepError> {
+        if let Err(error) = self.validate_mass_properties() {
+            self.last_step_error = Some(error);
+            return Err(error);
+        }
+        self.last_step_error = None;
         self.step_internal(dt, callback);
+        Ok(())
     }
 
     /// Step without consciousness coupling (pure physics).
     pub fn step(&mut self, dt: f64) {
+        let _ = self.try_step(dt);
+    }
+
+    /// Checked pure-physics step. On invariant failure, no simulation state is
+    /// advanced and the precise offending body/reason is returned.
+    pub fn try_step(&mut self, dt: f64) -> Result<(), PhysicsWorldStepError> {
+        if let Err(error) = self.validate_mass_properties() {
+            self.last_step_error = Some(error);
+            return Err(error);
+        }
+        self.last_step_error = None;
         let mut noop = NoOpCallback;
         self.step_internal(dt, &mut noop);
+        Ok(())
     }
 
     fn step_internal(&mut self, dt: f64, callback: &mut dyn PhysicsCallback<D>) {
@@ -2560,4 +2634,72 @@ mod transformed_halfspace_tests {
 
         assert!(world.static_tree_dirty);
     }
+    #[test]
+    fn checked_step_rejects_stale_inverse_mass_before_advancing_any_body() {
+        use crate::body::MassPropertyInvariantError;
+        let mut world = PhysicsWorld::<3>::default();
+        let valid = world.add_sphere(Point::origin(), 0.25, 1.0);
+        let mut invalid_body = RigidBody::dynamic_sphere(
+            BodyHandle(0),
+            Point::new([3.0, 0.0, 0.0]),
+            0.25,
+            2.0,
+        );
+        invalid_body.inv_mass *= 2.0;
+        let invalid = world.add_body(invalid_body);
+        let valid_before = world.body(valid).expect("valid body").position();
+        let invalid_before = world.body(invalid).expect("invalid body").position();
+
+        let error = world.try_step(0.01).expect_err("stale inverse must fail closed");
+        assert_eq!(
+            error,
+            PhysicsWorldStepError::InvalidMassProperties {
+                body: invalid,
+                reason: MassPropertyInvariantError::InverseMassMismatch,
+            }
+        );
+        assert_eq!(world.body(valid).expect("valid body").position(), valid_before);
+        assert_eq!(world.body(invalid).expect("invalid body").position(), invalid_before);
+        assert_eq!(world.last_step_error(), Some(error));
+    }
+
+    #[test]
+    fn checked_add_body_rejects_invalid_values_without_consuming_a_handle() {
+        let mut world = PhysicsWorld::<3>::default();
+        let mut invalid_body = RigidBody::dynamic_sphere(
+            BodyHandle(99),
+            Point::origin(),
+            0.25,
+            1.0,
+        );
+        invalid_body.inertia[0] = f64::NAN;
+        assert_eq!(
+            world.try_add_body(invalid_body),
+            Err(crate::body::MassPropertyInvariantError::NonFiniteInertia { axis: 0 })
+        );
+        assert_eq!(world.body_count(), 0);
+
+        let next = world.add_sphere(Point::origin(), 0.25, 1.0);
+        assert_eq!(next, BodyHandle(0));
+    }
+
+    #[test]
+    fn legacy_step_wrapper_fails_closed_and_exposes_last_error() {
+        let mut world = PhysicsWorld::<3>::default();
+        let handle = world.add_sphere(Point::origin(), 0.25, 1.0);
+        world.body_mut(handle).expect("body").inv_inertia[2] = 0.0;
+        let before = world.body(handle).expect("body").position();
+
+        world.step(0.01);
+
+        assert_eq!(
+            world.last_step_error(),
+            Some(PhysicsWorldStepError::InvalidMassProperties {
+                body: handle,
+                reason: crate::body::MassPropertyInvariantError::InverseInertiaMismatch { axis: 2 },
+            })
+        );
+        assert_eq!(world.body(handle).expect("body").position(), before);
+    }
+
 }
