@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous:symtropy:binary-calibration-input:0.1.0",
+  "title": "FoundryBench Binary Calibration Input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "bin_count",
+    "observations"
+  ],
+  "properties": {
+    "bin_count": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 100
+    },
+    "observations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sample_id",
+          "actual_positive",
+          "predicted_probability"
+        ],
+        "properties": {
+          "sample_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^\\S(?:.*\\S)?$"
+          },
+          "actual_positive": {
+            "type": "boolean"
+          },
+          "predicted_probability": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    }
+  }
+}
