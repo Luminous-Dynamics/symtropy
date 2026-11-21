@@ -721,4 +721,103 @@ mod tests {
         unique.dedup();
         assert_eq!(unique.len(), 8);
     }
+
+    const VALID_TRIAL: &str = r#"{"FPS":30,"translation unit":"mm","euler order":"ZYX","body with space":{"x":[0.0],"y":[0.0],"z":[0.0],"qx":[0.0],"qy":[0.0],"qz":[0.0],"qw":[1.0],"ex":[0.0],"ey":[0.0],"ez":[0.0]}}"#;
+
+    fn temporary_root(label: &str) -> PathBuf {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let stamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock after epoch")
+            .as_nanos();
+        let path = env::temp_dir().join(format!(
+            "symtropy-gauge-inventory-{}-{stamp}-{label}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&path).expect("create temporary root");
+        path
+    }
+
+    #[test]
+    fn inventory_emits_all_eight_families_and_dynamic_body_ids() {
+        let root = temporary_root("eight-families");
+        for family in REQUIRED_FAMILIES {
+            let directory = root.join(family).join("json");
+            fs::create_dir_all(&directory).expect("create family directory");
+            fs::write(directory.join("record 1.json"), VALID_TRIAL)
+                .expect("write synthetic trial");
+        }
+
+        let (paths, issues) = sorted_json_files(&root);
+        assert!(issues.is_empty());
+        assert_eq!(paths.len(), REQUIRED_FAMILIES.len());
+
+        let records = paths
+            .iter()
+            .map(|path| inspect_file(&root, path).expect("inspect source record"))
+            .collect::<Vec<_>>();
+        assert!(records.iter().all(|record| {
+            record.disposition == "VALID_OBSERVED_PROFILE"
+                && record.body_streams.len() == 1
+                && record.body_streams[0].0 == "body with space"
+        }));
+
+        let mut output = Vec::new();
+        write_manifest(
+            &mut output,
+            "test-revision-immutable",
+            &root,
+            &records,
+            &issues,
+        )
+        .expect("write JSONL inventory");
+        let output = String::from_utf8(output).expect("UTF-8 JSONL");
+        let lines = output.lines().collect::<Vec<_>>();
+        assert_eq!(lines.len(), 10);
+        assert!(lines[0].contains("\"dataset_revision\":\"test-revision-immutable\""));
+        assert!(lines[0].contains("\"file_count_is_not_physical_trial_count\":true"));
+        assert!(lines[1].contains("\"metadata_mapping\":\"NOT_ASSESSED\""));
+        assert!(lines[1].contains("\"body_id\":\"body with space\""));
+        assert!(lines[9].contains("\"structure_only_disposition\":\"PASS_STRUCTURE_ONLY\""));
+        assert!(lines[9].contains("\"physical_trial_count\":\"NOT_COMPUTED\""));
+
+        fs::remove_dir_all(root).expect("remove temporary root");
+    }
+
+    #[test]
+    fn malformed_json_is_retained_with_raw_digest_and_invalid_disposition() {
+        let root = temporary_root("invalid-json");
+        let directory = root.join("bouncing ball").join("json");
+        fs::create_dir_all(&directory).expect("create family directory");
+        let path = directory.join("bad.json");
+        fs::write(&path, b"{").expect("write malformed raw JSON");
+
+        let record = inspect_file(&root, &path).expect("inventory records parse failure");
+        assert_eq!(record.disposition, "INVALID_OR_UNSUPPORTED_PROFILE");
+        assert!(record.sha256.is_some());
+        assert_eq!(record.byte_len, 1);
+        assert!(record.error.as_deref().unwrap().contains("valid JSON"));
+
+        fs::remove_dir_all(root).expect("remove temporary root");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn symlinks_are_reported_and_never_followed() {
+        use std::os::unix::fs::symlink;
+
+        let root = temporary_root("symlink");
+        let outside = temporary_root("outside");
+        let outside_file = outside.join("outside.json");
+        fs::write(&outside_file, VALID_TRIAL).expect("write outside file");
+        symlink(&outside_file, root.join("linked.json")).expect("create symlink");
+
+        let (paths, issues) = sorted_json_files(&root);
+        assert!(paths.is_empty());
+        assert_eq!(issues.len(), 1);
+        assert!(issues[0].reason.contains("never follows symlinks"));
+
+        fs::remove_dir_all(root).expect("remove symlink root");
+        fs::remove_dir_all(outside).expect("remove outside root");
+    }
 }
