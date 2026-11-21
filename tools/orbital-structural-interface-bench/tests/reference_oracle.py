@@ -75,7 +75,7 @@ def profile_evidence(profile, reference, required_kind, required_class,
     expected_subject = (profile.get("material_lineage_ref")
                         if required_kind == "material_process"
                         else profile.get("article_subject_ref"))
-    if (expected_subject != evidence.get("subject_ref")
+    if ((expected_subject is not None and expected_subject != evidence.get("subject_ref"))
             or evidence.get("configuration_id") != profile.get("configuration_id")
             or evidence.get("icd_id") != profile.get("icd_id")
             or evidence.get("icd_revision") != profile.get("icd_revision")):
