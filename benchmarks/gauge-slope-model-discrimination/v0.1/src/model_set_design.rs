@@ -20,10 +20,7 @@ pub struct CoefficientBounds {
 
 impl CoefficientBounds {
     fn validate(self) -> Result<(), ModelDiscriminationError> {
-        if !self.minimum.is_finite()
-            || !self.maximum.is_finite()
-            || self.minimum > self.maximum
-        {
+        if !self.minimum.is_finite() || !self.maximum.is_finite() || self.minimum > self.maximum {
             return Err(ModelDiscriminationError::InvalidCoefficientBounds);
         }
         Ok(())
@@ -102,7 +99,10 @@ fn consider_candidate(
         linear,
         quadratic,
     )?;
-    if best.as_ref().is_none_or(|(best_value, _, _)| value < *best_value) {
+    if best
+        .as_ref()
+        .is_none_or(|(best_value, _, _)| value < *best_value)
+    {
         *best = Some((value, linear, quadratic));
     }
     Ok(())
@@ -169,8 +169,7 @@ pub fn score_linear_vs_quadratic_speed_models(
 
     for (condition, weight) in conditions.iter().zip(weights.iter().copied()) {
         let speed = condition.speed_m_s - weighted_mean_speed;
-        let speed_squared =
-            condition.speed_m_s * condition.speed_m_s - weighted_mean_speed_squared;
+        let speed_squared = condition.speed_m_s * condition.speed_m_s - weighted_mean_speed_squared;
         centered_speed.push(speed);
         centered_speed_squared.push(speed_squared);
         sum_xx.add(weight * speed * speed);
@@ -182,8 +181,7 @@ pub fn score_linear_vs_quadratic_speed_models(
     let xz = sum_xz.value();
     let zz = sum_zz.value();
     let speed_scale = total_weight * weighted_mean_speed.abs().max(1.0).powi(2);
-    let speed_squared_scale =
-        total_weight * weighted_mean_speed_squared.abs().max(1.0).powi(2);
+    let speed_squared_scale = total_weight * weighted_mean_speed_squared.abs().max(1.0).powi(2);
     if !xx.is_finite()
         || !xz.is_finite()
         || !zz.is_finite()
@@ -212,12 +210,11 @@ pub fn score_linear_vs_quadratic_speed_models(
     // an interior stationary point or on the boundary. The only interior
     // stationary point is the origin, handled above. Minimize both pairs of
     // opposing edges analytically, clamping each edge's stationary point.
-    for linear in [
-        bounds.linear_speed.minimum,
-        bounds.linear_speed.maximum,
-    ] {
-        let quadratic = (xz * linear / zz)
-            .clamp(bounds.quadratic_speed.minimum, bounds.quadratic_speed.maximum);
+    for linear in [bounds.linear_speed.minimum, bounds.linear_speed.maximum] {
+        let quadratic = (xz * linear / zz).clamp(
+            bounds.quadratic_speed.minimum,
+            bounds.quadratic_speed.maximum,
+        );
         consider_candidate(
             &mut best,
             &centered_speed,
@@ -232,8 +229,8 @@ pub fn score_linear_vs_quadratic_speed_models(
         bounds.quadratic_speed.minimum,
         bounds.quadratic_speed.maximum,
     ] {
-        let linear = (xz * quadratic / xx)
-            .clamp(bounds.linear_speed.minimum, bounds.linear_speed.maximum);
+        let linear =
+            (xz * quadratic / xx).clamp(bounds.linear_speed.minimum, bounds.linear_speed.maximum);
         consider_candidate(
             &mut best,
             &centered_speed,
@@ -288,8 +285,7 @@ mod tests {
         // c1*(v - mean(v)) = c2*(v^2 - mean(v^2)).
         let design = [condition(0.5, 0.02), condition(1.5, 0.02)];
         let result =
-            score_linear_vs_quadratic_speed_models(&design, exact_bounds(0.25, 0.125))
-                .unwrap();
+            score_linear_vs_quadratic_speed_models(&design, exact_bounds(0.25, 0.125)).unwrap();
         assert!(result.worst_case_squared_standardized_separation < 1.0e-20);
         assert!((result.witness_linear_speed_coefficient_per_s - 0.25).abs() < 1.0e-12);
         assert!((result.witness_quadratic_speed_coefficient_per_m - 0.125).abs() < 1.0e-12);
@@ -346,8 +342,10 @@ mod tests {
         let bounds = exact_bounds(0.25, 0.125);
         let narrow_score = score_linear_vs_quadratic_speed_models(&narrow, bounds).unwrap();
         let wide_score = score_linear_vs_quadratic_speed_models(&wide, bounds).unwrap();
-        assert!(wide_score.worst_case_squared_standardized_separation
-            > narrow_score.worst_case_squared_standardized_separation);
+        assert!(
+            wide_score.worst_case_squared_standardized_separation
+                > narrow_score.worst_case_squared_standardized_separation
+        );
         assert_eq!(wide_score.condition_count, narrow_score.condition_count);
     }
 
