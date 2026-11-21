@@ -33,6 +33,7 @@ A passing preflight says only that required data declarations and record-quality
 ## V0.1 profiles
 
 - homogeneous_poisson_constant_intensity: candidate for #6593. Aggregate count/exposure can be used for rate-only analysis when declared assumptions and scope references are present. To challenge time-constant assumptions, event-level histories and predeclared diagnostic controls are required.
+- power_law_recurrent_minimal_repair: event-level preflight for the one-repairable-series minimal-repair PLP profile in #6622. It requires one series, ordered events and minimal-repair semantics. It does not establish PLP fit or accept a statistical test.
 - weibull_first_failure_life: a separate first-failure life input family, using event-level/suspension histories. Recurrent-event histories are explicitly not treated as first-failure Weibull data.
 - nonhomogeneous_poisson_recurrent_events: deferred.
 - accelerated_life: unsupported until the acceleration model, stress equivalence and failure-mechanism assumptions have their own evidence contract.
@@ -61,7 +62,7 @@ The output fields constant_intensity_confirmed, reliability_claim_granted and au
 
 ## Frozen corpus
 
-The current fixture contains 59 synthetic cases, including:
+The current fixture contains 63 synthetic cases, including:
 - rate-only aggregate inputs vs event-level assumption challenge;
 - event history completeness, count consistency, time ordering, observation-window boundaries and bitemporal cutoff;
 - shared sampling clusters, duplicate/conflicting article/event identities;
