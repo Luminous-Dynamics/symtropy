@@ -57,7 +57,7 @@ jobs:
           set -euo pipefail
           actual_commit="$(git rev-parse HEAD)"
           test "$actual_commit" = "$BENCHMARK_COMMIT"
-          cargo run --locked --quiet --manifest-path tools/orbital-interface-lifecycle-bench/Cargo.toml -- \
+          cargo run --locked --quiet --manifest-path tools/orbital-interface-lifecycle-bench/Cargo.toml --bin orbital-interface-lifecycle-bench -- \
             tools/orbital-interface-lifecycle-bench/fixtures/v0.1/cases.json \
             --source-commit "$actual_commit" > orbital-interface-lifecycle-receipt.json
           jq -e --arg expected_commit "$BENCHMARK_COMMIT" '
@@ -73,10 +73,35 @@ jobs:
             and .authority_granted == false
           ' orbital-interface-lifecycle-receipt.json
 
-      - name: Upload exact-head lifecycle receipt
+
+      - name: Replay byte-exact lifecycle event corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_commit="$(git rev-parse HEAD)"
+          test "$actual_commit" = "$BENCHMARK_COMMIT"
+          cargo run --locked --quiet --manifest-path tools/orbital-interface-lifecycle-bench/Cargo.toml --bin orbital-interface-event-replay -- \
+            tools/orbital-interface-lifecycle-bench/fixtures/v0.1/event-replay-cases.json \
+            --source-commit "$actual_commit" > orbital-interface-event-replay-receipt.json
+          jq -e --arg expected_commit "$BENCHMARK_COMMIT" '
+            .receipt_schema == "luminous.orbital-interface-event-replay.receipt.v0.1"
+            and .source_commit == $expected_commit
+            and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
+            and .result == "pass"
+            and .report.evidence_class == "synthetic"
+            and .report.claim_ceiling == "synthetic-event-replay-semantics-only"
+            and .report.summary.case_count == 63
+            and .report.summary.expected_result_mismatches == 0
+            and .report.summary.duplicate_events == 3
+            and .authority_granted == false
+          ' orbital-interface-event-replay-receipt.json
+
+      - name: Upload exact-head lifecycle receipts
         uses: actions/upload-artifact@v4
         with:
-          name: orbital-interface-lifecycle-${{ github.event.pull_request.head.sha || github.sha }}
-          path: orbital-interface-lifecycle-receipt.json
+          name: orbital-interface-benchmarks-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            orbital-interface-lifecycle-receipt.json
+            orbital-interface-event-replay-receipt.json
           if-no-files-found: error
           retention-days: 30

@@ -1,0 +1,221 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/lifecycle-event-v0.1.schema.json",
+  "title": "Orbital Interface Lifecycle Event v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_schema",
+    "stream_id",
+    "event_id",
+    "sequence",
+    "previous_event_id",
+    "pair_id",
+    "service_kind",
+    "component_id",
+    "configuration_id",
+    "procedure_revision",
+    "interface_revision",
+    "event_type",
+    "event_tick",
+    "time_uncertainty_ticks",
+    "observation_tick",
+    "ingestion_tick",
+    "producer_id",
+    "authority_scope",
+    "qualified_cycle_limit",
+    "valid_until_tick",
+    "inspection_interval_ticks",
+    "calibration_valid",
+    "measurement_in_range",
+    "inspection_coverage_complete",
+    "wear_within_limit",
+    "uncertainty_clears_margin",
+    "raw_artifact_sha256",
+    "new_component_id",
+    "new_configuration_id",
+    "new_procedure_revision",
+    "new_interface_revision",
+    "requalification",
+    "environment_within_envelope"
+  ],
+  "properties": {
+    "event_schema": {
+      "const": "luminous.orbital-interface-lifecycle.event.v0.1"
+    },
+    "stream_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "event_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "previous_event_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "pair_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "service_kind": {
+      "enum": [
+        "mechanical_capture",
+        "prepared_storable_fluid"
+      ]
+    },
+    "component_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "configuration_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "procedure_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "interface_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "event_type": {
+      "enum": [
+        "qualification_issued",
+        "cycle_completed",
+        "inspection_recorded",
+        "maintenance_performed",
+        "component_replaced",
+        "configuration_changed",
+        "procedure_changed",
+        "interface_changed",
+        "qualification_revoked",
+        "cycle_counter_reset",
+        "environment_exposure"
+      ]
+    },
+    "event_tick": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "time_uncertainty_ticks": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "observation_tick": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "ingestion_tick": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "producer_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authority_scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "qualified_cycle_limit": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "valid_until_tick": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "inspection_interval_ticks": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "calibration_valid": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "measurement_in_range": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "inspection_coverage_complete": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "wear_within_limit": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "uncertainty_clears_margin": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "raw_artifact_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "new_component_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "new_configuration_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "new_procedure_revision": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "new_interface_revision": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "requalification": {
+      "type": "boolean"
+    },
+    "environment_within_envelope": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    }
+  }
+}
