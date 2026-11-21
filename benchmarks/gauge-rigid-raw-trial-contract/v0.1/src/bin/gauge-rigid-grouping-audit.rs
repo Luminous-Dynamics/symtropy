@@ -41,6 +41,11 @@ struct Mapping {
     metadata_path: Option<String>,
     metadata_sha: Option<String>,
     status: String,
+    evidence_path: Option<String>,
+    evidence_field: Option<String>,
+    evidence_value: Option<String>,
+    reviewer: Option<String>,
+    review_id: Option<String>,
     family: String,
     subtask: String,
     material: String,
@@ -54,6 +59,11 @@ struct Grouping {
     unit_id: Option<String>,
     dependence_keys: Vec<String>,
     split: String,
+    group_evidence_path: Option<String>,
+    group_evidence_field: Option<String>,
+    group_evidence_value: Option<String>,
+    reviewer: Option<String>,
+    review_id: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -407,6 +417,11 @@ fn parse_mappings(
             metadata_path,
             metadata_sha,
             status: status.to_owned(),
+            evidence_path: (!fields[5].is_empty()).then(|| fields[5].clone()),
+            evidence_field: (!fields[6].is_empty()).then(|| fields[6].clone()),
+            evidence_value: (!fields[7].is_empty()).then(|| fields[7].clone()),
+            reviewer: (!fields[8].is_empty()).then(|| fields[8].clone()),
+            review_id: (!fields[9].is_empty()).then(|| fields[9].clone()),
             family: fields[10].clone(),
             subtask: fields[11].clone(),
             material: fields[12].clone(),
@@ -505,6 +520,11 @@ fn parse_groupings(rows: Vec<Vec<String>>) -> Result<Vec<Grouping>, String> {
             unit_id,
             dependence_keys,
             split: split.to_owned(),
+            group_evidence_path: (!fields[4].is_empty()).then(|| fields[4].clone()),
+            group_evidence_field: (!fields[5].is_empty()).then(|| fields[5].clone()),
+            group_evidence_value: (!fields[6].is_empty()).then(|| fields[6].clone()),
+            reviewer: (!fields[7].is_empty()).then(|| fields[7].clone()),
+            review_id: (!fields[8].is_empty()).then(|| fields[8].clone()),
         });
     }
     Ok(output)
@@ -588,6 +608,21 @@ fn audit(args: &Args) -> Result<(Vec<Row>, String), String> {
             if grouping.disposition != "UNKNOWN" {
                 return Err(format!(
                     "{raw_path}: ambiguous/unmapped metadata cannot be assigned a source-backed physical unit"
+                ));
+            }
+        }
+        if grouping.disposition == "SOURCE_BACKED" {
+            let evidence = grouping.group_evidence_path.as_deref().unwrap_or_default();
+            let expected_raw = format!("raw/{}", mapping.raw_path);
+            let expected_metadata = mapping
+                .metadata_path
+                .as_deref()
+                .map(|path| format!("metadata/{path}"));
+            if evidence != expected_raw
+                && expected_metadata.as_deref() != Some(evidence)
+            {
+                return Err(format!(
+                    "{raw_path}: group evidence must point to this row's exact hashed raw or mapped metadata file"
                 ));
             }
         }
@@ -697,14 +732,24 @@ fn output_jsonl(args: &Args, rows: &[Row], digest_pair: &str) -> Result<String, 
             None
         };
         out.push_str(&format!(
-            "{{\"record_type\":\"row\",\"raw_path\":{},\"raw_sha256\":{},\"metadata_path\":{},\"metadata_sha256\":{},\"mapping_status\":{},\"unit_disposition\":{},\"exchangeability_unit_id\":{},\"dependence_keys\":[{}],\"split\":{},\"dependence_component\":{}}}\n",
+            "{{\"record_type\":\"row\",\"raw_path\":{},\"raw_sha256\":{},\"metadata_path\":{},\"metadata_sha256\":{},\"mapping_status\":{},\"mapping_evidence_path\":{},\"mapping_evidence_field\":{},\"mapping_evidence_value\":{},\"mapping_reviewer\":{},\"mapping_review_id\":{},\"unit_disposition\":{},\"exchangeability_unit_id\":{},\"group_evidence_path\":{},\"group_evidence_field\":{},\"group_evidence_value\":{},\"group_reviewer\":{},\"group_review_id\":{},\"dependence_keys\":[{}],\"split\":{},\"dependence_component\":{}}}\n",
             json_escape(&row.mapping.raw_path),
             json_escape(&row.mapping.raw_sha),
             json_optional(row.mapping.metadata_path.as_deref()),
             json_optional(row.mapping.metadata_sha.as_deref()),
             json_escape(&row.mapping.status),
+            json_optional(row.mapping.evidence_path.as_deref()),
+            json_optional(row.mapping.evidence_field.as_deref()),
+            json_optional(row.mapping.evidence_value.as_deref()),
+            json_optional(row.mapping.reviewer.as_deref()),
+            json_optional(row.mapping.review_id.as_deref()),
             json_escape(&row.grouping.disposition),
             json_optional(row.grouping.unit_id.as_deref()),
+            json_optional(row.grouping.group_evidence_path.as_deref()),
+            json_optional(row.grouping.group_evidence_field.as_deref()),
+            json_optional(row.grouping.group_evidence_value.as_deref()),
+            json_optional(row.grouping.reviewer.as_deref()),
+            json_optional(row.grouping.review_id.as_deref()),
             row.grouping.dependence_keys.iter().map(|key| json_escape(key)).collect::<Vec<_>>().join(","),
             json_escape(&row.grouping.split),
             component.map(|value| value.to_string()).unwrap_or_else(|| "null".to_owned()),
