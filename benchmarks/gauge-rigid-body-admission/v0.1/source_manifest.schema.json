@@ -38,7 +38,7 @@
               "declared_expression": { "type": ["string", "null"] },
               "evidence_url": { "type": "string", "format": "uri" },
               "review_status": {
-                "enum": ["reviewed_for_code_only", "declared_not_independently_reviewed", "unknown"]
+                "enum": ["reviewed_for_code_only", "reviewed_for_dataset_scope", "declared_not_independently_reviewed", "unknown"]
               }
             }
           },
@@ -121,7 +121,7 @@
                 "source_id": { "const": "gauge-dataset" },
                 "revision_full": { "type": "string", "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$" },
                 "license": {
-                  "properties": { "review_status": { "const": "reviewed_for_code_only" } },
+                  "properties": { "review_status": { "const": "reviewed_for_dataset_scope" } },
                   "required": ["review_status"]
                 },
                 "artifact_manifest": { "minItems": 1 },
