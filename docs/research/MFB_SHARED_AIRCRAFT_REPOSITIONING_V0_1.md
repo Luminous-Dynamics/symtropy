@@ -11,7 +11,7 @@
 
 The previous demand-adaptive mode-options oracle assigned aerial capacity independently to each region. That was useful for proving nonanticipative mode activation, but it did not represent one physical aircraft being shared across regions.
 
-This v0.1 adds one aircraft shared by two or three regions. It has an initial region, finite energy, a protected reserve, repositioning energy/cost and a limited set of directed regional transfers. Each period the policy chooses one target region or an idle/recharge action. It cannot serve two regions in the same period.
+This v0.1 adds one aircraft shared by two or three regions. It has an initial region, finite energy, a protected reserve, repositioning energy/cost and a limited set of directed regional transfers. Each period the policy chooses one target region or an idle/recharge action. It cannot serve two regions in the same period. The regional reposition graph is sparse: missing directed links are infeasible rather than implicitly routable, and a region may have zero aerial capacity.
 
 This is deliberately not another route solver, aircraft flight simulator, battery model, dispatch controller or fleet database. It composes the existing carrier/co-availability, cargo, route-allocation and permission/evidence owners.
 
@@ -31,8 +31,8 @@ C_{mathrm{reposition}}+C_{mathrm{idle}}ight)
 
 subject to:
 - one aircraft cannot serve multiple regions in the same decision period;
-- aerial service requires current `clear_fresh` weather and `approved_fresh` permission at the aircraft's region;
-- repositioning requires a fresh-in-domain link evidence status and current clear/approved observations at both endpoints;
+- aerial service requires current `clear_fresh` weather and `approved_fresh` permission at the aircraft's region; a region may declare zero aerial capacity;
+- repositioning requires an explicit directed edge, fresh-in-domain link evidence and current clear/approved observations at both endpoints; absent edges are blocked;
 - repositioning consumes a complete decision period and cannot deliver in that period;
 - reposition energy is deducted before the aircraft arrives at the destination;
 - neither service nor reposition may consume the protected energy reserve;
