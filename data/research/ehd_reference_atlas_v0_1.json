@@ -1020,5 +1020,50 @@
       "role": "deterministic mechanics / scenario projection only",
       "current_claim_boundary": "not a plasma, corona, ion-transport, Maxwell or EHD fluid solver"
     }
+  ],
+  "system_integration_references": [
+    {
+      "source_id": "TAO_2026_ION_MICROROBOT_CONTROLLED_HOVER",
+      "title": "Controlled flight of high-thrust ultralight ion-propelled microrobot with integrated sensing",
+      "citation": "Tao et al., Nature Communications 17, Article 9530 (published 2026-08-08)",
+      "doi": "10.1038/s41467-026-76462-y",
+      "cohort": "ambient_air_ion_wind_microrobot_tethered_flight_control",
+      "platform": {
+        "dimensions_mm": [
+          37.7,
+          37.7
+        ],
+        "reported_robot_mass_mg": 36.7,
+        "thruster_count": 4,
+        "arrangement": "cross-pattern",
+        "propulsion": "ion wind / EHD",
+        "sensing": "onboard IMU"
+      },
+      "control": {
+        "architecture": "IMU-based closed-loop attitude control",
+        "trajectory_tests": [
+          "square path",
+          "triangle path"
+        ],
+        "pitch_rmse_reduction_percent": 83.11,
+        "roll_rmse_reduction_percent": 89.21
+      },
+      "performance": {
+        "reported_thrust_to_weight_ratio": 5,
+        "payload_mass_mg": 146.8,
+        "payload_to_robot_mass_ratio": 4,
+        "reported_hover_duration_hours": 1
+      },
+      "operating_boundary": {
+        "hover_power_boundary": "tethered",
+        "self_powered_free_flight_demonstrated": false,
+        "notes": "One-hour hover is reported as tethered. Do not describe this as self-powered free flight or include an unreported onboard power-source mass."
+      },
+      "comparability": {
+        "leaderboard_eligible_against_bare_thrusters": false,
+        "reason": "Integrated system/control demonstration; robot mass, tethered power boundary, support conditions and bare-thruster force/power definitions differ.",
+        "allowed_comparison": "same-class integrated microrobot control and payload/trajectory demonstrations under matched support and power conditions"
+      }
+    }
   ]
 }
