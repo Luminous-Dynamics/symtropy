@@ -1304,6 +1304,7 @@ mod tests {
     fn calibrated_probability_basis_requires_digest_and_held_out_window() {
         let mut test = input();
         test.probability_basis = ScenarioProbabilityBasis::CalibratedOutOfSample;
+        test.probability_evidence_reference = "evidence://calibration-report/shared-fleet-v1".into();
         test.calibration_report_sha256 = Some("not-a-digest".into());
         test.held_out_window_reference = Some("2026-Q3".into());
         let errors = validate_input(&test).expect_err("invalid calibration digest");
