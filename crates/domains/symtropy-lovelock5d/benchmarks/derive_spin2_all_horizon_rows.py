@@ -74,30 +74,79 @@ def main():
   if any(sp.cancel(c)!=0 for c in horizon_coefficients.coeffs()):
    raise AssertionError(f"{k}: a scaled-row coefficient is nonzero at the horizon")
 
-  # First directional horizon derivative along Qbar(rho); skip the
-  # currently unresolved h-row valuation so this verifier stays bounded.
+  # Exact directional Taylor coefficients along Qbar(rho).  The
+  # h-row valuation remains open and is deliberately not expanded here.
   if k in ("b","g"):
    qprime=2/(lam+1)
-   den_h=den.subs({rho:1,Q:lam+1})
-   first_slopes={}
+   qsecond=6/(lam+1)-4/(lam+1)**3
+   qthird=12/(lam+1)-36/(lam+1)**3+24/(lam+1)**5
+   hsub={rho:1,Q:lam+1}
+   den0=sp.factor(den.subs(hsub))
+   den1=sp.factor((sp.diff(den,rho)+qprime*sp.diff(den,Q)).subs(hsub))
+   c1s={}
+   c2s={}
+   c3s={}
    for mon,cn in zip(poly.monoms(),poly.coeffs()):
-    slope=sp.factor((sp.diff(cn,rho)+qprime*sp.diff(cn,Q)).subs({rho:1,Q:lam+1})/den_h)
-    first_slopes[mon]=slope
+    n0=sp.factor(cn.subs(hsub))
+    n1=sp.factor((sp.diff(cn,rho)+qprime*sp.diff(cn,Q)).subs(hsub))
+    n2=sp.factor((sp.diff(cn,rho,2)+2*qprime*sp.diff(cn,rho,Q)
+       +qprime**2*sp.diff(cn,Q,2)+qsecond*sp.diff(cn,Q)).subs(hsub))
+    c1s[mon]=sp.factor(n1/den0)
+    c2s[mon]=sp.factor(n2/(2*den0)-n1*den1/den0**2)
+    if k=="b":
+     n3=sp.factor((sp.diff(cn,rho,3)+3*qprime*sp.diff(cn,rho,2,Q)
+       +3*qprime**2*sp.diff(cn,rho,Q,2)+qprime**3*sp.diff(cn,Q,3)
+       +3*qsecond*sp.diff(cn,rho,Q)+3*qprime*qsecond*sp.diff(cn,Q,2)
+       +qthird*sp.diff(cn,Q)).subs(hsub))
+     assert n0==0 and n1==0 and n2==0
+     c3s[mon]=sp.factor(n3/(6*den0))
    B_mon=(1,0,0,0,0,0,0,0)
+   Bp_mon=(0,1,0,0,0,0,0,0)
    F_mon=(0,0,0,1,0,0,0,0)
+   Fp_mon=(0,0,0,0,1,0,0,0)
    if k=="b":
-    assert all(sp.cancel(v)==0 for v in first_slopes.values())
-    horizon_valuation={"first_derivative":"all coefficient/source slopes vanish",
-                       "first_nonzero_order_at_least":2}
+    assert all(sp.cancel(v)==0 for v in c1s.values())
+    expected3={m:sp.Integer(0) for m in c3s}
+    expected3[F_mon]=-24*(lam+2)**2/(lam+1)**4
+    expected3[Fp_mon]=-12*(lam+2)**2/(lam+1)**2
+    expected3[(0,0,0,0,0,1,0,0)]=8*lam*(lam+2)**2/(lam+1)**4
+    expected3[(0,0,0,0,0,0,1,0)]=-4*(lam+2)**2/(lam+1)**3
+    expected3[(0,0,0,0,0,0,0,0)]=-8*(lam+2)**4/(lam+1)**4
+    for m,v in c3s.items():
+     assert sp.factor(v-expected3[m])==0
+    # With Bhat2(1)=Fhat2(1)=0, divide by a positive factor and
+    # recover exactly the E_f first compatibility condition.
+    f1h,hh,h1h=sp.symbols("f1h hh h1h")
+    leading_b=sp.factor(c3s[F_mon]*0+c3s[Fp_mon]*f1h
+       +c3s[(0,0,0,0,0,1,0,0)]*hh
+       +c3s[(0,0,0,0,0,0,1,0)]*h1h
+       +c3s[(0,0,0,0,0,0,0,0)])
+    expected_b=sp.factor(-4*(lam+2)**2/(lam+1)**4
+       *(3*(lam+1)**2*f1h-2*lam*hh+(lam+1)*h1h+2*(lam+2)**2))
+    assert sp.factor(leading_b-expected_b)==0
+    horizon_valuation={"first_nonzero_order":3,
+       "fixed_horizon_leading_coefficient":sp.sstr(leading_b),
+       "same_compatibility_as_Ef":True}
    else:
-    expected_slopes={m:sp.Integer(0) for m in first_slopes}
-    expected_slopes[B_mon]=-4*(lam+2)/(lam+1)**2
-    expected_slopes[F_mon]=4*(lam+2)/(lam+1)**2
-    for m,v in first_slopes.items():
-     assert sp.factor(v-expected_slopes[m])==0
-    horizon_valuation={"first_nonzero_coefficient":
-        "4*(lambda+2)/(lambda+1)^2*(Fhat2(1)-Bhat2(1))",
-        "all_other_first_coefficient_terms":"zero"}
+    expected1={m:sp.Integer(0) for m in c1s}
+    expected1[B_mon]=-4*(lam+2)/(lam+1)**2
+    expected1[F_mon]=4*(lam+2)/(lam+1)**2
+    for m,v in c1s.items():
+     assert sp.factor(v-expected1[m])==0
+    expected2={m:sp.Integer(0) for m in c2s}
+    expected2[B_mon]=2*(lam+2)*(lam**2+5)/(lam+1)**4
+    expected2[Bp_mon]=4*(lam+2)/(lam+1)**2
+    expected2[F_mon]=-2*(lam+2)*(lam**2+5)/(lam+1)**4
+    expected2[Fp_mon]=-4*(lam+2)/(lam+1)**2
+    for m,v in c2s.items():
+     assert sp.factor(v-expected2[m])==0
+    b1h,f1h=sp.symbols("b1h f1h")
+    leading_g_y2=sp.factor(c1s[B_mon]*b1h+c1s[F_mon]*f1h
+       +c2s[Bp_mon]*b1h+c2s[Fp_mon]*f1h)
+    assert sp.factor(leading_g_y2)==0
+    horizon_valuation={"first_nonzero_order_at_least":3,
+       "order_one_condition":"4*(lambda+2)/(lambda+1)^2*(Fhat2(1)-Bhat2(1))",
+       "order_two_cancellation_after_fixed_horizon_data":True}
   else:
    horizon_valuation={"first_derivative":"not yet derived"}
 
