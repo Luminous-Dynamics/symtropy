@@ -43,8 +43,10 @@ The differentiating layer is a measurable evidence contract:
 1. right-censored calls remain in the dataset as exposure;
 2. diversion and cancellation remain explicit competing causes;
 3. berth cumulative incidence is not estimated from only completed calls;
-4. exact vessel-tick queue area reconciles to the stock ledger;\n5. administrative cutoff and reporting-lag censoring remain distinguishable;\n6. berth cumulative incidence is not published as calibrated without testing the non-informative censoring assumption;
-5. historical cutoffs prevent later observations from rewriting earlier decisions;
-6. all quantiles carry an estimability decision.
+4. exact vessel-tick queue area reconciles to the stock ledger;
+5. administrative cutoff and reporting-lag censoring remain distinguishable;
+6. berth cumulative incidence is not published as calibrated without testing the non-informative censoring assumption;
+7. historical cutoffs prevent later observations from rewriting earlier decisions;
+8. all quantiles carry an estimability decision.
 
 This is not a claim of better port operations yet. It is a measurement-integrity advantage to validate before attempting optimization claims.
