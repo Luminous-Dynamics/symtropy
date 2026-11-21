@@ -16,7 +16,8 @@ from typing import Any
 
 BENCHMARK_ID = "av-sequential-acquisition-v0"
 EPSILON = 1e-9
-MAX_ACTIONS_FOR_EXACT_ORACLE = 16
+MAX_ACTIONS_FOR_EXACT_ORACLE = 12
+MAX_JOINT_OUTCOME_COMBINATIONS = 2048
 
 
 class EvaluationError(ValueError):
@@ -164,6 +165,12 @@ def plan_statistics(episode: dict[str, Any], action_ids: list[str]) -> dict[str,
         [(outcome_id, likelihoods) for outcome_id, likelihoods in action_outcome_index(action).items()]
         for action in selected
     ]
+    joint_outcome_count = math.prod(len(rows) for rows in outcome_lists)
+    if joint_outcome_count > MAX_JOINT_OUTCOME_COMBINATIONS:
+        raise EvaluationError(
+            f"{episode['episode_id']}: selected plan expands to {joint_outcome_count} joint outcomes; "
+            f"limit is {MAX_JOINT_OUTCOME_COMBINATIONS}"
+        )
     combinations = itertools.product(*outcome_lists) if outcome_lists else [tuple()]
     expected_risk = 0.0
     expected_entropy = 0.0
