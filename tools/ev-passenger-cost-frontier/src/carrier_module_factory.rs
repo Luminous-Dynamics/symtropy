@@ -754,6 +754,8 @@ struct SharedCellScenarioResult {
     supplemental_footprint_sqm: Option<f64>,
     supplemental_operators_per_shift: Option<u64>,
     base_vehicle_attempts_displaced_if_shortfall_is_forced: Option<u64>,
+    base_factory_production_release_ready: bool,
+    base_factory_evidence_gaps: Vec<String>,
     status: Status,
     missing_fields: Vec<String>,
     findings: Vec<String>,
@@ -909,6 +911,12 @@ fn evaluate_shared_cell_pair(
     if module_station.is_none() {
         missing.push("module_station_process".into());
     }
+    if module_result.planned_module_attempts_per_year.is_none() {
+        missing.push("planned_module_attempts_per_year".into());
+    }
+    if module_station.and_then(|station| station.cycle_minutes_per_attempt).is_none() {
+        missing.push("module_cycle_minutes_per_attempt".into());
+    }
 
     let base_station_available_minutes = base_station.map(|station| {
         station.parallel_cells_required as f64 * base.productive_minutes_per_cell_year
@@ -994,8 +1002,10 @@ fn evaluate_shared_cell_pair(
         Status::Indeterminate
     } else if mapping.evidence_class == EvidenceClass::Synthetic {
         Status::PassesSyntheticScreen
-    } else {
+    } else if base.production_release_ready && base.evidence_gaps.is_empty() {
         Status::PassesEvidenceBackedScreen
+    } else {
+        Status::Indeterminate
     };
 
     SharedCellScenarioResult {
@@ -1030,6 +1040,8 @@ fn evaluate_shared_cell_pair(
         supplemental_footprint_sqm: supplemental_footprint,
         supplemental_operators_per_shift: supplemental_operators,
         base_vehicle_attempts_displaced_if_shortfall_is_forced: base_vehicle_attempts_displaced,
+        base_factory_production_release_ready: base.production_release_ready,
+        base_factory_evidence_gaps: base.evidence_gaps.clone(),
         status,
         missing_fields: missing,
         findings,
@@ -1196,6 +1208,24 @@ pub fn evaluate_shared_cells(
             .expect("valid incompatible fixture");
         assert_eq!(report.results[0].status, Status::Blocked);
         assert!(report.results[0].findings.iter().any(|finding| finding.contains("not qualified")));
+    }
+
+    #[test]
+    fn measured_shared_station_data_do_not_pass_when_base_factory_is_unreleased() {
+        let factory = shared_factory_report(base());
+        let modules = ModuleProcessCatalog {
+            schema_version: "0.1.0".into(),
+            benchmark_id: "EV-CARRIER-MODULE-MFG-001".into(),
+            configurations: vec![config()],
+            claim_ceiling: "synthetic".into(),
+        };
+        let mut mapping = shared_mapping(SharedCellCompatibility::VerifiedCompatible);
+        mapping.evidence_class = EvidenceClass::Measured;
+        let report = evaluate_shared_cells(&factory, &modules, &shared_catalog(mapping))
+            .expect("valid but unreleased factory");
+        assert_eq!(report.results[0].status, Status::Indeterminate);
+        assert!(!report.results[0].base_factory_production_release_ready);
+        assert!(!report.results[0].base_factory_evidence_gaps.is_empty());
     }
 
     #[test]
