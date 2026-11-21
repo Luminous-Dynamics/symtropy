@@ -83,7 +83,8 @@
           "evidence_compliant",
           "violations",
           "false_memory",
-          "deadline_miss"
+          "deadline_miss",
+          "evidence_qualified_answer_correct"
         ],
         "properties": {
           "episode_id": {
@@ -140,6 +141,9 @@
           },
           "deadline_miss": {
             "type": "boolean"
+          },
+          "evidence_qualified_answer_correct": {
+            "type": "boolean"
           }
         }
       }
@@ -188,7 +192,9 @@
         "evidence_compliance_rate",
         "false_memory_count",
         "hard_violation_count",
-        "deadline_miss_count"
+        "deadline_miss_count",
+        "evidence_qualified_answer_correct_count",
+        "evidence_qualified_answer_accuracy"
       ],
       "properties": {
         "episode_count": {
@@ -286,6 +292,18 @@
         "deadline_miss_count": {
           "type": "integer",
           "minimum": 0
+        },
+        "evidence_qualified_answer_correct_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidence_qualified_answer_accuracy": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
         }
       }
     }
