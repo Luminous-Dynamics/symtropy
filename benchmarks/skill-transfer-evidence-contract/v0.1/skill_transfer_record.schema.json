@@ -410,10 +410,7 @@
                 "const": "not_satisfied"
               }
             }
-          },
-          "required": [
-            "precondition"
-          ]
+          }
         },
         "required": [
           "precondition"
