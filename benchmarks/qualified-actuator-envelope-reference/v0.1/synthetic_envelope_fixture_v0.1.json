@@ -1,0 +1,54 @@
+{
+  "schema_version": "0.1.0",
+  "claim_scope": "Synthetic software fixture only; not hardware qualification.",
+  "article_id": "synthetic-joint-article-01",
+  "calibration_id": "synthetic-cal-2026-11",
+  "calibration_digest": "2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a",
+  "valid_from_ms": 1000,
+  "valid_until_ms": 9000,
+  "supply_voltage_min_mv": 22000,
+  "supply_voltage_max_mv": 26000,
+  "max_duty_basis_points": 7000,
+  "derating_margin_basis_points": 1000,
+  "speed_breakpoints_mrpm": [
+    0,
+    1000000,
+    2000000
+  ],
+  "temperature_breakpoints_mc": [
+    20000,
+    40000,
+    60000
+  ],
+  "cells": [
+    {
+      "temperature_interval": 0,
+      "speed_interval": 0,
+      "positive_limit_mnm": 1000,
+      "negative_limit_mnm": 900,
+      "max_command_duration_ms": 500
+    },
+    {
+      "temperature_interval": 0,
+      "speed_interval": 1,
+      "positive_limit_mnm": 800,
+      "negative_limit_mnm": 750,
+      "max_command_duration_ms": 400
+    },
+    {
+      "temperature_interval": 1,
+      "speed_interval": 0,
+      "positive_limit_mnm": 700,
+      "negative_limit_mnm": 650,
+      "max_command_duration_ms": 300
+    },
+    {
+      "temperature_interval": 1,
+      "speed_interval": 1,
+      "positive_limit_mnm": 500,
+      "negative_limit_mnm": 450,
+      "max_command_duration_ms": 200
+    }
+  ],
+  "notes": "Rows are temperature-major, columns speed-minor; cell limits are synthetic conservative values supplied by a hypothetical qualification procedure."
+}

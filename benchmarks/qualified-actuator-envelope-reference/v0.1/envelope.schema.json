@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/symtropy/qualified-actuator-envelope/v0.1",
+  "title": "Qualified actuator capability envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "article_id",
+    "calibration_id",
+    "calibration_digest",
+    "valid_from_ms",
+    "valid_until_ms",
+    "supply_voltage_min_mv",
+    "supply_voltage_max_mv",
+    "max_duty_basis_points",
+    "derating_margin_basis_points",
+    "speed_breakpoints_mrpm",
+    "temperature_breakpoints_mc",
+    "cells"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "article_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "calibration_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "calibration_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "valid_from_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "valid_until_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "supply_voltage_min_mv": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "supply_voltage_max_mv": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "max_duty_basis_points": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10000
+    },
+    "derating_margin_basis_points": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10000
+    },
+    "speed_breakpoints_mrpm": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "temperature_breakpoints_mc": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "integer"
+      }
+    },
+    "cells": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "positive_limit_mnm",
+          "negative_limit_mnm",
+          "max_command_duration_ms"
+        ],
+        "properties": {
+          "positive_limit_mnm": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "negative_limit_mnm": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "max_command_duration_ms": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    }
+  }
+}
