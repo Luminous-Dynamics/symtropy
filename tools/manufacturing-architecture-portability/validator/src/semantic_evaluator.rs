@@ -266,6 +266,92 @@ mod tests {
         assert!(!stream_validator.is_valid(&invalid_stream));
     }
 
+
+    fn stream_variant(kind: &str) -> Value {
+        let mut value = candidate();
+        value["native_kind"] = json!(kind);
+        match kind {
+            "EVENT" => {
+                value["data_item_id"] = json!("DID-001");
+                value["component_id"] = json!("CONTROLLER-01");
+                value["sequence"] = json!(11);
+                value["source_timestamp_ns"] = json!(1750000200_u64);
+                value["reference_timestamp_ns"] = json!(1750000200_u64);
+                value["native_unit"] = json!("");
+                value["value_text"] = json!("CYCLE_ACTIVE");
+                value["source_locator"] = json!("/MTConnectStreams/Streams/ComponentStream/Observations/Observation[1]");
+            }
+            "CONDITION" => {
+                value["data_item_id"] = json!("DID-002");
+                value["component_id"] = json!("CONTROLLER-01");
+                value["sequence"] = json!(12);
+                value["source_timestamp_ns"] = json!(1750000300_u64);
+                value["reference_timestamp_ns"] = json!(1750000300_u64);
+                value["native_unit"] = json!("");
+                value["value_text"] = json!("level=NORMAL;code=OK;description=No fault");
+                value["source_locator"] = json!("/MTConnectStreams/Streams/ComponentStream/Observations/Observation[2]");
+            }
+            _ => panic!("unsupported test stream kind"),
+        }
+        value
+    }
+
+    fn stream_variant_oracle(kind: &str) -> Value {
+        let base = oracle();
+        let mut value = base;
+        match kind {
+            "EVENT" => {
+                value["data_item_id"] = json!("DID-001");
+                value["component_id"] = json!("CONTROLLER-01");
+                value["sequence"] = json!(11);
+                value["source_timestamp_ns"] = json!(1750000200_u64);
+                value["reference_timestamp_ns"] = json!(1750000200_u64);
+                value["native_kind"] = json!("EVENT");
+                value["native_unit"] = json!("");
+                value["value_text"] = json!("CYCLE_ACTIVE");
+                value["source_locator"] = json!("/MTConnectStreams/Streams/ComponentStream/Observations/Observation[1]");
+            }
+            "CONDITION" => {
+                value["data_item_id"] = json!("DID-002");
+                value["component_id"] = json!("CONTROLLER-01");
+                value["sequence"] = json!(12);
+                value["source_timestamp_ns"] = json!(1750000300_u64);
+                value["reference_timestamp_ns"] = json!(1750000300_u64);
+                value["native_kind"] = json!("CONDITION");
+                value["native_unit"] = json!("");
+                value["value_text"] = json!("level=NORMAL;code=OK;description=No fault");
+                value["source_locator"] = json!("/MTConnectStreams/Streams/ComponentStream/Observations/Observation[2]");
+            }
+            _ => panic!("unsupported test stream kind"),
+        }
+        value
+    }
+
+    #[test]
+    fn sample_event_and_condition_each_match_their_independent_known_answer() {
+        let sample = compare_required_fields(&oracle(), &candidate(), FIELDS).unwrap();
+        assert!(sample.equivalent_on_required_fields);
+
+        for kind in ["EVENT", "CONDITION"] {
+            let result = compare_required_fields(
+                &stream_variant_oracle(kind),
+                &stream_variant(kind),
+                FIELDS,
+            )
+            .unwrap();
+            assert!(result.equivalent_on_required_fields, "{kind}");
+            assert_eq!(result.matched_fields, FIELDS.len());
+        }
+    }
+
+    #[test]
+    fn event_and_condition_cannot_be_coerced_to_each_other() {
+        let event_as_condition = stream_variant("EVENT");
+        let condition_truth = stream_variant_oracle("CONDITION");
+        let result = compare_required_fields(&condition_truth, &event_as_condition, FIELDS).unwrap();
+        assert!(!result.equivalent_on_required_fields);
+    }
+
     #[test]
     fn exact_synthetic_projection_matches_independent_oracle() {
         let result = compare_required_fields(&oracle(), &candidate(), FIELDS)
