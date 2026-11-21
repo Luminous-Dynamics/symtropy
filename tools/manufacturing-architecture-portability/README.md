@@ -253,3 +253,18 @@ Any live OPC UA endpoint experiment remains read-only and isolated. No methods, 
 ## FoundryBench protocol
 
 The fixed-client benchmark design is specified in [`benchmark-protocol.md`](benchmark-protocol.md). It fixes the evidence/client/task/hardware envelope before comparison, separates protocol, model, semantic and task/operational scoreboards, and defines the TEP complete-scenario and no-leakage rules. It identifies UACTT Lite/full OPC UA CTT as external comparators rather than claiming to replace them. This protocol is a proposal; no full cross-backend tournament has yet run.
+
+## TEP SOTA extensions: feature identity stability and onset-safe decisions
+
+The FoundryBench protocol has been strengthened using two 2026 TEP research directions:
+
+1. Evolutionary WFIF optimizes discriminative feature power, dimensionality and feature-set stability. Its paper reports 95.79% average F1 across 21 faults, improvement on difficult d03/d09/d15, and low variability in selected subset size. FoundryBench deliberately goes further: it measures pairwise feature-identity overlap (Jaccard) and, for equal-cardinality sets, Kuncheva stability. It also checks whether selected variables remain stable under held-out run and operating-mode shifts. A stable but causally spurious proxy is not considered valid.
+2. Five-Stage Cascade uses onset-based early diagnosis, exposing only the first post-fault observations at fixed horizons. Its paper reports reductions in confident wrong labels and false alarms against nine same-budget baselines, using safe deferral for uncertain labels. The dataset is available on request, so it is not yet a reproducible public baseline for Foundry.
+
+The protocol now evaluates the earliest defensible decision rather than the earliest forced label. At fixed horizons, report detection, diagnosis, false alarms, confident-wrong diagnoses, safe deferrals, time-to-detection, time-to-correct-diagnosis, coverage and decision loss. Thresholds and feature selection must be trained/selected without the held-out test runs.
+
+Sources:
+- [Evolutionary WFIF feature selection for TEP (Scientific Reports, 2026)](https://www.nature.com/articles/s41598-026-49874-5)
+- [Five-Stage Cascade early diagnosis (2026)](https://www.sciencedirect.com/science/article/pii/S0959152426002015)
+
+These are comparator designs and proposed Foundry metrics, not reproduced results or claims of superiority.
