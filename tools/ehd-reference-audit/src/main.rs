@@ -2125,3 +2125,33 @@ mod exchange_event_receipt_contract_tests {
         }));
     }
 }
+
+#[cfg(test)]
+mod polynomial_moment_contract_tests {
+    use super::*;
+
+    #[test]
+    fn polynomial_moment_contract_passes_declared_scope() {
+        let value: Value = serde_json::from_str(EMBEDDED_POLYNOMIAL_MOMENTS)
+            .expect("embedded polynomial-moment contract must be valid JSON");
+        assert!(audit_polynomial_moments_contract(&value).is_empty());
+    }
+
+    #[test]
+    fn polynomial_moment_oracle_cannot_claim_tpe_1_or_tpe_2() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_POLYNOMIAL_MOMENTS).unwrap();
+        value["limitations"] = Value::Array(Vec::new());
+        assert!(audit_polynomial_moments_contract(&value).iter().any(|finding| {
+            finding.starts_with("POLY_MOMENT_CLAIM_BOUNDARY")
+        }));
+    }
+
+    #[test]
+    fn polynomial_moment_oracle_requires_local_and_global_integral_checks() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_POLYNOMIAL_MOMENTS).unwrap();
+        value["acceptance"]["per_destination_integral_checked"] = Value::Bool(false);
+        assert!(audit_polynomial_moments_contract(&value).iter().any(|finding| {
+            finding.starts_with("POLY_MOMENT_ACCEPTANCE")
+        }));
+    }
+}
