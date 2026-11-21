@@ -260,7 +260,7 @@ def evaluate(
             "derived_item_count": derived_item_count,
             "in_scope_derived_item_count": in_scope_derived_item_count,
             "purge_receipt_count": purge_receipt_count,
-            "purge_receipt_coverage": purge_covered_count / derived_item_count if derived_item_count else 1.0,
+            "purge_receipt_coverage": purge_covered_count / in_scope_derived_item_count if in_scope_derived_item_count else 1.0,
             "policy_ineligibility_claim_coverage": policy_reported_count / policy_required_count if policy_required_count else 1.0,
             "claimed_storage_erasure_complete_count": claimed_storage_erasure_count,
         },
