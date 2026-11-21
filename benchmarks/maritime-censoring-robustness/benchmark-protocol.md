@@ -98,12 +98,12 @@ The separate JavaScript run is a semantic preflight only. It does not compile or
 
 This simulator demonstrates assumption failure. It does not establish which mechanism applies to Durban. In a real feed, source delay may depend on terminal, outcome, congestion, provider availability, communications loss or data-cleaning rules. Those mechanisms must be empirically diagnosed using event/publication timestamps, source coverage and independent references.
 
-## 8. Industry / methodological baselines
+## 9. Industry / methodological baselines
 
 - World Bank / S&P Global CPPI methodology uses AIS/geofence-verified call events and size-stratified comparisons. It reports a 95% match rate in its methodology note. This is a valuable data-validation baseline, not proof that any locally built receiver has the same coverage.
 - The 2026 edge-AIS FSM study demonstrates low-cost vendor-independent port-call KPI monitoring but shows sensitivity to dwell/gap parameters; compare exact service-state definitions, validation labels, detection recall/precision, timing error and parameter robustness.
 - 2026 dependent-censoring IPCW reviews and competing-risk sensitivity methods are methodological references. The maritime benchmark should reuse the censoring-aware scorecard work in #3763 / PR #3791 and the RUL benchmark #4028 / PR #4035 rather than duplicate a generic survival scoring engine.
 
-## 9. Non-claims
+## 10. Non-claims
 
 No real port-performance estimate, data-source authentication, causal effect, SOTA claim, terminal capacity validation or operational authorization is produced.
