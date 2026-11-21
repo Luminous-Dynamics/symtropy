@@ -1160,10 +1160,9 @@ pub fn evaluate_shared_fleet(input: &SharedFleetInput) -> Result<SharedFleetRepo
         }
     }
 
-    let truck_only = outcome(
-        evaluate_mask(&canonical, &indices, 0, false).map_err(|error| vec![error])?,
-    )
-    .map_err(|error| vec![error])?;
+    let truck_only =
+        outcome(evaluate_mask(&canonical, &indices, 0, false).map_err(|error| vec![error])?)
+            .map_err(|error| vec![error])?;
 
     let initial_action = canonical
         .regions
@@ -1186,8 +1185,7 @@ pub fn evaluate_shared_fleet(input: &SharedFleetInput) -> Result<SharedFleetRepo
             .ok_or_else(|| vec!["fixed baseline multiplier overflow".into()])?;
     }
     let fixed = outcome(
-        evaluate_mask(&canonical, &indices, fixed_mask, true)
-            .map_err(|error| vec![error])?,
+        evaluate_mask(&canonical, &indices, fixed_mask, true).map_err(|error| vec![error])?,
     )
     .map_err(|error| vec![error])?;
 
