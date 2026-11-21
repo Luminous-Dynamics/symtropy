@@ -393,7 +393,14 @@ mod tests {
         assert_eq!(s01.p50_berth_incidence_tick, Some(4));
         assert_eq!(s01.p90_berth_incidence_tick, None);
         assert_eq!(s01.p95_berth_incidence_tick, None);
-        close(s01.eventual_mass_for_test(), 1.0);
+        let s01_last = s01.risk_steps.last().unwrap();
+        close(
+            s01_last.event_free_survival
+                + s01_last.berth_cumulative_incidence
+                + s01_last.diversion_cumulative_incidence
+                + s01_last.cancellation_cumulative_incidence,
+            1.0,
+        );
         close(s01.risk_steps.last().unwrap().event_free_survival, 1.0 / 6.0);
         close(s01.risk_steps.last().unwrap().berth_cumulative_incidence, 0.5);
         close(s01.risk_steps.last().unwrap().diversion_cumulative_incidence, 1.0 / 6.0);
