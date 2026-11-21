@@ -392,6 +392,20 @@ mod tests {
     }
 
     #[test]
+    fn chain_receipt_preserves_the_random_seed() {
+        let seed = 0xA11CE_u64;
+        let chain = run_horseshoe_hmc_chain(
+            &small_model(),
+            &[0.1],
+            &[0.0],
+            -1.0,
+            GlobalScalePrior::HalfNormal { scale: 0.5 },
+            config(seed),
+        ).expect("chain");
+        assert_eq!(chain.seed, seed);
+    }
+
+    #[test]
     fn chain_records_requested_draws_and_valid_acceptance_rate() {
         let chain = run_horseshoe_hmc_chain(
             &small_model(),
@@ -450,6 +464,7 @@ mod tests {
                 log_local_scales: vec![0.0],
                 log_global_scale: -1.0,
                 log_posterior: -1.0,
+                hamiltonian_energy: 2.0,
             }).collect(),
             transitions: 8,
             accepted_transitions: 8,
