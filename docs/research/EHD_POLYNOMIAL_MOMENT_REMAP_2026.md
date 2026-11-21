@@ -49,17 +49,18 @@ The polynomial coefficients are supplied explicitly. This is an integration orac
 
 ## 3. Authored test matrix
 
-Nine module tests are currently authored:
+Ten module tests are currently authored:
 
 1. P0 constant-field split conservation.
 2. P1 linear-field exact destination integrals.
 3. P2 quadratic-field exact destination integrals.
 4. Space-time P1 field integral across independent time slabs.
 5. Reject a term above the declared degree.
-6. Reject non-finite polynomial coefficients.
-7. Reject geometric gaps before polynomial transfer.
-8. Destination input-order determinism.
-9. Offline reference self-check.
+6. Reject a requested maximum degree above the P2 reference scope.
+7. Reject non-finite polynomial coefficients.
+8. Reject geometric gaps before polynomial transfer.
+9. Destination input-order determinism.
+10. Offline reference self-check.
 
 These are authored tests, not executed Rust tests.
 
