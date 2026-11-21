@@ -166,7 +166,7 @@ See [IDENTIFIABILITY_AND_DESIGN.md](../../../docs/research/cmni/IDENTIFIABILITY_
 
 - `build_grouped_energy_bias_design` implements three Gaussian widths in log10 energy (0.3, 0.15, 0.05) with 10, 50 and 100 log-spaced centres, respectively: 160 functions per feature-level group.
 - Each observation can belong to multiple feature-level groups, preserving redundant candidate explanations rather than forcing a single category.
-- The resulting matrix has 160 columns per group. This is a basis-construction interface only; no horseshoe/BMC inference is included.
+- The resulting matrix has 160 columns per group. `project_grouped_energy_bias_field` maps the flattened group coefficients to the observation-level log-bias vector consumed by the raw-scale likelihood. No horseshoe/BMC inference is included.
 - Synthetic fixture: `research/cmni/fixtures/grouped-energy-bias-basis-synthetic.json`.
 
 ## Correlated Gaussian log-ratio sparse model averaging
@@ -175,7 +175,7 @@ See [IDENTIFIABILITY_AND_DESIGN.md](../../../docs/research/cmni/IDENTIFIABILITY_
 - It exactly enumerates subsets (maximum 12 sparse columns) and analytically integrates proper Gaussian coefficient priors for each subset, then returns model probabilities, feature inclusion and mixture coefficient covariance.
 - This is a correlated-data log-Gaussian comparator, not the raw-scale AIACHNE likelihood. If transforming a raw relative covariance by the delta method, record that approximation explicitly. It does not implement BMC or the horseshoe prior.
 - Synthetic fixture: `research/cmni/fixtures/correlated-gaussian-log-bias-synthetic.json`.
-- Seven basis tests and eight correlated-Gaussian tests have been added. The total is now **153 authored Rust tests** (37 root, 12 detector, 7 measurement, 8 material-state, 14 experiment-design, 11 response-uncertainty, 11 multifidelity-design, 8 spectrum-metrics, 7 measurement-bias, 8 sparse-Poisson-bias, 7 energy-bias-basis, 8 correlated-Gaussian-bias). Tests have not been executed in this environment.
+- Ten energy-basis tests and eight correlated-Gaussian tests have been added. The raw-scale PFNS likelihood has six tests. The total is now **162 authored Rust tests** (37 root, 12 detector, 7 measurement, 8 material-state, 14 experiment-design, 11 response-uncertainty, 11 multifidelity-design, 8 spectrum-metrics, 7 measurement-bias, 8 sparse-Poisson-bias, 10 energy-bias-basis, 8 correlated-Gaussian-bias, 6 raw-scale-likelihood). Tests have not been executed in this environment.
 
 
 ## Raw-scale correlated Gaussian PFNS bias likelihood
@@ -184,4 +184,4 @@ See [IDENTIFIABILITY_AND_DESIGN.md](../../../docs/research/cmni/IDENTIFIABILITY_
 - The relative covariance remains anchored to the un-biased baseline mean; it is not silently scaled by the bias term. The baseline mean should already include the declared experiment normalization.
 - This is the raw-scale observation likelihood primitive needed for a faithful PFNS bias analysis. It does not yet implement the AIACHNE horseshoe prior or Bayesian Monte Carlo sampler.
 - Synthetic fixture: `research/cmni/fixtures/raw-scale-pfns-bias-likelihood-synthetic.json`.
-- Six additional tests cover zero-bias likelihood, mean-only bias effect, full covariance, baseline covariance anchoring, positive-definiteness and invalid inputs. The total is now **159 authored Rust tests** (37 root, 12 detector, 7 measurement, 8 material-state, 14 experiment-design, 11 response-uncertainty, 11 multifidelity-design, 8 spectrum-metrics, 7 measurement-bias, 8 sparse-Poisson-bias, 7 energy-bias-basis, 8 correlated-Gaussian-bias, 6 raw-scale-likelihood). Not executed in this environment.
+- Six tests cover zero-bias likelihood, mean-only bias effect, full covariance, baseline covariance anchoring, positive-definiteness and invalid inputs. The total is now **162 authored Rust tests** (37 root, 12 detector, 7 measurement, 8 material-state, 14 experiment-design, 11 response-uncertainty, 11 multifidelity-design, 8 spectrum-metrics, 7 measurement-bias, 8 sparse-Poisson-bias, 7 energy-bias-basis, 8 correlated-Gaussian-bias, 6 raw-scale-likelihood). Not executed in this environment.
