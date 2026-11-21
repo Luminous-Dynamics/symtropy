@@ -367,6 +367,118 @@ fn dot(left: &[f64], right: &[f64]) -> f64 {
 mod tests {
     use super::*;
 
+    #[test]
+    fn grouped_target_matches_single_global_scale_target_for_one_group() {
+        let (observed, baseline, design, coefficients, log_local, covariance) = base_args();
+        let log_global = 0.37_f64.ln();
+        for prior in [
+            GlobalScalePrior::HalfNormal { scale: 1.0 },
+            GlobalScalePrior::HalfCauchy { scale: 1.0 },
+        ] {
+            let single = raw_scale_horseshoe_log_posterior(
+                &observed,
+                &baseline,
+                &design,
+                &coefficients,
+                &log_local,
+                log_global,
+                &covariance,
+                prior,
+            )
+            .expect("single-scale target");
+            let grouped = grouped_raw_scale_horseshoe_log_posterior(
+                GroupedHorseshoePosteriorInput {
+                    observed: &observed,
+                    baseline_mean: &baseline,
+                    design_matrix: &design,
+                    coefficients: &coefficients,
+                    log_local_scales: &log_local,
+                    log_global_scales: &[log_global],
+                    global_scale_index_by_coefficient: &vec![0; coefficients.len()],
+                    relative_covariance: &covariance,
+                    fixed_coefficient_scale: 1.0,
+                    global_scale_prior: prior,
+                },
+            )
+            .expect("grouped single-group target");
+            assert!((single.log_likelihood - grouped.log_likelihood).abs() < 1.0e-12);
+            assert!((single.log_prior - grouped.log_prior).abs() < 1.0e-10);
+            assert_eq!(single.biased_prediction, grouped.biased_prediction);
+            for (left, right) in single
+                .coefficient_gradient
+                .iter()
+                .zip(grouped.coefficient_gradient.iter())
+            {
+                assert!((left - right).abs() < 1.0e-10);
+            }
+            for (left, right) in single
+                .log_local_scale_gradient
+                .iter()
+                .zip(grouped.log_local_scale_gradient.iter())
+            {
+                assert!((left - right).abs() < 1.0e-10);
+            }
+            assert!((single.log_global_scale_gradient - grouped.log_global_scale_gradients[0]).abs() < 1.0e-10);
+        }
+    }
+
+    #[test]
+    fn grouped_three_scale_gradients_match_finite_differences() {
+        let observed = [12.0, 18.0];
+        let baseline = [10.0, 20.0];
+        let design = vec![vec![1.0, 0.3, -0.2], vec![0.2, -0.5, 0.4]];
+        let coefficients = [0.001, -0.002, 0.003];
+        let log_local = [0.8_f64.ln(), 1.1_f64.ln(), 0.9_f64.ln()];
+        let log_global = [0.6_f64.ln(), 1.0_f64.ln(), 0.8_f64.ln()];
+        let groups = [0, 1, 2];
+        let covariance = vec![vec![0.04, 0.005], vec![0.005, 0.09]];
+        let prior = GlobalScalePrior::HalfNormal { scale: 1.0 };
+        let evaluate = |beta: &[f64], local: &[f64], global: &[f64]| {
+            grouped_raw_scale_horseshoe_log_posterior(GroupedHorseshoePosteriorInput {
+                observed: &observed,
+                baseline_mean: &baseline,
+                design_matrix: &design,
+                coefficients: beta,
+                log_local_scales: local,
+                log_global_scales: global,
+                global_scale_index_by_coefficient: &groups,
+                relative_covariance: &covariance,
+                fixed_coefficient_scale: 1.0e-2,
+                global_scale_prior: prior,
+            })
+            .expect("grouped target")
+        };
+        let base = evaluate(&coefficients, &log_local, &log_global);
+        let epsilon = 1.0e-6;
+
+        let mut beta_plus = coefficients;
+        beta_plus[1] += epsilon;
+        let mut beta_minus = coefficients;
+        beta_minus[1] -= epsilon;
+        let beta_fd = (evaluate(&beta_plus, &log_local, &log_global).log_posterior
+            - evaluate(&beta_minus, &log_local, &log_global).log_posterior)
+            / (2.0 * epsilon);
+        assert!((beta_fd - base.coefficient_gradient[1]).abs() < 1.0e-4);
+
+        let mut local_plus = log_local;
+        local_plus[0] += epsilon;
+        let mut local_minus = log_local;
+        local_minus[0] -= epsilon;
+        let local_fd = (evaluate(&coefficients, &local_plus, &log_global).log_posterior
+            - evaluate(&coefficients, &local_minus, &log_global).log_posterior)
+            / (2.0 * epsilon);
+        assert!((local_fd - base.log_local_scale_gradient[0]).abs() < 1.0e-4);
+
+        let mut global_plus = log_global;
+        global_plus[2] += epsilon;
+        let mut global_minus = log_global;
+        global_minus[2] -= epsilon;
+        let global_fd = (evaluate(&coefficients, &log_local, &global_plus).log_posterior
+            - evaluate(&coefficients, &log_local, &global_minus).log_posterior)
+            / (2.0 * epsilon);
+        assert!((global_fd - base.log_global_scale_gradients[2]).abs() < 1.0e-4);
+    }
+
     fn base_args() -> BaseArgs {
         (
             vec![11.0, 19.0],
