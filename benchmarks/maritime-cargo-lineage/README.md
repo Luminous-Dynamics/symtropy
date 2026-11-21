@@ -36,6 +36,10 @@ cargo clippy --offline --locked --all-targets -- -D warnings
 - A delivery count requires a resolved CONTAINER_BOX identity, a DELIVERED_TO_RECEIVER milestone and RECEIVER_RECEIPT evidence.
 - Multiple source aliases and receipt rows for one canonical box contribute one unique delivered box.
 
+## Timestamp convention
+
+Fixture event and publication times are integer ticks with no asserted seconds, UTC, local-time or clock-synchronization interpretation. A real source adapter must preserve the provider's time basis, timezone/offset, clock source and timestamp precision before cross-source event ordering is attempted.
+
 ## What it deliberately does not establish
 
 This v0.1 is a crosswalk and counting contract—not a complete cargo-custody chain verifier. It does not infer that a box physically moved through every intermediate handoff, authenticate issuers, validate source rights, resolve booking/consignment relationships, verify seals, establish a DGT visit-to-container crosswalk, or estimate real port performance.
