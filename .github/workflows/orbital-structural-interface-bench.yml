@@ -33,16 +33,16 @@ jobs:
       - name: Format
         run: cargo fmt --manifest-path tools/orbital-structural-interface-bench/Cargo.toml --check
       - name: Rust tests and adversarial corpus
-        run: cargo test --manifest-path tools/orbital-structural-interface-bench/Cargo.toml
+        run: cargo test --locked --manifest-path tools/orbital-structural-interface-bench/Cargo.toml
       - name: Strict Clippy
-        run: cargo clippy --manifest-path tools/orbital-structural-interface-bench/Cargo.toml --all-targets -- -D warnings
+        run: cargo clippy --locked --manifest-path tools/orbital-structural-interface-bench/Cargo.toml --all-targets -- -D warnings
       - name: Deterministic CLI and exact fixture binding
         shell: bash
         run: |
-          cargo run --quiet --manifest-path tools/orbital-structural-interface-bench/Cargo.toml -- \
+          cargo run --quiet --locked --manifest-path tools/orbital-structural-interface-bench/Cargo.toml -- \
             tools/orbital-structural-interface-bench/fixtures/v0.1/cases.json \
             --source-commit "$GITHUB_SHA" > /tmp/structural-interface-a.json
-          cargo run --quiet --manifest-path tools/orbital-structural-interface-bench/Cargo.toml -- \
+          cargo run --quiet --locked --manifest-path tools/orbital-structural-interface-bench/Cargo.toml -- \
             tools/orbital-structural-interface-bench/fixtures/v0.1/cases.json \
             --source-commit "$GITHUB_SHA" > /tmp/structural-interface-b.json
           cmp /tmp/structural-interface-a.json /tmp/structural-interface-b.json
