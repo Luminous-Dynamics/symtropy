@@ -239,7 +239,8 @@ pub fn reference_self_check() -> Result<(), IdentifiabilityError> {
         &repeated_design, &repeated_observations, &unit_variances, [1.0, 1.0], 1.0e-12,
     )?;
     if repeated.information_matrix != [[3.0, 3.0], [3.0, 3.0]]
-        || repeated.eigenvalues != [6.0, 0.0]
+        || (repeated.eigenvalues[0] - 6.0).abs() > 1.0e-12
+        || repeated.eigenvalues[1].abs() > 1.0e-12
         || repeated.numerical_rank != 1
         || repeated.disposition != IdentificationDisposition::NotIdentifiable
         || repeated.parameter_estimate.is_some()
