@@ -57,3 +57,28 @@ Report expected information gain (bits), gross EVSI, net EVSI, expected objectiv
 ## Claim ceiling
 
 The finite synthetic evaluator does not prove production active sensing, real-world SOTA, physical sensor value, or end-to-end latency/energy improvements. The initial branch qualifies outcome likelihoods, finite-plan arithmetic, action timing and permission/budget gates only.
+
+## Finite known-answer counterexamples
+
+The fixture likelihoods and losses yield the following mathematical controls:
+
+| Scenario | Candidate action plan | Expected result |
+|---|---|---|
+| EIG trap | subtype-detail vs hazard-cue | subtype-detail gives 1.000 bit EIG but 0 EVSI; hazard-cue gives about 0.492 bits EIG, 0.750 gross EVSI, 0.100 acquisition cost and 0.650 net EVSI |
+| Complementarity | read-x + read-y | each singleton gives 1.000 bit EIG but 0 EVSI; together they give 2.000 bits EIG, 0.500 gross EVSI, 0.200 cost and 0.300 net EVSI |
+| Deadline inversion | quick audio cue vs high-resolution video | the 5-tick high-resolution action cannot meet a 3-tick deadline; the 1-tick quick cue is feasible and decision-valued |
+| Permission fallback | audio triage vs sensitive camera review | the camera action is excluded because its permission is not granted; the authorized audio action is sufficient for the finite decision |
+
+The numbers are derived from the authored priors, likelihoods, loss matrices and synthetic cost units. They validate that the benchmark can distinguish EIG from EVSI, singleton from joint value, late from usable sensing, and information value from permission. They are not measurements of any learned model or real sensor.
+
+## v0 to v1 research boundary
+
+The candidate trace is serial and non-branching in v0. It cannot decide to acquire a second sensor based on the first outcome. The exact oracle therefore enumerates all feasible non-adaptive action subsets rather than claiming a full partially observable control-policy optimum.
+
+A genuine sequential policy tournament should add a finite policy tree:
+- each observation outcome selects a branch;
+- branches can acquire another sensor, stop or choose a decision;
+- all paths obey per-path permissions, cumulative resource budgets and deadlines;
+- the exact dynamic-programming oracle optimizes over the same finite tree.
+
+Keep the v0 non-adaptive oracle as a reproducible baseline. Do not call it a branching adaptive-sensing result.
