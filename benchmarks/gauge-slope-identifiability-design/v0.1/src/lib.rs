@@ -67,7 +67,10 @@ impl Display for IdentifiabilityError {
                 write!(formatter, "at least two candidate experiments are required")
             }
             Self::InvalidFrictionCoefficient => {
-                write!(formatter, "friction coefficient must be finite and non-negative")
+                write!(
+                    formatter,
+                    "friction coefficient must be finite and non-negative"
+                )
             }
             Self::InvalidAngleBias => write!(formatter, "angle bias must be finite"),
             Self::InvalidGravity => write!(formatter, "gravity must be finite and positive"),
@@ -75,13 +78,22 @@ impl Display for IdentifiabilityError {
                 write!(formatter, "parameter scales must be finite and positive")
             }
             Self::InvalidInclineAngle => {
-                write!(formatter, "incline plus angle bias must lie strictly inside (-pi/2, pi/2)")
+                write!(
+                    formatter,
+                    "incline plus angle bias must lie strictly inside (-pi/2, pi/2)"
+                )
             }
             Self::InvalidAccelerationUncertainty => {
-                write!(formatter, "acceleration uncertainty must be finite and positive")
+                write!(
+                    formatter,
+                    "acceleration uncertainty must be finite and positive"
+                )
             }
             Self::NoFullRankCandidatePair => {
-                write!(formatter, "no candidate pair produces full-rank local information")
+                write!(
+                    formatter,
+                    "no candidate pair produces full-rank local information"
+                )
             }
             Self::InvalidRankTolerance => {
                 write!(formatter, "rank tolerance must be finite and positive")
@@ -147,8 +159,7 @@ pub fn predict_downslope_acceleration(
     validate_excitation(model, excitation)?;
 
     let phi = excitation.incline_angle_rad + model.angle_bias_rad;
-    let acceleration = model.gravity_m_s2
-        * (phi.sin() - model.friction_coefficient * phi.cos());
+    let acceleration = model.gravity_m_s2 * (phi.sin() - model.friction_coefficient * phi.cos());
     if acceleration.is_finite() {
         Ok(acceleration)
     } else {
@@ -171,8 +182,8 @@ pub fn scaled_sensitivity(
 
     let phi = excitation.incline_angle_rad + model.angle_bias_rad;
     let derivative_friction = -model.gravity_m_s2 * phi.cos();
-    let derivative_angle = model.gravity_m_s2
-        * (phi.cos() + model.friction_coefficient * phi.sin());
+    let derivative_angle =
+        model.gravity_m_s2 * (phi.cos() + model.friction_coefficient * phi.sin());
     let row = [
         derivative_friction * model.parameter_scales.friction_coefficient,
         derivative_angle * model.parameter_scales.angle_bias_rad,
@@ -370,8 +381,7 @@ fn validate_excitation(
     {
         return Err(IdentifiabilityError::InvalidInclineAngle);
     }
-    if !excitation.acceleration_sigma_m_s2.is_finite()
-        || excitation.acceleration_sigma_m_s2 <= 0.0
+    if !excitation.acceleration_sigma_m_s2.is_finite() || excitation.acceleration_sigma_m_s2 <= 0.0
     {
         return Err(IdentifiabilityError::InvalidAccelerationUncertainty);
     }
@@ -407,8 +417,7 @@ mod tests {
 
     #[test]
     fn known_answer_sensitivity_at_thirty_degrees() {
-        let row = scaled_sensitivity(model(), excitation(30.0, 0.05))
-            .expect("valid sensitivity");
+        let row = scaled_sensitivity(model(), excitation(30.0, 0.05)).expect("valid sensitivity");
         close(row[0], -8.39591667, 1.0e-7);
         close(row[1], 9.66439714, 1.0e-7);
     }
@@ -425,11 +434,9 @@ mod tests {
 
     #[test]
     fn two_well_separated_inclinations_produce_full_local_rank() {
-        let information = fisher_information(
-            model(),
-            &[excitation(5.0, 0.05), excitation(75.0, 0.05)],
-        )
-        .expect("valid diverse design");
+        let information =
+            fisher_information(model(), &[excitation(5.0, 0.05), excitation(75.0, 0.05)])
+                .expect("valid diverse design");
         assert_eq!(information.effective_rank, 2);
         assert!(information.minimum_eigenvalue > 0.0);
         assert!(information.condition_number.unwrap() < 20.0);
@@ -438,11 +445,9 @@ mod tests {
 
     #[test]
     fn nearly_identical_inclinations_are_full_rank_but_ill_conditioned() {
-        let information = fisher_information(
-            model(),
-            &[excitation(30.0, 0.05), excitation(30.001, 0.05)],
-        )
-        .expect("valid near-duplicate design");
+        let information =
+            fisher_information(model(), &[excitation(30.0, 0.05), excitation(30.001, 0.05)])
+                .expect("valid near-duplicate design");
         // The conservative default tolerance reports this as rank-deficient.
         // A declared tighter tolerance reveals the finite, very poor
         // singular-value condition number without silently upgrading it.
@@ -473,12 +478,9 @@ mod tests {
         let selected_score = selected.information.log_determinant.unwrap();
         for first in 0..candidates.len() {
             for second in (first + 1)..candidates.len() {
-                let score = fisher_information(
-                    model(),
-                    &[candidates[first], candidates[second]],
-                )
-                .expect("candidate pair valid")
-                .log_determinant;
+                let score = fisher_information(model(), &[candidates[first], candidates[second]])
+                    .expect("candidate pair valid")
+                    .log_determinant;
                 if let Some(score) = score {
                     assert!(selected_score + 1.0e-12 >= score);
                 }
@@ -518,8 +520,16 @@ mod tests {
         let second = excitation(75.0, 0.05);
         let a = fisher_information(model(), &[first, second]).expect("valid design");
         let b = fisher_information(model(), &[second, first]).expect("valid design");
-        close(a.fisher.friction_friction, b.fisher.friction_friction, 1.0e-10);
-        close(a.fisher.friction_angle_bias, b.fisher.friction_angle_bias, 1.0e-10);
+        close(
+            a.fisher.friction_friction,
+            b.fisher.friction_friction,
+            1.0e-10,
+        );
+        close(
+            a.fisher.friction_angle_bias,
+            b.fisher.friction_angle_bias,
+            1.0e-10,
+        );
         close(
             a.fisher.angle_bias_angle_bias,
             b.fisher.angle_bias_angle_bias,
@@ -539,11 +549,8 @@ mod tests {
             .expect("valid scaled design");
         let mut unscaled = scaled;
         unscaled.parameter_scales = ParameterScales::UNIT;
-        let raw = fisher_information(
-            unscaled,
-            &[excitation(5.0, 0.05), excitation(75.0, 0.05)],
-        )
-        .expect("valid unscaled design");
+        let raw = fisher_information(unscaled, &[excitation(5.0, 0.05), excitation(75.0, 0.05)])
+            .expect("valid unscaled design");
         close(
             unit.fisher.friction_friction,
             raw.fisher.friction_friction * 0.01,
@@ -600,10 +607,7 @@ mod tests {
             Err(IdentifiabilityError::FewerThanTwoCandidates)
         );
         assert_eq!(
-            select_d_optimal_pair(
-                model(),
-                &[excitation(30.0, 0.05), excitation(30.0, 0.05)],
-            ),
+            select_d_optimal_pair(model(), &[excitation(30.0, 0.05), excitation(30.0, 0.05)]),
             Err(IdentifiabilityError::NoFullRankCandidatePair)
         );
     }
