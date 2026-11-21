@@ -115,7 +115,7 @@ pub struct ReferenceOverlapGeometry {
     pub included_trapezoid_intervals: usize,
 }
 
-pub fn aiache_compatible_overlap_geometry(
+pub fn aiachne_compatible_overlap_geometry(
     reference_energies: &[f64],
     observation_energies: &[f64],
 ) -> Result<ReferenceOverlapGeometry, ModelError> {
@@ -650,7 +650,7 @@ mod tests {
 
     #[test]
     fn aiachne_overlap_geometry_skips_only_lower_out_of_domain_left_intervals() {
-        let geometry = aiache_compatible_overlap_geometry(
+        let geometry = aiachne_compatible_overlap_geometry(
             &[0.5, 1.0, 2.0, 4.0],
             &[0.25, 1.0, 2.0, 3.0],
         )
@@ -667,7 +667,7 @@ mod tests {
     #[test]
     fn aiachne_overlap_geometry_fails_closed_on_upper_nan_trapezoid_endpoint() {
         assert_eq!(
-            aiache_compatible_overlap_geometry(
+            aiachne_compatible_overlap_geometry(
                 &[0.5, 1.0, 2.0],
                 &[1.0, 2.0, 3.0],
             ),
