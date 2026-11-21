@@ -503,13 +503,14 @@ mod tests {
     }
 
     #[test]
-    fn mcse_is_infinite_when_bulk_ess_is_zero() {
+    fn raw_mean_mcse_is_infinite_when_raw_mean_ess_is_zero() {
         let chains = (0..4).map(|chain_index| {
             let values = vec![chain_index as f64; 8];
             let energies: Vec<f64> = (0..8).map(|index| index as f64).collect();
             synthetic_chain(&values, &energies)
         }).collect::<Vec<_>>();
         let summary = diagnose_horseshoe_coefficient(&chains, 0).expect("diagnostics");
-        assert!(summary.mcse_mean.is_finite() || summary.mcse_mean.is_infinite());
+        assert_eq!(summary.mean_ess, 0.0);
+        assert!(summary.mcse_mean.is_infinite());
     }
 }
