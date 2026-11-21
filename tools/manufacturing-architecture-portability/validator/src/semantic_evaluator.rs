@@ -102,8 +102,12 @@ mod tests {
 
     const CANDIDATE: &str =
         include_str!("../tests/fixtures/mtconnect-observation.candidate.json");
+    const PROJECTION_SCHEMA: &str = include_str!("../../portable-observation.schema.json");
 
     const FIELDS: &[&str] = &[
+        "projection_schema_version",
+        "adapter_profile_id",
+        "source_schema_version",
         "source_document_id",
         "source_document_sha256",
         "schema_identifier",
@@ -131,6 +135,9 @@ mod tests {
     /// candidate fixture. This is a finite synthetic known-answer case only.
     fn oracle() -> Value {
         json!({
+            "projection_schema_version": "0.1.0",
+            "adapter_profile_id": "urn:luminous:symtropy:mfg-arch:uns-mqtt-synthetic-v0.1",
+            "source_schema_version": "2.8",
             "source_document_id": "MT-DOC-0001",
             "source_document_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             "schema_identifier": "https://schemas.mtconnect.org/schemas/MTConnectStreams_2.8.schema.json",
@@ -154,6 +161,36 @@ mod tests {
                 "source_locator": "/Document/Extensions/VendorTrace[1]"
             }]
         })
+    }
+
+    #[test]
+    fn candidate_projection_validates_against_strict_schema() {
+        let schema: Value =
+            serde_json::from_str(PROJECTION_SCHEMA).expect("projection schema JSON must parse");
+        jsonschema::draft202012::meta::validate(&schema)
+            .expect("projection schema must be valid Draft 2020-12");
+        let validator = jsonschema::draft202012::options()
+            .should_validate_formats(true)
+            .build(&schema)
+            .expect("projection validator must build");
+        assert!(validator.is_valid(&candidate()));
+    }
+
+    #[test]
+    fn projection_schema_rejects_negative_sequence_and_unknown_root_fields() {
+        let schema: Value =
+            serde_json::from_str(PROJECTION_SCHEMA).expect("projection schema JSON must parse");
+        let validator = jsonschema::draft202012::options()
+            .should_validate_formats(true)
+            .build(&schema)
+            .expect("projection validator must build");
+        let mut bad_sequence = candidate();
+        bad_sequence["sequence"] = json!(-1);
+        assert!(!validator.is_valid(&bad_sequence));
+
+        let mut unknown = candidate();
+        unknown["unmapped_raw_value"] = json!("must not be discarded");
+        assert!(!validator.is_valid(&unknown));
     }
 
     #[test]
