@@ -44,6 +44,12 @@ pub enum PoseScoreError {
     InvalidBlockIdentity,
     InvalidTrialSourceIdentity,
     MixedBlockIdentity,
+    EmptyCalibrationBlockSet,
+    DuplicateExchangeabilityUnit,
+    CalibrationBlockCountMismatch,
+    CalibrationEpisodeCountMismatch,
+    CalibrationBlockReceiptMismatch,
+    InvalidSourceManifestDigest,
 }
 
 impl Display for PoseScoreError {
@@ -93,6 +99,12 @@ impl Display for PoseScoreError {
             Self::MixedBlockIdentity => {
                 "trial score identities do not match the declared calibration block identity"
             }
+            Self::EmptyCalibrationBlockSet => "at least one calibrated exchangeability block is required",
+            Self::DuplicateExchangeabilityUnit => "calibration block exchangeability-unit identifiers must be unique",
+            Self::CalibrationBlockCountMismatch => "conformal receipt independent-unit count does not match supplied block receipts",
+            Self::CalibrationEpisodeCountMismatch => "conformal receipt episode count does not match supplied block receipts",
+            Self::CalibrationBlockReceiptMismatch => "calibration block contents do not match their source-bound score receipts",
+            Self::InvalidSourceManifestDigest => "source or prediction manifest must be a 64-character hexadecimal SHA-256 value",
         };
         formatter.write_str(message)
     }
@@ -454,6 +466,128 @@ pub fn build_calibration_block(
     })
 }
 
+/// A GAUGE-specific wrapper around the sole conformal receipt.
+///
+/// #4147 intentionally remains task-agnostic and therefore does not include
+/// dataset revision or raw-source manifest identity. This wrapper restores
+/// those physical-data boundaries without changing the generic conformal core.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PoseCalibrationReceipt {
+    pub conformal: CalibrationReceipt,
+    pub dataset_revision: String,
+    pub source_manifest_sha256: String,
+    pub prediction_manifest_sha256: String,
+}
+
+/// Validate that an existing #4147 calibration receipt was computed from the
+/// supplied source-bound GAUGE blocks, then retain exact dataset and manifest
+/// identities alongside it.
+///
+/// The manifest digests are caller-computed over frozen, deterministically
+/// ordered manifests. This function checks their shape, not their cryptographic
+/// construction or the scientific validity of the manifest contents.
+pub fn bind_pose_calibration_receipt(
+    conformal: CalibrationReceipt,
+    blocks: &[CalibrationBlockReceipt],
+    source_manifest_sha256: &str,
+    prediction_manifest_sha256: &str,
+) -> Result<PoseCalibrationReceipt, PoseScoreError> {
+    if blocks.is_empty() {
+        return Err(PoseScoreError::EmptyCalibrationBlockSet);
+    }
+    if !is_sha256(source_manifest_sha256) || !is_sha256(prediction_manifest_sha256) {
+        return Err(PoseScoreError::InvalidSourceManifestDigest);
+    }
+
+    let first_identity = &blocks[0].identity;
+    let mut exchangeability_units = BTreeSet::new();
+    let mut trial_ids = BTreeSet::new();
+    let mut episode_count = 0usize;
+
+    for block_receipt in blocks {
+        let identity = &block_receipt.identity;
+        if identity != first_identity {
+            return Err(PoseScoreError::MixedBlockIdentity);
+        }
+        if !exchangeability_units.insert(block_receipt.calibration_block.exchangeability_unit_id.as_str()) {
+            return Err(PoseScoreError::DuplicateExchangeabilityUnit);
+        }
+
+        let block = &block_receipt.calibration_block;
+        if block.model_digest != identity.model_digest
+            || block.target_digest != identity.target_digest
+            || block.domain_digest != identity.domain_digest
+            || block.score_definition_digest != identity.score_definition_digest
+            || block.calibration_split_digest != identity.calibration_split_digest
+            || block.episodes.len() != block_receipt.trial_score_records.len()
+        {
+            return Err(PoseScoreError::CalibrationBlockReceiptMismatch);
+        }
+
+        let mut maximum_score = 0u64;
+        for (episode, trial) in block.episodes.iter().zip(block_receipt.trial_score_records.iter()) {
+            if episode.episode_id != trial.trial_id
+                || episode.outcome != trial.outcome
+                || trial.identity.dataset_revision != identity.dataset_revision
+                || trial.identity.model_digest != identity.model_digest
+                || trial.identity.target_digest != identity.target_digest
+                || trial.identity.domain_digest != identity.domain_digest
+                || trial.score_definition_digest != identity.score_definition_digest
+                || !trial_ids.insert(trial.trial_id.as_str())
+            {
+                return Err(PoseScoreError::CalibrationBlockReceiptMismatch);
+            }
+            maximum_score = maximum_score.max(trial.maximum_nonconformity_score);
+            episode_count = episode_count
+                .checked_add(1)
+                .ok_or(PoseScoreError::ScoreOverflow)?;
+        }
+        if maximum_score != block.maximum_nonconformity_score {
+            return Err(PoseScoreError::CalibrationBlockReceiptMismatch);
+        }
+    }
+
+    if conformal.independent_unit_count != blocks.len() {
+        return Err(PoseScoreError::CalibrationBlockCountMismatch);
+    }
+    if conformal.episode_count != episode_count {
+        return Err(PoseScoreError::CalibrationEpisodeCountMismatch);
+    }
+    if conformal.model_digest != first_identity.model_digest
+        || conformal.target_digest != first_identity.target_digest
+        || conformal.domain_digest != first_identity.domain_digest
+        || conformal.score_definition_digest != first_identity.score_definition_digest
+        || conformal.calibration_split_digest != first_identity.calibration_split_digest
+    {
+        return Err(PoseScoreError::CalibrationBlockReceiptMismatch);
+    }
+
+    Ok(PoseCalibrationReceipt {
+        conformal,
+        dataset_revision: first_identity.dataset_revision.clone(),
+        source_manifest_sha256: source_manifest_sha256.to_owned(),
+        prediction_manifest_sha256: prediction_manifest_sha256.to_owned(),
+    })
+}
+
+/// Immutable application identity for a GAUGE pose calibration receipt.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PoseSetApplicationIdentity<'a> {
+    pub dataset_revision: &'a str,
+    pub source_manifest_sha256: &'a str,
+    pub conformal: ApplicationIdentity<'a>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PoseSetApplicationMismatch {
+    DatasetRevision,
+    SourceManifestDigest,
+    ModelDigest,
+    TargetDigest,
+    DomainDigest,
+    ScoreDefinitionDigest,
+}
+
 /// A prediction-set threshold for the GAUGE pose-score quantization.
 ///
 /// A #4147 receipt whose numeric threshold reaches the reserved incomplete
@@ -468,17 +602,33 @@ pub enum PoseSetThreshold {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PoseSetApplicationDecision {
     Applicable { threshold: PoseSetThreshold },
-    NotApplicable { reason: ApplicationMismatch },
+    NotApplicable { reason: PoseSetApplicationMismatch },
 }
 
-/// Check exact #4147 application identity, then map the finite-sample
-/// unbounded result and the incomplete-horizon sentinel into set semantics.
+/// Check both GAUGE source identity and exact #4147 application identity, then
+/// map finite-sample unbounded results and the incomplete sentinel into set semantics.
 pub fn check_pose_set_application(
-    receipt: &CalibrationReceipt,
-    identity: ApplicationIdentity<'_>,
+    receipt: &PoseCalibrationReceipt,
+    identity: PoseSetApplicationIdentity<'_>,
 ) -> PoseSetApplicationDecision {
-    match check_application(receipt, identity) {
+    if receipt.dataset_revision != identity.dataset_revision {
+        return PoseSetApplicationDecision::NotApplicable {
+            reason: PoseSetApplicationMismatch::DatasetRevision,
+        };
+    }
+    if receipt.source_manifest_sha256 != identity.source_manifest_sha256 {
+        return PoseSetApplicationDecision::NotApplicable {
+            reason: PoseSetApplicationMismatch::SourceManifestDigest,
+        };
+    }
+    match check_application(&receipt.conformal, identity.conformal) {
         ApplicationDecision::NotApplicable { reason } => {
+            let reason = match reason {
+                ApplicationMismatch::ModelDigest => PoseSetApplicationMismatch::ModelDigest,
+                ApplicationMismatch::TargetDigest => PoseSetApplicationMismatch::TargetDigest,
+                ApplicationMismatch::DomainDigest => PoseSetApplicationMismatch::DomainDigest,
+                ApplicationMismatch::ScoreDefinitionDigest => PoseSetApplicationMismatch::ScoreDefinitionDigest,
+            };
             PoseSetApplicationDecision::NotApplicable { reason }
         }
         ApplicationDecision::Applicable {
