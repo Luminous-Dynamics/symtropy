@@ -107,3 +107,15 @@ The `inspection-join.schema.json` and `inspection_evaluator` define a strict, sy
 The evaluator reconstructs the combined clock uncertainty as the sum of the declared absolute cycle and QIF uncertainty bounds. This is a deliberately conservative rule when correlation is not characterized; it does not assume independence or use root-sum-square. The submitted combined value must match the reconstruction and remain under the declared maximum.
 
 The evaluator still does not authenticate the association issuer, validate the source clocks, qualify metrology, determine conformity or authorize release. All current join values are synthetic.
+
+### Executable inspection-join validator
+
+From `tools/manufacturing-architecture-portability/validator`:
+
+```sh
+cargo run --locked --bin validate-inspection-join -- \
+  ../inspection-join.schema.json \
+  tests/fixtures/qif-cycle-join.candidate.json
+```
+
+The command validates the candidate against the strict Draft 2020-12 schema, independently checks exact cycle/QIF/association identity and timing relationships, recomputes the conservative clock-uncertainty sum and emits a machine-readable JSON disposition. A schema or semantic failure exits non-zero. It is read-only and has no live endpoint or mutation capability.
