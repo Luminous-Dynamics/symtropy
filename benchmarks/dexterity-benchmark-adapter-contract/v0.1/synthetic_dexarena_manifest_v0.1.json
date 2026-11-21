@@ -1,0 +1,119 @@
+{
+  "schema_version": "0.1.0",
+  "evidence_kind": "synthetic_fixture",
+  "benchmark": {
+    "benchmark_id": "DexArena",
+    "source_url": "https://github.com/SIPAIR-Elastic/DexArena",
+    "code_commit": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+    "leaderboard_snapshot_url": "https://sipair-elastic.github.io/DexArena-website/leaderboard/protocol/",
+    "leaderboard_snapshot_date": "2026-11-21",
+    "data_revision": null,
+    "data_manifest_digest": null,
+    "task_contract_digest": "b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1",
+    "data_access_status": "public_metadata_only",
+    "licence_review_status": "code_only_reviewed"
+  },
+  "protocol": {
+    "evaluation_track": "long_horizon",
+    "reset_mode": "one_reset_sequence",
+    "episode_budget_per_unit": 50,
+    "policy_frozen": true,
+    "task_ids": [
+      "juice-preparation"
+    ],
+    "channels": [
+      "simulation"
+    ],
+    "scene_ids": [
+      "native-kitchen-1"
+    ],
+    "end_effector_ids": [
+      "sharpa"
+    ],
+    "embodiment_ids": [
+      "franka"
+    ],
+    "aggregation_specification": "Synthetic fixture only; one initial reset, no inter-stage resets, final sequence completion counted once"
+  },
+  "run": {
+    "run_id": "dexarena-synthetic-long-001",
+    "status": "metadata_only",
+    "actual_episode_count": 1,
+    "environment_revision": "synthetic-env",
+    "controller_config_digest": "c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
+    "asset_manifest_digest": "d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1",
+    "observation_preprocessing_digest": "e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1",
+    "seed_manifest_digest": "f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1",
+    "execution_budget_seconds": null,
+    "protocol_deviations": [
+      "synthetic fixture, not comparable to 50-episode paper protocol"
+    ],
+    "all_failures_retained": true
+  },
+  "policies": [
+    {
+      "policy_id": "synthetic-policy",
+      "checkpoint_digest": "1212121212121212121212121212121212121212121212121212121212121212",
+      "training_data_scope": "synthetic-only",
+      "fine_tuned_on_target_benchmark": false,
+      "observation_contract_digest": "1313131313131313131313131313131313131313131313131313131313131313"
+    }
+  ],
+  "coverage": {
+    "expected_task_count": 1,
+    "evaluated_task_count": 1,
+    "expected_episode_count": 1,
+    "completed_episode_count": 1,
+    "failed_episode_count": 0,
+    "unattempted_stage_count": 2,
+    "omitted_task_ids": [],
+    "exclusion_reasons": []
+  },
+  "native_metrics": [
+    {
+      "metric_name": "long_horizon_success",
+      "value": 0,
+      "unit": "fraction",
+      "numerator": 0,
+      "denominator": 1,
+      "aggregation": "final sequence completion, synthetic fixture",
+      "scope": {
+        "task_ids": [
+          "juice-preparation"
+        ],
+        "channel": "simulation",
+        "embodiment": "franka",
+        "end_effector": "sharpa"
+      },
+      "variation_value": null,
+      "variation_kind": "none",
+      "variation_confidence_level": null
+    }
+  ],
+  "outcomes": [
+    {
+      "task_id": "juice-preparation",
+      "episode_id": "dex-episode-001",
+      "policy_id": "synthetic-policy",
+      "channel": "simulation",
+      "stage_id": null,
+      "evaluation_mode": "one_reset_sequence",
+      "outcome_status": "failure",
+      "native_success": false,
+      "native_stage_completed": null,
+      "stage_index": null,
+      "inter_stage_reset_count": 0,
+      "attempts": 1,
+      "retries": 0,
+      "steps_to_completion": null,
+      "expert_steps_reference": null,
+      "predecessor_skill_id": null,
+      "predecessor_transition_id": null,
+      "predecessor_terminal_state_digest": null,
+      "start_state_digest": "1414141414141414141414141414141414141414141414141414141414141414",
+      "end_state_digest": "1515151515151515151515151515151515151515151515151515151515151515",
+      "failure_category": "synthetic-control",
+      "log_digest": "1616161616161616161616161616161616161616161616161616161616161616"
+    }
+  ]
+}
