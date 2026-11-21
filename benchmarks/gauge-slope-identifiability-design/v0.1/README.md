@@ -26,6 +26,8 @@ The local physical sensitivity is:
 
 A single angle produces one sensitivity direction for two unknowns. Repeating that angle adds information in the same direction but cannot raise the local Jacobian rank above one. Distinct inclinations can make the local information full rank.
 
+This v0.1 fixture specifically models **sustained downhill sliding driven by gravity alone**. It rejects inclinations at or below the model's friction angle; externally driven sliding or initial-velocity coast-down requires a different declared model and is not silently mixed into this one.
+
 ## Implemented reference
 
 - Explicit characteristic scales for friction and angle-bias coordinates.
@@ -40,7 +42,7 @@ A single angle produces one sensitivity direction for two unknowns. Repeating th
 
 The analytical fixture uses `mu=0.25`, `delta=0.02 rad`, `g=9.81 m/s^2`, and acceleration standard deviation `0.05 m/s^2`.
 
-Twelve repeated measurements at 30 degrees remain rank one. A two-trial design at 5 and 75 degrees becomes locally full rank and has a much better-conditioned information matrix. These values are deterministic analytic outputs, not GAUGE physical results.
+Twelve repeated measurements at 30 degrees remain rank one. A two-trial design at 20 and 75 degrees stays within the sustained-downhill-sliding regime and becomes locally full rank with a well-conditioned information matrix. Five degrees is rejected for this model because gravity cannot sustain downhill sliding against the declared friction. These values are deterministic analytic outputs, not GAUGE physical results.
 
 ## Important limitations
 
