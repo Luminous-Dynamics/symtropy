@@ -1,0 +1,390 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/orbital-reliability-power-law-corpus-v0.1.json",
+  "title": "Orbital repairable-item power-law process corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "evidence_class",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-reliability-power-law.corpus.v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic-power-law-parameter-estimation-only"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "population_id",
+        "lot_id",
+        "configuration_id",
+        "operating_mode_id",
+        "environment_profile_id",
+        "failure_definition_id"
+      ],
+      "properties": {
+        "population_id": {
+          "type": "string"
+        },
+        "lot_id": {
+          "type": "string"
+        },
+        "configuration_id": {
+          "type": "string"
+        },
+        "operating_mode_id": {
+          "type": "string"
+        },
+        "environment_profile_id": {
+          "type": "string"
+        },
+        "failure_definition_id": {
+          "type": "string"
+        }
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "operating_time_seconds",
+        "failure_definition_id",
+        "restoration_state",
+        "effective_at",
+        "recorded_at"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operating_time_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failure_definition_id": {
+          "type": "string"
+        },
+        "restoration_state": {
+          "enum": [
+            "minimal_repair",
+            "as_good_as_new",
+            "imperfect_repair",
+            "unknown"
+          ]
+        },
+        "effective_at": {
+          "type": "integer"
+        },
+        "recorded_at": {
+          "type": "integer"
+        }
+      }
+    },
+    "series": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "series_id",
+        "article_serial",
+        "population_id",
+        "lot_id",
+        "configuration_id",
+        "operating_mode_id",
+        "environment_profile_id",
+        "failure_definition_id",
+        "exposure_end_seconds",
+        "events",
+        "raw_artifact_sha256",
+        "evidence_complete",
+        "exposure_clock_verified",
+        "clock_error_bound_seconds",
+        "event_capture_complete",
+        "data_loss_counter_verified",
+        "maintenance_history_complete",
+        "censoring"
+      ],
+      "properties": {
+        "series_id": {
+          "type": "string"
+        },
+        "article_serial": {
+          "type": "string"
+        },
+        "population_id": {
+          "type": "string"
+        },
+        "lot_id": {
+          "type": "string"
+        },
+        "configuration_id": {
+          "type": "string"
+        },
+        "operating_mode_id": {
+          "type": "string"
+        },
+        "environment_profile_id": {
+          "type": "string"
+        },
+        "failure_definition_id": {
+          "type": "string"
+        },
+        "exposure_end_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/event"
+          }
+        },
+        "raw_artifact_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "evidence_complete": {
+          "type": "boolean"
+        },
+        "exposure_clock_verified": {
+          "type": "boolean"
+        },
+        "clock_error_bound_seconds": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "event_capture_complete": {
+          "type": "boolean"
+        },
+        "data_loss_counter_verified": {
+          "type": "boolean"
+        },
+        "maintenance_history_complete": {
+          "type": "boolean"
+        },
+        "censoring": {
+          "enum": [
+            "administrative_end",
+            "right_censored",
+            "intervention",
+            "informative_withdrawal",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "disposition",
+        "unique_events",
+        "duplicate_events",
+        "exposure_end_seconds",
+        "beta_hat",
+        "log_eta_hat",
+        "intensity_at_end_per_second",
+        "cumulative_mean_at_half_exposure",
+        "descriptive_likelihood_ratio_statistic",
+        "likelihood_ratio_nonnegative",
+        "inferential_fit_accepted",
+        "reliability_claim_granted",
+        "blockers"
+      ],
+      "properties": {
+        "disposition": {
+          "enum": [
+            "estimate_produced",
+            "indeterminate",
+            "model_not_supported",
+            "rejected",
+            "disputed"
+          ]
+        },
+        "unique_events": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "duplicate_events": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "exposure_end_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "beta_hat": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "log_eta_hat": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "intensity_at_end_per_second": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "cumulative_mean_at_half_exposure": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "descriptive_likelihood_ratio_statistic": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "likelihood_ratio_nonnegative": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "inferential_fit_accepted": {
+          "const": false
+        },
+        "reliability_claim_granted": {
+          "const": false
+        },
+        "blockers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "selected_profile",
+        "repair_policy_id",
+        "preregistration_ref",
+        "sampling_frame_ref",
+        "assumption_assessment_ref",
+        "maintenance_policy_ref",
+        "event_capture_assessment_ref",
+        "clock_calibration_ref",
+        "scope",
+        "max_clock_error_seconds",
+        "effective_cutoff",
+        "knowledge_cutoff",
+        "diagnostics_predeclared",
+        "thresholds_frozen_before_holdout",
+        "series",
+        "expected"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "selected_profile": {
+          "enum": [
+            "power_law_process_repairable_minimal_repair",
+            "homogeneous_poisson_constant_intensity",
+            "weibull_first_failure_life",
+            "unknown_or_unregistered"
+          ]
+        },
+        "repair_policy_id": {
+          "type": "string"
+        },
+        "preregistration_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sampling_frame_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "assumption_assessment_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "maintenance_policy_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "event_capture_assessment_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "clock_calibration_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "scope": {
+          "$ref": "#/$defs/scope"
+        },
+        "max_clock_error_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "effective_cutoff": {
+          "type": "integer"
+        },
+        "knowledge_cutoff": {
+          "type": "integer"
+        },
+        "diagnostics_predeclared": {
+          "type": "boolean"
+        },
+        "thresholds_frozen_before_holdout": {
+          "type": "boolean"
+        },
+        "series": {
+          "$ref": "#/$defs/series"
+        },
+        "expected": {
+          "$ref": "#/$defs/expected"
+        }
+      }
+    }
+  }
+}
