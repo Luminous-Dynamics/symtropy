@@ -100,6 +100,7 @@ pub struct QualificationEvidence {
     pub acceptance_criteria_id: String,
     pub uncertainty_budget_reference: String,
     pub test_completed_at_utc: String,
+    pub valid_until_utc: Option<String>,
     pub test_result: QualificationTestResult,
     pub limitations: Vec<String>,
 }
@@ -153,6 +154,7 @@ pub struct CompatibilityInput {
     pub benchmark_id: String,
     pub vehicle: VehicleInterfaceContract,
     pub modules: Vec<ModuleInterfaceContract>,
+    pub evaluation_time_utc: String,
     pub claim_ceiling: String,
 }
 
@@ -193,6 +195,7 @@ pub struct CompatibilityReport {
     pub benchmark_id: String,
     pub input_digest_sha256: String,
     pub vehicle_configuration_id: String,
+    pub evaluated_at_utc: String,
     pub module_result_count: usize,
     pub results: Vec<ModuleCompatibilityResult>,
     pub physical_authority_granted: bool,
@@ -269,7 +272,12 @@ fn valid_optional_range(range: &Option<QuantityRange>) -> bool {
     })
 }
 
-fn validate_ports(label: &str, ports: &[InterfacePort], errors: &mut Vec<String>) {
+fn validate_ports(
+    label: &str,
+    ports: &[InterfacePort],
+    evaluation_time_utc: &str,
+    errors: &mut Vec<String>,
+) {
     if ports.len() > MAX_PORTS_PER_CONFIGURATION {
         errors.push(format!(
             "{label}.ports: exceeds {MAX_PORTS_PER_CONFIGURATION} ports"
@@ -362,6 +370,9 @@ pub fn validate_input(input: &CompatibilityInput) -> Result<(), Vec<String>> {
     if input.claim_ceiling.trim().is_empty() {
         errors.push("claim_ceiling: must be nonempty".into());
     }
+    if !valid_utc_timestamp(&input.evaluation_time_utc) {
+        errors.push("evaluation_time_utc: expected normalized YYYY-MM-DDTHH:MM:SSZ".into());
+    }
     if input.vehicle.vehicle_configuration_id.trim().is_empty()
         || input.vehicle.vehicle_family_id.trim().is_empty()
         || input.vehicle.vehicle_revision.trim().is_empty()
@@ -373,7 +384,12 @@ pub fn validate_input(input: &CompatibilityInput) -> Result<(), Vec<String>> {
             "modules: expected 1..={MAX_MODULES} configurations"
         ));
     }
-    validate_ports("vehicle", &input.vehicle.ports, &mut errors);
+    validate_ports(
+        "vehicle",
+        &input.vehicle.ports,
+        &input.evaluation_time_utc,
+        &mut errors,
+    );
     let mut vehicle_mate_ids = BTreeSet::new();
     for port in &input.vehicle.ports {
         if !vehicle_mate_ids.insert(port.mate_port_id.as_str()) {
@@ -396,7 +412,12 @@ pub fn validate_input(input: &CompatibilityInput) -> Result<(), Vec<String>> {
                 "modules[{index}]: exact unique module and target vehicle identities are required"
             ));
         }
-        validate_ports(&format!("modules[{index}]"), &module.ports, &mut errors);
+        validate_ports(
+            &format!("modules[{index}]"),
+            &module.ports,
+            &input.evaluation_time_utc,
+            &mut errors,
+        );
     }
     if errors.is_empty() {
         Ok(())
@@ -410,6 +431,7 @@ fn qualified_evidence<'a>(
     vehicle: &VehicleInterfaceContract,
     module: &ModuleInterfaceContract,
     interface_revision: &str,
+    evaluation_time_utc: &str,
 ) -> Option<&'a QualificationEvidence> {
     evidence.iter().find(|receipt| {
         receipt.evidence_class == EvidenceClass::IndependentTest
@@ -417,6 +439,10 @@ fn qualified_evidence<'a>(
             && receipt.tested_vehicle_configuration_id == vehicle.vehicle_configuration_id
             && receipt.tested_module_configuration_id == module.module_configuration_id
             && receipt.interface_revision == interface_revision
+            && receipt
+                .valid_until_utc
+                .as_deref()
+                .is_some_and(|valid_until| valid_until > evaluation_time_utc)
             && valid_digest(&receipt.report_digest_sha256)
             && valid_digest(&receipt.measurement_dataset_sha256)
             && valid_digest(&receipt.calibration_bundle_sha256)
@@ -435,6 +461,25 @@ fn failed_exact_evidence(
             && receipt.tested_vehicle_configuration_id == vehicle.vehicle_configuration_id
             && receipt.tested_module_configuration_id == module.module_configuration_id
             && receipt.interface_revision == interface_revision
+    })
+}
+
+fn expired_exact_evidence(
+    evidence: &[QualificationEvidence],
+    vehicle: &VehicleInterfaceContract,
+    module: &ModuleInterfaceContract,
+    interface_revision: &str,
+    evaluation_time_utc: &str,
+) -> bool {
+    evidence.iter().any(|receipt| {
+        receipt.evidence_class == EvidenceClass::IndependentTest
+            && receipt.tested_vehicle_configuration_id == vehicle.vehicle_configuration_id
+            && receipt.tested_module_configuration_id == module.module_configuration_id
+            && receipt.interface_revision == interface_revision
+            && receipt
+                .valid_until_utc
+                .as_deref()
+                .is_some_and(|valid_until| valid_until <= evaluation_time_utc)
     })
 }
 
@@ -474,6 +519,7 @@ fn evaluate_interface(
     vehicle: &VehicleInterfaceContract,
     module: &ModuleInterfaceContract,
     module_port: &InterfacePort,
+    evaluation_time_utc: &str,
 ) -> InterfaceFinding {
     let vehicle_port = find_vehicle_port(vehicle, &module_port.mate_port_id);
     let mut findings = Vec::new();
@@ -688,17 +734,39 @@ fn evaluate_interface(
             "exact_configuration_independent_test_failed",
         );
     }
+    if expired_exact_evidence(
+        &vehicle_port.evidence,
+        vehicle,
+        module,
+        &vehicle_port.interface_revision,
+        evaluation_time_utc,
+    ) || expired_exact_evidence(
+        &module_port.evidence,
+        vehicle,
+        module,
+        &module_port.interface_revision,
+        evaluation_time_utc,
+    ) {
+        add_interface_finding(
+            &mut findings,
+            &mut status,
+            CompatibilityStatus::Indeterminate,
+            "exact_configuration_qualification_evidence_expired",
+        );
+    }
     let vehicle_qualified_evidence = qualified_evidence(
         &vehicle_port.evidence,
         vehicle,
         module,
         &vehicle_port.interface_revision,
+        evaluation_time_utc,
     );
     let module_qualified_evidence = qualified_evidence(
         &module_port.evidence,
         vehicle,
         module,
         &module_port.interface_revision,
+        evaluation_time_utc,
     );
     if vehicle_qualified_evidence.is_none() || module_qualified_evidence.is_none() {
         add_interface_finding(
@@ -848,7 +916,12 @@ pub fn evaluate_compatibility(
                 interfaces.push(duplicate);
                 continue;
             }
-            interfaces.push(evaluate_interface(&canonical.vehicle, module, port));
+            interfaces.push(evaluate_interface(
+                &canonical.vehicle,
+                module,
+                port,
+                &canonical.evaluation_time_utc,
+            ));
         }
 
         let target_vehicle_mismatch = module.target_vehicle_family_id
@@ -930,6 +1003,7 @@ pub fn evaluate_compatibility(
         benchmark_id: "EV-CARRIER-ICD-001".into(),
         input_digest_sha256,
         vehicle_configuration_id: canonical.vehicle.vehicle_configuration_id.clone(),
+        evaluated_at_utc: canonical.evaluation_time_utc.clone(),
         module_result_count: results.len(),
         results,
         physical_authority_granted: false,
@@ -969,6 +1043,7 @@ mod tests {
             acceptance_criteria_id: "ICD-AC-001".into(),
             uncertainty_budget_reference: "synthetic://icd/uncertainty-budget".into(),
             test_completed_at_utc: "2026-11-21T06:00:00Z".into(),
+            valid_until_utc: Some("2027-11-21T06:00:00Z".into()),
             test_result: QualificationTestResult::Passed,
             limitations: vec!["test-only in-memory receipt".into()],
         }
@@ -1142,6 +1217,7 @@ mod tests {
                 interface_inventory_complete: true,
                 ports: vehicle_ports,
             },
+            evaluation_time_utc: "2026-11-21T06:30:00Z".into(),
             modules: vec![ModuleInterfaceContract {
                 module_configuration_id: module_id.into(),
                 module_family_id: "UAV-POD".into(),
@@ -1268,6 +1344,28 @@ mod tests {
             hv.findings
                 .contains(&"exact_configuration_independent_test_failed".into())
         );
+    }
+
+    #[test]
+    fn expired_independent_test_receipt_is_indeterminate() {
+        let mut input = qualified_input();
+        input.vehicle.ports[0].evidence[0].valid_until_utc =
+            Some("2026-11-21T06:30:00Z".into());
+        let report = evaluate_compatibility(&input).expect("valid but expired evidence");
+        let hv = report.results[0]
+            .interfaces
+            .iter()
+            .find(|interface| interface.module_port_id == "module-hv")
+            .expect("HV result");
+        assert_eq!(hv.status, CompatibilityStatus::Indeterminate);
+        assert!(hv.findings.contains(&"exact_configuration_qualification_evidence_expired".into()));
+    }
+
+    #[test]
+    fn missing_expiry_on_independent_test_receipt_is_rejected() {
+        let mut input = qualified_input();
+        input.modules[0].ports[0].evidence[0].valid_until_utc = None;
+        assert!(validate_input(&input).is_err());
     }
 
     #[test]
