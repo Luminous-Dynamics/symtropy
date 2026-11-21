@@ -7,7 +7,7 @@
 The dedicated workflow checks out these exact, public source commits:
 
 - M1 mission supervisor: `9d9b8b223e711d6bc76dd60b9563950ab2a16702`
-- M2 action/effect contract: `c52dbca141501fb14dd0b3c1a0fcd0fe7d56990a`
+- M2 action/effect contract: `189dd53b3fbd352f7dcc3d1773b2476b692604ee`
 
 They are imported as modules from the checkout worktrees; the adapter does not fork or copy their state machines.
 
@@ -21,7 +21,7 @@ Outcome mapping is intentionally non-compensatory:
 - M2 `NoEffect / RecoveryRequired` → M1 `GoalVerdict::NotSatisfied`
 - M2 `PartialEffect|Unknown / ReconciliationRequired` → M1 `GoalVerdict::Ambiguous`
 
-M1 remains responsible for checking the active action ID/attempt, predicate, mission dependencies, event identity, source sequence, state transition and recovery permissions.
+M1 remains responsible for checking the active action ID/attempt, predicate, mission dependencies, event identity, source sequence, preserved time-basis continuity, state transition and recovery permissions.
 
 ## Time qualification is mandatory
 
