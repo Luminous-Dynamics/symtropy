@@ -2607,3 +2607,19 @@ mod temporal_quadrature_contract_tests {
         }));
     }
 }
+
+#[cfg(test)]
+mod temporal_quadrature_moment_contract_tests {
+    use super::*;
+
+    #[test]
+    fn temporal_quadrature_contract_requires_rule_moment_controls() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_TEMPORAL_QUADRATURE).unwrap();
+        value["test_families"].as_array_mut().unwrap().retain(|item| {
+            item.as_str() != Some("each_rule_fails_first_higher_even_monomial_moment")
+        });
+        assert!(audit_temporal_quadrature_contract(&value).iter().any(|finding| {
+            finding.starts_with("TEMPORAL_QUADRATURE_TEST_MATRIX")
+        }));
+    }
+}
