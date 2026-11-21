@@ -37,7 +37,7 @@ function baselineOfat(obligation, runs) {
 }
 function baselinePairwise(obligation, runs) {
   const cells = Object.entries(obligation.conditions);
-  if (cells.length < 3) return baselineOfat(obligation, runs);
+  if (cells.length < 2) return baselineOfat(obligation, runs);
   for (let i = 0; i < cells.length; i += 1) {
     for (let j = i + 1; j < cells.length; j += 1) {
       const [f1, v1] = cells[i];
