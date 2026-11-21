@@ -387,7 +387,7 @@ fn evaluate_pair(
         );
     }
 
-    let energy_fresh = evidence_is_admissible(
+    let energy_evidence_admissible = evidence_is_admissible(
         &pack.usable_energy.evidence,
         pack,
         dispatch_time_unix_ms,
@@ -395,7 +395,7 @@ fn evaluate_pair(
         &mut status,
         "energy",
     );
-    let power_fresh = evidence_is_admissible(
+    let power_evidence_admissible = evidence_is_admissible(
         &pack.peak_power.evidence,
         pack,
         dispatch_time_unix_ms,
@@ -403,7 +403,7 @@ fn evaluate_pair(
         &mut status,
         "peak_power",
     );
-    let thermal_fresh = evidence_is_admissible(
+    let thermal_evidence_admissible = evidence_is_admissible(
         &pack.thermal.evidence,
         pack,
         dispatch_time_unix_ms,
@@ -412,7 +412,7 @@ fn evaluate_pair(
         "thermal",
     );
 
-    let energy_margin_wh = if energy_fresh {
+    let energy_margin_wh = if energy_evidence_admissible {
         match pack.usable_energy.value {
             Some(value) if value >= mission.required_energy_with_reserve_wh => {
                 Some(value - mission.required_energy_with_reserve_wh)
@@ -440,7 +440,7 @@ fn evaluate_pair(
         None
     };
 
-    if power_fresh {
+    if power_evidence_admissible {
         match pack.peak_power.value {
             Some(value) if value >= mission.required_peak_power_w => {}
             Some(_) => add_finding(
@@ -458,7 +458,7 @@ fn evaluate_pair(
         }
     }
 
-    if thermal_fresh {
+    if thermal_evidence_admissible {
         match (
             pack.thermal.pack_temperature_c,
             pack.thermal.qualified_max_temperature_c,
