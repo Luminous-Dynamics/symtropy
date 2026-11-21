@@ -541,8 +541,8 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
                 1e-10,
             )
             && decision.likelihood_ratio_nonnegative == expected.likelihood_ratio_nonnegative
-            && expected.inferential_fit_accepted == false
-            && expected.reliability_claim_granted == false
+            && !expected.inferential_fit_accepted
+            && !expected.reliability_claim_granted
             && decision.blockers == expected.blockers;
 
         summary.expected_result_mismatches += usize::from(!matched);
