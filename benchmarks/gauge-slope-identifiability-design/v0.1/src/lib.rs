@@ -57,6 +57,10 @@ pub enum IdentifiabilityError {
     InvalidAccelerationUncertainty,
     NoFullRankCandidatePair,
     InvalidRankTolerance,
+    EmptySegmentSet,
+    InvalidDecouplingPower,
+    InvalidRegularization,
+    InvalidFisherMatrix,
     NonFiniteInformation,
 }
 
@@ -104,6 +108,16 @@ impl Display for IdentifiabilityError {
             }
             Self::InvalidRankTolerance => {
                 write!(formatter, "rank tolerance must be finite and positive")
+            }
+            Self::EmptySegmentSet => write!(formatter, "decoupling coverage requires at least one segment"),
+            Self::InvalidDecouplingPower => {
+                write!(formatter, "decoupling power must be finite and within [0, 1]")
+            }
+            Self::InvalidRegularization => {
+                write!(formatter, "Schur regularization and log epsilon must be finite and positive")
+            }
+            Self::InvalidFisherMatrix => {
+                write!(formatter, "Fisher information matrix must be positive semidefinite")
             }
             Self::NonFiniteInformation => write!(formatter, "information matrix is non-finite"),
         }
@@ -355,6 +369,125 @@ pub fn summarize(
     })
 }
 
+/// Per-parameter segment coverage using the reduced two-parameter form
+/// of IDTD's Schur-complement objective. This is a benchmark comparator,
+/// not a reproduction of IDTD's policy optimization, trajectory segmentation,
+/// parameterization or full robot pipeline.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct IdtdStyleCoverage {
+    pub friction_best_score: f64,
+    pub angle_bias_best_score: f64,
+    pub friction_best_segment: usize,
+    pub angle_bias_best_segment: usize,
+    /// Minimization objective: -ln(c_mu + eps) - ln(c_delta + eps).
+    pub cost: f64,
+}
+
+/// Compute per-parameter decoupling coverage over candidate FIM segments.
+///
+/// For each segment and parameter i:
+///   score_i = Schur(F, {i}) / F_ii^alpha
+/// The best score for each parameter is selected independently across
+/// segments, then the negative log scores are summed. A small ridge is added
+/// only to the complementary diagonal in the 2x2 Schur calculation.
+pub fn idtd_style_decoupling_coverage(
+    segments: &[FisherInformation2],
+    alpha: f64,
+    schur_ridge: f64,
+    log_epsilon: f64,
+) -> Result<IdtdStyleCoverage, IdentifiabilityError> {
+    if segments.is_empty() {
+        return Err(IdentifiabilityError::EmptySegmentSet);
+    }
+    if !alpha.is_finite() || !(0.0..=1.0).contains(&alpha) {
+        return Err(IdentifiabilityError::InvalidDecouplingPower);
+    }
+    if !schur_ridge.is_finite()
+        || schur_ridge <= 0.0
+        || !log_epsilon.is_finite()
+        || log_epsilon <= 0.0
+    {
+        return Err(IdentifiabilityError::InvalidRegularization);
+    }
+
+    let mut friction_best_score = 0.0_f64;
+    let mut angle_bias_best_score = 0.0_f64;
+    let mut friction_best_segment = 0_usize;
+    let mut angle_bias_best_segment = 0_usize;
+
+    for (segment_index, fisher) in segments.iter().copied().enumerate() {
+        let a = fisher.friction_friction;
+        let b = fisher.friction_angle_bias;
+        let d = fisher.angle_bias_angle_bias;
+        if !a.is_finite() || !b.is_finite() || !d.is_finite() {
+            return Err(IdentifiabilityError::NonFiniteInformation);
+        }
+        if a < 0.0 || d < 0.0 {
+            return Err(IdentifiabilityError::InvalidFisherMatrix);
+        }
+
+        let determinant = fisher.determinant();
+        let determinant_scale = (a * d).abs().max((b * b).abs()).max(1.0);
+        if !determinant.is_finite() {
+            return Err(IdentifiabilityError::NonFiniteInformation);
+        }
+        if determinant < -1.0e-10 * determinant_scale {
+            return Err(IdentifiabilityError::InvalidFisherMatrix);
+        }
+
+        // Schur(F, {mu}) and Schur(F, {delta}) respectively.
+        let friction_schur = if a > 0.0 {
+            (a - b * b / (d + schur_ridge)).max(0.0)
+        } else {
+            0.0
+        };
+        let angle_bias_schur = if d > 0.0 {
+            (d - b * b / (a + schur_ridge)).max(0.0)
+        } else {
+            0.0
+        };
+
+        // alpha=1 is a scale-free decoupling ratio; alpha<1 also rewards
+        // absolute information strength on weakly excited axes.
+        let friction_score = if a > 0.0 {
+            friction_schur / a.powf(alpha)
+        } else {
+            0.0
+        };
+        let angle_bias_score = if d > 0.0 {
+            angle_bias_schur / d.powf(alpha)
+        } else {
+            0.0
+        };
+        if !friction_score.is_finite() || !angle_bias_score.is_finite() {
+            return Err(IdentifiabilityError::NonFiniteInformation);
+        }
+
+        if friction_score > friction_best_score {
+            friction_best_score = friction_score;
+            friction_best_segment = segment_index;
+        }
+        if angle_bias_score > angle_bias_best_score {
+            angle_bias_best_score = angle_bias_score;
+            angle_bias_best_segment = segment_index;
+        }
+    }
+
+    let cost = -((friction_best_score + log_epsilon).ln()
+        + (angle_bias_best_score + log_epsilon).ln());
+    if !cost.is_finite() {
+        return Err(IdentifiabilityError::NonFiniteInformation);
+    }
+
+    Ok(IdtdStyleCoverage {
+        friction_best_score,
+        angle_bias_best_score,
+        friction_best_segment,
+        angle_bias_best_segment,
+        cost,
+    })
+}
+
 fn validate_model(model: SlopeModel) -> Result<(), IdentifiabilityError> {
     if !model.friction_coefficient.is_finite() || model.friction_coefficient < 0.0 {
         return Err(IdentifiabilityError::InvalidFrictionCoefficient);
@@ -573,6 +706,131 @@ mod tests {
             unit.fisher.angle_bias_angle_bias,
             raw.fisher.angle_bias_angle_bias * 0.0001,
             1.0e-9,
+        );
+    }
+
+    #[test]
+    fn idtd_style_coverage_prefers_decoupled_information_over_larger_entangled_determinant() {
+        let entangled = FisherInformation2 {
+            friction_friction: 100.0,
+            friction_angle_bias: 99.0,
+            angle_bias_angle_bias: 100.0,
+        };
+        let decoupled = FisherInformation2 {
+            friction_friction: 10.0,
+            friction_angle_bias: 0.0,
+            angle_bias_angle_bias: 10.0,
+        };
+        // D-optimality alone prefers the entangled segment because det=199 > 100.
+        assert!(entangled.determinant() > decoupled.determinant());
+
+        let entangled_score =
+            idtd_style_decoupling_coverage(&[entangled], 1.0, 1.0e-6, 1.0e-6)
+                .expect("valid entangled FIM");
+        let decoupled_score =
+            idtd_style_decoupling_coverage(&[decoupled], 1.0, 1.0e-6, 1.0e-6)
+                .expect("valid decoupled FIM");
+
+        assert!(decoupled_score.cost < entangled_score.cost);
+        close(decoupled_score.friction_best_score, 1.0, 1.0e-6);
+        close(decoupled_score.angle_bias_best_score, 1.0, 1.0e-6);
+    }
+
+    #[test]
+    fn idtd_style_coverage_allows_different_segments_to_specialize_by_parameter() {
+        let friction_segment = FisherInformation2 {
+            friction_friction: 100.0,
+            friction_angle_bias: 0.0,
+            angle_bias_angle_bias: 0.0,
+        };
+        let angle_segment = FisherInformation2 {
+            friction_friction: 0.0,
+            friction_angle_bias: 0.0,
+            angle_bias_angle_bias: 100.0,
+        };
+        let coverage = idtd_style_decoupling_coverage(
+            &[friction_segment, angle_segment],
+            1.0,
+            1.0e-6,
+            1.0e-6,
+        )
+        .expect("valid segment collection");
+
+        assert_eq!(coverage.friction_best_segment, 0);
+        assert_eq!(coverage.angle_bias_best_segment, 1);
+        close(coverage.friction_best_score, 1.0, 1.0e-6);
+        close(coverage.angle_bias_best_score, 1.0, 1.0e-6);
+    }
+
+    #[test]
+    fn idtd_style_information_gate_rewards_weakly_excited_axes() {
+        let weak = FisherInformation2 {
+            friction_friction: 1.0,
+            friction_angle_bias: 0.0,
+            angle_bias_angle_bias: 1.0,
+        };
+        let strong = FisherInformation2 {
+            friction_friction: 100.0,
+            friction_angle_bias: 0.0,
+            angle_bias_angle_bias: 100.0,
+        };
+        let alpha_one = idtd_style_decoupling_coverage(
+            &[weak, strong],
+            1.0,
+            1.0e-6,
+            1.0e-6,
+        )
+        .expect("valid alpha=1 coverage");
+        let alpha_half = idtd_style_decoupling_coverage(
+            &[weak, strong],
+            0.5,
+            1.0e-6,
+            1.0e-6,
+        )
+        .expect("valid alpha=0.5 coverage");
+
+        // alpha=1 is scale-free, so the weak segment is sufficient; alpha<1
+        // also rewards stronger absolute per-axis information.
+        close(alpha_one.friction_best_score, 1.0, 1.0e-6);
+        close(alpha_half.friction_best_score, 10.0, 1.0e-6);
+    }
+
+    #[test]
+    fn idtd_style_coverage_rejects_invalid_segments_and_configuration() {
+        assert_eq!(
+            idtd_style_decoupling_coverage(&[], 1.0, 1.0e-6, 1.0e-6),
+            Err(IdentifiabilityError::EmptySegmentSet)
+        );
+        assert_eq!(
+            idtd_style_decoupling_coverage(
+                &[FisherInformation2::default()],
+                1.2,
+                1.0e-6,
+                1.0e-6,
+            ),
+            Err(IdentifiabilityError::InvalidDecouplingPower)
+        );
+        assert_eq!(
+            idtd_style_decoupling_coverage(
+                &[FisherInformation2::default()],
+                1.0,
+                0.0,
+                1.0e-6,
+            ),
+            Err(IdentifiabilityError::InvalidRegularization)
+        );
+        assert_eq!(
+            idtd_style_decoupling_coverage(
+                &[FisherInformation2 {
+                    friction_friction: 1.0,
+                    friction_angle_bias: 2.0,
+                    angle_bias_angle_bias: 1.0,
+                }],
+                1.0,
+                1.0e-6,
+                1.0e-6,
+            ),
+            Err(IdentifiabilityError::InvalidFisherMatrix)
         );
     }
 
