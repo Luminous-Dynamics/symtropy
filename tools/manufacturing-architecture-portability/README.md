@@ -187,3 +187,32 @@ Every profile layer now declares one of:
 - `cross_layer` — an API/transport layer that can expose or connect multiple scopes.
 
 This lets the benchmark stratify identity, freshness, grounding and decision tasks by industrial context level, aligned conceptually with NIST's TIDAL asset/site-area/enterprise layering. It is a benchmark taxonomy only; it does not declare ISA-95 conformance or a TIDAL implementation. Actual scope is determined by admitted object relationships and source evidence, not by a profile label alone.
+
+## OPC UA NodeSet provenance and dependency admission
+
+The Machinery and Robotics reference profiles now pin the actual upstream normative NodeSet artifacts from OPCFoundation/UA-Nodeset commit `ed0b821f6a6f1f0c440c442ed95a9146ae8b7f8d`, including file path, Git blob SHA-1, raw-byte SHA-256, byte length, NamespaceUris and all RequiredModel records.
+
+Crucially, the standard's NamespaceMetadata date and the UANodeSet Model's PublicationDate are separate fields:
+- Machinery NamespaceMetadata: NamespaceVersion 1.04.2, publication date 2026-11-01. Its pinned NodeSet Model: Version 1.04.2, ModelVersion 1.4.2, PublicationDate 2026-11-02.
+- Robotics NamespaceMetadata and NodeSet Model publication date: 2025-09-08; NodeSet ModelVersion 1.2.
+
+The OPC UA NodeSet Admission CLI parses the complete XML artifact offline, rejects DOCTYPE, verifies the raw digest and byte length, checks the target Model and RequiredModels, confirms the namespace URI table, and checks namespace indexes used by NodeId/ParentNodeId/DataType/BrowseName attributes. The parser never fetches a URL. The CI workflow downloads only two hard-coded raw files at the exact pinned commit, checks their SHA-256, then invokes the offline parser.
+
+### A discovered bundle-resolution blocker
+
+Machinery 1.04.2 declares RequiredModel OPC UA core 1.05.07 (publication 2026-07-30); Robotics 1.02 declares OPC UA core 1.05.03 (publication 2023-12-15). Both declare DI 1.04.0 and IA 1.01.4. The bundle analyzer reports `requires_explicit_dependency_resolution` for the core model URI. It does not guess that newer means compatible, nor silently select one dependency. This does not block testing each model independently, but it blocks claiming that a combined Machinery+Robotics NodeSet bundle is dependency-resolved.
+
+The server snapshot CLI separately compares expected NamespaceMetadata (NamespaceUri, NamespaceVersion and NamespacePublicationDate) against an observed read-only snapshot. If `IsNamespaceSubset=true`, the result is `matching_declared_subset`. If false, the result is still `matching_full_namespace_claim_node_coverage_unverified`: metadata is not proof that all required Nodes are present or semantically correct.
+
+From the validator directory:
+
+```sh
+cargo run --locked --bin opcua-nodeset-admission -- verify \
+  ../nodesets/opcua-machinery-1.04.2.nodeset.json /path/to/Opc.Ua.Machinery.NodeSet2.xml
+
+cargo run --locked --bin opcua-nodeset-admission -- bundle \
+  ../nodesets/opcua-machinery-1.04.2.nodeset.json \
+  ../nodesets/opcua-robotics-1.02.nodeset.json
+```
+
+These checks prove exact artifact identity and declared metadata only. They do not import a model into a server, prove server NodeId coverage, perform UA server/client conformance, authenticate a server, validate cybersecurity, call methods, or establish physical-machine behavior.
