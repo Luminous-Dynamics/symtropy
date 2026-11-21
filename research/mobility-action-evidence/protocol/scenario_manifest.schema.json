@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/cdaab/scenario-manifest/v0.1",
+  "title": "CDAAB controller-visible scenario manifest v0.1",
+  "description": "Public controller-facing benchmark inputs only. Evaluator truth, expected dispositions, injected-fault identities and hidden labels MUST NOT appear in this document.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "benchmark_id",
+    "version",
+    "split_id",
+    "manifest_digest",
+    "controller_interface_digest",
+    "cases"
+  ],
+  "properties": {
+    "benchmark_id": {
+      "const": "CDAAB"
+    },
+    "version": {
+      "const": "0.1"
+    },
+    "split_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "manifest_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "controller_interface_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "stratum",
+        "scenario_family",
+        "controller_context_digest",
+        "input_commitment",
+        "resource_budget",
+        "cluster_keys"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{2,95}$"
+        },
+        "stratum": {
+          "enum": [
+            "temporal",
+            "configuration_authority",
+            "evidence_integrity",
+            "physical_response",
+            "distributed_operation",
+            "positive_capability"
+          ]
+        },
+        "scenario_family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "controller_context_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "input_commitment": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "resource_budget": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "max_actions",
+            "wall_clock_ms",
+            "compute_budget_units"
+          ],
+          "properties": {
+            "max_actions": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "wall_clock_ms": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "compute_budget_units": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "cluster_keys": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "seed_commitment": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
+  }
+}
