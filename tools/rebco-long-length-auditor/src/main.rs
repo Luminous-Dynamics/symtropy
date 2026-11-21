@@ -213,16 +213,16 @@ fn validate_conditions(value: &Value, path: &str) -> Result<(), String> {
         }
     }
     for key in ["field_orientation", "current_criterion", "geometry"] {
-        if let Some(item) = map.get(key) {
-            if item.as_str().is_none_or(|text| text.trim().is_empty()) {
-                return Err(fail(path, format!("{key} must be a non-empty string")));
-            }
+        if let Some(item) = map.get(key)
+            && item.as_str().is_none_or(|text| text.trim().is_empty())
+        {
+            return Err(fail(path, format!("{key} must be a non-empty string")));
         }
     }
-    if let Some(strain) = map.get("strain") {
-        if strain.as_f64().is_none_or(|number| !number.is_finite()) {
-            return Err(fail(path, "strain must be a finite number"));
-        }
+    if let Some(strain) = map.get("strain")
+        && strain.as_f64().is_none_or(|number| !number.is_finite())
+    {
+        return Err(fail(path, "strain must be a finite number"));
     }
     Ok(())
 }
@@ -328,13 +328,13 @@ fn validate_measurement_system(value: &Value, path: &str) -> Result<(), String> 
     )?;
     string_field(value, "instrument_id", path)?;
     string_field(value, "calibration_revision", path)?;
-    if let Some(valid) = object(value, path)?.get("calibration_valid_at_measurement") {
-        if !valid.is_boolean() {
-            return Err(fail(
-                path,
-                "calibration_valid_at_measurement must be boolean",
-            ));
-        }
+    if let Some(valid) = object(value, path)?.get("calibration_valid_at_measurement")
+        && !valid.is_boolean()
+    {
+        return Err(fail(
+            path,
+            "calibration_valid_at_measurement must be boolean",
+        ));
     }
     if object(value, path)?.contains_key("operator_or_automation_id") {
         string_field(value, "operator_or_automation_id", path)?;
@@ -872,13 +872,13 @@ fn validate_document(value: &Value) -> Result<AuditReport, String> {
             )?;
         }
         for key in ["source_uri", "source_locator", "acquisition_time"] {
-            if let Some(item) = object(source, &format!("{path}.source"))?.get(key) {
-                if item.as_str().is_none_or(|text| text.trim().is_empty()) {
-                    return Err(fail(
-                        &path,
-                        format!("source.{key} must be a non-empty string"),
-                    ));
-                }
+            if let Some(item) = object(source, &format!("{path}.source"))?.get(key)
+                && item.as_str().is_none_or(|text| text.trim().is_empty())
+            {
+                return Err(fail(
+                    &path,
+                    format!("source.{key} must be a non-empty string"),
+                ));
             }
         }
     }
