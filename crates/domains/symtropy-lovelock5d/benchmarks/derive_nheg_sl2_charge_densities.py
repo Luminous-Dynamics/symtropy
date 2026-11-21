@@ -524,15 +524,16 @@ def main() -> None:
         "source_eq24_density":sp.sstr(source_density),
         "source_eq24_minus_delta_J2":sp.sstr(source_density_minus_j2),
         "2n_delta_Q_minus_delta_J2":sp.sstr(source_identity_residual),
+        "eq23_entropy_charge_sum_minus_wald":sp.sstr(entropy_from_generators-wald_variation),
         "validation":{
             "all_generators_killing_by_lie_derivative":True,
             "bifurcation_generator_zero":True,
             "entropy_generator_equals_wald_variation":True,
             "eq23_linearity_exact":True,
-            "source_eq24_density_equals_delta_J2":False,
+            "source_eq24_density_equals_delta_J2":sp.simplify(source_density_minus_j2)==0,
             "direct_zeta_matches_component_combination":True,
             "direct_zeta_matches_wald_variation":True,
-            "eq24_local_identity_2nQ_equals_J2":False
+            "eq24_local_identity_2nQ_equals_J2":sp.simplify(source_identity_residual)==0
         }
     }
 
