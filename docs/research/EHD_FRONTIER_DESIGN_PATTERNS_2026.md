@@ -70,6 +70,49 @@ The paper reports approximately **6× thrust per unit span** and about **0.5× t
 
 The same paper also reveals a design-space opportunity: independently optimise each collector and jointly optimise duct geometry and stage count, but only after conservative plasma-to-neutral momentum transfer and robust drag accounting are qualified.
 
+### 1.6 Booster electrodes — Wakimoto et al. (2025)
+
+Reina Wakimoto et al., “Thrust density enhancement by booster electrodes in solid-state propulsion systems,” *AIP Advances* 15(12), 125107 (2025). DOI: [10.1063/5.0293433](https://doi.org/10.1063/5.0293433).
+
+This paper uses a two-dimensional, three-species plasma-fluid model and reports experimental validation. The booster electrode improves the paper's reported thrust-density metric relative to its own no-booster configuration by approximately:
+- 4.46× at 15 kV;
+- 2.22× at 20 kV;
+- 1.84× at 25 kV.
+
+The abstract transcription does not state the metric's denominator/unit or absolute values. Keep those unknown instead of assuming N/m, N/m² or converting to another paper's metric. These voltage-specific source-local results are an important experimental benchmark for booster geometry, but not a universal gain factor.
+
+### 1.7 ANEMONE — 3D discharge solver and open code
+
+Hisaichi Shibata, Soya Shimizu and Takahiro Nozaki, “ANEMONE: A framework for three-dimensional simulations of solid-state electroaerodynamic propulsion systems,” *Computer Physics Communications* 315 (October 2025), 109749. DOI: [10.1016/j.cpc.2025.109749](https://doi.org/10.1016/j.cpc.2025.109749).
+
+ANEMONE is a C++ / MIT-licensed, three-dimensional specialist solver with a public source archive in [Mendeley Data](https://doi.org/10.17632/2sxsg2pmyp.1). It models electrons, positive ions and negative ions; uses a 3D hierarchical Cartesian grid with adaptive mesh refinement; and combines the method of characteristics with a perturbation method to address the stiff, multi-scale problem. Its stated performance outputs are corona inception voltage and energy-conversion efficiency. The paper describes validation against theoretical results from prior work.
+
+This makes ANEMONE a much stronger 3D plasma-model comparator than a simple electrostatic model. It must not be described as a complete, independently validated neutral-flow / net-thrust solver without separate evidence for those outputs.
+
+### 1.8 Integral three-component plasma-fluid model — Shibata and Nozaki (2025)
+
+Hisaichi Shibata and Takahiro Nozaki, “On the integral form of a three-component plasma fluid model,” *Physics of Plasmas* 32(6), 063903 (1 June 2025). DOI: [10.1063/5.0270475](https://doi.org/10.1063/5.0270475).
+
+This work transforms the three-component plasma PDE system using the method of characteristics and derives integral forms intended to improve numerical stability and reduce computational cost. Its source record reports comparisons against experiments for negative corona in coaxial-cylinder and point-to-plate geometries, as well as around a single-stage thruster.
+
+This should be treated as an important discharge-model validation cohort for three-species physics. The stated evidence does not, by itself, establish a full coupled neutral-flow, control-volume thrust or integrated aircraft validation.
+
+### 1.9 Multi-anode force-vector coupling — Kitamura et al. (2023)
+
+Tomoya Kitamura et al., “Verification of Anode Position and Generated Force Vector of EHD at Wire-cylinder Electrode,” IEEE ISIE 2023. DOI: [10.1109/ISIE51358.2023.10228184](https://doi.org/10.1109/ISIE51358.2023.10228184).
+
+The reported paired-anode experiments found that two anodes arranged at right angles interfered and did not produce the vector sum of their individual forces; the resultant direction was approximately 45°. Under the tested horizontal/parallel arrangement, the forces were reported to superpose.
+
+**This is a crucial array-design result:** force superposition depends on arrangement. It is unsafe to assume that an array of individually characterised cells has total force equal to the sum of the isolated-cell force vectors. The geometry-specific result motivates an experimentally identified cross-coupling matrix, with a declared validity envelope and held-out orientation/spacing tests.
+
+### 1.10 Switching control — Yashita et al. (2025)
+
+Shigeki Yashita et al., “Thrust Control with Switching in Electrodynamic Propulsion Systems with Corona Discharge,” IEEE ICM 2025. DOI: [10.1109/ICM62621.2025.10934861](https://doi.org/10.1109/ICM62621.2025.10934861).
+
+The paper reports a circuit with a resistor in series with the electrode and a switching element in parallel with the resistor. Two experiments are reported, including demonstration that thrust can be controlled by changing switching duty ratio.
+
+This is a useful control-authority reference, but the available abstract does not provide complete transient, switching-loss, wall-plug efficiency or long-duration discharge-stability data. Those must be measured before comparing it as an efficiency or flight-control result.
+
 ## 2. Paradigm shift: co-design the entire charge-to-thrust path
 
 Represent an EHD cell as a sequence of physical transformations:
@@ -96,7 +139,7 @@ A useful derived diagnostic is the collector capture fraction, I_collector / I_e
 
 ### C. Flow-aware electrode design
 
-The same topology alters both electric-field lines and gas-flow obstruction. Use independent flow diagnostics (for example, appropriately calibrated velocimetry or Schlieren) and compare the integrated neutral momentum flux with force-balance readings. Report static force and wind-tunnel effective force separately; the frame and electrode drag can reverse the ranking at forward speed.
+The same topology alters both electric-field lines and gas-flow obstruction. Use independent flow diagnostics (for example, appropriately calibrated velocimetry or Schlieren) and compare the integrated neutral momentum flux with force-balance readings. For multi-anode and segmented arrays, identify the configuration-dependent cross-coupling matrix; do not assume isolated-cell force vectors superpose. Report static force and wind-tunnel effective force separately; the frame and electrode drag can reverse the ranking at forward speed.
 
 ### D. Mobility-aware gas and pressure design
 
@@ -104,7 +147,7 @@ Treat ion mobility as a function of measured gas composition, pressure, temperat
 
 ### E. Segmented, health-aware actuation
 
-Partition a larger EHD surface into separately monitored zones. Allocate drive subject to measured current, thermal and breakdown limits; detect weak or unstable zones; derate or isolate faults; and reallocate control authority. This builds on the integrated microrobot control literature, but the large distributed surface and fault-tolerant allocation remain proposed work.
+Partition a larger EHD surface into separately monitored zones. Identify mutual force/field coupling by orientation, spacing and drive waveform before treating zones as independent control channels. Allocate drive subject to measured current, thermal and breakdown limits; detect weak or unstable zones; derate or isolate faults; and reallocate control authority. This builds on the integrated microrobot control literature, but the large distributed surface and fault-tolerant allocation remain proposed work.
 
 ## 3. A more decisive experiment than one-factor-at-a-time tuning
 
