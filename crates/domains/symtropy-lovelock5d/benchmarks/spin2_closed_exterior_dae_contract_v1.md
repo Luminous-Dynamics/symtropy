@@ -140,3 +140,69 @@ A successful reduced solve does not qualify a solution until every independent c
 The full scaled E_f row is analytically regular, determines F_2 algebraically, and supplies one exact horizon compatibility relation. The Myers–Perry horizon control passes and a wrong-sign mutation fails.
 
 The coupled E_b/E_h horizon recurrence, E_g horizon qualification, finite-\(\alpha\) BVP, full-domain interval enclosure, radii-polynomial certificate and nonlinear rotating branch are still open. This document defines the solver interface and evidence contract; it is not evidence that a finite-coupling black hole solution has been computed.
+
+
+## 8. Triangular horizon-series reconstruction of F-hat-2
+
+The full scaled algebraic row can be written
+
+\[
+A_F(y)\widehat F_2(y)+A_B(y)\widehat B_2(y)
++A_{B'}(y)\widehat B_2'(y)
++A_H(y)\widehat H_2(y)
++A_{H'}(y)\widehat H_2'(y)+S(y)=0,
+\]
+
+where every coefficient is analytic at \(y=0\), and
+
+\[
+A_F(0)=3(\lambda+2)^2\ne0.
+\]
+
+Expand
+
+\[
+A_X(y)=\sum_{j\ge0}a_{X,j}y^j,\quad
+S(y)=\sum_{j\ge0}s_jy^j,
+\]
+
+\[
+\widehat F_2(y)=\sum_{n\ge0}f_ny^n,\quad
+\widehat B_2(y)=\sum_{n\ge0}b_ny^n,\quad
+\widehat H_2(y)=\sum_{n\ge0}h_ny^n.
+\]
+
+Coefficient matching gives the reusable triangular recurrence
+
+\[
+\boxed{
+f_n=-\frac{1}{a_{F,0}}\left[
+\sum_{j=1}^{n}a_{F,j}f_{n-j}
++\sum_{j=0}^{n}\left(
+a_{B,j}b_{n-j}
++a_{B',j}(n-j+1)b_{n-j+1}
++a_{H,j}h_{n-j}
++a_{H',j}(n-j+1)h_{n-j+1}
++s_j\right)\right].
+}
+\]
+
+Thus \(f_n\) is determined algebraically once the differential-pair Taylor data through \(b_{n+1},h_{n+1}\) are known. No differential integration of F-hat-2 is needed. The recursion is triangular because the only occurrence of \(f_n\) is multiplied by the nonzero \(a_{F,0}\).
+
+At order zero, the exact row gives
+
+\[
+f_0=b_0,
+\]
+
+so fixed-horizon data \(b_0=f_0=0\) are consistent. At order one, the exact coefficient values and slopes give
+
+\[
+f_1-\frac{2\lambda}{3(\lambda+1)^2}h_0
++\frac{h_1}{3(\lambda+1)}
++\frac{2(\lambda+2)^2}{3(\lambda+1)^2}=0,
+\]
+
+with the \(b_1\) terms cancelling. This is the compatibility relation independently checked against the Myers–Perry alpha-zero horizon data and its wrong-sign negative control.
+
+This recurrence is an exact algebraic consequence of the full scaled E-f row. Higher-order E-b/E-h recurrence coefficients still have to be derived; the formula does not supply them or prove that a global finite-coupling BVP exists.
