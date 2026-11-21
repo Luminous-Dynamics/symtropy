@@ -328,7 +328,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn rejects_noncanonical_feature_identifiers() {
         let padded_universe = set(&["x1", " x2"]);
