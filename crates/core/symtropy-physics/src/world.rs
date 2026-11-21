@@ -2814,7 +2814,7 @@ mod constraint_outcome_report_tests {
             Point::origin(),
             Box::new(Sphere::new(Point::origin(), 0.1)),
         ));
-        let dynamic = world.add_sphere(Point::origin(), 0.2, 1.0);
+        let dynamic = world.add_sphere(Point::new([2.0, 0.0, 0.0]), 0.2, 1.0);
         {
             let body = world.body_mut(dynamic).expect("dynamic body is present");
             body.linear_velocity = SVector::from([0.0, 0.4, -0.2]);
