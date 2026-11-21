@@ -248,6 +248,18 @@ mod tests {
     }
 
     #[test]
+    fn rejects_covariance_geometry_with_nonpositive_profiled_scale() {
+        assert_eq!(
+            covariance_profiled_spectrum_shape_chi_square(
+                &[1.0, 10.0],
+                &[10.0, 1.0],
+                &[vec![1.0, 0.99], vec![0.99, 1.0]],
+            ),
+            Err(ModelError::InvalidParameter("profiled_spectrum_scale_not_positive"))
+        );
+    }
+
+    #[test]
     fn rejects_negative_and_nonfinite_spectrum_values() {
         assert_eq!(
             covariance_profiled_spectrum_shape_chi_square(&[1.0, -1.0], &[1.0, 1.0], &[vec![1.0, 0.0], vec![0.0, 1.0]]),
