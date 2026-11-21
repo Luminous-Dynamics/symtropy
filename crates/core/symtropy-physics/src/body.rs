@@ -40,7 +40,11 @@ pub enum MassPropertyInvariantError {
 }
 
 fn reciprocal_matches(actual: f64, canonical: f64) -> bool {
-    let expected = if canonical > 0.0 { 1.0 / canonical } else { 0.0 };
+    let expected = if canonical > 0.0 {
+        1.0 / canonical
+    } else {
+        0.0
+    };
     if !expected.is_finite() {
         return false;
     }
@@ -315,7 +319,6 @@ impl<const D: usize> RigidBody<D> {
         self.transform.transform_point(&Point(local_support)).0
     }
 }
-
 
 #[cfg(test)]
 mod mass_property_invariant_tests {
