@@ -3,16 +3,16 @@
 
 use std::{env, fs, process::ExitCode};
 
-use rural_industrial_electrification_evaluator::{
-    CompatibilityInput,
-    evaluate_compatibility,
-};
+use rural_industrial_electrification_evaluator::{CompatibilityInput, evaluate_compatibility};
 
 fn main() -> ExitCode {
     let mut args = env::args_os();
     let program = args.next().unwrap_or_default();
     let Some(path) = args.next() else {
-        eprintln!("usage: {} <interface-contract.json>", program.to_string_lossy());
+        eprintln!(
+            "usage: {} <interface-contract.json>",
+            program.to_string_lossy()
+        );
         return ExitCode::from(2);
     };
     if args.next().is_some() {
