@@ -295,7 +295,29 @@ The European Commission's current Battery Passport FAQ clarifies that applicabil
 
 Mycelix owns the identity, custody, battery lineage and category-specific passport projection. Symtropy does not infer legal applicability or submit a Registry record on the operator's behalf.
 
-## 9. Next implementation phases
+## 9. Standards, interoperability and safety boundary
+
+The current road-EV swapping standards are useful references for the carrier's ground-side battery-service equipment, but they do **not** certify a UAV battery, aircraft dock or aerial operation.
+
+- **IEC 62840-1:2025** ([official IEC listing](https://webstore.iec.ch/en/publication/66398)) supplies general guidance and interoperability principles for road-EV swappable and handheld-swappable battery systems, including functional, interface, data and operational interoperability. Its scope is road EVs and it excludes vehicles primarily designed for off-road use and maintenance/service of swap stations or vehicles.
+- **IEC 62840-2:2025** ([official IEC listing](https://webstore.iec.ch/en/publication/66390)) specifies safety requirements for road-EV battery swap systems, including communication security, EMC, marking/instructions, electric-shock/other hazard protection, detailed interface/state-transition protocol requirements, capacitor-discharge limits, automated mechanical handling safeguards aligned with ISO 10218-1/-2, and overcurrent/short-circuit protection testing. It also excludes swap-station maintenance/service and EV maintenance/service.
+- **ISO/TS 5474-5:2024** ([official ISO listing](https://www.iso.org/standard/81301.html)) addresses vehicle-side automatic conductive power-transfer connections: electrical/mechanical safety, compatibility, environmental conditions, functionality and test procedures. It is not a battery swap protocol and does not specify aircraft interfaces.
+
+Do not claim these standards apply directly to UAV battery systems. The actual system needs a documented applicability assessment and its own aviation, electrical, battery/transport, machinery and site safety basis with competent authorities and qualified labs.
+
+For future engineering verification, derive a design-specific test matrix covering:
+- mechanical keying, insertion/removal geometry, retention/locking, misalignment rejection and module drop;
+- electrical de-energization, isolation verification, interlocks, contactor sequencing and residual voltage/capacitor discharge;
+- chemistry, voltage, current, BMS, firmware and configuration handshake before electrical contact or charging;
+- authenticated safety-critical communication; loss, replay, stale-data and timeout behavior;
+- overcurrent, short-circuit, reverse polarity, insulation, earth continuity, emergency disconnect and thermal/fire containment;
+- EMC disturbance and safe recovery;
+- automated mechanism collision, guarding and pinch/crush hazards;
+- custody/state reconciliation after exchange and independent post-test before a pack returns to available inventory.
+
+This is a **preliminary engineering verification matrix**, not a normative compliance checklist. The full standards and actual certification basis must be reviewed by competent specialists; the public abstracts/product pages do not establish clause-level conformity or exact acceptance limits.
+
+## 10. Next implementation phases
 
 **v0.2 — exact multi-period charging and inventory**
 - model pack-state transitions, charge curves, cooldown/balancing, parallel charger/rack occupancy and grid caps;
