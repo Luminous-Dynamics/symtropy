@@ -652,10 +652,13 @@ mod tests {
         );
     }
 
-
     #[test]
     fn preflight_aborted_or_invalidated_runs_remain_recordable_as_incomplete_evidence() {
-        for status in [RunStatus::Incomplete, RunStatus::Aborted, RunStatus::Invalidated] {
+        for status in [
+            RunStatus::Incomplete,
+            RunStatus::Aborted,
+            RunStatus::Invalidated,
+        ] {
             let mut run = receipt();
             run.episode_receipts.clear();
             run.aggregate_counts.clear();
