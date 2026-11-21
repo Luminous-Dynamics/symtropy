@@ -34,7 +34,7 @@ Each receipt binds:
 - exact active action ID and attempt number for goal evidence, reconciliation evidence and recovery permits;
 - source ID and monotonically increasing source sequence;
 - normalized observation timestamp in a declared comparison clock/boot epoch;
-- original source clock/boot identity and a separate clock-normalization commitment;
+- original source clock/boot identity, comparison clock/boot identity and a separate normalization commitment;
 - observer role (agent self-report is rejected);
 - confidence in basis points;
 - target subgoal and predicate (for goal evidence).
@@ -57,7 +57,7 @@ The decision log is append-only and contains only mission/subgoal identifiers, s
 
 ## Tests
 
-21+ tests exercise dependency order, action acknowledgement vs evidence, independent observer enforcement, predicate binding, low confidence, event idempotency/conflict, stale sequence handling, ambiguous execution hold, reconciliation, explicit safe recovery, exact action/attempt binding for goal evidence, reconciliation and recovery permits, clock-basis regression, and deterministic decision replay. The dedicated workflow runs formatting, tests and Clippy with warnings denied.
+22+ tests exercise dependency order, action acknowledgement vs evidence, independent observer enforcement, predicate binding, low confidence, event idempotency/conflict, stale sequence handling, ambiguous execution hold, reconciliation, explicit safe recovery, exact action/attempt binding for goal evidence, reconciliation and recovery permits, comparison-clock, source-clock and normalization-commitment regressions, and deterministic decision replay. The dedicated workflow runs formatting, tests and Clippy with warnings denied.
 
 ## Integration path
 
