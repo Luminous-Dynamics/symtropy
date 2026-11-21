@@ -60,7 +60,7 @@ Illustrative sample sizes:
 - 2,995 zero-miss injections put it below 0.1%.
 - 29,956 zero-miss injections put it below 0.01%.
 
-The crate reports this bound only when the fixture has zero missing reference IDs. If one or more injected events are missed, the disposition is \`INCOMPLETE\` and the current v0.1 profile omits the confidence bound rather than claiming a pass. A later profile should add an independently cross-checked one-sided Clopper–Pearson upper bound for arbitrary miss counts.
+The crate reports this bound only when the fixture has zero missing reference IDs and no duplicate capture, unmatched observation, or conflicting payload/time record. If one or more injected events are missed, the disposition is \`INCOMPLETE\` and the current v0.1 profile omits the confidence bound rather than claiming a pass. Disputed records also suppress the bound. A later profile should add an independently cross-checked one-sided Clopper–Pearson upper bound for arbitrary miss counts.
 
 These sample-size illustrations assume independent, representative trials from one unchanged detection regime. Burst loss, common-cause faults, event-rate dependence, time-varying capture probability or untested event classes invalidate a naïve iid interpretation. The responsible technical authority must allocate risk and define strata; these values are not universal qualification requirements.
 
@@ -101,7 +101,7 @@ The v0.1 corpus contains 20 synthetic cases:
 19. shared firmware failure domain;
 20. non-monotonic clock declaration.
 
-The independent JavaScript oracle implements the reconciliation decisions separately from Rust. The frozen corpus is an expected-result fixture, not a statistical validation of a physical sensor or a statistically representative capture campaign.
+The independent JavaScript oracle implements the reconciliation decisions separately from Rust. Integer event clocks, sequence values and counters are restricted to the exact interoperable range shared by Rust and JavaScript numbers. The frozen corpus is an expected-result fixture, not a statistical validation of a physical sensor or a statistically representative capture campaign.
 
 ## Standards and industry positioning
 
