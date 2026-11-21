@@ -131,9 +131,7 @@ fn parse_args() -> Result<Option<Args>, String> {
             }
             "--dataset-revision" => revision = Some(next_value(&mut args, &arg)?),
             "--raw-root" => raw_root = Some(PathBuf::from(next_value(&mut args, &arg)?)),
-            "--metadata-root" => {
-                metadata_root = Some(PathBuf::from(next_value(&mut args, &arg)?))
-            }
+            "--metadata-root" => metadata_root = Some(PathBuf::from(next_value(&mut args, &arg)?)),
             "--mapping-tsv" => mapping_tsv = Some(PathBuf::from(next_value(&mut args, &arg)?)),
             "--grouping-tsv" => grouping_tsv = Some(PathBuf::from(next_value(&mut args, &arg)?)),
             "--output" => output = Some(PathBuf::from(next_value(&mut args, &arg)?)),
@@ -141,9 +139,12 @@ fn parse_args() -> Result<Option<Args>, String> {
         }
     }
 
-    let revision = revision.ok_or_else(|| format!("--dataset-revision is required\n{}", usage()))?;
+    let revision =
+        revision.ok_or_else(|| format!("--dataset-revision is required\n{}", usage()))?;
     if revision.len() != 40 || !revision.bytes().all(|byte| byte.is_ascii_hexdigit()) {
-        return Err("--dataset-revision must be an immutable 40-character hexadecimal commit".to_owned());
+        return Err(
+            "--dataset-revision must be an immutable 40-character hexadecimal commit".to_owned(),
+        );
     }
 
     Ok(Some(Args {
@@ -151,7 +152,8 @@ fn parse_args() -> Result<Option<Args>, String> {
         raw_root: raw_root.ok_or_else(|| format!("--raw-root is required\n{}", usage()))?,
         metadata_root: metadata_root
             .ok_or_else(|| format!("--metadata-root is required\n{}", usage()))?,
-        mapping_tsv: mapping_tsv.ok_or_else(|| format!("--mapping-tsv is required\n{}", usage()))?,
+        mapping_tsv: mapping_tsv
+            .ok_or_else(|| format!("--mapping-tsv is required\n{}", usage()))?,
         grouping_tsv: grouping_tsv
             .ok_or_else(|| format!("--grouping-tsv is required\n{}", usage()))?,
         output,
@@ -204,7 +206,10 @@ fn walk_json(root: &Path, directory: &Path, files: &mut Vec<String>) -> Result<(
             .file_type()
             .map_err(|error| format!("cannot inspect {}: {error}", path.display()))?;
         if kind.is_symlink() {
-            return Err(format!("symlink is prohibited inside source root: {}", path.display()));
+            return Err(format!(
+                "symlink is prohibited inside source root: {}",
+                path.display()
+            ));
         }
         if kind.is_dir() {
             walk_json(root, &path, files)?;
@@ -283,7 +288,11 @@ fn valid_sha(value: &str) -> bool {
     value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
-fn read_tsv(path: &Path, expected_header: &str, columns: usize) -> Result<Vec<Vec<String>>, String> {
+fn read_tsv(
+    path: &Path,
+    expected_header: &str,
+    columns: usize,
+) -> Result<Vec<Vec<String>>, String> {
     let file = File::open(path)
         .map_err(|error| format!("cannot open manifest {}: {error}", path.display()))?;
     let mut lines = BufReader::new(file).lines();
@@ -304,7 +313,10 @@ fn read_tsv(path: &Path, expected_header: &str, columns: usize) -> Result<Vec<Ve
         let line_number = index + 2;
         let line = line.map_err(|error| format!("{}:{line_number}: {error}", path.display()))?;
         if line.is_empty() {
-            return Err(format!("{}:{line_number}: blank rows are prohibited", path.display()));
+            return Err(format!(
+                "{}:{line_number}: blank rows are prohibited",
+                path.display()
+            ));
         }
         let fields = line.split('\t').map(str::to_owned).collect::<Vec<_>>();
         if fields.len() != columns {
@@ -314,7 +326,10 @@ fn read_tsv(path: &Path, expected_header: &str, columns: usize) -> Result<Vec<Ve
                 fields.len()
             ));
         }
-        if fields.iter().any(|field| field.trim() != field || field.contains('\r')) {
+        if fields
+            .iter()
+            .any(|field| field.trim() != field || field.contains('\r'))
+        {
             return Err(format!(
                 "{}:{line_number}: fields must not have leading/trailing whitespace or CR",
                 path.display()
@@ -350,7 +365,9 @@ fn parse_mappings(
         }
         let raw_file = resolve_source(raw_root, &raw_path)?;
         if sha256_file(&raw_file)? != raw_sha {
-            return Err(format!("mapping.tsv:{line}: raw digest mismatch for {raw_path}"));
+            return Err(format!(
+                "mapping.tsv:{line}: raw digest mismatch for {raw_path}"
+            ));
         }
 
         match status {
@@ -358,9 +375,9 @@ fn parse_mappings(
                 let metadata_path = metadata_path
                     .as_deref()
                     .ok_or_else(|| format!("mapping.tsv:{line}: mapped row lacks metadata_path"))?;
-                let metadata_sha = metadata_sha
-                    .as_deref()
-                    .ok_or_else(|| format!("mapping.tsv:{line}: mapped row lacks metadata_sha256"))?;
+                let metadata_sha = metadata_sha.as_deref().ok_or_else(|| {
+                    format!("mapping.tsv:{line}: mapped row lacks metadata_sha256")
+                })?;
                 if !valid_sha(metadata_sha) {
                     return Err(format!("mapping.tsv:{line}: malformed metadata SHA-256"));
                 }
@@ -401,7 +418,9 @@ fn parse_mappings(
                 }
             }
             other => {
-                return Err(format!("mapping.tsv:{line}: unknown mapping_status {other:?}"));
+                return Err(format!(
+                    "mapping.tsv:{line}: unknown mapping_status {other:?}"
+                ));
             }
         }
 
@@ -446,7 +465,9 @@ fn parse_dependence_keys(value: &str, line: usize) -> Result<Vec<String>, String
             ));
         }
         if !keys.insert(item.to_owned()) {
-            return Err(format!("grouping.tsv:{line}: duplicate dependence key {item:?}"));
+            return Err(format!(
+                "grouping.tsv:{line}: duplicate dependence key {item:?}"
+            ));
         }
     }
     Ok(keys.into_iter().collect())
@@ -461,7 +482,9 @@ fn parse_groupings(rows: Vec<Vec<String>>) -> Result<Vec<Grouping>, String> {
         let raw_path = fields[0].clone();
         let raw_sha = fields[1].to_ascii_lowercase();
         if !seen.insert(raw_path.clone()) {
-            return Err(format!("grouping.tsv:{line}: duplicate raw_path {raw_path}"));
+            return Err(format!(
+                "grouping.tsv:{line}: duplicate raw_path {raw_path}"
+            ));
         }
         if !valid_sha(&raw_sha) {
             return Err(format!("grouping.tsv:{line}: malformed raw SHA-256"));
@@ -510,7 +533,11 @@ fn parse_groupings(rows: Vec<Vec<String>>) -> Result<Vec<Grouping>, String> {
                     ));
                 }
             }
-            other => return Err(format!("grouping.tsv:{line}: unknown unit_disposition {other:?}")),
+            other => {
+                return Err(format!(
+                    "grouping.tsv:{line}: unknown unit_disposition {other:?}"
+                ));
+            }
         }
 
         output.push(Grouping {
@@ -564,18 +591,40 @@ fn audit(args: &Args) -> Result<(Vec<Row>, String), String> {
     let mappings = parse_mappings(mapping_rows, &raw_root, &metadata_root)?;
     let groupings = parse_groupings(grouping_rows)?;
 
-    let mapping_paths = mappings.iter().map(|row| row.raw_path.clone()).collect::<BTreeSet<_>>();
-    let grouping_paths = groupings.iter().map(|row| row.raw_path.clone()).collect::<BTreeSet<_>>();
+    let mapping_paths = mappings
+        .iter()
+        .map(|row| row.raw_path.clone())
+        .collect::<BTreeSet<_>>();
+    let grouping_paths = groupings
+        .iter()
+        .map(|row| row.raw_path.clone())
+        .collect::<BTreeSet<_>>();
     let raw_paths = discovered_raw.iter().cloned().collect::<BTreeSet<_>>();
     if mapping_paths != raw_paths {
-        let missing = raw_paths.difference(&mapping_paths).cloned().collect::<Vec<_>>();
-        let extra = mapping_paths.difference(&raw_paths).cloned().collect::<Vec<_>>();
-        return Err(format!("mapping coverage mismatch; missing={missing:?}; unexpected={extra:?}"));
+        let missing = raw_paths
+            .difference(&mapping_paths)
+            .cloned()
+            .collect::<Vec<_>>();
+        let extra = mapping_paths
+            .difference(&raw_paths)
+            .cloned()
+            .collect::<Vec<_>>();
+        return Err(format!(
+            "mapping coverage mismatch; missing={missing:?}; unexpected={extra:?}"
+        ));
     }
     if grouping_paths != raw_paths {
-        let missing = raw_paths.difference(&grouping_paths).cloned().collect::<Vec<_>>();
-        let extra = grouping_paths.difference(&raw_paths).cloned().collect::<Vec<_>>();
-        return Err(format!("grouping coverage mismatch; missing={missing:?}; unexpected={extra:?}"));
+        let missing = raw_paths
+            .difference(&grouping_paths)
+            .cloned()
+            .collect::<Vec<_>>();
+        let extra = grouping_paths
+            .difference(&raw_paths)
+            .cloned()
+            .collect::<Vec<_>>();
+        return Err(format!(
+            "grouping coverage mismatch; missing={missing:?}; unexpected={extra:?}"
+        ));
     }
 
     let mapping_by_path = mappings
@@ -599,7 +648,9 @@ fn audit(args: &Args) -> Result<(Vec<Row>, String), String> {
             .ok_or_else(|| format!("internal grouping lookup failed for {raw_path}"))?
             .clone();
         if mapping.raw_sha != grouping.raw_sha {
-            return Err(format!("raw digest differs between manifests for {raw_path}"));
+            return Err(format!(
+                "raw digest differs between manifests for {raw_path}"
+            ));
         }
         if let Some(metadata_path) = &mapping.metadata_path {
             referenced_metadata.insert(metadata_path.clone());
@@ -618,9 +669,7 @@ fn audit(args: &Args) -> Result<(Vec<Row>, String), String> {
                 .metadata_path
                 .as_deref()
                 .map(|path| format!("metadata/{path}"));
-            if evidence != expected_raw
-                && expected_metadata.as_deref() != Some(evidence)
-            {
+            if evidence != expected_raw && expected_metadata.as_deref() != Some(evidence) {
                 return Err(format!(
                     "{raw_path}: group evidence must point to this row's exact hashed raw or mapped metadata file"
                 ));
@@ -631,8 +680,14 @@ fn audit(args: &Args) -> Result<(Vec<Row>, String), String> {
 
     let all_metadata = discovered_metadata.into_iter().collect::<BTreeSet<_>>();
     if referenced_metadata != all_metadata {
-        let missing = all_metadata.difference(&referenced_metadata).cloned().collect::<Vec<_>>();
-        let extra = referenced_metadata.difference(&all_metadata).cloned().collect::<Vec<_>>();
+        let missing = all_metadata
+            .difference(&referenced_metadata)
+            .cloned()
+            .collect::<Vec<_>>();
+        let extra = referenced_metadata
+            .difference(&all_metadata)
+            .cloned()
+            .collect::<Vec<_>>();
         return Err(format!(
             "metadata reference coverage mismatch; unreferenced_metadata={missing:?}; unexpected_metadata={extra:?}"
         ));
@@ -655,7 +710,13 @@ fn grouping_components(rows: &[Row]) -> (UnionFind, BTreeMap<usize, Vec<usize>>)
             "unit:{}",
             row.grouping.unit_id.as_deref().unwrap_or_default()
         ))
-        .chain(row.grouping.dependence_keys.iter().cloned().map(|key| format!("dep:{key}")))
+        .chain(
+            row.grouping
+                .dependence_keys
+                .iter()
+                .cloned()
+                .map(|key| format!("dep:{key}")),
+        )
         .chain(std::iter::once(format!("rawsha:{}", row.mapping.raw_sha)));
         for key in keys {
             if let Some(previous) = first_by_key.insert(key, index) {
@@ -687,11 +748,14 @@ fn output_jsonl(args: &Args, rows: &[Row], digest_pair: &str) -> Result<String, 
     let mut mapping_counts = BTreeMap::<String, usize>::new();
     let mut unknown_rows = 0usize;
     let mut split_counts = BTreeMap::<String, usize>::new();
-    let mut domain_units = BTreeMap::<(String, String, String), BTreeMap<String, BTreeSet<usize>>>::new();
+    let mut domain_units =
+        BTreeMap::<(String, String, String), BTreeMap<String, BTreeSet<usize>>>::new();
     let mut split_by_component = BTreeMap::<usize, BTreeSet<String>>::new();
 
     for row in rows {
-        *mapping_counts.entry(row.mapping.status.clone()).or_default() += 1;
+        *mapping_counts
+            .entry(row.mapping.status.clone())
+            .or_default() += 1;
         if row.grouping.disposition == "UNKNOWN" {
             unknown_rows += 1;
         } else {
@@ -875,10 +939,7 @@ mod tests {
 
     #[test]
     fn json_escape_handles_quotes_slashes_and_controls() {
-        assert_eq!(
-            json_escape("a\"b\\c\n"),
-            "\"a\\\"b\\\\c\\n\"".to_owned()
-        );
+        assert_eq!(json_escape("a\"b\\c\n"), "\"a\\\"b\\\\c\\n\"".to_owned());
     }
 
     #[test]
