@@ -2751,8 +2751,6 @@ mod anisotropic_contact_inertia_tests {
     }
 }
 
-
-
 #[cfg(test)]
 mod constraint_outcome_report_tests {
     use super::*;
@@ -2776,11 +2774,13 @@ mod constraint_outcome_report_tests {
             1.0,
             SVector::from_element(1.0),
         ));
-        world
-            .body_mut(dynamic)
-            .expect("dynamic link is present")
-            .angular_velocity
-            .set(0, 1, 0.5);
+        {
+            let body = world.body_mut(dynamic).expect("dynamic link is present");
+            body.angular_velocity.set(0, 1, 0.5);
+            // The linear prismatic correction will mutate this velocity
+            // before the unsupported 4D angular response is rejected.
+            body.linear_velocity[0] = 0.25;
+        }
         world.add_constraint(Box::new(crate::joints::PrismaticJoint::new(
             base, dynamic, 3,
         )));
@@ -2798,7 +2798,7 @@ mod constraint_outcome_report_tests {
             event.outcome,
             ConstraintSolveOutcome::Rejected {
                 code: "prismatic.unsupported_inertia_model",
-                body_state_mutated_before_rejection: false,
+                body_state_mutated_before_rejection: true,
             }
         );
         assert_eq!(report.rejected_constraint_count(), 1);
