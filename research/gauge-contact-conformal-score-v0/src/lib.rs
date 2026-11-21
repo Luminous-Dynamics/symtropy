@@ -548,6 +548,7 @@ pub fn bind_pose_calibration_receipt(
             .iter()
             .zip(block_receipt.trial_score_records.iter())
         {
+            trial.identity.validate()?;
             if episode.episode_id != trial.trial_id
                 || episode.outcome != trial.outcome
                 || trial.identity.dataset_revision != identity.dataset_revision
@@ -555,7 +556,16 @@ pub fn bind_pose_calibration_receipt(
                 || trial.identity.target_digest != identity.target_digest
                 || trial.identity.domain_digest != identity.domain_digest
                 || trial.score_definition_digest != identity.score_definition_digest
+                || !is_sha256(&trial.score_definition_digest)
                 || !trial_ids.insert(trial.trial_id.as_str())
+                || (trial.incomplete_horizon
+                    && (trial.outcome == EpisodeOutcome::Completed
+                        || trial.maximum_nonconformity_score != INCOMPLETE_HORIZON_SCORE))
+                || (!trial.incomplete_horizon
+                    && (trial.maximum_nonconformity_score == INCOMPLETE_HORIZON_SCORE
+                        || trial.expected_body_count == 0
+                        || trial.expected_sample_count == 0
+                        || trial.observed_sample_count != trial.expected_sample_count))
             {
                 return Err(PoseScoreError::CalibrationBlockReceiptMismatch);
             }
