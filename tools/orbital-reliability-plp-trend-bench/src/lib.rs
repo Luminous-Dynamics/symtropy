@@ -222,7 +222,7 @@ fn upper_ratio_root(deviance: f64) -> Result<f64, String> {
 /// locations are iid uniform on (0, T). Therefore S = sum(log(T / t_i))
 /// follows Gamma(n, 1), and beta_hat = n / S.
 pub fn exact_conditional_trend_p_value(event_count: usize, ratio: f64) -> Result<f64, String> {
-    if event_count < 2 || event_count > MAX_EVENTS {
+    if !(2..=MAX_EVENTS).contains(&event_count) {
         return Err("event count is outside the supported v0.1 range".to_owned());
     }
     if !ratio.is_finite() || ratio <= 0.0 {
