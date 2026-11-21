@@ -1,20 +1,61 @@
 {
   "schema_version": "0.1.0",
-  "official_fields_to_preserve": [
+  "benchmark_commit": "e4e204073cc64b0dc49f9669c2951e6bc91fe0af",
+  "official_episode_fields": [
     "suite",
     "task",
+    "episode",
     "success",
-    "subgoals_completed",
+    "subgoals_done",
+    "subgoals",
     "steps"
   ],
+  "official_metadata_fields": [
+    "name",
+    "kind",
+    "authors",
+    "contact",
+    "results_url",
+    "low_level_policy",
+    "vlm",
+    "inputs",
+    "ladder_commit",
+    "description",
+    "privileged",
+    "tuned_on_ladder"
+  ],
   "official_scores_to_reproduce": [
-    "per_suite_task_success",
-    "pooled_overall",
-    "unweighted_suite_mean",
-    "wilson_95_interval",
-    "subgoal_progress",
-    "by_horizon",
-    "by_category"
+    "per_suite_success_with_wilson_95_margin",
+    "pooled_overall_success_with_wilson_95_margin",
+    "equal_weight_suite_mean",
+    "equal_weight_suite_mean_1_96_standard_error_margin",
+    "per_suite_subgoal_progress",
+    "equal_weight_suite_mean_subgoal_progress",
+    "success_by_subgoal_horizon",
+    "success_by_task_category",
+    "separate_ladder_lite_scores"
+  ],
+  "official_formulas": {
+    "suite_success": "p_s = successes_s / episodes_s",
+    "suite_and_pooled_wilson_margin": "Wilson95(k,n) = larger distance from k/n to either 95% Wilson interval endpoint; reported in percentage points.",
+    "pooled_overall": "p_pool = total successes across all included suite episodes / total included suite episodes.",
+    "equal_weight_suite_mean": "mean = (p_robolab + p_simplerenv + p_robotarena) / 3. Only emitted when all three suites are present.",
+    "equal_weight_suite_mean_margin": "SE = sqrt(sum(p_s*(1-p_s)/n_s for each suite)) / 3; reported mean margin in percentage points = 196*SE.",
+    "subgoal_progress": "progress_s = sum(subgoals_done) / sum(subgoals) within each suite; overall progress mean is unweighted mean over the three suite progress values."
+  },
+  "hard_rules": [
+    "Official episode rows use exactly the seven fields in official_episode_fields; no additional properties.",
+    "Episode success is derived from the official episode log, never manually supplied or inferred from a Symtropy receipt.",
+    "subgoals_done follows the official goal_objects/goal_trace algorithm and task-catalog order for Relay/Revisit.",
+    "Do not alter official task success definition.",
+    "Do not combine LADDER-Lite and full benchmark results.",
+    "Do not combine privileged and non-privileged scores.",
+    "Do not omit failed episodes or select best reruns.",
+    "Full-benchmark claims require all tasks in all three suites with default episode counts; partial-suite entries must be labeled as partial suite coverage.",
+    "Do not use per-task prompts/settings.",
+    "Set tuned_on_ladder=true when system components, prompts, thresholds or settings were trained or tuned on benchmark tasks/scenes.",
+    "Physical robot runs and simulator runs are reported separately.",
+    "Symtropy evidence, energy, thermal, recovery and cost metrics belong in a sidecar and never substitute for or modify the official episode row."
   ],
   "symtropy_extensions_separate": [
     "accepted_subgoal_evidence_coverage",
@@ -30,16 +71,6 @@
     "api_cost_usd",
     "gpu_simulator_cost_usd",
     "physical_robot_energy_wh"
-  ],
-  "hard_rules": [
-    "Do not alter official task success definition.",
-    "Do not combine LADDER-Lite and full benchmark results.",
-    "Do not combine privileged and non-privileged scores.",
-    "Do not omit failed episodes or select best reruns.",
-    "Do not use per-task prompts/settings.",
-    "Set tuned_on_ladder=true when system components or thresholds were tuned on benchmark tasks/scenes.",
-    "Physical robot runs and simulator runs are reported separately.",
-    "Luminous evidence extensions never substitute for LADDER's official episode log."
   ],
   "target_gate": {
     "reproduce_official_baseline_before_claiming_comparison": true,
