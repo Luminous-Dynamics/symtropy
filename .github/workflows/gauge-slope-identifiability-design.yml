@@ -33,8 +33,12 @@ jobs:
           jq -e '
             .baseline_id == "IDTD-ARXIV-2610.10905" and
             .paper.version == "v2" and
-            .code_source.revision == "b47eed10adb4ea3d1987fc4211a9251f5de18ea6" and
-            .code_source.files[] | select(.path == "consysid/active/fim_evaluator.py" and .git_blob_sha1 == "1a3aa63c8ed6f2091a06ffa25ae16f4072a7516d")
+            .code_source.revision == "b47eed10adb4ea3d1987fc4211a9251f5de18ea6"
+          ' benchmarks/gauge-slope-identifiability-design/v0.1/external_baseline_manifest.idtd.v0.1.json >/dev/null
+          jq -e '
+            any(.code_source.files[];
+              .path == "consysid/active/fim_evaluator.py" and
+              .git_blob_sha1 == "1a3aa63c8ed6f2091a06ffa25ae16f4072a7516d")
           ' benchmarks/gauge-slope-identifiability-design/v0.1/external_baseline_manifest.idtd.v0.1.json >/dev/null
           jq -e '
             .reproduction_status.code_executed == false and
