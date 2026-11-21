@@ -72,17 +72,36 @@ pub struct Quantity {
     pub value: f64,
 }
 
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum QualificationTestResult {
+    Passed,
+    Failed,
+    Inconclusive,
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct QualificationEvidence {
     pub evidence_id: String,
     pub evidence_class: EvidenceClass,
     pub source_reference: String,
+    pub issuer_id: String,
     pub report_digest_sha256: String,
+    pub measurement_dataset_sha256: String,
+    pub calibration_bundle_sha256: String,
     pub tested_vehicle_configuration_id: String,
+    pub test_article_vehicle_serial: String,
     pub tested_module_configuration_id: String,
+    pub test_article_module_serial: String,
     pub interface_revision: String,
+    pub test_procedure_id: String,
+    pub test_procedure_revision: String,
     pub acceptance_criteria_id: String,
+    pub uncertainty_budget_reference: String,
+    pub test_completed_at_utc: String,
+    pub test_result: QualificationTestResult,
+    pub limitations: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
@@ -189,6 +208,39 @@ fn valid_digest(digest: &str) -> bool {
             .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
 }
 
+fn valid_utc_timestamp(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    if bytes.len() != 20
+        || bytes[4] != b'-'
+        || bytes[7] != b'-'
+        || bytes[10] != b'T'
+        || bytes[13] != b':'
+        || bytes[16] != b':'
+        || bytes[19] != b'Z'
+    {
+        return false;
+    }
+    for index in [0, 1, 2, 3, 5, 6, 8, 9, 11, 12, 14, 15, 17, 18] {
+        if !bytes[index].is_ascii_digit() {
+            return false;
+        }
+    }
+    let parse = |start: usize, end: usize| {
+        value.get(start..end).and_then(|part| part.parse::<u32>().ok())
+    };
+    let Some(month) = parse(5, 7) else { return false };
+    let Some(day) = parse(8, 10) else { return false };
+    let Some(hour) = parse(11, 13) else { return false };
+    let Some(minute) = parse(14, 16) else { return false };
+    let Some(second) = parse(17, 19) else { return false };
+    (1..=12).contains(&month)
+        && (1..=31).contains(&day)
+        && hour <= 23
+        && minute <= 59
+        && second <= 60
+}
+
+
 fn valid_optional_quantity(quantity: &Option<Quantity>) -> bool {
     quantity.as_ref().is_none_or(|value| {
         !value.unit.trim().is_empty() && value.value.is_finite() && value.value >= 0.0
@@ -251,17 +303,29 @@ fn validate_ports(label: &str, ports: &[InterfacePort], errors: &mut Vec<String>
                 "{label}.ports[{index}].evidence: at least one scoped evidence receipt is required"
             ));
         }
+        let mut evidence_ids = BTreeSet::new();
         for (evidence_index, evidence) in port.evidence.iter().enumerate() {
             if evidence.evidence_id.trim().is_empty()
+                || !evidence_ids.insert(evidence.evidence_id.as_str())
                 || evidence.source_reference.trim().is_empty()
+                || evidence.issuer_id.trim().is_empty()
                 || evidence.tested_vehicle_configuration_id.trim().is_empty()
+                || evidence.test_article_vehicle_serial.trim().is_empty()
                 || evidence.tested_module_configuration_id.trim().is_empty()
+                || evidence.test_article_module_serial.trim().is_empty()
                 || evidence.interface_revision.trim().is_empty()
+                || evidence.test_procedure_id.trim().is_empty()
+                || evidence.test_procedure_revision.trim().is_empty()
                 || evidence.acceptance_criteria_id.trim().is_empty()
+                || evidence.uncertainty_budget_reference.trim().is_empty()
+                || !valid_utc_timestamp(&evidence.test_completed_at_utc)
+                || evidence.limitations.iter().any(|limitation| limitation.trim().is_empty())
                 || !valid_digest(&evidence.report_digest_sha256)
+                || !valid_digest(&evidence.measurement_dataset_sha256)
+                || !valid_digest(&evidence.calibration_bundle_sha256)
             {
                 errors.push(format!(
-                    "{label}.ports[{index}].evidence[{evidence_index}]: exact source, scope, criteria and lowercase SHA-256 digest are required"
+                    "{label}.ports[{index}].evidence[{evidence_index}]: complete source, issuer, exact test-article scope, procedure, acceptance, uncertainty, time and lowercase SHA-256 digests are required"
                 ));
             }
         }
@@ -333,10 +397,28 @@ fn qualified_evidence<'a>(
 ) -> Option<&'a QualificationEvidence> {
     evidence.iter().find(|receipt| {
         receipt.evidence_class == EvidenceClass::IndependentTest
+            && receipt.test_result == QualificationTestResult::Passed
             && receipt.tested_vehicle_configuration_id == vehicle.vehicle_configuration_id
             && receipt.tested_module_configuration_id == module.module_configuration_id
             && receipt.interface_revision == interface_revision
             && valid_digest(&receipt.report_digest_sha256)
+            && valid_digest(&receipt.measurement_dataset_sha256)
+            && valid_digest(&receipt.calibration_bundle_sha256)
+    })
+}
+
+fn failed_exact_evidence(
+    evidence: &[QualificationEvidence],
+    vehicle: &VehicleInterfaceContract,
+    module: &ModuleInterfaceContract,
+    interface_revision: &str,
+) -> bool {
+    evidence.iter().any(|receipt| {
+        receipt.evidence_class == EvidenceClass::IndependentTest
+            && receipt.test_result == QualificationTestResult::Failed
+            && receipt.tested_vehicle_configuration_id == vehicle.vehicle_configuration_id
+            && receipt.tested_module_configuration_id == module.module_configuration_id
+            && receipt.interface_revision == interface_revision
     })
 }
 
@@ -570,6 +652,24 @@ fn evaluate_interface(
         ),
     }
 
+    if failed_exact_evidence(
+        &vehicle_port.evidence,
+        vehicle,
+        module,
+        &vehicle_port.interface_revision,
+    ) || failed_exact_evidence(
+        &module_port.evidence,
+        vehicle,
+        module,
+        &module_port.interface_revision,
+    ) {
+        add_interface_finding(
+            &mut findings,
+            &mut status,
+            CompatibilityStatus::Incompatible,
+            "exact_configuration_independent_test_failed",
+        );
+    }
     let vehicle_qualified_evidence = qualified_evidence(
         &vehicle_port.evidence,
         vehicle,
@@ -828,11 +928,22 @@ mod tests {
             evidence_id: format!("EV-{vehicle_id}-{module_id}-{revision}"),
             evidence_class: class,
             source_reference: "synthetic://icd/test-record".into(),
+            issuer_id: "synthetic://icd-test-issuer".into(),
             report_digest_sha256: "a".repeat(64),
+            measurement_dataset_sha256: "b".repeat(64),
+            calibration_bundle_sha256: "c".repeat(64),
             tested_vehicle_configuration_id: vehicle_id.into(),
+            test_article_vehicle_serial: format!("TEST-VEH-{vehicle_id}"),
             tested_module_configuration_id: module_id.into(),
+            test_article_module_serial: format!("TEST-MOD-{module_id}"),
             interface_revision: revision.into(),
+            test_procedure_id: "ICD-TP-001".into(),
+            test_procedure_revision: "REV-A".into(),
             acceptance_criteria_id: "ICD-AC-001".into(),
+            uncertainty_budget_reference: "synthetic://icd/uncertainty-budget".into(),
+            test_completed_at_utc: "2026-11-21T06:00:00Z".into(),
+            test_result: QualificationTestResult::Passed,
+            limitations: vec!["test-only in-memory receipt".into()],
         }
     }
 
@@ -1107,6 +1218,21 @@ mod tests {
             Some(expected_digest.as_str())
         );
         assert_eq!(hv.module_evidence_report_digest_sha256, expected_digest);
+    }
+
+    #[test]
+    fn exact_scope_failed_independent_test_is_incompatible() {
+        let mut input = qualified_input();
+        input.modules[0].ports[0].evidence[0].test_result =
+            QualificationTestResult::Failed;
+        let report = evaluate_compatibility(&input).expect("valid input with failed evidence");
+        let hv = report.results[0]
+            .interfaces
+            .iter()
+            .find(|interface| interface.module_port_id == "module-hv")
+            .expect("HV result");
+        assert_eq!(hv.status, CompatibilityStatus::Incompatible);
+        assert!(hv.findings.contains(&"exact_configuration_independent_test_failed".into()));
     }
 
     #[test]
