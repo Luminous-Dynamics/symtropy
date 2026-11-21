@@ -26,10 +26,10 @@ The benchmark identity binds the scorecard to a benchmark ID, exact 40-character
 - Pooled absolute candidate-minus-baseline success delta.
 - Paired task-cluster bootstrap 95% interval. Resampling is done over whole task clusters, keeping all paired episodes within a sampled task together.
 - Equal-weight task macro success delta.
-- Candidate/baseline rates by semantic horizon and shift family.
+- Candidate/baseline rates by semantic horizon, task category and shift family.
 - `positive_improvement_supported` is true only when the lower task-cluster bootstrap bound is above zero.
 
-The interval is a percentile cluster bootstrap, not an exact randomization test. Use a predeclared replicate count and seed. For formal claims, publish per-task counts and a preregistered power/significance plan as well.
+The interval is a percentile cluster bootstrap, not an exact randomization test. The reference requires at least 10 task clusters and 1,000 replicates; this is only a minimum software guard, not a guarantee of statistical power. Use a preregistered power analysis and seed. For formal claims, publish per-task counts and a predeclared significance/non-inferiority plan as well.
 
 ## Required external diagnostics (the Rust scorecard cannot perform these)
 
