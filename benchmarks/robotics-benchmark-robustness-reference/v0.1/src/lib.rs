@@ -54,7 +54,7 @@ impl Display for ScorecardError {
             Self::EmptyEpisodeId => write!(formatter, "episode ID must not be empty"),
             Self::DuplicateEpisodeId => write!(formatter, "episode IDs must be unique within a task cluster"),
             Self::NoEpisodes => write!(formatter, "no matched episodes supplied"),
-            Self::InvalidBootstrapReplicateCount => write!(formatter, "at least 100 bootstrap replicates are required"),
+            Self::InvalidBootstrapReplicateCount => write!(formatter, "at least 1000 bootstrap replicates are required"),
         }
     }
 }
