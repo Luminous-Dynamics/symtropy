@@ -1,137 +1,55 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://luminousdynamics.io/symtropy/ladder/episode-record/v0.1",
-  "title": "LADDER episode record plus separate optional Luminous evidence extension",
+  "$id": "https://luminousdynamics.io/symtropy/ladder/official-episode-record/v0.1",
+  "title": "Official LADDER leaderboard episode row",
+  "description": "Exact episode row emitted by scripts/leaderboard.py at pinned LADDER commit e4e204073cc64b0dc49f9669c2951e6bc91fe0af. Do not add Symtropy-specific evidence fields here.",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "suite",
     "task",
+    "episode",
     "success",
-    "subgoals_completed",
-    "steps",
-    "episode_index",
-    "benchmark_commit"
+    "subgoals_done",
+    "subgoals",
+    "steps"
   ],
   "properties": {
     "suite": {
       "enum": [
-        "robolab_long",
         "simplerenv_long",
-        "robotarena_long"
+        "robotarena_long",
+        "robolab_long"
       ]
     },
     "task": {
       "type": "string",
       "minLength": 1
     },
+    "episode": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Zero-based episode index within the task."
+    },
     "success": {
       "type": "boolean",
-      "description": "Derived from official LADDER episode logs; never manually asserted."
+      "description": "Read from the evaluator's episode log. True only when every required subgoal is complete."
     },
-    "subgoals_completed": {
+    "subgoals_done": {
       "type": "integer",
-      "minimum": 0
+      "minimum": 0,
+      "description": "Derived from evaluator goal_objects and goal_trace with same-object Relay/Revisit ordering."
+    },
+    "subgoals": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Task-catalog subgoal count; must match leaderboard/tasks.yaml."
     },
     "steps": {
       "type": "integer",
-      "minimum": 0
-    },
-    "episode_index": {
-      "type": "integer",
-      "minimum": 0
-    },
-    "benchmark_commit": {
-      "type": "string",
-      "pattern": "^[0-9a-f]{40}$"
-    },
-    "luminous_evidence_extension": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "accepted_subgoal_events": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "subgoal_index",
-              "event_type",
-              "observed_at",
-              "evidence_digest"
-            ],
-            "properties": {
-              "subgoal_index": {
-                "type": "integer",
-                "minimum": 0
-              },
-              "event_type": {
-                "type": "string",
-                "minLength": 1
-              },
-              "observed_at": {
-                "type": "string",
-                "format": "date-time"
-              },
-              "object_or_goal_id": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "evidence_digest": {
-                "type": "string",
-                "pattern": "^[0-9a-f]{64}$"
-              },
-              "uncertainty": {
-                "type": [
-                  "number",
-                  "null"
-                ],
-                "minimum": 0
-              }
-            }
-          }
-        },
-        "retries": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "resets": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "collisions": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "drops": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "recoveries_attempted": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "recoveries_succeeded": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "energy_wh": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "minimum": 0
-        },
-        "thermal_state_digest": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "pattern": "^([0-9a-f]{64})?$"
-        }
-      }
+      "minimum": 0,
+      "description": "Evaluator episode num_steps."
     }
-  }
+  },
+  "$comment": "The benchmark commit belongs in submission.yaml (ladder_commit), not in this row. Symtropy-specific provenance and evidence belong in a separate sidecar keyed by suite/task/episode."
 }
