@@ -112,14 +112,21 @@ impl Bivector {
     }
 
     pub fn to_matrix(&self) -> Matrix {
-        let mut result = zero_matrix(self.dimension);
-        for i in 0..self.dimension {
-            for j in (i + 1)..self.dimension {
-                result[i][j] = self.get(i, j);
-                result[j][i] = -self.get(i, j);
-            }
-        }
-        result
+        (0..self.dimension)
+            .map(|i| {
+                (0..self.dimension)
+                    .map(|j| {
+                        if i < j {
+                            self.get(i, j)
+                        } else if i > j {
+                            -self.get(j, i)
+                        } else {
+                            0.0
+                        }
+                    })
+                    .collect()
+            })
+            .collect()
     }
 
     pub fn from_matrix(matrix: &Matrix) -> Result<Self, MassPropertiesError> {
@@ -127,9 +134,9 @@ impl Bivector {
         let dimension = matrix.len();
         validate_dimension(dimension)?;
         let mut result = Self::zero(dimension)?;
-        for i in 0..dimension {
-            for j in (i + 1)..dimension {
-                result.set(i, j, 0.5 * (matrix[i][j] - matrix[j][i]))?;
+        for (i, row) in matrix.iter().enumerate() {
+            for (j, value) in row.iter().enumerate().skip(i + 1) {
+                result.set(i, j, 0.5 * (value - matrix[j][i]))?;
             }
         }
         Ok(result)
@@ -225,14 +232,11 @@ impl CompoundMassProperties {
         }
 
         let mut center_of_mass_m = vec![0.0; dimension];
-        for component in components {
-            for axis in 0..dimension {
-                center_of_mass_m[axis] +=
-                    component.mass_kg * component.centroid_in_assembly_m[axis];
+        for (axis, coordinate) in center_of_mass_m.iter_mut().enumerate() {
+            for component in components {
+                *coordinate += component.mass_kg * component.centroid_in_assembly_m[axis];
             }
-        }
-        for axis in 0..dimension {
-            center_of_mass_m[axis] /= total_mass_kg;
+            *coordinate /= total_mass_kg;
         }
 
         let mut second_moment_at_com_kg_m2 = zero_matrix(dimension);
@@ -246,11 +250,12 @@ impl CompoundMassProperties {
                 .map(|axis| component.centroid_in_assembly_m[axis] - center_of_mass_m[axis])
                 .collect();
 
-            for row in 0..dimension {
-                for column in 0..dimension {
-                    second_moment_at_com_kg_m2[row][column] += rotated_component_moment[row]
-                        [column]
-                        + component.mass_kg * displacement[row] * displacement[column];
+            for (row_index, row_values) in second_moment_at_com_kg_m2.iter_mut().enumerate() {
+                for (column_index, value) in row_values.iter_mut().enumerate() {
+                    *value += rotated_component_moment[row_index][column_index]
+                        + component.mass_kg
+                            * displacement[row_index]
+                            * displacement[column_index];
                 }
             }
         }
@@ -298,8 +303,8 @@ impl CompoundMassProperties {
                 &multiply(&omega, &self.second_moment_at_com_kg_m2)?,
             )?;
             let image_bivector = Bivector::from_matrix(&image)?;
-            for row in 0..count {
-                operator[row][column] = image_bivector.components[row];
+            for (row_index, row_values) in operator.iter_mut().enumerate() {
+                row_values[column] = image_bivector.components[row_index];
             }
         }
         Ok(operator)
@@ -408,9 +413,9 @@ fn validate_second_moment(matrix: &Matrix, dimension: usize) -> Result<(), MassP
         .fold(0.0_f64, |a, b| a.max(b.abs()))
         .max(f64::MIN_POSITIVE);
     let tolerance = RELATIVE_TOLERANCE * scale;
-    for i in 0..dimension {
-        for j in 0..dimension {
-            if (matrix[i][j] - matrix[j][i]).abs() > tolerance {
+    for (i, row) in matrix.iter().enumerate() {
+        for (j, value) in row.iter().enumerate() {
+            if (value - matrix[j][i]).abs() > tolerance {
                 return Err(MassPropertiesError::NonSymmetricSecondMoment);
             }
         }
@@ -438,10 +443,10 @@ fn symmetric_eigenvalues_jacobi(matrix: &Matrix) -> Result<Vector, MassPropertie
         let mut p = 0;
         let mut q = 1;
         let mut maximum = 0.0;
-        for i in 0..dimension {
-            for j in (i + 1)..dimension {
-                if work[i][j].abs() > maximum {
-                    maximum = work[i][j].abs();
+        for (i, row) in work.iter().enumerate() {
+            for (j, value) in row.iter().enumerate().skip(i + 1) {
+                if value.abs() > maximum {
+                    maximum = value.abs();
                     p = i;
                     q = j;
                 }
@@ -458,16 +463,28 @@ fn symmetric_eigenvalues_jacobi(matrix: &Matrix) -> Result<Vector, MassPropertie
         let cosine = theta.cos();
         let sine = theta.sin();
 
-        for k in 0..dimension {
+        let mut rotated_p_column = vec![0.0; dimension];
+        let mut rotated_q_column = vec![0.0; dimension];
+        for (k, row) in work.iter_mut().enumerate() {
             if k == p || k == q {
                 continue;
             }
-            let akp = work[k][p];
-            let akq = work[k][q];
-            work[k][p] = cosine * akp - sine * akq;
-            work[p][k] = work[k][p];
-            work[k][q] = sine * akp + cosine * akq;
-            work[q][k] = work[k][q];
+            let akp = row[p];
+            let akq = row[q];
+            let new_p = cosine * akp - sine * akq;
+            let new_q = sine * akp + cosine * akq;
+            row[p] = new_p;
+            row[q] = new_q;
+            rotated_p_column[k] = new_p;
+            rotated_q_column[k] = new_q;
+        }
+        for (k, (new_p, new_q)) in rotated_p_column
+            .iter()
+            .zip(&rotated_q_column)
+            .enumerate()
+        {
+            work[p][k] = *new_p;
+            work[q][k] = *new_q;
         }
 
         work[p][p] = cosine * cosine * app - 2.0 * sine * cosine * apq + sine * sine * aqq;
@@ -487,10 +504,10 @@ fn symmetric_eigenvalues_jacobi(matrix: &Matrix) -> Result<Vector, MassPropertie
 fn validate_rotation(rotation: &Matrix, dimension: usize) -> Result<(), MassPropertiesError> {
     validate_square(rotation, dimension)?;
     let product = multiply(&transpose(rotation), rotation)?;
-    for i in 0..dimension {
-        for j in 0..dimension {
+    for (i, row) in product.iter().enumerate() {
+        for (j, value) in row.iter().enumerate() {
             let expected = if i == j { 1.0 } else { 0.0 };
-            if (product[i][j] - expected).abs() > 1.0e-10 {
+            if (value - expected).abs() > 1.0e-10 {
                 return Err(MassPropertiesError::InvalidRotation);
             }
         }
@@ -574,10 +591,11 @@ fn determinant(matrix: &Matrix) -> Result<f64, MassPropertiesError> {
         }
         let diagonal = work[column][column];
         determinant *= diagonal;
-        for row in column + 1..dimension {
-            let factor = work[row][column] / diagonal;
-            for j in column + 1..dimension {
-                work[row][j] -= factor * work[column][j];
+        let pivot_row = work[column].clone();
+        for row in work.iter_mut().skip(column + 1) {
+            let factor = row[column] / diagonal;
+            for (value, pivot_value) in row.iter_mut().zip(&pivot_row).skip(column + 1) {
+                *value -= factor * pivot_value;
             }
         }
     }
@@ -613,16 +631,17 @@ fn solve_linear(matrix: &Matrix, rhs: &[f64]) -> Result<Vector, MassPropertiesEr
         }
         augmented.swap(pivot, column);
         let divisor = augmented[column][column];
-        for j in column..=dimension {
-            augmented[column][j] /= divisor;
+        for value in augmented[column].iter_mut().skip(column) {
+            *value /= divisor;
         }
-        for row in 0..dimension {
-            if row == column {
+        let pivot_row = augmented[column].clone();
+        for (row_index, row_values) in augmented.iter_mut().enumerate() {
+            if row_index == column {
                 continue;
             }
-            let factor = augmented[row][column];
-            for j in column..=dimension {
-                augmented[row][j] -= factor * augmented[column][j];
+            let factor = row_values[column];
+            for (value, pivot_value) in row_values.iter_mut().zip(&pivot_row).skip(column) {
+                *value -= factor * pivot_value;
             }
         }
     }
@@ -670,8 +689,8 @@ mod tests {
 
     fn identity(dimension: usize) -> Matrix {
         let mut matrix = zero_matrix(dimension);
-        for i in 0..dimension {
-            matrix[i][i] = 1.0;
+        for (index, row) in matrix.iter_mut().enumerate() {
+            row[index] = 1.0;
         }
         matrix
     }
@@ -695,7 +714,8 @@ mod tests {
     #[test]
     fn single_component_preserves_mass_com_and_second_moment() {
         let component = sphere_component("one", vec![1.0, -2.0, 0.5]);
-        let compound = CompoundMassProperties::compose(&[component.clone()]).expect("compound");
+        let compound =
+            CompoundMassProperties::compose(std::slice::from_ref(&component)).expect("compound");
         close(compound.total_mass_kg(), 1.0, 1.0e-12);
         for (actual, expected) in compound.center_of_mass_m().iter().zip([1.0, -2.0, 0.5]) {
             close(*actual, expected, 1.0e-12);
