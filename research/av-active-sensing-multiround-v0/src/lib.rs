@@ -1071,6 +1071,7 @@ mod tests {
         assert!(after_first_delivery.visible_observations.iter().any(
             |observation| observation.observation_ref == "obs-machine-state"
                 && observation.eligible_for_decision
+                && observation.summary.contains("indicates an alarm")
         ));
         executor
             .submit_turn(turn(
@@ -1208,6 +1209,42 @@ mod tests {
             executor.candidate_view().expect("still active").pending_request_id.as_deref(),
             Some("pending-request")
         );
+    }
+
+    #[test]
+    fn partial_outcome_does_not_create_an_observation() {
+        let mut partial_fixtures = fixtures();
+        partial_fixtures[0].status = FixtureOutcomeStatusV1::Partial;
+        partial_fixtures[0].observation_ref = None;
+        partial_fixtures[0].observation_summary = None;
+        partial_fixtures[0].source_dependency_group = None;
+        let mut executor = ActiveSensingExecutorV1::new(config(), partial_fixtures)
+            .expect("partial fixture is valid");
+        let view = executor.candidate_view().expect("initial view");
+        executor
+            .submit_turn(turn(
+                &view,
+                CandidateActionV1::Request {
+                    request_id: "partial-request".to_string(),
+                    action_id: "probe-machine-state".to_string(),
+                    estimated_eig_nats: 0.1,
+                    estimated_evsi: 1.0,
+                },
+            ))
+            .expect("request accepted");
+        let result = executor.advance_to_next_outcome().expect("partial result delivered");
+        assert!(!result
+            .visible_observations
+            .iter()
+            .any(|observation| observation.observation_ref == "obs-machine-state"));
+        assert!(result.visible_events.iter().any(|event| matches!(
+            &event.payload,
+            &TranscriptPayloadV1::ActionOutcome {
+                status: VisibleOutcomeStatusV1::Partial,
+                observation: None,
+                ..
+            }
+        )));
     }
 
     #[test]
