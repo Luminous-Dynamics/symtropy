@@ -75,7 +75,8 @@
         "claim_ceiling": [
           "The official i3X 1.0 specification and upstream conformance-suite documentation have been source-reviewed only. No i3X server, endpoint, client, conformance test or subscription lifecycle has been executed."
         ]
-      }
+      },
+      "intelligence_scope": "cross_layer"
     }
   ],
   "input_contract": {
