@@ -33,7 +33,7 @@ jobs:
 
       - name: Verify source fixture digest
         working-directory: benchmarks/south-africa-corridor-execution
-        run: sha256sum --check data/SHA256SUMS
+        run: (cd data && sha256sum --check SHA256SUMS)
 
       - name: Check formatting
         working-directory: benchmarks/south-africa-corridor-execution
