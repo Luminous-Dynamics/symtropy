@@ -23,6 +23,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Check out the PR head commit, not GitHub's synthetic pull_request merge commit.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
