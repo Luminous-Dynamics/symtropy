@@ -36,6 +36,8 @@ def main() -> None:
     exact_zero("factor-four action coupling map",alpha-4*alpha_NH)
     beta_definition=2*a**2/alpha
     T_definition=beta_definition*eps**4
+    exact_zero("T parameter path",T_definition-2*a**2*eps**4/alpha)
+    exact_zero("fixed-alpha T derivative",sp.diff(T_definition,a)-2*T_definition/a)
 
     # Horizon density and intrinsic scalar from the independently checked
     # induced 3-metric; the independent geometric derivation is PR #6458.
@@ -102,6 +104,11 @@ def main() -> None:
                P_difference-expected_difference)
 
     D_difference=sp.factor(D_source_epsilon-D_wald_epsilon)
+    sin_theta=sp.sqrt(1-eps**2)
+    D_source_theta=sp.factor(sin_theta*D_source_epsilon)
+    D_wald_theta=sp.factor(sin_theta*D_wald_epsilon)
+    exact_zero("source density theta/epsilon Jacobian",D_source_theta/sin_theta-D_source_epsilon)
+    exact_zero("Wald density theta/epsilon Jacobian",D_wald_theta/sin_theta-D_wald_epsilon)
     exact_zero(
         "exact density discrepancy",
         D_difference-density_prefactor*expected_difference/(q**3*p**2)
@@ -125,10 +132,10 @@ def main() -> None:
         sp.limit(eps**3*D_difference,eps,0,dir="+")
         -1605*alpha/(16*sp.pi*G)
     )
+    difference_integral_leading=1605*alpha/(32*sp.pi*G)
     exact_zero(
-        "integrated leading divergence",
-        (1605*alpha/(32*sp.pi*G))
-        /(1605*alpha/(32*sp.pi*G))-1
+        "integrated leading divergence coefficient",
+        2*difference_integral_leading-1605*alpha/(16*sp.pi*G)
     )
 
     # Wrong-path negative control: holding beta fixed during da differentiation
@@ -158,6 +165,8 @@ def main() -> None:
                 "beta":str(bv),"epsilon":str(ev),"T":str(tv),
                 "source_density_alpha_sym_G":str(sp.N(D_source_epsilon.subs(sub),24)),
                 "wald_variation_alpha_sym_G":str(sp.N(D_wald_epsilon.subs(sub),24)),
+                "source_density_theta_alpha_sym_G":str(sp.N(D_source_theta.subs(sub),24)),
+                "wald_variation_theta_alpha_sym_G":str(sp.N(D_wald_theta.subs(sub),24)),
                 "difference_alpha_sym_G":str(sp.N(D_difference.subs(sub),24)),
                 "source_to_wald_ratio":str(sp.N(
                     D_source_epsilon.subs(sub)/D_wald_epsilon.subs(sub),24
