@@ -139,7 +139,8 @@
         "identity_verification",
         "custody_resolution",
         "post_test",
-        "configuration_digest"
+        "configuration_digest",
+        "state_evidence"
       ],
       "properties": {
         "pack_id": {
@@ -174,6 +175,9 @@
         "configuration_digest": {
           "type": "string",
           "minLength": 1
+        },
+        "state_evidence": {
+          "$ref": "#/$defs/evidenceEnvelope"
         }
       }
     },
