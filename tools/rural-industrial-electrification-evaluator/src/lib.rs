@@ -1333,8 +1333,14 @@ mod tests {
             .as_ref()
             .expect("vehicle receipt");
         let module_receipt = hv.module_evidence_receipt.as_ref().expect("module receipt");
-        assert_eq!(vehicle_receipt.test_article_vehicle_serial, "TEST-VEH-carrier-ref-01-r1");
-        assert_eq!(module_receipt.test_article_module_serial, "TEST-MOD-detachable-pod-r1");
+        assert_eq!(
+            vehicle_receipt.test_article_vehicle_serial,
+            "TEST-VEH-carrier-ref-01-r1"
+        );
+        assert_eq!(
+            module_receipt.test_article_module_serial,
+            "TEST-MOD-detachable-pod-r1"
+        );
         assert_eq!(vehicle_receipt.test_procedure_revision, "REV-A");
         assert_eq!(module_receipt.test_result, QualificationTestResult::Passed);
     }
