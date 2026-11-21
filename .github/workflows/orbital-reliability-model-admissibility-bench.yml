@@ -76,7 +76,7 @@ jobs:
             and .result == "pass"
             and .report.evidence_class == "synthetic"
             and .report.claim_ceiling == "synthetic-model-input-admissibility-only"
-            and .report.summary.case_count == 58
+            and .report.summary.case_count == 59
             and .report.summary.expected_result_mismatches == 0
             and .report.summary.supported_for_analysis >= 1
             and .report.summary.constant_intensity_confirmations == 0
