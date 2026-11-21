@@ -691,6 +691,7 @@ impl StateSnapshot {
             ));
         }
         let mut entity_ids = BTreeSet::new();
+        let mut frame_ids = BTreeSet::new();
         for (index, entity) in self.entities.iter().enumerate() {
             entity.validate(
                 &format!("entities[{index}]"),
@@ -700,6 +701,12 @@ impl StateSnapshot {
                 return Err(ValidationError::new(
                     format!("entities[{index}].entity_id"),
                     "duplicate entity ID in snapshot",
+                ));
+            }
+            if !frame_ids.insert(entity.pose.child_frame_id.as_str()) {
+                return Err(ValidationError::new(
+                    format!("entities[{index}].pose.child_frame_id"),
+                    "duplicate child frame ID in snapshot",
                 ));
             }
         }
@@ -746,6 +753,10 @@ pub fn validate_snapshot_sequence(
             || current.world_id != previous.world_id
             || current.model_build_sha256 != previous.model_build_sha256
             || current.configuration_sha256 != previous.configuration_sha256
+            || current.clock_source != previous.clock_source
+            || current.world_frame != previous.world_frame
+            || current.transform_convention != previous.transform_convention
+            || current.unit_system != previous.unit_system
         {
             return Err(ValidationError::new(
                 format!("snapshots[{index}].identity"),
@@ -850,6 +861,10 @@ pub struct StepRequest {
     pub world_id: String,
     pub episode_id: String,
     pub trajectory_id: String,
+    pub clock_source: String,
+    pub world_frame: String,
+    pub transform_convention: TransformConvention,
+    pub unit_system: String,
     pub pre_step_index: u64,
     pub pre_simulation_time_ns: u64,
     pub action_stream_sha256: String,
@@ -870,6 +885,10 @@ impl StepRequest {
             world_id: pre_state.identity.world_id.clone(),
             episode_id: pre_state.identity.episode_id.clone(),
             trajectory_id: pre_state.identity.trajectory_id.clone(),
+            clock_source: pre_state.identity.clock_source.clone(),
+            world_frame: pre_state.identity.world_frame.clone(),
+            transform_convention: pre_state.identity.transform_convention,
+            unit_system: pre_state.identity.unit_system.clone(),
             pre_step_index: pre_state.identity.step_index,
             pre_simulation_time_ns: pre_state.identity.simulation_time_ns,
             action_stream_sha256: action_stream_sha256.into(),
@@ -891,6 +910,9 @@ impl StepRequest {
             ("world_id", self.world_id.as_str()),
             ("episode_id", self.episode_id.as_str()),
             ("trajectory_id", self.trajectory_id.as_str()),
+            ("clock_source", self.clock_source.as_str()),
+            ("world_frame", self.world_frame.as_str()),
+            ("unit_system", self.unit_system.as_str()),
         ] {
             if value.trim().is_empty() {
                 return Err(ValidationError::new(
@@ -898,6 +920,12 @@ impl StepRequest {
                     "must be non-empty",
                 ));
             }
+        }
+        if self.unit_system != "SI" {
+            return Err(ValidationError::new(
+                "step.unit_system",
+                "v0.1 requires canonical SI units",
+            ));
         }
         if self.duration_ns == 0 {
             return Err(ValidationError::new(
@@ -933,6 +961,10 @@ impl StepRequest {
             || identity.world_id != self.world_id
             || identity.episode_id != self.episode_id
             || identity.trajectory_id != self.trajectory_id
+            || identity.clock_source != self.clock_source
+            || identity.world_frame != self.world_frame
+            || identity.transform_convention != self.transform_convention
+            || identity.unit_system != self.unit_system
         {
             return Err(ValidationError::new(
                 "step.result.identity",
