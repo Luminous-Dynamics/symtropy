@@ -313,15 +313,15 @@ fn validate_reference_events(events: &[ReferenceEvent]) -> Result<(), String> {
         {
             return Err("reference event identity or payload digest is invalid".to_owned());
         }
-        if let Some(sequence) = previous_sequence {
-            if sequence.checked_add(1) != Some(event.sequence) {
-                return Err("independent reference sequence is not contiguous".to_owned());
-            }
+        if let Some(sequence) = previous_sequence
+            && sequence.checked_add(1) != Some(event.sequence)
+        {
+            return Err("independent reference sequence is not contiguous".to_owned());
         }
-        if let Some(time) = previous_time {
-            if event.time_ticks <= time {
-                return Err("independent reference times are not strictly increasing".to_owned());
-            }
+        if let Some(time) = previous_time
+            && event.time_ticks <= time
+        {
+            return Err("independent reference times are not strictly increasing".to_owned());
         }
         previous_sequence = Some(event.sequence);
         previous_time = Some(event.time_ticks);
