@@ -212,3 +212,20 @@ The published Methods report an approximately 5% energy spread based on a retard
 - propagate uncertainty in molecular fraction, fragmentation, and energy into the reaction-yield prediction.
 
 The Rust reference kernel includes a first-order prompt-dissociation component mapper. It uses the same S-factor/stopping functions for both fragment populations as a synthetic sensitivity scaffold; it does not yet model mass-dependent molecular stopping, dissociation depth, or experimental fragmentation data. Never represent it as a validated species-resolved beam transport model.
+
+
+## 11. Arbitrary beam-energy distribution support
+
+The reference kernel now accepts a discrete set of `BeamEnergyComponent` values with center-of-mass energy and **deuteron-flux weight**. This is designed for source-provided histograms or quadrature nodes. It deliberately does not assume the reported ~5% energy spread is Gaussian, nor infer a distribution from a single spread statistic.
+
+A measured source histogram must specify:
+- species identity and the basis of the reported fraction (ion current vs deuteron flux);
+- bin edges/centers and calibrated energy coordinate;
+- per-bin weights and covariance/uncertainty;
+- energy analyzer calibration, response and mass resolution;
+- whether values are incident ion energy, per-nucleus energy, or center-of-mass energy;
+- the source artifact hash and processing revision.
+
+Only after the species-resolved distributions are measured should the beam forward model convolve yields over the observed distribution. A retarding-potential analyzer result is not automatically a species-resolved per-nucleus spectrum.
+
+The synthetic test fixture for the prompt-dissociation 85/15 kinematic limit is `research/cmni/fixtures/d2plus-prompt-dissociation-85-15-synthetic.json`. It is not an empirical beam record.
