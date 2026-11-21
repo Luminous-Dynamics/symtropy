@@ -244,6 +244,19 @@ Important limits:
 - Posterior inclusion describes association with a feature level, not a causal mechanism. Walton et al. explicitly report roughly 50 features for only 20 datasets and warn about underdetermination and expert interpretation.
 - Their stable-bias screening required nonzero posterior bias samples to persist over a substantial sweep of τ_0; one isolated fit is insufficient.
 
+### Layer J — raw-scale correlated observation likelihood
+
+The kernel now evaluates the raw-scale observation likelihood for one experiment:
+
+\[
+y\\sim\\mathcal N\\!\\left(\\mu\\odot\\exp(\\delta),\\;D_\\mu\\Sigma_{\\mathrm{rel}}D_\\mu\\right),
+\\qquad D_\\mu=\\operatorname{diag}(\\mu).
+\]
+
+Here mu is the un-biased prediction including the declared per-experiment normalization; Sigma_rel is the full covariance of relative experimental errors; and delta(E) is the grouped, energy-dependent log-bias field. The covariance is anchored to mu and stays fixed while the bias changes the mean. This matches the raw-scale relative-covariance convention described in the AIACHNE PFNS paper. It must not be replaced silently by the earlier log-ratio Gaussian approximation.
+
+The new primitive is a per-experiment log-likelihood, with Cholesky-based full-covariance evaluation and fail-closed symmetry / positive-definiteness checks. It can be composed with the grouped 160-column basis and sparse feature coefficients. It does not yet implement the prior over grouped coefficients, global horseshoe sparsity parameter, posterior sampler, or across-experiment BMC chain. It is one essential layer of the faithful reproduction, not the complete inference algorithm.
+
 ## Current implementation and limits
 
 Implemented in this research-only Rust crate:
@@ -261,7 +274,8 @@ Implemented in this research-only Rust crate:
 - a deterministic log-linear feature-conditioned multiplicative-bias forward operator, with caller-supplied coefficients;
 - a published-form 160-column grouped Gaussian log-energy bias-basis constructor with overlapping categorical feature-level memberships;
 - a small-feature Poisson spike-and-slab comparator for count data;
-- a full-covariance log-ratio Gaussian sparse model average with fixed normalization effects and exact Gaussian integration over subsets (up to 12 sparse columns).
+- a full-covariance log-ratio Gaussian sparse model average with fixed normalization effects and exact Gaussian integration over subsets (up to 12 sparse columns);
+- a raw-scale correlated Gaussian PFNS likelihood with mean mu * exp(delta) and covariance diag(mu) Sigma_relative diag(mu), preserving the un-biased covariance anchor.
 
 Not implemented yet:
 
@@ -270,7 +284,7 @@ Not implemented yet:
 - a full Bayesian expected-information-gain estimator, multifidelity sample-allocation optimizer or ACV coefficient learner;
 - a continuous robust-design optimizer, uncertainty-set calibration or Pareto frontier;
 - a nuisance-integrated or posterior-predictive model-discrimination score;
-- faithful AIACHNE raw-scale multivariate-normal likelihood, BMC sampler and horseshoe / global-local prior reproduction;
+- faithful AIACHNE BMC sampler and horseshoe / global-local prior reproduction, including the global sparsity hyperparameter and posterior diagnostics;
 - inference over the complete 160-basis-per-group design and global τ hyperprior;
 - τ_0 sensitivity sweeps, redundant feature-level grouping analysis, correlated-feature robustness, and campaign-held-out validation;
 - a general nuisance-aware hierarchical likelihood for response, background, live time, PSD and other calibration dimensions;
