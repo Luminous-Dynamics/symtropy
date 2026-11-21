@@ -297,6 +297,16 @@ A defensible sampler qualification gate should follow the current Stan diagnosti
 
 Stan cites E-BFMI below approximately 0.3 as a warning sign for poor energy exploration. These are proposed CMNI qualification gates based on published sampler diagnostics, not results achieved by the current fixed-step implementation.
 
+### Layer M — rank-normalized multi-chain qualification diagnostics
+
+The HMC research comparator now records a joint Hamiltonian-energy value for every retained transition. A separate diagnostics module calculates rank-normalized split-Rhat and folded rank-normalized split-Rhat; bulk ESS on rank-normalized draws; tail ESS from lower/upper 5% indicators; raw-scale mean ESS and mean MCSE in coefficient units; per-chain E-BFMI and total divergences.
+
+The proposed qualification flag requires at least four chains, max(Rhat) < 1.01, bulk/tail ESS at least 100 times the number of chains, zero divergences, and E-BFMI >= 0.3 for every chain. These are conservative project gates based on public Stan guidance, not proof that this implementation exactly matches Stan's calculations. MCSE is computed on raw coefficient draws; bulk ESS remains rank-normalized.
+
+References: https://mc-stan.org/misc/warnings.html and https://mc-stan.org/docs/2_40/reference-manual/analysis.html
+
+The diagnostics remain a research implementation requiring independent comparison against reference chains. Rank ties, heavy-tail stress cases, autocorrelation patterns, E-BFMI and ESS should be cross-checked against a mature implementation before the qualification flag is trusted. They do not replace trace plots, posterior predictive checks or prior sensitivity.
+
 ## Current implementation and limits
 
 Implemented in this research-only Rust crate:
@@ -317,7 +327,8 @@ Implemented in this research-only Rust crate:
 - a full-covariance log-ratio Gaussian sparse model average with fixed normalization effects and exact Gaussian integration over subsets (up to 12 sparse columns);
 - a raw-scale correlated Gaussian PFNS likelihood with mean mu * exp(delta) and covariance diag(mu) Sigma_relative diag(mu), preserving the un-biased covariance anchor;
 - a global-local horseshoe posterior target with half-Cauchy local scales, half-normal or half-Cauchy global scale, and analytic gradients in log-scale sampler coordinates;
-- a prepared raw-scale target with cached covariance factorization and seeded fixed-step HMC / basic split-Rhat screening.
+- a prepared raw-scale target with cached covariance factorization and seeded fixed-step HMC;
+- rank-normalized / folded Rhat, bulk/tail ESS, raw-mean ESS / MCSE, E-BFMI and divergence aggregation as a separate research diagnostic.
 
 Not implemented yet:
 
@@ -326,7 +337,7 @@ Not implemented yet:
 - a full Bayesian expected-information-gain estimator, multifidelity sample-allocation optimizer or ACV coefficient learner;
 - a continuous robust-design optimizer, uncertainty-set calibration or Pareto frontier;
 - a nuisance-integrated or posterior-predictive model-discrimination score;
-- sampler qualification: step-size / mass-matrix adaptation, NUTS or validated BMC comparison, rank-normalized and folded Rhat, bulk/tail ESS, MCSE, E-BFMI, posterior predictive checks and tau0 stability sweeps;
+- remaining sampler qualification: step-size / mass-matrix adaptation, NUTS or validated BMC comparison, independent reference-chain validation for the new diagnostics, posterior predictive checks and tau0 stability sweeps;
 - inference over the complete 160-basis-per-group design and global τ hyperprior;
 - τ_0 sensitivity sweeps, redundant feature-level grouping analysis, correlated-feature robustness, and campaign-held-out validation;
 - a general nuisance-aware hierarchical likelihood for response, background, live time, PSD and other calibration dimensions;
