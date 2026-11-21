@@ -1,6 +1,7 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
+use crate::mass_properties::{MassProperties, MassPropertiesError};
 use crate::point::Point;
 use nalgebra::SVector;
 
@@ -21,4 +22,17 @@ pub trait Shape<const D: usize>: Send + Sync {
 
     /// Clone this shape into a new box.
     fn clone_box(&self) -> Box<dyn Shape<D>>;
+
+    /// Return analytic mass properties for a caller-supplied total mass.
+    ///
+    /// The result is expressed in this shape's local frame and assumes the
+    /// concrete implementation's documented uniform-density distribution.
+    /// Collision support and a bounding sphere are insufficient to infer
+    /// density or an internal mass distribution; unsupported shapes abstain.
+    fn mass_properties(
+        &self,
+        _mass: f64,
+    ) -> Result<MassProperties<D>, MassPropertiesError> {
+        Err(MassPropertiesError::UnsupportedShape)
+    }
 }
