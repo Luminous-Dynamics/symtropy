@@ -26,9 +26,9 @@ An obligation binds its exact configuration, procedure, service kind, lifecycle 
 - Configuration, procedure, function, lifecycle phase and evidence key remain distinct.
 - A campaign that exceeds its cost budget can still have complete coverage; cost and adequacy are reported separately.
 - Informational obligations do not mask missing mandatory or critical obligations.
-- A criticality/interaction set must be frozen before execution. Post-hoc obligation changes are Rejected.
+- A pre-registration reference must be present before execution; the v0.1 fixture only checks that the reference is supplied and does not authenticate its issuer or prove the record existed before testing. Post-hoc obligation changes are Rejected. A NotApplicable obligation needs both a reason and a review-evidence reference; the reference is not cryptographically or institutionally verified by this crate.
 
-The fixture's raw-artifact digest is a declared synthetic field whose format is checked. This crate does not verify original artifact bytes, producer signatures, sensor calibration or physical truth; those remain with #6515, Mycelix evidence/attestation and metrology owners.
+The fixture's pre-registration and NotApplicable review references are declared synthetic fields; this crate checks presence, not authority. The raw-artifact digest is also a declared synthetic field whose format is checked. This crate does not verify original artifact bytes, producer signatures, sensor calibration or physical truth; those remain with #6515, Mycelix evidence/attestation and metrology owners.
 
 ## Shortcuts measured on the same obligations
 
