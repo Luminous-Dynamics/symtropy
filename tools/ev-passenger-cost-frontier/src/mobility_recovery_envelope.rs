@@ -54,6 +54,7 @@ pub struct RecoveryChargerChannel {
 #[serde(deny_unknown_fields)]
 pub struct RecoveryChannelAvailability {
     pub channel_id: String,
+    pub evidence: EvidenceEnvelope,
     pub available_by_slot: Vec<bool>,
 }
 
@@ -679,8 +680,20 @@ pub fn evaluate_mobility_recovery(
 
         let mut channel_availability_by_id = BTreeMap::new();
         for availability in &scenario.channel_availability {
+            let channel_evidence_valid = channel_map
+                .get(availability.channel_id.as_str())
+                .is_some_and(|channel| {
+                    evidence_covers(
+                        &availability.evidence,
+                        &channel.channel_id,
+                        &channel.configuration_digest,
+                        input.decision_time_unix_ms,
+                        horizon_end,
+                    )
+                });
             if !channel_map.contains_key(availability.channel_id.as_str())
                 || availability.available_by_slot.len() != usize::from(input.horizon_slots)
+                || !channel_evidence_valid
                 || channel_availability_by_id
                     .insert(availability.channel_id.as_str(), availability)
                     .is_some()
@@ -690,6 +703,11 @@ pub fn evaluate_mobility_recovery(
                     format!("recovery_channel_availability_invalid:{}", scenario.scenario_id),
                 );
             }
+            push_evidence_class(
+                &availability.evidence,
+                &mut all_source_grade,
+                &mut all_synthetic,
+            );
         }
 
         let mut scenario_findings = BTreeSet::new();
