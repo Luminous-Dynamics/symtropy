@@ -1,4 +1,5 @@
 import hashlib
+import math
 import unittest
 
 from rank_confidence_sequences import (
@@ -65,6 +66,17 @@ class RankConfidenceSequenceTests(unittest.TestCase):
             self.assertEqual(last["rank_sets"][arm]["ranks"], [1, 2, 3])
         self.assertTrue(last["shortcut_is_subset_of_exact"])
 
+    def test_first_look_pairwise_wealth_matches_independent_formula(self):
+        doc = make_document(
+            arms=("A0", "A1"),
+            scores={"A0": 0.0, "A1": 1.0},
+        )
+        result = evaluate_document(doc)
+        first = result["looks"][0]["pair_log_wealths"]
+        mean_lambda = sum((0.03, 0.06, 0.12, 0.25, 0.5)) / 5
+        self.assertAlmostEqual(first["A1>A0"], math.log(1.0 + mean_lambda), places=12)
+        self.assertAlmostEqual(first["A0>A1"], math.log(1.0 - mean_lambda), places=12)
+
     def test_strict_order_is_certified(self):
         doc = make_document(
             arms=("A0", "A1", "A2"),
@@ -82,6 +94,7 @@ class RankConfidenceSequenceTests(unittest.TestCase):
         self.assertEqual(last["rank_sets"]["A2"]["ranks"], [1])
         self.assertEqual(last["rank_sets"]["A1"]["ranks"], [2])
         self.assertEqual(last["rank_sets"]["A0"]["ranks"], [3])
+        self.assertEqual(last["tiers"]["by_arm"], {"A0": 3, "A1": 2, "A2": 1})
         self.assertEqual(last["tiers"]["by_arm"], {"A0": 3, "A1": 2, "A2": 1})
         self.assertEqual(last["rank_bounds_from_dominances"]["A2"], {"lower": 1, "upper": 1})
 
@@ -218,6 +231,7 @@ class RankConfidenceSequenceTests(unittest.TestCase):
         self.assertEqual(result["metric_id"], "decision_accuracy")
         self.assertEqual(result["episode_count"], len(doc["episode_ids"]))
         self.assertEqual(len(result["score_transcript_sha256"]), 64)
+        self.assertEqual(len(result["looks"][-1]["pair_log_wealths"]), len(doc["arms"]) * (len(doc["arms"]) - 1))
         self.assertEqual(
             result["looks"][-1]["transcript_chain_sha256"],
             result["score_transcript_sha256"],
