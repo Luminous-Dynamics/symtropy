@@ -445,10 +445,19 @@ pub fn evaluate_mobility_recovery(
     let mut schedule_map = BTreeMap::new();
     let mut channel_occupancy = BTreeMap::new();
     for item in &sorted_schedule {
+        let resource_power_valid = resource_map
+            .get(item.resource_id.as_str())
+            .is_some_and(|resource| {
+                item.recovery_charge_input_power_w
+                    <= resource.max_charge_input_power_lower_bound_w
+                    && item.grid_discharge_output_power_w
+                        <= resource.max_discharge_output_power_lower_bound_w
+            });
         if !resource_map.contains_key(item.resource_id.as_str())
             || item.slot >= input.horizon_slots
             || item.recovery_charge_input_power_w > MAX_POWER_W
             || item.grid_discharge_output_power_w > MAX_POWER_W
+            || !resource_power_valid
             || item.queue_evidence_reference != input.charging_queue_evidence.evidence_reference
             || (item.recovery_charge_input_power_w > 0 && item.grid_discharge_output_power_w > 0)
         {
@@ -626,13 +635,24 @@ pub fn evaluate_mobility_recovery(
                 continue;
             }
             let correct_len = usize::from(input.horizon_slots);
+            let resource = resource_map[obligation.resource_id.as_str()];
+            let values_within_bound = obligation
+                .mission_reserve_floor_wh_by_slot
+                .iter()
+                .chain(&obligation.inventory_reserve_floor_wh_by_slot)
+                .chain(&obligation.safety_outage_reserve_floor_wh_by_slot)
+                .chain(&obligation.uncertainty_reserve_floor_wh_by_slot)
+                .chain(&obligation.mission_energy_withdrawal_wh_by_slot)
+                .chain(&obligation.disturbance_energy_withdrawal_wh_by_slot)
+                .all(|value| *value <= MAX_ENERGY_WH);
             if obligation.mission_reserve_floor_wh_by_slot.len() != correct_len
                 || obligation.inventory_reserve_floor_wh_by_slot.len() != correct_len
                 || obligation.safety_outage_reserve_floor_wh_by_slot.len() != correct_len
                 || obligation.uncertainty_reserve_floor_wh_by_slot.len() != correct_len
                 || obligation.mission_energy_withdrawal_wh_by_slot.len() != correct_len
                 || obligation.disturbance_energy_withdrawal_wh_by_slot.len() != correct_len
-                || obligation.recovery_target_energy_wh > MAX_ENERGY_WH
+                || !values_within_bound
+                || obligation.recovery_target_energy_wh > resource.energy_capacity_lower_bound_wh
                 || obligation.recovery_deadline_slot >= input.horizon_slots
             {
                 add_error(
@@ -642,7 +662,6 @@ pub fn evaluate_mobility_recovery(
                 obligations_by_resource.remove(obligation.resource_id.as_str());
                 continue;
             }
-            let resource = resource_map[obligation.resource_id.as_str()];
             if !evidence_covers(
                 &obligation.evidence,
                 &resource.resource_id,
@@ -791,6 +810,10 @@ pub fn evaluate_mobility_recovery(
                     break;
                 }
                 energy = next_energy as i64;
+                if energy > i64::try_from(resource.energy_capacity_lower_bound_wh).unwrap_or(i64::MAX) {
+                    first_failed_slot.get_or_insert(slot);
+                    resource_findings.insert(format!("energy_capacity_exceeded:{slot}"));
+                }
                 energy_after_slot.push(energy);
 
                 let Some(floor_wh) = reserve_floor_wh(obligation, index) else {
