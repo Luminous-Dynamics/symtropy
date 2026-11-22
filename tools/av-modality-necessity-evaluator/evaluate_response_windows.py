@@ -254,6 +254,11 @@ def evaluate(workload: dict[str, Any], truth: dict[str, Any], submission: dict[s
             if decision_ok:
                 correct_decisions += 1
 
+        forbidden_yield_triggers = {
+            item.get("trigger_event_id")
+            for item in label.get("forbidden_actions", [])
+            if item.get("action_type") == "yield"
+        }
         for action in action_rows:
             action_type = action.get("action_type")
             trigger = action.get("trigger_event_id")
@@ -261,17 +266,7 @@ def evaluate(workload: dict[str, Any], truth: dict[str, Any], submission: dict[s
                 unsolicited_responses += 1
             if action_type in SPEECH_ACTIONS and trigger in label.get("duplicate_event_ids", []):
                 duplicate_responses += 1
-        for decision in decisions:
-            if decision.get("expected_action") in SPEECH_ACTIONS:
-                matching_outputs = [
-                    action for action in actions_by_trigger.get(decision["trigger_event_id"], [])
-                    if action.get("action_type") == decision["expected_action"]
-                ]
-                duplicate_responses += max(0, len(matching_outputs) - 1)
-            if action_type == "yield" and any(
-                item.get("trigger_event_id") == trigger and item.get("action_type") == "yield"
-                for item in label.get("forbidden_actions", [])
-            ):
+            if action_type == "yield" and trigger in forbidden_yield_triggers:
                 backchannel_false_yields += 1
             if action_type == "cancel":
                 cancellation_actions += 1
@@ -279,6 +274,13 @@ def evaluate(workload: dict[str, Any], truth: dict[str, Any], submission: dict[s
                 deescalation_actions += 1
             if action_type == "abstain":
                 abstention_actions += 1
+        for decision in decisions:
+            if decision.get("expected_action") in SPEECH_ACTIONS:
+                matching_outputs = [
+                    action for action in actions_by_trigger.get(decision["trigger_event_id"], [])
+                    if action.get("action_type") == decision["expected_action"]
+                ]
+                duplicate_responses += max(0, len(matching_outputs) - 1)
 
         silence_windows = label.get("silence_windows", [])
         silence_false_positives = 0
