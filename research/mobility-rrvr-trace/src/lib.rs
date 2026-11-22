@@ -538,7 +538,14 @@ pub fn minimize_trace<O: ReplayOracle>(
             if candidate.len() == current.len() || candidate.is_empty() {
                 continue;
             }
-            match preserves_target(&candidate, &target, &bundle.header, oracle, &mut calls, max_oracle_calls) {
+            match preserves_target(
+                &candidate,
+                &target,
+                &bundle.header,
+                oracle,
+                &mut calls,
+                max_oracle_calls,
+            ) {
                 Some(true) => {
                     current = candidate;
                     granularity = granularity.saturating_sub(1).max(2);
@@ -574,7 +581,14 @@ pub fn minimize_trace<O: ReplayOracle>(
             if candidate.len() == current.len() {
                 continue;
             }
-            match preserves_target(&candidate, &target, &bundle.header, oracle, &mut calls, max_oracle_calls) {
+            match preserves_target(
+                &candidate,
+                &target,
+                &bundle.header,
+                oracle,
+                &mut calls,
+                max_oracle_calls,
+            ) {
                 Some(true) => {
                     one_minimal = false;
                     break;
