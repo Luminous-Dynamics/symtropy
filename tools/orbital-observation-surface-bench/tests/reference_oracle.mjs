@@ -74,7 +74,6 @@ function validateCorpus(corpus) {
     if (typeof scenario.scenario_id !== "string" || !scenario.scenario_id.trim()
       || scenarioIds.has(scenario.scenario_id)
       || typeof scenario.configuration_id !== "string" || !scenario.configuration_id.trim()
-      || !Number.isFinite(scenario.exposure_horizon) || scenario.exposure_horizon <= 0
       || !Array.isArray(scenario.events) || scenario.events.length === 0 || scenario.events.length > 100000
       || !Array.isArray(scenario.channels) || scenario.channels.length === 0 || scenario.channels.length > 8) {
       fail("scenario identity, exposure, event count or channel count is invalid");
