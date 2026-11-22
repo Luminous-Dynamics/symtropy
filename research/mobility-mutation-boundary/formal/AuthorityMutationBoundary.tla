@@ -151,7 +151,7 @@ ReplaceAuthority(nextBinding, nextAttempt, nextClock, nextBoot, nextEpoch) ==
     /\ bootEpoch' = nextBoot
     /\ authorityEpoch' = nextEpoch
     /\ UNCHANGED
-          << nowTicks, pendingAttempt, consumed, applicationSeq,
+          << nowTicks, pendingAttempt, consumed, consumedPermits, applicationSeq,
              applicationLog, resolutionLog >>
 
 Tick ==
