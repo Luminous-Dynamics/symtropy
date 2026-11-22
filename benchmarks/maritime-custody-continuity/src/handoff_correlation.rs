@@ -521,12 +521,7 @@ fn prove_box_interval_total_order(
             .interval()
             .earliest()
             .cmp(&right.2.interval().earliest())
-            .then_with(|| {
-                left.2
-                    .interval()
-                    .latest()
-                    .cmp(&right.2.interval().latest())
-            })
+            .then_with(|| left.2.interval().latest().cmp(&right.2.interval().latest()))
             .then_with(|| left.0.cmp(&right.0))
     });
 
@@ -558,7 +553,6 @@ fn prove_box_interval_total_order(
 
     Ok(())
 }
-
 
 type BoxEventTime<'a> = (SourceEventRef, u32, &'a TimeEvidence, Vec<usize>);
 
@@ -1047,14 +1041,8 @@ mod tests {
 
     #[test]
     fn mixed_time_bases_reject_as_incomparable_before_interval_sort() {
-        let mut first =
-            qualified_time_binding(&SourceEventRef::new("SRC_A", "EV-A"), 1, 10, 0);
-        let second = qualified_time_binding(
-            &SourceEventRef::new("SRC_B", "EV-B"),
-            1,
-            20,
-            0,
-        );
+        let mut first = qualified_time_binding(&SourceEventRef::new("SRC_A", "EV-A"), 1, 10, 0);
+        let second = qualified_time_binding(&SourceEventRef::new("SRC_B", "EV-B"), 1, 20, 0);
         first.evidence = TimeEvidence::new(
             first.evidence.event_id().to_string(),
             "OTHER_TIME_BASIS",
