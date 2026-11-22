@@ -1,7 +1,6 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-
 //! Loss-aware semantic decoding for EPCIS 2.0.1 AggregationEvent actions.
 //!
 //! This module translates the meaning of one already-parsed source event. It
@@ -593,7 +592,7 @@ mod tests {
     fn quantity_lexeme_is_preserved_and_must_be_positive() {
         for invalid in ["0", "0.000", "-1", "NaN", "INF", "1e309", " 2 ", "."] {
             let mut input = event(AggregationAction::Add);
-            input.child_quantity_list = vec![quantity("class-a", invalid, "EA")];
+            input.child_quantity_list = vec![quantity("class-a", invalid, "KGM")];
             assert!(matches!(
                 normalize_aggregation_event(&input),
                 Err(AggregationSemanticError::InvalidQuantityElement(_))
@@ -617,6 +616,7 @@ mod tests {
             unknown_quantity("class-unknown"),
             count_quantity("class-count", "9007199254740993"),
             quantity("class-weight", "0.1250", "KGM"),
+            quantity("class-measured-exponent", "1.25e2", "KGM"),
         ];
 
         let output = normalize_aggregation_event(&input).unwrap();
@@ -627,6 +627,7 @@ mod tests {
                     unknown_quantity("class-unknown"),
                     count_quantity("class-count", "9007199254740993"),
                     quantity("class-weight", "0.1250", "KGM"),
+            quantity("class-measured-exponent", "1.25e2", "KGM"),
                 ]
         ));
     }
