@@ -74,36 +74,126 @@ pub struct TlaActionEventMapping {
 /// RestartSafeEffectContinuity.tla Next relation. The workflow checks that each
 /// action still exists in the model and that the declared count matches Next.
 pub const TLA_ACTION_EVENT_MAPPING: [TlaActionEventMapping; 30] = [
-    TlaActionEventMapping { action_name: "ReserveAttempt", event_kind: TraceEventKind::AttemptReserved },
-    TlaActionEventMapping { action_name: "MarkDispatchStarted", event_kind: TraceEventKind::DispatchStarted },
-    TlaActionEventMapping { action_name: "NativeAcceptOld", event_kind: TraceEventKind::NativeAccepted },
-    TlaActionEventMapping { action_name: "OldDeviceApplies", event_kind: TraceEventKind::OldCommandApplied },
-    TlaActionEventMapping { action_name: "OldDeviceDoesNotApply", event_kind: TraceEventKind::OldCommandNoEffect },
-    TlaActionEventMapping { action_name: "OldDevicePartiallyApplies", event_kind: TraceEventKind::OldCommandPartial },
-    TlaActionEventMapping { action_name: "BeginEffectRecordCommit", event_kind: TraceEventKind::PersistenceCommitStarted },
-    TlaActionEventMapping { action_name: "CommitEffectRecord", event_kind: TraceEventKind::PersistenceCommitObserved },
-    TlaActionEventMapping { action_name: "AbortEffectRecord", event_kind: TraceEventKind::PersistenceCommitAborted },
-    TlaActionEventMapping { action_name: "AcknowledgeStoreCommit", event_kind: TraceEventKind::PersistenceCommitConfirmed },
-    TlaActionEventMapping { action_name: "AcknowledgeStoreNoCommit", event_kind: TraceEventKind::PersistenceNoCommitConfirmed },
-    TlaActionEventMapping { action_name: "Crash", event_kind: TraceEventKind::ProcessCrashed },
-    TlaActionEventMapping { action_name: "Restart", event_kind: TraceEventKind::ProcessRestarted },
-    TlaActionEventMapping { action_name: "FenceControllerQueue", event_kind: TraceEventKind::ControllerQueueFenced },
-    TlaActionEventMapping { action_name: "FenceDownstreamExecution", event_kind: TraceEventKind::DownstreamGraphFenced },
-    TlaActionEventMapping { action_name: "ResolvePersistence", event_kind: TraceEventKind::PersistenceResolved },
-    TlaActionEventMapping { action_name: "ObserveOldEffect", event_kind: TraceEventKind::PhysicalEffectObserved },
-    TlaActionEventMapping { action_name: "ObserveUnknownEffect", event_kind: TraceEventKind::PhysicalOutcomeUnknown },
-    TlaActionEventMapping { action_name: "ObserveDisputedEffect", event_kind: TraceEventKind::PhysicalOutcomeDisputed },
-    TlaActionEventMapping { action_name: "ResolveMission", event_kind: TraceEventKind::MissionResolutionRecorded },
-    TlaActionEventMapping { action_name: "IssueRecoveryPermit", event_kind: TraceEventKind::RecoveryPermitIssued },
-    TlaActionEventMapping { action_name: "CreateFreshTicket", event_kind: TraceEventKind::FreshTicketCreated },
-    TlaActionEventMapping { action_name: "RevokeM1", event_kind: TraceEventKind::M1AuthorityRevoked },
-    TlaActionEventMapping { action_name: "RevokeM2", event_kind: TraceEventKind::M2ApplicabilityRevoked },
-    TlaActionEventMapping { action_name: "ChangeLiveBinding", event_kind: TraceEventKind::LiveBindingInvalidated },
-    TlaActionEventMapping { action_name: "NativeAcceptRecovery", event_kind: TraceEventKind::NativeRecoveryAccepted },
-    TlaActionEventMapping { action_name: "RecoveryDeviceApplies", event_kind: TraceEventKind::RecoveryCommandApplied },
-    TlaActionEventMapping { action_name: "RecoveryDeviceDoesNotApply", event_kind: TraceEventKind::RecoveryCommandNoEffect },
-    TlaActionEventMapping { action_name: "RecoveryDevicePartiallyApplies", event_kind: TraceEventKind::RecoveryCommandPartial },
-    TlaActionEventMapping { action_name: "NaiveRetry", event_kind: TraceEventKind::NaiveRetryAttempted },
+    TlaActionEventMapping {
+        action_name: "ReserveAttempt",
+        event_kind: TraceEventKind::AttemptReserved,
+    },
+    TlaActionEventMapping {
+        action_name: "MarkDispatchStarted",
+        event_kind: TraceEventKind::DispatchStarted,
+    },
+    TlaActionEventMapping {
+        action_name: "NativeAcceptOld",
+        event_kind: TraceEventKind::NativeAccepted,
+    },
+    TlaActionEventMapping {
+        action_name: "OldDeviceApplies",
+        event_kind: TraceEventKind::OldCommandApplied,
+    },
+    TlaActionEventMapping {
+        action_name: "OldDeviceDoesNotApply",
+        event_kind: TraceEventKind::OldCommandNoEffect,
+    },
+    TlaActionEventMapping {
+        action_name: "OldDevicePartiallyApplies",
+        event_kind: TraceEventKind::OldCommandPartial,
+    },
+    TlaActionEventMapping {
+        action_name: "BeginEffectRecordCommit",
+        event_kind: TraceEventKind::PersistenceCommitStarted,
+    },
+    TlaActionEventMapping {
+        action_name: "CommitEffectRecord",
+        event_kind: TraceEventKind::PersistenceCommitObserved,
+    },
+    TlaActionEventMapping {
+        action_name: "AbortEffectRecord",
+        event_kind: TraceEventKind::PersistenceCommitAborted,
+    },
+    TlaActionEventMapping {
+        action_name: "AcknowledgeStoreCommit",
+        event_kind: TraceEventKind::PersistenceCommitConfirmed,
+    },
+    TlaActionEventMapping {
+        action_name: "AcknowledgeStoreNoCommit",
+        event_kind: TraceEventKind::PersistenceNoCommitConfirmed,
+    },
+    TlaActionEventMapping {
+        action_name: "Crash",
+        event_kind: TraceEventKind::ProcessCrashed,
+    },
+    TlaActionEventMapping {
+        action_name: "Restart",
+        event_kind: TraceEventKind::ProcessRestarted,
+    },
+    TlaActionEventMapping {
+        action_name: "FenceControllerQueue",
+        event_kind: TraceEventKind::ControllerQueueFenced,
+    },
+    TlaActionEventMapping {
+        action_name: "FenceDownstreamExecution",
+        event_kind: TraceEventKind::DownstreamGraphFenced,
+    },
+    TlaActionEventMapping {
+        action_name: "ResolvePersistence",
+        event_kind: TraceEventKind::PersistenceResolved,
+    },
+    TlaActionEventMapping {
+        action_name: "ObserveOldEffect",
+        event_kind: TraceEventKind::PhysicalEffectObserved,
+    },
+    TlaActionEventMapping {
+        action_name: "ObserveUnknownEffect",
+        event_kind: TraceEventKind::PhysicalOutcomeUnknown,
+    },
+    TlaActionEventMapping {
+        action_name: "ObserveDisputedEffect",
+        event_kind: TraceEventKind::PhysicalOutcomeDisputed,
+    },
+    TlaActionEventMapping {
+        action_name: "ResolveMission",
+        event_kind: TraceEventKind::MissionResolutionRecorded,
+    },
+    TlaActionEventMapping {
+        action_name: "IssueRecoveryPermit",
+        event_kind: TraceEventKind::RecoveryPermitIssued,
+    },
+    TlaActionEventMapping {
+        action_name: "CreateFreshTicket",
+        event_kind: TraceEventKind::FreshTicketCreated,
+    },
+    TlaActionEventMapping {
+        action_name: "RevokeM1",
+        event_kind: TraceEventKind::M1AuthorityRevoked,
+    },
+    TlaActionEventMapping {
+        action_name: "RevokeM2",
+        event_kind: TraceEventKind::M2ApplicabilityRevoked,
+    },
+    TlaActionEventMapping {
+        action_name: "ChangeLiveBinding",
+        event_kind: TraceEventKind::LiveBindingInvalidated,
+    },
+    TlaActionEventMapping {
+        action_name: "NativeAcceptRecovery",
+        event_kind: TraceEventKind::NativeRecoveryAccepted,
+    },
+    TlaActionEventMapping {
+        action_name: "RecoveryDeviceApplies",
+        event_kind: TraceEventKind::RecoveryCommandApplied,
+    },
+    TlaActionEventMapping {
+        action_name: "RecoveryDeviceDoesNotApply",
+        event_kind: TraceEventKind::RecoveryCommandNoEffect,
+    },
+    TlaActionEventMapping {
+        action_name: "RecoveryDevicePartiallyApplies",
+        event_kind: TraceEventKind::RecoveryCommandPartial,
+    },
+    TlaActionEventMapping {
+        action_name: "NaiveRetry",
+        event_kind: TraceEventKind::NaiveRetryAttempted,
+    },
 ];
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1232,10 +1322,8 @@ mod tests {
         );
 
         let mut input = bundle();
-        input.events[4].raw_artifact_ids = vec![
-            "raw-event-stream".to_owned(),
-            "raw-event-stream".to_owned(),
-        ];
+        input.events[4].raw_artifact_ids =
+            vec!["raw-event-stream".to_owned(), "raw-event-stream".to_owned()];
         assert_eq!(
             validate_trace_bundle(&input),
             TraceValidation::Hold(TraceHoldReason::DuplicateEventArtifactReference)
