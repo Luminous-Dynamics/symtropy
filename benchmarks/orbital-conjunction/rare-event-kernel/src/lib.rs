@@ -29,11 +29,13 @@ use core::fmt;
 /// Outward-rounded affine geometry used by the independent coverage research.
 pub mod coverage;
 pub mod lebedev;
+pub mod ncdot_pointwise;
 pub mod residual;
 pub mod sequential;
 pub mod stats;
 pub mod trajectory;
 
+pub use ncdot_pointwise::{NcdotPointwiseInputs, NcdotPointwiseReport, evaluate_ncdot_pointwise};
 pub use lebedev::{
     AdaptiveSphereQuadratureConfig, AdaptiveSphereQuadratureReport, LebedevRule, LebedevSphereRule,
     SphereQuadratureDiagnosticsConfig, SphereQuadratureNode, SphereQuadratureReport,
@@ -97,6 +99,14 @@ pub enum KernelError {
     InvalidTrajectoryBudget,
     /// A streaming sample or event-contribution counter would overflow.
     CounterOverflow,
+    /// A 3D-Nc sphere direction is not a finite unit vector.
+    InvalidSphereDirection,
+    /// The supplied inverse position covariance is invalid.
+    InvalidPositionCovarianceInverse,
+    /// The conditional relative velocity covariance is not positive semidefinite.
+    InvalidConditionalVelocityCovariance,
+    /// The conditional velocity variance in a sphere direction is materially negative.
+    InvalidSphereDirectionVariance,
     /// A probability is non-finite or outside the closed interval [0, 1].
     InvalidProbability,
     /// A sequential error probability is not strictly between zero and one.
@@ -152,6 +162,16 @@ impl fmt::Display for KernelError {
             }
             Self::InvalidTrajectoryBudget => "trajectory time-interval budget must be nonzero",
             Self::CounterOverflow => "streaming observation counter overflowed",
+            Self::InvalidSphereDirection => "3D-Nc sphere direction must be a finite unit vector",
+            Self::InvalidPositionCovarianceInverse => {
+                "inverse position covariance produced an invalid Mahalanobis distance"
+            }
+            Self::InvalidConditionalVelocityCovariance => {
+                "conditional velocity covariance must be positive semidefinite"
+            }
+            Self::InvalidSphereDirectionVariance => {
+                "projected conditional velocity variance is materially negative"
+            }
             Self::InvalidProbability => "probability must be finite and lie in [0, 1]",
             Self::InvalidAlpha => "alpha must be finite and lie strictly between 0 and 1",
             Self::ZeroProjectedVariance => "half-space projection has zero variance",
