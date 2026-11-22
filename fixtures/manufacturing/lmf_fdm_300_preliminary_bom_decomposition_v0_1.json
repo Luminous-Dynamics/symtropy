@@ -1,0 +1,326 @@
+{
+  "schema_id": "LMF-FDM-300-PRELIMINARY-BOM-DECOMPOSITION-0.1",
+  "status": "architecture_placeholder_not_selected_or_quoted",
+  "owner_issue": "Luminous-Dynamics/symtropy#6787",
+  "machine_id": "LMF-FDM-300-CONCEPT-0.1",
+  "rules": [
+    "component families are requirements placeholders, not procurement specifications",
+    "no manufacturer, part number, price, stock, lead time or supplier has been selected",
+    "critical frame, motion, thermal and safety functions must not rely on unqualified printed components",
+    "safety-related component architecture requires machinery risk assessment and competent review",
+    "unknown supply or qualification status remains unknown and blocks procurement or release"
+  ],
+  "systems": [
+    {
+      "system_id": "FRAME-001",
+      "name": "Frame, panels and structural joining",
+      "components": [
+        [
+          "FRAME-EXTRUSION",
+          "Structural extrusion/profile family",
+          "critical",
+          "unknown",
+          "No profile series, alloy, temper, section or joint system selected."
+        ],
+        [
+          "FRAME-JOINTS",
+          "Corner plates, gussets and structural fasteners",
+          "critical",
+          "unknown",
+          "Joint stiffness, preload, slip and fatigue must be calculated."
+        ],
+        [
+          "FRAME-BRACING",
+          "Rear/lateral bracing and base support",
+          "critical",
+          "unknown",
+          "Stiffness and mode shape need verification."
+        ],
+        [
+          "ENCLOSURE-PANELS",
+          "Outer panels and access doors",
+          "important",
+          "unknown",
+          "Material, temperature rating, visibility, fire behaviour and sealing need review."
+        ]
+      ]
+    },
+    {
+      "system_id": "XY-001",
+      "name": "XY motion and gantry",
+      "components": [
+        [
+          "XY-RAILS",
+          "Linear guides or bearing system",
+          "critical",
+          "unknown",
+          "Rail class, preload, straightness, parallelism and mounting interface not selected."
+        ],
+        [
+          "XY-BELTS",
+          "Drive belts and idlers",
+          "critical",
+          "unknown",
+          "Belt type, width, pitch, tension and fatigue envelope not selected."
+        ],
+        [
+          "XY-MOTORS",
+          "XY drive motors",
+          "critical",
+          "unknown",
+          "Torque-speed, thermal load, driver compatibility and holding behaviour not selected."
+        ],
+        [
+          "XY-TOOLHEAD",
+          "Toolhead carriage and cable routing",
+          "important",
+          "unknown",
+          "Mass, stiffness, cooling, service access and cable bend life not defined."
+        ]
+      ]
+    },
+    {
+      "system_id": "Z-001",
+      "name": "Z stage and build platform",
+      "components": [
+        [
+          "Z-DRIVE",
+          "Z actuators / lead screws / belts / motors",
+          "critical",
+          "unknown",
+          "Architecture A/B/C trade study remains open."
+        ],
+        [
+          "Z-GUIDANCE",
+          "Z guides and synchronization components",
+          "critical",
+          "unknown",
+          "Parallelism, racking and thermal expansion requirements open."
+        ],
+        [
+          "BUILD-PLATE",
+          "Build surface, heater and support assembly",
+          "critical",
+          "unknown",
+          "Flatness, thermal uniformity, electrical isolation and support stiffness open."
+        ]
+      ]
+    },
+    {
+      "system_id": "EXTRUSION-001",
+      "name": "Material extrusion toolhead",
+      "components": [
+        [
+          "EXTRUDER",
+          "Filament drive and feed path",
+          "important",
+          "unknown",
+          "Supported filament types, torque, wear and feed consistency not selected."
+        ],
+        [
+          "HOTEND",
+          "Heater block, heat break, nozzle and thermal path",
+          "critical",
+          "unknown",
+          "Operating temperature, materials and thermal protection need review."
+        ],
+        [
+          "HOTEND-SENSOR",
+          "Hotend temperature sensor",
+          "safety_related",
+          "unknown",
+          "Sensor type, wiring, failure mode and independent thermal protection required."
+        ],
+        [
+          "PART-COOLING",
+          "Part cooling and electronics airflow",
+          "important",
+          "unknown",
+          "Airflow and material process envelope not defined."
+        ]
+      ]
+    },
+    {
+      "system_id": "ELECTRICAL-001",
+      "name": "Power distribution and control",
+      "components": [
+        [
+          "POWER-SUPPLY",
+          "AC/DC power supply",
+          "safety_related",
+          "unknown",
+          "Electrical rating, protection, isolation, protective bonding and conformity route open."
+        ],
+        [
+          "CONTROLLER",
+          "Motion controller and stepper drivers",
+          "critical",
+          "unknown",
+          "Open interfaces, sourcing, firmware support, thermal design and fault handling open."
+        ],
+        [
+          "WIRING",
+          "Wiring harness, connectors, glands and strain relief",
+          "safety_related",
+          "unknown",
+          "Wire gauge, temperature rating, routing and protective coordination open."
+        ],
+        [
+          "PROTECTIVE-BOND",
+          "Protective bonding / earthing",
+          "safety_related",
+          "unknown",
+          "Design and verification per applicable electrical/machinery requirements."
+        ],
+        [
+          "OVER-CURRENT",
+          "Fuses / circuit protection",
+          "safety_related",
+          "unknown",
+          "Ratings and coordination depend on final circuit design."
+        ],
+        [
+          "THERMAL-CUTOFF",
+          "Independent thermal protection devices",
+          "safety_related",
+          "unknown",
+          "Fail-safe behavior and independent protection to be engineered."
+        ],
+        [
+          "EMERGENCY-STOP",
+          "Emergency-stop / stop function architecture",
+          "safety_related",
+          "unknown",
+          "Function and required category determined by risk assessment; button presence alone is not proof."
+        ],
+        [
+          "INTERLOCKS",
+          "Access/guard interlock devices where required",
+          "safety_related",
+          "unknown",
+          "Selection and safety integrity based on risk assessment and machine design."
+        ],
+        [
+          "FANS",
+          "Electronics, enclosure and hotend fans",
+          "important",
+          "unknown",
+          "Temperature, airflow, life, noise and failure detection not selected."
+        ]
+      ]
+    },
+    {
+      "system_id": "ENVIRONMENT-001",
+      "name": "Enclosure, emissions and thermal management",
+      "components": [
+        [
+          "EXHAUST",
+          "Source capture, ducting and extraction interface",
+          "safety_related",
+          "unknown",
+          "No household operation until exact printer/material/site control envelope reviewed."
+        ],
+        [
+          "FILTER-STAGE",
+          "Filter media / enclosure filtration where selected",
+          "safety_related",
+          "unknown",
+          "Filter type, efficiency, pressure drop, replacement and exposure measurement open."
+        ],
+        [
+          "TEMP-SENSORS",
+          "Chamber and electronics temperature sensors",
+          "important",
+          "unknown",
+          "Monitoring is not itself protective control; sensor limits and failure states open."
+        ]
+      ]
+    },
+    {
+      "system_id": "FIRMWARE-001",
+      "name": "Firmware, user interface and local operation",
+      "components": [
+        [
+          "FIRMWARE",
+          "Motion and machine firmware",
+          "critical",
+          "unknown",
+          "Exact release, license, safety limits, update and rollback policy open."
+        ],
+        [
+          "LOCAL-UI",
+          "Display / local controls / offline job interface",
+          "important",
+          "unknown",
+          "No mandatory cloud/account; safe local control is proposed requirement."
+        ],
+        [
+          "DATA-IDENTITY",
+          "Machine identity and configuration manifest",
+          "important",
+          "unknown",
+          "Bind BOM, firmware, calibration, process profile and maintenance records."
+        ]
+      ]
+    },
+    {
+      "system_id": "QUAL-001",
+      "name": "Calibration, inspection and maintenance assets",
+      "components": [
+        [
+          "GEOMETRY-ARTEFACT",
+          "Geometric capability test artefact",
+          "important",
+          "unknown",
+          "Reference artefact and inspection method must be specified; printed artifact is not automatically a calibrated standard."
+        ],
+        [
+          "MEASUREMENT-TOOLS",
+          "Calipers / micrometers / dial indicators / scales",
+          "important",
+          "unknown",
+          "Instrument selection, range, resolution, calibration and measurement uncertainty open."
+        ],
+        [
+          "MAINTENANCE-KIT",
+          "Tools, cleaning, lubrication and service spares",
+          "important",
+          "unknown",
+          "Service task analysis and common tool standardization open."
+        ]
+      ]
+    }
+  ],
+  "component_template": {
+    "component_id": "REPLACE_ME",
+    "selected_manufacturer": null,
+    "selected_part_number": null,
+    "specification_revision": null,
+    "quantity": null,
+    "criticality": "critical_or_important_or_safety_related",
+    "evidence_status": "unknown",
+    "local_supply_class": "unknown",
+    "alternate_source_count": null,
+    "material_and_lot": null,
+    "approved_substitutions": [],
+    "cost_zar": null,
+    "minimum_order_quantity": null,
+    "lead_time_days": null,
+    "inspection_and_acceptance": null,
+    "qualification_evidence": null,
+    "source_url": null,
+    "quote_date": null,
+    "reviewer": null
+  },
+  "gate_sequence": [
+    "select_machine_architecture",
+    "calculate_frame_and_motion_loads_modes_and_tolerances",
+    "freeze_electrical_and_thermal_system_requirements",
+    "complete_machine_risk_assessment_and_safeguard_design",
+    "confirm_licence_and_provenance_for_each_design_asset",
+    "collect_comparable_supplier_quotes_and_source_alternates",
+    "build_first_article_and_inspect",
+    "independent_review_and_commissioning"
+  ],
+  "claim_ceiling": "This decomposition is not a procurement BOM, assembly drawing, validated machine design, safety file or supplier commitment."
+}
