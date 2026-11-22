@@ -4,6 +4,7 @@ pub mod robust_decision_value;
 pub mod risk_coverage;
 pub mod sequential_value;
 pub mod common_cause_sequential;
+pub mod dependency_graph;
 pub mod correlation_envelope;
 pub mod correlation_audit;
 pub mod correlation_planning;
