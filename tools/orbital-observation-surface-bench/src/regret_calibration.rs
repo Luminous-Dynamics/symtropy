@@ -131,7 +131,7 @@ fn valid_id(value: &str) -> bool {
 }
 
 fn ceil_div(numerator: u128, denominator: u128) -> u128 {
-    numerator / denominator + if numerator % denominator == 0 { 0 } else { 1 }
+    numerator.div_ceil(denominator)
 }
 
 /// Exact split-conformal rank: ceil((n + 1) * (1 - alpha)).
