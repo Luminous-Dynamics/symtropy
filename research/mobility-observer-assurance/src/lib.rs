@@ -740,6 +740,7 @@ mod tests {
     #[test]
     fn failed_component_invalidates_every_node_in_its_failure_domain() {
         let mut input = packet();
+        input.required_independent_observers = 2;
         input.components[4].failure_domain_id = input.components[1].failure_domain_id.clone();
         input.scenarios.push(FaultScenario {
             scenario_id: "power-domain-a-fails".to_owned(),
@@ -758,6 +759,7 @@ mod tests {
     #[test]
     fn common_cause_fault_that_drops_the_required_quorum_holds() {
         let mut input = packet();
+        input.required_independent_observers = 2;
         input.scenarios.push(FaultScenario {
             scenario_id: "shared-bus-loss".to_owned(),
             failed_component_ids: vec!["power-a".to_owned(), "power-b".to_owned()],
@@ -939,6 +941,7 @@ mod tests {
     #[test]
     fn failure_scenarios_are_all_required_and_report_minimum_surviving_quorum() {
         let mut input = packet();
+        input.required_independent_observers = 2;
         input.scenarios.push(FaultScenario {
             scenario_id: "fail-all-observers".to_owned(),
             failed_component_ids: vec![
