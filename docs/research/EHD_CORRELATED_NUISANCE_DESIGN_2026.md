@@ -35,7 +35,7 @@ Z^\mathsf T\Sigma^{-1}X.
 
 The implementation does not explicitly form \(\Sigma^{-1}\). It computes the Cholesky factor \(\Sigma=LL^\mathsf T\), whitens each sensitivity column by solving \(L\tilde x=x\), and projects the whitened physical sensitivities onto the orthogonal complement of the two whitened nuisance columns.
 
-The nuisance basis uses two-pass modified Gram–Schmidt. A rank-deficient nuisance block makes the allocation inadmissible. A rank-deficient physical block is also excluded. The implementation adds no jitter, no diagonal loading, no symmetrization and no pseudo-inverse to turn invalid input into an apparent pass.
+The nuisance basis uses two-pass modified Gram–Schmidt. A rank-deficient nuisance block makes the allocation inadmissible. A rank-deficient physical block is also excluded. The physical rank gate checks both relative separation of singular values and the effective maximum singular value relative to the original whitened physical sensitivity scale, preventing roundoff after exact nuisance projection from creating a false rank-two result. The implementation adds no jitter, no diagonal loading, no symmetrization and no pseudo-inverse to turn invalid input into an apparent pass.
 
 For frozen scenarios \(\mathcal S\), the design objective is
 
@@ -62,7 +62,7 @@ A second scenario changes the second physical sensitivity to \(x^3+0.25x^4\) and
 \end{bmatrix}.
 \]
 
-There are \(\binom{6+4-1}{4}=126\) four-observation allocations with replacement. Forty-nine remain full rank after nuisance projection in both scenarios.
+There are \(\binom{6+4-1}{4}=126\) four-observation allocations with replacement. Fourteen remain full rank after nuisance projection in both scenarios. A further negative control ensures that floating-point residuals left after exact projection are not promoted to physical information: the effective largest singular value must remain material relative to the original whitened physical sensitivity scale.
 
 | Result | Selection | Worst-case weakest information |
 |---|---|---:|
