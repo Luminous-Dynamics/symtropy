@@ -133,6 +133,7 @@ pub enum BatchBlock {
     EmptyActionIdentity,
     DuplicateAction,
     DuplicateTicket,
+    StateGenerationMismatch,
     EmptySharedContext,
     MixedSharedContext,
     UnknownFootprint { action_id: String },
@@ -145,6 +146,7 @@ pub enum BatchBlock {
     DuplicateRequiredOwnerFamily,
     MissingOwnerCheck { left: String, right: String, owner: String },
     DuplicateOwnerCheck { left: String, right: String, owner: String },
+    UnexpectedOwnerCheck { left: String, right: String, owner: String },
     InvalidOwnerCheck { left: String, right: String, owner: String },
     OwnerConflict { left: String, right: String, owner: String },
     OwnerUnknown { left: String, right: String, owner: String },
@@ -226,6 +228,7 @@ fn validate_footprints(
     }
 
     let mut actions = BTreeSet::new();
+    let mut action_ids = BTreeSet::new();
     let mut tickets = BTreeSet::new();
 
     for footprint in footprints {
@@ -233,7 +236,7 @@ fn validate_footprints(
         if action.action_id.trim().is_empty() || !is_nonzero_digest(&action.ticket_digest) {
             return Err(BatchBlock::EmptyActionIdentity);
         }
-        if !actions.insert(action.clone()) {
+        if !actions.insert(action.clone()) || !action_ids.insert(action.action_id.clone()) {
             return Err(BatchBlock::DuplicateAction);
         }
         if !tickets.insert(action.ticket_digest) {
@@ -243,7 +246,7 @@ fn validate_footprints(
             return Err(BatchBlock::MixedSharedContext);
         }
 
-        match footprint.qualification {
+        match &footprint.qualification {
             FootprintQualification::Unknown => {
                 return Err(BatchBlock::UnknownFootprint {
                     action_id: action.action_id.clone(),
@@ -320,8 +323,18 @@ fn validate_pairwise_owner_checks(
     let mut indexed: BTreeMap<(ActionRef, ActionRef, String), &PairwiseOwnerCheck> =
         BTreeMap::new();
 
+    let known_actions: BTreeSet<_> =
+        footprints.iter().map(|footprint| footprint.action.clone()).collect();
+
     for check in checks {
         let (left, right) = pair_key(&check.left, &check.right);
+        if !known_actions.contains(&left) || !known_actions.contains(&right) {
+            return Err(BatchBlock::UnexpectedOwnerCheck {
+                left: left.action_id.clone(),
+                right: right.action_id.clone(),
+                owner: check.owner_family.clone(),
+            });
+        }
         if left == right
             || check.owner_family.trim().is_empty()
             || !is_nonzero_digest(&check.input_digest)
@@ -381,6 +394,13 @@ fn validate_pairwise_owner_checks(
             }
         }
     }
+    if indexed.len() != required_count {
+        return Err(BatchBlock::UnexpectedOwnerCheck {
+            left: String::new(),
+            right: String::new(),
+            owner: "unexpected-or-unrequired-check".to_owned(),
+        });
+    }
     Ok(required_count)
 }
 
@@ -391,6 +411,13 @@ fn validate_state_access_conflicts(
         for j in (i + 1)..footprints.len() {
             for a in &footprints[i].state_accesses {
                 for b in &footprints[j].state_accesses {
+                    if a.key == b.key && a.generation != b.generation {
+                        return Err(BatchBlock::StateGenerationMismatch {
+                            left: footprints[i].action.action_id.clone(),
+                            right: footprints[j].action.action_id.clone(),
+                            key: a.key.clone(),
+                        });
+                    }
                     if a.key == b.key && a.generation == b.generation
                         && (a.mode == AccessMode::Write || b.mode == AccessMode::Write)
                     {
@@ -896,4 +923,59 @@ mod tests {
             })
         );
     }
+    #[test]
+    fn same_action_id_with_different_attempts_blocks_batch() {
+        let a = footprint("arm-a", 10);
+        let mut b = footprint("arm-a", 11);
+        b.action.attempt = 2;
+        assert_eq!(
+            qualify_concurrent_batch(
+                &profile(),
+                &[a.clone(), b.clone()],
+                &checks(&a.action, &b.action),
+            ),
+            Err(BatchBlock::DuplicateAction)
+        );
+    }
+
+    #[test]
+    fn mismatched_object_generation_is_not_treated_as_independent() {
+        let mut a = footprint("arm-a", 10);
+        let mut b = footprint("arm-b", 11);
+        a.state_accesses = vec![StateAccess {
+            key: "shared-object".to_owned(),
+            mode: AccessMode::Read,
+            generation: "generation-2".to_owned(),
+        }];
+        b.state_accesses = vec![StateAccess {
+            key: "shared-object".to_owned(),
+            mode: AccessMode::Read,
+            generation: "generation-3".to_owned(),
+        }];
+        assert_eq!(
+            qualify_concurrent_batch(
+                &profile(),
+                &[a.clone(), b.clone()],
+                &checks(&a.action, &b.action),
+            ),
+            Err(BatchBlock::StateGenerationMismatch {
+                left: "arm-a".to_owned(),
+                right: "arm-b".to_owned(),
+                key: "shared-object".to_owned(),
+            })
+        );
+    }
+
+    #[test]
+    fn owner_check_for_unknown_action_is_rejected() {
+        let a = footprint("arm-a", 10);
+        let b = footprint("arm-b", 11);
+        let mut owner_checks = checks(&a.action, &b.action);
+        owner_checks[0].right = action("not-in-batch", 1, 99);
+        assert!(matches!(
+            qualify_concurrent_batch(&profile(), &[a, b], &owner_checks),
+            Err(BatchBlock::UnexpectedOwnerCheck { .. })
+        ));
+    }
+
 }
