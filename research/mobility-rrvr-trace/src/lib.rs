@@ -1,3 +1,8 @@
+pub mod tlc_json;
+pub use tlc_json::{
+    import_tlc_json_trace, trace_bundle_to_json_value, TlcImportContext, TlcImportError,
+};
+
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
