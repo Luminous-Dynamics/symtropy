@@ -43,6 +43,8 @@ const EMBEDDED_IDENTIFIABILITY: &str =
     include_str!("../../../data/research/ehd_experiment_identifiability_kernel_v0_1.json");
 const EMBEDDED_ROBUST_DESIGN: &str =
     include_str!("../../../data/research/ehd_robust_design_v0_1.json");
+const EMBEDDED_CORRELATED_ROBUST_DESIGN: &str =
+    include_str!("../../../data/research/ehd_correlated_robust_design_v0_1.json");
 
 fn at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
     path.iter().try_fold(value, |node, key| node.get(*key))
@@ -2296,6 +2298,124 @@ pub fn audit_robust_design_contract(root: &Value) -> Vec<String> {
 }
 
 
+
+
+/// Audit the frozen EHD-OED-003 two-nuisance/full-covariance fixture.
+pub fn audit_correlated_robust_design_contract(root: &Value) -> Vec<String> {
+    let mut findings = Vec::new();
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["schema"]) == Some("luminous.ehd_correlated_robust_design")
+            && text_at(root, &["schema_version"]) == Some("0.1.0")
+            && text_at(root, &["benchmark_id"]) == Some("EHD-OED-003")
+            && text_at(root, &["status"])
+                == Some("manufactured_two_nuisance_full_covariance_kernel_authored_tests_execution_pending"),
+        "CORRELATED_DESIGN_IDENTITY",
+        "EHD-OED-003 identity, version or validation status changed",
+    );
+    push_if_missing(
+        &mut findings,
+        at(root, &["model_contract", "physical_parameter_count"]).and_then(Value::as_u64) == Some(2)
+            && at(root, &["model_contract", "nuisance_parameter_count"]).and_then(Value::as_u64) == Some(2)
+            && at(root, &["model_contract", "observation_count"]).and_then(Value::as_u64) == Some(4)
+            && at(root, &["model_contract", "candidate_count"]).and_then(Value::as_u64) == Some(6)
+            && at(root, &["model_contract", "correlated_covariance_supported"]).and_then(Value::as_bool) == Some(true)
+            && text_at(root, &["model_contract", "covariance_factorization"])
+                .is_some_and(|value| value.contains("Cholesky"))
+            && text_at(root, &["model_contract", "covariance_invalid_policy"])
+                .is_some_and(|value| value.contains("reject")),
+        "CORRELATED_DESIGN_MODEL_BOUNDARY",
+        "two physical/two nuisance channels and four-slot full-covariance boundary changed",
+    );
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["nuisance_adjustment", "effective_information"])
+            .is_some_and(|value| value.contains("Sigma^-1 Z"))
+            && text_at(root, &["nuisance_adjustment", "rank_deficient_policy"])
+                .is_some_and(|value| value.contains("exclude")),
+        "CORRELATED_DESIGN_NUISANCE_POLICY",
+        "full covariance nuisance-adjusted information and fail-closed rank policy changed",
+    );
+    let scenarios = at(root, &["scenarios"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        scenarios.is_some_and(|rows| rows.len() == 2
+            && text_at(&rows[0], &["scenario_id"]) == Some("nominal_polynomial_independent_noise")
+            && text_at(&rows[1], &["scenario_id"]) == Some("curvature_shift_correlated_ar1_noise")
+            && text_at(&rows[0], &["physical_sensitivity_model"]) == Some("[x^2, x^3]")
+            && text_at(&rows[1], &["physical_sensitivity_model"]) == Some("[x^2, x^3 + 0.25*x^4]")
+            && at(&rows[0], &["covariance"]).and_then(Value::as_array).is_some_and(|matrix| {
+                matrix.len() == 4 && matrix.iter().all(|row| row.as_array().is_some_and(|values| {
+                    values.len() == 4 && values.iter().filter(|v| v.as_f64() == Some(1.0)).count() == 1
+                }))
+            })
+            && at(&rows[1], &["covariance"]).and_then(Value::as_array).is_some_and(|matrix| {
+                matrix.len() == 4
+                    && matrix[0][1].as_f64() == Some(0.45)
+                    && matrix[0][2].as_f64() == Some(0.2025)
+                    && matrix[0][3].as_f64() == Some(0.091125)
+                    && matrix[3][0].as_f64() == Some(0.091125)
+            })),
+        "CORRELATED_DESIGN_SCENARIOS",
+        "independent-noise and correlated AR(1) covariance scenarios must remain frozen",
+    );
+    let candidates = at(root, &["candidates"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        candidates.is_some_and(|rows| rows.len() == 6
+            && rows[0]["x"].as_f64() == Some(-3.0)
+            && rows[0]["physical_nominal"] == serde_json::json!([9, -27])
+            && rows[0]["physical_shifted"] == serde_json::json!([9, 54])
+            && rows[0]["nuisance"] == serde_json::json!([1, -3])
+            && rows[5]["x"].as_f64() == Some(3.0)
+            && rows[5]["physical_nominal"] == serde_json::json!([9, 27])
+            && rows[5]["physical_shifted"] == serde_json::json!([9, 108])),
+        "CORRELATED_DESIGN_CANDIDATES",
+        "six manufactured candidate conditions or their two-nuisance sensitivity basis changed",
+    );
+    let expected = at(root, &["expected_result"]);
+    push_if_missing(
+        &mut findings,
+        expected.is_some_and(|value| {
+            at(value, &["evaluated_design_count"]).and_then(Value::as_u64) == Some(126)
+                && at(value, &["robust_identifiable_design_count"]).and_then(Value::as_u64) == Some(49)
+                && at(value, &["robust_optimal_candidate_indices"]) == Some(&serde_json::json!([0, 2, 4, 5]))
+                && number_at(value, &["robust_worst_case_minimum_information_eigenvalue"])
+                    .is_some_and(|v| (v - 42.546743038933265).abs() < 1.0e-10)
+                && at(value, &["nominal_only_optimal_candidate_indices"])
+                    == Some(&serde_json::json!([0, 2, 3, 5]))
+                && number_at(value, &["worst_case_information_improvement_percent"])
+                    .is_some_and(|v| (v - 53.89185033347004).abs() < 1.0e-8)
+        }),
+        "CORRELATED_DESIGN_EXPECTED_RESULT",
+        "126-allocation maximin result and 53.89% manufactured improvement changed",
+    );
+    push_if_missing(
+        &mut findings,
+        at(root, &["test_families"]).and_then(Value::as_array)
+            .is_some_and(|tests| tests.len() == 7
+                && tests.iter().any(|v| v.as_str() == Some("nonsymmetric_covariance_is_rejected_without_silent_symmetrization"))
+                && tests.iter().any(|v| v.as_str() == Some("non_positive_definite_covariance_is_rejected_without_jitter"))
+                && tests.iter().any(|v| v.as_str() == Some("rank_deficient_nuisance_designs_are_not_promoted"))
+                && tests.iter().any(|v| v.as_str() == Some("invalid_covariance_component_is_rejected"))),
+        "CORRELATED_DESIGN_TEST_MATRIX",
+        "covariance, nuisance-rank and fail-closed adversarial test families must remain declared",
+    );
+    push_if_missing(
+        &mut findings,
+        at(root, &["limitations"]).and_then(Value::as_array).is_some_and(|rows| {
+            rows.iter().any(|v| v.as_str() == Some("manufactured_polynomial_sensitivity_rows_only"))
+                && rows.iter().any(|v| v.as_str() == Some("two_nuisance_channels_only"))
+                && rows.iter().any(|v| v.as_str() == Some("four_observation_slots_only"))
+                && rows.iter().any(|v| v.as_str() == Some("no_physical_EHD_measurements_or_experiment_recommendations"))
+        }) && text_at(root, &["claim_ceiling"]).is_some_and(|v| v.contains("not a real EHD parameter model")),
+        "CORRELATED_DESIGN_CLAIM_BOUNDARY",
+        "manufactured-only and no-physical-experiment scope must remain explicit",
+    );
+    findings
+}
+
+
 fn main() {
     let mut args = env::args().skip(1);
     let path = args.next();
@@ -2420,6 +2540,15 @@ fn main() {
         }
     };
     findings.extend(audit_robust_design_contract(&robust_design_contract));
+    let correlated_robust_design_contract: Value =
+        match serde_json::from_str(EMBEDDED_CORRELATED_ROBUST_DESIGN) {
+            Ok(value) => value,
+            Err(error) => {
+                eprintln!("invalid embedded EHD-OED-003 JSON: {error}");
+                process::exit(2);
+            }
+        };
+    findings.extend(audit_correlated_robust_design_contract(&correlated_robust_design_contract));
     let exchange_kernel_ok = match exchange::reference_self_check() {
         Ok(()) => true,
         Err(error) => {
@@ -2483,6 +2612,14 @@ fn main() {
             false
         }
     };
+    let correlated_robust_design_ok =
+        match identifiability::multi_nuisance_correlated_reference_self_check() {
+            Ok(()) => true,
+            Err(error) => {
+                findings.push(format!("CORRELATED_ROBUST_DESIGN_SELF_CHECK: {error}"));
+                false
+            }
+        };
     let robust_design_ok = match identifiability::robust_tournament_reference_self_check() {
         Ok(()) => true,
         Err(error) => {
@@ -2540,6 +2677,9 @@ fn main() {
         }
         if robust_design_ok {
             println!("nuisance-adjusted robust maximin experiment-design tournament self-check: passed");
+        }
+        if correlated_robust_design_ok {
+            println!("two-channel nuisance / correlated-covariance maximin self-check: passed");
         }
         println!("scope: source structure and analytic reference checks only; no physical V&V, production ALE, TPE(1/2), nonlinear profile likelihood, continuous design optimization, complete collisional-energy closure or durable exactly-once claim");
     } else {
@@ -3183,6 +3323,22 @@ mod control_volume_contract_tests {
 #[cfg(test)]
 mod identifiability_contract_tests {
     use super::*;
+
+    #[test]
+    fn correlated_robust_design_contract_passes() {
+        let value: Value = serde_json::from_str(EMBEDDED_CORRELATED_ROBUST_DESIGN)
+            .expect("embedded EHD-OED-003 contract must be valid JSON");
+        assert!(audit_correlated_robust_design_contract(&value).is_empty());
+    }
+
+    #[test]
+    fn correlated_robust_design_contract_rejects_covariance_boundary_drift() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_CORRELATED_ROBUST_DESIGN).unwrap();
+        value["model_contract"]["correlated_covariance_supported"] = Value::Bool(false);
+        assert!(audit_correlated_robust_design_contract(&value).iter().any(|finding| {
+            finding.starts_with("CORRELATED_DESIGN_MODEL_BOUNDARY")
+        }));
+    }
 
     #[test]
     fn robust_design_contract_passes() {
