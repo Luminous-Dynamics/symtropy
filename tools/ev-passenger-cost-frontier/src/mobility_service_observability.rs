@@ -1202,7 +1202,12 @@ pub fn evaluate_service_observability(
             add_error(&mut errors, format!("cost_owner_unknown:{}", item.event_id));
             continue;
         };
-        if item.owner_configuration_digest != *config_digest
+        if item.site_id != site_map.get(item.site_id.as_str()).map_or("", |site| site.site_id.as_str())
+            || (item.owner_id != item.site_id
+                && asset_map
+                    .get(item.owner_id.as_str())
+                    .is_some_and(|asset| asset.site_id != item.site_id))
+            || item.owner_configuration_digest != *config_digest
             || !evidence_valid(
                 &item.evidence,
                 asset_id,
@@ -1413,7 +1418,7 @@ mod tests {
     #[test]
     fn overlapping_availability_intervals_are_rejected() {
         let mut input = fixture();
-        input.availability[1].start_at_unix_ms += 1;
+        input.availability[1].start_at_unix_ms -= 1;
         assert!(evaluate_service_observability(&input).is_err());
     }
 
@@ -1456,6 +1461,45 @@ mod tests {
         input.swaps[0].evidence.observed_at_unix_ms =
             Some(input.decision_cutoff_unix_ms + 1);
         assert!(evaluate_service_observability(&input).is_err());
+    }
+
+    #[test]
+    fn metered_partial_grid_delivery_is_retained_without_calling_request_successful() {
+        let mut input = fixture();
+        let started = input.grid_service[1].started_at_unix_ms;
+        let response = started + 2_000;
+        let ended = response + 60_000;
+        input.grid_service[1].response_at_unix_ms = Some(response);
+        input.grid_service[1].ended_at_unix_ms = Some(ended);
+        input.grid_service[1].metered_delivered_energy_wh = Some(100);
+        input.grid_service[1].meter_evidence = Some(EvidenceEnvelope {
+            asset_id: "site-01".to_owned(),
+            configuration_digest: "sha256:site-01-v01".to_owned(),
+            producer_id: "fixture-generator".to_owned(),
+            method_id: "synthetic-service-observability-v0.1".to_owned(),
+            evidence_reference: "synthetic://grid/02/partial-meter".to_owned(),
+            evidence_class: EvidenceClass::Synthetic,
+            observed_at_unix_ms: Some(ended),
+            valid_from_unix_ms: Some(input.window_start_unix_ms),
+            valid_until_unix_ms: Some(input.window_end_exclusive_unix_ms - 1),
+        });
+        let report = evaluate_service_observability(&input).expect("partial meter record");
+        assert_eq!(report.grid_service.delivered, 1);
+        assert_eq!(report.grid_service.failed, 1);
+        assert_eq!(report.grid_service.metered_delivered_energy_wh, Some(900));
+    }
+
+    #[test]
+    fn missing_availability_segment_is_reported_as_unknown_time() {
+        let mut input = fixture();
+        input.availability.retain(|segment| segment.event_id != "availability-aircraft-01-2");
+        let report = evaluate_service_observability(&input).expect("gap is explicit unknown time");
+        let aircraft = report
+            .availability
+            .iter()
+            .find(|item| item.asset_id == "aircraft-01")
+            .expect("aircraft availability");
+        assert_eq!(aircraft.unknown_seconds, 900);
     }
 
     #[test]
