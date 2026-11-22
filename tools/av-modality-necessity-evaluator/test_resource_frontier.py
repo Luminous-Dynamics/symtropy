@@ -62,11 +62,16 @@ class ResourceFrontierTests(unittest.TestCase):
         candidate["comparison"]["measurement_class"] = "measured"
         for run in candidate["runs"]:
             for metric in run["metrics"]:
+                metric["status"] = "MEASURED"
+                metric["evidence_sha256"] = "a" * 64
+                metric["method"] = "instrumented test trace"
                 if metric["metric_id"] == "energy_joules":
                     metric["status"] = "ESTIMATED"
         score = evaluator.evaluate(candidate)
-        self.assertEqual(score["pareto_frontier_run_ids"], [])
-        self.assertTrue(all(not row["eligible"] for row in score["runs"]))
+        by_id = {row["run_id"]: row for row in score["runs"]}
+        self.assertFalse(by_id["run-always-on"]["eligible"])
+        self.assertIn("not_measured:energy_joules", by_id["run-always-on"]["reason_codes"])
+        self.assertEqual(score["pareto_frontier_run_ids"], ["run-adaptive", "run-minimal"])
 
     def test_measured_metrics_require_evidence_digest_and_method(self):
         candidate = copy.deepcopy(self.bundle)
