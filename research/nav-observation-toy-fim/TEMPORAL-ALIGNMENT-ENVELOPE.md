@@ -67,3 +67,14 @@ The module also provides `inflate_student_t_protection_levels_by_temporal_bound`
 For any directional unit vector, the absolute projection of the bounded position-bias vector is no larger than its Euclidean norm. The additive form therefore follows the triangle inequality and does not require independence between the statistical estimator error and time-alignment bias. It is conservative and must not be RSS-combined with other sources without a justified dependence model.
 
 Do not add the temporal term twice if the base covariance/PL calculation already includes that same timing uncertainty. All clock and motion bounds must be independently evidenced before the inflated PL can be interpreted as a valid protection level.
+## Proactive synchronization holdover scheduling
+
+The module also provides `maximum_sync_holdover_under_position_budget`. Given current clock bounds, a motion envelope, an explicit temporal position-bias budget and a finite search horizon, it finds the largest additional time before the computed bias envelope exceeds that budget.
+
+- If the budget is already exceeded, the permitted additional holdover is zero.
+- If the budget remains satisfied at the search horizon, the result is capped at that horizon and reports that the budget is still satisfied there.
+- Otherwise it uses bounded bisection over the monotonic envelope to find the threshold.
+
+This is a deterministic scheduling aid: it can tell a service when to request resynchronization, enter DEGRADED, or abstain before the timing-derived bias budget is exhausted. It does not guarantee that a synchronization attempt will succeed. It also does not make unknown clock bounds valid; missing or unqualified clock bounds must remain unknown/conservative.
+
+Example sensitivity test: with 1 ms initial offset, 100 ppm drift, 5 m/s speed, zero acceleration/rotation, and a 1 cm temporal position-bias budget, the maximum additional holdover is approximately 10 seconds. These are synthetic inputs, not Hilti or UrbanNav measurements.
