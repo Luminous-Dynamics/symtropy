@@ -199,7 +199,12 @@ impl<const D: usize> ContactWrenchImpulse<D> {
             return Err(ContactFrameError::FrictionLimitExceeded);
         }
 
-        let rolling_norm = self.rolling.iter().map(|value| value * value).sum::<f64>().sqrt();
+        let rolling_norm = self
+            .rolling
+            .iter()
+            .map(|value| value * value)
+            .sum::<f64>()
+            .sqrt();
         let rolling_bound = limits.rolling_bound(self.normal.max(0.0));
         let rolling_scale = rolling_norm.max(rolling_bound).max(1.0);
         if rolling_norm > rolling_bound + relative_tolerance * rolling_scale {
@@ -257,7 +262,12 @@ impl<const D: usize> ContactWrenchImpulse<D> {
         };
 
         let tangential_usage = normalized_usage(self.tangential.norm(), tangential_bound);
-        let rolling_norm = self.rolling.iter().map(|value| value * value).sum::<f64>().sqrt();
+        let rolling_norm = self
+            .rolling
+            .iter()
+            .map(|value| value * value)
+            .sum::<f64>()
+            .sqrt();
         let torsional_norm = self
             .torsional
             .iter()
@@ -378,10 +388,7 @@ impl<const D: usize> ContactFrame<D> {
         let mut torsional_basis = Vec::new();
         for i in 0..tangent_basis.len() {
             for j in (i + 1)..tangent_basis.len() {
-                torsional_basis.push(Bivector::from_wedge(
-                    &tangent_basis[i],
-                    &tangent_basis[j],
-                ));
+                torsional_basis.push(Bivector::from_wedge(&tangent_basis[i], &tangent_basis[j]));
             }
         }
         Self {
@@ -466,8 +473,7 @@ impl<const D: usize> ContactFrame<D> {
             if cosine >= 0.0 {
                 Rotor::identity()
             } else {
-                let antipodal_plane =
-                    Bivector::from_wedge(&self.normal, &self.tangent_basis[0]);
+                let antipodal_plane = Bivector::from_wedge(&self.normal, &self.tangent_basis[0]);
                 Rotor::from_plane_angle(&antipodal_plane, std::f64::consts::PI)
             }
         } else {
@@ -554,10 +560,7 @@ impl<const D: usize> ContactFrame<D> {
     }
 }
 
-fn bivector_inner_product<const D: usize>(
-    left: &Bivector<D>,
-    right: &Bivector<D>,
-) -> f64 {
+fn bivector_inner_product<const D: usize>(left: &Bivector<D>, right: &Bivector<D>) -> f64 {
     let mut result = 0.0;
     for i in 0..D {
         for j in (i + 1)..D {
@@ -580,10 +583,7 @@ mod tests {
         let frame = ContactFrame::<D>::new(normal, 1e-12).unwrap();
         assert_eq!(frame.tangent_basis.len(), D - 1);
         assert_eq!(frame.rolling_basis.len(), D - 1);
-        assert_eq!(
-            frame.torsional_basis.len(),
-            (D - 1) * (D - 2) / 2
-        );
+        assert_eq!(frame.torsional_basis.len(), (D - 1) * (D - 2) / 2);
 
         assert!((frame.normal.norm() - 1.0).abs() < 1e-12);
         for tangent in &frame.tangent_basis {
@@ -593,7 +593,9 @@ mod tests {
         for i in 0..frame.tangent_basis.len() {
             for j in 0..frame.tangent_basis.len() {
                 let expected = if i == j { 1.0 } else { 0.0 };
-                assert!((frame.tangent_basis[i].dot(&frame.tangent_basis[j]) - expected).abs() < 1e-12);
+                assert!(
+                    (frame.tangent_basis[i].dot(&frame.tangent_basis[j]) - expected).abs() < 1e-12
+                );
             }
         }
 
@@ -608,9 +610,7 @@ mod tests {
         let coordinates = frame.decompose_angular(&angular).unwrap();
         let reconstructed = frame.reconstruct_angular(&coordinates).unwrap();
         assert!(coordinates.reconstruction_error < 1e-10);
-        assert!(
-            bivector_norm(&angular.add(&reconstructed.scale(-1.0))) < 1e-10
-        );
+        assert!(bivector_norm(&angular.add(&reconstructed.scale(-1.0))) < 1e-10);
     }
 
     #[test]
@@ -624,9 +624,8 @@ mod tests {
     #[test]
     fn coordinate_axis_and_near_axis_normals_do_not_break_frame_construction() {
         for axis in 0..4 {
-            let normal = SVector::<f64, 4>::from_fn(|index, _| {
-                if index == axis { 1.0 } else { 0.0 }
-            });
+            let normal =
+                SVector::<f64, 4>::from_fn(|index, _| if index == axis { 1.0 } else { 0.0 });
             assert_frame::<4>(normal);
         }
         assert_frame::<4>(SVector::new(1.0, 1e-14, -1e-14, 2e-14));
@@ -634,11 +633,7 @@ mod tests {
 
     #[test]
     fn tangent_projector_is_symmetric_idempotent_and_annihilates_normal() {
-        let frame = ContactFrame::<5>::new(
-            SVector::new(0.2, -0.3, 0.4, 0.1, -0.5),
-            1e-12,
-        )
-        .unwrap();
+        let frame = ContactFrame::<5>::new(SVector::new(0.2, -0.3, 0.4, 0.1, -0.5), 1e-12).unwrap();
         let projector = frame.tangent_projector();
         assert!((projector - projector.transpose()).norm() < 1e-12);
         assert!((projector * projector - projector).norm() < 1e-12);
@@ -732,8 +727,7 @@ mod tests {
         assert!(wrench.validate(&frame, &limits, 1e-12).is_ok());
         let angular = wrench.angular_impulse(&frame).unwrap();
         let expected_norm =
-            (0.06_f64.powi(2) + 0.04_f64.powi(2) + 0.04_f64.powi(2) + 0.02_f64.powi(2))
-                .sqrt();
+            (0.06_f64.powi(2) + 0.04_f64.powi(2) + 0.04_f64.powi(2) + 0.02_f64.powi(2)).sqrt();
         assert!((angular.norm() - expected_norm).abs() < 1e-12);
     }
 
@@ -874,8 +868,7 @@ mod tests {
             frame.normal().dot(&target_unit).clamp(-1.0, 1.0).acos(),
         );
         let r = delta_rotation.to_matrix();
-        let angular_after =
-            Bivector::from_matrix(&(r * angular.to_matrix() * r.transpose()));
+        let angular_after = Bivector::from_matrix(&(r * angular.to_matrix() * r.transpose()));
         let after = transported.decompose_angular(&angular_after).unwrap();
         for (left, right) in before
             .rolling
@@ -903,8 +896,7 @@ mod tests {
     #[test]
     fn contact_wrench_is_invariant_to_consistent_length_unit_conversion() {
         let frame = ContactFrame::<3>::new(SVector::new(1.0, 0.0, 0.0), 1e-12).unwrap();
-        let si_limits =
-            ContactWrenchFrictionLimits::new(0.5, 0.1, 0.1, 0.5, 0.25).unwrap();
+        let si_limits = ContactWrenchFrictionLimits::new(0.5, 0.1, 0.1, 0.5, 0.25).unwrap();
         let si_wrench = ContactWrenchImpulse::<3> {
             normal: 10.0,
             tangential: SVector::new(0.0, 4.0, 0.0),
@@ -920,7 +912,11 @@ mod tests {
         let centimetre_wrench = ContactWrenchImpulse::<3> {
             normal: si_wrench.normal,
             tangential: si_wrench.tangential,
-            rolling: si_wrench.rolling.iter().map(|value| value * 100.0).collect(),
+            rolling: si_wrench
+                .rolling
+                .iter()
+                .map(|value| value * 100.0)
+                .collect(),
             torsional: si_wrench
                 .torsional
                 .iter()
