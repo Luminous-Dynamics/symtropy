@@ -1066,4 +1066,49 @@ mod tests {
         ));
     }
 
+    #[test]
+    fn recovery_permit_for_different_next_binding_is_non_linearizable() {
+        let old_binding = binding(1, 1);
+        let history = OperationHistory {
+            trace_complete: true,
+            initial_snapshot: snapshot("attempt-1", 1, 1),
+            operations: vec![
+                op(
+                    "apply-1",
+                    1,
+                    2,
+                    HistoryOperationKind::Apply {
+                        ticket: ticket("ticket-1", "attempt-1", 1, 1),
+                        now: now(20),
+                    },
+                    applied(1, &old_binding, ReceiptDisposition::RejectedNoEffect),
+                ),
+                op(
+                    "wrong-plan-recovery",
+                    3,
+                    4,
+                    HistoryOperationKind::ResolvePendingAction {
+                        attempt_key: "attempt-1".to_owned(),
+                        resolution: QualifiedOutcomeResolution::NoEffect,
+                        next_snapshot: Some(snapshot("attempt-2", 2, 2)),
+                        recovery_permit: Some(RecoveryPermitReference {
+                            permit_id: "permit-wrong-plan".to_owned(),
+                            failed_attempt_key: "attempt-1".to_owned(),
+                            plan_digest: [9; 32],
+                            authority_epoch: 1,
+                        }),
+                    },
+                    HistoryObservedResult::PendingActionResolved {
+                        disposition: ResolutionDisposition::ClearedForNewAuthoritySnapshot,
+                    },
+                ),
+            ],
+        };
+
+        assert!(matches!(
+            check_history(&history, DEFAULT_SEARCH_BUDGET),
+            HistoryCheckResult::NonLinearizable { .. }
+        ));
+    }
+
 }
