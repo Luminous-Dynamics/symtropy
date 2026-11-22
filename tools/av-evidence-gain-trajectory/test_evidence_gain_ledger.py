@@ -228,6 +228,7 @@ def base_trajectory(*, extra_observation=False, second_turn_status="DELIVERED"):
         "runtime_digest_sha256": digest("runtime"),
         "configuration_digest_sha256": digest("config"),
         "hardware_digest_sha256": digest("hardware"),
+        "evaluator_source_catalog": [alarm_observation()],
         "truth": truth_document(),
         "turns": [first, second],
     }
