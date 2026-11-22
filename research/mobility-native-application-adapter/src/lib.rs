@@ -12,7 +12,7 @@
 use mobility_action_evidence as m2;
 use mobility_mutation_boundary as boundary;
 use symtropy_robotics_bridge_core::epoch_command_queue::{
-    EpochCommandApplication, EpochCommandQueue, EpochCommandQueueError, EpochQueuedCommand,
+    EpochCommandApplication, EpochCommandQueue, EpochCommandQueueError,
 };
 use symtropy_robotics_bridge_core::epoch_fence::ControllerEpoch;
 
@@ -105,6 +105,10 @@ pub struct ResolutionReport<P> {
     pub cancelled_queued_actions: Vec<CancelledQueuedAction<P>>,
 }
 
+pub type QueueApplicationResult<E> =
+    Option<EpochCommandApplication<Result<boundary::ApplicationReceipt, AdapterError<E>>>>;
+pub type ApplyNextResult<E> = Result<QueueApplicationResult<E>, AdapterError<E>>;
+
 /// Single-flight application gate. It configures the existing epoch queue
 /// with capacity one, preserving the current serial mutation rule.
 pub struct NativeApplicationGate<P> {
@@ -191,10 +195,7 @@ impl<P> NativeApplicationGate<P> {
         queue_now: &QueueInstant,
         provider: &PR,
         sink: &mut SN,
-    ) -> Result<
-        Option<EpochCommandApplication<Result<boundary::ApplicationReceipt, AdapterError<PR::Error>>>>,
-        AdapterError<PR::Error>,
-    >
+    ) -> ApplyNextResult<PR::Error>
     where
         PR: LiveContextProvider,
         SN: NativeApplicationSink<P>,
