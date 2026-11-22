@@ -77,7 +77,7 @@ pub struct ErrorQuantiles {
     pub maximum_micrometers: Option<u64>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct TrajectoryServiceSummary {
     pub record_count: usize,
     pub distinct_cluster_count: usize,
