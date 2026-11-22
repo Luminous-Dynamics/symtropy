@@ -101,7 +101,7 @@ pub struct PixelRoiV1 {
 }
 
 /// Region of interest with explicit coordinate system.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(tag = "coordinate_space", content = "region", rename_all = "snake_case")]
 pub enum RegionOfInterestV1 {
     /// Normalized [0,1] coordinates.
@@ -143,7 +143,7 @@ pub enum VideoSamplingV1 {
 }
 
 /// Video crop / frame acquisition parameters.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct VideoCropParametersV1 {
     /// Sampling-rate or timestamp-list request.
@@ -237,7 +237,7 @@ pub enum FeedbackKindV1 {
 }
 
 /// Typed action-specific argument payload.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(tag = "action_kind", content = "parameters", rename_all = "snake_case")]
 pub enum ActionParametersV1 {
     /// Video crop/frame sampling request.
@@ -249,7 +249,7 @@ pub enum ActionParametersV1 {
 }
 
 /// Canonical, digest-bound parameters for a single acquisition action.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ActionParameterManifestV1 {
     /// Schema version.
