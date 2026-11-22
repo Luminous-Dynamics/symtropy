@@ -214,7 +214,7 @@ fn validate_corpus(corpus: &DecisionCorpus) -> Result<(), String> {
 
 fn argmin_action_ids<F>(metrics: &[ActionMetric], value: F) -> Vec<String>
 where
-    F: Fn(&ActionMetric) -> &Rational,
+    F: for<'a> Fn(&'a ActionMetric) -> &'a Rational,
 {
     let Some(best) = metrics
         .iter()
