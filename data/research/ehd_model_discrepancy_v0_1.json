@@ -1,0 +1,109 @@
+{
+  "schema": "luminous.ehd_model_discrepancy_qualification",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-DISC-001",
+  "as_of": "2026-11-22",
+  "status": "research_specification_only_no_discrepancy_model_or_physical_calibration",
+  "claim_ceiling": "This manifest defines a model-discrepancy and abstention benchmark only. It is not an EHD calibration, validated predictive model, physical experiment, or propulsion performance result.",
+  "observation_model": "y(d) = G_M(theta,d) + delta_M(d) + epsilon(d)",
+  "error_classes": [
+    "code_or_implementation_error",
+    "numerical_solution_error",
+    "input_or_parameter_uncertainty",
+    "measurement_uncertainty_or_artifact",
+    "model_form_discrepancy",
+    "extrapolation_uncertainty"
+  ],
+  "independence_policy": {
+    "assume_error_classes_independent": false,
+    "root_sum_square_requires_validated_covariance": true,
+    "otherwise": "declared_conservative_bound_or_joint_uncertainty_model"
+  },
+  "conservation_firewall": {
+    "charge_mass_momentum_energy_ledgers_remain_independent_gates": true,
+    "discrepancy_can_override_failed_ledger": false,
+    "observable_boundary_must_be_declared": true,
+    "internal_source_correction_requires_species_reaction_and_energy_ledger": true
+  },
+  "validation_envelope_axes": [
+    "electrode_geometry_family_scale_topology",
+    "voltage_current_waveform_frequency_duty",
+    "gas_species_composition_humidity",
+    "pressure_temperature",
+    "discharge_and_ionization_regime",
+    "neutral_flow_boundary_conditions",
+    "solver_mesh_timestep_coupling_configuration"
+  ],
+  "required_holdouts": [
+    "entire_geometry_family",
+    "entire_waveform_family",
+    "gas_or_pressure_regime",
+    "entire_experimental_session"
+  ],
+  "required_outputs": [
+    "parameter_uncertainty",
+    "numerical_uncertainty",
+    "measurement_uncertainty",
+    "model_discrepancy",
+    "validation_envelope_support",
+    "predictive_interval_coverage_by_cohort",
+    "proper_predictive_score",
+    "residual_structure_diagnostics",
+    "out_of_envelope_disposition",
+    "conservation_ledger_status",
+    "abstention_reason"
+  ],
+  "prospective_targets": {
+    "nominal_95_percent_interval_coverage": [0.90, 0.98],
+    "false_in_envelope_classification_maximum_on_ood_controls": 0.01,
+    "discrepancy_can_repair_failed_conservation_gate": false,
+    "status": "targets_not_results"
+  },
+  "dispositions": [
+    "qualified_within_validation_envelope",
+    "qualified_with_explicit_discrepancy",
+    "not_identifiable",
+    "not_evaluable",
+    "out_of_envelope",
+    "physical_ledger_failure",
+    "measurement_artifact_unresolved"
+  ],
+  "research_comparators": [
+    {
+      "name": "Yang Dong Wu 2026 Bayesian experiment design for model discrepancy calibration",
+      "doi": "10.1016/j.jcp.2025.114469",
+      "published": "2026-01-15",
+      "scope_note": "method comparator; not EHD physical validation"
+    },
+    {
+      "name": "Sung and Tuo 2024 review on computer model calibration",
+      "doi": "10.1002/wics.1645",
+      "published": "2024-02-19",
+      "scope_note": "review of calibration and parameter-discrepancy unidentifiability"
+    },
+    {
+      "name": "NISTIR 8298",
+      "doi": "10.6028/NIST.IR.8298",
+      "published": "2020-03-24",
+      "scope_note": "industrial CFD V&V and UQ procedures"
+    },
+    {
+      "name": "ITTC 7.5-03-01-01 Revision 05",
+      "published": "2024",
+      "scope_note": "CFD uncertainty analysis procedure"
+    }
+  ],
+  "related_work": {
+    "identifiability_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/6660",
+    "thrust_observability_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/6641",
+    "control_volume_pr": "https://github.com/Luminous-Dynamics/symtropy/pull/6650"
+  },
+  "limitations": [
+    "no_discrepancy_function_implemented",
+    "no_ehd_parameter_calibration",
+    "no_predictive_coverage_results",
+    "no_ood_detector_implemented",
+    "no_physical_measurement",
+    "no_sota_superiority_claim"
+  ]
+}
