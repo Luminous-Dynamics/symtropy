@@ -749,8 +749,7 @@ pub fn attest_clock_for_event(
         return ClockAttestationDecision::unknown(ClockAttestationReason::EmptyTraceabilityChain);
     }
 
-    if calibration.traceability_links[0].calibrated_subject_id
-        != calibration.reference_standard_id
+    if calibration.traceability_links[0].calibrated_subject_id != calibration.reference_standard_id
         || calibration
             .traceability_links
             .last()
