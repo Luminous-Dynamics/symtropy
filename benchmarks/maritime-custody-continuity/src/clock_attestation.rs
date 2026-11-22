@@ -17,7 +17,9 @@
 
 use std::collections::BTreeSet;
 
-use crate::temporal_order::ClockSyncState;
+use crate::temporal_order::{
+    ClockQualificationRef, ClockSyncState, TemporalOrderError, TimeEvidence, TimeInterval,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CalibrationArtifactReference {
@@ -225,32 +227,62 @@ pub struct UncertaintyContribution {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QualifiedClockCalibrationReceipt {
-    pub result_id: String,
-    pub observation_id: String,
-    pub source_event_id: String,
-    pub source_event_revision: u32,
-    pub clock_id: String,
-    pub clock_profile_id: String,
-    pub firmware_id: String,
-    pub measurand_id: String,
-    pub time_basis_id: String,
-    pub terminal_reference_id: String,
-    pub event_time_ticks: i64,
-    pub observation_time_ticks: i64,
-    pub synchronization_method: String,
-    pub applicable_from_ticks: i64,
-    pub applicable_until_ticks: i64,
-    pub measured_offset_ticks: i64,
-    pub uncertainty_contributions: Vec<UncertaintyContribution>,
-    pub maximum_total_error_ticks: u64,
-    pub calibration_artifact_digests: Vec<String>,
-    pub verifier_id: String,
-    pub verifier_version: String,
-    pub trust_store_id: String,
-    pub trust_store_version: String,
-    pub policy_id: String,
-    pub policy_version: String,
-    pub decision_as_of_utc_seconds: i64,
+    result_id: String,
+    observation_id: String,
+    source_event_id: String,
+    source_event_revision: u32,
+    clock_id: String,
+    clock_profile_id: String,
+    firmware_id: String,
+    measurand_id: String,
+    time_basis_id: String,
+    terminal_reference_id: String,
+    event_time_ticks: i64,
+    observation_time_ticks: i64,
+    synchronization_method: String,
+    sync_state: ClockSyncState,
+    applicable_from_ticks: i64,
+    applicable_until_ticks: i64,
+    measured_offset_ticks: i64,
+    uncertainty_contributions: Vec<UncertaintyContribution>,
+    maximum_total_error_ticks: u64,
+    calibration_artifact_digests: Vec<String>,
+    verifier_id: String,
+    verifier_version: String,
+    trust_store_id: String,
+    trust_store_version: String,
+    policy_id: String,
+    policy_version: String,
+    decision_as_of_utc_seconds: i64,
+}
+
+impl QualifiedClockCalibrationReceipt {
+    pub fn result_id(&self) -> &str { &self.result_id }
+    pub fn observation_id(&self) -> &str { &self.observation_id }
+    pub fn source_event_id(&self) -> &str { &self.source_event_id }
+    pub fn source_event_revision(&self) -> u32 { self.source_event_revision }
+    pub fn clock_id(&self) -> &str { &self.clock_id }
+    pub fn clock_profile_id(&self) -> &str { &self.clock_profile_id }
+    pub fn firmware_id(&self) -> &str { &self.firmware_id }
+    pub fn measurand_id(&self) -> &str { &self.measurand_id }
+    pub fn time_basis_id(&self) -> &str { &self.time_basis_id }
+    pub fn terminal_reference_id(&self) -> &str { &self.terminal_reference_id }
+    pub fn event_time_ticks(&self) -> i64 { self.event_time_ticks }
+    pub fn observation_time_ticks(&self) -> i64 { self.observation_time_ticks }
+    pub fn synchronization_method(&self) -> &str { &self.synchronization_method }
+    pub fn applicable_from_ticks(&self) -> i64 { self.applicable_from_ticks }
+    pub fn applicable_until_ticks(&self) -> i64 { self.applicable_until_ticks }
+    pub fn measured_offset_ticks(&self) -> i64 { self.measured_offset_ticks }
+    pub fn uncertainty_contributions(&self) -> &[UncertaintyContribution] { &self.uncertainty_contributions }
+    pub fn maximum_total_error_ticks(&self) -> u64 { self.maximum_total_error_ticks }
+    pub fn calibration_artifact_digests(&self) -> &[String] { &self.calibration_artifact_digests }
+    pub fn verifier_id(&self) -> &str { &self.verifier_id }
+    pub fn verifier_version(&self) -> &str { &self.verifier_version }
+    pub fn trust_store_id(&self) -> &str { &self.trust_store_id }
+    pub fn trust_store_version(&self) -> &str { &self.trust_store_version }
+    pub fn policy_id(&self) -> &str { &self.policy_id }
+    pub fn policy_version(&self) -> &str { &self.policy_version }
+    pub fn decision_as_of_utc_seconds(&self) -> i64 { self.decision_as_of_utc_seconds }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -260,7 +292,76 @@ pub struct ClockAttestationDecision {
     pub receipt: Option<QualifiedClockCalibrationReceipt>,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ClockEvidenceConversionError {
+    DecisionNotAccepted,
+    MissingAcceptedReceipt,
+    MissingCalibrationDigest,
+    IntervalOverflow,
+    IntervalOutsideValidity,
+    InvalidInterval(TemporalOrderError),
+    InvalidEvidence(TemporalOrderError),
+}
+
 impl ClockAttestationDecision {
+    /// Convert only an accepted, opaque clock-attestation receipt into
+    /// proof-grade custody event-time evidence. The source-event key and
+    /// revision are bound into the exact evidence ID used by the custody
+    /// timeline evaluator.
+    pub fn to_time_evidence(&self) -> Result<TimeEvidence, ClockEvidenceConversionError> {
+        if self.status != ClockAttestationStatus::AcceptedForDeclaredScope {
+            return Err(ClockEvidenceConversionError::DecisionNotAccepted);
+        }
+        let receipt = self
+            .receipt
+            .as_ref()
+            .ok_or(ClockEvidenceConversionError::MissingAcceptedReceipt)?;
+        let radius = i64::try_from(receipt.maximum_total_error_ticks)
+            .map_err(|_| ClockEvidenceConversionError::IntervalOverflow)?;
+        let earliest = receipt
+            .event_time_ticks
+            .checked_sub(radius)
+            .ok_or(ClockEvidenceConversionError::IntervalOverflow)?;
+        let latest = receipt
+            .event_time_ticks
+            .checked_add(radius)
+            .ok_or(ClockEvidenceConversionError::IntervalOverflow)?;
+        if earliest < receipt.applicable_from_ticks || latest > receipt.applicable_until_ticks {
+            return Err(ClockEvidenceConversionError::IntervalOutsideValidity);
+        }
+        let interval = TimeInterval::new(earliest, latest)
+            .map_err(ClockEvidenceConversionError::InvalidInterval)?;
+        let calibration_digest = receipt
+            .calibration_artifact_digests
+            .first()
+            .ok_or(ClockEvidenceConversionError::MissingCalibrationDigest)?;
+        let event_id = format!(
+            "{}:{}:{}:{}:{}",
+            receipt.source_id_len(),
+            receipt.source_id(),
+            receipt.source_event_id.len(),
+            receipt.source_event_id,
+            receipt.source_event_revision
+        );
+        let qualification = ClockQualificationRef {
+            clock_id: receipt.clock_id.clone(),
+            profile_id: receipt.clock_profile_id.clone(),
+            calibration_evidence_id: calibration_digest.clone(),
+            synchronization_method: receipt.synchronization_method.clone(),
+            sync_state: receipt.sync_state,
+            calibrated_at: receipt.applicable_from_ticks,
+            valid_until: receipt.applicable_until_ticks,
+            maximum_total_error_ticks: receipt.maximum_total_error_ticks,
+        };
+        TimeEvidence::from_clock_qualification(
+            event_id,
+            receipt.time_basis_id.clone(),
+            interval,
+            qualification,
+        )
+        .map_err(ClockEvidenceConversionError::InvalidEvidence)
+    }
+
     fn accepted(receipt: QualifiedClockCalibrationReceipt) -> Self {
         Self {
             status: ClockAttestationStatus::AcceptedForDeclaredScope,
@@ -762,6 +863,7 @@ pub fn attest_clock_for_event(
         event_time_ticks: event_time,
         observation_time_ticks: observation.observation_time_ticks,
         synchronization_method: observation.synchronization_method.clone(),
+        sync_state: observation.sync_state,
         applicable_from_ticks,
         applicable_until_ticks,
         measured_offset_ticks: calibration.measured_offset_ticks,
