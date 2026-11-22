@@ -1,0 +1,262 @@
+{
+  "schema_id": "LMF-FDM-300-PART-DEMAND-CORPUS-0.1",
+  "status": "intake_template_not_measured_demand",
+  "owner_issue": "Luminous-Dynamics/symtropy#6787",
+  "protocol_path": "docs/tech/LMF_FDM_300_PART_DEMAND_CORPUS_PROTOCOL_V0_1.md",
+  "units": {
+    "dimensions": "mm",
+    "demand": "parts_per_year",
+    "time": "hours",
+    "cost": "ZAR"
+  },
+  "records": [
+    {
+      "part_id": "FAN-PACKAGING-SPACER-001",
+      "record_status": "candidate_unmeasured_not_admitted",
+      "function": "non-functional packaging / transport spacer candidate",
+      "product_id": "FAN-PILOT",
+      "product_revision": null,
+      "owner": null,
+      "risk_class": "P0",
+      "proposed_tiers": [
+        "H0",
+        "N1"
+      ],
+      "admitted_tiers": [],
+      "rights_status": "unknown",
+      "geometry": {
+        "x_mm": null,
+        "y_mm": null,
+        "z_mm": null,
+        "dimension_source": null,
+        "measurement_method": null,
+        "measurement_uncertainty_mm": null,
+        "CAD_revision": null,
+        "CAD_digest": null,
+        "usable_envelope_clearance_mm": null
+      },
+      "interfaces": [],
+      "functional_requirements": [],
+      "prohibited_uses": [
+        "structural_support",
+        "safety_function",
+        "load_bearing_appliance_component"
+      ],
+      "material": {
+        "specification": null,
+        "supplier": null,
+        "lot": null,
+        "conditioning": null,
+        "exposure_requirements": null
+      },
+      "process": {
+        "family": "material_extrusion_candidate",
+        "build_orientation": null,
+        "slicer_profile": null,
+        "supports_and_brim": null,
+        "estimated_build_time_hours": null,
+        "qualification_status": "not_assessed"
+      },
+      "demand": {
+        "quantity_per_year": null,
+        "observation_period_start": null,
+        "observation_period_end": null,
+        "source": null,
+        "population_denominator": null,
+        "forecast_or_measured": "unknown"
+      },
+      "baseline": {
+        "OEM_route": null,
+        "job_shop_route": null,
+        "observed_cost_zar": null,
+        "observed_lead_time_hours": null,
+        "quote_date": null,
+        "evidence_source": null
+      },
+      "acceptance": {
+        "critical_dimensions": [],
+        "inspection_method": null,
+        "fit_test": null,
+        "transportation_test": null,
+        "material_waste_measurement": null,
+        "post_install_verification": null
+      },
+      "claim_ceiling": "Candidate only. No CAD, dimensions, rights, demand, manufacturing profile or acceptance test has been established."
+    },
+    {
+      "part_id": "FAN-MFG-ALIGNMENT-JIG-001",
+      "record_status": "candidate_unmeasured_not_admitted",
+      "function": "manufacturing alignment fixture candidate",
+      "product_id": "FAN-PILOT",
+      "product_revision": null,
+      "owner": null,
+      "risk_class": "P1",
+      "proposed_tiers": [
+        "N1",
+        "R2"
+      ],
+      "admitted_tiers": [],
+      "rights_status": "unknown",
+      "geometry": {
+        "x_mm": null,
+        "y_mm": null,
+        "z_mm": null,
+        "dimension_source": null,
+        "measurement_method": null,
+        "measurement_uncertainty_mm": null,
+        "CAD_revision": null,
+        "CAD_digest": null,
+        "usable_envelope_clearance_mm": null
+      },
+      "interfaces": [],
+      "functional_requirements": [
+        "assembly alignment repeatability to be specified"
+      ],
+      "prohibited_uses": [
+        "uncalibrated_measurement_standard",
+        "product_safety_function"
+      ],
+      "material": {
+        "specification": null,
+        "supplier": null,
+        "lot": null,
+        "conditioning": null,
+        "exposure_requirements": null
+      },
+      "process": {
+        "family": "material_extrusion_candidate",
+        "build_orientation": null,
+        "slicer_profile": null,
+        "supports_and_brim": null,
+        "estimated_build_time_hours": null,
+        "qualification_status": "not_assessed"
+      },
+      "demand": {
+        "quantity_per_year": null,
+        "observation_period_start": null,
+        "observation_period_end": null,
+        "source": null,
+        "population_denominator": null,
+        "forecast_or_measured": "unknown"
+      },
+      "baseline": {
+        "OEM_route": null,
+        "job_shop_route": null,
+        "observed_cost_zar": null,
+        "observed_lead_time_hours": null,
+        "quote_date": null,
+        "evidence_source": null
+      },
+      "acceptance": {
+        "critical_dimensions": [],
+        "inspection_method": null,
+        "fixture_repeatability_study": null,
+        "loads_and_deflection": null,
+        "post_use_verification": null
+      },
+      "claim_ceiling": "Candidate only. No drawing, dimensions, tolerance, rights, process, fixture-repeatability or demand evidence has been established."
+    }
+  ],
+  "unassigned_slots": [
+    {
+      "slot_id": "UNASSIGNED-001",
+      "status": "not_a_demand_record",
+      "part_id": null
+    },
+    {
+      "slot_id": "UNASSIGNED-002",
+      "status": "not_a_demand_record",
+      "part_id": null
+    },
+    {
+      "slot_id": "UNASSIGNED-003",
+      "status": "not_a_demand_record",
+      "part_id": null
+    },
+    {
+      "slot_id": "UNASSIGNED-004",
+      "status": "not_a_demand_record",
+      "part_id": null
+    },
+    {
+      "slot_id": "UNASSIGNED-005",
+      "status": "not_a_demand_record",
+      "part_id": null
+    },
+    {
+      "slot_id": "UNASSIGNED-006",
+      "status": "not_a_demand_record",
+      "part_id": null
+    },
+    {
+      "slot_id": "UNASSIGNED-007",
+      "status": "not_a_demand_record",
+      "part_id": null
+    },
+    {
+      "slot_id": "UNASSIGNED-008",
+      "status": "not_a_demand_record",
+      "part_id": null
+    },
+    {
+      "slot_id": "UNASSIGNED-009",
+      "status": "not_a_demand_record",
+      "part_id": null
+    },
+    {
+      "slot_id": "UNASSIGNED-010",
+      "status": "not_a_demand_record",
+      "part_id": null
+    },
+    {
+      "slot_id": "UNASSIGNED-011",
+      "status": "not_a_demand_record",
+      "part_id": null
+    },
+    {
+      "slot_id": "UNASSIGNED-012",
+      "status": "not_a_demand_record",
+      "part_id": null
+    },
+    {
+      "slot_id": "UNASSIGNED-013",
+      "status": "not_a_demand_record",
+      "part_id": null
+    },
+    {
+      "slot_id": "UNASSIGNED-014",
+      "status": "not_a_demand_record",
+      "part_id": null
+    },
+    {
+      "slot_id": "UNASSIGNED-015",
+      "status": "not_a_demand_record",
+      "part_id": null
+    },
+    {
+      "slot_id": "UNASSIGNED-016",
+      "status": "not_a_demand_record",
+      "part_id": null
+    },
+    {
+      "slot_id": "UNASSIGNED-017",
+      "status": "not_a_demand_record",
+      "part_id": null
+    },
+    {
+      "slot_id": "UNASSIGNED-018",
+      "status": "not_a_demand_record",
+      "part_id": null
+    }
+  ],
+  "rules": [
+    "null means unknown or not yet measured; it must never be treated as zero",
+    "candidate records are not admitted production designs",
+    "unassigned slots are not demand records",
+    "no geometry or annual quantity may be inferred from illustrative artwork or machine envelope",
+    "P3 parts cannot be promoted to H0 or unqualified N1",
+    "rights and exact product revision are mandatory before publication",
+    "machine size is selected only from the frozen demand corpus and matched baseline"
+  ],
+  "claim_ceiling": "Only two previously described candidate items are seeded. No actual demand dimensions, frequencies, material, cost, rights or admitted fabrication permissions are available in this corpus."
+}
