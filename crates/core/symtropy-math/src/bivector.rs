@@ -157,30 +157,44 @@ impl<const D: usize> Bivector<D> {
         result
     }
 
-    /// Apply this bivector (as angular velocity) to a vector.
-    /// Returns B · v (antisymmetric matrix × vector).
+    /// Apply this bivector's raw antisymmetric matrix action to a vector.
+    ///
+    /// Returns `B * v`. This is an algebraic matrix action, not the physical
+    /// point velocity implied by Rotor::from_bivector, which exponentiates
+    /// `-B`.
     #[inline]
     pub fn apply_to_vector(&self, v: &SVector<f64, D>) -> SVector<f64, D> {
         self.to_matrix() * v
     }
 
+    /// Return the physical rotational point velocity at a world-space offset.
+    ///
+    /// The native pose integrator advances orientation with
+    /// `Rotor::from_bivector = exp(-B)`; therefore its infinitesimal point
+    /// velocity is `-B * r`. Keeping this operation explicit prevents
+    /// contact kinematics from using the opposite sign.
+    #[inline]
+    pub fn point_velocity_at_offset(&self, offset: &SVector<f64, D>) -> SVector<f64, D> {
+        -self.apply_to_vector(offset)
+    }
+
+    /// Construct the angular-impulse bivector for an impulse applied at an
+    /// offset from the center of mass.
+    ///
+    /// The argument order is `(offset, impulse)`, so in 3D its axial vector
+    /// is the conventional torque impulse `r × j`. This matches the native
+    /// pose convention `exp(-B)` and point velocity `-B * r`.
+    #[inline]
+    pub fn from_angular_impulse(offset: &SVector<f64, D>, impulse: &SVector<f64, D>) -> Self {
+        Self::from_wedge(offset, impulse)
+    }
+
     /// Wedge product `a ∧ b`: the bivector representing the oriented plane
     /// spanned by `a` and `b`. Component `(i, j) = a_i*b_j - a_j*b_i`.
     ///
-    /// This is the dimension-agnostic replacement for the 3D cross product
-    /// used to compute torque/angular-impulse from a force/impulse applied
-    /// at an offset from the center of mass.
-    ///
-    /// **Ordering matters** and is chosen to be consistent with
-    /// [`Self::apply_to_vector`]: given an impulse `j` applied at an offset
-    /// `r` from a body's center of mass, the correct torque bivector is
-    /// `Bivector::from_wedge(&j, &r)` (impulse first, offset second) — NOT
-    /// `from_wedge(&r, &j)`. With this ordering,
-    /// `(inv_inertia * Bivector::from_wedge(&j, &r)).apply_to_vector(&r)`
-    /// reproduces the standard `(inv_inertia * (r × j)) × r` lever-arm
-    /// identity from 3D rigid body dynamics (verified in
-    /// `wedge_matches_3d_lever_arm_identity` below); the reversed argument
-    /// order produces the negated (physically wrong) sign.
+    /// This is a pure exterior-algebra operation. For a physical impulse
+    /// `j` applied at offset `r`, use `from_angular_impulse(r, j)` instead
+    /// of inferring the physical torque sign from this algebraic operation.
     #[inline]
     pub fn from_wedge(a: &SVector<f64, D>, b: &SVector<f64, D>) -> Self {
         let mut bv = Self::zero();
@@ -324,43 +338,86 @@ mod tests {
         assert!(bv.norm() < 1e-14, "parallel vectors should wedge to zero");
     }
 
-    /// Verifies that `Bivector::from_wedge(&j, &r)` combined with
-    /// `apply_to_vector` reproduces the standard 3D lever-arm identity
-    /// `(inv_i * (r × j)) × r`, which for a unit-inertia body reduces to
-    /// `j * |r|^2 - r * (r·j)` (BAC-CAB expansion). This is the physical
-    /// contract the contact solver's angular-impulse code depends on: torque
-    /// bivector must be built as `from_wedge(&impulse, &r)`, NOT
-    /// `from_wedge(&r, &impulse)`.
     #[test]
-    fn wedge_matches_3d_lever_arm_identity() {
+    fn angular_impulse_matches_3d_lever_arm_identity() {
         let r = SVector::from([1.0, 0.0, 0.0]);
-        let j = SVector::from([0.0, 1.0, 0.0]); // impulse along +Y, offset along +X
+        let j = SVector::from([0.0, 1.0, 0.0]);
 
-        let torque = Bivector::<3>::from_wedge(&j, &r);
-        let delta_v_rot = torque.apply_to_vector(&r); // unit inverse-inertia
-
-        // Expected: j * |r|^2 - r * (r·j) = (0,1,0)*1 - (1,0,0)*0 = (0,1,0)
+        let torque = Bivector::<3>::from_angular_impulse(&r, &j);
+        let delta_v_rot = torque.point_velocity_at_offset(&r);
         let expected = j * r.norm_squared() - r * r.dot(&j);
         assert!(
             (delta_v_rot - expected).norm() < 1e-14,
             "delta_v_rot = {delta_v_rot:?}, expected = {expected:?}"
         );
+        assert!(delta_v_rot.dot(&j.normalize()) > 0.0);
 
-        // The normal-direction (n = j here) component must be POSITIVE —
-        // this is the "effective mass" contribution used by the contact
-        // solver and must never be negative (would imply energy injection
-        // if flipped when combined with the solver's sign convention).
-        let n = j.normalize();
-        assert!(
-            delta_v_rot.dot(&n) > 0.0,
-            "lever-arm contribution should be positive for this convention"
-        );
-
-        // Reversed argument order must give the negated (wrong) result.
-        let reversed = Bivector::<3>::from_wedge(&r, &j).apply_to_vector(&r);
+        let reversed = Bivector::<3>::from_wedge(&j, &r).point_velocity_at_offset(&r);
         assert!(
             (reversed + expected).norm() < 1e-14,
-            "reversed wedge order should negate the result"
+            "reversed angular-impulse order should negate the response"
+        );
+    }
+
+    #[test]
+    fn rotor_pose_finite_difference_matches_point_velocity_for_all_3d_planes() {
+        use crate::rotor::Rotor;
+
+        let cases = [
+            (
+                SVector::from([0.0, 1.0, 0.0]),
+                SVector::from([0.0, 0.0, 1.0]),
+            ),
+            (
+                SVector::from([0.0, 0.0, 1.0]),
+                SVector::from([1.0, 0.0, 0.0]),
+            ),
+            (
+                SVector::from([1.0, 0.0, 0.0]),
+                SVector::from([0.0, 1.0, 0.0]),
+            ),
+        ];
+
+        for (offset, impulse) in cases {
+            let angular_rate = Bivector::<3>::from_angular_impulse(&offset, &impulse);
+            let predicted = angular_rate.point_velocity_at_offset(&offset);
+            let dt = 1.0e-4;
+            let delta = Rotor::from_bivector(&angular_rate.scale(dt));
+            let moved = delta.rotate_vector(&offset);
+            let finite_difference = (moved - offset) / dt;
+            let error = (finite_difference - predicted).norm();
+            assert!(
+                error < 1.0e-4,
+                "pose/point-velocity mismatch: error={error:e}, predicted={predicted:?}, observed={finite_difference:?}"
+            );
+
+            let half_dt = dt * 0.5;
+            let half_delta = Rotor::from_bivector(&angular_rate.scale(half_dt));
+            let half_moved = half_delta.rotate_vector(&offset);
+            let half_difference = (half_moved - offset) / half_dt;
+            let half_error = (half_difference - predicted).norm();
+            assert!(
+                half_error < error * 0.6,
+                "finite difference should converge as dt shrinks: coarse={error:e}, fine={half_error:e}"
+            );
+        }
+    }
+
+    #[test]
+    fn rotor_pose_finite_difference_matches_non_axis_aligned_point_velocity() {
+        use crate::rotor::Rotor;
+
+        let offset = SVector::from([0.7, -1.1, 0.4]);
+        let impulse = SVector::from([-0.3, 0.8, 1.2]);
+        let angular_rate = Bivector::<3>::from_angular_impulse(&offset, &impulse);
+        let predicted = angular_rate.point_velocity_at_offset(&offset);
+        let dt = 2.0e-5;
+        let delta = Rotor::from_bivector(&angular_rate.scale(dt));
+        let moved = delta.rotate_vector(&offset);
+        let finite_difference = (moved - offset) / dt;
+        assert!(
+            (finite_difference - predicted).norm() < 1.0e-4,
+            "non-axis-aligned pose/point velocity mismatch"
         );
     }
 }
