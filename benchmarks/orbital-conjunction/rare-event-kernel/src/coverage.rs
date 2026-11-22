@@ -13,6 +13,187 @@
 
 use crate::KernelError;
 
+/// Return a conservative upper bound on the standard-normal probability
+/// mass of a finite axis-aligned box.
+///
+/// The d-dimensional standard-normal density is at most (1/2)^d because
+/// (2*pi)^(-1/2) < 1/2. Therefore the box mass is bounded by its volume
+/// multiplied by (1/2)^d. Widths and products are rounded upward. The bound
+/// is intentionally simple and can be loose; it is suitable for conservative
+/// residual-mass accounting, not for precise integration.
+pub fn standard_normal_box_probability_upper_bound(
+    lower: &[f64],
+    upper: &[f64],
+) -> Result<f64, KernelError> {
+    if lower.is_empty() || upper.is_empty() {
+        return Err(KernelError::EmptyDimension);
+    }
+    if lower.len() != upper.len() {
+        return Err(KernelError::DimensionMismatch);
+    }
+
+    let mut probability_upper = 1.0_f64;
+    for (axis_lower, axis_upper) in lower.iter().zip(upper.iter()) {
+        Interval::new(*axis_lower, *axis_upper)?;
+        if axis_lower == axis_upper {
+            return Ok(0.0);
+        }
+
+        let width = axis_upper - axis_lower;
+        if !width.is_finite() {
+            return Ok(1.0);
+        }
+        let width_upper = next_up(width);
+        let density_factor_upper = next_up(probability_upper * 0.5);
+        let next_upper = next_up(density_factor_upper * width_upper);
+        if !width_upper.is_finite()
+            || !density_factor_upper.is_finite()
+            || !next_upper.is_finite()
+            || next_upper >= 1.0
+        {
+            return Ok(1.0);
+        }
+        probability_upper = next_upper;
+    }
+
+    Ok(probability_upper.min(1.0))
+}
+
+/// Return a conservative union-bound upper bound on the probability that an
+/// independent standard-normal vector lies outside the cube [-radius, radius]^d.
+///
+/// For one coordinate, the Gaussian Chernoff bound gives
+/// P(|Z| > radius) <= 2 exp(-radius^2 / 2). A union bound across dimensions
+/// gives 2 d exp(-t), where t=radius^2/2. Since
+/// exp(t) >= sum_{k=0}^{16} t^k/k! for t >= 0, the implementation lower-bounds
+/// that positive polynomial with downward-rounded arithmetic and divides an
+/// upward-rounded numerator by it. If the polynomial overflows, it falls back
+/// to the weaker but still conservative 2d/(1+t) bound. If even the squared
+/// radius is not representable, it returns the trivial upper bound one.
+///
+/// This is a numerical conservative bound for the stated Gaussian model, not
+/// a formal machine-checked proof of the floating-point implementation.
+pub fn standard_normal_cube_tail_probability_upper_bound(
+    radius: f64,
+    dimension: usize,
+) -> Result<f64, KernelError> {
+    if dimension == 0 {
+        return Err(KernelError::EmptyDimension);
+    }
+    if !radius.is_finite() || radius <= 0.0 {
+        return Err(KernelError::InvalidRadius);
+    }
+
+    let radius_squared = radius * radius;
+    if !radius_squared.is_finite() {
+        return Ok(1.0);
+    }
+    let radius_squared_lower = next_down(radius_squared).max(0.0);
+    let t_lower = next_down(0.5 * radius_squared_lower).max(0.0);
+
+    let dimension_upper = next_up(dimension as f64);
+    let numerator_upper = next_up(2.0 * dimension_upper);
+    if !numerator_upper.is_finite() {
+        return Ok(1.0);
+    }
+
+    let mut term_lower = 1.0_f64;
+    let mut polynomial_lower = 1.0_f64;
+    let mut polynomial_overflow = false;
+    for order in 1..=16 {
+        let product = term_lower * t_lower;
+        if !product.is_finite() {
+            polynomial_overflow = true;
+            break;
+        }
+        let product_lower = next_down(product).max(0.0);
+        let quotient = product_lower / order as f64;
+        if !quotient.is_finite() {
+            polynomial_overflow = true;
+            break;
+        }
+        term_lower = next_down(quotient).max(0.0);
+        let sum = polynomial_lower + term_lower;
+        if !sum.is_finite() {
+            polynomial_overflow = true;
+            break;
+        }
+        polynomial_lower = next_down(sum).max(polynomial_lower);
+    }
+
+    let denominator_lower = if polynomial_overflow {
+        next_down(1.0 + t_lower).max(1.0)
+    } else {
+        polynomial_lower
+    };
+    let bound = next_up(numerator_upper / denominator_lower);
+    if !bound.is_finite() {
+        return Ok(1.0);
+    }
+    Ok(bound.min(1.0))
+}
+
+/// Conservative upper bound on the standard-normal probability mass in a
+/// declared union of unresolved cells and one truncated-domain complement.
+///
+/// The caller supplies only cells that remain unresolved after an independent
+/// geometric event-exclusion check. Overlapping cells are permitted but make
+/// the bound looser. The cube-tail bound covers probability mass outside the
+/// declared finite partition domain. The total is capped at one.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct CoverageMassUpperBound {
+    total_upper: f64,
+}
+
+impl Default for CoverageMassUpperBound {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl CoverageMassUpperBound {
+    /// Create an empty unresolved-mass ledger.
+    pub fn new() -> Self {
+        Self { total_upper: 0.0 }
+    }
+
+    /// Add one unresolved finite cell using the conservative density-times-volume bound.
+    pub fn add_unresolved_cell(&mut self, cell: &CoverageCell) -> Result<(), KernelError> {
+        let cell_upper =
+            standard_normal_box_probability_upper_bound(cell.lower(), cell.upper())?;
+        self.add_upper_bound(cell_upper)
+    }
+
+    /// Add the conservative Gaussian tail bound outside a standard-normal cube.
+    pub fn add_cube_tail(&mut self, radius: f64, dimension: usize) -> Result<(), KernelError> {
+        let tail_upper =
+            standard_normal_cube_tail_probability_upper_bound(radius, dimension)?;
+        self.add_upper_bound(tail_upper)
+    }
+
+    /// Add another already validated probability upper bound.
+    ///
+    /// This is useful when combining independent unresolved strata. The value
+    /// must itself be a conservative upper bound for the declared model.
+    pub fn add_upper_bound(&mut self, probability_upper: f64) -> Result<(), KernelError> {
+        if !probability_upper.is_finite() || !(0.0..=1.0).contains(&probability_upper) {
+            return Err(KernelError::InvalidProbability);
+        }
+        let sum = self.total_upper + probability_upper;
+        self.total_upper = if !sum.is_finite() || sum >= 1.0 {
+            1.0
+        } else {
+            next_up(sum).min(1.0)
+        };
+        Ok(())
+    }
+
+    /// Return the accumulated upper bound in [0, 1].
+    pub fn upper_bound(&self) -> f64 {
+        self.total_upper
+    }
+}
+
 /// Which half of a split cell a child represents.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CellSide {
@@ -528,6 +709,85 @@ mod tests {
         assert_eq!(
             CoverageCell::new(vec![0.0, 0.0], vec![1.0]),
             Err(KernelError::DimensionMismatch)
+        );
+    }
+
+    #[test]
+    fn standard_normal_box_density_volume_bound_is_conservative() {
+        let upper =
+            standard_normal_box_probability_upper_bound(&[0.0], &[0.1]).unwrap();
+        assert!(upper > 0.05);
+        assert!(upper < 0.051);
+    }
+
+    #[test]
+    fn standard_normal_box_mass_bound_handles_degenerate_axis() {
+        assert_eq!(
+            standard_normal_box_probability_upper_bound(&[0.0, -1.0], &[1.0, -1.0])
+                .unwrap(),
+            0.0
+        );
+    }
+
+    #[test]
+    fn standard_normal_box_mass_bound_rejects_invalid_cells() {
+        assert_eq!(
+            standard_normal_box_probability_upper_bound(&[1.0], &[0.0]),
+            Err(KernelError::InvalidInterval)
+        );
+        assert_eq!(
+            standard_normal_box_probability_upper_bound(&[0.0, 0.0], &[1.0]),
+            Err(KernelError::DimensionMismatch)
+        );
+    }
+
+    #[test]
+    fn cube_tail_mass_bound_decreases_with_radius() {
+        let moderate = standard_normal_cube_tail_probability_upper_bound(5.0, 6).unwrap();
+        let large = standard_normal_cube_tail_probability_upper_bound(8.0, 6).unwrap();
+        assert!(large < moderate);
+        assert!(large < 1.0e-8);
+    }
+
+    #[test]
+    fn cube_tail_bound_handles_small_radius_and_large_dimension_conservatively() {
+        assert_eq!(
+            standard_normal_cube_tail_probability_upper_bound(0.01, 3).unwrap(),
+            1.0
+        );
+        assert!(standard_normal_cube_tail_probability_upper_bound(2.0, 12)
+            .unwrap()
+            <= 1.0);
+    }
+
+    #[test]
+    fn coverage_mass_ledger_accumulates_cells_and_tail() {
+        let mut ledger = CoverageMassUpperBound::new();
+        let cell_a = CoverageCell::new(vec![0.0], vec![0.1]).unwrap();
+        let cell_b = CoverageCell::new(vec![0.2], vec![0.3]).unwrap();
+        ledger.add_unresolved_cell(&cell_a).unwrap();
+        ledger.add_unresolved_cell(&cell_b).unwrap();
+        let cells_only = ledger.upper_bound();
+        assert!(cells_only > 0.1);
+        ledger.add_cube_tail(5.0, 1).unwrap();
+        assert!(ledger.upper_bound() >= cells_only);
+        assert!(ledger.upper_bound() <= 1.0);
+    }
+
+    #[test]
+    fn coverage_mass_ledger_caps_sum_at_one() {
+        let mut ledger = CoverageMassUpperBound::new();
+        ledger.add_upper_bound(0.75).unwrap();
+        ledger.add_upper_bound(0.75).unwrap();
+        assert_eq!(ledger.upper_bound(), 1.0);
+    }
+
+    #[test]
+    fn coverage_mass_ledger_rejects_invalid_probability_bound() {
+        let mut ledger = CoverageMassUpperBound::new();
+        assert_eq!(
+            ledger.add_upper_bound(f64::NAN),
+            Err(KernelError::InvalidProbability)
         );
     }
 
