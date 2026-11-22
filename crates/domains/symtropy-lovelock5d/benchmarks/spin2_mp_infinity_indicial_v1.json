@@ -1,0 +1,144 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "einstein_limit_spin2_infinity_indicial_anchor",
+  "status": "exact_alpha_zero_frozen_coefficient_infinity_matrix_extracted",
+  "conventions": {
+    "dimension": 5,
+    "alpha": "0",
+    "r_H": "1",
+    "coordinate": "tau=log(r), equivalently x=1/r",
+    "state": [
+      "Bhat2",
+      "r*Bhat2_prime",
+      "Hhat2",
+      "r*Hhat2_prime"
+    ],
+    "power_law": "V(r) proportional to r^sigma"
+  },
+  "log_radius_matrix": [
+    [
+      "0",
+      "1",
+      "0",
+      "0"
+    ],
+    [
+      "0",
+      "-2",
+      "0",
+      "0"
+    ],
+    [
+      "0",
+      "0",
+      "0",
+      "1"
+    ],
+    [
+      "0",
+      "0",
+      "8",
+      "2"
+    ]
+  ],
+  "log_radius_source": [
+    "0",
+    "0",
+    "0",
+    "0"
+  ],
+  "indicial_polynomial": "sigma*(sigma-4)*(sigma+2)^2",
+  "modes": [
+    {
+      "sigma": -2,
+      "algebraic_multiplicity": 2,
+      "geometric_multiplicity": 2,
+      "eigenvectors": [
+        [
+          1,
+          -2,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          -2
+        ]
+      ],
+      "interpretation": "two independent r^-2 decaying field modes; basis vectors lie in Bhat2 and Hhat2 sectors"
+    },
+    {
+      "sigma": 0,
+      "algebraic_multiplicity": 1,
+      "geometric_multiplicity": 1,
+      "eigenvectors": [
+        [
+          1,
+          0,
+          0,
+          0
+        ]
+      ],
+      "interpretation": "constant Bhat2-sector mode"
+    },
+    {
+      "sigma": 4,
+      "algebraic_multiplicity": 1,
+      "geometric_multiplicity": 1,
+      "eigenvectors": [
+        [
+          0,
+          0,
+          1,
+          4
+        ]
+      ],
+      "interpretation": "growing r^4 Hhat2-sector mode"
+    }
+  ],
+  "eigenvector_basis": {
+    "columns": [
+      [
+        1,
+        -2,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        1,
+        -2
+      ],
+      [
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        1,
+        4
+      ]
+    ],
+    "determinant": "-12",
+    "diagonal_form": [
+      "-2",
+      "-2",
+      "0",
+      "4"
+    ],
+    "diagonalizable": true
+  },
+  "controls": {
+    "characteristic_polynomial_exact": true,
+    "four_independent_eigenvectors": true,
+    "source_limit_zero": true,
+    "Myers_Perry_asymptotic_r_minus_2_profile_consistent": true
+  },
+  "claim_ceiling": "Exact Einstein-limit frozen-coefficient asymptotic indicial matrix and leading power-law modes for the reduced two-field system in logarithmic radius. This is not the complete asymptotic Frobenius recurrence, source/response classification, full boundary-data map, finite-coupling infinity spectrum, finite-coupling BVP, or interval theorem."
+}
