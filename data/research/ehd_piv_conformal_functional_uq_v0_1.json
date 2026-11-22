@@ -104,9 +104,10 @@
       "authored_rust_tests": 9
     },
     "dimension_compatibility": {
-      "conformal_scorer_dimension": 2,
+      "planar_scorer_dimension": 2,
+      "spatial_scorer_dimension": 3,
       "field_functional_covariance_dimension": 3,
-      "rule": "Do not promote a 2D conformal radius to a 3D coverage claim. Direct covariance multiplier reuse requires identical calibrated state dimensions. Dedicated 3D conformal scoring is future work."
+      "rule": "A planar 2D conformal radius cannot validate an out-of-plane component. The 3D conformal scorer is dimension-compatible with the 3D field functional only when protocol fingerprint, field size and covariance model are identical."
     }
   },
   "dataset_and_comparator_plan": {
@@ -168,5 +169,27 @@
       "Monte_Carlo_with_frozen_covariance_factors",
       "existing_EHD_control_volume_reducer_and_direct_force_balance"
     ]
+  },
+  "conformal_3d_contract": {
+    "scorer_dimension": 3,
+    "covariance_type": "symmetric_positive_definite_3x3",
+    "score": "e^T Sigma^-1 e",
+    "calibration_unit": "complete acquisition field cluster",
+    "cluster_score": "maximum vector score across all four regions",
+    "finite_sample_rank": "ceil((n+1)*(1-alpha))",
+    "implementation": {
+      "path": "tools/ehd-piv-conformal-functional-uq/src/conformal_3d.rs",
+      "function": "calibrate_cluster_conformal_3d",
+      "authored_rust_tests": 4
+    },
+    "compatibility": "Dimension-matched to the 3D functional covariance model when the same frozen protocol, field size and full three-component predictive covariance are used."
+  },
+  "implementation": {
+    "crate": "tools/ehd-piv-conformal-functional-uq",
+    "planar_conformal_tests": 10,
+    "spatial_conformal_tests": 4,
+    "functional_tests": 9,
+    "total_authored_rust_tests": 23,
+    "rust_execution": "not_run_no_local_rust_toolchain"
   }
 }
