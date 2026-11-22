@@ -1,0 +1,250 @@
+{
+  "contract_id": "ehd_piv_reference_evidence_v0_1",
+  "version": "0.1.0",
+  "status": "prospective_contract_not_implemented",
+  "scope": "content integrity, dependence-aware partitioning, reference qualification, common-mode uncertainty and receipt binding for EHD-PIV empirical covariance inputs",
+  "claim_boundary": {
+    "residual_estimand": "PIV_minus_reference_residual_covariance",
+    "piv_only_claim_requires": "qualified_reference_uncertainty_and_piv_reference_cross_covariance_or_a_validated_negligibility_bound",
+    "unknown_reference_or_cross_covariance": "residual_covariance_only",
+    "digest_proves": "byte_identity_against_declared_digest",
+    "digest_does_not_prove": [
+      "authorship",
+      "custody",
+      "calibration_validity",
+      "reference_independence",
+      "physical_truth"
+    ]
+  },
+  "covariance": {
+    "residual_definition": "r = y_PIV - y_ref",
+    "identity": "Cov(r)=Cov(e_PIV)+Cov(e_ref)-Cov(e_PIV,e_ref)-Cov(e_ref,e_PIV)",
+    "independence_assumed_by_default": false,
+    "cross_covariance_required_for_piv_only_decomposition": true,
+    "if_cross_covariance_unidentified": "retain_combined_residual_covariance_and_block_piv_only_claim",
+    "supported_components": [
+      "piv_path_only",
+      "reference_path_only",
+      "shared_common_mode",
+      "acquisition_session_effect",
+      "flow_variability",
+      "observer_induced_physical_change"
+    ]
+  },
+  "dependence_graph": {
+    "hierarchy": [
+      "campaign",
+      "session",
+      "calibration_or_reference_batch",
+      "dependence_cluster",
+      "acquisition",
+      "asset",
+      "frame_or_vector"
+    ],
+    "split_unit": "connected_component_of_declared_shared_cause_graph",
+    "shared_causes": [
+      "camera_calibration",
+      "reference_calibration",
+      "clock_synchronization",
+      "geometry_registration",
+      "tracer_batch",
+      "illumination_state",
+      "environmental_control",
+      "electrode_conditioning",
+      "shared_source_asset"
+    ],
+    "cohort_component_overlap_allowed": false,
+    "acquisition_id_uniqueness_is_sufficient": false
+  },
+  "asset_manifest": {
+    "hash_algorithm": "SHA-256",
+    "asset_digest_encoding": "lowercase_hex_64",
+    "manifest_encoding": "versioned_canonical_json",
+    "source_bytes_rehashed_before_decode_or_processing": true,
+    "required_asset_fields": [
+      "asset_id",
+      "role",
+      "locator",
+      "byte_length",
+      "media_type",
+      "sha256",
+      "acquisition_id",
+      "dependence_cluster_id",
+      "clock_domain",
+      "capture_timestamp"
+    ],
+    "required_manifest_fields": [
+      "manifest_id",
+      "schema_version",
+      "canonicalization_version",
+      "asset_inventory",
+      "dependency_graph_digest",
+      "protocol_fingerprint",
+      "reference_assessment_id",
+      "observer_state_id",
+      "split_policy_digest"
+    ],
+    "reject_on": [
+      "missing_asset",
+      "duplicate_asset_id",
+      "duplicate_locator_unless_declared_shared",
+      "byte_length_mismatch",
+      "sha256_mismatch",
+      "manifest_digest_mismatch",
+      "invalid_locator",
+      "path_escape"
+    ]
+  },
+  "protocol_fingerprint": {
+    "required_domains": [
+      "imaging",
+      "calibration",
+      "illumination",
+      "timing",
+      "piv_processing",
+      "flow_and_system",
+      "tracer_and_observer",
+      "reference"
+    ],
+    "mismatch_disposition": "ProtocolMismatch",
+    "pooling_different_fingerprints_by_default": false
+  },
+  "reference_assessment": {
+    "independence_status": [
+      "independent",
+      "partially_shared",
+      "dependent",
+      "unknown"
+    ],
+    "required_fields": [
+      "reference_id",
+      "modality",
+      "measurand",
+      "instrument_identity",
+      "calibration_evidence",
+      "validity_interval",
+      "operating_range",
+      "resolution",
+      "bandwidth",
+      "response_time",
+      "spatial_temporal_transfer_function",
+      "drift_assessment",
+      "coordinate_registration",
+      "time_synchronization",
+      "uncertainty_budget",
+      "shared_causes",
+      "independence_status",
+      "supported_claim"
+    ],
+    "unknown_or_dependent_blocks_piv_only_claim": true,
+    "synthetic_truth_scope": "software_verification_not_physical_ehd_validation",
+    "same_source_image_reprocessing_is_independent": false
+  },
+  "observer_state": {
+    "required": true,
+    "contract_owner": "EHD-PIV-UQ-009",
+    "required_fields": [
+      "tracer_material",
+      "particle_properties",
+      "concentration",
+      "seeding_start_stop",
+      "illumination_state",
+      "probe_and_lpt_state",
+      "time_since_introduction",
+      "washout_state",
+      "humidity",
+      "temperature",
+      "pressure",
+      "voltage",
+      "current",
+      "polarity",
+      "electrode_condition",
+      "randomized_block_id",
+      "schedule_digest"
+    ],
+    "nonperturbative_claim_requires_predeclared_equivalence_margin": true
+  },
+  "evidence_receipt": {
+    "append_only": true,
+    "bind": [
+      "source_manifest_digest",
+      "asset_digests",
+      "dependency_graph_digest",
+      "split_policy_digest",
+      "protocol_fingerprint",
+      "reference_assessment_id",
+      "common_mode_model_digest",
+      "observer_state_id",
+      "processing_source_and_config_digest",
+      "derived_field_digest",
+      "residual_manifest_digest",
+      "fit_config_and_calibration_manifest_digest",
+      "validation_manifest_and_disposition",
+      "covariance_parameter_uncertainty_digest",
+      "functional_result_and_decision_digest",
+      "build_and_commit_identity"
+    ],
+    "replay_against_mutated_binding": "reject"
+  },
+  "qualification_dispositions": [
+    "EvidenceIntegrityFailed",
+    "DependenceOverlap",
+    "ReferenceUnknown",
+    "ReferenceInadequate",
+    "CommonModeUnresolved",
+    "ObserverEffectUnresolved",
+    "ProtocolMismatch",
+    "ResidualCovarianceQualified",
+    "MeasurementQualifiedForFunctional"
+  ],
+  "fail_closed_rules": {
+    "unknown_or_missing_reference_evidence": "no_piv_only_claim",
+    "unknown_cross_covariance": "residual_covariance_only",
+    "shared_cause_crosses_cohort": "reject_partition",
+    "raw_asset_digest_mismatch": "reject_before_processing",
+    "covariance_receipt_without_bias_and_functional_gates": "cannot_qualify_engineering_decision"
+  },
+  "prospective_acceptance_targets": [
+    {
+      "metric": "source_asset_byte_hash_verification_fraction",
+      "target": 1,
+      "status": "not_measured"
+    },
+    {
+      "metric": "dependence_component_overlap_across_cohorts",
+      "target": 0,
+      "status": "not_measured"
+    },
+    {
+      "metric": "piv_only_exports_with_unknown_reference_or_cross_covariance",
+      "target": 0,
+      "status": "not_measured"
+    },
+    {
+      "metric": "successful_receipt_replay_after_bound_input_mutation",
+      "target": 0,
+      "status": "not_measured"
+    },
+    {
+      "metric": "engineering_decision_exports_from_covariance_only_receipt",
+      "target": 0,
+      "status": "not_measured"
+    }
+  ],
+  "benchmark_separation": {
+    "synthetic_truth": "software_verification_and_adversarial_controls",
+    "physical_ehd": "separate_reference_and_experiment_validation_cohort",
+    "vector_classifier_scores": "separate_from_field_and_function_coverage",
+    "processing_throughput": "matched_hardware_and_configuration_lane"
+  },
+  "references": {
+    "piv_spatial_uncertainty": "https://doi.org/10.1088/0957-0233/27/8/084006",
+    "pivtools_2026": "https://doi.org/10.1016/j.softx.2026.102967",
+    "pivpostprocess_2026": "https://doi.org/10.1007/s00348-026-04319-7",
+    "ffs_s_piv": "https://doi.org/10.5281/zenodo.21732072",
+    "asme_vv20": "https://www.asme.org/codes-standards/find-codes-standards/standard-for-verification-and-validation-in-computational-fluid-dynamics-and-heat-transfer",
+    "nistir_8298": "https://doi.org/10.6028/NIST.IR.8298",
+    "ehd_observer_effect_air": "https://doi.org/10.1007/s00348-026-04322-y",
+    "ehd_observer_effect_liquid": "https://doi.org/10.1016/j.elstat.2026.104261"
+  }
+}
