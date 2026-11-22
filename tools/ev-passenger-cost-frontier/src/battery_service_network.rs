@@ -1751,7 +1751,7 @@ mod tests {
 
     #[test]
     fn duplicate_resource_idempotency_key_is_rejected() {
-        let mut first = resource_interval(
+        let first = resource_interval(
             "occupancy-a",
             "rack-1",
             ExclusiveResourceKind::Rack,
