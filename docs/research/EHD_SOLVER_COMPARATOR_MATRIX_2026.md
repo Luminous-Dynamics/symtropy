@@ -33,6 +33,18 @@ The Electric Discharge interface is a different model family. It solves drift-di
 
 Both are useful commercial references. Neither feature list validates a particular EHD device, chemistry, neutral-flow model, momentum transfer, thrust or wall-power boundary. Every result must pin product version, module entitlements, interface, model file, mesh, solver settings and physical assumptions.
 
+### Analytical corona baseline — Moshkbar-Bakhshayesh 2026
+
+The 2026 analytical framework for wire-to-NACA 00xx configurations reports 4.13% MAPE for its corona-discharge component at a 20 mm electrode gap. The paper also derives thrust, drag, power and effectiveness from established relationships and describes those remaining quantities as preliminary engineering guidance and parametric-study outputs.
+
+Use it as a bounded, source-specific baseline for the 20 mm corona component. Do not promote its 4.13% score to whole-thruster thrust, real-power or system-performance accuracy.
+
+### Experimental airflow surrogate — Toptaş and Yılmaz 2026
+
+The multi-needle EHD airflow study compares Random Forest, Gradient Boosting, KNN and ensemble models over emitter voltage, emitter–collector spacing and solenoid excitation. Gradient Boosting is reported as best among the tested models, with R² = 0.8961, MAE = 0.0859 and MSE = 0.0115; SHAP identifies voltage as the dominant predictor. The paper reports k-fold evaluation and independent tests at previously unseen operating points.
+
+This is an empirical airflow predictor, not a plasma conservation solver or thrust model. The metrics are tied to the source dataset and target scale. A stronger test is an entire held-out geometry/session family, with proper predictive intervals and physical closure checked separately.
+
 ### Other current reference roles
 
 - **Merlino2D** is a useful 2D atmospheric corona/DBD discharge comparator. Its own atlas record retains its MATLAB/GPL-3.0 dependency and the fact that it does not provide the full neutral-gas Navier–Stokes/thrust model.
@@ -45,7 +57,7 @@ Both are useful commercial references. Neither feature list validates a particul
 
 **Question:** Can models reproduce a common stationary corona onset, current-voltage curve and transport-region field?
 
-Candidate roles: Merlino2D; ANEMONE; COMSOL simplified Corona; COMSOL full Electric Discharge.
+Candidate roles: Merlino2D; ANEMONE; the Moshkbar-Bakhshayesh small-gap analytical corona baseline; COMSOL simplified Corona; COMSOL full Electric Discharge.
 
 Required outputs: inception voltage; current-voltage relation; electric potential/field; electron and ion densities where the model supports those quantities; declared charge fluxes.
 
@@ -87,6 +99,16 @@ Required outputs: direct thrust; synchronous terminal voltage/current; cycle-ave
 
 Keep terminal electrical power distinct from wall power. Keep collector-only T/W distinct from complete vehicle T/W. The exergy destroyed balance is a second-law audit, not a replacement for thrust/momentum accounting.
 
+### Track E — data-driven airflow surrogate
+
+**Question:** Can an empirical EHD airflow model transfer to unseen geometries and experimental sessions without leakage from neighbouring samples in the same run?
+
+Candidate roles: reproduce the Toptaş–Yılmaz Gradient Boosting, Random Forest and KNN baselines; compare them with physical CFD/discharge-coupled models on identical measured data.
+
+Freeze raw measurements, target units, feature engineering, scaling, train/validation/test partitions, random seeds and hyperparameter budgets. Hold out complete geometry families and measurement sessions, not random operating points alone. Report pointwise and field-level errors, proper predictive scores, interval coverage and inference cost.
+
+A better R² on a random point split is not a SOTA result if points from the same geometry/run appear in both training and test partitions. Airflow regression must not be promoted into a thrust or energy-conservation claim.
+
 ## Scoring: what the benchmark must report
 
 Every submission reports all dimensions below. Do not publish a single aggregate score until units, weights, missing data policy and hard acceptance gates are frozen.
@@ -116,7 +138,7 @@ These are targets, not current achievements:
 
 The 4.13% published value applies to a corona-discharge component at a 20 mm gap in one analytical study. Its other propulsion quantities are derived from established relationships and are described as preliminary engineering estimates. It is therefore a bounded subbenchmark, not a 4.13% whole-thruster accuracy baseline.
 
-The 2026 Gradient Boosting EHD airflow paper reports R² = 0.8961, MAE = 0.0859 and MSE = 0.0115 on its own structured multi-needle/solenoid dataset. MAE and MSE scales, train/test split and validation cohort must be reproduced before any direct comparison. The Luminous target is to outperform this baseline on identical unseen geometry/session splits and to add calibrated intervals, physical closure and explicit out-of-domain abstention.
+The 2026 Gradient Boosting EHD airflow paper reports R² = 0.8961, MAE = 0.0859 and MSE = 0.0115 on its own structured multi-needle/solenoid dataset. MAE and MSE scales, train/test split and validation cohort must be reproduced before any direct comparison. The Luminous target is to outperform this baseline on identical unseen geometry/session splits and to add calibrated intervals, physical closure and explicit out-of-domain abstention. The 4.13% MAPE baseline from the 20 mm analytical corona study must likewise be evaluated only on its measured discharge observable; its derived thrust/power quantities are separate, lower-evidence outputs.
 
 ## How Luminous can exceed the state of practice
 
@@ -143,4 +165,5 @@ The next technical advances should be:
 - COMSOL 6.4, *The Electric Discharge Interface*: https://doc.comsol.com/6.4/doc/com.comsol.help.edis/edis_ug_edis.6.02.html
 - COMSOL 6.4, *Electric Discharge Module Physics Interface Guide*: https://doc.comsol.com/6.4/doc/com.comsol.help.edis/edis_introduction.2.2.html
 - Moshkbar-Bakhshayesh, *Scientific Reports* (2026), DOI 10.1038/s41598-026-77180-7, 4.13% MAPE at the 20 mm corona-discharge validation point and limited scope of derived propulsion estimates.
+- Toptaş and Yılmaz, *International Journal of Heat and Fluid Flow* 119 (2026), 110315, DOI 10.1016/j.ijheatfluidflow.2026.110315, Gradient Boosting airflow benchmark and dataset-specific metrics.
 - Toptaş and Yılmaz, *International Journal of Heat and Fluid Flow* 119 (2026), 110315, DOI 10.1016/j.ijheatfluidflow.2026.110315, Gradient Boosting EHD airflow baseline.
