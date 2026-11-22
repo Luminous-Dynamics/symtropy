@@ -28,9 +28,9 @@ use core::fmt;
 
 /// Outward-rounded affine geometry used by the independent coverage research.
 pub mod coverage;
-pub mod small_hbr_nc;
 pub mod residual;
 pub mod sequential;
+pub mod small_hbr_nc;
 pub mod stats;
 pub mod trajectory;
 
@@ -150,7 +150,9 @@ impl fmt::Display for KernelError {
             Self::ProposalHasZeroDensity => "proposal density is zero at the evaluation point",
             Self::InvalidSmallHbrInput => "small-HBR oracle inputs must be strictly positive",
             Self::OutsideSmallHbrAssumptions => "small-HBR asymptotic assumptions are not declared",
-            Self::ApproximationExceedsUnitProbability => "small-HBR asymptotic approximation exceeds one",
+            Self::ApproximationExceedsUnitProbability => {
+                "small-HBR asymptotic approximation exceeds one"
+            }
         };
         f.write_str(message)
     }
