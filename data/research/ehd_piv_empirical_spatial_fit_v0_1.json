@@ -25,7 +25,9 @@
     "calibration_validation_ids_disjoint": true,
     "calibration_validation_reference_ids_disjoint": true,
     "immutable_manifest_sha256_shape": "64 hexadecimal characters",
-    "manifest_digest_verification": "caller_responsibility_not_implemented"
+    "manifest_digest_verification": "caller_responsibility_not_implemented",
+    "reference_uncertainty_assessment_id": "required_nonempty_external_evidence_identity",
+    "reference_uncertainty_scope": "residual_covariance_contains_PIV_and_reference_uncertainty_unless_reference_contribution_is_externally_bounded_negligible_or_removed_by_an_externally_qualified_procedure"
   },
   "model": {
     "family": "wendland_c2",
@@ -55,7 +57,9 @@
     "maximum_absolute_correlation_error_initial_target": 0.05,
     "gates_frozen_in_fit_config": true,
     "holdout_used_to_refit_or_select_range": false,
-    "mean_bias_shift_reported_separately": true
+    "mean_bias_shift_reported_separately": true,
+    "correlation_normalization": "one_variance_scale_estimated_across_complete_holdout",
+    "cluster_inference": "one_lag_bin_statistic_per_independent_acquisition; vector_pairs_are_within_cluster_not_independent_samples"
   },
   "qualification": {
     "qualified": "heldout_maximum_absolute_correlation_error_within_frozen_limit_and_no_resolved_negative_lobe",
@@ -66,7 +70,8 @@
     "spatial_kernel_component": "S",
     "local_velocity_covariance_each_face_sample": "N",
     "double_counting_rule": "do_not_supply_C0_as_local_covariance_when_S_is_added_by_spatial_cross_location_propagation",
-    "protocol_fingerprint_must_match": true
+    "protocol_fingerprint_must_match": true,
+    "fit_report_binding": "fit_config_id_protocol_reference_assessment_calibration_manifest_selected_range_and_spatial_covariance_must_match_exactly"
   },
   "prospective_benchmarks": [
     {
@@ -97,7 +102,8 @@
     "no physical EHD force or thrust result is established",
     "no anisotropic, nonstationary, regional, temporal or oscillatory kernel is fitted",
     "no proof of reference independence, exchangeability or source-data integrity",
-    "no comparison claim that this fitter outperforms PIVtools or commercial PIV processors"
+    "no comparison claim that this fitter outperforms PIVtools or commercial PIV processors",
+    "no reference-uncertainty deconvolution or separation is implemented; residual covariance includes PIV and reference contributions unless independently assessed"
   ],
   "references": {
     "spatial_uncertainty_propagation": "https://doi.org/10.1088/0957-0233/27/8/084006",
