@@ -367,7 +367,8 @@ fn canonicalize_and_validate_correlation_matrix(
         for column in (row + 1)..source_count {
             let upper = matrix[row][column];
             let lower = matrix[column][row];
-            if !nearly_equal(upper, lower) || upper.abs() > 1.0 + 1.0e-12
+            if !nearly_equal(upper, lower)
+                || upper.abs() > 1.0 + 1.0e-12
                 || lower.abs() > 1.0 + 1.0e-12
             {
                 return Err(ModelError::InvalidCovariance(
@@ -774,17 +775,12 @@ mod tests {
         exact.correlation_matrix[1][0] = 0.2 + 2.5e-13;
         exact.correlation_matrix[0][2] = -0.1 - 2.5e-13;
         exact.correlation_matrix[2][0] = -0.1 - 2.5e-13;
-        let exact_result = rank_designs_under_finite_correlation_scenarios(
-            &candidates,
-            &[exact],
-            RECEIPT,
-        )
-        .expect("canonical symmetric reference");
+        let exact_result =
+            rank_designs_under_finite_correlation_scenarios(&candidates, &[exact], RECEIPT)
+                .expect("canonical symmetric reference");
 
         for (actual, expected) in result.scores.iter().zip(exact_result.scores.iter()) {
-            assert!(
-                (actual.worst_case_eig_nats - expected.worst_case_eig_nats).abs() < 1.0e-14
-            );
+            assert!((actual.worst_case_eig_nats - expected.worst_case_eig_nats).abs() < 1.0e-14);
         }
     }
 
