@@ -293,14 +293,12 @@ pub fn qualify_transformation_mass_balance_link(
     }
 
     match receipts {
-        [] => {
-            return MaterialBalanceLinkDecision::indeterminate(
-                MaterialBalanceLinkReason::MissingOwnerReceipt,
-                None,
-                source_event_count,
-                OwnerDigestQualification::NotEvaluated,
-            );
-        }
+        [] => MaterialBalanceLinkDecision::indeterminate(
+            MaterialBalanceLinkReason::MissingOwnerReceipt,
+            None,
+            source_event_count,
+            OwnerDigestQualification::NotEvaluated,
+        ),
         [receipt] => {
             if !valid_text(&receipt.receipt_ref)
                 || !valid_text(&receipt.case_id)
