@@ -1,3 +1,6 @@
+// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 //! Identity-preserving aggregation/disaggregation for physical cargo modules.
 //!
 //! This is a composition relation over module IDs already validated by the
@@ -211,7 +214,7 @@ fn validate_event_shape(event: &CompositionEvent) -> Option<CompositionFailure> 
     None
 }
 
-fn active_parent_of(active: &BTreeSet<Membership>, child_module_id: &str) -> Option<&str> {
+fn active_parent_of<'a>(active: &'a BTreeSet<Membership>, child_module_id: &str) -> Option<&'a str> {
     active
         .iter()
         .find(|membership| membership.child_module_id == child_module_id)
