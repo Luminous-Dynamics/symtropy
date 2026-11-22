@@ -420,16 +420,15 @@ mod tests {
                 hard_body_radius: 0.2,
             },
         ];
-        let report = affine_union_collision_residual_mass_upper_bound(
-            &AffineUnionResidualMassConfig {
+        let report =
+            affine_union_collision_residual_mass_upper_bound(&AffineUnionResidualMassConfig {
                 components: &components,
                 covered_chart_boxes: &[chart],
                 cube_radius: 4.0,
                 max_cells: 4096,
                 max_depth: 12,
-            },
-        )
-        .expect("valid disconnected event union");
+            })
+            .expect("valid disconnected event union");
 
         assert!(!report.budget_exhausted);
         assert!(report.chart_covered_cells > 0);
@@ -454,16 +453,15 @@ mod tests {
                 hard_body_radius: 0.2,
             },
         ];
-        let report = affine_union_collision_residual_mass_upper_bound(
-            &AffineUnionResidualMassConfig {
+        let report =
+            affine_union_collision_residual_mass_upper_bound(&AffineUnionResidualMassConfig {
                 components: &components,
                 covered_chart_boxes: &[central, remote],
                 cube_radius: 4.0,
                 max_cells: 4096,
                 max_depth: 24,
-            },
-        )
-        .expect("valid chart union");
+            })
+            .expect("valid chart union");
 
         let tail =
             standard_normal_cube_tail_probability_upper_bound(4.0, 1).expect("valid tail bound");
@@ -477,15 +475,14 @@ mod tests {
 
     #[test]
     fn empty_event_union_is_rejected() {
-        let result = affine_union_collision_residual_mass_upper_bound(
-            &AffineUnionResidualMassConfig {
+        let result =
+            affine_union_collision_residual_mass_upper_bound(&AffineUnionResidualMassConfig {
                 components: &[],
                 covered_chart_boxes: &[],
                 cube_radius: 4.0,
                 max_cells: 32,
                 max_depth: 8,
-            },
-        );
+            });
         assert_eq!(result, Err(KernelError::EmptyEventUnion));
     }
 
@@ -503,16 +500,14 @@ mod tests {
                 hard_body_radius: 0.2,
             },
         ];
-        let result = affine_union_collision_residual_mass_upper_bound(
-            &AffineUnionResidualMassConfig {
+        let result =
+            affine_union_collision_residual_mass_upper_bound(&AffineUnionResidualMassConfig {
                 components: &components,
                 covered_chart_boxes: &[],
                 cube_radius: 4.0,
                 max_cells: 32,
                 max_depth: 8,
-            },
-        );
+            });
         assert_eq!(result, Err(KernelError::DimensionMismatch));
     }
-
 }
