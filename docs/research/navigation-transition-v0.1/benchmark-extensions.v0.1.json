@@ -1,0 +1,50 @@
+{
+  "schema_version": "nav-transition-benchmark-extension/v0.1",
+  "benchmark_id": "nav-transition-001",
+  "status": "draft_not_run",
+  "parent_manifest": "./manifest.v0.1.json",
+  "claim_ceiling": "method_and_sector_comparison_register_only",
+  "external_reference_additions": [
+    {
+      "reference_id": "CROSS-MULTISESSION-2026",
+      "name": "CROSS visual multi-session mapping, localization and relocalization benchmark",
+      "domain": "multi_session_localization",
+      "url": "https://jiaming.im/CROSS/benchmark/",
+      "role": "public_benchmark_comparator_candidate",
+      "rights_status": "benchmark_and_dataset_terms_review_pending",
+      "claim_limit": "Separates T1 mapping ATE/completeness, T2 stored-map localization recall/map-frame ATE, and T3 cross-session relocalization success. Uses KITTI, OpenLORIS-Scene, ROVER and SimChange v3. Some configurations use dataset/external or ground-truth-derived odometry; reproduce only with matching sensor/odometry privileges and failure denominator. Does not measure PNT protection-level integrity."
+    },
+    {
+      "reference_id": "IMO-MSC-401-95-MARITIME-PNT",
+      "name": "IMO Resolution MSC.401(95): Performance standards for multi-system shipborne radionavigation receivers",
+      "domain": "maritime_pnt",
+      "url": "https://wwwcdn.imo.org/localresources/en/KnowledgeCentre/IndexofIMOResolutions/MSCResolutions/MSC.401%2895%29.pdf",
+      "role": "sector_conformance_reference",
+      "rights_status": "official_public_standard_reference",
+      "claim_limit": "Maritime profile reference requiring integrity monitoring for each PVT source, multi-source autonomous integrity monitoring, phase-specific performance assessment and alerting when performance cannot be determined. It defines receiver performance requirements, not a universal navigation algorithm or this benchmark's general conformance."
+    }
+  ],
+  "internal_method_references": [
+    {
+      "reference_id": "SIM-REL-054",
+      "url": "https://github.com/Luminous-Dynamics/symtropy/issues/3385",
+      "role": "exact_binomial_confidence_interval_owner",
+      "reuse_rule": "Reuse the reviewed Clopper-Pearson / monotone quantile interval implementation; do not implement a second binomial confidence engine.",
+      "navigation_adaptation": "Define independent units using the navigation dataset hierarchy (route/site/recording session, device/campaign, scenario generator, oracle provenance). Repeated frames/windows within a continuous trajectory do not increase n. Report episode-cluster exceedance and per-epoch exposure separately."
+    }
+  ],
+  "metric_family_additions": [
+    "multi_session_localization_recall",
+    "cross_session_relocalization_success",
+    "map_session_pose_coverage_completeness",
+    "phase_specific_integrity_assessment",
+    "multi_source_integrity_monitoring"
+  ],
+  "protocol_extensions": [
+    "For multi-session localization, reproduce the fixed CROSS T1/T2/T3 protocol only with identical sensor inputs, odometry privileges, map sessions, query sessions, tuning rules and failure accounting.",
+    "For maritime sector comparisons, map the evaluation to a named MSC.401(95) profile and the actual navigation phase; do not infer broad certification from this synthetic corpus.",
+    "For integrity-risk confidence intervals, use SIM-REL-054's exact interval method only after the navigation episode/cluster hierarchy and independence assumptions are preregistered and audited."
+  ],
+  "research_targets_status": "unverified_hypotheses",
+  "note": "These additions are comparator/standard references and protocol guidance. No external data, code, paper result or regulatory conformance has been reproduced."
+}

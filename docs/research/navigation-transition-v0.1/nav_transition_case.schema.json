@@ -1,0 +1,740 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/nav-transition-case-v0.1.schema.json",
+  "title": "Navigation Observability Transition Case v0.1",
+  "description": "Synthetic-first benchmark case for navigation belief continuity across changes in sensor observability, frame, time basis, or communications. Evaluator-only truth must never be passed to the controller under test.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "revision",
+    "status",
+    "evidence_class",
+    "claim_ceiling",
+    "domain_path",
+    "source_registry",
+    "phases",
+    "transitions",
+    "controller_stream",
+    "faults",
+    "evaluator_only",
+    "expected_dispositions",
+    "assumptions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "nav-transition-case/v0.1"
+    },
+    "case_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,120}$"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "status": {
+      "enum": [
+        "draft_not_run",
+        "preregistered",
+        "executed_unqualified",
+        "qualified",
+        "withdrawn"
+      ]
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic_transition_contract_only"
+    },
+    "domain_path": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "enum": [
+          "land",
+          "urban",
+          "indoor",
+          "underground",
+          "surface_water",
+          "underwater",
+          "air",
+          "space",
+          "lunar_surface"
+        ]
+      }
+    },
+    "source_registry": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/source"
+      }
+    },
+    "phases": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "$ref": "#/$defs/phase"
+      }
+    },
+    "transitions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "transition_id",
+          "from_phase",
+          "to_phase",
+          "offset_ms",
+          "kind",
+          "expected_state"
+        ],
+        "properties": {
+          "transition_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "from_phase": {
+            "type": "string",
+            "minLength": 1
+          },
+          "to_phase": {
+            "type": "string",
+            "minLength": 1
+          },
+          "offset_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "kind": {
+            "enum": [
+              "environment_boundary",
+              "sensor_loss",
+              "sensor_reacquisition",
+              "observability_collapse",
+              "reference_frame_change",
+              "body_reference_change",
+              "time_basis_change",
+              "communications_partition",
+              "clock_correlation_expiry",
+              "recovery"
+            ]
+          },
+          "expected_state": {
+            "enum": [
+              "NORMAL",
+              "DEGRADED",
+              "INTEGRITY_UNCERTAIN",
+              "UNAVAILABLE",
+              "RECOVERING",
+              "INDETERMINATE"
+            ]
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "controller_stream": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "observation_id",
+          "offset_ms",
+          "event_kind",
+          "source_id",
+          "frame_id",
+          "time_basis_id",
+          "observation_class"
+        ],
+        "properties": {
+          "observation_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "offset_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "event_kind": {
+            "enum": [
+              "measurement",
+              "source_status",
+              "integrity_status",
+              "transform_status",
+              "clock_status",
+              "network_status",
+              "map_match"
+            ]
+          },
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "modality": {
+            "type": "string"
+          },
+          "frame_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "time_basis_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "observation_class": {
+            "enum": [
+              "raw_observation",
+              "derived_observation",
+              "source_health",
+              "integrity_assessment",
+              "transform_evidence",
+              "clock_correlation",
+              "map_constraint"
+            ]
+          },
+          "components": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "number"
+            }
+          },
+          "units": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "payload_digest": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^(sha256:[a-f0-9]{64})?$"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "faults": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "fault_id",
+          "fault_kind",
+          "source_ids",
+          "start_offset_ms",
+          "end_offset_ms",
+          "controller_visible_effect"
+        ],
+        "properties": {
+          "fault_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fault_kind": {
+            "enum": [
+              "gnss_unavailable",
+              "gnss_integrity_uncertain",
+              "nlos_or_multipath",
+              "visual_obscuration",
+              "textureless_scene",
+              "dvl_bottom_lock_loss",
+              "acoustic_link_loss",
+              "clock_epoch_change",
+              "clock_correlation_expired",
+              "frame_mismatch",
+              "stale_calibration",
+              "shared_failure_domain",
+              "communications_partition",
+              "map_datum_shift",
+              "reference_occultation",
+              "non_finite_measurement",
+              "covariance_invalid",
+              "replayed_observation",
+              "sensor_configuration_mismatch",
+              "heavy_tailed_residuals",
+              "persistent_bias",
+              "protection_level_saturation"
+            ]
+          },
+          "source_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "start_offset_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "end_offset_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "controller_visible_effect": {
+            "type": "string",
+            "minLength": 1
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "evaluator_only": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference_class",
+        "reference_sources",
+        "truth_states",
+        "event_labels"
+      ],
+      "properties": {
+        "reference_class": {
+          "enum": [
+            "synthetic_oracle",
+            "independent_metrology",
+            "measured_reference"
+          ]
+        },
+        "reference_sources": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "truth_states": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "truth_id",
+              "offset_ms",
+              "body_id",
+              "frame_id",
+              "position_m",
+              "velocity_mps"
+            ],
+            "properties": {
+              "truth_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "offset_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "body_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "frame_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "position_m": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "velocity_mps": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "attitude_quaternion_xyzw": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "minItems": 4,
+                "maxItems": 4
+              }
+            }
+          }
+        },
+        "event_labels": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "fault_id",
+              "true_fault_kind",
+              "onset_offset_ms"
+            ],
+            "properties": {
+              "fault_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "true_fault_kind": {
+                "type": "string",
+                "minLength": 1
+              },
+              "onset_offset_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "cause_attribution": {
+                "const": "not_adjudicated"
+              }
+            }
+          }
+        }
+      }
+    },
+    "expected_dispositions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "at_offset_ms",
+          "expected_state",
+          "minimum_evidence_condition",
+          "reason_code"
+        ],
+        "properties": {
+          "at_offset_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "expected_state": {
+            "enum": [
+              "NORMAL",
+              "DEGRADED",
+              "INTEGRITY_UNCERTAIN",
+              "UNAVAILABLE",
+              "RECOVERING",
+              "INDETERMINATE"
+            ]
+          },
+          "minimum_evidence_condition": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason_code": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "$defs": {
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "modality",
+        "configuration_ref",
+        "clock_domain_ref",
+        "failure_domains",
+        "qualification_status"
+      ],
+      "properties": {
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "modality": {
+          "enum": [
+            "gnss",
+            "imu",
+            "camera",
+            "lidar",
+            "radar",
+            "wheel_odometry",
+            "uwb",
+            "pressure_depth",
+            "dvl",
+            "acoustic_range",
+            "sonar",
+            "air_data",
+            "barometer",
+            "star_tracker",
+            "optical_bearing",
+            "ephemeris",
+            "map_landmark",
+            "magnetic",
+            "gravity"
+          ]
+        },
+        "configuration_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "clock_domain_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "failure_domains": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "qualification_status": {
+          "enum": [
+            "synthetic_fixture",
+            "candidate_unqualified",
+            "stale",
+            "invalid"
+          ]
+        }
+      }
+    },
+    "frame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "frame_id",
+        "frame_kind",
+        "body_id",
+        "origin_ref",
+        "epoch_ref"
+      ],
+      "properties": {
+        "frame_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "frame_kind": {
+          "enum": [
+            "earth_ecef",
+            "local_enu",
+            "local_ned",
+            "body_fixed",
+            "inertial",
+            "spacecraft_local",
+            "surface_local",
+            "cave_local"
+          ]
+        },
+        "body_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "origin_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "epoch_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parent_frame_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "time_basis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "time_basis_id",
+        "kind",
+        "clock_or_scale_id",
+        "epoch_ref",
+        "uncertainty_s"
+      ],
+      "properties": {
+        "time_basis_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "utc",
+            "tai",
+            "tt",
+            "tdb",
+            "gps",
+            "monotonic",
+            "spacecraft_clock",
+            "relative"
+          ]
+        },
+        "clock_or_scale_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "epoch_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uncertainty_s": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "phase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "phase_id",
+        "environment",
+        "body_id",
+        "frame",
+        "time_basis",
+        "measurement_classes",
+        "communications_state",
+        "expected_service_state"
+      ],
+      "properties": {
+        "phase_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "environment": {
+          "enum": [
+            "land",
+            "urban",
+            "indoor",
+            "underground",
+            "surface_water",
+            "underwater",
+            "air",
+            "space",
+            "lunar_surface"
+          ]
+        },
+        "body_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "frame": {
+          "$ref": "#/$defs/frame"
+        },
+        "time_basis": {
+          "$ref": "#/$defs/time_basis"
+        },
+        "measurement_classes": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "gnss",
+              "imu",
+              "camera",
+              "lidar",
+              "radar",
+              "wheel_odometry",
+              "uwb",
+              "pressure_depth",
+              "dvl",
+              "acoustic_range",
+              "sonar",
+              "air_data",
+              "barometer",
+              "star_tracker",
+              "optical_bearing",
+              "ephemeris",
+              "map_landmark",
+              "magnetic",
+              "gravity"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "communications_state": {
+          "enum": [
+            "connected",
+            "intermittent",
+            "partitioned",
+            "not_applicable"
+          ]
+        },
+        "expected_service_state": {
+          "enum": [
+            "NORMAL",
+            "DEGRADED",
+            "INTEGRITY_UNCERTAIN",
+            "UNAVAILABLE",
+            "RECOVERING",
+            "INDETERMINATE"
+          ]
+        }
+      }
+    }
+  }
+}

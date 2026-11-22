@@ -1,0 +1,147 @@
+{
+  "schema_version": "navigation-dataset-admission/v0.1",
+  "benchmark_id": "nav-transition-001",
+  "manifest_status": "rights_and_snapshot_candidates_only",
+  "datasets": [
+    {
+      "dataset_id": "miluv-figshare-v1",
+      "name": "MILUV: Multi-UAV Indoor Localization dataset with UWB and Vision",
+      "domain": "indoor",
+      "source_url": "https://doi.org/10.25452/figshare.plus.28386041.v1",
+      "status": "candidate_not_admitted",
+      "snapshot": {
+        "immutable": false,
+        "release_tag": "v1",
+        "repository_commit": null,
+        "file_sha256": []
+      },
+      "rights": {
+        "license_id": "CC-BY-4.0",
+        "status": "explicit",
+        "scope": "dataset_payload",
+        "evidence_url": "https://datasetcatalog.nlm.nih.gov/dataset?q=0002392468",
+        "research_use": "permitted",
+        "commercial_use": "permitted",
+        "redistribution": "permitted"
+      },
+      "metadata": {
+        "time_basis_status": "unknown",
+        "spatial_reference_status": "unknown",
+        "calibration_status": "partial",
+        "ground_truth_status": "mocap",
+        "split_basis": "experiment_id",
+        "train_group_ids": [],
+        "test_group_ids": [],
+        "split_sha256": null,
+        "clock_state_truth_status": "not_provided"
+      },
+      "admission_scope": "none",
+      "notes": "Paper describes 217 minutes, 36 experiments, three UAVs, UWB raw timestamps/CIR, stereo and monocular cameras, IMU, laser height, magnetometer and motion-capture ground truth. Exact downloaded file set and hashes, per-sensor time alignment, frame transforms, calibration artifacts and held-out experiment split still need review."
+    },
+    {
+      "dataset_id": "urbannav-hk",
+      "name": "UrbanNav Hong Kong urban-canyon multisensor dataset",
+      "domain": "urban_land",
+      "source_url": "https://github.com/IPNL-POLYU/UrbanNavDataset",
+      "status": "candidate_not_admitted",
+      "snapshot": {
+        "immutable": false,
+        "release_tag": null,
+        "repository_commit": null,
+        "file_sha256": []
+      },
+      "rights": {
+        "license_id": "MIT",
+        "status": "explicit",
+        "scope": "dataset_payload",
+        "evidence_url": "https://github.com/IPNL-POLYU/UrbanNavDataset",
+        "research_use": "permitted",
+        "commercial_use": "permitted",
+        "redistribution": "permitted"
+      },
+      "metadata": {
+        "time_basis_status": "unknown",
+        "spatial_reference_status": "unknown",
+        "calibration_status": "partial",
+        "ground_truth_status": "high_grade_gnss_ins",
+        "split_basis": "route_id",
+        "train_group_ids": [],
+        "test_group_ids": [],
+        "split_sha256": null,
+        "clock_state_truth_status": "unknown"
+      },
+      "admission_scope": "none",
+      "notes": "Official repository states MIT terms include dataset files. Candidate tracks include medium/deep/harsh urban and tunnel. Some pilot data lacks hardware synchronization; some sequences have ground-truth gaps or calibration omissions. Select an exact sequence and verify that sequence-specific limitations are acceptable."
+    },
+    {
+      "dataset_id": "tank-underwater",
+      "name": "Tank underwater multisensor SLAM evaluation dataset",
+      "domain": "underwater",
+      "source_url": "https://senseroboticslab.github.io/underwater-tank-dataset/",
+      "status": "candidate_not_admitted",
+      "snapshot": {
+        "immutable": false,
+        "release_tag": null,
+        "repository_commit": null,
+        "file_sha256": []
+      },
+      "rights": {
+        "license_id": "CC-BY-NC-SA-4.0",
+        "status": "explicit",
+        "scope": "dataset_payload",
+        "evidence_url": "https://senseroboticslab.github.io/underwater-tank-dataset/download/",
+        "research_use": "permitted",
+        "commercial_use": "prohibited",
+        "redistribution": "permitted"
+      },
+      "metadata": {
+        "time_basis_status": "unknown",
+        "spatial_reference_status": "unknown",
+        "calibration_status": "partial",
+        "ground_truth_status": "mocap",
+        "split_basis": "experiment_id",
+        "train_group_ids": [],
+        "test_group_ids": [],
+        "split_sha256": null,
+        "clock_state_truth_status": "unknown"
+      },
+      "admission_scope": "none",
+      "notes": "Eight controlled tank sequences with stereo, IMU, DVL, depth pressure and fiducial-marker-based 6-DoF ground truth. Official page limits use to non-commercial academic research under CC BY-NC-SA 4.0. Excluded from commercial benchmark or commercial product paths unless separately licensed."
+    },
+    {
+      "dataset_id": "subt-mrs",
+      "name": "SubT-MRS multi-robot subterranean SLAM dataset",
+      "domain": "underground",
+      "source_url": "https://superodometry.com/datasets",
+      "status": "candidate_not_admitted",
+      "snapshot": {
+        "immutable": false,
+        "release_tag": null,
+        "repository_commit": null,
+        "file_sha256": []
+      },
+      "rights": {
+        "license_id": "UNKNOWN",
+        "status": "unknown",
+        "scope": "unknown",
+        "evidence_url": null,
+        "research_use": "unknown",
+        "commercial_use": "unknown",
+        "redistribution": "unknown"
+      },
+      "metadata": {
+        "time_basis_status": "unknown",
+        "spatial_reference_status": "unknown",
+        "calibration_status": "partial",
+        "ground_truth_status": "partial",
+        "split_basis": "session_id",
+        "train_group_ids": [],
+        "test_group_ids": [],
+        "split_sha256": null,
+        "clock_state_truth_status": "unknown"
+      },
+      "admission_scope": "none",
+      "notes": "Candidate real-world multi-platform RGB/LiDAR/thermal/IMU dataset with cave, tunnel and adverse-visibility conditions. No dataset payload rights are asserted here; obtain exact license and sequence-specific ground-truth/calibration details before admission."
+    }
+  ]
+}
