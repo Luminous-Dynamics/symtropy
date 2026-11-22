@@ -33,8 +33,7 @@ pub mod sequential;
 pub mod stats;
 
 pub use residual::{
-    AffineResidualMassConfig, AffineResidualMassReport,
-    affine_collision_residual_mass_upper_bound,
+    AffineResidualMassConfig, AffineResidualMassReport, affine_collision_residual_mass_upper_bound,
 };
 pub use sequential::{BernoulliConfidenceSequence, BernoulliMixtureEProcess};
 pub use stats::{WeightedEventAccumulator, WeightedEventSummary};
@@ -42,8 +41,7 @@ pub use stats::{WeightedEventAccumulator, WeightedEventSummary};
 pub use coverage::{
     CellSide, CoverageCell, CoverageMassUpperBound, CoverageSplit, Interval,
     affine_box_image_bounds, affine_box_norm_lower_bound, affine_cell_excludes_collision_ball,
-    standard_normal_box_probability_upper_bound,
-    standard_normal_cube_tail_probability_upper_bound,
+    standard_normal_box_probability_upper_bound, standard_normal_cube_tail_probability_upper_bound,
 };
 
 /// Errors returned by the analytic probability kernels.
