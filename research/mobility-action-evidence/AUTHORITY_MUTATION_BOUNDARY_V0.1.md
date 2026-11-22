@@ -243,6 +243,8 @@ Continue to use:
 - Mycelix Position for qualified time and navigation claim semantics;
 - Mycelix provenance/failure-domain owners for source lineage and declared common-cause information;
 - Symthaea/domain owners for cognitive policy and domain-specific runtime assurance;
+- Mycelix AGENT-009 #803 for durable effect attempts and commit/provider-outcome classification;
+- Mycelix AGENT-010 #830 for independent offline reconstruction of bounded authority/effect evidence (its report is an audit artifact, never live authority).
 - the native controller and hardware safety layer for the actual command boundary and independent local protection.
 
 This work does not:
