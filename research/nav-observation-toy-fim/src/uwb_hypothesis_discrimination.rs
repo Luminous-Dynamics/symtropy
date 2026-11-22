@@ -333,7 +333,7 @@ mod tests {
         let model = action(vec![
             outcome(1, &[0.0, 0.0], 0.5),
             outcome(2, &[4.0, 0.0], 0.5),
-            outcome(3, &[0.0, 1.0], 0.75),
+            outcome(3, &[1.5, 0.0], 1.0),
         ]);
         let report =
             evaluate_uwb_hypothesis_discrimination(&[1, 2, 3], [0x11; 32], &model)
