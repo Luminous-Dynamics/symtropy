@@ -9,7 +9,7 @@
     "unknown",
     "unsupported"
   ],
-  "case_count": 20,
+  "case_count": 21,
   "cases": [
     {
       "scenario_id": "MCC-001",
@@ -2250,7 +2250,117 @@
         ],
         "local_closure_disposition": "unknown"
       }
+    },
+    {
+      "scenario_id": "MCC-021",
+      "description": "A feasible low-risk route has an unknown transport cost; it remains physically feasible but cannot be economically ranked or treated as zero cost.",
+      "part": {
+        "part_id": "LUM-P0-ACCESSORY-001",
+        "revision": "A",
+        "risk_class": "P0",
+        "allowed_tiers": [
+          "H0",
+          "N1",
+          "R2",
+          "Q3",
+          "OEM"
+        ],
+        "rights_status": "verified",
+        "revision_status": "exact",
+        "process_family": "material_extrusion",
+        "required_inspection": [
+          "dimensional"
+        ],
+        "post_repair_verification_required": true,
+        "required_max_temperature_c": 40,
+        "deadline_hours": 24
+      },
+      "routes": [
+        {
+          "route_id": "N1-FDM-COST-UNKNOWN",
+          "tier": "N1",
+          "machine_id": "LMF-FDM-N1-001",
+          "process_family": "material_extrusion",
+          "support_status": "supported",
+          "machine_identity_status": "verified",
+          "machine_safety_status": "qualified",
+          "material_status": "approved",
+          "calibration_status": "current",
+          "operator_status": "qualified",
+          "inspection_status": "qualified",
+          "post_repair_status": "complete",
+          "machine_envelope_status": "within",
+          "max_process_temperature_c": 80,
+          "inspection_methods": [
+            "dimensional"
+          ],
+          "capacity_units": {
+            "required": 1,
+            "available": 4,
+            "unit": "parts"
+          },
+          "lead_time_hours": 4,
+          "dependencies": [
+            {
+              "dependency_id": "frame-profile",
+              "criticality": "critical",
+              "sourcing_class": "locally_manufactured",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "measured",
+              "requires": []
+            },
+            {
+              "dependency_id": "controller",
+              "criticality": "critical",
+              "sourcing_class": "local_service_imported_inputs",
+              "alternate_sources": 1,
+              "local_repair_status": "repairable",
+              "evidence_status": "independently_verified",
+              "requires": []
+            },
+            {
+              "dependency_id": "linear-motion-set",
+              "criticality": "important",
+              "sourcing_class": "imported_stocked",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "vendor_declared",
+              "requires": []
+            }
+          ],
+          "cost": {
+            "capital_allocation_zar": 20,
+            "material_zar": 12,
+            "energy_zar": 2,
+            "labour_zar": 18,
+            "setup_zar": 3,
+            "calibration_zar": 1,
+            "inspection_zar": 4,
+            "finishing_zar": 2,
+            "transport_zar": null,
+            "maintenance_zar": 2,
+            "failure_rework_zar": 3,
+            "warranty_reserve_zar": 1,
+            "accepted_outputs": 1
+          }
+        }
+      ],
+      "expected": {
+        "disposition": "feasible",
+        "feasible_route_ids": [
+          "N1-FDM-COST-UNKNOWN"
+        ],
+        "route_results": [
+          {
+            "route_id": "N1-FDM-COST-UNKNOWN",
+            "disposition": "feasible",
+            "blockers": []
+          }
+        ],
+        "local_closure_disposition": "local_service_only"
+      }
     }
   ],
-  "claim_ceiling": "All inputs are synthetic. Expected outputs are provisional known-answer labels for independent review, not evidence of physical process qualification, machine safety, rights, local sourcing, cost savings or repair performance."
+  "claim_ceiling": "All inputs are synthetic. Missing cost components remain null/unknown and block economic ranking; null must never be treated as zero. Expected outputs are provisional known-answer labels for independent review, not evidence of physical process qualification, machine safety, rights, local sourcing, cost savings or repair performance."
 }
