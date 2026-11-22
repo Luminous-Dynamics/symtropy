@@ -294,7 +294,8 @@
     "design_tournament_rejects_all_rank_deficient_allocations",
     "design_tournament_rejects_observation_budget_above_recursion_bound",
     "design_tournament_rejects_nonpositive_candidate_variance",
-    "d_and_e_optimal_reference_self_check"
+    "d_and_e_optimal_reference_self_check",
+    "contract_audit_rejects_candidate_sensitivity_change"
   ],
   "limitations": [
     "two_parameters_only",
