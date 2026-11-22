@@ -90,6 +90,12 @@ pub enum QualificationStatus {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SpatialFitValidation {
+    pub fit_config_id: String,
+    pub fit_protocol_fingerprint: String,
+    pub reference_contract_id: String,
+    pub calibration_manifest_sha256: String,
+    pub fitted_length_scale_m: f64,
+    pub fitted_spatial_component_covariance_m2_s2: Matrix3,
     pub status: QualificationStatus,
     pub validation_acquisition_count: usize,
     pub validation_manifest_sha256: String,
@@ -210,6 +216,14 @@ fn is_psd(a: Matrix3) -> bool {
     let t1 = 1.0e-10 * scale;
     let t2 = 1.0e-10 * scale * scale;
     let t3 = 1.0e-10 * scale * scale * scale;
+    let symmetry_tolerance = 1.0e-10 * scale;
+    for i in 0..3 {
+        for j in (i + 1)..3 {
+            if (a[i][j] - a[j][i]).abs() > symmetry_tolerance {
+                return false;
+            }
+        }
+    }
     let minor01 = a[0][0] * a[1][1] - a[0][1] * a[0][1];
     let minor02 = a[0][0] * a[2][2] - a[0][2] * a[0][2];
     let minor12 = a[1][1] * a[2][2] - a[1][2] * a[1][2];
@@ -228,6 +242,60 @@ fn is_psd(a: Matrix3) -> bool {
 
 fn valid_sha256(value: &str) -> bool {
     value.len() == 64 && value.bytes().all(|b| b.is_ascii_hexdigit())
+}
+
+fn validate_fit_record(fit: &EmpiricalSpatialFit) -> Result<(), SpatialFitError> {
+    if fit.model_id != SUPPORTED_MODEL_ID
+        || fit.fit_config_id.trim().is_empty()
+        || fit.protocol_fingerprint.trim().is_empty()
+        || fit.reference_contract_id.trim().is_empty()
+        || fit.calibration_acquisition_count < MIN_INDEPENDENT_ACQUISITIONS
+        || fit.calibration_acquisition_ids.len() != fit.calibration_acquisition_count
+        || fit.calibration_reference_evidence_ids.len() != fit.calibration_acquisition_count
+        || !valid_sha256(&fit.calibration_manifest_sha256)
+        || !fit.length_scale_m.is_finite()
+        || fit.length_scale_m <= 0.0
+        || fit.length_scale_candidates_m.len() < 3
+        || !fit.length_scale_candidates_m.iter().all(|v| v.is_finite() && *v > 0.0)
+        || fit.length_scale_candidates_m.windows(2).any(|w| w[0] >= w[1])
+        || !fit.length_scale_candidates_m.contains(&fit.length_scale_m)
+        || !fit.maximum_validation_correlation_error.is_finite()
+        || fit.maximum_validation_correlation_error <= 0.0
+        || !fit.negative_lobe_z_threshold.is_finite()
+        || fit.negative_lobe_z_threshold < 1.96
+        || !fit.maximum_calibration_mean_bias_m_s.is_finite()
+        || fit.maximum_calibration_mean_bias_m_s < 0.0
+        || !fit.calibration_fit_relative_frobenius_error.is_finite()
+        || fit.calibration_fit_relative_frobenius_error < 0.0
+        || fit.coordinates_m.len() < 3
+        || fit.calibration_mean_bias_profile_m_s.len() != fit.coordinates_m.len()
+        || !fit.calibration_mean_bias_profile_m_s.iter().flatten().all(|v| v.is_finite())
+        || !fit.coordinates_m.iter().flatten().all(|v| v.is_finite())
+    {
+        return Err(SpatialFitError::InvalidFitConfiguration);
+    }
+    let acquisition_ids: HashSet<&str> = fit.calibration_acquisition_ids.iter().map(String::as_str).collect();
+    let reference_ids: HashSet<&str> = fit.calibration_reference_evidence_ids.iter().map(String::as_str).collect();
+    if acquisition_ids.len() != fit.calibration_acquisition_count
+        || reference_ids.len() != fit.calibration_acquisition_count
+        || fit.calibration_acquisition_ids.iter().any(|id| id.trim().is_empty())
+        || fit.calibration_reference_evidence_ids.iter().any(|id| id.trim().is_empty())
+    {
+        return Err(SpatialFitError::InvalidFitConfiguration);
+    }
+    for i in 0..fit.coordinates_m.len() {
+        for j in 0..i {
+            if distance(fit.coordinates_m[i], fit.coordinates_m[j]) <= 1.0e-12 {
+                return Err(SpatialFitError::InvalidFitConfiguration);
+            }
+        }
+    }
+    if !is_psd(fit.spatial_component_covariance_m2_s2)
+        || !is_psd(fit.local_nugget_covariance_m2_s2)
+    {
+        return Err(SpatialFitError::NonPositiveSemidefiniteMatrix);
+    }
+    Ok(())
 }
 
 fn close_coordinate(a: f64, b: f64) -> bool {
@@ -576,6 +644,7 @@ pub fn validate_spatial_error_kernel(
     if !valid_sha256(validation_manifest_sha256) {
         return Err(SpatialFitError::InvalidManifestDigest);
     }
+    validate_fit_record(fit)?;
     if !fit.maximum_validation_correlation_error.is_finite()
         || fit.maximum_validation_correlation_error <= 0.0
         || !fit.negative_lobe_z_threshold.is_finite()
@@ -717,6 +786,12 @@ pub fn validate_spatial_error_kernel(
     };
 
     Ok(SpatialFitValidation {
+        fit_config_id: fit.fit_config_id.clone(),
+        fit_protocol_fingerprint: fit.protocol_fingerprint.clone(),
+        reference_contract_id: fit.reference_contract_id.clone(),
+        calibration_manifest_sha256: fit.calibration_manifest_sha256.clone(),
+        fitted_length_scale_m: fit.length_scale_m,
+        fitted_spatial_component_covariance_m2_s2: fit.spatial_component_covariance_m2_s2,
         status,
         validation_acquisition_count: validation_fields.len(),
         validation_manifest_sha256: validation_manifest_sha256.to_ascii_lowercase(),
@@ -738,9 +813,21 @@ impl SpatialFitValidation {
         &self,
         fit: &EmpiricalSpatialFit,
     ) -> Result<SpatialErrorKernel, SpatialFitError> {
+        validate_fit_record(fit)?;
         if self.status != QualificationStatus::Qualified
             || self.negative_correlation_lobe_detected
             || self.maximum_absolute_correlation_fit_error > self.maximum_allowed_absolute_correlation_fit_error
+            || !self.maximum_absolute_correlation_fit_error.is_finite()
+            || !self.maximum_allowed_absolute_correlation_fit_error.is_finite()
+            || self.maximum_absolute_correlation_fit_error < 0.0
+            || self.maximum_allowed_absolute_correlation_fit_error <= 0.0
+            || self.receipt_id.trim().is_empty()
+            || self.fit_config_id != fit.fit_config_id
+            || self.fit_protocol_fingerprint != fit.protocol_fingerprint
+            || self.reference_contract_id != fit.reference_contract_id
+            || self.calibration_manifest_sha256 != fit.calibration_manifest_sha256
+            || self.fitted_length_scale_m != fit.length_scale_m
+            || self.fitted_spatial_component_covariance_m2_s2 != fit.spatial_component_covariance_m2_s2
         {
             return Err(SpatialFitError::ValidationNotQualified);
         }
