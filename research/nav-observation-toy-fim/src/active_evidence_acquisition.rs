@@ -80,20 +80,19 @@ pub struct ActiveEvidenceAcquisitionPlan {
     pub recommended_action_id: Option<u64>,
     pub pareto_frontier: Vec<EvidenceActionAssessment>,
     pub conditional_target_reached: bool,
-    /// Always true: a new qualified observation and posterior/mission re-audit
-    /// are required before any authority transition.
-    pub must_requalify_after_acquisition: bool,
+    /// Always true: this planner never authorizes an authority transition.
+    /// The controller must separately qualify the acquired evidence and
+    /// re-evaluate the posterior and mission contract.
+    pub authority_transition_not_authorized_by_plan: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ActiveEvidenceAcquisitionError {
     InvalidProtectionLevel,
-    InvalidResourceBudget,
     InvalidDependencyGroup,
     DuplicateActionId(u64),
     InvalidActionIdentity,
     InvalidConditionalProtectionLevel(u64),
-    ActionDoesNotReduceProtectionLevel(u64),
     NoFeasibleAction,
     ArithmeticOverflow,
 }
@@ -104,9 +103,6 @@ impl fmt::Display for ActiveEvidenceAcquisitionError {
             Self::InvalidProtectionLevel => {
                 write!(f, "current and target protection levels must be finite and nonnegative")
             }
-            Self::InvalidResourceBudget => {
-                write!(f, "at least one action resource budget must be nonzero")
-            }
             Self::InvalidDependencyGroup => {
                 write!(f, "dependency group identities must be nonzero")
             }
@@ -116,9 +112,6 @@ impl fmt::Display for ActiveEvidenceAcquisitionError {
             }
             Self::InvalidConditionalProtectionLevel(id) => {
                 write!(f, "conditional post-action protection level is invalid: {id}")
-            }
-            Self::ActionDoesNotReduceProtectionLevel(id) => {
-                write!(f, "action does not conservatively reduce protection level: {id}")
             }
             Self::NoFeasibleAction => {
                 write!(f, "no action satisfies freshness, resource and improvement constraints")
@@ -159,7 +152,7 @@ pub fn plan_active_evidence_acquisition(
             recommended_action_id: None,
             pareto_frontier: Vec::new(),
             conditional_target_reached: true,
-            must_requalify_after_acquisition: true,
+            authority_transition_not_authorized_by_plan: true,
         });
     }
 
@@ -284,7 +277,7 @@ pub fn plan_active_evidence_acquisition(
         recommended_action_id: Some(selected.action_id),
         pareto_frontier,
         conditional_target_reached: selected.reaches_target_if_acquisition_qualifies,
-        must_requalify_after_acquisition: true,
+        authority_transition_not_authorized_by_plan: true,
     })
 }
 
@@ -297,9 +290,6 @@ fn validate_policy(
         || policy.target_protection_level_upper_m < 0.0
     {
         return Err(ActiveEvidenceAcquisitionError::InvalidProtectionLevel);
-    }
-    if policy.maximum_action_latency_ns == 0 || policy.maximum_action_energy_uj == 0 {
-        return Err(ActiveEvidenceAcquisitionError::InvalidResourceBudget);
     }
     if policy
         .already_observed_dependency_groups
@@ -378,7 +368,7 @@ mod tests {
         );
         assert_eq!(result.recommended_action_id, Some(2));
         assert!(result.conditional_target_reached);
-        assert!(result.must_requalify_after_acquisition);
+        assert!(result.authority_transition_not_authorized_by_plan);
         assert_eq!(result.pareto_frontier.len(), 3);
     }
 
@@ -430,7 +420,7 @@ mod tests {
         );
         assert_eq!(result.recommended_action_id, Some(2));
         assert!(!result.conditional_target_reached);
-        assert!(result.must_requalify_after_acquisition);
+        assert!(result.authority_transition_not_authorized_by_plan);
     }
 
     #[test]
