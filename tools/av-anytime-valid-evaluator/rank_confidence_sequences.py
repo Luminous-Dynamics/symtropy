@@ -258,6 +258,46 @@ def _rank_report(
     }
 
 
+def _select_retirements(
+    report: dict[str, Any],
+    active_arms: list[str],
+    rule: str,
+    top_k_target: int | None,
+) -> list[dict[str, Any]]:
+    """Choose predictable retirements using only the just-observed rank report."""
+    if rule == "NONE":
+        return []
+    certified = {
+        (row["better"], row["worse"])
+        for row in report["certified_dominances"]
+    }
+    retirements = []
+    for arm in active_arms:
+        evidence: dict[str, Any] | None = None
+        if rule == "TOP_K_RESOLVED":
+            membership = report["top_k"][str(top_k_target)]
+            if arm in membership["certified_inside"]:
+                evidence = {"status": "CERTIFIED_INSIDE", "k": top_k_target}
+            elif arm in membership["certified_outside"]:
+                evidence = {"status": "CERTIFIED_OUTSIDE", "k": top_k_target}
+        elif rule == "RANK_SINGLETON":
+            ranks = report["rank_sets"][arm]["ranks"]
+            if len(ranks) == 1:
+                evidence = {"status": "SINGLETON_RANK", "rank": ranks[0]}
+        elif rule == "PAIRWISE_RESOLVED":
+            unresolved = [
+                other for other in report["rank_sets"]
+                if other != arm
+                and (arm, other) not in certified
+                and (other, arm) not in certified
+            ]
+            if not unresolved:
+                evidence = {"status": "ALL_PAIRWISE_COMPARISONS_RESOLVED"}
+        if evidence is not None:
+            retirements.append({"arm": arm, "rule": rule, "evidence": evidence})
+    return retirements
+
+
 def evaluate_document(document: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(document, dict):
         raise RankEvaluationError("input root must be an object")
@@ -331,23 +371,23 @@ def evaluate_document(document: dict[str, Any]) -> dict[str, Any]:
     if order_commitment != expected_commitment:
         raise RankEvaluationError("precommitted order digest mismatch")
 
+    retirement_rule = document.get("retirement_rule", "NONE")
+    if retirement_rule not in {"NONE", "TOP_K_RESOLVED", "RANK_SINGLETON", "PAIRWISE_RESOLVED"}:
+        raise RankEvaluationError("unsupported retirement_rule")
+    top_k_target = document.get("retirement_top_k")
+    if retirement_rule == "TOP_K_RESOLVED":
+        if isinstance(top_k_target, bool) or not isinstance(top_k_target, int) or not 1 <= top_k_target <= len(arms):
+            raise RankEvaluationError("TOP_K_RESOLVED requires retirement_top_k in [1, model_count]")
+    elif top_k_target is not None:
+        raise RankEvaluationError("retirement_top_k is only valid with TOP_K_RESOLVED")
+
     items = document.get("items")
-    if not isinstance(items, list) or len(items) != len(episode_order):
-        raise RankEvaluationError("items must contain one score vector for every episode")
-    for index, (item, expected_episode_id) in enumerate(zip(items, episode_order)):
-        if not isinstance(item, dict) or set(item) != {"episode_id", "scores"}:
-            raise RankEvaluationError(f"item {index}: expected only episode_id and scores")
-        if item["episode_id"] != expected_episode_id:
-            raise RankEvaluationError("score rows do not follow the precommitted episode order")
-        scores = item["scores"]
-        if not isinstance(scores, dict) or set(scores) != set(arms):
-            raise RankEvaluationError(f"item {index}: a score is required for every arm and no others")
-        for arm in arms:
-            value = scores[arm]
-            if not _finite_number(value) or not 0.0 <= value <= 1.0:
-                raise RankEvaluationError(
-                    f"item {index}, {arm}: score must be finite and in [0, 1]"
-                )
+    if not isinstance(items, list) or not items:
+        raise RankEvaluationError("items must be a non-empty evaluated prefix")
+    if len(items) > len(episode_order):
+        raise RankEvaluationError("items cannot exceed the fixed episode cohort")
+    if retirement_rule == "NONE" and len(items) != len(episode_order):
+        raise RankEvaluationError("retirement_rule=NONE requires the full episode cohort")
 
     model_count = len(arms)
     pairs = [(left, right) for left in range(model_count) for right in range(model_count) if left != right]
@@ -378,12 +418,40 @@ def evaluate_document(document: dict[str, Any]) -> dict[str, Any]:
     })).digest()
 
     looks = []
-    total_episodes = len(items)
+    total_episodes = len(episode_order)
+    expected_active_arms = list(arms)
+    invocation_counts = {arm: 0 for arm in arms}
+    retirement_log: dict[str, dict[str, Any]] = {}
+    completion_status = "INCOMPLETE_INPUT"
     for t, item in enumerate(items, start=1):
-        scores = item["scores"]
-        score_vector = [float(scores[arm]) for arm in arms]
+        if not expected_active_arms:
+            raise RankEvaluationError("no score rows may follow the all-models-retired decision")
+        if not isinstance(item, dict) or item.get("episode_id") != episode_order[t - 1]:
+            raise RankEvaluationError("score rows must follow the precommitted episode order")
+        allowed_item_keys = {"episode_id", "scores"}
+        if retirement_rule != "NONE":
+            allowed_item_keys.add("active_arms")
+        if set(item) != allowed_item_keys:
+            raise RankEvaluationError(f"item {t}: unexpected or missing item fields")
+        active_arms = item.get("active_arms", list(arms))
+        if not isinstance(active_arms, list) or active_arms != expected_active_arms:
+            raise RankEvaluationError("active_arms must exactly match the evaluator-issued prior active set")
+        if len(set(active_arms)) != len(active_arms):
+            raise RankEvaluationError("active_arms cannot contain duplicate models")
+        scores = item.get("scores")
+        if not isinstance(scores, dict) or set(scores) != set(active_arms):
+            raise RankEvaluationError("each item must score every active arm and no retired/inactive arm")
+        for arm in active_arms:
+            value = scores[arm]
+            if not _finite_number(value) or not 0.0 <= float(value) <= 1.0:
+                raise RankEvaluationError(f"item {t}, {arm}: score must be finite and in [0,1]")
+            invocation_counts[arm] += 1
+
+        active_set = set(active_arms)
         for pair_no, (left, right) in enumerate(pairs):
-            z = score_vector[left] - score_vector[right]
+            if arms[left] not in active_set or arms[right] not in active_set:
+                continue
+            z = float(scores[arms[left]]) - float(scores[arms[right]])
             remaining_including_current = total_episodes - t + 1
             offset = max(
                 -0.99,
@@ -421,13 +489,32 @@ def evaluate_document(document: dict[str, Any]) -> dict[str, Any]:
 
         canonical_row = _canonical_json({
             "episode_id": item["episode_id"],
-            "scores": {arm: float(scores[arm]) for arm in arms},
+            "active_arms": active_arms,
+            "scores": {arm: float(scores[arm]) for arm in active_arms},
         })
         transcript_chain = hashlib.sha256(transcript_chain + canonical_row).digest()
 
         report = _rank_report(
             surviving, arms, pair_index, pair_log_wealths, alpha
         )
+        retirement_decisions = _select_retirements(
+            report, active_arms, retirement_rule, top_k_target
+        )
+        retired_this_look = [row["arm"] for row in retirement_decisions]
+        for row in retirement_decisions:
+            retirement_log[row["arm"]] = {
+                "look": t,
+                "rule": row["rule"],
+                "evidence": row["evidence"],
+            }
+        next_active_arms = [
+            arm for arm in active_arms if arm not in set(retired_this_look)
+        ]
+        frozen_pairs = [
+            f"{arms[left]}>{arms[right]}"
+            for left, right in pairs
+            if arms[left] not in next_active_arms or arms[right] not in next_active_arms
+        ]
         if not report["shortcut_is_subset_of_exact"]:
             raise RankEvaluationError("shortcut certified a dominance absent from exact enumeration")
         pair_log_wealth_report = {
@@ -439,11 +526,32 @@ def evaluate_document(document: dict[str, Any]) -> dict[str, Any]:
         looks.append({
             "look": t,
             "episode_id": item["episode_id"],
-            "score_vector": {arm: float(scores[arm]) for arm in arms},
+            "active_arms": active_arms,
+            "score_vector": {arm: float(scores[arm]) for arm in active_arms},
             "pair_log_wealths": pair_log_wealth_report,
             **report,
+            "retirement_rule": retirement_rule,
+            "retirement_decisions": retirement_decisions,
+            "retired_this_look": retired_this_look,
+            "next_active_arms": next_active_arms,
+            "frozen_pairs": frozen_pairs,
+            "model_invocation_counts": dict(invocation_counts),
+            "remaining_episode_opportunities": {
+                arm: total_episodes - invocation_counts[arm] for arm in arms
+            },
             "transcript_chain_sha256": transcript_chain.hex(),
         })
+        expected_active_arms = next_active_arms
+        if not expected_active_arms:
+            completion_status = "ALL_MODELS_RETIRED"
+            if t != len(items):
+                raise RankEvaluationError("items cannot continue after all models have retired")
+            break
+    else:
+        if len(looks) == total_episodes:
+            completion_status = "COHORT_EXHAUSTED"
+        else:
+            completion_status = "INCOMPLETE_INPUT"
 
     return {
         "benchmark_id": BENCHMARK_ID,
@@ -452,10 +560,21 @@ def evaluate_document(document: dict[str, Any]) -> dict[str, Any]:
         "metric_id": metric_id,
         "arms": arms,
         "sampling_model": "finite_cohort_random_order",
+        "retirement_rule": retirement_rule,
+        "retirement_top_k": top_k_target,
         "alpha": alpha,
         "betting_fractions": lambdas,
         "episode_count": total_episodes,
         "episode_order": episode_order,
+        "episodes_processed": len(looks),
+        "unprocessed_episode_count": total_episodes - len(looks),
+        "completion_status": completion_status,
+        "active_arms": expected_active_arms,
+        "model_invocation_counts": invocation_counts,
+        "model_invocations_avoided_vs_full": {
+            arm: total_episodes - invocation_counts[arm] for arm in arms
+        },
+        "retirement_log": retirement_log,
         "seed_commitment": seed_commitment,
         "order_commitment_sha256": order_commitment,
         "score_transcript_sha256": transcript_chain.hex(),
