@@ -1,0 +1,941 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/orbital-event-capture-hil-profile-v0.1.json",
+  "title": "Orbital event-capture HIL qualification profile v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "profile_id",
+    "protocol_revision",
+    "evidence_class",
+    "claim_ceiling",
+    "test_stage",
+    "article_scope",
+    "event_definition",
+    "dut_path",
+    "reference_path",
+    "independence_review",
+    "qualification_envelope",
+    "strata",
+    "trial_plan",
+    "acceptance_criteria",
+    "physical_test_executed",
+    "approval_granted",
+    "flight_claim_granted"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-event-capture-hil-profile.v0.1"
+    },
+    "profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "protocol_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_class": {
+      "const": "proposed"
+    },
+    "claim_ceiling": {
+      "const": "campaign-profile-definition-only"
+    },
+    "test_stage": {
+      "enum": [
+        "electronic_injection",
+        "physical_stimulus",
+        "integrated_sensor_to_receipt"
+      ]
+    },
+    "article_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "campaign_id",
+        "article_id",
+        "fixture_id",
+        "coupon_id",
+        "interface_revision",
+        "environment_id",
+        "operating_mode_id"
+      ],
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "article_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fixture_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coupon_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "interface_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "environment_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operating_mode_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "event_definition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_class",
+        "measurand",
+        "measurement_unit",
+        "event_identity_policy",
+        "detection_threshold",
+        "minimum_duration_seconds",
+        "allowed_polarities"
+      ],
+      "properties": {
+        "event_class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "measurand": {
+          "type": "string",
+          "minLength": 1
+        },
+        "measurement_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "event_identity_policy": {
+          "enum": [
+            "one_physical_event_one_record",
+            "cluster_event",
+            "compound_event"
+          ]
+        },
+        "detection_threshold": {
+          "type": "number"
+        },
+        "minimum_duration_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "allowed_polarities": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "positive",
+              "negative",
+              "either"
+            ]
+          }
+        },
+        "adjudication_protocol_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "dut_path": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path_id",
+        "measurement_boundary",
+        "firmware_sha256",
+        "configuration_sha256",
+        "instrument",
+        "failure_domains",
+        "raw_artifact_policy_id",
+        "required_counters"
+      ],
+      "properties": {
+        "path_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "measurement_boundary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "firmware_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "configuration_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "instrument": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "instrument_id",
+            "serial",
+            "measurement_unit",
+            "range_min",
+            "range_max",
+            "resolution",
+            "bandwidth_hz",
+            "calibration_state",
+            "calibration_artifact_sha256",
+            "calibration_valid_until",
+            "calibration_scope_id",
+            "uncertainty_model_id",
+            "sampling_clock_id",
+            "power_domain_id",
+            "acquisition_domain_id",
+            "storage_domain_id"
+          ],
+          "properties": {
+            "instrument_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "serial": {
+              "type": "string",
+              "minLength": 1
+            },
+            "measurement_unit": {
+              "type": "string",
+              "minLength": 1
+            },
+            "range_min": {
+              "type": "number"
+            },
+            "range_max": {
+              "type": "number"
+            },
+            "resolution": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "bandwidth_hz": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "calibration_state": {
+              "enum": [
+                "not_provided",
+                "pending",
+                "valid",
+                "expired",
+                "out_of_scope",
+                "disputed"
+              ]
+            },
+            "calibration_artifact_sha256": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "calibration_valid_until": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date"
+            },
+            "calibration_scope_id": {
+              "type": "string"
+            },
+            "uncertainty_model_id": {
+              "type": "string"
+            },
+            "sampling_clock_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "power_domain_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "acquisition_domain_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "storage_domain_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "failure_domains": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "raw_artifact_policy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required_counters": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "reference_path": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path_id",
+        "measurement_boundary",
+        "firmware_sha256",
+        "configuration_sha256",
+        "instrument",
+        "failure_domains",
+        "raw_artifact_policy_id",
+        "required_counters"
+      ],
+      "properties": {
+        "path_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "measurement_boundary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "firmware_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "configuration_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "instrument": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "instrument_id",
+            "serial",
+            "measurement_unit",
+            "range_min",
+            "range_max",
+            "resolution",
+            "bandwidth_hz",
+            "calibration_state",
+            "calibration_artifact_sha256",
+            "calibration_valid_until",
+            "calibration_scope_id",
+            "uncertainty_model_id",
+            "sampling_clock_id",
+            "power_domain_id",
+            "acquisition_domain_id",
+            "storage_domain_id"
+          ],
+          "properties": {
+            "instrument_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "serial": {
+              "type": "string",
+              "minLength": 1
+            },
+            "measurement_unit": {
+              "type": "string",
+              "minLength": 1
+            },
+            "range_min": {
+              "type": "number"
+            },
+            "range_max": {
+              "type": "number"
+            },
+            "resolution": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "bandwidth_hz": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "calibration_state": {
+              "enum": [
+                "not_provided",
+                "pending",
+                "valid",
+                "expired",
+                "out_of_scope",
+                "disputed"
+              ]
+            },
+            "calibration_artifact_sha256": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "calibration_valid_until": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date"
+            },
+            "calibration_scope_id": {
+              "type": "string"
+            },
+            "uncertainty_model_id": {
+              "type": "string"
+            },
+            "sampling_clock_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "power_domain_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "acquisition_domain_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "storage_domain_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "failure_domains": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "raw_artifact_policy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required_counters": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "independence_review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "common_cause_graph_sha256",
+        "review_record_id",
+        "unresolved_shared_domains"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "unreviewed",
+            "accepted",
+            "rejected",
+            "indeterminate"
+          ]
+        },
+        "common_cause_graph_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "review_record_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "unresolved_shared_domains": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "qualification_envelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "amplitude",
+        "pulse_width",
+        "event_rate",
+        "minimum_inter_event_separation",
+        "temperature",
+        "noise_level",
+        "concurrent_channel_load"
+      ],
+      "properties": {
+        "amplitude": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "minimum",
+            "maximum",
+            "unit"
+          ],
+          "properties": {
+            "minimum": {
+              "type": "number"
+            },
+            "maximum": {
+              "type": "number"
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "pulse_width": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "minimum",
+            "maximum",
+            "unit"
+          ],
+          "properties": {
+            "minimum": {
+              "type": "number"
+            },
+            "maximum": {
+              "type": "number"
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "event_rate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "minimum",
+            "maximum",
+            "unit"
+          ],
+          "properties": {
+            "minimum": {
+              "type": "number"
+            },
+            "maximum": {
+              "type": "number"
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "minimum_inter_event_separation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "minimum",
+            "maximum",
+            "unit"
+          ],
+          "properties": {
+            "minimum": {
+              "type": "number"
+            },
+            "maximum": {
+              "type": "number"
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "temperature": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "minimum",
+            "maximum",
+            "unit"
+          ],
+          "properties": {
+            "minimum": {
+              "type": "number"
+            },
+            "maximum": {
+              "type": "number"
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "noise_level": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "minimum",
+            "maximum",
+            "unit"
+          ],
+          "properties": {
+            "minimum": {
+              "type": "number"
+            },
+            "maximum": {
+              "type": "number"
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "concurrent_channel_load": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "minimum",
+            "maximum",
+            "unit"
+          ],
+          "properties": {
+            "minimum": {
+              "type": "number"
+            },
+            "maximum": {
+              "type": "number"
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "strata": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "stratum_id",
+          "event_class",
+          "stimulus_family",
+          "amplitude",
+          "pulse_width",
+          "event_rate",
+          "temperature",
+          "noise_level",
+          "overlap_mode",
+          "planned_independent_trials",
+          "allocated_alpha",
+          "independent_sampling_unit"
+        ],
+        "properties": {
+          "stratum_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "event_class": {
+            "type": "string",
+            "minLength": 1
+          },
+          "stimulus_family": {
+            "type": "string",
+            "minLength": 1
+          },
+          "amplitude": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "minimum",
+              "maximum",
+              "unit"
+            ],
+            "properties": {
+              "minimum": {
+                "type": "number"
+              },
+              "maximum": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "pulse_width": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "minimum",
+              "maximum",
+              "unit"
+            ],
+            "properties": {
+              "minimum": {
+                "type": "number"
+              },
+              "maximum": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "event_rate": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "minimum",
+              "maximum",
+              "unit"
+            ],
+            "properties": {
+              "minimum": {
+                "type": "number"
+              },
+              "maximum": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "temperature": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "minimum",
+              "maximum",
+              "unit"
+            ],
+            "properties": {
+              "minimum": {
+                "type": "number"
+              },
+              "maximum": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "noise_level": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "minimum",
+              "maximum",
+              "unit"
+            ],
+            "properties": {
+              "minimum": {
+                "type": "number"
+              },
+              "maximum": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "overlap_mode": {
+            "enum": [
+              "isolated",
+              "coincident",
+              "overlapping",
+              "burst",
+              "not_applicable"
+            ]
+          },
+          "planned_independent_trials": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "allocated_alpha": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 0.1
+          },
+          "independent_sampling_unit": {
+            "enum": [
+              "pulse",
+              "burst",
+              "run",
+              "article"
+            ]
+          },
+          "cluster_definition_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "trial_plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "randomization_protocol_id",
+        "seed_commitment_sha256",
+        "outer_replication_count",
+        "positive_control_count",
+        "negative_control_count",
+        "blank_exposure_seconds",
+        "familywise_alpha",
+        "multiplicity_policy",
+        "exclusion_policy_id",
+        "stopping_rule_id"
+      ],
+      "properties": {
+        "randomization_protocol_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "seed_commitment_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "outer_replication_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "positive_control_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "negative_control_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "blank_exposure_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "familywise_alpha": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 0.1
+        },
+        "multiplicity_policy": {
+          "enum": [
+            "bonferroni",
+            "holm",
+            "prevalidated_max_t"
+          ]
+        },
+        "exclusion_policy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stopping_rule_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "acceptance_criteria": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "maximum_miss_probability_upper_bound",
+        "confidence_level",
+        "maximum_false_positive_rate",
+        "maximum_timestamp_error",
+        "maximum_amplitude_error",
+        "required_strata_policy_id",
+        "zero_false_acceptance_on_negative_controls"
+      ],
+      "properties": {
+        "maximum_miss_probability_upper_bound": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "confidence_level": {
+          "type": "number",
+          "exclusiveMinimum": 0.5,
+          "maximum": 0.9999
+        },
+        "maximum_false_positive_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "maximum_timestamp_error": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_amplitude_error": {
+          "type": "number",
+          "minimum": 0
+        },
+        "required_strata_policy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "zero_false_acceptance_on_negative_controls": {
+          "const": true
+        }
+      }
+    },
+    "physical_test_executed": {
+      "const": false
+    },
+    "approval_granted": {
+      "const": false
+    },
+    "flight_claim_granted": {
+      "const": false
+    }
+  }
+}
