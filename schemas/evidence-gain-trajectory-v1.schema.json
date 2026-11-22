@@ -38,7 +38,7 @@
       "additionalProperties": false,
       "required": [
         "episode_id", "turn_id", "transcript_head_sha256", "forecast_tick",
-        "deadline_tick", "budget_cost_units", "action_catalogue",
+        "deadline_tick", "cost_weight", "budget_cost_units", "action_catalogue",
         "selected_action_id", "forecasts"
       ],
       "properties": {
@@ -47,17 +47,25 @@
         "transcript_head_sha256": {"type": "string", "pattern": "^[0-9a-fA-F]{64}$"},
         "forecast_tick": {"type": "integer", "minimum": 0},
         "deadline_tick": {"type": "integer", "minimum": 0},
+        "cost_weight": {"type": "number", "minimum": 0},
         "budget_cost_units": {"type": "number", "minimum": 0},
         "action_catalogue": {
           "type": "array",
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["action_id", "cost_units", "arrival_tick"],
+            "required": [
+              "action_id", "modality", "description", "cost_units",
+              "arrival_tick", "source_dependency_group", "information_gain_proxy"
+            ],
             "properties": {
               "action_id": {"type": "string", "minLength": 1},
+              "modality": {"enum": ["audio", "video", "other"]},
+              "description": {"type": "string", "minLength": 1},
               "cost_units": {"type": "number", "minimum": 0},
-              "arrival_tick": {"type": "integer", "minimum": 0}
+              "arrival_tick": {"type": "integer", "minimum": 0},
+              "source_dependency_group": {"type": "string", "minLength": 1},
+              "information_gain_proxy": {"type": "number", "minimum": 0}
             }
           }
         },
