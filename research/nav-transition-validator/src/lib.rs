@@ -12,6 +12,7 @@ use std::fmt;
 
 pub mod schema_validation;
 pub mod dataset_admission;
+pub mod generalization_split;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ValidationIssue {
