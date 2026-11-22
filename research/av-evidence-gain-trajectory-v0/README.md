@@ -44,7 +44,7 @@ The bundle binds:
 - trajectory, episode and source-cluster identity;
 - policy, model, runtime, configuration and hardware digests;
 - the evaluator-only full source observation catalog and immutable truth;
-- ordered turns with turn ID/index, predecessor action, action result, exact new observation IDs;
+- ordered turns with turn ID/index, parent transcript head, predecessor action, action-result digest/status and exact new observation IDs;
 - per-turn #6859 workload and submission;
 - per-turn complete all-action forecast and linked #6753 scorecard receipt;
 - per-turn resource delta.
@@ -54,7 +54,8 @@ Forecasts and receipts carry both episode ID and turn ID. The forecast hash is c
 ## Failure and resource handling
 
 - DELIVERED must add at least one new observation.
-- FAILED, TIMEOUT and MALFORMED may add no observations; they remain represented as attempted action outcomes.
+- FAILED, TIMEOUT and MALFORMED may add no observations; they remain represented as attempted action outcomes with a required result digest.
+- Each non-initial turn carries the previous turn's transcript head as its parent. Initial turns have no parent head and no action-result digest.
 - Missing resource values remain null and have observed counts, not zeros.
 - NOT_MEASURED energy must have null value/method. MEASURED energy requires a meter method and evidence digest.
 - Peak RAM/VRAM remain per-turn high-water metrics and are not summed as additive consumption.
