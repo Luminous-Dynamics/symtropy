@@ -1118,7 +1118,7 @@ mod tests {
     #[test]
     fn conflicting_same_revision_delete_all_is_rejected() {
         let modules = modules(&["CONTAINER", "PALLET", "CARTON"]);
-        let mut first = batch(
+        let first = batch(
             "DELETE-ALL",
             20,
             vec![CompositionMutation::DisaggregateAll {
