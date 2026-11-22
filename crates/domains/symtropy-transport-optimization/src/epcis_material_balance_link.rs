@@ -718,6 +718,7 @@ mod tests {
         let mut group = group();
         group.effective_source_events[1].source_id = "WMS_A".to_string();
         group.effective_source_events[1].source_event_id = "urn:uuid:input".to_string();
+        group.effective_source_events[1].revision = group.effective_source_events[0].revision;
         assert_eq!(
             qualify_transformation_mass_balance_link(&group, &case(), &[receipt("EXACT_BALANCED")])
                 .reason,
