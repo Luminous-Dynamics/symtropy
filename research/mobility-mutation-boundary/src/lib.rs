@@ -170,10 +170,7 @@ impl ApplicationBoundary {
 
     /// Publish an updated authoritative snapshot. The same mutex serializes
     /// this update against the final application callback.
-    pub fn replace_live_snapshot(
-        &self,
-        next: LiveAuthoritySnapshot,
-    ) -> Result<(), Rejection> {
+    pub fn replace_live_snapshot(&self, next: LiveAuthoritySnapshot) -> Result<(), Rejection> {
         let mut state = self.state.lock().map_err(|_| Rejection::LockPoisoned)?;
         if next.binding.controller_epoch < state.live.binding.controller_epoch {
             return Err(Rejection::BindingMismatch);
@@ -253,9 +250,7 @@ impl ApplicationBoundary {
 
         let native_result = native_apply(&context);
         let disposition = match native_result {
-            NativeApplicationResult::Accepted => {
-                ReceiptDisposition::AcceptedByNativeController
-            }
+            NativeApplicationResult::Accepted => ReceiptDisposition::AcceptedByNativeController,
             NativeApplicationResult::RejectedNoEffect => ReceiptDisposition::RejectedNoEffect,
             NativeApplicationResult::UnknownAfterPossibleApplication => {
                 ReceiptDisposition::ReconciliationRequired
@@ -316,8 +311,7 @@ impl ApplicationBoundary {
                     return Err(Rejection::InvalidNextSnapshot);
                 }
             }
-            QualifiedOutcomeResolution::NoEffect
-            | QualifiedOutcomeResolution::PartialEffect => {
+            QualifiedOutcomeResolution::NoEffect | QualifiedOutcomeResolution::PartialEffect => {
                 let permit = recovery_permit.ok_or(Rejection::RecoveryPermitMissing)?;
                 if permit.permit_id.trim().is_empty()
                     || permit.failed_attempt_key != attempt_key
@@ -327,7 +321,10 @@ impl ApplicationBoundary {
                 {
                     return Err(Rejection::RecoveryPermitMismatch);
                 }
-                if state.consumed_recovery_permit_ids.contains(&permit.permit_id) {
+                if state
+                    .consumed_recovery_permit_ids
+                    .contains(&permit.permit_id)
+                {
                     return Err(Rejection::RecoveryPermitReplay);
                 }
             }
@@ -343,7 +340,6 @@ impl ApplicationBoundary {
         state.pending_action_attempt = None;
         Ok(ResolutionDisposition::ClearedForNewAuthoritySnapshot)
     }
-
 }
 
 #[cfg(test)]
@@ -399,7 +395,10 @@ mod tests {
             })
             .expect("valid ticket should apply");
         assert_eq!(calls.load(Ordering::SeqCst), 1);
-        assert_eq!(receipt.disposition, ReceiptDisposition::AcceptedByNativeController);
+        assert_eq!(
+            receipt.disposition,
+            ReceiptDisposition::AcceptedByNativeController
+        );
         assert_eq!(receipt.application_sequence, 1);
         assert_eq!(receipt.controller_epoch, 3);
         assert_eq!(receipt.binding_commitment, [7; 32]);
@@ -408,7 +407,9 @@ mod tests {
     #[test]
     fn changed_authority_binding_rejects_before_native_sink() {
         let boundary = ApplicationBoundary::new(live("attempt-1", 7, 3));
-        boundary.replace_live_snapshot(live("attempt-1", 8, 4)).unwrap();
+        boundary
+            .replace_live_snapshot(live("attempt-1", 8, 4))
+            .unwrap();
         let calls = AtomicUsize::new(0);
         let result = boundary.apply(&ticket("attempt-1"), &now(150), |_| {
             calls.fetch_add(1, Ordering::SeqCst);
@@ -490,7 +491,10 @@ mod tests {
             calls.fetch_add(1, Ordering::SeqCst);
             NativeApplicationResult::Accepted
         });
-        assert_eq!(first.disposition, ReceiptDisposition::ReconciliationRequired);
+        assert_eq!(
+            first.disposition,
+            ReceiptDisposition::ReconciliationRequired
+        );
         assert_eq!(second, Err(Rejection::Replay));
         assert_eq!(calls.load(Ordering::SeqCst), 1);
     }
@@ -499,9 +503,13 @@ mod tests {
     fn application_that_linearizes_first_keeps_pre_invalidation_receipt() {
         let boundary = ApplicationBoundary::new(live("attempt-1", 7, 3));
         let receipt = boundary
-            .apply(&ticket("attempt-1"), &now(150), |_| NativeApplicationResult::Accepted)
+            .apply(&ticket("attempt-1"), &now(150), |_| {
+                NativeApplicationResult::Accepted
+            })
             .unwrap();
-        boundary.replace_live_snapshot(live("attempt-1", 8, 4)).unwrap();
+        boundary
+            .replace_live_snapshot(live("attempt-1", 8, 4))
+            .unwrap();
         assert_eq!(receipt.binding_commitment, [7; 32]);
         assert_eq!(receipt.controller_epoch, 3);
         let calls = AtomicUsize::new(0);
@@ -516,7 +524,9 @@ mod tests {
     #[test]
     fn revocation_that_linearizes_first_rejects_queued_ticket() {
         let boundary = ApplicationBoundary::new(live("attempt-1", 7, 3));
-        boundary.replace_live_snapshot(live("attempt-1", 8, 4)).unwrap();
+        boundary
+            .replace_live_snapshot(live("attempt-1", 8, 4))
+            .unwrap();
         let calls = AtomicUsize::new(0);
         let result = boundary.apply(&ticket("attempt-1"), &now(150), |_| {
             calls.fetch_add(1, Ordering::SeqCst);
@@ -563,7 +573,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn a_ticket_id_cannot_be_reused_for_a_later_attempt() {
         let boundary = ApplicationBoundary::new(live("attempt-1", 7, 3));
@@ -575,7 +584,9 @@ mod tests {
             })
             .unwrap();
 
-        boundary.replace_live_snapshot(live("attempt-2", 8, 4)).unwrap();
+        boundary
+            .replace_live_snapshot(live("attempt-2", 8, 4))
+            .unwrap();
         let mut later_attempt = ticket("attempt-2");
         later_attempt.binding = binding(8, 4);
         let result = boundary.apply(&later_attempt, &now(151), |_| {
@@ -620,7 +631,10 @@ mod tests {
         let receipt = apply_thread.join().unwrap().unwrap();
         update_thread.join().unwrap().unwrap();
 
-        assert_eq!(receipt.disposition, ReceiptDisposition::AcceptedByNativeController);
+        assert_eq!(
+            receipt.disposition,
+            ReceiptDisposition::AcceptedByNativeController
+        );
         assert_eq!(receipt.binding_commitment, [7; 32]);
         assert_eq!(receipt.controller_epoch, 3);
 
@@ -688,12 +702,7 @@ mod tests {
             .unwrap();
 
         let held = boundary
-            .resolve_pending_action(
-                "attempt-1",
-                QualifiedOutcomeResolution::Unknown,
-                None,
-                None,
-            )
+            .resolve_pending_action("attempt-1", QualifiedOutcomeResolution::Unknown, None, None)
             .unwrap();
         assert_eq!(held, ResolutionDisposition::HoldRetained);
 
@@ -706,7 +715,10 @@ mod tests {
                 None,
             )
             .unwrap();
-        assert_eq!(cleared, ResolutionDisposition::ClearedForNewAuthoritySnapshot);
+        assert_eq!(
+            cleared,
+            ResolutionDisposition::ClearedForNewAuthoritySnapshot
+        );
 
         let mut next_ticket = ticket("attempt-2");
         next_ticket.ticket_id = "ticket-18".to_owned();
@@ -816,7 +828,7 @@ mod tests {
         let permit_one = RecoveryPermitReference {
             permit_id: "permit-reuse".to_owned(),
             failed_attempt_key: "attempt-1".to_owned(),
-            plan_digest: [9; 32],
+            plan_digest: [8; 32],
             authority_epoch: 3,
         };
         boundary
@@ -832,7 +844,9 @@ mod tests {
         second_ticket.ticket_id = "ticket-18".to_owned();
         second_ticket.binding = binding(8, 4);
         boundary
-            .apply(&second_ticket, &now(151), |_| NativeApplicationResult::RejectedNoEffect)
+            .apply(&second_ticket, &now(151), |_| {
+                NativeApplicationResult::RejectedNoEffect
+            })
             .unwrap();
 
         let reused_identity = RecoveryPermitReference {
@@ -851,13 +865,11 @@ mod tests {
             Err(Rejection::RecoveryPermitReplay)
         );
     }
-
 }
-
 
 mod history;
 pub use history::{
-    check_history, HistoryCheckResult, HistoryObservedResult, HistoryOperation,
-    HistoryOperationKind, IncompleteReason, OperationHistory, DEFAULT_SEARCH_BUDGET,
-    MAX_HISTORY_OPERATIONS,
+    DEFAULT_SEARCH_BUDGET, HistoryCheckResult, HistoryObservedResult, HistoryOperation,
+    HistoryOperationKind, IncompleteReason, MAX_HISTORY_OPERATIONS, OperationHistory,
+    check_history,
 };
