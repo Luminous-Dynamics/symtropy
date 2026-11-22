@@ -121,13 +121,15 @@ Support independent implementations of direct Monte Carlo, FORM/SORM, cross-entr
 
 Add a separate verifier that bounds the probability mass remaining outside discovered event modes / local boundary charts. ESS, repeated-seed agreement, and stable estimates are valuable diagnostics, but none proves that a narrow disconnected mode was not missed.
 
-For a Gaussian nominal model, whiten to X = mu + L Z with Z standard normal. Restrict to a finite cube [-b,b]^d and bound its complement conservatively by 2 d Phi(-b). Partition the cube into disjoint cells. An independent interval enclosure of the event function may exclude a cell only when it proves the event impossible throughout that cell. Every unresolved cell contributes its conservative Gaussian box mass to an upper bound.
+For a Gaussian nominal model, whiten to X = mu + L Z with Z standard normal. Restrict to a finite cube [-b,b]^d and bound its complement. The exact Gaussian union bound is 2 d Phi(-b); the initial executable kernel uses the looser Chernoff consequence 2 d exp(-b^2/2), with the exponential denominator bounded below by a positive truncated Taylor polynomial. Partition the cube into disjoint cells. An independent interval enclosure of the event function may exclude a cell only when it proves the event impossible throughout that cell.
+
+The first finite-cell probability upper bound is intentionally simple: because the d-dimensional standard-normal density is at most (1/2)^d, a cell C has P(Z in C) <= volume(C) (1/2)^d. This can be loose, but it provides a conservative initial mass bound without evaluating a Gaussian CDF. The standalone kernel includes upward-rounded cell-volume products, deterministic longest-axis subdivision, affine-image enclosures, a static collision-ball exclusion predicate, and a ledger that sums unresolved-cell bounds with the outside-cube tail. Overlapping cells remain permitted but only loosen the bound.
 
 The desired result is a residual upper bound U_uncovered, not a binary completeness assertion. Where a positive lower bound P_estimate_lower is available, relative coverage may be qualified only if U_uncovered <= epsilon_relative * P_estimate_lower. If P_estimate_lower is zero, only an absolute unresolved-mass claim is available; otherwise abstain.
 
 This becomes a distinct child workstream: [#6766 — RARE-EVENT-RESIDUAL-MASS-CERTIFICATE-001](https://github.com/Luminous-Dynamics/symtropy/issues/6766). Its first B0 target is a static, low-dimensional Gaussian collision event. Extending it to trajectory-space events requires validated interval enclosures over both state cells and time, not sampled trajectories misrepresented as bounds.
 
-The log-domain Gaussian tail/interval implementation in PR #6748 is useful numerical infrastructure but is not a rigorously outward-rounded probability enclosure and must not be labelled a certificate.
+The code currently uses adjacent-representable float widening and extensive adversarial tests, but those do not formally machine-verify the arithmetic implementation. The ledger is preliminary numerical residual-mass accounting, not a formal proof certificate. The log-domain Gaussian tail/interval functions are useful numerical primitives, not outward-rounded probability intervals.
 ## 4. Mathematical and assurance contracts
 
 Let p(x) be the declared nominal density and A the exact event definition. For a frozen proposal q(x) with support wherever p(x) times the event indicator is nonzero:
