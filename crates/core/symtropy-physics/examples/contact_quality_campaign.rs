@@ -42,7 +42,10 @@ fn make_world(body_count: usize, stacked: bool) -> PhysicsWorld<3> {
     let plane = RigidBody::<3>::static_body(
         BodyHandle(0),
         Point::origin(),
-        Box::new(HalfSpace::<3>::new(SVector::<f64, 3>::new(0.0, 1.0, 0.0), 0.0)),
+        Box::new(HalfSpace::<3>::new(
+            SVector::<f64, 3>::new(0.0, 1.0, 0.0),
+            0.0,
+        )),
     );
     world.add_body(plane);
 
