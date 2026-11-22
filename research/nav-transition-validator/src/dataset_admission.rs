@@ -465,15 +465,15 @@ mod tests {
         let summary =
             validate_dataset_admission(&schema(), &candidates(), "research_noncommercial")
                 .unwrap();
-        assert_eq!(summary.record_count, 6);
-        assert_eq!(summary.candidate_count, 6);
+        assert_eq!(summary.record_count, 9);
+        assert_eq!(summary.candidate_count, 9);
         assert_eq!(summary.admitted_count, 0);
         assert_eq!(summary.quarantined_count, 0);
         assert!(summary.unknown_time_count >= 3);
         assert!(summary.unknown_frame_count >= 3);
-        assert_eq!(summary.partial_ground_truth_count, 3);
-        assert_eq!(summary.clock_state_truth_not_provided_count, 1);
-        assert_eq!(summary.clock_state_truth_unknown_count, 5);
+        assert_eq!(summary.partial_ground_truth_count, 6);
+        assert_eq!(summary.clock_state_truth_not_provided_count, 2);
+        assert_eq!(summary.clock_state_truth_unknown_count, 7);
     }
 
     #[test]
@@ -496,10 +496,10 @@ mod tests {
         let summary =
             validate_dataset_admission(&schema(), &manifest, "research_noncommercial")
                 .unwrap();
-        assert_eq!(summary.record_count, 6);
-        assert_eq!(summary.candidate_count, 6);
+        assert_eq!(summary.record_count, 9);
+        assert_eq!(summary.candidate_count, 9);
         assert_eq!(summary.admitted_count, 0);
-        assert_eq!(summary.partial_ground_truth_count, 3);
+        assert_eq!(summary.partial_ground_truth_count, 6);
     }
 
     #[test]
@@ -529,9 +529,113 @@ mod tests {
             "research_noncommercial",
         )
         .unwrap();
-        assert_eq!(summary.record_count, 6);
+        assert_eq!(summary.record_count, 9);
         assert_eq!(summary.admitted_count, 0);
-        assert_eq!(summary.candidate_count, 6);
+        assert_eq!(summary.candidate_count, 9);
+    }
+
+    #[test]
+    fn hilti_candidate_is_noncommercial_research_only_and_not_admitted() {
+        let manifest = candidates();
+        let record = manifest["datasets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|item| item["dataset_id"] == "hilti-trimble-oxford-360vi-2026")
+            .unwrap();
+        assert_eq!(record["status"], "candidate_not_admitted");
+        assert_eq!(record["admission_scope"], "none");
+        assert_eq!(record["domain"], "indoor");
+        assert_eq!(record["rights"]["license_id"], "CC-BY-NC-SA-3.0");
+        assert_eq!(record["rights"]["status"], "explicit");
+        assert_eq!(record["rights"]["scope"], "dataset_payload");
+        assert_eq!(record["rights"]["research_use"], "permitted");
+        assert_eq!(record["rights"]["commercial_use"], "prohibited");
+        assert_eq!(record["rights"]["redistribution"], "permitted");
+        assert_eq!(record["snapshot"]["repository_commit"], "655df637120786621be8ffb14c4ee367abfee85a");
+        assert_eq!(record["snapshot"]["immutable"], false);
+        assert_eq!(record["snapshot"]["file_sha256"].as_array().unwrap().len(), 0);
+
+        let research = validate_dataset_admission(&schema(), &manifest, "research_noncommercial").unwrap();
+        let commercial = validate_dataset_admission(&schema(), &manifest, "commercial").unwrap();
+        assert_eq!(research.record_count, 9);
+        assert_eq!(research.candidate_count, 9);
+        assert_eq!(research.admitted_count, 0);
+        assert_eq!(commercial.candidate_count, 9);
+        assert_eq!(commercial.admitted_count, 0);
+    }
+    #[test]
+    fn hilti_noncommercial_license_blocks_commercial_payload_admission() {
+        let mut manifest = candidates();
+        manifest["manifest_status"] = json!("partially_admitted");
+        let record = manifest["datasets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .position(|item| item["dataset_id"] == "hilti-trimble-oxford-360vi-2026")
+            .unwrap();
+        manifest["datasets"][record]["status"] = json!("admitted");
+        manifest["datasets"][record]["admission_scope"] = json!("research_noncommercial");
+        manifest["datasets"][record]["snapshot"]["immutable"] = json!(true);
+        manifest["datasets"][record]["snapshot"]["release_tag"] = json!("hf-dataset-commit-pending");
+        manifest["datasets"][record]["snapshot"]["file_sha256"] = json!([hash()]);
+        manifest["datasets"][record]["metadata"]["train_group_ids"] = json!(["session-01"]);
+        manifest["datasets"][record]["metadata"]["test_group_ids"] = json!(["session-02"]);
+        manifest["datasets"][record]["metadata"]["split_sha256"] = json!(hash());
+        let errors = validate_dataset_admission(&schema(), &manifest, "commercial").unwrap_err();
+        assert!(errors.iter().any(|error| error.message.contains("does not explicitly permit requested use")));
+    }
+    #[test]
+    fn miluv_candidate_records_cc_by_rights_and_raw_radio_data_without_admitting_payload() {
+        let manifest = candidates();
+        let record = manifest["datasets"].as_array().unwrap().iter()
+            .find(|item| item["dataset_id"] == "miluv-figshare-v1").unwrap();
+        assert_eq!(record["status"], "candidate_not_admitted");
+        assert_eq!(record["admission_scope"], "none");
+        assert_eq!(record["rights"]["license_id"], "CC-BY-4.0");
+        assert_eq!(record["rights"]["scope"], "dataset_payload");
+        assert_eq!(record["rights"]["commercial_use"], "permitted");
+        assert_eq!(record["rights"]["redistribution"], "permitted");
+        assert_eq!(record["snapshot"]["release_tag"], "v1");
+        assert_eq!(record["snapshot"]["immutable"], false);
+        assert_eq!(record["snapshot"]["file_sha256"].as_array().unwrap().len(), 0);
+        assert!(record["notes"].as_str().unwrap().contains("passive-listener"));
+        assert!(record["notes"].as_str().unwrap().contains("clock-skew"));
+        let research = validate_dataset_admission(&schema(), &manifest, "research_noncommercial").unwrap();
+        let commercial = validate_dataset_admission(&schema(), &manifest, "commercial").unwrap();
+        assert_eq!(research.admitted_count, 0);
+        assert_eq!(commercial.admitted_count, 0);
+    }
+    #[test]
+    fn twr_cloud_bern_v6_remains_rights_unknown_and_not_admitted() {
+        let manifest = candidates();
+        let record = manifest["datasets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|item| item["dataset_id"] == "twr-cloud-bern-v6")
+            .unwrap();
+
+        assert_eq!(record["status"], "candidate_not_admitted");
+        assert_eq!(record["admission_scope"], "none");
+        assert_eq!(record["rights"]["status"], "unknown");
+        assert_eq!(record["rights"]["scope"], "unknown");
+        assert_eq!(record["rights"]["research_use"], "unknown");
+        assert_eq!(record["rights"]["commercial_use"], "unknown");
+        assert_eq!(record["rights"]["redistribution"], "unknown");
+        assert_eq!(record["snapshot"]["release_tag"], "Zenodo-v6-2026-10-17");
+        assert_eq!(record["snapshot"]["immutable"], false);
+        assert_eq!(record["snapshot"]["file_sha256"].as_array().unwrap().len(), 0);
+
+        let research =
+            validate_dataset_admission(&schema(), &manifest, "research_noncommercial").unwrap();
+        let commercial =
+            validate_dataset_admission(&schema(), &manifest, "commercial").unwrap();
+        assert_eq!(research.record_count, 9);
+        assert_eq!(research.admitted_count, 0);
+        assert_eq!(research.candidate_count, 9);
+        assert_eq!(commercial.admitted_count, 0);
+        assert_eq!(commercial.candidate_count, 9);
     }
 
     #[test]
@@ -541,7 +645,7 @@ mod tests {
         let summary =
             validate_dataset_admission(&schema(), &manifest, "research_noncommercial").unwrap();
         assert_eq!(summary.admitted_count, 1);
-        assert_eq!(summary.candidate_count, 5);
+        assert_eq!(summary.candidate_count, 8);
     }
 
     #[test]
@@ -631,6 +735,6 @@ mod tests {
         let summary =
             validate_dataset_admission(&schema(), &manifest, "research_noncommercial").unwrap();
         assert_eq!(summary.admitted_count, 1);
-        assert_eq!(summary.unqualified_time_count, 1);
+        assert_eq!(summary.unqualified_time_count, 3);
     }
 }
