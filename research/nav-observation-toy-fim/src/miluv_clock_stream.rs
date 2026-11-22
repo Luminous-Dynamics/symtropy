@@ -23,11 +23,29 @@ const EXPECTED_TICKS_DENOMINATOR: u128 =
 const UINT32_MODULUS: u128 = 1_u128 << 32;
 const MAX_CLOCK_RATE_TOLERANCE_PPM: u32 = 100_000;
 
+/// Semantic identity of the timestamp event selected for one clock stream.
+/// Do not mix event kinds in one stream: each event can have a different
+/// acquisition-latency distribution and a different offset within a ranging
+/// transaction.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MiluvClockEventKind {
+    InitiatorTx1,
+    InitiatorRx2,
+    InitiatorRx3,
+    ResponderRx1,
+    ResponderTx2,
+    ResponderTx3,
+}
+
 /// One radio's raw device timestamp paired with host-side acquisition time.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct MiluvClockStreamSample {
     /// Physical radio/tag identity; all samples in one stream must match.
     pub clock_id: u32,
+    /// Selected event semantic; all samples in one stream must match.
+    pub event_kind: MiluvClockEventKind,
+    /// Identity of the monotonic host clock domain used for host_time_ns.
+    pub host_time_domain_id: u32,
     /// Externally established boot/reset epoch; all samples must match.
     pub boot_epoch: u64,
     /// Strictly increasing source transaction/event sequence.
@@ -72,6 +90,8 @@ pub struct MiluvUnwrappedClockSample {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MiluvClockStreamReceipt {
     pub clock_id: u32,
+    pub event_kind: MiluvClockEventKind,
+    pub host_time_domain_id: u32,
     pub boot_epoch: u64,
     pub clock_rate_tolerance_ppm: u32,
     pub maximum_host_time_gap_ns: u64,
@@ -84,6 +104,8 @@ pub enum MiluvClockStreamError {
     InvalidConfig,
     InvalidHostTimeBounds,
     MixedClockIdentity,
+    MixedEventKind,
+    MixedHostTimeDomain,
     MixedBootEpoch,
     NonIncreasingSourceSequence,
     NonMonotonicHostTime,
@@ -107,6 +129,12 @@ impl fmt::Display for MiluvClockStreamError {
             ),
             Self::MixedClockIdentity => {
                 write!(f, "clock stream contains more than one radio identity")
+            }
+            Self::MixedEventKind => {
+                write!(f, "clock stream mixes different timestamp event semantics")
+            }
+            Self::MixedHostTimeDomain => {
+                write!(f, "clock stream mixes host timestamps from different clock domains")
             }
             Self::MixedBootEpoch => {
                 write!(f, "clock stream crosses an unknown or changed radio boot/reset epoch")
@@ -179,6 +207,14 @@ pub fn unwrap_miluv_clock_stream(
         if current.clock_id != first.clock_id || previous.clock_id != first.clock_id {
             return Err(MiluvClockStreamError::MixedClockIdentity);
         }
+        if current.event_kind != first.event_kind || previous.event_kind != first.event_kind {
+            return Err(MiluvClockStreamError::MixedEventKind);
+        }
+        if current.host_time_domain_id != first.host_time_domain_id
+            || previous.host_time_domain_id != first.host_time_domain_id
+        {
+            return Err(MiluvClockStreamError::MixedHostTimeDomain);
+        }
         if current.boot_epoch != first.boot_epoch || previous.boot_epoch != first.boot_epoch {
             return Err(MiluvClockStreamError::MixedBootEpoch);
         }
@@ -233,6 +269,8 @@ pub fn unwrap_miluv_clock_stream(
 
     Ok(MiluvClockStreamReceipt {
         clock_id: first.clock_id,
+        event_kind: first.event_kind,
+        host_time_domain_id: first.host_time_domain_id,
         boot_epoch: first.boot_epoch,
         clock_rate_tolerance_ppm: config.clock_rate_tolerance_ppm,
         maximum_host_time_gap_ns: config.maximum_host_time_gap_ns,
@@ -325,6 +363,8 @@ mod tests {
     ) -> MiluvClockStreamSample {
         MiluvClockStreamSample {
             clock_id: 10,
+            event_kind: MiluvClockEventKind::InitiatorTx1,
+            host_time_domain_id: 1,
             boot_epoch: 7,
             source_sequence,
             host_time_ns,
@@ -462,6 +502,31 @@ mod tests {
                 config(1_000),
             ),
             Err(MiluvClockStreamError::MixedClockIdentity)
+        );
+    }
+
+
+
+    #[test]
+    fn rejects_mixed_event_semantics_and_host_time_domains() {
+        let mut second = sample(2, 10_625, 0, 40_936);
+        second.event_kind = MiluvClockEventKind::InitiatorRx2;
+        assert_eq!(
+            unwrap_miluv_clock_stream(
+                &[sample(1, 10_000, 0, 1_000), second],
+                config(1_000),
+            ),
+            Err(MiluvClockStreamError::MixedEventKind)
+        );
+
+        let mut second = sample(2, 10_625, 0, 40_936);
+        second.host_time_domain_id = 2;
+        assert_eq!(
+            unwrap_miluv_clock_stream(
+                &[sample(1, 10_000, 0, 1_000), second],
+                config(1_000),
+            ),
+            Err(MiluvClockStreamError::MixedHostTimeDomain)
         );
     }
 
