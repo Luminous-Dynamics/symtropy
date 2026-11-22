@@ -168,7 +168,8 @@ def _validate_metric_manifest(axes: Any) -> list[dict[str, Any]]:
         identifiers.add(metric_id)
         if not isinstance(axis.get("unit"), str) or not axis["unit"]:
             raise ParetoEvaluationError(f"{metric_id}: raw unit is required")
-        if axis.get("source_direction") not in {"maximize", "minimize"}:
+        source_direction = axis.get("source_direction")
+        if not isinstance(source_direction, str) or source_direction not in {"maximize", "minimize"}:
             raise ParetoEvaluationError(f"{metric_id}: source_direction must be maximize/minimize")
         if axis.get("score_direction") != "higher_is_better":
             raise ParetoEvaluationError(f"{metric_id}: normalized score_direction must be higher_is_better")
@@ -183,7 +184,7 @@ def _validate_metric_manifest(axes: Any) -> list[dict[str, Any]]:
         except ValueError as exc:
             raise ParetoEvaluationError(f"{metric_id}: invalid transform digest") from exc
         provenance = axis.get("provenance")
-        if provenance not in PROVENANCE:
+        if not isinstance(provenance, str) or provenance not in PROVENANCE:
             raise ParetoEvaluationError(f"{metric_id}: invalid measurement provenance")
         if provenance == "NOT_APPLICABLE":
             raise ParetoEvaluationError(f"{metric_id}: remove not-applicable axes from the shared metric set")
@@ -207,7 +208,7 @@ def _validate_metric_manifest(axes: Any) -> list[dict[str, Any]]:
         validated.append({
             "metric_id": metric_id,
             "unit": axis["unit"],
-            "source_direction": axis["source_direction"],
+            "source_direction": source_direction,
             "score_direction": "higher_is_better",
             "transform_id": transform_id,
             "transform_digest_sha256": transform_digest,
