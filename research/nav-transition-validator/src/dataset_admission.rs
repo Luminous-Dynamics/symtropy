@@ -465,15 +465,15 @@ mod tests {
         let summary =
             validate_dataset_admission(&schema(), &candidates(), "research_noncommercial")
                 .unwrap();
-        assert_eq!(summary.record_count, 6);
-        assert_eq!(summary.candidate_count, 6);
+        assert_eq!(summary.record_count, 7);
+        assert_eq!(summary.candidate_count, 7);
         assert_eq!(summary.admitted_count, 0);
         assert_eq!(summary.quarantined_count, 0);
         assert!(summary.unknown_time_count >= 3);
         assert!(summary.unknown_frame_count >= 3);
-        assert_eq!(summary.partial_ground_truth_count, 3);
+        assert_eq!(summary.partial_ground_truth_count, 4);
         assert_eq!(summary.clock_state_truth_not_provided_count, 1);
-        assert_eq!(summary.clock_state_truth_unknown_count, 5);
+        assert_eq!(summary.clock_state_truth_unknown_count, 6);
     }
 
     #[test]
@@ -496,10 +496,10 @@ mod tests {
         let summary =
             validate_dataset_admission(&schema(), &manifest, "research_noncommercial")
                 .unwrap();
-        assert_eq!(summary.record_count, 6);
-        assert_eq!(summary.candidate_count, 6);
+        assert_eq!(summary.record_count, 7);
+        assert_eq!(summary.candidate_count, 7);
         assert_eq!(summary.admitted_count, 0);
-        assert_eq!(summary.partial_ground_truth_count, 3);
+        assert_eq!(summary.partial_ground_truth_count, 4);
     }
 
     #[test]
@@ -529,11 +529,41 @@ mod tests {
             "research_noncommercial",
         )
         .unwrap();
-        assert_eq!(summary.record_count, 6);
+        assert_eq!(summary.record_count, 7);
         assert_eq!(summary.admitted_count, 0);
-        assert_eq!(summary.candidate_count, 6);
+        assert_eq!(summary.candidate_count, 7);
     }
 
+    #[test]
+    fn hilti_candidate_is_noncommercial_research_only_and_not_admitted() {
+        let manifest = candidates();
+        let record = manifest["datasets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|item| item["dataset_id"] == "hilti-trimble-oxford-360vi-2026")
+            .unwrap();
+        assert_eq!(record["status"], "candidate_not_admitted");
+        assert_eq!(record["admission_scope"], "none");
+        assert_eq!(record["domain"], "indoor");
+        assert_eq!(record["rights"]["license_id"], "CC-BY-NC-SA-3.0");
+        assert_eq!(record["rights"]["status"], "explicit");
+        assert_eq!(record["rights"]["scope"], "dataset_payload");
+        assert_eq!(record["rights"]["research_use"], "permitted");
+        assert_eq!(record["rights"]["commercial_use"], "prohibited");
+        assert_eq!(record["rights"]["redistribution"], "permitted");
+        assert_eq!(record["snapshot"]["repository_commit"], "655df637120786621be8ffb14c4ee367abfee85a");
+        assert_eq!(record["snapshot"]["immutable"], false);
+        assert_eq!(record["snapshot"]["file_sha256"].as_array().unwrap().len(), 0);
+
+        let research = validate_dataset_admission(&schema(), &manifest, "research_noncommercial").unwrap();
+        let commercial = validate_dataset_admission(&schema(), &manifest, "commercial").unwrap();
+        assert_eq!(research.record_count, 7);
+        assert_eq!(research.candidate_count, 7);
+        assert_eq!(research.admitted_count, 0);
+        assert_eq!(commercial.candidate_count, 7);
+        assert_eq!(commercial.admitted_count, 0);
+    }
     #[test]
     fn complete_cc_by_payload_can_be_admitted_for_declared_use() {
         let mut manifest = candidates();
@@ -541,7 +571,7 @@ mod tests {
         let summary =
             validate_dataset_admission(&schema(), &manifest, "research_noncommercial").unwrap();
         assert_eq!(summary.admitted_count, 1);
-        assert_eq!(summary.candidate_count, 5);
+        assert_eq!(summary.candidate_count, 6);
     }
 
     #[test]
