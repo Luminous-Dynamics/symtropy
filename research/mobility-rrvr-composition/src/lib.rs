@@ -872,9 +872,16 @@ mod tests {
         let mut recovery = recovery_packet();
         recovery.persistence =
             mobility_restart_reconciliation::PersistenceVerdict::IndeterminateCommit;
-        recovery.effect_evidence.as_mut().expect("effect evidence").outcome =
-            mobility_restart_reconciliation::EffectOutcome::Applied;
-        recovery.mission_resolution.as_mut().expect("M1 resolution").resolution =
+        recovery
+            .effect_evidence
+            .as_mut()
+            .expect("effect evidence")
+            .outcome = mobility_restart_reconciliation::EffectOutcome::Applied;
+        recovery
+            .mission_resolution
+            .as_mut()
+            .expect("M1 resolution")
+            .resolution =
             mobility_restart_reconciliation::MissionResolution::EffectPredicateSatisfied;
         recovery.recovery_permit = None;
         recovery.next_ticket = None;
