@@ -39,13 +39,19 @@ pub struct FlexStorageResource {
     pub max_discharge_power_lower_bound_w: u32,
     pub energy_evidence: EvidenceEnvelope,
     pub power_evidence: EvidenceEnvelope,
+    pub availability_evidence: EvidenceEnvelope,
     pub interface_qualification_evidence: EvidenceEnvelope,
+    pub site_connection_evidence: EvidenceEnvelope,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ResourceReserve {
     pub resource_id: String,
+    pub mission_reserve_receipt_id: String,
+    pub inventory_buffer_receipt_id: String,
+    pub safety_outage_reserve_receipt_id: String,
+    pub uncertainty_reserve_receipt_id: String,
     pub mission_energy_reserve_wh: u64,
     pub inventory_buffer_energy_wh: u64,
     pub safety_outage_reserve_energy_wh: u64,
@@ -355,6 +361,7 @@ pub fn evaluate_mobility_flexibility(
         for (label, evidence) in [
             ("energy", &resource.energy_evidence),
             ("power", &resource.power_evidence),
+            ("availability", &resource.availability_evidence),
             ("interface", &resource.interface_qualification_evidence),
         ] {
             if !evidence_covers(
@@ -372,6 +379,24 @@ pub fn evaluate_mobility_flexibility(
             }
             push_evidence_class(evidence, &mut all_source_grade, &mut all_synthetic);
         }
+        if !evidence_covers(
+            &resource.site_connection_evidence,
+            &input.site_id,
+            &input.site_configuration_digest,
+            input.decision_time_unix_ms,
+            input.decision_time_unix_ms,
+            horizon_end,
+        ) {
+            add_error(
+                &mut errors,
+                format!("site_connection_evidence_not_admissible:{}", resource.resource_id),
+            );
+        }
+        push_evidence_class(
+            &resource.site_connection_evidence,
+            &mut all_source_grade,
+            &mut all_synthetic,
+        );
 
         if resource.resource_kind == FlexResourceKind::QualifiedBidirectionalStorage
             && resource.interface_qualification_evidence.evidence_class
@@ -501,6 +526,7 @@ pub fn evaluate_mobility_flexibility(
         }
 
         let mut reserves_by_resource = BTreeMap::new();
+        let mut reserve_receipt_ids = BTreeSet::new();
         for reserve in &scenario.resource_reserves {
             if reserve.resource_id.trim().is_empty()
                 || !resource_map.contains_key(reserve.resource_id.as_str())
@@ -514,6 +540,20 @@ pub fn evaluate_mobility_flexibility(
                 );
                 continue;
             }
+            for receipt_id in [
+                &reserve.mission_reserve_receipt_id,
+                &reserve.inventory_buffer_receipt_id,
+                &reserve.safety_outage_reserve_receipt_id,
+                &reserve.uncertainty_reserve_receipt_id,
+            ] {
+                if receipt_id.trim().is_empty() || !reserve_receipt_ids.insert(receipt_id.as_str()) {
+                    add_error(
+                        &mut errors,
+                        format!("reserve_receipt_id_empty_or_reused:{}", scenario.scenario_id),
+                    );
+                }
+            }
+
             let correct_len = usize::from(input.horizon_slots);
             if reserve.mission_power_reserve_w_by_slot.len() != correct_len
                 || reserve.inventory_buffer_power_w_by_slot.len() != correct_len
