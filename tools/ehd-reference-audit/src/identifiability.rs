@@ -939,7 +939,7 @@ pub fn nuisance_adjusted_scenario_score(
         .iter()
         .filter(|value| **value > rank_threshold)
         .count();
-    let condition_number = if singular_values[1] > 0.0 {
+    let condition_number = if numerical_rank == 2 && singular_values[1] > 0.0 {
         Some(singular_values[0] / singular_values[1])
     } else {
         None
