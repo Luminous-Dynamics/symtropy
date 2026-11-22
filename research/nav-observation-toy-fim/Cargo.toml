@@ -1,0 +1,24 @@
+[workspace]
+members = ["."]
+resolver = "3"
+
+[package]
+name = "nav-observation-toy-fim"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Isolated navigation information/integrity research kernels and reproduction harnesses."
+
+[lib]
+name = "nav_observation_toy_fim"
+path = "src/lib.rs"
+
+[[bin]]
+name = "adaptive_pl_demo"
+path = "src/bin/adaptive_pl_demo.rs"
+
+[dependencies]
+
+[[bin]]
+name = "student_t_pl_demo"
+path = "src/bin/student_t_pl_demo.rs"
