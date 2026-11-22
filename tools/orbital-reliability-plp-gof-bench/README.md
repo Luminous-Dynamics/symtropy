@@ -134,7 +134,7 @@ These fixtures demonstrate software/statistical-contract behavior; they do not e
 
 The exact-head workflow runs tests/outer_suite_null_calibration.mjs. It generates 250 stochastic complete-window histories at each true beta in {0.6, 1.0, 1.6}, with 10 events per history and 999 inner conditional replicates. Outer-history and inner-reference seeds are deterministically domain-separated.
 
-It reports family-wise rejection rates at alpha 1%, 5% and 10%, with exact two-sided 95% Clopper–Pearson intervals, plus unadjusted component rejection rates. This is a deterministic smoke study with wide intervals, not full Type-I certification. Full calibration requires preregistered outer counts, independent seed sets and event-count strata.
+It reports family-wise rejection rates at alpha 1%, 5% and 10%, with exact two-sided 95% Clopper–Pearson intervals, plus unadjusted component rejection rates. This first smoke study is a deterministic n=10 cross-beta check with wide intervals, not full Type-I certification. A second stratified smoke grid now runs true beta in {0.6, 1.0, 1.6} across event counts {5, 10, 20, 40}, with 50 independent outer histories per cell, 999 inner conditional replicates and exact two-sided 95% Clopper–Pearson intervals for family-wise and component rejection rates. It is a wider invariance check, still not full Type-I certification. Full calibration requires preregistered outer counts in the thousands/tens of thousands where needed, independent seed sets, event-count strata and alternative-specific power curves.
 
 ## Industry / standards comparison
 
