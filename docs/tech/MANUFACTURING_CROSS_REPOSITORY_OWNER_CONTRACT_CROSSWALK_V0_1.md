@@ -31,6 +31,7 @@ The layers are deliberately non-equivalent. A declared capability is not qualifi
 | Product revision, manufactured unit, component/lot links and qualification receipt | Mycelix MFG-EVID-001 #3084 | Immutable design/BOM revision, unit identity, material lots/substitutions, calibration and qualification evidence references, repair/replacement lineage | Independent test correctness merely because a receipt exists |
 | Manufacturing lifecycle and circularity provenance | Mycelix CIRC-MFG #3095 / pilot #3101 | Manufacture/install/use/service/repair/recovery/remanufacture event lineage, custody strategy and material accounting | Recovered material specification or environmental benefit without assay and accounting evidence |
 | Physical reference manufacturing cell | Mycelix MFG-003 Node 0 #4689 | Metrology/inspection, 3-axis CNC, polymer additive, electronics/harness assembly, local edge, machine/data adapters and controlled safety layer | A second node is reproducible before BOM, wiring, calibration, maintenance and acceptance package is demonstrated |
+| Appliance product requirements, functional/repair qualification and measured outcomes | Symtropy APPLIANCE-QUAL #1805 | First guarded low-voltage DC fan product, control-unit baseline, functional tests, repair and endurance evidence | Printer qualification, process routing or Node 0 authority |
 | Appliance manufacturing process and product pilot | Symtropy APPLIANCE-MICROFACTORY #6603 | First appliance process/cell, make/buy/partner decision, DC fan pilot and product manufacturing flow | General printer architecture or local service qualification for every appliance |
 | Household/neighbourhood part admission | Symtropy DISTRIBUTED-APPLIANCE-FAB #6735 | Part risk/tier admission and household/community capability requirements | A generic route compiler, machine controller or legal certification |
 | Machine-family mechanical contribution | Symtropy PRODUCTIVE-MACHINE-PLATFORM #6762 / LD-Print contribution #6787 / PR #6791 | Machine-family architecture, mechanical trade study, BOM/sourceability and local supplier discovery | Competing LD-Print canonical specification or physical qualification |
@@ -118,7 +119,19 @@ The integrated system must keep at least these states distinct:
 
 A state transition requires its own evidence. Do not infer a downstream state from an upstream one. A sensor observation is not a detector finding; a detector finding is not an executed intervention; an intervention is not a quality assessment; a process-run receipt is not an accepted manufactured unit.
 
-## 5. Benchmarks and industry comparison
+## 5. Product-driven initial workload
+
+Symtropy APPLIANCE-QUAL-001 #1805 owns the first guarded low-voltage DC fan product and its functional/repair benchmark. It calls for commercial control units, common-condition airflow/power/sound/vibration/thermal measurements, repair-task timing, and later endurance testing. APPLIANCE-MICROFACTORY #6603 owns the manufacturing process/cell. Symtropy #6791's part-demand corpus now includes a candidate fan production workholding jig derived from that explicit fixture/jig/gauge/test-adapter workstream; its geometry, rights, material, tolerance, demand and acceptance remain unknown and the candidate is not admitted.
+
+Use these as separate qualification subjects:
+- the printer/machine is qualified under Symthaea #12533 and FDM benchmark/spatial owners;
+- the manufacturing fixture has its own fit, stiffness, repeatability and assembly acceptance;
+- the fan product has its own guarded powered, airflow, electrical, acoustic, thermal, repair and endurance acceptance under #1805;
+- the production cell has its own reproducibility and safety evidence under Mycelix #4689.
+
+A successful fixture print does not qualify the fixture's measurement or assembly performance; a successful fixture does not qualify the fan; a qualified fan does not prove a manufacturing node is reproducible.
+
+## 6. Benchmarks and industry comparison
 
 Compose, do not duplicate:
 - Symthaea FDM #7960/#7961/#7998 for dimensional/spatial print capability.
