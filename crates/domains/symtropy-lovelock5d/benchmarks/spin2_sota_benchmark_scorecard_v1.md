@@ -218,3 +218,24 @@ with the complementary maximum-singular-vector directions rotating oppositely. N
 The exact Green--Lagrange endpoint amplitudes now have a second, implementation-independent numerical check. A separate mpmath tanh-sinh quadrature (without SymPy, the action-row fixture, or the symbolic verifier) reproduces \(C_H=67-6\pi^2\) and \(C_B=19-2\pi^2\) at requested precisions 40/60/80 digits. The largest reported discrepancies are below \(1.5\times10^{-46}\) and \(4.8\times10^{-47}\), respectively.
 
 This validates the integral evaluation numerically, not the action variation, not the finite-coupling BVP, and not an existence theorem. It is a second oracle to catch integration/endpoint algebra mistakes before proceeding to finite-positive-coupling corrections.
+
+
+## 12. Updated fair comparison with Akribeia and analytic reconstruction (22 November 2026)
+
+### Akribeia reference envelope
+
+Akribeia's 5D EGB matched demonstration uses \(r_H=1\), \(\Omega_H=0.33\), and \(\alpha\in[0,3]\) in steps of 0.01, with a random-initialized PINN discovery phase and pseudo-spectral Gauss--Newton refinement. It also reproduces 5D EGB data at \((\alpha,\Omega_H)=(2,0.68)\). The separate Myers--Perry control reports relative \(L^2\) profile error \(10^{-85}\) at 300-digit precision. The paper's \(O(10^{-80})\) refined total residual at \(N=500\) belongs to its **7D cubic Lovelock** example, not the 5D EGB family. A distinct 5D/7D table reports MP-control errors versus \(\Omega_H\) and initialization; do not conflate these with the EGB field-equation residual.
+
+**Symtropy matched acceptance target:** reproduce the same 5D parameter slice, report continuation/branch identity, per-original-row and held-out residuals, independent thermodynamics, sensitivities, failed random starts and total cost. Then seek additional evidence Akribeia does not claim in the same metric: interval-validated existence/local uniqueness and a formulation-specific hyperbolicity classification.
+
+### Ma--Lü direct first-coupling overlap
+
+Ma--Lü's published 5D \(Riemann^2\) correction about MP, through tenth order in two spin parameters at linear coupling, is the next independent check for the Symtropy \(O(\lambda a^2)\) tangent. The likely coupling relation \(\alpha_R=\alpha_{GB}/4\) and equal-spin conversion \(\chi=\Omega_H r_H\) are *candidate mappings only*; derive the linearized equation identity and gauge/charge map before scoring this as a match. See issue #6915.
+
+### Li--Hu--Yunes analytic Kerr reconstruction
+
+Their no-mode-decomposition \(\Psi_0\) agrees with a separate mode-sum result below \(1.4\times10^{-22}\) at a sampled grid of five polar angles and 200 radii for \(a/M=0.9999\), with \(\ell_{\max}=100\); available horizon thermodynamic predictions are also matched exactly. That is a strong sampled cross-check but not a full-domain bound or runtime comparison. Symtropy's reproduction benchmark must distinguish pointwise sample discrepancy, full reconstructed linearized-EOM residual, observable agreement and certified enclosure.
+
+### No aggregate “best residual” score
+
+Use a vector scorecard: discovery hit rate; branch coverage; matched-parameter coverage; original-row residual by row; held-out residual; spectral-tail estimate; profile and observable errors; constraint/Noether defects; condition and hyperbolicity margins; validated existence status; and wall-time/memory. Report the arithmetic and resolution for every entry. A value of \(10^{-85}\) in one category does not dominate a \(10^{-22}\) result in another category.
