@@ -9,6 +9,7 @@
 //! Neither module processes raw images or establishes experimental truth.
 
 pub mod conformal;
+pub mod conformal_3d;
 pub mod functional;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
