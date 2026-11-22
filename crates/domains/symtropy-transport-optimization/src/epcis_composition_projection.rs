@@ -18,9 +18,7 @@ use crate::cargo_composition::{
     EventClassification, MembershipAction, ModuleCountBasis, ModuleIdentity, SourceEventKey,
     evaluate_composition,
 };
-use crate::epcis_aggregation::{
-    AggregationEffect, NormalizedAggregationEvent, QuantityElement,
-};
+use crate::epcis_aggregation::{AggregationEffect, NormalizedAggregationEvent, QuantityElement};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ProjectionTimeQualification {
@@ -35,13 +33,9 @@ pub enum ProjectionTimeQualification {
         latest_event_time_ticks: i64,
     },
     /// P0 only: dimensionless fixture ticks, never physical clock chronology.
-    SyntheticP0 {
-        fixture_profile_id: String,
-    },
+    SyntheticP0 { fixture_profile_id: String },
     /// Missing / rejected / incomparable chronology; event is quarantined.
-    Unqualified {
-        reason: String,
-    },
+    Unqualified { reason: String },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -229,9 +223,7 @@ enum ChronologyDomain {
         time_basis_id: String,
         tick_quantum_id: String,
     },
-    SyntheticP0 {
-        fixture_profile_id: String,
-    },
+    SyntheticP0 { fixture_profile_id: String },
 }
 
 fn canonical_event_time_evidence_id(source: &ProjectionSourceRef) -> String {
@@ -315,9 +307,7 @@ fn chronology_domain(
     }
 }
 
-fn event_time_interval(
-    envelope: &AggregationProjectionEnvelope,
-) -> Option<(i64, i64)> {
+fn event_time_interval(envelope: &AggregationProjectionEnvelope) -> Option<(i64, i64)> {
     match &envelope.time_qualification {
         ProjectionTimeQualification::Qualified {
             earliest_event_time_ticks,
@@ -379,11 +369,10 @@ fn verify_strict_module_timeline(
             continue;
         };
         for module_id in modules_touched_by_event(&envelope.event) {
-            by_module.entry(module_id).or_default().push((
-                earliest,
-                latest,
-                source_ref(envelope),
-            ));
+            by_module
+                .entry(module_id)
+                .or_default()
+                .push((earliest, latest, source_ref(envelope)));
         }
     }
 
@@ -550,8 +539,10 @@ pub fn project_aggregation_events(
         }
     }
 
-    let mut effective: Vec<(&AggregationProjectionEnvelope, Vec<&AggregationProjectionEnvelope>)> =
-        Vec::new();
+    let mut effective: Vec<(
+        &AggregationProjectionEnvelope,
+        Vec<&AggregationProjectionEnvelope>,
+    )> = Vec::new();
     for (source_key, revisions) in by_source {
         let latest_revision = revisions
             .iter()
@@ -612,10 +603,8 @@ pub fn project_aggregation_events(
     }
     report.chronology_domain = common_domain.as_ref().map(domain_label);
 
-    let timeline_events: Vec<&AggregationProjectionEnvelope> = effective
-        .iter()
-        .map(|(envelope, _)| *envelope)
-        .collect();
+    let timeline_events: Vec<&AggregationProjectionEnvelope> =
+        effective.iter().map(|(envelope, _)| *envelope).collect();
     verify_strict_module_timeline(&timeline_events)?;
 
     for (envelope, revisions) in effective {
@@ -652,7 +641,9 @@ pub fn project_aggregation_events(
                         ),
                     )
                 };
-                report.quarantined.push(QuarantinedAggregationEvent { source, reason });
+                report
+                    .quarantined
+                    .push(QuarantinedAggregationEvent { source, reason });
             }
             continue;
         }
@@ -712,12 +703,14 @@ pub fn project_aggregation_events(
                     ));
                 }
                 for quantity in child_quantity_list {
-                    report.class_quantity_assertions.push(ProjectedQuantityAssertion {
-                        source: source.clone(),
-                        parent_id: Some(parent_id.clone()),
-                        action: QuantityAssertionAction::Add,
-                        quantity: quantity.clone(),
-                    });
+                    report
+                        .class_quantity_assertions
+                        .push(ProjectedQuantityAssertion {
+                            source: source.clone(),
+                            parent_id: Some(parent_id.clone()),
+                            action: QuantityAssertionAction::Add,
+                            quantity: quantity.clone(),
+                        });
                 }
             }
             AggregationEffect::Observe {
@@ -737,12 +730,14 @@ pub fn project_aggregation_events(
                     source_payload_sha256: envelope.source_payload_sha256.clone(),
                 });
                 for quantity in observed_child_quantities {
-                    report.class_quantity_assertions.push(ProjectedQuantityAssertion {
-                        source: source.clone(),
-                        parent_id: parent_id.clone(),
-                        action: QuantityAssertionAction::Observe,
-                        quantity: quantity.clone(),
-                    });
+                    report
+                        .class_quantity_assertions
+                        .push(ProjectedQuantityAssertion {
+                            source: source.clone(),
+                            parent_id: parent_id.clone(),
+                            action: QuantityAssertionAction::Observe,
+                            quantity: quantity.clone(),
+                        });
                 }
             }
             AggregationEffect::Delete {
@@ -760,24 +755,28 @@ pub fn project_aggregation_events(
                     ));
                 }
                 for quantity in child_quantity_list {
-                    report.class_quantity_assertions.push(ProjectedQuantityAssertion {
-                        source: source.clone(),
-                        parent_id: Some(parent_id.clone()),
-                        action: QuantityAssertionAction::Delete,
-                        quantity: quantity.clone(),
-                    });
+                    report
+                        .class_quantity_assertions
+                        .push(ProjectedQuantityAssertion {
+                            source: source.clone(),
+                            parent_id: Some(parent_id.clone()),
+                            action: QuantityAssertionAction::Delete,
+                            quantity: quantity.clone(),
+                        });
                 }
             }
             AggregationEffect::DeleteAll { parent_id } => {
-                report.parent_scoped_disaggregations.push(ParentScopedDisaggregation {
-                    source: source.clone(),
-                    parent_id: parent_id.clone(),
-                    event_time_ticks: envelope.event_time_ticks,
-                    published_at: envelope.published_at,
-                    classification: envelope.classification,
-                    source_payload_sha256: envelope.source_payload_sha256.clone(),
-                    time_qualification: envelope.time_qualification.clone(),
-                });
+                report
+                    .parent_scoped_disaggregations
+                    .push(ParentScopedDisaggregation {
+                        source: source.clone(),
+                        parent_id: parent_id.clone(),
+                        event_time_ticks: envelope.event_time_ticks,
+                        published_at: envelope.published_at,
+                        classification: envelope.classification,
+                        source_payload_sha256: envelope.source_payload_sha256.clone(),
+                        time_qualification: envelope.time_qualification.clone(),
+                    });
             }
         }
     }
@@ -795,24 +794,28 @@ pub fn project_aggregation_events(
             .cmp(&right.event.source_key)
             .then_with(|| left.event.revision.cmp(&right.event.revision))
     });
-    report.observations.sort_by(|left, right| left.source.cmp(&right.source));
+    report
+        .observations
+        .sort_by(|left, right| left.source.cmp(&right.source));
     report
         .class_quantity_assertions
         .sort_by(|left, right| left.source.cmp(&right.source));
     report
         .parent_scoped_disaggregations
         .sort_by(|left, right| left.source.cmp(&right.source));
-    report.quarantined.sort_by(|left, right| left.source.cmp(&right.source));
+    report
+        .quarantined
+        .sort_by(|left, right| left.source.cmp(&right.source));
     Ok(report)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::CargoModuleFamily;
     use crate::epcis_aggregation::{
         AggregationAction, EpcisAggregationEvent, normalize_aggregation_event,
     };
-    use crate::CargoModuleFamily;
 
     fn quantity(class_id: &str, value: Option<&str>, uom: Option<&str>) -> QuantityElement {
         QuantityElement {
@@ -917,7 +920,10 @@ mod tests {
         assert!(report.membership_events.is_empty());
         assert_eq!(report.observations.len(), 1);
         assert_eq!(report.observations[0].parent_id, None);
-        assert_eq!(report.class_quantity_assertions[0].action, QuantityAssertionAction::Observe);
+        assert_eq!(
+            report.class_quantity_assertions[0].action,
+            QuantityAssertionAction::Observe
+        );
         assert!(report.is_complete_for_instance_projection());
     }
 
@@ -937,7 +943,10 @@ mod tests {
             report.membership_events[0].event.action,
             MembershipAction::Delete
         );
-        assert_eq!(report.membership_events[0].event.child_module_id, "pallet-1");
+        assert_eq!(
+            report.membership_events[0].event.child_module_id,
+            "pallet-1"
+        );
     }
 
     #[test]
@@ -994,7 +1003,10 @@ mod tests {
             vec![quantity("class-carton", None, None)],
         );
         let report = project_aggregation_events(&[input], 200).unwrap();
-        assert_eq!(report.class_quantity_assertions[0].quantity.quantity_lexeme, None);
+        assert_eq!(
+            report.class_quantity_assertions[0].quantity.quantity_lexeme,
+            None
+        );
     }
 
     #[test]
@@ -1013,11 +1025,17 @@ mod tests {
         let report = project_aggregation_events(&[input], 200).unwrap();
         assert_eq!(report.class_quantity_assertions.len(), 2);
         assert_eq!(
-            report.class_quantity_assertions[0].quantity.quantity_lexeme.as_deref(),
+            report.class_quantity_assertions[0]
+                .quantity
+                .quantity_lexeme
+                .as_deref(),
             Some("2")
         );
         assert_eq!(
-            report.class_quantity_assertions[1].quantity.quantity_lexeme.as_deref(),
+            report.class_quantity_assertions[1]
+                .quantity
+                .quantity_lexeme
+                .as_deref(),
             Some("3")
         );
     }
@@ -1139,10 +1157,7 @@ mod tests {
         let report = project_aggregation_events(&[first, future], 200).unwrap();
         assert_eq!(report.future_event_rows, 1);
         assert_eq!(report.superseded_event_rows, 0);
-        assert_eq!(
-            report.membership_events[0].provenance.child_epc,
-            "pallet-1"
-        );
+        assert_eq!(report.membership_events[0].provenance.child_epc, "pallet-1");
     }
 
     #[test]
@@ -1374,8 +1389,14 @@ mod tests {
                 .as_deref(),
             Some("2026-11-22T08:00:04Z")
         );
-        assert_eq!(report.source_envelopes[0].source_payload_sha256, "a".repeat(64));
-        assert_eq!(report.source_envelopes[0].adapter_build_sha256, "b".repeat(64));
+        assert_eq!(
+            report.source_envelopes[0].source_payload_sha256,
+            "a".repeat(64)
+        );
+        assert_eq!(
+            report.source_envelopes[0].adapter_build_sha256,
+            "b".repeat(64)
+        );
     }
 
     #[test]
