@@ -891,6 +891,44 @@ impl StateSnapshot {
                 }
             }
         }
+
+        // Parent references define a directed forest. Referential validity
+        // alone is insufficient: a two- or multi-entity cycle cannot describe
+        // a rooted transform hierarchy and can make frame resolution recurse
+        // indefinitely in downstream adapters.
+        let parent_by_id = self
+            .entities
+            .iter()
+            .filter_map(|entity| {
+                entity
+                    .parent_entity_id
+                    .as_deref()
+                    .map(|parent| (entity.entity_id.as_str(), parent))
+            })
+            .collect::<BTreeMap<_, _>>();
+        let mut completed = BTreeSet::new();
+        for (index, entity) in self.entities.iter().enumerate() {
+            let mut chain = Vec::new();
+            let mut active = BTreeSet::new();
+            let mut current = entity.entity_id.as_str();
+            loop {
+                if completed.contains(current) {
+                    break;
+                }
+                if !active.insert(current) {
+                    return Err(ValidationError::new(
+                        format!("entities[{index}].parent_entity_id"),
+                        "parent entity hierarchy must be acyclic",
+                    ));
+                }
+                chain.push(current);
+                match parent_by_id.get(current) {
+                    Some(parent) => current = parent,
+                    None => break,
+                }
+            }
+            completed.extend(chain);
+        }
         Ok(())
     }
 }
@@ -1608,6 +1646,29 @@ mod tests {
             impulse_ns: None,
         };
         assert!(snapshot.validate().is_err());
+    }
+
+    #[test]
+    fn parent_entity_hierarchy_rejects_cycles() {
+        let mut snapshot = valid_snapshot(0, 0);
+        let mut second = valid_entity("body-2");
+        snapshot.entities[0].parent_entity_id = Some("body-2".to_owned());
+        second.parent_entity_id = Some("body-1".to_owned());
+        snapshot.entities.push(second);
+
+        assert!(snapshot.validate().is_err());
+    }
+
+    #[test]
+    fn parent_entity_hierarchy_accepts_acyclic_chains() {
+        let mut snapshot = valid_snapshot(0, 0);
+        let mut second = valid_entity("body-2");
+        let mut third = valid_entity("body-3");
+        second.parent_entity_id = Some("body-1".to_owned());
+        third.parent_entity_id = Some("body-2".to_owned());
+        snapshot.entities.extend([second, third]);
+
+        assert!(snapshot.validate().is_ok());
     }
 
     #[test]
