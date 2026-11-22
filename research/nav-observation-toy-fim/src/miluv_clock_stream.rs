@@ -438,12 +438,12 @@ mod tests {
 
     #[test]
     fn accepts_equal_host_timestamps_only_when_uncertainty_supports_unique_advance() {
-        // A 2 ns host interval with 2 ns per-endpoint uncertainty permits a
-        // 300-tick delta, but not an unbounded number of counter wraps.
+        // Equal host timestamps with 3 ns per-endpoint uncertainty permit
+        // the 300-tick delta, but not an additional uint32 wrap.
         let receipt = unwrap_miluv_clock_stream(
             &[
-                sample(1, 10_000, 2, 1_000),
-                sample(2, 10_000, 2, 1_300),
+                sample(1, 10_000, 3, 1_000),
+                sample(2, 10_000, 3, 1_300),
             ],
             config(10),
         )
