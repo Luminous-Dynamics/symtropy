@@ -1,0 +1,256 @@
+{
+  "schema": "luminous.orbital-conjunction.cara-source-manifest.v0.1",
+  "upstream": {
+    "repository": "https://github.com/nasa/CARA_Analysis_Tools",
+    "commit": "43f0160f94d76a91805d86521c3e8fa0d09ecd68",
+    "tree": "67cf62653228b6bebf2d17b34a57bf8249287697",
+    "commit_date": "2026-11-05T19:05:10Z",
+    "commit_message": "November 2026 Code and Data Update",
+    "pinned_as_of": "2026-11-22"
+  },
+  "identity_note": "git_blob_sha1 values are upstream Git object identifiers, not SHA-256 digests of downloaded file bytes.",
+  "acquisition_policy": {
+    "copy_assets_into_this_repository": false,
+    "redistribute_assets": false,
+    "download_large_files_for_this_manifest": false,
+    "rights_review_required_before_use": true,
+    "reason": "The upstream README names multiple NASA Open Source Software Agreements. A file-to-agreement mapping and any third-party/data restrictions have not yet been established. This manifest records references and identities only."
+  },
+  "candidate_assets": [
+    {
+      "path": "README.md",
+      "role": "repository_readme",
+      "git_blob_sha1": "e3950f987838cdcd37c7a096d0c5c2bb864b94be",
+      "size_bytes": 3719,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/README.md",
+      "rights_status": "review_required",
+      "redistribution_allowed": false
+    },
+    {
+      "path": "DataFiles/PcTestCaseCDMs/README.md",
+      "role": "corpus_protocol",
+      "git_blob_sha1": "48100620df6f14b6c92729639bff768ead4d4972",
+      "size_bytes": 5951,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/DataFiles/PcTestCaseCDMs/README.md",
+      "rights_status": "review_required",
+      "redistribution_allowed": false
+    },
+    {
+      "path": "DataFiles/PcTestCaseCDMs/CARA_PcMethod_Test_Conjunctions.xlsx",
+      "role": "reference_outputs",
+      "git_blob_sha1": "92948df60106768a3e2b75d070cc257a0f59d2be",
+      "size_bytes": 28345,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/DataFiles/PcTestCaseCDMs/CARA_PcMethod_Test_Conjunctions.xlsx",
+      "rights_status": "review_required",
+      "redistribution_allowed": false
+    },
+    {
+      "path": "DataFiles/PcTestCaseCDMs/PcMultiStep_FromCDM.m",
+      "role": "CDM_entry_point",
+      "git_blob_sha1": "ebe23a5ea1b1ad2e4ee33d4d6cc498dd0ecc9677",
+      "size_bytes": 9183,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/DataFiles/PcTestCaseCDMs/PcMultiStep_FromCDM.m",
+      "rights_status": "review_required",
+      "redistribution_allowed": false
+    },
+    {
+      "path": "DataFiles/PcTestCaseCDMs/ComparePcMultiStep_to_CARAValues.m",
+      "role": "reference_comparison_driver",
+      "git_blob_sha1": "4e0903c2324b049314ebc20c704320e6de7ebc34",
+      "size_bytes": 13613,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/DataFiles/PcTestCaseCDMs/ComparePcMultiStep_to_CARAValues.m",
+      "rights_status": "review_required",
+      "redistribution_allowed": false
+    },
+    {
+      "path": "DataFiles/SampleCDMs/AlfanoTestCase01.cdm",
+      "role": "Alfano_sample_case",
+      "git_blob_sha1": "11fe6aafee146f4de9ce592dd82009862a707a72",
+      "size_bytes": 10077,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/DataFiles/SampleCDMs/AlfanoTestCase01.cdm",
+      "rights_status": "review_required",
+      "redistribution_allowed": false
+    },
+    {
+      "path": "DataFiles/SampleCDMs/FrisbeeMaxPcTestCase_Test01.cdm",
+      "role": "Frisbee_max_Pc_sample",
+      "git_blob_sha1": "49015379c404226c46af62bdc43c4f9b2fa8f536",
+      "size_bytes": 10135,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/DataFiles/SampleCDMs/FrisbeeMaxPcTestCase_Test01.cdm",
+      "rights_status": "review_required",
+      "redistribution_allowed": false
+    },
+    {
+      "path": "DataFiles/SampleCDMs/OmitronTestCase_Test01_HighPc.cdm",
+      "role": "Omitron_high_Pc_sample",
+      "git_blob_sha1": "46e9cb7afc33fb1f242954faea81590206717453",
+      "size_bytes": 10135,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/DataFiles/SampleCDMs/OmitronTestCase_Test01_HighPc.cdm",
+      "rights_status": "review_required",
+      "redistribution_allowed": false
+    },
+    {
+      "path": "DataFiles/SampleCDMs/OmitronTestCase_Test06_MinRelVel.cdm",
+      "role": "Omitron_min_relative_velocity_sample",
+      "git_blob_sha1": "ad9ac15a8c2b833ee3b7fa867c5c2581c20cb1e3",
+      "size_bytes": 10140,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/DataFiles/SampleCDMs/OmitronTestCase_Test06_MinRelVel.cdm",
+      "rights_status": "review_required",
+      "redistribution_allowed": false
+    },
+    {
+      "path": "DataFiles/SampleCDMs/OmitronTestCase_Test07_NonPDCovariance.cdm",
+      "role": "Omitron_non_positive_definite_covariance_sample",
+      "git_blob_sha1": "abacf32a9688d5071f1e4955241db33fa0de5908",
+      "size_bytes": 10096,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/DataFiles/SampleCDMs/OmitronTestCase_Test07_NonPDCovariance.cdm",
+      "rights_status": "review_required",
+      "redistribution_allowed": false
+    },
+    {
+      "path": "DataFiles/SampleCDMs/OmitronTestCase_Test08_3DNc.cdm",
+      "role": "Omitron_3D_Nc_sample",
+      "git_blob_sha1": "9beba2b32565542ac78d3e4dedc1bf16a5deb168",
+      "size_bytes": 10031,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/DataFiles/SampleCDMs/OmitronTestCase_Test08_3DNc.cdm",
+      "rights_status": "review_required",
+      "redistribution_allowed": false
+    },
+    {
+      "path": "DistributedMatlab/ProbabilityOfCollision/PcCircle.m",
+      "role": "CARA_2D_Pc",
+      "git_blob_sha1": "1d8be8ff5cdbe985f6971766786d36e741f074ac",
+      "size_bytes": 29793,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/DistributedMatlab/ProbabilityOfCollision/PcCircle.m",
+      "rights_status": "review_required",
+      "redistribution_allowed": false
+    },
+    {
+      "path": "DistributedMatlab/ProbabilityOfCollision/Pc2D_Hall.m",
+      "role": "CARA_2D_Nc",
+      "git_blob_sha1": "4e8539ecd0713695a7266fec350771c008d86045",
+      "size_bytes": 55106,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/DistributedMatlab/ProbabilityOfCollision/Pc2D_Hall.m",
+      "rights_status": "review_required",
+      "redistribution_allowed": false
+    },
+    {
+      "path": "DistributedMatlab/ProbabilityOfCollision/Pc3D_Hall.m",
+      "role": "CARA_3D_Nc",
+      "git_blob_sha1": "6bf7d84bc7506f3a440b59368d1de58c7fe99d6a",
+      "size_bytes": 77972,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/DistributedMatlab/ProbabilityOfCollision/Pc3D_Hall.m",
+      "rights_status": "review_required",
+      "redistribution_allowed": false
+    },
+    {
+      "path": "DistributedMatlab/ProbabilityOfCollision/Pc_SDMC.m",
+      "role": "CARA_SDMC_Pc",
+      "git_blob_sha1": "637234b93b414158056f041d50e9daba5f55c8e7",
+      "size_bytes": 27586,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/DistributedMatlab/ProbabilityOfCollision/Pc_SDMC.m",
+      "rights_status": "review_required",
+      "redistribution_allowed": false
+    },
+    {
+      "path": "DistributedMatlab/MonteCarloPc/Pc_MC_Kep2body_parallel.m",
+      "role": "Keplerian_two_body_Monte_Carlo",
+      "git_blob_sha1": "fc81e65a37004c0c19f0f5375edb7ed01831b4b7",
+      "size_bytes": 26194,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/DistributedMatlab/MonteCarloPc/Pc_MC_Kep2body_parallel.m",
+      "rights_status": "review_required",
+      "redistribution_allowed": false
+    },
+    {
+      "path": "DistributedMatlab/EphemerisPc/README.md",
+      "role": "EphemerisPc_method_documentation",
+      "git_blob_sha1": "a41380367594fcb5c03d28e793c173b9a527e110",
+      "size_bytes": 2804,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/DistributedMatlab/EphemerisPc/README.md",
+      "rights_status": "review_required",
+      "redistribution_allowed": false
+    },
+    {
+      "path": "DistributedMatlab/EphemerisPc/EphemerisPc.m",
+      "role": "full_window_ephemeris_Nc_and_Pc_bounds",
+      "git_blob_sha1": "dbe810bd249660f9c9624873f8144ed6e02a2c96",
+      "size_bytes": 71125,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/DistributedMatlab/EphemerisPc/EphemerisPc.m",
+      "rights_status": "review_required",
+      "redistribution_allowed": false
+    },
+    {
+      "path": "DistributedMatlab/EphemerisPc/Example/HighRelVelLEO/Inputs/Primary_202208220000_to_202208222359_26740pts.oem",
+      "role": "high_relative_velocity_LEO_primary_OEM",
+      "git_blob_sha1": "8084f55689290e9888de216a5e7f606dda9c1aa3",
+      "size_bytes": 2102369,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/DistributedMatlab/EphemerisPc/Example/HighRelVelLEO/Inputs/Primary_202208220000_to_202208222359_26740pts.oem",
+      "rights_status": "review_required",
+      "redistribution_allowed": false
+    },
+    {
+      "path": "DistributedMatlab/EphemerisPc/Example/HighRelVelLEO/Inputs/Secondary_202208220000_to_202208222359_26740pts.oem",
+      "role": "high_relative_velocity_LEO_secondary_OEM",
+      "git_blob_sha1": "081d439c80164d3d7f18e9e5029349fe19880885",
+      "size_bytes": 2102371,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/DistributedMatlab/EphemerisPc/Example/HighRelVelLEO/Inputs/Secondary_202208220000_to_202208222359_26740pts.oem",
+      "rights_status": "review_required",
+      "redistribution_allowed": false
+    },
+    {
+      "path": "DistributedMatlab/CovarianceRealism/DetermineOptimalScaleFactor.m",
+      "role": "covariance_realism_scale_factor",
+      "git_blob_sha1": "b5fe990a833aadf5da4077dbcc4934154b8cb3e0",
+      "size_bytes": 9105,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/DistributedMatlab/CovarianceRealism/DetermineOptimalScaleFactor.m",
+      "rights_status": "review_required",
+      "redistribution_allowed": false
+    },
+    {
+      "path": "DistributedMatlab/CovarianceRealism/EvaluateResiduals.m",
+      "role": "covariance_realism_residual_evaluation",
+      "git_blob_sha1": "7f884c7ae3e5f1f7561bd7d0f170e7e686b97158",
+      "size_bytes": 13984,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/DistributedMatlab/CovarianceRealism/EvaluateResiduals.m",
+      "rights_status": "review_required",
+      "redistribution_allowed": false
+    }
+  ],
+  "license_documents": [
+    {
+      "path": "NOSA_GSC-18593-1.pdf",
+      "git_blob_sha1": "85aa9e218c2ba984cbc7874d822a3fd5d4ea222b",
+      "size_bytes": 96475,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/NOSA_GSC-18593-1.pdf",
+      "status": "not_yet_reviewed"
+    },
+    {
+      "path": "NOSA_GSC-18848-1.pdf",
+      "git_blob_sha1": "114da94da51a51ea7bf5fd54770b4e24d0c74ee6",
+      "size_bytes": 73923,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/NOSA_GSC-18848-1.pdf",
+      "status": "not_yet_reviewed"
+    },
+    {
+      "path": "NOSA_GSC-19027-1.pdf",
+      "git_blob_sha1": "708878c540412d2a5a0879b93dc89969d88d134b",
+      "size_bytes": 77037,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/NOSA_GSC-19027-1.pdf",
+      "status": "not_yet_reviewed"
+    },
+    {
+      "path": "NOSA_GSC-19374-1.pdf",
+      "git_blob_sha1": "cd05d51f459b2c256343add4eaf2bb014f3e3abe",
+      "size_bytes": 88347,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/NOSA_GSC-19374-1.pdf",
+      "status": "not_yet_reviewed"
+    }
+  ],
+  "admission_gates": [
+    "Map each candidate implementation, test case, comparison workbook, and ephemeris file to the applicable NASA Open Source Software Agreement.",
+    "Check whether sample CDMs / OEM ephemerides contain mission or third-party restrictions independent of the source-code license.",
+    "Record whether use is permitted for local test execution, derived numeric comparison, redistribution, and publication; these are separate permissions.",
+    "If a file cannot be redistributed, download only in a controlled test workflow and publish derived metrics plus source path and digest where allowed.",
+    "Do not promote any corpus case to a frozen benchmark until the exact file bytes are retrieved, SHA-256 is computed locally, parser conventions are documented, and event semantics are checked."
+  ]
+}
