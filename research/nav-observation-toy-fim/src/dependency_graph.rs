@@ -503,7 +503,7 @@ mod tests{
     }
     #[test]fn state_dependent_acquisition_failure_is_informative_only_when_declared(){
         let m=model();let mut a=actions()[0].clone();
-        for i in 0..m.joint_state_count(){let mask=i%m.cause_pattern_count();a.acquisition_success[i]=if mask&2!=0{0.1}else{0.9};}
+        for i in 0..m.joint_state_count(){let mask=i%m.cause_pattern_count();a.acquisition_success[i]=if mask&2!=0{0.05}else{0.9};}
         let branches=enumerate_domain_branches(&a,&m,&m.prior).unwrap();
         let failed=branches.iter().find(|b|b.branch_id=="no_observation").unwrap();
         assert!(m.p_failure_domain(&failed.posterior,"power").unwrap()>0.5);
