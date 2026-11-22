@@ -126,7 +126,6 @@ impl TimeEvidence {
     }
 }
 
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ClockSyncState {
     Locked,
@@ -436,7 +435,6 @@ mod tests {
         .unwrap()
     }
 
-
     fn clock_profile(
         sync_state: ClockSyncState,
         offset: Option<u64>,
@@ -462,14 +460,8 @@ mod tests {
 
     #[test]
     fn proof_grade_time_evidence_retains_clock_provenance() {
-        let profile = clock_profile(
-            ClockSyncState::Locked,
-            Some(2),
-            Some(1),
-            Some(2),
-            Some(1),
-        )
-        .unwrap();
+        let profile =
+            clock_profile(ClockSyncState::Locked, Some(2), Some(1), Some(2), Some(1)).unwrap();
         let evidence = profile.qualify_event("handoff", 100).unwrap();
 
         assert_eq!(profile.maximum_total_error_ticks(), 6);
@@ -504,14 +496,8 @@ mod tests {
 
     #[test]
     fn event_outside_clock_profile_validity_window_is_rejected() {
-        let profile = clock_profile(
-            ClockSyncState::Holdover,
-            Some(1),
-            Some(1),
-            Some(0),
-            Some(0),
-        )
-        .unwrap();
+        let profile =
+            clock_profile(ClockSyncState::Holdover, Some(1), Some(1), Some(0), Some(0)).unwrap();
         assert_eq!(
             profile.qualify_event("late_event", 1_001),
             Err(ClockBoundError::CalibrationOutsideValidityWindow)
@@ -520,14 +506,8 @@ mod tests {
 
     #[test]
     fn derived_interval_must_fit_inside_clock_calibration_window() {
-        let profile = clock_profile(
-            ClockSyncState::Locked,
-            Some(5),
-            Some(0),
-            Some(0),
-            Some(0),
-        )
-        .unwrap();
+        let profile =
+            clock_profile(ClockSyncState::Locked, Some(5), Some(0), Some(0), Some(0)).unwrap();
         assert_eq!(
             profile.qualify_event("near_window_start", 2),
             Err(ClockBoundError::CalibrationOutsideValidityWindow)
