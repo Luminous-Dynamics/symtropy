@@ -70,7 +70,7 @@ Every declared loss scenario is required to have evidence status `admissible` an
 - Inadmissible and indeterminate actions are excluded before per-scenario best-action baselines, both regret calculations and either Pareto frontier.
 - If no action is admissible, the result is `NO_ADMISSIBLE_ACTION`; there is no fallback.
 
-The scenario digest binds the supplied scenario records. It does not prove the real consequence law belongs to the declared scenario family. Loss-model calibration and coverage need independent evidence, distinct from #6887's time-uniform physical-world survival guarantee.
+The observed-scenario digest binds the supplied scenario records; the separate planned-ID digest catches inventory mismatch. Neither digest authenticates its issuer or proves that the real consequence law belongs to the declared scenario family. An upstream attestation must bind the planned inventory to an independently reviewed loss-model plan. Loss-model calibration and coverage need independent evidence, distinct from #6887's time-uniform physical-world survival guarantee.
 
 ## 4. Frozen challenge cases
 
@@ -83,7 +83,7 @@ The v0.1 corpus contains seven cases:
 5. **Inadmissible low-loss action.** A zero-loss action is upstream-inadmissible and cannot influence any best-action baseline or frontier.
 6. **All actions excluded.** No metric or fallback action is fabricated.\n7. **Multi-world strata.** Two physical worlds each contain multiple loss-model scenarios; the evaluator must take the per-world rectangular envelope and then the outer worst-world maximum, independent of input order.
 
-Rust tests and the independent JavaScript `BigInt` oracle also exercise canonical manifest digests, complete vector coverage, and invariance to case, action, world and scenario order.
+Rust tests and the independent JavaScript `BigInt` oracle also exercise canonical manifest digests, planned-versus-observed scenario inventory equality, complete vector coverage, and invariance to case, action, world and scenario order.
 
 ## 5. Current research and industry comparators
 
