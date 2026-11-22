@@ -195,10 +195,18 @@ function selectProbe(item, compatibleWorlds) {
     };
   }
   const best = ranked[0];
+  if (best.worst_case_decision_class_count > 1) {
+    return {
+      status:"no_resolving_admissible_probe",
+      selected_probe_id:null,
+      selected_worst_case_decision_class_count:null,
+      admissible_probe_count:ranked.length,
+      excluded_probe_ids:excluded,
+      ranked_admissible_probes:ranked
+    };
+  }
   return {
-    status:best.worst_case_decision_class_count === 1
-      ? "selected_resolving_probe"
-      : "selected_best_available_non_resolving_probe",
+    status:"selected_resolving_probe",
     selected_probe_id:best.probe_id,
     selected_worst_case_decision_class_count:best.worst_case_decision_class_count,
     admissible_probe_count:ranked.length,
@@ -292,7 +300,8 @@ try {
     model_incompatible_cases:0,
     evidence_indeterminate_cases:0,
     resolving_probe_selected_cases:0,
-    no_admissible_probe_cases:0
+    no_admissible_probe_cases:0,
+    no_resolving_admissible_probe_cases:0
   };
   for (const item of cases) {
     switch (item.disposition) {
@@ -305,6 +314,7 @@ try {
     }
     if (item.probe_selection.status === "selected_resolving_probe") summary.resolving_probe_selected_cases++;
     if (item.probe_selection.status === "no_admissible_probe") summary.no_admissible_probe_cases++;
+    if (item.probe_selection.status === "no_resolving_admissible_probe") summary.no_resolving_admissible_probe_cases++;
   }
   const output = {
     result:"pass",
