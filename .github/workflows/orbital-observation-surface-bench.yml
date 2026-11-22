@@ -47,7 +47,7 @@ jobs:
           mkdir -p artifacts
           cargo run --locked --manifest-path tools/orbital-observation-surface-bench/Cargo.toml -- \
             tools/orbital-observation-surface-bench/fixtures/v0.1/observation-surface-cases.json \
-            --source-commit "${GITHUB_SHA}" \\
+            --source-commit "${GITHUB_SHA}" \
             --observations-output artifacts/observations-v0.1.json > artifacts/observation-surface-receipt-v0.1.json
       - name: Run independent JavaScript oracle
         run: |
