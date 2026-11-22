@@ -98,6 +98,14 @@ pub struct CandidateDispatchSlot {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
+pub struct CandidateResourceDispatchSlot {
+    pub resource_id: String,
+    pub slot: u8,
+    pub requested_discharge_power_w: u32,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct MobilityFlexibilityInput {
     pub schema_version: String,
     pub benchmark_id: String,
@@ -114,6 +122,7 @@ pub struct MobilityFlexibilityInput {
     pub reserve_scenarios: Vec<ReserveScenario>,
     pub pcc_slots: Vec<PccSlot>,
     pub candidate_dispatch: Vec<CandidateDispatchSlot>,
+    pub resource_dispatch: Vec<CandidateResourceDispatchSlot>,
     pub export_permission: Option<crate::battery_service_network::BooleanEvidence>,
     pub claim_ceiling: String,
 }
@@ -130,11 +139,30 @@ pub struct SlotPowerMargin {
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct ResourceEnergyMargin {
+    pub resource_id: String,
+    pub residual_energy_budget_wh: u64,
+    pub candidate_energy_wh: u64,
+    pub energy_margin_wh: i64,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct ResourceSlotPowerMargin {
+    pub resource_id: String,
+    pub slot: u8,
+    pub residual_power_ceiling_w: u32,
+    pub requested_discharge_power_w: u32,
+    pub power_margin_w: i64,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct ScenarioEvaluation {
     pub scenario_id: String,
     pub residual_energy_budget_wh: u64,
     pub candidate_energy_wh: u64,
     pub energy_margin_wh: i64,
+    pub resource_energy_margins: Vec<ResourceEnergyMargin>,
+    pub resource_slot_power_margins: Vec<ResourceSlotPowerMargin>,
     pub residual_power_by_slot_w: Vec<u32>,
     pub reserve_feasible: bool,
     pub energy_feasible: bool,
@@ -256,13 +284,13 @@ fn reserve_power_w(reserve: &ResourceReserve, slot: usize) -> Option<u32> {
 }
 
 fn candidate_energy_wh(
-    profile: &[CandidateDispatchSlot],
+    profile: &[CandidateResourceDispatchSlot],
     slot_duration_seconds: u32,
 ) -> Option<u64> {
     profile.iter().try_fold(0_u64, |total, item| {
         let watt_seconds = u64::from(item.requested_discharge_power_w)
             .checked_mul(u64::from(slot_duration_seconds))?;
-        // Round each interval upward so fractional Wh never understate use.
+        // Round every resource/interval upward so aggregation cannot hide use.
         let interval_wh = watt_seconds.checked_add(3_599)? / 3_600;
         total.checked_add(interval_wh)
     })
