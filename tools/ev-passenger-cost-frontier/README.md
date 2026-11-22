@@ -105,4 +105,21 @@ Point estimates are not accepted as capability bounds: the energy/power inputs a
 
 The machine-readable input contract is `schemas/battery_service_network_v0_1.schema.json`; the frozen known-answer is `fixtures/battery_service_network_v0_1.json`. The focused workflow runs Rust formatting, tests, CLI evaluation and JSON assertions, and retains a report/hash artifact.
 
+## PACK-STATE-TRANSACTION-001 — evidence-bound pack event journal
+
+This v0.1 event-sourced reducer is tracked in [#6700](https://github.com/Luminous-Dynamics/symtropy/issues/6700).
+
+Run:
+
+```bash
+cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin battery_pack_journal_screen -- \
+  tools/ev-passenger-cost-frontier/fixtures/battery_pack_state_journal_v0_1.json
+```
+
+The reducer validates a frozen initial pack state plus a monotonic event sequence. A confirmed event applies only an allowed state transition. A timeout or unknown outcome preserves the last confirmed state and sets `reconciliation_required`; no subsequent normal event is accepted until a reconciliation event carrying measured or independent-test evidence confirms the observed state. Event IDs and idempotency keys are unique, sequences contiguous, timestamps monotonic and no later than the replay cut-off, and evidence must bind exact serial/configuration and its event time.
+
+The synthetic fixture demonstrates: available → reserved (confirmed), an install operation times out (state remains reserved and locked), then independent-test reconciliation observes installed and clears the lock. This is not proof that an actual swap occurred. It models how to preserve the uncertainty and block a speculative retry.
+
+Schema: `schemas/battery_pack_state_journal_v0_1.schema.json`; fixture: `fixtures/battery_pack_state_journal_v0_1.json`; CLI: `src/bin/battery_pack_journal_screen.rs`.
+
 **Deliberate scope limit:** this is a static exact assignment and evidence gate, not a multi-period charging/rack queue optimizer, mobile battery-service routing model, degradation model, thermal battery model or aircraft dispatch authorizer. Those are the next layers in #6674. Synthetic fixture passes validate accounting/algorithm semantics only and do not establish real battery capability, flight safety or operational release.
