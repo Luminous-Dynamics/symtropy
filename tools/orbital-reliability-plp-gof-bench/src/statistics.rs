@@ -38,9 +38,7 @@ pub fn from_sorted_log_transforms(log_values: &[f64]) -> Result<TestStatisticVal
     let mut previous = f64::NEG_INFINITY;
     for value in log_values {
         if !value.is_finite() || *value >= 0.0 || *value < previous {
-            return Err(
-                "log transforms must be finite, strictly negative and ordered".to_owned(),
-            );
+            return Err("log transforms must be finite, strictly negative and ordered".to_owned());
         }
         previous = *value;
         values.push(value.exp());
