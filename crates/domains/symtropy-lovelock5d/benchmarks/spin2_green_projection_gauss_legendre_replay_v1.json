@@ -1,20 +1,27 @@
 {
   "schema_version": 1,
   "artifact_kind": "spin2_green_projection_composite_gauss_legendre_replay",
-  "status": "local_source_executed_before_publication",
+  "status": "exact_public_source_blob_replayed_locally",
   "source": {
     "path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_spin2_green_projection_gauss_legendre.py",
     "local_sha256": "da8b61ef679a2c33bdcbedc13aa0044c6d32ec6d1fe62fe0b5177cdaa274c234",
     "local_git_blob_sha1": "7e454db8297d14c1f86d196b3e4a1ef2648e6ae7",
     "bytes": 5941,
-    "execution": "Python runpy.run_path executed the exact local source file before publication"
+    "execution": "Python runpy.run_path executed the exact local source file before publication",
+    "public_git_blob_sha1": "7e454db8297d14c1f86d196b3e4a1ef2648e6ae7",
+    "exact_public_blob_match": true,
+    "public_content_matches_local_bytes": true
   },
   "environment": {
     "python": "3.13.5",
     "mpmath": "1.3.0"
   },
   "command": "python3 verify_spin2_green_projection_gauss_legendre.py --dps 40 60 80 --panels 4 --order 24",
-  "precision_runs": [40, 60, 80],
+  "precision_runs": [
+    40,
+    60,
+    80
+  ],
   "maximum_reported_C_H_absolute_discrepancy": "1.86168917811e-35",
   "maximum_reported_C_B_absolute_discrepancy": "6.20563442019e-36",
   "independence": {
@@ -23,5 +30,11 @@
     "imports_tanh_sinh_oracle": false,
     "quadrature_family": "composite Gauss-Legendre with analytic logarithmic singularity subtraction"
   },
-  "claim_ceiling": "A distinct numerical quadrature check of the Green projection only. Errors are numerical discrepancies against closed forms, not rigorous interval bounds."
+  "claim_ceiling": "A distinct numerical quadrature check of the Green projection only. Errors are numerical discrepancies against closed forms, not rigorous interval bounds.",
+  "result_fixture_git_blob_sha1": "d0e1bf7ff6cf866d8a834996701da1c82a342f67",
+  "local_execution": {
+    "exact_local_file_run": true,
+    "public_blob_retrieved_and_compared": true,
+    "execution_host": "Python 3.13.5, mpmath 1.3.0"
+  }
 }
