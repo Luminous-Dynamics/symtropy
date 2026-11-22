@@ -1,0 +1,206 @@
+{
+  "schema": "luminous.ehd_low_density_piv_tracer_envelope",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-PIV-TRACER-002",
+  "as_of": "2026-11-22",
+  "status": "source_transcribed_low_density_air_measurement_method_contract_no_raw_vector_reproduction",
+  "claim_ceiling": "A source-pinned low-density air PIV tracer/image-resolution envelope. It does not validate a complete EHD thruster, produce physical tracer corrections, or establish suitability for Mars CO2 or true vacuum.",
+  "source": {
+    "source_id": "NOELLE_2025_LOW_DENSITY_IWT_PIV_TRACERS",
+    "doi": "10.2514/6.2025-0473",
+    "title": "Particle Image Velocimetry for Ion Wind Thruster Measurement in Low Density Atmosphere",
+    "publication_date": "2025-01-06",
+    "source_pdf": "https://fis.tu-dresden.de/portal/files/61106621/SciTech2025_PIV_Tracer_Study_IWT_submitted_250dpi.pdf"
+  },
+  "cohort": {
+    "gas": "air",
+    "pressure_atm": [
+      1,
+      0.9,
+      0.8,
+      0.7,
+      0.6,
+      0.5,
+      0.45,
+      0.4,
+      0.35,
+      0.3
+    ],
+    "inlet_velocity_m_s": [
+      2.5,
+      5
+    ],
+    "thruster_voltage_kv": 8,
+    "voltage_role": "low-thrust tracer/corona interaction test; chosen to minimize ion-wind interference with imposed inlet flow",
+    "electrode_system": "two 120 um gold-covered tungsten wires and NACA0010 aluminum-function collector",
+    "emitter_to_collector_mm": 40,
+    "collector_chord_mm": 25,
+    "active_span_mm": 100
+  },
+  "diagnostic_contract": {
+    "piv_interrogation_windows_px": [
+      16,
+      32,
+      64,
+      128
+    ],
+    "pulse_separation_us": 108,
+    "tracer_evaluation_replicates_per_condition": 3,
+    "analysis_selection": "best image selected; source table is a feasibility screen, not replicated uncertainty distribution",
+    "parenthetical_table_values": "edge-case extraction; quantitative values may exist but full flow field not available",
+    "tracer_axes": [
+      "optical_particle_image_density_and_correlation",
+      "particle_following_and_dynamic_response",
+      "electric_field_interaction_and_discharge_non_perturbation",
+      "pressure_dependent_seeding_availability",
+      "electrode_residue_and_persistent_state_change",
+      "collector_reflection_and_surface_scattering",
+      "flow_field_coverage_and_boundary_layer_resolution"
+    ]
+  },
+  "source_table": {
+    "resolution_metric": "reported PIV interrogation area size in pixels; smaller is higher spatial resolution",
+    "pressure_tracer_rows": [
+      {
+        "pressure_atm": 1,
+        "dehs": "(64)-128",
+        "fog": "32",
+        "incense_sticks": "(32)-64",
+        "incense_cones": "(32)-64",
+        "sio2": "(32)-64"
+      },
+      {
+        "pressure_atm": 0.9,
+        "dehs": "128",
+        "fog": "32",
+        "incense_sticks": "(32)-64",
+        "incense_cones": "(32)-64",
+        "sio2": "64"
+      },
+      {
+        "pressure_atm": 0.8,
+        "dehs": "128",
+        "fog": "(64)-128",
+        "incense_sticks": "(32)-64",
+        "incense_cones": "64",
+        "sio2": "64"
+      },
+      {
+        "pressure_atm": 0.7,
+        "dehs": "128",
+        "fog": "(128)",
+        "incense_sticks": "64",
+        "incense_cones": "64",
+        "sio2": "64"
+      },
+      {
+        "pressure_atm": 0.6,
+        "dehs": "(128)",
+        "fog": "-",
+        "incense_sticks": "(64)-128",
+        "incense_cones": "64",
+        "sio2": "64"
+      },
+      {
+        "pressure_atm": 0.5,
+        "dehs": "(128)",
+        "fog": "-",
+        "incense_sticks": "(64)-128",
+        "incense_cones": "(64)-128",
+        "sio2": "64"
+      },
+      {
+        "pressure_atm": 0.45,
+        "dehs": "-",
+        "fog": "-",
+        "incense_sticks": "(64)-128",
+        "incense_cones": "128",
+        "sio2": "no data"
+      },
+      {
+        "pressure_atm": 0.4,
+        "dehs": "-",
+        "fog": "-",
+        "incense_sticks": "(64)-128",
+        "incense_cones": "(128)",
+        "sio2": "(64)-128"
+      },
+      {
+        "pressure_atm": 0.35,
+        "dehs": "-",
+        "fog": "-",
+        "incense_sticks": "(64)-128",
+        "incense_cones": "(128)",
+        "sio2": "128"
+      },
+      {
+        "pressure_atm": 0.3,
+        "dehs": "-",
+        "fog": "-",
+        "incense_sticks": "(64)-128",
+        "incense_cones": "(128)",
+        "sio2": "128"
+      }
+    ]
+  },
+  "independent_controls": {
+    "corona_on_off_test": {
+      "voltage_kv": 8,
+      "inlet_velocity_m_s": [
+        2.5,
+        5
+      ],
+      "result": "large flow maps near emitter appeared nearly identical with corona off/on; slight downstream change and local emitter wake in some cases",
+      "inference_limit": "not a high-thrust or full operating-envelope passivity test"
+    },
+    "collector_surface_materials": [
+      {
+        "material": "shiny aluminum tape",
+        "optical_result": "diffuse scattering and overexposure near boundary layer"
+      },
+      {
+        "material": "aluminum tape with black paint",
+        "optical_result": "increased scattering",
+        "electrical_result": "no change observed at 8 kV; higher voltage remains unqualified"
+      },
+      {
+        "material": "black aluminum tape",
+        "optical_result": "best near-wall image clarity among tested options",
+        "electrical_boundary": "maintains aluminum function without added paint coating"
+      }
+    ]
+  },
+  "separate_qualification_axes": {
+    "optical_adequacy": "measured image quality and correlation; retain vector masks and interrogation-window metadata",
+    "dynamic_fidelity": "independent velocity reference and declared tracer Stokes/response evidence",
+    "electrical_passivity": "independent baseline versus corona/tracer intervention; simultaneous current/voltage where possible",
+    "pressure_availability": "source-supported pressure range only; missing/failed tracer density remains unavailable, not zero",
+    "spatial_resolution": "declare region-specific resolution target; 32x32 px was reported insufficient for boundary-layer resolution in this study",
+    "persistence": "post-removal electrode inspection/current recovery receipt where tracer contamination/deposition may persist"
+  },
+  "prospective_benchmark_targets": {
+    "no_random_vector_holdout": "hold out complete pressure/tracer/material/surface combinations",
+    "no_cross_regime_transfer": "do not transfer low-density air results into CO2 or true vacuum without new evidence",
+    "no_passivity_from_image_quality": "good PIV correlation alone is not a passivity result",
+    "no_boundary_layer_claim": "do not report boundary-layer resolution from a window size already shown insufficient for the declared boundary-layer scale",
+    "physical_observer_effect": "apply EHD-DPM-001 active and post-removal receipt where diagnostic intervention may alter the state",
+    "status": "targets_not_results"
+  },
+  "test_families": [
+    "source_table_has_ten_pressure_points",
+    "fog_unavailability_below_reported_pressure_is_retained",
+    "incense_and_sio2_low_pressure_limits_remain_separate",
+    "corona_on_off_control_is_not_promoted_to_high_thrust_validation",
+    "collector_surface_optical_and_electrical_limits_remain_distinct",
+    "low_density_air_is_not_mars_co2_or_true_vacuum_validation"
+  ],
+  "limitations": [
+    "source_table_is_interrogation_area_feasibility_not_velocity_accuracy",
+    "three_images_per_condition_best_image_selection",
+    "no_raw_piv_images_or_vector_fields_imported",
+    "no_full_unseeded_velocity_field",
+    "no_boundary_layer_resolution_demonstrated",
+    "no_quantitative_tracer_induced_thrust_or_current_correction",
+    "no_mars_co2_or_true_vacuum_validation"
+  ]
+}
