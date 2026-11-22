@@ -166,7 +166,11 @@ fn validate_registration(registration: &Registration) -> Result<(), String> {
         || !registration.registration_uncertainty_m.is_finite()
         || registration.registration_uncertainty_m < 0.0
         || !finite_pair(registration.translation_m)
-        || registration.rotation.iter().flatten().any(|value| !value.is_finite())
+        || registration
+            .rotation
+            .iter()
+            .flatten()
+            .any(|value| !value.is_finite())
     {
         return Err("REGISTRATION_EVIDENCE_INVALID".to_owned());
     }
@@ -244,16 +248,25 @@ pub fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
     let mut duplicate_measurements = false;
     for measurement in &case.measurements {
         if !feature_ids.contains(&measurement.feature_id) {
-            return Err(format!("UNDECLARED_MEASUREMENT_FEATURE:{}", measurement.feature_id));
+            return Err(format!(
+                "UNDECLARED_MEASUREMENT_FEATURE:{}",
+                measurement.feature_id
+            ));
         }
-        if measurement_map.insert(measurement.feature_id.clone(), measurement).is_some() {
+        if measurement_map
+            .insert(measurement.feature_id.clone(), measurement)
+            .is_some()
+        {
             duplicate_measurements = true;
         }
         if !finite_pair(measurement.observed_position_source_m)
             || !measurement.measurement_uncertainty_m.is_finite()
             || measurement.measurement_uncertainty_m < 0.0
         {
-            return Err(format!("MEASUREMENT_CONTRACT_INVALID:{}", measurement.feature_id));
+            return Err(format!(
+                "MEASUREMENT_CONTRACT_INVALID:{}",
+                measurement.feature_id
+            ));
         }
     }
 
@@ -293,7 +306,11 @@ pub fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
             case_id: case.case_id.clone(),
             disposition,
             reason_codes: global_reasons,
-            features: case.required_features.iter().map(unresolved_feature).collect(),
+            features: case
+                .required_features
+                .iter()
+                .map(unresolved_feature)
+                .collect(),
             authority_granted: false,
         });
     }
@@ -306,13 +323,19 @@ pub fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
     for requirement in &case.required_features {
         let Some(measurement) = measurement_map.get(&requirement.feature_id) else {
             has_unresolved = true;
-            reason_codes.push(format!("REQUIRED_FEATURE_NOT_MEASURED:{}", requirement.feature_id));
+            reason_codes.push(format!(
+                "REQUIRED_FEATURE_NOT_MEASURED:{}",
+                requirement.feature_id
+            ));
             results.push(unresolved_feature(requirement));
             continue;
         };
         if !measurement.observed {
             has_unresolved = true;
-            reason_codes.push(format!("REQUIRED_FEATURE_UNOBSERVED:{}", requirement.feature_id));
+            reason_codes.push(format!(
+                "REQUIRED_FEATURE_UNOBSERVED:{}",
+                requirement.feature_id
+            ));
             results.push(unresolved_feature(requirement));
             continue;
         }
@@ -321,10 +344,8 @@ pub fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
         // independence or cancellation is assumed in this v0.1 contract.
         let uncertainty =
             measurement.measurement_uncertainty_m + case.registration.registration_uncertainty_m;
-        let design_position = apply_registration(
-            &case.registration,
-            measurement.observed_position_source_m,
-        );
+        let design_position =
+            apply_registration(&case.registration, measurement.observed_position_source_m);
         let residual = distance(design_position, requirement.nominal_position_m);
         let lower = (residual - uncertainty).max(0.0);
         let upper = residual + uncertainty;
@@ -333,11 +354,17 @@ pub fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
             FeatureDisposition::WithinTolerance
         } else if lower > requirement.tolerance_m {
             has_reject = true;
-            reason_codes.push(format!("FEATURE_OUTSIDE_TOLERANCE:{}", requirement.feature_id));
+            reason_codes.push(format!(
+                "FEATURE_OUTSIDE_TOLERANCE:{}",
+                requirement.feature_id
+            ));
             FeatureDisposition::OutsideTolerance
         } else {
             has_unresolved = true;
-            reason_codes.push(format!("FEATURE_GUARD_BAND_OVERLAP:{}", requirement.feature_id));
+            reason_codes.push(format!(
+                "FEATURE_GUARD_BAND_OVERLAP:{}",
+                requirement.feature_id
+            ));
             FeatureDisposition::Unresolved
         };
 
@@ -372,7 +399,9 @@ pub fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
 
 pub fn audit_corpus(raw: &[u8], source_commit: &str) -> Result<Receipt, String> {
     if source_commit.len() != 40
-        || !source_commit.bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+        || !source_commit
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
     {
         return Err("SOURCE_COMMIT_MUST_BE_40_LOWERCASE_HEX".to_owned());
     }
@@ -399,7 +428,10 @@ pub fn audit_corpus(raw: &[u8], source_commit: &str) -> Result<Receipt, String> 
     let oracle_matches = results
         .iter()
         .zip(
-            corpus.cases.iter().map(|case| (&case.case_id, case.expected_disposition)),
+            corpus
+                .cases
+                .iter()
+                .map(|case| (&case.case_id, case.expected_disposition)),
         )
         .filter(|(result, (case_id, expected))| {
             result.case_id == **case_id && result.disposition == *expected
@@ -429,9 +461,8 @@ pub fn audit_corpus(raw: &[u8], source_commit: &str) -> Result<Receipt, String> 
 mod tests {
     use super::*;
 
-    const FIXTURE: &[u8] = include_bytes!(
-        "../../../docs/research/orbital-truss/fixtures/asbuilt-geometry-v0_1.json"
-    );
+    const FIXTURE: &[u8] =
+        include_bytes!("../../../docs/research/orbital-truss/fixtures/asbuilt-geometry-v0_1.json");
     const SOURCE: &str = "0123456789abcdef0123456789abcdef01234567";
 
     fn receipt() -> Receipt {
@@ -452,41 +483,81 @@ mod tests {
     #[test]
     fn common_mode_translation_is_not_removed_by_part_best_fit() {
         let result = receipt();
-        let case = result.cases.iter().find(|item| item.case_id == "ATG-002-COMMON-MODE-OFFSET").unwrap();
+        let case = result
+            .cases
+            .iter()
+            .find(|item| item.case_id == "ATG-002-COMMON-MODE-OFFSET")
+            .unwrap();
         assert_eq!(case.disposition, Disposition::Reject);
-        assert!(case.reason_codes.iter().any(|code| code.starts_with("FEATURE_OUTSIDE_TOLERANCE")));
+        assert!(
+            case.reason_codes
+                .iter()
+                .any(|code| code.starts_with("FEATURE_OUTSIDE_TOLERANCE"))
+        );
     }
 
     #[test]
     fn guard_band_overlap_is_indeterminate_not_pass() {
         let result = receipt();
-        let case = result.cases.iter().find(|item| item.case_id == "ATG-010-GUARD-BAND").unwrap();
+        let case = result
+            .cases
+            .iter()
+            .find(|item| item.case_id == "ATG-010-GUARD-BAND")
+            .unwrap();
         assert_eq!(case.disposition, Disposition::IndeterminateHumanReview);
     }
 
     #[test]
     fn invalid_registration_and_expired_calibration_cannot_pass() {
         let result = receipt();
-        for id in ["ATG-004-REFLECTION", "ATG-005-SCALE", "ATG-009-EXPIRED-CALIBRATION", "ATG-011-ARTICLE-FIT"] {
+        for id in [
+            "ATG-004-REFLECTION",
+            "ATG-005-SCALE",
+            "ATG-009-EXPIRED-CALIBRATION",
+            "ATG-011-ARTICLE-FIT",
+        ] {
             let case = result.cases.iter().find(|item| item.case_id == id).unwrap();
-            assert_eq!(case.disposition, Disposition::IndeterminateHumanReview, "{id}");
+            assert_eq!(
+                case.disposition,
+                Disposition::IndeterminateHumanReview,
+                "{id}"
+            );
         }
     }
 
     #[test]
     fn wrong_physical_serial_is_rejected_and_stale_revision_is_indeterminate() {
         let result = receipt();
-        let wrong_serial = result.cases.iter().find(|item| item.case_id == "ATG-007-WRONG-SERIAL").unwrap();
-        let stale_revision = result.cases.iter().find(|item| item.case_id == "ATG-008-STALE-REVISION").unwrap();
+        let wrong_serial = result
+            .cases
+            .iter()
+            .find(|item| item.case_id == "ATG-007-WRONG-SERIAL")
+            .unwrap();
+        let stale_revision = result
+            .cases
+            .iter()
+            .find(|item| item.case_id == "ATG-008-STALE-REVISION")
+            .unwrap();
         assert_eq!(wrong_serial.disposition, Disposition::Reject);
-        assert_eq!(stale_revision.disposition, Disposition::IndeterminateHumanReview);
+        assert_eq!(
+            stale_revision.disposition,
+            Disposition::IndeterminateHumanReview
+        );
     }
 
     #[test]
     fn equivalent_rigid_frame_change_preserves_acceptance() {
         let result = receipt();
-        let nominal = result.cases.iter().find(|item| item.case_id == "ATG-001-NOMINAL").unwrap();
-        let transformed = result.cases.iter().find(|item| item.case_id == "ATG-003-RIGID-FRAME-CHANGE").unwrap();
+        let nominal = result
+            .cases
+            .iter()
+            .find(|item| item.case_id == "ATG-001-NOMINAL")
+            .unwrap();
+        let transformed = result
+            .cases
+            .iter()
+            .find(|item| item.case_id == "ATG-003-RIGID-FRAME-CHANGE")
+            .unwrap();
         assert_eq!(nominal.disposition, Disposition::Accept);
         assert_eq!(transformed.disposition, Disposition::Accept);
         for (left, right) in nominal.features.iter().zip(&transformed.features) {
@@ -499,32 +570,49 @@ mod tests {
         let result = receipt();
         for id in ["ATG-006-MISSING-CRITICAL", "ATG-012-DUPLICATE-MEASUREMENT"] {
             let case = result.cases.iter().find(|item| item.case_id == id).unwrap();
-            assert_eq!(case.disposition, Disposition::IndeterminateHumanReview, "{id}");
+            assert_eq!(
+                case.disposition,
+                Disposition::IndeterminateHumanReview,
+                "{id}"
+            );
         }
     }
 
     #[test]
     fn a_certain_tolerance_violation_rejects() {
         let result = receipt();
-        let case = result.cases.iter().find(|item| item.case_id == "ATG-013-CLEAR-OVERSIZE").unwrap();
+        let case = result
+            .cases
+            .iter()
+            .find(|item| item.case_id == "ATG-013-CLEAR-OVERSIZE")
+            .unwrap();
         assert_eq!(case.disposition, Disposition::Reject);
     }
 
     #[test]
     fn uncertainty_is_composed_conservatively_without_rss() {
         let mut corpus: Corpus = serde_json::from_slice(FIXTURE).unwrap();
-        let case = corpus.cases.iter_mut().find(|item| item.case_id == "ATG-010-GUARD-BAND").unwrap();
+        let case = corpus
+            .cases
+            .iter_mut()
+            .find(|item| item.case_id == "ATG-010-GUARD-BAND")
+            .unwrap();
         let result = evaluate_case(case).unwrap();
         let feature = result.features.first().unwrap();
         let measurement = case.measurements.first().unwrap();
-        let expected = measurement.measurement_uncertainty_m + case.registration.registration_uncertainty_m;
+        let expected =
+            measurement.measurement_uncertainty_m + case.registration.registration_uncertainty_m;
         assert!((feature.uncertainty_radius_m.unwrap() - expected).abs() <= EPS);
     }
 
     #[test]
     fn malformed_transform_does_not_silently_become_a_valid_rotation() {
         let mut corpus: Corpus = serde_json::from_slice(FIXTURE).unwrap();
-        let case = corpus.cases.iter_mut().find(|item| item.case_id == "ATG-004-REFLECTION").unwrap();
+        let case = corpus
+            .cases
+            .iter_mut()
+            .find(|item| item.case_id == "ATG-004-REFLECTION")
+            .unwrap();
         assert!(validate_registration(&case.registration).is_err());
     }
 
@@ -533,7 +621,11 @@ mod tests {
         let mut corpus: Corpus = serde_json::from_slice(FIXTURE).unwrap();
         corpus.cases[1].case_id = corpus.cases[0].case_id.clone();
         let bytes = serde_json::to_vec(&corpus).unwrap();
-        assert!(audit_corpus(&bytes, SOURCE).unwrap_err().contains("DUPLICATE_CASE_ID"));
+        assert!(
+            audit_corpus(&bytes, SOURCE)
+                .unwrap_err()
+                .contains("DUPLICATE_CASE_ID")
+        );
     }
 
     #[test]
