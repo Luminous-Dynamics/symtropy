@@ -569,10 +569,10 @@ mod tests {
         };
         let report = evaluate(&corpus(scenario)).unwrap();
         let output = &report.scenarios[0].channels[0];
-        assert_eq!(output.detected_event_count, 2);
-        assert_eq!(output.miss_counts.dead_time, 1);
+        assert_eq!(output.audit.detected_event_count, 2);
+        assert_eq!(output.audit.miss_counts.dead_time, 1);
         assert_eq!(
-            output.event_outcomes[1].miss_reason,
+            output.audit.event_outcomes[1].miss_reason,
             Some(MissReason::DeadTime)
         );
     }
@@ -613,14 +613,24 @@ mod tests {
         let input = corpus(scenario);
         let first = evaluate(&input).unwrap();
         let second = evaluate(&input).unwrap();
+        let first_channel = &first.scenarios[0].channels[0];
+        let second_channel = &second.scenarios[0].channels[0];
         assert_eq!(
-            first.scenarios[0].channels[0].audit.false_positive_times,
-            second.scenarios[0].channels[0].audit.false_positive_times
+            first_channel.audit.false_positive_times,
+            second_channel.audit.false_positive_times
         );
         assert_eq!(
             first.summary.false_positive_count,
             second.summary.false_positive_count
         );
+        assert_eq!(
+            first_channel.observed_event_stream.len(),
+            first_channel.audit.detected_event_count + first_channel.audit.false_positive_count
+        );
+        assert!(first_channel
+            .observed_event_stream
+            .windows(2)
+            .all(|pair| pair[0].time_fraction <= pair[1].time_fraction));
     }
 
     #[test]
@@ -636,8 +646,8 @@ mod tests {
         };
         let report = evaluate(&corpus(scenario)).unwrap();
         let output = &report.scenarios[0].channels[0];
-        assert_eq!(output.miss_counts.stochastic, 1);
-        assert_eq!(output.miss_counts.dead_time, 1);
+        assert_eq!(output.audit.miss_counts.stochastic, 1);
+        assert_eq!(output.audit.miss_counts.dead_time, 1);
     }
 
     #[test]
@@ -693,4 +703,29 @@ mod tests {
         );
         assert_eq!(baseline_outcomes[2].detected, gated_outcomes[2].detected);
     }
+
+    #[test]
+    fn declassified_observation_export_contains_no_latent_truth_labels() {
+        let scenario = Scenario {
+            scenario_id: "declassification".to_owned(),
+            configuration_id: "cfg-safe".to_owned(),
+            events: vec![event("truth-secret-a", 0.1, 1.0, 0.01)],
+            shared_common_cause_outages: Vec::new(),
+            channels: vec![channel("sensor", 801, 0.0)],
+        };
+        let report = evaluate(&corpus(scenario)).unwrap();
+        let source = "0123456789abcdef0123456789abcdef01234567";
+        let corpus_hash = "a".repeat(64);
+        let artifact = observations_only(&report, source, &corpus_hash);
+        let encoded = serde_json::to_string(&artifact).unwrap();
+        assert!(!encoded.contains("truth-secret-a"));
+        assert!(!encoded.contains("miss_reason"));
+        assert!(!encoded.contains("conditional_classifier_probability"));
+        assert_eq!(artifact.scenarios[0].channels[0].events.len(), 1);
+        assert_eq!(
+            artifact.scenarios[0].channels[0].events[0].time_fraction,
+            0.1
+        );
+    }
+
 }
