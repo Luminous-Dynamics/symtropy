@@ -444,7 +444,9 @@ mod tests {
         let result = evaluate(&input).unwrap();
         assert_eq!(result.regime_results[0].rank, 3);
         assert_eq!(result.regime_results[0].threshold_status, "EMPIRICAL_ORDER_STATISTIC");
-        assert_eq!(result.regime_results[0].threshold.unwrap().numerator, 8);
+        let threshold = result.regime_results[0].threshold.as_ref().unwrap();
+        assert_eq!(threshold.numerator, 4);
+        assert_eq!(threshold.denominator, 5);
     }
 
     #[test]
@@ -496,7 +498,9 @@ mod tests {
             None,
         );
         let result = evaluate(&input).unwrap();
-        assert_eq!(result.worst_regime_threshold.unwrap().numerator, 8);
+        let threshold = result.worst_regime_threshold.as_ref().unwrap();
+        assert_eq!(threshold.numerator, 4);
+        assert_eq!(threshold.denominator, 5);
         assert_eq!(result.worst_regime_ids, vec!["dry"]);
     }
 
