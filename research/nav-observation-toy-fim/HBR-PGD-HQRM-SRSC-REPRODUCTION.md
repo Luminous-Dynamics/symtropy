@@ -95,6 +95,10 @@ These modules are only the two upstream precomputation blocks. They do not imple
 
 Those belong in later increments after source and protocol pinning.
 
+The BCTR objective module now also exposes the local 2x2 position Hessian at a selected time index. It differentiates the generalized robust data term through the Euclidean range residual and adds the diagonal block contributions from velocity and acceleration regularizers. The robust-loss second derivative is evaluated analytically, including the logarithmic alpha-to-zero limit. A finite-difference-of-gradient regression test checks the returned Hessian block.
+
+This creates the intended connection from the local BCTR objective to the curvature input used by the window-fusion stage. The curvature remains an objective Hessian, not a calibrated covariance; clipping its negative eigenvalues for tr_+ weighting does not turn it into a statistical uncertainty region.
+
 ## Module 4: overlapping windows and curvature-trace fusion
 
 The companion `hbr_window_fusion.rs` implements deterministic half-open windows and the paper's post-optimization weighted trajectory fusion.
