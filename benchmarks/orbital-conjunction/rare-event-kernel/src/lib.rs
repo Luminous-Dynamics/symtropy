@@ -154,8 +154,8 @@ impl Gaussian {
         let mut whitened = vec![0.0; dimension];
         for row in 0..dimension {
             let mut residual = point[row] - self.mean[row];
-            for column in 0..row {
-                residual -= self.lower_cholesky[row * dimension + column] * whitened[column];
+            for (column, whitened_value) in whitened.iter().enumerate().take(row) {
+                residual -= self.lower_cholesky[row * dimension + column] * whitened_value;
             }
             let diagonal = self.lower_cholesky[row * dimension + row];
             whitened[row] = residual / diagonal;
