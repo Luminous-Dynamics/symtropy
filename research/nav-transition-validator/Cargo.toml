@@ -15,6 +15,10 @@ path = "src/lib.rs"
 name = "nav-transition-validate"
 path = "src/main.rs"
 
+[[bin]]
+name = "nav-generalization-validate"
+path = "src/generalization_main.rs"
+
 [dependencies]
 serde_json = "1.0"
 jsonschema = { version = "=0.61.2", default-features = false }
