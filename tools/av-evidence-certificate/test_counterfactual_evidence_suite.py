@@ -391,6 +391,11 @@ class CounterfactualEvidenceSuiteTests(unittest.TestCase):
         suite["baseline"]["truth"]["claims"][0]["minimal_sufficient_evidence_sets"] = [
             ["obs-video", "obs-audio-irrelevant"]
         ]
+        suite["baseline"]["submission"]["claims"][0]["evidence"].append({
+            "observation_ref": "obs-audio-irrelevant",
+            "start_ms": 120,
+            "end_ms": 280,
+        })
         suite["variants"] = [
             make_variant(
                 suite,
