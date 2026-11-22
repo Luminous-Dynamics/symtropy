@@ -22,3 +22,7 @@ path = "src/main.rs"
 [[bin]]
 name = "risk_coverage_demo"
 path = "src/bin/risk_coverage_demo.rs"
+
+[[bin]]
+name = "clustered_risk_demo"
+path = "src/bin/clustered_risk_demo.rs"
