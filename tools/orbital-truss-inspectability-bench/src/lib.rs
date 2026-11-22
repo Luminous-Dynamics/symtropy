@@ -628,7 +628,8 @@ mod tests {
     #[test]
     fn duplicate_view_identity_is_rejected() {
         let mut corpus: Corpus = serde_json::from_str(FIXTURE).unwrap();
-        corpus.cases[0].views.push(corpus.cases[0].views[0].clone());
+        let duplicate_view = corpus.cases[0].views[0].clone();
+        corpus.cases[0].views.push(duplicate_view);
         assert_eq!(
             evaluate_case(&corpus.cases[0]),
             Err("VIEW_CONTRACT_INVALID".to_owned())
