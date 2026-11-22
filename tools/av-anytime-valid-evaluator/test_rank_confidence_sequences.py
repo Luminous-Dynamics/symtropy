@@ -47,6 +47,62 @@ def make_document(
     }
 
 
+def make_retirement_document(
+    *,
+    rule="TOP_K_RESOLVED",
+    top_k=3,
+    episode_count=120,
+    scores=None,
+):
+    arms = ("A0", "A1", "A2", "A3", "A4", "A5")
+    if scores is None:
+        scores = {
+            "A0": 0.05,
+            "A1": 0.20,
+            "A2": 0.35,
+            "A3": 0.65,
+            "A4": 0.80,
+            "A5": 0.95,
+        }
+    episode_ids = [f"episode-{index:04d}" for index in range(episode_count)]
+    episode_order = list(reversed(episode_ids))
+    seed_commitment = hashlib.sha256(b"retirement-fixed-random-order-seed").hexdigest()
+    protocol_id = "AV-RANK-RETIREMENT-TEST-v1"
+    document = {
+        "benchmark_id": BENCHMARK_ID,
+        "schema_version": 1,
+        "protocol_id": protocol_id,
+        "metric_id": "decision_accuracy",
+        "arms": list(arms),
+        "alpha": 0.05,
+        "betting_fractions": [0.03, 0.06, 0.12, 0.25, 0.5],
+        "episode_ids": episode_ids,
+        "episode_order": episode_order,
+        "seed_commitment": seed_commitment,
+        "order_commitment_sha256": make_order_commitment(
+            protocol_id, episode_ids, episode_order, seed_commitment
+        ),
+        "retirement_rule": rule,
+        "items": [],
+    }
+    if rule == "TOP_K_RESOLVED":
+        document["retirement_top_k"] = top_k
+
+    active = list(arms)
+    for episode_id in episode_order:
+        item = {
+            "episode_id": episode_id,
+            "active_arms": list(active),
+            "scores": {arm: scores[arm] for arm in active},
+        }
+        document["items"].append(item)
+        partial = evaluate_document(document)
+        active = partial["active_arms"]
+        if not active:
+            break
+    return document
+
+
 class RankConfidenceSequenceTests(unittest.TestCase):
     def test_ordered_partition_counts(self):
         self.assertEqual(len(weak_orders(2)), 3)
@@ -223,6 +279,138 @@ class RankConfidenceSequenceTests(unittest.TestCase):
                 doc["betting_fractions"] = grid
                 with self.assertRaises(RankEvaluationError):
                     evaluate_document(doc)
+
+    def test_no_retirement_reproduces_full_all_arm_execution(self):
+        doc = make_document()
+        result = evaluate_document(doc)
+        self.assertEqual(result["completion_status"], "COHORT_EXHAUSTED")
+        self.assertEqual(result["episodes_processed"], len(doc["episode_ids"]))
+        self.assertEqual(
+            result["model_invocation_counts"],
+            {arm: len(doc["episode_ids"]) for arm in doc["arms"]},
+        )
+        self.assertEqual(result["model_invocations_avoided_vs_full"], {arm: 0 for arm in doc["arms"]})
+        self.assertEqual(result["retirement_rule"], "NONE")
+
+    def test_top_k_retirement_stops_model_scoring_early(self):
+        doc = make_retirement_document(rule="TOP_K_RESOLVED", top_k=3)
+        result = evaluate_document(doc)
+        self.assertEqual(result["completion_status"], "ALL_MODELS_RETIRED")
+        self.assertLess(result["episodes_processed"], result["episode_count"])
+        self.assertEqual(result["active_arms"], [])
+        self.assertTrue(result["retirement_log"])
+        self.assertTrue(any(value > 0 for value in result["model_invocations_avoided_vs_full"].values()))
+        for look in result["looks"]:
+            self.assertEqual(
+                set(look["score_vector"]),
+                set(look["active_arms"]),
+            )
+            self.assertEqual(
+                look["next_active_arms"],
+                [arm for arm in look["active_arms"] if arm not in look["retired_this_look"]],
+            )
+
+    def test_pairwise_wealth_freezes_after_either_model_retires(self):
+        doc = make_retirement_document(rule="TOP_K_RESOLVED", top_k=3)
+        result = evaluate_document(doc)
+        retirement_look = next(
+            (index for index, look in enumerate(result["looks"]) if look["retired_this_look"]),
+            None,
+        )
+        self.assertIsNotNone(retirement_look)
+        look = result["looks"][retirement_look]
+        if retirement_look + 1 < len(result["looks"]):
+            next_look = result["looks"][retirement_look + 1]
+            for retired_arm in look["retired_this_look"]:
+                for other in result["arms"]:
+                    if other == retired_arm:
+                        continue
+                    key_one = f"{retired_arm}>{other}"
+                    key_two = f"{other}>{retired_arm}"
+                    self.assertAlmostEqual(
+                        look["pair_log_wealths"][key_one],
+                        next_look["pair_log_wealths"][key_one],
+                        places=12,
+                    )
+                    self.assertAlmostEqual(
+                        look["pair_log_wealths"][key_two],
+                        next_look["pair_log_wealths"][key_two],
+                        places=12,
+                    )
+
+    def test_retired_models_cannot_be_reintroduced(self):
+        doc = make_retirement_document(rule="TOP_K_RESOLVED", top_k=3)
+        result = evaluate_document(doc)
+        retirement_look = next(
+            (index for index, look in enumerate(result["looks"]) if look["retired_this_look"]),
+            None,
+        )
+        self.assertIsNotNone(retirement_look)
+        if retirement_look + 1 >= len(doc["items"]):
+            self.skipTest("all models retired on final supplied item")
+        retired = result["looks"][retirement_look]["retired_this_look"][0]
+        doc["items"][retirement_look + 1]["active_arms"].append(retired)
+        doc["items"][retirement_look + 1]["scores"][retired] = 0.5
+        with self.assertRaises(RankEvaluationError):
+            evaluate_document(doc)
+
+    def test_score_vector_must_match_active_set_exactly(self):
+        doc = make_retirement_document(rule="TOP_K_RESOLVED", top_k=3)
+        result = evaluate_document(doc)
+        if result["episodes_processed"] < 2:
+            self.skipTest("only one item was evaluated")
+        doc["items"][1]["scores"].pop(doc["items"][1]["active_arms"][0])
+        with self.assertRaises(RankEvaluationError):
+            evaluate_document(doc)
+
+    def test_tied_models_are_not_retired_on_point_estimates(self):
+        arms = ("A0", "A1", "A2", "A3", "A4", "A5")
+        equal_scores = {arm: 0.5 for arm in arms}
+        doc = make_retirement_document(
+            rule="TOP_K_RESOLVED",
+            top_k=3,
+            episode_count=24,
+            scores=equal_scores,
+        )
+        result = evaluate_document(doc)
+        self.assertEqual(result["completion_status"], "COHORT_EXHAUSTED")
+        self.assertEqual(result["retirement_log"], {})
+        self.assertEqual(result["model_invocation_counts"], {arm: 24 for arm in arms})
+
+    def test_singleton_rank_retirement_uses_exact_rank_sets(self):
+        doc = make_retirement_document(rule="RANK_SINGLETON")
+        result = evaluate_document(doc)
+        for look in result["looks"]:
+            for retirement in look["retirement_decisions"]:
+                self.assertEqual(retirement["rule"], "RANK_SINGLETON")
+                self.assertEqual(
+                    len(look["rank_sets"][retirement["arm"]]["ranks"]),
+                    1,
+                )
+
+    def test_pairwise_resolved_retirement_requires_all_comparisons(self):
+        doc = make_retirement_document(rule="PAIRWISE_RESOLVED")
+        result = evaluate_document(doc)
+        for look in result["looks"]:
+            certified = {
+                (row["better"], row["worse"])
+                for row in look["certified_dominances"]
+            }
+            for retirement in look["retirement_decisions"]:
+                arm = retirement["arm"]
+                for other in doc["arms"]:
+                    if other != arm:
+                        self.assertTrue((arm, other) in certified or (other, arm) in certified)
+
+    def test_invalid_retirement_policy_and_top_k_fail_closed(self):
+        doc = make_retirement_document(rule="TOP_K_RESOLVED", top_k=3)
+        doc["retirement_rule"] = []
+        with self.assertRaises(RankEvaluationError):
+            evaluate_document(doc)
+        doc = make_retirement_document(rule="TOP_K_RESOLVED", top_k=3)
+        doc["retirement_top_k"] = True
+        with self.assertRaises(RankEvaluationError):
+            evaluate_document(doc)
 
     def test_report_has_replayable_transcript_and_metric_identity(self):
         doc = make_document()
