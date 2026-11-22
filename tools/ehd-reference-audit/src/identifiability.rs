@@ -48,7 +48,7 @@ pub enum IdentifiabilityError {
     EmptyRobustScenarioId { scenario: usize },
     DuplicateRobustScenarioId { scenario: usize },
     RobustScenarioCandidateCountMismatch { scenario: usize },
-    ZeroNuisanceInformation { scenario: usize },
+    ZeroNuisanceInformation,
     NoRobustIdentifiableDesign,
 }
 
@@ -72,7 +72,7 @@ impl fmt::Display for IdentifiabilityError {
             Self::EmptyRobustScenarioId { scenario } => write!(f, "robust design scenario {scenario} has an empty identity"),
             Self::DuplicateRobustScenarioId { scenario } => write!(f, "robust design scenario {scenario} duplicates an earlier identity"),
             Self::RobustScenarioCandidateCountMismatch { scenario } => write!(f, "robust design scenario {scenario} has a different candidate count"),
-            Self::ZeroNuisanceInformation { scenario } => write!(f, "robust design scenario {scenario} has no information for the declared nuisance channel"),
+            Self::ZeroNuisanceInformation => write!(f, "robust design scenario has no information for the declared nuisance channel"),
             Self::NoRobustIdentifiableDesign => write!(f, "no allocation remains identifiable in every declared robust scenario"),
         }
     }
@@ -869,7 +869,7 @@ pub fn nuisance_adjusted_scenario_score(
     }
 
     if !nuisance_norm_squared.is_finite() || nuisance_norm_squared <= 0.0 {
-        return Err(IdentifiabilityError::ZeroNuisanceInformation { scenario: 0 });
+        return Err(IdentifiabilityError::ZeroNuisanceInformation);
     }
     let projection_coefficients = [
         nuisance_dot_physical[0] / nuisance_norm_squared,
@@ -1180,7 +1180,7 @@ mod robust_design_tests {
         }
         assert!(matches!(
             nuisance_adjusted_scenario_score(&[0, 1, 3], &scenarios[0], [1.0, 1.0], 1.0e-12),
-            Err(IdentifiabilityError::ZeroNuisanceInformation { scenario: 0 })
+            Err(IdentifiabilityError::ZeroNuisanceInformation)
         ));
     }
 }
