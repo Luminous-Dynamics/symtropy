@@ -112,7 +112,7 @@ pub enum AggregationSemanticError {
     InvalidQuantityElement(String),
 }
 
-fn valid_identifier(value: &str) -> bool {
+pub(crate) fn valid_identifier(value: &str) -> bool {
     !value.is_empty() && value.trim() == value
 }
 
@@ -169,7 +169,7 @@ fn valid_uom_lexeme(value: &str) -> bool {
 }
 
 /// EPCIS 2.0.1 eventTimeZoneOffset lexical form: +/-HH:MM, bounded by 14:00.
-fn valid_epcis_offset(value: &str) -> bool {
+pub(crate) fn valid_epcis_offset(value: &str) -> bool {
     let bytes = value.as_bytes();
     if bytes.len() != 6
         || !matches!(bytes[0], b'+' | b'-')
@@ -202,6 +202,14 @@ fn validate_child_epcs(child_epcs: &[String]) -> Result<(), AggregationSemanticE
         }
     }
     Ok(())
+}
+
+/// Validate QuantityElement semantics for other EPCIS event-family adapters.
+/// This preserves list order and repeated entries; it never aggregates quantities.
+pub(crate) fn validate_quantity_elements(
+    quantities: &[QuantityElement],
+) -> Result<(), AggregationSemanticError> {
+    validate_quantities(quantities)
 }
 
 fn validate_quantities(quantities: &[QuantityElement]) -> Result<(), AggregationSemanticError> {
