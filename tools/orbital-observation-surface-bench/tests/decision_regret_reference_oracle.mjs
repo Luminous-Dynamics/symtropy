@@ -1,9 +1,19 @@
 // Independent BigInt oracle for exact finite-world loss/regret frontiers.
 import fs from "node:fs";
 import { createHash } from "node:crypto";
+import assert from "node:assert/strict";
 
 const MAX_SAFE = 9_007_199_254_740_991n;
 function fail(message) { throw new Error(message); }
+function codePointCompare(left, right) {
+  const a = Array.from(left, value => value.codePointAt(0));
+  const b = Array.from(right, value => value.codePointAt(0));
+  const length = Math.min(a.length, b.length);
+  for (let index = 0; index < length; index += 1) {
+    if (a[index] !== b[index]) return a[index] - b[index];
+  }
+  return a.length - b.length;
+}
 function gcd(a, b) {
   while (b !== 0n) { const r = a % b; a = b; b = r; }
   return a > 0n ? a : 1n;
@@ -93,7 +103,7 @@ function dominates(left, right) {
 }
 function evaluateCase(item) {
   const worldIds = [...item.compatible_world_set.world_ids].sort();
-  const actions = [...item.actions].sort((a, b) => a.action_id.localeCompare(b.action_id));
+  const actions = [...item.actions].sort((a, b) => codePointCompare(a.action_id, b.action_id));
   const admitted = actions.filter(action => action.admissibility_status === "admissible");
   const excluded = actions.filter(action => action.admissibility_status !== "admissible")
     .map(action => ({action_id: action.action_id, admissibility_status: action.admissibility_status}));
@@ -169,7 +179,7 @@ function evaluateCase(item) {
 }
 function evaluate(corpus) {
   validate(corpus);
-  const cases = corpus.cases.map(evaluateCase).sort((a, b) => a.case_id.localeCompare(b.case_id));
+  const cases = corpus.cases.map(evaluateCase).sort((a, b) => codePointCompare(a.case_id, b.case_id));
   const summary = {
     case_count: cases.length,
     no_admissible_action_cases: cases.filter(item => item.status === "NO_ADMISSIBLE_ACTION").length,
@@ -193,7 +203,20 @@ try {
   const [corpusPath] = process.argv.slice(2);
   if (!corpusPath) fail("usage: decision_regret_reference_oracle.mjs <corpus.json>");
   const corpus = JSON.parse(fs.readFileSync(corpusPath, "utf8"));
-  process.stdout.write(JSON.stringify(evaluate(corpus), null, 2) + "\n");
+  const output = evaluate(corpus);
+
+  const permuted = structuredClone(corpus);
+  permuted.cases.reverse();
+  for (const item of permuted.cases) {
+    item.actions.reverse();
+    item.compatible_world_set.world_ids.reverse();
+  }
+  assert.deepStrictEqual(
+    evaluate(permuted),
+    output,
+    "decision-regret result changed under case/action/world ordering"
+  );
+  process.stdout.write(JSON.stringify(output, null, 2) + "\n");
 } catch (error) {
   process.stderr.write(String(error?.message ?? error) + "\n");
   process.exitCode = 1;
