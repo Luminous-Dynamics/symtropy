@@ -602,7 +602,7 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
                 .ok_or_else(|| format!("missing scenario optimum {}", scenario.scenario_id))?;
             let joint_regret = loss
                 .checked_sub(best)
-                .map_err(|error| format!("joint regret underflow in {}", scenario.scenario_id))?;
+                .map_err(|error| format!("joint regret underflow in {}: {error}", scenario.scenario_id))?;
             if joint_regret.numerator == 0 {
                 best_count += 1;
             }
@@ -652,7 +652,7 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
                     .checked_sub(comparator_lower)
                     .map_err(|error| {
                         format!(
-                            "rectangular regret underflow for {} / {world_id}",
+                            "rectangular regret underflow for {} / {world_id}: {error}",
                             action.action_id
                         )
                     })?,
@@ -910,7 +910,7 @@ mod tests {
             .action_losses
             .get_mut("alpha")
             .expect("loss exists")
-            .numerator = 1;
+            .numerator = 2;
         assert!(evaluate(&corpus).is_err());
     }
 
