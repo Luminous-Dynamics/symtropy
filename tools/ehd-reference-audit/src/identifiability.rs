@@ -59,7 +59,7 @@ impl fmt::Display for IdentifiabilityError {
             Self::NonFiniteDerivedValue => write!(f, "identifiability calculation produced a non-finite value"),
             Self::SingularSolveAfterRankCheck => write!(f, "normal-equation solve was singular after full-rank classification"),
             Self::InvalidCandidateCount => write!(f, "design tournament requires at least one candidate condition"),
-            Self::InvalidObservationBudget => write!(f, "design tournament observation budget must be positive"),
+            Self::InvalidObservationBudget => write!(f, "design tournament observation budget must be between 1 and 32"),
             Self::SearchSpaceLimitExceeded { limit } => write!(f, "design tournament search exceeded its evaluation limit of {limit}"),
             Self::NoIdentifiableDesign => write!(f, "no full-rank design exists within the candidate set and observation budget"),
         }
@@ -419,6 +419,9 @@ fn is_better_e(candidate: &DesignScore, incumbent: &DesignScore) -> bool {
 /// D-optimal maximizes log(det(F)); E-optimal maximizes the weakest eigenvalue
 /// of F. Rank-deficient designs are excluded from both selections. The search
 /// is deterministic, lexicographically tie-broken and bounded by a fixed cap.
+/// Hard recursion bound for this small exhaustive reference tournament.
+pub const MAX_DISCRETE_OBSERVATION_BUDGET: usize = 32;
+
 pub fn select_discrete_designs(
     candidates: &[CandidateCondition],
     observation_budget: usize,
@@ -429,7 +432,7 @@ pub fn select_discrete_designs(
     if candidates.is_empty() {
         return Err(IdentifiabilityError::InvalidCandidateCount);
     }
-    if observation_budget == 0 {
+    if observation_budget == 0 || observation_budget > MAX_DISCRETE_OBSERVATION_BUDGET {
         return Err(IdentifiabilityError::InvalidObservationBudget);
     }
     if max_evaluations == 0 {
@@ -661,6 +664,20 @@ mod tests {
         assert_eq!(
             select_discrete_designs(&candidates, 3, [1.0, 1.0], 1.0e-12, 20).unwrap_err(),
             IdentifiabilityError::NoIdentifiableDesign
+        );
+    }
+
+    #[test]
+    fn design_tournament_rejects_observation_budget_above_recursion_bound() {
+        assert_eq!(
+            select_discrete_designs(
+                &tournament_reference_case(),
+                MAX_DISCRETE_OBSERVATION_BUDGET + 1,
+                [1.0, 1.0],
+                1.0e-12,
+                usize::MAX,
+            ).unwrap_err(),
+            IdentifiabilityError::InvalidObservationBudget
         );
     }
 
