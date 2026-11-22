@@ -1,6 +1,6 @@
 # EHD-PIV-UQ-001 — spatially resolved PIV quality, uncertainty coverage and PIV/LPT reconciliation
 
-**Status:** summary-level Rust reference and 25 authored unit tests across classifier, probability-score and diagnostic-comparison modules; Rust execution and exact-head CI pending  
+**Status:** summary-level Rust reference and 26 authored unit tests across classifier, probability-score and diagnostic-comparison modules; Rust execution and exact-head CI pending  
 **Published classifier comparator:** PIVPostProcess, *Experiments in Fluids* (2026), DOI 10.1007/s00348-026-04319-7; code DOI 10.5281/zenodo.18794853. The implementation now reports both class polarities and macro metrics so score comparisons cannot silently depend on positive-class choice.  
 **EHD multimodal comparator:** Pöppe, Rich & Kriegseis, LXLASER 2026, KIT institutional record 1000197349
 
@@ -38,7 +38,7 @@ The PIVPostProcess paper reports ROC-AUC 0.998 and log loss 0.037 in addition to
 - ten-bin reliability data and expected calibration error (ECE) as descriptive calibration diagnostics;
 - overall and per-region reports for bulk, near-wall, shear layer and wake.
 
-The benchmark must compare probabilities on exactly the same vector labels and holdout cohort. Report ROC-AUC and proper scores before selecting a threshold; then report both class-specific F1, macro-F1, balanced accuracy, MCC, false-valid removal and retention. ECE is binning-dependent and must never replace log loss or Brier score. A one-class region has undefined ROC-AUC, which remains explicitly unavailable rather than being coerced to zero.
+The benchmark must compare probabilities on exactly the same vector labels and holdout cohort. The adapter includes a polarity-complement invariance test to guard this conversion. Report ROC-AUC and proper scores before selecting a threshold; then report both class-specific F1, macro-F1, balanced accuracy, MCC, false-valid removal and retention. ECE is binning-dependent and must never replace log loss or Brier score. A one-class region has undefined ROC-AUC, which remains explicitly unavailable rather than being coerced to zero.
 
 ## 2. Velocity uncertainty: calibrate by physical region
 
