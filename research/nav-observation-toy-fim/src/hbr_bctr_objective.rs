@@ -759,8 +759,11 @@ mod tests {
         current.positions_m[0] = [1e308, 0.0];
         let mut obs = observation(1, 0, 1.0);
         obs.anchor_position_m = [-1e308, 0.0];
+        let mut overflow_config = config();
+        overflow_config.position_min_m = [-1e308, -10.0];
+        overflow_config.position_max_m = [1e308, 10.0];
         assert_eq!(
-            evaluate_hbr_bctr_window_2d(&current, &[obs], config()),
+            evaluate_hbr_bctr_window_2d(&current, &[obs], overflow_config),
             Err(HbrBctrError::ArithmeticOverflow)
         );
     }
