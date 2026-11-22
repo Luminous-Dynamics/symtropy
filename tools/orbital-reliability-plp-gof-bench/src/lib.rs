@@ -4,8 +4,8 @@ use std::collections::HashSet;
 mod statistics;
 use statistics::{TestStatisticValues, from_sorted_log_transforms};
 
-const CORPUS_SCHEMA: &str = "luminous.orbital-plp-conditional-gof.corpus.v0.1";
-const CLAIM_CEILING: &str = "synthetic-conditional-plp-goodness-of-fit-only";
+const CORPUS_SCHEMA: &str = "luminous.orbital-plp-multistat-gof.corpus.v0.2";
+const CLAIM_CEILING: &str = "synthetic-conditional-plp-five-statistic-suite-only";
 const MODEL_PROFILE: &str = "power_law_process_repairable_minimal_repair";
 const TERMINATION_PROFILE: &str = "administrative_time_terminated_complete_window";
 const PRNG_ID: &str = "splitmix64-top52-open-uniform-exp-normalize-v1";
