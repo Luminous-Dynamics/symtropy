@@ -9,6 +9,7 @@
 use super::{
     ActionTicket, AuthorityBinding, LiveAuthoritySnapshot, QualifiedMonotonicInstant,
     ReceiptDisposition, Rejection, QualifiedOutcomeResolution, ResolutionDisposition,
+    RecoveryPermitReference,
 };
 use std::collections::BTreeSet;
 
@@ -28,7 +29,7 @@ pub enum HistoryOperationKind {
         attempt_key: String,
         resolution: QualifiedOutcomeResolution,
         next_snapshot: Option<LiveAuthoritySnapshot>,
-        recovery_permit_digest: Option<String>,
+        recovery_permit: Option<RecoveryPermitReference>,
     },
 }
 
@@ -98,6 +99,7 @@ struct SpecState {
     live: LiveAuthoritySnapshot,
     consumed_ticket_ids: BTreeSet<String>,
     pending_action_attempt: Option<String>,
+    consumed_recovery_permit_ids: BTreeSet<String>,
     next_application_sequence: u64,
 }
 
@@ -107,6 +109,7 @@ impl SpecState {
             live: initial_snapshot,
             consumed_ticket_ids: BTreeSet::new(),
             pending_action_attempt: None,
+            consumed_recovery_permit_ids: BTreeSet::new(),
             next_application_sequence: 1,
         }
     }
@@ -235,7 +238,7 @@ fn apply_observed_operation(
                 attempt_key,
                 resolution,
                 next_snapshot,
-                recovery_permit_digest,
+                recovery_permit,
             },
             HistoryObservedResult::PendingActionResolved { disposition },
         ) => {
@@ -243,7 +246,7 @@ fn apply_observed_operation(
                 return Transition::Invalid;
             }
             if *resolution == QualifiedOutcomeResolution::Unknown {
-                if next_snapshot.is_some() || recovery_permit_digest.is_some()
+                if next_snapshot.is_some() || recovery_permit.is_some()
                     || *disposition != ResolutionDisposition::HoldRetained
                 {
                     return Transition::Invalid;
@@ -265,17 +268,21 @@ fn apply_observed_operation(
             }
             match resolution {
                 QualifiedOutcomeResolution::Satisfied => {
-                    if recovery_permit_digest.is_some() {
+                    if recovery_permit.is_some() {
                         return Transition::Invalid;
                     }
                 }
                 QualifiedOutcomeResolution::NoEffect
                 | QualifiedOutcomeResolution::PartialEffect => {
-                    if recovery_permit_digest
-                        .as_deref()
-                        .map(str::trim)
-                        .filter(|value| !value.is_empty())
-                        .is_none()
+                    let permit = match recovery_permit {
+                        Some(permit) => permit,
+                        None => return Transition::Invalid,
+                    };
+                    if permit.permit_id.trim().is_empty()
+                        || permit.failed_attempt_key != *attempt_key
+                        || permit.authority_epoch != state.live.binding.controller_epoch
+                        || permit.plan_digest == [0; 32]
+                        || state.consumed_recovery_permit_ids.contains(&permit.permit_id)
                     {
                         return Transition::Invalid;
                     }
@@ -284,6 +291,11 @@ fn apply_observed_operation(
             }
 
             let mut next_state = state.clone();
+            if let Some(permit) = recovery_permit {
+                next_state
+                    .consumed_recovery_permit_ids
+                    .insert(permit.permit_id.clone());
+            }
             next_state.live = next.clone();
             next_state.pending_action_attempt = None;
             Transition::Valid(next_state)
@@ -854,7 +866,7 @@ mod tests {
                         attempt_key: "attempt-1".to_owned(),
                         resolution: QualifiedOutcomeResolution::Unknown,
                         next_snapshot: None,
-                        recovery_permit_digest: None,
+                        recovery_permit: None,
                     },
                     HistoryObservedResult::PendingActionResolved {
                         disposition: ResolutionDisposition::HoldRetained,
@@ -906,7 +918,12 @@ mod tests {
                         attempt_key: "attempt-1".to_owned(),
                         resolution: QualifiedOutcomeResolution::NoEffect,
                         next_snapshot: Some(next),
-                        recovery_permit_digest: Some("permit-digest-2".to_owned()),
+                        recovery_permit: Some(RecoveryPermitReference {
+                            permit_id: "permit-2".to_owned(),
+                            failed_attempt_key: "attempt-1".to_owned(),
+                            plan_digest: [9; 32],
+                            authority_epoch: 1,
+                        }),
                     },
                     HistoryObservedResult::PendingActionResolved {
                         disposition: ResolutionDisposition::ClearedForNewAuthoritySnapshot,
@@ -956,7 +973,7 @@ mod tests {
                         attempt_key: "attempt-1".to_owned(),
                         resolution: QualifiedOutcomeResolution::NoEffect,
                         next_snapshot: Some(snapshot("attempt-2", 2, 2)),
-                        recovery_permit_digest: None,
+                        recovery_permit: None,
                     },
                     HistoryObservedResult::PendingActionResolved {
                         disposition: ResolutionDisposition::ClearedForNewAuthoritySnapshot,
