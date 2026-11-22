@@ -911,6 +911,29 @@ mod tests {
             result.familywise_minimum_p_value,
             (STATISTIC_COUNT as f64 / 1000.0).min(1.0)
         );
+        assert_eq!(
+            result.component_results.iter().map(|x| x.statistic_id.as_str()).collect::<Vec<_>>(),
+            vec![
+                "laplace-two-sided-v1",
+                "greenwood-two-sided-v1",
+                STATISTIC_ID,
+                "anderson-darling-upper-tail-v1",
+                "kolmogorov-smirnov-upper-tail-v1",
+            ]
+        );
+        let minimum_component_p = result
+            .component_results
+            .iter()
+            .map(|component| component.monte_carlo_p_value)
+            .fold(1.0_f64, f64::min);
+        assert_eq!(
+            result.bonferroni_adjusted_min_p_value,
+            (STATISTIC_COUNT as f64 * minimum_component_p).min(1.0)
+        );
+        assert_eq!(
+            result.familywise_minimum_p_value,
+            (STATISTIC_COUNT as f64 / (result.replicate_count as f64 + 1.0)).min(1.0)
+        );
         assert!(result.wilson_95_lower <= result.tail_probability_estimate);
         assert!(result.tail_probability_estimate <= result.wilson_95_upper);
     }
@@ -918,7 +941,7 @@ mod tests {
     #[test]
     fn frozen_corpus_replays_without_claim_escalation() {
         let corpus: Corpus =
-            serde_json::from_str(include_str!("../fixtures/v0.1/plp-gof-cases.json"))
+            serde_json::from_str(include_str!("../fixtures/v0.2/plp-gof-cases.json"))
                 .expect("frozen PLP GOF corpus parses");
         let report = evaluate(&corpus).expect("frozen PLP GOF corpus evaluates");
         assert_eq!(report.result, "pass");
@@ -969,7 +992,7 @@ mod tests {
     }
 
     #[test]
-    fn outer_null_calibration_smoke_covers_declared_alpha_levels() {
+    fn outer_null_cvm_component_smoke_covers_declared_alpha_levels() {
         let mut outer_rng = SplitMix64::new(20_261_122);
         let mut rejected_at_one_percent = 0usize;
         let mut rejected_at_five_percent = 0usize;
