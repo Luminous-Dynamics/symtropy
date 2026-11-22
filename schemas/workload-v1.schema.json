@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/av-evidence-certificate-workload-v1.schema.json",
+  "title": "AV Evidence Certificate Workload v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["benchmark_id", "schema_version", "episode_id", "transcript_head_sha256", "decision_cutoff_tick", "observation_catalog"],
+  "properties": {
+    "benchmark_id": {"const": "av-evidence-certificate-v0"},
+    "schema_version": {"const": 1},
+    "episode_id": {"type": "string", "minLength": 1},
+    "transcript_head_sha256": {"type": "string", "pattern": "^[0-9a-fA-F]{64}$"},
+    "decision_cutoff_tick": {"type": "integer", "minimum": 0},
+    "observation_catalog": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["observation_id", "modality", "available_tick", "capture_complete_tick", "capture_start_ms", "capture_end_ms", "clock_domain_id", "clock_generation", "artifact_sha256"],
+        "properties": {
+          "observation_id": {"type": "string", "minLength": 1},
+          "modality": {"enum": ["audio", "video"]},
+          "available_tick": {"type": "integer", "minimum": 0},
+          "capture_complete_tick": {"type": "integer", "minimum": 0},
+          "capture_start_ms": {"type": "number", "minimum": 0},
+          "capture_end_ms": {"type": "number", "exclusiveMinimum": 0},
+          "clock_domain_id": {"type": "string", "minLength": 1},
+          "clock_generation": {"type": "integer", "minimum": 0},
+          "artifact_sha256": {"type": "string", "pattern": "^[0-9a-fA-F]{64}$"}
+        }
+      }
+    }
+  }
+}
