@@ -42,7 +42,25 @@
       "path": "tools/ehd-piv-conformal-functional-uq/src/conformal.rs",
       "function": "calibrate_cluster_conformal",
       "authored_rust_tests": 10
-    }
+    },
+    "related_methods": [
+      {
+        "method": "Dunn-Wasserman-Ramdas_2023",
+        "name": "Distribution-Free Prediction Sets for Two-Layer Hierarchical Models",
+        "role": "hierarchical new-group conformal; CDF pooling and single/repeated subsampling; benchmark separately because prediction estimand differs",
+        "url": "https://robinmdunn.github.io/publication/conformal/"
+      },
+      {
+        "method": "Allohibi_2026",
+        "doi": "10.3390/math14214055",
+        "role": "grouped-validation / equal-cluster calibration analog on clustered panel data, not a PIV method"
+      },
+      {
+        "method": "Noonan_2026_preprint",
+        "doi": "10.5281/zenodo.21626229",
+        "role": "effective-sample-size analysis under shared-ancestry clusters; adjacent theoretical motivation only"
+      }
+    ]
   },
   "functional_contract": {
     "functionals": [
@@ -84,6 +102,11 @@
       "path": "tools/ehd-piv-conformal-functional-uq/src/functional.rs",
       "function": "propagate_field_functional_uncertainty",
       "authored_rust_tests": 9
+    },
+    "dimension_compatibility": {
+      "conformal_scorer_dimension": 2,
+      "field_functional_covariance_dimension": 3,
+      "rule": "Do not promote a 2D conformal radius to a 3D coverage claim. Direct covariance multiplier reuse requires identical calibrated state dimensions. Dedicated 3D conformal scoring is future work."
     }
   },
   "dataset_and_comparator_plan": {
@@ -131,5 +154,19 @@
     "no_pressure_viscous_body_or_storage_terms",
     "no_direct_force_balance_or_thrust_measurement",
     "rust_execution_pending"
-  ]
+  ],
+  "benchmark_and_comparator_plan": {
+    "conformal_comparators": [
+      "pointwise_split_conformal",
+      "region_wise_conformal",
+      "cluster_maximum_conformal_current",
+      "Dunn_Wasserman_Ramdas_CDF_pooling",
+      "Dunn_Wasserman_Ramdas_repeated_subsampling"
+    ],
+    "field_functional_references": [
+      "central_finite_differences",
+      "Monte_Carlo_with_frozen_covariance_factors",
+      "existing_EHD_control_volume_reducer_and_direct_force_balance"
+    ]
+  }
 }
