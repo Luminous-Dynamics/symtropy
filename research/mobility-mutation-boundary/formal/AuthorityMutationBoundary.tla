@@ -25,7 +25,8 @@ CONSTANTS
     TicketIssued,
     TicketExpires,
     PermitAttempt,
-    PermitEpoch
+    PermitEpoch,
+    PermitPlanBinding
 
 ASSUME
     /\ Tickets # {}
@@ -47,6 +48,8 @@ ASSUME
     /\ DOMAIN TicketExpires = Tickets
     /\ DOMAIN PermitAttempt = RecoveryPermits
     /\ DOMAIN PermitEpoch = RecoveryPermits
+    /\ DOMAIN PermitPlanBinding = RecoveryPermits
+    /\ RANGE PermitPlanBinding \subseteq Bindings
     /\ RANGE PermitAttempt \subseteq Attempts
     /\ RANGE PermitEpoch \subseteq 0..MaxEpoch
     /\ RANGE TicketBinding \subseteq Bindings
@@ -199,6 +202,7 @@ ResolveNoEffect(nextBinding, nextAttempt, nextEpoch, permit) ==
     /\ permit \notin consumedPermits
     /\ PermitAttempt[permit] = pendingAttempt
     /\ PermitEpoch[permit] = authorityEpoch
+    /\ PermitPlanBinding[permit] = nextBinding
     /\ authorityBinding' = nextBinding
     /\ activeAttempt' = nextAttempt
     /\ authorityEpoch' = nextEpoch
@@ -324,5 +328,6 @@ RecoveryPermitLineage ==
           /\ record.permit \in RecoveryPermits
           /\ PermitAttempt[record.permit] = record.attempt
           /\ PermitEpoch[record.permit] = record.authorityEpoch
+          /\ PermitPlanBinding[record.permit] = record.nextBinding
 
 =============================================================================
