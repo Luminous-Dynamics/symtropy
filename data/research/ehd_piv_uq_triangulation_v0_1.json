@@ -155,7 +155,7 @@
       "evaluate_piv_probability_scores"
     ],
     "self_check": "reference_self_check",
-    "rust_unit_tests": 25,
+    "rust_unit_tests": 26,
     "probability_module": "tools/ehd-reference-audit/src/piv_classifier_scores.rs"
   },
   "manufactured_examples": {
@@ -217,7 +217,8 @@
     "one_class_region_auc_unavailable",
     "missing_region_explicitly_unavailable_without_nan",
     "reliability_bins_account_for_all_samples",
-    "empty_probability_cohort_rejected"
+    "empty_probability_cohort_rejected",
+    "valid_invalid_probability_complement_invariance"
   ],
   "limitations": [
     "summary_level_receipt_only_no_raw_image_processing",
@@ -258,7 +259,13 @@
     "numerical_policy": "clip exact 0/1 probabilities to [1e-15,1-1e-15] for finite log loss; preserve raw probabilities for Brier/reliability",
     "missing_class_policy": "ROC-AUC is null for a one-class cohort; no fabricated zero",
     "comparison_policy": "compare probabilities only on the same labels and frozen holdout cohort; report threshold-free probability metrics before thresholded class metrics",
-    "note": "ECE is binning-dependent and is not a proper scoring rule"
+    "note": "ECE is binning-dependent and is not a proper scoring rule",
+    "external_baseline_convention": {
+      "PIVPostProcess_2026": "paper defines predicted probability as P(valid vector)",
+      "internal_convention": "P(invalid vector)",
+      "conversion": "p_invalid = 1 - p_valid",
+      "invariance": "ROC-AUC, log loss and Brier score remain invariant when labels and probabilities are complemented together"
+    }
   },
   "published_comparator_targets": {
     "PIVPostProcess_2026": {
