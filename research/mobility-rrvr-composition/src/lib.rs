@@ -134,12 +134,10 @@ pub fn assess_pre_native(input: &CompositionInput<'_>) -> CompositionAssessment 
         == input.old_attempt_no_effect.required_claim_id;
     let no_effect_claim_scope_matches = input.old_attempt_no_effect.profile.scope_commitment
         == input.old_attempt_no_effect.expected_scope_commitment;
-    let required_downstream_claim_id_matches =
-        input.downstream_graph_quiescence.profile.claim_id
-            == input.downstream_graph_quiescence.required_claim_id;
-    let downstream_claim_scope_matches =
-        input.downstream_graph_quiescence.profile.scope_commitment
-            == input.downstream_graph_quiescence.expected_scope_commitment;
+    let required_downstream_claim_id_matches = input.downstream_graph_quiescence.profile.claim_id
+        == input.downstream_graph_quiescence.required_claim_id;
+    let downstream_claim_scope_matches = input.downstream_graph_quiescence.profile.scope_commitment
+        == input.downstream_graph_quiescence.expected_scope_commitment;
     let cross_owner_identity_matches =
         cross_owner_identity_matches(input.recovery, input.downstream);
 
@@ -178,9 +176,7 @@ pub fn assess_pre_native(input: &CompositionInput<'_>) -> CompositionAssessment 
             ) {
                 CompositionDisposition::Hold(CompositionHold::DownstreamGraphNotQualified)
             } else if !required_downstream_claim_id_matches {
-                CompositionDisposition::Hold(
-                    CompositionHold::RequiredDownstreamClaimIdMismatch,
-                )
+                CompositionDisposition::Hold(CompositionHold::RequiredDownstreamClaimIdMismatch)
             } else if !downstream_claim_scope_matches {
                 CompositionDisposition::Hold(CompositionHold::DownstreamClaimScopeMismatch)
             } else if downstream_evidence != EvidenceVerdict::Confirmed {
@@ -215,13 +211,10 @@ pub fn assess_pre_native(input: &CompositionInput<'_>) -> CompositionAssessment 
 mod tests {
     use super::*;
     use mobility_downstream_fence::{
-        CommandHoldingLayer, CommandPathEdge, Commitment as FenceCommitment,
-        DownstreamFencePacket, LayerQuiescenceReceipt, QueueDisposition, QueuePathInventory,
-        RestartTransition,
+        CommandHoldingLayer, CommandPathEdge, Commitment as FenceCommitment, DownstreamFencePacket,
+        LayerQuiescenceReceipt, QueueDisposition, QueuePathInventory, RestartTransition,
     };
-    use mobility_evidence_verdict::{
-        ClaimProfile, EvidenceRelation, EvidenceSourceKind,
-    };
+    use mobility_evidence_verdict::{ClaimProfile, EvidenceRelation, EvidenceSourceKind};
     use mobility_restart_reconciliation::{
         EffectEvidenceRef, EffectOutcome, FreshActionTicketRef, MissionResolution,
         MissionResolutionRef, OwnerVerdict, PersistenceVerdict, QueueFenceReceipt,
@@ -350,10 +343,7 @@ mod tests {
                 stack_configuration_commitment: fence_commitment(9),
                 inventory_commitment: fence_commitment(8),
                 entry_layer_id: "controller".to_owned(),
-                terminal_layer_ids: vec![
-                    "left-actuator".to_owned(),
-                    "right-actuator".to_owned(),
-                ],
+                terminal_layer_ids: vec!["left-actuator".to_owned(), "right-actuator".to_owned()],
                 layers,
                 edges: vec![
                     edge("controller-left", "controller", "left-driver"),
@@ -398,11 +388,7 @@ mod tests {
         }
     }
 
-    fn claim_fact(
-        profile: &ClaimProfile,
-        evidence_id: &str,
-        domain: &str,
-    ) -> EvidenceFact {
+    fn claim_fact(profile: &ClaimProfile, evidence_id: &str, domain: &str) -> EvidenceFact {
         EvidenceFact {
             claim_id: profile.claim_id.clone(),
             scope_commitment: profile.scope_commitment,
@@ -419,15 +405,31 @@ mod tests {
 
     fn no_effect_facts(profile: &ClaimProfile) -> Vec<EvidenceFact> {
         vec![
-            claim_fact(profile, "controller-observation", "read-only-controller-observer"),
-            claim_fact(profile, "physical-observation", "independent-physical-observer"),
+            claim_fact(
+                profile,
+                "controller-observation",
+                "read-only-controller-observer",
+            ),
+            claim_fact(
+                profile,
+                "physical-observation",
+                "independent-physical-observer",
+            ),
         ]
     }
 
     fn downstream_facts(profile: &ClaimProfile) -> Vec<EvidenceFact> {
         vec![
-            claim_fact(profile, "bus-quiescence-observation", "read-only-bus-observer"),
-            claim_fact(profile, "firmware-quiescence-observation", "firmware-state-observer"),
+            claim_fact(
+                profile,
+                "bus-quiescence-observation",
+                "read-only-bus-observer",
+            ),
+            claim_fact(
+                profile,
+                "firmware-quiescence-observation",
+                "firmware-state-observer",
+            ),
         ]
     }
 
@@ -626,8 +628,9 @@ mod tests {
             &graph_profile,
             &graph_facts,
         );
-        composition_input.old_attempt_no_effect.expected_scope_commitment =
-            evidence_commitment(99);
+        composition_input
+            .old_attempt_no_effect
+            .expected_scope_commitment = evidence_commitment(99);
         let result = assess_pre_native(&composition_input);
         assert_eq!(
             result.disposition,
@@ -667,8 +670,9 @@ mod tests {
             &graph_profile,
             &graph_facts,
         );
-        composition_input.downstream_graph_quiescence.expected_scope_commitment =
-            evidence_commitment(100);
+        composition_input
+            .downstream_graph_quiescence
+            .expected_scope_commitment = evidence_commitment(100);
         let result = assess_pre_native(&composition_input);
         assert_eq!(
             result.disposition,
@@ -831,9 +835,16 @@ mod tests {
     #[test]
     fn already_applied_physical_effect_is_never_promoted_to_recovery() {
         let mut recovery = recovery_packet();
-        recovery.effect_evidence.as_mut().expect("effect evidence").outcome =
-            mobility_restart_reconciliation::EffectOutcome::Applied;
-        recovery.mission_resolution.as_mut().expect("M1 resolution").resolution =
+        recovery
+            .effect_evidence
+            .as_mut()
+            .expect("effect evidence")
+            .outcome = mobility_restart_reconciliation::EffectOutcome::Applied;
+        recovery
+            .mission_resolution
+            .as_mut()
+            .expect("M1 resolution")
+            .resolution =
             mobility_restart_reconciliation::MissionResolution::EffectPredicateSatisfied;
         recovery.recovery_permit = None;
         recovery.next_ticket = None;
