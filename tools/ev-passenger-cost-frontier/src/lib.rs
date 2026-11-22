@@ -8,3 +8,4 @@ pub mod carrier_module_factory;
 pub mod mobility_commitment_lease;
 pub mod mobility_flexibility_envelope;
 pub mod mobility_recovery_envelope;
+pub mod mobility_commitment_journal;
