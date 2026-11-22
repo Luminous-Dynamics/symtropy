@@ -97,6 +97,50 @@ pub struct BatteryPack {
     pub thermal: ThermalEvidence,
 }
 
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum PackTransitionDisposition {
+    Confirmed,
+    Timeout,
+    OutcomeUnknown,
+    Reconciled,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PackTransitionEvent {
+    pub event_id: String,
+    pub idempotency_key: String,
+    pub operation_id: String,
+    pub sequence: u64,
+    pub event_time_unix_ms: u64,
+    pub from_state: PackState,
+    pub proposed_to_state: PackState,
+    pub disposition: PackTransitionDisposition,
+    pub evidence: EvidenceEnvelope,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PackStateJournalInput {
+    pub pack_id: String,
+    pub configuration_digest: String,
+    pub replay_cutoff_unix_ms: u64,
+    pub initial_state: PackStateEvidence,
+    pub events: Vec<PackTransitionEvent>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct PackStateJournalReport {
+    pub pack_id: String,
+    pub final_state: PackState,
+    pub final_sequence: u64,
+    pub reconciliation_required: bool,
+    pub last_uncertain_event_id: Option<String>,
+    pub accepted_event_ids: Vec<String>,
+    pub findings: Vec<String>,
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct MissionDemand {
@@ -192,10 +236,11 @@ fn add_finding(
     }
 }
 
-fn evidence_is_admissible(
+fn evidence_is_admissible_for_identity(
     evidence: &EvidenceEnvelope,
-    pack: &BatteryPack,
-    dispatch_time_unix_ms: u64,
+    asset_id: &str,
+    configuration_digest: &str,
+    decision_time_unix_ms: u64,
     findings: &mut Vec<String>,
     status: &mut EligibilityStatus,
     name: &str,
@@ -222,7 +267,7 @@ fn evidence_is_admissible(
     if !complete {
         return false;
     }
-    if evidence.asset_id != pack.pack_id {
+    if evidence.asset_id != asset_id {
         add_finding(
             findings,
             status,
@@ -231,7 +276,7 @@ fn evidence_is_admissible(
         );
         return false;
     }
-    if evidence.configuration_digest != pack.configuration_digest {
+    if evidence.configuration_digest != configuration_digest {
         add_finding(
             findings,
             status,
@@ -278,7 +323,7 @@ fn evidence_is_admissible(
         );
         return false;
     }
-    if observed_at > dispatch_time_unix_ms {
+    if observed_at > decision_time_unix_ms {
         add_finding(
             findings,
             status,
@@ -287,7 +332,7 @@ fn evidence_is_admissible(
         );
         return false;
     }
-    if dispatch_time_unix_ms < valid_from || dispatch_time_unix_ms > valid_until {
+    if decision_time_unix_ms < valid_from || decision_time_unix_ms > valid_until {
         add_finding(
             findings,
             status,
@@ -297,6 +342,25 @@ fn evidence_is_admissible(
         return false;
     }
     true
+}
+
+fn evidence_is_admissible(
+    evidence: &EvidenceEnvelope,
+    pack: &BatteryPack,
+    decision_time_unix_ms: u64,
+    findings: &mut Vec<String>,
+    status: &mut EligibilityStatus,
+    name: &str,
+) -> bool {
+    evidence_is_admissible_for_identity(
+        evidence,
+        &pack.pack_id,
+        &pack.configuration_digest,
+        decision_time_unix_ms,
+        findings,
+        status,
+        name,
+    )
 }
 
 fn evaluate_boolean_evidence(
@@ -509,6 +573,206 @@ fn evaluate_pair(
         },
         findings,
     }
+}
+
+fn transition_is_allowed(from: PackState, to: PackState) -> bool {
+    use PackState::*;
+    matches!(
+        (from, to),
+        (Available, Reserved)
+            | (Reserved, Available)
+            | (Reserved, Installed)
+            | (Reserved, Quarantined)
+            | (Installed, Depleted)
+            | (Installed, Quarantined)
+            | (Depleted, InTransit)
+            | (Depleted, Cooling)
+            | (Depleted, Inspection)
+            | (InTransit, Cooling)
+            | (InTransit, Inspection)
+            | (InTransit, Quarantined)
+            | (Cooling, Charging)
+            | (Cooling, Inspection)
+            | (Cooling, Quarantined)
+            | (Charging, Balancing)
+            | (Charging, Cooling)
+            | (Charging, Quarantined)
+            | (Balancing, Inspection)
+            | (Balancing, Charging)
+            | (Balancing, Quarantined)
+            | (Inspection, Repair)
+            | (Inspection, PostTest)
+            | (Inspection, Quarantined)
+            | (Inspection, Retired)
+            | (Repair, PostTest)
+            | (Repair, Quarantined)
+            | (Repair, Retired)
+            | (PostTest, Available)
+            | (PostTest, Quarantined)
+            | (PostTest, Retired)
+            | (Quarantined, Inspection)
+            | (Quarantined, Retired)
+    )
+}
+
+pub fn replay_pack_state_journal(
+    input: &PackStateJournalInput,
+) -> Result<PackStateJournalReport, Vec<String>> {
+    let mut errors = Vec::new();
+    if input.pack_id.trim().is_empty()
+        || input.configuration_digest.trim().is_empty()
+        || input.replay_cutoff_unix_ms == 0
+    {
+        errors.push("journal_identity_or_replay_cutoff_missing".to_string());
+    }
+
+    let initial_observation_time = input.initial_state.evidence.observed_at_unix_ms;
+    if initial_observation_time.is_none()
+        || initial_observation_time.is_some_and(|time| time > input.replay_cutoff_unix_ms)
+    {
+        errors.push("initial_state_observation_time_missing_or_after_cutoff".to_string());
+    }
+
+    let mut findings = Vec::new();
+    let mut initial_status = EligibilityStatus::Eligible;
+    if let Some(initial_time) = initial_observation_time {
+        if !evidence_is_admissible_for_identity(
+            &input.initial_state.evidence,
+            &input.pack_id,
+            &input.configuration_digest,
+            initial_time,
+            &mut findings,
+            &mut initial_status,
+            "initial_pack_state",
+        ) {
+            errors.push("initial_pack_state_evidence_not_admissible".to_string());
+        }
+    } else {
+        errors.push("initial_pack_state_evidence_time_missing".to_string());
+    }
+
+    if input.initial_state.value == PackState::Unknown {
+        findings.push("initial_pack_state_unknown_reconciliation_required".to_string());
+    }
+
+    let mut current_state = input.initial_state.value;
+    let mut current_sequence = 0_u64;
+    let mut last_event_time = initial_observation_time.unwrap_or_default();
+    let mut reconciliation_required = current_state == PackState::Unknown;
+    let mut last_uncertain_event_id = None;
+    let mut accepted_event_ids = Vec::new();
+    let mut event_ids = BTreeSet::new();
+    let mut idempotency_keys = BTreeSet::new();
+
+    for event in &input.events {
+        if event.event_id.trim().is_empty()
+            || event.idempotency_key.trim().is_empty()
+            || event.operation_id.trim().is_empty()
+        {
+            errors.push("event_identity_idempotency_or_operation_id_missing".to_string());
+            break;
+        }
+        if !event_ids.insert(event.event_id.as_str()) {
+            errors.push(format!("duplicate_event_id:{}", event.event_id));
+            break;
+        }
+        if !idempotency_keys.insert(event.idempotency_key.as_str()) {
+            errors.push(format!("duplicate_idempotency_key:{}", event.idempotency_key));
+            break;
+        }
+        if event.sequence != current_sequence.saturating_add(1) {
+            errors.push(format!("non_contiguous_event_sequence:{}", event.event_id));
+            break;
+        }
+        if event.event_time_unix_ms < last_event_time
+            || event.event_time_unix_ms > input.replay_cutoff_unix_ms
+        {
+            errors.push(format!("event_time_non_monotonic_or_after_cutoff:{}", event.event_id));
+            break;
+        }
+
+        let mut event_status = EligibilityStatus::Eligible;
+        if !evidence_is_admissible_for_identity(
+            &event.evidence,
+            &input.pack_id,
+            &input.configuration_digest,
+            event.event_time_unix_ms,
+            &mut findings,
+            &mut event_status,
+            "pack_transition_event",
+        ) {
+            errors.push(format!("event_evidence_not_admissible:{}", event.event_id));
+            break;
+        }
+        if event.from_state != current_state {
+            errors.push(format!("event_from_state_mismatch:{}", event.event_id));
+            break;
+        }
+
+        match event.disposition {
+            PackTransitionDisposition::Confirmed => {
+                if reconciliation_required {
+                    errors.push(format!("normal_event_blocked_pending_reconciliation:{}", event.event_id));
+                    break;
+                }
+                if !transition_is_allowed(current_state, event.proposed_to_state) {
+                    errors.push(format!("illegal_pack_state_transition:{}", event.event_id));
+                    break;
+                }
+                current_state = event.proposed_to_state;
+            }
+            PackTransitionDisposition::Timeout | PackTransitionDisposition::OutcomeUnknown => {
+                if reconciliation_required {
+                    errors.push(format!("second_unknown_operation_blocked:{}", event.event_id));
+                    break;
+                }
+                reconciliation_required = true;
+                last_uncertain_event_id = Some(event.event_id.clone());
+                findings.push(format!("operation_outcome_unknown:{}", event.operation_id));
+            }
+            PackTransitionDisposition::Reconciled => {
+                if !reconciliation_required {
+                    errors.push(format!("unexpected_reconciliation_without_unknown_outcome:{}", event.event_id));
+                    break;
+                }
+                if !matches!(
+                    event.evidence.evidence_class,
+                    EvidenceClass::Measured | EvidenceClass::IndependentTest
+                ) {
+                    errors.push(format!("reconciliation_requires_measured_or_independent_evidence:{}", event.event_id));
+                    break;
+                }
+                if event.proposed_to_state == PackState::Unknown {
+                    errors.push(format!("reconciliation_state_remains_unknown:{}", event.event_id));
+                    break;
+                }
+                current_state = event.proposed_to_state;
+                reconciliation_required = false;
+                last_uncertain_event_id = None;
+                findings.push(format!("physical_state_reconciled:{}", event.event_id));
+            }
+        }
+
+        current_sequence = event.sequence;
+        last_event_time = event.event_time_unix_ms;
+        accepted_event_ids.push(event.event_id.clone());
+    }
+
+    if !errors.is_empty() {
+        errors.sort();
+        errors.dedup();
+        return Err(errors);
+    }
+
+    Ok(PackStateJournalReport {
+        pack_id: input.pack_id.clone(),
+        final_state: current_state,
+        final_sequence: current_sequence,
+        reconciliation_required,
+        last_uncertain_event_id,
+        accepted_event_ids,
+        findings,
+    })
 }
 
 fn assignment_key(
