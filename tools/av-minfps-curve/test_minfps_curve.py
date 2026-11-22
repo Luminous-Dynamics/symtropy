@@ -220,6 +220,33 @@ class MinFpsCurveTests(unittest.TestCase):
         with self.assertRaises(MinFpsEvaluationError):
             evaluate_document(doc)
 
+
+    def test_partial_failed_attempt_is_retained_without_fabricated_frames(self):
+        doc = document({"seed-1": {1.0: True, 2.0: True, 4.0: True}})
+        failed = doc["seeds"][0]["runs"][1]
+        failed["run_status"] = "TIMEOUT"
+        failed["frame_manifest"] = [
+            {"frame_id": "frame-0", "timestamp_ms": 0.0}
+        ]
+        failed["frame_manifest_sha256"] = hashlib.sha256(
+            json.dumps(
+                failed["frame_manifest"],
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=False,
+            ).encode()
+        ).hexdigest()
+        failed["grounded_success"] = None
+        failed["answer_correct"] = None
+        failed["evidence_sufficient"] = None
+        failed["decision_on_time"] = None
+        failed["certificate_scorecard_sha256"] = None
+        failed["resource"]["frames_delivered"] = 1
+        result = evaluate_document(doc)
+        self.assertEqual(result["failed_rate_runs"], 1)
+        self.assertEqual(result["attempted_rate_runs"], 3)
+        self.assertEqual(result["rate_summaries"][1]["grounded_success_fraction"], 0.0)
+
     def test_inconsistent_frames_delivered_count_is_rejected(self):
         doc = document({"seed-1": {1.0: True, 2.0: True, 4.0: True}})
         doc["seeds"][0]["runs"][1]["resource"]["frames_delivered"] = 99
