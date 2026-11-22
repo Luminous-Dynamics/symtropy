@@ -275,8 +275,7 @@ pub fn standard_normal_box_log_probability(
 
     let mut log_mass = 0.0;
     for (axis_lower, axis_upper) in lower.iter().zip(upper.iter()) {
-        let axis_log_mass =
-            standard_normal_interval_log_probability(*axis_lower, *axis_upper)?;
+        let axis_log_mass = standard_normal_interval_log_probability(*axis_lower, *axis_upper)?;
         if axis_log_mass == f64::NEG_INFINITY {
             return Ok(f64::NEG_INFINITY);
         }
@@ -850,14 +849,16 @@ mod tests {
 
     #[test]
     fn standard_normal_box_retains_extreme_multidimensional_tail_mass() {
-        let log_mass =
-            standard_normal_box_log_probability(&[40.0, 40.0], &[41.0, 41.0]).unwrap();
+        let log_mass = standard_normal_box_log_probability(&[40.0, 40.0], &[41.0, 41.0]).unwrap();
         assert_close(log_mass, -1609.2168840275076, 4.0e-12);
     }
 
     #[test]
     fn standard_normal_cube_tail_union_bound_is_capped_at_one() {
-        assert_eq!(standard_normal_cube_tail_log_upper_bound(0.01, 3).unwrap(), 0.0);
+        assert_eq!(
+            standard_normal_cube_tail_log_upper_bound(0.01, 3).unwrap(),
+            0.0
+        );
     }
 
     #[test]
