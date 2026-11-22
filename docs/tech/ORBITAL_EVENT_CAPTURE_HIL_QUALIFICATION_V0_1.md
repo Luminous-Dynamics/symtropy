@@ -12,6 +12,8 @@ Reliability analysis cannot infer whether the measurement system recorded every 
 
 This protocol turns the synthetic observation-channel contract in #6659 into a staged hardware-in-the-loop (HIL) campaign in the existing uncrewed ground test cell. It qualifies the observation path independently from the mechanical, fluid, structural and reliability-model acceptance decisions that consume its evidence.
 
+A strict campaign-profile contract is provided at [orbital-event-capture-hil-profile-v0.1.schema.json](../../schemas/tech/orbital-event-capture-hil-profile-v0.1.schema.json). It binds DUT/reference paths, calibration and common-cause declarations, event definition, qualification envelope, per-stratum sampling plan, multiplicity allocation and acceptance criteria. The schema hard-codes that a profile is proposed planning evidence only; it cannot assert that a physical test, approval or flight qualification occurred.
+
 The target chain is:
 
 \[
