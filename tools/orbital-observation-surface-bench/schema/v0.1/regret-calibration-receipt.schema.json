@@ -1,0 +1,42 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://luminousdynamics.io/schemas/orbital-regret-calibration-receipt-v0.1.json",
+  "title":"Finite per-regime regret calibration receipt v0.1",
+  "type":"object","additionalProperties":false,
+  "required":["receipt_schema","source_commit","corpus_sha256","result","evidence_class","claim_ceiling","calibration_split_id","score_contract_id","alpha","regime_count","total_sample_count","global_status","worst_regime_threshold","worst_regime_ids","regimes_without_finite_nontrivial_threshold","regime_results","coverage_claim","physical_qualification_granted","authority_granted"],
+  "properties":{
+    "receipt_schema":{"const":"luminous.orbital-regret-calibration.receipt.v0.1"},
+    "source_commit":{"type":"string","pattern":"^[0-9a-f]{40}$"},
+    "corpus_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+    "result":{"const":"pass"},
+    "evidence_class":{"const":"synthetic"},
+    "claim_ceiling":{"const":"finite-split-conformal-regret-rank-algebra-only"},
+    "calibration_split_id":{"type":"string","minLength":1},
+    "score_contract_id":{"type":"string","minLength":1},
+    "alpha":{"$ref":"#/$defs/rational"},
+    "regime_count":{"type":"integer","minimum":1,"maximum":64},
+    "total_sample_count":{"type":"integer","minimum":1},
+    "global_status":{"enum":["NO_FINITE_NONTRIVIAL_THRESHOLD","WORST_REGIME_SUPPORT_BOUND_ONLY","WORST_REGIME_EMPIRICAL_THRESHOLD"]},
+    "worst_regime_threshold":{"anyOf":[{"$ref":"#/$defs/rational"},{"type":"null"}]},
+    "worst_regime_ids":{"type":"array","items":{"type":"string"}},
+    "regimes_without_finite_nontrivial_threshold":{"type":"array","items":{"type":"string"}},
+    "regime_results":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/regime_result"}},
+    "coverage_claim":{"const":"marginal_per_declared_regime_under_within_regime_exchangeability_only"},
+    "physical_qualification_granted":{"const":false},
+    "authority_granted":{"const":false}
+  },
+  "$defs":{
+    "rational":{"type":"object","additionalProperties":false,"required":["numerator","denominator"],
+      "properties":{"numerator":{"type":"integer","minimum":0,"maximum":9007199254740991},
+                    "denominator":{"type":"integer","minimum":1,"maximum":9007199254740991}}},
+    "regime_result":{"type":"object","additionalProperties":false,
+      "required":["regime_id","sample_count","rank","threshold_status","threshold","selected_sample_id"],
+      "properties":{"regime_id":{"type":"string","minLength":1},
+                    "sample_count":{"type":"integer","minimum":1},
+                    "rank":{"type":"integer","minimum":1},
+                    "threshold_status":{"enum":["EMPIRICAL_ORDER_STATISTIC","SUPPORT_BOUND_ONLY","NO_FINITE_NONTRIVIAL_THRESHOLD"]},
+                    "threshold":{"anyOf":[{"$ref":"#/$defs/rational"},{"type":"null"}]},
+                    "selected_sample_id":{"anyOf":[{"type":"string","minLength":1},{"type":"null"}]}}
+    }
+  }
+}
