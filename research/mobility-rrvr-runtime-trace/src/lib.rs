@@ -940,19 +940,32 @@ impl RuntimeProjectionRecording {
             let state_m1 = bool_field(&s.state_s, "m1Current")?;
             let state_m2 = bool_field(&s.state_s, "m2Current")?;
 
+            let state_effect_evidence = str_field(&s.state_s, "effectEvidence")?;
             let persistence_status =
                 owner_evidence_by_domain(s, OwnerEvidenceDomain::Persistence)?.status;
-            if state_persist == "committed" && persistence_status != OwnerEvidenceStatus::Confirmed
-            {
-                return Err(ProjectionError::OwnerEvidenceStatusMismatch);
-            }
-            if matches!(state_persist, "in_flight" | "indeterminate_commit")
-                && !matches!(
-                    persistence_status,
-                    OwnerEvidenceStatus::Unknown | OwnerEvidenceStatus::InsufficientEvidence
-                )
-            {
-                return Err(ProjectionError::OwnerEvidenceStatusMismatch);
+            match state_persist {
+                "committed" => {
+                    if persistence_status != OwnerEvidenceStatus::Confirmed {
+                        return Err(ProjectionError::OwnerEvidenceStatusMismatch);
+                    }
+                }
+                "in_flight" | "indeterminate_commit" => {
+                    if !matches!(
+                        persistence_status,
+                        OwnerEvidenceStatus::Unknown | OwnerEvidenceStatus::InsufficientEvidence
+                    ) {
+                        return Err(ProjectionError::OwnerEvidenceStatusMismatch);
+                    }
+                }
+                "definitely_not_committed" => {
+                    if !matches!(
+                        persistence_status,
+                        OwnerEvidenceStatus::NotApplicable | OwnerEvidenceStatus::Confirmed
+                    ) {
+                        return Err(ProjectionError::OwnerEvidenceStatusMismatch);
+                    }
+                }
+                _ => return Err(ProjectionError::OwnerEvidenceStatusMismatch),
             }
             if state_permit != "absent" && persistence_status != OwnerEvidenceStatus::Confirmed {
                 return Err(ProjectionError::OwnerEvidenceStatusMismatch);
@@ -960,37 +973,102 @@ impl RuntimeProjectionRecording {
 
             let physical_status =
                 owner_evidence_by_domain(s, OwnerEvidenceDomain::PhysicalOutcome)?.status;
-            if state_old_outcome == "none" && physical_status != OwnerEvidenceStatus::NotApplicable
-            {
-                return Err(ProjectionError::OwnerEvidenceStatusMismatch);
-            }
-            if state_old_outcome != "none" && physical_status != OwnerEvidenceStatus::Confirmed {
-                return Err(ProjectionError::OwnerEvidenceStatusMismatch);
+            match (state_old_outcome, state_effect_evidence) {
+                ("none", "none") => {
+                    if physical_status != OwnerEvidenceStatus::NotApplicable {
+                        return Err(ProjectionError::OwnerEvidenceStatusMismatch);
+                    }
+                }
+                (outcome, "none") if outcome != "none" => {
+                    if physical_status != OwnerEvidenceStatus::InsufficientEvidence {
+                        return Err(ProjectionError::OwnerEvidenceStatusMismatch);
+                    }
+                }
+                (_, "unknown") => {
+                    if !matches!(
+                        physical_status,
+                        OwnerEvidenceStatus::Unknown | OwnerEvidenceStatus::InsufficientEvidence
+                    ) {
+                        return Err(ProjectionError::OwnerEvidenceStatusMismatch);
+                    }
+                }
+                (_, "disputed") => {
+                    if physical_status != OwnerEvidenceStatus::Disputed {
+                        return Err(ProjectionError::OwnerEvidenceStatusMismatch);
+                    }
+                }
+                ("applied", "applied") | ("no_effect", "no_effect") | ("partial", "partial") => {
+                    if physical_status != OwnerEvidenceStatus::Confirmed {
+                        return Err(ProjectionError::OwnerEvidenceStatusMismatch);
+                    }
+                }
+                _ => return Err(ProjectionError::OwnerEvidenceStatusMismatch),
             }
 
             let mission_status =
                 owner_evidence_by_domain(s, OwnerEvidenceDomain::MissionResolution)?.status;
-            if state_mission == "none" && mission_status != OwnerEvidenceStatus::NotApplicable {
-                return Err(ProjectionError::OwnerEvidenceStatusMismatch);
-            }
-            if state_mission != "none" && mission_status != OwnerEvidenceStatus::Confirmed {
-                return Err(ProjectionError::OwnerEvidenceStatusMismatch);
+            match state_mission {
+                "none" => {
+                    if mission_status != OwnerEvidenceStatus::NotApplicable {
+                        return Err(ProjectionError::OwnerEvidenceStatusMismatch);
+                    }
+                }
+                "unknown" => {
+                    if !matches!(
+                        mission_status,
+                        OwnerEvidenceStatus::Unknown | OwnerEvidenceStatus::InsufficientEvidence
+                    ) {
+                        return Err(ProjectionError::OwnerEvidenceStatusMismatch);
+                    }
+                }
+                "disputed" => {
+                    if mission_status != OwnerEvidenceStatus::Disputed {
+                        return Err(ProjectionError::OwnerEvidenceStatusMismatch);
+                    }
+                }
+                "applied" | "no_effect" | "partial" => {
+                    if mission_status != OwnerEvidenceStatus::Confirmed {
+                        return Err(ProjectionError::OwnerEvidenceStatusMismatch);
+                    }
+                }
+                _ => return Err(ProjectionError::OwnerEvidenceStatusMismatch),
             }
 
             let controller_status =
                 owner_evidence_by_domain(s, OwnerEvidenceDomain::ControllerQueue)?.status;
-            if state_queue_fence == state_boot
-                && controller_status != OwnerEvidenceStatus::Confirmed
-            {
+            let expected_controller_status = if state_queue_fence == state_boot {
+                OwnerEvidenceStatus::Confirmed
+            } else if state_queue_fence == 0 {
+                OwnerEvidenceStatus::NotApplicable
+            } else {
+                OwnerEvidenceStatus::Refuted
+            };
+            if controller_status != expected_controller_status {
                 return Err(ProjectionError::OwnerEvidenceStatusMismatch);
             }
+
             let graph_status =
                 owner_evidence_by_domain(s, OwnerEvidenceDomain::DownstreamExecutionGraph)?.status;
-            if state_downstream_fence == state_boot
-                && graph_status != OwnerEvidenceStatus::Confirmed
-            {
+            let expected_graph_status = if state_downstream_fence == state_boot {
+                OwnerEvidenceStatus::Confirmed
+            } else if state_downstream_fence == 0 {
+                OwnerEvidenceStatus::NotApplicable
+            } else {
+                OwnerEvidenceStatus::Refuted
+            };
+            if graph_status != expected_graph_status {
                 return Err(ProjectionError::OwnerEvidenceStatusMismatch);
             }
+
+            let process_status =
+                owner_evidence_by_domain(s, OwnerEvidenceDomain::ProcessEpoch)?.status;
+            if !matches!(
+                process_status,
+                OwnerEvidenceStatus::Current | OwnerEvidenceStatus::Confirmed
+            ) {
+                return Err(ProjectionError::OwnerEvidenceStatusMismatch);
+            }
+
             let applicability_status =
                 owner_evidence_by_domain(s, OwnerEvidenceDomain::ActionApplicability)?.status;
             if state_m1 && state_m2 && applicability_status != OwnerEvidenceStatus::Current {
@@ -1025,9 +1103,8 @@ impl RuntimeProjectionRecording {
                     return Err(ProjectionError::DuplicateObserverClaim);
                 }
             }
-            let effect_state = str_field(&s.state_s, "effectEvidence")?;
             let independent = bool_field(&s.state_s, "observerIndependent")?;
-            match effect_state {
+            match state_effect_evidence {
                 "none" => {
                     if physical_outcome_observer.status != OwnerEvidenceStatus::NotApplicable {
                         return Err(ProjectionError::ObserverQuorumMismatch);
