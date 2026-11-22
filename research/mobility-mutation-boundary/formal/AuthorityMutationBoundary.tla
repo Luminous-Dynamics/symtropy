@@ -74,8 +74,8 @@ VARIABLES
 
 vars ==
     << authorityBinding, activeAttempt, authorityEpoch, clockDomain,
-       bootEpoch, nowTicks, pendingAttempt, consumed, applicationSeq,
-       applicationLog, resolutionLog >>
+       bootEpoch, nowTicks, pendingAttempt, consumed, consumedPermits,
+       applicationSeq, applicationLog, resolutionLog >>
 
 ApplicationRecord ==
     [ ticket : Tickets,
