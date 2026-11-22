@@ -183,15 +183,13 @@ impl CoverageMassUpperBound {
 
     /// Add one unresolved finite cell using the conservative density-times-volume bound.
     pub fn add_unresolved_cell(&mut self, cell: &CoverageCell) -> Result<(), KernelError> {
-        let cell_upper =
-            standard_normal_box_probability_upper_bound(cell.lower(), cell.upper())?;
+        let cell_upper = standard_normal_box_probability_upper_bound(cell.lower(), cell.upper())?;
         self.add_upper_bound(cell_upper)
     }
 
     /// Add the conservative Gaussian tail bound outside a standard-normal cube.
     pub fn add_cube_tail(&mut self, radius: f64, dimension: usize) -> Result<(), KernelError> {
-        let tail_upper =
-            standard_normal_cube_tail_probability_upper_bound(radius, dimension)?;
+        let tail_upper = standard_normal_cube_tail_probability_upper_bound(radius, dimension)?;
         self.add_upper_bound(tail_upper)
     }
 
@@ -748,8 +746,7 @@ mod tests {
 
     #[test]
     fn standard_normal_box_mass_bound_tightens_away_from_zero() {
-        let central =
-            standard_normal_box_probability_upper_bound(&[-0.5], &[0.5]).unwrap();
+        let central = standard_normal_box_probability_upper_bound(&[-0.5], &[0.5]).unwrap();
         let tail = standard_normal_box_probability_upper_bound(&[3.0], &[4.0]).unwrap();
         assert!(tail < central);
         assert!(tail < 0.08);
@@ -758,8 +755,7 @@ mod tests {
     #[test]
     fn standard_normal_box_mass_bound_handles_degenerate_axis() {
         assert_eq!(
-            standard_normal_box_probability_upper_bound(&[0.0, -1.0], &[1.0, -1.0])
-                .unwrap(),
+            standard_normal_box_probability_upper_bound(&[0.0, -1.0], &[1.0, -1.0]).unwrap(),
             0.0
         );
     }
@@ -790,9 +786,7 @@ mod tests {
             standard_normal_cube_tail_probability_upper_bound(0.01, 3).unwrap(),
             1.0
         );
-        assert!(standard_normal_cube_tail_probability_upper_bound(2.0, 12)
-            .unwrap()
-            <= 1.0);
+        assert!(standard_normal_cube_tail_probability_upper_bound(2.0, 12).unwrap() <= 1.0);
     }
 
     #[test]
