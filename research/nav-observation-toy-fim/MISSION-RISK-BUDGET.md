@@ -26,3 +26,15 @@ Example: a 1e-3 mission budget over 785 predeclared checks yields about 1.273885
 ## Longer-term research
 
 Use the union bound as the conservative reference. Compare it against block- or event-level joint models, sequential e-processes/supermartingales, and validated extreme-value models only when their dependence and tail assumptions are independently tested. Do not discard the conservative bound merely because a less conservative model gives a better number.
+
+## Exact bounds when mission failures are observed
+
+The same `integrity_evidence` module now also provides a one-sided exact Clopper–Pearson upper confidence limit for a general number of observed failures:
+
+`p_upper = BetaQuantile(confidence, failures + 1, trials - failures)`
+
+For zero failures the implementation uses the closed-form expression and agrees with the beta-quantile definition. For one or more failures, it evaluates the regularized incomplete beta function and inverts it by bounded bisection. All functions require independent, exchangeable, same-scope mission-level Bernoulli trials. They are not valid for high-rate epochs or dependent route windows.
+
+The zero-failure helper remains deliberately narrow and refuses nonzero failures; use `one_sided_binomial_upper_bound` or `qualify_binomial_evidence` for general outcomes. Counts above the exact integer range of f64 are rejected by the nonzero-failure path rather than silently losing count precision.
+
+Unit tests verify the binomial tail equation, equality with the zero-failure closed form, monotonicity with failures, all-failure behaviour and invalid count rejection.
