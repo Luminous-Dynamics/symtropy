@@ -193,8 +193,6 @@ pub enum ProjectionError {
     IndeterminatePersistenceRecovery, FreshTicketBindingMismatch, InitialStateMismatch,
     DuplicatePhysicalEffectObserved, ObserverQuorumMismatch, DuplicateObserverClaim,
     EvidenceScopeMismatch, ObserverQuorumMalformed,
-    DuplicatePhysicalEffectObserved, ObserverQuorumMismatch, DuplicateObserverClaim,
-    EvidenceScopeMismatch, ObserverQuorumMalformed,
 }
 
 fn nonempty(value: &str) -> bool { !value.trim().is_empty() }
@@ -236,7 +234,8 @@ fn claim_scope_digest(
 fn observer_quorum_is_qualified(proof: &ObserverQuorumProof) -> Result<bool, ProjectionError> {
     if !nonempty(&proof.fault_model_revision)
         || proof.required_independent_members < 2
-        || proof.required_independent_members > proof.members.len()
+        || proof.required_independent_members > 32
+        || proof.members.is_empty()
         || proof.members.len() > 32
     {
         return Err(ProjectionError::ObserverQuorumMalformed);
