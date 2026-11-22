@@ -93,6 +93,9 @@ The novelty claim is not that robust regret or ambiguity sets are new. Several s
 - **Ohnemus et al., ICML 2026 — Loss-Aware Distributionally Robust Optimization via Trainable Optimal Transport Ambiguity Sets.** The loss informs the learned shape of an optimal-transport ambiguity set; data-driven bootstrapping enforces robustness. It is a strong comparator for whether explicit scenario manifests are too conservative or too expensive relative to learned loss-aware sets. https://proceedings.mlr.press/v306/ohnemus26a.html
 - **Chen et al., ICML 2026 — Bulk-Calibrated Credal Ambiguity Sets.** This method separates a high-mass bulk from the remaining tail contribution and reports robust accuracy trade-offs under contamination and distribution shift. It is a useful contamination/tail comparator; the finite joint-scenario evaluator does not replace statistical calibration of a credal set. https://proceedings.mlr.press/v306/chen26e.html
 - **Dellaporta, O’Hara & Damoulas, Entropy 2026 — DRO with Robust Bayesian Ambiguity Sets.** Their MMD ambiguity sets are centred on a robust posterior predictive distribution to address model misspecification, with probabilistic tolerance guarantees. Compare coverage, conservatism and out-of-sample regret on matched tasks. https://doi.org/10.3390/e28040430
+- **Zhao, Jiang & Qi, arXiv:2611.11973 (Nov 9, 2026) — Conformal Regret Sets.** A key comparator for decision-aligned calibration: it calibrates an optimization-derived SPO+ regret upper bound instead of raw objective residuals, and reports finite-sample marginal regret guarantees under exchangeability for contextual linear programs. Their paper also warns that conformalizing exact regret alone can leave robust refinement degenerate without bounded support. This is not a general physical-system guarantee; compare only on matched contextual linear optimization tasks and keep the upper-bound/support assumptions explicit. https://arxiv.org/abs/2611.11973
+- **Yang & Jin, ICML 2026 — Multi-Distribution Robust Conformal Prediction.** Their max-p aggregation gives finite-sample coverage uniformly across multiple heterogeneous source distributions under the paper's sampling assumptions. This is the natural comparator for fixed, predeclared operating regimes; it does not justify pooling adaptively selected, time-dependent or dependent physical sessions. https://proceedings.mlr.press/v306/yang26ad.html
+- **Kiyani et al., ICLR 2026 — Robust Decision-Making with Partially Calibrated Forecasters.** They characterize minimax decisions under weaker, partial calibration guarantees and distinguish decision calibration from full forecast calibration. Compare whether an operational decision-level calibration requirement can be achieved with less calibration burden than full predictive calibration; do not transfer their forecast assumptions to sensor-chain evidence without proving the mapping. https://proceedings.iclr.cc/paper_files/paper/2026/hash/b8b6df58745740e54f00d84534bd182d-Abstract-Conference.html
 - **NIST TN 2119, ASTM E2862-23 and NASA-STD-5009C** remain relevant where the actual problem is instrument detection/POD or fracture-critical NDE. They define domain-specific sampling and scope assumptions; none certifies this decision evaluator or validates a consequence model by itself.
 
 The testable differentiator is the composition of observation-process identifiability, an upstream source-bound compatible-world set, coherent joint loss vectors, fail-closed loss-scenario admissibility, explicit joint-versus-rectangular regret comparison, and independently replayable receipts. Do not claim blanket SOTA superiority from the synthetic corpus.
@@ -123,7 +126,10 @@ Report:
 - joint and rectangular Pareto frontier sizes;
 - action admissibility exclusions and no-action frequency;
 - unqualified/OOD loss-scenario detection and false-in-profile rate;
-- empirical loss-model coverage by operating stratum;
+- empirical loss-model coverage by operating stratum and exact held-out coverage intervals;
+- marginal versus worst-regime coverage, clearly separated;
+- conformal regret-score quantiles, action-rank changes and regret calibration error;
+- exchangeability violations, post-hoc selection and multiple-regime alpha allocation;
 - calibration samples, reference trials, compute, wall time and operator cost;
 - exact replay determinism and receipt verification overhead.
 
@@ -146,7 +152,7 @@ The 20% target is a research objective, not a current result. Report full risk�
 
 ## 8. Next paradigm shifts
 
-1. **Loss-set calibration separate from world-set calibration.** Construct and evaluate a held-out, scope-bound consequence-model envelope. Never inherit the e-process alpha/coverage guarantee from #6887.
+1. **Loss-set calibration separate from world-set calibration.** Follow [#6942](https://github.com/Luminous-Dynamics/symtropy/issues/6942): compare residual conformal, decision-aligned regret scores, multi-distribution max-p conformal and decision calibration on frozen operating regimes. Construct and evaluate a held-out, scope-bound consequence-model envelope. Never inherit the e-process alpha/coverage guarantee from #6887.
 2. **Adaptive consequence discovery.** Design safe probes that distinguish loss models when the physical world is already identified well enough; optimize information per reference cost without relaxing action admissibility.
 3. **Multi-stage adaptive robust control.** Replace one-shot loss matrices with versioned policies and scenario trees, preserving non-anticipativity and no post-hoc scenario selection.
 4. **Tail and contamination semantics.** Compare explicit finite joint scenarios with bulk/tail or credal ambiguity sets; declare boundedness assumptions instead of silently clipping catastrophic loss.
