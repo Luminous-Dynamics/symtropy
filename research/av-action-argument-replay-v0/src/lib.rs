@@ -391,6 +391,8 @@ pub struct ActionResultV1 {
     pub delivered_preprocessing_sha256: Option<String>,
     /// Delivered audio sample range, when this was an audio action.
     pub delivered_audio: Option<DeliveredAudioRangeV1>,
+    /// Digest of the actual filtering/resampling/transport transform applied to delivered audio.
+    pub delivered_audio_transform_sha256: Option<String>,
     /// Delivered feedback, when this was a feedback action.
     pub delivered_feedback: Option<DeliveredFeedbackV1>,
     /// Actual resource usage in bytes/frames/samples/cost units, provided by executor.
@@ -936,7 +938,10 @@ fn validate_result_payload(
 ) -> Result<(), ActionArgumentError> {
     match &manifest.parameters {
         ActionParametersV1::VideoCrop(parameters) => {
-            if result.delivered_audio.is_some() || result.delivered_feedback.is_some() {
+            if result.delivered_audio.is_some()
+                || result.delivered_audio_transform_sha256.is_some()
+                || result.delivered_feedback.is_some()
+            {
                 return Err(ActionArgumentError::new(
                     "video action result cannot carry audio or external feedback payload",
                 ));
@@ -1029,6 +1034,8 @@ fn validate_result_payload(
                 if delivered.sample_rate_hz != parameters.sample_rate_hz
                     || delivered.channels != parameters.channels
                     || delivered.sample_format != parameters.sample_format
+                    || result.delivered_audio_transform_sha256.as_deref()
+                        != Some(parameters.transform_sha256.as_str())
                     || delivered.start_sample < parameters.start_sample
                     || delivered.end_sample > parameters.end_sample
                     || delivered.end_sample <= delivered.start_sample
@@ -1053,13 +1060,20 @@ fn validate_result_payload(
                         "partial audio delivery must be a strict subrange of the request",
                     ));
                 }
-            } else if matches!(
-                result.status,
-                ActionResultStatusV1::Delivered | ActionResultStatusV1::Partial
-            ) {
-                return Err(ActionArgumentError::new(
-                    "delivered/partial audio result requires a sample-range receipt",
-                ));
+            } else {
+                if matches!(
+                    result.status,
+                    ActionResultStatusV1::Delivered | ActionResultStatusV1::Partial
+                ) {
+                    return Err(ActionArgumentError::new(
+                        "delivered/partial audio result requires a sample-range receipt",
+                    ));
+                }
+                if result.delivered_audio_transform_sha256.is_some() {
+                    return Err(ActionArgumentError::new(
+                        "audio transform receipt cannot exist without delivered audio samples",
+                    ));
+                }
             }
         }
         ActionParametersV1::FeedbackRequest(parameters) => {
@@ -1069,6 +1083,7 @@ fn validate_result_payload(
                 || result.delivered_crop_policy_sha256.is_some()
                 || result.delivered_preprocessing_sha256.is_some()
                 || result.delivered_audio.is_some()
+                || result.delivered_audio_transform_sha256.is_some()
             {
                 return Err(ActionArgumentError::new(
                     "feedback request cannot produce a sensor observation payload",
@@ -1503,6 +1518,7 @@ mod tests {
             delivered_crop_policy_sha256: None,
             delivered_preprocessing_sha256: None,
             delivered_audio: None,
+            delivered_audio_transform_sha256: None,
             delivered_feedback: None,
             actual_resource_digest_sha256: hex_sha256(b"resources"),
             result_event_sha256: hex_sha256(b"result"),
@@ -1826,11 +1842,15 @@ mod tests {
                 channels: 1,
                 sample_format: AudioSampleFormatV1::S16Le,
             }),
+            delivered_audio_transform_sha256: Some(digest("audio-transform")),
             delivered_feedback: None,
             actual_resource_digest_sha256: hex_sha256(b"audio-resources"),
             result_event_sha256: hex_sha256(b"audio-result"),
         };
         assert!(validate_action_lifecycle(&forecast, &acceptance, &result).is_ok());
+        let mut mismatched_transform = result.clone();
+        mismatched_transform.delivered_audio_transform_sha256 = Some(digest("wrong-transform"));
+        assert!(validate_action_lifecycle(&forecast, &acceptance, &mismatched_transform).is_err());
     }
 
     #[test]
