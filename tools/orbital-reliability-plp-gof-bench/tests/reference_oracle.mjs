@@ -194,12 +194,12 @@ function evaluateCase(c) {
   }
   if (!Number.isSafeInteger(c.monte_carlo_replicates) || c.monte_carlo_replicates < MIN_REPLICATES
       || c.monte_carlo_replicates > MAX_REPLICATES
-      || c.monte_carlo_replicates < Math.ceil(1 / c.significance_level) - 1
+      || c.monte_carlo_replicates < Math.ceil(STATISTIC_COUNT / c.significance_level) - 1
       || !Number.isSafeInteger(c.random_seed) || c.random_seed < 0 || c.random_seed > MAX_SAFE) {
-    return blocked("rejected", eventCount, "monte_carlo_resolution_or_seed_outside_predeclared_contract");
+    return blocked("rejected", eventCount, "familywise_monte_carlo_resolution_or_seed_outside_predeclared_contract");
   }
   if (eventCount < MIN_EVENTS) {
-    return blocked("indeterminate", eventCount, "insufficient_event_count_for_v0_1_diagnostic");
+    return blocked("indeterminate", eventCount, "insufficient_event_count_for_v0_2_diagnostic");
   }
   if (eventCount * c.monte_carlo_replicates > MAX_TOTAL_DRAWS) {
     return blocked("rejected", eventCount, "monte_carlo_total_draw_budget_exceeded");
