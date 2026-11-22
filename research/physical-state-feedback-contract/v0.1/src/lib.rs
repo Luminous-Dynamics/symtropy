@@ -1329,7 +1329,6 @@ impl ReplayReceipt {
     }
 }
 
-
 /// Canonical, deterministic byte encoding for the content of a physical-state
 /// snapshot. The claimed snapshot_sha256 is deliberately excluded to avoid a
 /// self-referential digest; callers hash these bytes with SHA-256 and compare
@@ -1406,17 +1405,17 @@ impl CanonicalWriter {
 
     fn f64(&mut self, value: f64, path: &str) -> Result<(), ValidationError> {
         if !value.is_finite() {
-            return Err(ValidationError::new(path, "canonical floats must be finite"));
+            return Err(ValidationError::new(
+                path,
+                "canonical floats must be finite",
+            ));
         }
         let normalized = if value == 0.0 { 0.0 } else { value };
         self.raw(&normalized.to_bits().to_be_bytes());
         Ok(())
     }
 
-    fn optional_string(
-        &mut self,
-        value: Option<&str>,
-    ) -> Result<(), ValidationError> {
+    fn optional_string(&mut self, value: Option<&str>) -> Result<(), ValidationError> {
         match value {
             Some(value) => {
                 self.tag(1);
@@ -1545,7 +1544,11 @@ fn encode_field_value_array<const N: usize>(
     encode_field_metadata(writer, &field.metadata, path)
 }
 
-fn encode_pose(writer: &mut CanonicalWriter, pose: &Pose3, path: &str) -> Result<(), ValidationError> {
+fn encode_pose(
+    writer: &mut CanonicalWriter,
+    pose: &Pose3,
+    path: &str,
+) -> Result<(), ValidationError> {
     encode_field_value_array(writer, &pose.translation_m, &format!("{path}.translation"))?;
     encode_field_value_array(writer, &pose.rotation_xyzw, &format!("{path}.rotation"))?;
     writer.string(&pose.child_frame_id)?;
@@ -1592,7 +1595,11 @@ fn encode_entity(
     writer.string(&entity.entity_id)?;
     writer.u64(entity.generation);
     writer.optional_string(entity.parent_entity_id.as_deref())?;
-    encode_pose(writer, &entity.pose, &format!("entity[{}].pose", entity.entity_id))?;
+    encode_pose(
+        writer,
+        &entity.pose,
+        &format!("entity[{}].pose", entity.entity_id),
+    )?;
     encode_field_value_array(
         writer,
         &entity.linear_velocity_m_s,
