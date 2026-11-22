@@ -331,9 +331,10 @@ impl AdaptivePlState {
         let should_integrate = self.integral_state_m_s.abs() < integral_limit
             || tracking_error * self.integral_state_m_s < 0.0;
         let next_integral = if should_integrate {
-            self.integral_state_m_s + tracking_error * dt
+            (self.integral_state_m_s + tracking_error * dt)
+                .clamp(-integral_limit, integral_limit)
         } else {
-            self.integral_state_m_s
+            self.integral_state_m_s.clamp(-integral_limit, integral_limit)
         };
 
         // Eqs. (34)-(35): low-pass filtered derivative.
