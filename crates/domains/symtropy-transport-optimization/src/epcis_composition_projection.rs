@@ -173,7 +173,7 @@ pub struct AggregationCompositionProjectionReport {
     pub chronology_domain: Option<String>,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ProjectionEvaluationError {
     ProjectionNotComplete,
     Composition(CompositionError),
@@ -279,8 +279,8 @@ fn chronology_domain(
                 return Err(ProjectionQuarantineReason::EventTimeEvidenceIdMismatch);
             }
             if earliest_event_time_ticks > latest_event_time_ticks
-                || envelope.event_time_ticks < earliest_event_time_ticks
-                || envelope.event_time_ticks > latest_event_time_ticks
+                || envelope.event_time_ticks < *earliest_event_time_ticks
+                || envelope.event_time_ticks > *latest_event_time_ticks
             {
                 return Err(ProjectionQuarantineReason::InvalidTimeEnclosure);
             }
