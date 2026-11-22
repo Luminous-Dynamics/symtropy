@@ -14,7 +14,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import math
 import sys
 from typing import Any, Callable, Iterable, TextIO
 
@@ -57,6 +56,15 @@ def run_stream(
     except StopIteration as exc:
         raise EvaluationError("missing start record") from exc
 
+    if not isinstance(start, dict):
+        raise EvaluationError("start record must be an object")
+    allowed_start = {
+        "type", "schema_version", "sampling_unit", "alpha",
+        "superiority_margin", "max_observations", "metric_id",
+        "candidate_policy_id", "reference_policy_id",
+    }
+    if set(start) - allowed_start:
+        raise EvaluationError("start record contains unknown fields")
     if start.get("type") != "start":
         raise EvaluationError("first record must have type=start")
     version = start.get("schema_version")
@@ -80,16 +88,33 @@ def run_stream(
     reference_id = _nonempty_string(
         start.get("reference_policy_id", "reference"), "reference_policy_id"
     )
+    start_commit = {
+        "schema_version": 1,
+        "sampling_unit": "independent_source_cluster",
+        "alpha": float(alpha),
+        "superiority_margin": float(margin),
+        "max_observations": max_observations,
+        "metric_id": metric_id,
+        "candidate_policy_id": candidate_id,
+        "reference_policy_id": reference_id,
+    }
+    start_bytes = json.dumps(
+        start_commit, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    ).encode("utf-8")
+    chain = hashlib.sha256(b"av-anytime-valid-stream-v1" + start_bytes).digest()
 
     seen_clusters: set[str] = set()
     total = 0.0
     n = 0
-    chain = hashlib.sha256(b"av-anytime-valid-stream-v1").digest()
     latest: dict[str, Any] | None = None
 
     for record in iterator:
+        if not isinstance(record, dict):
+            raise EvaluationError("each stream record must be an object")
         kind = record.get("type")
         if kind == "end":
+            if set(record) != {"type"}:
+                raise EvaluationError("end record may contain only type")
             result = {
                 "type": "decision",
                 "status": "INCONCLUSIVE",
@@ -102,6 +127,8 @@ def run_stream(
             break
         if kind != "observation":
             raise EvaluationError("records after start must be observation or end")
+        if set(record) != {"type", "cluster_id", "paired_difference"}:
+            raise EvaluationError("observation record must contain exactly type, cluster_id and paired_difference")
         cluster_id = _nonempty_string(record.get("cluster_id"), "cluster_id")
         if cluster_id in seen_clusters:
             raise EvaluationError("duplicate cluster_id; one row per independent source cluster")
