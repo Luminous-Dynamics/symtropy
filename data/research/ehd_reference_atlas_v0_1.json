@@ -1045,6 +1045,38 @@
             "sub_unit_plus_approx": 1.34
           },
           "interpretation": "At matched voltage the modified configuration raises maximum absolute thrust, but the displayed T/P is lower and current is higher. These points are visually estimated from Fig. 9 and are not exact digitized raw measurements."
+        },
+        "figure10_22kv_sub_unit_plus_sweep": {
+          "evidence_class": "source_transcribed_values_from_figure_description",
+          "common_conditions": {
+            "voltage_kv": 22,
+            "inclination_angle_deg": 15,
+            "emitter_collector_gap_mm": 20,
+            "guide_mm": 40
+          },
+          "configurations": [
+            {
+              "sub_unit_plus_width_mm": 50,
+              "distance_mm": 10,
+              "thrust_mn": 68.7
+            },
+            {
+              "sub_unit_plus_width_mm": 50,
+              "distance_mm": 20,
+              "thrust_mn": 67.08
+            },
+            {
+              "sub_unit_plus_width_mm": 40,
+              "distance_mm": 10,
+              "thrust_mn": 63.23
+            },
+            {
+              "sub_unit_plus_width_mm": 40,
+              "distance_mm": 20,
+              "thrust_mn": 61.63
+            }
+          ],
+          "uncertainty_representation": "Figure caption states error bars are 95% confidence intervals; numerical interval endpoints not transcribed."
         }
       },
       "unresolved_fields": [
@@ -1067,7 +1099,7 @@
         "absolute_thrust_leaderboard_eligible": false,
         "thrust_to_power_leaderboard_eligible": false,
         "system_thrust_to_weight_leaderboard_eligible": false,
-        "notes": "Keep the exact abstract headline thrust values separate from approximate Figure 9 visual digitizations. The Fig. 9 comparison suggests approximately 3.0 vs 2.4 N/kW at 22 kV for the named conventional/sub-unit-plus configurations, with approximately 0.77 vs 1.34 mA. Those graph-read estimates are not raw data or a benchmark-grade T/P result. Do not infer that the 68.70 mN configuration is the efficiency optimum."
+        "notes": "Keep the exact abstract headline thrust values separate from approximate Figure 9 visual digitizations. The Fig. 9 comparison suggests approximately 3.0 vs 2.4 N/kW at 22 kV for the named conventional/sub-unit-plus configurations, with approximately 0.77 vs 1.34 mA. Those graph-read estimates are not raw data or a benchmark-grade T/P result. Do not infer that the 68.70 mN configuration is the efficiency optimum. Figure 10 gives a within-study 22 kV geometry sweep with reported mean thrust values and 95% confidence-interval error bars; retain those as a separate configuration cohort."
       }
     }
   ],
