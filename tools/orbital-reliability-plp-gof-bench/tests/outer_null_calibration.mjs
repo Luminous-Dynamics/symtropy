@@ -83,7 +83,7 @@ function generatePlpHistory(beta, rng) {
   return eventTimes;
 }
 
-function conditionalPValue(eventTimes, beta, referenceSeed) {
+function conditionalPValue(eventTimes, referenceSeed) {
   const observed = fitCvm(eventTimes, ENDPOINT);
   const referenceRng = new SplitMix64(referenceSeed);
   let exceedances = 0;
@@ -179,8 +179,8 @@ function main() {
     let betaHatSum = 0;
     for (let replicate = 0; replicate < OUTER_REPLICATES; replicate += 1) {
       const history = generatePlpHistory(trueBeta, outerRng);
-      const referenceSeed = Number(outerRng.nextU64() & BigInt(Number.MAX_SAFE_INTEGER));
-      const result = conditionalPValue(history, trueBeta, referenceSeed);
+      const referenceSeed = outerRng.nextU64();
+      const result = conditionalPValue(history, referenceSeed);
       betaHatSum += result.betaHat;
       for (const alpha of ALPHAS) {
         if (result.pValue <= alpha) counts[String(alpha)] += 1;
