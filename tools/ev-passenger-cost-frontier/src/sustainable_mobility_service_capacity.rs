@@ -121,7 +121,9 @@ fn validate_architecture(
     let mut errors = Vec::new();
 
     if scenario.architecture_id.trim().is_empty()
+        || scenario.architecture_id.len() > 80
         || scenario.description.trim().is_empty()
+        || scenario.description.len() > 1_024
         || scenario.aircraft_count == 0
         || scenario.aircraft_count > MAX_AIRCRAFT
         || scenario.battery_pack_count < scenario.aircraft_count
@@ -628,6 +630,23 @@ mod tests {
             serde_json::to_string(&first).expect("serialize first"),
             serde_json::to_string(&second).expect("serialize second")
         );
+    }
+
+    #[test]
+    fn no_replenishment_case_matches_closed_form_mission_completion_bound() {
+        let mut scenario = direct_charge();
+        scenario.aircraft_count = 1;
+        scenario.battery_pack_count = 5;
+        scenario.initial_ready_spares = 4;
+        scenario.max_stored_spares_per_aircraft = 4;
+        scenario.mission_duration_seconds = 300;
+        scenario.operational_turnaround_seconds = 45;
+        scenario.parallel_charging_channels = 0;
+        let horizon = 1_800_u64;
+        let result = evaluate_architecture_capacity(&scenario, horizon).expect("bounded profile");
+        let analytical = 1 + ((horizon - 300) / (300 + 45));
+        assert_eq!(result.completed_sorties, analytical);
+        assert_eq!(result.completed_sorties, 5);
     }
 
     #[test]
