@@ -491,7 +491,8 @@ mod tests {
 
         let impulse = direction * impulse_magnitude;
         let angular_impulse = Bivector::from_wedge(&impulse, &offset);
-        apply_angular_impulse(&mut body, &angular_impulse);
+        try_apply_angular_impulse(&mut body, &angular_impulse)
+            .expect("validated anisotropic angular impulse must apply");
         let angular_state_delta = body.angular_velocity.add(&before.scale(-1.0));
         let point_velocity_delta = angular_point_velocity(&angular_state_delta, &offset);
         let measured_inverse_mass = direction.dot(&point_velocity_delta) / impulse_magnitude;
@@ -509,7 +510,8 @@ mod tests {
         let impulse = SVector::from([0.0, 1.0, 0.0]);
         let torque = Bivector::from_wedge(&impulse, &offset);
 
-        apply_angular_impulse(&mut body, &torque);
+        try_apply_angular_impulse(&mut body, &torque)
+            .expect("valid legacy isotropic angular impulse must apply");
         let rotational_delta_velocity = angular_point_velocity(&body.angular_velocity, &offset);
         let inverse_inertia = body.inv_inertia.sum() / 3.0;
         let expected =
