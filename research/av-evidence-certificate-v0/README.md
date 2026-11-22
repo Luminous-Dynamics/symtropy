@@ -12,9 +12,12 @@ Score whether each candidate answer or abstention is supported by the exact obse
 
 - `tools/av-evidence-certificate/evaluate_evidence_certificate.py`: standard-library evaluator and CLI.
 - `tools/av-evidence-certificate/test_evidence_certificate.py`: deterministic and adversarial contract tests.
+- `tools/av-evidence-certificate/counterfactual_evidence_suite.py`: controlled evidence-removal / distractor-addition robustness harness that reuses the same claim scorer.
+- `tools/av-evidence-certificate/test_counterfactual_evidence_suite.py`: counterfactual invariance, necessary-evidence withdrawal and adversarial tests.
 - `schemas/workload-v1.schema.json`: candidate-visible workload and delivered observation catalog.
 - `schemas/submission-v1.schema.json`: candidate claims and observation references.
 - `schemas/truth-v1.schema.json`: evaluator-only acceptable answers, minimal sufficient evidence sets, temporal spans and spatial boxes.
+- `schemas/counterfactual-evidence-suite-v1.schema.json`: baseline plus independently generated evidence-intervention runs.
 - `fixtures/agent/`: candidate-visible workload and submission.
 - `fixtures/evaluator-only/`: hidden truth for the synthetic known-answer fixture.
 - `fixtures/expected/`: frozen expected scorecard.
@@ -46,6 +49,26 @@ Every episode reports separate:
 - spatial box IoU;
 - correct abstentions;
 - unnecessary citations relative to the chosen minimal sufficient evidence set.
+
+## Counterfactual evidence robustness
+
+The suite runner consumes a baseline and separate candidate submissions generated after each intervention. It never fabricates the model's counterfactual response.
+
+Supported interventions:
+- `REMOVE_IRRELEVANT`: remove only observations outside every minimal sufficient evidence set for the target claim. The answer/abstention must remain unchanged and the claim must remain grounded.
+- `REMOVE_ALL_SUFFICIENT`: remove at least one source from every alternative minimal sufficient evidence set. The candidate must abstain with no answer or citations rather than keep asserting an unsupported claim.
+- `ADD_IRRELEVANT`: add delivered distractor observations outside every sufficient evidence set. The candidate must preserve its grounded answer and not cite the distractors.
+
+The variant transcript head must differ from the baseline. All retained source observations must be byte-for-byte metadata-identical; only the declared observation addition/removal is allowed. Evaluator truth continues to reference the immutable baseline source catalog while candidate evidence is validated against the changed candidate-visible catalog.
+
+Run:
+
+    python3 -m unittest discover -s tools/av-evidence-certificate -p 'test_*.py' -v
+    python3 tools/av-evidence-certificate/counterfactual_evidence_suite.py --input counterfactual-suite.json
+
+Input schema: `schemas/counterfactual-evidence-suite-v1.schema.json`.
+
+The counterfactual rates are policy robustness metrics, not causal proofs. Their interpretation depends on the evaluator's minimal-sufficient-evidence annotations and the intervention not changing unrelated task context.
 
 Unannotated temporal/spatial axes are reported as null/NOT_EVALUATED, never silently as zero. The v0 uses exact structured answer values; free-form semantic matching is outside its scope.
 
