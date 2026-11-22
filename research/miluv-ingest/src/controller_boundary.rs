@@ -228,8 +228,8 @@ mod tests {
             "r_iw_a_ifo001,r_iw_a_ifo002,r_iw_a_ifo003,",
             "q_ai_ifo001,q_ai_ifo002,q_ai_ifo003\n",
             "1.0,3.5,10,4,0.1,3.4,0.1,",
-            "[1,2,3],[4,5,6],[7,8,9],",
-            "[0,0,0,1],[0,0,0,1],[0,0,0,1]\n"
+            "1 2 3,4 5 6,7 8 9,",
+            "0 0 0 1,0 0 0 1,0 0 0 1\n"
         );
         let events = parse_miluv_csv(csv.as_bytes(), MiluvStream::UwbRange, context("uwb_range.csv")).unwrap();
         let partition = partition_miluv_event(&events[0]);
@@ -239,8 +239,8 @@ mod tests {
         }
         let truth = partition.evaluator_truth.unwrap();
         assert_eq!(truth.fields["gt_range"], "3.4");
-        assert_eq!(truth.fields["r_iw_a_ifo003"], "[7,8,9]");
-        assert_eq!(truth.fields["q_ai_ifo001"], "[0,0,0,1]");
+        assert_eq!(truth.fields["r_iw_a_ifo003"], "7 8 9");
+        assert_eq!(truth.fields["q_ai_ifo001"], "0 0 0 1");
     }
     #[test]
     fn passive_listener_truth_labels_are_separate_from_reception_fields() {
