@@ -7,7 +7,7 @@
 
 This crate provides a Rust-first, source-pinned synthetic event-observation simulator:
 
-- marked logistic POD surface: logit(p) = intercept + time slope × (t − 0.5) + amplitude slope × ln(amplitude) + duration slope × ln(duration);
+- mark/time-dependent logistic conditional classifier-acceptance surface: logit(p) = intercept + time slope × (t − 0.5) + amplitude slope × ln(amplitude) + duration slope × ln(duration);
 - fixed non-paralyzable detector dead time;
 - shared common-cause outage windows affecting all channels;
 - channel-specific outage windows;
@@ -37,7 +37,9 @@ node tools/orbital-observation-surface-bench/tests/reference_oracle.mjs \
   tools/orbital-observation-surface-bench/fixtures/v0.1/observation-surface-cases.json
 ~~~
 
-Each run emits two deliberately separate outputs. The source-pinned receipt includes simulation ground truth and audit counters. The `observations-v0.1.json` artifact is the estimator input: it contains only channel identifiers, configuration identifiers and the sorted timestamps that the simulated channels actually emitted. It contains no latent event IDs, miss reasons, classifier probabilities or false-positive labels. Baseline estimators must consume this observation-only artifact, never the audit-bearing receipt. Both artifacts carry the source-commit and corpus digests; the receipt binds the exact observation bytes with SHA-256.\n\nThe workflow validates the frozen input, receipt and observation stream against the repository's JSON Schema subset, then compares Rust and independent JavaScript outputs at event level. False-positive timestamp generation can differ by tiny floating-point rounding between Rust and JS, so the comparison uses a tight numerical tolerance.
+Each run emits two deliberately separate outputs. The source-pinned receipt includes simulation ground truth and audit counters. The `observations-v0.1.json` artifact is the estimator input: it contains only channel identifiers, configuration identifiers and the sorted timestamps that the simulated channels actually emitted. It contains no latent event IDs, miss reasons, classifier probabilities or false-positive labels. Baseline estimators must consume this observation-only artifact, never the audit-bearing receipt. Both artifacts carry the source-commit and corpus digests; the receipt binds the exact observation bytes with SHA-256.
+
+The workflow validates the frozen input, receipt and observation stream against the repository's JSON Schema subset, then compares Rust and independent JavaScript outputs at event level. The dependency-free schema checker validates the keywords used by these repository schemas; it is not a complete implementation of the JSON Schema 2020-12 standard. False-positive timestamp generation can differ by tiny floating-point rounding between Rust and JS, so the comparison uses a tight numerical tolerance.
 
 ## What this does not do
 
