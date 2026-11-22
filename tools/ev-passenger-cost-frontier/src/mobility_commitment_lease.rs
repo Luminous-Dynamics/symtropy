@@ -1007,6 +1007,42 @@ mod tests {
     }
 
     #[test]
+    fn terminal_state_receipt_cannot_be_replayed_across_commitments() {
+        let mut input = fixture();
+        input.existing_commitments[1].state_receipt_id =
+            input.existing_commitments[0].state_receipt_id.clone();
+        let errors = evaluate_mobility_commitment_lease(&input)
+            .expect_err("state receipts must be unique across commitment records");
+        assert!(errors.iter().any(|error| {
+            error == "commitment_state_receipt_empty_reused_or_mismatched:grid-lease-uncertain-02"
+        }));
+    }
+
+    #[test]
+    fn state_evidence_must_reference_its_exact_receipt() {
+        let mut input = fixture();
+        input.existing_commitments[2].state_evidence.evidence_reference =
+            "synthetic://some-other-settlement".to_owned();
+        let errors = evaluate_mobility_commitment_lease(&input)
+            .expect_err("settlement evidence cannot be detached from the lease receipt");
+        assert!(errors.iter().any(|error| {
+            error == "commitment_state_receipt_empty_reused_or_mismatched:grid-lease-settled-03"
+        }));
+    }
+
+    #[test]
+    fn upstream_report_validity_must_cover_the_full_horizon() {
+        let mut input = fixture();
+        input.report_valid_until_unix_ms =
+            input.decision_time_unix_ms + u64::from(input.slot_duration_seconds) * 1_000;
+        let errors = evaluate_mobility_commitment_lease(&input)
+            .expect_err("a report that expires mid-horizon cannot back a later slot");
+        assert!(errors.iter().any(|error| {
+            error == "upstream_report_validity_does_not_cover_full_horizon"
+        }));
+    }
+
+    #[test]
     fn invalid_or_expired_report_digest_is_rejected() {
         let mut input = fixture();
         input.recovery_report_digest = "not-a-digest".to_owned();
