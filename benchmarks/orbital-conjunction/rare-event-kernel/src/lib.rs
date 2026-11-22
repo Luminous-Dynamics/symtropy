@@ -16,7 +16,9 @@
 //! - normalized Gaussian-mixture log densities using log-sum-exp;
 //! - full-density importance log weights and weighted event indicators;
 //! - a structural check for a strict covariance floor
-//!   Sigma_component > alpha * Sigma_nominal.
+//!   Sigma_component > alpha * Sigma_nominal;
+//! - a budgeted affine-cell traversal that accounts for possible event mass
+//!   outside caller-declared geometric chart boxes.
 //!
 //! These primitives do not establish event-mode completeness, finite-budget
 //! confidence-interval coverage, physical-model adequacy, or the assumptions
@@ -26,9 +28,14 @@ use core::fmt;
 
 /// Outward-rounded affine geometry used by the independent coverage research.
 pub mod coverage;
+pub mod residual;
 pub mod sequential;
 pub mod stats;
 
+pub use residual::{
+    AffineResidualMassConfig, AffineResidualMassReport,
+    affine_collision_residual_mass_upper_bound,
+};
 pub use sequential::{BernoulliConfidenceSequence, BernoulliMixtureEProcess};
 pub use stats::{WeightedEventAccumulator, WeightedEventSummary};
 
@@ -66,6 +73,10 @@ pub enum KernelError {
     InvalidRadius,
     /// A hard-body collision radius is negative or non-finite.
     InvalidHardBodyRadius,
+    /// A residual-mass traversal was configured with a zero cell budget.
+    InvalidCoverageBudget,
+    /// A declared chart box is not wholly contained in the finite search cube.
+    CoverageChartOutsideDomain,
     /// A streaming sample or event-contribution counter would overflow.
     CounterOverflow,
     /// A probability is non-finite or outside the closed interval [0, 1].
@@ -98,6 +109,8 @@ impl fmt::Display for KernelError {
             Self::InvalidInterval => "interval lower endpoint exceeds upper endpoint",
             Self::InvalidRadius => "radius must be strictly positive and finite",
             Self::InvalidHardBodyRadius => "hard-body radius must be nonnegative and finite",
+            Self::InvalidCoverageBudget => "coverage traversal cell budget must be nonzero",
+            Self::CoverageChartOutsideDomain => "coverage chart box lies outside the search cube",
             Self::CounterOverflow => "streaming observation counter overflowed",
             Self::InvalidProbability => "probability must be finite and lie in [0, 1]",
             Self::InvalidAlpha => "alpha must be finite and lie strictly between 0 and 1",
