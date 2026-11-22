@@ -1,0 +1,1295 @@
+{
+  "schema": "luminous.orbital-truss-asbuilt-geometry.corpus.v0.1",
+  "benchmark_id": "ORBITAL-TRUSS-ASBUILT-GEOMETRY-001",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_2d_asbuilt_geometry_conformance_only",
+  "cases": [
+    {
+      "case_id": "ATG-001-NOMINAL",
+      "case_class": "POSITIVE_CONTROL",
+      "expected_disposition": "ACCEPT",
+      "expected_subject_id": "PHYSICAL-TRUSS-SERIAL-0007",
+      "evidence_subject_id": "PHYSICAL-TRUSS-SERIAL-0007",
+      "design_revision": "DESIGN-R1",
+      "evidence_design_revision": "DESIGN-R1",
+      "source_time_unix_ms": 1850000000000,
+      "registration": {
+        "source_frame_id": "SURVEY-FRAME-01",
+        "target_frame_id": "DESIGN-FRAME-R1",
+        "basis": "independent_external_datums",
+        "independent_datum_set_id": "DATUM-TRIAD-EXT-001",
+        "control_point_count": 3,
+        "part_geometry_used_for_fit": false,
+        "rotation": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "translation_m": [
+          0,
+          0
+        ],
+        "registration_uncertainty_m": 0.00025
+      },
+      "instrument": {
+        "instrument_id": "TRACKER-01",
+        "calibration_id": "CAL-TRACKER-01-R4",
+        "calibration_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "valid_from_unix_ms": 1800000000000,
+        "valid_until_unix_ms": 1900000000000,
+        "used_at_unix_ms": 1850000000000
+      },
+      "required_features": [
+        {
+          "feature_id": "NODE-L",
+          "nominal_position_m": [
+            -0.3,
+            0
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        },
+        {
+          "feature_id": "NODE-R",
+          "nominal_position_m": [
+            0.3,
+            0
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        },
+        {
+          "feature_id": "JOINT-APEX",
+          "nominal_position_m": [
+            0,
+            0.4
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        }
+      ],
+      "measurements": [
+        {
+          "feature_id": "NODE-L",
+          "observed_position_source_m": [
+            -0.3,
+            0
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        },
+        {
+          "feature_id": "NODE-R",
+          "observed_position_source_m": [
+            0.3,
+            0
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        },
+        {
+          "feature_id": "JOINT-APEX",
+          "observed_position_source_m": [
+            0,
+            0.4
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        }
+      ]
+    },
+    {
+      "case_id": "ATG-002-COMMON-MODE-OFFSET",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "REJECT",
+      "expected_subject_id": "PHYSICAL-TRUSS-SERIAL-0007",
+      "evidence_subject_id": "PHYSICAL-TRUSS-SERIAL-0007",
+      "design_revision": "DESIGN-R1",
+      "evidence_design_revision": "DESIGN-R1",
+      "source_time_unix_ms": 1850000000000,
+      "registration": {
+        "source_frame_id": "SURVEY-FRAME-01",
+        "target_frame_id": "DESIGN-FRAME-R1",
+        "basis": "independent_external_datums",
+        "independent_datum_set_id": "DATUM-TRIAD-EXT-001",
+        "control_point_count": 3,
+        "part_geometry_used_for_fit": false,
+        "rotation": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "translation_m": [
+          0,
+          0
+        ],
+        "registration_uncertainty_m": 0.00025
+      },
+      "instrument": {
+        "instrument_id": "TRACKER-01",
+        "calibration_id": "CAL-TRACKER-01-R4",
+        "calibration_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "valid_from_unix_ms": 1800000000000,
+        "valid_until_unix_ms": 1900000000000,
+        "used_at_unix_ms": 1850000000000
+      },
+      "required_features": [
+        {
+          "feature_id": "NODE-L",
+          "nominal_position_m": [
+            -0.3,
+            0
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        },
+        {
+          "feature_id": "NODE-R",
+          "nominal_position_m": [
+            0.3,
+            0
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        },
+        {
+          "feature_id": "JOINT-APEX",
+          "nominal_position_m": [
+            0,
+            0.4
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        }
+      ],
+      "measurements": [
+        {
+          "feature_id": "NODE-L",
+          "observed_position_source_m": [
+            -0.27999999999999997,
+            0
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        },
+        {
+          "feature_id": "NODE-R",
+          "observed_position_source_m": [
+            0.32,
+            0
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        },
+        {
+          "feature_id": "JOINT-APEX",
+          "observed_position_source_m": [
+            0.02,
+            0.4
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        }
+      ]
+    },
+    {
+      "case_id": "ATG-003-RIGID-FRAME-CHANGE",
+      "case_class": "METAMORPHIC",
+      "expected_disposition": "ACCEPT",
+      "expected_subject_id": "PHYSICAL-TRUSS-SERIAL-0007",
+      "evidence_subject_id": "PHYSICAL-TRUSS-SERIAL-0007",
+      "design_revision": "DESIGN-R1",
+      "evidence_design_revision": "DESIGN-R1",
+      "source_time_unix_ms": 1850000000000,
+      "registration": {
+        "source_frame_id": "SURVEY-FRAME-01",
+        "target_frame_id": "DESIGN-FRAME-R1",
+        "basis": "independent_external_datums",
+        "independent_datum_set_id": "DATUM-TRIAD-EXT-001",
+        "control_point_count": 3,
+        "part_geometry_used_for_fit": false,
+        "rotation": [
+          [
+            0,
+            -1
+          ],
+          [
+            1,
+            0
+          ]
+        ],
+        "translation_m": [
+          2,
+          -1
+        ],
+        "registration_uncertainty_m": 0.00025
+      },
+      "instrument": {
+        "instrument_id": "TRACKER-01",
+        "calibration_id": "CAL-TRACKER-01-R4",
+        "calibration_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "valid_from_unix_ms": 1800000000000,
+        "valid_until_unix_ms": 1900000000000,
+        "used_at_unix_ms": 1850000000000
+      },
+      "required_features": [
+        {
+          "feature_id": "NODE-L",
+          "nominal_position_m": [
+            -0.3,
+            0
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        },
+        {
+          "feature_id": "NODE-R",
+          "nominal_position_m": [
+            0.3,
+            0
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        },
+        {
+          "feature_id": "JOINT-APEX",
+          "nominal_position_m": [
+            0,
+            0.4
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        }
+      ],
+      "measurements": [
+        {
+          "feature_id": "NODE-L",
+          "observed_position_source_m": [
+            1,
+            2.3
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        },
+        {
+          "feature_id": "NODE-R",
+          "observed_position_source_m": [
+            1,
+            1.7
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        },
+        {
+          "feature_id": "JOINT-APEX",
+          "observed_position_source_m": [
+            1.4,
+            2
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        }
+      ]
+    },
+    {
+      "case_id": "ATG-004-REFLECTION",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "INDETERMINATE_HUMAN_REVIEW",
+      "expected_subject_id": "PHYSICAL-TRUSS-SERIAL-0007",
+      "evidence_subject_id": "PHYSICAL-TRUSS-SERIAL-0007",
+      "design_revision": "DESIGN-R1",
+      "evidence_design_revision": "DESIGN-R1",
+      "source_time_unix_ms": 1850000000000,
+      "registration": {
+        "source_frame_id": "SURVEY-FRAME-01",
+        "target_frame_id": "DESIGN-FRAME-R1",
+        "basis": "independent_external_datums",
+        "independent_datum_set_id": "DATUM-TRIAD-EXT-001",
+        "control_point_count": 3,
+        "part_geometry_used_for_fit": false,
+        "rotation": [
+          [
+            -1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "translation_m": [
+          0,
+          0
+        ],
+        "registration_uncertainty_m": 0.00025
+      },
+      "instrument": {
+        "instrument_id": "TRACKER-01",
+        "calibration_id": "CAL-TRACKER-01-R4",
+        "calibration_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "valid_from_unix_ms": 1800000000000,
+        "valid_until_unix_ms": 1900000000000,
+        "used_at_unix_ms": 1850000000000
+      },
+      "required_features": [
+        {
+          "feature_id": "NODE-L",
+          "nominal_position_m": [
+            -0.3,
+            0
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        },
+        {
+          "feature_id": "NODE-R",
+          "nominal_position_m": [
+            0.3,
+            0
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        },
+        {
+          "feature_id": "JOINT-APEX",
+          "nominal_position_m": [
+            0,
+            0.4
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        }
+      ],
+      "measurements": [
+        {
+          "feature_id": "NODE-L",
+          "observed_position_source_m": [
+            -0.3,
+            0
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        },
+        {
+          "feature_id": "NODE-R",
+          "observed_position_source_m": [
+            0.3,
+            0
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        },
+        {
+          "feature_id": "JOINT-APEX",
+          "observed_position_source_m": [
+            0,
+            0.4
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        }
+      ]
+    },
+    {
+      "case_id": "ATG-005-SCALE",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "INDETERMINATE_HUMAN_REVIEW",
+      "expected_subject_id": "PHYSICAL-TRUSS-SERIAL-0007",
+      "evidence_subject_id": "PHYSICAL-TRUSS-SERIAL-0007",
+      "design_revision": "DESIGN-R1",
+      "evidence_design_revision": "DESIGN-R1",
+      "source_time_unix_ms": 1850000000000,
+      "registration": {
+        "source_frame_id": "SURVEY-FRAME-01",
+        "target_frame_id": "DESIGN-FRAME-R1",
+        "basis": "independent_external_datums",
+        "independent_datum_set_id": "DATUM-TRIAD-EXT-001",
+        "control_point_count": 3,
+        "part_geometry_used_for_fit": false,
+        "rotation": [
+          [
+            1.01,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "translation_m": [
+          0,
+          0
+        ],
+        "registration_uncertainty_m": 0.00025
+      },
+      "instrument": {
+        "instrument_id": "TRACKER-01",
+        "calibration_id": "CAL-TRACKER-01-R4",
+        "calibration_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "valid_from_unix_ms": 1800000000000,
+        "valid_until_unix_ms": 1900000000000,
+        "used_at_unix_ms": 1850000000000
+      },
+      "required_features": [
+        {
+          "feature_id": "NODE-L",
+          "nominal_position_m": [
+            -0.3,
+            0
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        },
+        {
+          "feature_id": "NODE-R",
+          "nominal_position_m": [
+            0.3,
+            0
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        },
+        {
+          "feature_id": "JOINT-APEX",
+          "nominal_position_m": [
+            0,
+            0.4
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        }
+      ],
+      "measurements": [
+        {
+          "feature_id": "NODE-L",
+          "observed_position_source_m": [
+            -0.3,
+            0
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        },
+        {
+          "feature_id": "NODE-R",
+          "observed_position_source_m": [
+            0.3,
+            0
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        },
+        {
+          "feature_id": "JOINT-APEX",
+          "observed_position_source_m": [
+            0,
+            0.4
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        }
+      ]
+    },
+    {
+      "case_id": "ATG-006-MISSING-CRITICAL",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "INDETERMINATE_HUMAN_REVIEW",
+      "expected_subject_id": "PHYSICAL-TRUSS-SERIAL-0007",
+      "evidence_subject_id": "PHYSICAL-TRUSS-SERIAL-0007",
+      "design_revision": "DESIGN-R1",
+      "evidence_design_revision": "DESIGN-R1",
+      "source_time_unix_ms": 1850000000000,
+      "registration": {
+        "source_frame_id": "SURVEY-FRAME-01",
+        "target_frame_id": "DESIGN-FRAME-R1",
+        "basis": "independent_external_datums",
+        "independent_datum_set_id": "DATUM-TRIAD-EXT-001",
+        "control_point_count": 3,
+        "part_geometry_used_for_fit": false,
+        "rotation": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "translation_m": [
+          0,
+          0
+        ],
+        "registration_uncertainty_m": 0.00025
+      },
+      "instrument": {
+        "instrument_id": "TRACKER-01",
+        "calibration_id": "CAL-TRACKER-01-R4",
+        "calibration_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "valid_from_unix_ms": 1800000000000,
+        "valid_until_unix_ms": 1900000000000,
+        "used_at_unix_ms": 1850000000000
+      },
+      "required_features": [
+        {
+          "feature_id": "NODE-L",
+          "nominal_position_m": [
+            -0.3,
+            0
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        },
+        {
+          "feature_id": "NODE-R",
+          "nominal_position_m": [
+            0.3,
+            0
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        },
+        {
+          "feature_id": "JOINT-APEX",
+          "nominal_position_m": [
+            0,
+            0.4
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        }
+      ],
+      "measurements": [
+        {
+          "feature_id": "NODE-L",
+          "observed_position_source_m": [
+            -0.3,
+            0
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        },
+        {
+          "feature_id": "NODE-R",
+          "observed_position_source_m": [
+            0.3,
+            0
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        }
+      ]
+    },
+    {
+      "case_id": "ATG-007-WRONG-SERIAL",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "REJECT",
+      "expected_subject_id": "PHYSICAL-TRUSS-SERIAL-0007",
+      "evidence_subject_id": "PHYSICAL-TRUSS-SERIAL-0099",
+      "design_revision": "DESIGN-R1",
+      "evidence_design_revision": "DESIGN-R1",
+      "source_time_unix_ms": 1850000000000,
+      "registration": {
+        "source_frame_id": "SURVEY-FRAME-01",
+        "target_frame_id": "DESIGN-FRAME-R1",
+        "basis": "independent_external_datums",
+        "independent_datum_set_id": "DATUM-TRIAD-EXT-001",
+        "control_point_count": 3,
+        "part_geometry_used_for_fit": false,
+        "rotation": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "translation_m": [
+          0,
+          0
+        ],
+        "registration_uncertainty_m": 0.00025
+      },
+      "instrument": {
+        "instrument_id": "TRACKER-01",
+        "calibration_id": "CAL-TRACKER-01-R4",
+        "calibration_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "valid_from_unix_ms": 1800000000000,
+        "valid_until_unix_ms": 1900000000000,
+        "used_at_unix_ms": 1850000000000
+      },
+      "required_features": [
+        {
+          "feature_id": "NODE-L",
+          "nominal_position_m": [
+            -0.3,
+            0
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        },
+        {
+          "feature_id": "NODE-R",
+          "nominal_position_m": [
+            0.3,
+            0
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        },
+        {
+          "feature_id": "JOINT-APEX",
+          "nominal_position_m": [
+            0,
+            0.4
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        }
+      ],
+      "measurements": [
+        {
+          "feature_id": "NODE-L",
+          "observed_position_source_m": [
+            -0.3,
+            0
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        },
+        {
+          "feature_id": "NODE-R",
+          "observed_position_source_m": [
+            0.3,
+            0
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        },
+        {
+          "feature_id": "JOINT-APEX",
+          "observed_position_source_m": [
+            0,
+            0.4
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        }
+      ]
+    },
+    {
+      "case_id": "ATG-008-STALE-REVISION",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "INDETERMINATE_HUMAN_REVIEW",
+      "expected_subject_id": "PHYSICAL-TRUSS-SERIAL-0007",
+      "evidence_subject_id": "PHYSICAL-TRUSS-SERIAL-0007",
+      "design_revision": "DESIGN-R1",
+      "evidence_design_revision": "DESIGN-R0",
+      "source_time_unix_ms": 1850000000000,
+      "registration": {
+        "source_frame_id": "SURVEY-FRAME-01",
+        "target_frame_id": "DESIGN-FRAME-R1",
+        "basis": "independent_external_datums",
+        "independent_datum_set_id": "DATUM-TRIAD-EXT-001",
+        "control_point_count": 3,
+        "part_geometry_used_for_fit": false,
+        "rotation": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "translation_m": [
+          0,
+          0
+        ],
+        "registration_uncertainty_m": 0.00025
+      },
+      "instrument": {
+        "instrument_id": "TRACKER-01",
+        "calibration_id": "CAL-TRACKER-01-R4",
+        "calibration_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "valid_from_unix_ms": 1800000000000,
+        "valid_until_unix_ms": 1900000000000,
+        "used_at_unix_ms": 1850000000000
+      },
+      "required_features": [
+        {
+          "feature_id": "NODE-L",
+          "nominal_position_m": [
+            -0.3,
+            0
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        },
+        {
+          "feature_id": "NODE-R",
+          "nominal_position_m": [
+            0.3,
+            0
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        },
+        {
+          "feature_id": "JOINT-APEX",
+          "nominal_position_m": [
+            0,
+            0.4
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        }
+      ],
+      "measurements": [
+        {
+          "feature_id": "NODE-L",
+          "observed_position_source_m": [
+            -0.3,
+            0
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        },
+        {
+          "feature_id": "NODE-R",
+          "observed_position_source_m": [
+            0.3,
+            0
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        },
+        {
+          "feature_id": "JOINT-APEX",
+          "observed_position_source_m": [
+            0,
+            0.4
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        }
+      ]
+    },
+    {
+      "case_id": "ATG-009-EXPIRED-CALIBRATION",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "INDETERMINATE_HUMAN_REVIEW",
+      "expected_subject_id": "PHYSICAL-TRUSS-SERIAL-0007",
+      "evidence_subject_id": "PHYSICAL-TRUSS-SERIAL-0007",
+      "design_revision": "DESIGN-R1",
+      "evidence_design_revision": "DESIGN-R1",
+      "source_time_unix_ms": 1850000000000,
+      "registration": {
+        "source_frame_id": "SURVEY-FRAME-01",
+        "target_frame_id": "DESIGN-FRAME-R1",
+        "basis": "independent_external_datums",
+        "independent_datum_set_id": "DATUM-TRIAD-EXT-001",
+        "control_point_count": 3,
+        "part_geometry_used_for_fit": false,
+        "rotation": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "translation_m": [
+          0,
+          0
+        ],
+        "registration_uncertainty_m": 0.00025
+      },
+      "instrument": {
+        "instrument_id": "TRACKER-01",
+        "calibration_id": "CAL-TRACKER-01-R4",
+        "calibration_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "valid_from_unix_ms": 1800000000000,
+        "valid_until_unix_ms": 1849999999999,
+        "used_at_unix_ms": 1850000000000
+      },
+      "required_features": [
+        {
+          "feature_id": "NODE-L",
+          "nominal_position_m": [
+            -0.3,
+            0
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        },
+        {
+          "feature_id": "NODE-R",
+          "nominal_position_m": [
+            0.3,
+            0
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        },
+        {
+          "feature_id": "JOINT-APEX",
+          "nominal_position_m": [
+            0,
+            0.4
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        }
+      ],
+      "measurements": [
+        {
+          "feature_id": "NODE-L",
+          "observed_position_source_m": [
+            -0.3,
+            0
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        },
+        {
+          "feature_id": "NODE-R",
+          "observed_position_source_m": [
+            0.3,
+            0
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        },
+        {
+          "feature_id": "JOINT-APEX",
+          "observed_position_source_m": [
+            0,
+            0.4
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        }
+      ]
+    },
+    {
+      "case_id": "ATG-010-GUARD-BAND",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "INDETERMINATE_HUMAN_REVIEW",
+      "expected_subject_id": "PHYSICAL-TRUSS-SERIAL-0007",
+      "evidence_subject_id": "PHYSICAL-TRUSS-SERIAL-0007",
+      "design_revision": "DESIGN-R1",
+      "evidence_design_revision": "DESIGN-R1",
+      "source_time_unix_ms": 1850000000000,
+      "registration": {
+        "source_frame_id": "SURVEY-FRAME-01",
+        "target_frame_id": "DESIGN-FRAME-R1",
+        "basis": "independent_external_datums",
+        "independent_datum_set_id": "DATUM-TRIAD-EXT-001",
+        "control_point_count": 3,
+        "part_geometry_used_for_fit": false,
+        "rotation": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "translation_m": [
+          0,
+          0
+        ],
+        "registration_uncertainty_m": 0.0005
+      },
+      "instrument": {
+        "instrument_id": "TRACKER-01",
+        "calibration_id": "CAL-TRACKER-01-R4",
+        "calibration_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "valid_from_unix_ms": 1800000000000,
+        "valid_until_unix_ms": 1900000000000,
+        "used_at_unix_ms": 1850000000000
+      },
+      "required_features": [
+        {
+          "feature_id": "NODE-L",
+          "nominal_position_m": [
+            -0.3,
+            0
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        },
+        {
+          "feature_id": "NODE-R",
+          "nominal_position_m": [
+            0.3,
+            0
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        },
+        {
+          "feature_id": "JOINT-APEX",
+          "nominal_position_m": [
+            0,
+            0.4
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        }
+      ],
+      "measurements": [
+        {
+          "feature_id": "NODE-L",
+          "observed_position_source_m": [
+            -0.2945,
+            0
+          ],
+          "measurement_uncertainty_m": 0.0005,
+          "observed": true
+        },
+        {
+          "feature_id": "NODE-R",
+          "observed_position_source_m": [
+            0.3,
+            0
+          ],
+          "measurement_uncertainty_m": 0.0005,
+          "observed": true
+        },
+        {
+          "feature_id": "JOINT-APEX",
+          "observed_position_source_m": [
+            0,
+            0.4
+          ],
+          "measurement_uncertainty_m": 0.0005,
+          "observed": true
+        }
+      ]
+    },
+    {
+      "case_id": "ATG-011-ARTICLE-FIT",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "INDETERMINATE_HUMAN_REVIEW",
+      "expected_subject_id": "PHYSICAL-TRUSS-SERIAL-0007",
+      "evidence_subject_id": "PHYSICAL-TRUSS-SERIAL-0007",
+      "design_revision": "DESIGN-R1",
+      "evidence_design_revision": "DESIGN-R1",
+      "source_time_unix_ms": 1850000000000,
+      "registration": {
+        "source_frame_id": "SURVEY-FRAME-01",
+        "target_frame_id": "DESIGN-FRAME-R1",
+        "basis": "independent_external_datums",
+        "independent_datum_set_id": "DATUM-TRIAD-EXT-001",
+        "control_point_count": 3,
+        "part_geometry_used_for_fit": true,
+        "rotation": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "translation_m": [
+          0,
+          0
+        ],
+        "registration_uncertainty_m": 0.00025
+      },
+      "instrument": {
+        "instrument_id": "TRACKER-01",
+        "calibration_id": "CAL-TRACKER-01-R4",
+        "calibration_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "valid_from_unix_ms": 1800000000000,
+        "valid_until_unix_ms": 1900000000000,
+        "used_at_unix_ms": 1850000000000
+      },
+      "required_features": [
+        {
+          "feature_id": "NODE-L",
+          "nominal_position_m": [
+            -0.3,
+            0
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        },
+        {
+          "feature_id": "NODE-R",
+          "nominal_position_m": [
+            0.3,
+            0
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        },
+        {
+          "feature_id": "JOINT-APEX",
+          "nominal_position_m": [
+            0,
+            0.4
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        }
+      ],
+      "measurements": [
+        {
+          "feature_id": "NODE-L",
+          "observed_position_source_m": [
+            -0.3,
+            0
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        },
+        {
+          "feature_id": "NODE-R",
+          "observed_position_source_m": [
+            0.3,
+            0
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        },
+        {
+          "feature_id": "JOINT-APEX",
+          "observed_position_source_m": [
+            0,
+            0.4
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        }
+      ]
+    },
+    {
+      "case_id": "ATG-012-DUPLICATE-MEASUREMENT",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "INDETERMINATE_HUMAN_REVIEW",
+      "expected_subject_id": "PHYSICAL-TRUSS-SERIAL-0007",
+      "evidence_subject_id": "PHYSICAL-TRUSS-SERIAL-0007",
+      "design_revision": "DESIGN-R1",
+      "evidence_design_revision": "DESIGN-R1",
+      "source_time_unix_ms": 1850000000000,
+      "registration": {
+        "source_frame_id": "SURVEY-FRAME-01",
+        "target_frame_id": "DESIGN-FRAME-R1",
+        "basis": "independent_external_datums",
+        "independent_datum_set_id": "DATUM-TRIAD-EXT-001",
+        "control_point_count": 3,
+        "part_geometry_used_for_fit": false,
+        "rotation": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "translation_m": [
+          0,
+          0
+        ],
+        "registration_uncertainty_m": 0.00025
+      },
+      "instrument": {
+        "instrument_id": "TRACKER-01",
+        "calibration_id": "CAL-TRACKER-01-R4",
+        "calibration_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "valid_from_unix_ms": 1800000000000,
+        "valid_until_unix_ms": 1900000000000,
+        "used_at_unix_ms": 1850000000000
+      },
+      "required_features": [
+        {
+          "feature_id": "NODE-L",
+          "nominal_position_m": [
+            -0.3,
+            0
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        },
+        {
+          "feature_id": "NODE-R",
+          "nominal_position_m": [
+            0.3,
+            0
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        },
+        {
+          "feature_id": "JOINT-APEX",
+          "nominal_position_m": [
+            0,
+            0.4
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        }
+      ],
+      "measurements": [
+        {
+          "feature_id": "NODE-L",
+          "observed_position_source_m": [
+            -0.3,
+            0
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        },
+        {
+          "feature_id": "NODE-R",
+          "observed_position_source_m": [
+            0.3,
+            0
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        },
+        {
+          "feature_id": "JOINT-APEX",
+          "observed_position_source_m": [
+            0,
+            0.4
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        },
+        {
+          "feature_id": "NODE-L",
+          "observed_position_source_m": [
+            -0.3,
+            0
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        }
+      ]
+    },
+    {
+      "case_id": "ATG-013-CLEAR-OVERSIZE",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "REJECT",
+      "expected_subject_id": "PHYSICAL-TRUSS-SERIAL-0007",
+      "evidence_subject_id": "PHYSICAL-TRUSS-SERIAL-0007",
+      "design_revision": "DESIGN-R1",
+      "evidence_design_revision": "DESIGN-R1",
+      "source_time_unix_ms": 1850000000000,
+      "registration": {
+        "source_frame_id": "SURVEY-FRAME-01",
+        "target_frame_id": "DESIGN-FRAME-R1",
+        "basis": "independent_external_datums",
+        "independent_datum_set_id": "DATUM-TRIAD-EXT-001",
+        "control_point_count": 3,
+        "part_geometry_used_for_fit": false,
+        "rotation": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "translation_m": [
+          0,
+          0
+        ],
+        "registration_uncertainty_m": 0.00025
+      },
+      "instrument": {
+        "instrument_id": "TRACKER-01",
+        "calibration_id": "CAL-TRACKER-01-R4",
+        "calibration_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "valid_from_unix_ms": 1800000000000,
+        "valid_until_unix_ms": 1900000000000,
+        "used_at_unix_ms": 1850000000000
+      },
+      "required_features": [
+        {
+          "feature_id": "NODE-L",
+          "nominal_position_m": [
+            -0.3,
+            0
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        },
+        {
+          "feature_id": "NODE-R",
+          "nominal_position_m": [
+            0.3,
+            0
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        },
+        {
+          "feature_id": "JOINT-APEX",
+          "nominal_position_m": [
+            0,
+            0.4
+          ],
+          "tolerance_m": 0.005,
+          "critical": true
+        }
+      ],
+      "measurements": [
+        {
+          "feature_id": "NODE-L",
+          "observed_position_source_m": [
+            -0.3,
+            0
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        },
+        {
+          "feature_id": "NODE-R",
+          "observed_position_source_m": [
+            0.3,
+            0
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        },
+        {
+          "feature_id": "JOINT-APEX",
+          "observed_position_source_m": [
+            0,
+            0.42
+          ],
+          "measurement_uncertainty_m": 0.00025,
+          "observed": true
+        }
+      ]
+    }
+  ]
+}
