@@ -170,3 +170,34 @@ Keep tuning and test points disjoint. Count all failures and timeouts. Queued, s
 - Papallo & Reall, [On the local well-posedness of Lovelock and Horndeski theories](https://doi.org/10.1103/PhysRevD.96.044019), PRD 96 (2017).
 - Reall, Tanahashi & Way, [Causality and hyperbolicity of Lovelock theories](https://doi.org/10.1088/0264-9381/31/20/205005), CQG 31 (2014).
 - Kovács & Reall, [Well-posed formulation of Lovelock and Horndeski theories](https://doi.org/10.1103/PhysRevD.101.124003), PRD 101 (2020).
+
+
+## 10. Completed coupling-sensitivity baseline — 22 November 2026
+
+The exact first derivative of the full two-column boundary map at the Einstein limit is now available in the fixed published endpoint coordinates:
+\[
+J_0=\begin{pmatrix}1/2&0\\0&2\end{pmatrix},\qquad
+J_1=\begin{pmatrix}1/2&19-2\pi^2\\0&67-6\pi^2\end{pmatrix}.
+\]
+The known physical-root tangent gives the independent affine-offset derivative \((-53/9,28/3)^T\). The determinant slope is \(69/2-3\pi^2\).
+
+This supplies a new matched sensitivity benchmark:
+
+\[
+E_{J_1}(\lambda)=
+\left\|
+\frac{J_{\mathrm{BVP}}(\lambda)-J_0}{\lambda}-J_1
+\right\|_F.
+\]
+
+Protocol:
+1. Solve the finite-positive-\(\lambda\) BVP for two independent horizon-data directions, plus at least one independent affine/particular solution.
+2. Reconstruct the full matrix \(J_{\mathrm{BVP}}(\lambda)\) from the forbidden asymptotic amplitudes.
+3. Evaluate each matrix entry and \(E_{J_1}\) at at least three decreasing positive couplings.
+4. Verify entrywise convergence and the predicted determinant slope. Do not report only a fitted aggregate slope.
+5. Freeze the horizon/asymptotic coordinate bases and endpoint metrics before the sweep. If either basis is transported with coupling, include its derivative in the reported matrix sensitivity.
+6. Preserve failed or non-asymptotic BVP points and disclose precision, residuals, spectral tails, and conditioning.
+
+The expected asymptotic behaviour for a regular second-order expansion is \(E_{J_1}(\lambda)=O(\lambda)\), but this must be measured; it is not assumed evidence of finite-coupling analyticity. The exact \(J_1\) is a formal derivative at zero, not a finite-\(\lambda\) existence or invertibility certificate.
+
+The result and full derivation are recorded in the public increment index and the dedicated action-row / Green--Lagrange artifacts. The exact-source local replay is not a GitHub Actions/CI pass.
