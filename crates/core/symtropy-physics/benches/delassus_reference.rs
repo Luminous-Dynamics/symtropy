@@ -245,11 +245,6 @@ fn bench_nd_contact_frame_and_wrench(c: &mut Criterion) {
         });
     });
     assert!(wrench.validate(&frame, &limits, 1e-12).is_ok());
-    assert!(
-        ellipsoidal_wrench
-            .validate_ellipsoidal_friction_budget(&frame, &limits, 1e-12)
-            .is_ok()
-    );
     c.bench_function("contact_wrench_validate_independent_channels_4d", |bench| {
         bench.iter(|| {
             black_box(
@@ -265,6 +260,11 @@ fn bench_nd_contact_frame_and_wrench(c: &mut Criterion) {
         rolling: vec![0.01, 0.0, 0.0],
         torsional: vec![0.005, 0.0, 0.0],
     };
+    assert!(
+        ellipsoidal_wrench
+            .validate_ellipsoidal_friction_budget(&frame, &limits, 1e-12)
+            .is_ok()
+    );
     c.bench_function("contact_wrench_validate_coupled_ellipsoid_4d", |bench| {
         bench.iter(|| {
             black_box(
