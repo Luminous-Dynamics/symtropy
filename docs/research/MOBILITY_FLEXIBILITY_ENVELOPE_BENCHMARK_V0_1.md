@@ -109,7 +109,7 @@ The Rust evaluator at \`tools/ev-passenger-cost-frontier/src/mobility_flexibilit
 
 The 625-profile comparison and 158/467 split are test definitions only until the current PR head executes them.
 
-The fixture deliberately uses synthetic evidence. Its two stationary storage descriptors sum to 4,000 Wh and 5,500 W of lower-bound capability. The most demanding reserve scenario leaves a 2,000 Wh horizon budget. The proposed 15-minute profile consumes 1,875 Wh, leaving 125 Wh of modelled energy margin. Its requested power remains inside the worst-case per-slot power envelope, and the PCC profile remains an import-reduction case with no export permission.
+The fixture deliberately uses synthetic evidence. Its two stationary storage descriptors sum to 4,000 Wh and 5,500 W of lower-bound capability. The site trajectory [2,200, 2,500, 2,000, 800] W is explicitly allocated as ess-01 [2,000, 1,700, 1,300, 300] W plus ess-02 [200, 800, 700, 500] W. In the high-demand/low-renewable scenario, ess-01 retains 1,450 Wh after its mission/inventory/safety/uncertainty reserves and consumes 1,325 Wh (125 Wh margin); ess-02 retains 550 Wh and consumes all 550 Wh (0 Wh margin). Total candidate energy is 1,875 Wh, and the site trajectory remains within each asset's own slot-power ceiling. The PCC profile stays net-import-positive, so no export permission is relied upon. The aggregate residual budget is 2,000 Wh, but the decisive proof is the pair of separate resource margins—not the pooled number.
 
 These numbers are a synthetic known answer, not observed storage capability, metered site energy, measured charger efficiency or a commercial operating result.
 
