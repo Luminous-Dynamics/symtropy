@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Conservative anytime-valid paired-mean evaluator (research benchmark tool).
 
-The estimand is the mean of paired policy-score differences. Positive values
-favor the candidate policy. Every independent sampling unit must contribute
-one difference in [-1, 1]. The method is not valid for arbitrary dependent
-clips, unbounded metrics, adaptively redefined estimands, or unregistered
-multiple comparisons.
+The estimand is the mean paired policy-score difference on one preregistered
+target population. Positive values favor the candidate policy. Each row must
+represent one independently sampled source cluster from the same frozen target
+population, with a paired difference in [-1, 1]. Unique IDs do not establish
+independence. The method is not valid for arbitrary dependent clips, changing
+sampling populations, unbounded metrics, adaptively redefined estimands, or
+unregistered multiple comparisons.
 
 At look n, each tail receives alpha / (2*n*(n+1)). Hoeffding's inequality
 gives radius sqrt(2*log(2*n*(n+1)/alpha)/n); summing the two tail budgets
@@ -28,11 +30,12 @@ class EvaluationError(ValueError):
 
 
 def finite_number(value: Any) -> bool:
-    return (
-        not isinstance(value, bool)
-        and isinstance(value, (int, float))
-        and math.isfinite(float(value))
-    )
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return False
+    try:
+        return math.isfinite(float(value))
+    except (OverflowError, TypeError, ValueError):
+        return False
 
 
 def anytime_interval(n: int, mean: float, alpha: float) -> tuple[float, float]:
@@ -105,7 +108,7 @@ def evaluate_paired_differences(
 def evaluate_document(document: dict[str, Any]) -> dict[str, Any]:
     """Validate the v1 input envelope and return a replayable score record."""
     version = document.get("schema_version")
-    if isinstance(version, bool) or version != 1:
+    if isinstance(version, bool) or not isinstance(version, int) or version != 1:
         raise EvaluationError("schema_version must be integer 1")
     if document.get("sampling_unit") != "independent_source_cluster":
         raise EvaluationError("v1 requires sampling_unit=independent_source_cluster")
@@ -146,8 +149,8 @@ def evaluate_document(document: dict[str, Any]) -> dict[str, Any]:
         ).hexdigest(),
         "assumptions": [
             "paired differences are bounded in [-1, 1]",
-            "each consumed row is one independent source cluster",
-            "estimand and sampling law were frozen before confirmatory evaluation",
+            "rows are sampled from one frozen target population of independent source clusters",
+            "estimand and sampling law remain fixed at every look",
             "alpha and superiority margin were preregistered",
             "this result is one estimand only; familywise multiplicity is not handled",
         ],
