@@ -93,7 +93,6 @@ impl InterSourceDependenceQualification {
     }
 }
 
-
 /// Independent observation noise and shared-cause sensitivities for one experiment.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ExperimentNoiseModel {
@@ -432,20 +431,18 @@ mod tests {
                 independent_observation_covariance: vec![vec![2.0]],
                 shared_sources: Vec::new(),
                 lineage_coverage_complete: true,
-                inter_source_dependence:
-                    InterSourceDependenceQualification::joint_blocks_modelled(
-                        "fixture:joint-source-model-v1",
-                    ),
+                inter_source_dependence: InterSourceDependenceQualification::joint_blocks_modelled(
+                    "fixture:joint-source-model-v1",
+                ),
             },
             ExperimentNoiseModel {
                 experiment_id: "exp-b".to_owned(),
                 independent_observation_covariance: vec![vec![3.0]],
                 shared_sources: Vec::new(),
                 lineage_coverage_complete: true,
-                inter_source_dependence:
-                    InterSourceDependenceQualification::joint_blocks_modelled(
-                        "fixture:joint-source-model-v1",
-                    ),
+                inter_source_dependence: InterSourceDependenceQualification::joint_blocks_modelled(
+                    "fixture:joint-source-model-v1",
+                ),
             },
         ])
         .expect("independent portfolio");
@@ -467,20 +464,18 @@ mod tests {
                 independent_observation_covariance: vec![vec![1.0]],
                 shared_sources: vec![shared(2.0)],
                 lineage_coverage_complete: true,
-                inter_source_dependence:
-                    InterSourceDependenceQualification::joint_blocks_modelled(
-                        "fixture:joint-source-model-v1",
-                    ),
+                inter_source_dependence: InterSourceDependenceQualification::joint_blocks_modelled(
+                    "fixture:joint-source-model-v1",
+                ),
             },
             ExperimentNoiseModel {
                 experiment_id: "exp-b".to_owned(),
                 independent_observation_covariance: vec![vec![1.0]],
                 shared_sources: vec![shared(3.0)],
                 lineage_coverage_complete: true,
-                inter_source_dependence:
-                    InterSourceDependenceQualification::joint_blocks_modelled(
-                        "fixture:joint-source-model-v1",
-                    ),
+                inter_source_dependence: InterSourceDependenceQualification::joint_blocks_modelled(
+                    "fixture:joint-source-model-v1",
+                ),
             },
         ])
         .expect("shared calibration portfolio");
@@ -540,10 +535,9 @@ mod tests {
                     observation_jacobian: vec![vec![1.0]],
                 }],
                 lineage_coverage_complete: true,
-                inter_source_dependence:
-                    InterSourceDependenceQualification::joint_blocks_modelled(
-                        "fixture:joint-source-model-v1",
-                    ),
+                inter_source_dependence: InterSourceDependenceQualification::joint_blocks_modelled(
+                    "fixture:joint-source-model-v1",
+                ),
             },
             ExperimentNoiseModel {
                 experiment_id: "exp-b".to_owned(),
@@ -554,10 +548,9 @@ mod tests {
                     observation_jacobian: vec![vec![1.0]],
                 }],
                 lineage_coverage_complete: true,
-                inter_source_dependence:
-                    InterSourceDependenceQualification::joint_blocks_modelled(
-                        "fixture:joint-source-model-v1",
-                    ),
+                inter_source_dependence: InterSourceDependenceQualification::joint_blocks_modelled(
+                    "fixture:joint-source-model-v1",
+                ),
             },
         ]);
         assert_eq!(
@@ -583,10 +576,9 @@ mod tests {
                 independent_observation_covariance: vec![vec![1.0]],
                 shared_sources: Vec::new(),
                 lineage_coverage_complete: true,
-                inter_source_dependence:
-                    InterSourceDependenceQualification::joint_blocks_modelled(
-                        "fixture:joint-source-model-v1",
-                    ),
+                inter_source_dependence: InterSourceDependenceQualification::joint_blocks_modelled(
+                    "fixture:joint-source-model-v1",
+                ),
             },
         ])
         .expect("partial-lineage portfolio");
@@ -605,10 +597,9 @@ mod tests {
                 observation_jacobian: vec![jacobian],
             }],
             lineage_coverage_complete: true,
-            inter_source_dependence:
-                InterSourceDependenceQualification::joint_blocks_modelled(
-                    "fixture:joint-source-model-v1",
-                ),
+            inter_source_dependence: InterSourceDependenceQualification::joint_blocks_modelled(
+                "fixture:joint-source-model-v1",
+            ),
         };
         let result = assemble_joint_experiment_covariance(&[
             shared("experiment-a", vec![1.0, 0.5]),
@@ -630,26 +621,24 @@ mod tests {
 
     #[test]
     fn distinct_source_ids_do_not_imply_attested_independence() {
-        let result = assemble_joint_experiment_covariance(&[
-            ExperimentNoiseModel {
-                experiment_id: "experiment-a".to_owned(),
-                independent_observation_covariance: vec![vec![1.0]],
-                shared_sources: vec![
-                    SharedUncertaintyContribution {
-                        source_id: "detector-calibration".to_owned(),
-                        source_covariance: vec![vec![2.0]],
-                        observation_jacobian: vec![vec![1.0]],
-                    },
-                    SharedUncertaintyContribution {
-                        source_id: "reference-evaluation".to_owned(),
-                        source_covariance: vec![vec![3.0]],
-                        observation_jacobian: vec![vec![1.0]],
-                    },
-                ],
-                lineage_coverage_complete: true,
-                inter_source_dependence: InterSourceDependenceQualification::Unknown,
-            },
-        ])
+        let result = assemble_joint_experiment_covariance(&[ExperimentNoiseModel {
+            experiment_id: "experiment-a".to_owned(),
+            independent_observation_covariance: vec![vec![1.0]],
+            shared_sources: vec![
+                SharedUncertaintyContribution {
+                    source_id: "detector-calibration".to_owned(),
+                    source_covariance: vec![vec![2.0]],
+                    observation_jacobian: vec![vec![1.0]],
+                },
+                SharedUncertaintyContribution {
+                    source_id: "reference-evaluation".to_owned(),
+                    source_covariance: vec![vec![3.0]],
+                    observation_jacobian: vec![vec![1.0]],
+                },
+            ],
+            lineage_coverage_complete: true,
+            inter_source_dependence: InterSourceDependenceQualification::Unknown,
+        }])
         .expect("conditional covariance with unknown inter-source dependence");
         assert!(result.lineage_coverage_complete);
         assert!(!result.inter_source_dependence_complete);
@@ -672,20 +661,18 @@ mod tests {
                 independent_observation_covariance: vec![vec![1.0]],
                 shared_sources: vec![contribution("detector-calibration")],
                 lineage_coverage_complete: true,
-                inter_source_dependence:
-                    InterSourceDependenceQualification::joint_blocks_modelled(
-                        "receipt:detector-only",
-                    ),
+                inter_source_dependence: InterSourceDependenceQualification::joint_blocks_modelled(
+                    "receipt:detector-only",
+                ),
             },
             ExperimentNoiseModel {
                 experiment_id: "exp-reference".to_owned(),
                 independent_observation_covariance: vec![vec![1.0]],
                 shared_sources: vec![contribution("reference-evaluation")],
                 lineage_coverage_complete: true,
-                inter_source_dependence:
-                    InterSourceDependenceQualification::joint_blocks_modelled(
-                        "receipt:reference-only",
-                    ),
+                inter_source_dependence: InterSourceDependenceQualification::joint_blocks_modelled(
+                    "receipt:reference-only",
+                ),
             },
         ])
         .expect("known marginal source covariance");
@@ -723,20 +710,18 @@ mod tests {
                 independent_observation_covariance: vec![vec![1.0]],
                 shared_sources: Vec::new(),
                 lineage_coverage_complete: true,
-                inter_source_dependence:
-                    InterSourceDependenceQualification::joint_blocks_modelled(
-                        "fixture:joint-source-model-v1",
-                    ),
+                inter_source_dependence: InterSourceDependenceQualification::joint_blocks_modelled(
+                    "fixture:joint-source-model-v1",
+                ),
             },
             ExperimentNoiseModel {
                 experiment_id: "same".to_owned(),
                 independent_observation_covariance: vec![vec![1.0]],
                 shared_sources: Vec::new(),
                 lineage_coverage_complete: true,
-                inter_source_dependence:
-                    InterSourceDependenceQualification::joint_blocks_modelled(
-                        "fixture:joint-source-model-v1",
-                    ),
+                inter_source_dependence: InterSourceDependenceQualification::joint_blocks_modelled(
+                    "fixture:joint-source-model-v1",
+                ),
             },
         ]);
         assert_eq!(
@@ -758,30 +743,27 @@ mod tests {
             independent_observation_covariance: vec![vec![0.1]],
             shared_sources: vec![shared_calibration()],
             lineage_coverage_complete: true,
-            inter_source_dependence:
-                InterSourceDependenceQualification::joint_blocks_modelled(
-                    "fixture:joint-source-model-v1",
-                ),
+            inter_source_dependence: InterSourceDependenceQualification::joint_blocks_modelled(
+                "fixture:joint-source-model-v1",
+            ),
         };
         let experiment_b = ExperimentNoiseModel {
             experiment_id: "B".to_owned(),
             independent_observation_covariance: vec![vec![0.1]],
             shared_sources: vec![shared_calibration()],
             lineage_coverage_complete: true,
-            inter_source_dependence:
-                InterSourceDependenceQualification::joint_blocks_modelled(
-                    "fixture:joint-source-model-v1",
-                ),
+            inter_source_dependence: InterSourceDependenceQualification::joint_blocks_modelled(
+                "fixture:joint-source-model-v1",
+            ),
         };
         let experiment_c = ExperimentNoiseModel {
             experiment_id: "C".to_owned(),
             independent_observation_covariance: vec![vec![20.0]],
             shared_sources: Vec::new(),
             lineage_coverage_complete: true,
-            inter_source_dependence:
-                InterSourceDependenceQualification::joint_blocks_modelled(
-                    "fixture:joint-source-model-v1",
-                ),
+            inter_source_dependence: InterSourceDependenceQualification::joint_blocks_modelled(
+                "fixture:joint-source-model-v1",
+            ),
         };
 
         let shared_portfolio =
