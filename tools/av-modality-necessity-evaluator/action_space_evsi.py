@@ -11,6 +11,7 @@ from typing import Any
 
 BENCHMARK_ID = "av-action-space-evsi-v0"
 STOP_ACTION_ID = "__stop__"
+FORECAST_INTERVAL_ALPHA = 0.1  # Preregistered central 90% interval score.
 
 
 class EvaluationError(ValueError):
@@ -67,6 +68,8 @@ def evaluate(
     net_errors: list[float] = []
     interval_hits = 0
     interval_count = 0
+    interval_widths: list[float] = []
+    interval_scores: list[float] = []
     rank_correct = 0
     rank_pairs = 0
     missed_best = 0
@@ -158,8 +161,17 @@ def evaluate(
             gross_errors.append(float(estimate) - actual_gross)
             net_errors.append(estimated_action_net - actual_action_net)
 
-            # This is interval coverage of the evaluator-known expected gross EVSI point,
-            # not a claim that the candidate predicted a stochastic outcome distribution.
+            # Score the declared central 90% interval against the evaluator-known
+            # expected gross-EVSI label. Width penalizes vacuous, over-wide intervals;
+            # misses receive the standard interval-score penalty.
+            interval_width = float(upper) - float(lower)
+            interval_score = interval_width
+            if actual_gross < float(lower):
+                interval_score += (2.0 / FORECAST_INTERVAL_ALPHA) * (float(lower) - actual_gross)
+            elif actual_gross > float(upper):
+                interval_score += (2.0 / FORECAST_INTERVAL_ALPHA) * (actual_gross - float(upper))
+            interval_widths.append(interval_width)
+            interval_scores.append(interval_score)
             if float(lower) <= actual_gross <= float(upper):
                 interval_hits += 1
             interval_count += 1
@@ -171,6 +183,8 @@ def evaluate(
             raise EvaluationError(f"{episode_id}: stop/no-acquisition forecast must be exactly zero")
         gross_errors.append(0.0)
         net_errors.append(0.0)
+        interval_widths.append(0.0)
+        interval_scores.append(0.0)
         interval_hits += 1
         interval_count += 1
 
@@ -226,7 +240,10 @@ def evaluate(
             "gross_evsi_signed_bias": round(mean(gross_errors), 12),
             "net_evsi_mae": round(mean_abs(net_errors), 12),
             "net_evsi_signed_bias": round(mean(net_errors), 12),
+            "forecast_interval_alpha": FORECAST_INTERVAL_ALPHA,
             "forecast_interval_coverage": round(interval_hits / interval_count, 12) if interval_count else 0.0,
+            "forecast_interval_mean_width": round(mean(interval_widths), 12),
+            "forecast_interval_winkler_score": round(mean(interval_scores), 12),
             "pairwise_rank_accuracy": round(rank_correct / rank_pairs, 12) if rank_pairs else 1.0,
             "pairwise_rank_pairs": rank_pairs,
             "missed_best_action_count": missed_best,
