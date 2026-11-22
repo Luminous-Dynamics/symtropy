@@ -10,7 +10,7 @@ The adapter maps native state without inventing missing physical quantities:
 - Linear acceleration is UNAVAILABLE; the native RigidBody does not retain an acceleration state. The adapter does not finite-difference the velocity.
 - Mass is ASSUMED when the body has a positive configured mass. Static bodies' zero mass is a solver sentinel and is returned as UNAVAILABLE.
 - Inertia tensor is UNAVAILABLE. Although RigidBody stores a per-axis vector, the current integrator averages inertia across each bivector plane for angular dynamics. The adapter will not claim that this is a full physically applied anisotropic inertia tensor.
-- Angular velocity is mapped from the native bivector matrix using the axial dual consistent with Bivector::apply_to_vector: [-B[1,2], B[0,2], -B[0,1]].
+- Angular velocity is mapped using the native pose-update convention: Rotor::from_bivector exponentiates -B, and the integrator left-composes that increment onto the body-to-world rotation. The world-frame right-handed axial vector is therefore [B[1,2], -B[0,2], B[0,1]]. This is the negative of the axial dual of Bivector::apply_to_vector; the latter is not the physical angular-velocity sign for the native pose update.
 - Contact partners come from the last-step contact manifolds. Sensor bodies and snapshots whose contact-cache freshness is not attested expose contact as UNAVAILABLE. The scalar per-point normal solver multiplier is not converted into a vector impulse because the adapter does not assert a per-body impulse convention.
 - Stable entity IDs and generations must be supplied by the caller. A local BodyHandle is not promoted into a globally stable physical identity.
 
