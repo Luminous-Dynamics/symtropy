@@ -388,6 +388,18 @@ mod tests {
     }
 
     #[test]
+    fn variance_plug_in_uses_the_current_smoothed_mean() {
+        let mut accumulator =
+            DefensiveImportanceConfidenceAccumulator::new(0.2, 0.05).expect("valid settings");
+        accumulator
+            .observe_bounded_contribution(1.0)
+            .expect("valid bounded observation");
+        // mu_hat_1 = (1/2 + 1) / 2 = 3/4, so
+        // (X_1 - mu_hat_1)^2 = (1/4)^2 = 1/16.
+        assert!((accumulator.sum_squared_smoothed_residuals - 1.0 / 16.0).abs() < 1.0e-15);
+    }
+
+    #[test]
     fn adaptive_proposal_keeps_the_same_conditional_mean() {
         let epsilon = 0.2;
         let target = [0.5_f64, 0.5_f64];
