@@ -60,7 +60,6 @@ pub struct SourceEventRevisionRef {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TransformationSemanticError {
     EmptySourceIdentity,
-    InvalidRevision,
     EmptySourceProfile,
     EmptyEventTime,
     InvalidEventTimeZoneOffset(String),
@@ -210,9 +209,6 @@ pub fn normalize_transformation_event(
 ) -> Result<NormalizedTransformationEvent, TransformationSemanticError> {
     if !valid_identifier(&event.source_id) || !valid_identifier(&event.source_event_id) {
         return Err(TransformationSemanticError::EmptySourceIdentity);
-    }
-    if event.revision == 0 {
-        return Err(TransformationSemanticError::InvalidRevision);
     }
     if !valid_identifier(&event.source_profile_id)
         || !valid_identifier(&event.source_profile_version)
@@ -731,8 +727,8 @@ mod tests {
         let mut input = event();
         input.revision = 0;
         assert_eq!(
-            normalize_transformation_event(&input),
-            Err(TransformationSemanticError::InvalidRevision)
+            normalize_transformation_event(&input).unwrap().source().revision,
+            0
         );
 
         let mut input = event();
