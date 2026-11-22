@@ -197,6 +197,9 @@ pub fn analyse_d0_case(input: &D0CaseInput) -> Result<D0DecompositionReport, D0E
         for second in (first + 1)..4 {
             let denominator =
                 (signature_norm_squared[first] * signature_norm_squared[second]).sqrt();
+            if !denominator.is_finite() || denominator <= 0.0 {
+                return Err(D0Error::NonFiniteDerivedValue);
+            }
             let correlation = dot(&signatures[first], &signatures[second]) / denominator;
             if !correlation.is_finite() {
                 return Err(D0Error::NonFiniteDerivedValue);
