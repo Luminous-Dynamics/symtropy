@@ -752,7 +752,8 @@ pub fn attest_clock_for_event(
             ClockAttestationReason::ClockObservationAfterEvent,
         );
     }
-    let observation_age = match reported_event_time.checked_sub(observation.observation_time_ticks) {
+    let observation_age = match reported_event_time.checked_sub(observation.observation_time_ticks)
+    {
         Some(age) => age,
         None => {
             return ClockAttestationDecision::rejected(
@@ -1203,12 +1204,13 @@ mod tests {
             "5:WMS_A:27:urn:uuid:custody-event-1000:4"
         );
         assert_eq!(evidence.time_basis_id(), "UTC(ZA)");
+        assert_eq!(decision.receipt.as_ref().unwrap().event_time_ticks(), 996);
         assert_eq!(
-            decision.receipt.as_ref().unwrap().event_time_ticks(),
-            996
-        );
-        assert_eq!(
-            decision.receipt.as_ref().unwrap().reported_event_time_ticks(),
+            decision
+                .receipt
+                .as_ref()
+                .unwrap()
+                .reported_event_time_ticks(),
             1_000
         );
         assert_eq!(
@@ -1487,13 +1489,14 @@ mod tests {
         calibration.measured_offset_ticks = -7;
         let decision = evaluate(&calibration, &observation_fixture());
         assert_eq!(
-            decision.receipt.as_ref().unwrap().reported_event_time_ticks(),
+            decision
+                .receipt
+                .as_ref()
+                .unwrap()
+                .reported_event_time_ticks(),
             1_000
         );
-        assert_eq!(
-            decision.receipt.as_ref().unwrap().event_time_ticks(),
-            1_007
-        );
+        assert_eq!(decision.receipt.as_ref().unwrap().event_time_ticks(), 1_007);
         let evidence = decision.to_time_evidence().unwrap();
         assert_eq!(evidence.interval().earliest(), 983);
         assert_eq!(evidence.interval().latest(), 1_031);
