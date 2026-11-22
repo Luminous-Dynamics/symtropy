@@ -1,0 +1,71 @@
+name: Mobility Restart Recovery Formal Model
+
+on:
+  push:
+    branches:
+      - research/mobility-restart-tla-v0-1
+    paths:
+      - "research/mobility-restart-reconciliation/model/**"
+      - ".github/workflows/mobility-restart-formal-model.yml"
+  pull_request:
+    paths:
+      - "research/mobility-restart-reconciliation/model/**"
+      - ".github/workflows/mobility-restart-formal-model.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rrvr-tlc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Download and verify pinned TLA+ tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/tla"
+          curl --fail --location --retry 3 \
+            "https://github.com/microsoft/tlalink/releases/download/tla2tools-2ef2af8/tla2tools.jar" \
+            --output "$RUNNER_TEMP/tla/tla2tools.jar"
+          printf '%s  %s\n' \
+            "D15655EEAFF4B3F7B3D65C46B838BC0F35D131B2EF4B1E473689B62C98D4726F" \
+            "$RUNNER_TEMP/tla/tla2tools.jar" | sha256sum --check
+      - name: Check safe recovery model
+        shell: bash
+        run: |
+          set -euo pipefail
+          java -XX:+UseParallelGC -cp "$RUNNER_TEMP/tla/tla2tools.jar" tlc2.TLC \
+            -workers auto \
+            -metadir "$RUNNER_TEMP/tlc-safe" \
+            -config research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.cfg \
+            research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla
+      - name: Verify unsafe retry negative control is detected
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          java -XX:+UseParallelGC -cp "$RUNNER_TEMP/tla/tla2tools.jar" tlc2.TLC \
+            -workers auto \
+            -metadir "$RUNNER_TEMP/tlc-negative" \
+            -config research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity_NaiveRetry.cfg \
+            research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla \
+            > "$RUNNER_TEMP/tlc-negative.log" 2>&1
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            cat "$RUNNER_TEMP/tlc-negative.log"
+            echo "Expected the deliberately unsafe retry model to violate NoDuplicatePhysicalEffects."
+            exit 1
+          fi
+          if ! grep -Fq "Invariant NoDuplicatePhysicalEffects is violated" "$RUNNER_TEMP/tlc-negative.log"; then
+            cat "$RUNNER_TEMP/tlc-negative.log"
+            echo "TLC failed for a reason other than the expected duplicate-effect counterexample."
+            exit 1
+          fi
+          echo "Expected negative-control counterexample observed."
