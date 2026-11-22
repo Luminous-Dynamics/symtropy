@@ -47,3 +47,43 @@ For each retrieved artifact, record:
 - #3683 owns complete coastal-to-inland service-chain evaluation.
 
 No data in these PDFs is presently embedded as operational rows in this crate. The only pinned data fixture is data/dgt-package-announcements.csv, whose ceiling is ANNOUNCED.
+
+## Source inventory refresh — 22 November 2026
+
+The official [DGT Terminal Updates](https://dgt.ictsi.com/terminalupdates) page was re-inspected on 22 November 2026. It lists daily vessel-update links, import-storage files, export-stack files and firm berth plans through 21 November. The source landing page and PDF snapshots were visually inspected, but **the source bytes have not been acquired into this repository, hashed or rights-cleared**.
+
+New directly inspected artifacts:
+
+| Artifact | Embedded/source-declared time | Visible distinctions | Admission ceiling |
+|---|---|---|---|
+| [DGT firm 21-day berth plan, 21 Nov](https://cdnweb-dgt.ictsi.com/users/user13/DGT%20Firm%2021%20day%20berth%20plan%2021.11.2026.pdf) | 21 Nov 2026, 13:02:01 | Berth/bollard timeline, vessel visit/call labels, berth windows, fender-repair annotation | Versioned planning assertion; repair note is not independent proof of resource outage/capacity |
+| [DGT export stack dates, 21 Nov](https://cdnweb-dgt.ictsi.com/users/user13/DGT%20EXPORTS%20STACK%20DATES%202026-11-21.pdf) | Confirmed as of 21 Nov 2026 | FIRM / PROVISIONAL distinctions; stack windows; explicit notice that dates depend on available space and can change | Stack-window status only; not gate-in, loading or export departure |
+| [DGT import storage, 21 Nov](https://cdnweb-dgt.ictsi.com/users/user13/DGT%20IMPORT%20STORAGE%202026-11-21.pdf) | 21 Nov 2026 | GP, reefer and IMDG fields, full/empty, unassigned and appointment/storage-related columns | Yard/storage snapshot only; unit, denominator and field definitions still require the terminal dictionary |
+| [DGT Vessel Update @05H00 page entry](https://cdnweb-dgt.ictsi.com/users/user23/DGT%20VESSELS%20UPDATE%20SPREADSHEET_27.pdf) | Embedded report heading says 22/11/2026 23H00 | Vessel/visit table; legend NYI = Not Yet In, INW = In Not Working, OWI = On Way In | Time basis is unqualified; see temporal-admission anomaly below |
+
+### Temporal-admission anomaly: @05H00 versus embedded 23H00
+
+The DGT landing-page link label says @05H00, while the inspected PDF heading says 22/11/2026 23H00. At 07:04 Africa/Johannesburg on 22 November this would appear to be a future report time **if** interpreted as South African local time. The PDF does not state the timestamp's time zone or report-generation convention, so this is not yet proof of a future timestamp: it is an unresolved source-label / embedded-time / time-basis conflict.
+
+Do not treat this document as the current @05H00 observation, do not compare it directly against a 05H00 snapshot from another date, and do not use the embedded time for event ordering until DGT clarifies the time zone and generation semantics. Preserve the raw page label, PDF heading, retrieval time, PDF byte digest (once rights permit acquisition), and time-zone unknown as separate values. Preserve NYI / INW / OWI exactly; do not conflate them with the earlier NIT string.
+
+### New P1 tests
+
+- Landing-page link label versus embedded report-time conflict.
+- Embedded report timestamp apparently later than retrieval/decision time, but with missing timezone.
+- Snapshot/publication/retrieval/decision time kept distinct.
+- Berth repair annotation versus independently verified asset availability.
+- FIRM / PROVISIONAL stack dates versus realized gate-in/loading.
+- Yard GP / reefer / IMDG fields with unresolved units/denominators.
+- Daily source snapshots remain immutable and historical replay uses only records visible at the selected cutoff.
+
+This discovery does not change the source-admission ceiling: none of these artifacts is yet an admitted operational record.
+
+## Industry conformance comparator — standards version and scope
+
+DCSA's public conformance register is a useful API/protocol baseline, but certification is specific to a standard release, role/module and the scenarios actually exercised. A conformance result must not be promoted into proof that a source event is authentic, physically true, legally authoritative or that a shipment was delivered. Reproduce the applicable DCSA scenarios for the exact public profile used; then evaluate custody truth separately on independently adjudicated traces.
+
+- DCSA Standards Public Reference: https://dcsa.org/standards
+- DCSA Conformance Register: https://dcsa.org/standards/conformance
+
+For this benchmark compare source-native TOS / interchange history, DCSA public event exchange, GS1 EPCIS 2.0.1 / CBV 2.0.0, relational reconciliation, and the independent Symtropy reference. Keep standards/API conformance, timestamp semantics, issuer authentication, physical handoff proof, and operational service outcomes as separate scorecards.
