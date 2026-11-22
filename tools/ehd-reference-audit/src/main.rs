@@ -2365,11 +2365,11 @@ pub fn audit_correlated_robust_design_contract(root: &Value) -> Vec<String> {
         candidates.is_some_and(|rows| rows.len() == 6
             && rows[0]["x"].as_f64() == Some(-3.0)
             && rows[0]["physical_nominal"] == serde_json::json!([9, -27])
-            && rows[0]["physical_shifted"] == serde_json::json!([9, 54])
+            && rows[0]["physical_shifted"] == serde_json::json!([9, -6.75])
             && rows[0]["nuisance"] == serde_json::json!([1, -3])
             && rows[5]["x"].as_f64() == Some(3.0)
             && rows[5]["physical_nominal"] == serde_json::json!([9, 27])
-            && rows[5]["physical_shifted"] == serde_json::json!([9, 108])),
+            && rows[5]["physical_shifted"] == serde_json::json!([9, 47.25])),
         "CORRELATED_DESIGN_CANDIDATES",
         "six manufactured candidate conditions or their two-nuisance sensitivity basis changed",
     );
