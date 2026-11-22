@@ -5,7 +5,7 @@
 **Journal issue:** [#6832](https://github.com/Luminous-Dynamics/symtropy/issues/6832)  
 **Branch:** \`research/mobility-commitment-journal-v0-1\`  
 **Research cut-off:** 22 November 2026  
-**Status:** source-level reducer, schema, scenario fixture, CLI, SHA-256 event chain and 12 Rust test definitions committed; exact-head runner verification pending.
+**Status:** source-level reducer, schema, scenario fixture, CLI, SHA-256 event chain and 14 Rust test definitions committed; exact-head runner verification pending.
 
 ## 1. Why the journal is necessary
 
