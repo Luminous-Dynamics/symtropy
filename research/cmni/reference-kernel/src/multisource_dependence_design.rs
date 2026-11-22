@@ -107,6 +107,7 @@ pub fn rank_designs_under_finite_correlation_scenarios(
     }
 
     let mut scenario_ids = std::collections::BTreeSet::new();
+    let mut validated_scenarios = Vec::with_capacity(scenarios.len());
     let mut identity_scenario_id = None;
     for scenario in scenarios {
         if scenario.scenario_id.trim().is_empty()
@@ -116,10 +117,14 @@ pub fn rank_designs_under_finite_correlation_scenarios(
                 "multi_source_scenario_ids_must_be_nonempty_and_unique",
             ));
         }
-        validate_correlation_matrix(&scenario.correlation_matrix, source_count)?;
-        if is_identity_correlation_matrix(&scenario.correlation_matrix) {
+        let correlation = canonicalize_and_validate_correlation_matrix(
+            &scenario.correlation_matrix,
+            source_count,
+        )?;
+        if is_identity_correlation_matrix(&correlation) {
             identity_scenario_id = Some(scenario.scenario_id.as_str());
         }
+        validated_scenarios.push((scenario.scenario_id.clone(), correlation));
     }
 
     let reference = &candidates[0];
@@ -142,13 +147,12 @@ pub fn rank_designs_under_finite_correlation_scenarios(
         let mut best_eig = f64::NEG_INFINITY;
         let mut worst_variance = f64::NEG_INFINITY;
         let mut best_variance = f64::INFINITY;
-        let mut worst_scenario_id = scenarios[0].scenario_id.clone();
-        let mut best_scenario_id = scenarios[0].scenario_id.clone();
+        let mut worst_scenario_id = validated_scenarios[0].0.clone();
+        let mut best_scenario_id = validated_scenarios[0].0.clone();
         let mut nominal_independence_eig_nats = None;
 
-        for scenario in scenarios {
-            let information =
-                scalar_parameter_information(candidate, &scenario.correlation_matrix)?;
+        for (scenario_id, correlation) in &validated_scenarios {
+            let information = scalar_parameter_information(candidate, correlation)?;
             let posterior_variance = 1.0 / (1.0 / candidate.prior_parameter_variance + information);
             let eig = 0.5 * (1.0 + candidate.prior_parameter_variance * information).ln();
             if !posterior_variance.is_finite() || !eig.is_finite() {
@@ -160,14 +164,14 @@ pub fn rank_designs_under_finite_correlation_scenarios(
             if eig < worst_eig {
                 worst_eig = eig;
                 worst_variance = posterior_variance;
-                worst_scenario_id = scenario.scenario_id.clone();
+                worst_scenario_id = scenario_id.clone();
             }
             if eig > best_eig {
                 best_eig = eig;
                 best_variance = posterior_variance;
-                best_scenario_id = scenario.scenario_id.clone();
+                best_scenario_id = scenario_id.clone();
             }
-            if Some(scenario.scenario_id.as_str()) == identity_scenario_id {
+            if Some(scenario_id.as_str()) == identity_scenario_id {
                 nominal_independence_eig_nats = Some(eig);
             }
         }
@@ -335,7 +339,16 @@ fn nearly_equal(left: f64, right: f64) -> bool {
     (left - right).abs() <= 1.0e-12 * left.abs().max(right.abs()).max(1.0)
 }
 
-fn validate_correlation_matrix(matrix: &[Vec<f64>], source_count: usize) -> Result<(), ModelError> {
+/// Validate a correlation matrix and return a canonical symmetric matrix.
+///
+/// Inputs within 1e-12 of unit diagonal and symmetry are canonicalized to exact
+/// unit diagonal and averaged symmetric off-diagonal entries before use. The
+/// minimum eigenvalue is checked with a Jacobi iteration; values down to -1e-10
+/// are accepted as floating-point PSD tolerance. This is not a formal PSD proof.
+fn canonicalize_and_validate_correlation_matrix(
+    matrix: &[Vec<f64>],
+    source_count: usize,
+) -> Result<Vec<Vec<f64>>, ModelError> {
     if matrix.len() != source_count || matrix.iter().any(|row| row.len() != source_count) {
         return Err(ModelError::MismatchedDataLengths);
     }
@@ -343,42 +356,53 @@ fn validate_correlation_matrix(matrix: &[Vec<f64>], source_count: usize) -> Resu
         return Err(ModelError::NonFiniteValue("source_correlation_matrix"));
     }
 
+    let mut canonical = vec![vec![0.0; source_count]; source_count];
     for row in 0..source_count {
         if !nearly_equal(matrix[row][row], 1.0) {
             return Err(ModelError::InvalidCovariance(
                 "source_correlation_matrix_diagonal_must_be_one",
             ));
         }
+        canonical[row][row] = 1.0;
         for column in (row + 1)..source_count {
-            if !nearly_equal(matrix[row][column], matrix[column][row])
-                || matrix[row][column].abs() > 1.0 + 1.0e-12
+            let upper = matrix[row][column];
+            let lower = matrix[column][row];
+            if !nearly_equal(upper, lower) || upper.abs() > 1.0 + 1.0e-12
+                || lower.abs() > 1.0 + 1.0e-12
             {
                 return Err(ModelError::InvalidCovariance(
                     "source_correlation_matrix_must_be_symmetric_and_bounded",
                 ));
             }
+            let symmetric_value = 0.5 * (upper + lower);
+            canonical[row][column] = symmetric_value;
+            canonical[column][row] = symmetric_value;
         }
     }
 
-    let minimum_eigenvalue = minimum_symmetric_eigenvalue(matrix);
-    if !minimum_eigenvalue.is_finite() || minimum_eigenvalue < -1.0e-10 {
+    let minimum_eigenvalue = minimum_symmetric_eigenvalue(&canonical)?;
+    if minimum_eigenvalue < -1.0e-10 {
         return Err(ModelError::InvalidCovariance(
             "source_correlation_matrix_must_be_positive_semidefinite",
         ));
     }
-    Ok(())
+    Ok(canonical)
 }
 
 /// Symmetric Jacobi eigenvalue iteration, used only for small correlation
-/// matrices. The explicit matrix-index loops are intentional for rotations.
+/// matrices. A residual check prevents accepting a partially diagonalized
+/// matrix as PSD when the iteration budget is exhausted.
 #[allow(clippy::needless_range_loop)]
-fn minimum_symmetric_eigenvalue(matrix: &[Vec<f64>]) -> f64 {
+fn minimum_symmetric_eigenvalue(matrix: &[Vec<f64>]) -> Result<f64, ModelError> {
     let dimension = matrix.len();
     if dimension == 0 {
-        return f64::NAN;
+        return Err(ModelError::MismatchedDataLengths);
     }
     let mut values = matrix.to_vec();
     let iterations = 100usize.saturating_mul(dimension).saturating_mul(dimension);
+    const JACOBI_OFF_DIAGONAL_TOLERANCE: f64 = 1.0e-14;
+    let mut converged = false;
+
     for _ in 0..iterations {
         let mut largest = 0.0;
         let mut pivot = (0usize, 0usize);
@@ -391,7 +415,8 @@ fn minimum_symmetric_eigenvalue(matrix: &[Vec<f64>]) -> f64 {
                 }
             }
         }
-        if largest <= 1.0e-14 {
+        if largest <= JACOBI_OFF_DIAGONAL_TOLERANCE {
+            converged = true;
             break;
         }
 
@@ -426,9 +451,29 @@ fn minimum_symmetric_eigenvalue(matrix: &[Vec<f64>]) -> f64 {
         }
     }
 
-    (0..dimension)
+    if !converged {
+        let mut residual = 0.0_f64;
+        for row in 0..dimension {
+            for column in (row + 1)..dimension {
+                residual = residual.max(values[row][column].abs());
+            }
+        }
+        if residual > JACOBI_OFF_DIAGONAL_TOLERANCE {
+            return Err(ModelError::InvalidCovariance(
+                "source_correlation_matrix_eigen_iteration_did_not_converge",
+            ));
+        }
+    }
+
+    let minimum = (0..dimension)
         .map(|index| values[index][index])
-        .fold(f64::INFINITY, f64::min)
+        .fold(f64::INFINITY, f64::min);
+    if !minimum.is_finite() {
+        return Err(ModelError::InvalidCovariance(
+            "source_correlation_matrix_eigenvalue_nonfinite",
+        ));
+    }
+    Ok(minimum)
 }
 
 fn is_identity_correlation_matrix(matrix: &[Vec<f64>]) -> bool {
@@ -705,6 +750,42 @@ mod tests {
                 "multi_source_scenario_ids_must_be_nonempty_and_unique"
             ))
         );
+    }
+
+    #[test]
+    fn near_symmetric_and_near_unit_diagonal_inputs_are_canonicalized() {
+        let mut scenario = three_source_scenarios()[0].clone();
+        scenario.correlation_matrix[0][0] = 1.0 + 5.0e-13;
+        scenario.correlation_matrix[0][1] = 0.2 + 5.0e-13;
+        scenario.correlation_matrix[1][0] = 0.2;
+        scenario.correlation_matrix[0][2] = -0.1;
+        scenario.correlation_matrix[2][0] = -0.1 - 5.0e-13;
+        let candidates = candidates();
+        let result = rank_designs_under_finite_correlation_scenarios(
+            &candidates,
+            &[scenario.clone()],
+            RECEIPT,
+        )
+        .expect("near-symmetric input accepted and canonicalized");
+
+        let mut exact = scenario;
+        exact.correlation_matrix[0][0] = 1.0;
+        exact.correlation_matrix[0][1] = 0.2 + 2.5e-13;
+        exact.correlation_matrix[1][0] = 0.2 + 2.5e-13;
+        exact.correlation_matrix[0][2] = -0.1 - 2.5e-13;
+        exact.correlation_matrix[2][0] = -0.1 - 2.5e-13;
+        let exact_result = rank_designs_under_finite_correlation_scenarios(
+            &candidates,
+            &[exact],
+            RECEIPT,
+        )
+        .expect("canonical symmetric reference");
+
+        for (actual, expected) in result.scores.iter().zip(exact_result.scores.iter()) {
+            assert!(
+                (actual.worst_case_eig_nats - expected.worst_case_eig_nats).abs() < 1.0e-14
+            );
+        }
     }
 
     #[test]
