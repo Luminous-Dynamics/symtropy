@@ -1,0 +1,177 @@
+{
+  "analytic_branch": {
+    "all_positive_order_matrices_invertible": true,
+    "operator": "A(y)=sum_(n>=0) A_n y^n",
+    "reason": "spec(A0)={0,-1}; n is a positive integer",
+    "recurrence": "(n*I-A0)*u_n = sum_(k=1..n) A_k*u_(n-k) + g_n, n>=1",
+    "regular_solution_count_before_fixed_horizon_normalization": 3,
+    "series": "U(y)=sum_(n>=0) u_n y^n",
+    "source": "g(y)=sum_(n>=0) g_n y^n",
+    "zeroth_order": "A0*u0 + g0 = 0"
+  },
+  "artifact_kind": "5d_egb_spin2_mp_frobenius_resonance_reduction",
+  "claim_ceiling": "Exact linear-algebra/Frobenius consequence of the committed Einstein-limit residue. No value of A1 is claimed; the logarithmic status of the singular branch remains open until M2 and C1 are extracted from the source equations.",
+  "controls": {
+    "A0_squared_plus_A0_zero": true,
+    "inhomogeneous_source_aligned_with_minus_one_eigenvector": true,
+    "left_null_basis_exact": true,
+    "projectors_idempotent": true,
+    "projectors_product_zero": true,
+    "projectors_sum_to_identity": true,
+    "rank_A0_one": true
+  },
+  "input": {
+    "artifact": "spin2_mp_horizon_indicial_v1.json",
+    "public_git_blob_sha1": "c323e46bffbaba7602c40151db48926cfac3b180",
+    "residue_A0": [
+      [
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      [
+        "0",
+        "0",
+        "2",
+        "-1/3"
+      ],
+      [
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      [
+        "0",
+        "0",
+        "6",
+        "-1"
+      ]
+    ],
+    "semantic_sha256": "d1863df2d1f3a2fe41378e7c2234cdd75e693b9897b7609a15470c410c82f240"
+  },
+  "required_next_coefficient_data": {
+    "A1_definition": "A1 = dA/dy at y=0 in y*U'=A(y)U+g(y)",
+    "equivalent_reduced_ode_inputs": [
+      "M2",
+      "C1"
+    ],
+    "formula": "K0=adj(M0)/d1; d2=det(M1)+tr(adj(M0)*M2); K1=adj(M1)/d1-(d2/d1^2)*adj(M0); A1_lower=-(K1*C0+K0*C1)",
+    "not_computed": [
+      "A1",
+      "log_obstruction"
+    ],
+    "where": "M=M0+y*M1+y^2*M2+..., C=C0+y*C1+...; d1=coefficient of y in det(M)=1/2"
+  },
+  "residue_factorization": {
+    "A0_equals_u_wT": true,
+    "eigenvalue_minus_one_left_covector": [
+      "0",
+      "0",
+      "2",
+      "-1/3"
+    ],
+    "eigenvalue_minus_one_right_vector": [
+      "0",
+      "1",
+      "0",
+      "3"
+    ],
+    "u": [
+      "0",
+      "1",
+      "0",
+      "3"
+    ],
+    "w": [
+      "0",
+      "0",
+      "2",
+      "-1/3"
+    ],
+    "wT_u": "-1"
+  },
+  "schema_version": 1,
+  "singular_branch": {
+    "equivalent_exact_conditions": [
+      "(A1*u)_0 = 0",
+      "(A1*u)_2 = 0",
+      "(A1*u)_3 - 3*(A1*u)_1 = 0"
+    ],
+    "first_resonant_equation_without_log": "-A0*v1 = A1*v0",
+    "higher_singular_recurrence_matrices_invertible_after_n_equals_1": true,
+    "interpretation": "the only integer-gap obstruction is the n=1 recurrence of the exponent -1 branch",
+    "leading_exponent": -1,
+    "leading_vector": [
+      "0",
+      "1",
+      "0",
+      "3"
+    ],
+    "log_coefficient_convention": "r0 = P_zero*A1*v0 for the displayed +r0*log(y) ansatz",
+    "log_free_iff": "P_zero*A1*u = 0, equivalently A1*u is in span(u)",
+    "log_obstruction": "P_zero*A1*v0",
+    "series": "U_sing=y^(-1)*(v0+v1*y+...) + r0*log(y) + ..."
+  },
+  "spectral_projectors": {
+    "P_minus_equals_minus_A0": [
+      [
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      [
+        "0",
+        "0",
+        "-2",
+        "1/3"
+      ],
+      [
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      [
+        "0",
+        "0",
+        "-6",
+        "1"
+      ]
+    ],
+    "P_zero_equals_I_plus_A0": [
+      [
+        "1",
+        "0",
+        "0",
+        "0"
+      ],
+      [
+        "0",
+        "1",
+        "2",
+        "-1/3"
+      ],
+      [
+        "0",
+        "0",
+        "1",
+        "0"
+      ],
+      [
+        "0",
+        "0",
+        "6",
+        "0"
+      ]
+    ],
+    "orthogonal_idempotent_decomposition": true,
+    "ranks": {
+      "P_minus": 1,
+      "P_zero": 3
+    }
+  },
+  "status": "exact_resonance_obstruction_reduced_to_A1_projection"
+}
