@@ -424,6 +424,8 @@ jobs:
             and .candidate_energy_wh == 1875
             and .worst_case_residual_energy_budget_wh == 2000
             and .worst_case_energy_margin_wh == 125
+            and ([.scenario_results[] | select(.scenario_id == "high-demand-low-renewable") | .resource_energy_margins[].energy_margin_wh] == [125,0])
+            and ([.scenario_results[] | select(.scenario_id == "high-demand-low-renewable") | .resource_slot_power_margins | length] == [8])
             and .all_evidence_synthetic == true
             and .dispatch_authority_granted == false
             and .export_authority_granted == false
