@@ -930,6 +930,4 @@ mod tests {
             result.disposition,
             CompositionDisposition::Hold(CompositionHold::RecoveryAssessmentHeld)
         );
-    }
-
-}
+    }}
