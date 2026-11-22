@@ -691,8 +691,9 @@ mod tests {
             independent_observation_covariance: vec![vec![1.0]],
             shared_sources: Vec::new(),
             lineage_coverage_complete: true,
-            inter_source_dependence:
-                InterSourceDependenceQualification::joint_blocks_modelled("  "),
+            inter_source_dependence: InterSourceDependenceQualification::joint_blocks_modelled(
+                "  ",
+            ),
         }]);
         assert_eq!(
             result,
