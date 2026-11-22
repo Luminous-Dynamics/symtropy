@@ -283,23 +283,16 @@ mod tests {
         // H=I and two unit Coulomb disks. The exact minimizer is on both
         // boundaries with nonzero multipliers lambda_1=lambda_2=1.
         // f(j)=1/2||j||^2 - 3*j0 - 3*j2.
-        let h_num: Matrix4 = [
-            [10, 0, 0, 0],
-            [0, 10, 0, 0],
-            [0, 0, 10, 0],
-            [0, 0, 0, 10],
-        ];
+        let h_num: Matrix4 = [[10, 0, 0, 0], [0, 10, 0, 0], [0, 0, 10, 0], [0, 0, 0, 10]];
         let solution_num: Vector4 = [10, 0, 10, 0];
         let candidate_num: Vector4 = [8, 6, 8, 6];
         let linear_term_num_over_100: Vector4 = [-300, 0, -300, 0];
 
         for disk in [0..2, 2..4] {
-            let solution_radius_squared =
-                solution_num[disk.start] * solution_num[disk.start]
-                    + solution_num[disk.start + 1] * solution_num[disk.start + 1];
-            let candidate_radius_squared =
-                candidate_num[disk.start] * candidate_num[disk.start]
-                    + candidate_num[disk.start + 1] * candidate_num[disk.start + 1];
+            let solution_radius_squared = solution_num[disk.start] * solution_num[disk.start]
+                + solution_num[disk.start + 1] * solution_num[disk.start + 1];
+            let candidate_radius_squared = candidate_num[disk.start] * candidate_num[disk.start]
+                + candidate_num[disk.start + 1] * candidate_num[disk.start + 1];
             assert_eq!(solution_radius_squared, 100);
             assert_eq!(candidate_radius_squared, 100);
         }
