@@ -464,7 +464,10 @@ mod tests {
         c.log_amplitude_slope = 1.5;
         let small = event("small", 0.5, 0.2, 1.0);
         let large = event("large", 0.5, 5.0, 1.0);
-        assert!(conditional_classifier_probability(&large, &c) > conditional_classifier_probability(&small, &c));
+        assert!(
+            conditional_classifier_probability(&large, &c)
+                > conditional_classifier_probability(&small, &c)
+        );
     }
 
     #[test]
