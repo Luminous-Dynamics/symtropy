@@ -43,10 +43,10 @@ jobs:
         run: cargo fmt --manifest-path tools/orbital-event-capture-observability-bench/Cargo.toml -- --check
 
       - name: Run Rust unit tests
-        run: cargo test --manifest-path tools/orbital-event-capture-observability-bench/Cargo.toml --all-targets
+        run: cargo test --locked --manifest-path tools/orbital-event-capture-observability-bench/Cargo.toml --all-targets
 
       - name: Run Clippy with warnings denied
-        run: cargo clippy --manifest-path tools/orbital-event-capture-observability-bench/Cargo.toml --all-targets -- -D warnings
+        run: cargo clippy --locked --manifest-path tools/orbital-event-capture-observability-bench/Cargo.toml --all-targets -- -D warnings
 
       - name: Replay frozen capture corpus
         shell: bash
@@ -54,7 +54,7 @@ jobs:
           set -euo pipefail
           actual_commit="$(git rev-parse HEAD)"
           test "$actual_commit" = "$BENCHMARK_COMMIT"
-          cargo run --quiet --manifest-path tools/orbital-event-capture-observability-bench/Cargo.toml -- \
+          cargo run --locked --quiet --manifest-path tools/orbital-event-capture-observability-bench/Cargo.toml -- \
             tools/orbital-event-capture-observability-bench/fixtures/v0.1/capture-cases.json \
             --source-commit "$actual_commit" > orbital-event-capture-receipt.json
           jq -e --arg expected_commit "$BENCHMARK_COMMIT" '
