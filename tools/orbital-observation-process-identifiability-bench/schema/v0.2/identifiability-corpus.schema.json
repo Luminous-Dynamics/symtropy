@@ -1,0 +1,377 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/orbital-observation-identifiability-corpus-v0.2.json",
+  "title": "Orbital observation-process identifiability corpus v0.2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "evidence_class",
+    "claim_ceiling",
+    "analytic_cases",
+    "sensitivity_cases",
+    "simulation_cases",
+    "pod_trend_cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-observation-identifiability.corpus.v0.2"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic-thinned-plp-identifiability-and-pod-bounds-only"
+    },
+    "analytic_cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/analytic_case"
+      }
+    },
+    "sensitivity_cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/sensitivity_case"
+      }
+    },
+    "simulation_cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/simulation_case"
+      }
+    },
+    "pod_trend_cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/pod_trend_case"
+      }
+    }
+  },
+  "$defs": {
+    "plp": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "eta",
+        "beta"
+      ],
+      "properties": {
+        "eta": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "beta": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "capture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "p0",
+        "gamma"
+      ],
+      "properties": {
+        "p0": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "gamma": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "observed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "eta_observed",
+        "beta_observed"
+      ],
+      "properties": {
+        "eta_observed": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "beta_observed": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "analytic_case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "physical",
+        "capture",
+        "exposure_horizon",
+        "decomposition_gammas",
+        "decomposition_p0",
+        "expected_observed",
+        "expected_equivalent_physical_betas"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "physical": {
+          "$ref": "#/$defs/plp"
+        },
+        "capture": {
+          "$ref": "#/$defs/capture"
+        },
+        "exposure_horizon": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "decomposition_gammas": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "decomposition_p0": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "expected_observed": {
+          "$ref": "#/$defs/observed"
+        },
+        "expected_equivalent_physical_betas": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        }
+      }
+    },
+    "sensitivity_case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "beta_observed",
+        "gamma_min",
+        "gamma_max",
+        "expected_beta_min",
+        "expected_beta_max",
+        "expected_lower_open",
+        "expected_identifiable"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "beta_observed": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "gamma_min": {
+          "type": "number",
+          "minimum": 0
+        },
+        "gamma_max": {
+          "type": "number",
+          "minimum": 0
+        },
+        "expected_beta_min": {
+          "type": "number",
+          "minimum": 0
+        },
+        "expected_beta_max": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "expected_lower_open": {
+          "type": "boolean"
+        },
+        "expected_identifiable": {
+          "type": "boolean"
+        }
+      }
+    },
+    "simulation_case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "physical_beta",
+        "capture_p0",
+        "capture_gamma",
+        "physical_event_count",
+        "exposure_horizon",
+        "physical_seed",
+        "capture_seed",
+        "maximum_beta_error"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "physical_beta": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "capture_p0": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "capture_gamma": {
+          "type": "number",
+          "minimum": 0
+        },
+        "physical_event_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "exposure_horizon": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "physical_seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "capture_seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "maximum_beta_error": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "pod_anchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "normalized_time_fraction",
+        "hits",
+        "trials",
+        "event_class",
+        "covariate_stratum_id",
+        "configuration_sha256",
+        "sampling_unit",
+        "independent_trials_asserted",
+        "reference_evidence_sha256"
+      ],
+      "properties": {
+        "normalized_time_fraction": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "hits": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "trials": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "event_class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "covariate_stratum_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "sampling_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "independent_trials_asserted": {
+          "type": "boolean"
+        },
+        "reference_evidence_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "pod_trend_case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "early_anchor",
+        "late_anchor",
+        "familywise_alpha",
+        "expected_status",
+        "expected_gamma_min",
+        "expected_gamma_max"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "early_anchor": {
+          "$ref": "#/$defs/pod_anchor"
+        },
+        "late_anchor": {
+          "$ref": "#/$defs/pod_anchor"
+        },
+        "familywise_alpha": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 0.2
+        },
+        "expected_status": {
+          "enum": [
+            "bounded",
+            "unbounded",
+            "model_incompatible",
+            "indeterminate"
+          ]
+        },
+        "expected_gamma_min": {
+          "type": "number",
+          "minimum": 0
+        },
+        "expected_gamma_max": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
