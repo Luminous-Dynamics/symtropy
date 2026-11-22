@@ -34,9 +34,7 @@ pub mod sequential;
 pub mod stats;
 pub mod trajectory;
 
-pub use ncdot_pointwise::{
-    NcdotPointwiseInputs, NcdotPointwiseReport, evaluate_ncdot_pointwise,
-};
+pub use ncdot_pointwise::{NcdotPointwiseInputs, NcdotPointwiseReport, evaluate_ncdot_pointwise};
 pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
     AffineResidualMassReport, AffineUnionResidualMassConfig,
@@ -145,9 +143,15 @@ impl fmt::Display for KernelError {
             Self::InvalidTrajectoryBudget => "trajectory time-interval budget must be nonzero",
             Self::CounterOverflow => "streaming observation counter overflowed",
             Self::InvalidSphereDirection => "3D-Nc sphere direction must be a finite unit vector",
-            Self::InvalidPositionCovarianceInverse => "inverse position covariance produced an invalid Mahalanobis distance",
-            Self::InvalidConditionalVelocityCovariance => "conditional velocity covariance must be positive semidefinite",
-            Self::InvalidSphereDirectionVariance => "projected conditional velocity variance is materially negative",
+            Self::InvalidPositionCovarianceInverse => {
+                "inverse position covariance produced an invalid Mahalanobis distance"
+            }
+            Self::InvalidConditionalVelocityCovariance => {
+                "conditional velocity covariance must be positive semidefinite"
+            }
+            Self::InvalidSphereDirectionVariance => {
+                "projected conditional velocity variance is materially negative"
+            }
             Self::InvalidProbability => "probability must be finite and lie in [0, 1]",
             Self::InvalidAlpha => "alpha must be finite and lie strictly between 0 and 1",
             Self::ZeroProjectedVariance => "half-space projection has zero variance",
