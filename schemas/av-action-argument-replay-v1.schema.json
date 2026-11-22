@@ -242,7 +242,7 @@
       ],
       "properties": {
         "episode_id": {"type": "string", "minLength": 1},
-        "turn_id": {"type": "integer", "minimum": 0},
+        "turn_id": {"type": "string", "minLength": 1},
         "transcript_head_sha256": {"$ref": "#/$defs/sha256"},
         "eligible_action_ids": {
           "type": "array",
@@ -279,7 +279,7 @@
       ],
       "properties": {
         "episode_id": {"type": "string", "minLength": 1},
-        "turn_id": {"type": "integer", "minimum": 0},
+        "turn_id": {"type": "string", "minLength": 1},
         "request_id": {"type": "string", "minLength": 1},
         "action_id": {"type": "string", "minLength": 1, "not": {"const": "__stop__"}},
         "parameter_manifest_sha256": {"$ref": "#/$defs/sha256"},
@@ -341,7 +341,7 @@
       ],
       "properties": {
         "episode_id": {"type": "string", "minLength": 1},
-        "turn_id": {"type": "integer", "minimum": 0},
+        "turn_id": {"type": "string", "minLength": 1},
         "request_id": {"type": "string", "minLength": 1},
         "action_id": {"type": "string", "minLength": 1},
         "parameter_manifest_sha256": {"$ref": "#/$defs/sha256"},
