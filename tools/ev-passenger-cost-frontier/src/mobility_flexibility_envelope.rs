@@ -592,6 +592,71 @@ pub fn evaluate_mobility_flexibility(
         }
     }
 
+    let expected_resource_dispatch_len =
+        input.storage_resources.len() * usize::from(input.horizon_slots);
+    if input.resource_dispatch.len() != expected_resource_dispatch_len {
+        add_error(&mut errors, "resource_dispatch_horizon_coverage_invalid");
+    }
+    let mut sorted_resource_dispatch = input.resource_dispatch.clone();
+    sorted_resource_dispatch
+        .sort_by(|a, b| (&a.resource_id, a.slot).cmp(&(&b.resource_id, b.slot)));
+    let mut resource_dispatch_by_key = BTreeMap::new();
+    for item in &sorted_resource_dispatch {
+        if !resource_map.contains_key(item.resource_id.as_str())
+            || item.slot >= input.horizon_slots
+            || item.requested_discharge_power_w > MAX_POWER_W
+        {
+            add_error(
+                &mut errors,
+                format!("resource_dispatch_identity_or_value_invalid:{}:{}", item.resource_id, item.slot),
+            );
+            continue;
+        }
+        if resource_dispatch_by_key
+            .insert((item.resource_id.clone(), item.slot), item)
+            .is_some()
+        {
+            add_error(
+                &mut errors,
+                format!("resource_dispatch_duplicate:{}:{}", item.resource_id, item.slot),
+            );
+        }
+    }
+
+    for resource in &input.storage_resources {
+        for slot in 0..input.horizon_slots {
+            if !resource_dispatch_by_key.contains_key(&(resource.resource_id.clone(), slot)) {
+                add_error(
+                    &mut errors,
+                    format!("resource_dispatch_missing:{}:{slot}", resource.resource_id),
+                );
+            }
+        }
+    }
+
+    for slot in 0..input.horizon_slots {
+        let mut allocated_power = 0_u32;
+        for resource in &input.storage_resources {
+            if let Some(item) = resource_dispatch_by_key.get(&(resource.resource_id.clone(), slot)) {
+                allocated_power = match allocated_power.checked_add(item.requested_discharge_power_w) {
+                    Some(value) => value,
+                    None => {
+                        add_error(&mut errors, format!("resource_dispatch_power_overflow:{slot}"));
+                        allocated_power
+                    }
+                };
+            }
+        }
+        if let Some(site_profile) = profile_by_slot.get(&slot) {
+            if site_profile.requested_discharge_power_w != allocated_power {
+                add_error(
+                    &mut errors,
+                    format!("site_and_resource_dispatch_mismatch:{slot}"),
+                );
+            }
+        }
+    }
+
     let mut sorted_scenarios = input.reserve_scenarios.clone();
     sorted_scenarios.sort_by(|a, b| a.scenario_id.cmp(&b.scenario_id));
     let mut scenario_ids = BTreeSet::new();
