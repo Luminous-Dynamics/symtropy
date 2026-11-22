@@ -810,8 +810,10 @@ mod tests {
 
         for dimension in [1_usize, 2, 3, 6, 12] {
             let mut covariance = vec![0.0; dimension * dimension];
-            for axis in 0..dimension {
-                covariance[axis * dimension + axis] = 1.0;
+            for (index, value) in covariance.iter_mut().enumerate() {
+                if index % (dimension + 1) == 0 {
+                    *value = 1.0;
+                }
             }
             let mut normal = vec![0.0; dimension];
             normal[0] = 1.0;
