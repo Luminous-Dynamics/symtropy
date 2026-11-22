@@ -12,7 +12,7 @@ The existing inspection-observability contract handles exact scope, coverage, ca
 - lower confidence bound on detection probability from hit/miss trials;
 - upper confidence bound on false-call probability from blank trials;
 - per-inspector screening against predeclared thresholds;
-- exact method/procedure/material/defect/orientation/environment/scope binding;
+- exact method/procedure/material/defect/orientation/environment/scope binding through a SHA-256 digest of the canonical typed scope record;
 - equipment and calibration identity checks, unique specimen IDs, per-inspector sample minima and deterministic SHA-256 receipt.
 
 The frozen synthetic configuration uses 10 inspectors, at least 60 target-flaw trials and 200 blank trials per inspector, a 0.90 detection lower-bound threshold at 95% one-sided confidence, and a 0.01 false-call upper-bound threshold at 50% one-sided confidence. These are explicit benchmark settings, not universal NDE requirements. In the fixture, each inspector has 59 detections in 60 target-flaw trials and one false call in 200 blank trials. The exact one-sided lower detection bound is approximately 0.923360; the exact one-sided upper false-call bound is approximately 0.008378. Adding one more miss or one more false call causes the corresponding gate to fail.
@@ -47,6 +47,7 @@ The corpus is synthetic and can only verify software behavior. Replace it with p
 6. An inspector has invalid calibration and the study is not evaluable.
 7. A duplicate specimen identity is rejected.
 8. One inspector has too few blank trials and the study is not evaluable.
+9. A reused scope reference with a different scope digest is rejected.
 
 The independent Python oracle recomputes exact binomial tails and per-inspector bounds from the same frozen bytes; CI compares numerical outputs and dispositions to the Rust implementation. This is independent implementation agreement, not independent experimental evidence.
 
