@@ -1,0 +1,42 @@
+name: Mobility Dependency Quarantine TLA Model Check
+
+on:
+  push:
+    branches:
+      - research/mobility-dependency-quarantine-v0-1
+    paths:
+      - "research/mobility-dependency-quarantine/formal/**"
+      - ".github/workflows/mobility-dependency-quarantine-tla.yml"
+  pull_request:
+    paths:
+      - "research/mobility-dependency-quarantine/formal/**"
+      - ".github/workflows/mobility-dependency-quarantine-tla.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  model-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Download pinned TLC 1.7.4
+        run: |
+          curl --fail --location --silent --show-error \
+            https://github.com/tlaplus/tlaplus/releases/download/v1.7.4/tla2tools.jar \
+            --output /tmp/tla2tools.jar
+          echo "bee4a54f3ee3d4afc347c3240ec2d9e93b075104  /tmp/tla2tools.jar" | sha1sum --check
+      - name: Check local closure
+        working-directory: research/mobility-dependency-quarantine/formal
+        run: java -XX:+UseParallelGC -cp /tmp/tla2tools.jar tlc2.TLC -config local-chain.cfg DependencyComponentQuarantine.tla
+      - name: Check unknown inventory fallback
+        working-directory: research/mobility-dependency-quarantine/formal
+        run: java -XX:+UseParallelGC -cp /tmp/tla2tools.jar tlc2.TLC -config unknown-inventory.cfg DependencyComponentQuarantine.tla
+      - name: Check global dependency fallback
+        working-directory: research/mobility-dependency-quarantine/formal
+        run: java -XX:+UseParallelGC -cp /tmp/tla2tools.jar tlc2.TLC -config global-domain.cfg DependencyComponentQuarantine.tla
