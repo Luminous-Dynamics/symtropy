@@ -233,7 +233,7 @@ fn validate_corpus(corpus: &DecisionCorpus) -> Result<(), String> {
         }
 
         let mut world_ids = BTreeSet::new();
-        for world_id in &case.compatible_world_set.world_ids {
+        for world_id in &world_ids {
             if !validate_ascii_id(world_id) || !world_ids.insert(world_id.as_str()) {
                 return Err("compatible-world IDs must be unique, nonempty ASCII strings".to_owned());
             }
@@ -446,6 +446,8 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
         ));
     }
 
+    let mut world_ids = case.compatible_world_set.world_ids.clone();
+    world_ids.sort();
     let mut scenarios = case.loss_scenario_manifest.scenarios.iter().collect::<Vec<_>>();
     scenarios.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
 
@@ -799,6 +801,52 @@ mod tests {
             serde_json::to_value(a).expect("serialize original"),
             serde_json::to_value(b).expect("serialize reversed")
         );
+    }
+
+    #[test]
+    fn rectangular_regret_is_never_below_joint_regret() {
+        let evaluation = evaluate(&fixture()).expect("fixture evaluates");
+        for item in &evaluation.cases {
+            for metric in &item.action_metrics {
+                assert!(
+                    metric.worst_case_rectangular_regret
+                        .compare_exact(&metric.worst_case_joint_regret)
+                        != Ordering::Less,
+                    "rectangular regret fell below joint regret for {}",
+                    metric.action_id
+                );
+                assert_eq!(
+                    metric.rectangular_regret_excess,
+                    metric
+                        .worst_case_rectangular_regret
+                        .checked_sub(&metric.worst_case_joint_regret)
+                        .expect("rectangular regret excess is nonnegative")
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn multi_world_rectangular_regret_uses_the_worst_physical_world() {
+        let evaluation = evaluate(&fixture()).expect("fixture evaluates");
+        let result = case(&evaluation, "multi-world-strata");
+        assert_eq!(result.compatible_world_count, 2);
+        let alpha = result
+            .action_metrics
+            .iter()
+            .find(|item| item.action_id == "alpha")
+            .expect("alpha metric exists");
+        let beta = result
+            .action_metrics
+            .iter()
+            .find(|item| item.action_id == "beta")
+            .expect("beta metric exists");
+        assert_eq!(alpha.worst_case_joint_regret.numerator, 2);
+        assert_eq!(alpha.worst_case_joint_regret.denominator, 10);
+        assert_eq!(beta.worst_case_joint_regret.numerator, 2);
+        assert_eq!(beta.worst_case_joint_regret.denominator, 10);
+        assert_eq!(alpha.worst_rectangular_regret_worlds, vec!["w1"]);
+        assert_eq!(beta.worst_rectangular_regret_worlds, vec!["w0"]);
     }
 
     #[test]
