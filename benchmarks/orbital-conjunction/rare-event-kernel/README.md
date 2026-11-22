@@ -17,7 +17,8 @@ This crate is a research kernel, not an operational collision-probability produc
 - A conservative norm lower bound and static collision-ball cell-exclusion predicate.
 - Deterministic longest-axis cell subdivision with stable child split paths.
 - Conservative standard-normal cell-mass upper bound from the global density ceiling (1/2)^d times cell volume.
-- A Gaussian Chernoff / union-bound estimate for mass outside the finite whitened cube, and a residual-mass ledger that accumulates unresolved cell bounds plus the cube tail.
+- A Gaussian Chernoff / union-bound estimate for mass outside the finite whitened cube, plus a residual-mass ledger for unresolved cells.
+- A budgeted affine-cell traversal that separately classifies cells wholly inside caller-declared chart boxes, cells proven event-free, and unresolved cells outside chart coverage.
 - Dense-grid adversarial tests checking sampled affine images remain inside the interval enclosure and sampled norms remain above the reported lower bound.
 - Streaming log-domain weighted event sums, contribution ESS, plug-in relative standard error, and a clearly labelled normal-approximation interval diagnostic.
 - A beta(1,1)-mixture Bernoulli e-process and inverted time-uniform confidence sequence for independent bounded event indicators, with an exhaustive short-horizon optional-stopping coverage test.
@@ -38,7 +39,7 @@ cargo clippy --locked --manifest-path benchmarks/orbital-conjunction/rare-event-
 
 The package has its own Cargo workspace and does not require the full Symtropy/Bevy workspace.
 
-The current authored test corpus contains 79 unit tests across the analytic probability, affine coverage / residual-mass, weighted-statistics, and Bernoulli sequential-inference modules. Only a completed exact-head workflow establishes that a particular revision passed them.
+The current authored test corpus contains 86 unit tests across the analytic probability, affine coverage / residual-mass, weighted-statistics, and Bernoulli sequential-inference modules. Only a completed exact-head workflow establishes that a particular revision passed them.
 
 ## Important limitations
 
@@ -46,7 +47,9 @@ The current authored test corpus contains 79 unit tests across the analytic prob
 - A finite proposal mixture does not prove event-mode completeness.
 - The Gaussian half-space function is an analytic fixture, not a disk/ellipsoid collision integral or trajectory first-contact solver.
 - The log-tail, box-mass and cube-tail routines are floating-point numerical kernels, not formally verified outward-rounded probability bounds; they cannot be used as an independent residual-mass certificate without additional enclosure work.
-- The affine-cell module widens basic IEEE-754 operations by one adjacent representable value and fails closed on overflow. Its grid tests are useful negative controls, not a formal proof of the arithmetic implementation. It covers finite affine maps only; it is not a validated nonlinear ODE enclosure. The Gaussian cell-mass bound is intentionally loose and the tail bound uses a Chernoff polynomial lower bound; together they form preliminary residual-mass accounting, not a formally machine-verified certificate.
+- The affine-cell module widens basic IEEE-754 operations by one adjacent representable value and fails closed on overflow. Its grid tests are useful negative controls, not a formal proof of the arithmetic implementation. It covers finite affine maps only; it is not a validated nonlinear ODE enclosure.
+- The residual traversal bounds possible event mass only outside caller-declared chart boxes under a fixed standard-normal nominal model and static affine collision-ball event. A chart-covered region is not thereby proven to have accurate proposal density, correct likelihood weights, or complete event support.
+- The Gaussian cell-mass bound is intentionally loose and the cube-tail bound uses a Chernoff polynomial lower bound. The traversal is preliminary numerical conservative bookkeeping, not a formally machine-verified certificate or a proof of the physical model.
 - The cell splitter uses a deterministic longest-axis rule. Shared closed faces are covered by both children; they have zero measure only for a nondegenerate continuous Gaussian and still remain relevant to geometric tangency tests.
 - The weighted indicator primitive does not construct confidence intervals or establish finite-sample coverage.
 - The proposal density must be the complete mixture density, including all defensive components.
