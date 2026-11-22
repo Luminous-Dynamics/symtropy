@@ -284,7 +284,10 @@ fn view_reason_codes(
         reasons.push("STANDOFF_TOO_LONG".to_owned());
     }
 
-    let direction = [sensor_to_target[0] / distance, sensor_to_target[1] / distance];
+    let direction = [
+        sensor_to_target[0] / distance,
+        sensor_to_target[1] / distance,
+    ];
     let forward = [heading_rad.cos(), heading_rad.sin()];
     let fov_angle_deg = dot(direction, forward).clamp(-1.0, 1.0).acos().to_degrees();
     if fov_angle_deg > view.half_fov_deg + EPS {
@@ -310,13 +313,8 @@ fn view_reason_codes(
 }
 
 fn evaluate_view(feature: &Feature, view: &View, occluders: &[Occluder]) -> ViewResult {
-    let nominal_reasons = view_reason_codes(
-        feature,
-        view,
-        view.origin_m,
-        view.heading_rad,
-        occluders,
-    );
+    let nominal_reasons =
+        view_reason_codes(feature, view, view.origin_m, view.heading_rad, occluders);
     let mut failed_perturbations = Vec::new();
 
     for (index, perturbation) in view.pose_perturbations.iter().enumerate() {
@@ -325,8 +323,14 @@ fn evaluate_view(feature: &Feature, view: &View, occluders: &[Occluder]) -> View
             view.origin_m[1] + perturbation.dy_m,
         ];
         let perturbed_heading = view.heading_rad + perturbation.heading_delta_rad;
-        if !view_reason_codes(feature, view, perturbed_origin, perturbed_heading, occluders)
-            .is_empty()
+        if !view_reason_codes(
+            feature,
+            view,
+            perturbed_origin,
+            perturbed_heading,
+            occluders,
+        )
+        .is_empty()
         {
             failed_perturbations.push(index);
         }
@@ -385,7 +389,10 @@ pub fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
 
         let status = if nominal_view_ids.is_empty() {
             has_nominal_gap = true;
-            case_reasons.push(format!("FEATURE_NOT_NOMINALLY_VISIBLE:{}", feature.feature_id));
+            case_reasons.push(format!(
+                "FEATURE_NOT_NOMINALLY_VISIBLE:{}",
+                feature.feature_id
+            ));
             FeatureStatus::NotNominallyVisible
         } else if nominal_domains.len() < feature.minimum_distinct_failure_domains {
             has_nominal_gap = true;
@@ -445,8 +452,8 @@ pub fn audit_corpus(bytes: &[u8], source_commit: &str) -> Result<Receipt, String
         return Err("SOURCE_COMMIT_MUST_BE_40_HEX_CHARACTERS".to_owned());
     }
 
-    let corpus: Corpus = serde_json::from_slice(bytes)
-        .map_err(|error| format!("CORPUS_PARSE_FAILED:{error}"))?;
+    let corpus: Corpus =
+        serde_json::from_slice(bytes).map_err(|error| format!("CORPUS_PARSE_FAILED:{error}"))?;
     if corpus.schema != CORPUS_SCHEMA
         || corpus.benchmark_id != BENCHMARK_ID
         || corpus.evidence_class != "synthetic"
@@ -551,10 +558,7 @@ mod tests {
             let baseline = evaluate_case(case).unwrap();
             for index in 0..128 {
                 let angle = (index as f64) * 0.071;
-                let translation = [
-                    (index as f64) * 0.17 - 4.0,
-                    3.0 - (index as f64) * 0.11,
-                ];
+                let translation = [(index as f64) * 0.17 - 4.0, 3.0 - (index as f64) * 0.11];
                 let mut transformed = case.clone();
                 reparameterize(&mut transformed, angle, translation);
                 assert_eq!(
@@ -578,9 +582,11 @@ mod tests {
             .unwrap();
         let result = evaluate_case(case).unwrap();
         assert_eq!(result.disposition, Disposition::Infeasible);
-        assert!(result.views[0]
-            .nominal_reason_codes
-            .contains(&"LINE_OF_SIGHT_OCCLUDED".to_owned()));
+        assert!(
+            result.views[0]
+                .nominal_reason_codes
+                .contains(&"LINE_OF_SIGHT_OCCLUDED".to_owned())
+        );
     }
 
     #[test]
