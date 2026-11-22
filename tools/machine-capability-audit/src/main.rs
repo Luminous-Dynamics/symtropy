@@ -890,6 +890,25 @@ fn run() -> Result<(), String> {
         "machine-capability-audit: {} synthetic known-answer cases passed",
         corpus.cases.len()
     );
+    for case in &corpus.cases {
+        let result = evaluate_case(case)?;
+        println!(
+            "case={} disposition={} pareto_frontier={}",
+            case.scenario_id,
+            result.disposition.as_str(),
+            result.pareto_frontier_route_ids.join(",")
+        );
+        for route in &result.route_results {
+            println!(
+                "  route={} disposition={} cost_per_accepted_output_zar={:.2} lead_time_hours={:.2} local_closure={}",
+                route.route_id,
+                route.disposition.as_str(),
+                route.cost_per_accepted_output_zar,
+                route.lead_time_hours,
+                route.local_closure.as_str()
+            );
+        }
+    }
     println!("schema: {}", corpus.schema_path);
     println!("status: {}", corpus.status);
     println!("owner: {}", corpus.owner_issue);
