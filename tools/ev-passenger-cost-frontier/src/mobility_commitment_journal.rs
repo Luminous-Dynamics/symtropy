@@ -44,7 +44,6 @@ impl CommitmentState {
             Self::Rejected | Self::Expired | Self::Cancelled | Self::Settled
         )
     }
-
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
