@@ -21,6 +21,22 @@ The manifest records candidate source paths, upstream Git blob SHA-1 object iden
 | Covariance trust | CARA covariance-realism residual / scale-factor tools |
 | Test corpus | Alfano, Frisbee and Omitron CDMs, including high-Pc, low-relative-velocity, non-PD covariance and 3D-Nc cases |
 
+## CARA's multistep estimator policy is a mandatory baseline
+
+The pinned snapshot includes:
+- `DistributedMatlab/ProbabilityOfCollision/PcMultiStep.m`;
+- `PcMultiStepWithSDMC.m`;
+- `Utils/UsageViolationPc2D.m`;
+- the corresponding unit-test files.
+
+CARA's public multistep cascade starts with 2D-Pc, evaluates explicit usage violations, then conditionally escalates to 2D-Nc and 3D-Nc. The SDMC wrapper adds a further Monte Carlo refinement. The source comments identify BFMC as an internal CARA tool that is not publicly released.
+
+Its usage-violation diagnostics include covariance pathologies, extended conjunction duration, risk-rate peak offset from TCA, and potential 2D-Pc inaccuracy under curvilinear dynamics; advanced tiers add their own convergence / duration / offset diagnostics.
+
+This matters for fair comparison: the Luminous estimator portfolio is not novel merely because it has multiple interchangeable estimators. Benchmark the entire CARA escalation policy as well as the individual methods. The research opportunity is to add independently qualified residual event-mass coverage, frozen-proposal evaluation, model-uncertainty handling and selective abstention, then measure whether these additions reduce false-safe escalation misses at matched cost.
+
+Do not claim a BFMC comparison unless an independent BFMC reference is actually available and the event/dynamics assumptions are matched.
+
 ## Important comparison semantics
 
 CARA's corpus README explains that CDM values may require state correction to the actual TCA because the published CDM TCA is rounded to milliseconds. Its multi-step entry point performs relevant state/TCA handling. The README also documents small numerical differences caused by MATLAB, BLAS/LAPACK, MKL, and operating-system versions.
