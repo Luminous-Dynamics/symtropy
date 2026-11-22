@@ -33,7 +33,7 @@
     "configuration_digest": "sha256:site-config-v01",
     "producer_id": "fixture-generator",
     "method_id": "synthetic-known-answer-v0.1",
-    "evidence_reference": "synthetic://site/base",
+    "evidence_reference": "synthetic://charge-queue/report-v0.1",
     "evidence_class": "synthetic",
     "observed_at_unix_ms": 1799999940000,
     "valid_from_unix_ms": 1799999940000,
@@ -44,7 +44,7 @@
     "configuration_digest": "sha256:site-config-v01",
     "producer_id": "fixture-generator",
     "method_id": "synthetic-known-answer-v0.1",
-    "evidence_reference": "synthetic://site/base",
+    "evidence_reference": "synthetic://site-meter/report-v0.1",
     "evidence_class": "synthetic",
     "observed_at_unix_ms": 1799999940000,
     "valid_from_unix_ms": 1799999940000,
@@ -224,7 +224,51 @@
           "mission_reserve_receipt_id": "baseline-weather-ess-01-mission",
           "inventory_buffer_receipt_id": "baseline-weather-ess-01-inventory",
           "safety_outage_reserve_receipt_id": "baseline-weather-ess-01-safety",
-          "uncertainty_reserve_receipt_id": "baseline-weather-ess-01-uncertainty"
+          "uncertainty_reserve_receipt_id": "baseline-weather-ess-01-uncertainty",
+          "mission_reserve_evidence": {
+            "asset_id": "ess-01",
+            "configuration_digest": "sha256:ess-01-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-known-answer-v0.1",
+            "evidence_reference": "baseline-weather-ess-01-mission",
+            "evidence_class": "synthetic",
+            "observed_at_unix_ms": 1799999940000,
+            "valid_from_unix_ms": 1799999940000,
+            "valid_until_unix_ms": 1800003599999
+          },
+          "inventory_buffer_evidence": {
+            "asset_id": "ess-01",
+            "configuration_digest": "sha256:ess-01-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-known-answer-v0.1",
+            "evidence_reference": "baseline-weather-ess-01-inventory",
+            "evidence_class": "synthetic",
+            "observed_at_unix_ms": 1799999940000,
+            "valid_from_unix_ms": 1799999940000,
+            "valid_until_unix_ms": 1800003599999
+          },
+          "safety_outage_reserve_evidence": {
+            "asset_id": "ess-01",
+            "configuration_digest": "sha256:ess-01-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-known-answer-v0.1",
+            "evidence_reference": "baseline-weather-ess-01-safety",
+            "evidence_class": "synthetic",
+            "observed_at_unix_ms": 1799999940000,
+            "valid_from_unix_ms": 1799999940000,
+            "valid_until_unix_ms": 1800003599999
+          },
+          "uncertainty_reserve_evidence": {
+            "asset_id": "ess-01",
+            "configuration_digest": "sha256:ess-01-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-known-answer-v0.1",
+            "evidence_reference": "baseline-weather-ess-01-uncertainty",
+            "evidence_class": "synthetic",
+            "observed_at_unix_ms": 1799999940000,
+            "valid_from_unix_ms": 1799999940000,
+            "valid_until_unix_ms": 1800003599999
+          }
         },
         {
           "resource_id": "ess-02",
@@ -259,7 +303,51 @@
           "mission_reserve_receipt_id": "baseline-weather-ess-02-mission",
           "inventory_buffer_receipt_id": "baseline-weather-ess-02-inventory",
           "safety_outage_reserve_receipt_id": "baseline-weather-ess-02-safety",
-          "uncertainty_reserve_receipt_id": "baseline-weather-ess-02-uncertainty"
+          "uncertainty_reserve_receipt_id": "baseline-weather-ess-02-uncertainty",
+          "mission_reserve_evidence": {
+            "asset_id": "ess-02",
+            "configuration_digest": "sha256:ess-02-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-known-answer-v0.1",
+            "evidence_reference": "baseline-weather-ess-02-mission",
+            "evidence_class": "synthetic",
+            "observed_at_unix_ms": 1799999940000,
+            "valid_from_unix_ms": 1799999940000,
+            "valid_until_unix_ms": 1800003599999
+          },
+          "inventory_buffer_evidence": {
+            "asset_id": "ess-02",
+            "configuration_digest": "sha256:ess-02-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-known-answer-v0.1",
+            "evidence_reference": "baseline-weather-ess-02-inventory",
+            "evidence_class": "synthetic",
+            "observed_at_unix_ms": 1799999940000,
+            "valid_from_unix_ms": 1799999940000,
+            "valid_until_unix_ms": 1800003599999
+          },
+          "safety_outage_reserve_evidence": {
+            "asset_id": "ess-02",
+            "configuration_digest": "sha256:ess-02-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-known-answer-v0.1",
+            "evidence_reference": "baseline-weather-ess-02-safety",
+            "evidence_class": "synthetic",
+            "observed_at_unix_ms": 1799999940000,
+            "valid_from_unix_ms": 1799999940000,
+            "valid_until_unix_ms": 1800003599999
+          },
+          "uncertainty_reserve_evidence": {
+            "asset_id": "ess-02",
+            "configuration_digest": "sha256:ess-02-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-known-answer-v0.1",
+            "evidence_reference": "baseline-weather-ess-02-uncertainty",
+            "evidence_class": "synthetic",
+            "observed_at_unix_ms": 1799999940000,
+            "valid_from_unix_ms": 1799999940000,
+            "valid_until_unix_ms": 1800003599999
+          }
         }
       ]
     },
@@ -310,7 +398,51 @@
           "mission_reserve_receipt_id": "high-demand-low-renewable-ess-01-mission",
           "inventory_buffer_receipt_id": "high-demand-low-renewable-ess-01-inventory",
           "safety_outage_reserve_receipt_id": "high-demand-low-renewable-ess-01-safety",
-          "uncertainty_reserve_receipt_id": "high-demand-low-renewable-ess-01-uncertainty"
+          "uncertainty_reserve_receipt_id": "high-demand-low-renewable-ess-01-uncertainty",
+          "mission_reserve_evidence": {
+            "asset_id": "ess-01",
+            "configuration_digest": "sha256:ess-01-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-known-answer-v0.1",
+            "evidence_reference": "high-demand-low-renewable-ess-01-mission",
+            "evidence_class": "synthetic",
+            "observed_at_unix_ms": 1799999940000,
+            "valid_from_unix_ms": 1799999940000,
+            "valid_until_unix_ms": 1800003599999
+          },
+          "inventory_buffer_evidence": {
+            "asset_id": "ess-01",
+            "configuration_digest": "sha256:ess-01-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-known-answer-v0.1",
+            "evidence_reference": "high-demand-low-renewable-ess-01-inventory",
+            "evidence_class": "synthetic",
+            "observed_at_unix_ms": 1799999940000,
+            "valid_from_unix_ms": 1799999940000,
+            "valid_until_unix_ms": 1800003599999
+          },
+          "safety_outage_reserve_evidence": {
+            "asset_id": "ess-01",
+            "configuration_digest": "sha256:ess-01-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-known-answer-v0.1",
+            "evidence_reference": "high-demand-low-renewable-ess-01-safety",
+            "evidence_class": "synthetic",
+            "observed_at_unix_ms": 1799999940000,
+            "valid_from_unix_ms": 1799999940000,
+            "valid_until_unix_ms": 1800003599999
+          },
+          "uncertainty_reserve_evidence": {
+            "asset_id": "ess-01",
+            "configuration_digest": "sha256:ess-01-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-known-answer-v0.1",
+            "evidence_reference": "high-demand-low-renewable-ess-01-uncertainty",
+            "evidence_class": "synthetic",
+            "observed_at_unix_ms": 1799999940000,
+            "valid_from_unix_ms": 1799999940000,
+            "valid_until_unix_ms": 1800003599999
+          }
         },
         {
           "resource_id": "ess-02",
@@ -345,7 +477,51 @@
           "mission_reserve_receipt_id": "high-demand-low-renewable-ess-02-mission",
           "inventory_buffer_receipt_id": "high-demand-low-renewable-ess-02-inventory",
           "safety_outage_reserve_receipt_id": "high-demand-low-renewable-ess-02-safety",
-          "uncertainty_reserve_receipt_id": "high-demand-low-renewable-ess-02-uncertainty"
+          "uncertainty_reserve_receipt_id": "high-demand-low-renewable-ess-02-uncertainty",
+          "mission_reserve_evidence": {
+            "asset_id": "ess-02",
+            "configuration_digest": "sha256:ess-02-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-known-answer-v0.1",
+            "evidence_reference": "high-demand-low-renewable-ess-02-mission",
+            "evidence_class": "synthetic",
+            "observed_at_unix_ms": 1799999940000,
+            "valid_from_unix_ms": 1799999940000,
+            "valid_until_unix_ms": 1800003599999
+          },
+          "inventory_buffer_evidence": {
+            "asset_id": "ess-02",
+            "configuration_digest": "sha256:ess-02-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-known-answer-v0.1",
+            "evidence_reference": "high-demand-low-renewable-ess-02-inventory",
+            "evidence_class": "synthetic",
+            "observed_at_unix_ms": 1799999940000,
+            "valid_from_unix_ms": 1799999940000,
+            "valid_until_unix_ms": 1800003599999
+          },
+          "safety_outage_reserve_evidence": {
+            "asset_id": "ess-02",
+            "configuration_digest": "sha256:ess-02-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-known-answer-v0.1",
+            "evidence_reference": "high-demand-low-renewable-ess-02-safety",
+            "evidence_class": "synthetic",
+            "observed_at_unix_ms": 1799999940000,
+            "valid_from_unix_ms": 1799999940000,
+            "valid_until_unix_ms": 1800003599999
+          },
+          "uncertainty_reserve_evidence": {
+            "asset_id": "ess-02",
+            "configuration_digest": "sha256:ess-02-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-known-answer-v0.1",
+            "evidence_reference": "high-demand-low-renewable-ess-02-uncertainty",
+            "evidence_class": "synthetic",
+            "observed_at_unix_ms": 1799999940000,
+            "valid_from_unix_ms": 1799999940000,
+            "valid_until_unix_ms": 1800003599999
+          }
         }
       ]
     }
@@ -363,6 +539,28 @@
         "producer_id": "fixture-generator",
         "method_id": "synthetic-known-answer-v0.1",
         "evidence_reference": "synthetic://site/base",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800003599999
+      },
+      "base_load_evidence": {
+        "asset_id": "depot-01",
+        "configuration_digest": "sha256:site-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-known-answer-v0.1",
+        "evidence_reference": "synthetic://site-meter/report-v0.1",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800003599999
+      },
+      "scheduled_charging_load_evidence": {
+        "asset_id": "depot-01",
+        "configuration_digest": "sha256:site-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-known-answer-v0.1",
+        "evidence_reference": "synthetic://charge-queue/report-v0.1",
         "evidence_class": "synthetic",
         "observed_at_unix_ms": 1799999940000,
         "valid_from_unix_ms": 1799999940000,
@@ -385,6 +583,28 @@
         "observed_at_unix_ms": 1799999940000,
         "valid_from_unix_ms": 1799999940000,
         "valid_until_unix_ms": 1800003599999
+      },
+      "base_load_evidence": {
+        "asset_id": "depot-01",
+        "configuration_digest": "sha256:site-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-known-answer-v0.1",
+        "evidence_reference": "synthetic://site-meter/report-v0.1",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800003599999
+      },
+      "scheduled_charging_load_evidence": {
+        "asset_id": "depot-01",
+        "configuration_digest": "sha256:site-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-known-answer-v0.1",
+        "evidence_reference": "synthetic://charge-queue/report-v0.1",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800003599999
       }
     },
     {
@@ -403,6 +623,28 @@
         "observed_at_unix_ms": 1799999940000,
         "valid_from_unix_ms": 1799999940000,
         "valid_until_unix_ms": 1800003599999
+      },
+      "base_load_evidence": {
+        "asset_id": "depot-01",
+        "configuration_digest": "sha256:site-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-known-answer-v0.1",
+        "evidence_reference": "synthetic://site-meter/report-v0.1",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800003599999
+      },
+      "scheduled_charging_load_evidence": {
+        "asset_id": "depot-01",
+        "configuration_digest": "sha256:site-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-known-answer-v0.1",
+        "evidence_reference": "synthetic://charge-queue/report-v0.1",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800003599999
       }
     },
     {
@@ -417,6 +659,28 @@
         "producer_id": "fixture-generator",
         "method_id": "synthetic-known-answer-v0.1",
         "evidence_reference": "synthetic://site/base",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800003599999
+      },
+      "base_load_evidence": {
+        "asset_id": "depot-01",
+        "configuration_digest": "sha256:site-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-known-answer-v0.1",
+        "evidence_reference": "synthetic://site-meter/report-v0.1",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800003599999
+      },
+      "scheduled_charging_load_evidence": {
+        "asset_id": "depot-01",
+        "configuration_digest": "sha256:site-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-known-answer-v0.1",
+        "evidence_reference": "synthetic://charge-queue/report-v0.1",
         "evidence_class": "synthetic",
         "observed_at_unix_ms": 1799999940000,
         "valid_from_unix_ms": 1799999940000,
