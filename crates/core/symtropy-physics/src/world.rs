@@ -1395,11 +1395,7 @@ impl<const D: usize> PhysicsWorld<D> {
                     &r_a,
                     &(-impulse),
                 )?;
-                integrator::try_apply_contact_angular_impulse(
-                    &mut self.bodies[b],
-                    &r_b,
-                    &impulse,
-                )?;
+                integrator::try_apply_contact_angular_impulse(&mut self.bodies[b], &r_b, &impulse)?;
 
                 total_normal_impulse += modulated_delta.abs();
                 if !total_normal_impulse.is_finite() {
