@@ -5,6 +5,7 @@ on:
     branches:
       - research/orbital-pod-trend-bounds-v0-2
       - research/orbital-observation-surface-identifiability-v0-3
+      - research/orbital-decision-identifiability-v0-1
     paths:
       - "tools/orbital-observation-surface-bench/**"
       - "research/orbital/OBSERVATION_SURFACE_IDENTIFIABILITY_BENCHMARK_V0_3.md"
@@ -98,6 +99,36 @@ jobs:
           node tools/orbital-observation-surface-bench/tests/compare_decision_receipts.mjs \
             artifacts/decision-identifiability-receipt-v0.1.json \
             artifacts/decision-identifiability-oracle-v0.1.json
+      - name: Validate loss and regret corpus
+        if: ${{ hashFiles('tools/orbital-observation-surface-bench/fixtures/v0.1/decision-regret-cases.json') != '' }}
+        run: |
+          node tools/orbital-observation-surface-bench/tests/validate_schema.mjs \
+            tools/orbital-observation-surface-bench/schema/v0.1/decision-regret-frontier-corpus.schema.json \
+            tools/orbital-observation-surface-bench/fixtures/v0.1/decision-regret-cases.json
+      - name: Generate exact decision loss and regret receipt
+        if: ${{ hashFiles('tools/orbital-observation-surface-bench/fixtures/v0.1/decision-regret-cases.json') != '' }}
+        run: |
+          cargo run --locked --manifest-path tools/orbital-observation-surface-bench/Cargo.toml --bin decision-regret-frontier -- \
+            tools/orbital-observation-surface-bench/fixtures/v0.1/decision-regret-cases.json \
+            --source-commit "${GITHUB_SHA}" > artifacts/decision-regret-frontier-receipt-v0.1.json
+      - name: Run independent JavaScript decision regret oracle
+        if: ${{ hashFiles('tools/orbital-observation-surface-bench/fixtures/v0.1/decision-regret-cases.json') != '' }}
+        run: |
+          node tools/orbital-observation-surface-bench/tests/decision_regret_reference_oracle.mjs \
+            tools/orbital-observation-surface-bench/fixtures/v0.1/decision-regret-cases.json \
+            > artifacts/decision-regret-frontier-oracle-v0.1.json
+      - name: Validate decision regret receipt
+        if: ${{ hashFiles('tools/orbital-observation-surface-bench/fixtures/v0.1/decision-regret-cases.json') != '' }}
+        run: |
+          node tools/orbital-observation-surface-bench/tests/validate_schema.mjs \
+            tools/orbital-observation-surface-bench/schema/v0.1/decision-regret-frontier-receipt.schema.json \
+            artifacts/decision-regret-frontier-receipt-v0.1.json
+      - name: Compare Rust decision regret receipt with independent oracle
+        if: ${{ hashFiles('tools/orbital-observation-surface-bench/fixtures/v0.1/decision-regret-cases.json') != '' }}
+        run: |
+          node tools/orbital-observation-surface-bench/tests/compare_decision_regret_receipts.mjs \
+            artifacts/decision-regret-frontier-receipt-v0.1.json \
+            artifacts/decision-regret-frontier-oracle-v0.1.json
       - uses: actions/upload-artifact@v4
         with:
           name: orbital-observation-surface-v0.1-${{ github.sha }}
