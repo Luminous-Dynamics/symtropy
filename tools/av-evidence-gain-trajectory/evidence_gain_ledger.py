@@ -468,6 +468,7 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
     prior_catalog: dict[str, dict[str, Any]] | None = None
     prior_scorecard: dict[str, Any] | None = None
     prior_action: str | None = None
+    prior_head: str | None = None
     prior_cutoff = -1
     resource_summaries = {
         field: {"observed_count": 0, "sum": 0.0}
@@ -487,8 +488,10 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
             {
                 "turn_id",
                 "turn_index",
+                "parent_transcript_head_sha256",
                 "preceding_action_id",
                 "action_result_status",
+                "action_result_digest_sha256",
                 "new_observation_ids",
                 "workload",
                 "submission",
@@ -509,9 +512,13 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
             turn["preceding_action_id"], f"{turn_id}.preceding_action_id"
         )
         status = turn["action_result_status"]
+        parent_head = turn["parent_transcript_head_sha256"]
+        action_result_digest = turn["action_result_digest_sha256"]
         if index == 0:
             if preceding_action != "__initial__" or status != "INITIAL":
                 raise EvidenceGainError("first turn must use __initial__ / INITIAL")
+            if parent_head is not None or action_result_digest is not None:
+                raise EvidenceGainError("initial turn must not claim a parent head or action result")
         else:
             if preceding_action != prior_action:
                 raise EvidenceGainError(f"{turn_id}: preceding_action_id does not match prior selection")
@@ -519,6 +526,11 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
                 raise EvidenceGainError(f"{turn_id}: invalid action_result_status")
             if prior_action == STOP_ACTION_ID:
                 raise EvidenceGainError("a turn follows a selected stop action")
+            if _sha256(parent_head, f"{turn_id}.parent_transcript_head_sha256") != prior_head:
+                raise EvidenceGainError(f"{turn_id}: parent transcript head does not match prior turn")
+            action_result_digest = _sha256(
+                action_result_digest, f"{turn_id}.action_result_digest_sha256"
+            )
 
         workload = turn["workload"]
         submission = turn["submission"]
@@ -623,6 +635,8 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
         turn_results.append({
             "turn_id": turn_id,
             "turn_index": index,
+            "parent_transcript_head_sha256": parent_head,
+            "action_result_digest_sha256": action_result_digest,
             "decision_cutoff_tick": cutoff,
             "preceding_action_id": preceding_action,
             "action_result_status": status,
@@ -646,6 +660,7 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
         prior_catalog = catalog
         prior_scorecard = scorecard
         prior_action = action_result["selected_action_id"]
+        prior_head = _sha256(workload.get("transcript_head_sha256"), f"{turn_id}.workload.transcript_head_sha256")
         prior_cutoff = cutoff
 
     if prior_action != STOP_ACTION_ID:
