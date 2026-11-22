@@ -196,6 +196,11 @@ def _rank_report(
     exact_set = {
         (item["better"], item["worse"]) for item in certified
     }
+    arm_index = {arm: index for index, arm in enumerate(arms)}
+    exact_index_set = {
+        (arm_index[better], arm_index[worse])
+        for better, worse in exact_set
+    }
     tier_cache: dict[int, int] = {}
     tier_visiting: set[int] = set()
 
@@ -206,7 +211,7 @@ def _rank_report(
             raise RankEvaluationError("certified dominance graph contains a cycle")
         tier_visiting.add(model)
         better_models = [
-            left for left, right in exact_set if right == model
+            left for left, right in exact_index_set if right == model
         ]
         tier = 1 + max(
             (tier_for(better) for better in better_models),
@@ -225,8 +230,8 @@ def _rank_report(
 
     rank_bounds = {}
     for model, arm in enumerate(arms):
-        better_count = sum((left, model) in exact_set for left in range(model_count))
-        worse_count = sum((model, right) in exact_set for right in range(model_count))
+        better_count = sum((left, model) in exact_index_set for left in range(model_count))
+        worse_count = sum((model, right) in exact_index_set for right in range(model_count))
         rank_bounds[arm] = {
             "lower": 1 + better_count,
             "upper": model_count - worse_count,
