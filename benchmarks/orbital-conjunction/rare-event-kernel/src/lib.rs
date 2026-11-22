@@ -203,8 +203,7 @@ pub fn gaussian_half_space_probability(
     normal: &[f64],
     bound: f64,
 ) -> Result<f64, KernelError> {
-    let log_probability =
-        gaussian_half_space_log_probability(mean, covariance, normal, bound)?;
+    let log_probability = gaussian_half_space_log_probability(mean, covariance, normal, bound)?;
     let probability = log_probability.exp();
     if probability.is_finite() && (0.0..=1.0).contains(&probability) {
         Ok(probability)
@@ -357,10 +356,7 @@ fn log_standard_normal_lower_tail(value: f64) -> f64 {
         }
     }
 
-    -0.5 * value * value
-        - 0.5 * core::f64::consts::TAU.ln()
-        - value.ln()
-        + series.ln()
+    -0.5 * value * value - 0.5 * core::f64::consts::TAU.ln() - value.ln() + series.ln()
 }
 
 fn log_difference_exp(log_larger: f64, log_smaller: f64) -> Result<f64, KernelError> {
@@ -720,8 +716,7 @@ mod tests {
 
     #[test]
     fn ordinary_half_space_probability_may_underflow_but_log_api_does_not() {
-        let probability =
-            gaussian_half_space_probability(&[40.0], &[1.0], &[1.0], 0.0).unwrap();
+        let probability = gaussian_half_space_probability(&[40.0], &[1.0], &[1.0], 0.0).unwrap();
         assert_eq!(probability, 0.0);
     }
 
@@ -826,8 +821,7 @@ mod tests {
 
     #[test]
     fn strict_half_nominal_covariance_floor_accepts_positive_difference() {
-        validate_covariance_floor(&[0.75, 0.0, 0.0, 0.65], &[1.0, 0.0, 0.0, 1.0], 2, 0.5)
-            .unwrap();
+        validate_covariance_floor(&[0.75, 0.0, 0.0, 0.65], &[1.0, 0.0, 0.0, 1.0], 2, 0.5).unwrap();
     }
 
     #[test]
