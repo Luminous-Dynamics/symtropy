@@ -33,7 +33,9 @@ pub struct ExecutorError {
 
 impl ExecutorError {
     fn new(message: impl Into<String>) -> Self {
-        Self { message: message.into() }
+        Self {
+            message: message.into(),
+        }
     }
 }
 
@@ -68,7 +70,9 @@ impl ResourceCostV1 {
         Some(Self {
             audio_bytes: self.audio_bytes.checked_add(other.audio_bytes)?,
             video_frames: self.video_frames.checked_add(other.video_frames)?,
-            energy_millijoules: self.energy_millijoules.checked_add(other.energy_millijoules)?,
+            energy_millijoules: self
+                .energy_millijoules
+                .checked_add(other.energy_millijoules)?,
         })
     }
 
@@ -76,7 +80,9 @@ impl ResourceCostV1 {
         Some(Self {
             audio_bytes: self.audio_bytes.checked_sub(other.audio_bytes)?,
             video_frames: self.video_frames.checked_sub(other.video_frames)?,
-            energy_millijoules: self.energy_millijoules.checked_sub(other.energy_millijoules)?,
+            energy_millijoules: self
+                .energy_millijoules
+                .checked_sub(other.energy_millijoules)?,
         })
     }
 }
@@ -421,7 +427,10 @@ impl ActiveSensingExecutorV1 {
         }
         let mut fixture_map = BTreeMap::new();
         for fixture in fixtures {
-            if fixture_map.insert(fixture.action_id.clone(), fixture).is_some() {
+            if fixture_map
+                .insert(fixture.action_id.clone(), fixture)
+                .is_some()
+            {
                 return Err(ExecutorError::new("duplicate evaluator action fixture"));
             }
         }
@@ -506,9 +515,9 @@ impl ActiveSensingExecutorV1 {
             .values()
             .cloned()
             .map(|mut observation| {
-                observation.eligible_for_decision =
-                    observation.available_tick <= self.config.deadline_tick
-                        && observation.available_tick <= self.current_tick;
+                observation.eligible_for_decision = observation.available_tick
+                    <= self.config.deadline_tick
+                    && observation.available_tick <= self.current_tick;
                 observation
             })
             .collect();
@@ -521,7 +530,10 @@ impl ActiveSensingExecutorV1 {
             visible_events: self.events.clone(),
             visible_observations,
             remaining_budget,
-            pending_request_id: self.pending.as_ref().map(|pending| pending.request_id.clone()),
+            pending_request_id: self
+                .pending
+                .as_ref()
+                .map(|pending| pending.request_id.clone()),
             transcript_head_sha256: self.head_digest(),
         })
     }
@@ -542,7 +554,9 @@ impl ActiveSensingExecutorV1 {
             return Err(ExecutorError::new("episode is not active"));
         }
         if turn.turn_id != self.next_turn_id {
-            return Err(ExecutorError::new("candidate turn id is stale or out of order"));
+            return Err(ExecutorError::new(
+                "candidate turn id is stale or out of order",
+            ));
         }
         if turn.transcript_head_sha256 != self.head_digest() {
             return Err(ExecutorError::new(
@@ -563,10 +577,14 @@ impl ActiveSensingExecutorV1 {
                     ));
                 }
                 if self.current_tick > self.config.deadline_tick {
-                    return Err(ExecutorError::new("cannot request evidence after the deadline"));
+                    return Err(ExecutorError::new(
+                        "cannot request evidence after the deadline",
+                    ));
                 }
                 if request_id.trim().is_empty() || self.seen_request_ids.contains(request_id) {
-                    return Err(ExecutorError::new("request id is empty or has already been used"));
+                    return Err(ExecutorError::new(
+                        "request id is empty or has already been used",
+                    ));
                 }
                 if !estimated_eig_nats.is_finite()
                     || *estimated_eig_nats < 0.0
@@ -580,7 +598,9 @@ impl ActiveSensingExecutorV1 {
                     return Err(ExecutorError::new("action max-use limit exceeded"));
                 }
                 if !action.reserve_cost.fits_within(self.remaining_budget()?) {
-                    return Err(ExecutorError::new("action reservation exceeds remaining budget"));
+                    return Err(ExecutorError::new(
+                        "action reservation exceeds remaining budget",
+                    ));
                 }
                 let arrival_tick = self
                     .current_tick
@@ -628,7 +648,9 @@ impl ActiveSensingExecutorV1 {
                     return Err(ExecutorError::new("pending action is not cancellable"));
                 }
                 if !action.cancel_cost.fits_within(pending.reserve_cost) {
-                    return Err(ExecutorError::new("cancellation consumption exceeds reservation"));
+                    return Err(ExecutorError::new(
+                        "cancellation consumption exceeds reservation",
+                    ));
                 }
                 self.append_event(TranscriptPayloadV1::CandidateTurnSubmitted {
                     turn_id: turn.turn_id,
@@ -652,7 +674,9 @@ impl ActiveSensingExecutorV1 {
                 self.ensure_no_pending()?;
                 self.validate_citations(cited_observation_refs)?;
                 if self.current_tick > self.config.deadline_tick {
-                    return Err(ExecutorError::new("answer was submitted after the deadline"));
+                    return Err(ExecutorError::new(
+                        "answer was submitted after the deadline",
+                    ));
                 }
                 self.append_event(TranscriptPayloadV1::CandidateTurnSubmitted {
                     turn_id: turn.turn_id,
@@ -671,7 +695,9 @@ impl ActiveSensingExecutorV1 {
                 self.ensure_no_pending()?;
                 self.validate_citations(cited_observation_refs)?;
                 if self.current_tick > self.config.deadline_tick {
-                    return Err(ExecutorError::new("abstention was submitted after the deadline"));
+                    return Err(ExecutorError::new(
+                        "abstention was submitted after the deadline",
+                    ));
                 }
                 self.append_event(TranscriptPayloadV1::CandidateTurnSubmitted {
                     turn_id: turn.turn_id,
@@ -840,7 +866,9 @@ impl ActiveSensingExecutorV1 {
         consumed: ResourceCostV1,
     ) -> Result<(), ExecutorError> {
         if !consumed.fits_within(reservation) {
-            return Err(ExecutorError::new("consumed resource cost exceeds reservation"));
+            return Err(ExecutorError::new(
+                "consumed resource cost exceeds reservation",
+            ));
         }
         self.reserved = self
             .reserved
@@ -894,7 +922,9 @@ fn hex_sha256(bytes: &[u8]) -> String {
 
 fn validate_config(config: &EpisodeConfigV1) -> Result<(), ExecutorError> {
     if config.episode_id.trim().is_empty() || config.deadline_tick < config.query_tick {
-        return Err(ExecutorError::new("invalid episode identity or query deadline"));
+        return Err(ExecutorError::new(
+            "invalid episode identity or query deadline",
+        ));
     }
     if config.max_pending_actions != 1 {
         return Err(ExecutorError::new(
@@ -908,7 +938,9 @@ fn validate_config(config: &EpisodeConfigV1) -> Result<(), ExecutorError> {
             || !action_ids.insert(action.action_id.clone())
             || !action.cancel_cost.fits_within(action.reserve_cost)
         {
-            return Err(ExecutorError::new("invalid or duplicate action catalogue entry"));
+            return Err(ExecutorError::new(
+                "invalid or duplicate action catalogue entry",
+            ));
         }
     }
     let mut observation_ids = BTreeSet::new();
@@ -935,8 +967,18 @@ fn validate_fixture(
     }
     match fixture.status {
         FixtureOutcomeStatusV1::Delivered => {
-            if fixture.observation_ref.as_deref().unwrap_or("").trim().is_empty()
-                || fixture.observation_summary.as_deref().unwrap_or("").trim().is_empty()
+            if fixture
+                .observation_ref
+                .as_deref()
+                .unwrap_or("")
+                .trim()
+                .is_empty()
+                || fixture
+                    .observation_summary
+                    .as_deref()
+                    .unwrap_or("")
+                    .trim()
+                    .is_empty()
             {
                 return Err(ExecutorError::new(
                     "delivered action fixture requires an observation identity and summary",
@@ -971,7 +1013,12 @@ mod tests {
         }
     }
 
-    fn action(action_id: &str, modality: ModalityV1, latency: u64, reserve: ResourceCostV1) -> ActionSpecV1 {
+    fn action(
+        action_id: &str,
+        modality: ModalityV1,
+        latency: u64,
+        reserve: ResourceCostV1,
+    ) -> ActionSpecV1 {
         ActionSpecV1 {
             action_id: action_id.to_string(),
             modality,
@@ -997,8 +1044,18 @@ mod tests {
                 eligible_for_decision: true,
             }],
             action_catalogue: vec![
-                action("probe-machine-state", ModalityV1::Audio, 2, cost(2048, 0, 200)),
-                action("confirm-alarm-source", ModalityV1::Video, 1, cost(0, 1, 300)),
+                action(
+                    "probe-machine-state",
+                    ModalityV1::Audio,
+                    2,
+                    cost(2048, 0, 200),
+                ),
+                action(
+                    "confirm-alarm-source",
+                    ModalityV1::Video,
+                    1,
+                    cost(0, 1, 300),
+                ),
             ],
             budget: cost(4096, 2, 1000),
             max_pending_actions: 1,
@@ -1011,7 +1068,9 @@ mod tests {
                 action_id: "probe-machine-state".to_string(),
                 status: FixtureOutcomeStatusV1::Delivered,
                 observation_ref: Some("obs-machine-state".to_string()),
-                observation_summary: Some("Non-speech acoustic pattern indicates an alarm".to_string()),
+                observation_summary: Some(
+                    "Non-speech acoustic pattern indicates an alarm".to_string(),
+                ),
                 source_dependency_group: Some("root-machine".to_string()),
                 detail: None,
                 consumed_cost: cost(1024, 0, 100),
@@ -1020,7 +1079,9 @@ mod tests {
                 action_id: "confirm-alarm-source".to_string(),
                 status: FixtureOutcomeStatusV1::Delivered,
                 observation_ref: Some("obs-alarm-source".to_string()),
-                observation_summary: Some("A nearby maintenance cart is emitting the alarm".to_string()),
+                observation_summary: Some(
+                    "A nearby maintenance cart is emitting the alarm".to_string(),
+                ),
                 source_dependency_group: Some("root-cart-alarm".to_string()),
                 detail: None,
                 consumed_cost: cost(0, 1, 150),
@@ -1038,13 +1099,16 @@ mod tests {
 
     #[test]
     fn replans_after_each_delivered_observation_without_future_leakage() {
-        let mut executor = ActiveSensingExecutorV1::new(config(), fixtures()).expect("valid episode");
+        let mut executor =
+            ActiveSensingExecutorV1::new(config(), fixtures()).expect("valid episode");
         let first_view = executor.candidate_view().expect("initial view");
         assert_eq!(first_view.visible_events.len(), 1);
-        assert!(!first_view
-            .visible_observations
-            .iter()
-            .any(|observation| observation.observation_ref == "obs-machine-state"));
+        assert!(
+            !first_view
+                .visible_observations
+                .iter()
+                .any(|observation| observation.observation_ref == "obs-machine-state")
+        );
 
         executor
             .submit_turn(turn(
@@ -1058,24 +1122,36 @@ mod tests {
             ))
             .expect("first request accepted");
         let accepted_view = executor.candidate_view().expect("accepted view");
-        assert_eq!(accepted_view.pending_request_id.as_deref(), Some("request-1"));
-        assert!(!accepted_view
-            .visible_observations
-            .iter()
-            .any(|observation| observation.observation_ref == "obs-machine-state"));
-        assert!(accepted_view.visible_events.iter().any(|event| matches!(
-            &event.payload,
-            &TranscriptPayloadV1::ActionAccepted { .. }
-        )));
+        assert_eq!(
+            accepted_view.pending_request_id.as_deref(),
+            Some("request-1")
+        );
+        assert!(
+            !accepted_view
+                .visible_observations
+                .iter()
+                .any(|observation| observation.observation_ref == "obs-machine-state")
+        );
+        assert!(
+            accepted_view
+                .visible_events
+                .iter()
+                .any(|event| matches!(&event.payload, &TranscriptPayloadV1::ActionAccepted { .. }))
+        );
 
         let after_first_delivery = executor
             .advance_to_next_outcome()
             .expect("first result delivered");
-        assert!(after_first_delivery.visible_observations.iter().any(
-            |observation| observation.observation_ref == "obs-machine-state"
-                && observation.eligible_for_decision
-                && observation.summary.contains("indicates an alarm")
-        ));
+        assert!(
+            after_first_delivery
+                .visible_observations
+                .iter()
+                .any(
+                    |observation| observation.observation_ref == "obs-machine-state"
+                        && observation.eligible_for_decision
+                        && observation.summary.contains("indicates an alarm")
+                )
+        );
         executor
             .submit_turn(turn(
                 &after_first_delivery,
@@ -1091,15 +1167,21 @@ mod tests {
         let after_second_delivery = executor
             .advance_to_next_outcome()
             .expect("second result delivered");
-        assert!(after_second_delivery.visible_observations.iter().any(
-            |observation| observation.observation_ref == "obs-alarm-source"
-                && observation.eligible_for_decision
-        ));
+        assert!(
+            after_second_delivery
+                .visible_observations
+                .iter()
+                .any(
+                    |observation| observation.observation_ref == "obs-alarm-source"
+                        && observation.eligible_for_decision
+                )
+        );
         executor
             .submit_turn(turn(
                 &after_second_delivery,
                 CandidateActionV1::Answer {
-                    answer: "The machine is alarming and the maintenance cart is the source".to_string(),
+                    answer: "The machine is alarming and the maintenance cart is the source"
+                        .to_string(),
                     cited_observation_refs: vec![
                         "obs-initial-camera".to_string(),
                         "obs-machine-state".to_string(),
@@ -1109,7 +1191,10 @@ mod tests {
             ))
             .expect("final answer accepted");
         assert_eq!(*executor.status(), EpisodeStatusV1::Answered);
-        assert_eq!(executor.transcript().last().map(|event| event.tick), Some(13));
+        assert_eq!(
+            executor.transcript().last().map(|event| event.tick),
+            Some(13)
+        );
     }
 
     #[test]
@@ -1121,10 +1206,13 @@ mod tests {
 
     #[test]
     fn stale_transcript_digest_is_rejected_without_mutation() {
-        let mut executor = ActiveSensingExecutorV1::new(config(), fixtures()).expect("valid episode");
+        let mut executor =
+            ActiveSensingExecutorV1::new(config(), fixtures()).expect("valid episode");
         let mut candidate_turn = turn(
             &executor.candidate_view().expect("view"),
-            CandidateActionV1::StopWithoutAnswer { reason: "test".to_string() },
+            CandidateActionV1::StopWithoutAnswer {
+                reason: "test".to_string(),
+            },
         );
         candidate_turn.transcript_head_sha256 = "f".repeat(64);
         let before = executor.transcript().len();
@@ -1152,7 +1240,9 @@ mod tests {
                 },
             ))
             .expect("request accepted");
-        let after = executor.advance_to_next_outcome().expect("late outcome delivered");
+        let after = executor
+            .advance_to_next_outcome()
+            .expect("late outcome delivered");
         let late = after
             .visible_observations
             .iter()
@@ -1171,7 +1261,8 @@ mod tests {
 
     #[test]
     fn request_reserves_budget_until_outcome_settles() {
-        let mut executor = ActiveSensingExecutorV1::new(config(), fixtures()).expect("valid episode");
+        let mut executor =
+            ActiveSensingExecutorV1::new(config(), fixtures()).expect("valid episode");
         let view = executor.candidate_view().expect("initial view");
         executor
             .submit_turn(turn(
@@ -1186,14 +1277,17 @@ mod tests {
             .expect("request accepted");
         let reserved = executor.candidate_view().expect("reserved view");
         assert_eq!(reserved.remaining_budget.audio_bytes, 2048);
-        let settled = executor.advance_to_next_outcome().expect("outcome delivered");
+        let settled = executor
+            .advance_to_next_outcome()
+            .expect("outcome delivered");
         assert_eq!(settled.remaining_budget.audio_bytes, 3072);
         assert_eq!(settled.remaining_budget.energy_millijoules, 900);
     }
 
     #[test]
     fn answer_is_rejected_while_an_action_is_pending() {
-        let mut executor = ActiveSensingExecutorV1::new(config(), fixtures()).expect("valid episode");
+        let mut executor =
+            ActiveSensingExecutorV1::new(config(), fixtures()).expect("valid episode");
         let view = executor.candidate_view().expect("initial view");
         executor
             .submit_turn(turn(
@@ -1216,7 +1310,11 @@ mod tests {
         );
         assert!(executor.submit_turn(answer).is_err());
         assert_eq!(
-            executor.candidate_view().expect("still active").pending_request_id.as_deref(),
+            executor
+                .candidate_view()
+                .expect("still active")
+                .pending_request_id
+                .as_deref(),
             Some("pending-request")
         );
     }
@@ -1242,11 +1340,15 @@ mod tests {
                 },
             ))
             .expect("request accepted");
-        let result = executor.advance_to_next_outcome().expect("partial result delivered");
-        assert!(!result
-            .visible_observations
-            .iter()
-            .any(|observation| observation.observation_ref == "obs-machine-state"));
+        let result = executor
+            .advance_to_next_outcome()
+            .expect("partial result delivered");
+        assert!(
+            !result
+                .visible_observations
+                .iter()
+                .any(|observation| observation.observation_ref == "obs-machine-state")
+        );
         assert!(result.visible_events.iter().any(|event| matches!(
             &event.payload,
             &TranscriptPayloadV1::ActionOutcome {
@@ -1295,7 +1397,8 @@ mod tests {
 
     #[test]
     fn duplicate_request_identity_is_rejected_across_turns() {
-        let mut executor = ActiveSensingExecutorV1::new(config(), fixtures()).expect("valid episode");
+        let mut executor =
+            ActiveSensingExecutorV1::new(config(), fixtures()).expect("valid episode");
         let view = executor.candidate_view().expect("initial view");
         executor
             .submit_turn(turn(
@@ -1325,7 +1428,8 @@ mod tests {
 
     #[test]
     fn cancellation_settles_reserved_budget_and_mints_no_observation() {
-        let mut executor = ActiveSensingExecutorV1::new(config(), fixtures()).expect("valid episode");
+        let mut executor =
+            ActiveSensingExecutorV1::new(config(), fixtures()).expect("valid episode");
         let view = executor.candidate_view().expect("initial view");
         executor
             .submit_turn(turn(
@@ -1350,10 +1454,12 @@ mod tests {
         let cancelled = executor.candidate_view().expect("cancelled view");
         assert_eq!(cancelled.pending_request_id, None);
         assert_eq!(cancelled.remaining_budget.audio_bytes, 4096);
-        assert!(!cancelled
-            .visible_observations
-            .iter()
-            .any(|observation| observation.observation_ref == "obs-machine-state"));
+        assert!(
+            !cancelled
+                .visible_observations
+                .iter()
+                .any(|observation| observation.observation_ref == "obs-machine-state")
+        );
         assert!(cancelled.visible_events.iter().any(|event| matches!(
             &event.payload,
             &TranscriptPayloadV1::ActionOutcome {
