@@ -152,7 +152,6 @@
       "required": [
         "scenario_id",
         "configuration_id",
-        "exposure_horizon",
         "events",
         "shared_common_cause_outages",
         "channels"
@@ -165,10 +164,6 @@
         "configuration_id": {
           "type": "string",
           "minLength": 1
-        },
-        "exposure_horizon": {
-          "type": "number",
-          "exclusiveMinimum": 0
         },
         "events": {
           "type": "array",
