@@ -36,6 +36,10 @@ fn run() -> Result<(), String> {
         .parse::<u64>()
         .map_err(|error| format!("invalid replay seed: {error}"))?;
 
+    let model_revision_label = format!("sha256:{}", hex(&model_digest));
+    let fault_profile_revision_label = format!("sha256:{}", hex(&config_digest));
+    let oracle_revision_label = format!("TLC-2ef2af8+sha256:{}", hex(&tool_digest));
+
     let context = TlcImportContext {
         bundle_id: &args[6],
         system_id: &args[7],
@@ -47,9 +51,9 @@ fn run() -> Result<(), String> {
         model_source_bytes: &model_source,
         model_config_bytes: &model_config,
         tla_tool_jar_bytes: &tool_jar,
-        model_revision_label: &format!("sha256:{}", hex(&model_digest)),
-        fault_profile_revision_label: &format!("sha256:{}", hex(&config_digest)),
-        oracle_revision_label: &format!("TLC-2ef2af8+sha256:{}", hex(&tool_digest)),
+        model_revision_label: &model_revision_label,
+        fault_profile_revision_label: &fault_profile_revision_label,
+        oracle_revision_label: &oracle_revision_label,
     };
 
     let bundle = import_tlc_json_trace(&raw_trace, &context)
