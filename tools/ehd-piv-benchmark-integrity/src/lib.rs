@@ -77,6 +77,10 @@ pub struct SampleRecord {
     pub pressure_regime_id: String,
     /// SHA-256 of the raw image pair or complete multi-frame sequence bytes.
     pub raw_sequence_sha256: String,
+    /// SHA-256 values of every constituent raw image/frame/view asset.
+    /// Reuse is allowed inside one split (e.g. overlapping windows) but never
+    /// across train, validation and test.
+    pub raw_asset_sha256s: Vec<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -133,6 +137,8 @@ pub enum SplitAuditError {
     SourceDatasetMismatch { sample_id: String },
     MissingDimensionValue { sample_id: String, dimension: HoldoutDimension },
     InvalidSha256 { sample_id: String },
+    MissingRawAssets { sample_id: String },
+    InvalidRawAssetSha256 { sample_id: String },
     MissingSplit { split: DatasetSplit },
 }
 
@@ -154,6 +160,12 @@ impl fmt::Display for SplitAuditError {
             }
             Self::InvalidSha256 { sample_id } => {
                 write!(f, "sample {sample_id} has an invalid raw-sequence SHA-256")
+            }
+            Self::MissingRawAssets { sample_id } => {
+                write!(f, "sample {sample_id} has no constituent raw image assets")
+            }
+            Self::InvalidRawAssetSha256 { sample_id } => {
+                write!(f, "sample {sample_id} has an invalid constituent raw-asset SHA-256")
             }
             Self::MissingSplit { split } => write!(f, "required split is empty: {split:?}"),
         }
@@ -208,6 +220,7 @@ pub fn audit_split_integrity(
         BTreeMap::<HoldoutDimension, BTreeMap<String, BTreeSet<DatasetSplit>>>::new();
     let mut raw_hashes =
         BTreeMap::<String, (BTreeSet<DatasetSplit>, usize)>::new();
+    let mut raw_assets = BTreeMap::<String, BTreeSet<DatasetSplit>>::new();
 
     for sample in &input.samples {
         validate_identity("sample_id", &sample.sample_id)?;
@@ -233,6 +246,23 @@ pub fn audit_split_integrity(
             .or_insert_with(|| (BTreeSet::new(), 0));
         hash_entry.0.insert(sample.split);
         hash_entry.1 += 1;
+
+        if sample.raw_asset_sha256s.is_empty() {
+            return Err(SplitAuditError::MissingRawAssets {
+                sample_id: sample.sample_id.clone(),
+            });
+        }
+        for raw_asset_hash in &sample.raw_asset_sha256s {
+            if !valid_sha256(raw_asset_hash) {
+                return Err(SplitAuditError::InvalidRawAssetSha256 {
+                    sample_id: sample.sample_id.clone(),
+                });
+            }
+            raw_assets
+                .entry(raw_asset_hash.to_ascii_lowercase())
+                .or_default()
+                .insert(sample.split);
+        }
 
         for dimension in &input.held_out_dimensions {
             let value = dimension.value(sample);
@@ -282,6 +312,17 @@ pub fn audit_split_integrity(
                     splits: splits.iter().copied().collect(),
                 });
             }
+        }
+    }
+
+    for (hash, splits) in &raw_assets {
+        if splits.len() > 1 {
+            violations.push(LeakageViolation {
+                code: "RAW_ASSET_CROSSES_SPLITS",
+                dimension: None,
+                value: hash.clone(),
+                splits: splits.iter().copied().collect(),
+            });
         }
     }
 
@@ -341,6 +382,7 @@ mod tests {
             tracer_id: format!("tracer-{index}"),
             pressure_regime_id: format!("pressure-{index}"),
             raw_sequence_sha256: format!("{index:064x}"),
+            raw_asset_sha256s: vec![format!("{:064x}", index + 100)],
         }
     }
 
@@ -410,6 +452,37 @@ mod tests {
         input.samples[2].flow_family_id = input.samples[0].flow_family_id.clone();
         let report = audit_split_integrity(&input).unwrap();
         assert!(report.passed);
+    }
+
+    #[test]
+    fn constituent_raw_asset_reuse_across_splits_is_detected() {
+        let mut input = clean_input();
+        input.samples[2].raw_asset_sha256s =
+            input.samples[0].raw_asset_sha256s.clone();
+        let report = audit_split_integrity(&input).unwrap();
+        assert!(report.violations.iter().any(|violation| {
+            violation.code == "RAW_ASSET_CROSSES_SPLITS"
+                && violation.splits == vec![DatasetSplit::Train, DatasetSplit::Test]
+        }));
+    }
+
+    #[test]
+    fn overlapping_raw_assets_inside_one_split_are_allowed() {
+        let mut input = clean_input();
+        let mut additional_train = sample(
+            4,
+            DatasetSplit::Train,
+            "wake",
+            "planar-offset",
+            "session-train-2",
+        );
+        additional_train.raw_asset_sha256s =
+            input.samples[0].raw_asset_sha256s.clone();
+        input.samples.push(additional_train);
+        let report = audit_split_integrity(&input).unwrap();
+        assert!(!report.violations.iter().any(|violation| {
+            violation.code == "RAW_ASSET_CROSSES_SPLITS"
+        }));
     }
 
     #[test]
