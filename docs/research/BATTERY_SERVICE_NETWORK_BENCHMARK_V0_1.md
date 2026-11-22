@@ -390,7 +390,7 @@ A first event journal reducer is implemented in the same Rust module and tracked
 
 The journal CLI is `battery_pack_journal_screen`, with strict schema `schemas/battery_pack_state_journal_v0_1.schema.json` and a synthetic fixture demonstrating available → reserved, install timeout → reconciliation to installed. The fixture is synthetic and does not attest that an actual physical operation occurred. Event evidence references are metadata in this prototype, not cryptographically authenticated messages. Mycelix remains custody/trust owner.
 
-The journal is not yet a full resource scheduler: it does not reserve charger/rack/crew/aircraft time intervals, prove custody transfer across actors, or optimize cross-epoch inventory. Those remain later increments.
+A companion `validate_exclusive_resource_schedule` function and `battery_resource_occupancy_screen` CLI now validate half-open occupancy intervals for packs, aircraft, carrier slots, swap bays, chargers/channels, racks, technicians and mobile service units. It rejects same-resource overlap, expired/invalid reservations, duplicate idempotency keys and evidence that does not cover the full interval. This is a validator, not yet a time-expanded optimizer: it does not choose the best assignment, model charging curves/queue dynamics or optimize cross-epoch inventory.
 
 ## 13. Next implementation phases
 
