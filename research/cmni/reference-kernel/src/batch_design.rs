@@ -702,9 +702,7 @@ mod tests {
 
     #[test]
     fn nonunit_prior_covariance_has_correct_d_optimal_sign_and_scale() {
-        let candidates = vec![
-            candidate("observe-x", [1.0, 0.0], 1.0, false, 0.0, true),
-        ];
+        let candidates = vec![candidate("observe-x", [1.0, 0.0], 1.0, false, 0.0, true)];
         let result = enumerate_batch_portfolios(
             &candidates,
             &[vec![2.0, 0.0], vec![0.0, 3.0]],
@@ -721,9 +719,7 @@ mod tests {
         assert!((score.posterior_covariance[1][1] - expected_y_variance).abs() < 1.0e-12);
         assert!((score.d_optimal_logdet_reduction - expected_d_optimal).abs() < 1.0e-12);
         assert!(
-            (score.linear_gaussian_expected_information_gain_nats
-                - 0.5 * expected_d_optimal)
-                .abs()
+            (score.linear_gaussian_expected_information_gain_nats - 0.5 * expected_d_optimal).abs()
                 < 1.0e-12
         );
     }
