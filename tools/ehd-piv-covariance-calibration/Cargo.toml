@@ -1,0 +1,10 @@
+[package]
+name = "ehd-piv-covariance-calibration"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Session-clustered calibration of two-component PIV velocity covariance"
+
+[lib]
+path = "src/lib.rs"

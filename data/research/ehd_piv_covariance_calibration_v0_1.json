@@ -1,0 +1,282 @@
+{
+  "schema": "luminous.ehd_piv_covariance_calibration",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-PIV-UQ-003",
+  "as_of": "2026-11-22",
+  "status": "standalone_reference_kernel_authored_tests_execution_pending",
+  "claim_ceiling": "Reference-data calibration evaluator only. No raw image processing, empirical PIV calibration, physical EHD validation, thrust measurement, or SOTA superiority is claimed.",
+  "parent_increments": [
+    "EHD-PIV-UQ-001",
+    "EHD-PIV-UQ-002"
+  ],
+  "calibration_target": {
+    "nominal_marginal_coverage": 0.95,
+    "nominal_joint_2d_ellipse_coverage": 0.95,
+    "acceptable_empirical_coverage_band": [
+      0.9,
+      0.98
+    ],
+    "minimum_vectors_per_region": 200,
+    "minimum_independent_dependence_clusters_per_region": 20,
+    "regions": [
+      "bulk",
+      "near_wall",
+      "shear_layer",
+      "wake"
+    ],
+    "marginal_threshold": "normal_z_0.975",
+    "joint_ellipse_threshold": {
+      "degrees_of_freedom": 2,
+      "chi_squared_0_95": 5.991464547107979
+    },
+    "cluster_interval": {
+      "method": "approximate_student_t_interval_on_independent_cluster_coverage_fractions",
+      "minimum_cluster_count": 20,
+      "critical_value": 2.093,
+      "confidence_level": 0.95,
+      "limitations": [
+        "requires genuinely independent high-level dependence clusters",
+        "approximate t interval, not exact finite-sample coverage guarantee",
+        "cluster identity is declared by the benchmark owner and cannot be inferred from file names"
+      ]
+    },
+    "prospective_integrated_functional_bias_max": 0.05,
+    "integrated_functional_bias_scope": "Only for predeclared measurable outputs with traceable reference truth; not a universal EHD or thrust claim."
+  },
+  "required_metrics": [
+    "streamwise_marginal_95_coverage",
+    "wall_normal_marginal_95_coverage",
+    "joint_2d_ellipse_95_coverage",
+    "pooled_vector_weighted_coverage",
+    "equal_weight_independent_cluster_coverage",
+    "cluster_level_95_confidence_interval",
+    "mean_squared_mahalanobis_distance",
+    "bivariate_gaussian_negative_log_likelihood",
+    "mean_95_ellipse_area",
+    "component_interval_widths"
+  ],
+  "independence_grouping": {
+    "unit": "highest_defensible_common_cause_cluster",
+    "candidate_common_causes": [
+      "laboratory_session_or_day",
+      "camera_and_lens_calibration_batch",
+      "laser_illumination_configuration",
+      "tracer_material_and_lot",
+      "pulse_timing_and_acquisition_chain",
+      "shared_raw_image_cohort"
+    ],
+    "prohibited_shortcuts": [
+      "treating adjacent frames as independent",
+      "treating overlapping interrogation windows as independent",
+      "treating two algorithms on shared images as independent diagnostics",
+      "treating a new file name as a new independent session"
+    ]
+  },
+  "research_baselines": [
+    {
+      "id": "PIVPOSTPROCESS_2026",
+      "paper_doi": "10.1007/s00348-026-04319-7",
+      "software_doi": "10.5281/zenodo.18794853",
+      "reported": {
+        "stratified_random_vector_test_f1": 0.992,
+        "stratified_random_vector_test_roc_auc": 0.998,
+        "stratified_random_vector_test_log_loss": 0.037,
+        "additional_experimental_datasets": 6,
+        "mean_f1_on_additional_datasets": 0.99
+      },
+      "limitations": [
+        "the paper describes pooling about 203 million vectors from twelve datasets and random vector-level stratified partitioning",
+        "expert manual filtering is a reference label, not independent velocity truth",
+        "classifier performance does not establish covariance calibration",
+        "The paper separately reports mean F1 0.990 across six additional experimental datasets; preserve this as a stronger external-transfer cohort, distinct from the randomly sampled point-level test subset."
+      ]
+    },
+    {
+      "id": "FFS_S_PIV_2026",
+      "dataset_doi": "10.5281/zenodo.21732072",
+      "reported": {
+        "five_frame_sequences": 12466,
+        "frame_dimensions_px": [
+          256,
+          256
+        ],
+        "flow_scenarios": 9,
+        "known_ground_truth_displacements": true
+      },
+      "role": "raw synthetic image benchmark with known displacement fields and multiple acquisition perturbations"
+    },
+    {
+      "id": "PIVTOOLS_TURBULENT_CHANNEL_2026",
+      "paper_doi": "10.1016/j.softx.2026.102967",
+      "dataset_doi": "10.5258/SOTON/D3981",
+      "role": "end-to-end planar/stereo/ensemble PIV comparison on turbulent channel images and DNS-derived statistics",
+      "reported_dataset": {
+        "synthetic_image_pairs": 4000,
+        "image_dimensions_px": [
+          2048,
+          2048
+        ],
+        "friction_reynolds_number_approx": 1000,
+        "noisy_case_snr_approx": 8,
+        "geometries": [
+          "planar",
+          "stereo_plus_minus_45_deg"
+        ]
+      },
+      "license_note": "dataset card reports CC-BY-4.0; software repository reports GPL-3.0-or-later; verify exact distribution terms before reuse",
+      "reported_platform": {
+        "feature_set": [
+          "planar_PIV",
+          "stereo_PIV",
+          "ensemble_correlation",
+          "direct_Reynolds_stress_extraction",
+          "GUI_and_CLI",
+          "hybrid_Python_C_Dask"
+        ],
+        "reported_parallel_efficiency_128_cores": 0.77,
+        "preprint_reported_speedup_vs_leading_commercial_software_on_20_core_4MP_four_pass": 10.5,
+        "role": "end-to-end matched-processing and scalability comparator; not covariance-calibration truth",
+        "caution": "The 10.5x figure is source-reported in the earlier preprint and must be reproduced under matched hardware, settings and output quality."
+      }
+    },
+    {
+      "id": "CLASSICAL_PIV_UQ",
+      "role": "uncertainty estimation comparators; separate from vector-validity classification",
+      "methods": [
+        {
+          "name": "correlation_statistics",
+          "reference": "Wieneke 2015",
+          "doi": "10.1088/0957-0233/26/7/074002"
+        },
+        {
+          "name": "image_matching_uncertainty",
+          "reference": "Sciacchitano, Wieneke and Scarano 2013",
+          "doi": "10.1088/0957-0233/24/4/045302"
+        },
+        {
+          "name": "particle_disparity"
+        },
+        {
+          "name": "correlation_peak_ratio_and_signal_to_noise"
+        }
+      ],
+      "required_comparison": "matched raw image pairs, reference displacement/velocity, coverage, interval width and proper score; do not rank by classifier F1"
+    }
+  ],
+  "implementation": {
+    "crate": "tools/ehd-piv-covariance-calibration",
+    "path": "tools/ehd-piv-covariance-calibration/src/lib.rs",
+    "function": "evaluate_covariance_calibration",
+    "authored_rust_tests": 10,
+    "runtime_execution": "not_run_no_local_rust_toolchain"
+  },
+  "adversarial_cases": [
+    "marginal_intervals_pass_joint_ellipse_fails",
+    "nonzero_cross_component_covariance_changes_joint_coverage",
+    "large_clean_session_cannot_hide_small_failed_session",
+    "many_vectors_from_one_session_count_as_one_independence_cluster",
+    "singular_covariance_rejected",
+    "duplicate_sample_id_rejected",
+    "missing_required_region_rejected",
+    "non_finite_velocity_rejected",
+    "invalid_gate_rejected",
+    "uncertainty_inflation_visible_in_ellipse_area_and_gaussian_score",
+    "empty_observations_rejected"
+  ],
+  "limitations": [
+    "no_particle_image_ingestion",
+    "no_correlation_plane_or_peak_fit",
+    "no_empirical_calibration_data",
+    "no_physical_reference_measurements",
+    "no_independence_inference_from_ids",
+    "cluster_interval_is_approximate",
+    "no_tracer_passivity_validation",
+    "no_PIV_LPT_force_balance_or_thrust_measurement"
+  ],
+  "standards_and_vv_framework": [
+    {
+      "id": "ASME_VV_20_2009_R2021",
+      "role": "solution/data validation at specified variables and validation points, including solution and experimental-data uncertainty",
+      "url": "https://www.asme.org/codes-standards/find-codes-standards/standard-for-verification-and-validation-in-computational-fluid-dynamics-and-heat-transfer"
+    },
+    {
+      "id": "NISTIR_8298_2020",
+      "doi": "10.6028/NIST.IR.8298",
+      "role": "industrial CFD V&V/UQ procedures; physical modelling, discretization, iterative/roundoff, programming/user errors and uncertainty sources"
+    }
+  ],
+  "scoreboard_lanes": [
+    {
+      "lane": "vector_validity",
+      "comparators": [
+        "PIVPostProcess",
+        "normalized_median_filter",
+        "universal_outlier_detection",
+        "adaptive_gaussian_window"
+      ],
+      "metrics": [
+        "per_region_precision_recall_f1",
+        "false_valid_vector_removal",
+        "valid_retention",
+        "coherent_structure_preservation"
+      ]
+    },
+    {
+      "lane": "displacement_uncertainty",
+      "comparators": [
+        "correlation_statistics",
+        "image_matching",
+        "particle_disparity",
+        "peak_ratio"
+      ],
+      "metrics": [
+        "displacement_bias_and_RMSE",
+        "interval_coverage_and_width",
+        "calibration_curves"
+      ]
+    },
+    {
+      "lane": "end_to_end_PIV",
+      "comparators": [
+        "PIVtools",
+        "OpenPIV",
+        "PIVlab_when_reproducible"
+      ],
+      "metrics": [
+        "same_image_velocity_error",
+        "near_wall_reach",
+        "Reynolds_stress_error",
+        "runtime",
+        "peak_memory",
+        "energy"
+      ]
+    },
+    {
+      "lane": "covariance_calibration",
+      "comparators": [
+        "all_methods_that_emit_predictive_covariance"
+      ],
+      "metrics": [
+        "marginal_coverage",
+        "joint_ellipse_coverage",
+        "Gaussian_NLL",
+        "Mahalanobis_distance",
+        "ellipse_area",
+        "cluster_generalization"
+      ]
+    },
+    {
+      "lane": "EHD_functionals",
+      "comparators": [
+        "PIV_integral_momentum",
+        "LPT_differential_momentum",
+        "direct_force_balance"
+      ],
+      "metrics": [
+        "complete_boundary_terms",
+        "independent_uncertainty_budgets",
+        "reconciliation_within_combined_uncertainty"
+      ]
+    }
+  ]
+}
