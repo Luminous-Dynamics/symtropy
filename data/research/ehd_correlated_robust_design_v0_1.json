@@ -42,7 +42,7 @@
     "score_function": "multi_nuisance_correlated_scenario_score",
     "selector_function": "select_multi_nuisance_correlated_design",
     "self_check": "multi_nuisance_correlated_reference_self_check",
-    "rust_unit_tests": 6
+    "rust_unit_tests": 8
   },
   "candidates": [
     {
@@ -208,7 +208,7 @@
   ],
   "expected_result": {
     "evaluated_design_count": 126,
-    "robust_identifiable_design_count": 49,
+    "robust_identifiable_design_count": 14,
     "robust_optimal_candidate_indices": [
       0,
       2,
@@ -242,6 +242,7 @@
     "full_covariance_cholesky_whitening_preserves_correlation",
     "nonsymmetric_covariance_is_rejected_without_silent_symmetrization",
     "non_positive_definite_covariance_is_rejected_without_jitter",
+    "physical_signal_fully_explained_by_nuisance_is_not_counted_from_roundoff",
     "rank_deficient_nuisance_designs_are_not_promoted",
     "correlated_reference_rejects_non_four_observation_budget",
     "invalid_covariance_component_is_rejected"
