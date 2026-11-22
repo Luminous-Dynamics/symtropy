@@ -429,7 +429,7 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
     # observations. Candidate submissions are still validated against each
     # turn's candidate-visible catalog only.
     source_rows = document["evaluator_source_catalog"]
-    max_cutoff = max(
+    max_turn_cutoff = max(
         _integer(
             row.get("workload", {}).get("decision_cutoff_tick")
             if isinstance(row, dict) and isinstance(row.get("workload"), dict)
@@ -438,6 +438,19 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
         )
         for index, row in enumerate(turns)
     )
+    if not isinstance(source_rows, list):
+        raise EvidenceGainError("evaluator_source_catalog must be an array")
+    source_ticks = [max_turn_cutoff]
+    for index, row in enumerate(source_rows):
+        if not isinstance(row, dict):
+            raise EvidenceGainError(f"evaluator_source_catalog[{index}] must be an object")
+        source_ticks.append(
+            _integer(row.get("available_tick"), f"evaluator_source_catalog[{index}].available_tick")
+        )
+        source_ticks.append(
+            _integer(row.get("capture_complete_tick"), f"evaluator_source_catalog[{index}].capture_complete_tick")
+        )
+    source_catalog_cutoff = max(source_ticks)
     source_wrapper = {
         "benchmark_id": EVIDENCE_BENCHMARK_ID,
         "schema_version": 1,
@@ -445,7 +458,7 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
         "transcript_head_sha256": hashlib.sha256(
             f"{trajectory_id}:evaluator-source-catalog".encode("utf-8")
         ).hexdigest(),
-        "decision_cutoff_tick": max_cutoff,
+        "decision_cutoff_tick": source_catalog_cutoff,
         "observation_catalog": source_rows,
     }
     full_truth_catalog = _validate_observation_catalog(source_wrapper)
