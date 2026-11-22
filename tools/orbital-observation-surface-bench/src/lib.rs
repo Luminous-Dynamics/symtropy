@@ -1,6 +1,7 @@
 pub mod decision_identifiability;
 pub mod joint_loss_scenarios;
 pub mod robust_decision;
+pub mod regret_calibration;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
