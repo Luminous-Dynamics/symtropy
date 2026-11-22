@@ -115,16 +115,16 @@ ASSUME
     /\ DOMAIN PermitAttempt = RecoveryPermits
     /\ DOMAIN PermitEpoch = RecoveryPermits
     /\ DOMAIN PermitPlanBinding = RecoveryPermits
-    /\ RANGE PermitPlanBinding \subseteq Bindings
-    /\ RANGE PermitAttempt \subseteq Attempts
-    /\ RANGE PermitEpoch \subseteq 0..MaxEpoch
-    /\ RANGE TicketBinding \subseteq Bindings
-    /\ RANGE TicketAttempt \subseteq Attempts
-    /\ RANGE TicketEpoch \subseteq 0..MaxEpoch
-    /\ RANGE TicketClock \subseteq ClockDomains
-    /\ RANGE TicketBoot \subseteq BootEpochs
-    /\ RANGE TicketIssued \subseteq 0..MaxTick
-    /\ RANGE TicketExpires \subseteq 0..MaxTick
+    /\ \A p \in RecoveryPermits : PermitPlanBinding[p] \in Bindings
+    /\ \A p \in RecoveryPermits : PermitAttempt[p] \in Attempts
+    /\ \A p \in RecoveryPermits : PermitEpoch[p] \in 0..MaxEpoch
+    /\ \A t \in Tickets : TicketBinding[t] \in Bindings
+    /\ \A t \in Tickets : TicketAttempt[t] \in Attempts
+    /\ \A t \in Tickets : TicketEpoch[t] \in 0..MaxEpoch
+    /\ \A t \in Tickets : TicketClock[t] \in ClockDomains
+    /\ \A t \in Tickets : TicketBoot[t] \in BootEpochs
+    /\ \A t \in Tickets : TicketIssued[t] \in 0..MaxTick
+    /\ \A t \in Tickets : TicketExpires[t] \in 0..MaxTick
     /\ \A t \in Tickets : TicketIssued[t] < TicketExpires[t]
 
 VARIABLES
