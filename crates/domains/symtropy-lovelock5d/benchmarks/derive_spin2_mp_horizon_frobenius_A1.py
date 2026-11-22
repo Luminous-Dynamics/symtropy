@@ -292,8 +292,7 @@ def main() -> None:
     parser.add_argument("--output", type=Path, default=Path("spin2_mp_frobenius_A1_v1.json"))
     args = parser.parse_args()
     fixture = derive()
-    rendered = json.dumps(fixture, indent=2, sort_keys=True) + "
-"
+    rendered = json.dumps(fixture, indent=2, sort_keys=True) + "\n"
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(rendered, encoding="utf-8")
     print(json.dumps({"output": str(args.output), "sha256": hashlib.sha256(rendered.encode()).hexdigest(), "status": fixture["status"], "checks": fixture["checks"]}, indent=2))
