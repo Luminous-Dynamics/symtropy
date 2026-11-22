@@ -425,3 +425,12 @@ The equation-level Rust implementation is in [PR #6737](https://github.com/Lumin
 
 - https://doi.org/10.1109/TITS.2020.2983681
 - https://www.mdpi.com/1424-8220/26/16/5140 (Section 5.1)
+
+
+### 13.7 Pointwise protection-level exceedance versus breach events
+
+[PR #6745](https://github.com/Luminous-Dynamics/symtropy/pull/6745) adds an offline trace evaluator that keeps the paper's pointwise Stanford-style exceedance fraction and reports distinct contiguous breach episodes and time exposed above PL separately.
+
+Each record must carry an explicit support duration. The evaluator does not infer time support from row frequency, treats invalid truth as invalid rather than safe, splits events at support gaps/safe intervals/invalid truth, and reports max contiguous breach duration. This helps avoid counting 400Hz or 100Hz windows as independent hazard events, while preserving the pointwise metric required to reproduce the published controller baseline.
+
+The method assumes each sample's exceedance state is constant over its declared support interval. It is not continuous-time interpolation or a calibrated probability-of-integrity metric. Exact-head workflow verification remains pending after the final episode-accumulator correction; do not use until the branch's final CI passes.
