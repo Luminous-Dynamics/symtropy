@@ -140,6 +140,8 @@ jobs:
           jq empty tools/ev-passenger-cost-frontier/fixtures/mobility_recovery_envelope_v0_2.json
           jq empty tools/ev-passenger-cost-frontier/schemas/mobility_commitment_lease_v0_1.schema.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/mobility_commitment_lease_v0_1.json
+          jq empty tools/ev-passenger-cost-frontier/schemas/mobility_commitment_journal_v0_1.schema.json
+          jq empty tools/ev-passenger-cost-frontier/fixtures/mobility_commitment_journal_v0_1.json
           jq -e --slurpfile schema tools/ev-passenger-cost-frontier/schemas/battery_charge_queue_v0_1.schema.json '
             . as $queue
             | ($schema[0].required | sort) as $root_required
@@ -470,6 +472,25 @@ jobs:
             and .physical_mutation_authority_granted == false
           ' mobility-commitment-lease-report.json
           cat mobility-commitment-lease-report.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin mobility_commitment_journal_screen -- \
+            tools/ev-passenger-cost-frontier/fixtures/mobility_commitment_journal_v0_1.json \
+            > mobility-commitment-journal-report.json
+          jq -e '
+            .benchmark_id == "MOBILITY-COMMITMENT-JOURNAL-001"
+            and .initial_version == 0
+            and .final_version == 4
+            and .event_count == 4
+            and (.last_event_digest | test("^sha256:[0-9a-f]{64}$"))
+            and (.replay_digest | test("^sha256:[0-9a-f]{64}$"))
+            and .commitment_states["lease-001"] == "unresolved"
+            and (.unresolved_commitments == ["lease-001"])
+            and (.terminal_commitments | length) == 0
+            and .ledger_mutation_performed == false
+            and .market_authority_granted == false
+            and .dispatch_authority_granted == false
+            and .physical_mutation_authority_granted == false
+          ' mobility-commitment-journal-report.json
+          cat mobility-commitment-journal-report.json
           sha256sum \
             tools/ev-passenger-cost-frontier/schemas/ev_passenger_cost_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/ev_passenger_cost_v0_1.json \
@@ -503,6 +524,13 @@ jobs:
             tools/ev-passenger-cost-frontier/fixtures/mobility_commitment_lease_v0_1.json \
             docs/research/MOBILITY_CAPABILITY_COMMITMENT_AND_INDUSTRY_BENCHMARK_V0_1.md \
             mobility-commitment-lease-report.json \
+            tools/ev-passenger-cost-frontier/src/mobility_commitment_journal.rs \
+            tools/ev-passenger-cost-frontier/src/bin/mobility_commitment_journal_screen.rs \
+            tools/ev-passenger-cost-frontier/schemas/mobility_commitment_journal_v0_1.schema.json \
+            tools/ev-passenger-cost-frontier/fixtures/mobility_commitment_journal_v0_1.json \
+            mobility-commitment-journal-report.json \
+            tools/ev-passenger-cost-frontier/Cargo.toml \
+            docs/research/MOBILITY_COMMITMENT_JOURNAL_BENCHMARK_V0_1.md \
             mobility-recovery-envelope-report.json \
             mobility-flexibility-envelope-report.json \
             tools/ev-passenger-cost-frontier/src/bin/ev_carrier_module_factory_screen.rs \
@@ -540,6 +568,10 @@ jobs:
             mobility-flexibility-envelope-report.json
             mobility-recovery-envelope-report.json
             mobility-commitment-lease-report.json
+            mobility-commitment-journal-report.json
+            tools/ev-passenger-cost-frontier/fixtures/mobility_commitment_journal_v0_1.json
+            tools/ev-passenger-cost-frontier/schemas/mobility_commitment_journal_v0_1.schema.json
+            docs/research/MOBILITY_COMMITMENT_JOURNAL_BENCHMARK_V0_1.md
             tools/ev-passenger-cost-frontier/fixtures/mobility_commitment_lease_v0_1.json
             tools/ev-passenger-cost-frontier/schemas/mobility_commitment_lease_v0_1.schema.json
             docs/research/MOBILITY_CAPABILITY_COMMITMENT_AND_INDUSTRY_BENCHMARK_V0_1.md

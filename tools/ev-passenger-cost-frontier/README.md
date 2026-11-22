@@ -253,3 +253,31 @@ The frozen fixture contains two active commitments (including one unresolved tim
 This is a proposal-only admission calculation. It does not write to a ledger, reserve a physical resource, make a market offer, authorize dispatch or establish settlement. The upstream report references and evidence envelopes are declarative; cryptographic verification and consume-once persistence remain later integration work.
 
 The module currently includes 16 focused Rust test definitions, including a 12-profile independent capacity reference, unresolved-state reservation, terminal evidence, per-resource energy/power limits, protected mission windows, idempotency reuse and deterministic input-order replay. Runner verification is pending for the commitment branch.
+
+
+## MOBILITY-COMMITMENT-JOURNAL-001 — CAS append-only promise journal
+
+The persistence/concurrency child of [#6827](https://github.com/Luminous-Dynamics/symtropy/issues/6827) is tracked in [#6832](https://github.com/Luminous-Dynamics/symtropy/issues/6832).
+
+Run the frozen four-event scenario:
+
+```bash
+cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin mobility_commitment_journal_screen -- \
+  tools/ev-passenger-cost-frontier/fixtures/mobility_commitment_journal_v0_1.json
+```
+
+The reducer stores each transition as an append-only event with a monotonically increasing sequence, expected-version precondition, previous-event digest, SHA-256 event digest, exact commitment ID, idempotency key, immutable contract payload digest and event evidence. Replay checks sequence continuity, event IDs, idempotency uniqueness, previous-event links, event digests and the commitment state machine.
+
+The test-only `InMemoryCommitmentJournal` adapter serializes compare-and-append through a mutex. Two concurrent writers at the same ledger version must produce exactly one winner; the other receives a version conflict. This is a local concurrency test, not a distributed consensus or durable-storage claim.
+
+Identical retry with the same idempotency key, command kind, commitment and contract payload returns the original receipt without increasing the version—even when the original response may have been lost. Reusing the same key with a different payload or state command is a hard conflict.
+
+An unknown physical/market outcome becomes `unresolved`; it remains active until an explicit `reconciled` event. Settled/rejected/expired/cancelled release requires measured or independent-test evidence for every exact resource/configuration in the immutable contract. There is no timer-based capacity release.
+
+The frozen fixture replays:
+`offer_created → accepted → executing → unresolved`
+and finishes at ledger version 4. It deliberately leaves `lease-001` unresolved and reserved. The CLI report sets ledger mutation, market, dispatch and physical mutation authority to false.
+
+The module currently contains 14 focused Rust test definitions covering concurrency, idempotency, payload conflict, unresolved retention, terminal evidence, invalid transition, stale writer, digest mutation, previous-link mutation and event reordering. SHA-256 here provides an integrity-linked event chain; it does not authenticate producers or prove durable storage. Exact-head Actions run [#45042240520](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45042240520) passed schema/fixture parsing, workspace formatting, Cargo tests, deterministic report assertions and artifact upload (171 tests passed, 0 failed across test binaries). Clippy is not included and remains unverified.
+
+Source: `src/mobility_commitment_journal.rs`; CLI: `src/bin/mobility_commitment_journal_screen.rs`; strict schema: `schemas/mobility_commitment_journal_v0_1.schema.json`; fixture: `fixtures/mobility_commitment_journal_v0_1.json`.
