@@ -2,7 +2,7 @@
 
 An isolated, dependency-light Rust package for mathematical primitives used by the orbital conjunction rare-event assurance programme.
 
-This crate is a research kernel, not an operational collision-probability product. It deliberately does not implement orbit propagation, random sampling, event-mode discovery, proposal fitting, confidence intervals, or flight operations.
+This crate is a research kernel, not an operational collision-probability product. It deliberately does not implement orbit propagation, random sampling, candidate event-mode discovery, proposal fitting, confidence sequences for importance-sampling weights, or flight operations. It includes only a Bernoulli-specific time-uniform confidence sequence.
 
 ## Current primitives
 
