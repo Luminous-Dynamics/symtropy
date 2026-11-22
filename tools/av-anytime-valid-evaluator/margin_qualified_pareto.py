@@ -131,6 +131,29 @@ class BettingEProcess:
         }
 
 
+def _has_directed_cycle(policies: list[str], edges: list[dict[str, str]]) -> bool:
+    graph = {policy: [] for policy in policies}
+    for edge in edges:
+        graph[edge["better"]].append(edge["worse"])
+    visiting: set[str] = set()
+    visited: set[str] = set()
+
+    def visit(policy: str) -> bool:
+        if policy in visiting:
+            return True
+        if policy in visited:
+            return False
+        visiting.add(policy)
+        for neighbor in graph[policy]:
+            if visit(neighbor):
+                return True
+        visiting.remove(policy)
+        visited.add(policy)
+        return False
+
+    return any(visit(policy) for policy in policies if policy not in visited)
+
+
 def _validate_metric_manifest(axes: Any) -> list[dict[str, Any]]:
     if not isinstance(axes, list) or not axes:
         raise ParetoEvaluationError("axes must be a non-empty array")
@@ -269,7 +292,9 @@ def evaluate_document(document: dict[str, Any]) -> dict[str, Any]:
     eligibility: dict[str, dict[str, Any]] = {}
     for policy in policies:
         gate = hard_gates[policy]
-        if not isinstance(gate, dict) or not isinstance(gate.get("eligible"), bool):
+        if not isinstance(gate, dict) or set(gate) != {"eligible", "failed_constraints"}:
+            raise ParetoEvaluationError(f"{policy}: hard-gate record must contain only eligible and failed_constraints")
+        if not isinstance(gate.get("eligible"), bool):
             raise ParetoEvaluationError(f"{policy}: hard-gate eligible must be boolean")
         failures = gate.get("failed_constraints")
         if not isinstance(failures, list) or any(not isinstance(reason, str) or not reason for reason in failures):
@@ -438,6 +463,7 @@ def evaluate_document(document: dict[str, Any]) -> dict[str, Any]:
             "episode_id": item["episode_id"],
             "pair_certificates": pair_reports,
             "certified_dominance_edges": certified_edges,
+            "dominance_graph_has_cycle": _has_directed_cycle(policies, certified_edges),
             "inferential_frontier": frontier,
             "transcript_chain_sha256": transcript_chain.hex(),
         })
