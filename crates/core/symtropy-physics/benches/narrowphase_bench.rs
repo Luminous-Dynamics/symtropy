@@ -64,6 +64,8 @@ fn analytic_box_plane_scene(count: usize) -> PhysicsWorld<3> {
 }
 
 fn separated_sphere_aabb_candidates(pair_count: usize) -> PhysicsWorld<3> {
+    // Radius 0.5 and per-axis offset 0.8 make AABBs overlap, while the
+    // Euclidean center distance sqrt(0.8^2 + 0.8^2) exceeds the radius sum.
     let mut world = PhysicsWorld::<3>::new(SVector::zeros());
     for index in 0..pair_count {
         let x = index as f64 * 4.0;
