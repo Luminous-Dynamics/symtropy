@@ -880,6 +880,27 @@ mod tests {
     }
 
     #[test]
+    fn deserializes_and_projects_the_four_state_known_answer_fixture() {
+        let fixture = include_str!("../fixtures/runtime_projection_reservation_acceptance_v0_1.json");
+        let recording: RuntimeProjectionRecording =
+            serde_json::from_str(fixture).expect("strict versioned fixture deserializes");
+        assert_eq!(recording.validate(), Ok(()));
+        let trace = recording.to_tla_trace_ndjson().expect("valid Reflow trace");
+        let lines: Vec<Value> = trace.lines()
+            .map(|line| serde_json::from_str(line).expect("each JSONL line parses"))
+            .collect();
+        assert_eq!(lines.len(), 4);
+        assert_eq!(lines[0]["state"]["s"]["stage"], "unreserved");
+        assert_eq!(lines[1]["event"], "ReserveAttempt");
+        assert_eq!(lines[1]["state"]["s"]["stage"], "reserved");
+        assert_eq!(lines[2]["event"], "MarkDispatchStarted");
+        assert_eq!(lines[2]["state"]["s"]["stage"], "dispatch_started");
+        assert_eq!(lines[3]["event"], "NativeAcceptOld");
+        assert_eq!(lines[3]["state"]["s"]["commandOwnerAttempt"], "attempt-1");
+        assert_eq!(recording.snapshots[3].owner_evidence.len(), REQUIRED_OWNER_DOMAINS);
+    }
+
+    #[test]
     fn state_field_catalogue_is_the_exact_pinned_tla_init_record() {
         const EXPECTED: [&str; 43] = [
             "processStatus", "bootEpoch", "controllerEpoch", "stage", "reservationCommitted",
