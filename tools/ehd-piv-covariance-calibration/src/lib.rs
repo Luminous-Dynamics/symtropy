@@ -498,9 +498,9 @@ pub fn evaluate_covariance_calibration(
             .or_default();
 
         cluster.sample_count += 1;
-        cluster.streamwise_covered += usize::from(streamwise_covered);
-        cluster.wall_normal_covered += usize::from(wall_normal_covered);
-        cluster.joint_covered += usize::from(joint_covered);
+        cluster.streamwise_covered += if streamwise_covered { 1 } else { 0 };
+        cluster.wall_normal_covered += if wall_normal_covered { 1 } else { 0 };
+        cluster.joint_covered += if joint_covered { 1 } else { 0 };
         cluster.gaussian_nll_sum += gaussian_nll;
         cluster.mahalanobis_squared_sum += mahalanobis_squared;
         cluster.ellipse_area_sum += ellipse_area;
@@ -557,7 +557,7 @@ mod tests {
         for region in FlowRegion::ALL {
             for cluster in 0..20 {
                 for sample in 0..100 {
-                    let error = if sample < 95 { [0.0, 0.0] } else { [3.0, 0.0] };
+                    let error = if sample < 95 { [0.0, 0.0] } else { [3.0, 3.0] };
                     observations.push(observation(
                         format!("{region:?}-{cluster}-{sample}"),
                         format!("session-{cluster}"),
@@ -778,43 +778,45 @@ mod tests {
 
     #[test]
     fn gaussian_nll_and_ellipse_area_penalize_arbitrary_uncertainty_inflation() {
-        let mut observations = Vec::new();
+        let mut narrow_observations = Vec::new();
+        let mut broad_observations = Vec::new();
         for region in FlowRegion::ALL {
-            let mut narrow = observation(
+            narrow_observations.push(observation(
                 format!("narrow-{region:?}"),
                 "session",
                 region,
                 [0.0, 0.0],
-            );
+            ));
             let mut broad = observation(
                 format!("broad-{region:?}"),
                 "session",
                 region,
                 [0.0, 0.0],
             );
-            broad.sample_id = format!("broad-{region:?}");
             broad.predicted_covariance_m2_s2 = Covariance2 {
                 xx: 4.0,
                 xy: 0.0,
                 yy: 4.0,
             };
-            narrow.sample_id = format!("narrow-{region:?}");
-            observations.push(narrow);
-            observations.push(broad);
+            broad_observations.push(broad);
         }
-        let report = evaluate_covariance_calibration(
-            &observations,
-            CalibrationGate {
-                minimum_samples_per_region: 1,
-                minimum_independent_clusters_per_region: 1,
-                ..CalibrationGate::default()
-            },
-        )
-        .unwrap();
-        assert!(report.regions.iter().all(|region| {
-            region.mean_95_ellipse_area_m2_s2 > 0.0
-                && region.mean_gaussian_nll_nats.is_finite()
-        }));
+        let gate = CalibrationGate {
+            minimum_samples_per_region: 1,
+            minimum_independent_clusters_per_region: 1,
+            ..CalibrationGate::default()
+        };
+        let narrow = evaluate_covariance_calibration(&narrow_observations, gate).unwrap();
+        let broad = evaluate_covariance_calibration(&broad_observations, gate).unwrap();
+        for (narrow_region, broad_region) in narrow.regions.iter().zip(broad.regions.iter()) {
+            assert!(
+                broad_region.mean_95_ellipse_area_m2_s2
+                    > narrow_region.mean_95_ellipse_area_m2_s2
+            );
+            assert!(
+                broad_region.mean_gaussian_nll_nats
+                    > narrow_region.mean_gaussian_nll_nats
+            );
+        }
     }
 
     #[test]
