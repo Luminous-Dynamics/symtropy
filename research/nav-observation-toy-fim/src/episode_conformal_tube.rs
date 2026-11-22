@@ -554,6 +554,13 @@ mod tests {
 
     #[test]
     fn evaluation_must_use_the_predictor_frozen_for_calibration() {
+        let mut invalid_config = config(0.95, 19);
+        invalid_config.predictor_sha256 = [0; SHA256_BYTES];
+        assert_eq!(
+            calibrate_episode_conformal_radius_2d(&episodes(19), invalid_config),
+            Err(EpisodeConformalError::MissingPredictorCommitment)
+        );
+
         let calibration =
             calibrate_episode_conformal_radius_2d(&episodes(19), config(0.95, 19)).unwrap();
         assert_eq!(
