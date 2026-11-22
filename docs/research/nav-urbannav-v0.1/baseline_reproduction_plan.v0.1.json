@@ -4,7 +4,11 @@
   "upstream_repository_commit": "e53717a40c94803cd479a140433f6d803b1a0876",
   "status": "protocol_only_no_baselines_reproduced",
   "route_splits": {
-    "grouping_unit": ["complete_loop", "route_session", "physical_fault_event"],
+    "grouping_unit": [
+      "complete_loop",
+      "route_session",
+      "physical_fault_event"
+    ],
     "random_epoch_split": false,
     "development_route": null,
     "validation_route": null,
@@ -25,8 +29,56 @@
       "status": "literature_only",
       "full_method_available": true,
       "reproduction_status": "not_started",
-      "required_outputs": ["pointwise_stanford_exceedance", "breach_events", "false_safe_exposure_seconds", "time_above_alert", "pl_smoothness"],
-      "paper_sensitivity": ["full_pid", "non_integral_pid", "smax_10", "smax_12", "smax_14"]
+      "required_outputs": [
+        "pointwise_stanford_exceedance",
+        "breach_events",
+        "false_safe_exposure_seconds",
+        "time_above_alert",
+        "pl_smoothness"
+      ],
+      "paper_sensitivity": [
+        "full_pid",
+        "non_integral_pid",
+        "smax_10",
+        "smax_12",
+        "smax_14"
+      ]
+    },
+    {
+      "id": "al-hage-2020-heavy-tailed-student-t-protection-level",
+      "doi": "10.1109/TITS.2020.2983681",
+      "parent_article_doi": "10.3390/s26165140",
+      "status": "equation_level_reference_implementation_added",
+      "full_method_available": true,
+      "reproduction_status": "not_started",
+      "exact_dof_sweep": [
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        100
+      ],
+      "tir_convention": "two_dimensional_multivariate_student_t_radial_tail_probability; must be reconciled against paper's exact TIR definition",
+      "reference_implementation_pr": "https://github.com/Luminous-Dynamics/symtropy/pull/6737",
+      "reference_module": "research/nav-observation-toy-fim/src/student_t_pl.rs",
+      "reference_implementation_scope": "2D covariance eigenframe and paper-printed overall/directional PL equations; K_TIR helper for covariance-normalized 2D radial Student-t",
+      "required_outputs": [
+        "overall_pl",
+        "longitudinal_pl",
+        "lateral_pl",
+        "integrity_exceedance",
+        "dof_sensitivity",
+        "hpl_vpl_calibration"
+      ],
+      "outstanding": [
+        "confirm printed directional eigenvector projection power against original typeset equation and author code",
+        "confirm total 2D radial TIR convention",
+        "derive/fit degrees of freedom on frozen training/calibration routes only",
+        "validate Student-t fit and coverage on held-out route/session"
+      ]
     },
     {
       "id": "luo-2026-adaptive-temporal-kalman-solution-separation",
@@ -34,7 +86,15 @@
       "status": "abstract_only_full_method_required",
       "full_method_available": false,
       "reproduction_status": "blocked_pending_full_method",
-      "required_outputs": ["horizontal_error", "vertical_error", "hpl", "vpl", "detection_probability", "false_alarm", "fde"]
+      "required_outputs": [
+        "horizontal_error",
+        "vertical_error",
+        "hpl",
+        "vpl",
+        "detection_probability",
+        "false_alarm",
+        "fde"
+      ]
     },
     {
       "id": "liu-2026-resilient-glvio-loop-fusion",
@@ -43,14 +103,26 @@
       "code_repository": "https://github.com/TK72/FAST-LIVOSAM",
       "code_commit": "9aa51993cdf30bebd6d24d538bdba75f11b9ab3e",
       "reproduction_status": "blocked_pending_exact_urbannav_config_and_license",
-      "required_outputs": ["pose_error", "trajectory_drift", "map_quality", "degeneracy_detection", "runtime", "gpu_memory"]
+      "required_outputs": [
+        "pose_error",
+        "trajectory_drift",
+        "map_quality",
+        "degeneracy_detection",
+        "runtime",
+        "gpu_memory"
+      ]
     },
     {
       "id": "fang-2026-doppler-rate-spoof-detection",
       "doi": "10.1007/s42401-026-00509-7",
       "status": "paper_available",
       "reproduction_status": "not_started",
-      "required_outputs": ["detection_probability_by_scenario", "false_alarm_rate", "detection_delay", "multipath_false_alarms"]
+      "required_outputs": [
+        "detection_probability_by_scenario",
+        "false_alarm_rate",
+        "detection_delay",
+        "multipath_false_alarms"
+      ]
     }
   ],
   "data_gate": {
