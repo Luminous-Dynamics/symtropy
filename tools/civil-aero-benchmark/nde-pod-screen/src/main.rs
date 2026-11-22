@@ -738,4 +738,23 @@ mod tests {
         assert!(detection_lower_bound(60, 60, 0.95) > detection_lower_bound(60, 59, 0.95));
         assert!(false_call_upper_bound(200, 2, 0.50) > false_call_upper_bound(200, 1, 0.50));
     }
+
+    #[test]
+    fn frozen_corpus_matches_all_expected_dispositions() {
+        let bytes = include_bytes!("../fixtures/v0.1/corpus.json");
+        let receipt = run_corpus(
+            bytes,
+            "1111111111111111111111111111111111111111",
+        )
+        .expect("frozen NDE benchmark corpus must evaluate");
+        assert_eq!(receipt.case_count, 8);
+        assert_eq!(receipt.expected_matches, 8);
+        assert_eq!(receipt.expected_mismatches, 0);
+        assert!(!receipt.authority_granted);
+        assert_eq!(receipt.physical_pod, "NOT_ASSESSED");
+        assert_eq!(receipt.a90_95, "NOT_ESTIMATED");
+        assert_eq!(receipt.inspector_details[0].len(), 10);
+        assert!((receipt.results[0].worst_detection_lower_bound.unwrap() - 0.9233600050654955).abs() < 1.0e-12);
+        assert!((receipt.results[0].worst_false_call_upper_bound.unwrap() - 0.00837751942939624).abs() < 1.0e-12);
+    }
 }
