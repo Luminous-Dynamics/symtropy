@@ -1,0 +1,18 @@
+{
+  "schema_version":"0.1.0",
+  "model":"3d_rigid_body_point_contact_jacobian",
+  "claim_ceiling":"Synthetic analytic fixtures only. Not a production solver or physical validation.",
+  "units":{"mass":"kg","length":"m","second_moment":"kg m^2","inertia":"kg m^2","impulse":"N s","inverse_effective_mass":"kg^-1","energy":"J"},
+  "equations":{
+    "inertia":"I = trace(C) identity - C",
+    "world_inertia":"I_world = R I_body R^T",
+    "point_impulse":"delta_v=j/m; delta_omega=I_world^-1(r cross j); delta_v_contact=delta_v+delta_omega cross r",
+    "single_body_inverse_effective_mass":"k=n dot delta_v_contact for j=n and |n|=1",
+    "pair_inverse_effective_mass":"k_pair=k_a+k_b",
+    "midpoint_contact_work":"W=lambda*(v_n_before+0.5*lambda*k_pair)"
+  },
+  "known_answers":[
+    {"id":"isotropic-sphere","mass_kg":2.0,"radius_m":0.5,"lever_arm_m":[0.0,0.5,0.0],"normal":[1.0,0.0,0.0],"inertia_diagonal_kg_m2":[0.2,0.2,0.2],"expected_inverse_effective_mass_kg_inv":1.75},
+    {"id":"anisotropic-solid-cuboid","mass_kg":2.0,"dimensions_m":[2.0,1.0,0.5],"second_moment_diagonal_kg_m2":[0.6666666666666666,0.16666666666666666,0.041666666666666664],"inertia_diagonal_kg_m2":[0.20833333333333331,0.7083333333333333,0.8333333333333333],"lever_arm_m":[0.0,0.5,0.0],"normal":[1.0,0.0,0.0],"expected_rotational_inverse_effective_mass_kg_inv":0.3,"expected_total_inverse_effective_mass_kg_inv":0.8,"conditional_mean_inverse_axis_approximation_kg_inv":1.1176470588235294}
+  ]
+}
