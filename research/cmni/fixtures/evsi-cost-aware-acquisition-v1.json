@@ -1,0 +1,104 @@
+{
+  "schema_version": "cmni.finite_state_evsi.v1",
+  "benchmark_id": "evsi-cost-aware-acquisition-v1",
+  "status": "synthetic_exact_decision_oracle",
+  "states": [
+    {
+      "state_id": "hazard-present",
+      "probability": 0.5
+    },
+    {
+      "state_id": "hazard-absent",
+      "probability": 0.5
+    }
+  ],
+  "actions": [
+    {
+      "action_id": "intervene",
+      "utility_by_state": [
+        100,
+        -30
+      ]
+    },
+    {
+      "action_id": "hold",
+      "utility_by_state": [
+        0,
+        0
+      ]
+    }
+  ],
+  "abstention_utility": 0,
+  "cost_to_utility_rate": 1,
+  "remaining_budget": 14,
+  "minimum_net_benefit": 0,
+  "options": [
+    {
+      "option_id": "high-fidelity-perfect",
+      "kind": "HighFidelitySimulation",
+      "cost": 14,
+      "outcome_ids": [
+        "diagnostic-positive",
+        "diagnostic-negative"
+      ],
+      "outcome_likelihoods_state_major": [
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "source_qualification": {
+        "status": "Qualified",
+        "receipt_id": "receipt:perfect-synthetic-model"
+      },
+      "expected_value_of_sample_information": 15,
+      "expected_net_benefit_of_sampling": 1
+    },
+    {
+      "option_id": "low-fidelity-partial",
+      "kind": "LowFidelitySimulation",
+      "cost": 1,
+      "outcome_ids": [
+        "diagnostic-positive",
+        "diagnostic-negative"
+      ],
+      "outcome_likelihoods_state_major": [
+        [
+          0.9,
+          0.1
+        ],
+        [
+          0.2,
+          0.8
+        ]
+      ],
+      "source_qualification": {
+        "status": "Qualified",
+        "receipt_id": "receipt:partial-synthetic-model"
+      },
+      "expected_value_of_sample_information": 7,
+      "expected_net_benefit_of_sampling": 6
+    }
+  ],
+  "expected": {
+    "current_best_action": "intervene",
+    "current_expected_utility": 35,
+    "perfect_information_expected_utility": 50,
+    "expected_value_of_perfect_information": 15,
+    "selected_information_option": "low-fidelity-partial",
+    "selected_evsi": 7,
+    "selected_cost": 1,
+    "selected_net_benefit": 6,
+    "why_not_high_fidelity": "The perfect-information option has larger raw EVSI (15), but its cost is 14, so net benefit is 1; the partial low-fidelity option has net benefit 6."
+  },
+  "non_claims": [
+    "Not a physical CMNI likelihood or real calibration dataset",
+    "Receipt IDs are placeholders and do not authenticate source qualification",
+    "One-step exact finite-state EVSI, not multi-step campaign planning",
+    "No claims about nonlinear EIG estimator accuracy, multifidelity unbiasedness, or real-world independence"
+  ]
+}
