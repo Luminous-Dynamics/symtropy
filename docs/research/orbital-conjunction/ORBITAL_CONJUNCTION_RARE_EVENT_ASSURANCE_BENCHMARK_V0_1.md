@@ -165,6 +165,39 @@ Suggested dispositions:
 - InsufficientEvaluationBudget
 - Abstain
 
+### 7. From repeated peeking to anytime-valid sequential evidence
+
+An estimator that monitors its current interval and stops when it looks sufficiently precise is using a data-dependent stopping time. A fixed-N confidence interval does not automatically retain its nominal coverage under repeated monitoring / optional stopping.
+
+Add a separate sequential-evidence layer:
+- proposal training / adaptation is separate from evaluation;
+- default evaluation uses fresh independent draws under an immutable frozen proposal;
+- all monitoring checkpoints and the stopping rule are recorded;
+- fixed-time, repeated-look alpha-spent, and genuinely time-uniform results are explicitly distinguished;
+- multiple mode / stratum claims require a valid joint e-process or a declared error-probability allocation.
+
+The first executable reference is a beta(1,1)-mixture Bernoulli likelihood-ratio e-process in [#6748](https://github.com/Luminous-Dynamics/symtropy/pull/6748), tracked under [#6768 — RARE-EVENT-SEQUENTIAL-EVIDENCE-001](https://github.com/Luminous-Dynamics/symtropy/issues/6768).
+
+For independent Bernoulli event indicators with fixed event probability p, after S_t events and F_t non-events, the uniform-beta mixture likelihood ratio against a fixed null p0 is:
+
+`M_t(p_0) = B(S_t+1,F_t+1) / [p_0^{S_t}(1-p_0)^{F_t}]`.
+
+Under the fixed null, this is a nonnegative martingale with initial value one. Ville's inequality gives:
+
+`P_{p_0}(sup_t M_t(p_0) >= 1/alpha) <= alpha`.
+
+Inverting the family of tests gives a time-uniform confidence sequence. The code updates the mixture likelihood through its beta predictive probabilities and uses log arithmetic.
+
+**This theorem does not cover arbitrary importance-sampling weights.** The actual IS contribution `1_A(X) p(X)/q(X)` can be unbounded. A beta-Bernoulli confidence sequence is valid only for actual Bernoulli observations of a fixed event process, not for their weighted, unbounded replacements. Any S1 weighted extension needs a verified deterministic likelihood-ratio bound or a separately reproduced theorem with valid moment / conditional-variance assumptions. A finite empirical second moment and the Lorek finite-variance result alone do not supply such a numerical bound or an anytime-valid CS.
+
+The mandatory sequential comparison is fixed-N exact binomial / Wald, repeated fixed-look alpha-spending, the beta-mixture e-process baseline, and published betting / empirical-Bernstein CSs for bounded observations. Evaluate full-path and stopping-time coverage, stopping cost, false-stop rate, and sensitivity to assumption violations. Proposal changes default to a new frozen proposal and a fresh evaluation stream unless a theorem covers the exact adaptive design.
+
+Theory references:
+- Howard et al. (2020), [Time-uniform Chernoff bounds via nonnegative supermartingales](https://doi.org/10.1214/18-PS321).
+- Howard et al. (2021), [Time-uniform, nonparametric, nonasymptotic confidence sequences](https://doi.org/10.1214/20-AOS1991).
+- Waudby-Smith et al. (2024), [Time-uniform central limit theory and asymptotic confidence sequences](https://doi.org/10.1214/24-AOS2408).
+- Waudby-Smith & Ramdas (2024), [Estimating means of bounded random variables by betting](https://doi.org/10.1093/jrsssb/qkad009).
+
 ## 5. Stable architecture
 
 | Component | Owns | Must not own |
