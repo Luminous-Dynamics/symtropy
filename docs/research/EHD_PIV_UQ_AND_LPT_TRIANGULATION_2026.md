@@ -1,6 +1,6 @@
 # EHD-PIV-UQ-001 — spatially resolved PIV quality, uncertainty coverage and PIV/LPT reconciliation
 
-**Status:** summary-level Rust reference and 24 authored unit tests across classifier, probability-score and diagnostic-comparison modules; Rust execution and exact-head CI pending  
+**Status:** summary-level Rust reference and 25 authored unit tests across classifier, probability-score and diagnostic-comparison modules; Rust execution and exact-head CI pending  
 **Published classifier comparator:** PIVPostProcess, *Experiments in Fluids* (2026), DOI 10.1007/s00348-026-04319-7; code DOI 10.5281/zenodo.18794853. The implementation now reports both class polarities and macro metrics so score comparisons cannot silently depend on positive-class choice.  
 **EHD multimodal comparator:** Pöppe, Rich & Kriegseis, LXLASER 2026, KIT institutional record 1000197349
 
