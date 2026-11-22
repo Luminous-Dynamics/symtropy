@@ -493,6 +493,143 @@ mod tests {
         fixture().architectures[0].clone()
     }
 
+    #[derive(Debug, PartialEq)]
+    struct TickReference {
+        completed_sorties: u64,
+        charge_starts: u64,
+        charge_completions: u64,
+        charge_queue_peak: usize,
+        charge_queue_at_horizon: usize,
+        active_chargers_at_horizon: u8,
+        ready_spares_at_horizon: u8,
+        waiting_aircraft_peak: usize,
+        waiting_aircraft_at_horizon: usize,
+        aircraft_wait_seconds: u64,
+        max_single_aircraft_wait_seconds: u64,
+    }
+
+    fn tick_reference(
+        scenario: &ServiceArchitecture,
+        horizon_seconds: u64,
+    ) -> TickReference {
+        fn start_charges(
+            now: u64,
+            scenario: &ServiceArchitecture,
+            channels: &mut [Option<u64>],
+            queue: &mut usize,
+            starts: &mut u64,
+            queue_peak: &mut usize,
+        ) {
+            for channel in channels.iter_mut() {
+                if channel.is_none() && *queue > 0 {
+                    *queue -= 1;
+                    *channel = Some(now + u64::from(scenario.charge_duration_seconds));
+                    *starts += 1;
+                }
+            }
+            *queue_peak = (*queue_peak).max(*queue);
+        }
+
+        let channel_count = usize::from(effective_charging_channels(scenario));
+        let mut channel_deadlines = vec![None; channel_count];
+        let mut mission_deadlines =
+            vec![Some(u64::from(scenario.mission_duration_seconds)); usize::from(scenario.aircraft_count)];
+        let mut ready_spares = usize::from(scenario.initial_ready_spares);
+        let mut charge_queue = 0_usize;
+        let mut waiting: VecDeque<(u8, u64)> = VecDeque::new();
+        let mut completed_sorties = 0_u64;
+        let mut charge_starts = 0_u64;
+        let mut charge_completions = 0_u64;
+        let mut charge_queue_peak = 0_usize;
+        let mut waiting_aircraft_peak = 0_usize;
+        let mut aircraft_wait_seconds = 0_u64;
+        let mut max_single_aircraft_wait_seconds = 0_u64;
+
+        for now in 0..=horizon_seconds {
+            // Deliberately use a tick scan rather than an event heap/map.
+            // Channel IDs and aircraft IDs are traversed in ascending order.
+            for channel_id in 0..channel_deadlines.len() {
+                if channel_deadlines[channel_id] == Some(now) {
+                    channel_deadlines[channel_id] = None;
+                    charge_completions += 1;
+                    if let Some((aircraft_id, wait_started_at)) = waiting.pop_front() {
+                        let wait = now - wait_started_at;
+                        aircraft_wait_seconds += wait;
+                        max_single_aircraft_wait_seconds =
+                            max_single_aircraft_wait_seconds.max(wait);
+                        mission_deadlines[usize::from(aircraft_id)] = Some(
+                            now
+                                + u64::from(scenario.operational_turnaround_seconds)
+                                + u64::from(scenario.mission_duration_seconds),
+                        );
+                    } else {
+                        ready_spares += 1;
+                    }
+                    start_charges(
+                        now,
+                        scenario,
+                        &mut channel_deadlines,
+                        &mut charge_queue,
+                        &mut charge_starts,
+                        &mut charge_queue_peak,
+                    );
+                }
+            }
+
+            for aircraft_id in 0..scenario.aircraft_count {
+                let index = usize::from(aircraft_id);
+                if mission_deadlines[index] == Some(now) {
+                    mission_deadlines[index] = None;
+                    completed_sorties += 1;
+                    charge_queue += 1;
+                    if ready_spares > 0 {
+                        ready_spares -= 1;
+                        mission_deadlines[index] = Some(
+                            now
+                                + u64::from(scenario.operational_turnaround_seconds)
+                                + u64::from(scenario.mission_duration_seconds),
+                        );
+                    } else {
+                        waiting.push_back((aircraft_id, now));
+                        waiting_aircraft_peak = waiting_aircraft_peak.max(waiting.len());
+                    }
+                    start_charges(
+                        now,
+                        scenario,
+                        &mut channel_deadlines,
+                        &mut charge_queue,
+                        &mut charge_starts,
+                        &mut charge_queue_peak,
+                    );
+                }
+            }
+        }
+
+        for (_, wait_started_at) in &waiting {
+            let wait = horizon_seconds - *wait_started_at;
+            aircraft_wait_seconds += wait;
+            max_single_aircraft_wait_seconds =
+                max_single_aircraft_wait_seconds.max(wait);
+        }
+
+        TickReference {
+            completed_sorties,
+            charge_starts,
+            charge_completions,
+            charge_queue_peak,
+            charge_queue_at_horizon: charge_queue,
+            active_chargers_at_horizon: u8::try_from(
+                channel_deadlines.iter().filter(|deadline| deadline.is_some()).count(),
+            )
+            .unwrap_or(u8::MAX),
+            ready_spares_at_horizon: u8::try_from(ready_spares).unwrap_or(u8::MAX),
+            waiting_aircraft_peak,
+            waiting_aircraft_at_horizon: waiting.len(),
+            aircraft_wait_seconds,
+            max_single_aircraft_wait_seconds,
+        }
+    }
+
     #[test]
     fn fixture_outputs_are_deterministic_and_sorted() {
         let input = fixture();
@@ -664,6 +801,50 @@ mod tests {
             serde_json::to_string(&first).expect("serialize first"),
             serde_json::to_string(&second).expect("serialize second")
         );
+    }
+
+    #[test]
+    fn event_engine_matches_tick_reference_across_bounded_architecture_family() {
+        for case in 0_u8..20 {
+            let aircraft_count = if case % 3 == 0 { 2 } else { 1 };
+            let max_spares = 3_u8.saturating_mul(aircraft_count);
+            let spares = (case % (max_spares + 1)).min(max_spares);
+            let channels = case % 4;
+            let scenario = ServiceArchitecture {
+                architecture_id: format!("reference-case-{case:02}"),
+                description: "small tick-oracle comparison".to_owned(),
+                aircraft_count,
+                battery_pack_count: aircraft_count + spares,
+                initial_ready_spares: spares,
+                max_stored_spares_per_aircraft: 3,
+                mission_duration_seconds: 2 + u32::from(case % 5),
+                operational_turnaround_seconds: u32::from(case % 4),
+                charge_duration_seconds: 2 + u32::from(case % 7),
+                parallel_charging_channels: channels,
+                charger_input_power_w: 500,
+                site_grid_import_limit_w: 200 + u32::from(channels) * 500,
+                site_fixed_load_w: 200,
+            };
+            let horizon = 120_u64;
+            let event_result =
+                evaluate_architecture_capacity(&scenario, horizon).expect("event simulation");
+            let reference = tick_reference(&scenario, horizon);
+            assert_eq!(
+                event_result.completed_sorties,
+                reference.completed_sorties,
+                "completed sorties differ in case {case}"
+            );
+            assert_eq!(event_result.charge_starts, reference.charge_starts, "charge starts differ in case {case}");
+            assert_eq!(event_result.charge_completions, reference.charge_completions, "charge completions differ in case {case}");
+            assert_eq!(event_result.charge_queue_peak, reference.charge_queue_peak, "charge queue peak differs in case {case}");
+            assert_eq!(event_result.charge_queue_at_horizon, reference.charge_queue_at_horizon, "charge queue differs in case {case}");
+            assert_eq!(event_result.active_chargers_at_horizon, reference.active_chargers_at_horizon, "active channels differ in case {case}");
+            assert_eq!(event_result.ready_spares_at_horizon, reference.ready_spares_at_horizon, "ready spares differ in case {case}");
+            assert_eq!(event_result.waiting_aircraft_peak, reference.waiting_aircraft_peak, "waiting peak differs in case {case}");
+            assert_eq!(event_result.waiting_aircraft_at_horizon, reference.waiting_aircraft_at_horizon, "waiting aircraft differ in case {case}");
+            assert_eq!(event_result.aircraft_wait_seconds, reference.aircraft_wait_seconds, "waiting seconds differ in case {case}");
+            assert_eq!(event_result.max_single_aircraft_wait_seconds, reference.max_single_aircraft_wait_seconds, "max wait differs in case {case}");
+        }
     }
 
     #[test]
