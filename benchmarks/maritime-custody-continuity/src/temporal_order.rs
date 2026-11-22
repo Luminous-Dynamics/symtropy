@@ -46,10 +46,10 @@ pub enum TimeBoundKind {
 /// Event-time evidence normalized into a declared, exact time-basis identity.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TimeEvidence {
-    pub event_id: String,
-    pub time_basis_id: String,
-    pub interval: TimeInterval,
-    pub bound_kind: TimeBoundKind,
+    event_id: String,
+    time_basis_id: String,
+    interval: TimeInterval,
+    bound_kind: TimeBoundKind,
 }
 
 impl TimeEvidence {
@@ -81,6 +81,22 @@ impl TimeEvidence {
             interval,
             bound_kind,
         })
+    }
+
+    pub fn event_id(&self) -> &str {
+        &self.event_id
+    }
+
+    pub fn time_basis_id(&self) -> &str {
+        &self.time_basis_id
+    }
+
+    pub fn interval(&self) -> TimeInterval {
+        self.interval
+    }
+
+    pub fn bound_kind(&self) -> TimeBoundKind {
+        self.bound_kind
     }
 }
 
@@ -353,6 +369,34 @@ mod tests {
 
         assert_eq!(original, TemporalRelation::ProvenBefore);
         assert_eq!(scaled, original);
+    }
+
+    #[test]
+    fn partial_order_preserves_only_proven_pairs() {
+        let events = vec![
+            qualified("a", 0, 10),
+            qualified("b", 5, 15),
+            qualified("c", 20, 25),
+        ];
+        let report = build_partial_order(&events).unwrap();
+        assert_eq!(report.len(), 3);
+        assert_eq!(report[0].relation, TemporalRelation::UnresolvedOverlap);
+        assert_eq!(report[1].relation, TemporalRelation::ProvenBefore);
+        assert_eq!(report[2].relation, TemporalRelation::ProvenBefore);
+    }
+
+    #[test]
+    fn widening_an_enclosure_cannot_upgrade_an_unresolved_pair() {
+        let narrow = compare_time_evidence(
+            &qualified("a", 10, 14),
+            &qualified("b", 16, 20),
+        );
+        let widened = compare_time_evidence(
+            &qualified("a", 10, 16),
+            &qualified("b", 16, 20),
+        );
+        assert_eq!(narrow, TemporalRelation::ProvenBefore);
+        assert_eq!(widened, TemporalRelation::UnresolvedOverlap);
     }
 
     #[test]
