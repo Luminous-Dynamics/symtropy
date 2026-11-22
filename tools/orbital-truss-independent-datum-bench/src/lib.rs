@@ -467,9 +467,7 @@ mod tests {
             .find(|item| item.case_id == "IDN-001-KNOWN-POSE")
             .unwrap();
         assert_eq!(case.disposition, Disposition::Qualified);
-        assert!(
-            (case.rotation_radians.unwrap() - std::f64::consts::FRAC_PI_6).abs() < 1.0e-12
-        );
+        assert!((case.rotation_radians.unwrap() - std::f64::consts::FRAC_PI_6).abs() < 1.0e-12);
         let translation = case.translation_m.unwrap();
         assert!((translation[0] - 2.0).abs() < 1.0e-12);
         assert!((translation[1] + 1.0).abs() < 1.0e-12);
