@@ -499,7 +499,7 @@ fn dependency_closure(dependencies: &[Dependency]) -> LocalClosure {
 }
 
 fn is_one_of(value: &str, choices: &[&str]) -> bool {
-    choices.iter().any(|choice| value == *choice)
+    choices.contains(&value)
 }
 
 fn validate_case(case: &Case) -> Result<(), String> {
