@@ -10,6 +10,7 @@ Measure what changes in a candidate's observable claim certificates after each a
 
 The ledger reports a vector, not a blended reward:
 - newly grounded claims and lost-grounded regressions;
+- external user-simulator / human feedback events, separate from sensor observations and their media-grounding score;
 - per-claim citation precision/recall/F1 deltas;
 - temporal and spatial IoU deltas where annotated;
 - newly delivered observations cited versus uncited;
@@ -36,6 +37,12 @@ For each turn:
 7. The linked #6753 receipt is joined by episode, turn, policy, transcript head and forecast digest. Its action regret and missed-best-action fields are copied, not recomputed.
 8. The completed trajectory must end with __stop__; no turn may follow a stop decision.
 
+### External feedback is a separate event plane
+
+A turn may carry external feedback events with a unique ID, source role (user simulator, human user or operator), kind (hint, clarification, correction, challenge or request), delivered tick, content digest and parent transcript head. These events may arrive alone or alongside a sensor observation result. They update the candidate-visible transcript but are **not** inserted into the audio/video observation catalog and are never counted as independent sensory evidence.
+
+A DELIVERED action outcome must add at least one sensor observation or one valid external feedback event. A failed/timed-out/malformed outcome may add neither. The feedback message body is retained in the candidate trace/input archive; the ledger carries its digest and timing so it can be replay-bound without treating a user hint as ground truth. Any answer change after feedback is measured as an observable per-claim state transition, not assumed to be causally explained by the feedback.
+
 Every candidate turn sees only its own delivered catalog. An observation in the evaluator source catalog is not candidate-visible until it appears in a later turn's workload.
 
 ## Identity and wire contract
@@ -56,6 +63,7 @@ Forecasts and receipts carry both episode ID and turn ID. The action catalogue f
 - DELIVERED must add at least one new observation.
 - FAILED, TIMEOUT and MALFORMED may add no observations; they remain represented as attempted action outcomes with a required result digest.
 - Each non-initial turn carries the previous turn's transcript head as its parent. Initial turns have no parent head and no action-result digest.
+- External feedback events are accounted separately by source role and feedback kind; they are not counted as sensor observations.
 - Missing resource values remain null and have observed counts, not zeros.
 - NOT_MEASURED energy must have null value/method. MEASURED energy requires a meter method and evidence digest.
 - Peak RAM/VRAM remain per-turn high-water metrics and are not summed as additive consumption.
@@ -76,6 +84,7 @@ The evaluator uses the standard library plus the existing #6859 evaluator availa
 
 The current suite tests:
 - a short, independent alarm observation newly grounding an abstained claim;
+- a user-simulator hint arriving without a sensor observation, preserved as an external feedback event rather than evidence;
 - exact action/receipt and transcript binding;
 - complete action forecasts including stop;
 - catalog growth, failed acquisition and failed-without-delivery semantics;
@@ -105,6 +114,7 @@ Reproduce the native V-STaR metric and the paper's nine-benchmark evaluation on 
 
 VideoACE (18 November 2026) contains 1,000 multiple-choice questions across six fine-grained high-frame-rate action categories, with temporal evidence annotations and user hints screened for answer leakage. Its environment supports temporal coverage, sampling density and spatial-detail actions, plus a user simulator that can provide feedback. It evaluates three settings: single-pass, autonomous tool use, and tool use with user feedback.
 
+The trajectory ledger now keeps feedback in a separate external-event lane, so a user hint can change the candidate transcript and answer without being misrepresented as an independent camera/microphone observation.
 Paper: https://arxiv.org/abs/2611.24184
 
 Use this as the priority test of the trajectory ledger once the official benchmark package and tool protocol are accessible. Compare:
