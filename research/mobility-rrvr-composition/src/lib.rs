@@ -213,7 +213,10 @@ pub fn assess_pre_native(input: &CompositionInput<'_>) -> CompositionAssessment 
         no_effect_claim_scope_commitment: input.old_attempt_no_effect.profile.scope_commitment,
         downstream_evidence,
         downstream_claim_id: input.downstream_graph_quiescence.profile.claim_id.clone(),
-        downstream_claim_scope_commitment: input.downstream_graph_quiescence.profile.scope_commitment,
+        downstream_claim_scope_commitment: input
+            .downstream_graph_quiescence
+            .profile
+            .scope_commitment,
         required_no_effect_claim_id_matches,
         no_effect_claim_scope_matches,
         required_downstream_claim_id_matches,
