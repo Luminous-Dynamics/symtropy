@@ -58,7 +58,8 @@ pub struct PivProbabilityMetrics {
 #[derive(Clone, Debug, PartialEq)]
 pub struct PivProbabilityScoreReport {
     pub overall: PivProbabilityMetrics,
-    /// All four physical regions are present; AUC is None in a one-class region.
+    /// All four physical regions are listed; None means no samples in that region.
+    /// AUC is None when a present region contains only one reference class.
     pub by_region: Vec<(FlowRegion, Option<PivProbabilityMetrics>)>,
     pub limitations: &'static str,
 }
@@ -435,6 +436,14 @@ mod tests {
             evaluate_piv_probability_scores(&observations),
             Err(PivProbabilityScoreError::DuplicateSampleId { .. })
         ));
+    }
+
+    #[test]
+    fn empty_cohort_is_rejected() {
+        assert_eq!(
+            evaluate_piv_probability_scores(&[]).unwrap_err(),
+            PivProbabilityScoreError::EmptyObservations
+        );
     }
 
     #[test]
