@@ -31,11 +31,15 @@ pub mod coverage;
 pub mod residual;
 pub mod sequential;
 pub mod stats;
+pub mod trajectory;
 
 pub use residual::{
     AffineResidualMassConfig, AffineResidualMassReport, affine_collision_residual_mass_upper_bound,
 };
 pub use sequential::{BernoulliConfidenceSequence, BernoulliMixtureEProcess};
+pub use trajectory::{
+    TrajectoryContactClassification, TrajectoryContactReport, classify_polynomial_contact,
+};
 pub use stats::{WeightedEventAccumulator, WeightedEventSummary};
 
 pub use coverage::{
@@ -75,6 +79,10 @@ pub enum KernelError {
     InvalidCoverageBudget,
     /// A declared chart box is not wholly contained in the finite search cube.
     CoverageChartOutsideDomain,
+    /// An interval-enclosed trajectory coordinate has no polynomial coefficients.
+    InvalidPolynomial,
+    /// A time-window classification was configured with a zero interval budget.
+    InvalidTrajectoryBudget,
     /// A streaming sample or event-contribution counter would overflow.
     CounterOverflow,
     /// A probability is non-finite or outside the closed interval [0, 1].
@@ -109,6 +117,8 @@ impl fmt::Display for KernelError {
             Self::InvalidHardBodyRadius => "hard-body radius must be nonnegative and finite",
             Self::InvalidCoverageBudget => "coverage traversal cell budget must be nonzero",
             Self::CoverageChartOutsideDomain => "coverage chart box lies outside the search cube",
+            Self::InvalidPolynomial => "trajectory polynomial must contain at least one coefficient per axis",
+            Self::InvalidTrajectoryBudget => "trajectory time-interval budget must be nonzero",
             Self::CounterOverflow => "streaming observation counter overflowed",
             Self::InvalidProbability => "probability must be finite and lie in [0, 1]",
             Self::InvalidAlpha => "alpha must be finite and lie strictly between 0 and 1",
