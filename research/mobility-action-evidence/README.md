@@ -37,6 +37,8 @@ This crate references, but does not reimplement, the existing owners:
 - Mycelix Mobility Commons #3709: platform/configuration lifecycle.
 - Mycelix Position #416/#435/#458 and navigation claim v2 PR #6412: frame, qualified time and navigation service.
 - Mycelix #5899/#5904: provenance and common-mode dependencies.
+- Mycelix AGENT-009 #803: durable effect attempt and persistence/provider outcome classification.
+- Mycelix AGENT-010 #830: independent offline reconstruction of bounded authority and effect evidence; its report is not runtime authority.
 - Symthaea #3779/#10012/#10747/#11185: domain runtime assurance and authority boundaries.
 - Symtropy #3893: maritime ODD/mode applicability.
 - Symtropy #6498/#6499: mission/subgoal state machine.
@@ -82,6 +84,10 @@ The current reference now also models the M1 single-unresolved-mutation rule. Ev
 The reference model validates the shape and scope of the permit reference but does not authenticate it. M1 remains the authoritative permit issuer and allowlist owner.
 - AUTHORITY_MUTATION_BOUNDARY_V0.1.md
 - the sibling mobility-mutation-boundary directory.
+
+A separate follow-on [MOBILITY-VERIFIED-ACTION-COMPOSITION-001 #6698](https://github.com/Luminous-Dynamics/symtropy/issues/6698) investigates opt-in concurrent action sets. It reuses the existing resource/temporal reservation, space-time occupancy and motion-envelope owners (#3644/#5009/#5233/#5401), while retaining the single-unresolved-mutation default until a composition certificate proves non-interference.
+
+Mycelix integration is proposed through AGENT-009 #803 for durable effect classification and AGENT-010 #830 for independent offline receipt reconstruction. The verifier report must never be deserialized into a live action capability.
 
 The reference model is intentionally an in-process software conformance artifact. It does not authenticate binding commitments, fence external processes or hardware, survive restart, establish physical effect or provide safety-rated control.
 
