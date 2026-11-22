@@ -184,18 +184,15 @@ fn start_queued_charges(
     charge_duration: u32,
     charger_power: u32,
     free_channels: &mut BTreeSet<u8>,
-    charge_queue: &mut VecDeque<u64>,
+    charge_queue: &mut VecDeque<()>,
     timeline: &mut BTreeMap<u64, Vec<ScheduledEvent>>,
-    next_pack_sequence: &mut u64,
     charge_starts: &mut u64,
     charging_input_energy_mwh: &mut u64,
 ) -> Result<(), String> {
-    while let (Some(channel_id), Some(_pack_sequence)) =
+    while let (Some(channel_id), Some(())) =
         (free_channels.iter().next().copied(), charge_queue.front().copied())
     {
-        let pack_sequence = charge_queue
-            .pop_front()
-            .expect("front was observed above");
+        charge_queue.pop_front();
         free_channels.remove(&channel_id);
 
         let completion_time = now
@@ -214,8 +211,6 @@ fn start_queued_charges(
         *charge_starts = charge_starts
             .checked_add(1)
             .ok_or_else(|| "charge_start_count_overflow".to_owned())?;
-        *next_pack_sequence = next_pack_sequence
-            .max(&pack_sequence.saturating_add(1));
     }
     Ok(())
 }
@@ -231,7 +226,7 @@ pub fn evaluate_architecture_capacity(
         u64::from(channels).saturating_mul(u64::from(scenario.charger_input_power_w));
     let mut free_channels: BTreeSet<u8> = (0..channels).collect();
     let mut ready_spares = scenario.initial_ready_spares;
-    let mut charge_queue: VecDeque<u64> = VecDeque::new();
+    let mut charge_queue: VecDeque<()> = VecDeque::new();
     let mut waiting_aircraft: VecDeque<(u8, u64)> = VecDeque::new();
     let mut timeline: BTreeMap<u64, Vec<ScheduledEvent>> = BTreeMap::new();
 
@@ -243,7 +238,6 @@ pub fn evaluate_architecture_capacity(
     let mut aircraft_wait_seconds = 0_u64;
     let mut max_single_aircraft_wait_seconds = 0_u64;
     let mut charging_input_energy_mwh = 0_u64;
-    let mut next_pack_sequence = 0_u64;
     let mut event_count = 0_usize;
 
     for aircraft_id in 0..scenario.aircraft_count {
@@ -311,8 +305,7 @@ pub fn evaluate_architecture_capacity(
                         &mut free_channels,
                         &mut charge_queue,
                         &mut timeline,
-                        &mut next_pack_sequence,
-                        &mut charge_starts,
+                                        &mut charge_starts,
                         &mut charging_input_energy_mwh,
                     )
                     .map_err(|error| vec![error])?;
@@ -322,10 +315,7 @@ pub fn evaluate_architecture_capacity(
                         .checked_add(1)
                         .ok_or_else(|| vec!["completed_sortie_count_overflow".to_owned()])?;
 
-                    let pack_sequence = next_pack_sequence;
-                    next_pack_sequence = next_pack_sequence.saturating_add(1);
-                    charge_queue.push_back(pack_sequence);
-                    charge_queue_peak = charge_queue_peak.max(charge_queue.len());
+                    charge_queue.push_back(());
 
                     if ready_spares > 0 {
                         ready_spares -= 1;
@@ -355,11 +345,11 @@ pub fn evaluate_architecture_capacity(
                         &mut free_channels,
                         &mut charge_queue,
                         &mut timeline,
-                        &mut next_pack_sequence,
-                        &mut charge_starts,
+                                        &mut charge_starts,
                         &mut charging_input_energy_mwh,
                     )
                     .map_err(|error| vec![error])?;
+                    charge_queue_peak = charge_queue_peak.max(charge_queue.len());
                 }
             }
         }
