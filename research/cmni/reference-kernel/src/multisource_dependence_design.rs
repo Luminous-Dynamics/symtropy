@@ -257,7 +257,7 @@ pub fn rank_designs_under_finite_correlation_scenarios(
     })
 }
 
-fn validate_candidate(
+pub(crate) fn validate_candidate(
     candidate: &MultiSourceDependenceDesignCandidate,
     observation_count: usize,
     source_count: usize,
@@ -345,7 +345,7 @@ fn nearly_equal(left: f64, right: f64) -> bool {
 /// unit diagonal and averaged symmetric off-diagonal entries before use. The
 /// minimum eigenvalue is checked with a Jacobi iteration; values down to -1e-10
 /// are accepted as floating-point PSD tolerance. This is not a formal PSD proof.
-fn canonicalize_and_validate_correlation_matrix(
+pub(crate) fn canonicalize_and_validate_correlation_matrix(
     matrix: &[Vec<f64>],
     source_count: usize,
 ) -> Result<Vec<Vec<f64>>, ModelError> {
