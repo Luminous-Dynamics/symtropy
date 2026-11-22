@@ -220,10 +220,21 @@ Targets, not achieved results:
 | Runtime | Report p50/p95/p99 and timeout rate; bounded verifier target p99 <10 ms on declared hardware |
 | Operational superiority | Improve the matched service-cost-energy Pareto frontier with confidence intervals, not an unsupported single percentage |
 
-## 10. Current South African boundary
+## 10. Evidence maturity and comparison admissibility
+
+Every comparator row must be assigned exactly one primary maturity class:
+- **Manufacturer specification:** declared operating envelope or controlled product test; useful for configuration comparison, not automatically independent field reliability.
+- **Company-reported operation:** public operational or safety claim; preserve the company's stated population, timeframe, event definition and exclusions.
+- **Peer-reviewed simulation/optimization:** reported result on a paper-native model and dataset; reproduce before transfer to another fleet, chemistry, geography or mission mix.
+- **Independent field measurement:** calibrated, timestamped observations with source, asset identity, denominator, test protocol and uncertainty.
+- **Luminous synthetic fixture:** deterministic arithmetic/control case only; never a field-performance claim.
+
+A performance comparison is inadmissible when the numerator, denominator, hardware boundary, service definition, time horizon, battery type or operating environment differs without an explicit normalization model. Report unknown/missing data as unknown and publish the missing-data rate. Do not rank a vendor from a marketing reliability percentage with no exposed trial count.
+
+## 11. Current South African boundary
 
 The existing #6226 and #6330 evidence gates remain authoritative for aviation/operating applicability; the energy programme #6707 retains grid and SSEG boundaries. The base business case should start with permitted mobility service, behind-the-meter self-consumption, peak management and resilience. Do not include grid-export/market revenue merely because a model has residual kWh. IEC 62933-5-4:2026 is a stationary grid-integrated lithium-ion EES safety-test reference, not qualification of an aircraft propulsion battery for V2G. South African utility/grid, aviation, product-safety and site permissions remain separate.
 
-## 11. Claim boundary
+## 12. Claim boundary
 
 This benchmark defines a fair comparison and evidence ledger. It does not claim Luminous outperforms DJI, Zipline, Amazon, Wing, a mobile trailer or a published optimizer. It does not establish a South African commercial operating case, aircraft airworthiness, real battery life, grid-export permission or field reliability. Those claims require matched reproduction and independent measured evidence.
