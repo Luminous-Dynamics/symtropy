@@ -1836,11 +1836,11 @@ mod tests {
         let original = snapshot.canonical_content_bytes().unwrap();
 
         let mut changed_model = snapshot.clone();
-        changed_model.identity.model_build_sha256 = "b".repeat(64);
+        changed_model.identity.model_build_sha256 = "d".repeat(64);
         assert_ne!(original, changed_model.canonical_content_bytes().unwrap());
 
         let mut changed_configuration = snapshot.clone();
-        changed_configuration.identity.configuration_sha256 = "c".repeat(64);
+        changed_configuration.identity.configuration_sha256 = "e".repeat(64);
         assert_ne!(
             original,
             changed_configuration.canonical_content_bytes().unwrap()
