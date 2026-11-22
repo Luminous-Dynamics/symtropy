@@ -17,7 +17,8 @@ def vector(values):
     return sp.Matrix([sp.sympify(x) for x in values])
 
 def require_zero(label, value):
-    if any(sp.factor(x) != 0 for x in value):
+    values = list(value) if isinstance(value, sp.MatrixBase) else [value]
+    if any(sp.factor(x) != 0 for x in values):
         raise AssertionError(f"{label}: {value}")
 
 def main():
