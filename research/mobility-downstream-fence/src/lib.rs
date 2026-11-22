@@ -320,11 +320,38 @@ fn valid_inventory(inventory: &QueuePathInventory) -> Result<(), HoldReason> {
         outdegree[from_index] += 1;
     }
 
+    // Kahn's algorithm detects any directed cycle, including a cycle that
+    // consumes the nominal entry edge.
     let roots: Vec<usize> = indegree
         .iter()
         .enumerate()
         .filter_map(|(index, degree)| (*degree == 0).then_some(index))
         .collect();
+    let mut remaining_indegree = indegree;
+    let mut ready = roots.clone();
+    let mut processed = 0_usize;
+    while let Some(current) = ready.pop() {
+        processed += 1;
+        let current_id = &inventory.layers[current].layer_id;
+        for edge in inventory
+            .edges
+            .iter()
+            .filter(|edge| edge.from_layer_id == *current_id)
+        {
+            let next = inventory
+                .layers
+                .iter()
+                .position(|layer| layer.layer_id == edge.to_layer_id)
+                .expect("edge endpoints were checked above");
+            remaining_indegree[next] -= 1;
+            if remaining_indegree[next] == 0 {
+                ready.push(next);
+            }
+        }
+    }
+    if processed != inventory.layers.len() {
+        return Err(HoldReason::ForwardingGraphCycle);
+    }
     if roots.len() != 1 || roots[0] != entry_index {
         return Err(HoldReason::UnexpectedRootLayer);
     }
@@ -367,33 +394,6 @@ fn valid_inventory(inventory: &QueuePathInventory) -> Result<(), HoldReason> {
     }
     if reachable.iter().any(|seen| !seen) {
         return Err(HoldReason::UnreachableLayer);
-    }
-
-    // Kahn's algorithm detects any directed cycle.
-    let mut remaining_indegree = indegree;
-    let mut ready = roots;
-    let mut processed = 0_usize;
-    while let Some(current) = ready.pop() {
-        processed += 1;
-        let current_id = &inventory.layers[current].layer_id;
-        for edge in inventory
-            .edges
-            .iter()
-            .filter(|edge| edge.from_layer_id == *current_id)
-        {
-            let next = inventory
-                .layers
-                .iter()
-                .position(|layer| layer.layer_id == edge.to_layer_id)
-                .expect("edge endpoints were checked above");
-            remaining_indegree[next] -= 1;
-            if remaining_indegree[next] == 0 {
-                ready.push(next);
-            }
-        }
-    }
-    if processed != inventory.layers.len() {
-        return Err(HoldReason::ForwardingGraphCycle);
     }
 
     Ok(())
@@ -693,8 +693,10 @@ mod tests {
     #[test]
     fn cycles_and_unknown_forwarding_endpoints_hold() {
         let mut input = packet();
-        input.inventory.edges[1] =
-            edge("edge-cycle", "firmware-queue", "controller-queue");
+        input
+            .inventory
+            .edges
+            .push(edge("edge-cycle", "firmware-queue", "controller-queue"));
         assert_hold(&input, HoldReason::ForwardingGraphCycle);
 
         let mut input = packet();
