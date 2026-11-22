@@ -10,6 +10,7 @@
 //! Carlo algorithm. Independent-chain qualification is separate.
 
 use crate::horseshoe_hmc::SplitMix64;
+use std::collections::BTreeSet;
 use crate::GroupedRawScaleHorseshoePosterior;
 use crate::{
     GlobalScalePrior, HorseshoeHmcConfig, ModelError, PreparedGroupedRawScaleHorseshoeModel,
@@ -35,6 +36,16 @@ pub struct GroupedHmcChain {
     pub accepted_transitions: usize,
     pub divergences: usize,
     pub acceptance_rate: f64,
+}
+
+/// Independently seeded starting state for one grouped HMC chain.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GroupedHmcInitialization {
+    pub seed: u64,
+    pub initial_coefficients: Vec<f64>,
+    pub initial_log_local_scales: Vec<f64>,
+    pub initial_log_global_scales: Vec<f64>,
+    pub initial_log_experiment_scales: Vec<f64>,
 }
 
 #[derive(Debug, Clone)]
@@ -209,6 +220,57 @@ pub fn run_grouped_horseshoe_hmc_chain(
         divergences,
         acceptance_rate: accepted_transitions as f64 / transitions as f64,
     })
+}
+
+/// Run at least four independently seeded grouped fixed-step HMC chains.
+///
+/// The initialization list supplies the random seed and starting state for
+/// each chain. Seeds must be unique. This runner does not adapt step sizes or
+/// construct NUTS trees; convergence qualification is performed separately.
+#[allow(clippy::too_many_arguments)]
+pub fn run_grouped_horseshoe_hmc_chains(
+    model: &PreparedGroupedRawScaleHorseshoeModel,
+    initializations: &[GroupedHmcInitialization],
+    global_scale_index_by_coefficient: &[usize],
+    experiment_scale_index_by_observation: &[usize],
+    fixed_coefficient_scale: f64,
+    global_scale_prior: GlobalScalePrior,
+    config: HorseshoeHmcConfig,
+) -> Result<Vec<GroupedHmcChain>, ModelError> {
+    if initializations.len() < 4 {
+        return Err(ModelError::InvalidParameter(
+            "grouped_hmc_requires_at_least_four_chains",
+        ));
+    }
+    let mut seeds = BTreeSet::new();
+    for initialization in initializations {
+        if !seeds.insert(initialization.seed) {
+            return Err(ModelError::InvalidParameter(
+                "grouped_hmc_chain_seeds_must_be_unique",
+            ));
+        }
+    }
+
+    let mut chains = Vec::with_capacity(initializations.len());
+    for initialization in initializations {
+        let chain_config = HorseshoeHmcConfig {
+            seed: initialization.seed,
+            ..config
+        };
+        chains.push(run_grouped_horseshoe_hmc_chain(
+            model,
+            &initialization.initial_coefficients,
+            &initialization.initial_log_local_scales,
+            &initialization.initial_log_global_scales,
+            &initialization.initial_log_experiment_scales,
+            global_scale_index_by_coefficient,
+            experiment_scale_index_by_observation,
+            fixed_coefficient_scale,
+            global_scale_prior,
+            chain_config,
+        )?);
+    }
+    Ok(chains)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -446,6 +508,108 @@ mod tests {
                 && draw.log_posterior.is_finite()
                 && draw.hamiltonian_energy.is_finite()
         }));
+    }
+
+    fn initialization(seed: u64, offset: f64) -> GroupedHmcInitialization {
+        GroupedHmcInitialization {
+            seed,
+            initial_coefficients: vec![0.001 + offset, -0.002 - offset, 0.003 + 0.5 * offset],
+            initial_log_local_scales: vec![0.8_f64.ln(), 1.1_f64.ln(), 0.9_f64.ln()],
+            initial_log_global_scales: vec![0.6_f64.ln(), 1.0_f64.ln(), 0.8_f64.ln()],
+            initial_log_experiment_scales: vec![1.02_f64.ln()],
+        }
+    }
+
+    #[test]
+    fn grouped_multi_chain_runner_requires_four_unique_seeds() {
+        let (model, coefficient_groups, experiment_groups) = fixture();
+        let config = HorseshoeHmcConfig {
+            discarded_transitions: 1,
+            retained_draws: 3,
+            step_size: 1.0e-5,
+            leapfrog_steps: 2,
+            divergence_energy_error_threshold: 1000.0,
+            seed: 0,
+        };
+        let initializations = vec![
+            initialization(101, -0.0003),
+            initialization(102, -0.0001),
+            initialization(103, 0.0001),
+            initialization(104, 0.0003),
+        ];
+        let chains = run_grouped_horseshoe_hmc_chains(
+            &model,
+            &initializations,
+            &coefficient_groups,
+            &experiment_groups,
+            1.0e-2,
+            GlobalScalePrior::HalfNormal { scale: 1.0 },
+            config,
+        )
+        .expect("four independent chains");
+        assert_eq!(chains.len(), 4);
+        assert_eq!(
+            chains.iter().map(|chain| chain.seed).collect::<Vec<_>>(),
+            vec![101, 102, 103, 104]
+        );
+        assert!(chains.iter().all(|chain| {
+            chain.draws.len() == 3
+                && chain.transitions == 4
+                && chain.draws.iter().all(|draw| draw.log_posterior.is_finite())
+        }));
+    }
+
+    #[test]
+    fn grouped_multi_chain_runner_rejects_too_few_chains_and_duplicate_seeds() {
+        let (model, coefficient_groups, experiment_groups) = fixture();
+        let config = HorseshoeHmcConfig {
+            discarded_transitions: 0,
+            retained_draws: 1,
+            step_size: 1.0e-5,
+            leapfrog_steps: 1,
+            divergence_energy_error_threshold: 1000.0,
+            seed: 0,
+        };
+        let three = vec![
+            initialization(201, -0.0002),
+            initialization(202, 0.0),
+            initialization(203, 0.0002),
+        ];
+        assert_eq!(
+            run_grouped_horseshoe_hmc_chains(
+                &model,
+                &three,
+                &coefficient_groups,
+                &experiment_groups,
+                1.0e-2,
+                GlobalScalePrior::HalfNormal { scale: 1.0 },
+                config
+            ),
+            Err(ModelError::InvalidParameter(
+                "grouped_hmc_requires_at_least_four_chains"
+            ))
+        );
+
+        let duplicate = vec![
+            initialization(301, -0.0003),
+            initialization(302, -0.0001),
+            initialization(302, 0.0001),
+            initialization(304, 0.0003),
+        ];
+        assert_eq!(
+            run_grouped_horseshoe_hmc_chains(
+                &model,
+                &duplicate,
+                &coefficient_groups,
+                &experiment_groups,
+                1.0e-2,
+                GlobalScalePrior::HalfNormal { scale: 1.0 },
+                config
+            ),
+            Err(ModelError::InvalidParameter(
+                "grouped_hmc_chain_seeds_must_be_unique"
+            ))
+        );
     }
 
     #[test]

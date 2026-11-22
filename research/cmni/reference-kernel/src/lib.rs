@@ -235,7 +235,7 @@ where
 {
     let energy = energy_cm.get();
     let screening = checked_nonnegative(screening_kev, "screening_kev")?;
-    let s_factor = checked_positive(s_factor_keV_barn(energy), "S_factor_keV_barn")?;
+    let s_factor = checked_positive(s_factor_kev_barn(energy), "S_factor_keV_barn")?;
     let shifted_energy = energy + screening;
     let cross_section = s_factor / (energy * shifted_energy).sqrt()
         * (-(gamow_energy_cm.0 / shifted_energy).sqrt()).exp();

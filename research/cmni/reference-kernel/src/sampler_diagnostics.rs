@@ -550,6 +550,7 @@ fn energy_bfmi(energies: &[f64]) -> f64 {
 #[cfg(test)]
 mod grouped_hmc_tests {
     use super::*;
+    use crate::GroupedHmcDraw;
 
     fn synthetic_grouped_chains() -> Vec<GroupedHmcChain> {
         (0..4)

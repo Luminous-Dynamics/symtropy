@@ -631,6 +631,16 @@ pub struct PreparedGroupedRawScaleHorseshoeModel {
 }
 
 impl PreparedGroupedRawScaleHorseshoeModel {
+    /// Number of bias coefficients represented by the prepared design matrix.
+    pub fn coefficient_count(&self) -> usize {
+        self.design_matrix.first().map_or(0, Vec::len)
+    }
+
+    /// Number of observation rows represented by the prepared model.
+    pub fn observation_count(&self) -> usize {
+        self.observed.len()
+    }
+
     pub fn new(
         observed: &[f64],
         baseline_mean: &[f64],
