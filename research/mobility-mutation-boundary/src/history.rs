@@ -282,6 +282,7 @@ fn apply_observed_operation(
                         || permit.failed_attempt_key != *attempt_key
                         || permit.authority_epoch != state.live.binding.controller_epoch
                         || permit.plan_digest == [0; 32]
+                    || permit.plan_digest != next.binding.commitment
                         || state.consumed_recovery_permit_ids.contains(&permit.permit_id)
                     {
                         return Transition::Invalid;
@@ -921,7 +922,7 @@ mod tests {
                         recovery_permit: Some(RecoveryPermitReference {
                             permit_id: "permit-2".to_owned(),
                             failed_attempt_key: "attempt-1".to_owned(),
-                            plan_digest: [9; 32],
+                            plan_digest: [2; 32],
                             authority_epoch: 1,
                         }),
                     },
@@ -1018,7 +1019,7 @@ mod tests {
                         recovery_permit: Some(RecoveryPermitReference {
                             permit_id: "one-shot-permit".to_owned(),
                             failed_attempt_key: "attempt-1".to_owned(),
-                            plan_digest: [8; 32],
+                            plan_digest: [2; 32],
                             authority_epoch: 1,
                         }),
                     },
@@ -1047,7 +1048,7 @@ mod tests {
                         recovery_permit: Some(RecoveryPermitReference {
                             permit_id: "one-shot-permit".to_owned(),
                             failed_attempt_key: "attempt-2".to_owned(),
-                            plan_digest: [9; 32],
+                            plan_digest: [3; 32],
                             authority_epoch: 2,
                         }),
                     },
