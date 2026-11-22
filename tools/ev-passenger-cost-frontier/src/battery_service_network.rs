@@ -144,6 +144,51 @@ pub struct PackStateJournalReport {
     pub findings: Vec<String>,
 }
 
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(rename_all = "snake_case")]
+pub enum ExclusiveResourceKind {
+    BatteryPack,
+    Aircraft,
+    CarrierSlot,
+    SwapBay,
+    Charger,
+    ChargingChannel,
+    Rack,
+    Technician,
+    MobileServiceUnit,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResourceOccupancyInterval {
+    pub occupancy_id: String,
+    pub idempotency_key: String,
+    pub operation_id: String,
+    pub owner_id: String,
+    pub resource_id: String,
+    pub resource_configuration_digest: String,
+    pub resource_kind: ExclusiveResourceKind,
+    pub start_unix_ms: u64,
+    pub end_unix_ms: u64,
+    pub evidence: EvidenceEnvelope,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ExclusiveResourceScheduleInput {
+    pub decision_time_unix_ms: u64,
+    pub intervals: Vec<ResourceOccupancyInterval>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct ExclusiveResourceScheduleReport {
+    pub decision_time_unix_ms: u64,
+    pub interval_count: usize,
+    pub resource_count: usize,
+    pub deterministic_occupancy_order: Vec<String>,
+    pub half_open_interval_semantics: bool,
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct MissionDemand {
@@ -637,6 +682,138 @@ fn evaluate_pair(
         },
         findings,
     }
+}
+
+fn interval_evidence_covers(
+    evidence: &EvidenceEnvelope,
+    resource_id: &str,
+    resource_configuration_digest: &str,
+    decision_time_unix_ms: u64,
+    start_unix_ms: u64,
+    end_unix_ms: u64,
+) -> bool {
+    let (observed_at, valid_from, valid_until) = match (
+        evidence.observed_at_unix_ms,
+        evidence.valid_from_unix_ms,
+        evidence.valid_until_unix_ms,
+    ) {
+        (Some(observed_at), Some(valid_from), Some(valid_until)) => {
+            (observed_at, valid_from, valid_until)
+        }
+        _ => return false,
+    };
+
+    !evidence.asset_id.trim().is_empty()
+        && evidence.asset_id == resource_id
+        && !evidence.configuration_digest.trim().is_empty()
+        && evidence.configuration_digest == resource_configuration_digest
+        && !evidence.producer_id.trim().is_empty()
+        && !evidence.method_id.trim().is_empty()
+        && !evidence.evidence_reference.trim().is_empty()
+        && evidence.evidence_class != EvidenceClass::Unknown
+        && observed_at <= decision_time_unix_ms
+        && valid_from <= valid_until
+        && valid_from <= observed_at
+        && observed_at <= valid_until
+        && valid_from <= start_unix_ms
+        && end_unix_ms.saturating_sub(1) <= valid_until
+}
+
+pub fn validate_exclusive_resource_schedule(
+    input: &ExclusiveResourceScheduleInput,
+) -> Result<ExclusiveResourceScheduleReport, Vec<String>> {
+    let mut errors = Vec::new();
+    if input.decision_time_unix_ms == 0 {
+        errors.push("resource_schedule_decision_time_missing".to_string());
+    }
+
+    let mut occupancy_ids = BTreeSet::new();
+    let mut idempotency_keys = BTreeSet::new();
+    let mut intervals: Vec<&ResourceOccupancyInterval> = input.intervals.iter().collect();
+
+    for interval in &input.intervals {
+        if interval.occupancy_id.trim().is_empty()
+            || interval.idempotency_key.trim().is_empty()
+            || interval.operation_id.trim().is_empty()
+            || interval.owner_id.trim().is_empty()
+            || interval.resource_id.trim().is_empty()
+            || interval.resource_configuration_digest.trim().is_empty()
+        {
+            errors.push("resource_interval_identity_missing".to_string());
+            continue;
+        }
+        if !occupancy_ids.insert(interval.occupancy_id.as_str()) {
+            errors.push(format!("duplicate_occupancy_id:{}", interval.occupancy_id));
+        }
+        if !idempotency_keys.insert(interval.idempotency_key.as_str()) {
+            errors.push(format!("duplicate_resource_idempotency_key:{}", interval.idempotency_key));
+        }
+        if interval.start_unix_ms == 0 || interval.end_unix_ms <= interval.start_unix_ms {
+            errors.push(format!("invalid_half_open_resource_interval:{}", interval.occupancy_id));
+        } else if interval.end_unix_ms <= input.decision_time_unix_ms {
+            errors.push(format!("resource_interval_already_expired:{}", interval.occupancy_id));
+        }
+        if !interval_evidence_covers(
+            &interval.evidence,
+            &interval.resource_id,
+            &interval.resource_configuration_digest,
+            input.decision_time_unix_ms,
+            interval.start_unix_ms,
+            interval.end_unix_ms,
+        ) {
+            errors.push(format!("resource_interval_evidence_not_admissible:{}", interval.occupancy_id));
+        }
+    }
+
+    if !errors.is_empty() {
+        errors.sort();
+        errors.dedup();
+        return Err(errors);
+    }
+
+    intervals.sort_by(|left, right| {
+        left.resource_kind
+            .cmp(&right.resource_kind)
+            .then_with(|| left.resource_id.cmp(&right.resource_id))
+            .then_with(|| left.start_unix_ms.cmp(&right.start_unix_ms))
+            .then_with(|| left.end_unix_ms.cmp(&right.end_unix_ms))
+            .then_with(|| left.occupancy_id.cmp(&right.occupancy_id))
+    });
+
+    let mut resource_keys = BTreeSet::new();
+    for interval in &intervals {
+        resource_keys.insert((interval.resource_kind, interval.resource_id.as_str()));
+    }
+    for pair in intervals.windows(2) {
+        let previous = pair[0];
+        let next = pair[1];
+        if previous.resource_kind == next.resource_kind
+            && previous.resource_id == next.resource_id
+            && next.start_unix_ms < previous.end_unix_ms
+        {
+            errors.push(format!(
+                "exclusive_resource_overlap:{}:{}",
+                previous.occupancy_id, next.occupancy_id
+            ));
+        }
+    }
+
+    if !errors.is_empty() {
+        errors.sort();
+        errors.dedup();
+        return Err(errors);
+    }
+
+    Ok(ExclusiveResourceScheduleReport {
+        decision_time_unix_ms: input.decision_time_unix_ms,
+        interval_count: intervals.len(),
+        resource_count: resource_keys.len(),
+        deterministic_occupancy_order: intervals
+            .iter()
+            .map(|interval| interval.occupancy_id.clone())
+            .collect(),
+        half_open_interval_semantics: true,
+    })
 }
 
 fn transition_is_allowed(from: PackState, to: PackState) -> bool {
