@@ -152,9 +152,18 @@ def _validate_metric_manifest(axes: Any) -> list[dict[str, Any]]:
         transform_id = axis.get("transform_id")
         if not isinstance(transform_id, str) or not transform_id:
             raise ParetoEvaluationError(f"{metric_id}: frozen transform_id is required")
+        transform_digest = axis.get("transform_digest_sha256")
+        if not isinstance(transform_digest, str) or len(transform_digest) != 64:
+            raise ParetoEvaluationError(f"{metric_id}: transform code/spec requires a SHA-256 digest")
+        try:
+            int(transform_digest, 16)
+        except ValueError as exc:
+            raise ParetoEvaluationError(f"{metric_id}: invalid transform digest") from exc
         provenance = axis.get("provenance")
         if provenance not in PROVENANCE:
             raise ParetoEvaluationError(f"{metric_id}: invalid measurement provenance")
+        if provenance == "NOT_APPLICABLE":
+            raise ParetoEvaluationError(f"{metric_id}: remove not-applicable axes from the shared metric set")
         if provenance in {"MEASURED", "DERIVED_FROM_MEASUREMENT"}:
             method = axis.get("measurement_method")
             digest = axis.get("evidence_digest_sha256")
@@ -178,6 +187,7 @@ def _validate_metric_manifest(axes: Any) -> list[dict[str, Any]]:
             "source_direction": axis["source_direction"],
             "score_direction": "higher_is_better",
             "transform_id": transform_id,
+            "transform_digest_sha256": transform_digest,
             "provenance": provenance,
             "measurement_method": axis.get("measurement_method"),
             "evidence_digest_sha256": axis.get("evidence_digest_sha256"),
