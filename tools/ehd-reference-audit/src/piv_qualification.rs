@@ -42,9 +42,20 @@ pub struct PivConfusionCounts {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct PivClassifierMetrics {
+    /// Invalid vectors are the positive class for these three metrics.
     pub precision_invalid_class: f64,
     pub recall_invalid_class: f64,
     pub f1_invalid_class: f64,
+    /// Valid vectors are the positive class for these three metrics.
+    pub precision_valid_class: f64,
+    pub recall_valid_class: f64,
+    pub f1_valid_class: f64,
+    /// Unweighted mean of valid-class and invalid-class F1.
+    pub macro_f1: f64,
+    /// Mean of valid-class and invalid-class recall.
+    pub balanced_accuracy: f64,
+    /// Binary Matthews correlation coefficient; absent only if undefined.
+    pub matthews_correlation_coefficient: Option<f64>,
     /// Fraction of all reference-valid vectors removed by the post-processor.
     pub false_valid_vector_removal_rate: f64,
     pub valid_vector_retention_rate: f64,
@@ -281,38 +292,83 @@ pub fn compute_piv_classifier_metrics(
         return Err(PivQualificationError::ZeroValidReferenceDenominator);
     }
 
-    let precision = counts.invalid_vectors_rejected as f64 / predicted_invalid as f64;
-    let recall = counts.invalid_vectors_rejected as f64 / reference_invalid as f64;
-    let f1 = if precision + recall > 0.0 {
-        2.0 * precision * recall / (precision + recall)
+    // Invalid-vector positive-class metrics.
+    let precision_invalid = counts.invalid_vectors_rejected as f64 / predicted_invalid as f64;
+    let recall_invalid = counts.invalid_vectors_rejected as f64 / reference_invalid as f64;
+    let f1_invalid = if precision_invalid + recall_invalid > 0.0 {
+        2.0 * precision_invalid * recall_invalid / (precision_invalid + recall_invalid)
     } else {
         0.0
     };
+
+    // Valid-vector positive-class metrics. If no vector is predicted valid,
+    // valid precision is defined as zero rather than silently omitted.
+    let predicted_valid = counts
+        .invalid_vectors_retained
+        .checked_add(counts.valid_vectors_retained)
+        .ok_or(PivQualificationError::ConfusionCountOverflow)?;
+    let precision_valid = if predicted_valid > 0 {
+        counts.valid_vectors_retained as f64 / predicted_valid as f64
+    } else {
+        0.0
+    };
+    let recall_valid = counts.valid_vectors_retained as f64 / reference_valid as f64;
+    let f1_valid = if precision_valid + recall_valid > 0.0 {
+        2.0 * precision_valid * recall_valid / (precision_valid + recall_valid)
+    } else {
+        0.0
+    };
+
+    let macro_f1 = 0.5 * (f1_invalid + f1_valid);
+    let balanced_accuracy = 0.5 * (recall_invalid + recall_valid);
     let false_removal =
         counts.valid_vectors_rejected as f64 / reference_valid as f64;
     let valid_retention =
         counts.valid_vectors_retained as f64 / reference_valid as f64;
-    let accuracy = (counts.invalid_vectors_rejected + counts.valid_vectors_retained) as f64
-        / total as f64;
+    let accuracy = (
+        counts.invalid_vectors_rejected as f64 + counts.valid_vectors_retained as f64
+    ) / total as f64;
 
-    if ![
-        precision,
-        recall,
-        f1,
+    let tp = counts.invalid_vectors_rejected as f64;
+    let fp = counts.valid_vectors_rejected as f64;
+    let fn_count = counts.invalid_vectors_retained as f64;
+    let tn = counts.valid_vectors_retained as f64;
+    let mcc_denominator = ((tp + fp) * (tp + fn_count) * (tn + fp) * (tn + fn_count)).sqrt();
+    let matthews_correlation_coefficient = if mcc_denominator > 0.0 {
+        Some((tp * tn - fp * fn_count) / mcc_denominator)
+    } else {
+        None
+    };
+
+    let finite_values = [
+        precision_invalid,
+        recall_invalid,
+        f1_invalid,
+        precision_valid,
+        recall_valid,
+        f1_valid,
+        macro_f1,
+        balanced_accuracy,
         false_removal,
         valid_retention,
         accuracy,
-    ]
-    .iter()
-    .all(|value| value.is_finite())
+    ];
+    if !finite_values.iter().all(|value| value.is_finite())
+        || matthews_correlation_coefficient.is_some_and(|value| !value.is_finite())
     {
         return Err(PivQualificationError::NonFiniteDerivedValue);
     }
 
     Ok(PivClassifierMetrics {
-        precision_invalid_class: precision,
-        recall_invalid_class: recall,
-        f1_invalid_class: f1,
+        precision_invalid_class: precision_invalid,
+        recall_invalid_class: recall_invalid,
+        f1_invalid_class: f1_invalid,
+        precision_valid_class: precision_valid,
+        recall_valid_class: recall_valid,
+        f1_valid_class: f1_valid,
+        macro_f1,
+        balanced_accuracy,
+        matthews_correlation_coefficient,
         false_valid_vector_removal_rate: false_removal,
         valid_vector_retention_rate: valid_retention,
         accuracy,
@@ -717,6 +773,16 @@ mod tests {
         assert!(metrics.f1_invalid_class > 0.98);
         assert!((metrics.false_valid_vector_removal_rate - 0.005).abs() < 1.0e-12);
         assert!((metrics.valid_vector_retention_rate - 0.995).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn classifier_metrics_report_both_label_polarities_and_macro_scores() {
+        let metrics = compute_piv_classifier_metrics(classifier_counts()).unwrap();
+        assert!(metrics.f1_invalid_class > 0.99);
+        assert!(metrics.f1_valid_class > 0.99);
+        assert!(metrics.macro_f1 > 0.99);
+        assert!(metrics.balanced_accuracy > 0.99);
+        assert!(metrics.matthews_correlation_coefficient.unwrap() > 0.98);
     }
 
     #[test]
