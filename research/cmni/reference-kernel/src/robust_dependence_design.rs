@@ -103,8 +103,7 @@ pub fn rank_two_source_dependence_designs(
     let mut scores = Vec::with_capacity(candidates.len());
 
     for candidate in candidates {
-        if candidate.candidate_id.trim().is_empty()
-            || !seen.insert(candidate.candidate_id.as_str())
+        if candidate.candidate_id.trim().is_empty() || !seen.insert(candidate.candidate_id.as_str())
         {
             return Err(ModelError::InvalidParameter(
                 "dependence_robust_design_candidate_ids_must_be_nonempty_and_unique",
@@ -173,8 +172,7 @@ pub fn rank_two_source_dependence_designs(
         let mut reversed = false;
         for left in 0..scores.len() {
             for right in (left + 1)..scores.len() {
-                let robust_preference =
-                    scores[left].robust_rank.cmp(&scores[right].robust_rank);
+                let robust_preference = scores[left].robust_rank.cmp(&scores[right].robust_rank);
                 let nominal_preference = scores[left]
                     .nominal_independence_rank
                     .cmp(&scores[right].nominal_independence_rank);
@@ -206,7 +204,10 @@ fn validate_common_dependence_scope(
     candidate: &TwoSourceDependenceProblem,
 ) -> Result<(), ModelError> {
     let common = [
-        (reference.prior_parameter_variance, candidate.prior_parameter_variance),
+        (
+            reference.prior_parameter_variance,
+            candidate.prior_parameter_variance,
+        ),
         (
             reference.source_standard_deviations[0],
             candidate.source_standard_deviations[0],
@@ -215,8 +216,14 @@ fn validate_common_dependence_scope(
             reference.source_standard_deviations[1],
             candidate.source_standard_deviations[1],
         ),
-        (reference.correlation_bounds[0], candidate.correlation_bounds[0]),
-        (reference.correlation_bounds[1], candidate.correlation_bounds[1]),
+        (
+            reference.correlation_bounds[0],
+            candidate.correlation_bounds[0],
+        ),
+        (
+            reference.correlation_bounds[1],
+            candidate.correlation_bounds[1],
+        ),
     ];
     for (reference_value, candidate_value) in common {
         let scale = reference_value.abs().max(candidate_value.abs()).max(1.0);
@@ -268,7 +275,9 @@ mod tests {
             rank_two_source_dependence_designs(&nominal_vs_robust_candidates(), SCOPE_RECEIPT)
                 .expect("robust design ranking");
         assert_eq!(
-            ranking.nominal_independence_preferred_candidate_id.as_deref(),
+            ranking
+                .nominal_independence_preferred_candidate_id
+                .as_deref(),
             Some("nominal-winner")
         );
         assert_eq!(ranking.robust_preferred_candidate_id, "robust-winner");
@@ -287,13 +296,11 @@ mod tests {
             .expect("robust candidate");
 
         assert!(
-            (nominal.nominal_independence_eig_nats.unwrap() - 0.4489707966029793).abs()
-                < 1.0e-12
+            (nominal.nominal_independence_eig_nats.unwrap() - 0.4489707966029793).abs() < 1.0e-12
         );
         assert!((nominal.worst_case_eig_nats - 0.3404385439840655).abs() < 1.0e-12);
         assert!(
-            (robust.nominal_independence_eig_nats.unwrap() - 0.3589198965751584).abs()
-                < 1.0e-12
+            (robust.nominal_independence_eig_nats.unwrap() - 0.3589198965751584).abs() < 1.0e-12
         );
         assert!((robust.worst_case_eig_nats - 0.3589198965751584).abs() < 1.0e-12);
         assert!(!ranking.formal_interval_arithmetic);
