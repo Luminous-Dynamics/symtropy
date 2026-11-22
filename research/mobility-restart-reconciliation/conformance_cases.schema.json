@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/mobility-restart-reconciliation-cases-v0.1.json",
+  "title": "Mobility Restart Reconciliation Conformance Cases v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "cases"
+  ],
+  "properties": {
+    "version": {
+      "const": "0.1"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 23,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "class",
+          "persistence",
+          "effect",
+          "mission_resolution",
+          "effect_evidence",
+          "queue_fence",
+          "recovery_permit",
+          "fresh_ticket",
+          "boot_changed",
+          "epoch_advanced",
+          "expected",
+          "native_sink_calls"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^RRC-[0-9]{3}$"
+          },
+          "class": {
+            "enum": [
+              "positive",
+              "negative",
+              "outcome"
+            ]
+          },
+          "persistence": {
+            "enum": [
+              "committed",
+              "definitely_not_committed",
+              "indeterminate_commit"
+            ]
+          },
+          "effect": {
+            "enum": [
+              "unknown",
+              "applied",
+              "no_effect",
+              "partial",
+              "disputed"
+            ]
+          },
+          "mission_resolution": {
+            "enum": [
+              "unknown",
+              "effect_predicate_satisfied",
+              "no_effect",
+              "partial_effect",
+              "disputed"
+            ]
+          },
+          "effect_evidence": {
+            "type": "boolean"
+          },
+          "queue_fence": {
+            "type": "boolean"
+          },
+          "recovery_permit": {
+            "type": "boolean"
+          },
+          "fresh_ticket": {
+            "enum": [
+              "valid",
+              "absent",
+              "old_attempt",
+              "wrong_effect",
+              "stale_boot",
+              "stale_epoch",
+              "observer_same_failure_domain",
+              "binding_mismatch"
+            ]
+          },
+          "boot_changed": {
+            "type": "boolean"
+          },
+          "epoch_advanced": {
+            "type": "boolean"
+          },
+          "expected": {
+            "enum": [
+              "hold",
+              "effect_predicate_observed",
+              "fresh_attempt_candidate",
+              "effect_predicate_observed_persistence_unresolved"
+            ]
+          },
+          "native_sink_calls": {
+            "const": 0
+          }
+        }
+      }
+    }
+  }
+}

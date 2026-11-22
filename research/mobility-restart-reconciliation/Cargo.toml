@@ -1,0 +1,16 @@
+# Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+[package]
+name = "mobility-restart-reconciliation"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Bounded cross-owner restart/reconciliation contract for mobility effects"
+
+[lib]
+path = "src/lib.rs"
+
+# Keep this reference crate isolated from the repository's production workspace.
+[workspace]
