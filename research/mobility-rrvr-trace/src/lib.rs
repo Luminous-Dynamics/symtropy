@@ -731,6 +731,20 @@ mod tests {
         }
     }
 
+    struct WrongWitnessStateOracle;
+
+    impl ReplayOracle for WrongWitnessStateOracle {
+        fn revision(&self) -> &str {
+            "late-execution-oracle-v1"
+        }
+
+        fn replay(&self, _bundle: &TraceBundle) -> ReplayOutcome {
+            let mut signature = target_failure();
+            signature.witness_state_commitment = commitment(77);
+            ReplayOutcome::Failure(signature)
+        }
+    }
+
     struct PassingOracle;
 
     impl ReplayOracle for PassingOracle {
@@ -941,6 +955,14 @@ mod tests {
     fn a_different_failure_signature_is_not_accepted_as_preservation() {
         assert_eq!(
             minimize_trace(&bundle(), &WrongSignatureSameRevisionOracle, 500),
+            Err(MinimizationError::BaselineDoesNotReproduce)
+        );
+    }
+
+    #[test]
+    fn changed_witness_state_commitment_is_not_the_same_failure() {
+        assert_eq!(
+            minimize_trace(&bundle(), &WrongWitnessStateOracle, 500),
             Err(MinimizationError::BaselineDoesNotReproduce)
         );
     }
