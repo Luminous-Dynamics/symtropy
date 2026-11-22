@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/orbital-truss/orbital_truss_independent_datum_v0_1.schema.json",
+  "title": "Orbital Truss Independent Datum Network Corpus",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-truss-independent-datum.corpus.v0.1"
+    },
+    "benchmark_id": {
+      "const": "ORBITAL-TRUSS-INDEPENDENT-DATUM-001"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic_2d_external_datum_registration_only"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 14,
+      "maxItems": 14,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "point": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "point_id",
+        "source_position_m",
+        "target_position_m",
+        "source_error_bound_m",
+        "target_error_bound_m"
+      ],
+      "properties": {
+        "point_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_position_m": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "target_position_m": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "source_error_bound_m": {
+          "type": "number",
+          "minimum": 0
+        },
+        "target_error_bound_m": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "expected_disposition",
+        "datum_origin",
+        "article_geometry_used",
+        "source_frame_id",
+        "target_frame_id",
+        "datum_set_id",
+        "minimum_span_m",
+        "minimum_triangle_area_m2",
+        "maximum_control_residual_m",
+        "maximum_check_residual_m",
+        "registration_error_bound_m",
+        "controls",
+        "check_points"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "pattern": "^IDN-[0-9]{3}-[A-Z0-9-]+$"
+        },
+        "expected_disposition": {
+          "enum": [
+            "QUALIFIED",
+            "REJECTED",
+            "INDETERMINATE"
+          ]
+        },
+        "datum_origin": {
+          "type": "string",
+          "minLength": 1
+        },
+        "article_geometry_used": {
+          "type": "boolean"
+        },
+        "source_frame_id": {
+          "type": "string"
+        },
+        "target_frame_id": {
+          "type": "string"
+        },
+        "datum_set_id": {
+          "type": "string"
+        },
+        "minimum_span_m": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "minimum_triangle_area_m2": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "maximum_control_residual_m": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_check_residual_m": {
+          "type": "number",
+          "minimum": 0
+        },
+        "registration_error_bound_m": {
+          "type": "number",
+          "minimum": 0
+        },
+        "controls": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/point"
+          }
+        },
+        "check_points": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/point"
+          }
+        }
+      }
+    }
+  }
+}

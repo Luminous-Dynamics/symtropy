@@ -1,0 +1,144 @@
+name: Orbital Truss Independent Datum Benchmark
+
+on:
+  pull_request:
+    paths:
+      - "tools/orbital-truss-independent-datum-bench/**"
+      - "docs/research/orbital-truss/fixtures/independent-datum-v0_1.json"
+      - "docs/research/orbital-truss/orbital_truss_independent_datum_v0_1.schema.json"
+  push:
+    branches:
+      - "research/orbital-truss-datum-observability-v0-1"
+    paths:
+      - "tools/orbital-truss-independent-datum-bench/**"
+      - "docs/research/orbital-truss/fixtures/independent-datum-v0_1.json"
+      - "docs/research/orbital-truss/orbital_truss_independent_datum_v0_1.schema.json"
+      - ".github/workflows/orbital-truss-independent-datum.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Datum-network fit, withheld checks and independent oracle
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.1
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate frozen inputs
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          fixture = json.loads(Path("docs/research/orbital-truss/fixtures/independent-datum-v0_1.json").read_text())
+          schema = json.loads(Path("docs/research/orbital-truss/orbital_truss_independent_datum_v0_1.schema.json").read_text())
+          assert fixture["benchmark_id"] == "ORBITAL-TRUSS-INDEPENDENT-DATUM-001"
+          assert len(fixture["cases"]) == 14
+          assert len({case["case_id"] for case in fixture["cases"]}) == 14
+          assert schema["properties"]["cases"]["minItems"] == 14
+          assert schema["properties"]["cases"]["maxItems"] == 14
+          print("frozen fixture/schema structure: 14 unique cases")
+          PY
+      - name: Format
+        run: cargo fmt --manifest-path tools/orbital-truss-independent-datum-bench/Cargo.toml -- --check
+      - name: Rust tests
+        run: cargo test --locked --manifest-path tools/orbital-truss-independent-datum-bench/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/orbital-truss-independent-datum-bench/Cargo.toml --all-targets -- -D warnings
+      - name: Deterministic receipt replay
+        run: |
+          cargo run --quiet --locked --manifest-path tools/orbital-truss-independent-datum-bench/Cargo.toml -- docs/research/orbital-truss/fixtures/independent-datum-v0_1.json "$SOURCE_COMMIT" > /tmp/datum-a.json
+          cargo run --quiet --locked --manifest-path tools/orbital-truss-independent-datum-bench/Cargo.toml -- docs/research/orbital-truss/fixtures/independent-datum-v0_1.json "$SOURCE_COMMIT" > /tmp/datum-b.json
+          cmp /tmp/datum-a.json /tmp/datum-b.json
+          jq -e '
+            .case_count == 14 and .declared_matches == 14 and .declared_mismatches == 0 and
+            .authority_granted == false and .physical_validation == "NOT_ASSESSED" and
+            ([.cases[] | select(.disposition == "QUALIFIED")] | length == 2) and
+            ([.cases[] | select(.disposition == "REJECTED")] | length == 4) and
+            ([.cases[] | select(.disposition == "INDETERMINATE")] | length == 8)
+          ' /tmp/datum-a.json
+      - name: Independent standard-library oracle
+        run: |
+          python3 tools/orbital-truss-independent-datum-bench/tests/independent_datum_reference_oracle.py docs/research/orbital-truss/fixtures/independent-datum-v0_1.json > /tmp/datum-oracle.json
+      - name: Compare Rust receipt and independent oracle
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          rust = json.loads(Path("/tmp/datum-a.json").read_text())
+          oracle = json.loads(Path("/tmp/datum-oracle.json").read_text())
+          assert rust["input_sha256"] == oracle["input_sha256"]
+          assert rust["case_count"] == oracle["case_count"] == 14
+          assert rust["declared_matches"] == oracle["declared_matches"] == 14
+          oracle_by_id = {case["case_id"]: case for case in oracle["cases"]}
+          assert len(oracle_by_id) == 14
+          for actual in rust["cases"]:
+              expected = oracle_by_id[actual["case_id"]]
+              assert actual["disposition"] == expected["disposition"], actual["case_id"]
+              assert actual["reason_codes"] == expected["reason_codes"], actual["case_id"]
+              assert actual["authority_granted"] is False
+              for key in ("rotation_radians",):
+                  left, right = actual[key], expected[key]
+                  assert (left is None and right is None) or abs(left-right) <= 1e-12
+              left, right = actual["translation_m"], expected["translation_m"]
+              assert (left is None and right is None) or all(abs(a-b) <= 1e-12 for a,b in zip(left,right))
+              for key in ("control_span_m", "maximum_triangle_area_m2"):
+                  left, right = actual[key], expected[key]
+                  assert (left is None and right is None) or abs(left-right) <= 1e-12
+              for group in ("control_residuals", "check_residuals"):
+                  assert len(actual[group]) == len(expected[group])
+                  for a, b in zip(actual[group], expected[group]):
+                      assert a["point_id"] == b["point_id"]
+                      assert a["within_bound"] is b["within_bound"]
+                      for key in ("residual_m", "allowed_residual_m"):
+                          assert abs(a[key] - b[key]) <= 1e-12
+          print("Rust and independent Python oracle agree on every case and diagnostic")
+          PY
+      - name: Create exact-head evidence manifest
+        if: success()
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          rust_bytes = Path("/tmp/datum-a.json").read_bytes()
+          oracle_bytes = Path("/tmp/datum-oracle.json").read_bytes()
+          rust = json.loads(rust_bytes)
+          manifest = {
+              "source_commit": os.environ["SOURCE_COMMIT"],
+              "workflow_event_commit": os.environ["GITHUB_SHA"],
+              "workflow_run_id": int(os.environ["GITHUB_RUN_ID"]),
+              "run_attempt": int(os.environ["GITHUB_RUN_ATTEMPT"]),
+              "benchmark_id": rust["benchmark_id"],
+              "input_sha256": rust["input_sha256"],
+              "rust_receipt_sha256": hashlib.sha256(rust_bytes).hexdigest(),
+              "oracle_receipt_sha256": hashlib.sha256(oracle_bytes).hexdigest(),
+              "case_count": rust["case_count"],
+              "declared_matches": rust["declared_matches"],
+              "declared_mismatches": rust["declared_mismatches"],
+              "authority_granted": rust["authority_granted"],
+              "physical_validation": rust["physical_validation"],
+          }
+          Path("/tmp/datum-evidence-manifest.json").write_text(json.dumps(manifest, sort_keys=True, indent=2) + "\n")
+          PY
+      - name: Retain exact-head evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbital-truss-independent-datum-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            /tmp/datum-a.json
+            /tmp/datum-oracle.json
+            /tmp/datum-evidence-manifest.json
+            docs/research/orbital-truss/fixtures/independent-datum-v0_1.json
+            docs/research/orbital-truss/orbital_truss_independent_datum_v0_1.schema.json
+          if-no-files-found: error
+          retention-days: 30

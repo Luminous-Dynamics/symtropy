@@ -1,0 +1,961 @@
+{
+  "schema": "luminous.orbital-truss-independent-datum.corpus.v0.1",
+  "benchmark_id": "ORBITAL-TRUSS-INDEPENDENT-DATUM-001",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_2d_external_datum_registration_only",
+  "cases": [
+    {
+      "datum_origin": "independent_external_reference_network",
+      "article_geometry_used": false,
+      "source_frame_id": "TRACKER-FRAME",
+      "target_frame_id": "DESIGN-FRAME",
+      "datum_set_id": "EXT-NET-001",
+      "minimum_span_m": 0.5,
+      "minimum_triangle_area_m2": 0.05,
+      "maximum_control_residual_m": 0.001,
+      "maximum_check_residual_m": 0.001,
+      "registration_error_bound_m": 0.0001,
+      "controls": [
+        {
+          "point_id": "A",
+          "source_position_m": [
+            0,
+            0
+          ],
+          "target_position_m": [
+            2,
+            -1
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        },
+        {
+          "point_id": "B",
+          "source_position_m": [
+            1,
+            0
+          ],
+          "target_position_m": [
+            2.8660254037844384,
+            -0.5
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        },
+        {
+          "point_id": "C",
+          "source_position_m": [
+            0,
+            1
+          ],
+          "target_position_m": [
+            1.5,
+            -0.1339745962155614
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        }
+      ],
+      "check_points": [
+        {
+          "point_id": "D",
+          "source_position_m": [
+            1,
+            1
+          ],
+          "target_position_m": [
+            2.3660254037844384,
+            0.3660254037844386
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        }
+      ],
+      "case_id": "IDN-001-KNOWN-POSE",
+      "expected_disposition": "QUALIFIED"
+    },
+    {
+      "datum_origin": "independent_external_reference_network",
+      "article_geometry_used": false,
+      "source_frame_id": "TRACKER-FRAME",
+      "target_frame_id": "DESIGN-FRAME",
+      "datum_set_id": "EXT-NET-001",
+      "minimum_span_m": 0.5,
+      "minimum_triangle_area_m2": 0.05,
+      "maximum_control_residual_m": 0.001,
+      "maximum_check_residual_m": 0.001,
+      "registration_error_bound_m": 0.0001,
+      "controls": [
+        {
+          "point_id": "C",
+          "source_position_m": [
+            0,
+            1
+          ],
+          "target_position_m": [
+            1.5,
+            -0.1339745962155614
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        },
+        {
+          "point_id": "A",
+          "source_position_m": [
+            0,
+            0
+          ],
+          "target_position_m": [
+            2,
+            -1
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        },
+        {
+          "point_id": "B",
+          "source_position_m": [
+            1,
+            0
+          ],
+          "target_position_m": [
+            2.8660254037844384,
+            -0.5
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        }
+      ],
+      "check_points": [
+        {
+          "point_id": "D",
+          "source_position_m": [
+            1,
+            1
+          ],
+          "target_position_m": [
+            2.3660254037844384,
+            0.3660254037844386
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        }
+      ],
+      "case_id": "IDN-002-PERMUTED-INPUT",
+      "expected_disposition": "QUALIFIED"
+    },
+    {
+      "datum_origin": "independent_external_reference_network",
+      "article_geometry_used": false,
+      "source_frame_id": "TRACKER-FRAME",
+      "target_frame_id": "DESIGN-FRAME",
+      "datum_set_id": "EXT-NET-001",
+      "minimum_span_m": 0.5,
+      "minimum_triangle_area_m2": 0.05,
+      "maximum_control_residual_m": 0.001,
+      "maximum_check_residual_m": 0.001,
+      "registration_error_bound_m": 0.0001,
+      "controls": [
+        {
+          "point_id": "A",
+          "source_position_m": [
+            0,
+            0
+          ],
+          "target_position_m": [
+            2,
+            -1
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        },
+        {
+          "point_id": "B",
+          "source_position_m": [
+            1,
+            0
+          ],
+          "target_position_m": [
+            2.8660254037844384,
+            -0.5
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        }
+      ],
+      "check_points": [
+        {
+          "point_id": "D",
+          "source_position_m": [
+            1,
+            1
+          ],
+          "target_position_m": [
+            2.3660254037844384,
+            0.3660254037844386
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        }
+      ],
+      "case_id": "IDN-003-INSUFFICIENT-CONTROLS",
+      "expected_disposition": "INDETERMINATE"
+    },
+    {
+      "datum_origin": "independent_external_reference_network",
+      "article_geometry_used": false,
+      "source_frame_id": "TRACKER-FRAME",
+      "target_frame_id": "DESIGN-FRAME",
+      "datum_set_id": "EXT-NET-001",
+      "minimum_span_m": 0.5,
+      "minimum_triangle_area_m2": 0.05,
+      "maximum_control_residual_m": 0.001,
+      "maximum_check_residual_m": 0.001,
+      "registration_error_bound_m": 0.0001,
+      "controls": [
+        {
+          "point_id": "A",
+          "source_position_m": [
+            0,
+            0
+          ],
+          "target_position_m": [
+            2,
+            -1
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        },
+        {
+          "point_id": "B",
+          "source_position_m": [
+            1,
+            0
+          ],
+          "target_position_m": [
+            2.8660254037844384,
+            -0.5
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        },
+        {
+          "point_id": "C",
+          "source_position_m": [
+            2,
+            0
+          ],
+          "target_position_m": [
+            3.732050807568877,
+            0
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        }
+      ],
+      "check_points": [
+        {
+          "point_id": "D",
+          "source_position_m": [
+            1,
+            1
+          ],
+          "target_position_m": [
+            2.3660254037844384,
+            0.3660254037844386
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        }
+      ],
+      "case_id": "IDN-004-COLLINEAR-NETWORK",
+      "expected_disposition": "INDETERMINATE"
+    },
+    {
+      "datum_origin": "independent_external_reference_network",
+      "article_geometry_used": false,
+      "source_frame_id": "TRACKER-FRAME",
+      "target_frame_id": "DESIGN-FRAME",
+      "datum_set_id": "EXT-NET-001",
+      "minimum_span_m": 0.1,
+      "minimum_triangle_area_m2": 0.00001,
+      "maximum_control_residual_m": 0.001,
+      "maximum_check_residual_m": 0.001,
+      "registration_error_bound_m": 0.0001,
+      "controls": [
+        {
+          "point_id": "A",
+          "source_position_m": [
+            0,
+            0
+          ],
+          "target_position_m": [
+            2,
+            -1
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        },
+        {
+          "point_id": "B",
+          "source_position_m": [
+            0.001,
+            0
+          ],
+          "target_position_m": [
+            2.000866025403784,
+            -0.9995
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        },
+        {
+          "point_id": "C",
+          "source_position_m": [
+            0,
+            0.001
+          ],
+          "target_position_m": [
+            1.9995,
+            -0.9991339745962156
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        }
+      ],
+      "check_points": [
+        {
+          "point_id": "D",
+          "source_position_m": [
+            0.001,
+            0.001
+          ],
+          "target_position_m": [
+            2.000366025403784,
+            -0.9986339745962156
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        }
+      ],
+      "case_id": "IDN-005-INSUFFICIENT-SPAN",
+      "expected_disposition": "INDETERMINATE"
+    },
+    {
+      "datum_origin": "independent_external_reference_network",
+      "article_geometry_used": false,
+      "source_frame_id": "TRACKER-FRAME",
+      "target_frame_id": "DESIGN-FRAME",
+      "datum_set_id": "EXT-NET-001",
+      "minimum_span_m": 0.5,
+      "minimum_triangle_area_m2": 0.05,
+      "maximum_control_residual_m": 0.001,
+      "maximum_check_residual_m": 0.001,
+      "registration_error_bound_m": 0.0001,
+      "controls": [
+        {
+          "point_id": "A",
+          "source_position_m": [
+            0,
+            0
+          ],
+          "target_position_m": [
+            2,
+            -1
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        },
+        {
+          "point_id": "B",
+          "source_position_m": [
+            1,
+            0
+          ],
+          "target_position_m": [
+            2.8660254037844384,
+            -0.5
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        },
+        {
+          "point_id": "C",
+          "source_position_m": [
+            2,
+            1e-8
+          ],
+          "target_position_m": [
+            3.7320508025688772,
+            8.660254037844386e-9
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        }
+      ],
+      "check_points": [
+        {
+          "point_id": "D",
+          "source_position_m": [
+            1,
+            1
+          ],
+          "target_position_m": [
+            2.3660254037844384,
+            0.3660254037844386
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        }
+      ],
+      "case_id": "IDN-006-NEAR-DEGENERATE",
+      "expected_disposition": "INDETERMINATE"
+    },
+    {
+      "datum_origin": "article_surface_features",
+      "article_geometry_used": true,
+      "source_frame_id": "TRACKER-FRAME",
+      "target_frame_id": "DESIGN-FRAME",
+      "datum_set_id": "EXT-NET-001",
+      "minimum_span_m": 0.5,
+      "minimum_triangle_area_m2": 0.05,
+      "maximum_control_residual_m": 0.001,
+      "maximum_check_residual_m": 0.001,
+      "registration_error_bound_m": 0.0001,
+      "controls": [
+        {
+          "point_id": "A",
+          "source_position_m": [
+            0,
+            0
+          ],
+          "target_position_m": [
+            2,
+            -1
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        },
+        {
+          "point_id": "B",
+          "source_position_m": [
+            1,
+            0
+          ],
+          "target_position_m": [
+            2.8660254037844384,
+            -0.5
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        },
+        {
+          "point_id": "C",
+          "source_position_m": [
+            0,
+            1
+          ],
+          "target_position_m": [
+            1.5,
+            -0.1339745962155614
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        }
+      ],
+      "check_points": [
+        {
+          "point_id": "D",
+          "source_position_m": [
+            1,
+            1
+          ],
+          "target_position_m": [
+            2.3660254037844384,
+            0.3660254037844386
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        }
+      ],
+      "case_id": "IDN-007-ARTICLE-SURFACE",
+      "expected_disposition": "INDETERMINATE"
+    },
+    {
+      "datum_origin": "independent_external_reference_network",
+      "article_geometry_used": false,
+      "source_frame_id": "TRACKER-FRAME",
+      "target_frame_id": "DESIGN-FRAME",
+      "datum_set_id": "EXT-NET-001",
+      "minimum_span_m": 0.5,
+      "minimum_triangle_area_m2": 0.05,
+      "maximum_control_residual_m": 0.001,
+      "maximum_check_residual_m": 0.001,
+      "registration_error_bound_m": 0.0001,
+      "controls": [
+        {
+          "point_id": "A",
+          "source_position_m": [
+            0,
+            0
+          ],
+          "target_position_m": [
+            2,
+            -1
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        },
+        {
+          "point_id": "B",
+          "source_position_m": [
+            1,
+            0
+          ],
+          "target_position_m": [
+            2.8660254037844384,
+            -0.5
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        },
+        {
+          "point_id": "C",
+          "source_position_m": [
+            0,
+            1
+          ],
+          "target_position_m": [
+            1.5,
+            -0.1339745962155614
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        }
+      ],
+      "check_points": [
+        {
+          "point_id": "D",
+          "source_position_m": [
+            1,
+            1
+          ],
+          "target_position_m": [
+            2.416025403784438,
+            0.3660254037844386
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        }
+      ],
+      "case_id": "IDN-008-HOLDOUT-MISMATCH",
+      "expected_disposition": "REJECTED"
+    },
+    {
+      "datum_origin": "independent_external_reference_network",
+      "article_geometry_used": false,
+      "source_frame_id": "TRACKER-FRAME",
+      "target_frame_id": "DESIGN-FRAME",
+      "datum_set_id": "EXT-NET-001",
+      "minimum_span_m": 0.5,
+      "minimum_triangle_area_m2": 0.05,
+      "maximum_control_residual_m": 0.001,
+      "maximum_check_residual_m": 0.001,
+      "registration_error_bound_m": 0.0001,
+      "controls": [
+        {
+          "point_id": "A",
+          "source_position_m": [
+            0,
+            0
+          ],
+          "target_position_m": [
+            2,
+            -1
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        },
+        {
+          "point_id": "B",
+          "source_position_m": [
+            1,
+            0
+          ],
+          "target_position_m": [
+            2.8660254037844384,
+            -0.5
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        },
+        {
+          "point_id": "C",
+          "source_position_m": [
+            0,
+            1
+          ],
+          "target_position_m": [
+            1.9,
+            0.3
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        }
+      ],
+      "check_points": [
+        {
+          "point_id": "D",
+          "source_position_m": [
+            1,
+            1
+          ],
+          "target_position_m": [
+            2.3660254037844384,
+            0.3660254037844386
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        }
+      ],
+      "case_id": "IDN-009-CONTROL-OUTLIER",
+      "expected_disposition": "REJECTED"
+    },
+    {
+      "datum_origin": "independent_external_reference_network",
+      "article_geometry_used": false,
+      "source_frame_id": "TRACKER-FRAME",
+      "target_frame_id": "DESIGN-FRAME",
+      "datum_set_id": "EXT-NET-001",
+      "minimum_span_m": 0.5,
+      "minimum_triangle_area_m2": 0.05,
+      "maximum_control_residual_m": 0.001,
+      "maximum_check_residual_m": 0.001,
+      "registration_error_bound_m": 0.0001,
+      "controls": [
+        {
+          "point_id": "A",
+          "source_position_m": [
+            0,
+            0
+          ],
+          "target_position_m": [
+            2,
+            -1
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        },
+        {
+          "point_id": "B",
+          "source_position_m": [
+            1,
+            0
+          ],
+          "target_position_m": [
+            2.8833459118601272,
+            -0.49
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        },
+        {
+          "point_id": "C",
+          "source_position_m": [
+            0,
+            1
+          ],
+          "target_position_m": [
+            1.49,
+            -0.11665408813987266
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        }
+      ],
+      "check_points": [
+        {
+          "point_id": "D",
+          "source_position_m": [
+            1,
+            1
+          ],
+          "target_position_m": [
+            2.3733459118601274,
+            0.39334591186012735
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        }
+      ],
+      "case_id": "IDN-010-SCALE-MISMATCH",
+      "expected_disposition": "REJECTED"
+    },
+    {
+      "datum_origin": "independent_external_reference_network",
+      "article_geometry_used": false,
+      "source_frame_id": "TRACKER-FRAME",
+      "target_frame_id": "DESIGN-FRAME",
+      "datum_set_id": "EXT-NET-001",
+      "minimum_span_m": 0.5,
+      "minimum_triangle_area_m2": 0.05,
+      "maximum_control_residual_m": 0.001,
+      "maximum_check_residual_m": 0.001,
+      "registration_error_bound_m": 0.0001,
+      "controls": [
+        {
+          "point_id": "A",
+          "source_position_m": [
+            0,
+            0
+          ],
+          "target_position_m": [
+            2,
+            -1
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        },
+        {
+          "point_id": "B",
+          "source_position_m": [
+            1,
+            0
+          ],
+          "target_position_m": [
+            1,
+            -1
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        },
+        {
+          "point_id": "C",
+          "source_position_m": [
+            0,
+            1
+          ],
+          "target_position_m": [
+            2,
+            0
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        }
+      ],
+      "check_points": [
+        {
+          "point_id": "D",
+          "source_position_m": [
+            1,
+            1
+          ],
+          "target_position_m": [
+            1,
+            0
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        }
+      ],
+      "case_id": "IDN-011-REFLECTION",
+      "expected_disposition": "REJECTED"
+    },
+    {
+      "datum_origin": "independent_external_reference_network",
+      "article_geometry_used": false,
+      "source_frame_id": "TRACKER-FRAME",
+      "target_frame_id": "DESIGN-FRAME",
+      "datum_set_id": "EXT-NET-001",
+      "minimum_span_m": 0.5,
+      "minimum_triangle_area_m2": 0.05,
+      "maximum_control_residual_m": 0.001,
+      "maximum_check_residual_m": 0.001,
+      "registration_error_bound_m": 0.0001,
+      "controls": [
+        {
+          "point_id": "A",
+          "source_position_m": [
+            0,
+            0
+          ],
+          "target_position_m": [
+            2,
+            -1
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        },
+        {
+          "point_id": "B",
+          "source_position_m": [
+            1,
+            0
+          ],
+          "target_position_m": [
+            2.8660254037844384,
+            -0.5
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        },
+        {
+          "point_id": "C",
+          "source_position_m": [
+            0,
+            1
+          ],
+          "target_position_m": [
+            1.5,
+            -0.1339745962155614
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        }
+      ],
+      "check_points": [
+        {
+          "point_id": "A",
+          "source_position_m": [
+            1,
+            1
+          ],
+          "target_position_m": [
+            2.3660254037844384,
+            0.3660254037844386
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        }
+      ],
+      "case_id": "IDN-012-DUPLICATE-POINT-ID",
+      "expected_disposition": "INDETERMINATE"
+    },
+    {
+      "datum_origin": "independent_external_reference_network",
+      "article_geometry_used": false,
+      "source_frame_id": "TRACKER-FRAME",
+      "target_frame_id": "DESIGN-FRAME",
+      "datum_set_id": "EXT-NET-001",
+      "minimum_span_m": 0.5,
+      "minimum_triangle_area_m2": 0.05,
+      "maximum_control_residual_m": 0.001,
+      "maximum_check_residual_m": 0.001,
+      "registration_error_bound_m": 0.0001,
+      "controls": [
+        {
+          "point_id": "A",
+          "source_position_m": [
+            0,
+            0
+          ],
+          "target_position_m": [
+            2,
+            -1
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        },
+        {
+          "point_id": "B",
+          "source_position_m": [
+            1,
+            0
+          ],
+          "target_position_m": [
+            2.8660254037844384,
+            -0.5
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        },
+        {
+          "point_id": "C",
+          "source_position_m": [
+            0,
+            1
+          ],
+          "target_position_m": [
+            1.5,
+            -0.1339745962155614
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        }
+      ],
+      "check_points": [],
+      "case_id": "IDN-013-NO-WITHHELD-CHECK",
+      "expected_disposition": "INDETERMINATE"
+    },
+    {
+      "datum_origin": "independent_external_reference_network",
+      "article_geometry_used": false,
+      "source_frame_id": "",
+      "target_frame_id": "DESIGN-FRAME",
+      "datum_set_id": "EXT-NET-001",
+      "minimum_span_m": 0.5,
+      "minimum_triangle_area_m2": 0.05,
+      "maximum_control_residual_m": 0.001,
+      "maximum_check_residual_m": 0.001,
+      "registration_error_bound_m": 0.0001,
+      "controls": [
+        {
+          "point_id": "A",
+          "source_position_m": [
+            0,
+            0
+          ],
+          "target_position_m": [
+            2,
+            -1
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        },
+        {
+          "point_id": "B",
+          "source_position_m": [
+            1,
+            0
+          ],
+          "target_position_m": [
+            2.8660254037844384,
+            -0.5
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        },
+        {
+          "point_id": "C",
+          "source_position_m": [
+            0,
+            1
+          ],
+          "target_position_m": [
+            1.5,
+            -0.1339745962155614
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        }
+      ],
+      "check_points": [
+        {
+          "point_id": "D",
+          "source_position_m": [
+            1,
+            1
+          ],
+          "target_position_m": [
+            2.3660254037844384,
+            0.3660254037844386
+          ],
+          "source_error_bound_m": 0.0001,
+          "target_error_bound_m": 0.0001
+        }
+      ],
+      "case_id": "IDN-014-INVALID-FRAME-IDENTITY",
+      "expected_disposition": "INDETERMINATE"
+    }
+  ]
+}
