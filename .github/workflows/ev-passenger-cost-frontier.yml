@@ -134,6 +134,8 @@ jobs:
           jq empty tools/ev-passenger-cost-frontier/fixtures/battery_resource_occupancy_v0_1.json
           jq empty tools/ev-passenger-cost-frontier/schemas/battery_charge_queue_v0_1.schema.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/battery_charge_queue_v0_1.json
+          jq empty tools/ev-passenger-cost-frontier/schemas/mobility_flexibility_envelope_v0_1.schema.json
+          jq empty tools/ev-passenger-cost-frontier/fixtures/mobility_flexibility_envelope_v0_1.json
           jq -e --slurpfile schema tools/ev-passenger-cost-frontier/schemas/battery_charge_queue_v0_1.schema.json '
             . as $queue
             | ($schema[0].required | sort) as $root_required
@@ -413,6 +415,22 @@ jobs:
             and .return_to_service_authority_granted == false
           ' battery-service-network-report.json
           cat battery-service-network-report.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin mobility_flexibility_envelope_screen -- \
+            tools/ev-passenger-cost-frontier/fixtures/mobility_flexibility_envelope_v0_1.json \
+            > mobility-flexibility-envelope-report.json
+          jq -e '
+            .benchmark_id == "MOBILITY-FLEX-ENVELOPE-001"
+            and .candidate_model_feasible == true
+            and .candidate_energy_wh == 1875
+            and .worst_case_residual_energy_budget_wh == 2000
+            and .worst_case_energy_margin_wh == 125
+            and .all_evidence_synthetic == true
+            and .dispatch_authority_granted == false
+            and .export_authority_granted == false
+            and (.scenario_results | length) == 2
+            and ([.slot_power_margins[].worst_case_power_ceiling_w] == [4100,3700,4300,4900])
+          ' mobility-flexibility-envelope-report.json
+          cat mobility-flexibility-envelope-report.json
           sha256sum \
             tools/ev-passenger-cost-frontier/schemas/ev_passenger_cost_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/ev_passenger_cost_v0_1.json \
@@ -430,6 +448,12 @@ jobs:
             tools/ev-passenger-cost-frontier/fixtures/ev_carrier_lifecycle_v0_1.json \
             tools/ev-passenger-cost-frontier/src/bin/ev_carrier_lifecycle_screen.rs \
             tools/ev-passenger-cost-frontier/src/lib.rs \
+            tools/ev-passenger-cost-frontier/src/mobility_flexibility_envelope.rs \
+            tools/ev-passenger-cost-frontier/src/bin/mobility_flexibility_envelope_screen.rs \
+            tools/ev-passenger-cost-frontier/schemas/mobility_flexibility_envelope_v0_1.schema.json \
+            tools/ev-passenger-cost-frontier/fixtures/mobility_flexibility_envelope_v0_1.json \
+            docs/research/MOBILITY_FLEXIBILITY_ENVELOPE_BENCHMARK_V0_1.md \
+            mobility-flexibility-envelope-report.json \
             tools/ev-passenger-cost-frontier/src/bin/ev_carrier_module_factory_screen.rs \
             tools/ev-passenger-cost-frontier/src/battery_service_network.rs \
             tools/ev-passenger-cost-frontier/src/bin/battery_pack_journal_screen.rs \
@@ -462,6 +486,10 @@ jobs:
             battery-pack-state-journal-report.json
             battery-resource-occupancy-report.json
             battery-charge-queue-report.json
+            mobility-flexibility-envelope-report.json
+            tools/ev-passenger-cost-frontier/fixtures/mobility_flexibility_envelope_v0_1.json
+            tools/ev-passenger-cost-frontier/schemas/mobility_flexibility_envelope_v0_1.schema.json
+            docs/research/MOBILITY_FLEXIBILITY_ENVELOPE_BENCHMARK_V0_1.md
             tools/ev-passenger-cost-frontier/fixtures/battery_charge_queue_v0_1.json
             tools/ev-passenger-cost-frontier/schemas/battery_charge_queue_v0_1.schema.json
             tools/ev-passenger-cost-frontier/fixtures/battery_resource_occupancy_v0_1.json
