@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/av-evidence-gain-trajectory-v1.schema.json",
+  "title": "AV Evidence Gain Trajectory Bundle v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "benchmark_id", "schema_version", "trajectory_id", "episode_id",
+    "source_cluster_id", "policy_id", "model_digest_sha256",
+    "runtime_digest_sha256", "configuration_digest_sha256",
+    "hardware_digest_sha256", "evaluator_source_catalog", "truth", "turns"
+  ],
+  "properties": {
+    "benchmark_id": {"const": "av-evidence-gain-trajectory-v0"},
+    "schema_version": {"const": 1},
+    "trajectory_id": {"type": "string", "minLength": 1},
+    "episode_id": {"type": "string", "minLength": 1},
+    "source_cluster_id": {"type": "string", "minLength": 1},
+    "policy_id": {"type": "string", "minLength": 1},
+    "model_digest_sha256": {"type": "string", "pattern": "^[0-9a-fA-F]{64}$"},
+    "runtime_digest_sha256": {"type": "string", "pattern": "^[0-9a-fA-F]{64}$"},
+    "configuration_digest_sha256": {"type": "string", "pattern": "^[0-9a-fA-F]{64}$"},
+    "hardware_digest_sha256": {"type": "string", "pattern": "^[0-9a-fA-F]{64}$"},
+    "evaluator_source_catalog": {
+      "type": "array",
+      "items": {"$ref": "workload-v1.schema.json#/properties/observation_catalog/items"}
+    },
+    "truth": {"$ref": "truth-v1.schema.json"},
+    "turns": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/turn"}
+    }
+  },
+  "$defs": {
+    "actionForecast": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_id", "turn_id", "transcript_head_sha256", "forecast_tick",
+        "deadline_tick", "budget_cost_units", "action_catalogue",
+        "selected_action_id", "forecasts"
+      ],
+      "properties": {
+        "episode_id": {"type": "string", "minLength": 1},
+        "turn_id": {"type": "string", "minLength": 1},
+        "transcript_head_sha256": {"type": "string", "pattern": "^[0-9a-fA-F]{64}$"},
+        "forecast_tick": {"type": "integer", "minimum": 0},
+        "deadline_tick": {"type": "integer", "minimum": 0},
+        "budget_cost_units": {"type": "number", "minimum": 0},
+        "action_catalogue": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["action_id", "cost_units", "arrival_tick"],
+            "properties": {
+              "action_id": {"type": "string", "minLength": 1},
+              "cost_units": {"type": "number", "minimum": 0},
+              "arrival_tick": {"type": "integer", "minimum": 0}
+            }
+          }
+        },
+        "selected_action_id": {"type": "string", "minLength": 1},
+        "forecasts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "action_id", "estimated_gross_evsi",
+              "lower_gross_evsi", "upper_gross_evsi"
+            ],
+            "properties": {
+              "action_id": {"type": "string", "minLength": 1},
+              "estimated_gross_evsi": {"type": "number"},
+              "lower_gross_evsi": {"type": "number"},
+              "upper_gross_evsi": {"type": "number"}
+            }
+          }
+        }
+      }
+    },
+    "actionValueReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "benchmark_id", "episode_id", "turn_id", "policy_id", "run_id",
+        "transcript_head_sha256", "forecast_digest_sha256", "scorecard_sha256",
+        "selected_action_id", "selected_action_feasible", "missed_best_action",
+        "decision_regret", "best_feasible_net_evsi"
+      ],
+      "properties": {
+        "benchmark_id": {"const": "av-action-space-evsi-v0"},
+        "episode_id": {"type": "string", "minLength": 1},
+        "turn_id": {"type": "string", "minLength": 1},
+        "policy_id": {"type": "string", "minLength": 1},
+        "run_id": {"type": "string", "minLength": 1},
+        "transcript_head_sha256": {"type": "string", "pattern": "^[0-9a-fA-F]{64}$"},
+        "forecast_digest_sha256": {"type": "string", "pattern": "^[0-9a-fA-F]{64}$"},
+        "scorecard_sha256": {"type": "string", "pattern": "^[0-9a-fA-F]{64}$"},
+        "selected_action_id": {"type": "string", "minLength": 1},
+        "selected_action_feasible": {"const": true},
+        "missed_best_action": {"type": "boolean"},
+        "decision_regret": {"type": "number", "minimum": 0},
+        "best_feasible_net_evsi": {"type": "number"}
+      }
+    },
+    "resourceDelta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "new_frames", "video_bytes", "audio_samples", "audio_bytes",
+        "input_tokens", "output_tokens", "model_calls", "tool_calls",
+        "wall_time_ms", "peak_ram_mb", "peak_vram_mb", "energy_millijoules",
+        "energy_provenance", "energy_method", "energy_evidence_digest_sha256"
+      ],
+      "properties": {
+        "new_frames": {"type": ["number", "null"], "minimum": 0},
+        "video_bytes": {"type": ["number", "null"], "minimum": 0},
+        "audio_samples": {"type": ["number", "null"], "minimum": 0},
+        "audio_bytes": {"type": ["number", "null"], "minimum": 0},
+        "input_tokens": {"type": ["number", "null"], "minimum": 0},
+        "output_tokens": {"type": ["number", "null"], "minimum": 0},
+        "model_calls": {"type": ["number", "null"], "minimum": 0},
+        "tool_calls": {"type": ["number", "null"], "minimum": 0},
+        "wall_time_ms": {"type": ["number", "null"], "minimum": 0},
+        "peak_ram_mb": {"type": ["number", "null"], "minimum": 0},
+        "peak_vram_mb": {"type": ["number", "null"], "minimum": 0},
+        "energy_millijoules": {"type": ["number", "null"], "minimum": 0},
+        "energy_provenance": {
+          "enum": ["MEASURED", "ESTIMATED", "SYNTHETIC", "NOT_MEASURED"]
+        },
+        "energy_method": {"type": ["string", "null"]},
+        "energy_evidence_digest_sha256": {
+          "type": ["string", "null"],
+          "pattern": "^[0-9a-fA-F]{64}$"
+        }
+      }
+    },
+    "turn": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "turn_id", "turn_index", "preceding_action_id", "action_result_status",
+        "new_observation_ids", "workload", "submission", "action_forecast",
+        "action_value_receipt", "resource_delta"
+      ],
+      "properties": {
+        "turn_id": {"type": "string", "minLength": 1},
+        "turn_index": {"type": "integer", "minimum": 0},
+        "preceding_action_id": {"type": "string", "minLength": 1},
+        "action_result_status": {
+          "enum": ["INITIAL", "DELIVERED", "FAILED", "TIMEOUT", "MALFORMED"]
+        },
+        "new_observation_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "workload": {"$ref": "workload-v1.schema.json"},
+        "submission": {"$ref": "submission-v1.schema.json"},
+        "action_forecast": {"$ref": "#/$defs/actionForecast"},
+        "action_value_receipt": {"$ref": "#/$defs/actionValueReceipt"},
+        "resource_delta": {"$ref": "#/$defs/resourceDelta"}
+      }
+    }
+  }
+}
