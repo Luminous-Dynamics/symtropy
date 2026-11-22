@@ -273,15 +273,18 @@ def evaluate_document(document: dict[str, Any]) -> dict[str, Any]:
     items = document.get("items")
     if not isinstance(items, list) or len(items) != len(episode_order):
         raise ParetoEvaluationError("items must contain one score vector per episode")
+    eligible_policies = {
+        policy for policy in policies if eligibility[policy]["eligible"]
+    }
     for index, (item, expected_id) in enumerate(zip(items, episode_order)):
         if not isinstance(item, dict) or set(item) != {"episode_id", "scores"}:
             raise ParetoEvaluationError(f"item {index}: expected only episode_id and scores")
         if item["episode_id"] != expected_id:
             raise ParetoEvaluationError("items must follow the precommitted episode order")
         scores = item["scores"]
-        if not isinstance(scores, dict) or set(scores) != set(policies):
-            raise ParetoEvaluationError(f"item {index}: score for every policy is required")
-        for policy in policies:
+        if not isinstance(scores, dict) or set(scores) != eligible_policies:
+            raise ParetoEvaluationError("each item must score every eligible policy and no ineligible policy")
+        for policy in eligible_policies:
             vector = scores[policy]
             if not isinstance(vector, dict) or set(vector) != set(metric_ids):
                 raise ParetoEvaluationError(f"item {index}, {policy}: score for every metric is required")
@@ -331,8 +334,10 @@ def evaluate_document(document: dict[str, Any]) -> dict[str, Any]:
     for look_index, item in enumerate(items, start=1):
         scores = item["scores"]
         for candidate in policies:
+            if not eligibility[candidate]["eligible"]:
+                continue
             for reference in policies:
-                if candidate == reference:
+                if candidate == reference or not eligibility[reference]["eligible"]:
                     continue
                 for axis in axes:
                     metric_id = axis["metric_id"]
@@ -414,7 +419,7 @@ def evaluate_document(document: dict[str, Any]) -> dict[str, Any]:
             "episode_id": item["episode_id"],
             "scores": {
                 policy: {metric: float(scores[policy][metric]) for metric in metric_ids}
-                for policy in policies
+                for policy in sorted(eligible_policies)
             },
         })
         transcript_chain = hashlib.sha256(transcript_chain + canonical_item).digest()
