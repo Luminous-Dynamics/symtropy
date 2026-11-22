@@ -243,7 +243,7 @@ jobs:
           ' tools/ev-passenger-cost-frontier/fixtures/battery_service_network_v0_1.json
           jq -e '
             . as $journal
-            .pack_id == "journal-pack"
+            | .pack_id == "journal-pack"
             and .configuration_digest == "urn:synthetic:configuration:journal-pack"
             and .replay_cutoff_unix_ms == 1795219200000 + 5000
             and .initial_state.value == "available"
