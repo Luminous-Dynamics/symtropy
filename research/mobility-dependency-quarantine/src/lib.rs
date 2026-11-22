@@ -644,7 +644,7 @@ mod tests {
                 action_count: 2
             }
         );
-    } 
+    }
     #[test]
     fn exhaustive_four_action_pair_graphs_match_fixed_point_oracle() {
         let xs = vec![a("a"), a("b"), a("c"), a("d")];
@@ -710,8 +710,14 @@ mod tests {
                     .collect();
 
                 let (held, outside) = parts(qualify(&p(), &s, &os, &vs));
-                assert_eq!(held, expected_held, "edge mask {edge_mask}, seed mask {seed_mask}");
-                assert_eq!(outside, expected_outside, "edge mask {edge_mask}, seed mask {seed_mask}");
+                assert_eq!(
+                    held, expected_held,
+                    "edge mask {edge_mask}, seed mask {seed_mask}"
+                );
+                assert_eq!(
+                    outside, expected_outside,
+                    "edge mask {edge_mask}, seed mask {seed_mask}"
+                );
             }
         }
     }
@@ -737,5 +743,4 @@ mod tests {
 
         assert_eq!(first, second);
     }
-
 }
