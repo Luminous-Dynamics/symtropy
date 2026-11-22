@@ -1,0 +1,84 @@
+{
+  "pack_id": "journal-pack",
+  "configuration_digest": "urn:synthetic:configuration:journal-pack",
+  "replay_cutoff_unix_ms": 1795219205000,
+  "initial_state": {
+    "evidence": {
+      "asset_id": "journal-pack",
+      "configuration_digest": "urn:synthetic:configuration:journal-pack",
+      "producer_id": "urn:synthetic:producer:testbench",
+      "method_id": "urn:synthetic:method:initial-state",
+      "evidence_reference": "urn:synthetic:evidence:initial-state",
+      "evidence_class": "synthetic",
+      "observed_at_unix_ms": 1795219199000,
+      "valid_from_unix_ms": 1795219190000,
+      "valid_until_unix_ms": 1795219210000
+    },
+    "value": "available"
+  },
+  "events": [
+    {
+      "event_id": "event-reserve",
+      "idempotency_key": "idem-reserve",
+      "operation_id": "op-reserve",
+      "sequence": 1,
+      "event_time_unix_ms": 1795219201000,
+      "from_state": "available",
+      "proposed_to_state": "reserved",
+      "disposition": "confirmed",
+      "evidence": {
+        "asset_id": "journal-pack",
+        "configuration_digest": "urn:synthetic:configuration:journal-pack",
+        "producer_id": "urn:synthetic:producer:testbench",
+        "method_id": "urn:synthetic:method:reserve",
+        "evidence_reference": "urn:synthetic:evidence:reserve",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1795219199000,
+        "valid_from_unix_ms": 1795219190000,
+        "valid_until_unix_ms": 1795219210000
+      }
+    },
+    {
+      "event_id": "event-install-timeout",
+      "idempotency_key": "idem-install",
+      "operation_id": "op-install",
+      "sequence": 2,
+      "event_time_unix_ms": 1795219202000,
+      "from_state": "reserved",
+      "proposed_to_state": "installed",
+      "disposition": "timeout",
+      "evidence": {
+        "asset_id": "journal-pack",
+        "configuration_digest": "urn:synthetic:configuration:journal-pack",
+        "producer_id": "urn:synthetic:producer:testbench",
+        "method_id": "urn:synthetic:method:install-timeout",
+        "evidence_reference": "urn:synthetic:evidence:install-timeout",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1795219199000,
+        "valid_from_unix_ms": 1795219190000,
+        "valid_until_unix_ms": 1795219210000
+      }
+    },
+    {
+      "event_id": "event-install-reconcile",
+      "idempotency_key": "idem-reconcile",
+      "operation_id": "op-install",
+      "sequence": 3,
+      "event_time_unix_ms": 1795219203000,
+      "from_state": "reserved",
+      "proposed_to_state": "installed",
+      "disposition": "reconciled",
+      "evidence": {
+        "asset_id": "journal-pack",
+        "configuration_digest": "urn:synthetic:configuration:journal-pack",
+        "producer_id": "urn:synthetic:producer:testbench",
+        "method_id": "urn:synthetic:method:install-reconciliation",
+        "evidence_reference": "urn:synthetic:evidence:install-reconciliation",
+        "evidence_class": "independent_test",
+        "observed_at_unix_ms": 1795219199000,
+        "valid_from_unix_ms": 1795219190000,
+        "valid_until_unix_ms": 1795219210000
+      }
+    }
+  ]
+}
