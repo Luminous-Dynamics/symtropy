@@ -173,6 +173,7 @@ def _validate_action_forecast(
             "transcript_head_sha256",
             "forecast_tick",
             "deadline_tick",
+            "cost_weight",
             "budget_cost_units",
             "action_catalogue",
             "selected_action_id",
@@ -196,6 +197,9 @@ def _validate_action_forecast(
     deadline_tick = _integer(forecast["deadline_tick"], f"{turn_id}.deadline_tick")
     if deadline_tick < current_tick:
         raise EvidenceGainError(f"{turn_id}: deadline precedes current tick")
+    cost_weight = forecast["cost_weight"]
+    if not _finite(cost_weight) or float(cost_weight) < 0.0:
+        raise EvidenceGainError(f"{turn_id}: cost_weight must be finite and non-negative")
     budget = forecast["budget_cost_units"]
     if not _finite(budget) or float(budget) < 0.0:
         raise EvidenceGainError(f"{turn_id}: budget_cost_units must be finite and non-negative")
@@ -206,8 +210,23 @@ def _validate_action_forecast(
     if STOP_ACTION_ID in catalogue:
         raise EvidenceGainError(f"{turn_id}: reserved stop action appears in catalogue")
     for action_id, action in catalogue.items():
-        if set(action) != {"action_id", "cost_units", "arrival_tick"}:
-            raise EvidenceGainError(f"{turn_id}/{action_id}: malformed action catalogue entry")
+        if set(action) != {
+            "action_id",
+            "modality",
+            "description",
+            "cost_units",
+            "arrival_tick",
+            "source_dependency_group",
+            "information_gain_proxy",
+        }:
+            raise EvidenceGainError(f"{turn_id}/{action_id}: action catalogue must follow the #6753 workload contract")
+        if action["modality"] not in {"audio", "video", "other"}:
+            raise EvidenceGainError(f"{turn_id}/{action_id}: invalid modality")
+        _nonempty(action["description"], f"{turn_id}/{action_id}.description")
+        _nonempty(action["source_dependency_group"], f"{turn_id}/{action_id}.source_dependency_group")
+        information_gain = action["information_gain_proxy"]
+        if not _finite(information_gain) or float(information_gain) < 0.0:
+            raise EvidenceGainError(f"{turn_id}/{action_id}: information_gain_proxy must be finite and non-negative")
         cost = action["cost_units"]
         if not _finite(cost) or float(cost) < 0.0:
             raise EvidenceGainError(f"{turn_id}/{action_id}: invalid cost_units")
