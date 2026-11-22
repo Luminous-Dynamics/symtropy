@@ -11,8 +11,8 @@ use std::time::Instant;
 
 use nalgebra::SVector;
 use symtropy_math::{HalfSpace, Point};
-use symtropy_physics::body::{BodyHandle, RigidBody};
 use symtropy_physics::PhysicsWorld;
+use symtropy_physics::body::{BodyHandle, RigidBody};
 
 const DT: f64 = 1.0 / 120.0;
 const STEPS_PER_RUN: usize = 120;
@@ -73,7 +73,9 @@ fn run_once(body_count: usize, stacked: bool) -> RunMetrics {
 
     for _ in 0..STEPS_PER_RUN {
         let start = Instant::now();
-        world.try_step(DT).expect("contact campaign step must commit");
+        world
+            .try_step(DT)
+            .expect("contact campaign step must commit");
         step_ns.push(start.elapsed().as_nanos());
         let snapshot = world.invariant_snapshot();
         max_penetration = max_penetration.max(snapshot.max_penetration_depth);
