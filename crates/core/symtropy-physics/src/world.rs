@@ -14,6 +14,7 @@ use crate::body::{BodyHandle, NetId, RigidBody};
 use crate::broadphase;
 use crate::ccd;
 use crate::constraint::Constraint;
+use crate::diagnostics::NarrowphaseStats;
 use crate::contact::{CollisionEvent, ContactCache, ContactManifold};
 use crate::gjk;
 use crate::integrator;
@@ -136,6 +137,8 @@ pub struct PhysicsWorld<const D: usize> {
     pub collision_events: Vec<CollisionEvent<D>>,
     /// Sensor overlap events from the last step.
     pub sensor_events: Vec<crate::contact::SensorEvent>,
+    /// Deterministic work counters from the most recently executed narrowphase.
+    last_narrowphase_stats: NarrowphaseStats,
     /// Contact cache for warm-starting (previous frame's impulses).
     contact_cache: ContactCache<D>,
     /// Warm-starting from the previous frame (swapped at frame boundaries).
@@ -209,6 +212,7 @@ impl<const D: usize> PhysicsWorld<D> {
             contacts: Vec::new(),
             collision_events: Vec::new(),
             sensor_events: Vec::new(),
+            last_narrowphase_stats: NarrowphaseStats::default(),
             contact_cache: ContactCache::new(),
             prev_cache: ContactCache::new(),
             solver_iterations: 4,
@@ -402,6 +406,15 @@ impl<const D: usize> PhysicsWorld<D> {
         self.bodies.get_mut(idx)
     }
 
+    /// Counters for the most recently executed narrowphase.
+    ///
+    /// These are observational work counters, not a physical-validity verdict.
+    /// They are updated after contact generation and are intentionally kept
+    /// separate from simulation state and replay identity.
+    pub fn narrowphase_stats(&self) -> &NarrowphaseStats {
+        &self.last_narrowphase_stats
+    }
+
     /// Step with consciousness-physics callback.
     ///
     /// The callback modulates forces, impulses, and friction based on
@@ -475,6 +488,10 @@ impl<const D: usize> PhysicsWorld<D> {
 
         // 2. Broadphase: find potentially colliding pairs (incremental static cache)
         let pairs = broadphase::find_pairs_incremental(&self.bodies, &self.static_broadphase);
+        let mut narrowphase_stats = NarrowphaseStats {
+            candidate_pairs: pairs.len(),
+            ..NarrowphaseStats::default()
+        };
 
         // 3. Narrowphase: GJK for each pair
         self.contacts.clear();
@@ -482,8 +499,11 @@ impl<const D: usize> PhysicsWorld<D> {
             let (idx_a, idx_b) = self.find_body_indices(pair.0, pair.1);
             if let (Some(a), Some(b)) = (idx_a, idx_b) {
                 // Fast path: analytical HalfSpace contacts (bypass GJK+EPA)
+                narrowphase_stats.halfspace_analytic_checks += 1;
                 if let Some(manifold) = self.try_halfspace_contact(a, b, pair.0, pair.1) {
+                    narrowphase_stats.halfspace_analytic_hits += 1;
                     if self.bodies[a].is_sensor || self.bodies[b].is_sensor {
+                        narrowphase_stats.sensor_overlaps += 1;
                         let (sensor, other) = if self.bodies[a].is_sensor {
                             (pair.0, pair.1)
                         } else {
@@ -509,6 +529,7 @@ impl<const D: usize> PhysicsWorld<D> {
                 // "not touching" this frame. HalfSpace-vs-HalfSpace remains
                 // unsupported and does not enter this authoritative path.
                 if self.halfspace_pair_is_analytically_resolved(a, b) {
+                    narrowphase_stats.halfspace_no_contact_skips += 1;
                     continue;
                 }
 
@@ -525,8 +546,11 @@ impl<const D: usize> PhysicsWorld<D> {
                 // this generically). Rotated 4D boxes still fall through to
                 // the transform-aware GJK/EPA path because complete 4D OBB SAT
                 // requires a larger separating-axis construction.
+                narrowphase_stats.box_sat_checks += 1;
                 if let Some(manifold) = self.try_box_box_contact(a, b, pair.0, pair.1) {
+                    narrowphase_stats.box_sat_hits += 1;
                     if self.bodies[a].is_sensor || self.bodies[b].is_sensor {
+                        narrowphase_stats.sensor_overlaps += 1;
                         let (sensor, other) = if self.bodies[a].is_sensor {
                             (pair.0, pair.1)
                         } else {
@@ -544,13 +568,19 @@ impl<const D: usize> PhysicsWorld<D> {
                 // "not touching" result. Rotated 4D boxes deliberately continue
                 // into the transform-aware GJK/EPA path.
                 if self.box_box_pair_is_analytically_resolved(a, b) {
+                    narrowphase_stats.box_sat_no_contact_skips += 1;
                     continue;
                 }
 
                 // Special path: Mesh collisions (if implemented by the shape)
+                if self.mesh_contact_fn.is_some() {
+                    narrowphase_stats.mesh_provider_calls += 1;
+                }
                 if let Some(manifolds) = self.try_mesh_contact(a, b, pair.0, pair.1) {
+                    narrowphase_stats.mesh_manifolds_returned += manifolds.len();
                     for manifold in manifolds {
                         if self.bodies[a].is_sensor || self.bodies[b].is_sensor {
+                            narrowphase_stats.sensor_overlaps += 1;
                             let (sensor, other) = if self.bodies[a].is_sensor {
                                 (pair.0, pair.1)
                             } else {
@@ -565,6 +595,7 @@ impl<const D: usize> PhysicsWorld<D> {
                     continue;
                 }
 
+                narrowphase_stats.gjk_calls += 1;
                 let result = gjk::intersects_transformed(
                     self.bodies[a].collider.as_ref(),
                     &self.bodies[a].transform,
@@ -573,8 +604,10 @@ impl<const D: usize> PhysicsWorld<D> {
                 );
 
                 if result.intersecting {
+                    narrowphase_stats.gjk_intersections += 1;
                     // Sensor detection: emit event but skip collision resolution
                     if self.bodies[a].is_sensor || self.bodies[b].is_sensor {
+                        narrowphase_stats.sensor_overlaps += 1;
                         let (sensor, other) = if self.bodies[a].is_sensor {
                             (pair.0, pair.1)
                         } else {
@@ -586,6 +619,7 @@ impl<const D: usize> PhysicsWorld<D> {
                     }
 
                     // EPA for accurate penetration depth and normal
+                    narrowphase_stats.epa_calls += 1;
                     #[allow(clippy::collapsible_if)]
                     if let Some(epa_result) = crate::epa::penetration_transformed(
                         self.bodies[a].collider.as_ref(),
@@ -594,7 +628,9 @@ impl<const D: usize> PhysicsWorld<D> {
                         &self.bodies[b].transform,
                         &result.simplex,
                     ) {
+                        narrowphase_stats.epa_successes += 1;
                         if epa_result.depth > 0.0 {
+                            narrowphase_stats.epa_manifolds_generated += 1;
                             // Multi-point manifold: contact perturbation for stable stacking
                             let manifold = manifold_gen::generate_contact_manifold_transformed(
                                 self.bodies[a].collider.as_ref(),
@@ -610,8 +646,18 @@ impl<const D: usize> PhysicsWorld<D> {
                         }
                     }
                 }
+            } else {
+                narrowphase_stats.invalid_handle_pairs += 1;
             }
         }
+
+        narrowphase_stats.contact_manifolds = self.contacts.len();
+        narrowphase_stats.contact_points = self
+            .contacts
+            .iter()
+            .map(|manifold| manifold.points.len())
+            .sum();
+        self.last_narrowphase_stats = narrowphase_stats;
 
         // 4. Build islands and skip sleeping ones
         let islands = crate::island::build_islands(
