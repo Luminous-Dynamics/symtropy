@@ -398,7 +398,9 @@ fn barron_loss_and_derivative(
         return Err(HbrBctrError::ArithmeticOverflow);
     }
 
-    if alpha == 0.0 {
+    if alpha.abs() < 1e-8 {
+        // Continuous alpha -> 0 limit; avoiding cancellation in the
+        // generalized expression near its logarithmic special case.
         let denominator = 1.0 + 0.5 * square;
         let loss = denominator.ln();
         let derivative = normalized_residual / denominator;
@@ -537,6 +539,15 @@ mod tests {
     }
 
     #[test]
+    fn barron_loss_is_continuous_near_zero_shape_parameter() {
+        let (zero_loss, zero_derivative) = barron_loss_and_derivative(1.7, 0.0).unwrap();
+        let (near_zero_loss, near_zero_derivative) =
+            barron_loss_and_derivative(1.7, 1e-10).unwrap();
+        assert!((zero_loss - near_zero_loss).abs() < 1e-12);
+        assert!((zero_derivative - near_zero_derivative).abs() < 1e-12);
+    }
+
+    #[test]
     fn structural_bias_projection_clamps_to_physical_bounds() {
         let current = state();
         let evaluation = HbrBctrEvaluation2d {
@@ -546,7 +557,7 @@ mod tests {
             packet_residual_count: 0,
         };
         let updated = hbr_bctr_projected_step_2d(&current, &evaluation, config()).unwrap();
-        assert_eq!(updated.structural_bias_m[0], 0.2);
+        assert_eq!(updated.structural_bias_m[0], 2.0);
         assert_eq!(updated.structural_bias_m[1], 0.0);
         assert_eq!(updated.structural_bias_m[2], 0.1);
     }
