@@ -166,6 +166,9 @@ function evaluateCase(c) {
   if (eventCount < MIN_EVENTS) {
     return blocked("indeterminate", eventCount, "insufficient_event_count_for_v0_1_diagnostic");
   }
+  if (eventCount * c.monte_carlo_replicates > 10000000) {
+    return blocked("rejected", eventCount, "monte_carlo_total_draw_budget_exceeded");
+  }
   try {
     const result = runGof(c.event_times_seconds, c.exposure_end_seconds, c.monte_carlo_replicates, c.random_seed);
     const disposition = result.monte_carlo_p_value <= c.significance_level
@@ -223,7 +226,7 @@ function main() {
       && JSON.stringify(actual.blockers) === JSON.stringify(expected.blockers);
     if (!matched) {
       mismatches += 1;
-      process.stderr.write(c.case_id + ": expected-result mismatch\n");
+      process.stderr.write(JSON.stringify({case_id: c.case_id, actual, expected}) + "\n");
     }
     distribution[actual.disposition] = (distribution[actual.disposition] || 0) + 1;
   }
