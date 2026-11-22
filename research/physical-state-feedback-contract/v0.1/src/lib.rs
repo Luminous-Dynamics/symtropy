@@ -260,9 +260,7 @@ fn validate_physical_inertia3(matrix: &[[f64; 3]; 3], path: &str) -> Result<(), 
     ]
     .into_iter()
     .fold(0.0_f64, f64::max);
-    if !maximum_off_diagonal.is_finite()
-        || maximum_off_diagonal > MATRIX_RELATIVE_TOLERANCE
-    {
+    if !maximum_off_diagonal.is_finite() || maximum_off_diagonal > MATRIX_RELATIVE_TOLERANCE {
         return Err(ValidationError::new(
             path,
             "principal-moment eigensolve did not converge to the relative tolerance",
