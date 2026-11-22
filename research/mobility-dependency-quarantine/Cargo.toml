@@ -1,0 +1,14 @@
+[package]
+name = "mobility-dependency-quarantine"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96.0"
+license = "Apache-2.0"
+description = "Fail-closed reference for dependency-component quarantine after uncertain action outcomes"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+
+[workspace]
