@@ -175,7 +175,10 @@ pub fn bound_two_source_dependence(
 
 fn validate_problem(problem: &TwoSourceDependenceProblem) -> Result<(), ModelError> {
     if !problem.prior_parameter_variance.is_finite()
-        || problem.observation_sensitivities.iter().any(|value| !value.is_finite())
+        || problem
+            .observation_sensitivities
+            .iter()
+            .any(|value| !value.is_finite())
         || problem
             .independent_observation_noise_variances
             .iter()
@@ -189,7 +192,10 @@ fn validate_problem(problem: &TwoSourceDependenceProblem) -> Result<(), ModelErr
             .iter()
             .flatten()
             .any(|value| !value.is_finite())
-        || problem.correlation_bounds.iter().any(|value| !value.is_finite())
+        || problem
+            .correlation_bounds
+            .iter()
+            .any(|value| !value.is_finite())
     {
         return Err(ModelError::NonFiniteValue("dependence_envelope_input"));
     }
@@ -291,8 +297,7 @@ mod tests {
         assert!((result.posterior_parameter_variance_bounds[0] - 9.0 / 35.0).abs() < 1.0e-12);
         assert!((result.posterior_parameter_variance_bounds[1] - 0.4).abs() < 1.0e-12);
         assert!(
-            (result.expected_information_gain_nats_bounds[0] - 0.5 * 2.5_f64.ln()).abs()
-                < 1.0e-12
+            (result.expected_information_gain_nats_bounds[0] - 0.5 * 2.5_f64.ln()).abs() < 1.0e-12
         );
         assert!(
             (result.expected_information_gain_nats_bounds[1] - 0.5 * (35.0_f64 / 9.0).ln()).abs()
@@ -343,8 +348,7 @@ mod tests {
     #[test]
     fn exact_envelope_contains_independently_assembled_dense_grid() {
         let problem = interior_extremum_problem();
-        let envelope =
-            bound_two_source_dependence(&problem).expect("bounded dependence envelope");
+        let envelope = bound_two_source_dependence(&problem).expect("bounded dependence envelope");
         let [sigma1, sigma2] = problem.source_standard_deviations;
         let [[j11, j12], [j21, j22]] = problem.source_jacobians;
         let [h1, h2] = problem.observation_sensitivities;
@@ -418,8 +422,17 @@ mod tests {
         problem.source_standard_deviations = [0.0, 0.0];
         problem.correlation_bounds = [-1.0, 1.0];
         let result = bound_two_source_dependence(&problem).expect("zero source uncertainty");
-        assert_eq!(result.parameter_information_bounds[0], result.parameter_information_bounds[1]);
-        assert_eq!(result.posterior_parameter_variance_bounds[0], result.posterior_parameter_variance_bounds[1]);
-        assert_eq!(result.worst_case_information_correlation, result.best_case_information_correlation);
+        assert_eq!(
+            result.parameter_information_bounds[0],
+            result.parameter_information_bounds[1]
+        );
+        assert_eq!(
+            result.posterior_parameter_variance_bounds[0],
+            result.posterior_parameter_variance_bounds[1]
+        );
+        assert_eq!(
+            result.worst_case_information_correlation,
+            result.best_case_information_correlation
+        );
     }
 }
