@@ -32,18 +32,18 @@ class AnytimeValidPolicyEvalTests(unittest.TestCase):
         self.assertLessEqual(result["upper"], 0.0)
 
     def test_invalid_values_fail_closed(self):
-        for bad in (1.0001, -1.0001, math.nan, math.inf, True, "0.5", None):
-            with self.subTest(value=bad):
+        for bad in (1.0001, -1.0001, math.nan, math.inf, True, "0.5", None, 10**10000):
+            with self.subTest(value=repr(bad)[:40]):
                 with self.assertRaises(EvaluationError):
                     evaluate_paired_differences([bad])
 
     def test_invalid_alpha_and_margin_fail_closed(self):
-        for alpha in (0.0, 1.0, -0.1, math.nan, True, "0.05"):
-            with self.subTest(alpha=alpha):
+        for alpha in (0.0, 1.0, -0.1, math.nan, True, "0.05", 10**10000):
+            with self.subTest(alpha=repr(alpha)[:40]):
                 with self.assertRaises(EvaluationError):
                     evaluate_paired_differences([0.1], alpha=alpha)
-        for margin in (1.01, math.nan, True, "0.0"):
-            with self.subTest(margin=margin):
+        for margin in (1.01, math.nan, True, "0.0", 10**10000):
+            with self.subTest(margin=repr(margin)[:40]):
                 with self.assertRaises(EvaluationError):
                     evaluate_paired_differences([0.1], margin=margin)
 
@@ -59,16 +59,18 @@ class AnytimeValidPolicyEvalTests(unittest.TestCase):
         with self.assertRaises(EvaluationError):
             evaluate_document(document)
 
-    def test_document_rejects_boolean_schema_version(self):
-        document = {
-            "schema_version": True,
-            "sampling_unit": "independent_source_cluster",
-            "observations": [
-                {"cluster_id": "recording-1", "paired_difference": 0.2}
-            ],
-        }
-        with self.assertRaises(EvaluationError):
-            evaluate_document(document)
+    def test_document_rejects_boolean_or_float_schema_version(self):
+        for version in (True, 1.0):
+            with self.subTest(version=version):
+                document = {
+                    "schema_version": version,
+                    "sampling_unit": "independent_source_cluster",
+                    "observations": [
+                        {"cluster_id": "recording-1", "paired_difference": 0.2}
+                    ],
+                }
+                with self.assertRaises(EvaluationError):
+                    evaluate_document(document)
 
     def test_report_counts_only_prefix_consumed_at_stopping_look(self):
         document = {
@@ -103,7 +105,7 @@ class AnytimeValidPolicyEvalTests(unittest.TestCase):
         }
         result = evaluate_document(document)
         self.assertEqual(result["metric_id"], "task_accuracy")
-        self.assertTrue(result["assumptions"])
+        self.assertIn("rows are sampled from one frozen target population of independent source clusters", result["assumptions"])
 
 
 if __name__ == "__main__":
