@@ -17,6 +17,7 @@ on:
     branches:
       - research/orbital-observation-surface-identifiability-v0-3
       - research/orbital-decision-identifiability-v0-1
+      - research/orbital-loss-regret-frontier-v0-1
 
 permissions:
   contents: read
