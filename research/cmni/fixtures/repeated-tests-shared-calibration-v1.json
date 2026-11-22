@@ -1,0 +1,175 @@
+{
+  "schema_version": "cmni.shared_calibration_sequential_campaign.v1",
+  "benchmark_id": "repeated-tests-shared-calibration-v1",
+  "status": "synthetic_exact_scenario_tree_oracle",
+  "campaign_model_receipt_id": "receipt:joint-campaign-likelihood-v1",
+  "expanded_state": [
+    {
+      "state_id": "physical-a_calibration-good",
+      "probability": 0.35,
+      "physical_hypothesis": "A",
+      "calibration_state": "good"
+    },
+    {
+      "state_id": "physical-b_calibration-good",
+      "probability": 0.35,
+      "physical_hypothesis": "B",
+      "calibration_state": "good"
+    },
+    {
+      "state_id": "physical-a_calibration-bad",
+      "probability": 0.15,
+      "physical_hypothesis": "A",
+      "calibration_state": "bad"
+    },
+    {
+      "state_id": "physical-b_calibration-bad",
+      "probability": 0.15,
+      "physical_hypothesis": "B",
+      "calibration_state": "bad"
+    }
+  ],
+  "actions": [
+    {
+      "action_id": "choose-a",
+      "utility_by_expanded_state": [
+        1,
+        -1,
+        1,
+        -1
+      ]
+    },
+    {
+      "action_id": "choose-b",
+      "utility_by_expanded_state": [
+        -1,
+        1,
+        -1,
+        1
+      ]
+    }
+  ],
+  "abstention_utility": 0,
+  "options": [
+    {
+      "option_id": "same-calibration-test-1",
+      "kind": "LowFidelitySimulation",
+      "cost": 0.002,
+      "outcome_ids": [
+        "supports-a",
+        "supports-b"
+      ],
+      "likelihoods_state_major": [
+        [
+          0.99,
+          0.01
+        ],
+        [
+          0.01,
+          0.99
+        ],
+        [
+          0.01,
+          0.99
+        ],
+        [
+          0.99,
+          0.01
+        ]
+      ],
+      "campaign_model_receipt_id": "receipt:joint-campaign-likelihood-v1"
+    },
+    {
+      "option_id": "same-calibration-test-2",
+      "kind": "LowFidelitySimulation",
+      "cost": 0.002,
+      "outcome_ids": [
+        "supports-a",
+        "supports-b"
+      ],
+      "likelihoods_state_major": [
+        [
+          0.99,
+          0.01
+        ],
+        [
+          0.01,
+          0.99
+        ],
+        [
+          0.01,
+          0.99
+        ],
+        [
+          0.99,
+          0.01
+        ]
+      ],
+      "campaign_model_receipt_id": "receipt:joint-campaign-likelihood-v1"
+    },
+    {
+      "option_id": "same-calibration-test-3",
+      "kind": "LowFidelitySimulation",
+      "cost": 0.002,
+      "outcome_ids": [
+        "supports-a",
+        "supports-b"
+      ],
+      "likelihoods_state_major": [
+        [
+          0.99,
+          0.01
+        ],
+        [
+          0.01,
+          0.99
+        ],
+        [
+          0.01,
+          0.99
+        ],
+        [
+          0.99,
+          0.01
+        ]
+      ],
+      "campaign_model_receipt_id": "receipt:joint-campaign-likelihood-v1"
+    }
+  ],
+  "budget": 0.006,
+  "expected": {
+    "one_step": {
+      "raw_decision_utility": 0.392,
+      "acquisition_count": 1,
+      "acquisition_cost": 0.002,
+      "net_expected_utility": 0.39
+    },
+    "three_step_shared_cause_model": {
+      "raw_decision_utility": 0.3997616,
+      "expected_acquisition_count": 2.0198,
+      "expected_acquisition_cost": 0.0040396,
+      "net_expected_utility": 0.395722,
+      "probability_third_test_is_acquired": 0.0198,
+      "maximum_path_cost": 0.006,
+      "third_test_condition": "only when first and second outcomes disagree"
+    },
+    "non_claimed_split_independence_control": {
+      "description": "Treating the per-test marginal likelihood as conditionally independent given only the physical hypothesis erases the shared calibration state and produces overconfident posterior beliefs.",
+      "marginal_accuracy_given_physical_state": 0.696,
+      "qualification": "negative control only; not an admissible model of the declared shared-calibration process"
+    }
+  },
+  "assumptions": [
+    "The common calibration state is part of the expanded hidden state",
+    "Repeated tests are conditionally independent only given physical hypothesis and shared calibration state",
+    "The campaign receipt covers the joint conditional likelihood/factorization model",
+    "Each test is one-shot and has fixed cost",
+    "A hard resource budget applies to every root-to-leaf path"
+  ],
+  "non_claims": [
+    "Not a real detector or calibration likelihood",
+    "Receipt ID is a placeholder and does not authenticate physical independence",
+    "Finite-state synthetic decision problem only",
+    "Not a general POMDP, nonlinear likelihood model or SOTA superiority result"
+  ]
+}
