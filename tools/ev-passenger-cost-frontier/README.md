@@ -92,15 +92,16 @@ The v0.1 exact evaluator assigns at most one qualified pack to each mission in o
 
 For each candidate pair it independently checks:
 - exact pack/mission configuration identifier and configuration digest;
+- pack operational state carried inside its time-bound evidence envelope;
 - pack identity, custody, and post-test evidence bound to the exact pack ID and configuration digest;
 - source/producer ID, method ID, evidence reference, observation timestamp and explicit validity interval for every evidence envelope;
 - evidence observed no later than the declared dispatch epoch, with the epoch inside the evidence validity interval (future observations are blocked; expired or incomplete validity windows are indeterminate);
 - available state and fresh passed post-test evidence;
-- usable energy against mission energy **including reserve**;
-- peak-power evidence against the mission peak-power requirement;
-- pack temperature against both mission and qualified pack limits.
+- conservative lower bound for usable energy against mission energy **including reserve**;
+- conservative lower bound for peak power against the mission peak-power requirement;
+- conservative upper bound for pack temperature against both mission and qualified pack limits.
 
-Unknown/stale/incomplete evidence is indeterminate; known identity/configuration mismatch, future observation, non-available/quarantined state, failed post-test or exceeded energy/power/thermal envelope is blocked. Capacity cannot compensate for insufficient peak power. Each pack can be assigned only once in the common epoch. Evidence references and producer/method identifiers are declarative strings in this synthetic benchmark; cryptographic authenticity and authoritative identity/custody resolution remain external owner responsibilities.
+Point estimates are not accepted as capability bounds: the energy/power inputs are explicitly conservative lower bounds, while temperature is an explicit conservative upper bound. Unknown/stale/incomplete evidence is indeterminate; known identity/configuration mismatch, future observation, non-available/quarantined state, failed post-test or exceeded energy/power/thermal envelope is blocked. Capacity cannot compensate for insufficient peak power. Each pack can be assigned only once in the common epoch. Evidence references and producer/method identifiers are declarative strings in this synthetic benchmark; cryptographic authenticity and authoritative identity/custody resolution remain external owner responsibilities.
 
 The machine-readable input contract is `schemas/battery_service_network_v0_1.schema.json`; the frozen known-answer is `fixtures/battery_service_network_v0_1.json`. The focused workflow runs Rust formatting, tests, CLI evaluation and JSON assertions, and retains a report/hash artifact.
 
