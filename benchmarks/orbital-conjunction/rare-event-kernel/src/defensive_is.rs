@@ -72,7 +72,7 @@ pub struct DefensiveImportanceConfidenceAccumulator {
     lambda_cap: f64,
     sample_count: u64,
     sum_observations: f64,
-    sum_squared_predictable_residuals: f64,
+    sum_squared_smoothed_residuals: f64,
     sum_lambda: f64,
     sum_lambda_observations: f64,
     sum_empirical_bernstein_penalties: f64,
@@ -116,7 +116,7 @@ impl DefensiveImportanceConfidenceAccumulator {
             lambda_cap,
             sample_count: 0,
             sum_observations: 0.0,
-            sum_squared_predictable_residuals: 0.0,
+            sum_squared_smoothed_residuals: 0.0,
             sum_lambda: 0.0,
             sum_lambda_observations: 0.0,
             sum_empirical_bernstein_penalties: 0.0,
@@ -147,7 +147,7 @@ impl DefensiveImportanceConfidenceAccumulator {
         let previous_count_plus_one = self.sample_count as f64 + 1.0;
         let previous_mean = (0.5 + self.sum_observations) / previous_count_plus_one;
         let previous_variance =
-            (0.25 + self.sum_squared_predictable_residuals) / previous_count_plus_one;
+            (0.25 + self.sum_squared_smoothed_residuals) / previous_count_plus_one;
         let log_alpha_term = 2.0_f64.ln() - self.alpha.ln();
         let denominator = previous_variance * time * (1.0 + time).ln();
         if !previous_mean.is_finite()
@@ -175,11 +175,13 @@ impl DefensiveImportanceConfidenceAccumulator {
         let penalty = variance_term * psi;
 
         let next_sum_observations = self.sum_observations + contribution;
-        // The empirical-Bernstein variance proxy sums predictable residuals:
-        // the current observation is centred at the prior smoothed mean, not
-        // at a mean that has already incorporated this observation.
-        let next_squared_residuals =
-            self.sum_squared_predictable_residuals + residual * residual;
+        // The variance plug-in uses the current smoothed mean mu_hat_t,
+        // whereas the empirical-Bernstein penalty above uses the predictable
+        // prior mean mu_hat_(t-1). Keep these two roles distinct.
+        let current_smoothed_mean = (0.5 + next_sum_observations) / (time + 1.0);
+        let current_smoothed_residual = contribution - current_smoothed_mean;
+        let next_squared_residuals = self.sum_squared_smoothed_residuals
+            + current_smoothed_residual * current_smoothed_residual;
         let next_sum_lambda = self.sum_lambda + lambda;
         let next_sum_lambda_observations = self.sum_lambda_observations + lambda * contribution;
         let next_penalties = self.sum_empirical_bernstein_penalties + penalty;
@@ -234,7 +236,7 @@ impl DefensiveImportanceConfidenceAccumulator {
         // Commit only after every calculation and confidence-set check succeeds.
         self.sample_count = next_count;
         self.sum_observations = next_sum_observations;
-        self.sum_squared_predictable_residuals = next_squared_residuals;
+        self.sum_squared_smoothed_residuals = next_squared_residuals;
         self.sum_lambda = next_sum_lambda;
         self.sum_lambda_observations = next_sum_lambda_observations;
         self.sum_empirical_bernstein_penalties = next_penalties;
