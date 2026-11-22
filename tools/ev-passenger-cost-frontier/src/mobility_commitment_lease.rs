@@ -102,6 +102,7 @@ pub struct ExistingCommitment {
     pub commitment_id: String,
     pub idempotency_key: String,
     pub state: CommitmentState,
+    pub state_receipt_id: String,
     pub start_slot: u8,
     pub end_slot: u8,
     pub expires_at_unix_ms: u64,
@@ -359,6 +360,11 @@ pub fn evaluate_mobility_commitment_lease(
         add_error(&mut errors, "resource_or_commitment_bound_invalid");
     }
 
+    let horizon_end = slot_end_exclusive_ms(input, input.horizon_slots.saturating_sub(1));
+    if horizon_end.is_none_or(|end| input.report_valid_until_unix_ms < end.saturating_sub(1)) {
+        add_error(&mut errors, "upstream_report_validity_does_not_cover_full_horizon");
+    }
+
     if !evidence_covers(
         &input.flexibility_report_evidence,
         &input.site_id,
@@ -447,6 +453,7 @@ pub fn evaluate_mobility_commitment_lease(
 
     let mut commitment_ids = BTreeSet::new();
     let mut idempotency_keys = BTreeSet::new();
+    let mut state_receipt_ids = BTreeSet::new();
     if !commitment_ids.insert(candidate.commitment_id.as_str()) {
         add_error(&mut errors, "candidate_commitment_id_empty_or_duplicate");
     }
@@ -500,6 +507,16 @@ pub fn evaluate_mobility_commitment_lease(
                 format!("existing_commitment_window_invalid:{}", commitment.commitment_id),
             );
             continue;
+        }
+
+        if commitment.state_receipt_id.trim().is_empty()
+            || commitment.state_evidence.evidence_reference != commitment.state_receipt_id
+            || !state_receipt_ids.insert(commitment.state_receipt_id.as_str())
+        {
+            add_error(
+                &mut errors,
+                format!("commitment_state_receipt_empty_reused_or_mismatched:{}", commitment.commitment_id),
+            );
         }
 
         if !evidence_current_at(
