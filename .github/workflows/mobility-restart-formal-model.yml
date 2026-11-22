@@ -6,10 +6,12 @@ on:
       - research/mobility-restart-tla-v0-1
     paths:
       - "research/mobility-restart-reconciliation/model/**"
+      - "research/mobility-rrvr-trace/**"
       - ".github/workflows/mobility-restart-formal-model.yml"
   pull_request:
     paths:
       - "research/mobility-restart-reconciliation/model/**"
+      - "research/mobility-rrvr-trace/**"
       - ".github/workflows/mobility-restart-formal-model.yml"
   workflow_dispatch:
 
@@ -25,6 +27,7 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
+      - uses: dtolnay/rust-toolchain@1.96.0
       - name: Download and verify pinned TLA+ tools
         shell: bash
         run: |
@@ -45,16 +48,22 @@ jobs:
             -metadir "$RUNNER_TEMP/tlc-safe" \
             -config research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.cfg \
             research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla
-      - name: Verify unsafe retry negative control is detected
+      - name: Capture expected unsafe retry TLC JSON counterexample
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/rrvr-tlc-package"
+          TRACE="$RUNNER_TEMP/rrvr-tlc-package/naive-retry-counterexample.json"
+          MODEL="research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla"
+          CFG="research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity_NaiveRetry.cfg"
           set +e
           java -XX:+UseParallelGC -cp "$RUNNER_TEMP/tla/tla2tools.jar" tlc2.TLC \
-            -workers auto \
+            -workers 1 \
+            -seed 42 \
+            -dumpTrace json "$TRACE" \
             -metadir "$RUNNER_TEMP/tlc-negative" \
-            -config research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity_NaiveRetry.cfg \
-            research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla \
+            -config "$CFG" \
+            "$MODEL" \
             > "$RUNNER_TEMP/tlc-negative.log" 2>&1
           status=$?
           set -e
@@ -68,4 +77,52 @@ jobs:
             echo "TLC failed for a reason other than the expected duplicate-effect counterexample."
             exit 1
           fi
-          echo "Expected negative-control counterexample observed."
+          test -s "$TRACE"
+          jq -e '
+            . as $trace
+            | ($trace.vars | index("s") != null)
+              and ($trace.counterexample.state | type == "array" and length >= 2)
+              and ($trace.counterexample.action | type == "array" and length == ($trace.counterexample.state | length - 1))
+              and ($trace.counterexample.action[-1][1].name == "NaiveRetry")
+          ' "$TRACE"
+          echo "Expected negative-control counterexample observed and exported as TLC JSON."
+
+      - name: Import TLC JSON as an RRVR trace bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          MODEL="research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla"
+          CFG="research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity_NaiveRetry.cfg"
+          TRACE="$RUNNER_TEMP/rrvr-tlc-package/naive-retry-counterexample.json"
+          BUNDLE="$RUNNER_TEMP/rrvr-tlc-package/naive-retry-rrvr-bundle.json"
+          cargo run --locked --manifest-path research/mobility-rrvr-trace/Cargo.toml --bin tlc_trace_import -- \
+            "$TRACE" "$MODEL" "$CFG" "$RUNNER_TEMP/tla/tla2tools.jar" "$BUNDLE" \
+            "rrvr-tlc-naive-retry-$GITHUB_SHA" \
+            "symtropy-restart-recovery-formal-model" "$GITHUB_SHA" \
+            "NoDuplicatePhysicalEffects" "naive_retry_duplicate_physical_effect" "42"
+          jq -e --slurpfile raw "$TRACE" '
+            .header.target_failure.property_id == "NoDuplicatePhysicalEffects"
+            and .events[-1].kind == "naive_retry_attempted"
+            and .events[-1].event_id == .header.target_failure.witness_event_id
+            and (.events | length == ($raw[0].counterexample.action | length))
+            and (.artifacts | length == 4)
+            and all(.events[]; (.raw_artifact_ids | index("tlc-raw-json") != null))
+          ' "$BUNDLE"
+          cp "$MODEL" "$RUNNER_TEMP/rrvr-tlc-package/RestartSafeEffectContinuity.tla"
+          cp "$CFG" "$RUNNER_TEMP/rrvr-tlc-package/RestartSafeEffectContinuity_NaiveRetry.cfg"
+          cp "$RUNNER_TEMP/tla/tla2tools.jar" "$RUNNER_TEMP/rrvr-tlc-package/tla2tools.jar"
+          (
+            cd "$RUNNER_TEMP/rrvr-tlc-package"
+            sha256sum naive-retry-counterexample.json naive-retry-rrvr-bundle.json \
+              RestartSafeEffectContinuity.tla RestartSafeEffectContinuity_NaiveRetry.cfg tla2tools.jar \
+              > SHA256SUMS
+          )
+
+      - name: Upload verified TLC counterexample and RRVR bundle
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rrvr-tlc-naive-retry-counterexample-${{ github.sha }}
+          path: ${{ runner.temp }}/rrvr-tlc-package/
+          if-no-files-found: error
+          retention-days: 90
