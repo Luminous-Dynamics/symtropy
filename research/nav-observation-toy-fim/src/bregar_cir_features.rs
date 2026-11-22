@@ -327,8 +327,12 @@ mod tests {
 
     #[test]
     fn preserves_publisher_truncation_semantics_for_fractional_fp_index() {
-        let integer = extract_bregar_cir_features(&observation(100.0, 1.0)).unwrap();
-        let fractional = extract_bregar_cir_features(&observation(100.875, 1.0)).unwrap();
+        let mut integer_input = observation(100.0, 1.0);
+        let mut fractional_input = observation(100.875, 1.0);
+        integer_input.cir_samples[100] = ComplexCirSample { real: 1.0, imaginary: 0.0 };
+        fractional_input.cir_samples[100] = ComplexCirSample { real: 1.0, imaginary: 0.0 };
+        let integer = extract_bregar_cir_features(&integer_input).unwrap();
+        let fractional = extract_bregar_cir_features(&fractional_input).unwrap();
         assert_eq!(integer.window_start_source_index, fractional.window_start_source_index);
         assert_eq!(fractional.fp_index_integer, 100);
         assert!((fractional.fp_index_fractional - 0.875).abs() < 1.0e-12);
