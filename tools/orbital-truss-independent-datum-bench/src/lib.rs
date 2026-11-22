@@ -519,6 +519,22 @@ mod tests {
     }
 
     #[test]
+    fn collinear_controls_fail_the_declared_footprint_policy() {
+        let report = receipt();
+        let case = report
+            .cases
+            .iter()
+            .find(|item| item.case_id == "IDN-004-COLLINEAR-NETWORK")
+            .unwrap();
+        assert_eq!(case.disposition, Disposition::Indeterminate);
+        assert!(
+            case.reason_codes
+                .iter()
+                .any(|reason| reason == "CONTROL_NETWORK_SPATIAL_FOOTPRINT_BELOW_MINIMUM")
+        );
+    }
+
+    #[test]
     fn article_derived_datum_network_never_qualifies() {
         let report = receipt();
         let case = report
