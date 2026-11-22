@@ -84,6 +84,13 @@ pub use robust_dependence_design::{
     DependenceRobustDesignRanking, DependenceRobustDesignScore, DependenceRobustNumericalStatus,
 };
 
+mod multisource_dependence_design;
+pub use multisource_dependence_design::{
+    rank_designs_under_finite_correlation_scenarios, FiniteCorrelationScenario,
+    MultiSourceDependenceDesignCandidate, MultiSourceDependenceDesignRanking,
+    MultiSourceDependenceDesignScore,
+};
+
 mod sampler_diagnostics;
 pub use sampler_diagnostics::{
     diagnose_grouped_hmc_quantity, diagnose_horseshoe_coefficient, GroupedHmcQuantity,
