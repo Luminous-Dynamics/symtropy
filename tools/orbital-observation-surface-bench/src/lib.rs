@@ -575,4 +575,44 @@ mod tests {
         };
         assert!(evaluate(&corpus(scenario)).is_err());
     }
+
+    #[test]
+    fn splitmix_uniform_draws_are_strictly_inside_unit_interval() {
+        let mut random = SplitMix64::new(0xD1CE_BA5E_1234_5678);
+        for _ in 0..50_000 {
+            let value = random.uniform_open();
+            assert!(value > 0.0 && value < 1.0);
+        }
+    }
+
+    #[test]
+    fn inserting_an_outage_does_not_shift_later_event_random_draws() {
+        let scenario = Scenario {
+            scenario_id: "rng-stability".to_owned(),
+            configuration_id: "cfg-rng".to_owned(),
+            exposure_horizon: 1.0,
+            events: vec![
+                event("e1", 0.1, 1.0, 0.01),
+                event("e2", 0.2, 1.0, 0.01),
+                event("e3", 0.3, 1.0, 0.01),
+            ],
+            shared_common_cause_outages: Vec::new(),
+            channels: vec![{
+                let mut c = channel("sensor", 701, 0.0);
+                c.logit_intercept = 0.0;
+                c
+            }],
+        };
+        let baseline = evaluate(&corpus(scenario.clone())).unwrap();
+        let mut gated_scenario = scenario;
+        gated_scenario.shared_common_cause_outages = vec![TimeInterval {
+            start: 0.15,
+            end: 0.25,
+        }];
+        let gated = evaluate(&corpus(gated_scenario)).unwrap();
+        let baseline_outcomes = &baseline.scenarios[0].channels[0].event_outcomes;
+        let gated_outcomes = &gated.scenarios[0].channels[0].event_outcomes;
+        assert_eq!(gated_outcomes[1].miss_reason, Some(MissReason::SharedCommonCause));
+        assert_eq!(baseline_outcomes[2].detected, gated_outcomes[2].detected);
+    }
 }
