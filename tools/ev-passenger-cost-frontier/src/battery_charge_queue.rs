@@ -636,12 +636,11 @@ pub fn evaluate_battery_charge_queue(
             }
         }
     }
-    assignments.sort_by_key(|assignment| {
-        (
-            assignment.start_slot,
-            assignment.charger_id.as_str(),
-            assignment.job_id.as_str(),
-        )
+    assignments.sort_by(|left, right| {
+        left.start_slot
+            .cmp(&right.start_slot)
+            .then_with(|| left.charger_id.cmp(&right.charger_id))
+            .then_with(|| left.job_id.cmp(&right.job_id))
     });
 
     let Some(total_declared_grid_input_watt_seconds) =
