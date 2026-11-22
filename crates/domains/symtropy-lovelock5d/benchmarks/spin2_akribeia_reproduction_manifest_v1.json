@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "spin2_akribeia_reproduction_manifest",
+  "status": "source_audited_reproduction_not_yet_executed",
+  "audit_date": "2026-11-22",
+  "primary_paper": {
+    "title": "Neural-Spectral Discovery of Rotating Black Holes Beyond General Relativity",
+    "arxiv": "2607.07418v2",
+    "doi": "10.1103/3kz2-6dvv",
+    "accepted_date": "2026-11-12",
+    "url": "https://arxiv.org/abs/2607.07418v2",
+    "published_metrics": {
+      "pinning_residual_before_spectral_refinement": "~1e-3 equation residual",
+      "einstein_limit_control": "relative L2 profile error 1e-85 for exact Myers-Perry",
+      "extended_precision_digits": 300,
+      "warning": "The 1e-85 figure is a relative profile error on the Einstein control, not a generic finite-coupling equation residual or a full-domain interval bound."
+    },
+    "terminology": "The paper defines certified neural-field solutions as continuous globally defined fields whose residuals are verified below a quantified threshold. This is not the same claim as a radii-polynomial existence/uniqueness theorem."
+  },
+  "repositories": [
+    {
+      "name": "Akribeia",
+      "repository": "moyarzoca/Akribeia",
+      "paper_orchestrator_pin": "v1.0.0",
+      "readme_blob_sha1": "2f1787273436feb9934b6bf50e546e90fab0e5cf",
+      "orchestration_file": "akribeia.sh",
+      "orchestration_blob_sha1": "79c6109b53cafa4c13780b26631737ce464ea2cf",
+      "training_driver": "neural_field/sh/lovelock_5d.sh",
+      "training_driver_blob_sha1": "8e0dd85edb28620d732632f625677b79f7774786"
+    },
+    {
+      "name": "DiffLearning",
+      "repository": "moyarzoca/difflearning",
+      "paper_references_pin": "v2.1.1",
+      "readme_installation_pin": "v2.1.0",
+      "paper_reference_pyproject_blob_sha1": "e9f75d8756f337e8e12b97939c9abee4250d1066",
+      "readme_install_pyproject_blob_sha1": "6e210a7d8799816c76f021ece2555f7fd86c29af",
+      "discrepancy": "Paper references v2.1.1 while Akribeia v1.0.0 README clones v2.1.0. Run them as separate manifests."
+    },
+    {
+      "name": "Deterministic Gauss-Newton refiner",
+      "repository": "moyarzoca/deterministic-gauss-newton-wl",
+      "paper_references_pin": "v1.1.1",
+      "readme_installation_pin": "v1.0.0",
+      "evidence": "The paper and README specify different tag pins. Sampled README/config files at these tags had identical blob identifiers; this does not prove all repository files are identical."
+    }
+  ],
+  "observed_5d_configuration": {
+    "training_driver": {
+      "horizon_radius": 1,
+      "radial_compact_coordinate": "x in [0, 1.570708] with Chebyshev distribution",
+      "coupling_family": "alpha in [0, 3] with uniform distribution",
+      "stage_1": {
+        "max_steps": 60000,
+        "collocation_points": 6000
+      },
+      "stage_2": {
+        "steps": 5000,
+        "collocation_points": 16000
+      },
+      "stage_2_initialization": "best checkpoint from stage 1"
+    },
+    "orchestration_refinement": {
+      "selected_problem": "5D_FBHWC0",
+      "selected_stage": "stage2",
+      "coupling_alpha": "1",
+      "horizon_angular_velocity_Omega_H": "33/100",
+      "precision_override": "310",
+      "comment": "The network represents a coupling family; the released 5D orchestration's selected spectral job fixes alpha=1 and Omega_H=0.33. Do not claim every coupling value received this same spectral refinement without run evidence."
+    },
+    "dependencies": {
+      "python": ">=3.12",
+      "uv": true,
+      "wolfram_engine": "14.3 or newer"
+    }
+  },
+  "symtropy_problem_class": {
+    "current": "O(a^2) slow-rotation perturbation equations",
+    "akribeia_headline": "full nonlinear stationary finite-spin profiles",
+    "fair_near_term_comparison": "extract perturbative coefficients from at least three decreasing-spin full nonlinear reference solutions",
+    "direct_finite_spin_comparison_requires": "full nonlinear Symtropy solver"
+  },
+  "local_environment": {
+    "python": "available",
+    "sympy": "1.14.0",
+    "torch": "2.10.0+cpu",
+    "wolfram_engine": "not detected in current execution environment",
+    "reproduction_status": "source audit only; Akribeia training and spectral refinement not executed"
+  },
+  "outstanding_gates": [
+    "Resolve paper-reference versus README dependency pins by running separate clean hash-recorded manifests.",
+    "Acquire/record exact commit objects resolved by each tag before publishing a replication receipt.",
+    "Run Akribeia 5D training/refinement with locked Python dependencies and licensed Wolfram Engine 14.3+.",
+    "Record the exact original-equation residual evaluator and establish whether the homogeneous-grid validator actually executes.",
+    "Export full nonlinear profiles at at least three decreasing spins for coefficient extraction.",
+    "Compare extracted perturbative coefficients against Symtropy O(a^2) equations using independent original rows and the Noether check.",
+    "Compare full finite-spin profiles only after a full nonlinear Symtropy solver exists."
+  ],
+  "claim_ceiling": "Source/configuration audit and frozen reproduction design only. This is not a completed Akribeia reproduction, a Symtropy-versus-Akribeia result, or evidence of superiority."
+}
