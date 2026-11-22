@@ -271,10 +271,12 @@ pub fn reconcile_exergy_balance(
     let balance_residual_w = total_exergy_input_w
         - total_exergy_output_w
         - input.stored_exergy_accumulation_w;
-    let scale_w = total_exergy_input_w
-        .abs()
-        .max(total_exergy_output_w.abs())
-        .max(input.stored_exergy_accumulation_w.abs());
+    let scale_w = input.work_exergy_input_w.abs()
+        + heat_exergy_input_w.abs()
+        + input.mass_flow_exergy_in_w.abs()
+        + input.mass_flow_exergy_out_w.abs()
+        + input.other_exergy_outputs_w.abs()
+        + input.stored_exergy_accumulation_w.abs();
     let allowed_roundoff_bound_w = tolerance.absolute_w + tolerance.relative * scale_w;
 
     if !heat_exergy_input_w.is_finite()
@@ -363,7 +365,7 @@ pub fn reference_self_check() -> Result<(), ExergyError> {
 
     let irreversible = ExergyBalanceInput {
         mass_flow_exergy_out_w: 900.0,
-        ..reversible
+        ..reversible.clone()
     };
     let positive_destroyed = reconcile_exergy_balance(
         &irreversible,
@@ -437,6 +439,20 @@ mod tests {
         let bz = physical_flow_exergy_ideal_gas(elevated, dead_state(), 1005.0, 287.0, 9.80665).unwrap();
         assert!((bv - b0 - 50.0).abs() < 1.0e-12);
         assert!((bz - b0 - 19.6133).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn sub_dead_state_pressure_flow_exergy_remains_signed() {
+        let state = IdealGasFlowState {
+            temperature_k: 300.0,
+            pressure_pa: 0.5 * 101_325.0,
+            speed_m_s: 0.0,
+            elevation_m: 0.0,
+        };
+        let value = physical_flow_exergy_ideal_gas(state, dead_state(), 1005.0, 287.0, 9.80665).unwrap();
+        let expected = 287.0 * 300.0 * (0.5_f64).ln();
+        assert!((value - expected).abs() < 1.0e-10);
+        assert!(value < 0.0);
     }
 
     #[test]
