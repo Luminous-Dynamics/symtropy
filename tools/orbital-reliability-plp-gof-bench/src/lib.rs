@@ -1,12 +1,17 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
+mod statistics;
+use statistics::{TestStatisticValues, from_sorted_log_transforms};
+
 const CORPUS_SCHEMA: &str = "luminous.orbital-plp-conditional-gof.corpus.v0.1";
 const CLAIM_CEILING: &str = "synthetic-conditional-plp-goodness-of-fit-only";
 const MODEL_PROFILE: &str = "power_law_process_repairable_minimal_repair";
 const TERMINATION_PROFILE: &str = "administrative_time_terminated_complete_window";
 const PRNG_ID: &str = "splitmix64-top52-open-uniform-exp-normalize-v1";
 const STATISTIC_ID: &str = "fitted-plp-uniform-order-statistics-cramer-von-mises-v1";
+const SUITE_ID: &str = "plp-five-statistic-bonferroni-suite-v0.2";
+const STATISTIC_COUNT: usize = 5;
 const MIN_EVENTS: usize = 5;
 const MAX_EVENTS: usize = 10_000;
 const MIN_REPLICATES: usize = 999;
@@ -64,6 +69,8 @@ pub struct Expected {
     pub observed_cvm: Option<f64>,
     pub tail_exceedances: Option<usize>,
     pub monte_carlo_p_value: Option<f64>,
+    pub component_p_values: Vec<f64>,
+    pub bonferroni_adjusted_min_p_value: Option<f64>,
     pub blockers: Vec<String>,
 }
 
@@ -77,8 +84,25 @@ pub struct Corpus {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct StatisticMonteCarloResult {
+    pub statistic_id: String,
+    pub observed_value: f64,
+    pub tail_method: String,
+    pub tail_exceedances: usize,
+    pub lower_tail_exceedances: Option<usize>,
+    pub upper_tail_exceedances: Option<usize>,
+    pub monte_carlo_p_value: f64,
+    pub bonferroni_adjusted_p_value: f64,
+    pub tail_probability_estimate: f64,
+    pub monte_carlo_standard_error: f64,
+    pub wilson_95_lower: f64,
+    pub wilson_95_upper: f64,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct MonteCarloResult {
     pub prng_id: String,
+    pub suite_id: String,
     pub statistic_id: String,
     pub seed: u64,
     pub replicate_count: usize,
@@ -89,6 +113,8 @@ pub struct MonteCarloResult {
     pub monte_carlo_standard_error: f64,
     pub wilson_95_lower: f64,
     pub wilson_95_upper: f64,
+    pub component_results: Vec<StatisticMonteCarloResult>,
+    pub bonferroni_adjusted_min_p_value: f64,
 }
 
 #[derive(Debug, Clone, Serialize)]
