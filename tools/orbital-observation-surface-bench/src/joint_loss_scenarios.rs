@@ -600,9 +600,12 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
             let best = best_loss_by_scenario
                 .get(&scenario.scenario_id)
                 .ok_or_else(|| format!("missing scenario optimum {}", scenario.scenario_id))?;
-            let joint_regret = loss
-                .checked_sub(best)
-                .map_err(|error| format!("joint regret underflow in {}: {error}", scenario.scenario_id))?;
+            let joint_regret = loss.checked_sub(best).map_err(|error| {
+                format!(
+                    "joint regret underflow in {}: {error}",
+                    scenario.scenario_id
+                )
+            })?;
             if joint_regret.numerator == 0 {
                 best_count += 1;
             }
