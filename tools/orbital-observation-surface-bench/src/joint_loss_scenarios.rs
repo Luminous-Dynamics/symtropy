@@ -233,9 +233,11 @@ fn validate_corpus(corpus: &DecisionCorpus) -> Result<(), String> {
         }
 
         let mut world_ids = BTreeSet::new();
-        for world_id in &world_ids {
+        for world_id in &case.compatible_world_set.world_ids {
             if !validate_ascii_id(world_id) || !world_ids.insert(world_id.as_str()) {
-                return Err("compatible-world IDs must be unique, nonempty ASCII strings".to_owned());
+                return Err(
+                    "compatible-world IDs must be unique, nonempty ASCII strings".to_owned(),
+                );
             }
         }
         let world_digest = digest_world_ids(&case.compatible_world_set.world_ids)?;
@@ -264,7 +266,9 @@ fn validate_corpus(corpus: &DecisionCorpus) -> Result<(), String> {
                 .iter()
                 .any(|value| *value > MAX_SAFE_INTEGER)
             {
-                return Err("action identity, admissibility receipt, status or cost is invalid".to_owned());
+                return Err(
+                    "action identity, admissibility receipt, status or cost is invalid".to_owned(),
+                );
             }
         }
 
@@ -281,7 +285,9 @@ fn validate_corpus(corpus: &DecisionCorpus) -> Result<(), String> {
                     "admissible" | "inadmissible" | "indeterminate" | "out_of_profile"
                 )
             {
-                return Err("loss scenario identity, world reference or evidence status is invalid".to_owned());
+                return Err(
+                    "loss scenario identity, world reference or evidence status is invalid".to_owned(),
+                );
             }
             if scenario.evidence_status == "admissible"
                 && scenario
@@ -289,7 +295,9 @@ fn validate_corpus(corpus: &DecisionCorpus) -> Result<(), String> {
                     .as_deref()
                     .is_none_or(|value| !validate_ascii_id(value))
             {
-                return Err("admissible loss scenario requires an evidence receipt identity".to_owned());
+                return Err(
+                    "admissible loss scenario requires an evidence receipt identity".to_owned(),
+                );
             }
             covered_worlds.insert(scenario.world_id.as_str());
 
@@ -299,7 +307,10 @@ fn validate_corpus(corpus: &DecisionCorpus) -> Result<(), String> {
                 .map(String::as_str)
                 .collect::<BTreeSet<_>>();
             if supplied_actions != action_ids {
-                return Err("every loss scenario must include exactly one loss for every declared action".to_owned());
+                return Err(
+                    "every loss scenario must include exactly one loss for every declared action"
+                        .to_owned(),
+                );
             }
             for loss in scenario.action_losses.values() {
                 loss.validate()
@@ -448,7 +459,11 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
 
     let mut world_ids = case.compatible_world_set.world_ids.clone();
     world_ids.sort();
-    let mut scenarios = case.loss_scenario_manifest.scenarios.iter().collect::<Vec<_>>();
+    let mut scenarios = case
+        .loss_scenario_manifest
+        .scenarios
+        .iter()
+        .collect::<Vec<_>>();
     scenarios.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
 
     let mut best_loss_by_scenario = BTreeMap::new();
@@ -460,13 +475,18 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
             .iter()
             .filter_map(|action| scenario.action_losses.get(&action.action_id))
             .min_by(|left, right| left.compare_exact(right))
-            .ok_or_else(|| format!("no admissible action loss in scenario {}", scenario.scenario_id))?
+            .ok_or_else(|| {
+                format!(
+                    "no admissible action loss in scenario {}",
+                    scenario.scenario_id
+                )
+            })?
             .canonicalized();
         best_loss_by_scenario.insert(scenario.scenario_id.clone(), best);
     }
 
     // Per-world loss envelopes are intentionally rectangularized only in this block.
-    for world_id in &case.compatible_world_set.world_ids {
+    for world_id in &world_ids {
         let world_scenarios = scenarios
             .iter()
             .filter(|scenario| scenario.world_id == *world_id)
@@ -478,7 +498,12 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
                 let value = scenario
                     .action_losses
                     .get(&action.action_id)
-                    .ok_or_else(|| format!("missing loss for action {} in {}", action.action_id, scenario.scenario_id))?
+                    .ok_or_else(|| {
+                        format!(
+                            "missing loss for action {} in {}",
+                            action.action_id, scenario.scenario_id
+                        )
+                    })?
                     .canonicalized();
                 if minimum
                     .as_ref()
@@ -493,9 +518,12 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
                     maximum = Some(value);
                 }
             }
-            let minimum = minimum.ok_or_else(|| format!("world {world_id} has no loss scenarios"))?;
-            let maximum = maximum.ok_or_else(|| format!("world {world_id} has no loss scenarios"))?;
-            worst_loss_by_world_action.insert((action.action_id.clone(), world_id.clone()), maximum);
+            let minimum =
+                minimum.ok_or_else(|| format!("world {world_id} has no loss scenarios"))?;
+            let maximum =
+                maximum.ok_or_else(|| format!("world {world_id} has no loss scenarios"))?;
+            worst_loss_by_world_action
+                .insert((action.action_id.clone(), world_id.clone()), maximum);
             best_loss_lower_by_world
                 .entry(world_id.clone())
                 .and_modify(|current: &mut Rational| {
@@ -513,7 +541,12 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
             .admissibility_receipt_id
             .as_deref()
             .filter(|value| !value.trim().is_empty())
-            .ok_or_else(|| format!("admissible action {} has no receipt identity", action.action_id))?
+            .ok_or_else(|| {
+                format!(
+                    "admissible action {} has no receipt identity",
+                    action.action_id
+                )
+            })?
             .to_owned();
 
         let mut per_scenario = Vec::with_capacity(scenarios.len());
@@ -560,18 +593,28 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
             .collect::<Vec<_>>();
 
         let mut rectangular_by_world = Vec::new();
-        for world_id in &case.compatible_world_set.world_ids {
+        for world_id in &world_ids {
             let action_upper = worst_loss_by_world_action
                 .get(&(action.action_id.clone(), world_id.clone()))
-                .ok_or_else(|| format!("missing rectangular upper loss for {} / {world_id}", action.action_id))?;
-            let comparator_lower = best_loss_lower_by_world
-                .get(world_id)
-                .ok_or_else(|| format!("missing rectangular comparator lower loss for {world_id}"))?;
+                .ok_or_else(|| {
+                    format!(
+                        "missing rectangular upper loss for {} / {world_id}",
+                        action.action_id
+                    )
+                })?;
+            let comparator_lower = best_loss_lower_by_world.get(world_id).ok_or_else(|| {
+                format!("missing rectangular comparator lower loss for {world_id}")
+            })?;
             rectangular_by_world.push((
                 world_id.clone(),
                 action_upper
                     .checked_sub(comparator_lower)
-                    .map_err(|error| format!("rectangular regret underflow for {} / {world_id}", action.action_id))?,
+                    .map_err(|error| {
+                        format!(
+                            "rectangular regret underflow for {} / {world_id}",
+                            action.action_id
+                        )
+                    })?,
             ));
         }
         let worst_case_rectangular_regret = rectangular_by_world
@@ -612,8 +655,9 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
         .collect::<Vec<_>>();
     let joint_minimax_regret_action_ids =
         argmin_action_ids(&action_metrics, |metric| &metric.worst_case_joint_regret);
-    let rectangular_minimax_regret_action_ids =
-        argmin_action_ids(&action_metrics, |metric| &metric.worst_case_rectangular_regret);
+    let rectangular_minimax_regret_action_ids = argmin_action_ids(&action_metrics, |metric| {
+        &metric.worst_case_rectangular_regret
+    });
 
     let joint_scenario_pareto_frontier_action_ids = action_metrics
         .iter()
@@ -678,16 +722,40 @@ pub fn evaluate(corpus: &DecisionCorpus) -> Result<Evaluation, String> {
 
     let summary = Summary {
         case_count: cases.len(),
-        no_admissible_action_cases: cases.iter().filter(|item| item.status == "NO_ADMISSIBLE_ACTION").count(),
-        loss_model_indeterminate_cases: cases.iter().filter(|item| item.status == "LOSS_MODEL_INDETERMINATE").count(),
-        out_of_profile_cases: cases.iter().filter(|item| item.status == "OUT_OF_PROFILE").count(),
-        uniform_optimum_cases: cases.iter().filter(|item| item.status == "UNIFORM_OPTIMUM_ACROSS_JOINT_SCENARIOS").count(),
-        no_uniform_optimum_cases: cases.iter().filter(|item| item.status == "NO_UNIFORM_OPTIMUM_JOINT_SCENARIO_FRONTIER").count(),
+        no_admissible_action_cases: cases
+            .iter()
+            .filter(|item| item.status == "NO_ADMISSIBLE_ACTION")
+            .count(),
+        loss_model_indeterminate_cases: cases
+            .iter()
+            .filter(|item| item.status == "LOSS_MODEL_INDETERMINATE")
+            .count(),
+        out_of_profile_cases: cases
+            .iter()
+            .filter(|item| item.status == "OUT_OF_PROFILE")
+            .count(),
+        uniform_optimum_cases: cases
+            .iter()
+            .filter(|item| item.status == "UNIFORM_OPTIMUM_ACROSS_JOINT_SCENARIOS")
+            .count(),
+        no_uniform_optimum_cases: cases
+            .iter()
+            .filter(|item| item.status == "NO_UNIFORM_OPTIMUM_JOINT_SCENARIO_FRONTIER")
+            .count(),
         admissible_action_count: cases.iter().map(|item| item.action_metrics.len()).sum(),
         excluded_action_count: cases.iter().map(|item| item.excluded_actions.len()).sum(),
-        scenario_evidence_issue_count: cases.iter().map(|item| item.scenario_evidence_issues.len()).sum(),
-        joint_frontier_action_count: cases.iter().map(|item| item.joint_scenario_pareto_frontier_action_ids.len()).sum(),
-        rectangular_frontier_action_count: cases.iter().map(|item| item.rectangular_pareto_frontier_action_ids.len()).sum(),
+        scenario_evidence_issue_count: cases
+            .iter()
+            .map(|item| item.scenario_evidence_issues.len())
+            .sum(),
+        joint_frontier_action_count: cases
+            .iter()
+            .map(|item| item.joint_scenario_pareto_frontier_action_ids.len())
+            .sum(),
+        rectangular_frontier_action_count: cases
+            .iter()
+            .map(|item| item.rectangular_pareto_frontier_action_ids.len())
+            .sum(),
     };
 
     Ok(Evaluation {
@@ -711,14 +779,22 @@ mod tests {
     }
 
     fn case<'a>(evaluation: &'a Evaluation, id: &str) -> &'a CaseResult {
-        evaluation.cases.iter().find(|item| item.case_id == id).expect("case exists")
+        evaluation
+            .cases
+            .iter()
+            .find(|item| item.case_id == id)
+            .expect("case exists")
     }
 
     #[test]
     fn joint_scenarios_preserve_correlation_and_expose_rectangular_inflation() {
         let evaluation = evaluate(&fixture()).expect("fixture evaluates");
         let result = case(&evaluation, "correlated-common-loss-shift");
-        let metric = result.action_metrics.iter().find(|item| item.action_id == "alpha").expect("alpha metric exists");
+        let metric = result
+            .action_metrics
+            .iter()
+            .find(|item| item.action_id == "alpha")
+            .expect("alpha metric exists");
         assert_eq!(metric.worst_case_joint_regret.numerator, 0);
         assert_eq!(metric.worst_case_joint_regret.denominator, 1);
         assert_eq!(metric.worst_case_rectangular_regret.numerator, 1);
@@ -733,8 +809,16 @@ mod tests {
     fn action_rank_reversal_is_preserved_in_joint_regret() {
         let evaluation = evaluate(&fixture()).expect("fixture evaluates");
         let result = case(&evaluation, "action-rank-reversal");
-        let alpha = result.action_metrics.iter().find(|item| item.action_id == "alpha").expect("alpha exists");
-        let beta = result.action_metrics.iter().find(|item| item.action_id == "beta").expect("beta exists");
+        let alpha = result
+            .action_metrics
+            .iter()
+            .find(|item| item.action_id == "alpha")
+            .expect("alpha exists");
+        let beta = result
+            .action_metrics
+            .iter()
+            .find(|item| item.action_id == "beta")
+            .expect("beta exists");
         assert_eq!(alpha.worst_case_joint_regret.numerator, 4);
         assert_eq!(alpha.worst_case_joint_regret.denominator, 5);
         assert_eq!(beta.worst_case_joint_regret.numerator, 1);
@@ -781,7 +865,11 @@ mod tests {
     fn scenario_manifest_digest_binds_losses_not_only_scenario_ids() {
         let mut corpus = fixture();
         let scenario = &mut corpus.cases[0].loss_scenario_manifest.scenarios[0];
-        scenario.action_losses.get_mut("alpha").expect("loss exists").numerator = 1;
+        scenario
+            .action_losses
+            .get_mut("alpha")
+            .expect("loss exists")
+            .numerator = 1;
         assert!(evaluate(&corpus).is_err());
     }
 
