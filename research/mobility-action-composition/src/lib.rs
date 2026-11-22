@@ -131,7 +131,10 @@ pub struct QualifiedBatch {
 pub enum BatchBlock {
     InvalidProfile,
     TooFewActions,
-    TooManyActions { actual: usize, maximum: usize },
+    TooManyActions {
+        actual: usize,
+        maximum: usize,
+    },
     EmptyActionIdentity,
     DuplicateAction,
     DuplicateTicket,
@@ -142,32 +145,92 @@ pub enum BatchBlock {
     },
     EmptySharedContext,
     MixedSharedContext,
-    UnknownFootprint { action_id: String },
-    EmptyFootprintDigest { action_id: String },
-    EmptyStateKey { action_id: String },
-    DuplicateStateAccess { action_id: String, key: String },
-    InvalidInterval { action_id: String },
-    EmptyResourceId { action_id: String },
-    ResourceClaimKindMismatch { resource: String },
-    ActionCapacityExceeded { action_id: String, resource: String, amount: u64, capacity: u64 },
+    UnknownFootprint {
+        action_id: String,
+    },
+    EmptyFootprintDigest {
+        action_id: String,
+    },
+    EmptyStateKey {
+        action_id: String,
+    },
+    DuplicateStateAccess {
+        action_id: String,
+        key: String,
+    },
+    InvalidInterval {
+        action_id: String,
+    },
+    EmptyResourceId {
+        action_id: String,
+    },
+    ResourceClaimKindMismatch {
+        resource: String,
+    },
+    ActionCapacityExceeded {
+        action_id: String,
+        resource: String,
+        amount: u64,
+        capacity: u64,
+    },
     EmptyOwnerFamily,
     DuplicateRequiredOwnerFamily,
-    MissingOwnerCheck { left: String, right: String, owner: String },
-    DuplicateOwnerCheck { left: String, right: String, owner: String },
-    UnexpectedOwnerCheck { left: String, right: String, owner: String },
-    InvalidOwnerCheck { left: String, right: String, owner: String },
-    OwnerConflict { left: String, right: String, owner: String },
-    OwnerUnknown { left: String, right: String, owner: String },
-    StateConflict { left: String, right: String, key: String },
-    ExclusiveResourceConflict { left: String, right: String, resource: String },
-    UncomparableTimeBasis { left: String, right: String, resource: String },
-    CapacityProfileMismatch { resource: String },
+    MissingOwnerCheck {
+        left: String,
+        right: String,
+        owner: String,
+    },
+    DuplicateOwnerCheck {
+        left: String,
+        right: String,
+        owner: String,
+    },
+    UnexpectedOwnerCheck {
+        left: String,
+        right: String,
+        owner: String,
+    },
+    InvalidOwnerCheck {
+        left: String,
+        right: String,
+        owner: String,
+    },
+    OwnerConflict {
+        left: String,
+        right: String,
+        owner: String,
+    },
+    OwnerUnknown {
+        left: String,
+        right: String,
+        owner: String,
+    },
+    StateConflict {
+        left: String,
+        right: String,
+        key: String,
+    },
+    ExclusiveResourceConflict {
+        left: String,
+        right: String,
+        resource: String,
+    },
+    UncomparableTimeBasis {
+        left: String,
+        right: String,
+        resource: String,
+    },
+    CapacityProfileMismatch {
+        resource: String,
+    },
     CapacityExceeded {
         resource: String,
         peak_amount: u64,
         capacity: u64,
     },
-    CapacityArithmeticOverflow { resource: String },
+    CapacityArithmeticOverflow {
+        resource: String,
+    },
 }
 
 fn is_nonzero_digest(digest: &Digest) -> bool {
@@ -348,8 +411,10 @@ fn validate_pairwise_owner_checks(
     let mut indexed: BTreeMap<(ActionRef, ActionRef, String), &PairwiseOwnerCheck> =
         BTreeMap::new();
 
-    let known_actions: BTreeSet<_> =
-        footprints.iter().map(|footprint| footprint.action.clone()).collect();
+    let known_actions: BTreeSet<_> = footprints
+        .iter()
+        .map(|footprint| footprint.action.clone())
+        .collect();
 
     for check in checks {
         let (left, right) = pair_key(&check.left, &check.right);
@@ -384,8 +449,7 @@ fn validate_pairwise_owner_checks(
     let mut required_count = 0usize;
     for i in 0..footprints.len() {
         for j in (i + 1)..footprints.len() {
-            let (left, right) =
-                pair_key(&footprints[i].action, &footprints[j].action);
+            let (left, right) = pair_key(&footprints[i].action, &footprints[j].action);
             for owner in &profile.required_owner_families {
                 required_count += 1;
                 let check = indexed.get(&(left.clone(), right.clone(), owner.clone()));
@@ -429,9 +493,7 @@ fn validate_pairwise_owner_checks(
     Ok(required_count)
 }
 
-fn validate_state_access_conflicts(
-    footprints: &[ActionFootprint],
-) -> Result<(), BatchBlock> {
+fn validate_state_access_conflicts(footprints: &[ActionFootprint]) -> Result<(), BatchBlock> {
     for i in 0..footprints.len() {
         for j in (i + 1)..footprints.len() {
             for a in &footprints[i].state_accesses {
@@ -443,7 +505,8 @@ fn validate_state_access_conflicts(
                             key: a.key.clone(),
                         });
                     }
-                    if a.key == b.key && a.generation == b.generation
+                    if a.key == b.key
+                        && a.generation == b.generation
                         && (a.mode == AccessMode::Write || b.mode == AccessMode::Write)
                     {
                         return Err(BatchBlock::StateConflict {
@@ -459,9 +522,7 @@ fn validate_state_access_conflicts(
     Ok(())
 }
 
-fn validate_exclusive_claims(
-    footprints: &[ActionFootprint],
-) -> Result<(), BatchBlock> {
+fn validate_exclusive_claims(footprints: &[ActionFootprint]) -> Result<(), BatchBlock> {
     for i in 0..footprints.len() {
         for j in (i + 1)..footprints.len() {
             for a in &footprints[i].exclusive_claims {
@@ -546,11 +607,11 @@ fn validate_capacity_claims(
         let mut active = 0i128;
         let mut peak = 0i128;
         for event in events {
-            active = active
-                .checked_add(event.amount)
-                .ok_or_else(|| BatchBlock::CapacityArithmeticOverflow {
+            active = active.checked_add(event.amount).ok_or_else(|| {
+                BatchBlock::CapacityArithmeticOverflow {
                     resource: resource_id.clone(),
-                })?;
+                }
+            })?;
             peak = peak.max(active);
             if active < 0 {
                 return Err(BatchBlock::CapacityArithmeticOverflow {
@@ -780,11 +841,14 @@ mod tests {
         b.exclusive_claims[0].resource_id = a.exclusive_claims[0].resource_id.clone();
         b.exclusive_claims[0].interval.start = 20;
         b.exclusive_claims[0].interval.end = 30;
-        assert!(qualify_concurrent_batch(
-            &profile(),
-            &[a.clone(), b.clone()],
-            &checks(&a.action, &b.action),
-        ).is_ok());
+        assert!(
+            qualify_concurrent_batch(
+                &profile(),
+                &[a.clone(), b.clone()],
+                &checks(&a.action, &b.action),
+            )
+            .is_ok()
+        );
     }
 
     #[test]
@@ -844,11 +908,14 @@ mod tests {
             },
             ..claim
         }];
-        assert!(qualify_concurrent_batch(
-            &profile(),
-            &[a.clone(), b.clone()],
-            &checks(&a.action, &b.action),
-        ).is_ok());
+        assert!(
+            qualify_concurrent_batch(
+                &profile(),
+                &[a.clone(), b.clone()],
+                &checks(&a.action, &b.action),
+            )
+            .is_ok()
+        );
     }
 
     #[test]
@@ -1033,5 +1100,4 @@ mod tests {
             Err(BatchBlock::ResourceClaimKindMismatch { resource })
         );
     }
-
 }
