@@ -6,3 +6,4 @@ pub mod carrier_module_factory;
 
 pub mod battery_service_network;
 pub mod battery_charge_queue;
+pub mod mobility_flexibility_envelope;
