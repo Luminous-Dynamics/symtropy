@@ -55,7 +55,6 @@
       "additionalProperties": false,
       "required": [
         "prng_id",
-        "suite_id",
         "statistic_id",
         "seed",
         "replicate_count",
@@ -65,9 +64,7 @@
         "tail_probability_estimate",
         "monte_carlo_standard_error",
         "wilson_95_lower",
-        "wilson_95_upper",
-        "familywise_minimum_p_value",
-        "component_results"
+        "wilson_95_upper"
       ],
       "properties": {
         "prng_id": {
@@ -120,22 +117,6 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1
-        },
-        "suite_id": {
-          "type": "string"
-        },
-        "familywise_minimum_p_value": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "component_results": {
-          "type": "array",
-          "minItems": 5,
-          "maxItems": 5,
-          "items": {
-            "$ref": "#/$defs/component"
-          }
         }
       }
     },
@@ -422,86 +403,6 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 18446744073709552000
-        }
-      }
-    },
-    "component": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "statistic_id",
-        "observed_value",
-        "tail_method",
-        "tail_exceedances",
-        "lower_tail_exceedances",
-        "upper_tail_exceedances",
-        "monte_carlo_p_value",
-        "bonferroni_adjusted_p_value",
-        "tail_probability_estimate",
-        "monte_carlo_standard_error",
-        "wilson_95_lower",
-        "wilson_95_upper"
-      ],
-      "properties": {
-        "statistic_id": {
-          "type": "string"
-        },
-        "observed_value": {
-          "type": "number"
-        },
-        "tail_method": {
-          "type": "string"
-        },
-        "tail_exceedances": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 100000
-        },
-        "lower_tail_exceedances": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 0,
-          "maximum": 100000
-        },
-        "upper_tail_exceedances": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 0,
-          "maximum": 100000
-        },
-        "monte_carlo_p_value": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "bonferroni_adjusted_p_value": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "tail_probability_estimate": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "monte_carlo_standard_error": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "wilson_95_lower": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "wilson_95_upper": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
         }
       }
     }
