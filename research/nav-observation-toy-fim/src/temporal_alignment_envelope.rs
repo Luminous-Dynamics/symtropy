@@ -5,6 +5,7 @@
 //! probability, protection level or integrity certificate. The caller must
 //! independently qualify every clock, age, motion and lever-arm bound.
 
+use crate::student_t_pl::StudentTProtectionLevels;
 use std::f64::consts::PI;
 use std::fmt;
 
@@ -50,6 +51,7 @@ pub struct TemporalMisalignmentEnvelope {
 pub enum TemporalAlignmentError {
     NonFiniteOrNegativeInput,
     ClockDriftBoundTooLarge,
+    InvalidBaseProtectionLevel,
     NonFiniteOutput,
 }
 
@@ -58,6 +60,7 @@ impl fmt::Display for TemporalAlignmentError {
         match self {
             Self::NonFiniteOrNegativeInput => write!(f, "temporal and motion bounds must be finite and nonnegative"),
             Self::ClockDriftBoundTooLarge => write!(f, "relative clock drift bound must not exceed 1,000,000 ppm"),
+            Self::InvalidBaseProtectionLevel => write!(f, "base Student-t protection levels must be finite and nonnegative"),
             Self::NonFiniteOutput => write!(f, "temporal misalignment envelope overflowed or became non-finite"),
         }
     }
@@ -146,6 +149,41 @@ pub fn temporal_misalignment_envelope(
     Ok(output)
 }
 
+
+/// Add a deterministic temporal misregistration bound to an existing Student-t PL.
+///
+/// For any direction, the absolute projection of the position-bias vector is
+/// no larger than its Euclidean norm. Therefore `PL_total = PL_stat + delta_p`
+/// is a conservative triangle-inequality composition when `delta_p` is a
+/// validated hard bound. This function deliberately does not RSS-combine
+/// timing and estimator terms or assume their independence.
+pub fn inflate_student_t_protection_levels_by_temporal_bound(
+    base: StudentTProtectionLevels,
+    temporal: TemporalMisalignmentEnvelope,
+) -> Result<TemporallyInflatedStudentTProtectionLevels, TemporalAlignmentError> {
+    let base_values = [base.overall_pl_m, base.longitudinal_pl_m, base.lateral_pl_m];
+    if !base_values.iter().all(|value| value.is_finite() && *value >= 0.0) {
+        return Err(TemporalAlignmentError::InvalidBaseProtectionLevel);
+    }
+    let bias = temporal.total_position_misalignment_bound_m;
+    if !bias.is_finite() || bias < 0.0 {
+        return Err(TemporalAlignmentError::NonFiniteOutput);
+    }
+    let result = TemporallyInflatedStudentTProtectionLevels {
+        base_overall_pl_m: base.overall_pl_m,
+        base_longitudinal_pl_m: base.longitudinal_pl_m,
+        base_lateral_pl_m: base.lateral_pl_m,
+        temporal_position_bias_bound_m: bias,
+        inflated_overall_pl_m: base.overall_pl_m + bias,
+        inflated_longitudinal_pl_m: base.longitudinal_pl_m + bias,
+        inflated_lateral_pl_m: base.lateral_pl_m + bias,
+    };
+    let inflated = [result.inflated_overall_pl_m, result.inflated_longitudinal_pl_m, result.inflated_lateral_pl_m];
+    if !inflated.iter().all(|value| value.is_finite()) {
+        return Err(TemporalAlignmentError::NonFiniteOutput);
+    }
+    Ok(result)
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -217,6 +255,42 @@ mod tests {
         assert!(stale_observation.total_position_misalignment_bound_m > fast_sync.total_position_misalignment_bound_m);
     }
 
+    #[test]
+    fn temporal_bias_is_added_to_statistical_pl_without_independence_assumption() {
+        let temporal = temporal_misalignment_envelope(
+            clock(0.01, 0.0, 0.0, 0.02),
+            motion(2.0, 0.0, 0.0, 0.0, 0.0),
+        ).unwrap();
+        let base = StudentTProtectionLevels {
+            degrees_of_freedom: 5.0,
+            k_tir_2d: 2.0,
+            maximum_eigenvalue: 4.0,
+            overall_pl_m: 4.0,
+            longitudinal_pl_m: 3.0,
+            lateral_pl_m: 2.0,
+        };
+        let combined = inflate_student_t_protection_levels_by_temporal_bound(base, temporal).unwrap();
+        assert!((combined.temporal_position_bias_bound_m - 0.06).abs() < 1.0e-12);
+        assert!((combined.inflated_overall_pl_m - 4.06).abs() < 1.0e-12);
+        assert!((combined.inflated_longitudinal_pl_m - 3.06).abs() < 1.0e-12);
+        assert!((combined.inflated_lateral_pl_m - 2.06).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn invalid_base_protection_level_and_overflow_inflation_fail_closed() {
+        let zero = temporal_misalignment_envelope(clock(0.0, 0.0, 0.0, 0.0), motion(0.0, 0.0, 0.0, 0.0, 0.0)).unwrap();
+        let invalid = StudentTProtectionLevels {
+            degrees_of_freedom: 5.0,
+            k_tir_2d: 2.0,
+            maximum_eigenvalue: 4.0,
+            overall_pl_m: f64::NAN,
+            longitudinal_pl_m: 3.0,
+            lateral_pl_m: 2.0,
+        };
+        assert_eq!(inflate_student_t_protection_levels_by_temporal_bound(invalid, zero), Err(TemporalAlignmentError::InvalidBaseProtectionLevel));
+        let overflow_temporal = temporal_misalignment_envelope(clock(0.0, 0.0, 0.0, 1.0e200), motion(1.0e200, 0.0, 0.0, 0.0, 0.0));
+        assert_eq!(overflow_temporal, Err(TemporalAlignmentError::NonFiniteOutput));
+    }
     #[test]
     fn invalid_inputs_and_unreasonable_clock_drift_fail_closed() {
         assert_eq!(temporal_misalignment_envelope(clock(-0.1, 0.0, 0.0, 0.0), motion(1.0, 0.0, 0.0, 0.0, 0.0)), Err(TemporalAlignmentError::NonFiniteOrNegativeInput));
