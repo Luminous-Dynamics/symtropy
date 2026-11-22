@@ -59,7 +59,8 @@ pub enum TraceEventKind {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TraceEvent {
     pub event_id: String,
-    /// Strictly increasing logical order in this serialized trace.
+    /// Strictly increasing deterministic serialization order. This is not
+    /// itself a happens-before claim; causal order is expressed by predecessors.
     pub logical_sequence: u64,
     pub kind: TraceEventKind,
     pub actor_id: String,
@@ -77,6 +78,8 @@ pub struct FailureSignature {
     pub violation_class: String,
     /// Stable event identity, not an array index or wall-clock timestamp.
     pub witness_event_id: String,
+    /// Commitment to the normalized violating state/observation at the witness.
+    pub witness_state_commitment: Commitment,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -166,7 +169,7 @@ pub enum ReplayDeterminism {
 pub trait ReplayOracle {
     fn revision(&self) -> &str;
 
-    fn replay(&self, seed: u64, events: &[TraceEvent]) -> ReplayOutcome;
+    fn replay(&self, bundle: &TraceBundle) -> ReplayOutcome;
 }
 
 /// Re-run the exact bundle repeatedly to test replay determinism before
@@ -189,9 +192,9 @@ pub fn check_replay_determinism<O: ReplayOracle>(
         ));
     }
 
-    let first = oracle.replay(bundle.header.replay_seed, &bundle.events);
+    let first = oracle.replay(bundle);
     for run in 2..=repetitions {
-        let next = oracle.replay(bundle.header.replay_seed, &bundle.events);
+        let next = oracle.replay(bundle);
         if next != first {
             return Ok(ReplayDeterminism::Nondeterministic {
                 runs: run,
@@ -293,6 +296,7 @@ fn validate_events(
     if !nonempty(&target_failure.property_id)
         || !nonempty(&target_failure.violation_class)
         || !nonempty(&target_failure.witness_event_id)
+        || !nonzero(&target_failure.witness_state_commitment)
     {
         return Err(TraceHoldReason::MissingFailureSignature);
     }
@@ -417,7 +421,7 @@ fn chunks(length: usize, count: usize) -> Vec<Vec<usize>> {
 fn preserves_target<O: ReplayOracle>(
     candidate: &[TraceEvent],
     target: &FailureSignature,
-    header: &TraceHeader,
+    original_bundle: &TraceBundle,
     oracle: &O,
     calls: &mut usize,
     budget: usize,
@@ -428,9 +432,11 @@ fn preserves_target<O: ReplayOracle>(
     if validate_events(candidate, target).is_err() {
         return Some(false);
     }
+    let mut candidate_bundle = original_bundle.clone();
+    candidate_bundle.events = candidate.to_vec();
     *calls += 1;
     Some(matches!(
-        oracle.replay(header.replay_seed, candidate),
+        oracle.replay(&candidate_bundle),
         ReplayOutcome::Failure(ref signature) if signature == target
     ))
 }
@@ -467,7 +473,7 @@ pub fn minimize_trace<O: ReplayOracle>(
 
     let mut calls = 1_usize;
     if !matches!(
-        oracle.replay(bundle.header.replay_seed, &bundle.events),
+        oracle.replay(bundle),
         ReplayOutcome::Failure(ref signature) if signature == &bundle.header.target_failure
     ) {
         return Err(MinimizationError::BaselineDoesNotReproduce);
@@ -637,6 +643,7 @@ mod tests {
             property_id: "DownstreamFenceClosesPendingCommand".to_owned(),
             violation_class: "old_command_executes_after_fence".to_owned(),
             witness_event_id: "late-old-apply".to_owned(),
+            witness_state_commitment: commitment(5),
         }
     }
 
@@ -647,7 +654,8 @@ mod tests {
             "late-execution-oracle-v1"
         }
 
-        fn replay(&self, _seed: u64, events: &[TraceEvent]) -> ReplayOutcome {
+        fn replay(&self, bundle: &TraceBundle) -> ReplayOutcome {
+            let events = &bundle.events;
             let fence = events
                 .iter()
                 .position(|event| event.kind == TraceEventKind::DownstreamGraphFenced);
@@ -679,7 +687,7 @@ mod tests {
             "late-execution-oracle-v1"
         }
 
-        fn replay(&self, _seed: u64, _events: &[TraceEvent]) -> ReplayOutcome {
+        fn replay(&self, _bundle: &TraceBundle) -> ReplayOutcome {
             ReplayOutcome::Pass
         }
     }
@@ -691,11 +699,12 @@ mod tests {
             "late-execution-oracle-v1"
         }
 
-        fn replay(&self, _seed: u64, _events: &[TraceEvent]) -> ReplayOutcome {
+        fn replay(&self, _bundle: &TraceBundle) -> ReplayOutcome {
             ReplayOutcome::Failure(FailureSignature {
                 property_id: "DifferentProperty".to_owned(),
                 violation_class: "different_violation".to_owned(),
                 witness_event_id: "late-old-apply".to_owned(),
+                witness_state_commitment: commitment(99),
             })
         }
     }
@@ -1032,7 +1041,7 @@ mod tests {
             "alternating-oracle-v1"
         }
 
-        fn replay(&self, _seed: u64, _events: &[TraceEvent]) -> ReplayOutcome {
+        fn replay(&self, _bundle: &TraceBundle) -> ReplayOutcome {
             let call = self.calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             if call.is_multiple_of(2) {
                 ReplayOutcome::Pass
