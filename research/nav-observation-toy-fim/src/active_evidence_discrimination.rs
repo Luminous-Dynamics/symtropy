@@ -145,7 +145,11 @@ pub fn plan_active_evidence_with_hypothesis_discrimination(
                 report.action_id,
             ));
         }
-        if report.hypothesis_count == 0 {
+        if report.hypothesis_count == 0
+            || report.hypothesis_inventory_sha256.iter().all(|byte| *byte == 0)
+            || report.outcome_model_sha256.iter().all(|byte| *byte == 0)
+            || report.normalization_sha256.iter().all(|byte| *byte == 0)
+        {
             return Err(ActiveEvidenceDiscriminationError::InvalidDiscriminationReport(
                 report.action_id,
             ));
@@ -156,34 +160,52 @@ pub fn plan_active_evidence_with_hypothesis_discrimination(
             .and_then(|value| value.checked_div(2))
             .ok_or(ActiveEvidenceDiscriminationError::HypothesisPairCountOverflow)?;
 
-        let distinguishable_count = report
-            .pair_separations
-            .iter()
-            .filter(|pair| pair.guaranteed_distinguishable)
-            .count();
-        let all_pair_values_valid = report.pair_separations.iter().all(|pair| {
-            pair.lower_hypothesis_id != 0
+        let mut pair_ids = BTreeSet::new();
+        let mut observed_hypothesis_ids = BTreeSet::new();
+        let mut distinguishable_count = 0_usize;
+        let mut minimum_positive_gap = None;
+        let mut maximum_pair_gap = 0.0_f64;
+        let mut all_pair_values_valid = true;
+
+        for pair in &report.pair_separations {
+            let valid = pair.lower_hypothesis_id != 0
                 && pair.upper_hypothesis_id > pair.lower_hypothesis_id
                 && pair.normalized_outcome_gap.is_finite()
                 && pair.normalized_outcome_gap >= 0.0
                 && pair.guaranteed_distinguishable == (pair.normalized_outcome_gap > 0.0)
-        });
+                && pair_ids.insert((pair.lower_hypothesis_id, pair.upper_hypothesis_id));
+            if !valid {
+                all_pair_values_valid = false;
+                break;
+            }
+            observed_hypothesis_ids.insert(pair.lower_hypothesis_id);
+            observed_hypothesis_ids.insert(pair.upper_hypothesis_id);
+            maximum_pair_gap = maximum_pair_gap.max(pair.normalized_outcome_gap);
+            if pair.guaranteed_distinguishable {
+                distinguishable_count += 1;
+                minimum_positive_gap = Some(
+                    minimum_positive_gap.map_or(pair.normalized_outcome_gap, |current: f64| {
+                        current.min(pair.normalized_outcome_gap)
+                    }),
+                );
+            }
+        }
+
         if report.hypothesis_pair_count != pair_count
             || report.pair_separations.len() != pair_count
+            || pair_ids.len() != pair_count
+            || (report.hypothesis_count > 1
+                && observed_hypothesis_ids.len() != report.hypothesis_count)
             || report.distinguishable_pair_count != distinguishable_count
             || report.ambiguous_pair_count != pair_count - distinguishable_count
             || !all_pair_values_valid
-            || !report.maximum_pair_gap.is_finite()
-            || report.maximum_pair_gap < 0.0
-            || report.minimum_positive_gap.is_some_and(|gap| !gap.is_finite() || gap <= 0.0)
-            || (distinguishable_count == 0 && report.minimum_positive_gap.is_some())
-            || (distinguishable_count > 0 && report.minimum_positive_gap.is_none())
+            || report.maximum_pair_gap != maximum_pair_gap
+            || report.minimum_positive_gap != minimum_positive_gap
         {
             return Err(ActiveEvidenceDiscriminationError::InvalidDiscriminationReport(
                 report.action_id,
             ));
         }
-
         match (inventory_commitment, expected_hypothesis_count, expected_pair_count) {
             (None, None, None) => {
                 inventory_commitment = Some(report.hypothesis_inventory_sha256);
