@@ -90,7 +90,7 @@ Sol-Atlas #606 is explicit that synthetic chain receipts are not canonical cross
 ### Mycelix MFG-PROC migration and offer sequence
 
 - MFG-PROC-001A #6531 / draft PR #6532 pins references to Symthaea PR #5701 at `0b3feb49a3c2e9c1c1748ca2a0c0ff40ed320ecd`. Symthaea #5901 remains the current-main replay owner. Until source objects are resolved by a future exact resolver, these are syntactically present, not verified.
-- MFG-PROC-001B #6533 defines provider/site/resource offers, process/profile/configuration references, qualification evidence refs and declarations of capacity/calendar. It deliberately distinguishes declared capacity, calendar availability, bookable capacity, reserved capacity and observed output.
+- MFG-PROC-001B #6533 / draft PR #6534 now provides the v0.1 resource-offer schema, positive declared-only example and 16 synthetic adversarial cases. It distinguishes provider signer declaration, exact owner refs, declared capacity, calendar source, bookable capacity, reservation and observed output. The exact-head push schema/fixture workflow passed; the PR-event rerun was in progress at last inspection.
 - Symtropy #6786 consumes only the raw, owner-native disposition after schema/version/digest pinning. It must not promote offer publication into resource availability or qualified capability.
 
 ## 3. Required adapter contract
