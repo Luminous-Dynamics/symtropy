@@ -638,6 +638,33 @@ mod tests {
         NativeApplicationGate::new(ControllerEpoch::new(5).unwrap(), queue_clock()).unwrap()
     }
 
+    fn assert_rejected_at_application(
+        action: m2::ActionTicket,
+        live: LiveApplicationSnapshot,
+        expected: m2::AdmissionError,
+    ) {
+        let provider = StaticProvider::new(live);
+        let mut gate = gate();
+        gate.enqueue(1, &queue_now(100), 200, action, "fixture".into())
+            .unwrap();
+        let mut sink = RecordingSink {
+            calls: 0,
+            result: boundary::NativeApplicationResult::Accepted,
+        };
+        let result = gate
+            .apply_next_at(&queue_now(150), &provider, &mut sink)
+            .unwrap();
+        assert!(matches!(
+            result,
+            Some(EpochCommandApplication::Applied {
+                result: Err(AdapterError::M2Admission(actual)),
+                ..
+            }) if actual == expected
+        ));
+        assert_eq!(sink.calls, 0);
+        assert!(!gate.is_mutation_pending());
+    }
+
     #[test]
     fn valid_ticket_reaches_native_sink_once_and_holds_mutation_slot() {
         let action = ticket();
@@ -1065,4 +1092,79 @@ mod tests {
         assert!(gate.is_mutation_pending());
         assert_eq!(sink.calls, 1);
     }
+    #[test]
+    fn distinct_m2_invalidations_all_block_the_native_sink() {
+        // Operational design domain revision.
+        let action = ticket();
+        let mut live = snapshot(&action, 5, 1_050);
+        live.m2_context.operation.odd_revision = digest(91);
+        assert_rejected_at_application(
+            action,
+            live,
+            m2::AdmissionError::OddRevisionMismatch,
+        );
+
+        // Mode revision.
+        let action = ticket();
+        let mut live = snapshot(&action, 5, 1_050);
+        live.m2_context.operation.mode_revision = digest(92);
+        assert_rejected_at_application(
+            action,
+            live,
+            m2::AdmissionError::ModeRevisionMismatch,
+        );
+
+        // Revoked authority and authority epoch drift.
+        let action = ticket();
+        let mut live = snapshot(&action, 5, 1_050);
+        live.m2_context.authority_revoked = true;
+        assert_rejected_at_application(
+            action,
+            live,
+            m2::AdmissionError::AuthorityRevoked,
+        );
+
+        let action = ticket();
+        let mut live = snapshot(&action, 5, 1_050);
+        live.m2_context.authority_epoch += 1;
+        assert_rejected_at_application(
+            action,
+            live,
+            m2::AdmissionError::AuthorityEpochMismatch,
+        );
+
+        // Navigation sequence and qualified time-basis drift.
+        let action = ticket();
+        let mut live = snapshot(&action, 5, 1_050);
+        live.m2_context.navigation_source_sequence = 6;
+        assert_rejected_at_application(
+            action,
+            live,
+            m2::AdmissionError::NavigationSequenceStale,
+        );
+
+        let action = ticket();
+        let mut live = snapshot(&action, 5, 1_050);
+        if let m2::NavigationTimeEvidence::Qualified {
+            comparison_clock, ..
+        } = &mut live.m2_context.navigation_time
+        {
+            comparison_clock.boot_epoch_id = "different-boot".into();
+        } else {
+            panic!("fixture requires qualified navigation time");
+        }
+        assert_rejected_at_application(
+            action,
+            live,
+            m2::AdmissionError::NavigationTimeComparisonClockMismatch,
+        );
+
+        // Exclusive M2 ticket expiry boundary (distinct from the queue lease).
+        let mut action = ticket();
+        action.expires_at_ticks = 1_050;
+        let live = snapshot(&action, 5, 1_050);
+        assert_rejected_at_application(action, live, m2::AdmissionError::TicketExpired);
+    }
+
+
 }
