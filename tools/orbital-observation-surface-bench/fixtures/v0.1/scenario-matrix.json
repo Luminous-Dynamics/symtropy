@@ -1,0 +1,168 @@
+{
+  "schema": "luminous.orbital-observation-surface-scenario-matrix.v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "stateful-marked-observation-simulation-only",
+  "first_kernel": {
+    "implemented": [
+      "mark_dependent_logistic_pod",
+      "fixed_nonparalyzable_dead_time",
+      "shared_common_cause_outage_intervals",
+      "channel_specific_outage_intervals",
+      "poisson_false_positive_arrivals"
+    ],
+    "deferred": [
+      "random_dead_time",
+      "rate_dependent_saturation",
+      "waveform_confusion",
+      "event_association_jitter",
+      "self_exciting_latent_process",
+      "calibration_drift",
+      "joint_estimation",
+      "active_design"
+    ]
+  },
+  "scenarios": [
+    {
+      "id": "marked_pod_fixed_deadtime",
+      "family": "mark_and_history",
+      "truth": {
+        "mark_dependent": true,
+        "fixed_dead_time": true,
+        "shared_outage": false,
+        "false_positives": true
+      },
+      "required": {
+        "amplitude_slope_nonzero": true,
+        "duration_slope_nonzero": true,
+        "dead_time_positive": true
+      }
+    },
+    {
+      "id": "shared_common_cause_loss",
+      "family": "cross_channel_dependence",
+      "truth": {
+        "mark_dependent": false,
+        "fixed_dead_time": false,
+        "shared_outage": true,
+        "false_positives": false
+      },
+      "required": {
+        "two_or_more_channels": true,
+        "shared_outage_intervals": true
+      }
+    },
+    {
+      "id": "channel_local_loss",
+      "family": "cross_channel_dependence",
+      "truth": {
+        "mark_dependent": false,
+        "fixed_dead_time": false,
+        "shared_outage": false,
+        "false_positives": false
+      },
+      "required": {
+        "channel_specific_outage": true
+      }
+    },
+    {
+      "id": "false_positive_background",
+      "family": "false_alarms",
+      "truth": {
+        "mark_dependent": false,
+        "fixed_dead_time": false,
+        "shared_outage": false,
+        "false_positives": true
+      },
+      "required": {
+        "false_positive_rate_positive": true
+      }
+    },
+    {
+      "id": "capture_drift_without_physical_drift",
+      "family": "identifiability_adversary",
+      "truth": {
+        "physical_trend": false,
+        "observation_trend": true
+      },
+      "deferred_to_tournament": true
+    },
+    {
+      "id": "firmware_change_step",
+      "family": "configuration_shift",
+      "truth": {
+        "configuration_step": true
+      },
+      "deferred_to_tournament": true
+    },
+    {
+      "id": "random_deadtime",
+      "family": "stateful_detector",
+      "truth": {
+        "random_dead_time": true
+      },
+      "deferred_to_tournament": true
+    },
+    {
+      "id": "rate_saturation_pileup",
+      "family": "stateful_detector",
+      "truth": {
+        "rate_dependent_loss": true,
+        "pileup": true
+      },
+      "deferred_to_tournament": true
+    },
+    {
+      "id": "self_exciting_events",
+      "family": "physical_process",
+      "truth": {
+        "hawkes_or_clustered": true
+      },
+      "deferred_to_tournament": true
+    },
+    {
+      "id": "shared_reference_failure",
+      "family": "common_cause",
+      "truth": {
+        "reference_not_independent": true
+      },
+      "deferred_to_tournament": true
+    }
+  ],
+  "metrics": [
+    "per_channel_hit_rate",
+    "per_channel_deadtime_misses",
+    "common_cause_misses",
+    "channel_outage_misses",
+    "false_positive_count",
+    "pod_calibration_by_mark_stratum",
+    "95pct_interval_coverage",
+    "false_physical_trend_commit_rate",
+    "abstention_calibration",
+    "reference_trials_to_decision"
+  ],
+  "targets": {
+    "nominal_95pct_coverage": "empirical coverage consistent with 95% within preregistered Monte Carlo error per in-scope stratum",
+    "false_physical_trend_commits": "one-sided 95% upper confidence bound below 1% in detector-only drift adversarial suite",
+    "sample_efficiency": "at least 25% fewer independent reference trials than uniform calibration at equal decision error/confidence on held-out strata"
+  },
+  "deterministic_streams": [
+    "latent_event_trace",
+    "per_channel_detection",
+    "per_channel_false_positive",
+    "shared_common_cause"
+  ],
+  "replication_plan": {
+    "false_trend_commit_target": {
+      "threshold": 0.01,
+      "one_sided_confidence": 0.95,
+      "minimum_independent_episodes_if_zero_observed": 299,
+      "adjustment": "additional episodes are required for multiple strata or family-wise claims"
+    },
+    "coverage_monte_carlo_precision": {
+      "nominal_coverage": 0.95,
+      "approximate_absolute_precision": 0.01,
+      "approximate_independent_replicates_per_stratum": 1825,
+      "final_interval_method": "exact binomial or preregistered justified method"
+    }
+  }
+}

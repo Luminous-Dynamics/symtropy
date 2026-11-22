@@ -1,0 +1,77 @@
+name: orbital observation-surface benchmark v0.1
+
+on:
+  pull_request:
+    branches:
+      - research/orbital-pod-trend-bounds-v0-2
+    paths:
+      - "tools/orbital-observation-surface-bench/**"
+      - "research/orbital/OBSERVATION_SURFACE_IDENTIFIABILITY_BENCHMARK_V0_3.md"
+      - ".github/workflows/orbital-observation-surface-bench.yml"
+  push:
+    branches:
+      - research/orbital-observation-surface-identifiability-v0-3
+
+permissions:
+  contents: read
+
+concurrency:
+  group: orbital-observation-surface-v0-1-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate frozen corpus against JSON Schema
+        run: |
+          node tools/orbital-observation-surface-bench/tests/validate_schema.mjs \
+            tools/orbital-observation-surface-bench/schema/v0.1/observation-surface-corpus.schema.json \
+            tools/orbital-observation-surface-bench/fixtures/v0.1/observation-surface-cases.json
+      - name: Verify rustfmt
+        run: cargo fmt --manifest-path tools/orbital-observation-surface-bench/Cargo.toml -- --check
+      - name: Run Rust unit tests
+        run: cargo test --locked --manifest-path tools/orbital-observation-surface-bench/Cargo.toml --all-targets
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path tools/orbital-observation-surface-bench/Cargo.toml --all-targets -- -D warnings
+      - name: Generate source-pinned synthetic receipt
+        run: |
+          mkdir -p artifacts
+          cargo run --locked --manifest-path tools/orbital-observation-surface-bench/Cargo.toml -- \
+            tools/orbital-observation-surface-bench/fixtures/v0.1/observation-surface-cases.json \
+            --source-commit "${GITHUB_SHA}" \
+            --observations-output artifacts/observations-v0.1.json > artifacts/observation-surface-receipt-v0.1.json
+      - name: Run independent JavaScript oracle
+        run: |
+          node tools/orbital-observation-surface-bench/tests/reference_oracle.mjs \
+            tools/orbital-observation-surface-bench/fixtures/v0.1/observation-surface-cases.json \
+            > artifacts/observation-surface-oracle-v0.1.json
+      - name: Validate generated receipt against JSON Schema
+        run: |
+          node tools/orbital-observation-surface-bench/tests/validate_schema.mjs \
+            tools/orbital-observation-surface-bench/schema/v0.1/observation-surface-receipt.schema.json \
+            artifacts/observation-surface-receipt-v0.1.json
+      - name: Validate exported observation stream against JSON Schema
+        run: |
+          node tools/orbital-observation-surface-bench/tests/validate_schema.mjs \
+            tools/orbital-observation-surface-bench/schema/v0.1/observation-stream.schema.json \
+            artifacts/observations-v0.1.json
+      - name: Compare receipt, oracle and estimator-only stream
+        run: |
+          node tools/orbital-observation-surface-bench/tests/compare_receipts.mjs \
+            artifacts/observation-surface-receipt-v0.1.json \
+            artifacts/observation-surface-oracle-v0.1.json \
+            artifacts/observations-v0.1.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: orbital-observation-surface-v0.1-${{ github.sha }}
+          path: artifacts/
+          if-no-files-found: error

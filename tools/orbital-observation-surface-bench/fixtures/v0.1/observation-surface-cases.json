@@ -1,0 +1,223 @@
+{
+  "schema": "luminous.orbital-observation-surface.corpus.v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "stateful-marked-observation-simulation-only",
+  "scenarios": [
+    {
+      "scenario_id": "marked-pod-with-dead-time-and-outages",
+      "configuration_id": "synthetic-config-a",
+      "events": [
+        {
+          "event_id": "a01",
+          "time_fraction": 0.08,
+          "amplitude": 0.35,
+          "duration": 0.02
+        },
+        {
+          "event_id": "a02",
+          "time_fraction": 0.11,
+          "amplitude": 1,
+          "duration": 0.03
+        },
+        {
+          "event_id": "a03",
+          "time_fraction": 0.19,
+          "amplitude": 2.4,
+          "duration": 0.06
+        },
+        {
+          "event_id": "a04",
+          "time_fraction": 0.27,
+          "amplitude": 0.55,
+          "duration": 0.02
+        },
+        {
+          "event_id": "a05",
+          "time_fraction": 0.33,
+          "amplitude": 1.8,
+          "duration": 0.04
+        },
+        {
+          "event_id": "a06",
+          "time_fraction": 0.43,
+          "amplitude": 2,
+          "duration": 0.05
+        },
+        {
+          "event_id": "a07",
+          "time_fraction": 0.51,
+          "amplitude": 0.8,
+          "duration": 0.025
+        },
+        {
+          "event_id": "a08",
+          "time_fraction": 0.66,
+          "amplitude": 3.2,
+          "duration": 0.08
+        },
+        {
+          "event_id": "a09",
+          "time_fraction": 0.72,
+          "amplitude": 0.45,
+          "duration": 0.02
+        },
+        {
+          "event_id": "a10",
+          "time_fraction": 0.89,
+          "amplitude": 1.4,
+          "duration": 0.04
+        }
+      ],
+      "shared_common_cause_outages": [
+        {
+          "start": 0.4,
+          "end": 0.47
+        }
+      ],
+      "channels": [
+        {
+          "channel_id": "sensor-alpha",
+          "logit_intercept": 2,
+          "time_slope": 0.4,
+          "log_amplitude_slope": 0.8,
+          "log_duration_slope": 0.35,
+          "fixed_dead_time": 0.075,
+          "false_positive_rate": 0.5,
+          "channel_outages": [],
+          "detection_seed": 101,
+          "false_positive_seed": 102
+        },
+        {
+          "channel_id": "sensor-beta",
+          "logit_intercept": 0.2,
+          "time_slope": -1.1,
+          "log_amplitude_slope": 1.4,
+          "log_duration_slope": 0.2,
+          "fixed_dead_time": 0.025,
+          "false_positive_rate": 2.5,
+          "channel_outages": [
+            {
+              "start": 0.7,
+              "end": 0.77
+            }
+          ],
+          "detection_seed": 201,
+          "false_positive_seed": 202
+        }
+      ]
+    },
+    {
+      "scenario_id": "shared-common-cause-suppression",
+      "configuration_id": "synthetic-config-b",
+      "events": [
+        {
+          "event_id": "b01",
+          "time_fraction": 0.08,
+          "amplitude": 1,
+          "duration": 0.02
+        },
+        {
+          "event_id": "b02",
+          "time_fraction": 0.12,
+          "amplitude": 1.2,
+          "duration": 0.03
+        },
+        {
+          "event_id": "b03",
+          "time_fraction": 0.19,
+          "amplitude": 0.8,
+          "duration": 0.02
+        },
+        {
+          "event_id": "b04",
+          "time_fraction": 0.54,
+          "amplitude": 2,
+          "duration": 0.05
+        }
+      ],
+      "shared_common_cause_outages": [
+        {
+          "start": 0.1,
+          "end": 0.17
+        }
+      ],
+      "channels": [
+        {
+          "channel_id": "sensor-gamma",
+          "logit_intercept": 5,
+          "time_slope": 0,
+          "log_amplitude_slope": 0,
+          "log_duration_slope": 0,
+          "fixed_dead_time": 0,
+          "false_positive_rate": 0,
+          "channel_outages": [],
+          "detection_seed": 301,
+          "false_positive_seed": 302
+        },
+        {
+          "channel_id": "sensor-delta",
+          "logit_intercept": 5,
+          "time_slope": 0,
+          "log_amplitude_slope": 0,
+          "log_duration_slope": 0,
+          "fixed_dead_time": 0,
+          "false_positive_rate": 0,
+          "channel_outages": [],
+          "detection_seed": 401,
+          "false_positive_seed": 402
+        }
+      ]
+    },
+    {
+      "scenario_id": "separate-false-positive-process",
+      "configuration_id": "synthetic-config-c",
+      "events": [
+        {
+          "event_id": "c01",
+          "time_fraction": 0.15,
+          "amplitude": 0.2,
+          "duration": 0.01
+        },
+        {
+          "event_id": "c02",
+          "time_fraction": 0.62,
+          "amplitude": 0.9,
+          "duration": 0.03
+        },
+        {
+          "event_id": "c03",
+          "time_fraction": 0.91,
+          "amplitude": 1.8,
+          "duration": 0.05
+        }
+      ],
+      "shared_common_cause_outages": [],
+      "channels": [
+        {
+          "channel_id": "sensor-epsilon",
+          "logit_intercept": 1,
+          "time_slope": 0.2,
+          "log_amplitude_slope": 1.1,
+          "log_duration_slope": 0.3,
+          "fixed_dead_time": 0.01,
+          "false_positive_rate": 7,
+          "channel_outages": [],
+          "detection_seed": 501,
+          "false_positive_seed": 502
+        },
+        {
+          "channel_id": "sensor-zeta",
+          "logit_intercept": -0.5,
+          "time_slope": 0.1,
+          "log_amplitude_slope": 0.7,
+          "log_duration_slope": 0.1,
+          "fixed_dead_time": 0,
+          "false_positive_rate": 12,
+          "channel_outages": [],
+          "detection_seed": 601,
+          "false_positive_seed": 602
+        }
+      ]
+    }
+  ]
+}
