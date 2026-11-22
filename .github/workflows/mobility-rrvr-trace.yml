@@ -32,6 +32,15 @@ jobs:
           set -euo pipefail
           jq empty research/mobility-rrvr-trace/schemas/trace_bundle_v0_1.schema.json
           jq empty research/mobility-rrvr-trace/fixtures/trace_minimizer_cases_v0_1.json
+          jq empty research/mobility-rrvr-trace/fixtures/late_old_command_after_fence_trace_v0_1.json
+          jq -e '
+            . as $trace
+            | ($trace.header.format_version == "0.1")
+              and ($trace.events | any(.event_id == $trace.header.target_failure.witness_event_id and .kind == "old_command_applied"))
+              and ($trace.events | any(.event_id == "late-old-apply" and (.predecessor_event_ids | index("downstream-fence") != null) and (.raw_artifact_ids | index("raw-event-stream") != null)))
+              and ($trace.events | map(.clock_observation.clock_id? // empty) | unique | length >= 2)
+              and ($trace.artifacts | any(.artifact_id == "raw-event-stream"))
+          ' research/mobility-rrvr-trace/fixtures/late_old_command_after_fence_trace_v0_1.json
           jq -e '
             .cases as $cases
             | .version == "0.1"
