@@ -78,6 +78,12 @@ pub use horseshoe_hmc::{
     HorseshoeHmcDraw,
 };
 
+mod robust_dependence_design;
+pub use robust_dependence_design::{
+    rank_two_source_dependence_designs, DependenceRobustDesignCandidate,
+    DependenceRobustDesignRanking, DependenceRobustDesignScore, DependenceRobustNumericalStatus,
+};
+
 mod sampler_diagnostics;
 pub use sampler_diagnostics::{
     diagnose_grouped_hmc_quantity, diagnose_horseshoe_coefficient, GroupedHmcQuantity,
