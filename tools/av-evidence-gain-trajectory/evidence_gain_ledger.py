@@ -177,6 +177,7 @@ def _validate_action_forecast(
             "budget_cost_units",
             "action_catalogue",
             "selected_action_id",
+            "selected_manifest_sha256",
             "forecasts",
         },
         f"turn[{turn_index}].action_forecast",
@@ -212,6 +213,7 @@ def _validate_action_forecast(
     for action_id, action in catalogue.items():
         if set(action) != {
             "action_id",
+            "parameter_manifest_sha256",
             "modality",
             "description",
             "cost_units",
@@ -220,6 +222,7 @@ def _validate_action_forecast(
             "information_gain_proxy",
         }:
             raise EvidenceGainError(f"{turn_id}/{action_id}: action catalogue must follow the #6753 workload contract")
+        _sha256(action["parameter_manifest_sha256"], f"{turn_id}/{action_id}.parameter_manifest_sha256")
         if not isinstance(action["modality"], str) or action["modality"] not in {"audio", "video", "other"}:
             raise EvidenceGainError(f"{turn_id}/{action_id}: invalid modality")
         _nonempty(action["description"], f"{turn_id}/{action_id}.description")
@@ -262,12 +265,21 @@ def _validate_action_forecast(
             raise EvidenceGainError(f"{turn_id}: stop/no-acquisition forecast must be exactly zero")
 
     selected = _nonempty(forecast["selected_action_id"], f"{turn_id}.selected_action_id")
+    selected_manifest_raw = forecast["selected_manifest_sha256"]
     if selected not in expected:
         raise EvidenceGainError(f"{turn_id}: selected action was not forecast")
     if selected == STOP_ACTION_ID:
+        if selected_manifest_raw is not None:
+            raise EvidenceGainError(f"{turn_id}: stop/no-acquisition must not carry a manifest digest")
+        selected_manifest_digest = None
         feasible = True
     else:
         action = catalogue[selected]
+        selected_manifest_digest = _sha256(
+            selected_manifest_raw, f"{turn_id}.selected_manifest_sha256"
+        )
+        if selected_manifest_digest != action["parameter_manifest_sha256"]:
+            raise EvidenceGainError(f"{turn_id}: selected manifest digest differs from action catalogue")
         feasible = (
             float(action["cost_units"]) <= float(budget)
             and int(action["arrival_tick"]) <= deadline_tick
@@ -287,6 +299,8 @@ def _validate_action_forecast(
             "forecast_digest_sha256",
             "scorecard_sha256",
             "selected_action_id",
+            "request_id",
+            "parameter_manifest_sha256",
             "selected_action_feasible",
             "missed_best_action",
             "decision_regret",
@@ -309,8 +323,18 @@ def _validate_action_forecast(
     if _sha256(receipt["forecast_digest_sha256"], f"{turn_id}.receipt.forecast_digest_sha256") != forecast_digest:
         raise EvidenceGainError(f"{turn_id}: receipt is not bound to the exact action forecast")
     _sha256(receipt["scorecard_sha256"], f"{turn_id}.receipt.scorecard_sha256")
-    if receipt["selected_action_id"] != selected or receipt["selected_action_feasible"] is not True:
-        raise EvidenceGainError(f"{turn_id}: EVSI receipt disagrees with selected action feasibility")
+    if (
+        receipt["selected_action_id"] != selected
+        or receipt["parameter_manifest_sha256"] != selected_manifest_digest
+        or receipt["selected_action_feasible"] is not True
+    ):
+        raise EvidenceGainError(f"{turn_id}: EVSI receipt disagrees with selected action/manifest feasibility")
+    receipt_request_id = receipt["request_id"]
+    if selected == STOP_ACTION_ID:
+        if receipt_request_id is not None:
+            raise EvidenceGainError(f"{turn_id}: stop/no-acquisition cannot have an executor request ID")
+    else:
+        _nonempty(receipt_request_id, f"{turn_id}.action_value_receipt.request_id")
     if not isinstance(receipt["missed_best_action"], bool):
         raise EvidenceGainError(f"{turn_id}: missed_best_action must be boolean")
     if not _finite(receipt["decision_regret"]) or float(receipt["decision_regret"]) < 0.0:
@@ -320,6 +344,8 @@ def _validate_action_forecast(
 
     return {
         "selected_action_id": selected,
+        "selected_request_id": receipt_request_id,
+        "selected_manifest_sha256": selected_manifest_digest,
         "action_catalogue_ids": sorted(catalogue),
         "action_forecast_count": len(forecasts),
         "action_space_coverage": 1.0,
@@ -493,6 +519,8 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
     prior_catalog: dict[str, dict[str, Any]] | None = None
     prior_scorecard: dict[str, Any] | None = None
     prior_action: str | None = None
+    prior_request_id: str | None = None
+    prior_manifest_digest: str | None = None
     prior_head: str | None = None
     prior_cutoff = -1
     seen_feedback_ids: set[str] = set()
@@ -544,13 +572,21 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
         status = turn["action_result_status"]
         parent_head = turn["parent_transcript_head_sha256"]
         action_result_digest = turn["action_result_digest_sha256"]
+        action_result_request_id = turn["action_result_request_id"]
+        action_result_manifest_digest = turn["action_result_parameter_manifest_sha256"]
         feedback_rows = turn["external_feedback_events"]
         if not isinstance(feedback_rows, list):
             raise EvidenceGainError(f"{turn_id}: external_feedback_events must be an array")
         if index == 0:
             if preceding_action != "__initial__" or status != "INITIAL":
                 raise EvidenceGainError("first turn must use __initial__ / INITIAL")
-            if parent_head is not None or action_result_digest is not None or feedback_rows:
+            if (
+                parent_head is not None
+                or action_result_digest is not None
+                or action_result_request_id is not None
+                or action_result_manifest_digest is not None
+                or feedback_rows
+            ):
                 raise EvidenceGainError("initial turn must not claim a parent head, action result or feedback event")
         else:
             if preceding_action != prior_action:
@@ -564,6 +600,14 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
             action_result_digest = _sha256(
                 action_result_digest, f"{turn_id}.action_result_digest_sha256"
             )
+            if prior_request_id is None or action_result_request_id != prior_request_id:
+                raise EvidenceGainError(f"{turn_id}: action result request ID does not match prior accepted request")
+            if (
+                prior_manifest_digest is None
+                or _sha256(action_result_manifest_digest, f"{turn_id}.action_result_parameter_manifest_sha256")
+                != prior_manifest_digest
+            ):
+                raise EvidenceGainError(f"{turn_id}: action result manifest digest does not match prior accepted request")
 
         feedback_ids: list[str] = []
         feedback_summaries: list[dict[str, Any]] = []
@@ -732,6 +776,10 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
             "action_result_status": status,
             "new_observation_ids": new_ids,
             "selected_action_id": action_result["selected_action_id"],
+            "selected_request_id": action_result["selected_request_id"],
+            "selected_manifest_sha256": action_result["selected_manifest_sha256"],
+            "action_result_request_id": action_result_request_id,
+            "action_result_parameter_manifest_sha256": action_result_manifest_digest,
             "action_forecast_count": action_result["action_forecast_count"],
             "action_space_coverage": action_result["action_space_coverage"],
             "forecast_digest_sha256": action_result["forecast_digest_sha256"],
@@ -750,6 +798,8 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
         prior_catalog = catalog
         prior_scorecard = scorecard
         prior_action = action_result["selected_action_id"]
+        prior_request_id = action_result["selected_request_id"]
+        prior_manifest_digest = action_result["selected_manifest_sha256"]
         prior_head = _sha256(workload.get("transcript_head_sha256"), f"{turn_id}.workload.transcript_head_sha256")
         prior_cutoff = cutoff
 
