@@ -1,0 +1,133 @@
+{
+  "schema": "luminous.ehd_observer_perturbation",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-DPM-001",
+  "as_of": "2026-11-22",
+  "status": "manufactured_observer_perturbation_kernel_authored_rust_tests_execution_pending",
+  "claim_ceiling": "A manufactured scalar metrology-intervention qualification reference. It is not a universal diagnostic model, tracer correction factor, raw PIV reanalysis, or physical EHD validation.",
+  "primary_source": {
+    "source_id": "ZWOLINSKA_2026_PIV_SEEDING_HUMIDITY",
+    "doi": "10.1007/s00348-026-04322-y",
+    "publication_date": "2026-10-06",
+    "source_result": {
+      "condition": "needle-to-ring EHD fan, 14 kV",
+      "peak_axial_velocity_m_s": {
+        "dehs": 3.8,
+        "incense_smoke": 5.9
+      },
+      "dehs_peak_velocity_reduction_percent": 36,
+      "volumetric_flow_l_s": {
+        "dehs": 0.89,
+        "incense_smoke": 1.07
+      },
+      "dehs_flow_underestimate_percent": 17,
+      "mechanism": "DEHS suppresses ionization/effective conductivity and deposits as dielectric film on collector"
+    },
+    "raw_data_boundary": "raw generated datasets are available from corresponding author on reasonable request; no raw vectors or time series are included here",
+    "source_uncertainty_boundary": "numerical uncertainty bounds and allowed observer-effect thresholds in manufactured Rust tests are synthetic, not source-reported intervals"
+  },
+  "model_contract": {
+    "phases": [
+      "independent_baseline",
+      "during_diagnostic_intervention",
+      "after_intervention_removal"
+    ],
+    "matched_condition_key": "same physical operating-condition identity across phases; intervention is the intended changed factor",
+    "diagnostic_intervention": "particle seeding, probe, tracer, illumination or another measurement process that may alter the physical state",
+    "uncertainty_policy": "conservative absolute-bound addition; no RSS unless a validated covariance receipt is added",
+    "active_effect_interval": "[max(0, abs(during - baseline) - (U_baseline + U_during)), abs(during - baseline) + (U_baseline + U_during)]",
+    "persistence_effect_interval": "same formula using after-removal state against baseline",
+    "threshold_policy": "Detected if lower effect bound > allowed tolerance; WithinTolerance if upper effect bound <= tolerance; otherwise Unresolved",
+    "passivity_policy": "cannot report overall WithinTolerance without an independently qualified baseline, matched condition identity, and post-removal measurement",
+    "independent_gates": [
+      "validation_envelope",
+      "charge_mass_momentum_energy_ledgers"
+    ]
+  },
+  "reference_implementation": {
+    "path": "tools/ehd-reference-audit/src/observer_perturbation.rs",
+    "function": "qualify_observer_perturbation",
+    "self_check": "reference_self_check",
+    "rust_unit_tests": 9
+  },
+  "manufactured_reference_case": {
+    "case_id": "DPM-DEHS-LIKE-MAGNITUDE-MANUFACTURED",
+    "metric": "peak axial velocity",
+    "unit": "m/s",
+    "baseline_value": 5.9,
+    "diagnostic_value": 3.8,
+    "post_removal_value": 4,
+    "baseline_uncertainty_bound": 0.05,
+    "diagnostic_uncertainty_bound": 0.05,
+    "post_removal_uncertainty_bound": 0.05,
+    "maximum_allowed_active_effect": 0.2,
+    "maximum_allowed_persistent_effect": 0.2,
+    "expected_active_effect_interval": [
+      2,
+      2.2
+    ],
+    "expected_persistent_effect_interval": [
+      1.8,
+      2
+    ],
+    "expected_disposition": "ObserverPerturbationDetected",
+    "status": "synthetic_uncertainties_and_tolerances_paper_values_used_only_as_magnitude_reference"
+  },
+  "adversarial_cases": [
+    {
+      "case_id": "DPM-WITHIN-BOUNDS",
+      "expected": "WithinTolerance"
+    },
+    {
+      "case_id": "DPM-UNCERTAINTY-OVERLAP",
+      "expected": "ObserverPerturbationUnresolved"
+    },
+    {
+      "case_id": "DPM-NO-POST-REMOVAL",
+      "expected": "ObserverPerturbationUnresolved"
+    },
+    {
+      "case_id": "DPM-PERSISTENT-EFFECT",
+      "expected": "ObserverPerturbationDetected"
+    },
+    {
+      "case_id": "DPM-NON-INDEPENDENT-BASELINE",
+      "expected": "IndependentBaselineRequired"
+    },
+    {
+      "case_id": "DPM-LEDGER-FAILURE",
+      "expected": "PhysicalLedgerFailure"
+    },
+    {
+      "case_id": "DPM-OUT-OF-ENVELOPE",
+      "expected": "OutOfEnvelope"
+    },
+    {
+      "case_id": "DPM-DUPLICATE-EVIDENCE",
+      "expected": "DuplicateEvidenceId"
+    }
+  ],
+  "test_families": [
+    "strong_dehs_like_effect_is_not_treated_as_passive_measurement_noise",
+    "effect_wholly_within_predeclared_tolerance_can_be_qualified",
+    "interval_overlapping_tolerance_is_unresolved_not_passed",
+    "missing_post_removal_observation_never_implies_recovery",
+    "residual_post_removal_effect_is_reported_as_persistent_perturbation",
+    "non_independent_baseline_requires_abstention",
+    "independent_physical_ledger_failure_has_priority",
+    "out_of_envelope_is_not_rescued_by_a_small_observer_effect",
+    "duplicate_evidence_identity_is_rejected"
+  ],
+  "limitations": [
+    "single_scalar_observable_per_receipt",
+    "conservative_scalar_absolute_bounds_not_full_covariance",
+    "baseline_independence_is_an_external_qualification_input",
+    "no_tracer_dynamics_or_particle_charge_model",
+    "no_electrode_deposition_kinetics_model",
+    "no_raw_piv_image_or_vector_processing",
+    "no_unseeded_full_field_reconstruction",
+    "no_source_reported_uncertainty_bounds_imported",
+    "no_universal_tracer_correction_factor",
+    "no_physical_ehd_validation_by_this_kernel"
+  ]
+}

@@ -16,6 +16,7 @@ mod drag_dissipation;
 mod drag_trajectory;
 mod control_volume;
 mod identifiability;
+mod observer_perturbation;
 
 const EMBEDDED_ATLAS: &str =
     include_str!("../../../data/research/ehd_reference_atlas_v0_1.json");
@@ -41,6 +42,8 @@ const EMBEDDED_CONTROL_VOLUME: &str =
     include_str!("../../../data/research/ehd_control_volume_v0_1.json");
 const EMBEDDED_IDENTIFIABILITY: &str =
     include_str!("../../../data/research/ehd_experiment_identifiability_kernel_v0_1.json");
+const EMBEDDED_OBSERVER_PERTURBATION: &str =
+    include_str!("../../../data/research/ehd_observer_perturbation_v0_1.json");
 
 fn at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
     path.iter().try_fold(value, |node, key| node.get(*key))
@@ -108,6 +111,7 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
         "A source figure export or interpolating pickle is not a raw instrument time-series",
         "Unknown values are null, not zero",
         "Power boundary and system-mass boundary are required",
+        "A diagnostic that changes the physical state is an intervention, not passive measurement noise",
     ] {
         let found = at(root, &["comparability_policy"])
             .and_then(Value::as_array)
@@ -426,6 +430,119 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
                     .and_then(Value::as_bool) == Some(true),
             "JIANG_COMPARABILITY_BOUNDARY",
             "same-study thrust comparison must not be promoted to cross-study or efficiency leaderboard",
+        );
+    }
+
+    // Earlier EHD tracer-selection precedent: retain the Pitot reference and
+    // electrical-current observations as part of tracer suitability, not just
+    // optical particle-following criteria.
+    let hamdi = records.and_then(|rows| rows.iter().find(|record| {
+        text_at(record, &["source_id"]) == Some("HAMDI_2014_PIV_TRACER_SELECTION")
+    }));
+    push_if_missing(
+        &mut findings,
+        hamdi.is_some(),
+        "HAMDI_TRACER_RECORD",
+        "missing 2014 EHD PIV tracer-selection precedent",
+    );
+    if let Some(record) = hamdi {
+        push_if_missing(
+            &mut findings,
+            text_at(record, &["doi"]) == Some("10.1007/s00348-014-1702-z")
+                && text_at(record, &["cohort"])
+                    == Some("ambient_air_corona_needle_ring_piv_tracer_selection"),
+            "HAMDI_TRACER_IDENTITY",
+            "2014 EHD tracer-source identity changed",
+        );
+        push_if_missing(
+            &mut findings,
+            text_at(record, &["method", "independent_velocity_reference"]) == Some("Pitot tube")
+                && contains_any(record, &["method", "dimensionless_selection_criteria"], "electrical mobility ratio")
+                && contains_any(record, &["method", "electrical_diagnostics"], "current evolution during tracer seeding")
+                && at(record, &["method", "selected_suitable_tracers_in_study"])
+                    == Some(&serde_json::json!(["TiO2", "SiO2 microballoons", "incense smoke"])),
+            "HAMDI_TRACER_METHOD",
+            "Pitot-referenced flow, electrical mobility and tracer-current controls must remain explicit",
+        );
+        push_if_missing(
+            &mut findings,
+            at(record, &["reported_results", "quantitative_tracer_velocity_error"]).is_some_and(Value::is_null)
+                && at(record, &["reported_results", "quantitative_current_changes"]).is_some_and(Value::is_null)
+                && at(record, &["comparability", "distinct_from_2026_dehs_incense_cohort"])
+                    .and_then(Value::as_bool) == Some(true),
+            "HAMDI_TRACER_EVIDENCE_BOUNDARY",
+            "untranscribed numerical results must remain unknown and the study distinct from the 2026 cohort",
+        );
+    }
+
+    // 2026 PIV seeding cohort: diagnostics are physical interventions, not
+    // assumed-passive measurements. Keep the reported source values and
+    // raw-data/uncertainty boundaries explicit.
+    let observer_cohort = records.and_then(|rows| rows.iter().find(|record| {
+        text_at(record, &["source_id"]) == Some("ZWOLINSKA_2026_PIV_SEEDING_HUMIDITY")
+    }));
+    push_if_missing(
+        &mut findings,
+        observer_cohort.is_some(),
+        "OBSERVER_PERTURBATION_SOURCE",
+        "missing 2026 PIV seeding and humidity observer-perturbation cohort",
+    );
+    if let Some(record) = observer_cohort {
+        push_if_missing(
+            &mut findings,
+            text_at(record, &["doi"]) == Some("10.1007/s00348-026-04322-y")
+                && text_at(record, &["published_date"]) == Some("2026-10-06")
+                && text_at(record, &["cohort"])
+                    == Some("ambient_air_corona_needle_to_ring_ehd_fan_observer_perturbation"),
+            "OBSERVER_PERTURBATION_SOURCE_IDENTITY",
+            "observer-perturbation source identity/date/cohort changed",
+        );
+        push_if_missing(
+            &mut findings,
+            number_at(record, &["apparatus", "fan_diameter_mm"]) == Some(22.0)
+                && number_at(record, &["apparatus", "inter_electrode_distance_mm"]) == Some(11.0)
+                && at(record, &["apparatus", "applied_voltage_range_kv"]).and_then(Value::as_array)
+                    .is_some_and(|values| values.len() == 2
+                        && values[0].as_f64() == Some(4.0)
+                        && values[1].as_f64() == Some(14.0))
+                && at(record, &["apparatus", "relative_humidity_levels_percent"])
+                    == Some(&serde_json::json!([36, 50, 80])),
+            "OBSERVER_PERTURBATION_OPERATING_ENVELOPE",
+            "needle-to-ring geometry, voltage or humidity source cohort changed",
+        );
+        push_if_missing(
+            &mut findings,
+            number_at(record, &["diagnostic_protocol", "piv", "image_pairs_per_voltage_and_tracer"]) == Some(200.0)
+                && number_at(record, &["diagnostic_protocol", "piv", "acquisition_rate_hz"]) == Some(10.0)
+                && number_at(record, &["diagnostic_protocol", "seeding_stability_test", "applied_voltage_kv"]) == Some(8.0)
+                && number_at(record, &["diagnostic_protocol", "seeding_stability_test", "samples"]) == Some(180.0)
+                && number_at(record, &["diagnostic_protocol", "seeding_stability_test", "duration_minutes"]) == Some(15.0),
+            "OBSERVER_PERTURBATION_DIAGNOSTIC_PROTOCOL",
+            "PIV acquisition or 15-minute seeding stability protocol changed",
+        );
+        push_if_missing(
+            &mut findings,
+            number_at(record, &["reported_results", "at_14_kv", "peak_axial_velocity_m_s", "dehs"]) == Some(3.8)
+                && number_at(record, &["reported_results", "at_14_kv", "peak_axial_velocity_m_s", "incense_smoke"]) == Some(5.9)
+                && number_at(record, &["reported_results", "at_14_kv", "volumetric_flow_l_s", "dehs"]) == Some(0.89)
+                && number_at(record, &["reported_results", "at_14_kv", "volumetric_flow_l_s", "incense_smoke"]) == Some(1.07)
+                && number_at(record, &["reported_results", "at_14_kv", "dehs_peak_velocity_reduction_percent"]) == Some(36.0)
+                && number_at(record, &["reported_results", "at_14_kv", "dehs_flow_underestimate_percent"]) == Some(17.0),
+            "OBSERVER_PERTURBATION_SOURCE_VALUES",
+            "published tracer-induced velocity or flow differences changed",
+        );
+        push_if_missing(
+            &mut findings,
+            text_at(record, &["key_interpretation", "observer_perturbation"])
+                .is_some_and(|value| value.contains("not only an additive velocity-measurement error"))
+                && text_at(record, &["provenance", "evidence_class"])
+                    == Some("peer_reviewed_experimental_comparison_source_transcribed_not_raw_data_reproduced")
+                && at(record, &["comparability", "ml_training_target_eligible"])
+                    .and_then(Value::as_bool) == Some(false)
+                && text_at(record, &["diagnostic_protocol", "data_availability"])
+                    .is_some_and(|value| value.contains("reasonable request")),
+            "OBSERVER_PERTURBATION_EVIDENCE_BOUNDARY",
+            "observer effect, raw-data availability and no mixed-tracer ML promotion must remain explicit",
         );
     }
 
@@ -2419,6 +2536,90 @@ pub fn audit_identifiability_contract(root: &Value) -> Vec<String> {
 }
 
 
+
+
+/// Audit the observer-perturbation qualification fixture and its fail-closed
+/// baseline, persistence, uncertainty and physical-ledger policies.
+pub fn audit_observer_perturbation_contract(root: &Value) -> Vec<String> {
+    let mut findings = Vec::new();
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["schema"]) == Some("luminous.ehd_observer_perturbation")
+            && text_at(root, &["schema_version"]) == Some("0.1.0")
+            && text_at(root, &["benchmark_id"]) == Some("EHD-DPM-001")
+            && text_at(root, &["status"])
+                == Some("manufactured_observer_perturbation_kernel_authored_rust_tests_execution_pending"),
+        "OBSERVER_CONTRACT_IDENTITY",
+        "observer-perturbation contract identity, version or status changed",
+    );
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["model_contract", "uncertainty_policy"])
+            .is_some_and(|value| value.contains("conservative absolute-bound addition"))
+            && text_at(root, &["model_contract", "passivity_policy"])
+                .is_some_and(|value| value.contains("post-removal measurement"))
+            && at(root, &["model_contract", "independent_gates"]).and_then(Value::as_array)
+                .is_some_and(|items| items.iter().any(|value| value.as_str() == Some("charge_mass_momentum_energy_ledgers"))),
+        "OBSERVER_CONTRACT_POLICY",
+        "conservative uncertainty, post-removal and independent physical gates must remain explicit",
+    );
+    let source = at(root, &["primary_source", "source_result"]);
+    push_if_missing(
+        &mut findings,
+        number_at(source.unwrap_or(&Value::Null), &["peak_axial_velocity_m_s", "dehs"]) == Some(3.8)
+            && number_at(source.unwrap_or(&Value::Null), &["peak_axial_velocity_m_s", "incense_smoke"]) == Some(5.9)
+            && number_at(source.unwrap_or(&Value::Null), &["volumetric_flow_l_s", "dehs"]) == Some(0.89)
+            && number_at(source.unwrap_or(&Value::Null), &["volumetric_flow_l_s", "incense_smoke"]) == Some(1.07)
+            && text_at(root, &["primary_source", "doi"]) == Some("10.1007/s00348-026-04322-y"),
+        "OBSERVER_CONTRACT_SOURCE_VALUES",
+        "published 14 kV DEHS/incense challenge values or DOI changed",
+    );
+    let expected = at(root, &["manufactured_reference_case"]);
+    push_if_missing(
+        &mut findings,
+        expected.is_some_and(|value| {
+            number_at(value, &["baseline_value"]) == Some(5.9)
+                && number_at(value, &["diagnostic_value"]) == Some(3.8)
+                && number_at(value, &["post_removal_value"]) == Some(4.0)
+                && at(value, &["expected_active_effect_interval"])
+                    == Some(&serde_json::json!([2.0, 2.2]))
+                && at(value, &["expected_persistent_effect_interval"])
+                    == Some(&serde_json::json!([1.8, 2.0]))
+                && text_at(value, &["status"])
+                    == Some("synthetic_uncertainties_and_tolerances_paper_values_used_only_as_magnitude_reference")
+        }),
+        "OBSERVER_CONTRACT_MANUFACTURED_CASE",
+        "synthetic observer-effect values, intervals or non-source uncertainty status changed",
+    );
+    push_if_missing(
+        &mut findings,
+        at(root, &["test_families"]).and_then(Value::as_array)
+            .is_some_and(|tests| tests.len() == 9
+                && tests.iter().any(|value| value.as_str() == Some("missing_post_removal_observation_never_implies_recovery"))
+                && tests.iter().any(|value| value.as_str() == Some("non_independent_baseline_requires_abstention"))
+                && tests.iter().any(|value| value.as_str() == Some("independent_physical_ledger_failure_has_priority"))
+                && tests.iter().any(|value| value.as_str() == Some("interval_overlapping_tolerance_is_unresolved_not_passed"))),
+        "OBSERVER_CONTRACT_TEST_MATRIX",
+        "all nine observer-perturbation tests, including abstention and persistence, must remain declared",
+    );
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["reference_implementation", "path"])
+            == Some("tools/ehd-reference-audit/src/observer_perturbation.rs")
+            && text_at(root, &["reference_implementation", "function"])
+                == Some("qualify_observer_perturbation")
+            && at(root, &["limitations"]).and_then(Value::as_array).is_some_and(|limits| {
+                limits.iter().any(|value| value.as_str() == Some("no_universal_tracer_correction_factor"))
+                    && limits.iter().any(|value| value.as_str() == Some("no_source_reported_uncertainty_bounds_imported"))
+                    && limits.iter().any(|value| value.as_str() == Some("no_physical_ehd_validation_by_this_kernel"))
+            }),
+        "OBSERVER_CONTRACT_SCOPE",
+        "implementation path and no-correction-factor/no-physical-validation limits must remain explicit",
+    );
+    findings
+}
+
+
 fn main() {
     let mut args = env::args().skip(1);
     let path = args.next();
@@ -2535,6 +2736,15 @@ fn main() {
         }
     };
     findings.extend(audit_identifiability_contract(&identifiability_contract));
+    let observer_perturbation_contract: Value =
+        match serde_json::from_str(EMBEDDED_OBSERVER_PERTURBATION) {
+            Ok(value) => value,
+            Err(error) => {
+                eprintln!("invalid embedded observer-perturbation contract JSON: {error}");
+                process::exit(2);
+            }
+        };
+    findings.extend(audit_observer_perturbation_contract(&observer_perturbation_contract));
     let exchange_kernel_ok = match exchange::reference_self_check() {
         Ok(()) => true,
         Err(error) => {
@@ -2598,6 +2808,13 @@ fn main() {
             false
         }
     };
+    let observer_perturbation_ok = match observer_perturbation::reference_self_check() {
+        Ok(()) => true,
+        Err(error) => {
+            findings.push(format!("OBSERVER_PERTURBATION_SELF_CHECK: {error}"));
+            false
+        }
+    };
     let design_tournament_ok = match identifiability::tournament_reference_self_check() {
         Ok(()) => true,
         Err(error) => {
@@ -2646,6 +2863,9 @@ fn main() {
         if design_tournament_ok {
             println!("matched-budget D/E discrete experiment-design tournament self-check: passed");
         }
+        if observer_perturbation_ok {
+            println!("observer-aware diagnostic passivity and persistence self-check: passed");
+        }
         println!("scope: source structure and analytic reference checks only; no physical V&V, production ALE, TPE(1/2), nonlinear profile likelihood, continuous design optimization, complete collisional-energy closure or durable exactly-once claim");
     } else {
         eprintln!("FAIL: {label} ({} finding(s))", findings.len());
@@ -2666,6 +2886,36 @@ mod tests {
 
     fn has_code(findings: &[String], code: &str) -> bool {
         findings.iter().any(|finding| finding.starts_with(code))
+    }
+
+    #[test]
+    fn hamdi_tracer_precedent_requires_pitot_and_electrical_controls() {
+        let mut value = atlas();
+        let rows = value["source_records"].as_array_mut().unwrap();
+        let record = rows.iter_mut().find(|row| {
+            row["source_id"] == "HAMDI_2014_PIV_TRACER_SELECTION"
+        }).unwrap();
+        record["method"]["independent_velocity_reference"] = serde_json::json!("PIV only");
+        assert!(audit_atlas(&value).iter().any(|finding| {
+            finding.starts_with("HAMDI_TRACER_METHOD")
+        }));
+    }
+
+    #[test]
+    fn observer_perturbation_contract_passes() {
+        let value: Value = serde_json::from_str(EMBEDDED_OBSERVER_PERTURBATION)
+            .expect("embedded observer-perturbation contract must be valid JSON");
+        assert!(audit_observer_perturbation_contract(&value).is_empty());
+    }
+
+    #[test]
+    fn observer_perturbation_contract_requires_post_removal_assessment() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_OBSERVER_PERTURBATION).unwrap();
+        value["model_contract"]["passivity_policy"] =
+            serde_json::json!("baseline and diagnostic point comparison only");
+        assert!(audit_observer_perturbation_contract(&value).iter().any(|finding| {
+            finding.starts_with("OBSERVER_CONTRACT_POLICY")
+        }));
     }
 
     #[test]

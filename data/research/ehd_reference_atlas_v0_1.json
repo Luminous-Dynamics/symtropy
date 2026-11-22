@@ -9,7 +9,8 @@
     "Separate absolute thrust, per-span thrust, thrust density, thrust-to-power, thrust-to-weight, and net effective thrust after frame drag.",
     "A source figure export or interpolating pickle is not a raw instrument time-series.",
     "Unknown values are null, not zero; absent source conditions remain explicit.",
-    "Power boundary and system-mass boundary are required before cross-study ranking."
+    "Power boundary and system-mass boundary are required before cross-study ranking.",
+    "A diagnostic that changes the physical state is an intervention, not passive measurement noise; retain separate diagnostic and unperturbed cohorts."
   ],
   "metric_ontology": {
     "thrust_absolute": {
@@ -1100,6 +1101,215 @@
         "thrust_to_power_leaderboard_eligible": false,
         "system_thrust_to_weight_leaderboard_eligible": false,
         "notes": "Keep the exact abstract headline thrust values separate from approximate Figure 9 visual digitizations. The Fig. 9 comparison suggests approximately 3.0 vs 2.4 N/kW at 22 kV for the named conventional/sub-unit-plus configurations, with approximately 0.77 vs 1.34 mA. Those graph-read estimates are not raw data or a benchmark-grade T/P result. Do not infer that the 68.70 mN configuration is the efficiency optimum. Figure 10 gives a within-study 22 kV geometry sweep with reported mean thrust values and 95% confidence-interval error bars; retain those as a separate configuration cohort."
+      }
+    },
+    {
+      "source_id": "ZWOLINSKA_2026_PIV_SEEDING_HUMIDITY",
+      "title": "Impact of relative humidity and PIV seeding on the electro-aerodynamic performance of needle-to-ring ionic fans",
+      "citation": "Zwolińska-Glądys, Cardona Murillo and Jaszczur, Experiments in Fluids 67, article 168 (published 2026-10-06)",
+      "doi": "10.1007/s00348-026-04322-y",
+      "published_date": "2026-10-06",
+      "cohort": "ambient_air_corona_needle_to_ring_ehd_fan_observer_perturbation",
+      "apparatus": {
+        "fan_diameter_mm": 22,
+        "electrode_geometry": "steel needle to grounded copper cylinder",
+        "inter_electrode_distance_mm": 11,
+        "applied_voltage_range_kv": [
+          4,
+          14
+        ],
+        "polarity": "positive needle; grounded cylinder",
+        "current_measurement": "99.1 kOhm precision shunt in ground return",
+        "ambient_temperature_c": 23,
+        "ambient_temperature_tolerance_c": 1,
+        "relative_humidity_levels_percent": [
+          36,
+          50,
+          80
+        ],
+        "chamber": "environmentally controlled glass chamber"
+      },
+      "diagnostic_protocol": {
+        "diagnostic_under_test": "two-dimensional Particle Image Velocimetry with seeded aerosol/smoke",
+        "tracer_conditions": [
+          {
+            "tracer": "DEHS droplets",
+            "mean_diameter_um": 1,
+            "density_g_cm3": 0.91,
+            "physicochemical_class": "nonpolar, hydrophobic, electrically insulating dielectric liquid aerosol",
+            "concern": "reduces effective gap conductivity and can deposit an insulating layer on electrodes"
+          },
+          {
+            "tracer": "incense smoke",
+            "particle_class": "submicron carbonaceous / ash particulates",
+            "physicochemical_class": "reported to interact weakly with the applied electric field",
+            "status": "electrically compatible alternative in this cohort; not assumed universally passive"
+          }
+        ],
+        "seeding_stability_test": {
+          "applied_voltage_kv": 8,
+          "sample_interval_seconds": 5,
+          "samples": 180,
+          "duration_minutes": 15,
+          "summary_window_seconds": 150
+        },
+        "hot_wire_reference": {
+          "location_mm_downstream_of_cylinder_outlet": 11,
+          "acquisition_seconds": 60,
+          "sample_rate_hz": 1,
+          "samples_per_operating_point": 60,
+          "voltage_sweep": "ascending and descending"
+        },
+        "piv": {
+          "laser_wavelength_nm": 532,
+          "pulse_energy_mj": 50,
+          "sheet_thickness_mm": 1.5,
+          "field_of_view_mm": [
+            90,
+            125
+          ],
+          "camera_pixels": [
+            4080,
+            2984
+          ],
+          "image_pairs_per_voltage_and_tracer": 200,
+          "acquisition_rate_hz": 10,
+          "pulse_separation_us": [
+            10,
+            400
+          ],
+          "interrogation_windows_px": [
+            [
+              64,
+              64
+            ],
+            [
+              32,
+              32
+            ]
+          ],
+          "overlap_percent": 75,
+          "processing": "multi-pass cross-correlation; ensemble-averaged vector fields"
+        },
+        "data_availability": "Datasets generated in the study are available from the corresponding author on reasonable request; raw trial data are not embedded in this atlas."
+      },
+      "reported_results": {
+        "at_14_kv": {
+          "peak_axial_velocity_m_s": {
+            "dehs": 3.8,
+            "incense_smoke": 5.9
+          },
+          "dehs_peak_velocity_reduction_percent": 36,
+          "volumetric_flow_l_s": {
+            "dehs": 0.89,
+            "incense_smoke": 1.07
+          },
+          "dehs_flow_underestimate_percent": 17,
+          "evidence_class": "source-reported PIV-derived flow and velocity results; underlying raw vectors are not imported"
+        },
+        "at_6_kv": {
+          "maximum_velocity_m_s": {
+            "dehs": 1.7,
+            "incense_smoke": 2.8
+          },
+          "evidence_class": "source-reported PIV velocity maxima"
+        },
+        "humidity": {
+          "comparison_range_percent": [
+            36,
+            80
+          ],
+          "current_change_order_of_magnitude_ua": [
+            1,
+            4
+          ],
+          "mean_outlet_velocity_increase_m_s": 0.5,
+          "interpretation": "within this geometry and tested range, humidity effects were smaller than tracer-material effects; other discharge regimes may differ"
+        },
+        "seeding_mechanism": {
+          "dehs_effect": "airborne DEHS suppresses ionization/effective conductivity and deposits on the collector, forming a dielectric layer; the paper reports flattened velocity profile and disappearance of the high-velocity axial core",
+          "persistence": "electrode deposition may continue to affect discharge after seeding source removal; the study includes a 15-minute current stability test",
+          "incense_effect": "incense smoke preserved the concentrated high-velocity core and produced higher PIV-derived flow in this cohort"
+        }
+      },
+      "key_interpretation": {
+        "observer_perturbation": "PIV seeding is an intervention on the EHD system, not only an additive velocity-measurement error",
+        "comparability": "seeding-material conditions must be separate experimental cohorts; do not pool their velocity maps as passive observations of one unchanged flow",
+        "causal_boundary": "paper provides source-reported comparisons; independent raw-data reanalysis and unseeded full-field validation remain outstanding"
+      },
+      "unresolved_fields": [
+        "raw PIV image pairs and vector fields are available only on reasonable request",
+        "raw current time series and per-condition standard deviations are not imported",
+        "numerical endpoints of all uncertainty intervals are not transcribed into this atlas",
+        "independent unseeded full-field velocity measurement is not available in this record",
+        "persistence after removal of all DEHS residue requires a separate clean/recovery test"
+      ],
+      "provenance": {
+        "source_url": "https://doi.org/10.1007/s00348-026-04322-y",
+        "version_of_record_date": "2026-10-06",
+        "evidence_class": "peer_reviewed_experimental_comparison_source_transcribed_not_raw_data_reproduced"
+      },
+      "comparability": {
+        "same_study_tracer_comparison_only": true,
+        "direct_thrust_leaderboard_eligible": false,
+        "ml_training_target_eligible": false,
+        "notes": "The DEHS/incense difference is a diagnostic-induced physical state change in this needle-to-ring fan. Treat as a metrology-intervention challenge and separate tracer cohorts; do not reinterpret the 36% and 17% differences as an instrument calibration correction or as a universal correction factor."
+      }
+    },
+    {
+      "source_id": "HAMDI_2014_PIV_TRACER_SELECTION",
+      "title": "Comparison of different tracers for PIV measurements in EHD airflow",
+      "citation": "Hamdi, Havet, Rouaud and Tarlet, Experiments in Fluids 55, article 1702 (published 2014-03-23)",
+      "doi": "10.1007/s00348-014-1702-z",
+      "published_date": "2014-03-23",
+      "cohort": "ambient_air_corona_needle_ring_piv_tracer_selection",
+      "method": {
+        "objective": "select PIV tracers for EHD airflow while accounting for particle response and electrical interaction",
+        "dimensionless_selection_criteria": [
+          "Stokes number",
+          "Archimedes number",
+          "electrical mobility ratio"
+        ],
+        "geometry": "needle/ring ionic wind",
+        "independent_velocity_reference": "Pitot tube",
+        "electrical_diagnostics": [
+          "current-voltage curves",
+          "current evolution during tracer seeding"
+        ],
+        "tracers_evaluated": [
+          "oil smoke",
+          "cigarette smoke",
+          "titanium dioxide TiO2",
+          "silicon dioxide SiO2 microballoons",
+          "incense smoke",
+          "Expancel microspheres"
+        ],
+        "selected_suitable_tracers_in_study": [
+          "TiO2",
+          "SiO2 microballoons",
+          "incense smoke"
+        ]
+      },
+      "evidence_boundary": {
+        "primary_source": "https://doi.org/10.1007/s00348-014-1702-z",
+        "data_available_in_atlas": false,
+        "raw_data_boundary": "subscription article preview/abstract used for source-atlas scope; raw images, vector fields and per-tracer current traces not transcribed",
+        "measurement_interpretation": "Pitot-referenced PIV comparison and electrical response were jointly considered, rather than optical particle-following criteria alone"
+      },
+      "reported_results": {
+        "quantitative_tracer_velocity_error": null,
+        "quantitative_current_changes": null,
+        "selected_tracers": [
+          "TiO2",
+          "SiO2 microballoons",
+          "incense smoke"
+        ],
+        "evidence_class": "peer_reviewed_method_comparison_abstract_transcribed_no_numeric_raw_data"
+      },
+      "comparability": {
+        "same_study_tracer_selection_only": true,
+        "distinct_from_2026_dehs_incense_cohort": true,
+        "notes": "Use as an earlier methodological comparator for particle-following and electrical-interaction qualification; do not transfer exact suitability rankings to other EHD geometries, gases, pressures or field strengths without matched tests."
       }
     }
   ],
