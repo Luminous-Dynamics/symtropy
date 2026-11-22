@@ -14,6 +14,7 @@ pub mod conformal;
 pub mod conformal_3d;
 pub mod functional;
 pub mod functional_conformal;
+pub mod spatial_correlation;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum FlowRegion {
