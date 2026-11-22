@@ -89,6 +89,8 @@ The Rust evaluator at \`tools/ev-passenger-cost-frontier/src/mobility_flexibilit
 - admits at most four storage resources, four reserve scenarios and eight slots;
 - requires time-bound site, allocation, charging-queue, meter, storage energy, storage power, availability, interface and site-connection evidence;
 - checks exact resource/site/configuration binding and evidence validity through the full horizon;
+- binds each mission, inventory, safety/outage and uncertainty reserve value to its own resource/configuration-bound receipt ID and evidence envelope;
+- binds each per-slot non-charging load to the site-meter receipt and each per-slot charging load to the exact charging-queue report reference;
 - checks unique resource IDs, scenario IDs, reserve receipt IDs and contiguous slot indices;
 - computes resource-specific residual energy and residual power for each scenario;
 - evaluates one caller-supplied discharge profile against cumulative energy, per-slot power and PCC import/export constraints;
@@ -112,6 +114,7 @@ Input contract: \`tools/ev-passenger-cost-frontier/schemas/mobility_flexibility_
 
 - This is a feasibility verifier for one proposed profile, not an optimizer.
 - Its power aggregation assumes that accepted resources are connected to the same evidenced site/PCC; no feeder topology or full AC power-flow is solved.
+- There is no separate PV-generation model in v0.1. The supplied base-site load must be the declared net non-charging load at the PCC after any onsite generation already credited by the source owner.
 - The finite reserve scenarios do not provide a statistical or distribution-free guarantee for unrepresented events.
 - It does not model electrochemistry, SOC trajectories, temperature dynamics, aging, conversion losses or charge curves.
 - It does not yet prove post-dispatch recharge/recovery before the next mission. That is a v0.2 requirement; a passing v0.1 profile must not be described as recovery-qualified.
