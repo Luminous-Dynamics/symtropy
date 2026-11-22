@@ -402,24 +402,24 @@ mod tests {
 
     #[test]
     fn event_and_model_identity_mismatches_are_rejected() {
-        let mut residual = residual();
-        residual.identity.event_revision = "event-r8".to_owned();
+        let mut residual_input = residual();
+        residual_input.identity.event_revision = "event-r8".to_owned();
         assert_eq!(
-            compose_admitted_and_residual_event_mass(&admitted(), &residual, &partition()),
+            compose_admitted_and_residual_event_mass(&admitted(), &residual_input, &partition()),
             Err(KernelError::EvidenceIdentityMismatch)
         );
 
-        let mut residual = residual();
-        residual.identity.model_revision = "force-model-r4".to_owned();
+        let mut residual_input = residual();
+        residual_input.identity.model_revision = "force-model-r4".to_owned();
         assert_eq!(
-            compose_admitted_and_residual_event_mass(&admitted(), &residual, &partition()),
+            compose_admitted_and_residual_event_mass(&admitted(), &residual_input, &partition()),
             Err(KernelError::EvidenceIdentityMismatch)
         );
 
-        let mut residual = residual();
-        residual.identity.target_distribution_sha256 = HASH_D.to_owned();
+        let mut residual_input = residual();
+        residual_input.identity.target_distribution_sha256 = HASH_D.to_owned();
         assert_eq!(
-            compose_admitted_and_residual_event_mass(&admitted(), &residual, &partition()),
+            compose_admitted_and_residual_event_mass(&admitted(), &residual_input, &partition()),
             Err(KernelError::EvidenceIdentityMismatch)
         );
     }
@@ -436,20 +436,20 @@ mod tests {
 
     #[test]
     fn event_definition_digest_mismatch_is_rejected() {
-        let mut residual = residual();
-        residual.identity.event_definition_sha256 = HASH_D.to_owned();
+        let mut residual_input = residual();
+        residual_input.identity.event_definition_sha256 = HASH_D.to_owned();
         assert_eq!(
-            compose_admitted_and_residual_event_mass(&admitted(), &residual, &partition()),
+            compose_admitted_and_residual_event_mass(&admitted(), &residual_input, &partition()),
             Err(KernelError::EvidenceIdentityMismatch)
         );
     }
 
     #[test]
     fn partition_digest_mismatch_is_rejected() {
-        let mut residual = residual();
-        residual.partition_sha256 = HASH_D.to_owned();
+        let mut residual_input = residual();
+        residual_input.partition_sha256 = HASH_D.to_owned();
         assert_eq!(
-            compose_admitted_and_residual_event_mass(&admitted(), &residual, &partition()),
+            compose_admitted_and_residual_event_mass(&admitted(), &residual_input, &partition()),
             Err(KernelError::PartitionIdentityMismatch)
         );
 
@@ -463,10 +463,10 @@ mod tests {
 
     #[test]
     fn wrong_region_assignment_and_identical_regions_are_rejected() {
-        let mut residual = residual();
-        residual.region_id = "admitted-union".to_owned();
+        let mut residual_input = residual();
+        residual_input.region_id = "admitted-union".to_owned();
         assert_eq!(
-            compose_admitted_and_residual_event_mass(&admitted(), &residual, &partition()),
+            compose_admitted_and_residual_event_mass(&admitted(), &residual_input, &partition()),
             Err(KernelError::PartitionIdentityMismatch)
         );
 
@@ -480,17 +480,17 @@ mod tests {
 
     #[test]
     fn incomplete_or_budget_exhausted_residual_evidence_is_rejected() {
-        let mut residual = residual();
-        residual.coverage = ResidualMassCoverage::Incomplete;
+        let mut residual_input = residual();
+        residual_input.coverage = ResidualMassCoverage::Incomplete;
         assert_eq!(
-            compose_admitted_and_residual_event_mass(&admitted(), &residual, &partition()),
+            compose_admitted_and_residual_event_mass(&admitted(), &residual_input, &partition()),
             Err(KernelError::ResidualEvidenceIncomplete)
         );
 
-        let mut residual = residual();
-        residual.coverage = ResidualMassCoverage::BudgetExhausted;
+        let mut residual_input = residual();
+        residual_input.coverage = ResidualMassCoverage::BudgetExhausted;
         assert_eq!(
-            compose_admitted_and_residual_event_mass(&admitted(), &residual, &partition()),
+            compose_admitted_and_residual_event_mass(&admitted(), &residual_input, &partition()),
             Err(KernelError::ResidualEvidenceBudgetExhausted)
         );
     }
@@ -507,10 +507,10 @@ mod tests {
 
     #[test]
     fn malformed_digests_and_blank_ids_are_rejected() {
-        let mut admitted = admitted();
-        admitted.source_sha256 = "not-a-hash".to_owned();
+        let mut admitted_input = admitted();
+        admitted_input.source_sha256 = "not-a-hash".to_owned();
         assert_eq!(
-            compose_admitted_and_residual_event_mass(&admitted, &residual(), &partition()),
+            compose_admitted_and_residual_event_mass(&admitted_input, &residual(), &partition()),
             Err(KernelError::InvalidEvidenceDigest)
         );
 
@@ -524,29 +524,29 @@ mod tests {
 
     #[test]
     fn invalid_probability_bounds_fail_closed() {
-        let mut admitted = admitted();
-        admitted.event_mass_lower = 0.4;
-        admitted.event_mass_upper = 0.3;
+        let mut admitted_input = admitted();
+        admitted_input.event_mass_lower = 0.4;
+        admitted_input.event_mass_upper = 0.3;
         assert_eq!(
-            compose_admitted_and_residual_event_mass(&admitted, &residual(), &partition()),
+            compose_admitted_and_residual_event_mass(&admitted_input, &residual(), &partition()),
             Err(KernelError::InvalidProbabilityInterval)
         );
 
-        let mut residual = residual();
-        residual.residual_event_mass_upper = 1.1;
+        let mut residual_input = residual();
+        residual_input.residual_event_mass_upper = 1.1;
         assert_eq!(
-            compose_admitted_and_residual_event_mass(&admitted(), &residual, &partition()),
+            compose_admitted_and_residual_event_mass(&admitted(), &residual_input, &partition()),
             Err(KernelError::InvalidProbability)
         );
     }
 
     #[test]
     fn distinct_upstream_evidence_artifacts_are_required() {
-        let mut residual = residual();
-        residual.evidence_id = "is-run-183".to_owned();
-        residual.source_sha256 = HASH_D.to_owned();
+        let mut residual_input = residual();
+        residual_input.evidence_id = "is-run-183".to_owned();
+        residual_input.source_sha256 = HASH_D.to_owned();
         assert_eq!(
-            compose_admitted_and_residual_event_mass(&admitted(), &residual, &partition()),
+            compose_admitted_and_residual_event_mass(&admitted(), &residual_input, &partition()),
             Err(KernelError::InvalidEvidenceIdentifier)
         );
     }
