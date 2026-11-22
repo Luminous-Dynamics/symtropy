@@ -1,1 +1,70 @@
-{}
+{
+  "schema_version": 1,
+  "artifact_kind": "5d_egb_spin2_asymptotically_flat_branch_coupling_derivative",
+  "status": "exact_first_lambda_derivative_of_asymptotically_flat_Oa2_branch",
+  "conventions": {
+    "dimension": 5,
+    "horizon_radius": "1",
+    "lambda": "alpha/r_H^2",
+    "spin_order": "O(a^2)",
+    "coupling_order": "O(lambda)",
+    "gauge_order": "vary b,f,g,h,w independently; then impose g=r^2",
+    "background_branch": "Einstein branch Boulware-Deser",
+    "zeroth_order_solution": "equal-spin Myers-Perry"
+  },
+  "background_expansion": {
+    "F_background": "1-r^(-2) + lambda*(-1/2)*(r^(-2)-r^(-6)) + O(lambda^2)",
+    "W1": "r^(-4) + lambda*(1/2)*(r^(-4)-r^(-8)) + O(lambda^2)"
+  },
+  "first_coupling_correction": {
+    "B21": "(r - 1)*(r + 1)*(11*r**6 + 11*r**4 + 22*r**2 + 9)/(9*r**10)",
+    "F21": "(r - 1)*(r + 1)*(22*r**4 - 11*r**2 - 35)/(18*r**8)",
+    "H21": "-(r**2 + 1)*(11*r**2 + 3)/(6*r**6)",
+    "horizon_data": {
+      "B21(1)": "0",
+      "B21_prime(1)": "106/9",
+      "F21(1)": "0",
+      "F21_prime(1)": "-8/3",
+      "H21(1)": "-14/3",
+      "H21_prime(1)": "16"
+    },
+    "asymptotic_decay_coefficients": {
+      "r2_B1": "11/9",
+      "r2_F21": "11/9",
+      "r2_H1": "-11/6"
+    },
+    "asymptotically_flat_horizon_data": {
+      "b1(lambda)": "-4 + (106/9)*lambda + O(lambda^2)",
+      "h0(lambda)": "1 - (14/3)*lambda + O(lambda^2)"
+    }
+  },
+  "equation_rows_lambda1": {
+    "b": "-(3*r**11*Derivative(F21(r), r) + 6*r**10*F21(r) + r**10*Derivative(H1(r), (r, 2)) - r**8*Derivative(H1(r), (r, 2)) + r**7*Derivative(H1(r), r) + 16*r**4 - 24)/(2*r**7*(r - 1)*(r + 1))",
+    "f": "(3*r**13*Derivative(B1(r), r) + 6*r**12*F21(r) - 3*r**11*Derivative(B1(r), r) + 2*r**11*Derivative(H1(r), r) - 6*r**10*B1(r) - 2*r**10*H1(r) - 3*r**9*Derivative(H1(r), r) + 4*r**8*H1(r) + r**7*Derivative(H1(r), r) - 2*r**6*H1(r) + 25*r**6 - 38*r**4 - 7*r**2 + 20)/(2*r**7*(r - 1)**2*(r + 1)**2)",
+    "g": "-(r**16*Derivative(B1(r), (r, 2)) + 2*r**15*Derivative(B1(r), r) + 2*r**15*Derivative(F21(r), r) + 2*r**14*F21(r) - 2*r**14*Derivative(B1(r), (r, 2)) + r**14*Derivative(H1(r), (r, 2)) - 5*r**13*Derivative(B1(r), r) - 3*r**13*Derivative(F21(r), r) - r**13*Derivative(H1(r), r) + 2*r**12*B1(r) - 6*r**12*F21(r) - 2*r**12*H1(r) + r**12*Derivative(B1(r), (r, 2)) - 3*r**12*Derivative(H1(r), (r, 2)) + 3*r**11*Derivative(B1(r), r) + r**11*Derivative(F21(r), r) + 5*r**11*Derivative(H1(r), r) + 2*r**10*F21(r) + 3*r**10*Derivative(H1(r), (r, 2)) - 7*r**9*Derivative(H1(r), r) + 6*r**8*H1(r) - r**8*Derivative(H1(r), (r, 2)) - 39*r**8 + 3*r**7*Derivative(H1(r), r) - 4*r**6*H1(r) + 90*r**6 - 15*r**4 - 84*r**2 + 48)/(r**11*(r - 1)**2*(r + 1)**2)",
+    "h": "-(r**16*Derivative(B1(r), (r, 2)) + 2*r**15*Derivative(B1(r), r) + 2*r**15*Derivative(F21(r), r) + 2*r**14*F21(r) - 2*r**14*Derivative(B1(r), (r, 2)) - 5*r**13*Derivative(B1(r), r) - 3*r**13*Derivative(F21(r), r) + 2*r**12*B1(r) - 6*r**12*F21(r) + 6*r**12*H1(r) + r**12*Derivative(B1(r), (r, 2)) + 3*r**11*Derivative(B1(r), r) + r**11*Derivative(F21(r), r) + 2*r**10*F21(r) - 12*r**10*H1(r) + 6*r**8*H1(r) - 47*r**8 + 170*r**6 - 119*r**4 - 84*r**2 + 80)/(2*r**11*(r - 1)**2*(r + 1)**2)"
+  },
+  "equation_residuals": {
+    "b": "0",
+    "f": "0",
+    "g": "0",
+    "h": "0"
+  },
+  "checks": {
+    "background_F_first_derivative_exact": true,
+    "background_W_first_derivative_exact": true,
+    "all_four_original_even_rows_exact_zero": true,
+    "horizon_normalizations_exact": true,
+    "horizon_data_shifts_exact": true,
+    "asymptotic_decay_coefficients_exact": true,
+    "zeroth_order_MP_recovered_by_construction": true
+  },
+  "derivation": {
+    "python": "3.13.5",
+    "sympy": "1.14.0",
+    "action_source": "derive_spin2_global_branch_lambda1.py",
+    "action_source_git_blob_sha1": "fe4197aefec4e9f6198f165c94976b5a2b64a210",
+    "local_exact_action_extraction": "passed; clean source-file replay and CI remain separate"
+  },
+  "claim_ceiling": "This is the exact first derivative at lambda=0 of one asymptotically flat, horizon-regular five-dimensional O(a^2) EGB branch. All four order-lambda original Euler-Lagrange rows vanish. It does not prove an analytic finite-lambda branch, a finite-lambda interval existence theorem, the derivative of the full two-by-two boundary-map Jacobian, full nonlinear uniqueness, or PDE hyperbolicity."
+}
