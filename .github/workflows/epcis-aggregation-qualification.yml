@@ -35,7 +35,7 @@ jobs:
         run: cargo fmt --all --check
 
       - name: Run locked offline adapter tests
-        run: cargo test --offline --locked -p symtropy-transport-optimization
+        run: cargo test --locked -p symtropy-transport-optimization
 
       - name: Run strict adapter Clippy
-        run: cargo clippy --offline --locked --all-targets -p symtropy-transport-optimization -- -D warnings
+        run: cargo clippy --locked --all-targets -p symtropy-transport-optimization -- -D warnings
