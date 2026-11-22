@@ -1248,7 +1248,7 @@ mod tests {
             &["pallet-1"],
             Vec::new(),
         );
-        let second = envelope(
+        let mut second = envelope(
             "permutation-b",
             1,
             AggregationAction::Add,
@@ -1256,9 +1256,128 @@ mod tests {
             &["carton-1"],
             Vec::new(),
         );
+        second.event_time_ticks = 1_020;
+        second.time_qualification = ProjectionTimeQualification::Qualified {
+            time_basis_id: "UTC(ZA)".to_string(),
+            tick_quantum_id: "SI_NANOSECOND".to_string(),
+            time_evidence_id: canonical_event_time_evidence_id(&source_ref(&second)),
+            earliest_event_time_ticks: 1_010,
+            latest_event_time_ticks: 1_030,
+        };
         let forward = project_aggregation_events(&[first.clone(), second.clone()], 200).unwrap();
         let reverse = project_aggregation_events(&[second, first], 200).unwrap();
         assert_eq!(forward, reverse);
+    }
+
+    #[test]
+    fn event_timestamp_must_be_inside_the_qualified_enclosure() {
+        let mut input = envelope(
+            "outside-enclosure",
+            1,
+            AggregationAction::Add,
+            Some("container-1"),
+            &["pallet-1"],
+            Vec::new(),
+        );
+        input.time_qualification = ProjectionTimeQualification::Qualified {
+            time_basis_id: "UTC(ZA)".to_string(),
+            tick_quantum_id: "SI_NANOSECOND".to_string(),
+            time_evidence_id: canonical_event_time_evidence_id(&source_ref(&input)),
+            earliest_event_time_ticks: 1_010,
+            latest_event_time_ticks: 1_020,
+        };
+        let report = project_aggregation_events(&[input], 200).unwrap();
+        assert_eq!(
+            report.quarantined[0].reason,
+            ProjectionQuarantineReason::InvalidTimeEnclosure
+        );
+    }
+
+    #[test]
+    fn overlapping_or_touching_event_enclosures_on_the_same_module_reject() {
+        let first = envelope(
+            "timeline-a",
+            1,
+            AggregationAction::Add,
+            Some("container-1"),
+            &["pallet-1"],
+            Vec::new(),
+        );
+        let mut second = envelope(
+            "timeline-b",
+            1,
+            AggregationAction::Add,
+            Some("container-1"),
+            &["carton-1"],
+            Vec::new(),
+        );
+        second.event_time_ticks = 1_020;
+        second.time_qualification = ProjectionTimeQualification::Qualified {
+            time_basis_id: "UTC(ZA)".to_string(),
+            tick_quantum_id: "SI_NANOSECOND".to_string(),
+            time_evidence_id: canonical_event_time_evidence_id(&source_ref(&second)),
+            earliest_event_time_ticks: 1_010,
+            latest_event_time_ticks: 1_030,
+        };
+        assert!(matches!(
+            project_aggregation_events(&[first, second], 200),
+            Err(AggregationProjectionError::TimelineOrderNotProven {
+                module_id,
+                ..
+            }) if module_id == "container-1"
+        ));
+    }
+
+    #[test]
+    fn source_envelopes_preserve_original_event_time_and_record_time_lexemes() {
+        let input = envelope(
+            "source-raw-fields",
+            1,
+            AggregationAction::Add,
+            Some("container-1"),
+            &["pallet-1"],
+            Vec::new(),
+        );
+        let report = project_aggregation_events(&[input], 200).unwrap();
+        assert_eq!(
+            report.source_envelopes[0].event.event_time_lexeme,
+            "2026-11-22T10:00:00+02:00"
+        );
+        assert_eq!(
+            report.source_envelopes[0]
+                .event
+                .record_time_lexeme
+                .as_deref(),
+            Some("2026-11-22T08:00:04Z")
+        );
+        assert_eq!(report.source_envelopes[0].source_payload_sha256, "a".repeat(64));
+        assert_eq!(report.source_envelopes[0].adapter_build_sha256, "b".repeat(64));
+    }
+
+    #[test]
+    fn membership_revision_tombstones_are_permutation_invariant() {
+        let first = envelope(
+            "revision-order",
+            1,
+            AggregationAction::Add,
+            Some("container-1"),
+            &["pallet-1", "carton-1"],
+            Vec::new(),
+        );
+        let second = envelope(
+            "revision-order",
+            2,
+            AggregationAction::Add,
+            Some("container-1"),
+            &["pallet-1"],
+            Vec::new(),
+        );
+        let forward = project_aggregation_events(&[first.clone(), second.clone()], 200).unwrap();
+        let reverse = project_aggregation_events(&[second, first], 200).unwrap();
+        assert_eq!(forward, reverse);
+        assert!(forward.membership_events.iter().any(|row| {
+            row.provenance.child_epc == "carton-1" && row.provenance.is_revision_tombstone
+        }));
     }
 
     #[test]
