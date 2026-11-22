@@ -263,7 +263,7 @@ Therefore the rotating-EGB principal-symbol programme must:
 5. compare more than one admissible formulation rather than transfer a theorem from a different gauge;
 6. abstain if the hyperbolicity margin is smaller than background/perturbative truncation uncertainty.
 
-References: [Papallo & Reall, Phys. Rev. D 96, 044019 (2017)](https://doi.org/10.1103/PhysRevD.96.044019); [Kovács & Reall, modified harmonic formulations for Lovelock/Horndeski](https://arxiv.org/abs/1911.00055) (verify exact theorem hypotheses before reuse).
+References: [Papallo & Reall, Phys. Rev. D 96, 044019 (2017)](https://doi.org/10.1103/PhysRevD.96.044019); [Kovács & Reall, modified harmonic formulations for Lovelock/Horndeski](https://arxiv.org/abs/2003.08398) (verify exact theorem hypotheses before reuse).
 
 ### Updated programme consequence
 
