@@ -11,3 +11,6 @@ description = "Bounded cross-owner restart/reconciliation contract for mobility 
 
 [lib]
 path = "src/lib.rs"
+
+# Keep this reference crate isolated from the repository's production workspace.
+[workspace]
