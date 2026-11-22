@@ -507,7 +507,7 @@ mod tests {
         let mut event = evidence(1, 3, 4);
         event.verification.verified_at_ns = 99;
         assert_eq!(
-            validator.validate(policy(), event, 150),
+            validator.validate(policy(), event, 149),
             Err(SessionEvidenceError::ReceiptBindingMismatch)
         );
 
