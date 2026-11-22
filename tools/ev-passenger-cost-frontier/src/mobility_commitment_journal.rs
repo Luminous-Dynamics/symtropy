@@ -345,10 +345,20 @@ fn validate_evidence(
             valid_from <= event_time_unix_ms
                 && event_time_unix_ms <= observed
                 && observed <= decision_cutoff_unix_ms
+                && observed <= valid_until
                 && event_time_unix_ms <= valid_until
         }
         _ => false,
     }
+}
+
+fn is_expiry_transition(
+    kind: JournalEventKind,
+    resolved_state: Option<CommitmentState>,
+) -> bool {
+    kind == JournalEventKind::Expired
+        || (kind == JournalEventKind::Reconciled
+            && resolved_state == Some(CommitmentState::Expired))
 }
 
 fn release_requires_resource_evidence(
@@ -532,7 +542,7 @@ pub fn replay_journal(
             return Err(format!("journal_event_evidence_invalid:{}", event.sequence));
         }
 
-        if event.kind == JournalEventKind::Expired
+        if is_expiry_transition(event.kind, event.resolved_state)
             && event.event_time_unix_ms < contract.expires_at_unix_ms
         {
             return Err("commitment_expired_before_expiry_time".to_owned());
@@ -698,7 +708,7 @@ pub fn append_event(
         return Err("append_event_evidence_invalid".to_owned());
     }
 
-    if request.kind == JournalEventKind::Expired
+    if is_expiry_transition(request.kind, request.resolved_state)
         && request.event_time_unix_ms < contract.expires_at_unix_ms
     {
         return Err("commitment_expired_before_expiry_time".to_owned());
@@ -1034,6 +1044,45 @@ mod tests {
         assert_eq!(first.event_digest, retry.event_digest);
         assert_eq!(first.sequence, retry.sequence);
         assert_eq!(journal.snapshot().expect("snapshot").version, 1);
+    }
+
+    #[test]
+    fn same_idempotency_key_with_changed_command_kind_is_rejected() {
+        let input = scenario();
+        let offer = first_request();
+        let journal = InMemoryCommitmentJournal::default();
+        journal
+            .append(&offer, input.decision_time_unix_ms)
+            .expect("offer append");
+        let mut accepted = scenario().commands[1].clone();
+        accepted.idempotency_key = offer.idempotency_key.clone();
+        let error = journal
+            .append(&accepted, input.decision_time_unix_ms)
+            .expect_err("same idempotency key cannot identify a different command kind");
+        assert_eq!(error, "idempotency_key_payload_or_kind_conflict");
+        assert_eq!(journal.snapshot().expect("snapshot").version, 1);
+    }
+
+    #[test]
+    fn reconciliation_cannot_mark_a_commitment_expired_before_expiry() {
+        let input = scenario();
+        let snapshot = append_all();
+        let mut request = terminal_reconciliation_request(
+            &snapshot,
+            input.decision_time_unix_ms,
+            EvidenceClass::IndependentTest,
+        );
+        request.resolved_state = Some(CommitmentState::Expired);
+        request.event_time_unix_ms = input.decision_time_unix_ms - 100_000;
+        for item in &mut request.resource_terminal_evidence {
+            item.evidence.observed_at_unix_ms = Some(request.event_time_unix_ms + 1);
+            item.evidence.valid_from_unix_ms = Some(request.event_time_unix_ms);
+        }
+        request.event_evidence.observed_at_unix_ms = Some(request.event_time_unix_ms + 1);
+        request.event_evidence.valid_from_unix_ms = Some(request.event_time_unix_ms);
+        let error = append_event(&snapshot, &request, input.decision_time_unix_ms)
+            .expect_err("reconciliation may not invent an early expiry");
+        assert_eq!(error, "commitment_expired_before_expiry_time");
     }
 
     #[test]
