@@ -30,7 +30,7 @@ The source event's child lists remain unordered; the projection never treats lis
 
 The derived projection key is not represented as an original EPCIS source event. Consumers must keep its provenance sidecar and never publish it back to source systems as if it were the original event.
 
-The cargo reducer now accepts one atomic CompositionEventBatch per exact originating source event/revision. Multiple child ADDs or DELETEs in one source event are one transaction, not independent simultaneous events. Independent source events that touch the same module at the same event-time tick still produce an AmbiguousEventTime failure. A failed multi-child transaction rolls back every child mutation.
+The cargo reducer now accepts one atomic CompositionEventBatch per exact originating source event/revision. Multiple child ADDs or DELETEs in one source event are one transaction, not independent simultaneous events. Independent source events that touch the same module at the same event-time tick still produce an AmbiguousEventTime failure. The conflict footprint for DELETE_ALL includes the selected parent and every currently active direct child it would remove, so a same-tick transfer/reparent of one of those children cannot be lexically ordered around the parent-scoped deletion. A failed multi-child transaction rolls back every child mutation.
 
 ## Chronology and tick-domain safety
 
