@@ -245,9 +245,9 @@ mod tests {
     fn maps_packet_quality_to_paper_defined_bounded_parameters() {
         let result = map_hbr_packet_quality(&[0.0, 0.0], &calibration()).unwrap();
         assert_eq!(result.normalized_quality_score, 0.0);
-        assert_eq!(result.heteroscedastic_scale_m, 0.126);
-        assert_eq!(result.robust_loss_shape_alpha, 0.15);
-        assert_eq!(result.nonnegative_correction_prior_m, 0.625);
+        assert!((result.heteroscedastic_scale_m - 0.126).abs() < 1e-12);
+        assert!((result.robust_loss_shape_alpha - 0.15).abs() < 1e-12);
+        assert!((result.nonnegative_correction_prior_m - 0.625).abs() < 1e-12);
         assert_eq!(result.calibration_sha256, [0x11; 32]);
         assert_eq!(result.feature_schema_sha256, [0x22; 32]);
     }
