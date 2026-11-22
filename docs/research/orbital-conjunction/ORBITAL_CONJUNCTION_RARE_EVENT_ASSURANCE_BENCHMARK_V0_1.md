@@ -432,3 +432,15 @@ The first executable code slice should be P1. It can be developed and validated 
 ## Claim ceiling
 
 Analytic tests validate only the mathematical cases they cover. CARA reproduction establishes agreement with specific external methods under frozen conventions. Synthetic rare-event results do not prove operational orbit accuracy. A model-conditional Pc is not a calibrated real-world collision frequency. This programme is not flight qualification, collision-avoidance certification, or spacecraft maneuver authority.
+
+## Current kernel research increments — 2026-11-22
+
+The standalone kernel implementation in [PR #6748](https://github.com/Luminous-Dynamics/symtropy/pull/6748) now has three linked assurance primitives beyond the original Gaussian / importance-weight calculations:
+
+1. **Independent residual-mass exploration for event unions.** The static-affine residual traversal accepts multiple collision components. Each component has its own affine map and HBR. A cell is removed only if every component is either wholly inside a chart assigned to that component or independently proven event-free. Generic chart boxes are intentionally not accepted for union coverage: a chart for one mode must not cover another mode, even when the regions overlap in nominal input space.
+2. **Analytic omitted-mode challenge.** A test deliberately charts the central event while retaining a remote event interval [2.8, 3.2]. The residual upper bound must dominate the analytic standard-normal probability of that remote interval. A paired control assigns a separate chart to each component and checks that the residual bound falls to the finite-cube tail term on the selected fixture.
+3. **Interval-polynomial time-window classifier.** Given coefficient intervals that already enclose the polynomial and its Taylor remainder, interval Horner evaluation and time subdivision return only definitely-no-contact, definitely-contact, or ambiguous. Tangencies and unresolved windows remain ambiguous. The classifier does not construct the remainder or validate its input coefficient intervals; this remains a separate proof obligation in #6801.
+
+The kernel's source inventory is now 98 authored tests. The 96-test predecessor passed dedicated exact-head workflow #134 at commit `b8235e3fa6f74449e1f5f4dc47eaf5ee4374bee3`. The two additional overlapping-mode/chart-assignment tests and stricter component-specific chart API are part of current head `e47dd3b1a835d031e8641a3e512e91add2612e57`; dedicated exact-head workflow #152 was in progress when this section was authored. No validation status is transferred from the 96-test predecessor to the latest code.
+
+These primitives are still conditional on static affine geometry, a fixed standard-normal nominal distribution, and valid caller-supplied coefficient / chart enclosures. They do not establish physical orbit-model adequacy, full event-mode completeness for nonlinear dynamics, or operational collision risk.
