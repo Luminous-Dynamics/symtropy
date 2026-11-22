@@ -294,7 +294,9 @@ fn validate_corpus(corpus: &DecisionCorpus) -> Result<(), String> {
             if !validate_ascii_id(scenario_id)
                 || !expected_scenario_ids.insert(scenario_id.as_str())
             {
-                return Err("planned scenario IDs must be unique, nonempty ASCII strings".to_owned());
+                return Err(
+                    "planned scenario IDs must be unique, nonempty ASCII strings".to_owned(),
+                );
             }
         }
         let expected_ids_digest =
@@ -317,7 +319,8 @@ fn validate_corpus(corpus: &DecisionCorpus) -> Result<(), String> {
                 )
             {
                 return Err(
-                    "loss scenario identity, world reference or evidence status is invalid".to_owned(),
+                    "loss scenario identity, world reference or evidence status is invalid"
+                        .to_owned(),
                 );
             }
             if scenario.evidence_status == "admissible"
@@ -349,7 +352,10 @@ fn validate_corpus(corpus: &DecisionCorpus) -> Result<(), String> {
             }
         }
         if scenario_ids != expected_scenario_ids {
-            return Err("observed loss scenarios do not match the upstream planned scenario inventory".to_owned());
+            return Err(
+                "observed loss scenarios do not match the upstream planned scenario inventory"
+                    .to_owned(),
+            );
         }
         if covered_worlds != world_ids {
             return Err("loss scenario manifest must cover every compatible world".to_owned());
@@ -942,7 +948,8 @@ mod tests {
         for item in &evaluation.cases {
             for metric in &item.action_metrics {
                 assert!(
-                    metric.worst_case_rectangular_regret
+                    metric
+                        .worst_case_rectangular_regret
                         .compare_exact(&metric.worst_case_joint_regret)
                         != Ordering::Less,
                     "rectangular regret fell below joint regret for {}",
