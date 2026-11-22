@@ -20,6 +20,7 @@
     "reserve_scenarios",
     "pcc_slots",
     "candidate_dispatch",
+    "resource_dispatch",
     "export_permission",
     "claim_ceiling"
   ],
@@ -109,6 +110,14 @@
     "claim_ceiling": {
       "type": "string",
       "minLength": 1
+    },
+    "resource_dispatch": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/resourceDispatch"
+      }
     }
   },
   "$defs": {
@@ -451,6 +460,31 @@
             "boolean",
             "null"
           ]
+        }
+      }
+    },
+    "resourceDispatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resource_id",
+        "slot",
+        "requested_discharge_power_w"
+      ],
+      "properties": {
+        "resource_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "slot": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7
+        },
+        "requested_discharge_power_w": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000000
         }
       }
     }
