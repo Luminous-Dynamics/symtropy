@@ -71,7 +71,6 @@ pub fn solve_planar_friction_cone(
         return Err(FrictionConeError::NonFinite);
     }
     let free_velocity = SVector::<f64, 2>::new(free_velocity[0], free_velocity[1]);
-    let free_velocity = *free_velocity;
     if !friction_coefficient.is_finite() || friction_coefficient < 0.0 {
         return Err(FrictionConeError::InvalidFrictionCoefficient);
     }
