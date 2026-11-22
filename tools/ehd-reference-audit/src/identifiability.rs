@@ -1469,8 +1469,25 @@ pub fn multi_nuisance_correlated_scenario_score(
     let lambda_max = norm_0.max(norm_1);
     let lambda_min = norm_0.min(norm_1);
     let singular_values = [lambda_max.sqrt(), lambda_min.sqrt()];
-    let threshold = relative_rank_tolerance * singular_values[0];
-    let numerical_rank = singular_values.iter().filter(|v| **v > threshold).count();
+    let physical_reference_norm = (
+        dot_four(&whitened_physical[0], &whitened_physical[0])
+            + dot_four(&whitened_physical[1], &whitened_physical[1])
+    ).sqrt();
+    if !physical_reference_norm.is_finite() {
+        return Err(IdentifiabilityError::NonFiniteDerivedValue);
+    }
+    // A relative-only test can promote roundoff left after exact nuisance
+    // projection when both effective singular values are near zero. Require
+    // the largest retained direction to be material relative to the original
+    // whitened physical sensitivity scale before testing the smaller one.
+    let numerical_rank = if singular_values[0]
+        <= relative_rank_tolerance * physical_reference_norm
+    {
+        0
+    } else {
+        let threshold = relative_rank_tolerance * singular_values[0];
+        singular_values.iter().filter(|v| **v > threshold).count()
+    };
     let condition_number = if numerical_rank == 2 && singular_values[1] > 0.0 {
         Some(singular_values[0] / singular_values[1])
     } else {
@@ -1639,7 +1656,7 @@ mod multi_nuisance_correlated_tests {
             &scenarios, 4, [1.0, 1.0], 1.0e-12, 200,
         ).unwrap();
         assert_eq!(result.evaluated_design_count, 126);
-        assert_eq!(result.robust_identifiable_design_count, 49);
+        assert_eq!(result.robust_identifiable_design_count, 14);
         assert_eq!(result.robust_optimal.candidate_indices, [0, 2, 4, 5]);
         assert!((result.robust_optimal.worst_case_minimum_information_eigenvalue
             - 42.546743038933265).abs() < 1.0e-9);
@@ -1670,6 +1687,16 @@ mod multi_nuisance_correlated_tests {
             select_multi_nuisance_correlated_design(&scenarios, 4, [1.0, 1.0], 1.0e-12, 200),
             Err(IdentifiabilityError::NonPositiveDefiniteCovariance { .. })
         ));
+    }
+
+    #[test]
+    fn physical_signal_fully_explained_by_nuisance_is_not_counted_from_roundoff() {
+        let scenarios = multi_nuisance_correlated_reference_scenarios();
+        let score = multi_nuisance_correlated_scenario_score(
+            &[0, 0, 3, 3], &scenarios[0], [1.0, 1.0], 1.0e-12,
+        ).unwrap().unwrap();
+        assert_eq!(score.numerical_rank, 0);
+        assert!(score.condition_number.is_none());
     }
 
     #[test]
