@@ -903,7 +903,6 @@ impl RuntimeProjectionRecording {
                 OwnerEvidenceDomain::DownstreamExecutionGraph,
                 OwnerEvidenceDomain::PhysicalOutcomeObserverQuorum,
                 OwnerEvidenceDomain::DownstreamObserverQuorum,
-                OwnerEvidenceDomain::ActionApplicability,
             ] {
                 if &owner_evidence_by_domain(s, domain)?.scope != effect_scope {
                     return Err(ProjectionError::EvidenceScopeMismatch);
@@ -918,11 +917,14 @@ impl RuntimeProjectionRecording {
             {
                 return Err(ProjectionError::EvidenceScopeMismatch);
             }
+            let applicability_scope =
+                &owner_evidence_by_domain(s, OwnerEvidenceDomain::ActionApplicability)?.scope;
             let recovery_scope =
                 &owner_evidence_by_domain(s, OwnerEvidenceDomain::RecoveryAuthority)?.scope;
             let process_scope =
                 &owner_evidence_by_domain(s, OwnerEvidenceDomain::ProcessEpoch)?.scope;
-            if recovery_scope.attempt_id != "attempt-2"
+            if applicability_scope != recovery_scope
+                || recovery_scope.attempt_id != "attempt-2"
                 || recovery_scope.subject_boot_epoch != state_boot
                 || recovery_scope.subject_controller_epoch != state_controller
                 || process_scope.subject_boot_epoch != state_boot
@@ -1320,7 +1322,10 @@ mod tests {
             .into_iter()
             .enumerate()
             .map(|(index, domain)| {
-                let scope = if domain == OwnerEvidenceDomain::RecoveryAuthority {
+                let scope = if matches!(
+                    domain,
+                    OwnerEvidenceDomain::RecoveryAuthority | OwnerEvidenceDomain::ActionApplicability
+                ) {
                     EvidenceScope {
                         logical_effect_id: "effect-1".into(),
                         attempt_id: "attempt-2".into(),
