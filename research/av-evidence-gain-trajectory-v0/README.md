@@ -28,7 +28,7 @@ The runner's candidate-visible workload/submission remains turn-local. evaluator
 
 For each turn:
 1. Candidate receives a delivered-observation workload with transcript head and decision cutoff.
-2. Candidate commits a forecast for every currently eligible action plus __stop__, bound to episode ID, turn ID, transcript head and current logical tick.
+2. Candidate commits a forecast for every currently eligible #6753 action plus __stop__, preserving action ID, modality, description, cost, arrival tick, source-dependency group and information-gain proxy. The forecast is bound to episode ID, turn ID, transcript head, current logical tick, deadline, cost weight and budget.
 3. Candidate selects one forecasted action or stop.
 4. Executor attempts that selected action. The next turn identifies the same action as preceding_action_id, records its result status and includes only observations actually delivered since the prior cutoff.
 5. The ledger verifies that new observation IDs exactly equal the catalog growth, that earlier observation metadata is immutable, and that each new observation arrived after the prior decision cutoff.
@@ -49,7 +49,7 @@ The bundle binds:
 - per-turn complete all-action forecast and linked #6753 scorecard receipt;
 - per-turn resource delta.
 
-Forecasts and receipts carry both episode ID and turn ID. The forecast hash is calculated over the exact canonical forecast record; the receipt must bind to that digest and the same transcript head. This distinguishes a multi-turn forecast from a single episode-level #6753 scorecard.
+Forecasts and receipts carry both episode ID and turn ID. The action catalogue follows #6753's full workload shape; cost weight and budget are committed before outcomes. The forecast hash is calculated over the exact canonical forecast record; the receipt must bind to that digest and the same transcript head. This distinguishes a multi-turn forecast from a single episode-level #6753 scorecard.
 
 ## Failure and resource handling
 
