@@ -317,3 +317,15 @@ v_{\min}'(0)=-\frac{2(19-2\pi^2)}{15}e_h,\qquad
 u_{\min}'(0)=-\frac{8(19-2\pi^2)}{15}e_H.
 \]
 The minimum right singular-frame component slope is \(0.0985611736238288\); the left singular-frame component slope is \(0.3942446944953152\). Complementary maximum singular vectors rotate oppositely. These are coordinate-dependent regression targets for the fixed-basis finite-\(\lambda\) BVP study, not invariant angles under arbitrary endpoint rescaling. The machine-readable result and replay receipt record the convention.
+
+
+## 10. Independent quadrature oracle for the exact h-mode image
+
+Before beginning finite-\(\lambda\) BVP sweeps, the \(h_0\)-mode Green projection has been checked by a second numerical implementation that does not import SymPy, the action-row fixture, or the exact symbolic verifier. The independently evaluated integral reproduces \(C_H=67-6\pi^2\) and the first-row reconstruction \(C_B=19-2\pi^2\) at 40/60/80 requested decimal digits, with reported discrepancies below \(1.5\times10^{-46}\) and \(4.8\times10^{-47}\).
+
+The separate oracle and replay receipt are:
+- \`verify_spin2_green_projection_quadrature.py\`
+- \`spin2_green_projection_quadrature_v1.json\`
+- \`spin2_green_projection_quadrature_replay_v1.json\`
+
+These are arbitrary-precision numerical discrepancies, not rigorous enclosures. The next finite-coupling validation must still solve the original BVP independently and compare both columns of \(J(\lambda)\) against \(J_0+\lambda J_1\).
