@@ -54,3 +54,16 @@ Dataset notes:
 ## Validation
 
 Unit tests cover zero error, offset and observation-age propagation, clock drift accumulation, rotational lever-arm displacement, acceleration terms, monotonicity with stale synchronization, invalid inputs and arithmetic overflow. The demo uses synthetic timing and motion bounds; it is not fitted to Hilti, UrbanNav or a physical vehicle.
+## Conservative composition with a Student-t protection level
+
+The module also provides `inflate_student_t_protection_levels_by_temporal_bound`. Given an existing two-dimensional Student-t PL result and a qualified deterministic temporal position-bias bound `delta_p`, it returns:
+
+`PL_overall,total = PL_overall,stat + delta_p`
+
+`PL_long,total = PL_long,stat + delta_p`
+
+`PL_cross,total = PL_cross,stat + delta_p`
+
+For any directional unit vector, the absolute projection of the bounded position-bias vector is no larger than its Euclidean norm. The additive form therefore follows the triangle inequality and does not require independence between the statistical estimator error and time-alignment bias. It is conservative and must not be RSS-combined with other sources without a justified dependence model.
+
+Do not add the temporal term twice if the base covariance/PL calculation already includes that same timing uncertainty. All clock and motion bounds must be independently evidenced before the inflated PL can be interpreted as a valid protection level.
