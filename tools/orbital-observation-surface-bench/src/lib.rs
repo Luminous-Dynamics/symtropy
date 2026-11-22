@@ -416,11 +416,9 @@ fn simulate_channel(scenario: &Scenario, channel: &ChannelConfig) -> Result<Chan
         })
         .collect::<Vec<_>>();
 
-    observed_event_stream.extend(
-        false_positive_times
-            .iter()
-            .map(|time| ObservedEvent { time_fraction: *time }),
-    );
+    observed_event_stream.extend(false_positive_times.iter().map(|time| ObservedEvent {
+        time_fraction: *time,
+    }));
     observed_event_stream.sort_by(|left, right| left.time_fraction.total_cmp(&right.time_fraction));
 
     Ok(ChannelReport {
@@ -627,10 +625,12 @@ mod tests {
             first_channel.observed_event_stream.len(),
             first_channel.audit.detected_event_count + first_channel.audit.false_positive_count
         );
-        assert!(first_channel
-            .observed_event_stream
-            .windows(2)
-            .all(|pair| pair[0].time_fraction <= pair[1].time_fraction));
+        assert!(
+            first_channel
+                .observed_event_stream
+                .windows(2)
+                .all(|pair| pair[0].time_fraction <= pair[1].time_fraction)
+        );
     }
 
     #[test]
