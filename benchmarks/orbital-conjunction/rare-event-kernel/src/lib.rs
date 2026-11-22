@@ -36,8 +36,7 @@ pub mod trajectory;
 pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
     AffineResidualMassReport, AffineUnionResidualMassConfig,
-    affine_collision_residual_mass_upper_bound,
-    affine_union_collision_residual_mass_upper_bound,
+    affine_collision_residual_mass_upper_bound, affine_union_collision_residual_mass_upper_bound,
 };
 pub use sequential::{BernoulliConfidenceSequence, BernoulliMixtureEProcess};
 pub use stats::{WeightedEventAccumulator, WeightedEventSummary};
@@ -127,9 +126,7 @@ impl fmt::Display for KernelError {
             Self::EmptyEventUnion => {
                 "residual-mass event union must contain at least one component"
             }
-            Self::InvalidChartComponentIndex => {
-                "chart component index is outside the event union"
-            }
+            Self::InvalidChartComponentIndex => "chart component index is outside the event union",
             Self::InvalidPolynomial => {
                 "trajectory polynomial must contain at least one coefficient per axis"
             }
