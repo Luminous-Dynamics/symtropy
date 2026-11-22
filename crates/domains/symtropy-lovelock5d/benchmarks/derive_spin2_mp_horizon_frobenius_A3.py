@@ -204,6 +204,27 @@ def derive() -> dict[str, object]:
         residual -= gvec[n]
         exact_zero(f"Myers-Perry recurrence {n}", residual)
 
+    # Frozen-coefficient infinity indicial anchor in logarithmic radius.
+    # V=(B,r B',H,r H') makes a power law r^sigma an eigenmode.
+    Dinf = sp.diag(1, 1/r, 1, 1/r)
+    tau_second = sp.cancel(-r**2 * M.inv() * C * Dinf)
+    tau_source = sp.cancel(-r**2 * M.inv() * source)
+    A_tau = sp.zeros(4, 4)
+    A_tau[0, 1], A_tau[2, 3] = 1, 1
+    for column in range(4):
+        A_tau[1, column] = tau_second[0, column]
+        A_tau[3, column] = tau_second[1, column]
+    A_tau[1, 1] += 1
+    A_tau[3, 3] += 1
+    A_infinity = A_tau.applyfunc(lambda value: sp.factor(sp.limit(value, r, sp.oo)))
+    g_infinity = sp.Matrix([0, sp.limit(tau_source[0], r, sp.oo),
+                            0, sp.limit(tau_source[1], r, sp.oo)])
+    sigma = sp.symbols("sigma")
+    infinity_polynomial = sp.factor((sigma * sp.eye(4) - A_infinity).det())
+    infinity_eigenvalues = A_infinity.eigenvals()
+    if any(value.has(sp.oo, sp.zoo, sp.nan) for value in list(A_infinity) + list(g_infinity)):
+        raise AssertionError("Infinity logarithmic-radius limit is not finite")
+
     mp_sub = {
         B: -r**-2+r**-6, Bp: sp.diff(-r**-2+r**-6, r),
         Bpp: sp.diff(-r**-2+r**-6, r, 2),
@@ -219,7 +240,7 @@ def derive() -> dict[str, object]:
     return {
         "schema_version": 1,
         "artifact_kind": "einstein_limit_frobenius_A0_A1_A2_A3",
-        "status": "exact_alpha_zero_A3_extracted",
+        "status": "exact_alpha_zero_A3_and_infinity_indicial_extracted",
         "conventions": {
             "dimension": 5, "alpha": "0", "r_H": "1", "y": "r/r_H-1",
             "state": ["Bhat2", "Bhat2_prime", "Hhat2", "Hhat2_prime"],
@@ -242,6 +263,17 @@ def derive() -> dict[str, object]:
             "U1": [sp.sstr(x) for x in U[1]],
             "U2": [sp.sstr(x) for x in U[2]],
             "U3": [sp.sstr(x) for x in U[3]]
+        },
+        "infinity_indicial": {
+            "coordinate": "tau=log(r); x=1/r",
+            "state": ["Bhat2", "r*Bhat2_prime", "Hhat2", "r*Hhat2_prime"],
+            "log_radius_matrix": [[sp.sstr(A_infinity[i,j]) for j in range(4)] for i in range(4)],
+            "log_radius_source": [sp.sstr(value) for value in g_infinity],
+            "indicial_polynomial_in_r_power_sigma": sp.sstr(infinity_polynomial),
+            "eigenvalues_and_algebraic_multiplicities": {
+                sp.sstr(key): int(value) for key, value in infinity_eigenvalues.items()
+            },
+            "claim_ceiling": "Einstein-limit frozen-coefficient asymptotic indicial anchor only; full asymptotic recurrence and source/response classification need separate analysis."
         },
         "singular_branch": {
             "exponent": -1,
