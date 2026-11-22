@@ -672,7 +672,7 @@ mod tests {
     #[test]
     fn shared_power_dependency_is_not_independent() {
         let mut input = packet();
-        input.required_independent_observers = 3;        let mut input = packet();
+        input.required_independent_observers = 3;
         input.components.push(component("shared-power", "shared-power-domain", "power"));
         input.dependency_edges.push(edge("sensor-a", "shared-power"));
         input.dependency_edges.push(edge("sensor-b", "shared-power"));
@@ -682,7 +682,7 @@ mod tests {
     #[test]
     fn shared_clock_dependency_is_not_independent() {
         let mut input = packet();
-        input.required_independent_observers = 3;        let mut input = packet();
+        input.required_independent_observers = 3;
         input.components.push(component("shared-clock", "shared-clock-domain", "clock"));
         input.dependency_edges.push(edge("sensor-a", "shared-clock"));
         input.dependency_edges.push(edge("sensor-b", "shared-clock"));
@@ -692,7 +692,7 @@ mod tests {
     #[test]
     fn duplicate_failure_domain_labels_reveal_hidden_common_cause() {
         let mut input = packet();
-        input.required_independent_observers = 3;        let mut input = packet();
+        input.required_independent_observers = 3;
         input.components[4].failure_domain_id =
             input.components[1].failure_domain_id.clone();
         assert_hold(&input, HoldReason::NoSurvivingIndependentQuorum);
@@ -737,7 +737,7 @@ mod tests {
     #[test]
     fn stale_sample_is_not_evidence_of_observer_availability() {
         let mut input = packet();
-        input.required_independent_observers = 3;        let mut input = packet();
+        input.required_independent_observers = 3;
         input.samples[0].observed_at_ns = 1;
         assert_eq!(
             assess_observer_assurance(&input),
@@ -752,7 +752,7 @@ mod tests {
     #[test]
     fn wrong_calibration_scope_or_clock_invalidates_a_channel() {
         let mut input = packet();
-        input.required_independent_observers = 3;        let mut input = packet();
+        input.required_independent_observers = 3;
         input.samples[0].calibration_commitment = commitment(99);
         assert_hold(&input, HoldReason::InsufficientValidChannels);
 
@@ -768,7 +768,7 @@ mod tests {
     #[test]
     fn calibration_placement_and_operating_envelope_must_be_valid() {
         let mut input = packet();
-        input.required_independent_observers = 3;        let mut input = packet();
+        input.required_independent_observers = 3;
         input.samples[0].calibration_valid = false;
         assert_hold(&input, HoldReason::InsufficientValidChannels);
 
@@ -784,7 +784,7 @@ mod tests {
     #[test]
     fn time_uncertainty_and_future_samples_are_rejected() {
         let mut input = packet();
-        input.required_independent_observers = 3;        let mut input = packet();
+        input.required_independent_observers = 3;
         input.samples[0].time_uncertainty_ns = 21;
         assert_hold(&input, HoldReason::InsufficientValidChannels);
 
@@ -796,7 +796,7 @@ mod tests {
     #[test]
     fn missing_or_zero_raw_evidence_does_not_count() {
         let mut input = packet();
-        input.required_independent_observers = 3;        let mut input = packet();
+        input.required_independent_observers = 3;
         input.samples.remove(0);
         assert_hold(&input, HoldReason::InsufficientValidChannels);
 
