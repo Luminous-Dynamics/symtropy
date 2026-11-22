@@ -1059,9 +1059,13 @@ impl<const D: usize> PhysicsWorld<D> {
 
             let v_rel_n = {
                 let va = self.bodies[a].linear_velocity
-                    + self.bodies[a].angular_velocity.point_velocity_at_offset(&r_a);
+                    + self.bodies[a]
+                        .angular_velocity
+                        .point_velocity_at_offset(&r_a);
                 let vb = self.bodies[b].linear_velocity
-                    + self.bodies[b].angular_velocity.point_velocity_at_offset(&r_b);
+                    + self.bodies[b]
+                        .angular_velocity
+                        .point_velocity_at_offset(&r_b);
                 (vb - va).dot(&contact.normal)
             };
 
@@ -1163,9 +1167,13 @@ impl<const D: usize> PhysicsWorld<D> {
 
                 let v_rel = {
                     let va = self.bodies[a].linear_velocity
-                        + self.bodies[a].angular_velocity.point_velocity_at_offset(&r_a);
+                        + self.bodies[a]
+                            .angular_velocity
+                            .point_velocity_at_offset(&r_a);
                     let vb = self.bodies[b].linear_velocity
-                        + self.bodies[b].angular_velocity.point_velocity_at_offset(&r_b);
+                        + self.bodies[b]
+                            .angular_velocity
+                            .point_velocity_at_offset(&r_b);
                     vb - va
                 };
                 let v_n = contact.normal * v_rel.dot(&contact.normal);
