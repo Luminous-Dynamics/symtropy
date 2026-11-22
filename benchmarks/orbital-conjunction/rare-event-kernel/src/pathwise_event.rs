@@ -858,7 +858,7 @@ mod tests {
             )])
             .expect("valid partial evaluation");
         assert_eq!(result.disposition, HorizonContactDisposition::DefinitelyContact);
-        assert_eq!(result.first_contact_time_seconds, None);
+        assert_eq!(result.first_contact_time_bounds_seconds, None);
     }
 
     #[test]
