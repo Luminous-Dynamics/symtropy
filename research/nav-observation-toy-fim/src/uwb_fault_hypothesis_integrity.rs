@@ -37,9 +37,85 @@ pub enum UwbFaultHypothesisKind {
     RadioExcluded,
     SharedClockFault,
     SharedCalibrationFault,
+    SharedProcessingFault,
+    SharedPowerFault,
     BoundedRangeBias,
     MultiDomainFault,
     UnknownFault,
+}
+
+
+/// Declared class of one evaluator-reviewed common-cause/fault domain.
+/// Distinct IDs are not by themselves proof of independent physical causes.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum UwbFaultDomainClass3d {
+    Anchor,
+    Radio,
+    Clock,
+    Calibration,
+    Processing,
+    Power,
+    PositiveRangeBias,
+    Unknown,
+}
+
+impl UwbFaultDomainClass3d {
+    fn single_domain_hypothesis_kind(self) -> UwbFaultHypothesisKind {
+        match self {
+            Self::Anchor => UwbFaultHypothesisKind::AnchorExcluded,
+            Self::Radio => UwbFaultHypothesisKind::RadioExcluded,
+            Self::Clock => UwbFaultHypothesisKind::SharedClockFault,
+            Self::Calibration => UwbFaultHypothesisKind::SharedCalibrationFault,
+            Self::Processing => UwbFaultHypothesisKind::SharedProcessingFault,
+            Self::Power => UwbFaultHypothesisKind::SharedPowerFault,
+            Self::PositiveRangeBias => UwbFaultHypothesisKind::BoundedRangeBias,
+            Self::Unknown => UwbFaultHypothesisKind::UnknownFault,
+        }
+    }
+}
+
+/// One pre-reviewed failure domain and the source observations it can affect.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct UwbFaultDomain3d {
+    pub dependency_group_id: u64,
+    pub class: UwbFaultDomainClass3d,
+    pub affected_observation_ids: Vec<u64>,
+}
+
+/// A generated hypothesis descriptor. The caller must solve/qualify a
+/// position set for this exact descriptor before constructing an integrity
+/// inventory. Enumeration itself never pretends to solve an estimator.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct UwbFaultHypothesisDescriptor3d {
+    pub hypothesis_id: u64,
+    pub kind: UwbFaultHypothesisKind,
+    pub dependency_group_ids: Vec<u64>,
+    pub affected_observation_ids: Vec<u64>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct UwbFaultHypothesisEnumerationConfig3d {
+    /// Includes the nominal hypothesis.
+    pub maximum_hypothesis_count: usize,
+    pub maximum_fault_domain_count: usize,
+    pub maximum_fault_cardinality: usize,
+    /// Bounds the total number of supplied observation references before
+    /// set-union work begins. A measurement may appear in multiple domains.
+    pub maximum_observation_references: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct UwbFaultHypothesisEnumerationReport3d {
+    pub generated_hypothesis_count: usize,
+    /// Exact count in the declared cardinality scope when it fits usize.
+    /// None means the combinatorial count overflowed; the generated list is
+    /// still bounded by maximum_hypothesis_count.
+    pub theoretical_hypothesis_count: Option<usize>,
+    pub fault_domain_count: usize,
+    pub maximum_fault_cardinality: usize,
+    pub enumeration_complete: bool,
+    /// Canonical order: nominal first, then cardinality, then sorted domain ID.
+    pub hypotheses: Vec<UwbFaultHypothesisDescriptor3d>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -164,6 +240,16 @@ pub enum UwbFaultHypothesisIntegrityError {
     DuplicateObservationIdentity { hypothesis_id: u64, observation_id: u64 },
     InvalidPositionSet(u64),
     ArithmeticOverflow(u64),
+    InvalidEnumerationConfiguration,
+    EmptyFaultDomainInventory,
+    FaultDomainCountExceedsBudget,
+    ObservationReferenceCountExceedsBudget,
+    InvalidFaultDomainIdentity,
+    DuplicateFaultDomainIdentity(u64),
+    EmptyFaultDomainObservationSet(u64),
+    InvalidFaultDomainObservationIdentity(u64),
+    DuplicateFaultDomainObservationIdentity { group_id: u64, observation_id: u64 },
+    HypothesisIdentityOverflow,
 }
 
 impl fmt::Display for UwbFaultHypothesisIntegrityError {
@@ -189,11 +275,195 @@ impl fmt::Display for UwbFaultHypothesisIntegrityError {
             Self::DuplicateObservationIdentity { hypothesis_id, observation_id } => write!(f, "duplicate observation {observation_id} in hypothesis {hypothesis_id}"),
             Self::InvalidPositionSet(id) => write!(f, "position set is invalid for hypothesis {id}"),
             Self::ArithmeticOverflow(id) => write!(f, "solution-separation arithmetic overflowed for hypothesis {id}"),
+            Self::InvalidEnumerationConfiguration => write!(f, "hypothesis enumeration budgets must be positive"),
+            Self::EmptyFaultDomainInventory => write!(f, "at least one declared fault domain is required"),
+            Self::FaultDomainCountExceedsBudget => write!(f, "declared fault-domain count exceeds the enumeration budget"),
+            Self::ObservationReferenceCountExceedsBudget => write!(f, "fault-domain observation references exceed the enumeration budget"),
+            Self::InvalidFaultDomainIdentity => write!(f, "fault-domain identity must be nonzero"),
+            Self::DuplicateFaultDomainIdentity(id) => write!(f, "duplicate fault-domain identity: {id}"),
+            Self::EmptyFaultDomainObservationSet(id) => write!(f, "fault domain {id} has no affected observations"),
+            Self::InvalidFaultDomainObservationIdentity(id) => write!(f, "fault-domain observation identity must be nonzero: {id}"),
+            Self::DuplicateFaultDomainObservationIdentity { group_id, observation_id } => write!(f, "duplicate observation {observation_id} in fault domain {group_id}"),
+            Self::HypothesisIdentityOverflow => write!(f, "generated hypothesis identity exceeds u64"),
         }
     }
 }
 
 impl std::error::Error for UwbFaultHypothesisIntegrityError {}
+
+
+/// Generate nominal, single-domain and bounded multi-domain hypotheses.
+///
+/// The generated set is exhaustive within the caller-declared maximum fault
+/// cardinality unless the hypothesis-count budget is reached. A truncated
+/// list is explicitly marked incomplete; it must not be passed to the
+/// protection-envelope evaluator as a complete inventory.
+pub fn enumerate_uwb_fault_hypotheses_3d(
+    domains: &[UwbFaultDomain3d],
+    config: UwbFaultHypothesisEnumerationConfig3d,
+) -> Result<UwbFaultHypothesisEnumerationReport3d, UwbFaultHypothesisIntegrityError> {
+    if config.maximum_hypothesis_count == 0
+        || config.maximum_fault_domain_count == 0
+        || config.maximum_fault_cardinality == 0
+        || config.maximum_observation_references == 0
+    {
+        return Err(UwbFaultHypothesisIntegrityError::InvalidEnumerationConfiguration);
+    }
+    if domains.is_empty() {
+        return Err(UwbFaultHypothesisIntegrityError::EmptyFaultDomainInventory);
+    }
+    if domains.len() > config.maximum_fault_domain_count {
+        return Err(UwbFaultHypothesisIntegrityError::FaultDomainCountExceedsBudget);
+    }
+
+    let mut observation_reference_count = 0_usize;
+    let mut canonical_domains = domains.to_vec();
+    canonical_domains.sort_by_key(|domain| domain.dependency_group_id);
+
+    let mut previous_domain_id = None;
+    for domain in &mut canonical_domains {
+        if domain.dependency_group_id == 0 {
+            return Err(UwbFaultHypothesisIntegrityError::InvalidFaultDomainIdentity);
+        }
+        if previous_domain_id == Some(domain.dependency_group_id) {
+            return Err(UwbFaultHypothesisIntegrityError::DuplicateFaultDomainIdentity(
+                domain.dependency_group_id,
+            ));
+        }
+        previous_domain_id = Some(domain.dependency_group_id);
+
+        if domain.affected_observation_ids.is_empty() {
+            return Err(UwbFaultHypothesisIntegrityError::EmptyFaultDomainObservationSet(
+                domain.dependency_group_id,
+            ));
+        }
+        domain.affected_observation_ids.sort_unstable();
+        for (index, observation_id) in domain.affected_observation_ids.iter().enumerate() {
+            if *observation_id == 0 {
+                return Err(
+                    UwbFaultHypothesisIntegrityError::InvalidFaultDomainObservationIdentity(
+                        *observation_id,
+                    ),
+                );
+            }
+            if index > 0 && domain.affected_observation_ids[index - 1] == *observation_id {
+                return Err(
+                    UwbFaultHypothesisIntegrityError::DuplicateFaultDomainObservationIdentity {
+                        group_id: domain.dependency_group_id,
+                        observation_id: *observation_id,
+                    },
+                );
+            }
+        }
+        observation_reference_count = observation_reference_count
+            .checked_add(domain.affected_observation_ids.len())
+            .ok_or(UwbFaultHypothesisIntegrityError::ObservationReferenceCountExceedsBudget)?;
+        if observation_reference_count > config.maximum_observation_references {
+            return Err(
+                UwbFaultHypothesisIntegrityError::ObservationReferenceCountExceedsBudget,
+            );
+        }
+    }
+
+    let domain_count = canonical_domains.len();
+    let maximum_cardinality = config.maximum_fault_cardinality.min(domain_count);
+    let theoretical_hypothesis_count =
+        checked_hypothesis_count(domain_count, maximum_cardinality);
+
+    let mut hypotheses = Vec::with_capacity(config.maximum_hypothesis_count.min(64));
+    hypotheses.push(UwbFaultHypothesisDescriptor3d {
+        hypothesis_id: 1,
+        kind: UwbFaultHypothesisKind::Nominal,
+        dependency_group_ids: Vec::new(),
+        affected_observation_ids: Vec::new(),
+    });
+
+    let mut truncated = false;
+    'cardinality: for cardinality in 1..=maximum_cardinality {
+        let mut selected: Vec<usize> = (0..cardinality).collect();
+        loop {
+            if hypotheses.len() >= config.maximum_hypothesis_count {
+                truncated = true;
+                break 'cardinality;
+            }
+
+            let mut dependency_group_ids = Vec::with_capacity(cardinality);
+            let mut affected_observation_ids = BTreeSet::new();
+            let mut single_domain_class = None;
+
+            for selected_index in &selected {
+                let domain = &canonical_domains[*selected_index];
+                dependency_group_ids.push(domain.dependency_group_id);
+                affected_observation_ids.extend(domain.affected_observation_ids.iter().copied());
+                single_domain_class = Some(domain.class);
+            }
+
+            let kind = if cardinality == 1 {
+                single_domain_class
+                    .ok_or(UwbFaultHypothesisIntegrityError::EmptyFaultDomainInventory)?
+                    .single_domain_hypothesis_kind()
+            } else {
+                UwbFaultHypothesisKind::MultiDomainFault
+            };
+
+            let hypothesis_id = u64::try_from(hypotheses.len() + 1)
+                .map_err(|_| UwbFaultHypothesisIntegrityError::HypothesisIdentityOverflow)?;
+
+            hypotheses.push(UwbFaultHypothesisDescriptor3d {
+                hypothesis_id,
+                kind,
+                dependency_group_ids,
+                affected_observation_ids: affected_observation_ids.into_iter().collect(),
+            });
+
+            if !advance_combination(&mut selected, domain_count) {
+                break;
+            }
+        }
+    }
+
+    Ok(UwbFaultHypothesisEnumerationReport3d {
+        generated_hypothesis_count: hypotheses.len(),
+        theoretical_hypothesis_count,
+        fault_domain_count: domain_count,
+        maximum_fault_cardinality: maximum_cardinality,
+        enumeration_complete: !truncated,
+        hypotheses,
+    })
+}
+
+fn advance_combination(selected: &mut [usize], domain_count: usize) -> bool {
+    for position in (0..selected.len()).rev() {
+        let maximum_at_position = domain_count - (selected.len() - position);
+        if selected[position] < maximum_at_position {
+            selected[position] += 1;
+            for following in position + 1..selected.len() {
+                selected[following] = selected[following - 1] + 1;
+            }
+            return true;
+        }
+    }
+    false
+}
+
+fn checked_hypothesis_count(domain_count: usize, maximum_cardinality: usize) -> Option<usize> {
+    let mut total = 1_u128; // Nominal hypothesis.
+    for cardinality in 1..=maximum_cardinality {
+        let choose = checked_binomial(domain_count, cardinality)?;
+        total = total.checked_add(choose)?;
+    }
+    usize::try_from(total).ok()
+}
+
+fn checked_binomial(n: usize, k: usize) -> Option<u128> {
+    let k = k.min(n.checked_sub(k)?);
+    let mut value = 1_u128;
+    for index in 0..k {
+        value = value.checked_mul(u128::try_from(n - index).ok()?)?;
+        value /= u128::try_from(index + 1).ok()?;
+    }
+    Some(value)
+}
 
 /// Evaluate a complete or incomplete set of externally qualified
 /// hypothesis-specific position sets.
@@ -529,6 +799,214 @@ mod tests {
             declared_max_fault_cardinality: 3,
             hypotheses,
         }
+    }
+
+    fn enumeration_domains() -> Vec<UwbFaultDomain3d> {
+        vec![
+            UwbFaultDomain3d {
+                dependency_group_id: 40,
+                class: UwbFaultDomainClass3d::Clock,
+                affected_observation_ids: vec![100, 101],
+            },
+            UwbFaultDomain3d {
+                dependency_group_id: 10,
+                class: UwbFaultDomainClass3d::Anchor,
+                affected_observation_ids: vec![100, 102],
+            },
+            UwbFaultDomain3d {
+                dependency_group_id: 30,
+                class: UwbFaultDomainClass3d::Calibration,
+                affected_observation_ids: vec![103],
+            },
+            UwbFaultDomain3d {
+                dependency_group_id: 20,
+                class: UwbFaultDomainClass3d::Radio,
+                affected_observation_ids: vec![104],
+            },
+        ]
+    }
+
+    fn enumeration_config(
+        maximum_hypothesis_count: usize,
+        maximum_fault_cardinality: usize,
+    ) -> UwbFaultHypothesisEnumerationConfig3d {
+        UwbFaultHypothesisEnumerationConfig3d {
+            maximum_hypothesis_count,
+            maximum_fault_domain_count: 16,
+            maximum_fault_cardinality,
+            maximum_observation_references: 128,
+        }
+    }
+
+    #[test]
+    fn enumerates_nominal_single_domain_and_pair_faults_exhaustively() {
+        let report = enumerate_uwb_fault_hypotheses_3d(
+            &enumeration_domains(),
+            enumeration_config(32, 2),
+        )
+        .unwrap();
+        assert!(report.enumeration_complete);
+        assert_eq!(report.generated_hypothesis_count, 11);
+        assert_eq!(report.theoretical_hypothesis_count, Some(11));
+        assert_eq!(report.hypotheses[0].kind, UwbFaultHypothesisKind::Nominal);
+        assert!(report.hypotheses[0].dependency_group_ids.is_empty());
+        assert_eq!(report.hypotheses[1].dependency_group_ids, vec![10]);
+        assert_eq!(report.hypotheses[1].kind, UwbFaultHypothesisKind::AnchorExcluded);
+        assert_eq!(report.hypotheses[2].dependency_group_ids, vec![20]);
+        assert_eq!(report.hypotheses[2].kind, UwbFaultHypothesisKind::RadioExcluded);
+        assert_eq!(report.hypotheses[3].dependency_group_ids, vec![30]);
+        assert_eq!(report.hypotheses[3].kind, UwbFaultHypothesisKind::SharedCalibrationFault);
+        assert_eq!(report.hypotheses[4].dependency_group_ids, vec![40]);
+        assert_eq!(report.hypotheses[4].kind, UwbFaultHypothesisKind::SharedClockFault);
+        assert_eq!(report.hypotheses[5].kind, UwbFaultHypothesisKind::MultiDomainFault);
+    }
+
+    #[test]
+    fn exact_hypothesis_budget_can_still_be_complete() {
+        let report = enumerate_uwb_fault_hypotheses_3d(
+            &enumeration_domains(),
+            enumeration_config(11, 2),
+        )
+        .unwrap();
+        assert_eq!(report.generated_hypothesis_count, 11);
+        assert!(report.enumeration_complete);
+    }
+
+    #[test]
+    fn truncated_hypothesis_budget_is_explicitly_incomplete() {
+        let report = enumerate_uwb_fault_hypotheses_3d(
+            &enumeration_domains(),
+            enumeration_config(10, 2),
+        )
+        .unwrap();
+        assert_eq!(report.generated_hypothesis_count, 10);
+        assert_eq!(report.theoretical_hypothesis_count, Some(11));
+        assert!(!report.enumeration_complete);
+    }
+
+    #[test]
+    fn cardinality_one_enumerates_only_nominal_and_single_domain_faults() {
+        let report = enumerate_uwb_fault_hypotheses_3d(
+            &enumeration_domains(),
+            enumeration_config(16, 1),
+        )
+        .unwrap();
+        assert!(report.enumeration_complete);
+        assert_eq!(report.generated_hypothesis_count, 5);
+        assert_eq!(report.maximum_fault_cardinality, 1);
+        assert!(report.hypotheses[1..]
+            .iter()
+            .all(|hypothesis| hypothesis.kind != UwbFaultHypothesisKind::MultiDomainFault));
+    }
+
+    #[test]
+    fn enumeration_is_canonical_under_domain_and_observation_order() {
+        let first = enumerate_uwb_fault_hypotheses_3d(
+            &enumeration_domains(),
+            enumeration_config(32, 2),
+        )
+        .unwrap();
+        let mut reversed = enumeration_domains();
+        reversed.reverse();
+        for domain in &mut reversed {
+            domain.affected_observation_ids.reverse();
+        }
+        let second = enumerate_uwb_fault_hypotheses_3d(
+            &reversed,
+            enumeration_config(32, 2),
+        )
+        .unwrap();
+        assert_eq!(first, second);
+    }
+
+    #[test]
+    fn combined_fault_scope_unions_shared_observations_once() {
+        let report = enumerate_uwb_fault_hypotheses_3d(
+            &enumeration_domains(),
+            enumeration_config(32, 2),
+        )
+        .unwrap();
+        let shared_pair = report
+            .hypotheses
+            .iter()
+            .find(|hypothesis| hypothesis.dependency_group_ids == vec![10, 40])
+            .unwrap();
+        assert_eq!(shared_pair.affected_observation_ids, vec![100, 101, 102]);
+    }
+
+    #[test]
+    fn rejects_invalid_domain_inventory_and_observation_references() {
+        assert_eq!(
+            enumerate_uwb_fault_hypotheses_3d(
+                &[],
+                enumeration_config(32, 2)
+            ),
+            Err(UwbFaultHypothesisIntegrityError::EmptyFaultDomainInventory)
+        );
+
+        let mut invalid = enumeration_domains();
+        invalid[0].dependency_group_id = 0;
+        assert_eq!(
+            enumerate_uwb_fault_hypotheses_3d(&invalid, enumeration_config(32, 2)),
+            Err(UwbFaultHypothesisIntegrityError::InvalidFaultDomainIdentity)
+        );
+
+        let mut invalid = enumeration_domains();
+        invalid[0].affected_observation_ids = vec![0];
+        assert_eq!(
+            enumerate_uwb_fault_hypotheses_3d(&invalid, enumeration_config(32, 2)),
+            Err(UwbFaultHypothesisIntegrityError::InvalidFaultDomainObservationIdentity(0))
+        );
+
+        let mut invalid = enumeration_domains();
+        invalid[0].affected_observation_ids = vec![1, 1];
+        assert_eq!(
+            enumerate_uwb_fault_hypotheses_3d(&invalid, enumeration_config(32, 2)),
+            Err(UwbFaultHypothesisIntegrityError::DuplicateFaultDomainObservationIdentity {
+                group_id: 40,
+                observation_id: 1
+            })
+        );
+    }
+
+    #[test]
+    fn rejects_duplicate_domains_and_empty_domain_observation_sets() {
+        let mut duplicate = enumeration_domains();
+        duplicate[0].dependency_group_id = duplicate[1].dependency_group_id;
+        assert_eq!(
+            enumerate_uwb_fault_hypotheses_3d(&duplicate, enumeration_config(32, 2)),
+            Err(UwbFaultHypothesisIntegrityError::DuplicateFaultDomainIdentity(10))
+        );
+
+        let mut empty = enumeration_domains();
+        empty[0].affected_observation_ids.clear();
+        assert_eq!(
+            enumerate_uwb_fault_hypotheses_3d(&empty, enumeration_config(32, 2)),
+            Err(UwbFaultHypothesisIntegrityError::EmptyFaultDomainObservationSet(40))
+        );
+    }
+
+    #[test]
+    fn enforces_domain_observation_and_hypothesis_budgets() {
+        let mut config = enumeration_config(32, 2);
+        config.maximum_fault_domain_count = 3;
+        assert_eq!(
+            enumerate_uwb_fault_hypotheses_3d(&enumeration_domains(), config),
+            Err(UwbFaultHypothesisIntegrityError::FaultDomainCountExceedsBudget)
+        );
+
+        config = enumeration_config(32, 2);
+        config.maximum_observation_references = 3;
+        assert_eq!(
+            enumerate_uwb_fault_hypotheses_3d(&enumeration_domains(), config),
+            Err(UwbFaultHypothesisIntegrityError::ObservationReferenceCountExceedsBudget)
+        );
+
+        config = enumeration_config(0, 2);
+        assert_eq!(
+            enumerate_uwb_fault_hypotheses_3d(&enumeration_domains(), config),
+            Err(UwbFaultHypothesisIntegrityError::InvalidEnumerationConfiguration)
+        );
     }
 
     #[test]
