@@ -579,6 +579,82 @@ pub fn compare_piv_lpt_velocity(
     })
 }
 
+
+
+/// Run a manufactured classifier, regional-coverage and PIV/LPT comparison
+/// smoke check for the offline auditor. These are synthetic summaries, not
+/// experimental PIV measurements or a physical cross-validation result.
+pub fn reference_self_check() -> Result<(), PivQualificationError> {
+    let classifier = evaluate_piv_classifier(
+        PivConfusionCounts {
+            invalid_vectors_rejected: 9_900,
+            valid_vectors_rejected: 50,
+            invalid_vectors_retained: 100,
+            valid_vectors_retained: 9_950,
+        },
+        PivClassifierGate {
+            minimum_f1: 0.95,
+            minimum_recall: 0.90,
+            maximum_false_valid_vector_removal_rate: 0.01,
+        },
+    )?;
+    if classifier.disposition != ClassifierDisposition::MeetsDeclaredGates
+        || (classifier.metrics.false_valid_vector_removal_rate - 0.005).abs() > 1.0e-12
+    {
+        return Err(PivQualificationError::NonFiniteDerivedValue);
+    }
+
+    let regional = [
+        RegionalCoverageCounts { region: FlowRegion::Bulk, sample_count: 1_000, covered_count: 950 },
+        RegionalCoverageCounts { region: FlowRegion::NearWall, sample_count: 1_000, covered_count: 945 },
+        RegionalCoverageCounts { region: FlowRegion::ShearLayer, sample_count: 1_000, covered_count: 952 },
+        RegionalCoverageCounts { region: FlowRegion::Wake, sample_count: 1_000, covered_count: 948 },
+    ];
+    let coverage = evaluate_regional_coverage(
+        &regional,
+        CoverageGate {
+            nominal_coverage: 0.95,
+            minimum_acceptable_coverage: 0.90,
+            maximum_acceptable_coverage: 0.98,
+            minimum_samples_per_region: 200,
+        },
+    )?;
+    if coverage.len() != REQUIRED_REGION_COUNT
+        || coverage.iter().any(|item| {
+            item.disposition != CoverageDisposition::WithinTargetBand
+                || item.wilson_interval_contains_nominal != Some(true)
+        })
+    {
+        return Err(PivQualificationError::NonFiniteDerivedValue);
+    }
+
+    let piv = VelocityVectorEstimate {
+        method: DiagnosticMethod::Piv,
+        condition_id: "manufactured-condition".to_owned(),
+        coordinate_frame_id: "manufactured-frame".to_owned(),
+        acquisition_id: "shared-images".to_owned(),
+        evidence_id: "piv-evidence".to_owned(),
+        velocity_m_s: [1.0, 2.0, 3.0],
+        absolute_uncertainty_bound_m_s: [0.05; 3],
+    };
+    let lpt = VelocityVectorEstimate {
+        method: DiagnosticMethod::LptShakeTheBox,
+        condition_id: "manufactured-condition".to_owned(),
+        coordinate_frame_id: "manufactured-frame".to_owned(),
+        acquisition_id: "shared-images".to_owned(),
+        evidence_id: "lpt-evidence".to_owned(),
+        velocity_m_s: [1.08, 1.95, 3.02],
+        absolute_uncertainty_bound_m_s: [0.05; 3],
+    };
+    let comparison = compare_piv_lpt_velocity(&piv, &lpt)?;
+    if comparison.disposition != VectorComparisonDisposition::WithinConservativeBounds
+        || comparison.acquisition_dependence != AcquisitionDependence::SharedAcquisition
+    {
+        return Err(PivQualificationError::NonFiniteDerivedValue);
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
