@@ -1,7 +1,7 @@
 {
-  "schema": "luminous.orbital-plp-conditional-gof.corpus.v0.1",
+  "schema": "luminous.orbital-plp-multistat-gof.corpus.v0.2",
   "evidence_class": "synthetic",
-  "claim_ceiling": "synthetic-conditional-plp-goodness-of-fit-only",
+  "claim_ceiling": "synthetic-conditional-plp-five-statistic-suite-only",
   "cases": [
     {
       "case_id": "plp_declining_beta_0_6",
