@@ -87,14 +87,51 @@ The current suite tests:
 
 These are evaluator mechanics tests, not model results or blind benchmark outcomes.
 
-## External comparison and target
+## External comparison and benchmark targets
 
-Open-o3-Video-v2 (October 2026) is a direct method comparator: iterative crop seeking, explicit temporal/object/box grounding and stepwise clue-coverage/evidence-gain rewards. Its reported 4B V-STaR results are 40.4 mAM and 56.3 mLGM, +8.5/+12.6 over Qwen3-VL-4B in the paper's protocol.
+This ledger is intended to be evaluated against current agentic video systems and benchmarks, not only fixed-input video QA.
+
+### Direct method comparator: Open-o3-Video-v2
+
+Open-o3-Video-v2 (October 2026) is the closest published method comparator: it starts from sparse observations, requests additional video crops, grounds retrieved moments/objects, and uses Clue-Seek GRPO to reward clue coverage and useful evidence gain while penalizing repetitive, fragmented or uninformative retrieval. Its official repository reports **8B: 40.7 mAM / 56.5 mLGM on V-STaR**; the paper's abstract reports **4B: 40.4 mAM / 56.3 mLGM**, both under its own benchmark protocol.
 
 Paper: https://arxiv.org/abs/2610.17656  
+Official code / evaluation recipes: https://github.com/Multimedia-Semantic-Analytics-Lab/Open-o3-Video-v2  
 Project: https://msalab-pku.github.io/projects/Open-o3-Video-v2
 
-Our proposed difference is the complete external audit trail from forecast → action → delivered observation → claim-certificate change → counterfactual necessity → resource cost, with #6753 independent all-action regret and #6859 source-cutoff validation. We still need to reproduce V-STaR and run matched backbone/resolution/tool-budget conditions before claiming superiority.
+Reproduce the native V-STaR metric and the paper's nine-benchmark evaluation on the exact released 4B/8B revisions where feasible. Preserve source benchmark licenses; the Open-o3 code is Apache-2.0, but video datasets retain their original licenses. Do not compare our claim-certificate metrics directly to mAM/mLGM.
+
+### New confirmatory target: VideoACE
+
+VideoACE (18 November 2026) contains 1,000 multiple-choice questions across six fine-grained high-frame-rate action categories, with temporal evidence annotations and user hints screened for answer leakage. Its environment supports temporal coverage, sampling density and spatial-detail actions, plus a user simulator that can provide feedback. It evaluates three settings: single-pass, autonomous tool use, and tool use with user feedback.
+
+Paper: https://arxiv.org/abs/2611.24184
+
+Use this as the priority test of the trajectory ledger once the official benchmark package and tool protocol are accessible. Compare:
+1. single-pass A3/A4 baseline;
+2. autonomous acquisition A5;
+3. A5 with user feedback / requested revision;
+4. uniform and random budget-matched sampling controls.
+
+Treat simulated user feedback as a separate source with its own timestamp and provenance; do not merge it with sensor acquisition or score the same hint as if it were an independently measured observation. The ledger should show whether feedback changed a claim, what new observation followed, and whether the final certificate remained supported.
+
+### Complementary general-agent benchmarks
+
+- **VideoGAIA:** 271 model–human co-designed tasks; multi-turn, tool-augmented video interaction and evidence integration. The preprint reports frontier models including GPT-5.5 and Kimi-K3 below 60% accuracy. This is useful for general tool-using video tasks, but it is not the same workload as high-frame-rate transient-action perception. https://arxiv.org/abs/2608.14718
+- **MVX-Bench / SAMA:** 1,442 questions over 4,255 videos, spanning 11 classical computer-vision task families, with cross-video identity matching and conflict-aware verification. This is a future multi-video memory extension; the current v0 ledger is single-episode. https://aclanthology.org/2026.findings-emnlp.429/
+- **VideoWebArena:** 2,021 web-agent tasks based on 74 tutorial videos (~4 hours), split into skill retention and factual retention. It is an older, complementary task-completion benchmark, not a direct high-FPS leaderboard. https://videowebarena.github.io/
+
+### Our research differentiation
+
+Open-o3-Video-v2 already trains for stepwise evidence gain. Our target is therefore not to claim novelty for the idea of rewarding useful retrieval. The distinct contribution we are testing is an independently replayable **forecast → action → delivered observation → claim-certificate change → counterfactual necessity → resource cost** record, joined to #6753 action regret and #6859 as-of/citation checks.
+
+Targets (not achieved):
+- reproduce Open-o3-Video-v2's own V-STaR mAM/mLGM and nine-task protocol;
+- reproduce VideoACE's single-pass / autonomous / feedback conditions, with the user's feedback source separately accounted;
+- achieve non-inferior grounded answer quality at lower observation/tool cost than uniform and random budget-matched policies;
+- show that deleting irrelevant evidence preserves answers, while removing all sufficient evidence forces appropriate revision or abstention.
+
+Do not claim superiority until candidate revision, source split, tool budgets, sampling protocol and decision deadlines are matched.
 
 ## Explicit v0 limits
 
