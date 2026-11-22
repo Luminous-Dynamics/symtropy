@@ -28,11 +28,12 @@
         "target_failure": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["property_id", "violation_class", "witness_event_id"],
+          "required": ["property_id", "violation_class", "witness_event_id", "witness_state_commitment"],
           "properties": {
             "property_id": { "$ref": "#/$defs/identifier" },
             "violation_class": { "$ref": "#/$defs/identifier" },
-            "witness_event_id": { "$ref": "#/$defs/identifier" }
+            "witness_event_id": { "$ref": "#/$defs/identifier" },
+            "witness_state_commitment": { "$ref": "#/$defs/commitment" }
           }
         }
       }
