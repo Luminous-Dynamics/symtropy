@@ -132,6 +132,49 @@ jobs:
           jq empty tools/ev-passenger-cost-frontier/fixtures/battery_pack_state_journal_v0_1.json
           jq empty tools/ev-passenger-cost-frontier/schemas/battery_resource_occupancy_v0_1.schema.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/battery_resource_occupancy_v0_1.json
+          jq empty tools/ev-passenger-cost-frontier/schemas/battery_charge_queue_v0_1.schema.json
+          jq empty tools/ev-passenger-cost-frontier/fixtures/battery_charge_queue_v0_1.json
+          jq -e --slurpfile schema tools/ev-passenger-cost-frontier/schemas/battery_charge_queue_v0_1.schema.json '
+            . as $queue
+            | ($schema[0].required | sort) as $root_required
+            | ($schema[0]["$defs"].job.required | sort) as $job_required
+            | ($schema[0]["$defs"].charger.required | sort) as $charger_required
+            | ($schema[0]["$defs"].gridSlot.required | sort) as $grid_required
+            | ($schema[0]["$defs"].evidenceEnvelope.required | sort) as $evidence_required
+            | (($queue | keys | sort) == $root_required)
+            and (($queue.site_evidence | keys | sort) == $evidence_required)
+            and all($queue.jobs[];
+              . as $job
+              | (($job | keys | sort) == $job_required)
+              and (($job.pack_state | keys | sort) == ["evidence", "value"])
+              and (($job.pack_state.evidence | keys | sort) == $evidence_required)
+              and ($job.pack_state.evidence.asset_id == $job.pack_id)
+              and ($job.pack_state.evidence.configuration_digest == $job.pack_configuration_digest)
+              and ($job.pack_state.evidence.evidence_class == "synthetic")
+              and ($job.pack_state.evidence.observed_at_unix_ms <= $queue.decision_time_unix_ms)
+              and ($job.pack_state.evidence.valid_from_unix_ms <= $job.pack_state.evidence.observed_at_unix_ms)
+              and ($job.pack_state.evidence.valid_until_unix_ms >= $job.pack_state.evidence.observed_at_unix_ms)
+            )
+            and all($queue.chargers[];
+              . as $charger
+              | (($charger | keys | sort) == $charger_required)
+              and (($charger.availability_evidence | keys | sort) == $evidence_required)
+              and ($charger.availability_evidence.asset_id == $charger.charger_id)
+              and ($charger.availability_evidence.configuration_digest == $charger.configuration_digest)
+              and ($charger.availability_evidence.observed_at_unix_ms <= $queue.decision_time_unix_ms)
+              and ($charger.supported_pack_configuration_digests | length > 0)
+            )
+            and all($queue.grid_slots[];
+              . as $grid
+              | (($grid | keys | sort) == $grid_required)
+              and (($grid.evidence | keys | sort) == $evidence_required)
+              and ($grid.evidence.asset_id == $queue.site_id)
+              and ($grid.evidence.configuration_digest == $queue.site_configuration_digest)
+              and ($grid.evidence.observed_at_unix_ms <= $queue.decision_time_unix_ms)
+              and ($grid.non_charging_site_load_w <= $grid.import_cap_w)
+            )
+            and ($queue.grid_slots | length) == $queue.horizon_slots
+          ' tools/ev-passenger-cost-frontier/fixtures/battery_charge_queue_v0_1.json
           jq -e --slurpfile schema tools/ev-passenger-cost-frontier/schemas/battery_pack_state_journal_v0_1.schema.json '
             . as $journal
             | ($schema[0].required | sort) as $root_required
@@ -281,6 +324,30 @@ jobs:
             and (.deterministic_occupancy_order == ["pack-use", "aircraft-use", "swap-bay-use-1", "swap-bay-use-2"])
           ' battery-resource-occupancy-report.json
           cat battery-resource-occupancy-report.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin battery_charge_queue_screen -- \
+            tools/ev-passenger-cost-frontier/fixtures/battery_charge_queue_v0_1.json \
+            > battery-charge-queue-report.json
+          jq -e '
+            .benchmark_id == "CHARGER-QUEUE-ORACLE-001"
+            and .site_id == "site-1"
+            and .decision_time_unix_ms == 1795219200000
+            and .slot_duration_seconds == 900
+            and .horizon_slots == 6
+            and .job_count == 4
+            and .charger_count == 2
+            and .completed_job_count == 3
+            and .search_nodes == 54
+            and (.unserved_job_ids == ["job-c"])
+            and (.assignments | length) == 3
+            and (any(.assignments[]; .job_id == "job-a" and .pack_id == "pack-a" and .charger_id == "charger-1" and .start_slot == 0 and .end_slot_exclusive == 2 and .requested_power_w == 3000 and .declared_grid_input_watt_seconds == 5400000))
+            and (any(.assignments[]; .job_id == "job-d" and .pack_id == "pack-d" and .charger_id == "charger-2" and .start_slot == 0 and .end_slot_exclusive == 3 and .requested_power_w == 2500 and .declared_grid_input_watt_seconds == 6750000))
+            and (any(.assignments[]; .job_id == "job-b" and .pack_id == "pack-b" and .charger_id == "charger-1" and .start_slot == 2 and .end_slot_exclusive == 4 and .requested_power_w == 3500 and .declared_grid_input_watt_seconds == 6300000))
+            and .total_declared_grid_input_watt_seconds == 18450000
+            and .all_fixture_evidence_synthetic == true
+            and .charge_authority_granted == false
+            and .return_to_service_authority_granted == false
+          ' battery-charge-queue-report.json
+          cat battery-charge-queue-report.json
           cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_carrier_lifecycle_screen -- \
             ev-carrier-module-factory-report.json \
             tools/ev-passenger-cost-frontier/fixtures/ev_carrier_lifecycle_v0_1.json \
@@ -344,6 +411,10 @@ jobs:
             tools/ev-passenger-cost-frontier/src/battery_service_network.rs \
             tools/ev-passenger-cost-frontier/src/bin/battery_pack_journal_screen.rs \
             tools/ev-passenger-cost-frontier/src/bin/battery_resource_occupancy_screen.rs \
+            tools/ev-passenger-cost-frontier/src/battery_charge_queue.rs \
+            tools/ev-passenger-cost-frontier/src/bin/battery_charge_queue_screen.rs \
+            tools/ev-passenger-cost-frontier/schemas/battery_charge_queue_v0_1.schema.json \
+            tools/ev-passenger-cost-frontier/fixtures/battery_charge_queue_v0_1.json \
             tools/ev-passenger-cost-frontier/schemas/battery_resource_occupancy_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/battery_resource_occupancy_v0_1.json \
             tools/ev-passenger-cost-frontier/schemas/battery_pack_state_journal_v0_1.schema.json \
@@ -367,6 +438,9 @@ jobs:
             battery-service-network-report.json
             battery-pack-state-journal-report.json
             battery-resource-occupancy-report.json
+            battery-charge-queue-report.json
+            tools/ev-passenger-cost-frontier/fixtures/battery_charge_queue_v0_1.json
+            tools/ev-passenger-cost-frontier/schemas/battery_charge_queue_v0_1.schema.json
             tools/ev-passenger-cost-frontier/fixtures/battery_resource_occupancy_v0_1.json
             tools/ev-passenger-cost-frontier/schemas/battery_resource_occupancy_v0_1.schema.json
             tools/ev-passenger-cost-frontier/fixtures/battery_pack_state_journal_v0_1.json
