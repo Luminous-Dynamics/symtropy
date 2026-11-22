@@ -42,7 +42,7 @@ cargo clippy --locked --manifest-path benchmarks/orbital-conjunction/rare-event-
 
 The package has its own Cargo workspace and does not require the full Symtropy/Bevy workspace.
 
-The current authored test corpus contains 104 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, and 6 in `small_hbr_nc.rs`. Only a completed exact-head workflow establishes that a particular revision passed them.
+The current authored test corpus contains 105 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, and 7 in `small_hbr_nc.rs`. Only a completed exact-head workflow establishes that a particular revision passed them.
 
 ## Important limitations
 
