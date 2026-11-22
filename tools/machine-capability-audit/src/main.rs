@@ -986,12 +986,20 @@ fn run() -> Result<(), String> {
                 .map(|value| format!("{value:.2}"))
                 .unwrap_or_else(|| "unknown".to_owned());
             println!(
-                "  route={} disposition={} cost_per_accepted_output_zar={} lead_time_hours={:.2} local_closure={}",
+                "  route={} disposition={} cost_per_accepted_output_zar={} lead_time_hours={:.2} local_closure={} critical_dependencies={}/{} critical_no_alternate={} critical_not_repairable={} required_dependency_closure={}/{} required_no_alternate={} required_not_repairable={}",
                 route.route_id,
                 route.disposition.as_str(),
                 cost_text,
                 route.lead_time_hours,
-                route.local_closure.as_str()
+                route.local_closure.as_str(),
+                route.dependency_metrics.critical_count,
+                route.dependency_metrics.required_closure_count,
+                route.dependency_metrics.critical_without_alternate_source_count,
+                route.dependency_metrics.critical_not_locally_repairable_count,
+                route.dependency_metrics.required_closure_count,
+                route.dependency_metrics.required_closure_count,
+                route.dependency_metrics.required_closure_without_alternate_source_count,
+                route.dependency_metrics.required_closure_not_locally_repairable_count
             );
         }
     }
