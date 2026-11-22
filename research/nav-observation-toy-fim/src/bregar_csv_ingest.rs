@@ -285,7 +285,7 @@ fn parse_csv_record(record: &str) -> Result<Vec<String>, BregarCsvIngestError> {
                     fields.push(std::mem::take(&mut current));
                     closed_quote = false;
                 }
-                ' ' | '\\t' => {}
+                ' ' | '\t' => {}
                 _ => return Err(BregarCsvIngestError::InvalidCsvQuoting),
             }
         } else {
