@@ -259,6 +259,7 @@
     "no_parameter_uncertainty_propagation",
     "no_sequential_design",
     "no_model_discrimination_beyond_two_declared_scenarios",
-    "no_physical_EHD_measurements_or_experiment_recommendations"
+    "no_physical_EHD_measurements_or_experiment_recommendations",
+    "no_explicit_acquisition_order_randomization"
   ]
 }
