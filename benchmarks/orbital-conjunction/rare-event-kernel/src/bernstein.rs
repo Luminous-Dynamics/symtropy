@@ -371,11 +371,11 @@ fn power_to_bernstein(
     let mut bernstein = Vec::with_capacity(degree + 1);
     for index in 0..=degree {
         let mut sum = Bound::point(0.0)?;
-        for power in 0..=index {
+        for (power, coefficient) in transformed_power.iter().enumerate().take(index + 1) {
             let numerator = binomial_bound(index, power)?;
             let denominator = binomial_bound(degree, power)?;
             let ratio = numerator.divide_positive(denominator)?;
-            sum = sum.add(transformed_power[power].multiply(ratio)?)?;
+            sum = sum.add(coefficient.multiply(ratio)?)?;
         }
         bernstein.push(sum);
     }
@@ -384,7 +384,7 @@ fn power_to_bernstein(
 
 fn binomial_bound(n: usize, k: usize) -> Result<Bound, KernelError> {
     if k > n {
-        return Ok(Bound::point(0.0)?);
+        return Bound::point(0.0);
     }
     let k = k.min(n - k);
     let mut result = Bound::point(1.0)?;
