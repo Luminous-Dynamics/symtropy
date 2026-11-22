@@ -59,8 +59,8 @@ jobs:
           RUST="research/mobility-rrvr-runtime-trace/src/lib.rs"
           SCHEMA="research/mobility-rrvr-runtime-trace/schemas/runtime_projection_v0_1.schema.json"
           sed -n '/Init ==/,/ReserveAttempt ==/p' "$MODEL" \
-            | grep -oE '[A-Za-z][A-Za-z0-9]*[[:space:]]*\\|->' \
-            | sed -E 's/[[:space:]]*\\|->$//' \
+            | grep -oE '[A-Za-z][A-Za-z0-9]*[[:space:]]*\|->' \
+            | sed -E 's/[[:space:]]*\|->$//' \
             | sort -u > "$RUNNER_TEMP/tla-fields.txt"
           sed -n '/pub const STATE_FIELDS/,/^];/p' "$RUST" \
             | grep -oE '"[A-Za-z][A-Za-z0-9]*"' \
