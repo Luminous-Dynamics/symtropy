@@ -93,18 +93,18 @@ struct Dependency {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Cost {
-    capital_allocation_zar: f64,
-    material_zar: f64,
-    energy_zar: f64,
-    labour_zar: f64,
-    setup_zar: f64,
-    calibration_zar: f64,
-    inspection_zar: f64,
-    finishing_zar: f64,
-    transport_zar: f64,
-    maintenance_zar: f64,
-    failure_rework_zar: f64,
-    warranty_reserve_zar: f64,
+    capital_allocation_zar: Option<f64>,
+    material_zar: Option<f64>,
+    energy_zar: Option<f64>,
+    labour_zar: Option<f64>,
+    setup_zar: Option<f64>,
+    calibration_zar: Option<f64>,
+    inspection_zar: Option<f64>,
+    finishing_zar: Option<f64>,
+    transport_zar: Option<f64>,
+    maintenance_zar: Option<f64>,
+    failure_rework_zar: Option<f64>,
+    warranty_reserve_zar: Option<f64>,
     accepted_outputs: f64,
 }
 
@@ -186,7 +186,7 @@ struct RouteResult {
     blockers: Vec<String>,
     local_closure: LocalClosure,
     dependency_metrics: DependencyMetrics,
-    cost_per_accepted_output_zar: f64,
+    cost_per_accepted_output_zar: Option<f64>,
     lead_time_hours: f64,
 }
 
@@ -241,38 +241,48 @@ fn dependency_metrics(dependencies: &[Dependency]) -> DependencyMetrics {
     }
 }
 
-fn cost_per_accepted_output_zar(cost: &Cost) -> f64 {
-    let total_cost_zar = cost.capital_allocation_zar
-        + cost.material_zar
-        + cost.energy_zar
-        + cost.labour_zar
-        + cost.setup_zar
-        + cost.calibration_zar
-        + cost.inspection_zar
-        + cost.finishing_zar
-        + cost.transport_zar
-        + cost.maintenance_zar
-        + cost.failure_rework_zar
-        + cost.warranty_reserve_zar;
+fn cost_per_accepted_output_zar(cost: &Cost) -> Option<f64> {
+    let categories = [
+        cost.capital_allocation_zar,
+        cost.material_zar,
+        cost.energy_zar,
+        cost.labour_zar,
+        cost.setup_zar,
+        cost.calibration_zar,
+        cost.inspection_zar,
+        cost.finishing_zar,
+        cost.transport_zar,
+        cost.maintenance_zar,
+        cost.failure_rework_zar,
+        cost.warranty_reserve_zar,
+    ];
+    let complete_categories: Vec<f64> = categories.into_iter().collect::<Option<_>>()?;
+    let total_cost_zar: f64 = complete_categories.into_iter().sum();
 
-    total_cost_zar / cost.accepted_outputs
+    Some(total_cost_zar / cost.accepted_outputs)
 }
 
 fn pareto_frontier_route_ids(route_results: &[RouteResult]) -> Vec<String> {
-    let feasible: Vec<&RouteResult> = route_results
+    let feasible_with_complete_cost: Vec<&RouteResult> = route_results
         .iter()
-        .filter(|route| route.disposition == Disposition::Feasible)
+        .filter(|route| {
+            route.disposition == Disposition::Feasible
+                && route.cost_per_accepted_output_zar.is_some()
+        })
         .collect();
 
-    let mut frontier: Vec<String> = feasible
+    let mut frontier: Vec<String> = feasible_with_complete_cost
         .iter()
         .filter(|candidate| {
-            !feasible.iter().any(|other| {
-                let no_worse_on_cost =
-                    other.cost_per_accepted_output_zar <= candidate.cost_per_accepted_output_zar;
+            let candidate_cost = candidate.cost_per_accepted_output_zar
+                .expect("frontier candidates have complete cost");
+            !feasible_with_complete_cost.iter().any(|other| {
+                let other_cost = other.cost_per_accepted_output_zar
+                    .expect("frontier routes have complete cost");
+                let no_worse_on_cost = other_cost <= candidate_cost;
                 let no_worse_on_time = other.lead_time_hours <= candidate.lead_time_hours;
                 let strictly_better_on_one =
-                    other.cost_per_accepted_output_zar < candidate.cost_per_accepted_output_zar
+                    other_cost < candidate_cost
                         || other.lead_time_hours < candidate.lead_time_hours;
 
                 other.route_id != candidate.route_id
@@ -708,7 +718,7 @@ fn has_duplicates<T: Eq + std::hash::Hash>(items: &[T]) -> bool {
 }
 
 fn cost_is_valid(cost: &Cost) -> bool {
-    let values = [
+    let categories = [
         cost.capital_allocation_zar,
         cost.material_zar,
         cost.energy_zar,
@@ -721,9 +731,12 @@ fn cost_is_valid(cost: &Cost) -> bool {
         cost.maintenance_zar,
         cost.failure_rework_zar,
         cost.warranty_reserve_zar,
-        cost.accepted_outputs,
     ];
-    values.iter().all(|value| value.is_finite() && *value >= 0.0)
+    categories
+        .iter()
+        .flatten()
+        .all(|value| value.is_finite() && *value >= 0.0)
+        && cost.accepted_outputs.is_finite()
         && cost.accepted_outputs > 0.0
 }
 
@@ -899,11 +912,15 @@ fn run() -> Result<(), String> {
             result.pareto_frontier_route_ids.join(",")
         );
         for route in &result.route_results {
+            let cost_text = route
+                .cost_per_accepted_output_zar
+                .map(|value| format!("{value:.2}"))
+                .unwrap_or_else(|| "unknown".to_owned());
             println!(
-                "  route={} disposition={} cost_per_accepted_output_zar={:.2} lead_time_hours={:.2} local_closure={}",
+                "  route={} disposition={} cost_per_accepted_output_zar={} lead_time_hours={:.2} local_closure={}",
                 route.route_id,
                 route.disposition.as_str(),
-                route.cost_per_accepted_output_zar,
+                cost_text,
                 route.lead_time_hours,
                 route.local_closure.as_str()
             );
@@ -1008,7 +1025,25 @@ mod tests {
             .find(|case| case.scenario_id == "MCC-001")
             .expect("MCC-001 exists");
         let route = &case.routes[0];
-        assert_eq!(cost_per_accepted_output_zar(&route.cost), 68.0);
+        assert_eq!(cost_per_accepted_output_zar(&route.cost), Some(68.0));
+    }
+
+    #[test]
+    fn missing_cost_is_unknown_and_excluded_from_economic_frontier() {
+        let parsed = corpus();
+        let mut case = parsed
+            .cases
+            .iter()
+            .find(|case| case.scenario_id == "MCC-001")
+            .expect("MCC-001 exists")
+            .clone();
+        case.routes[0].cost.transport_zar = None;
+
+        let result = evaluate_case(&case).expect("missing cost must not block physical feasibility");
+        assert_eq!(result.disposition, Disposition::Feasible);
+        assert!(result.feasible_route_ids.contains(&"N1-FDM-01".to_owned()));
+        assert_eq!(result.route_results[0].cost_per_accepted_output_zar, None);
+        assert!(result.pareto_frontier_route_ids.is_empty());
     }
 
     #[test]
@@ -1019,7 +1054,7 @@ mod tests {
             blockers: Vec::new(),
             local_closure: LocalClosure::ImportDependent,
             dependency_metrics: DependencyMetrics::default(),
-            cost_per_accepted_output_zar: cost,
+            cost_per_accepted_output_zar: Some(cost),
             lead_time_hours: lead_time,
         };
         let routes = vec![
