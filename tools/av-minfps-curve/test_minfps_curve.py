@@ -1,4 +1,5 @@
 import hashlib
+import json
 import unittest
 
 from evaluate_minfps_curve import (
@@ -42,8 +43,12 @@ def resource(
 
 
 def rate_run(fps, frames, grounded, status="COMPLETED", energy_resource=None):
+    frame_step = int(round(4.0 / fps))
     frame_manifest = [
-        {"frame_id": f"frame-{index}", "timestamp_ms": float(index * 1000 / fps)}
+        {
+            "frame_id": f"frame-{index * frame_step}",
+            "timestamp_ms": float(index * frame_step * 250),
+        }
         for index in range(frames)
     ]
     if energy_resource is None:
@@ -53,7 +58,7 @@ def rate_run(fps, frames, grounded, status="COMPLETED", energy_resource=None):
         "run_status": status,
         "frame_manifest": frame_manifest,
         "frame_manifest_sha256": hashlib.sha256(
-            __import__("json").dumps(
+            json.dumps(
                 frame_manifest, sort_keys=True, separators=(",", ":"), ensure_ascii=False
             ).encode("utf-8")
         ).hexdigest(),
@@ -92,6 +97,8 @@ def document(success_by_rate, *, seeds=("seed-1",), minimum_success_fraction=1.0
         "sampler_id": "nested-uniform-v1",
         "sampler_digest_sha256": digest("sampler-v1"),
         "fps_grid": list(RATES),
+        "media_duration_ms": 1000.0,
+        "sampling_tolerance_ms": 1.0,
         "minimum_success_fraction": minimum_success_fraction,
         "minimum_seed_count": minimum_seed_count,
         "seeds": all_seeds,
@@ -167,7 +174,6 @@ class MinFpsCurveTests(unittest.TestCase):
         doc = document({"seed-1": {1.0: True, 2.0: True, 4.0: True}})
         doc["seeds"][0]["runs"][1]["frame_manifest"][0]["frame_id"] = "different-frame"
         runs = doc["seeds"][0]["runs"]
-        import json
         runs[1]["frame_manifest_sha256"] = hashlib.sha256(
             json.dumps(runs[1]["frame_manifest"], sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
         ).hexdigest()
@@ -178,7 +184,6 @@ class MinFpsCurveTests(unittest.TestCase):
         doc = document({"seed-1": {1.0: True, 2.0: True, 4.0: True}})
         frames = doc["seeds"][0]["runs"][1]["frame_manifest"]
         frames[1]["timestamp_ms"] = frames[0]["timestamp_ms"]
-        import json
         doc["seeds"][0]["runs"][1]["frame_manifest_sha256"] = hashlib.sha256(
             json.dumps(frames, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
         ).hexdigest()
@@ -218,6 +223,38 @@ class MinFpsCurveTests(unittest.TestCase):
     def test_inconsistent_frames_delivered_count_is_rejected(self):
         doc = document({"seed-1": {1.0: True, 2.0: True, 4.0: True}})
         doc["seeds"][0]["runs"][1]["resource"]["frames_delivered"] = 99
+        with self.assertRaises(MinFpsEvaluationError):
+            evaluate_document(doc)
+
+
+    def test_shared_frame_ids_must_keep_same_timestamps(self):
+        doc = document({"seed-1": {1.0: True, 2.0: True, 4.0: True}})
+        low = doc["seeds"][0]["runs"][0]["frame_manifest"][0]
+        high = doc["seeds"][0]["runs"][1]["frame_manifest"][0]
+        high["timestamp_ms"] = 10.0
+        doc["seeds"][0]["runs"][1]["frame_manifest_sha256"] = hashlib.sha256(
+            json.dumps(
+                doc["seeds"][0]["runs"][1]["frame_manifest"],
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=False,
+            ).encode()
+        ).hexdigest()
+        with self.assertRaises(MinFpsEvaluationError):
+            evaluate_document(doc)
+
+    def test_fixed_rate_cadence_must_match_declared_fps(self):
+        doc = document({"seed-1": {1.0: True, 2.0: True, 4.0: True}})
+        frames = doc["seeds"][0]["runs"][2]["frame_manifest"]
+        frames[1]["timestamp_ms"] = 300.0
+        doc["seeds"][0]["runs"][2]["frame_manifest_sha256"] = hashlib.sha256(
+            json.dumps(
+                frames,
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=False,
+            ).encode()
+        ).hexdigest()
         with self.assertRaises(MinFpsEvaluationError):
             evaluate_document(doc)
 
