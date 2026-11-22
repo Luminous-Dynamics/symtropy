@@ -15,6 +15,52 @@ use serde::{Deserialize, Serialize};
 use crate::body::BodyType;
 use crate::world::PhysicsWorld;
 
+/// Deterministic work counters for the most recently executed narrowphase.
+///
+/// These counters are instrumentation, not a physical-validity verdict. They
+/// contain no wall-clock timing and can therefore be compared across exact
+/// replays. A future contact-recycling implementation can add explicit reuse
+/// and invalidation counters without overloading impulse-cache statistics.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NarrowphaseStats {
+    /// Candidate body pairs emitted by the broadphase.
+    pub candidate_pairs: usize,
+    /// Candidate pairs whose body handles could not be resolved.
+    pub invalid_handle_pairs: usize,
+    /// Calls to the analytical half-space contact path.
+    pub halfspace_analytic_checks: usize,
+    /// Half-space path calls that returned a contact manifold.
+    pub halfspace_analytic_hits: usize,
+    /// Half-space pairs authoritatively rejected without GJK/EPA.
+    pub halfspace_no_contact_skips: usize,
+    /// Calls to the analytical box SAT path.
+    pub box_sat_checks: usize,
+    /// Box SAT calls that returned a contact manifold.
+    pub box_sat_hits: usize,
+    /// Box pairs authoritatively rejected without GJK/EPA.
+    pub box_sat_no_contact_skips: usize,
+    /// Calls into a registered mesh contact provider.
+    pub mesh_provider_calls: usize,
+    /// Manifolds returned by mesh contact providers (including sensor pairs).
+    pub mesh_manifolds_returned: usize,
+    /// Generic transformed GJK calls.
+    pub gjk_calls: usize,
+    /// GJK calls that reported an intersection.
+    pub gjk_intersections: usize,
+    /// EPA calls made after a non-sensor GJK intersection.
+    pub epa_calls: usize,
+    /// EPA calls that returned a penetration result.
+    pub epa_successes: usize,
+    /// Positive-depth manifolds generated from EPA results.
+    pub epa_manifolds_generated: usize,
+    /// Sensor overlaps emitted during narrowphase.
+    pub sensor_overlaps: usize,
+    /// Non-sensor manifolds retained for contact resolution.
+    pub contact_manifolds: usize,
+    /// Total contact points retained for contact resolution.
+    pub contact_points: usize,
+}
+
 /// A quantitative snapshot of world-level physical invariants and health.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct InvariantSnapshot<const D: usize> {
