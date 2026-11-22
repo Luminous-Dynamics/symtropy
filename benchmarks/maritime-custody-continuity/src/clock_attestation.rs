@@ -739,13 +739,17 @@ pub fn attest_clock_for_event(
         ));
     }
 
-    let event_time = observation.event_time_ticks;
-    if observation.observation_time_ticks > event_time {
+    // Synchronization and capture observations are expressed in the device's
+    // reported tick domain. First qualify their freshness against the raw
+    // device timestamp, then correct that timestamp into the declared
+    // reference time basis using the signed clock-minus-reference offset.
+    let reported_event_time = observation.event_time_ticks;
+    if observation.observation_time_ticks > reported_event_time {
         return ClockAttestationDecision::rejected(
             ClockAttestationReason::ClockObservationAfterEvent,
         );
     }
-    let observation_age = match event_time.checked_sub(observation.observation_time_ticks) {
+    let observation_age = match reported_event_time.checked_sub(observation.observation_time_ticks) {
         Some(age) => age,
         None => {
             return ClockAttestationDecision::rejected(
@@ -761,6 +765,13 @@ pub fn attest_clock_for_event(
     if observation_age > i64::try_from(maximum_observation_age).unwrap_or(i64::MAX) {
         return ClockAttestationDecision::unknown(ClockAttestationReason::ClockObservationTooOld);
     }
+
+    let Some(event_time) = reported_event_time.checked_sub(calibration.measured_offset_ticks)
+    else {
+        return ClockAttestationDecision::rejected(
+            ClockAttestationReason::OffsetCorrectionOverflow,
+        );
+    };
 
     if calibration.calibrated_at_ticks > event_time
         || calibration.valid_from_ticks > event_time
@@ -852,11 +863,11 @@ pub fn attest_clock_for_event(
     };
 
     if observation.last_sync_ticks > observation.observation_time_ticks
-        || observation.last_sync_ticks > event_time
+        || observation.last_sync_ticks > reported_event_time
     {
         return ClockAttestationDecision::rejected(ClockAttestationReason::SyncEvidenceAfterEvent);
     }
-    let sync_age = match event_time.checked_sub(observation.last_sync_ticks) {
+    let sync_age = match reported_event_time.checked_sub(observation.last_sync_ticks) {
         Some(age) => age,
         None => {
             return ClockAttestationDecision::rejected(
