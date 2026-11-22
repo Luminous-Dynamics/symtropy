@@ -606,13 +606,14 @@ fn evaluate_study(
         .map(|item| item.false_call_upper_bound)
         .reduce(f64::max);
     let all_pass = inspectors_passing == details.len();
+    let disposition = if all_pass {
+        "PASS_FIXED_TARGET_SCREEN"
+    } else {
+        "SCREENING_BOUNDS_NOT_MET"
+    };
     let result = CaseResult {
         case_id: case_id.to_owned(),
-        disposition: if all_pass {
-            "PASS_FIXED_TARGET_SCREEN".to_owned()
-        } else {
-            "SCREENING_BOUNDS_NOT_MET".to_owned()
-        },
+        disposition: disposition.to_owned(),
         reasons: if all_pass {
             vec!["every inspector meets both predeclared fixed-target one-sided binomial bounds".to_owned()]
         } else {
@@ -623,8 +624,7 @@ fn evaluate_study(
         worst_detection_lower_bound: worst_detection,
         worst_false_call_upper_bound: worst_false_call,
         expected_disposition: expected.to_owned(),
-        expected_matched: all_pass == (expected == "PASS_FIXED_TARGET_SCREEN")
-            || (!all_pass && expected != "PASS_FIXED_TARGET_SCREEN"),
+        expected_matched: disposition == expected,
     };
     Ok((result, details))
 }
