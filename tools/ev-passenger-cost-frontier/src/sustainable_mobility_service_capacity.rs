@@ -558,6 +558,7 @@ mod tests {
         one_spare.initial_ready_spares = 1;
         one_spare.mission_duration_seconds = 300;
         one_spare.charge_duration_seconds = 1_620;
+        one_spare.max_stored_spares_per_aircraft = 3;
         let mut three_spares = one_spare.clone();
         three_spares.battery_pack_count = 4;
         three_spares.initial_ready_spares = 3;
@@ -610,6 +611,7 @@ mod tests {
     fn too_many_simulation_events_fails_closed() {
         let mut scenario = direct_charge();
         scenario.mission_duration_seconds = 1;
+        scenario.charge_duration_seconds = 1;
         scenario.operational_turnaround_seconds = 0;
         let result = evaluate_architecture_capacity(&scenario, MAX_HORIZON_SECONDS);
         assert!(result.is_err());
