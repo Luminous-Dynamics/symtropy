@@ -576,16 +576,22 @@ pub fn evaluate_mobility_flexibility(
         for reserve in &scenario.resource_reserves {
             if reserve.resource_id.trim().is_empty()
                 || !resource_map.contains_key(reserve.resource_id.as_str())
-                || reserves_by_resource
-                    .insert(reserve.resource_id.as_str(), reserve)
-                    .is_some()
             {
+                add_error(
+                    &mut errors,
+                    format!("scenario_resource_reserve_unknown_or_empty:{}", scenario.scenario_id),
+                );
+                continue;
+            }
+            if reserves_by_resource.contains_key(reserve.resource_id.as_str()) {
                 add_error(
                     &mut errors,
                     format!("scenario_resource_reserve_duplicate:{}", scenario.scenario_id),
                 );
+                reserves_by_resource.remove(reserve.resource_id.as_str());
                 continue;
             }
+            reserves_by_resource.insert(reserve.resource_id.as_str(), reserve);
             for receipt_id in [
                 &reserve.mission_reserve_receipt_id,
                 &reserve.inventory_buffer_receipt_id,
@@ -951,6 +957,17 @@ mod tests {
     fn stale_upstream_evidence_fails_closed() {
         let mut input = fixture();
         input.charging_queue_evidence.valid_until_unix_ms = Some(input.decision_time_unix_ms);
+        let result = evaluate_mobility_flexibility(&input);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn duplicate_resource_reserve_cannot_replace_the_valid_record() {
+        let mut input = fixture();
+        let duplicate = input.reserve_scenarios[0].resource_reserves[0].clone();
+        let mut malformed = duplicate;
+        malformed.mission_power_reserve_w_by_slot.clear();
+        input.reserve_scenarios[0].resource_reserves.push(malformed);
         let result = evaluate_mobility_flexibility(&input);
         assert!(result.is_err());
     }
