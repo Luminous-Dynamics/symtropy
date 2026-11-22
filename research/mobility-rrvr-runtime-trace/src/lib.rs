@@ -13,7 +13,7 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
 pub const CONTRACT_VERSION: &str = "0.1";
-pub const REQUIRED_OWNER_DOMAINS: usize = 5;
+pub const REQUIRED_OWNER_DOMAINS: usize = 10;
 
 pub const STATE_FIELDS: [&str; 43] = [
     "processStatus", "bootEpoch", "controllerEpoch", "stage", "reservationCommitted",
@@ -32,7 +32,18 @@ pub const STATE_FIELDS: [&str; 43] = [
 pub const MODEL_STATE_FIELD_COUNT: usize = 43;
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub enum OwnerEvidenceDomain { ProcessEpoch, Persistence, PhysicalOutcome, ExecutionGraph, Authority }
+pub enum OwnerEvidenceDomain {
+    ProcessEpoch,
+    Persistence,
+    PhysicalOutcome,
+    MissionResolution,
+    ControllerQueue,
+    DownstreamExecutionGraph,
+    NoEffectObserverQuorum,
+    DownstreamObserverQuorum,
+    ActionApplicability,
+    RecoveryAuthority,
+}
 
 impl OwnerEvidenceDomain {
     fn as_str(self) -> &'static str {
@@ -40,8 +51,42 @@ impl OwnerEvidenceDomain {
             Self::ProcessEpoch => "process_epoch",
             Self::Persistence => "persistence",
             Self::PhysicalOutcome => "physical_outcome",
-            Self::ExecutionGraph => "execution_graph",
-            Self::Authority => "authority",
+            Self::MissionResolution => "mission_resolution",
+            Self::ControllerQueue => "controller_queue",
+            Self::DownstreamExecutionGraph => "downstream_execution_graph",
+            Self::NoEffectObserverQuorum => "no_effect_observer_quorum",
+            Self::DownstreamObserverQuorum => "downstream_observer_quorum",
+            Self::ActionApplicability => "action_applicability",
+            Self::RecoveryAuthority => "recovery_authority",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum OwnerEvidenceStatus {
+    Current,
+    Confirmed,
+    Refuted,
+    InsufficientEvidence,
+    Unknown,
+    Disputed,
+    QuorumQualified,
+    QuorumNotQualified,
+    NotApplicable,
+}
+
+impl OwnerEvidenceStatus {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Current => "current",
+            Self::Confirmed => "confirmed",
+            Self::Refuted => "refuted",
+            Self::InsufficientEvidence => "insufficient_evidence",
+            Self::Unknown => "unknown",
+            Self::Disputed => "disputed",
+            Self::QuorumQualified => "quorum_qualified",
+            Self::QuorumNotQualified => "quorum_not_qualified",
+            Self::NotApplicable => "not_applicable",
         }
     }
 }
@@ -52,6 +97,11 @@ pub struct OwnerEvidenceRef {
     pub owner_id: String,
     pub owner_revision: String,
     pub evidence_id: String,
+    pub status: OwnerEvidenceStatus,
+    /// Populated for claim-specific observer-quorum records.
+    pub claim_id: Option<String>,
+    /// SHA-256 commitment to the exact claim scope.
+    pub claim_scope_sha256: Option<String>,
     pub raw_artifact_id: String,
     pub raw_artifact_sha256: String,
 }
@@ -182,9 +232,13 @@ fn validate_state(state: &Value, max_epoch: u64) -> Result<(), ProjectionError> 
         || u64_field(state,"queueFenceBootEpoch")? > max_epoch || u64_field(state,"downstreamFenceBootEpoch")? > max_epoch
         || u64_field(state,"ticketBootEpoch")? == 0 || u64_field(state,"ticketBootEpoch")? > max_epoch
         || u64_field(state,"ticketControllerEpoch")? == 0 || u64_field(state,"ticketControllerEpoch")? > max_epoch
-        || u64_field(state,"appliedEffectCount")? > 2 || u64_field(state,"naiveReplayCount")? > 2
+        || u64_field(state,"naiveReplayCount")? > 2
         || u64_field(state,"permitUseCount")? > 1
     { return Err(ProjectionError::StateOutOfBounds); }
+
+    if u64_field(state, "appliedEffectCount")? > 1 {
+        return Err(ProjectionError::DuplicatePhysicalEffectObserved);
+    }
 
     let pending = bool_field(state,"commandPending")?;
     let owner = str_field(state,"commandOwnerAttempt")?;
@@ -206,10 +260,6 @@ fn validate_state(state: &Value, max_epoch: u64) -> Result<(), ProjectionError> 
         || (persist == "definitely_not_committed" && bool_field(state,"storeRecord")?)
     { return Err(ProjectionError::PersistenceRecordMismatch); }
 
-    let evidence = str_field(state,"effectEvidence")?;
-    if evidence == "disputed" && bool_field(state,"observerIndependent")? {
-        return Err(ProjectionError::DisputedObserverContradiction);
-    }
     let permit = str_field(state,"recoveryPermit")?;
     let accepted = bool_field(state,"recoveryAccepted")?;
     let use_count = u64_field(state,"permitUseCount")?;
@@ -283,8 +333,18 @@ impl RuntimeProjectionRecording {
         if self.snapshots.is_empty() { return Err(ProjectionError::MissingSnapshot); }
         if self.snapshots.len()>512 { return Err(ProjectionError::TooManySnapshots); }
         let mut ids=BTreeSet::new();
-        let required=BTreeSet::from([OwnerEvidenceDomain::ProcessEpoch,OwnerEvidenceDomain::Persistence,
-            OwnerEvidenceDomain::PhysicalOutcome,OwnerEvidenceDomain::ExecutionGraph,OwnerEvidenceDomain::Authority]);
+        let required = BTreeSet::from([
+            OwnerEvidenceDomain::ProcessEpoch,
+            OwnerEvidenceDomain::Persistence,
+            OwnerEvidenceDomain::PhysicalOutcome,
+            OwnerEvidenceDomain::MissionResolution,
+            OwnerEvidenceDomain::ControllerQueue,
+            OwnerEvidenceDomain::DownstreamExecutionGraph,
+            OwnerEvidenceDomain::NoEffectObserverQuorum,
+            OwnerEvidenceDomain::DownstreamObserverQuorum,
+            OwnerEvidenceDomain::ActionApplicability,
+            OwnerEvidenceDomain::RecoveryAuthority,
+        ]);
         for (i,s) in self.snapshots.iter().enumerate() {
             if !nonempty(&s.event_id) { return Err(ProjectionError::InvalidEventIdentity); }
             if !ids.insert(s.event_id.as_str()) { return Err(ProjectionError::DuplicateEventIdentity); }
@@ -305,10 +365,52 @@ impl RuntimeProjectionRecording {
                 return Err(ProjectionError::MissingOwnerEvidence);
             }
             for e in &s.owner_evidence {
-                if !nonempty(&e.owner_id)||!nonempty(&e.owner_revision)||!nonempty(&e.evidence_id)
-                    ||!nonempty(&e.raw_artifact_id)||!valid_sha(&e.raw_artifact_sha256) {
+                if !nonempty(&e.owner_id)
+                    || !nonempty(&e.owner_revision)
+                    || !nonempty(&e.evidence_id)
+                    || !nonempty(&e.raw_artifact_id)
+                    || !valid_sha(&e.raw_artifact_sha256)
+                {
                     return Err(ProjectionError::InvalidOwnerEvidence);
                 }
+                match e.domain {
+                    OwnerEvidenceDomain::NoEffectObserverQuorum
+                    | OwnerEvidenceDomain::DownstreamObserverQuorum => {
+                        if !e.claim_id.as_ref().is_some_and(|value| nonempty(value))
+                            || !e.claim_scope_sha256.as_ref().is_some_and(|value| valid_sha(value))
+                            || !matches!(
+                                e.status,
+                                OwnerEvidenceStatus::QuorumQualified
+                                    | OwnerEvidenceStatus::QuorumNotQualified
+                            )
+                        {
+                            return Err(ProjectionError::InvalidOwnerEvidence);
+                        }
+                    }
+                    _ => {
+                        if e.claim_id.is_some() || e.claim_scope_sha256.is_some() {
+                            return Err(ProjectionError::InvalidOwnerEvidence);
+                        }
+                    }
+                }
+            }
+
+            let no_effect_observer = s.owner_evidence.iter()
+                .find(|e| e.domain == OwnerEvidenceDomain::NoEffectObserverQuorum)
+                .expect("required observer domain checked");
+            let downstream_observer = s.owner_evidence.iter()
+                .find(|e| e.domain == OwnerEvidenceDomain::DownstreamObserverQuorum)
+                .expect("required observer domain checked");
+            if no_effect_observer.claim_id == downstream_observer.claim_id
+                || no_effect_observer.claim_scope_sha256 == downstream_observer.claim_scope_sha256
+            {
+                return Err(ProjectionError::DuplicateObserverClaim);
+            }
+            let observer_quorums_qualified =
+                no_effect_observer.status == OwnerEvidenceStatus::QuorumQualified
+                    && downstream_observer.status == OwnerEvidenceStatus::QuorumQualified;
+            if bool_field(&s.state_s, "observerIndependent")? != observer_quorums_qualified {
+                return Err(ProjectionError::ObserverQuorumMismatch);
             }
             if let Some(clock)=&s.source_clock {
                 if !nonempty(&clock.clock_id)||!nonempty(&clock.boot_epoch_id)||!nonempty(&clock.unit)||clock.resolution==0 {
@@ -349,8 +451,9 @@ impl RuntimeProjectionRecording {
                 "state_sha256":hex(&Sha256::digest(state_bytes)),
                 "owner_evidence":s.owner_evidence.iter().map(|e|json!({
                     "domain":e.domain.as_str(),"owner_id":e.owner_id,"owner_revision":e.owner_revision,
-                    "evidence_id":e.evidence_id,"raw_artifact_id":e.raw_artifact_id,
-                    "raw_artifact_sha256":e.raw_artifact_sha256
+                    "evidence_id":e.evidence_id,"status":e.status.as_str(),
+                    "claim_id":e.claim_id,"claim_scope_sha256":e.claim_scope_sha256,
+                    "raw_artifact_id":e.raw_artifact_id,"raw_artifact_sha256":e.raw_artifact_sha256
                 })).collect::<Vec<_>>()
             })
         }).collect();
@@ -379,12 +482,49 @@ mod tests {
     fn sha(c:char)->String { std::iter::repeat(c).take(64).collect() }
 
     fn owners()->Vec<OwnerEvidenceRef>{
-        [OwnerEvidenceDomain::ProcessEpoch,OwnerEvidenceDomain::Persistence,OwnerEvidenceDomain::PhysicalOutcome,
-         OwnerEvidenceDomain::ExecutionGraph,OwnerEvidenceDomain::Authority].into_iter().enumerate().map(|(i,d)|OwnerEvidenceRef{
-            domain:d,owner_id:format!("owner-{i}"),owner_revision:format!("revision-{i}"),
-            evidence_id:format!("evidence-{i}"),raw_artifact_id:format!("artifact-{i}"),
-            raw_artifact_sha256:sha(char::from(b'a'+i as u8))
-         }).collect()
+        let domains = [
+            OwnerEvidenceDomain::ProcessEpoch,
+            OwnerEvidenceDomain::Persistence,
+            OwnerEvidenceDomain::PhysicalOutcome,
+            OwnerEvidenceDomain::MissionResolution,
+            OwnerEvidenceDomain::ControllerQueue,
+            OwnerEvidenceDomain::DownstreamExecutionGraph,
+            OwnerEvidenceDomain::NoEffectObserverQuorum,
+            OwnerEvidenceDomain::DownstreamObserverQuorum,
+            OwnerEvidenceDomain::ActionApplicability,
+            OwnerEvidenceDomain::RecoveryAuthority,
+        ];
+        domains.into_iter().enumerate().map(|(i, domain)| {
+            let is_no_effect = domain == OwnerEvidenceDomain::NoEffectObserverQuorum;
+            let is_graph = domain == OwnerEvidenceDomain::DownstreamObserverQuorum;
+            OwnerEvidenceRef {
+                domain,
+                owner_id: format!("owner-{i}"),
+                owner_revision: format!("revision-{i}"),
+                evidence_id: format!("evidence-{i}"),
+                status: if is_no_effect || is_graph {
+                    OwnerEvidenceStatus::QuorumQualified
+                } else {
+                    OwnerEvidenceStatus::Current
+                },
+                claim_id: if is_no_effect {
+                    Some("old-attempt-no-effect".to_owned())
+                } else if is_graph {
+                    Some("downstream-graph-quiescence".to_owned())
+                } else {
+                    None
+                },
+                claim_scope_sha256: if is_no_effect {
+                    Some(sha('d'))
+                } else if is_graph {
+                    Some(sha('e'))
+                } else {
+                    None
+                },
+                raw_artifact_id: format!("artifact-{i}"),
+                raw_artifact_sha256: sha(char::from(b'a' + i as u8)),
+            }
+        }).collect()
     }
 
     fn recording()->RuntimeProjectionRecording{
@@ -470,7 +610,7 @@ mod tests {
     }
     #[test] fn sidecar_contains_owner_sources_and_state_digest(){
         let r=recording();let sidecar=r.to_provenance_sidecar_json().unwrap();
-        assert_eq!(sidecar["snapshots"][0]["owner_evidence"].as_array().unwrap().len(),5);
+        assert_eq!(sidecar["snapshots"][0]["owner_evidence"].as_array().unwrap().len(), 10);
         assert_eq!(sidecar["snapshots"][0]["state_sha256"].as_str().unwrap().len(),64);
         assert_eq!(sidecar["model_source_sha256"],sha('a'));
     }
