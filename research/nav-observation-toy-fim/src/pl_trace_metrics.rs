@@ -122,6 +122,8 @@ struct EpisodeAccumulator {
 impl EpisodeAccumulator {
     fn add(&mut self, timestamp_ns: u64, duration_ns: u64, violation: bool) {
         if !violation {
+            self.maximum_duration_ns =
+                self.maximum_duration_ns.max(self.active_duration_ns);
             self.active_duration_ns = 0;
             self.previous_end_ns = None;
             return;
