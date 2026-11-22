@@ -92,16 +92,48 @@ impl OwnerEvidenceStatus {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EvidenceScope {
+    /// Stable identity of the logical physical operation, independent of retries.
+    pub logical_effect_id: String,
+    /// Exact attempt to which this evidence applies (for this model: attempt-1 or attempt-2).
+    pub attempt_id: String,
+    /// Epoch in which the subject attempt was originally authorized.
+    pub subject_boot_epoch: u64,
+    pub subject_controller_epoch: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ObserverMemberEvidence {
+    pub observer_id: String,
+    pub observer_revision: String,
+    pub observation_id: String,
+    /// Declared shared failure domains for this observer, e.g. power supply,
+    /// clock source, host, firmware, calibration authority or network segment.
+    pub common_cause_domains: Vec<String>,
+    pub raw_artifact_id: String,
+    pub raw_artifact_sha256: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ObserverQuorumProof {
+    pub fault_model_revision: String,
+    pub required_independent_members: usize,
+    pub members: Vec<ObserverMemberEvidence>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OwnerEvidenceRef {
     pub domain: OwnerEvidenceDomain,
     pub owner_id: String,
     pub owner_revision: String,
     pub evidence_id: String,
     pub status: OwnerEvidenceStatus,
+    pub scope: EvidenceScope,
     /// Populated for claim-specific observer-quorum records.
     pub claim_id: Option<String>,
-    /// SHA-256 commitment to the exact claim scope.
+    /// SHA-256 of domain + claim ID + typed evidence scope.
     pub claim_scope_sha256: Option<String>,
+    pub observer_quorum: Option<ObserverQuorumProof>,
     pub raw_artifact_id: String,
     pub raw_artifact_sha256: String,
 }
@@ -159,6 +191,8 @@ pub enum ProjectionError {
     DownstreamFenceInvariant, PersistenceRecordMismatch, DisputedObserverContradiction,
     RecoveryAdmissionInvariant, PermitConsumptionMismatch, RecoveryFromUnqualifiedOutcome,
     IndeterminatePersistenceRecovery, FreshTicketBindingMismatch, InitialStateMismatch,
+    DuplicatePhysicalEffectObserved, ObserverQuorumMismatch, DuplicateObserverClaim,
+    EvidenceScopeMismatch, ObserverQuorumMalformed,
 }
 
 fn nonempty(value: &str) -> bool { !value.trim().is_empty() }
@@ -171,6 +205,68 @@ fn bool_field(state: &Value, key: &'static str) -> Result<bool, ProjectionError>
 }
 fn u64_field(state: &Value, key: &'static str) -> Result<u64, ProjectionError> {
     state.get(key).and_then(Value::as_u64).ok_or(ProjectionError::InvalidStateFieldType)
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    let digest = Sha256::digest(bytes);
+    hex(&digest)
+}
+
+fn claim_scope_digest(
+    domain: OwnerEvidenceDomain,
+    claim_id: &str,
+    scope: &EvidenceScope,
+) -> String {
+    let value = json!({
+        "domain": domain.as_str(),
+        "claim_id": claim_id,
+        "scope": {
+            "logical_effect_id": scope.logical_effect_id,
+            "attempt_id": scope.attempt_id,
+            "subject_boot_epoch": scope.subject_boot_epoch,
+            "subject_controller_epoch": scope.subject_controller_epoch
+        }
+    });
+    let bytes = serde_json::to_vec(&value).expect("typed claim scope serializes");
+    sha256_hex(&bytes)
+}
+
+fn observer_quorum_is_qualified(proof: &ObserverQuorumProof) -> Result<bool, ProjectionError> {
+    if !nonempty(&proof.fault_model_revision)
+        || proof.required_independent_members < 2
+        || proof.required_independent_members > proof.members.len()
+        || proof.members.len() > 32
+    {
+        return Err(ProjectionError::ObserverQuorumMalformed);
+    }
+
+    let mut observer_ids = BTreeSet::new();
+    let mut seen_domains = BTreeSet::new();
+    for member in &proof.members {
+        if !nonempty(&member.observer_id)
+            || !nonempty(&member.observer_revision)
+            || !nonempty(&member.observation_id)
+            || !nonempty(&member.raw_artifact_id)
+            || !valid_sha256(&member.raw_artifact_sha256)
+            || member.common_cause_domains.is_empty()
+            || member.common_cause_domains.iter().any(|domain| !nonempty(domain))
+            || !observer_ids.insert(member.observer_id.as_str())
+        {
+            return Err(ProjectionError::ObserverQuorumMalformed);
+        }
+    }
+
+    // Independence is qualified only against the declared, versioned fault
+    // model: no two counted observers may share a declared common-cause domain.
+    let mut pairwise_independent = true;
+    for member in &proof.members {
+        for domain in &member.common_cause_domains {
+            if !seen_domains.insert(domain.as_str()) {
+                pairwise_independent = false;
+            }
+        }
+    }
+    Ok(pairwise_independent && proof.members.len() >= proof.required_independent_members)
 }
 
 pub fn model_init_state() -> Value {
@@ -194,106 +290,179 @@ pub fn model_init_state() -> Value {
 fn validate_state(state: &Value, max_epoch: u64) -> Result<(), ProjectionError> {
     let object = state.as_object().ok_or(ProjectionError::MissingOrExtraStateField)?;
     if object.len() != MODEL_STATE_FIELD_COUNT
-        || STATE_FIELDS[..MODEL_STATE_FIELD_COUNT].iter().any(|field| !object.contains_key(*field))
+        || STATE_FIELDS.iter().any(|field| !object.contains_key(*field))
     {
         return Err(ProjectionError::MissingOrExtraStateField);
     }
-    for key in ["processStatus","stage","commandOwnerAttempt","oldPhysicalOutcome",
-        "recoveryPhysicalOutcome","persistStatus","effectEvidence","missionResolution",
-        "recoveryPermit","ticketStatus","ticketAttempt","crashCut"] {
+
+    for key in [
+        "processStatus", "stage", "commandOwnerAttempt", "oldPhysicalOutcome",
+        "recoveryPhysicalOutcome", "persistStatus", "effectEvidence", "missionResolution",
+        "recoveryPermit", "ticketStatus", "ticketAttempt", "crashCut",
+    ] {
         let value = str_field(state, key)?;
         let allowed: &[&str] = match key {
-            "processStatus" => &["running","crashed"],
-            "stage" => &["unreserved","reserved","dispatch_started","accepted"],
-            "commandOwnerAttempt" => &["none","attempt-1","attempt-2"],
-            "oldPhysicalOutcome" | "recoveryPhysicalOutcome" => &["none","applied","no_effect","partial"],
-            "persistStatus" => &["definitely_not_committed","in_flight","committed","indeterminate_commit"],
-            "effectEvidence" | "missionResolution" => &["none","unknown","applied","no_effect","partial","disputed"],
-            "recoveryPermit" => &["absent","issued","consumed"],
-            "ticketStatus" => &["old","fresh","consumed"],
-            "ticketAttempt" => &["attempt-1","attempt-2"],
-            "crashCut" => &["none","before_reservation","after_reservation","after_dispatch_start","after_native_accept","after_possible_effect","after_restart_before_fence","after_controller_queue_fence","after_downstream_execution_fence","permit_consumed_before_effect","after_recovery_restart"],
+            "processStatus" => &["running", "crashed"],
+            "stage" => &["unreserved", "reserved", "dispatch_started", "accepted"],
+            "commandOwnerAttempt" => &["none", "attempt-1", "attempt-2"],
+            "oldPhysicalOutcome" | "recoveryPhysicalOutcome" => &["none", "applied", "no_effect", "partial"],
+            "persistStatus" => &["definitely_not_committed", "in_flight", "committed", "indeterminate_commit"],
+            "effectEvidence" | "missionResolution" => &["none", "unknown", "applied", "no_effect", "partial", "disputed"],
+            "recoveryPermit" => &["absent", "issued", "consumed"],
+            "ticketStatus" => &["old", "fresh", "consumed"],
+            "ticketAttempt" => &["attempt-1", "attempt-2"],
+            "crashCut" => &[
+                "none", "before_reservation", "after_reservation", "after_dispatch_start",
+                "after_native_accept", "after_possible_effect", "after_restart_before_fence",
+                "after_controller_queue_fence", "after_downstream_execution_fence",
+                "permit_consumed_before_effect", "after_recovery_restart",
+            ],
             _ => &[],
         };
-        if !allowed.contains(&value) { return Err(ProjectionError::InvalidStateFieldType); }
+        if !allowed.contains(&value) {
+            return Err(ProjectionError::InvalidStateFieldType);
+        }
     }
-    for key in ["reservationCommitted","oldAccepted","commandPending","storeRecord","storeCallPending","observerIndependent","m1Current","m2Current","ticketBindingValid","liveBindingValid","recoveryAccepted","admittedFreshBoot","admittedFreshController","admittedControllerFence","admittedDownstreamFence","admittedM1","admittedM2","admittedBinding"] {
-        bool_field(state,key)?;
-    }
-    for key in ["bootEpoch","controllerEpoch","oldTicketBootEpoch","oldTicketControllerEpoch","oldAcceptedBootEpoch","oldAcceptedControllerEpoch","appliedEffectCount","queueFenceBootEpoch","downstreamFenceBootEpoch","permitUseCount","ticketBootEpoch","ticketControllerEpoch","naiveReplayCount"] {
-        u64_field(state,key)?;
-    }
-    let boot = u64_field(state,"bootEpoch")?;
-    let controller = u64_field(state,"controllerEpoch")?;
-    if max_epoch < 3 || boot == 0 || boot > max_epoch || controller == 0 || controller > max_epoch
-        || u64_field(state,"oldTicketBootEpoch")? == 0 || u64_field(state,"oldTicketBootEpoch")? > max_epoch
-        || u64_field(state,"oldTicketControllerEpoch")? == 0 || u64_field(state,"oldTicketControllerEpoch")? > max_epoch
-        || u64_field(state,"oldAcceptedBootEpoch")? > max_epoch || u64_field(state,"oldAcceptedControllerEpoch")? > max_epoch
-        || u64_field(state,"queueFenceBootEpoch")? > max_epoch || u64_field(state,"downstreamFenceBootEpoch")? > max_epoch
-        || u64_field(state,"ticketBootEpoch")? == 0 || u64_field(state,"ticketBootEpoch")? > max_epoch
-        || u64_field(state,"ticketControllerEpoch")? == 0 || u64_field(state,"ticketControllerEpoch")? > max_epoch
-        || u64_field(state,"naiveReplayCount")? > 2
-        || u64_field(state,"permitUseCount")? > 1
-    { return Err(ProjectionError::StateOutOfBounds); }
 
+    for key in [
+        "reservationCommitted", "oldAccepted", "commandPending", "storeRecord",
+        "storeCallPending", "observerIndependent", "m1Current", "m2Current",
+        "ticketBindingValid", "liveBindingValid", "recoveryAccepted", "admittedFreshBoot",
+        "admittedFreshController", "admittedControllerFence", "admittedDownstreamFence",
+        "admittedM1", "admittedM2", "admittedBinding",
+    ] {
+        bool_field(state, key)?;
+    }
+    for key in [
+        "bootEpoch", "controllerEpoch", "oldTicketBootEpoch", "oldTicketControllerEpoch",
+        "oldAcceptedBootEpoch", "oldAcceptedControllerEpoch", "appliedEffectCount",
+        "queueFenceBootEpoch", "downstreamFenceBootEpoch", "permitUseCount",
+        "ticketBootEpoch", "ticketControllerEpoch", "naiveReplayCount",
+    ] {
+        u64_field(state, key)?;
+    }
+
+    let boot = u64_field(state, "bootEpoch")?;
+    let controller = u64_field(state, "controllerEpoch")?;
+    if max_epoch < 3
+        || boot == 0 || boot > max_epoch
+        || controller == 0 || controller > max_epoch
+        || u64_field(state, "oldTicketBootEpoch")? == 0
+        || u64_field(state, "oldTicketBootEpoch")? > max_epoch
+        || u64_field(state, "oldTicketControllerEpoch")? == 0
+        || u64_field(state, "oldTicketControllerEpoch")? > max_epoch
+        || u64_field(state, "oldAcceptedBootEpoch")? > max_epoch
+        || u64_field(state, "oldAcceptedControllerEpoch")? > max_epoch
+        || u64_field(state, "queueFenceBootEpoch")? > max_epoch
+        || u64_field(state, "downstreamFenceBootEpoch")? > max_epoch
+        || u64_field(state, "ticketBootEpoch")? == 0
+        || u64_field(state, "ticketBootEpoch")? > max_epoch
+        || u64_field(state, "ticketControllerEpoch")? == 0
+        || u64_field(state, "ticketControllerEpoch")? > max_epoch
+        || u64_field(state, "naiveReplayCount")? > 2
+        || u64_field(state, "permitUseCount")? > 1
+    {
+        return Err(ProjectionError::StateOutOfBounds);
+    }
+
+    // This is the explicit safety invariant, stricter than the TLA TypeOK
+    // domain of 0..2. A two-effect state is a counterexample, not a valid
+    // runtime projection under this contract.
     if u64_field(state, "appliedEffectCount")? > 1 {
         return Err(ProjectionError::DuplicatePhysicalEffectObserved);
     }
 
-    let pending = bool_field(state,"commandPending")?;
-    let owner = str_field(state,"commandOwnerAttempt")?;
-    if pending == (owner == "none") { return Err(ProjectionError::CommandOwnerMismatch); }
-    if str_field(state,"stage")? != "unreserved" && !bool_field(state,"reservationCommitted")? {
+    let pending = bool_field(state, "commandPending")?;
+    let owner = str_field(state, "commandOwnerAttempt")?;
+    if pending == (owner == "none") {
+        return Err(ProjectionError::CommandOwnerMismatch);
+    }
+    if str_field(state, "stage")? != "unreserved" && !bool_field(state, "reservationCommitted")? {
         return Err(ProjectionError::ReservationStageMismatch);
     }
-    if bool_field(state,"oldAccepted")?
-        && (!bool_field(state,"reservationCommitted")? || u64_field(state,"oldAcceptedBootEpoch")? != 1
-            || u64_field(state,"oldAcceptedControllerEpoch")? != 1)
-    { return Err(ProjectionError::OldAcceptanceLineageMismatch); }
+    if bool_field(state, "oldAccepted")?
+        && (!bool_field(state, "reservationCommitted")?
+            || u64_field(state, "oldAcceptedBootEpoch")? != 1
+            || u64_field(state, "oldAcceptedControllerEpoch")? != 1)
+    {
+        return Err(ProjectionError::OldAcceptanceLineageMismatch);
+    }
 
-    if u64_field(state,"downstreamFenceBootEpoch")? == boot
-        && (u64_field(state,"queueFenceBootEpoch")? != boot || pending)
-    { return Err(ProjectionError::DownstreamFenceInvariant); }
+    if u64_field(state, "downstreamFenceBootEpoch")? == boot
+        && (u64_field(state, "queueFenceBootEpoch")? != boot || pending)
+    {
+        return Err(ProjectionError::DownstreamFenceInvariant);
+    }
 
-    let persist = str_field(state,"persistStatus")?;
-    if (persist == "committed" && !bool_field(state,"storeRecord")?)
-        || (persist == "definitely_not_committed" && bool_field(state,"storeRecord")?)
-    { return Err(ProjectionError::PersistenceRecordMismatch); }
+    let persist = str_field(state, "persistStatus")?;
+    if (persist == "committed" && !bool_field(state, "storeRecord")?)
+        || (persist == "definitely_not_committed" && bool_field(state, "storeRecord")?)
+    {
+        return Err(ProjectionError::PersistenceRecordMismatch);
+    }
 
-    let permit = str_field(state,"recoveryPermit")?;
-    let accepted = bool_field(state,"recoveryAccepted")?;
-    let use_count = u64_field(state,"permitUseCount")?;
+    let evidence = str_field(state, "effectEvidence")?;
+    let old_physical = str_field(state, "oldPhysicalOutcome")?;
+    let mission = str_field(state, "missionResolution")?;
+    let permit = str_field(state, "recoveryPermit")?;
+    let accepted = bool_field(state, "recoveryAccepted")?;
+    let use_count = u64_field(state, "permitUseCount")?;
+
     if (permit == "consumed") != (use_count == 1) || accepted != (permit == "consumed") {
         return Err(ProjectionError::PermitConsumptionMismatch);
     }
-    if permit != "absent" && (evidence != "no_effect" || str_field(state,"missionResolution")? != "no_effect"
-        || !["committed","definitely_not_committed"].contains(&persist)
-        || bool_field(state,"storeCallPending")? || !bool_field(state,"observerIndependent")?
-        || !bool_field(state,"m1Current")? || !bool_field(state,"m2Current")?)
-    { return Err(ProjectionError::RecoveryFromUnqualifiedOutcome); }
+    if permit != "absent"
+        && (evidence != "no_effect"
+            || old_physical != "no_effect"
+            || mission != "no_effect"
+            || !["committed", "definitely_not_committed"].contains(&persist)
+            || bool_field(state, "storeCallPending")?
+            || !bool_field(state, "m1Current")?
+            || !bool_field(state, "m2Current")?)
+    {
+        return Err(ProjectionError::RecoveryFromUnqualifiedOutcome);
+    }
     if persist == "indeterminate_commit" && permit != "absent" {
         return Err(ProjectionError::IndeterminatePersistenceRecovery);
     }
-    if str_field(state,"ticketStatus")? == "fresh"
-        && (str_field(state,"ticketAttempt")? != "attempt-2"
-            || u64_field(state,"ticketBootEpoch")? != boot
-            || u64_field(state,"ticketControllerEpoch")? != controller)
-    { return Err(ProjectionError::FreshTicketBindingMismatch); }
-    if accepted {
-        if str_field(state,"oldPhysicalOutcome")? != "no_effect"
-            || persist == "indeterminate_commit"
-            || !bool_field(state,"ticketBindingValid")?
-            || !bool_field(state,"liveBindingValid")?
-            || !bool_field(state,"admittedFreshBoot")?
-            || !bool_field(state,"admittedFreshController")?
-            || !bool_field(state,"admittedControllerFence")?
-            || !bool_field(state,"admittedDownstreamFence")?
-            || !bool_field(state,"admittedM1")? || !bool_field(state,"admittedM2")?
-            || !bool_field(state,"admittedBinding")?
-            || u64_field(state,"queueFenceBootEpoch")? != boot
-            || u64_field(state,"downstreamFenceBootEpoch")? != boot
-        { return Err(ProjectionError::RecoveryAdmissionInvariant); }
+
+    if str_field(state, "ticketStatus")? == "fresh"
+        && (permit != "issued"
+            || str_field(state, "ticketAttempt")? != "attempt-2"
+            || u64_field(state, "ticketBootEpoch")? != boot
+            || u64_field(state, "ticketControllerEpoch")? != controller
+            || u64_field(state, "queueFenceBootEpoch")? != boot
+            || u64_field(state, "downstreamFenceBootEpoch")? != boot
+            || !bool_field(state, "ticketBindingValid")?
+            || !bool_field(state, "liveBindingValid")?)
+    {
+        return Err(ProjectionError::FreshTicketBindingMismatch);
     }
+
+    if accepted {
+        if old_physical != "no_effect"
+            || evidence != "no_effect"
+            || mission != "no_effect"
+            || persist == "indeterminate_commit"
+            || !bool_field(state, "ticketBindingValid")?
+            || !bool_field(state, "liveBindingValid")?
+            || !bool_field(state, "admittedFreshBoot")?
+            || !bool_field(state, "admittedFreshController")?
+            || !bool_field(state, "admittedControllerFence")?
+            || !bool_field(state, "admittedDownstreamFence")?
+            || !bool_field(state, "admittedM1")?
+            || !bool_field(state, "admittedM2")?
+            || !bool_field(state, "admittedBinding")?
+            || str_field(state, "ticketStatus")? != "consumed"
+            || str_field(state, "ticketAttempt")? != "attempt-2"
+            || u64_field(state, "ticketBootEpoch")? != boot
+            || u64_field(state, "ticketControllerEpoch")? != controller
+            || u64_field(state, "queueFenceBootEpoch")? != boot
+        {
+            return Err(ProjectionError::RecoveryAdmissionInvariant);
+        }
+    }
+
     Ok(())
 }
 
@@ -364,54 +533,170 @@ impl RuntimeProjectionRecording {
             if domains != required || s.owner_evidence.len()!=REQUIRED_OWNER_DOMAINS {
                 return Err(ProjectionError::MissingOwnerEvidence);
             }
-            for e in &s.owner_evidence {
-                if !nonempty(&e.owner_id)
-                    || !nonempty(&e.owner_revision)
-                    || !nonempty(&e.evidence_id)
-                    || !nonempty(&e.raw_artifact_id)
-                    || !valid_sha(&e.raw_artifact_sha256)
+            for evidence in &s.owner_evidence {
+                if !nonempty(&evidence.owner_id)
+                    || !nonempty(&evidence.owner_revision)
+                    || !nonempty(&evidence.evidence_id)
+                    || !nonempty(&evidence.raw_artifact_id)
+                    || !valid_sha256(&evidence.raw_artifact_sha256)
+                    || !nonempty(&evidence.scope.logical_effect_id)
+                    || !matches!(evidence.scope.attempt_id.as_str(), "attempt-1" | "attempt-2")
+                    || evidence.scope.subject_boot_epoch == 0
+                    || evidence.scope.subject_boot_epoch > h.max_epoch
+                    || evidence.scope.subject_controller_epoch == 0
+                    || evidence.scope.subject_controller_epoch > h.max_epoch
                 {
                     return Err(ProjectionError::InvalidOwnerEvidence);
                 }
-                match e.domain {
+
+                let is_observer = matches!(
+                    evidence.domain,
                     OwnerEvidenceDomain::NoEffectObserverQuorum
-                    | OwnerEvidenceDomain::DownstreamObserverQuorum => {
-                        if !e.claim_id.as_ref().is_some_and(|value| nonempty(value))
-                            || !e.claim_scope_sha256.as_ref().is_some_and(|value| valid_sha(value))
-                            || !matches!(
-                                e.status,
-                                OwnerEvidenceStatus::QuorumQualified
-                                    | OwnerEvidenceStatus::QuorumNotQualified
-                            )
-                        {
-                            return Err(ProjectionError::InvalidOwnerEvidence);
+                        | OwnerEvidenceDomain::DownstreamObserverQuorum
+                );
+                if is_observer {
+                    match evidence.status {
+                        OwnerEvidenceStatus::NotApplicable => {
+                            if evidence.claim_id.is_some()
+                                || evidence.claim_scope_sha256.is_some()
+                                || evidence.observer_quorum.is_some()
+                            {
+                                return Err(ProjectionError::InvalidOwnerEvidence);
+                            }
                         }
-                    }
-                    _ => {
-                        if e.claim_id.is_some() || e.claim_scope_sha256.is_some() {
-                            return Err(ProjectionError::InvalidOwnerEvidence);
+                        OwnerEvidenceStatus::QuorumQualified
+                        | OwnerEvidenceStatus::QuorumNotQualified
+                        | OwnerEvidenceStatus::Unknown
+                        | OwnerEvidenceStatus::InsufficientEvidence
+                        | OwnerEvidenceStatus::Disputed => {
+                            let claim_id = evidence.claim_id.as_deref()
+                                .filter(|value| nonempty(value))
+                                .ok_or(ProjectionError::InvalidOwnerEvidence)?;
+                            let expected_scope = claim_scope_digest(
+                                evidence.domain,
+                                claim_id,
+                                &evidence.scope,
+                            );
+                            if evidence.claim_scope_sha256.as_deref() != Some(expected_scope.as_str()) {
+                                return Err(ProjectionError::InvalidOwnerEvidence);
+                            }
+                            if matches!(
+                                evidence.status,
+                                OwnerEvidenceStatus::QuorumQualified | OwnerEvidenceStatus::QuorumNotQualified
+                            ) {
+                                let proof = evidence.observer_quorum.as_ref()
+                                    .ok_or(ProjectionError::ObserverQuorumMalformed)?;
+                                let qualified = observer_quorum_is_qualified(proof)?;
+                                if (evidence.status == OwnerEvidenceStatus::QuorumQualified) != qualified {
+                                    return Err(ProjectionError::ObserverQuorumMismatch);
+                                }
+                            } else if let Some(proof) = evidence.observer_quorum.as_ref() {
+                                let _ = observer_quorum_is_qualified(proof)?;
+                            }
                         }
+                        _ => return Err(ProjectionError::InvalidOwnerEvidence),
                     }
+                } else if evidence.claim_id.is_some()
+                    || evidence.claim_scope_sha256.is_some()
+                    || evidence.observer_quorum.is_some()
+                    || matches!(
+                        evidence.status,
+                        OwnerEvidenceStatus::QuorumQualified | OwnerEvidenceStatus::QuorumNotQualified
+                    )
+                {
+                    return Err(ProjectionError::InvalidOwnerEvidence);
                 }
             }
 
-            let no_effect_observer = s.owner_evidence.iter()
-                .find(|e| e.domain == OwnerEvidenceDomain::NoEffectObserverQuorum)
-                .expect("required observer domain checked");
-            let downstream_observer = s.owner_evidence.iter()
-                .find(|e| e.domain == OwnerEvidenceDomain::DownstreamObserverQuorum)
-                .expect("required observer domain checked");
-            if no_effect_observer.claim_id == downstream_observer.claim_id
-                || no_effect_observer.claim_scope_sha256 == downstream_observer.claim_scope_sha256
+            let by_domain = |domain: OwnerEvidenceDomain| {
+                s.owner_evidence.iter().find(|e| e.domain == domain)
+                    .expect("required owner evidence domain checked")
+            };
+            let effect_scope = &by_domain(OwnerEvidenceDomain::PhysicalOutcome).scope;
+            for domain in [
+                OwnerEvidenceDomain::Persistence,
+                OwnerEvidenceDomain::PhysicalOutcome,
+                OwnerEvidenceDomain::MissionResolution,
+                OwnerEvidenceDomain::ControllerQueue,
+                OwnerEvidenceDomain::DownstreamExecutionGraph,
+                OwnerEvidenceDomain::NoEffectObserverQuorum,
+                OwnerEvidenceDomain::DownstreamObserverQuorum,
+                OwnerEvidenceDomain::ActionApplicability,
+            ] {
+                let scope = &by_domain(domain).scope;
+                if scope != effect_scope {
+                    return Err(ProjectionError::EvidenceScopeMismatch);
+                }
+            }
+            let state_boot = u64_field(&s.state_s, "bootEpoch")?;
+            let state_controller = u64_field(&s.state_s, "controllerEpoch")?;
+            if effect_scope.attempt_id != "attempt-1"
+                || effect_scope.subject_boot_epoch != u64_field(&s.state_s, "oldTicketBootEpoch")?
+                || effect_scope.subject_controller_epoch != u64_field(&s.state_s, "oldTicketControllerEpoch")?
+            {
+                return Err(ProjectionError::EvidenceScopeMismatch);
+            }
+            let recovery_scope = &by_domain(OwnerEvidenceDomain::RecoveryAuthority).scope;
+            if recovery_scope.attempt_id != "attempt-2"
+                || recovery_scope.subject_boot_epoch != state_boot
+                || recovery_scope.subject_controller_epoch != state_controller
+                || by_domain(OwnerEvidenceDomain::ProcessEpoch).scope.subject_boot_epoch != state_boot
+                || by_domain(OwnerEvidenceDomain::ProcessEpoch).scope.subject_controller_epoch != state_controller
+            {
+                return Err(ProjectionError::EvidenceScopeMismatch);
+            }
+
+            let no_effect_observer = by_domain(OwnerEvidenceDomain::NoEffectObserverQuorum);
+            let downstream_observer = by_domain(OwnerEvidenceDomain::DownstreamObserverQuorum);
+            if no_effect_observer.status != OwnerEvidenceStatus::NotApplicable
+                && downstream_observer.status != OwnerEvidenceStatus::NotApplicable
+                && no_effect_observer.claim_id == downstream_observer.claim_id
             {
                 return Err(ProjectionError::DuplicateObserverClaim);
             }
-            let observer_quorums_qualified =
-                no_effect_observer.status == OwnerEvidenceStatus::QuorumQualified
-                    && downstream_observer.status == OwnerEvidenceStatus::QuorumQualified;
-            if bool_field(&s.state_s, "observerIndependent")? != observer_quorums_qualified {
+
+            let effect_evidence = str_field(&s.state_s, "effectEvidence")?;
+            let observer_independent = bool_field(&s.state_s, "observerIndependent")?;
+            match effect_evidence {
+                "applied" | "no_effect" | "partial" => {
+                    if !observer_independent
+                        || no_effect_observer.status != OwnerEvidenceStatus::QuorumQualified
+                    {
+                        return Err(ProjectionError::ObserverQuorumMismatch);
+                    }
+                }
+                "disputed" => {
+                    if observer_independent
+                        || no_effect_observer.status != OwnerEvidenceStatus::Disputed
+                    {
+                        return Err(ProjectionError::ObserverQuorumMismatch);
+                    }
+                }
+                "unknown" => {
+                    if !matches!(
+                        no_effect_observer.status,
+                        OwnerEvidenceStatus::Unknown | OwnerEvidenceStatus::InsufficientEvidence
+                    ) {
+                        return Err(ProjectionError::ObserverQuorumMismatch);
+                    }
+                }
+                "none" => {
+                    if no_effect_observer.status != OwnerEvidenceStatus::NotApplicable {
+                        return Err(ProjectionError::ObserverQuorumMismatch);
+                    }
+                }
+                _ => return Err(ProjectionError::ObserverQuorumMismatch),
+            }
+
+            let requires_quorums = str_field(&s.state_s, "recoveryPermit")? != "absent"
+                || matches!(s.model_action.as_deref(), Some("IssueRecoveryPermit" | "NativeAcceptRecovery"));
+            if requires_quorums
+                && (no_effect_observer.status != OwnerEvidenceStatus::QuorumQualified
+                    || downstream_observer.status != OwnerEvidenceStatus::QuorumQualified)
+            {
                 return Err(ProjectionError::ObserverQuorumMismatch);
             }
+
             if let Some(clock)=&s.source_clock {
                 if !nonempty(&clock.clock_id)||!nonempty(&clock.boot_epoch_id)||!nonempty(&clock.unit)||clock.resolution==0 {
                     return Err(ProjectionError::InvalidSourceClock);
@@ -452,7 +737,25 @@ impl RuntimeProjectionRecording {
                 "owner_evidence":s.owner_evidence.iter().map(|e|json!({
                     "domain":e.domain.as_str(),"owner_id":e.owner_id,"owner_revision":e.owner_revision,
                     "evidence_id":e.evidence_id,"status":e.status.as_str(),
+                    "scope": {
+                        "logical_effect_id":e.scope.logical_effect_id,
+                        "attempt_id":e.scope.attempt_id,
+                        "subject_boot_epoch":e.scope.subject_boot_epoch,
+                        "subject_controller_epoch":e.scope.subject_controller_epoch
+                    },
                     "claim_id":e.claim_id,"claim_scope_sha256":e.claim_scope_sha256,
+                    "observer_quorum":e.observer_quorum.as_ref().map(|proof| json!({
+                        "fault_model_revision":proof.fault_model_revision,
+                        "required_independent_members":proof.required_independent_members,
+                        "members":proof.members.iter().map(|member| json!({
+                            "observer_id":member.observer_id,
+                            "observer_revision":member.observer_revision,
+                            "observation_id":member.observation_id,
+                            "common_cause_domains":member.common_cause_domains,
+                            "raw_artifact_id":member.raw_artifact_id,
+                            "raw_artifact_sha256":member.raw_artifact_sha256
+                        })).collect::<Vec<_>>()
+                    })),
                     "raw_artifact_id":e.raw_artifact_id,"raw_artifact_sha256":e.raw_artifact_sha256
                 })).collect::<Vec<_>>()
             })
@@ -481,7 +784,7 @@ mod tests {
 
     fn sha(c:char)->String { std::iter::repeat(c).take(64).collect() }
 
-    fn owners()->Vec<OwnerEvidenceRef>{
+    fn owners() -> Vec<OwnerEvidenceRef> {
         let domains = [
             OwnerEvidenceDomain::ProcessEpoch,
             OwnerEvidenceDomain::Persistence,
@@ -494,35 +797,49 @@ mod tests {
             OwnerEvidenceDomain::ActionApplicability,
             OwnerEvidenceDomain::RecoveryAuthority,
         ];
-        domains.into_iter().enumerate().map(|(i, domain)| {
-            let is_no_effect = domain == OwnerEvidenceDomain::NoEffectObserverQuorum;
-            let is_graph = domain == OwnerEvidenceDomain::DownstreamObserverQuorum;
+        domains.into_iter().enumerate().map(|(index, domain)| {
+            let scope = if domain == OwnerEvidenceDomain::RecoveryAuthority {
+                EvidenceScope {
+                    logical_effect_id: "clean-cycle-1".to_owned(),
+                    attempt_id: "attempt-2".to_owned(),
+                    subject_boot_epoch: 1,
+                    subject_controller_epoch: 1,
+                }
+            } else {
+                EvidenceScope {
+                    logical_effect_id: "clean-cycle-1".to_owned(),
+                    attempt_id: "attempt-1".to_owned(),
+                    subject_boot_epoch: 1,
+                    subject_controller_epoch: 1,
+                }
+            };
+            let (status, claim_id, proof) = match domain {
+                OwnerEvidenceDomain::NoEffectObserverQuorum
+                | OwnerEvidenceDomain::DownstreamObserverQuorum => (
+                    OwnerEvidenceStatus::NotApplicable,
+                    None,
+                    None,
+                ),
+                OwnerEvidenceDomain::PhysicalOutcome | OwnerEvidenceDomain::MissionResolution => (
+                    OwnerEvidenceStatus::NotApplicable,
+                    None,
+                    None,
+                ),
+                _ => (OwnerEvidenceStatus::Current, None, None),
+            };
+            let claim_scope_sha256 = claim_id.as_deref().map(|id| claim_scope_digest(domain, id, &scope));
             OwnerEvidenceRef {
                 domain,
-                owner_id: format!("owner-{i}"),
-                owner_revision: format!("revision-{i}"),
-                evidence_id: format!("evidence-{i}"),
-                status: if is_no_effect || is_graph {
-                    OwnerEvidenceStatus::QuorumQualified
-                } else {
-                    OwnerEvidenceStatus::Current
-                },
-                claim_id: if is_no_effect {
-                    Some("old-attempt-no-effect".to_owned())
-                } else if is_graph {
-                    Some("downstream-graph-quiescence".to_owned())
-                } else {
-                    None
-                },
-                claim_scope_sha256: if is_no_effect {
-                    Some(sha('d'))
-                } else if is_graph {
-                    Some(sha('e'))
-                } else {
-                    None
-                },
-                raw_artifact_id: format!("artifact-{i}"),
-                raw_artifact_sha256: sha(char::from(b'a' + i as u8)),
+                owner_id: format!("owner-{index}"),
+                owner_revision: format!("revision-{index}"),
+                evidence_id: format!("evidence-{index}"),
+                status,
+                scope,
+                claim_id,
+                claim_scope_sha256,
+                observer_quorum: proof,
+                raw_artifact_id: format!("artifact-{index}"),
+                raw_artifact_sha256: sha(char::from(b'a' + index as u8)),
             }
         }).collect()
     }
