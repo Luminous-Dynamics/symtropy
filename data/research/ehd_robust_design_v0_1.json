@@ -1,0 +1,146 @@
+{
+  "schema": "luminous.ehd_robust_design",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-OED-002",
+  "as_of": "2026-11-22",
+  "status": "manufactured_nuisance_adjusted_maximin_reference_authored_rust_tests_execution_pending",
+  "claim_ceiling": "This is a manufactured two-physical-parameter, one-scalar-nuisance, diagonal-noise discrete design reference. It is not an EHD operating-condition recommendation, calibrated force-balance model, physical parameter estimator, or experiment authorization.",
+  "model_contract": {
+    "physical_parameter_count": 2,
+    "nuisance_parameter_count": 1,
+    "nuisance_interpretation": "shared force-balance offset-like response; manufactured only",
+    "observation_covariance": "independent_normal_zero_mean_diagonal_variance",
+    "correlated_covariance_supported": false,
+    "candidate_cost": "equal unit cost per observation",
+    "allocation": "discrete combinations with replacement"
+  },
+  "nuisance_adjustment": {
+    "whitened_observation_model": "y = X theta + q eta + epsilon",
+    "profiled_information": "F_eff = X^T W X - X^T W q * (q^T W q)^(-1) * q^T W X",
+    "acceptance": "physical parameter rank must equal two after nuisance projection in every scenario",
+    "zero_nuisance_information": "reject; do not silently remove the nuisance channel"
+  },
+  "selection_policy": {
+    "algorithm": "bounded_exhaustive_discrete_maximin",
+    "objective": "maximize_design minimum_over_scenarios lambda_min(F_eff)",
+    "tie_break": "lexicographic_candidate_indices",
+    "budget": 3,
+    "max_evaluations": 100,
+    "rank_tolerance": 1e-12
+  },
+  "reference_implementation": {
+    "path": "tools/ehd-reference-audit/src/identifiability.rs",
+    "function": "select_robust_nuisance_adjusted_design",
+    "scenarios": [
+      {
+        "scenario_id": "nominal_unit_noise",
+        "nuisance_sensitivity": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "observation_variances": [
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "scenario_id": "candidate_2_eightfold_variance",
+        "nuisance_sensitivity": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "observation_variances": [
+          1,
+          1,
+          8,
+          1
+        ]
+      }
+    ],
+    "candidate_conditions": [
+      {
+        "index": 0,
+        "physical_sensitivity": [
+          -3,
+          -3
+        ]
+      },
+      {
+        "index": 1,
+        "physical_sensitivity": [
+          -3,
+          -2
+        ]
+      },
+      {
+        "index": 2,
+        "physical_sensitivity": [
+          -3,
+          -1
+        ]
+      },
+      {
+        "index": 3,
+        "physical_sensitivity": [
+          -2,
+          0
+        ]
+      }
+    ]
+  },
+  "expected_result": {
+    "evaluated_design_count": 20,
+    "robust_identifiable_design_count": 3,
+    "robust_optimal_candidate_indices": [
+      0,
+      1,
+      3
+    ],
+    "worst_case_minimum_information_eigenvalue": 0.06325010803111508,
+    "nominal_d_optimal_candidate_indices": [
+      0,
+      2,
+      3
+    ],
+    "nominal_e_optimal_candidate_indices": [
+      0,
+      3,
+      3
+    ],
+    "nominal_e_optimal_after_nuisance_projection": "rank_deficient"
+  },
+  "test_families": [
+    "nuisance_adjusted_maximin_changes_selection_under_declared_noise_envelope",
+    "offset_confounded_allocation_is_not_treated_as_physically_identifiable",
+    "no_robustly_identifiable_allocation_fails_closed",
+    "duplicate_scenario_identity_is_rejected",
+    "nuisance_information_absence_is_rejected"
+  ],
+  "limitations": [
+    "manufactured_sensitivity_rows_not_physical_ehd_conditions",
+    "two_physical_parameters_only",
+    "one_scalar_nuisance_channel_only",
+    "diagonal_observation_covariance_only",
+    "linear_local_sensitivity_model_only",
+    "discrete_exhaustive_designs_only",
+    "equal_unit_observation_cost_only",
+    "no_profile_likelihood",
+    "no_multiple_nuisance_parameter_projection",
+    "no_model_discrimination",
+    "no_continuous_or_sequential_design",
+    "no_physical_experiment_recommendations"
+  ],
+  "prospective_targets": {
+    "robust_rank_gate": "zero rank-deficient allocations promoted in any declared scenario",
+    "scenario_holdout": "all benchmark evaluations include unseen parameter/noise scenario families",
+    "coverage": "empirical coverage 90-98% for nominal 95% intervals in a preregistered held-out corpus",
+    "artifact_rejection": "false-positive rate <= 1% on frozen nuisance/artifact negative controls",
+    "status": "targets_not_results"
+  }
+}

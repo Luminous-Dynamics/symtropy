@@ -41,6 +41,8 @@ const EMBEDDED_CONTROL_VOLUME: &str =
     include_str!("../../../data/research/ehd_control_volume_v0_1.json");
 const EMBEDDED_IDENTIFIABILITY: &str =
     include_str!("../../../data/research/ehd_experiment_identifiability_kernel_v0_1.json");
+const EMBEDDED_ROBUST_DESIGN: &str =
+    include_str!("../../../data/research/ehd_robust_design_v0_1.json");
 
 fn at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
     path.iter().try_fold(value, |node, key| node.get(*key))
@@ -2161,6 +2163,139 @@ pub fn audit_identifiability_contract(root: &Value) -> Vec<String> {
 }
 
 
+
+
+/// Audit the manufactured nuisance-adjusted maximin experiment-design contract.
+/// This checks a frozen fixture and its scope; it is not an EHD experiment model.
+pub fn audit_robust_design_contract(root: &Value) -> Vec<String> {
+    let mut findings = Vec::new();
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["schema"]) == Some("luminous.ehd_robust_design")
+            && text_at(root, &["schema_version"]) == Some("0.1.0")
+            && text_at(root, &["benchmark_id"]) == Some("EHD-OED-002")
+            && text_at(root, &["status"])
+                == Some("manufactured_nuisance_adjusted_maximin_reference_authored_rust_tests_execution_pending"),
+        "ROBUST_DESIGN_IDENTITY",
+        "robust-design benchmark identity, version or status changed",
+    );
+    push_if_missing(
+        &mut findings,
+        at(root, &["model_contract", "physical_parameter_count"]).and_then(Value::as_u64) == Some(2)
+            && at(root, &["model_contract", "nuisance_parameter_count"]).and_then(Value::as_u64) == Some(1)
+            && at(root, &["model_contract", "correlated_covariance_supported"])
+                .and_then(Value::as_bool) == Some(false)
+            && text_at(root, &["model_contract", "candidate_cost"])
+                == Some("equal unit cost per observation"),
+        "ROBUST_DESIGN_MODEL_BOUNDARY",
+        "two-parameter, one-nuisance and diagonal covariance limitations must remain explicit",
+    );
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["nuisance_adjustment", "profiled_information"])
+            == Some("F_eff = X^T W X - X^T W q * (q^T W q)^(-1) * q^T W X")
+            && text_at(root, &["nuisance_adjustment", "zero_nuisance_information"])
+                .is_some_and(|policy| policy.contains("reject")),
+        "ROBUST_DESIGN_NUISANCE_PROJECTION",
+        "nuisance Schur complement and fail-closed zero-information policy changed",
+    );
+    let selection = at(root, &["selection_policy"]);
+    push_if_missing(
+        &mut findings,
+        selection.is_some_and(|value| {
+            text_at(value, &["algorithm"]) == Some("bounded_exhaustive_discrete_maximin")
+                && text_at(value, &["objective"])
+                    == Some("maximize_design minimum_over_scenarios lambda_min(F_eff)")
+                && text_at(value, &["tie_break"]) == Some("lexicographic_candidate_indices")
+                && at(value, &["budget"]).and_then(Value::as_u64) == Some(3)
+                && at(value, &["max_evaluations"]).and_then(Value::as_u64) == Some(100)
+                && number_at(value, &["rank_tolerance"]) == Some(1.0e-12)
+        }),
+        "ROBUST_DESIGN_SELECTION_POLICY",
+        "matched budget, maximin objective, deterministic tie-break or search bound changed",
+    );
+    let scenarios = at(root, &["reference_implementation", "scenarios"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        scenarios.is_some_and(|rows| rows.len() == 2
+            && text_at(&rows[0], &["scenario_id"]) == Some("nominal_unit_noise")
+            && text_at(&rows[1], &["scenario_id"]) == Some("candidate_2_eightfold_variance")
+            && at(&rows[0], &["nuisance_sensitivity"]).and_then(Value::as_array)
+                .is_some_and(|values| values.len() == 4 && values.iter().all(|value| value.as_f64() == Some(1.0)))
+            && at(&rows[0], &["observation_variances"]).and_then(Value::as_array)
+                .is_some_and(|values| values.len() == 4 && values.iter().all(|value| value.as_f64() == Some(1.0)))
+            && at(&rows[1], &["observation_variances"]).and_then(Value::as_array)
+                .is_some_and(|values| values.len() == 4
+                    && values[0].as_f64() == Some(1.0)
+                    && values[1].as_f64() == Some(1.0)
+                    && values[2].as_f64() == Some(8.0)
+                    && values[3].as_f64() == Some(1.0))),
+        "ROBUST_DESIGN_SCENARIOS",
+        "both frozen nuisance/noise scenarios must remain present and source-pinned",
+    );
+    let candidates = at(root, &["reference_implementation", "candidate_conditions"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        candidates.is_some_and(|rows| rows.len() == 4
+            && rows[0]["physical_sensitivity"] == serde_json::json!([-3, -3])
+            && rows[1]["physical_sensitivity"] == serde_json::json!([-3, -2])
+            && rows[2]["physical_sensitivity"] == serde_json::json!([-3, -1])
+            && rows[3]["physical_sensitivity"] == serde_json::json!([-2, 0])),
+        "ROBUST_DESIGN_CANDIDATES",
+        "manufactured candidate sensitivity rows have changed",
+    );
+    let expected = at(root, &["expected_result"]);
+    push_if_missing(
+        &mut findings,
+        expected.is_some_and(|value| {
+            at(value, &["evaluated_design_count"]).and_then(Value::as_u64) == Some(20)
+                && at(value, &["robust_identifiable_design_count"]).and_then(Value::as_u64) == Some(3)
+                && at(value, &["robust_optimal_candidate_indices"]).and_then(Value::as_array)
+                    .is_some_and(|indices| indices.len() == 3
+                        && indices[0].as_u64() == Some(0)
+                        && indices[1].as_u64() == Some(1)
+                        && indices[2].as_u64() == Some(3))
+                && number_at(value, &["worst_case_minimum_information_eigenvalue"])
+                    .is_some_and(|score| (score - 0.06325010803111508).abs() < 1.0e-12)
+                && text_at(value, &["nominal_e_optimal_after_nuisance_projection"])
+                    == Some("rank_deficient")
+        }),
+        "ROBUST_DESIGN_EXPECTED_RESULT",
+        "independently recomputed maximin result or nuisance-confounding negative control changed",
+    );
+    push_if_missing(
+        &mut findings,
+        at(root, &["test_families"]).and_then(Value::as_array)
+            .is_some_and(|tests| tests.len() == 5
+                && tests.iter().any(|item| item.as_str() == Some("nuisance_adjusted_maximin_changes_selection_under_declared_noise_envelope"))
+                && tests.iter().any(|item| item.as_str() == Some("offset_confounded_allocation_is_not_treated_as_physically_identifiable"))
+                && tests.iter().any(|item| item.as_str() == Some("no_robustly_identifiable_allocation_fails_closed"))
+                && tests.iter().any(|item| item.as_str() == Some("duplicate_scenario_identity_is_rejected"))
+                && tests.iter().any(|item| item.as_str() == Some("nuisance_information_absence_is_rejected"))),
+        "ROBUST_DESIGN_TEST_MATRIX",
+        "all five manufactured and adversarial test families must remain declared",
+    );
+    let limits = at(root, &["limitations"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        limits.is_some_and(|rows| {
+            rows.iter().any(|item| item.as_str() == Some("manufactured_sensitivity_rows_not_physical_ehd_conditions"))
+                && rows.iter().any(|item| item.as_str() == Some("one_scalar_nuisance_channel_only"))
+                && rows.iter().any(|item| item.as_str() == Some("diagonal_observation_covariance_only"))
+                && rows.iter().any(|item| item.as_str() == Some("no_model_discrimination"))
+                && rows.iter().any(|item| item.as_str() == Some("no_physical_experiment_recommendations"))
+        }) && text_at(root, &["claim_ceiling"]).is_some_and(|claim| {
+            claim.contains("manufactured")
+                && claim.contains("not an EHD operating-condition recommendation")
+                && claim.contains("not an experiment authorization")
+        }),
+        "ROBUST_DESIGN_CLAIM_BOUNDARY",
+        "manufactured-only scope and unsupported methods must remain explicit",
+    );
+    findings
+}
+
+
 fn main() {
     let mut args = env::args().skip(1);
     let path = args.next();
@@ -2277,6 +2412,14 @@ fn main() {
         }
     };
     findings.extend(audit_identifiability_contract(&identifiability_contract));
+    let robust_design_contract: Value = match serde_json::from_str(EMBEDDED_ROBUST_DESIGN) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("invalid embedded robust-design contract JSON: {error}");
+            process::exit(2);
+        }
+    };
+    findings.extend(audit_robust_design_contract(&robust_design_contract));
     let exchange_kernel_ok = match exchange::reference_self_check() {
         Ok(()) => true,
         Err(error) => {
@@ -2340,6 +2483,13 @@ fn main() {
             false
         }
     };
+    let robust_design_ok = match identifiability::robust_tournament_reference_self_check() {
+        Ok(()) => true,
+        Err(error) => {
+            findings.push(format!("ROBUST_DESIGN_SELF_CHECK: {error}"));
+            false
+        }
+    };
     let design_tournament_ok = match identifiability::tournament_reference_self_check() {
         Ok(()) => true,
         Err(error) => {
@@ -2387,6 +2537,9 @@ fn main() {
         }
         if design_tournament_ok {
             println!("matched-budget D/E discrete experiment-design tournament self-check: passed");
+        }
+        if robust_design_ok {
+            println!("nuisance-adjusted robust maximin experiment-design tournament self-check: passed");
         }
         println!("scope: source structure and analytic reference checks only; no physical V&V, production ALE, TPE(1/2), nonlinear profile likelihood, continuous design optimization, complete collisional-energy closure or durable exactly-once claim");
     } else {
@@ -3030,6 +3183,23 @@ mod control_volume_contract_tests {
 #[cfg(test)]
 mod identifiability_contract_tests {
     use super::*;
+
+    #[test]
+    fn robust_design_contract_passes() {
+        let value: Value = serde_json::from_str(EMBEDDED_ROBUST_DESIGN)
+            .expect("embedded robust-design benchmark must be valid JSON");
+        assert!(audit_robust_design_contract(&value).is_empty());
+    }
+
+    #[test]
+    fn robust_design_contract_rejects_changed_noise_envelope() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_ROBUST_DESIGN).unwrap();
+        value["reference_implementation"]["scenarios"][1]["observation_variances"][2] =
+            serde_json::json!(1.0);
+        assert!(audit_robust_design_contract(&value).iter().any(|finding| {
+            finding.starts_with("ROBUST_DESIGN_SCENARIOS")
+        }));
+    }
 
     #[test]
     fn identifiability_contract_passes() {
