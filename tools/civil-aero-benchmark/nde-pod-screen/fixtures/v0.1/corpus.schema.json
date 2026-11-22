@@ -145,7 +145,8 @@
         "study_id",
         "evidence_class",
         "scope_ref",
-        "inspectors"
+        "inspectors",
+        "scope_sha256"
       ],
       "properties": {
         "study_id": {
@@ -165,6 +166,10 @@
           "items": {
             "$ref": "#/$defs/inspector"
           }
+        },
+        "scope_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
         }
       }
     },
