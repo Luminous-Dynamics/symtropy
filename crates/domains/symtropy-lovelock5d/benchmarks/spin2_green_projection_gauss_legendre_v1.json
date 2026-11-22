@@ -1,0 +1,58 @@
+{
+  "acceptance": {
+    "all_C_B_errors_within_precision_threshold": true,
+    "all_C_H_errors_within_precision_threshold": true,
+    "analytic_log_subtraction_restored_exactly": true,
+    "different_quadrature_family_from_tanh_sinh_oracle": true,
+    "independent_of_SymPy_and_action_row_fixture": true
+  },
+  "artifact_kind": "spin2_green_projection_composite_gauss_legendre",
+  "claim_ceiling": "Independent numerical quadrature of the Green endpoint integral and B-amplitude reconstruction only. Numerical discrepancies are not rigorous interval enclosures. No action-row replay, finite-lambda BVP, or existence theorem is claimed.",
+  "environment": {
+    "arithmetic": "arbitrary-precision composite Gauss-Legendre quadrature",
+    "mpmath": "1.3.0",
+    "python": "3.13.5"
+  },
+  "method": "composite Gauss-Legendre quadrature after s=1-t^2, subtracting 13 analytic odd-power log terms and adding their integrals back exactly",
+  "precision_runs": [
+    {
+      "C_B_absolute_error": "6.20563442019e-36",
+      "C_B_exact": "-0.7392088021787172376689819997523",
+      "C_B_numeric": "-0.7392088021787172376689819997523",
+      "C_H_absolute_error": "1.86168917811e-35",
+      "C_H_exact": "7.7823735934638482869930540007431",
+      "C_H_numeric": "7.7823735934638482869930540007431",
+      "dps": 40,
+      "gauss_legendre_order_per_panel": 24,
+      "integral": "-3.8911867967319241434965270003715",
+      "panels": 4
+    },
+    {
+      "C_B_absolute_error": "3.48818673453e-50",
+      "C_B_exact": "-0.7392088021787172376689819997523022706273988144815813",
+      "C_B_numeric": "-0.7392088021787172376689819997523022706273988144815464",
+      "C_H_absolute_error": "1.04645602033e-49",
+      "C_H_exact": "7.782373593463848286993054000743093188117803556555256",
+      "C_H_numeric": "7.782373593463848286993054000743093188117803556555361",
+      "dps": 60,
+      "gauss_legendre_order_per_panel": 24,
+      "integral": "-3.89118679673192414349652700037154659405890177827768",
+      "panels": 4
+    },
+    {
+      "C_B_absolute_error": "3.48818905421e-50",
+      "C_B_exact": "-0.739208802178717237668981999752302270627398814481581252826698752440089645",
+      "C_B_numeric": "-0.739208802178717237668981999752302270627398814481546370936156658646426499",
+      "C_H_absolute_error": "1.04645671626e-49",
+      "C_H_exact": "7.78237359346384828699305400074309318811780355655525624151990374267973107",
+      "C_H_numeric": "7.7823735934638482869930540007430931881178035565553608871915300240607205",
+      "dps": 80,
+      "gauss_legendre_order_per_panel": 24,
+      "integral": "-3.89118679673192414349652700037154659405890177827768044359576501203036025",
+      "panels": 4
+    }
+  ],
+  "schema_version": 1,
+  "source_sha256": "da8b61ef679a2c33bdcbedc13aa0044c6d32ec6d1fe62fe0b5177cdaa274c234",
+  "status": "independent_composite_gauss_legendre_pass"
+}
