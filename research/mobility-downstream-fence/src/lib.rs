@@ -273,7 +273,10 @@ fn valid_inventory(inventory: &QueuePathInventory) -> Result<(), HoldReason> {
     }
     for (index, terminal_id) in inventory.terminal_layer_ids.iter().enumerate() {
         if !nonempty(terminal_id)
-            || !inventory.layers.iter().any(|layer| layer.layer_id == *terminal_id)
+            || !inventory
+                .layers
+                .iter()
+                .any(|layer| layer.layer_id == *terminal_id)
         {
             return Err(HoldReason::TerminalInventoryMismatch);
         }
@@ -645,10 +648,7 @@ mod tests {
                 stack_configuration_commitment: commitment(9),
                 inventory_commitment: commitment(8),
                 entry_layer_id: "controller".to_owned(),
-                terminal_layer_ids: vec![
-                    "left-actuator".to_owned(),
-                    "right-actuator".to_owned(),
-                ],
+                terminal_layer_ids: vec!["left-actuator".to_owned(), "right-actuator".to_owned()],
                 layers,
                 edges: vec![
                     edge("controller-left", "controller", "left-driver"),
@@ -671,7 +671,10 @@ mod tests {
     #[test]
     fn unreachable_declared_command_layer_holds() {
         let mut input = packet();
-        input.inventory.layers.push(layer("hidden-queue", 3, "hidden-domain"));
+        input
+            .inventory
+            .layers
+            .push(layer("hidden-queue", 3, "hidden-domain"));
         input.receipts.push(receipt(
             input.inventory.layers.last().expect("inserted layer"),
             QueueDisposition::Quiescent,
@@ -700,8 +703,7 @@ mod tests {
         assert_hold(&input, HoldReason::ForwardingGraphCycle);
 
         let mut input = packet();
-        input.inventory.edges[0] =
-            edge("unknown-endpoint", "controller-queue", "not-in-inventory");
+        input.inventory.edges[0] = edge("unknown-endpoint", "controller-queue", "not-in-inventory");
         assert_hold(&input, HoldReason::UnknownForwardingEndpoint);
     }
 
