@@ -35,7 +35,7 @@ Validation rules:
 - heuristic or unqualified intervals cannot certify a winner;
 - threshold equality is unresolved, not a win.
 
-The shared family receipt is intended to reference a validated simultaneous confidence process covering the full candidate family at all inspection times, including data-dependent stopping. The kernel checks the declared contract; it does not generate confidence sequences or authenticate their receipts. A collection of separate pointwise intervals is not a simultaneous familywise confidence sequence.
+The public adapters `parameter_eig_utility_interval` and `linear_qoi_eig_utility_interval` now construct exact-value intervals directly from batch/QoI score records. They label those intervals `Unqualified` unless both lineage coverage and inter-source dependence are qualified. This prevents downstream ranking from accidentally promoting a numerically precise conditional result to a qualified scientific conclusion. The shared family receipt is intended to reference a validated simultaneous confidence process covering the full candidate family at all inspection times, including data-dependent stopping. The kernel checks the declared contract; it does not generate confidence sequences or authenticate their receipts. A collection of separate pointwise intervals is not a simultaneous familywise confidence sequence.
 
 ## 3. Crucial epistemic separation
 
