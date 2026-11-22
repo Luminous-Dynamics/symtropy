@@ -70,14 +70,24 @@ pub struct AffineCollisionComponent<'a> {
     pub hard_body_radius: f64,
 }
 
+/// One geometric proposal chart assigned to one component of an event union.
+#[derive(Debug, Clone, Copy)]
+pub struct AffineCollisionChart<'a> {
+    /// Index of the event component to which this chart belongs.
+    pub component_index: usize,
+    /// Closed box covered by the corresponding component-specific chart.
+    pub bounds: &'a CoverageCell,
+}
+
 /// Configuration for residual-mass exploration of a union of affine collision events.
 #[derive(Debug, Clone, Copy)]
 pub struct AffineUnionResidualMassConfig<'a> {
     /// Nonempty set of event components. The event is the union of all components.
     pub components: &'a [AffineCollisionComponent<'a>],
-    /// Closed boxes assigned to independently discovered geometric charts.
-    /// A cell is chart-covered only when wholly contained in one box.
-    pub covered_chart_boxes: &'a [CoverageCell],
+    /// Charts are component-specific. A cell is accounted for only if, for
+    /// every event component, it is either inside one of that component's
+    /// charts or independently proven event-free for that component.
+    pub covered_charts: &'a [AffineCollisionChart<'a>],
     /// Radius of the finite standard-normal search cube [-radius, radius]^d.
     pub cube_radius: f64,
     /// Maximum number of cells the traversal may classify.
@@ -90,17 +100,21 @@ pub struct AffineUnionResidualMassConfig<'a> {
 ///
 /// Each component defines X_k(z) = offset_k + matrix_k*z for z ~ N(0, I),
 /// with event ||X_k(z)|| <= HBR_k. The total event is the union over k.
-/// A cell is event-free only when every component's affine interval test proves
-/// it disjoint from its collision ball. This prevents a discovered chart for
-/// one mode from suppressing a separate, undiscovered event component.
+///
+/// For each cell and each component, the verifier requires one of two facts:
+/// (1) the cell is wholly inside a chart explicitly assigned to that component;
+/// or (2) the component's affine interval test proves the cell event-free.
+/// A chart for one mode can therefore never suppress an uncharted event
+/// component, even when the two components occupy the same input-space cell.
 ///
 /// The finite domain is the full cube [-cube_radius,cube_radius]^d. Its
 /// complement contributes a separate Gaussian union/Chernoff tail bound.
 /// Unresolved cell mass plus that tail forms the returned combined upper bound.
 ///
 /// The result is conditional on the supplied static affine models and
-/// caller-declared chart boxes; it does not validate proposal support/density
-/// inside charts, nonlinear trajectory events, or machine-verified arithmetic.
+/// component-specific chart assignments; it does not validate proposal
+/// support/density inside charts, nonlinear trajectory events, or
+/// machine-verified arithmetic.
 pub fn affine_union_collision_residual_mass_upper_bound(
     config: &AffineUnionResidualMassConfig<'_>,
 ) -> Result<AffineResidualMassReport, KernelError> {
