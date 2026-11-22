@@ -1,0 +1,40 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://luminousdynamics.io/schemas/orbital-regret-calibration-corpus-v0.1.json",
+  "title":"Finite per-regime regret calibration corpus v0.1",
+  "type":"object","additionalProperties":false,
+  "required":["schema","evidence_class","claim_ceiling","calibration_split_id","score_contract_id","score_contract_receipt_id","selection_status","stopping_rule","alpha","score_support_upper_bound","score_support_receipt_id","expected_regime_ids","expected_regime_ids_sha256","regimes"],
+  "properties":{
+    "schema":{"const":"luminous.orbital-regret-calibration.corpus.v0.1"},
+    "evidence_class":{"const":"synthetic"},
+    "claim_ceiling":{"const":"finite-split-conformal-regret-rank-algebra-only"},
+    "calibration_split_id":{"type":"string","minLength":1},
+    "score_contract_id":{"type":"string","minLength":1},
+    "score_contract_receipt_id":{"type":"string","minLength":1},
+    "selection_status":{"const":"predeclared"},
+    "stopping_rule":{"const":"fixed"},
+    "alpha":{"$ref":"#/$defs/rational"},
+    "score_support_upper_bound":{"anyOf":[{"$ref":"#/$defs/rational"},{"type":"null"}]},
+    "score_support_receipt_id":{"anyOf":[{"type":"string","minLength":1},{"type":"null"}]},
+    "expected_regime_ids":{"type":"array","minItems":1,"maxItems":64,"items":{"type":"string","minLength":1}},
+    "expected_regime_ids_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+    "regimes":{"type":"array","minItems":1,"maxItems":64,"items":{"$ref":"#/$defs/regime"}}
+  },
+  "$defs":{
+    "rational":{"type":"object","additionalProperties":false,"required":["numerator","denominator"],
+      "properties":{"numerator":{"type":"integer","minimum":0,"maximum":9007199254740991},
+                    "denominator":{"type":"integer","minimum":1,"maximum":9007199254740991}}},
+    "sample":{"type":"object","additionalProperties":false,"required":["sample_id","replication_unit_id","regret_upper_bound_score"],
+      "properties":{"sample_id":{"type":"string","minLength":1},
+                    "replication_unit_id":{"type":"string","minLength":1},
+                    "regret_upper_bound_score":{"$ref":"#/$defs/rational"}}},
+    "regime":{"type":"object","additionalProperties":false,
+      "required":["regime_id","expected_sample_ids","expected_sample_ids_sha256","samples_sha256","samples"],
+      "properties":{"regime_id":{"type":"string","minLength":1},
+                    "expected_sample_ids":{"type":"array","minItems":1,"maxItems":100000,"items":{"type":"string","minLength":1}},
+                    "expected_sample_ids_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+                    "samples_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+                    "samples":{"type":"array","minItems":1,"maxItems":100000,"items":{"$ref":"#/$defs/sample"}}}
+    }
+  }
+}
