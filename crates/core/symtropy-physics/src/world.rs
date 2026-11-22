@@ -2917,7 +2917,10 @@ mod transformed_halfspace_tests {
         let floor = RigidBody::<3>::static_body(
             BodyHandle(0),
             Point::origin(),
-            Box::new(HalfSpace::<3>::new(SVector::<f64, 3>::new(0.0, 1.0, 0.0), 0.0)),
+            Box::new(HalfSpace::<3>::new(
+                SVector::<f64, 3>::new(0.0, 1.0, 0.0),
+                0.0,
+            )),
         );
         let floor_handle = world.add_body(floor);
 
@@ -3179,7 +3182,10 @@ mod transformed_halfspace_tests {
         let floor = RigidBody::<3>::static_body(
             BodyHandle(2),
             Point::origin(),
-            Box::new(HalfSpace::<3>::new(SVector::<f64, 3>::new(0.0, 1.0, 0.0), -10.0)),
+            Box::new(HalfSpace::<3>::new(
+                SVector::<f64, 3>::new(0.0, 1.0, 0.0),
+                -10.0,
+            )),
         );
         world.add_body(floor);
         let mut singular_block = RigidBody::<3>::new(
@@ -3414,7 +3420,10 @@ mod transformed_halfspace_tests {
         let floor = RigidBody::<3>::static_body(
             BodyHandle(0),
             Point::origin(),
-            Box::new(HalfSpace::<3>::new(SVector::<f64, 3>::new(1.0, 0.0, 0.0), 0.0)),
+            Box::new(HalfSpace::<3>::new(
+                SVector::<f64, 3>::new(1.0, 0.0, 0.0),
+                0.0,
+            )),
         );
         let floor_handle = world.add_body(floor);
 
