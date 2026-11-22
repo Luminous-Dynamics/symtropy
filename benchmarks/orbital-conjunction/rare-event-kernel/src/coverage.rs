@@ -325,8 +325,7 @@ pub fn affine_cell_excludes_collision_ball(
     if !hard_body_radius.is_finite() || hard_body_radius < 0.0 {
         return Err(KernelError::InvalidHardBodyRadius);
     }
-    let lower_bound =
-        affine_box_norm_lower_bound(offset, matrix, input_lower, input_upper)?;
+    let lower_bound = affine_box_norm_lower_bound(offset, matrix, input_lower, input_upper)?;
     Ok(lower_bound > hard_body_radius)
 }
 
@@ -358,50 +357,52 @@ mod tests {
 
     #[test]
     fn affine_cell_outside_collision_ball_is_excluded() {
-        assert!(affine_cell_excludes_collision_ball(
-            &[4.0, 0.0],
-            &[1.0, 0.0, 0.0, 1.0],
-            &[-1.0, -1.0],
-            &[1.0, 1.0],
-            1.0,
-        )
-        .unwrap());
+        assert!(
+            affine_cell_excludes_collision_ball(
+                &[4.0, 0.0],
+                &[1.0, 0.0, 0.0, 1.0],
+                &[-1.0, -1.0],
+                &[1.0, 1.0],
+                1.0,
+            )
+            .unwrap()
+        );
     }
 
     #[test]
     fn affine_cell_intersecting_collision_ball_is_not_excluded() {
-        assert!(!affine_cell_excludes_collision_ball(
-            &[0.0, 0.0],
-            &[1.0, 0.0, 0.0, 1.0],
-            &[-0.5, -0.5],
-            &[0.5, 0.5],
-            1.0,
-        )
-        .unwrap());
+        assert!(
+            !affine_cell_excludes_collision_ball(
+                &[0.0, 0.0],
+                &[1.0, 0.0, 0.0, 1.0],
+                &[-0.5, -0.5],
+                &[0.5, 0.5],
+                1.0,
+            )
+            .unwrap()
+        );
     }
 
     #[test]
     fn tangency_is_not_excluded() {
-        assert!(!affine_cell_excludes_collision_ball(
-            &[2.0, 0.0],
-            &[1.0, 0.0, 0.0, 1.0],
-            &[-1.0, 0.0],
-            &[-1.0, 0.0],
-            1.0,
-        )
-        .unwrap());
+        assert!(
+            !affine_cell_excludes_collision_ball(
+                &[2.0, 0.0],
+                &[1.0, 0.0, 0.0, 1.0],
+                &[-1.0, 0.0],
+                &[-1.0, 0.0],
+                1.0,
+            )
+            .unwrap()
+        );
     }
 
     #[test]
     fn negative_affine_coefficients_are_enclosed() {
-        assert!(affine_cell_excludes_collision_ball(
-            &[0.0],
-            &[-1.0],
-            &[2.0],
-            &[3.0],
-            1.0,
-        )
-        .unwrap());
+        assert!(
+            affine_cell_excludes_collision_ball(&[0.0], &[-1.0], &[2.0], &[3.0], 1.0,)
+                .unwrap()
+        );
     }
 
     #[test]
@@ -438,13 +439,7 @@ mod tests {
     #[test]
     fn overflow_fails_closed_instead_of_excluding_a_cell() {
         assert_eq!(
-            affine_cell_excludes_collision_ball(
-                &[0.0],
-                &[f64::MAX],
-                &[2.0],
-                &[3.0],
-                1.0,
-            ),
+            affine_cell_excludes_collision_ball(&[0.0], &[f64::MAX], &[2.0], &[3.0], 1.0,),
             Err(KernelError::NumericalOverflow)
         );
     }
@@ -475,8 +470,7 @@ mod tests {
         let matrix = [2.0, -1.0, -0.5, 3.0];
         let lower = [-1.0, 0.5];
         let upper = [2.0, 1.5];
-        let bound =
-            affine_box_norm_lower_bound(&offset, &matrix, &lower, &upper).unwrap();
+        let bound = affine_box_norm_lower_bound(&offset, &matrix, &lower, &upper).unwrap();
 
         for i in 0..=20 {
             for j in 0..=20 {
@@ -541,23 +535,11 @@ mod tests {
     #[test]
     fn invalid_hard_body_radius_fails_closed() {
         assert_eq!(
-            affine_cell_excludes_collision_ball(
-                &[2.0],
-                &[1.0],
-                &[0.0],
-                &[0.0],
-                f64::NAN,
-            ),
+            affine_cell_excludes_collision_ball(&[2.0], &[1.0], &[0.0], &[0.0], f64::NAN,),
             Err(KernelError::InvalidHardBodyRadius)
         );
         assert_eq!(
-            affine_cell_excludes_collision_ball(
-                &[2.0],
-                &[1.0],
-                &[0.0],
-                &[0.0],
-                -1.0,
-            ),
+            affine_cell_excludes_collision_ball(&[2.0], &[1.0], &[0.0], &[0.0], -1.0,),
             Err(KernelError::InvalidHardBodyRadius)
         );
     }
