@@ -260,13 +260,15 @@ impl<'a> SymtropyPhysicsAdapter<'a> {
             ),
         );
 
-        // Bivector::apply_to_vector uses B * v. The axial dual consistent
-        // with the right-handed cross-product generator is [-B12, +B02, -B01]
-        // for the native lexicographic plane basis.
+        // Rotor::from_bivector exponentiates -B, and the native integrator
+        // left-composes that increment onto the body-to-world rotation. Thus
+        // the physical world-frame angular-velocity generator is -B, whose
+        // right-handed axial vector is [+B12, -B02, +B01]. The axial dual of
+        // B itself has the opposite sign and would contradict the pose update.
         let angular_velocity = [
-            -angular_matrix[1][2],
-            angular_matrix[0][2],
-            -angular_matrix[0][1],
+            angular_matrix[1][2],
+            -angular_matrix[0][2],
+            angular_matrix[0][1],
         ];
         let angular_velocity_rad_s = field_value(
             angular_velocity,
@@ -723,15 +725,15 @@ mod tests {
         let cases = [
             (
                 [[0.0, 1.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                [0.0, 0.0, -1.0],
+                [0.0, 0.0, 1.0],
             ),
             (
                 [[0.0, 0.0, 1.0], [0.0, 0.0, 0.0], [-1.0, 0.0, 0.0]],
-                [0.0, 1.0, 0.0],
+                [0.0, -1.0, 0.0],
             ),
             (
                 [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, -1.0, 0.0]],
-                [-1.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0],
             ),
         ];
         for (matrix, expected) in cases {
