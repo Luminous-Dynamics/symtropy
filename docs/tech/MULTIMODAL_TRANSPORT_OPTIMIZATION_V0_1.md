@@ -420,7 +420,7 @@ A child retains its own module ID while grouped with a parent. `ADD` creates one
 
 ### Distinguish aggregation from transformation
 
-Aggregation is reversible association: objects remain the same objects. Transformation/repacking/consumption is a different material-process relation in which inputs may be partly or wholly consumed and outputs created. Do not model a transformation as a container aggregation or silently preserve the same object ID when the physical object changed. v0.1 supports only ADD/DELETE composition edges; transformation, yield, waste, conversion and manifest-content changes remain separately scoped.
+Aggregation is reversible association: objects remain the same objects. Transformation/repacking/consumption is a different material-process relation in which inputs may be partly or wholly consumed and outputs created. Do not model a transformation as a container aggregation or silently preserve the same object ID when the physical object changed. v0.1 supports only instance-level, one-child-per-event ADD and child-specific DELETE composition edges; it does not yet implement EPCIS OBSERVE, class-level childQuantityList, or DELETE with omitted children meaning disaggregate-all. Those require a versioned, loss-aware adapter and are deliberately not silently coerced into this core. Transformation, yield, waste, conversion and manifest-content changes remain separately scoped.
 
 ### Fail-closed graph invariants
 
