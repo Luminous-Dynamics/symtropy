@@ -465,15 +465,41 @@ mod tests {
         let summary =
             validate_dataset_admission(&schema(), &candidates(), "research_noncommercial")
                 .unwrap();
-        assert_eq!(summary.record_count, 4);
-        assert_eq!(summary.candidate_count, 4);
+        assert_eq!(summary.record_count, 5);
+        assert_eq!(summary.candidate_count, 5);
         assert_eq!(summary.admitted_count, 0);
         assert_eq!(summary.quarantined_count, 0);
         assert!(summary.unknown_time_count >= 3);
         assert!(summary.unknown_frame_count >= 3);
-        assert_eq!(summary.partial_ground_truth_count, 1);
+        assert_eq!(summary.partial_ground_truth_count, 2);
         assert_eq!(summary.clock_state_truth_not_provided_count, 1);
-        assert_eq!(summary.clock_state_truth_unknown_count, 3);
+        assert_eq!(summary.clock_state_truth_unknown_count, 4);
+    }
+
+    #[test]
+    fn hk_urbanspoof_remains_rights_blocked_and_not_admitted() {
+        let manifest = candidates();
+        let record = manifest["datasets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|item| item["dataset_id"] == "hk-urbanspoof-2026")
+            .unwrap();
+        assert_eq!(record["status"], "candidate_not_admitted");
+        assert_eq!(record["admission_scope"], "none");
+        assert_eq!(record["rights"]["status"], "unknown");
+        assert_eq!(record["rights"]["research_use"], "unknown");
+        assert_eq!(record["rights"]["commercial_use"], "unknown");
+        assert_eq!(record["rights"]["redistribution"], "unknown");
+        assert_eq!(record["snapshot"]["repository_commit"], "95def2b6a42eee6299bbc1a5b880a9f3bfc070d6");
+
+        let summary =
+            validate_dataset_admission(&schema(), &manifest, "research_noncommercial")
+                .unwrap();
+        assert_eq!(summary.record_count, 5);
+        assert_eq!(summary.candidate_count, 5);
+        assert_eq!(summary.admitted_count, 0);
+        assert_eq!(summary.partial_ground_truth_count, 2);
     }
 
     #[test]
@@ -483,7 +509,7 @@ mod tests {
         let summary =
             validate_dataset_admission(&schema(), &manifest, "research_noncommercial").unwrap();
         assert_eq!(summary.admitted_count, 1);
-        assert_eq!(summary.candidate_count, 3);
+        assert_eq!(summary.candidate_count, 4);
     }
 
     #[test]
