@@ -4,7 +4,7 @@ pub mod pod;
 use std::collections::HashSet;
 
 const CORPUS_SCHEMA: &str = "luminous.orbital-observation-identifiability.corpus.v0.1";
-const CLAIM_CEILING: &str = "synthetic-thinned-plp-identifiability-only";
+const CLAIM_CEILING: &str = "synthetic-thinned-plp-identifiability-and-pod-bounds-only";
 const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 const MAX_EVENTS: usize = 1_000_000;
 const MAX_SIMULATION_DRAWS: usize = 20_000_000;
@@ -80,6 +80,7 @@ pub struct Corpus {
     pub analytic_cases: Vec<AnalyticCase>,
     pub sensitivity_cases: Vec<SensitivityCase>,
     pub simulation_cases: Vec<SimulationCase>,
+    pub pod_trend_cases: Vec<pod::PodTrendCase>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -149,6 +150,12 @@ pub struct Summary {
     pub analytic_expected_result_mismatches: usize,
     pub sensitivity_mismatches: usize,
     pub simulation_case_count: usize,
+    pub pod_trend_case_count: usize,
+    pub pod_trend_bounded_count: usize,
+    pub pod_trend_unbounded_count: usize,
+    pub pod_trend_incompatible_count: usize,
+    pub pod_trend_indeterminate_count: usize,
+    pub pod_trend_expected_result_mismatches: usize,
     pub simulation_consistent_count: usize,
     pub simulation_inconsistent_count: usize,
     pub shape_nonidentifiability_cases: usize,
@@ -171,6 +178,7 @@ pub struct Report {
     pub analytic_cases: Vec<AnalyticResult>,
     pub sensitivity_cases: Vec<SensitivityResult>,
     pub simulation_cases: Vec<SimulationResult>,
+    pub pod_trend_cases: Vec<pod::PodTrendResult>,
 }
 
 #[derive(Debug, Clone)]
@@ -504,6 +512,7 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
         || corpus.analytic_cases.is_empty()
         || corpus.sensitivity_cases.is_empty()
         || corpus.simulation_cases.is_empty()
+        || corpus.pod_trend_cases.is_empty()
     {
         return Err("unsupported, empty or incorrectly classified identifiability corpus".to_owned());
     }
@@ -511,6 +520,12 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
     let mut analytic_cases = Vec::new();
     let mut sensitivity_cases = Vec::new();
     let mut simulation_cases = Vec::new();
+    let mut pod_trend_results = Vec::new();
+    let mut pod_trend_bounded_count = 0usize;
+    let mut pod_trend_unbounded_count = 0usize;
+    let mut pod_trend_incompatible_count = 0usize;
+    let mut pod_trend_indeterminate_count = 0usize;
+    let mut pod_trend_expected_result_mismatches = 0usize;
     let mut equivalent_decomposition_count = 0usize;
     let mut analytic_expected_result_mismatches = 0usize;
     let mut shape_nonidentifiability_cases = 0usize;
@@ -552,9 +567,25 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
         simulation_cases.push(result);
     }
 
+    for case in &corpus.pod_trend_cases {
+        if !ids.insert(case.case_id.as_str()) {
+            return Err("identifiability case IDs must be globally unique".to_owned());
+        }
+        let result = pod::analyze_pod_trend(case)?;
+        match result.status {
+            pod::PodTrendStatus::Bounded => pod_trend_bounded_count += 1,
+            pod::PodTrendStatus::Unbounded => pod_trend_unbounded_count += 1,
+            pod::PodTrendStatus::ModelIncompatible => pod_trend_incompatible_count += 1,
+            pod::PodTrendStatus::Indeterminate => pod_trend_indeterminate_count += 1,
+        }
+        pod_trend_expected_result_mismatches += usize::from(!result.expected_result_matched);
+        pod_trend_results.push(result);
+    }
+
     let result = if analytic_expected_result_mismatches == 0
         && sensitivity_mismatches == 0
         && simulation_inconsistent_count == 0
+        && pod_trend_expected_result_mismatches == 0
         && equivalent_decomposition_count > 0
     {
         "pass"
@@ -568,6 +599,12 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
         analytic_expected_result_mismatches,
         sensitivity_mismatches,
         simulation_case_count: simulation_cases.len(),
+        pod_trend_case_count: pod_trend_results.len(),
+        pod_trend_bounded_count,
+        pod_trend_unbounded_count,
+        pod_trend_incompatible_count,
+        pod_trend_indeterminate_count,
+        pod_trend_expected_result_mismatches,
         simulation_consistent_count,
         simulation_inconsistent_count,
         shape_nonidentifiability_cases,
@@ -589,6 +626,7 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
         analytic_cases,
         sensitivity_cases,
         simulation_cases,
+        pod_trend_cases: pod_trend_results,
     })
 }
 
