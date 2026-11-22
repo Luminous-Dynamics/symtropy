@@ -87,6 +87,16 @@ jobs:
             echo "PL trace metrics demo is not part of this branch; demo skipped."
           fi
 
+      - name: Run zero-failure integrity evidence demo
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f research/nav-observation-toy-fim/Cargo.toml && -f research/nav-observation-toy-fim/src/bin/integrity_evidence_demo.rs ]]; then
+            cargo run --quiet --manifest-path research/nav-observation-toy-fim/Cargo.toml --bin integrity_evidence_demo
+          else
+            echo "Zero-failure integrity evidence demo is not part of this branch; demo skipped."
+          fi
+
       - name: Run schema and semantic validator CLI when corpus is present
         shell: bash
         run: |
