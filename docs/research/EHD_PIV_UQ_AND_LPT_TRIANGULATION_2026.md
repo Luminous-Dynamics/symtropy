@@ -1,7 +1,7 @@
 # EHD-PIV-UQ-001 — spatially resolved PIV quality, uncertainty coverage and PIV/LPT reconciliation
 
 **Status:** summary-level Rust reference and tests authored; Rust execution and exact-head CI pending  
-**Published classifier comparator:** PIVPostProcess, *Experiments in Fluids* (2026), DOI 10.1007/s00348-026-04319-7; code DOI 10.5281/zenodo.18794853  
+**Published classifier comparator:** PIVPostProcess, *Experiments in Fluids* (2026), DOI 10.1007/s00348-026-04319-7; code DOI 10.5281/zenodo.18794853. The implementation now reports both class polarities and macro metrics so score comparisons cannot silently depend on positive-class choice.  
 **EHD multimodal comparator:** Pöppe, Rich & Kriegseis, LXLASER 2026, KIT institutional record 1000197349
 
 ## Why F1 is not a PIV quality certificate
@@ -18,13 +18,13 @@ Therefore the benchmark must separately report vector validity, false removal of
 
 ## 1. Vector validity: do not hide valid-vector removal
 
-The positive class is an invalid vector. Confusion counts are:
+The internal confusion-count convention treats an invalid vector as the positive class:
 - TP: invalid vectors correctly rejected;
 - FP: valid vectors incorrectly rejected;
 - FN: invalid vectors retained;
-- TN: valid vectors retained.
+- TN: valid vectors correctly retained.
 
-The evaluator reports precision, recall, F1, false valid-vector removal rate, valid retention and accuracy. Prospective gates are F1 ≥ 0.97, invalid-vector recall ≥ 0.90 and false valid-vector removal ≤ 1%. Those are targets, not results.
+For fair comparison, the evaluator now reports both invalid-class and valid-class precision/recall/F1, macro-F1, balanced accuracy, Matthews correlation coefficient (MCC), false valid-vector removal and valid retention. A published single F1 score must not be compared directly until its positive-class convention and underlying confusion matrix are aligned. Prospective gates are invalid-class F1 ≥ 0.97, invalid-vector recall ≥ 0.90 and false valid-vector removal ≤ 1%. Those are targets, not results.
 
 A vector cleaner that improves F1 by removing a coherent near-wall shear layer may be scientifically worse. The false-removal rate is therefore explicit.
 
@@ -64,7 +64,7 @@ Compare PIVPostProcess and classical PIV-UQ methods on the same raw image sets:
 Freeze the source data, masks, hyperparameters and annotation reference. Add full geometry/session/tracer/pressure holdouts, and separate expert annotation agreement from independent Pitot/hot-wire/LPT/force evidence.
 
 For every method report:
-- precision, recall, F1 and ROC-AUC on the same manually annotated vector labels;
+- valid-class and invalid-class precision/recall/F1, macro-F1, balanced accuracy and MCC on the same manually annotated vector labels;
 - false valid-vector removal and retention;
 - spatially resolved interval coverage, width and proper score where full distributions are available;
 - vector-field completeness and masked area by region;
