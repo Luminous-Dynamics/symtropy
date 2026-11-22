@@ -364,10 +364,8 @@ pub struct TransformationGroupingReport {
 pub fn build_transformation_groups(
     events: &[NormalizedTransformationEvent],
 ) -> Result<TransformationGroupingReport, TransformationGroupingError> {
-    let mut by_source_revision: BTreeMap<
-        SourceEventRevisionRef,
-        NormalizedTransformationEvent,
-    > = BTreeMap::new();
+    let mut by_source_revision: BTreeMap<SourceEventRevisionRef, NormalizedTransformationEvent> =
+        BTreeMap::new();
     let mut exact_duplicate_replays = 0usize;
 
     for event in events {
