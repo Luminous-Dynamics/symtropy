@@ -27,6 +27,9 @@ The layers are deliberately non-equivalent. A declared capability is not qualifi
 | FPM process monitoring and anomaly evidence | Symthaea FPM baseline correction #12531; Mycelix FPM #4281/#4282/#4283 | Observation, detector inference, proposed/actual intervention and quality-assessment layers | Detector score is not proof of a physical defect; no-alarm is not proof of an accepted part |
 | Execution / process-run evidence | Mycelix MFG-001 #4685 and strict process-run receipt PR #5228 | Run identity, source/build/config/input/report digests and evidence-origin distinction | A structurally valid run receipt is not calibrated measurement, product acceptance or qualification |
 | Productive machine tools, tooling, workholding and capability renewal | Symthaea PROD-EQP-000 #5964 and CIV-BOOT #5774/#5781/#5782 | Equipment specialization and general AND/OR closure / multi-generation capability-envelope semantics | A machine's local reproducibility without source, tooling and metrology evidence |
+| Distributed process registry, machine/resource offers, routings and MRP | Mycelix MFG-PROC-001 #3085 | Parent ownership and migration governance | Process physics or machine execution authority |
+| Typed process/capability refs and migration-safe bindings | Mycelix MFG-PROC-001A #6531 / draft PR #6532 | Exact pinned pointers to Symthaea process definitions, capability requirements/profiles and recipes; optional typed operation/routing/machine refs | Owner-object resolution, process qualification or machine authority; a syntactically valid ref is only TypedReferencePresent |
+| Provider/site/resource offer and time-bounded capacity claims | Mycelix MFG-PROC-001B #6533 | Versioned distributed offer linking resource/site/provider to exact process/profile/configuration/evidence and declared capacity/calendar refs | Qualified process, real availability, reserved capacity or executed work |
 | Distributed process registry, machine/resource offers, routings and MRP | Mycelix MFG-PROC-001 #3085 | Owner-native process references, resource offers, typed routing, work-order planning and scheduling | Process physics, machine safety, hardware execution authority or proof that an offer is qualified |
 | Product revision, manufactured unit, component/lot links and qualification receipt | Mycelix MFG-EVID-001 #3084 | Immutable design/BOM revision, unit identity, material lots/substitutions, calibration and qualification evidence references, repair/replacement lineage | Independent test correctness merely because a receipt exists |
 | Manufacturing lifecycle and circularity provenance | Mycelix CIRC-MFG #3095 / pilot #3101 | Manufacture/install/use/service/repair/recovery/remanufacture event lineage, custody strategy and material accounting | Recovered material specification or environmental benefit without assay and accounting evidence |
@@ -81,6 +84,14 @@ This validates the existing #3085 gap: replace string comparison as an authority
 ### Sol-Atlas already owns the adapter boundary
 
 Sol-Atlas #606 is explicit that synthetic chain receipts are not canonical cross-repo schemas. Every adapter must pin the exact owner contract/schema ID, version, source revision, content digest, subject mapping, evidence and revocation states, and fields not inferred by the adapter. Keep it read-only and claim-preserving.
+
+
+
+### Mycelix MFG-PROC migration and offer sequence
+
+- MFG-PROC-001A #6531 / draft PR #6532 pins references to Symthaea PR #5701 at `0b3feb49a3c2e9c1c1748ca2a0c0ff40ed320ecd`. Symthaea #5901 remains the current-main replay owner. Until source objects are resolved by a future exact resolver, these are syntactically present, not verified.
+- MFG-PROC-001B #6533 defines provider/site/resource offers, process/profile/configuration references, qualification evidence refs and declarations of capacity/calendar. It deliberately distinguishes declared capacity, calendar availability, bookable capacity, reserved capacity and observed output.
+- Symtropy #6786 consumes only the raw, owner-native disposition after schema/version/digest pinning. It must not promote offer publication into resource availability or qualified capability.
 
 ## 3. Required adapter contract
 
