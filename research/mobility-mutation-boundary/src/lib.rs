@@ -20,7 +20,7 @@ use std::sync::Mutex;
 /// by the upstream owners; byte equality here is not authentication.
 pub type BindingCommitment = [u8; 32];
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct AuthorityBinding {
     pub commitment: BindingCommitment,
     pub controller_epoch: u64,
@@ -28,7 +28,7 @@ pub struct AuthorityBinding {
     pub boot_epoch_id: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct LiveAuthoritySnapshot {
     /// Exact currently active M1 action-attempt identity.
     pub active_attempt_key: String,
@@ -540,3 +540,11 @@ mod tests {
         assert_eq!(calls.load(Ordering::SeqCst), 0);
     }
 }
+
+
+mod history;
+pub use history::{
+    check_history, HistoryCheckResult, HistoryObservedResult, HistoryOperation,
+    HistoryOperationKind, IncompleteReason, OperationHistory, DEFAULT_SEARCH_BUDGET,
+    MAX_HISTORY_OPERATIONS,
+};
