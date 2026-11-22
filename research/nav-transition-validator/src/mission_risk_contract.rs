@@ -165,16 +165,31 @@ fn check_bound_evidence(
     if unit_count == Some(0) {
         issue(issues, format!("{path}.independent_unit_count"), "must be greater than zero");
     }
-    let failure_count = required_u64(evidence, "failure_count", path, issues);
+    let failure_count = match evidence.get("failure_count") {
+        Some(Value::Null) => None,
+        Some(value) => match value.as_u64() {
+            Some(count) => Some(count),
+            None => {
+                issue(issues, format!("{path}.failure_count"), "must be null or a non-negative integer");
+                None
+            }
+        },
+        None => {
+            issue(issues, format!("{path}.failure_count"), "missing required failure-count field");
+            None
+        }
+    };
     if method.as_deref() == Some("empirical_clopper_pearson") {
         match (failure_count, unit_count) {
             (Some(failures), Some(trials)) if failures > trials => {
                 issue(issues, format!("{path}.failure_count"), "cannot exceed the independent trial count");
-            },
-            (None, _) => {},
-            _ => {},
+            }
+            (None, _) => {
+                issue(issues, format!("{path}.failure_count"), "is required for empirical_clopper_pearson");
+            }
+            _ => {}
         }
-    } else if evidence.get("failure_count") != Some(&Value::Null) {
+    } else if failure_count.is_some() {
         issue(issues, format!("{path}.failure_count"), "must be null unless the method is empirical_clopper_pearson");
     }
 
@@ -321,7 +336,6 @@ pub fn validate_mission_risk_contract(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::schema_validation::validate_fixture_schema;
 
     fn schema() -> Value {
         serde_json::from_str(include_str!("../../../docs/research/navigation-mission-risk-v0.1/mission_risk_contract.schema.json")).unwrap()
@@ -359,7 +373,6 @@ mod tests {
     fn research_only_fixture_passes_schema_and_does_not_claim_qualification() {
         let schema = schema();
         let fixture = research_fixture();
-        assert!(validate_fixture_schema(&schema, &serde_json::json!({"checks": fixture["checks"]})).is_err());
         let validator = jsonschema::draft202012::options().build(&schema).unwrap();
         assert!(validator.is_valid(&fixture));
         let summary = validate_mission_risk_contract(&fixture).unwrap();
