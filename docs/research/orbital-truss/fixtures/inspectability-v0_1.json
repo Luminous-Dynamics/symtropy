@@ -1,0 +1,650 @@
+{
+  "schema": "luminous.orbital-truss-inspectability.corpus.v0.1",
+  "benchmark_id": "ORBITAL-TRUSS-INSPECTABILITY-001",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_2d_geometric_observability_only",
+  "cases": [
+    {
+      "case_id": "OTI-001-NOMINAL-ROBUST",
+      "case_class": "POSITIVE_CONTROL",
+      "expected_disposition": "FEASIBLE",
+      "features": [
+        {
+          "feature_id": "JOINT-A",
+          "position_m": [
+            0,
+            0
+          ],
+          "outward_normal": [
+            1,
+            0
+          ],
+          "minimum_distinct_failure_domains": 1
+        }
+      ],
+      "views": [
+        {
+          "view_id": "VIEW-EAST",
+          "sensor_id": "SENSOR-VIEW-EAST",
+          "failure_domain_id": "CAMERA-CAL-CHAIN-A",
+          "origin_m": [
+            5,
+            0
+          ],
+          "heading_rad": 3.141592653589793,
+          "half_fov_deg": 20,
+          "min_standoff_m": 0.5,
+          "max_standoff_m": 10,
+          "max_incidence_deg": 45,
+          "pose_perturbations": [
+            {
+              "dx_m": 0,
+              "dy_m": 0,
+              "heading_delta_rad": 0
+            },
+            {
+              "dx_m": 0,
+              "dy_m": 0.1,
+              "heading_delta_rad": 0.01
+            },
+            {
+              "dx_m": -0.1,
+              "dy_m": 0,
+              "heading_delta_rad": -0.01
+            }
+          ]
+        }
+      ],
+      "occluders": []
+    },
+    {
+      "case_id": "OTI-002-TWO-DECLARED-DOMAINS",
+      "case_class": "POSITIVE_CONTROL",
+      "expected_disposition": "FEASIBLE",
+      "features": [
+        {
+          "feature_id": "JOINT-A",
+          "position_m": [
+            0,
+            0
+          ],
+          "outward_normal": [
+            1,
+            0
+          ],
+          "minimum_distinct_failure_domains": 2
+        }
+      ],
+      "views": [
+        {
+          "view_id": "VIEW-NE",
+          "sensor_id": "SENSOR-VIEW-NE",
+          "failure_domain_id": "OPTICAL-CHAIN-A",
+          "origin_m": [
+            5,
+            1
+          ],
+          "heading_rad": -2.9441970937399127,
+          "half_fov_deg": 20,
+          "min_standoff_m": 0.5,
+          "max_standoff_m": 10,
+          "max_incidence_deg": 30,
+          "pose_perturbations": [
+            {
+              "dx_m": 0,
+              "dy_m": 0,
+              "heading_delta_rad": 0
+            }
+          ]
+        },
+        {
+          "view_id": "VIEW-SE",
+          "sensor_id": "SENSOR-VIEW-SE",
+          "failure_domain_id": "LASER-TRACKER-CHAIN-B",
+          "origin_m": [
+            5,
+            -1
+          ],
+          "heading_rad": 2.9441970937399127,
+          "half_fov_deg": 20,
+          "min_standoff_m": 0.5,
+          "max_standoff_m": 10,
+          "max_incidence_deg": 30,
+          "pose_perturbations": [
+            {
+              "dx_m": 0,
+              "dy_m": 0,
+              "heading_delta_rad": 0
+            }
+          ]
+        }
+      ],
+      "occluders": []
+    },
+    {
+      "case_id": "OTI-003-OCCLUDED",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "INFEASIBLE",
+      "features": [
+        {
+          "feature_id": "JOINT-A",
+          "position_m": [
+            0,
+            0
+          ],
+          "outward_normal": [
+            1,
+            0
+          ],
+          "minimum_distinct_failure_domains": 1
+        }
+      ],
+      "views": [
+        {
+          "view_id": "VIEW-EAST",
+          "sensor_id": "SENSOR-VIEW-EAST",
+          "failure_domain_id": "DOMAIN-VIEW-EAST",
+          "origin_m": [
+            5,
+            0
+          ],
+          "heading_rad": 3.141592653589793,
+          "half_fov_deg": 20,
+          "min_standoff_m": 0.5,
+          "max_standoff_m": 10,
+          "max_incidence_deg": 45,
+          "pose_perturbations": [
+            {
+              "dx_m": 0,
+              "dy_m": 0,
+              "heading_delta_rad": 0
+            }
+          ]
+        }
+      ],
+      "occluders": [
+        {
+          "occluder_id": "PANEL-1",
+          "start_m": [
+            2,
+            -1
+          ],
+          "end_m": [
+            2,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "OTI-004-OUTSIDE-FOV",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "INFEASIBLE",
+      "features": [
+        {
+          "feature_id": "JOINT-A",
+          "position_m": [
+            0,
+            0
+          ],
+          "outward_normal": [
+            1,
+            0
+          ],
+          "minimum_distinct_failure_domains": 1
+        }
+      ],
+      "views": [
+        {
+          "view_id": "VIEW-WRONG-HEADING",
+          "sensor_id": "SENSOR-VIEW-WRONG-HEADING",
+          "failure_domain_id": "DOMAIN-VIEW-WRONG-HEADING",
+          "origin_m": [
+            5,
+            0
+          ],
+          "heading_rad": 0,
+          "half_fov_deg": 10,
+          "min_standoff_m": 0.5,
+          "max_standoff_m": 10,
+          "max_incidence_deg": 45,
+          "pose_perturbations": [
+            {
+              "dx_m": 0,
+              "dy_m": 0,
+              "heading_delta_rad": 0
+            }
+          ]
+        }
+      ],
+      "occluders": []
+    },
+    {
+      "case_id": "OTI-005-TOO-FAR",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "INFEASIBLE",
+      "features": [
+        {
+          "feature_id": "JOINT-A",
+          "position_m": [
+            0,
+            0
+          ],
+          "outward_normal": [
+            1,
+            0
+          ],
+          "minimum_distinct_failure_domains": 1
+        }
+      ],
+      "views": [
+        {
+          "view_id": "VIEW-LIMITED-RANGE",
+          "sensor_id": "SENSOR-VIEW-LIMITED-RANGE",
+          "failure_domain_id": "DOMAIN-VIEW-LIMITED-RANGE",
+          "origin_m": [
+            5,
+            0
+          ],
+          "heading_rad": 3.141592653589793,
+          "half_fov_deg": 20,
+          "min_standoff_m": 0.5,
+          "max_standoff_m": 2,
+          "max_incidence_deg": 45,
+          "pose_perturbations": [
+            {
+              "dx_m": 0,
+              "dy_m": 0,
+              "heading_delta_rad": 0
+            }
+          ]
+        }
+      ],
+      "occluders": []
+    },
+    {
+      "case_id": "OTI-006-INCIDENCE-LIMIT",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "INFEASIBLE",
+      "features": [
+        {
+          "feature_id": "JOINT-A",
+          "position_m": [
+            0,
+            0
+          ],
+          "outward_normal": [
+            1,
+            0
+          ],
+          "minimum_distinct_failure_domains": 1
+        }
+      ],
+      "views": [
+        {
+          "view_id": "VIEW-NORTH",
+          "sensor_id": "SENSOR-VIEW-NORTH",
+          "failure_domain_id": "DOMAIN-VIEW-NORTH",
+          "origin_m": [
+            0,
+            5
+          ],
+          "heading_rad": -1.5707963267948966,
+          "half_fov_deg": 20,
+          "min_standoff_m": 0.5,
+          "max_standoff_m": 10,
+          "max_incidence_deg": 30,
+          "pose_perturbations": [
+            {
+              "dx_m": 0,
+              "dy_m": 0,
+              "heading_delta_rad": 0
+            }
+          ]
+        }
+      ],
+      "occluders": []
+    },
+    {
+      "case_id": "OTI-007-POSE-FRAGILITY",
+      "case_class": "METAMORPHIC",
+      "expected_disposition": "INDETERMINATE",
+      "features": [
+        {
+          "feature_id": "JOINT-A",
+          "position_m": [
+            0,
+            0
+          ],
+          "outward_normal": [
+            1,
+            0
+          ],
+          "minimum_distinct_failure_domains": 1
+        }
+      ],
+      "views": [
+        {
+          "view_id": "VIEW-FRAGILE",
+          "sensor_id": "SENSOR-VIEW-FRAGILE",
+          "failure_domain_id": "DOMAIN-VIEW-FRAGILE",
+          "origin_m": [
+            5,
+            0
+          ],
+          "heading_rad": 3.141592653589793,
+          "half_fov_deg": 10,
+          "min_standoff_m": 0.5,
+          "max_standoff_m": 10,
+          "max_incidence_deg": 45,
+          "pose_perturbations": [
+            {
+              "dx_m": 0,
+              "dy_m": 0,
+              "heading_delta_rad": 0
+            },
+            {
+              "dx_m": 0,
+              "dy_m": 0,
+              "heading_delta_rad": 0.35
+            }
+          ]
+        }
+      ],
+      "occluders": []
+    },
+    {
+      "case_id": "OTI-008-DUPLICATE-FAILURE-DOMAIN",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "INFEASIBLE",
+      "features": [
+        {
+          "feature_id": "JOINT-A",
+          "position_m": [
+            0,
+            0
+          ],
+          "outward_normal": [
+            1,
+            0
+          ],
+          "minimum_distinct_failure_domains": 2
+        }
+      ],
+      "views": [
+        {
+          "view_id": "VIEW-A",
+          "sensor_id": "SENSOR-VIEW-A",
+          "failure_domain_id": "SHARED-CALIBRATION-CHAIN",
+          "origin_m": [
+            5,
+            0
+          ],
+          "heading_rad": 3.141592653589793,
+          "half_fov_deg": 20,
+          "min_standoff_m": 0.5,
+          "max_standoff_m": 10,
+          "max_incidence_deg": 45,
+          "pose_perturbations": [
+            {
+              "dx_m": 0,
+              "dy_m": 0,
+              "heading_delta_rad": 0
+            }
+          ]
+        },
+        {
+          "view_id": "VIEW-B",
+          "sensor_id": "SENSOR-VIEW-B",
+          "failure_domain_id": "SHARED-CALIBRATION-CHAIN",
+          "origin_m": [
+            5,
+            1
+          ],
+          "heading_rad": -2.9441970937399127,
+          "half_fov_deg": 20,
+          "min_standoff_m": 0.5,
+          "max_standoff_m": 10,
+          "max_incidence_deg": 45,
+          "pose_perturbations": [
+            {
+              "dx_m": 0,
+              "dy_m": 0,
+              "heading_delta_rad": 0
+            }
+          ]
+        }
+      ],
+      "occluders": []
+    },
+    {
+      "case_id": "OTI-009-PARTIAL-FEATURE-COVERAGE",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "INFEASIBLE",
+      "features": [
+        {
+          "feature_id": "JOINT-A",
+          "position_m": [
+            0,
+            0
+          ],
+          "outward_normal": [
+            1,
+            0
+          ],
+          "minimum_distinct_failure_domains": 1
+        },
+        {
+          "feature_id": "JOINT-B",
+          "position_m": [
+            0,
+            1
+          ],
+          "outward_normal": [
+            1,
+            0
+          ],
+          "minimum_distinct_failure_domains": 1
+        }
+      ],
+      "views": [
+        {
+          "view_id": "VIEW-EAST-NARROW",
+          "sensor_id": "SENSOR-VIEW-EAST-NARROW",
+          "failure_domain_id": "DOMAIN-VIEW-EAST-NARROW",
+          "origin_m": [
+            5,
+            0
+          ],
+          "heading_rad": 3.141592653589793,
+          "half_fov_deg": 10,
+          "min_standoff_m": 0.5,
+          "max_standoff_m": 10,
+          "max_incidence_deg": 45,
+          "pose_perturbations": [
+            {
+              "dx_m": 0,
+              "dy_m": 0,
+              "heading_delta_rad": 0
+            }
+          ]
+        }
+      ],
+      "occluders": []
+    },
+    {
+      "case_id": "OTI-010-OCCLUDER-ENDPOINT-TOUCH",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "INFEASIBLE",
+      "features": [
+        {
+          "feature_id": "JOINT-A",
+          "position_m": [
+            0,
+            0
+          ],
+          "outward_normal": [
+            1,
+            0
+          ],
+          "minimum_distinct_failure_domains": 1
+        }
+      ],
+      "views": [
+        {
+          "view_id": "VIEW-EAST",
+          "sensor_id": "SENSOR-VIEW-EAST",
+          "failure_domain_id": "DOMAIN-VIEW-EAST",
+          "origin_m": [
+            5,
+            0
+          ],
+          "heading_rad": 3.141592653589793,
+          "half_fov_deg": 20,
+          "min_standoff_m": 0.5,
+          "max_standoff_m": 10,
+          "max_incidence_deg": 45,
+          "pose_perturbations": [
+            {
+              "dx_m": 0,
+              "dy_m": 0,
+              "heading_delta_rad": 0
+            }
+          ]
+        }
+      ],
+      "occluders": [
+        {
+          "occluder_id": "BRACKET-EDGE",
+          "start_m": [
+            2,
+            0
+          ],
+          "end_m": [
+            2,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "OTI-011-MULTI-FEATURE-REDUNDANT",
+      "case_class": "POSITIVE_CONTROL",
+      "expected_disposition": "FEASIBLE",
+      "features": [
+        {
+          "feature_id": "JOINT-A",
+          "position_m": [
+            0,
+            0
+          ],
+          "outward_normal": [
+            1,
+            0
+          ],
+          "minimum_distinct_failure_domains": 2
+        },
+        {
+          "feature_id": "JOINT-B",
+          "position_m": [
+            0,
+            1
+          ],
+          "outward_normal": [
+            1,
+            0
+          ],
+          "minimum_distinct_failure_domains": 2
+        }
+      ],
+      "views": [
+        {
+          "view_id": "VIEW-LOW",
+          "sensor_id": "SENSOR-VIEW-LOW",
+          "failure_domain_id": "OPTICAL-CHAIN-A",
+          "origin_m": [
+            5,
+            0
+          ],
+          "heading_rad": 3.141592653589793,
+          "half_fov_deg": 20,
+          "min_standoff_m": 0.5,
+          "max_standoff_m": 10,
+          "max_incidence_deg": 45,
+          "pose_perturbations": [
+            {
+              "dx_m": 0,
+              "dy_m": 0,
+              "heading_delta_rad": 0
+            }
+          ]
+        },
+        {
+          "view_id": "VIEW-HIGH",
+          "sensor_id": "SENSOR-VIEW-HIGH",
+          "failure_domain_id": "LASER-TRACKER-CHAIN-B",
+          "origin_m": [
+            5,
+            1
+          ],
+          "heading_rad": -2.9441970937399127,
+          "half_fov_deg": 20,
+          "min_standoff_m": 0.5,
+          "max_standoff_m": 10,
+          "max_incidence_deg": 45,
+          "pose_perturbations": [
+            {
+              "dx_m": 0,
+              "dy_m": 0,
+              "heading_delta_rad": 0
+            }
+          ]
+        }
+      ],
+      "occluders": []
+    },
+    {
+      "case_id": "OTI-012-TOO-CLOSE",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "INFEASIBLE",
+      "features": [
+        {
+          "feature_id": "JOINT-A",
+          "position_m": [
+            0,
+            0
+          ],
+          "outward_normal": [
+            1,
+            0
+          ],
+          "minimum_distinct_failure_domains": 1
+        }
+      ],
+      "views": [
+        {
+          "view_id": "VIEW-MINIMUM-STANDOFF",
+          "sensor_id": "SENSOR-VIEW-MINIMUM-STANDOFF",
+          "failure_domain_id": "DOMAIN-VIEW-MINIMUM-STANDOFF",
+          "origin_m": [
+            5,
+            0
+          ],
+          "heading_rad": 3.141592653589793,
+          "half_fov_deg": 20,
+          "min_standoff_m": 6,
+          "max_standoff_m": 10,
+          "max_incidence_deg": 45,
+          "pose_perturbations": [
+            {
+              "dx_m": 0,
+              "dy_m": 0,
+              "heading_delta_rad": 0
+            }
+          ]
+        }
+      ],
+      "occluders": []
+    }
+  ]
+}
