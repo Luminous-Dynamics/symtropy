@@ -222,3 +222,34 @@ This is a source-level prototype with 11 focused Rust test definitions at this b
 Schema: `schemas/mobility_recovery_envelope_v0_2.schema.json`; fixture: `fixtures/mobility_recovery_envelope_v0_2.json`; evaluator: `src/mobility_recovery_envelope.rs`; CLI: `src/bin/mobility_recovery_envelope_screen.rs`.
 
 Research dossier: [Mobility Reserve Recovery and Repeated-Shock Benchmark v0.1](../../docs/research/MOBILITY_RESERVE_RECOVERY_BENCHMARK_V0_1.md). The current model does not certify cell electrochemistry, thermal/SOH derating, AC feeder flow, metered charging completion or the cryptographic authenticity of its declarative evidence envelopes. It is a candidate-trajectory evaluator, not a charge command or a return-to-service certificate.
+
+
+## MOBILITY-COMMITMENT-LEASE-001 — cross-domain capability reservation
+
+The commitment-lease child of #6707 is tracked in [#6827](https://github.com/Luminous-Dynamics/symtropy/issues/6827). It follows the verified flexibility and recovery gates in [PR #6803](https://github.com/Luminous-Dynamics/symtropy/pull/6803) and [PR #6809](https://github.com/Luminous-Dynamics/symtropy/pull/6809).
+
+Run:
+
+```bash
+cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin mobility_commitment_lease_screen -- \
+  tools/ev-passenger-cost-frontier/fixtures/mobility_commitment_lease_v0_1.json
+```
+
+The evaluator consumes:
+- source-bound flexibility and recovery report digests;
+- per-resource safe energy budgets and per-slot safe power ceilings, already net of mobility and recovery reserves;
+- protected mission, recovery, maintenance and safety-hold intervals;
+- existing external commitments with exact resource/configuration, state, idempotency key, expiry and per-slot allocations;
+- one candidate firm lease.
+
+`firm_offered`, `accepted`, `executing` and `unresolved` states reserve capability. A timeout does not release a resource. `rejected`, `expired`, `cancelled` and `settled` records release capacity only when their state evidence is measured or independently tested. The evaluator does not infer that an offer has expired merely because its clock elapsed; the state transition/release must be supplied with evidence. Back-to-back leases use half-open windows `[start_slot, end_slot)`.
+
+Each resource is checked independently against its own cumulative energy budget and per-slot power ceiling. The evaluator rejects reused commitment IDs/idempotency keys, configuration mismatches, protected-window overlap, stale report evidence, malformed intervals and resource-level overcommit.
+
+The frozen fixture contains two active commitments (including one unresolved timeout), one independently evidenced settled record, one mission-protected interval and one new back-to-back candidate. It yields:
+- ESS-01: 1,100 Wh committed out of 1,500 Wh; slot powers [500, 500, 2,500, 1,500, 0, 0] W; remaining energy 400 Wh.
+- ESS-02: 300 Wh committed out of 900 Wh; slot powers [0, 500, 500, 0, 0, 0] W; remaining energy 600 Wh.
+
+This is a proposal-only admission calculation. It does not write to a ledger, reserve a physical resource, make a market offer, authorize dispatch or establish settlement. The upstream report references and evidence envelopes are declarative; cryptographic verification and consume-once persistence remain later integration work.
+
+The module currently includes 13 focused Rust test definitions, including a 12-profile independent capacity reference, unresolved-state reservation, terminal evidence, per-resource energy/power limits, protected mission windows, idempotency reuse and deterministic input-order replay. Runner verification is pending for the commitment branch.
