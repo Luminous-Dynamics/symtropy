@@ -28,6 +28,9 @@ The differentiator is not a lower Monte Carlo count on an easy Gaussian case. It
 | Wang, Katsevich & Tong, [Geometry-Informed Importance Sampling for Rare Events](https://arxiv.org/abs/2610.27442), 2026 | Uses local event-boundary geometry near an instanton and adds a component for event mass missed by the local approximation | Local regularity and one-sidedness assumptions do not automatically cover mode unions, switching minimizers, or arbitrary nonsmooth trajectory events |
 | Chakroborty, Dhulipala & Shields, [Covariance-Free Bifidelity Control Variates](https://doi.org/10.1137/24M1658498), 2025 | Gives a bifidelity importance-sampling comparator that avoids directly estimating a high/low estimator covariance | Its random-ratio finite-sample behavior must be reproduced and measured; covariance-free does not mean variance-free or automatically unbiased |
 | Sztamfater-Garcia et al., [An approximate model for computation of in-orbit collision probabilities using importance sampling](https://doi.org/10.1016/j.asr.2024.12.074), 2025 | A directly relevant orbital conjunction importance-sampling comparator, using a surrogate / full-dynamics correction strategy in LEO and GEO cases | Its reported cases do not establish performance on every trajectory geometry, multimodal uncertainty model, or operational collision-risk workflow |
+| Ketzner & Elgohary, [Monte Carlo Orbital Conjunction Analysis Using the Cross-Entropy Method](https://doi.org/10.2514/1.G009204), 2026 | Direct orbital-domain cross-entropy importance sampling with Gaussian and GMM proposals; the paper reports short-/long-duration and repeating-encounter studies | Published speedups and accuracy must be independently reproduced under matched event definitions, full cost accounting, frozen evaluation and independent coverage tests |
+
+**New competitive baseline:** Ketzner & Elgohary (2026) makes CE-trained Gaussian/GMM importance sampling a required orbital comparator, not an optional generic baseline. Their abstract reports orders-of-magnitude faster convergence and hours-to-seconds runtimes in the studied cases. We must obtain the full paper / supplements, reproduce the proposal-training and evaluation design, account for all training trajectories, and independently challenge mode coverage before making any speed claim.
 
 **Design consequence:** retain constrained mixtures, geometric proposals, and bifidelity correction as plugins. Do not let any one paper's theorem become the assurance contract for the whole engine.
 
@@ -47,6 +50,8 @@ A NASA CARA handbook example compares a 3D collision-rate treatment, Monte Carlo
 - The risk-rate peak occurred about nine seconds before TCA.
 
 This is a specific handbook example, not a universal failure rate for 2D Pc. It demonstrates why a TCA-only estimate and a trajectory-level collision-rate calculation must not be treated as interchangeable.
+
+The August 2026 NASA Handbook (NASA-SP-20205011318/REV2-VOL1) continues to recommend Pc as the foundational collision-likelihood parameter. It describes 2D-Pc as durable and valid in most instances while noting exceptions, and says CARA's 3D-Pc is expected to become the recommended analytic approach after final NASA validation. Thus the benchmark must record the exact handbook / CARA implementation revision and validation status; do not imply that a candidate 3D method is already an officially finalized replacement.
 
 NASA CARA's public EphemerisPc documentation makes a second distinction: integrated expected collision count Nc can differ from probability of at least one collision Pc when encounter segments blend; it reports PcMin / PcMax bounds under dependence assumptions rather than silently assuming one cumulative probability.
 
@@ -256,7 +261,9 @@ NASA CARA's public toolset is the mandatory first external comparator, not a str
 - EphemerisPc on CCSDS OEM data, including encounter segments and Nc, PcMin, PcMax;
 - covariance-realism assessment.
 
-The 2025 orbital importance-sampling paper is another mandatory direct comparator. Generic rare-event methods (FORM/SORM, cross-entropy, subset simulation, defensive IS) remain useful baselines on synthetic truth fixtures.
+The 2025 orbital importance-sampling paper is another mandatory direct comparator. The 2026 Ketzner–Elgohary CE-Monte-Carlo method is also a **mandatory direct orbital comparator**: Gaussian and GMM proposal families, cross-entropy adaptation, full-dynamics evaluation, short/long-duration cases and repeating conjunctions must be reproduced or independently reconstructed from the paper. If source code or exact scenarios are not publicly accessible, state that the baseline is an independent reconstruction rather than an exact reproduction. Separate CE training evaluations from frozen-proposal evaluation and compare all high-fidelity calls, not just the final sample count. Generic rare-event methods (FORM/SORM, subset simulation, defensive IS) remain useful additional baselines on synthetic truth fixtures.
+
+The August 2026 NASA Handbook should be used as the current published operational-method reference. It continues to frame Pc as the foundational likelihood quantity and describes 3D-Pc as expected to be recommended after final NASA validation; confirm the current released CARA code and validation status before assigning any formal industry ranking.
 
 **Do not claim to beat CARA on its intended simple Gaussian cases before reproducing them.** The credible differentiation target is more difficult: multimodal and trajectory-space probability estimation with independent mode-coverage challenges, model uncertainty, multi-fidelity correction, and explicit selective qualification.
 
@@ -315,6 +322,7 @@ For synthetic truth, use analytic fixtures first and independent high-budget Mon
 | B2 — CARA reproduction | Alfano, Omitron, Frisbee, CDM, low / high relative velocity, non-rectilinear, cross-covariance, covariance pathology, actual-TCA correction | Can we reproduce accepted external methods and conventions? |
 | B3 — trajectory events | Full-window first contact, multiple minima, risk peak away from TCA, merged encounter segments, full ephemeris, high-fidelity relative propagation | Does the estimator handle the actual time-dependent event? |
 | B4 — model / multi-fidelity | Low/high fidelity ablations, residual correction, CVIS finite-sample study, covariance misspecification, heavy-tailed / mixture truth, alternative force models | Is the qualified estimate robust to modelling choices and efficient at matched fidelity? |
+| B5 — evidence timeline / decision | Ordered CDM histories, late/missing/duplicate products, covariance and model revisions, time-to-TCA, consequence / policy inputs | Does the system preserve event identity, explain evidence revisions, and support accountable decisions without claiming calibration from unlabeled outcomes? |
 
 Data splits must be by complete conjunction / physical encounter and, where relevant, by satellite, event family or model regime. Adjacent or overlapping arcs from one event cannot be split across train and test and then counted as independent evidence.
 
@@ -347,7 +355,8 @@ Report by probability band, event geometry, physical regime, and mode:
 - high-fidelity / low-fidelity calls, proposal-training cost, wall time P50/P95/P99, memory, and cost per target error;
 - numerical failures, covariance pathologies, event-classifier disagreement and replay mismatch;
 - selective coverage, false qualification and abstention rate;
-- sensitivity to covariance, force model, atmosphere, HBR and model discrepancy.
+- sensitivity to covariance, force model, atmosphere, HBR and model discrepancy;
+- per-update latency, data age, evidence revision magnitude, missed / false escalation, and decision-packet completeness for sequential CDM replay.
 
 **Probability / dimension sweep:** for analytic and synthetic truth fixtures, freeze strata at nominal event probabilities 1e-3, 1e-5, 1e-7 and 1e-9, and stochastic dimensions 1, 2, 3, 6 and 12. The 12D case represents joint sampling of two full 6D object states; where a validated relative-state Gaussian is formed with cross-covariance handled correctly, a 6D formulation is a distinct, separately identified stratum. Extend to nuisance / physical parameters only as separately declared dimensions, not by silently changing the base problem.
 
@@ -356,9 +365,10 @@ Report by probability band, event geometry, physical regime, and mode:
 2. Zero false accepts on the finite adversarial corpus for deliberately omitted modes, invalid covariance, off-support proposals, stale model inputs and evaluation leakage.
 3. 95% interval empirical coverage inside a predeclared 93–97% band for each sufficiently sampled, correctly specified test stratum. Sparse strata stay unqualified.
 4. Reproduce chosen CARA outputs within documented platform-dependent tolerances before claiming improvement.
-5. On selected multimodal / trajectory-space cases, at least 10x fewer high-fidelity evaluations than the strongest faithfully reproduced comparator at matched error and coverage. Investigate 100x only where the reference and compute budget make that claim testable.
-6. Match the best admissible CARA method on the same assumptions before attempting to outperform it.
-7. Any unresolved support, invalid covariance, out-of-domain physical model, or underpowered uncertainty estimate leads to abstention.
+5. Reproduce the published Ketzner–Elgohary CE-Monte-Carlo results or clearly label an independent reconstruction; include all proposal-training and evaluation costs.
+6. On selected multimodal / trajectory-space cases, target at least 10x fewer high-fidelity evaluations than the strongest faithfully reproduced comparator (including CE-GMM and the CARA escalation policy) at matched error, dynamics fidelity and coverage. Investigate 100x only where the reference and compute budget make that claim testable.
+7. Match the best admissible CARA method on the same assumptions before attempting to outperform it.
+8. Any unresolved support, invalid covariance, out-of-domain physical model, or underpowered uncertainty estimate leads to abstention.
 
 These are benchmark gates, not product guarantees. In particular, 95% confidence interval coverage requires many independent replications and cannot be demonstrated by one fixed deterministic run.
 
@@ -375,10 +385,11 @@ These are benchmark gates, not product guarantees. In particular, 95% confidence
 **P0 — benchmark contract:** this charter, source inventory, ownership and claim ceiling.  
 **P1 — analytic Rust kernel:** Gaussian tails / half-spaces, covariance validation, stable log densities, normalized mixture density, weighted indicator and deterministic known answers. Keep it dependency-light and independent of Bevy.  
 **P2 — frozen proposal contract:** defensive mixture, full-density evaluation, sample provenance and negative controls.  
-**P3 — CARA reproduction:** pin a small rights-cleared CDM / Alfano / Omitron subset; reproduce reference methods and platform tolerances.  
-**P4 — proposal portfolio:** implement constrained GMM / CFI, geometry-informed charts, and CVIS replication as separately testable candidates.  
-**P5 — trajectory-space event:** consume upstream trajectory products and implement pathwise first-contact evaluation with multiple-minimum fixtures.  
-**P6 — qualification and model robustness:** independent mode challenges, covariance realism, misspecification, weighted uncertainty and selective abstention.
+**P3 — industry reproduction:** reproduce the full CARA escalation policy and the 2025 surrogate-corrected orbital IS baseline; separately reproduce / reconstruct the 2026 Ketzner–Elgohary CE-Gaussian/GMM baseline, accounting for every training and evaluation trajectory.  
+**P4 — independent coverage and sequential evidence:** budgeted residual-mass traversal, adversarial omitted-mode fixtures, frozen evaluation streams and valid confidence sequences.  
+**P5 — proposal portfolio:** implement constrained GMM / CFI, geometry-informed charts, and CVIS replication as separately testable candidates.  
+**P6 — trajectory and timeline evidence:** consume upstream trajectory products, implement pathwise first-contact fixtures and replay ordered CDM histories.  
+**P7 — qualification and decision evidence:** independent mode challenges, covariance realism, misspecification, weighted uncertainty, consequences and selective abstention.
 
 The first executable code slice should be P1. It can be developed and validated independently of the full Bevy workspace and does not need to wait for unrelated CI runners. No code or test-pass claim is made by this documentation-only increment.
 
@@ -388,6 +399,9 @@ The first executable code slice should be P1. It can be developed and validated 
 - Wang, Katsevich & Tong (2026), [Geometry-Informed Importance Sampling for Rare Events](https://arxiv.org/abs/2610.27442).
 - Chakroborty, Dhulipala & Shields (2025), [Covariance-Free Bifidelity Control Variates for Rare Event Simulation](https://doi.org/10.1137/24M1658498).
 - Sztamfater-Garcia et al. (2025), [An approximate model for computation of in-orbit collision probabilities using importance sampling](https://doi.org/10.1016/j.asr.2024.12.074).
+- Ketzner & Elgohary (2026), [Monte Carlo Orbital Conjunction Analysis Using the Cross-Entropy Method](https://doi.org/10.2514/1.G009204).
+- NASA (August 2026), [Spacecraft Conjunction Assessment and Collision Avoidance Best Practices Handbook, Volume 1](https://www.nasa.gov/wp-content/uploads/2026/08/ca-handbook-volume1-nasa-sp-20205011318-rev2-vol1.pdf).
+- Elkantassi et al. (2025), [Statistical Inference on the Miss Distance Compared to Collision Probability for Conjunction Analysis](https://ntrs.nasa.gov/citations/20250002148).
 - NASA, [CARA Analysis Tools](https://github.com/nasa/CARA_Analysis_Tools).
 - NASA, [Conjunction Assessment Handbook (2023)](https://ntrs.nasa.gov/citations/20230010583).
 - ISO, [ISO 23705:2026 — Space systems, assessment of collision avoidance manoeuvre](https://www.iso.org/standard/84529.html).
