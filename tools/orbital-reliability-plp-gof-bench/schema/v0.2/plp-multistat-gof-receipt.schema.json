@@ -67,7 +67,8 @@
         "wilson_95_lower",
         "wilson_95_upper",
         "familywise_minimum_p_value",
-        "component_results"
+        "component_results",
+        "familywise_minimum_p_value"
       ],
       "properties": {
         "prng_id": {
