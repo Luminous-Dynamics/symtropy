@@ -5,7 +5,10 @@
 //! linear-Gaussian posterior using the full observation covariance assembled
 //! from independent noise and named shared uncertainty sources.
 
-use crate::common_cause_covariance::{assemble_joint_experiment_covariance, ExperimentNoiseModel};
+use crate::common_cause_covariance::{
+    assemble_joint_experiment_covariance, ExperimentNoiseModel,
+    InterSourceDependenceQualification,
+};
 use crate::ModelError;
 use std::collections::BTreeSet;
 
@@ -38,6 +41,8 @@ pub struct BatchPortfolioScore {
     pub linear_gaussian_expected_information_gain_nats: f64,
     /// False means unknown common causes may still be absent from the covariance.
     pub lineage_coverage_complete: bool,
+    pub inter_source_dependence_complete: bool,
+    pub inter_source_dependence_receipt_ids: Vec<String>,
     pub shared_source_ids: Vec<String>,
 }
 
@@ -49,6 +54,7 @@ pub struct BatchPortfolioEnumeration {
     pub skipped_infeasible_candidates: usize,
     pub skipped_over_budget_portfolios: usize,
     pub skipped_incomplete_lineage_portfolios: usize,
+    pub skipped_unknown_inter_source_dependence_portfolios: usize,
 }
 
 /// Greedy batch selection, with every marginal utility recomputed using the
@@ -62,9 +68,10 @@ pub struct GreedyBatchSelection {
 
 /// Enumerate every feasible portfolio of exactly the requested cardinality.
 ///
-/// Shared-source IDs induce cross-candidate covariance. When complete lineage
-/// is required, portfolios with incomplete provenance are excluded and counted.
-/// Otherwise they are scored but remain explicitly unqualified.
+/// Shared-source IDs induce cross-candidate covariance. Strict qualification
+/// requires both complete lineage and an explicit inter-source dependence model.
+/// Different source IDs are only treated as independent when this qualification
+/// is Complete; otherwise the numerical covariance remains explicitly unqualified.
 ///
 /// Exponential complexity is intentional: this is an exact oracle for small
 /// sets against which scalable heuristics can be measured.
@@ -159,6 +166,7 @@ pub fn enumerate_batch_portfolios(
     let mut portfolios = Vec::new();
     let mut skipped_over_budget_portfolios = 0usize;
     let mut skipped_incomplete_lineage_portfolios = 0usize;
+    let mut skipped_unknown_inter_source_dependence_portfolios = 0usize;
 
     for combination in combinations {
         let selected: Vec<&BatchDesignCandidate> = combination
@@ -183,12 +191,23 @@ pub fn enumerate_batch_portfolios(
             skipped_incomplete_lineage_portfolios += 1;
             continue;
         }
+        let inter_source_dependence_complete = selected.iter().all(|candidate| {
+            candidate.noise_model.inter_source_dependence.is_qualified()
+        });
+        if require_complete_lineage && !inter_source_dependence_complete {
+            skipped_unknown_inter_source_dependence_portfolios += 1;
+            continue;
+        }
 
         let noise_models: Vec<ExperimentNoiseModel> = selected
             .iter()
             .map(|candidate| candidate.noise_model.clone())
             .collect();
         let joint = assemble_joint_experiment_covariance(&noise_models)?;
+        if require_complete_lineage && !joint.inter_source_dependence_complete {
+            skipped_unknown_inter_source_dependence_portfolios += 1;
+            continue;
+        }
         let mut design_jacobian = Vec::new();
         for candidate in &selected {
             design_jacobian.extend(candidate.design_jacobian.iter().cloned());
@@ -202,8 +221,6 @@ pub fn enumerate_batch_portfolios(
         let prior_trace = trace(prior_covariance)?;
         let posterior_trace = trace(&posterior_covariance)?;
         let a_optimal_trace_reduction = prior_trace - posterior_trace;
-        // logdet(P_prior) - logdet(P_posterior) equals
-        // logdet(P_prior) + logdet(P_posterior_precision).
         let d_optimal_logdet_reduction = prior_logdet + posterior_precision_logdet;
         let linear_gaussian_expected_information_gain_nats = 0.5 * d_optimal_logdet_reduction;
         if !a_optimal_trace_reduction.is_finite()
@@ -227,6 +244,8 @@ pub fn enumerate_batch_portfolios(
             d_optimal_logdet_reduction,
             linear_gaussian_expected_information_gain_nats,
             lineage_coverage_complete: joint.lineage_coverage_complete,
+            inter_source_dependence_complete: joint.inter_source_dependence_complete,
+            inter_source_dependence_receipt_ids: joint.inter_source_dependence_receipt_ids,
             shared_source_ids: joint.shared_source_ids,
         });
     }
@@ -244,6 +263,7 @@ pub fn enumerate_batch_portfolios(
         skipped_infeasible_candidates,
         skipped_over_budget_portfolios,
         skipped_incomplete_lineage_portfolios,
+        skipped_unknown_inter_source_dependence_portfolios,
     })
 }
 
@@ -608,8 +628,97 @@ mod tests {
                 independent_observation_covariance: vec![vec![independent_variance]],
                 shared_sources,
                 lineage_coverage_complete: lineage_complete,
+                inter_source_dependence: InterSourceDependenceQualification::joint_blocks_modelled(
+                    "fixture:joint-source-model-v1",
+                ),
             },
         }
+    }
+
+    #[test]
+    fn cross_source_correlation_negative_control_exposes_posterior_undercoverage() {
+        let joint_candidate = |id: &str, source_jacobian: Vec<f64>| BatchDesignCandidate {
+            candidate_id: id.to_owned(),
+            cost: 1.0,
+            feasible: true,
+            design_jacobian: vec![vec![1.0]],
+            noise_model: ExperimentNoiseModel {
+                experiment_id: id.to_owned(),
+                independent_observation_covariance: vec![vec![1.0]],
+                shared_sources: vec![SharedUncertaintyContribution {
+                    source_id: "joint-calibration-fit".to_owned(),
+                    source_covariance: vec![vec![4.0, 3.0], vec![3.0, 9.0]],
+                    observation_jacobian: vec![source_jacobian],
+                }],
+                lineage_coverage_complete: true,
+                inter_source_dependence:
+                    InterSourceDependenceQualification::joint_blocks_modelled(
+                        "receipt:joint-calibration-fit",
+                    ),
+            },
+        };
+        let joint = enumerate_batch_portfolios(
+            &[
+                joint_candidate("A-joint", vec![1.0, 0.5]),
+                joint_candidate("B-joint", vec![0.25, 1.0]),
+            ],
+            &[vec![1.0]],
+            2,
+            2.0,
+            true,
+        )
+        .expect("joint calibration source portfolio");
+        let joint_score = &joint.portfolios[0];
+        assert!(joint_score.inter_source_dependence_complete);
+        assert!((joint_score.posterior_covariance[0][0] - 2667.0 / 2939.0).abs() < 1.0e-12);
+
+        // Negative control: preserve both marginal source variances but split
+        // correlated components into separate IDs with unknown dependence.
+        let split_candidate = |id: &str, first: f64, second: f64| BatchDesignCandidate {
+            candidate_id: id.to_owned(),
+            cost: 1.0,
+            feasible: true,
+            design_jacobian: vec![vec![1.0]],
+            noise_model: ExperimentNoiseModel {
+                experiment_id: id.to_owned(),
+                independent_observation_covariance: vec![vec![1.0]],
+                shared_sources: vec![
+                    SharedUncertaintyContribution {
+                        source_id: "calibration-component-1".to_owned(),
+                        source_covariance: vec![vec![4.0]],
+                        observation_jacobian: vec![vec![first]],
+                    },
+                    SharedUncertaintyContribution {
+                        source_id: "calibration-component-2".to_owned(),
+                        source_covariance: vec![vec![9.0]],
+                        observation_jacobian: vec![vec![second]],
+                    },
+                ],
+                lineage_coverage_complete: true,
+                inter_source_dependence: InterSourceDependenceQualification::Unknown,
+            },
+        };
+        let split = enumerate_batch_portfolios(
+            &[
+                split_candidate("A-split", 1.0, 0.5),
+                split_candidate("B-split", 0.25, 1.0),
+            ],
+            &[vec![1.0]],
+            2,
+            2.0,
+            false,
+        )
+        .expect("unqualified split-source negative control");
+        let split_score = &split.portfolios[0];
+        assert!(split_score.lineage_coverage_complete);
+        assert!(!split_score.inter_source_dependence_complete);
+        assert!((split_score.posterior_covariance[0][0] - 705.0 / 809.0).abs() < 1.0e-12);
+
+        let relative_variance_understatement =
+            (joint_score.posterior_covariance[0][0] - split_score.posterior_covariance[0][0])
+                / joint_score.posterior_covariance[0][0];
+        assert!((relative_variance_understatement - 28536.0 / 719201.0).abs() < 1.0e-12);
+        assert!(split_score.posterior_covariance[0][0] < joint_score.posterior_covariance[0][0]);
     }
 
     #[test]
@@ -756,6 +865,44 @@ mod tests {
             .portfolios
             .iter()
             .any(|score| !score.lineage_coverage_complete));
+    }
+
+    #[test]
+    fn strict_batch_design_rejects_unknown_inter_source_dependence() {
+        let mut candidate_a = candidate("A", [1.0, 0.0], 1.0, false, 0.0, true);
+        let candidate_b = candidate("B", [0.0, 1.0], 1.0, false, 0.0, true);
+        candidate_a.noise_model.inter_source_dependence =
+            InterSourceDependenceQualification::Unknown;
+        let result = enumerate_batch_portfolios(
+            &[candidate_a, candidate_b],
+            &[vec![1.0, 0.0], vec![0.0, 1.0]],
+            2,
+            2.0,
+            true,
+        )
+        .expect("strict source-dependence qualification");
+        assert!(result.portfolios.is_empty());
+        assert_eq!(result.skipped_unknown_inter_source_dependence_portfolios, 1);
+    }
+
+    #[test]
+    fn strict_batch_design_requires_one_portfolio_scope_receipt() {
+        let mut candidate_a = candidate("A", [1.0, 0.0], 1.0, false, 0.0, true);
+        let mut candidate_b = candidate("B", [0.0, 1.0], 1.0, false, 0.0, true);
+        candidate_a.noise_model.inter_source_dependence =
+            InterSourceDependenceQualification::joint_blocks_modelled("receipt:scope-a");
+        candidate_b.noise_model.inter_source_dependence =
+            InterSourceDependenceQualification::joint_blocks_modelled("receipt:scope-b");
+        let result = enumerate_batch_portfolios(
+            &[candidate_a, candidate_b],
+            &[vec![1.0, 0.0], vec![0.0, 1.0]],
+            2,
+            2.0,
+            true,
+        )
+        .expect("portfolio scope qualification");
+        assert!(result.portfolios.is_empty());
+        assert_eq!(result.skipped_unknown_inter_source_dependence_portfolios, 1);
     }
 
     #[test]
