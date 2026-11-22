@@ -67,16 +67,16 @@
           "enum": ["student_t_radial", "empirical_clopper_pearson", "analytical_bound", "reachable_set_bound", "other", null]
         },
         "upper_bound_quanta": { "type": ["integer", "null"], "minimum": 0, "maximum": 999999999999999 },
-        "confidence_quanta": { "type": ["integer", "null], "minimum": 1, "maximum": 999999999999999 },
+        "confidence_quanta": { "type": ["integer", "null"], "minimum": 1, "maximum": 999999999999999 },
         "independent_unit_kind": {
           "type": ["string", "null"],
           "enum": ["mission", "route_session", "fault_injection_trial", "other", null]
         },
         "independent_unit_count": { "type": ["integer", "null"], "minimum": 1 },
         "failure_count": { "type": ["integer", "null"], "minimum": 0 },
-        "independence_basis_ref": { "type": ["string", "null] },
-        "operational_domain_ref": { "type": ["string", "null] },
-        "method_definition_ref": { "type": ["string", "null] },
+        "independence_basis_ref": { "type": ["string", "null"] },
+        "operational_domain_ref": { "type": ["string", "null"] },
+        "method_definition_ref": { "type": ["string", "null"] },
         "calibration_split_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
         "bound_result_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
         "truth_oracle_receipt_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
