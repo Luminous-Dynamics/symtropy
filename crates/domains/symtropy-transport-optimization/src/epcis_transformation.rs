@@ -153,9 +153,7 @@ impl NormalizedTransformationEvent {
         (&self.source_profile_id, &self.source_profile_version)
     }
 
-    pub fn business_context(
-        &self,
-    ) -> (Option<&str>, Option<&str>, Option<&str>, Option<&str>) {
+    pub fn business_context(&self) -> (Option<&str>, Option<&str>, Option<&str>, Option<&str>) {
         (
             self.biz_step.as_deref(),
             self.disposition.as_deref(),
@@ -169,10 +167,7 @@ impl NormalizedTransformationEvent {
     }
 }
 
-fn validate_epcs(
-    values: &[String],
-    input: bool,
-) -> Result<(), TransformationSemanticError> {
+fn validate_epcs(values: &[String], input: bool) -> Result<(), TransformationSemanticError> {
     for value in values {
         if !valid_identifier(value) {
             return Err(if input {
@@ -378,11 +373,9 @@ pub fn build_transformation_groups(
                 exact_duplicate_replays += 1;
             }
             Some(_) => {
-                return Err(
-                    TransformationGroupingError::ConflictingSourceEventRevision(
-                        event.source.clone(),
-                    ),
-                );
+                return Err(TransformationGroupingError::ConflictingSourceEventRevision(
+                    event.source.clone(),
+                ));
             }
             None => {
                 by_source_revision.insert(event.source.clone(), event.clone());
@@ -390,10 +383,8 @@ pub fn build_transformation_groups(
         }
     }
 
-    let mut members_by_group: BTreeMap<
-        TransformationGroupKey,
-        Vec<NormalizedTransformationEvent>,
-    > = BTreeMap::new();
+    let mut members_by_group: BTreeMap<TransformationGroupKey, Vec<NormalizedTransformationEvent>> =
+        BTreeMap::new();
 
     for event in by_source_revision.values() {
         let key = match &event.transformation_id {
@@ -417,30 +408,22 @@ pub fn build_transformation_groups(
                 source_event: event.source.clone(),
                 epc,
             }));
-            input_quantities.extend(
-                event
-                    .input_quantity_list
-                    .iter()
-                    .cloned()
-                    .map(|quantity| AttributedQuantity {
-                        source_event: event.source.clone(),
-                        quantity,
-                    }),
-            );
+            input_quantities.extend(event.input_quantity_list.iter().cloned().map(|quantity| {
+                AttributedQuantity {
+                    source_event: event.source.clone(),
+                    quantity,
+                }
+            }));
             output_epcs.extend(event.output_epcs.iter().cloned().map(|epc| AttributedEpc {
                 source_event: event.source.clone(),
                 epc,
             }));
-            output_quantities.extend(
-                event
-                    .output_quantity_list
-                    .iter()
-                    .cloned()
-                    .map(|quantity| AttributedQuantity {
-                        source_event: event.source.clone(),
-                        quantity,
-                    }),
-            );
+            output_quantities.extend(event.output_quantity_list.iter().cloned().map(|quantity| {
+                AttributedQuantity {
+                    source_event: event.source.clone(),
+                    quantity,
+                }
+            }));
         }
 
         groups.push(TransformationGroup {
@@ -629,7 +612,10 @@ mod tests {
             &["urn:epc:id:sgtin:rework-1"],
         );
         let report = build_transformation_groups(&[event]).unwrap();
-        assert_eq!(report.groups[0].input_epcs[0].epc, report.groups[0].output_epcs[0].epc);
+        assert_eq!(
+            report.groups[0].input_epcs[0].epc,
+            report.groups[0].output_epcs[0].epc
+        );
     }
 
     #[test]
@@ -648,8 +634,18 @@ mod tests {
         input.input_quantity_list = vec![quantity("class-input", Some("2.5"), Some("KGM"))];
         input.output_quantity_list = vec![quantity("class-output", Some("1.25"), Some("KGM"))];
         let normalized = normalize_transformation_event(&input).unwrap();
-        assert_eq!(normalized.input_quantity_list()[0].quantity_lexeme.as_deref(), Some("2.5"));
-        assert_eq!(normalized.output_quantity_list()[0].quantity_lexeme.as_deref(), Some("1.25"));
+        assert_eq!(
+            normalized.input_quantity_list()[0]
+                .quantity_lexeme
+                .as_deref(),
+            Some("2.5")
+        );
+        assert_eq!(
+            normalized.output_quantity_list()[0]
+                .quantity_lexeme
+                .as_deref(),
+            Some("1.25")
+        );
     }
 
     #[test]
@@ -684,10 +680,7 @@ mod tests {
     #[test]
     fn event_time_and_record_time_remain_separate() {
         let normalized = normalize_transformation_event(&event()).unwrap();
-        assert_eq!(
-            normalized.event_time_lexeme(),
-            "2026-11-22T10:00:00+02:00"
-        );
+        assert_eq!(normalized.event_time_lexeme(), "2026-11-22T10:00:00+02:00");
         assert_eq!(
             normalized.record_time_lexeme(),
             Some("2026-11-22T08:00:04Z")
@@ -727,7 +720,10 @@ mod tests {
         let mut input = event();
         input.revision = 0;
         assert_eq!(
-            normalize_transformation_event(&input).unwrap().source().revision,
+            normalize_transformation_event(&input)
+                .unwrap()
+                .source()
+                .revision,
             0
         );
 
@@ -751,8 +747,18 @@ mod tests {
 
     #[test]
     fn conflicting_same_revision_content_rejects_grouping() {
-        let first = normalized("same-event", Some("urn:example:batch"), &["input-a"], &["out-a"]);
-        let second = normalized("same-event", Some("urn:example:batch"), &["input-b"], &["out-a"]);
+        let first = normalized(
+            "same-event",
+            Some("urn:example:batch"),
+            &["input-a"],
+            &["out-a"],
+        );
+        let second = normalized(
+            "same-event",
+            Some("urn:example:batch"),
+            &["input-b"],
+            &["out-a"],
+        );
         assert!(matches!(
             build_transformation_groups(&[first, second]),
             Err(TransformationGroupingError::ConflictingSourceEventRevision(_))
@@ -761,7 +767,12 @@ mod tests {
 
     #[test]
     fn exact_duplicate_event_replay_is_idempotent() {
-        let one = normalized("same-event", Some("urn:example:batch"), &["input-a"], &["out-a"]);
+        let one = normalized(
+            "same-event",
+            Some("urn:example:batch"),
+            &["input-a"],
+            &["out-a"],
+        );
         let report = build_transformation_groups(&[one.clone(), one]).unwrap();
         assert_eq!(report.input_event_rows, 2);
         assert_eq!(report.unique_event_revisions, 1);
@@ -782,8 +793,14 @@ mod tests {
     fn group_does_not_claim_mass_balance_or_completion() {
         let a = normalized("event-a", Some("urn:example:batch"), &["input-a"], &[]);
         let report = build_transformation_groups(&[a]).unwrap();
-        assert_eq!(report.groups[0].closure, TransformationClosure::NotEstablished);
-        assert_eq!(report.groups[0].allocation, AllocationStatus::UnallocatedManyToMany);
+        assert_eq!(
+            report.groups[0].closure,
+            TransformationClosure::NotEstablished
+        );
+        assert_eq!(
+            report.groups[0].allocation,
+            AllocationStatus::UnallocatedManyToMany
+        );
     }
 
     #[test]
@@ -794,7 +811,13 @@ mod tests {
         let normalized = normalize_transformation_event(&input).unwrap();
         let report = build_transformation_groups(&[normalized]).unwrap();
         let group = &report.groups[0];
-        assert_eq!(group.input_quantities[0].source_event.source_event_id, "urn:uuid:transform-001");
-        assert_eq!(group.output_quantities[0].source_event.source_event_id, "urn:uuid:transform-001");
+        assert_eq!(
+            group.input_quantities[0].source_event.source_event_id,
+            "urn:uuid:transform-001"
+        );
+        assert_eq!(
+            group.output_quantities[0].source_event.source_event_id,
+            "urn:uuid:transform-001"
+        );
     }
 }
