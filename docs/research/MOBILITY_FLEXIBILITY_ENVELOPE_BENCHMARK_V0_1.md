@@ -34,21 +34,26 @@ P^{safety}_{r,s,t} -
 P^{uncertainty}_{r,s,t}
 \]
 
-The candidate must meet both:
+The caller must provide an explicit resource allocation \(p_{r,t}\) and a site-level profile \(p_t\). They must reconcile exactly:
 
 \[
-\sum_t \left\lceil \frac{p_t\Delta t}{3600} \right\rceil
-\leq
-\sum_r E^{flex}_{r,s}
-\quad \forall s
+p_t = \sum_r p_{r,t}
+\]
+
+For every asset and every admitted scenario, its own cumulative energy and time-slot power constraints must pass:
+
+\[
+\sum_t \left\lceil \frac{p_{r,t}\Delta t}{3600} \right\rceil
+\leq E^{flex}_{r,s}
+\quad \forall r,s
 \]
 
 \[
-p_t \leq \sum_r P^{flex}_{r,s,t}
-\quad \forall s,t
+p_{r,t} \leq P^{flex}_{r,s,t}
+\quad \forall r,s,t
 \]
 
-and the site-meter constraint:
+Only after those per-resource constraints pass is the site trajectory checked against the PCC envelope:
 
 \[
 -P^{export}_{t}
@@ -57,6 +62,8 @@ P^{base}_{t}+P^{charge}_{t}-p_t
 \leq
 P^{import}_{t}
 \]
+
+This prevents a site-level sum of kW and a separate sum of kWh from constructing a physically impossible hybrid in which one pack is assumed to supply the power while another supplies the energy.
 
 Export additionally requires an explicit permission receipt. Without that receipt, the model cannot infer reverse-flow permission from a positive storage-energy balance.
 
