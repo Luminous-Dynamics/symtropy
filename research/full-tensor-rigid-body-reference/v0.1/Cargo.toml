@@ -1,0 +1,13 @@
+[package]
+name = "full-tensor-rigid-body-reference"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Independent numerical reference for 3D full-inertia rigid-body dynamics"
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
