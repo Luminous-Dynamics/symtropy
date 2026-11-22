@@ -42,7 +42,7 @@ The module src/bregar_cir_features.rs returns the complete normalized 152-sample
 - peak-to-prepath-noise ratio in dB, represented as unavailable when the reference is exactly zero rather than infinity;
 - first-path-to-peak magnitude ratio;
 - total squared-magnitude energy;
-- energy fractions before first path, at the first-path sample, in the early postcursor window, and in the late tail;
+- energy fractions before first path, at the first-path sample, in the next 32 postcursor samples, and in the late tail;
 - energy-weighted delay centroid and RMS delay spread relative to first path.
 
 The derived features are transparent deterministic transforms of the CIR. They are not a trained LOS/NLOS model, calibrated bias estimator, range correction or integrity probability.
