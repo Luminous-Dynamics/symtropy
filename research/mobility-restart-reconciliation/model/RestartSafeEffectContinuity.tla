@@ -3,6 +3,8 @@ EXTENDS Naturals, TLC
 
 CONSTANTS MaxEpoch, NaiveRetryEnabled
 
+VARIABLE s
+
 ASSUME MaxEpoch \in Nat /\ MaxEpoch >= 3
 ASSUME NaiveRetryEnabled \in BOOLEAN
 
