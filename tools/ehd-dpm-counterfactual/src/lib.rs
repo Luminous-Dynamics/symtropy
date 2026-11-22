@@ -694,6 +694,20 @@ mod tests {
     }
 
     #[test]
+    fn uncertainty_overlap_with_equivalence_boundary_is_unresolved() {
+        let campaign = input(0.06, 0.0, 0.0);
+        let report = qualify_counterfactual_intervention(&campaign).unwrap();
+        assert_eq!(
+            report.active_effect.classification,
+            EffectClassification::Unresolved
+        );
+        assert_eq!(
+            report.disposition,
+            CounterfactualDisposition::ObserverPerturbationUnresolved
+        );
+    }
+
+    #[test]
     fn asymmetric_period_timing_is_rejected() {
         let mut campaign = input(0.1, 0.0, 0.0);
         campaign.blocks[0].periods[3].elapsed_seconds = 3.2;
@@ -756,7 +770,7 @@ mod tests {
         }
         let report = qualify_counterfactual_intervention(&campaign).unwrap();
         assert_eq!(report.independent_cluster_count, 1);
-        assert_eq!(report.disposition, CounterfactualDisposition::RandomizationSequenceImbalance);
+        assert_eq!(report.disposition, CounterfactualDisposition::InsufficientIndependentClusters);
     }
 
     #[test]
