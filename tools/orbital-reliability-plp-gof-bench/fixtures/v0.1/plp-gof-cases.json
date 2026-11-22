@@ -12,24 +12,24 @@
       "environment_id": "ambient-reference-environment",
       "exposure_clock_id": "operating-seconds-clock-01",
       "observation_start_seconds": 0,
-      "exposure_end_seconds": 1000000000,
+      "exposure_end_seconds": 100000,
       "event_times_seconds": [
-        478566,
-        72947917,
-        81188895,
-        90167480,
-        217248529,
-        227864985,
-        261772253,
-        492261359,
-        526161208,
-        707678869,
-        714228513,
-        786207903,
-        835967649,
-        843546351,
-        880450385,
-        962042117
+        171,
+        1623,
+        4089,
+        7383,
+        11410,
+        16109,
+        21433,
+        27349,
+        33828,
+        40846,
+        48384,
+        56423,
+        64950,
+        73950,
+        83410,
+        93321
       ],
       "complete_event_history": true,
       "repair_policy": "minimal_repair",
@@ -41,22 +41,14 @@
       "multiplicity_policy_id": "single-primary-diagnostic-v0-1",
       "significance_level": 0.05,
       "monte_carlo_replicates": 999,
-      "random_seed": 2101,
+      "random_seed": 101,
       "expected": {
         "disposition": "fit_not_rejected_at_declared_level",
         "event_count": 16,
-        "beta_hat": 0.7170111956551111,
-        "observed_cvm": 0.12028770297172724,
-        "tail_exceedances": 220,
-        "monte_carlo_p_value": 0.221,
-        "component_p_values": [
-          0.125,
-          0.242,
-          0.221,
-          0.221,
-          0.157
-        ],
-        "bonferroni_adjusted_min_p_value": 0.625,
+        "beta_hat": 0.5841630388318914,
+        "observed_cvm": 0.005449887874549831,
+        "tail_exceedances": 999,
+        "monte_carlo_p_value": 1,
         "blockers": []
       }
     },
@@ -69,24 +61,24 @@
       "environment_id": "ambient-reference-environment",
       "exposure_clock_id": "operating-seconds-clock-01",
       "observation_start_seconds": 0,
-      "exposure_end_seconds": 1000000000,
+      "exposure_end_seconds": 100000,
       "event_times_seconds": [
-        101284979,
-        125904025,
-        128578028,
-        199179190,
-        226610713,
-        257660519,
-        344320655,
-        397978273,
-        559971855,
-        587019498,
-        729514049,
-        886568430,
-        904880901,
-        929844434,
-        949501048,
-        968314996
+        2188,
+        8438,
+        14688,
+        20938,
+        27187,
+        33438,
+        39688,
+        45938,
+        52188,
+        58438,
+        64688,
+        70938,
+        77188,
+        83438,
+        89688,
+        95938
       ],
       "complete_event_history": true,
       "repair_policy": "minimal_repair",
@@ -98,22 +90,14 @@
       "multiplicity_policy_id": "single-primary-diagnostic-v0-1",
       "significance_level": 0.05,
       "monte_carlo_replicates": 999,
-      "random_seed": 2102,
+      "random_seed": 102,
       "expected": {
         "disposition": "fit_not_rejected_at_declared_level",
         "event_count": 16,
-        "beta_hat": 1.0914020487382965,
-        "observed_cvm": 0.10260065355028553,
-        "tail_exceedances": 314,
-        "monte_carlo_p_value": 0.315,
-        "component_p_values": [
-          0.968,
-          0.926,
-          0.315,
-          0.226,
-          0.314
-        ],
-        "bonferroni_adjusted_min_p_value": 1,
+        "beta_hat": 0.9736486892915475,
+        "observed_cvm": 0.005449836754584808,
+        "tail_exceedances": 999,
+        "monte_carlo_p_value": 1,
         "blockers": []
       }
     },
@@ -126,24 +110,24 @@
       "environment_id": "ambient-reference-environment",
       "exposure_clock_id": "operating-seconds-clock-01",
       "observation_start_seconds": 0,
-      "exposure_end_seconds": 1000000000,
+      "exposure_end_seconds": 100000,
       "event_times_seconds": [
-        126430077,
-        140754141,
-        183014127,
-        233158399,
-        330927448,
-        482796361,
-        511962543,
-        596441780,
-        626834234,
-        759639043,
-        777489026,
-        832362120,
-        836732207,
-        989692892,
-        993771000,
-        997822850
+        9172,
+        21325,
+        30154,
+        37634,
+        44308,
+        50425,
+        56125,
+        61497,
+        66601,
+        71480,
+        76166,
+        80686,
+        85058,
+        89300,
+        93424,
+        97441
       ],
       "complete_event_history": true,
       "repair_policy": "minimal_repair",
@@ -155,22 +139,14 @@
       "multiplicity_policy_id": "single-primary-diagnostic-v0-1",
       "significance_level": 0.1,
       "monte_carlo_replicates": 999,
-      "random_seed": 2103,
+      "random_seed": 103,
       "expected": {
         "disposition": "fit_not_rejected_at_declared_level",
         "event_count": 16,
-        "beta_hat": 1.3819876081164892,
-        "observed_cvm": 0.0648580555835873,
-        "tail_exceedances": 588,
-        "monte_carlo_p_value": 0.589,
-        "component_p_values": [
-          0.665,
-          0.472,
-          0.589,
-          0.074,
-          0.452
-        ],
-        "bonferroni_adjusted_min_p_value": 0.37,
+        "beta_hat": 1.5578003972376535,
+        "observed_cvm": 0.005449983847263403,
+        "tail_exceedances": 999,
+        "monte_carlo_p_value": 1,
         "blockers": []
       }
     },
@@ -183,33 +159,33 @@
       "environment_id": "ambient-reference-environment",
       "exposure_clock_id": "operating-seconds-clock-01",
       "observation_start_seconds": 0,
-      "exposure_end_seconds": 1000000000,
+      "exposure_end_seconds": 100000,
       "event_times_seconds": [
-        23033857,
-        37800381,
-        42374986,
-        82366535,
-        132005042,
-        144707206,
-        174297879,
-        182502276,
-        218459438,
-        230951038,
-        254846586,
-        370852037,
-        394867214,
-        409159658,
-        428369697,
-        469488414,
-        486412020,
-        508045112,
-        536939401,
-        604040789,
-        801442751,
-        868105624,
-        894131300,
-        972229394,
-        996883561
+        659,
+        3226,
+        6193,
+        9399,
+        12780,
+        16302,
+        19944,
+        23688,
+        27523,
+        31441,
+        35433,
+        39494,
+        43619,
+        47804,
+        52044,
+        56336,
+        60678,
+        65067,
+        69502,
+        73979,
+        78497,
+        83054,
+        87650,
+        92281,
+        96948
       ],
       "complete_event_history": true,
       "repair_policy": "minimal_repair",
@@ -221,22 +197,14 @@
       "multiplicity_policy_id": "single-primary-diagnostic-v0-1",
       "significance_level": 0.05,
       "monte_carlo_replicates": 999,
-      "random_seed": 2104,
+      "random_seed": 104,
       "expected": {
         "disposition": "fit_not_rejected_at_declared_level",
         "event_count": 25,
-        "beta_hat": 0.7833978712967513,
-        "observed_cvm": 0.08061707214480732,
-        "tail_exceedances": 472,
-        "monte_carlo_p_value": 0.473,
-        "component_p_values": [
-          0.38,
-          0.934,
-          0.473,
-          0.489,
-          0.391
-        ],
-        "bonferroni_adjusted_min_p_value": 1,
+        "beta_hat": 0.8333347168838064,
+        "observed_cvm": 0.0034722207690614302,
+        "tail_exceedances": 999,
+        "monte_carlo_p_value": 1,
         "blockers": []
       }
     },
@@ -249,38 +217,38 @@
       "environment_id": "ambient-reference-environment",
       "exposure_clock_id": "operating-seconds-clock-01",
       "observation_start_seconds": 0,
-      "exposure_end_seconds": 1000000000,
+      "exposure_end_seconds": 100000,
       "event_times_seconds": [
-        93317684,
-        152278730,
-        236207810,
-        289897985,
-        320388193,
-        332944332,
-        347592716,
-        404165552,
-        416532327,
-        417288706,
-        417584318,
-        447804085,
-        483735047,
-        486096837,
-        502299717,
-        503318004,
-        515042266,
-        534251136,
-        567755167,
-        635716033,
-        751932167,
-        839394712,
-        849920505,
-        905411607,
-        927044654,
-        942385872,
-        950555045,
-        972232202,
-        990358096,
-        999574094
+        10801,
+        21213,
+        27988,
+        33417,
+        38079,
+        42230,
+        46007,
+        49497,
+        52757,
+        55827,
+        58737,
+        61509,
+        64161,
+        66708,
+        69162,
+        71531,
+        73824,
+        76048,
+        78209,
+        80312,
+        82361,
+        84360,
+        86313,
+        88223,
+        90093,
+        91924,
+        93719,
+        95481,
+        97211,
+        98911
       ],
       "complete_event_history": true,
       "repair_policy": "minimal_repair",
@@ -292,22 +260,14 @@
       "multiplicity_policy_id": "single-primary-diagnostic-v0-1",
       "significance_level": 0.05,
       "monte_carlo_replicates": 999,
-      "random_seed": 2105,
+      "random_seed": 105,
       "expected": {
         "disposition": "fit_not_rejected_at_declared_level",
         "event_count": 30,
-        "beta_hat": 1.4534523676859583,
-        "observed_cvm": 0.20963474783287722,
-        "tail_exceedances": 64,
-        "monte_carlo_p_value": 0.065,
-        "component_p_values": [
-          0.437,
-          0.614,
-          0.065,
-          0.079,
-          0.049
-        ],
-        "bonferroni_adjusted_min_p_value": 0.245,
+        "beta_hat": 1.9654784178090647,
+        "observed_cvm": 0.002894277513326337,
+        "tail_exceedances": 999,
+        "monte_carlo_p_value": 1,
         "blockers": []
       }
     },
@@ -354,17 +314,9 @@
         "disposition": "fit_rejected",
         "event_count": 16,
         "beta_hat": 0.25157106213703917,
-        "observed_cvm": 1.3489074183032737,
+        "observed_cvm": 1.3489074183032739,
         "tail_exceedances": 0,
         "monte_carlo_p_value": 0.001,
-        "component_p_values": [
-          0.001,
-          0.002,
-          0.001,
-          0.001,
-          0.001
-        ],
-        "bonferroni_adjusted_min_p_value": 0.005,
         "blockers": []
       }
     },
@@ -414,14 +366,6 @@
         "observed_cvm": 0.3709920094126555,
         "tail_exceedances": 1,
         "monte_carlo_p_value": 0.002,
-        "component_p_values": [
-          0.724,
-          0.002,
-          0.002,
-          0.001,
-          0.006
-        ],
-        "bonferroni_adjusted_min_p_value": 0.005,
         "blockers": []
       }
     },
@@ -467,23 +411,15 @@
       "expected": {
         "disposition": "fit_rejected",
         "event_count": 16,
-        "beta_hat": 0.8195969801805111,
+        "beta_hat": 0.8195969801805112,
         "observed_cvm": 0.37089392765389295,
         "tail_exceedances": 2,
         "monte_carlo_p_value": 0.003,
-        "component_p_values": [
-          0.029,
-          0.002,
-          0.003,
-          0.004,
-          0.001
-        ],
-        "bonferroni_adjusted_min_p_value": 0.005,
         "blockers": []
       }
     },
     {
-      "case_id": "very_weak_mixed_regime_not_rejected_at_1_percent",
+      "case_id": "very_weak_mixed_regime_rejected",
       "model_profile": "power_law_process_repairable_minimal_repair",
       "termination_profile": "administrative_time_terminated_complete_window",
       "subject_group_id": "identical-repairable-item-group-01",
@@ -518,20 +454,12 @@
       "monte_carlo_replicates": 999,
       "random_seed": 110,
       "expected": {
-        "disposition": "fit_not_rejected_at_declared_level",
+        "disposition": "fit_rejected",
         "event_count": 12,
         "beta_hat": 0.47245248444700655,
-        "observed_cvm": 0.3474428234874213,
+        "observed_cvm": 0.34744282348742145,
         "tail_exceedances": 7,
         "monte_carlo_p_value": 0.008,
-        "component_p_values": [
-          0.235,
-          0.006,
-          0.008,
-          0.003,
-          0.027
-        ],
-        "bonferroni_adjusted_min_p_value": 0.015,
         "blockers": []
       }
     },
@@ -581,8 +509,6 @@
         "observed_cvm": null,
         "tail_exceedances": null,
         "monte_carlo_p_value": null,
-        "component_p_values": [],
-        "bonferroni_adjusted_min_p_value": null,
         "blockers": [
           "selected_model_profile_is_not_power_law_minimal_repair"
         ]
@@ -634,8 +560,6 @@
         "observed_cvm": null,
         "tail_exceedances": null,
         "monte_carlo_p_value": null,
-        "component_p_values": [],
-        "bonferroni_adjusted_min_p_value": null,
         "blockers": [
           "only_complete_fixed_time_terminated_windows_from_zero_are_supported"
         ]
@@ -687,8 +611,6 @@
         "observed_cvm": null,
         "tail_exceedances": null,
         "monte_carlo_p_value": null,
-        "component_p_values": [],
-        "bonferroni_adjusted_min_p_value": null,
         "blockers": [
           "only_complete_fixed_time_terminated_windows_from_zero_are_supported"
         ]
@@ -740,8 +662,6 @@
         "observed_cvm": null,
         "tail_exceedances": null,
         "monte_carlo_p_value": null,
-        "component_p_values": [],
-        "bonferroni_adjusted_min_p_value": null,
         "blockers": [
           "complete_event_history_not_established"
         ]
@@ -793,8 +713,6 @@
         "observed_cvm": null,
         "tail_exceedances": null,
         "monte_carlo_p_value": null,
-        "component_p_values": [],
-        "bonferroni_adjusted_min_p_value": null,
         "blockers": [
           "admissibility_or_capture_receipt_pin_missing_or_malformed"
         ]
@@ -846,8 +764,6 @@
         "observed_cvm": null,
         "tail_exceedances": null,
         "monte_carlo_p_value": null,
-        "component_p_values": [],
-        "bonferroni_adjusted_min_p_value": null,
         "blockers": [
           "admissibility_or_capture_receipt_pin_missing_or_malformed"
         ]
@@ -887,10 +803,8 @@
         "observed_cvm": null,
         "tail_exceedances": null,
         "monte_carlo_p_value": null,
-        "component_p_values": [],
-        "bonferroni_adjusted_min_p_value": null,
         "blockers": [
-          "insufficient_event_count_for_v0_2_diagnostic"
+          "insufficient_event_count_for_v0_1_diagnostic"
         ]
       }
     },
@@ -930,8 +844,6 @@
         "observed_cvm": null,
         "tail_exceedances": null,
         "monte_carlo_p_value": null,
-        "component_p_values": [],
-        "bonferroni_adjusted_min_p_value": null,
         "blockers": [
           "event_history_or_exposure_window_invalid"
         ]
@@ -983,8 +895,6 @@
         "observed_cvm": null,
         "tail_exceedances": null,
         "monte_carlo_p_value": null,
-        "component_p_values": [],
-        "bonferroni_adjusted_min_p_value": null,
         "blockers": [
           "invalid_significance_level"
         ]
@@ -1036,10 +946,8 @@
         "observed_cvm": null,
         "tail_exceedances": null,
         "monte_carlo_p_value": null,
-        "component_p_values": [],
-        "bonferroni_adjusted_min_p_value": null,
         "blockers": [
-          "familywise_monte_carlo_resolution_or_seed_outside_predeclared_contract"
+          "monte_carlo_resolution_or_seed_outside_predeclared_contract"
         ]
       }
     },
@@ -1089,8 +997,6 @@
         "observed_cvm": null,
         "tail_exceedances": null,
         "monte_carlo_p_value": null,
-        "component_p_values": [],
-        "bonferroni_adjusted_min_p_value": null,
         "blockers": [
           "repair_policy_is_not_minimal_repair"
         ]
@@ -1142,8 +1048,6 @@
         "observed_cvm": null,
         "tail_exceedances": null,
         "monte_carlo_p_value": null,
-        "component_p_values": [],
-        "bonferroni_adjusted_min_p_value": null,
         "blockers": [
           "subject_configuration_clock_or_protocol_binding_invalid"
         ]
@@ -1195,10 +1099,8 @@
         "observed_cvm": null,
         "tail_exceedances": null,
         "monte_carlo_p_value": null,
-        "component_p_values": [],
-        "bonferroni_adjusted_min_p_value": null,
         "blockers": [
-          "familywise_monte_carlo_resolution_or_seed_outside_predeclared_contract"
+          "monte_carlo_resolution_or_seed_outside_predeclared_contract"
         ]
       }
     },
@@ -1432,68 +1334,9 @@
         "observed_cvm": null,
         "tail_exceedances": null,
         "monte_carlo_p_value": null,
-        "component_p_values": [],
-        "bonferroni_adjusted_min_p_value": null,
         "blockers": [
           "monte_carlo_total_draw_budget_exceeded"
         ]
-      }
-    },
-    {
-      "case_id": "over_regular_spacing_alternative",
-      "model_profile": "power_law_process_repairable_minimal_repair",
-      "termination_profile": "administrative_time_terminated_complete_window",
-      "subject_group_id": "identical-repairable-item-group-01",
-      "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      "environment_id": "ambient-reference-environment",
-      "exposure_clock_id": "operating-seconds-clock-01",
-      "observation_start_seconds": 0,
-      "exposure_end_seconds": 1000000000,
-      "event_times_seconds": [
-        21875000,
-        84375000,
-        146875000,
-        209375000,
-        271875000,
-        334375000,
-        396875000,
-        459375000,
-        521875000,
-        584375000,
-        646875000,
-        709375000,
-        771875000,
-        834375000,
-        896875000,
-        959375000
-      ],
-      "complete_event_history": true,
-      "repair_policy": "minimal_repair",
-      "admissibility_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      "admissibility_source_commit": "cccccccccccccccccccccccccccccccccccccccc",
-      "capture_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-      "capture_source_commit": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-      "analysis_protocol_id": "preregistered-plp-cvm-protocol-v0-1",
-      "multiplicity_policy_id": "single-primary-diagnostic-v0-1",
-      "significance_level": 0.05,
-      "monte_carlo_replicates": 999,
-      "random_seed": 2102,
-      "expected": {
-        "disposition": "fit_rejected",
-        "event_count": 16,
-        "beta_hat": 0.9736236901156415,
-        "observed_cvm": 0.005449961476578417,
-        "tail_exceedances": 999,
-        "monte_carlo_p_value": 1,
-        "component_p_values": [
-          0.935,
-          0.002,
-          1,
-          1,
-          1
-        ],
-        "bonferroni_adjusted_min_p_value": 0.01,
-        "blockers": []
       }
     }
   ]
