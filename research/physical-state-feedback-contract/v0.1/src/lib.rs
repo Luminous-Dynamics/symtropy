@@ -13,7 +13,9 @@ use std::fmt::{self, Display, Formatter};
 pub const SCHEMA_VERSION: &str = "physical-state-feedback-v0.1";
 const SHA256_HEX_LEN: usize = 64;
 const QUATERNION_NORM_TOLERANCE: f64 = 1.0e-6;
-const COVARIANCE_TOLERANCE: f64 = 1.0e-10;
+// All matrix admission tolerances are dimensionless because validation
+// first normalizes by the matrix's largest absolute entry.
+const MATRIX_RELATIVE_TOLERANCE: f64 = 1.0e-10;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ValidationError {
@@ -125,25 +127,47 @@ impl Uncertainty {
     }
 }
 
+fn matrix3_max_abs(matrix: &[[f64; 3]; 3]) -> f64 {
+    matrix
+        .iter()
+        .flatten()
+        .fold(0.0_f64, |scale, value| scale.max(value.abs()))
+}
+
+fn normalize_matrix3(matrix: &[[f64; 3]; 3], scale: f64) -> [[f64; 3]; 3] {
+    std::array::from_fn(|row| std::array::from_fn(|column| matrix[row][column] / scale))
+}
+
 fn validate_symmetric_psd3(matrix: &[[f64; 3]; 3], path: &str) -> Result<(), ValidationError> {
     for row in matrix {
         if row.iter().any(|value| !value.is_finite()) {
             return Err(ValidationError::new(path, "matrix entries must be finite"));
         }
     }
-    for (i, row) in matrix.iter().enumerate() {
-        if row[i] < -COVARIANCE_TOLERANCE {
+
+    // Positive scaling does not change symmetry or positive-semidefinite
+    // admissibility. Normalize before evaluating minors so their tolerances
+    // do not carry the matrix's physical units or overflow at large scales.
+    let scale = matrix3_max_abs(matrix);
+    if scale == 0.0 {
+        return Ok(());
+    }
+    let normalized = normalize_matrix3(matrix, scale);
+
+    for (i, row) in normalized.iter().enumerate() {
+        if row[i] < -MATRIX_RELATIVE_TOLERANCE {
             return Err(ValidationError::new(
                 path,
                 "matrix diagonal must be non-negative",
             ));
         }
         for (j, _) in row.iter().enumerate().skip(i + 1) {
-            if (matrix[i][j] - matrix[j][i]).abs() > COVARIANCE_TOLERANCE {
+            if (normalized[i][j] - normalized[j][i]).abs() > MATRIX_RELATIVE_TOLERANCE {
                 return Err(ValidationError::new(path, "matrix must be symmetric"));
             }
-            let minor = matrix[i][i] * matrix[j][j] - matrix[i][j] * matrix[j][i];
-            if minor < -COVARIANCE_TOLERANCE {
+            let minor =
+                normalized[i][i] * normalized[j][j] - normalized[i][j] * normalized[j][i];
+            if minor < -MATRIX_RELATIVE_TOLERANCE {
                 return Err(ValidationError::new(
                     path,
                     "matrix must be positive semidefinite",
@@ -151,10 +175,13 @@ fn validate_symmetric_psd3(matrix: &[[f64; 3]; 3], path: &str) -> Result<(), Val
             }
         }
     }
-    let determinant = matrix[0][0] * (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1])
-        - matrix[0][1] * (matrix[1][0] * matrix[2][2] - matrix[1][2] * matrix[2][0])
-        + matrix[0][2] * (matrix[1][0] * matrix[2][1] - matrix[1][1] * matrix[2][0]);
-    if determinant < -COVARIANCE_TOLERANCE {
+    let determinant = normalized[0][0]
+        * (normalized[1][1] * normalized[2][2] - normalized[1][2] * normalized[2][1])
+        - normalized[0][1]
+            * (normalized[1][0] * normalized[2][2] - normalized[1][2] * normalized[2][0])
+        + normalized[0][2]
+            * (normalized[1][0] * normalized[2][1] - normalized[1][1] * normalized[2][0]);
+    if determinant < -MATRIX_RELATIVE_TOLERANCE {
         return Err(ValidationError::new(
             path,
             "matrix must be positive semidefinite",
@@ -166,7 +193,14 @@ fn validate_symmetric_psd3(matrix: &[[f64; 3]; 3], path: &str) -> Result<(), Val
 /// Validate the rigid-body inertia tensor's principal-moment triangle inequality.
 fn validate_physical_inertia3(matrix: &[[f64; 3]; 3], path: &str) -> Result<(), ValidationError> {
     validate_symmetric_psd3(matrix, path)?;
-    let mut diagonalized = *matrix;
+    let scale = matrix3_max_abs(matrix);
+    if scale == 0.0 {
+        return Ok(());
+    }
+    // Eigenvalue ratios and the physical inertia triangle inequality are
+    // invariant under positive scale. Diagonalize the normalized tensor so
+    // both the Jacobi stopping threshold and triangle tolerance are relative.
+    let mut diagonalized = normalize_matrix3(matrix, scale);
     for _ in 0..24 {
         let candidates = [(0usize, 1usize), (0usize, 2usize), (1usize, 2usize)];
         let (p, q) = candidates
@@ -178,7 +212,7 @@ fn validate_physical_inertia3(matrix: &[[f64; 3]; 3], path: &str) -> Result<(), 
             })
             .expect("fixed candidate set is non-empty");
         let off_diagonal = diagonalized[p][q];
-        if off_diagonal.abs() <= COVARIANCE_TOLERANCE {
+        if off_diagonal.abs() <= MATRIX_RELATIVE_TOLERANCE {
             break;
         }
 
@@ -221,7 +255,7 @@ fn validate_physical_inertia3(matrix: &[[f64; 3]; 3], path: &str) -> Result<(), 
     principal.sort_by(f64::total_cmp);
     let largest = principal[2].max(0.0);
     let lower_two_sum = principal[0].max(0.0) + principal[1].max(0.0);
-    let tolerance = COVARIANCE_TOLERANCE.max(largest * 1.0e-8);
+    let tolerance = MATRIX_RELATIVE_TOLERANCE.max(largest * 1.0e-8);
     if largest > lower_two_sum + tolerance {
         return Err(ValidationError::new(
             path,
@@ -1737,6 +1771,55 @@ mod tests {
 
         let triangle_violation = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 3.0]];
         assert!(validate_physical_inertia3(&triangle_violation, "inertia").is_err());
+    }
+
+
+    #[test]
+    fn covariance_psd_validation_is_invariant_under_positive_rescaling() {
+        let positive_semidefinite = [[2.0, 1.0, 0.0], [1.0, 2.0, 0.0], [0.0, 0.0, 1.0]];
+        let indefinite = [[1.0, 2.0, 0.0], [2.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
+
+        for scale in [1.0e-150, 1.0, 1.0e150] {
+            let scaled_psd = std::array::from_fn(|row| {
+                std::array::from_fn(|column| positive_semidefinite[row][column] * scale)
+            });
+            let scaled_indefinite = std::array::from_fn(|row| {
+                std::array::from_fn(|column| indefinite[row][column] * scale)
+            });
+
+            assert!(
+                validate_symmetric_psd3(&scaled_psd, "covariance").is_ok(),
+                "PSD matrix rejected at positive scale {scale:e}"
+            );
+            assert!(
+                validate_symmetric_psd3(&scaled_indefinite, "covariance").is_err(),
+                "indefinite matrix accepted at positive scale {scale:e}"
+            );
+        }
+    }
+
+    #[test]
+    fn inertia_triangle_validation_is_invariant_under_positive_rescaling() {
+        let valid = [[2.0, 0.0, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 3.0]];
+        let invalid_triangle = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 3.0]];
+
+        for scale in [1.0e-150, 1.0, 1.0e150] {
+            let scaled_valid = std::array::from_fn(|row| {
+                std::array::from_fn(|column| valid[row][column] * scale)
+            });
+            let scaled_invalid = std::array::from_fn(|row| {
+                std::array::from_fn(|column| invalid_triangle[row][column] * scale)
+            });
+
+            assert!(
+                validate_physical_inertia3(&scaled_valid, "inertia").is_ok(),
+                "physically realizable inertia rejected at positive scale {scale:e}"
+            );
+            assert!(
+                validate_physical_inertia3(&scaled_invalid, "inertia").is_err(),
+                "triangle-violating inertia accepted at positive scale {scale:e}"
+            );
+        }
     }
 
     #[test]
