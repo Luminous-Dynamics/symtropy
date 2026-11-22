@@ -102,3 +102,8 @@ The oracle is hand-authored against the action semantics and deliberately does n
 This module qualifies only a semantic mapping contract for a narrow, already-parsed AggregationEvent structure. It does not implement the EPCIS wire format, dereference evidence, authenticate issuers, validate source rights, prove a physical packing operation, verify a receiver, establish custody, or certify a standards implementation.
 
 The next integration should feed only instance-level ADD and subset DELETE into the existing graph reducer. OBSERVE should create an observation record; DELETE_ALL should invoke a parent-scoped graph operation with explicit semantics; class quantities should enter a separate, source-qualified quantity ledger. Association and transformation events need independent contracts before they are admitted.
+
+
+## Exact-head qualification
+
+The follow-on draft PR adds a path-scoped GitHub Actions qualification workflow for this crate. The intended exact-head gates are workspace formatting, locked offline tests for the transport-optimization crate and strict Clippy across its targets. An absent workflow result is not a pass; the PR remains draft until the check is visible for the exact head SHA.
