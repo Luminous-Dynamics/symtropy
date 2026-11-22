@@ -294,7 +294,7 @@ A sortie in this model is assumed to complete successfully once launched. The me
 
 ### Independent controls
 
-The module includes 16 Rust test definitions. Among them:
+The module now includes 18 Rust test definitions. Among them:
 - a single-pack/no-replenishment case is compared with the closed-form completion count (1+lfloor(H-T_m)/(T_m+T_o)floor);
 - completed sorties are bounded by initial battery packs plus successfully completed recharges;
 - battery-pool conservation is checked at the horizon;
@@ -302,7 +302,9 @@ The module includes 16 Rust test definitions. Among them:
 - no grid headroom cannot fabricate charge completions;
 - increased inventory must reduce waiting in the frozen short-cycle stress case;
 - an event-count ceiling rejects pathological horizons/event rates;
-- architecture input permutation produces the same canonical output.
+- architecture input permutation produces the same canonical output;
+- a second, second-by-second tick simulator independently checks 20 small variants against the event-driven engine;
+- finite-horizon throughput is bounded by the steady-state service ceiling plus an explicit initial-inventory allowance.
 
 The exact-head Cargo/format/report workflow is wired in CI. No pass is claimed until the latest exact head completes. This remains a fixed-parameter event model; it is not yet a charge-curve, stochastic demand, weather/permission, lifecycle-cost or mobile replenishment simulator.
 
@@ -376,7 +378,7 @@ Exact-head Actions run [#45066300699](https://github.com/Luminous-Dynamics/symtr
 - deterministic report assertions;
 - report artifact upload.
 
-The test binaries reported 154 + 16 + 8 + 9 = **187 passed, 0 failed**. The service-capacity module itself contains 16 focused Rust tests. Clippy is not part of this workflow and remains unverified.
+The base implementation test binaries reported 154 + 16 + 8 + 9 = **187 passed, 0 failed**. Two follow-on source changes add the independent 20-case tick oracle and steady-state/initial-inventory bounds; final exact-head verification for those changes is pending. The service-capacity module now contains 18 focused Rust tests. Clippy is not part of this workflow and remains unverified.
 
 The eight-hour frozen synthetic fixture produced:
 
@@ -389,3 +391,23 @@ The eight-hour frozen synthetic fixture produced:
 
 These figures are deterministic fixture outputs from the supplied parameters. They are not DJI performance, observed aircraft uptime, delivered customer requests or successful on-time missions. The simulator assumes every sortie completes and has no stochastic demand, weather, permission, maintenance or mission-failure process. The four architecture profiles also differ in aircraft count and mission duration; they are not a normalized leaderboard. A fair comparative claim requires a matched workload and capital/resource budget across all candidates.
 
+### Steady-state versus finite-horizon throughput
+
+A key anti-overclaim rule is now encoded in the report. The finite simulation can consume charged packs present at time zero; that can temporarily produce more sorties per hour than the long-run charging loop can replenish. The sustainable upper bound is:
+
+[
+C_{steady} = minleft(
+rac{N_{aircraft},3600}{T_{mission}+T_{turnaround}},
+rac{N_{effective,channels},3600}{T_{charge}}
+ight)
+]
+
+The finite-horizon rate is separately bounded by:
+
+[
+C_{finite} le C_{steady} + rac{N_{initial,packs}}{H_{hours}}
+]
+
+The second term is an intentionally conservative inventory drawdown allowance. The report includes the aircraft cycle ceiling, charging replenishment ceiling, their minimum, the initial stock allowance and the observed excess above the steady-state ceiling. A high short-window result is therefore not silently described as sustainable replenishment capacity.
+
+For the Dock 4-shaped synthetic profile with two effective channels and a 1,620-second charge duration, the model's charging-only steady-state ceiling is (2 	imes 3600 / 1620 approx 4.444) sessions/hour. The earlier 38 modeled sorties over eight hours (4.75/hour) consume initial ready inventory and end with charging backlog/wait; that is a finite-horizon stock-drawdown result, not a steady-state Dock 4 mission rate. The manufacturer's 27-minute charge duration and two charging-channel count do not disclose actual flight energy consumption, channel input power, queue distribution or field duty mix, so this is not a vendor throughput estimate.
