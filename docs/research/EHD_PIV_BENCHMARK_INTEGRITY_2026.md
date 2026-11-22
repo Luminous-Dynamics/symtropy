@@ -33,7 +33,7 @@ PIVtools is a strong end-to-end processing comparator. The Luminous opportunity 
 ## Executable scope
 
 The new standalone crate:
-- accepts frozen records with sample ID, dataset source, split, flow family, geometry, acquisition, session, camera-calibration batch, tracer, pressure-regime and raw-sequence SHA-256;
+- accepts frozen records with sample ID, dataset source, split, flow family, geometry, acquisition, session, camera-calibration batch, tracer, pressure-regime and raw-sequence SHA-256 plus every constituent frame/image-asset SHA-256;
 - requires explicit holdout dimensions;
 - rejects duplicate sample IDs, missing dimension keys, malformed hashes, and empty splits;
 - reports any declared holdout value that crosses train/validation/test;
@@ -64,7 +64,7 @@ The owner chooses holdout dimensions per benchmark. For a strict EHD transfer ca
 
 ## Authored tests
 
-Ten tests cover a clean split, session leakage, geometry leakage, direct image reuse, intentionally non-held-out dimensions, duplicate sample IDs, missing dimension values, empty splits, duplicate raw hashes inside a split, and duplicate policy dimensions.
+Twelve tests cover a clean split, session leakage, geometry leakage, direct sequence reuse and constituent-frame reuse across split boundaries, intentionally non-held-out dimensions, duplicate sample IDs, missing dimension values, empty splits, duplicate raw hashes inside a split, and duplicate policy dimensions.
 
 ## Claim boundary
 
