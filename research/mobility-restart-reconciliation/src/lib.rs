@@ -612,7 +612,11 @@ mod tests {
     #[test]
     fn queue_fence_must_bind_both_boots_and_epochs() {
         let mut evidence = base_evidence();
-        evidence.queue_fence.as_mut().expect("fixture fence").to_controller_epoch = 10;
+        evidence
+            .queue_fence
+            .as_mut()
+            .expect("fixture fence")
+            .to_controller_epoch = 10;
         assert_hold(&evidence, HoldReason::QueueFenceMismatch);
 
         let mut evidence = base_evidence();
@@ -658,10 +662,7 @@ mod tests {
             .as_mut()
             .expect("fixture observation");
         effect.observer_failure_domain_id = effect.effect_failure_domain_id.clone();
-        assert_hold(
-            &evidence,
-            HoldReason::ObserverFailureDomainNotIndependent,
-        );
+        assert_hold(&evidence, HoldReason::ObserverFailureDomainNotIndependent);
     }
 
     #[test]
@@ -727,20 +728,14 @@ mod tests {
                                         | EffectOutcome::Disputed
                                 )
                             {
-                                assert_ne!(
-                                    decision,
-                                    RecoveryDecision::FreshAttemptCandidate
-                                );
+                                assert_ne!(decision, RecoveryDecision::FreshAttemptCandidate);
                             }
                             if decision == RecoveryDecision::FreshAttemptCandidate {
                                 assert_eq!(effect, EffectOutcome::NoEffect);
                                 assert_eq!(mission, MissionResolution::NoEffect);
                                 assert_eq!(m1, OwnerVerdict::Current);
                                 assert_eq!(m2, OwnerVerdict::Current);
-                                assert_ne!(
-                                    persistence,
-                                    PersistenceVerdict::IndeterminateCommit
-                                );
+                                assert_ne!(persistence, PersistenceVerdict::IndeterminateCommit);
                             }
                         }
                     }
