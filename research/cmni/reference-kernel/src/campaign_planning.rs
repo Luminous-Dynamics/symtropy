@@ -240,8 +240,7 @@ impl CampaignSolver<'_> {
 
         for option_index in remaining_option_indices {
             let option = &self.information_options[*option_index];
-            let budget_tolerance =
-                1.0e-12 * remaining_budget.abs().max(option.cost.abs()).max(1.0);
+            let budget_tolerance = 1.0e-12 * remaining_budget.abs().max(option.cost.abs()).max(1.0);
             if option.cost - remaining_budget > budget_tolerance {
                 continue;
             }
