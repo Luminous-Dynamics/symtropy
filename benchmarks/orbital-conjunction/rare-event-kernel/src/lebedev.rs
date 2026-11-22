@@ -214,8 +214,7 @@ pub fn lebedev_sphere_rule(rule: LebedevRule) -> Result<LebedevSphereRule, Kerne
     let weight_sum = compensated_sum(nodes.iter().map(|node| node.weight));
     let expected_weight_sum = 4.0 * PI;
     if !weight_sum.is_finite()
-        || (weight_sum - expected_weight_sum).abs()
-            > 64.0 * f64::EPSILON * expected_weight_sum
+        || (weight_sum - expected_weight_sum).abs() > 64.0 * f64::EPSILON * expected_weight_sum
     {
         return Err(KernelError::InvalidSphereQuadratureWeights);
     }
@@ -352,7 +351,10 @@ pub fn integrate_sphere_samples(
         .zip(integrand_values)
         .map(|(node, value)| node.weight * value)
         .collect::<Vec<_>>();
-    if weighted_contributions.iter().any(|value| !value.is_finite()) {
+    if weighted_contributions
+        .iter()
+        .any(|value| !value.is_finite())
+    {
         return Err(KernelError::NumericalOverflow);
     }
 
@@ -461,16 +463,8 @@ where
     }
 
     let mut evaluations = Vec::with_capacity(3);
-    let coarse = evaluate_sphere_rule(
-        LebedevRule::Points6,
-        &integrand,
-        config.diagnostics,
-    )?;
-    let medium = evaluate_sphere_rule(
-        LebedevRule::Points14,
-        &integrand,
-        config.diagnostics,
-    )?;
+    let coarse = evaluate_sphere_rule(LebedevRule::Points6, &integrand, config.diagnostics)?;
+    let medium = evaluate_sphere_rule(LebedevRule::Points14, &integrand, config.diagnostics)?;
     let (first_absolute, first_relative) =
         estimate_refinement_difference(coarse.integral, medium.integral)?;
     let first_converged = refinement_tolerance_met(
@@ -494,11 +488,7 @@ where
         ));
     }
 
-    let fine = evaluate_sphere_rule(
-        LebedevRule::Points26,
-        &integrand,
-        config.diagnostics,
-    )?;
+    let fine = evaluate_sphere_rule(LebedevRule::Points26, &integrand, config.diagnostics)?;
     let (fine_absolute, fine_relative) =
         estimate_refinement_difference(medium.integral, fine.integral)?;
     let fine_converged = refinement_tolerance_met(
@@ -535,10 +525,7 @@ where
     integrate_sphere_samples(&rule, &values, diagnostics)
 }
 
-fn estimate_refinement_difference(
-    coarse: f64,
-    fine: f64,
-) -> Result<(f64, f64), KernelError> {
+fn estimate_refinement_difference(coarse: f64, fine: f64) -> Result<(f64, f64), KernelError> {
     let absolute = (fine - coarse).abs();
     if !absolute.is_finite() || !fine.is_finite() {
         return Err(KernelError::NumericalOverflow);
@@ -638,9 +625,11 @@ mod tests {
             let rule = rule(selected);
             assert_eq!(rule.nodes.len(), selected.node_count());
             assert!((rule.weight_sum - 4.0 * PI).abs() < 1.0e-13);
-            assert!(rule.nodes.iter().all(|node| {
-                (node.norm_squared() - 1.0).abs() < 1.0e-14 && node.weight > 0.0
-            }));
+            assert!(
+                rule.nodes.iter().all(|node| {
+                    (node.norm_squared() - 1.0).abs() < 1.0e-14 && node.weight > 0.0
+                })
+            );
         }
     }
 
@@ -751,11 +740,7 @@ mod tests {
     fn invalid_sample_shapes_values_and_thresholds_fail_closed() {
         let rule = rule(LebedevRule::Points6);
         assert_eq!(
-            integrate_sphere_samples(
-                &rule,
-                &[1.0],
-                SphereQuadratureDiagnosticsConfig::default()
-            ),
+            integrate_sphere_samples(&rule, &[1.0], SphereQuadratureDiagnosticsConfig::default()),
             Err(KernelError::InvalidSphereQuadratureNodeCount)
         );
 
