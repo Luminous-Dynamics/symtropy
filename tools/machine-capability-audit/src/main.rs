@@ -179,19 +179,22 @@ struct DependencyMetrics {
     critical_not_locally_repairable_count: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 struct RouteResult {
     route_id: String,
     disposition: Disposition,
     blockers: Vec<String>,
     local_closure: LocalClosure,
     dependency_metrics: DependencyMetrics,
+    cost_per_accepted_output_zar: f64,
+    lead_time_hours: f64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 struct CaseResult {
     disposition: Disposition,
     feasible_route_ids: Vec<String>,
+    pareto_frontier_route_ids: Vec<String>,
     route_results: Vec<RouteResult>,
     best_feasible_route_local_closure: LocalClosure,
 }
@@ -238,6 +241,53 @@ fn dependency_metrics(dependencies: &[Dependency]) -> DependencyMetrics {
     }
 }
 
+fn cost_per_accepted_output_zar(cost: &Cost) -> f64 {
+    let total_cost_zar = cost.capital_allocation_zar
+        + cost.material_zar
+        + cost.energy_zar
+        + cost.labour_zar
+        + cost.setup_zar
+        + cost.calibration_zar
+        + cost.inspection_zar
+        + cost.finishing_zar
+        + cost.transport_zar
+        + cost.maintenance_zar
+        + cost.failure_rework_zar
+        + cost.warranty_reserve_zar;
+
+    total_cost_zar / cost.accepted_outputs
+}
+
+fn pareto_frontier_route_ids(route_results: &[RouteResult]) -> Vec<String> {
+    let feasible: Vec<&RouteResult> = route_results
+        .iter()
+        .filter(|route| route.disposition == Disposition::Feasible)
+        .collect();
+
+    let mut frontier: Vec<String> = feasible
+        .iter()
+        .filter(|candidate| {
+            !feasible.iter().any(|other| {
+                let no_worse_on_cost =
+                    other.cost_per_accepted_output_zar <= candidate.cost_per_accepted_output_zar;
+                let no_worse_on_time = other.lead_time_hours <= candidate.lead_time_hours;
+                let strictly_better_on_one =
+                    other.cost_per_accepted_output_zar < candidate.cost_per_accepted_output_zar
+                        || other.lead_time_hours < candidate.lead_time_hours;
+
+                other.route_id != candidate.route_id
+                    && no_worse_on_cost
+                    && no_worse_on_time
+                    && strictly_better_on_one
+            })
+        })
+        .map(|route| route.route_id.clone())
+        .collect();
+
+    frontier.sort();
+    frontier
+}
+
 fn evaluate_route(part: &Part, route: &Route) -> RouteResult {
     if route.support_status == "unsupported" {
         return RouteResult {
@@ -246,6 +296,8 @@ fn evaluate_route(part: &Part, route: &Route) -> RouteResult {
             blockers: vec!["process_family_unsupported".to_owned()],
             local_closure: dependency_closure(&route.dependencies),
             dependency_metrics: dependency_metrics(&route.dependencies),
+            cost_per_accepted_output_zar: cost_per_accepted_output_zar(&route.cost),
+            lead_time_hours: route.lead_time_hours,
         };
     }
     if route.support_status == "unknown" {
@@ -255,6 +307,8 @@ fn evaluate_route(part: &Part, route: &Route) -> RouteResult {
             blockers: vec!["process_support_unknown".to_owned()],
             local_closure: dependency_closure(&route.dependencies),
             dependency_metrics: dependency_metrics(&route.dependencies),
+            cost_per_accepted_output_zar: cost_per_accepted_output_zar(&route.cost),
+            lead_time_hours: route.lead_time_hours,
         };
     }
     if route.support_status != "supported" {
@@ -264,6 +318,8 @@ fn evaluate_route(part: &Part, route: &Route) -> RouteResult {
             blockers: vec!["process_support_status_unsupported".to_owned()],
             local_closure: dependency_closure(&route.dependencies),
             dependency_metrics: dependency_metrics(&route.dependencies),
+            cost_per_accepted_output_zar: cost_per_accepted_output_zar(&route.cost),
+            lead_time_hours: route.lead_time_hours,
         };
     }
 
@@ -391,6 +447,8 @@ fn evaluate_route(part: &Part, route: &Route) -> RouteResult {
         blockers,
         local_closure: dependency_closure(&route.dependencies),
         dependency_metrics: dependency_metrics(&route.dependencies),
+        cost_per_accepted_output_zar: cost_per_accepted_output_zar(&route.cost),
+        lead_time_hours: route.lead_time_hours,
     }
 }
 
@@ -693,6 +751,7 @@ fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
         Disposition::Unsupported
     };
 
+    let pareto_frontier_route_ids = pareto_frontier_route_ids(&route_results);
     let best_feasible_route_local_closure = route_results
         .iter()
         .filter(|result| result.disposition == Disposition::Feasible)
@@ -703,6 +762,7 @@ fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
     Ok(CaseResult {
         disposition,
         feasible_route_ids,
+        pareto_frontier_route_ids,
         route_results,
         best_feasible_route_local_closure,
     })
@@ -917,6 +977,42 @@ mod tests {
         assert_eq!(
             result.best_feasible_route_local_closure,
             LocalClosure::Unknown
+        );
+    }
+
+    #[test]
+    fn route_cost_includes_all_cost_categories_per_accepted_output() {
+        let parsed = corpus();
+        let case = parsed
+            .cases
+            .iter()
+            .find(|case| case.scenario_id == "MCC-001")
+            .expect("MCC-001 exists");
+        let route = &case.routes[0];
+        assert_eq!(cost_per_accepted_output_zar(&route.cost), 68.0);
+    }
+
+    #[test]
+    fn pareto_frontier_keeps_cost_time_tradeoffs_and_drops_dominated_routes() {
+        let route = |route_id: &str, cost: f64, lead_time: f64, disposition| RouteResult {
+            route_id: route_id.to_owned(),
+            disposition,
+            blockers: Vec::new(),
+            local_closure: LocalClosure::ImportDependent,
+            dependency_metrics: DependencyMetrics::default(),
+            cost_per_accepted_output_zar: cost,
+            lead_time_hours: lead_time,
+        };
+        let routes = vec![
+            route("cheap-slow", 10.0, 12.0, Disposition::Feasible),
+            route("fast-expensive", 20.0, 3.0, Disposition::Feasible),
+            route("dominated", 25.0, 24.0, Disposition::Feasible),
+            route("infeasible-cheap", 1.0, 1.0, Disposition::Infeasible),
+        ];
+
+        assert_eq!(
+            pareto_frontier_route_ids(&routes),
+            vec!["cheap-slow".to_owned(), "fast-expensive".to_owned()]
         );
     }
 
