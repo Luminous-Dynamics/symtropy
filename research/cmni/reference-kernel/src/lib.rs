@@ -15,6 +15,11 @@ pub use campaign_planning::{
     EvidenceCampaignPlan,
 };
 
+mod dependence_envelope;
+pub use dependence_envelope::{
+    bound_two_source_dependence, TwoSourceDependenceEnvelope, TwoSourceDependenceProblem,
+};
+
 mod decision_value;
 pub use decision_value::{
     recommend_finite_decision_step, DecisionAbstentionReason, FiniteDecisionRecommendation,
