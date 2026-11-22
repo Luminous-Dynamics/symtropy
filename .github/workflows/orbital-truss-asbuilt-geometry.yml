@@ -80,3 +80,92 @@ jobs:
             ([.cases[] | select(.disposition == "REJECT")] | length == 3) and
             ([.cases[] | select(.disposition == "INDETERMINATE_HUMAN_REVIEW")] | length == 8)
           ' /tmp/asbuilt-oracle.json
+      - name: Compare Rust receipt with independent oracle values
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          rust = json.loads(Path("/tmp/asbuilt-a.json").read_text())
+          oracle = json.loads(Path("/tmp/asbuilt-oracle.json").read_text())
+          assert rust["input_sha256"] == oracle["input_sha256"]
+          assert rust["case_count"] == oracle["case_count"] == 13
+          assert rust["oracle_matches"] == oracle["oracle_matches"] == 13
+          oracle_by_id = {case["case_id"]: case for case in oracle["cases"]}
+          assert len(oracle_by_id) == 13
+          numeric = (
+              "residual_m", "uncertainty_radius_m", "lower_error_bound_m",
+              "upper_error_bound_m", "tolerance_m",
+          )
+          for case in rust["cases"]:
+              ref = oracle_by_id[case["case_id"]]
+              assert case["disposition"] == ref["disposition"], case["case_id"]
+              assert case["reason_codes"] == ref["reason_codes"], case["case_id"]
+              assert case["authority_granted"] is False
+              assert len(case["features"]) == len(ref["features"])
+              for actual_feature, reference_feature in zip(case["features"], ref["features"]):
+                  assert actual_feature["feature_id"] == reference_feature["feature_id"]
+                  assert actual_feature["critical"] == reference_feature["critical"]
+                  assert actual_feature["disposition"] == reference_feature["disposition"]
+                  for key in numeric:
+                      actual = actual_feature[key]
+                      expected = reference_feature[key]
+                      if expected is None:
+                          assert actual is None, (case["case_id"], key)
+                      else:
+                          assert actual is not None and abs(actual - expected) <= 1e-12, (
+                              case["case_id"], actual_feature["feature_id"], key, actual, expected
+                          )
+          print("Rust and independent oracle agree on every case, reason code and feature bound")
+          PY
+      - name: Create exact-head evidence manifest
+        if: success()
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          rust_bytes = Path("/tmp/asbuilt-a.json").read_bytes()
+          oracle_bytes = Path("/tmp/asbuilt-oracle.json").read_bytes()
+          rust = json.loads(rust_bytes)
+          oracle = json.loads(oracle_bytes)
+          manifest = {
+              "source_commit": os.environ["GITHUB_SHA"],
+              "workflow_run_id": int(os.environ["GITHUB_RUN_ID"]),
+              "run_attempt": int(os.environ["GITHUB_RUN_ATTEMPT"]),
+              "benchmark_id": rust["benchmark_id"],
+              "input_sha256": rust["input_sha256"],
+              "oracle_input_sha256": oracle["input_sha256"],
+              "fixture_sha256": hashlib.sha256(
+                  Path("docs/research/orbital-truss/fixtures/asbuilt-geometry-v0_1.json").read_bytes()
+              ).hexdigest(),
+              "schema_sha256": hashlib.sha256(
+                  Path("docs/research/orbital-truss/orbital_truss_asbuilt_geometry_v0_1.schema.json").read_bytes()
+              ).hexdigest(),
+              "rust_receipt_sha256": hashlib.sha256(rust_bytes).hexdigest(),
+              "oracle_receipt_sha256": hashlib.sha256(oracle_bytes).hexdigest(),
+              "case_count": rust["case_count"],
+              "oracle_matches": rust["oracle_matches"],
+              "oracle_mismatches": rust["oracle_mismatches"],
+              "authority_granted": rust["authority_granted"],
+              "structural_acceptance_authorized": rust["structural_acceptance_authorized"],
+              "flight_authorized": rust["flight_authorized"],
+              "physical_validation": rust["physical_validation"],
+          }
+          Path("/tmp/asbuilt-evidence-manifest.json").write_text(
+              json.dumps(manifest, sort_keys=True, indent=2) + "\\n"
+          )
+          PY
+      - name: Retain exact-head qualification evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbital-truss-asbuilt-geometry-${{ github.sha }}
+          path: |
+            /tmp/asbuilt-a.json
+            /tmp/asbuilt-oracle.json
+            /tmp/asbuilt-evidence-manifest.json
+            docs/research/orbital-truss/fixtures/asbuilt-geometry-v0_1.json
+            docs/research/orbital-truss/orbital_truss_asbuilt_geometry_v0_1.schema.json
+          if-no-files-found: error
+          retention-days: 30
