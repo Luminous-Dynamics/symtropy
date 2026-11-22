@@ -216,10 +216,10 @@ impl<const D: usize> BodyStepSnapshot<D> {
     fn capture(body: &RigidBody<D>) -> Self {
         Self {
             transform: body.transform.clone(),
-            linear_velocity: body.linear_velocity.clone(),
-            angular_velocity: body.angular_velocity.clone(),
-            force_accumulator: body.force_accumulator.clone(),
-            torque_accumulator: body.torque_accumulator.clone(),
+            linear_velocity: body.linear_velocity,
+            angular_velocity: body.angular_velocity,
+            force_accumulator: body.force_accumulator,
+            torque_accumulator: body.torque_accumulator,
             sleeping: body.sleeping,
             sleep_timer: body.sleep_timer,
             sleep_counter: body.sleep_counter,
