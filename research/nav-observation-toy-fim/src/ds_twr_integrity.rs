@@ -12,6 +12,11 @@
 
 use std::fmt;
 
+/// DW1000 device timestamp counter modulus (uint32).
+pub const MILUV_DWT_TIMESTAMP_MODULUS: u64 = 1_u64 << 32;
+/// DW1000 device timestamp tick period in seconds.
+pub const MILUV_DWT_TICK_PERIOD_S: f64 = 1.0 / (499.2e6 * 128.0);
+
 /// Numeric propagation-speed convention used by the pinned MILUV reference
 /// implementation.
 pub const MILUV_REFERENCE_PROPAGATION_SPEED_MPS: f64 = 299_702_547.0;
@@ -42,6 +47,43 @@ pub struct MiluvProcessedUnwrappedTimestampsNs {
     pub initiator_rx2: MiluvProcessedTimestampNs,
     pub responder_tx3: MiluvProcessedTimestampNs,
     pub initiator_rx3: MiluvProcessedTimestampNs,
+}
+
+/// One original unsigned 32-bit timestamp from a MILUV radio.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct MiluvRawTimestampTicks {
+    /// Raw uint32 device ticks, before conversion or rollover repair.
+    pub value_ticks: u32,
+    /// Hard absolute timestamp error bound in device ticks.
+    pub abs_error_bound_ticks: f64,
+}
+
+/// Six original device-tick events for one DS-TWR transaction.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct MiluvRawUwbTimestamps {
+    pub initiator_id: u32,
+    pub responder_id: u32,
+    pub initiator_tx1: MiluvRawTimestampTicks,
+    pub responder_rx1: MiluvRawTimestampTicks,
+    pub responder_tx2: MiluvRawTimestampTicks,
+    pub initiator_rx2: MiluvRawTimestampTicks,
+    pub responder_tx3: MiluvRawTimestampTicks,
+    pub initiator_rx3: MiluvRawTimestampTicks,
+}
+
+/// Auditable output of the bounded, per-transaction raw-tick adapter.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct MiluvRawTickAdapterReceipt {
+    pub initiator_id: u32,
+    pub responder_id: u32,
+    pub raw_initiator_ticks: [u32; 3],
+    pub raw_responder_ticks: [u32; 3],
+    pub initiator_unwrapped_ticks: [u64; 3],
+    pub responder_unwrapped_ticks: [u64; 3],
+    pub initiator_rollover_count: u64,
+    pub responder_rollover_count: u64,
+    pub maximum_inter_event_gap_ticks: u64,
+    pub duration_input: DsTwrDurationInput,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -119,6 +161,136 @@ impl DsTwrDurationInput {
     }
 }
 
+impl MiluvRawTickAdapterReceipt {
+    /// Adapt one raw DS-TWR exchange with independent local-clock unwrapping.
+    ///
+    /// The caller must provide a justified upper bound on the time between
+    /// adjacent events in each local clock sequence. This bound must be
+    /// strictly less than one uint32 wrap period; otherwise multiple-wrap
+    /// ambiguity cannot be resolved from one transaction alone.
+    ///
+    /// The initiator sequence is [tx1, rx2, rx3]. The responder sequence is
+    /// [rx1, tx2, tx3]. Each sequence is unwrapped independently. The returned
+    /// receipt preserves raw values, unwrapped values and rollover counts.
+    pub fn from_miluv_raw_uwb_timestamps(
+        timestamps: MiluvRawUwbTimestamps,
+        maximum_inter_event_gap_ticks: u64,
+        propagation_speed_mps: f64,
+    ) -> Result<Self, DsTwrRangeError> {
+        if timestamps.initiator_id == timestamps.responder_id {
+            return Err(DsTwrRangeError::InvalidRadioIdentity);
+        }
+        if maximum_inter_event_gap_ticks == 0
+            || maximum_inter_event_gap_ticks >= MILUV_DWT_TIMESTAMP_MODULUS
+        {
+            return Err(DsTwrRangeError::InvalidRolloverContract);
+        }
+
+        let events = [
+            timestamps.initiator_tx1,
+            timestamps.responder_rx1,
+            timestamps.responder_tx2,
+            timestamps.initiator_rx2,
+            timestamps.responder_tx3,
+            timestamps.initiator_rx3,
+        ];
+        if !events.iter().all(|event| {
+            event.abs_error_bound_ticks.is_finite()
+                && event.abs_error_bound_ticks >= 0.0
+        }) {
+            return Err(DsTwrRangeError::InvalidTimestampInput);
+        }
+
+        let raw_initiator_ticks = [
+            timestamps.initiator_tx1.value_ticks,
+            timestamps.initiator_rx2.value_ticks,
+            timestamps.initiator_rx3.value_ticks,
+        ];
+        let raw_responder_ticks = [
+            timestamps.responder_rx1.value_ticks,
+            timestamps.responder_tx2.value_ticks,
+            timestamps.responder_tx3.value_ticks,
+        ];
+        let (initiator_unwrapped_ticks, initiator_rollover_count) =
+            unwrap_miluv_clock_sequence(raw_initiator_ticks, maximum_inter_event_gap_ticks)?;
+        let (responder_unwrapped_ticks, responder_rollover_count) =
+            unwrap_miluv_clock_sequence(raw_responder_ticks, maximum_inter_event_gap_ticks)?;
+
+        let ticks_to_seconds = MILUV_DWT_TICK_PERIOD_S;
+        let a_s = (initiator_unwrapped_ticks[1] - initiator_unwrapped_ticks[0]) as f64
+            * ticks_to_seconds;
+        let b_s = (initiator_unwrapped_ticks[2] - initiator_unwrapped_ticks[1]) as f64
+            * ticks_to_seconds;
+        let c_s = (responder_unwrapped_ticks[2] - responder_unwrapped_ticks[1]) as f64
+            * ticks_to_seconds;
+        let d_s = (responder_unwrapped_ticks[1] - responder_unwrapped_ticks[0]) as f64
+            * ticks_to_seconds;
+
+        let a_error_s = (timestamps.initiator_tx1.abs_error_bound_ticks
+            + timestamps.initiator_rx2.abs_error_bound_ticks)
+            * ticks_to_seconds;
+        let b_error_s = (timestamps.initiator_rx2.abs_error_bound_ticks
+            + timestamps.initiator_rx3.abs_error_bound_ticks)
+            * ticks_to_seconds;
+        let c_error_s = (timestamps.responder_tx2.abs_error_bound_ticks
+            + timestamps.responder_tx3.abs_error_bound_ticks)
+            * ticks_to_seconds;
+        let d_error_s = (timestamps.responder_rx1.abs_error_bound_ticks
+            + timestamps.responder_tx2.abs_error_bound_ticks)
+            * ticks_to_seconds;
+
+        let duration_input = DsTwrDurationInput {
+            round_trip_term_s: a_s,
+            round_trip_abs_error_bound_s: a_error_s,
+            clock_scaled_response_term_s: b_s,
+            clock_scaled_response_abs_error_bound_s: b_error_s,
+            clock_scale_reference_term_s: c_s,
+            clock_scale_reference_abs_error_bound_s: c_error_s,
+            turnaround_term_s: d_s,
+            turnaround_abs_error_bound_s: d_error_s,
+            propagation_speed_mps,
+        };
+
+        Ok(Self {
+            initiator_id: timestamps.initiator_id,
+            responder_id: timestamps.responder_id,
+            raw_initiator_ticks,
+            raw_responder_ticks,
+            initiator_unwrapped_ticks,
+            responder_unwrapped_ticks,
+            initiator_rollover_count,
+            responder_rollover_count,
+            maximum_inter_event_gap_ticks,
+            duration_input,
+        })
+    }
+}
+
+/// Unwrap one monotonic three-event local clock sequence under a caller-supplied
+/// sub-wrap maximum-gap contract. A raw decrease denotes one counter rollover.
+fn unwrap_miluv_clock_sequence(
+    raw: [u32; 3],
+    maximum_inter_event_gap_ticks: u64,
+) -> Result<([u64; 3], u64), DsTwrRangeError> {
+    let mut unwrapped = [raw[0] as u64, 0, 0];
+    let mut rollover_count = 0_u64;
+
+    for index in 1..3 {
+        if raw[index] < raw[index - 1] {
+            rollover_count += 1;
+        }
+        let current = raw[index] as u64
+            + rollover_count * MILUV_DWT_TIMESTAMP_MODULUS;
+        let gap = current - unwrapped[index - 1];
+        if gap == 0 || gap > maximum_inter_event_gap_ticks {
+            return Err(DsTwrRangeError::AmbiguousTimestampRollover);
+        }
+        unwrapped[index] = current;
+    }
+
+    Ok((unwrapped, rollover_count))
+}
+
 /// Convert a pair of already-unwrapped nanosecond timestamps into a duration
 /// and conservative endpoint-error bound in seconds.
 fn processed_timestamp_difference_s(
@@ -170,6 +342,8 @@ pub enum DsTwrRangeError {
     InvalidTimestampInput,
     InvalidRadioIdentity,
     InvalidPropagationSpeed,
+    InvalidRolloverContract,
+    AmbiguousTimestampRollover,
     DurationIntervalNotStrictlyPositive(&'static str),
     NonPhysicalRangeInterval,
     InvalidNlosBiasBound,
@@ -189,6 +363,12 @@ impl fmt::Display for DsTwrRangeError {
             },
             Self::InvalidPropagationSpeed => {
                 write!(f, "propagation speed must be finite and strictly positive")
+            },
+            Self::InvalidRolloverContract => {
+                write!(f, "maximum inter-event gap must be positive and strictly less than one uint32 wrap period")
+            },
+            Self::AmbiguousTimestampRollover => {
+                write!(f, "raw timestamp sequence has a zero or over-bound inter-event interval")
             },
             Self::DurationIntervalNotStrictlyPositive(name) => write!(f, "DS-TWR duration interval must remain strictly positive: {name}"),
             Self::NonPhysicalRangeInterval => write!(f, "DS-TWR time-of-flight interval contains no physically admissible nonnegative range"),
@@ -584,6 +764,159 @@ mod tests {
             ),
             Err(DsTwrRangeError::InvalidTimestampInput)
         );
+    }
+
+
+
+    fn raw_event(value_ticks: u32, abs_error_bound_ticks: f64) -> MiluvRawTimestampTicks {
+        MiluvRawTimestampTicks {
+            value_ticks,
+            abs_error_bound_ticks,
+        }
+    }
+
+    fn raw_miluv_timestamps(
+        initiator: [u32; 3],
+        responder: [u32; 3],
+    ) -> MiluvRawUwbTimestamps {
+        MiluvRawUwbTimestamps {
+            initiator_id: 10,
+            responder_id: 20,
+            initiator_tx1: raw_event(initiator[0], 0.25),
+            initiator_rx2: raw_event(initiator[1], 0.25),
+            initiator_rx3: raw_event(initiator[2], 0.25),
+            responder_rx1: raw_event(responder[0], 0.25),
+            responder_tx2: raw_event(responder[1], 0.25),
+            responder_tx3: raw_event(responder[2], 0.25),
+        }
+    }
+
+    #[test]
+    fn raw_tick_adapter_constructs_four_durations_from_distinct_clock_sequences() {
+        let receipt = MiluvRawTickAdapterReceipt::from_miluv_raw_uwb_timestamps(
+            raw_miluv_timestamps([1_000, 1_300, 1_400], [2_000, 2_100, 2_200]),
+            10_000,
+            MILUV_REFERENCE_PROPAGATION_SPEED_MPS,
+        )
+        .unwrap();
+        let tick = MILUV_DWT_TICK_PERIOD_S;
+        assert!((receipt.duration_input.round_trip_term_s - 300.0 * tick).abs() < 1.0e-18);
+        assert!((receipt.duration_input.clock_scaled_response_term_s - 100.0 * tick).abs() < 1.0e-18);
+        assert!((receipt.duration_input.clock_scale_reference_term_s - 100.0 * tick).abs() < 1.0e-18);
+        assert!((receipt.duration_input.turnaround_term_s - 100.0 * tick).abs() < 1.0e-18);
+        assert_eq!(receipt.initiator_rollover_count, 0);
+        assert_eq!(receipt.responder_rollover_count, 0);
+    }
+
+    #[test]
+    fn raw_tick_adapter_unwraps_initiator_and_responder_clocks_independently() {
+        let modulus = MILUV_DWT_TIMESTAMP_MODULUS as u32;
+        let receipt = MiluvRawTickAdapterReceipt::from_miluv_raw_uwb_timestamps(
+            raw_miluv_timestamps(
+                [modulus - 200, 100, 200],
+                [modulus - 200, 0, 100],
+            ),
+            1_000,
+            MILUV_REFERENCE_PROPAGATION_SPEED_MPS,
+        )
+        .unwrap();
+        assert_eq!(receipt.initiator_unwrapped_ticks, [
+            (modulus as u64) - 200,
+            (modulus as u64) + 100,
+            (modulus as u64) + 200,
+        ]);
+        assert_eq!(receipt.responder_unwrapped_ticks, [
+            (modulus as u64) - 200,
+            modulus as u64,
+            (modulus as u64) + 100,
+        ]);
+        assert_eq!(receipt.initiator_rollover_count, 1);
+        assert_eq!(receipt.responder_rollover_count, 1);
+        assert_eq!(receipt.raw_initiator_ticks[0], modulus - 200);
+        assert_eq!(receipt.raw_responder_ticks[1], 0);
+    }
+
+    #[test]
+    fn raw_tick_adapter_preserves_sub_tick_error_bounds() {
+        let receipt = MiluvRawTickAdapterReceipt::from_miluv_raw_uwb_timestamps(
+            raw_miluv_timestamps([1_000, 1_300, 1_400], [2_000, 2_100, 2_200]),
+            10_000,
+            MILUV_REFERENCE_PROPAGATION_SPEED_MPS,
+        )
+        .unwrap();
+        let expected = 0.5 * MILUV_DWT_TICK_PERIOD_S;
+        assert!((receipt.duration_input.round_trip_abs_error_bound_s - expected).abs() < 1.0e-24);
+        assert!((receipt.duration_input.clock_scaled_response_abs_error_bound_s - expected).abs() < 1.0e-24);
+        assert!((receipt.duration_input.clock_scale_reference_abs_error_bound_s - expected).abs() < 1.0e-24);
+        assert!((receipt.duration_input.turnaround_abs_error_bound_s - expected).abs() < 1.0e-24);
+    }
+
+    #[test]
+    fn raw_tick_adapter_rejects_unjustified_or_exceeded_rollover_contract() {
+        let timestamps = raw_miluv_timestamps([1_000, 1_300, 1_400], [2_000, 2_100, 2_200]);
+        assert_eq!(
+            MiluvRawTickAdapterReceipt::from_miluv_raw_uwb_timestamps(
+                timestamps,
+                0,
+                MILUV_REFERENCE_PROPAGATION_SPEED_MPS,
+            ),
+            Err(DsTwrRangeError::InvalidRolloverContract)
+        );
+        assert_eq!(
+            MiluvRawTickAdapterReceipt::from_miluv_raw_uwb_timestamps(
+                timestamps,
+                MILUV_DWT_TIMESTAMP_MODULUS,
+                MILUV_REFERENCE_PROPAGATION_SPEED_MPS,
+            ),
+            Err(DsTwrRangeError::InvalidRolloverContract)
+        );
+        assert_eq!(
+            MiluvRawTickAdapterReceipt::from_miluv_raw_uwb_timestamps(
+                timestamps,
+                100,
+                MILUV_REFERENCE_PROPAGATION_SPEED_MPS,
+            ),
+            Err(DsTwrRangeError::AmbiguousTimestampRollover)
+        );
+    }
+
+    #[test]
+    fn raw_tick_adapter_rejects_invalid_error_bounds_and_same_radio_identity() {
+        let mut timestamps = raw_miluv_timestamps([1_000, 1_300, 1_400], [2_000, 2_100, 2_200]);
+        timestamps.initiator_rx2.abs_error_bound_ticks = f64::INFINITY;
+        assert_eq!(
+            MiluvRawTickAdapterReceipt::from_miluv_raw_uwb_timestamps(
+                timestamps,
+                10_000,
+                MILUV_REFERENCE_PROPAGATION_SPEED_MPS,
+            ),
+            Err(DsTwrRangeError::InvalidTimestampInput)
+        );
+
+        let mut timestamps = raw_miluv_timestamps([1_000, 1_300, 1_400], [2_000, 2_100, 2_200]);
+        timestamps.responder_id = timestamps.initiator_id;
+        assert_eq!(
+            MiluvRawTickAdapterReceipt::from_miluv_raw_uwb_timestamps(
+                timestamps,
+                10_000,
+                MILUV_REFERENCE_PROPAGATION_SPEED_MPS,
+            ),
+            Err(DsTwrRangeError::InvalidRadioIdentity)
+        );
+    }
+
+    #[test]
+    fn raw_tick_adapter_output_is_consumable_by_interval_kernel() {
+        let receipt = MiluvRawTickAdapterReceipt::from_miluv_raw_uwb_timestamps(
+            raw_miluv_timestamps([1_000, 1_300, 1_400], [2_000, 2_100, 2_200]),
+            10_000,
+            MILUV_REFERENCE_PROPAGATION_SPEED_MPS,
+        )
+        .unwrap();
+        let range = ds_twr_range_interval(receipt.duration_input).unwrap();
+        assert!(range.nominal_range_m.is_finite());
+        assert!(range.lower_bound_m <= range.nominal_range_m);
+        assert!(range.nominal_range_m <= range.upper_bound_m);
     }
 
     #[test]
