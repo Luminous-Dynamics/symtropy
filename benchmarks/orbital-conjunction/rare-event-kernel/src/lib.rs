@@ -34,7 +34,9 @@ pub mod stats;
 pub mod trajectory;
 
 pub use residual::{
-    AffineResidualMassConfig, AffineResidualMassReport, affine_collision_residual_mass_upper_bound,
+    AffineCollisionComponent, AffineResidualMassConfig, AffineResidualMassReport,
+    AffineUnionResidualMassConfig, affine_collision_residual_mass_upper_bound,
+    affine_union_collision_residual_mass_upper_bound,
 };
 pub use sequential::{BernoulliConfidenceSequence, BernoulliMixtureEProcess};
 pub use trajectory::{
@@ -79,6 +81,8 @@ pub enum KernelError {
     InvalidCoverageBudget,
     /// A declared chart box is not wholly contained in the finite search cube.
     CoverageChartOutsideDomain,
+    /// A residual-mass event union contains no components.
+    EmptyEventUnion,
     /// An interval-enclosed trajectory coordinate has no polynomial coefficients.
     InvalidPolynomial,
     /// A time-window classification was configured with a zero interval budget.
@@ -117,6 +121,7 @@ impl fmt::Display for KernelError {
             Self::InvalidHardBodyRadius => "hard-body radius must be nonnegative and finite",
             Self::InvalidCoverageBudget => "coverage traversal cell budget must be nonzero",
             Self::CoverageChartOutsideDomain => "coverage chart box lies outside the search cube",
+            Self::EmptyEventUnion => "residual-mass event union must contain at least one component",
             Self::InvalidPolynomial => "trajectory polynomial must contain at least one coefficient per axis",
             Self::InvalidTrajectoryBudget => "trajectory time-interval budget must be nonzero",
             Self::CounterOverflow => "streaming observation counter overflowed",
