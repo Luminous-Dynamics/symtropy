@@ -761,7 +761,9 @@ mod tests {
         );
         assert!(matches!(
             build_transformation_groups(&[first, second]),
-            Err(TransformationGroupingError::ConflictingSourceEventRevision(_))
+            Err(TransformationGroupingError::ConflictingSourceEventRevision(
+                _
+            ))
         ));
     }
 
