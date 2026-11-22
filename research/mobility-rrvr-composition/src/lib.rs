@@ -364,7 +364,7 @@ mod tests {
         }
     }
 
-    fn no_effect_profile() -> ClaimProfile {
+    fn make_no_effect_profile() -> ClaimProfile {
         ClaimProfile {
             claim_id: "old-attempt-effect-1-attempt-1-no-effect".to_owned(),
             scope_commitment: evidence_commitment(55),
@@ -376,7 +376,7 @@ mod tests {
         }
     }
 
-    fn downstream_profile() -> ClaimProfile {
+    fn make_downstream_profile() -> ClaimProfile {
         ClaimProfile {
             claim_id: "downstream-graph-boot-new-epoch-9-quiescent".to_owned(),
             scope_commitment: evidence_commitment(59),
@@ -403,7 +403,7 @@ mod tests {
         }
     }
 
-    fn no_effect_facts(profile: &ClaimProfile) -> Vec<EvidenceFact> {
+    fn make_no_effect_facts(profile: &ClaimProfile) -> Vec<EvidenceFact> {
         vec![
             claim_fact(
                 profile,
@@ -418,7 +418,7 @@ mod tests {
         ]
     }
 
-    fn downstream_facts(profile: &ClaimProfile) -> Vec<EvidenceFact> {
+    fn make_downstream_facts(profile: &ClaimProfile) -> Vec<EvidenceFact> {
         vec![
             claim_fact(
                 profile,
@@ -463,10 +463,10 @@ mod tests {
     fn independent_no_effect_and_graph_quiescence_claims_are_both_required() {
         let recovery = recovery_packet();
         let downstream = downstream_packet();
-        let no_effect_profile = no_effect_profile();
-        let no_effect_facts = no_effect_facts(&no_effect_profile);
-        let graph_profile = downstream_profile();
-        let graph_facts = downstream_facts(&graph_profile);
+        let no_effect_profile = make_no_effect_profile();
+        let no_effect_facts = make_no_effect_facts(&no_effect_profile);
+        let graph_profile = make_downstream_profile();
+        let graph_facts = make_downstream_facts(&graph_profile);
         let result = assess_pre_native(&input(
             &recovery,
             &downstream,
@@ -499,10 +499,10 @@ mod tests {
         let recovery = recovery_packet();
         let mut downstream = downstream_packet();
         downstream.receipts.pop();
-        let no_effect_profile = no_effect_profile();
-        let no_effect_facts = no_effect_facts(&no_effect_profile);
-        let graph_profile = downstream_profile();
-        let graph_facts = downstream_facts(&graph_profile);
+        let no_effect_profile = make_no_effect_profile();
+        let no_effect_facts = make_no_effect_facts(&no_effect_profile);
+        let graph_profile = make_downstream_profile();
+        let graph_facts = make_downstream_facts(&graph_profile);
         let result = assess_pre_native(&input(
             &recovery,
             &downstream,
@@ -525,10 +525,10 @@ mod tests {
         let recovery = recovery_packet();
         let mut downstream = downstream_packet();
         downstream.transition.logical_effect_id = "other-effect".to_owned();
-        let no_effect_profile = no_effect_profile();
-        let no_effect_facts = no_effect_facts(&no_effect_profile);
-        let graph_profile = downstream_profile();
-        let graph_facts = downstream_facts(&graph_profile);
+        let no_effect_profile = make_no_effect_profile();
+        let no_effect_facts = make_no_effect_facts(&no_effect_profile);
+        let graph_profile = make_downstream_profile();
+        let graph_facts = make_downstream_facts(&graph_profile);
         let result = assess_pre_native(&input(
             &recovery,
             &downstream,
@@ -563,10 +563,10 @@ mod tests {
         let recovery = recovery_packet();
         let mut downstream = downstream_packet();
         downstream.transition.new_boot_epoch_id = "stale-boot".to_owned();
-        let no_effect_profile = no_effect_profile();
-        let no_effect_facts = no_effect_facts(&no_effect_profile);
-        let graph_profile = downstream_profile();
-        let graph_facts = downstream_facts(&graph_profile);
+        let no_effect_profile = make_no_effect_profile();
+        let no_effect_facts = make_no_effect_facts(&no_effect_profile);
+        let graph_profile = make_downstream_profile();
+        let graph_facts = make_downstream_facts(&graph_profile);
         let result = assess_pre_native(&input(
             &recovery,
             &downstream,
@@ -600,11 +600,11 @@ mod tests {
     fn wrong_no_effect_claim_id_or_scope_holds() {
         let recovery = recovery_packet();
         let downstream = downstream_packet();
-        let mut no_effect_profile = no_effect_profile();
-        let no_effect_facts = no_effect_facts(&no_effect_profile);
+        let mut no_effect_profile = make_no_effect_profile();
+        let no_effect_facts = make_no_effect_facts(&no_effect_profile);
         no_effect_profile.claim_id = "some-other-claim".to_owned();
-        let graph_profile = downstream_profile();
-        let graph_facts = downstream_facts(&graph_profile);
+        let graph_profile = make_downstream_profile();
+        let graph_facts = make_downstream_facts(&graph_profile);
         let result = assess_pre_native(&input(
             &recovery,
             &downstream,
@@ -618,8 +618,8 @@ mod tests {
             CompositionDisposition::Hold(CompositionHold::RequiredNoEffectClaimIdMismatch)
         );
 
-        let no_effect_profile = no_effect_profile();
-        let no_effect_facts = no_effect_facts(&no_effect_profile);
+        let no_effect_profile = make_no_effect_profile();
+        let no_effect_facts = make_no_effect_facts(&no_effect_profile);
         let mut composition_input = input(
             &recovery,
             &downstream,
@@ -642,10 +642,10 @@ mod tests {
     fn wrong_graph_claim_id_or_scope_holds() {
         let recovery = recovery_packet();
         let downstream = downstream_packet();
-        let no_effect_profile = no_effect_profile();
-        let no_effect_facts = no_effect_facts(&no_effect_profile);
-        let mut graph_profile = downstream_profile();
-        let graph_facts = downstream_facts(&graph_profile);
+        let no_effect_profile = make_no_effect_profile();
+        let no_effect_facts = make_no_effect_facts(&no_effect_profile);
+        let mut graph_profile = make_downstream_profile();
+        let graph_facts = make_downstream_facts(&graph_profile);
         graph_profile.claim_id = "different-graph-claim".to_owned();
         let result = assess_pre_native(&input(
             &recovery,
@@ -660,8 +660,8 @@ mod tests {
             CompositionDisposition::Hold(CompositionHold::RequiredDownstreamClaimIdMismatch)
         );
 
-        let graph_profile = downstream_profile();
-        let graph_facts = downstream_facts(&graph_profile);
+        let graph_profile = make_downstream_profile();
+        let graph_facts = make_downstream_facts(&graph_profile);
         let mut composition_input = input(
             &recovery,
             &downstream,
@@ -684,9 +684,9 @@ mod tests {
     fn graph_quiescence_requires_its_own_confirmed_evidence() {
         let recovery = recovery_packet();
         let downstream = downstream_packet();
-        let no_effect_profile = no_effect_profile();
-        let no_effect_facts = no_effect_facts(&no_effect_profile);
-        let graph_profile = downstream_profile();
+        let no_effect_profile = make_no_effect_profile();
+        let no_effect_facts = make_no_effect_facts(&no_effect_profile);
+        let graph_profile = make_downstream_profile();
         let incomplete_graph_facts = vec![claim_fact(
             &graph_profile,
             "bus-observation-only",
@@ -709,7 +709,7 @@ mod tests {
             CompositionDisposition::Hold(CompositionHold::DownstreamEvidenceNotConfirmed)
         );
 
-        let mut contradictory_graph_facts = downstream_facts(&graph_profile);
+        let mut contradictory_graph_facts = make_downstream_facts(&graph_profile);
         contradictory_graph_facts.push(EvidenceFact {
             claim_id: graph_profile.claim_id.clone(),
             scope_commitment: graph_profile.scope_commitment,
@@ -741,11 +741,11 @@ mod tests {
     fn no_effect_claim_requires_its_own_independent_confirmation() {
         let recovery = recovery_packet();
         let downstream = downstream_packet();
-        let no_effect_profile = no_effect_profile();
-        let graph_profile = downstream_profile();
-        let graph_facts = downstream_facts(&graph_profile);
+        let no_effect_profile = make_no_effect_profile();
+        let graph_profile = make_downstream_profile();
+        let graph_facts = make_downstream_facts(&graph_profile);
 
-        let mut contradictory_no_effect_facts = no_effect_facts(&no_effect_profile);
+        let mut contradictory_no_effect_facts = make_no_effect_facts(&no_effect_profile);
         contradictory_no_effect_facts.push(EvidenceFact {
             claim_id: no_effect_profile.claim_id.clone(),
             scope_commitment: no_effect_profile.scope_commitment,
@@ -799,9 +799,9 @@ mod tests {
     fn subject_support_alone_does_not_satisfy_the_no_effect_claim() {
         let recovery = recovery_packet();
         let downstream = downstream_packet();
-        let no_effect_profile = no_effect_profile();
-        let graph_profile = downstream_profile();
-        let graph_facts = downstream_facts(&graph_profile);
+        let no_effect_profile = make_no_effect_profile();
+        let graph_profile = make_downstream_profile();
+        let graph_facts = make_downstream_facts(&graph_profile);
         let subject_only = vec![EvidenceFact {
             claim_id: no_effect_profile.claim_id.clone(),
             scope_commitment: no_effect_profile.scope_commitment,
@@ -849,10 +849,10 @@ mod tests {
         recovery.recovery_permit = None;
         recovery.next_ticket = None;
         let downstream = downstream_packet();
-        let no_effect_profile = no_effect_profile();
-        let no_effect_facts = no_effect_facts(&no_effect_profile);
-        let graph_profile = downstream_profile();
-        let graph_facts = downstream_facts(&graph_profile);
+        let no_effect_profile = make_no_effect_profile();
+        let no_effect_facts = make_no_effect_facts(&no_effect_profile);
+        let graph_profile = make_downstream_profile();
+        let graph_facts = make_downstream_facts(&graph_profile);
         let result = assess_pre_native(&input(
             &recovery,
             &downstream,
@@ -886,10 +886,10 @@ mod tests {
         recovery.recovery_permit = None;
         recovery.next_ticket = None;
         let downstream = downstream_packet();
-        let no_effect_profile = no_effect_profile();
-        let no_effect_facts = no_effect_facts(&no_effect_profile);
-        let graph_profile = downstream_profile();
-        let graph_facts = downstream_facts(&graph_profile);
+        let no_effect_profile = make_no_effect_profile();
+        let no_effect_facts = make_no_effect_facts(&no_effect_profile);
+        let graph_profile = make_downstream_profile();
+        let graph_facts = make_downstream_facts(&graph_profile);
         let result = assess_pre_native(&input(
             &recovery,
             &downstream,
@@ -914,10 +914,10 @@ mod tests {
         recovery.persistence =
             mobility_restart_reconciliation::PersistenceVerdict::IndeterminateCommit;
         let downstream = downstream_packet();
-        let no_effect_profile = no_effect_profile();
-        let no_effect_facts = no_effect_facts(&no_effect_profile);
-        let graph_profile = downstream_profile();
-        let graph_facts = downstream_facts(&graph_profile);
+        let no_effect_profile = make_no_effect_profile();
+        let no_effect_facts = make_no_effect_facts(&no_effect_profile);
+        let graph_profile = make_downstream_profile();
+        let graph_facts = make_downstream_facts(&graph_profile);
         let result = assess_pre_native(&input(
             &recovery,
             &downstream,
