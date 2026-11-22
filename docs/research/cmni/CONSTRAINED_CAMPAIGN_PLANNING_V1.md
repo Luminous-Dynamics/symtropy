@@ -100,4 +100,6 @@ The synthetic prior is 0.35 / 0.35 for physical A/B under a good calibration and
 
 The exact scenario-tree oracle returns net utility 0.395722. It uses three tests only on the branch where the first two disagree, whose probability is 0.0198. The expected number of acquisitions is 2.0198; the remaining paths stop after two observations. This provides a concrete shared-cause example: repeated measurements do not supply fresh independent calibration information, and the planner must preserve the shared latent state when calculating the joint outcome law.
 
+The complete synthetic input and target values are frozen in research/cmni/fixtures/repeated-tests-shared-calibration-v1.json.
+
 The test does not establish any real calibration probability or detector likelihood. It tests the mathematics of the declared finite model and the requirement to include common-cause variables in the expanded state.
