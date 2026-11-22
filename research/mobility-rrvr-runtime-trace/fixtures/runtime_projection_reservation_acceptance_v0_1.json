@@ -175,7 +175,7 @@
           "raw_artifact_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
         },
         {
-          "domain": "no_effect_observer_quorum",
+          "domain": "physical_outcome_observer_quorum",
           "status": "not_applicable",
           "owner_id": "owner-6",
           "owner_revision": "revision-6",
@@ -419,7 +419,7 @@
           "raw_artifact_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
         },
         {
-          "domain": "no_effect_observer_quorum",
+          "domain": "physical_outcome_observer_quorum",
           "status": "not_applicable",
           "owner_id": "owner-6",
           "owner_revision": "revision-6",
@@ -663,7 +663,7 @@
           "raw_artifact_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
         },
         {
-          "domain": "no_effect_observer_quorum",
+          "domain": "physical_outcome_observer_quorum",
           "status": "not_applicable",
           "owner_id": "owner-6",
           "owner_revision": "revision-6",
@@ -907,7 +907,7 @@
           "raw_artifact_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
         },
         {
-          "domain": "no_effect_observer_quorum",
+          "domain": "physical_outcome_observer_quorum",
           "status": "not_applicable",
           "owner_id": "owner-6",
           "owner_revision": "revision-6",
