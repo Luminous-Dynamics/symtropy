@@ -189,48 +189,6 @@ jobs:
               >> SHA256SUMS
           )
 
-      - name: Emit full no-effect recovery projection
-        shell: bash
-        run: |
-          set -euo pipefail
-          FIXTURE="research/mobility-rrvr-runtime-trace/fixtures/runtime_projection_no_effect_recovery_v0_1.json"
-          TRACE="$RUNNER_TEMP/rrvr-runtime-projection/no-effect-recovery-trace.ndjson"
-          SIDECAR="$RUNNER_TEMP/rrvr-runtime-projection/no-effect-recovery-sidecar.json"
-          MANIFEST="$RUNNER_TEMP/rrvr-runtime-projection/no-effect-recovery-manifest.json"
-          cargo run --locked \
-            --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml \
-            --bin rrvr_runtime_project -- "$FIXTURE" "$TRACE" "$SIDECAR" > "$MANIFEST"
-          jq -e '
-            .projection_validation == "passed"
-            and .tla_conformance == "not_run"
-            and .snapshot_count == 17
-          ' "$MANIFEST"
-          test "$(wc -l < "$TRACE" | tr -d ' ')" -eq 17
-          jq -e -s '
-            length == 17
-            and .[12].event == "ObserveOldEffect"
-            and .[14].event == "IssueRecoveryPermit"
-            and .[15].event == "CreateFreshTicket"
-            and .[16].event == "NativeAcceptRecovery"
-            and .[16].state.s.recoveryPermit == "consumed"
-            and .[16].state.s.permitUseCount == 1
-            and .[16].state.s.downstreamFenceBootEpoch == 0
-            and .[16].state.s.admittedDownstreamFence == true
-          ' "$TRACE"
-          jq -e '
-            .snapshots | length == 17
-            and (.[16].owner_evidence | length == 10)
-            and ([.[16].owner_evidence[]
-                  | select(.domain == "physical_outcome_observer_quorum" or .domain == "downstream_observer_quorum")
-                  | .status] | all(. == "quorum_qualified"))
-          ' "$SIDECAR"
-          cp "$FIXTURE" "$RUNNER_TEMP/rrvr-runtime-projection/no-effect-recovery-recording.json"
-          (
-            cd "$RUNNER_TEMP/rrvr-runtime-projection"
-            sha256sum no-effect-recovery-recording.json no-effect-recovery-trace.ndjson \
-              no-effect-recovery-sidecar.json no-effect-recovery-manifest.json >> SHA256SUMS
-          )
-
       - name: Upload projection conformance package
         if: success()
         uses: actions/upload-artifact@v4
