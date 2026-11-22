@@ -701,7 +701,13 @@ mod tests {
     fn historical_cutoff_replays_only_membership_events_visible_at_that_time() {
         let modules = modules(&["CONTAINER", "PALLET"]);
         let add = event("ADD", 10, "CONTAINER", "PALLET", MembershipAction::Add);
-        let mut delete = event("DELETE", 20, "CONTAINER", "PALLET", MembershipAction::Delete);
+        let mut delete = event(
+            "DELETE",
+            20,
+            "CONTAINER",
+            "PALLET",
+            MembershipAction::Delete,
+        );
         delete.published_at = 30;
 
         let before_publication =
