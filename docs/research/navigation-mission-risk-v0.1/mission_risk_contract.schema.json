@@ -27,7 +27,7 @@
       "properties": {
         "scale": { "const": "probability_quanta_1e-15" },
         "mission_budget_quanta": { "type": "integer", "minimum": 1, "maximum": 999999999999999 },
-        "check_set_sha256": { "$ref": "#/$defs/sha256" },
+        "check_set_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
         "check_set_frozen": { "type": "boolean" }
       }
     },
@@ -93,7 +93,6 @@
               "confidence_quanta": { "type": "integer", "minimum": 1 },
               "independent_unit_kind": { "type": "string", "minLength": 1 },
               "independent_unit_count": { "type": "integer", "minimum": 1 },
-              "failure_count": { "type": "integer", "minimum": 0 },
               "independence_basis_ref": { "type": "string", "minLength": 1 },
               "operational_domain_ref": { "type": "string", "minLength": 1 },
               "method_definition_ref": { "type": "string", "minLength": 1 },
@@ -106,13 +105,22 @@
           }
         },
         {
+          "if": { "properties": { "status": { "const": "empirical_clopper_pearson" } }, "required": ["method", "status"] },
+          "then": { "properties": { "failure_count": { "type": "integer", "minimum": 0 } } }
+        },
+        {
           "if": { "properties": { "status": { "const": "unqualified" } }, "required": ["status"] },
           "then": {
             "properties": {
+              "method": { "type": "null" },
               "upper_bound_quanta": { "type": "null" },
               "confidence_quanta": { "type": "null" },
+              "independent_unit_kind": { "type": "null" },
               "independent_unit_count": { "type": "null" },
               "failure_count": { "type": "null" },
+              "independence_basis_ref": { "type": "null" },
+              "operational_domain_ref": { "type": "null" },
+              "method_definition_ref": { "type": "null" },
               "calibration_split_sha256": { "type": "null" },
               "bound_result_sha256": { "type": "null" },
               "truth_oracle_receipt_sha256": { "type": "null" },
