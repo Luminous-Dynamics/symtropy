@@ -102,15 +102,26 @@ For each component/process dependency, report:
 
 These states are not synonyms. A local distributor is not a local manufacturer. Local assembly does not imply local manufacture. Imported equipment with local repair may be maintainable but not reproducible.
 
+The evaluator now constructs the **transitive prerequisite closure rooted at every critical machine dependency**. Each `requires` edge is an AND prerequisite: a calibration fixture, service tool, metrology reference, upstream machine, or other child dependency participates in the closure even if its own inventory label is `important` or `noncritical`. Classification is not limited to the first BOM tier.
+
+Only dependencies reachable from critical roots influence the required closure; unrelated spare inventory is reported separately and does not make a machine appear less reproducible. Missing references, duplicate identities, or any cycle in the declared dependency graph return Unknown rather than proving closure.
+
+The evaluator reports both direct-critical metrics and full required-closure metrics:
+- direct critical item count and no-alternate / not-repairable counts;
+- transitive required dependency count and no-alternate / not-repairable counts;
+- closure disposition using the full transitive set.
+
 Report separate dimensions:
-- share of critical BOM items with verified local manufacturing route;
+- share of critical BOM roots with verified local manufacturing route;
+- share of their transitive prerequisites with verified local manufacturing route;
 - share with verified local service/repair route;
-- critical items with an alternate source;
-- imported/unknown critical exposure;
-- replacement lead-time distribution;
+- direct and transitive dependency nodes without alternate sources;
+- imported/unknown critical exposure and replacement lead-time distribution;
 - skills/process/tool dependencies that prevent independent reproduction.
 
-Do not produce a single self-sufficiency scalar. Do not allow a cyclic dependency graph to prove its own closure. The generic AND/OR closure theorem remains with Symthaea CIV-BOOT #5774/#5781; this project supplies machine-specific subjects and evidence, not a competing theorem.
+Do not produce a single self-sufficiency scalar. Do not allow a cyclic dependency graph to prove its own closure. The generic AND/OR closure theorem remains with Symthaea CIV-BOOT #5774/#5781; this project supplies a bounded machine-subject evaluator and evidence fixtures, not a competing general theorem.
+
+**Adversarial reference:** MCC-022 has a locally serviced printer whose critical frame depends on a noncritical-labelled calibration fixture that is imported, long-lead and not locally repairable. The overall route can still be feasible, but the machine is classified `import_dependent`. A separate test confirms that an unreferenced imported spare does not affect the required closure.
 
 ## 6. Whole-route economics
 
