@@ -97,6 +97,7 @@ pub struct AnalyticResult {
     pub equivalent_decompositions: Vec<EquivalentDecomposition>,
     pub shape_identifiable_from_timestamps_alone: bool,
     pub scale_identifiable_from_timestamps_alone: bool,
+    pub expected_result_matched: bool,
     pub blockers: Vec<String>,
 }
 
@@ -143,6 +144,7 @@ pub struct Summary {
     pub analytic_case_count: usize,
     pub equivalent_decomposition_count: usize,
     pub sensitivity_case_count: usize,
+    pub analytic_expected_result_mismatches: usize,
     pub sensitivity_mismatches: usize,
     pub simulation_case_count: usize,
     pub simulation_consistent_count: usize,
@@ -327,7 +329,7 @@ pub fn simulate_thinned_history(
         || physical_event_count == 0 || physical_event_count > MAX_EVENTS
         || physical_seed > MAX_SAFE_INTEGER || capture_seed > MAX_SAFE_INTEGER
         || physical_seed == capture_seed
-        || physical_event_count.saturating_mul(1) > MAX_SIMULATION_DRAWS
+        || physical_event_count.saturating_mul(2) > MAX_SIMULATION_DRAWS
     {
         return Err("simulation configuration is outside the supported domain".to_owned());
     }
@@ -385,21 +387,32 @@ fn evaluate_analytic_case(case: &AnalyticCase) -> Result<AnalyticResult, String>
             observationally_equivalent,
         });
     }
-    let shape_identifiable = case.decomposition_gammas.len() == 1;
+    let shape_identifiable = false;
+    let equivalent_betas: Vec<f64> = decompositions
+        .iter()
+        .map(|item| item.physical.beta)
+        .collect();
+    let expected_result_matched = (observed.eta_observed - case.expected_observed.eta_observed).abs()
+        <= 1.0e-10 * case.expected_observed.eta_observed.abs().max(1.0)
+        && (observed.beta_observed - case.expected_observed.beta_observed).abs() <= 1.0e-12
+        && equivalent_betas.len() == case.expected_equivalent_physical_betas.len()
+        && equivalent_betas
+            .iter()
+            .zip(&case.expected_equivalent_physical_betas)
+            .all(|(actual, expected)| (actual - expected).abs() <= 1.0e-10);
+    let all_decompositions_equivalent =
+        decompositions.iter().all(|item| item.observationally_equivalent);
     Ok(AnalyticResult {
         case_id: case.case_id.clone(),
         observed,
         equivalent_decompositions: decompositions,
         shape_identifiable_from_timestamps_alone: shape_identifiable,
         scale_identifiable_from_timestamps_alone: false,
-        blockers: if shape_identifiable {
-            vec!["observation_trend_is_fixed_only_by_external_assumption".to_owned()]
-        } else {
-            vec![
-                "physical_shape_and_capture_trend_are_structurally_confounded".to_owned(),
-                "observed_scale_also_depends_on_baseline_detection_probability".to_owned(),
-            ]
-        },
+        expected_result_matched: expected_result_matched && all_decompositions_equivalent,
+        blockers: vec![
+            "physical_shape_and_capture_trend_are_structurally_confounded_without_external_detection_evidence".to_owned(),
+            "observed_scale_also_depends_on_baseline_detection_probability".to_owned(),
+        ],
     })
 }
 
@@ -497,6 +510,7 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
     let mut sensitivity_cases = Vec::new();
     let mut simulation_cases = Vec::new();
     let mut equivalent_decomposition_count = 0usize;
+    let mut analytic_expected_result_mismatches = 0usize;
     let mut shape_nonidentifiability_cases = 0usize;
     let mut scale_nonidentifiability_cases = 0usize;
     let mut sensitivity_mismatches = 0usize;
@@ -510,6 +524,7 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
         let result = evaluate_analytic_case(case)?;
         equivalent_decomposition_count += result.equivalent_decompositions
             .iter().filter(|item| item.observationally_equivalent).count();
+        analytic_expected_result_mismatches += usize::from(!result.expected_result_matched);
         shape_nonidentifiability_cases += usize::from(!result.shape_identifiable_from_timestamps_alone);
         scale_nonidentifiability_cases += usize::from(!result.scale_identifiable_from_timestamps_alone);
         analytic_cases.push(result);
@@ -535,7 +550,9 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
         simulation_cases.push(result);
     }
 
-    let result = if sensitivity_mismatches == 0 && simulation_inconsistent_count == 0
+    let result = if analytic_expected_result_mismatches == 0
+        && sensitivity_mismatches == 0
+        && simulation_inconsistent_count == 0
         && equivalent_decomposition_count > 0
     {
         "pass"
@@ -546,6 +563,7 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
         analytic_case_count: analytic_cases.len(),
         equivalent_decomposition_count,
         sensitivity_case_count: sensitivity_cases.len(),
+        analytic_expected_result_mismatches,
         sensitivity_mismatches,
         simulation_case_count: simulation_cases.len(),
         simulation_consistent_count,
