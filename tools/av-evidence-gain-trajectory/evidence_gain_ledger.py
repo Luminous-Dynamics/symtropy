@@ -220,7 +220,7 @@ def _validate_action_forecast(
             "information_gain_proxy",
         }:
             raise EvidenceGainError(f"{turn_id}/{action_id}: action catalogue must follow the #6753 workload contract")
-        if action["modality"] not in {"audio", "video", "other"}:
+        if not isinstance(action["modality"], str) or action["modality"] not in {"audio", "video", "other"}:
             raise EvidenceGainError(f"{turn_id}/{action_id}: invalid modality")
         _nonempty(action["description"], f"{turn_id}/{action_id}.description")
         _nonempty(action["source_dependency_group"], f"{turn_id}/{action_id}.source_dependency_group")
