@@ -18,6 +18,7 @@ mod control_volume;
 mod identifiability;
 mod observer_perturbation;
 mod tracer_screening;
+mod piv_qualification;
 
 const EMBEDDED_ATLAS: &str =
     include_str!("../../../data/research/ehd_reference_atlas_v0_1.json");
@@ -49,6 +50,8 @@ const EMBEDDED_LOW_DENSITY_PIV_TRACER: &str =
     include_str!("../../../data/research/ehd_low_density_piv_tracer_envelope_v0_1.json");
 const EMBEDDED_PIV_TRACER_SCREENING: &str =
     include_str!("../../../data/research/ehd_piv_tracer_screening_v0_1.json");
+const EMBEDDED_PIV_UQ_TRIANGULATION: &str =
+    include_str!("../../../data/research/ehd_piv_uq_triangulation_v0_1.json");
 
 fn at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
     path.iter().try_fold(value, |node, key| node.get(*key))
@@ -2950,6 +2953,87 @@ pub fn audit_piv_tracer_screening_contract(root: &Value) -> Vec<String> {
 }
 
 
+
+
+/// Audit the PIV vector-validity, regional uncertainty and PIV/LPT comparison contract.
+pub fn audit_piv_uq_triangulation_contract(root: &Value) -> Vec<String> {
+    let mut findings = Vec::new();
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["schema"]) == Some("luminous.ehd_piv_measurement_qualification")
+            && text_at(root, &["schema_version"]) == Some("0.1.0")
+            && text_at(root, &["benchmark_id"]) == Some("EHD-PIV-UQ-001")
+            && text_at(root, &["status"])
+                == Some("manufactured_summary_receipt_kernel_authored_tests_execution_pending"),
+        "PIV_UQ_CONTRACT_IDENTITY",
+        "PIV-UQ contract identity, version or status changed",
+    );
+    let classifier = at(root, &["classifier_contract"]);
+    push_if_missing(
+        &mut findings,
+        at(classifier.unwrap_or(&Value::Null), &["prospective_gate"]).is_some_and(|gate| {
+            number_at(gate, &["minimum_f1"]) == Some(0.97)
+                && number_at(gate, &["minimum_recall"]) == Some(0.90)
+                && number_at(gate, &["maximum_false_valid_vector_removal_rate"]) == Some(0.01)
+        }) && text_at(classifier.unwrap_or(&Value::Null), &["positive_class"]) == Some("invalid_vector"),
+        "PIV_UQ_CLASSIFIER_GATE",
+        "F1, recall and false-valid-vector-removal targets must stay separate and prospective",
+    );
+    let uncertainty = at(root, &["uncertainty_contract"]);
+    push_if_missing(
+        &mut findings,
+        uncertainty.is_some_and(|value| {
+            number_at(value, &["interval_nominal_coverage"]) == Some(0.95)
+                && at(value, &["acceptable_empirical_coverage_band"])
+                    == Some(&serde_json::json!([0.90, 0.98]))
+                && at(value, &["minimum_samples_per_region"]).and_then(Value::as_u64) == Some(200)
+                && at(value, &["regions"]) == Some(&serde_json::json!(["bulk", "near_wall", "shear_layer", "wake"]))
+                && text_at(value, &["policy"]).is_some_and(|policy| policy.contains("no pooled-only pass"))
+        }),
+        "PIV_UQ_REGIONAL_COVERAGE",
+        "nominal coverage, per-region gates, minimum samples and no-pooling rule changed",
+    );
+    let cross = at(root, &["cross_diagnostic_contract"]);
+    push_if_missing(
+        &mut findings,
+        cross.is_some_and(|value| {
+            text_at(value, &["uncertainty_policy"]).is_some_and(|policy| policy.contains("no RSS"))
+                && at(value, &["methods"]).and_then(Value::as_array)
+                    .is_some_and(|items| items.len() == 2)
+                && text_at(value, &["passivity"]).is_some_and(|policy| policy.contains("NotAssessed"))
+                && at(value, &["dependence_disclosure"]).and_then(Value::as_array)
+                    .is_some_and(|items| items.iter().any(|item| item.as_str() == Some("shared_raw_image_acquisition")))
+        }),
+        "PIV_UQ_CROSS_DIAGNOSTIC_POLICY",
+        "PIV/LPT uncertainty, shared-acquisition and passivity boundaries changed",
+    );
+    push_if_missing(
+        &mut findings,
+        at(root, &["test_families"]).and_then(Value::as_array)
+            .is_some_and(|tests| tests.len() == 12
+                && tests.iter().any(|value| value.as_str() == Some("classifier_gate_rejects_high_false_removal_even_when_f1_is_high"))
+                && tests.iter().any(|value| value.as_str() == Some("undercovered_near_wall_region_is_not_hidden_by_bulk_coverage"))
+                && tests.iter().any(|value| value.as_str() == Some("shared_acquisition_is_not_reported_as_independent_cross_validation"))
+                && tests.iter().any(|value| value.as_str() == Some("discrepancy_above_combined_velocity_bounds_is_flagged"))),
+        "PIV_UQ_TEST_MATRIX",
+        "all twelve classifier, regional-coverage and PIV/LPT test families must remain declared",
+    );
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["reference_implementation", "path"])
+            == Some("tools/ehd-reference-audit/src/piv_qualification.rs")
+            && at(root, &["limitations"]).and_then(Value::as_array).is_some_and(|limits| {
+                limits.iter().any(|value| value.as_str() == Some("summary_level_receipt_only_no_raw_image_processing"))
+                    && limits.iter().any(|value| value.as_str() == Some("no_physical_EHD_validation"))
+                    && limits.iter().any(|value| value.as_str() == Some("manual_expert_reference_is_not_physical_truth"))
+            }),
+        "PIV_UQ_CLAIM_BOUNDARY",
+        "summary-only, annotation and no-physical-validation limits must remain explicit",
+    );
+    findings
+}
+
+
 fn main() {
     let mut args = env::args().skip(1);
     let path = args.next();
@@ -3093,6 +3177,15 @@ fn main() {
             }
         };
     findings.extend(audit_piv_tracer_screening_contract(&piv_tracer_screening_contract));
+    let piv_uq_triangulation_contract: Value =
+        match serde_json::from_str(EMBEDDED_PIV_UQ_TRIANGULATION) {
+            Ok(value) => value,
+            Err(error) => {
+                eprintln!("invalid embedded PIV UQ triangulation JSON: {error}");
+                process::exit(2);
+            }
+        };
+    findings.extend(audit_piv_uq_triangulation_contract(&piv_uq_triangulation_contract));
     let exchange_kernel_ok = match exchange::reference_self_check() {
         Ok(()) => true,
         Err(error) => {
@@ -3153,6 +3246,13 @@ fn main() {
         Ok(()) => true,
         Err(error) => {
             findings.push(format!("IDENTIFIABILITY_SELF_CHECK: {error}"));
+            false
+        }
+    };
+    let piv_uq_triangulation_ok = match piv_qualification::reference_self_check() {
+        Ok(()) => true,
+        Err(error) => {
+            findings.push(format!("PIV_UQ_TRIANGULATION_SELF_CHECK: {error}"));
             false
         }
     };
@@ -3224,6 +3324,9 @@ fn main() {
         if piv_tracer_screening_ok {
             println!("exact-pressure PIV tracer source-feasibility screen self-check: passed");
         }
+        if piv_uq_triangulation_ok {
+            println!("PIV vector validity, regional uncertainty and PIV/LPT comparison self-check: passed");
+        }
         println!("scope: source structure and analytic reference checks only; no physical V&V, production ALE, TPE(1/2), nonlinear profile likelihood, continuous design optimization, complete collisional-energy closure or durable exactly-once claim");
     } else {
         eprintln!("FAIL: {label} ({} finding(s))", findings.len());
@@ -3288,6 +3391,22 @@ mod tests {
         record["method"]["independent_velocity_reference"] = serde_json::json!("PIV only");
         assert!(audit_atlas(&value).iter().any(|finding| {
             finding.starts_with("HAMDI_TRACER_METHOD")
+        }));
+    }
+
+    #[test]
+    fn piv_uq_triangulation_contract_passes() {
+        let value: Value = serde_json::from_str(EMBEDDED_PIV_UQ_TRIANGULATION)
+            .expect("embedded PIV UQ triangulation contract must be valid JSON");
+        assert!(audit_piv_uq_triangulation_contract(&value).is_empty());
+    }
+
+    #[test]
+    fn piv_uq_contract_rejects_pooled_only_coverage() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_PIV_UQ_TRIANGULATION).unwrap();
+        value["uncertainty_contract"]["policy"] = serde_json::json!("pooled global coverage only");
+        assert!(audit_piv_uq_triangulation_contract(&value).iter().any(|finding| {
+            finding.starts_with("PIV_UQ_REGIONAL_COVERAGE")
         }));
     }
 
