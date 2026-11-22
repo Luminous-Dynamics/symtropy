@@ -13,8 +13,8 @@
     },
     "green_lagrange_verifier": {
       "path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_spin2_boundary_map_lambda1.py",
-      "git_blob_sha1": "79c49e0dcddefb161386e525c917b66b40ab0d84",
-      "sha256": "05af6b48c7a484b4e2674223883608747995655243be70ce7f0963af05cd84f0",
+      "git_blob_sha1": "6b871b24850ad38e8073681ddfd068fc6ca0566d",
+      "sha256": "685bab7ef5e2d62efea0db51da7b99eacb0d46da377c4b824337866305abe40",
       "exact_local_blob_match": true
     }
   },
@@ -29,13 +29,14 @@
     "verified_result": {
       "path": "crates/domains/symtropy-lovelock5d/benchmarks/spin2_boundary_map_lambda1_v1.json",
       "git_blob_sha1": "0c14f8822fa0b0dcd06d18e12702ac2be15e5d64",
-      "locally_verified_result_sha256_before_presentation_normalization": "1bb8766058e84a8e99d0b8aa8102cb26958c4ab014df6d6225bddba68b08fa9e"
+      "locally_verified_result_sha256_before_presentation_normalization": "609fd851d29e9535b51b2bcb0f531d21bbec9e972ce29c2114e496bc44d479bf"
     }
   },
   "environment": {
     "python": "3.13.5",
     "sympy": "1.14.0",
-    "arithmetic": "exact rational and symbolic arithmetic"
+    "arithmetic": "exact rational and symbolic arithmetic",
+    "replay_note": "Updated public verifier rerun after strengthening the horizon mutation negative control; all exact symbolic checks passed."
   },
   "commands": [
     "python extract_spin2_boundary_map_lambda1_rows.py --output /tmp/spin2_boundary_map_lambda1_action_rows_v1.json",
@@ -43,18 +44,34 @@
   ],
   "result": {
     "J1": [
-      ["1/2", "19 - 2*pi**2"],
-      ["0", "67 - 6*pi**2"]
+      [
+        "1/2",
+        "19 - 2*pi**2"
+      ],
+      [
+        "0",
+        "67 - 6*pi**2"
+      ]
     ],
     "J1_numeric": [
-      ["0.500000000000000000", "-0.739208802178717238"],
-      ["0", "7.78237359346384829"]
+      [
+        "0.500000000000000000",
+        "-0.739208802178717238"
+      ],
+      [
+        "0",
+        "7.78237359346384829"
+      ]
     ],
     "determinant_slope": "69/2 - 3*pi**2",
-    "affine_offset_derivative": ["-53/9", "28/3"],
+    "affine_offset_derivative": [
+      "-53/9",
+      "28/3"
+    ],
     "wrong_sign_control": "rejected",
     "horizon_data_mutation": "rejected",
-    "decaying_adjoint_growth_contamination": "rejected"
+    "decaying_adjoint_growth_contamination": "rejected",
+    "horizon_mutation": "rejected"
   },
   "checks": {
     "all_four_original_even_coefficient_rows_extracted": true,
@@ -68,7 +85,9 @@
     "B21_constant_amplitude_projection": true,
     "E_f_F21_growing_mode_relation": true,
     "physical_branch_affine_offset_cross_check": true,
-    "E_g_constraint": "retained in source fixture and propagated by the separate exact action-level radial Noether identity verifier"
+    "E_g_constraint": "retained in source fixture and propagated by the separate exact action-level radial Noether identity verifier",
+    "horizon_data_mutation": "actual H(1)=1 mutation rejected by horizon-normalization assertion",
+    "wrong_green_forcing_sign": "sign reversal explicitly rejected"
   },
   "claim_ceiling": "Exact first derivative at lambda=0 of both columns of the global boundary map for the specified five-dimensional O(a^2) perturbative system in fixed Einstein-limit endpoint coordinates. No finite-lambda BVP, interval-invertibility proof, global uniqueness theorem, or PDE hyperbolicity result is claimed."
 }
