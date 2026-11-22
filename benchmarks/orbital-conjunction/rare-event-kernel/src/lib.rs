@@ -120,6 +120,9 @@ pub enum KernelError {
     /// A sphere integrand contains a negative sample.
     InvalidSphereIntegrand,
     /// A sphere integrand is identically zero at all quadrature nodes.
+    ZeroSphereIntegrand,
+    /// Sphere quadrature absolute and relative tolerances are invalid.
+    InvalidSphereQuadratureTolerance,
 }
 
 impl fmt::Display for KernelError {
@@ -166,6 +169,10 @@ impl fmt::Display for KernelError {
                 "sphere quadrature contribution threshold must lie in [0, 1]"
             }
             Self::InvalidSphereIntegrand => "sphere integrand samples must be nonnegative",
+            Self::ZeroSphereIntegrand => "sphere integrand is zero at every quadrature node",
+            Self::InvalidSphereQuadratureTolerance => {
+                "sphere quadrature tolerances must be finite, nonnegative and not both zero"
+            }
             Self::ZeroSphereIntegrand => "sphere integrand is zero at every quadrature node",
             Self::InvalidSphereQuadratureTolerance => {
                 "sphere quadrature tolerances must be finite, nonnegative and not both zero"
