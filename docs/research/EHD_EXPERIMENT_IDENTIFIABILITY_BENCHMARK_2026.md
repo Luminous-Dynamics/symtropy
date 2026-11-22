@@ -334,3 +334,34 @@ The receipt proves what was evaluated and what the design method returned. It do
 8. Design recommendations carry provenance and remain separate from experimental authorization.
 
 **Current state:** the analytic matrix example above is a mathematical reference in this document. The optimizer, profile-likelihood pipeline, model tournament, EHD parameter adapter and physical experiment remain unimplemented/unvalidated.
+
+## Executable D-optimal versus E-optimal tournament — 22 November 2026
+
+The reference kernel now includes a bounded exhaustive design tournament over four abstract candidate sensitivity rows, with the same three-observation budget for every design.
+
+Candidate rows:
+- C0 = [-3, -3]
+- C1 = [-3, -2]
+- C2 = [-3, -1]
+- C3 = [-2, 0]
+
+All manufactured observation variances are 1. These rows are abstract sensitivity vectors, **not EHD voltages, geometries, operating conditions or physical experiment recommendations**.
+
+There are 20 combinations with replacement at a three-observation budget. The two criteria choose different allocations:
+
+| Criterion | Selected candidates | det(F) | Minimum eigenvalue |
+|---|---|---:|---:|
+| D-optimal | [0, 2, 3] | 76 | 2.583592 |
+| E-optimal | [0, 3, 3] | 72 | 3.151142 |
+
+D-optimal maximizes log(det(F)), the information volume. E-optimal maximizes the weakest information direction. In this reference example, E-optimal increases the minimum information eigenvalue by approximately **21.97%**, while accepting a lower information determinant. Both designs use exactly three observations from the same candidate set.
+
+The exhaustive reference selector:
+- evaluates the same candidate set and observation budget for both criteria;
+- rejects rank-deficient candidate allocations;
+- validates positive observation variances;
+- imposes a maximum observation budget of 32 and an explicit maximum design-evaluation count;
+- uses deterministic lexicographic tie-breaking;
+- ranks E-optimal designs by the smallest singular value (monotonically equivalent to the smallest information eigenvalue), avoiding underflow from squaring very small singular values.
+
+This is a concrete manufactured counterexample to treating D-optimality as the sole design objective. It does not demonstrate an EHD physical experiment-design improvement. The next steps remain robust parameter/noise envelopes, nuisance-adjusted criteria, model discrimination, practical profile-likelihood checks and a source-pinned EHD design adapter.
