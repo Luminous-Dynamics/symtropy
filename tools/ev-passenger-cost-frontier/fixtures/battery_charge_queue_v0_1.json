@@ -1,0 +1,254 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "CHARGER-QUEUE-ORACLE-001",
+  "site_id": "site-1",
+  "site_configuration_digest": "urn:synthetic:site-config:1",
+  "decision_time_unix_ms": 1795219200000,
+  "slot_duration_seconds": 900,
+  "horizon_slots": 6,
+  "site_evidence": {
+    "asset_id": "site-1",
+    "configuration_digest": "urn:synthetic:site-config:1",
+    "producer_id": "urn:synthetic:producer:charge-queue",
+    "method_id": "urn:synthetic:method:site-horizon",
+    "evidence_reference": "urn:synthetic:evidence:site-horizon",
+    "evidence_class": "synthetic",
+    "observed_at_unix_ms": 1795219199000,
+    "valid_from_unix_ms": 1795219190000,
+    "valid_until_unix_ms": 1795224600000
+  },
+  "jobs": [
+    {
+      "job_id": "job-a",
+      "pack_id": "pack-a",
+      "pack_configuration_digest": "cfg-a",
+      "pack_state": {
+        "evidence": {
+          "asset_id": "pack-a",
+          "configuration_digest": "cfg-a",
+          "producer_id": "urn:synthetic:producer:charge-queue",
+          "method_id": "urn:synthetic:method:job-a-cooling-state",
+          "evidence_reference": "urn:synthetic:evidence:job-a-cooling-state",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795229200000
+        },
+        "value": "cooling"
+      },
+      "release_slot": 0,
+      "deadline_slot_exclusive": 4,
+      "duration_slots": 2,
+      "requested_power_w": 3000
+    },
+    {
+      "job_id": "job-b",
+      "pack_id": "pack-b",
+      "pack_configuration_digest": "cfg-a",
+      "pack_state": {
+        "evidence": {
+          "asset_id": "pack-b",
+          "configuration_digest": "cfg-a",
+          "producer_id": "urn:synthetic:producer:charge-queue",
+          "method_id": "urn:synthetic:method:job-b-cooling-state",
+          "evidence_reference": "urn:synthetic:evidence:job-b-cooling-state",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795229200000
+        },
+        "value": "cooling"
+      },
+      "release_slot": 0,
+      "deadline_slot_exclusive": 4,
+      "duration_slots": 2,
+      "requested_power_w": 3500
+    },
+    {
+      "job_id": "job-c",
+      "pack_id": "pack-c",
+      "pack_configuration_digest": "cfg-b",
+      "pack_state": {
+        "evidence": {
+          "asset_id": "pack-c",
+          "configuration_digest": "cfg-b",
+          "producer_id": "urn:synthetic:producer:charge-queue",
+          "method_id": "urn:synthetic:method:job-c-cooling-state",
+          "evidence_reference": "urn:synthetic:evidence:job-c-cooling-state",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795229200000
+        },
+        "value": "cooling"
+      },
+      "release_slot": 1,
+      "deadline_slot_exclusive": 6,
+      "duration_slots": 3,
+      "requested_power_w": 3000
+    },
+    {
+      "job_id": "job-d",
+      "pack_id": "pack-d",
+      "pack_configuration_digest": "cfg-a",
+      "pack_state": {
+        "evidence": {
+          "asset_id": "pack-d",
+          "configuration_digest": "cfg-a",
+          "producer_id": "urn:synthetic:producer:charge-queue",
+          "method_id": "urn:synthetic:method:job-d-cooling-state",
+          "evidence_reference": "urn:synthetic:evidence:job-d-cooling-state",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795229200000
+        },
+        "value": "cooling"
+      },
+      "release_slot": 0,
+      "deadline_slot_exclusive": 3,
+      "duration_slots": 3,
+      "requested_power_w": 2500
+    }
+  ],
+  "chargers": [
+    {
+      "charger_id": "charger-1",
+      "configuration_digest": "charger-config-1",
+      "max_power_w": 4000,
+      "supported_pack_configuration_digests": [
+        "cfg-a",
+        "cfg-b"
+      ],
+      "availability_evidence": {
+        "asset_id": "charger-1",
+        "configuration_digest": "charger-config-1",
+        "producer_id": "urn:synthetic:producer:charge-queue",
+        "method_id": "urn:synthetic:method:charger-1-availability",
+        "evidence_reference": "urn:synthetic:evidence:charger-1-availability",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1795219199000,
+        "valid_from_unix_ms": 1795219190000,
+        "valid_until_unix_ms": 1795229200000
+      }
+    },
+    {
+      "charger_id": "charger-2",
+      "configuration_digest": "charger-config-2",
+      "max_power_w": 3000,
+      "supported_pack_configuration_digests": [
+        "cfg-a"
+      ],
+      "availability_evidence": {
+        "asset_id": "charger-2",
+        "configuration_digest": "charger-config-2",
+        "producer_id": "urn:synthetic:producer:charge-queue",
+        "method_id": "urn:synthetic:method:charger-2-availability",
+        "evidence_reference": "urn:synthetic:evidence:charger-2-availability",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1795219199000,
+        "valid_from_unix_ms": 1795219190000,
+        "valid_until_unix_ms": 1795229200000
+      }
+    }
+  ],
+  "grid_slots": [
+    {
+      "slot": 0,
+      "import_cap_w": 8000,
+      "non_charging_site_load_w": 1000,
+      "evidence": {
+        "asset_id": "site-1",
+        "configuration_digest": "urn:synthetic:site-config:1",
+        "producer_id": "urn:synthetic:producer:charge-queue",
+        "method_id": "urn:synthetic:method:grid-slot-0",
+        "evidence_reference": "urn:synthetic:evidence:grid-slot-0",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1795219199000,
+        "valid_from_unix_ms": 1795219190000,
+        "valid_until_unix_ms": 1795220100000
+      }
+    },
+    {
+      "slot": 1,
+      "import_cap_w": 8000,
+      "non_charging_site_load_w": 1000,
+      "evidence": {
+        "asset_id": "site-1",
+        "configuration_digest": "urn:synthetic:site-config:1",
+        "producer_id": "urn:synthetic:producer:charge-queue",
+        "method_id": "urn:synthetic:method:grid-slot-1",
+        "evidence_reference": "urn:synthetic:evidence:grid-slot-1",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1795219199000,
+        "valid_from_unix_ms": 1795219190000,
+        "valid_until_unix_ms": 1795221000000
+      }
+    },
+    {
+      "slot": 2,
+      "import_cap_w": 8000,
+      "non_charging_site_load_w": 1000,
+      "evidence": {
+        "asset_id": "site-1",
+        "configuration_digest": "urn:synthetic:site-config:1",
+        "producer_id": "urn:synthetic:producer:charge-queue",
+        "method_id": "urn:synthetic:method:grid-slot-2",
+        "evidence_reference": "urn:synthetic:evidence:grid-slot-2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1795219199000,
+        "valid_from_unix_ms": 1795219190000,
+        "valid_until_unix_ms": 1795221900000
+      }
+    },
+    {
+      "slot": 3,
+      "import_cap_w": 8000,
+      "non_charging_site_load_w": 1000,
+      "evidence": {
+        "asset_id": "site-1",
+        "configuration_digest": "urn:synthetic:site-config:1",
+        "producer_id": "urn:synthetic:producer:charge-queue",
+        "method_id": "urn:synthetic:method:grid-slot-3",
+        "evidence_reference": "urn:synthetic:evidence:grid-slot-3",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1795219199000,
+        "valid_from_unix_ms": 1795219190000,
+        "valid_until_unix_ms": 1795222800000
+      }
+    },
+    {
+      "slot": 4,
+      "import_cap_w": 8000,
+      "non_charging_site_load_w": 1000,
+      "evidence": {
+        "asset_id": "site-1",
+        "configuration_digest": "urn:synthetic:site-config:1",
+        "producer_id": "urn:synthetic:producer:charge-queue",
+        "method_id": "urn:synthetic:method:grid-slot-4",
+        "evidence_reference": "urn:synthetic:evidence:grid-slot-4",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1795219199000,
+        "valid_from_unix_ms": 1795219190000,
+        "valid_until_unix_ms": 1795223700000
+      }
+    },
+    {
+      "slot": 5,
+      "import_cap_w": 8000,
+      "non_charging_site_load_w": 1000,
+      "evidence": {
+        "asset_id": "site-1",
+        "configuration_digest": "urn:synthetic:site-config:1",
+        "producer_id": "urn:synthetic:producer:charge-queue",
+        "method_id": "urn:synthetic:method:grid-slot-5",
+        "evidence_reference": "urn:synthetic:evidence:grid-slot-5",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1795219199000,
+        "valid_from_unix_ms": 1795219190000,
+        "valid_until_unix_ms": 1795224600000
+      }
+    }
+  ],
+  "claim_ceiling": "Synthetic exact fixed-duration charge block scheduling only; no charge curve, battery safety qualification or authority."
+}
