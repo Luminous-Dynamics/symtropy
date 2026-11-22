@@ -17,7 +17,7 @@ This crate provides a Rust-first, source-pinned synthetic event-observation simu
 
 Dead time is triggered by any latent event that reaches the detector front end, even if the downstream classifier returns a stochastic miss. Events arriving during dead time do not extend it (non-paralyzable rule). Events during declared shared or channel outages do not reach the detector state machine. False positives are modelled as a separate downstream point process and do not themselves trigger front-end dead time. These are explicit simulator assumptions, not universal sensor laws.
 
-False-positive rate is the expected number of false-positive arrivals over the normalized exposure window [0,1]. Physical event times are strictly increasing to avoid ambiguous ordering for simultaneous events. Marks are positive and expressed in frozen reference units.
+All event times, outage boundaries, dead-time values and false-positive intensities use a normalized exposure window [0,1]. Thus fixed_dead_time is a fraction of the normalized window and false_positive_rate is the expected number of background arrivals over the full normalized window. The first kernel intentionally has no physical time unit or exposure-duration parameter; a later physical calibration layer must bind normalized time to independently measured clock time. Physical event times are strictly increasing to avoid ambiguous ordering for simultaneous events. Marks are positive and expressed in frozen reference units.
 
 ## Reproduce
 
