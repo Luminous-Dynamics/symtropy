@@ -51,6 +51,15 @@ pub struct BatchPortfolioEnumeration {
     pub skipped_incomplete_lineage_portfolios: usize,
 }
 
+/// Greedy batch selection, with every marginal utility recomputed using the
+/// full common-cause covariance of the already-selected candidates.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GreedyBatchSelection {
+    pub portfolio: BatchPortfolioScore,
+    pub selection_order: Vec<String>,
+    pub marginal_a_optimal_gains: Vec<f64>,
+}
+
 /// Enumerate every feasible portfolio of exactly the requested cardinality.
 ///
 /// Shared-source IDs induce cross-candidate covariance. When complete lineage
@@ -233,6 +242,94 @@ pub fn enumerate_batch_portfolios(
         skipped_infeasible_candidates,
         skipped_over_budget_portfolios,
         skipped_incomplete_lineage_portfolios,
+    })
+}
+
+/// Select a fixed-cardinality portfolio by sequential marginal A-optimal gain.
+///
+/// At each step every remaining candidate is rescored jointly with the selected
+/// set. This preserves shared-source cross-covariance when calculating the
+/// marginal value. This is a practical baseline heuristic, not a global
+/// optimality guarantee.
+pub fn select_greedy_batch_portfolio(
+    candidates: &[BatchDesignCandidate],
+    prior_covariance: &[Vec<f64>],
+    batch_size: usize,
+    budget: f64,
+    require_complete_lineage: bool,
+) -> Result<GreedyBatchSelection, ModelError> {
+    if batch_size == 0 {
+        return Err(ModelError::InvalidParameter("batch_size_must_be_positive"));
+    }
+
+    // Reuse the exact evaluator to validate candidate definitions and the prior.
+    enumerate_batch_portfolios(candidates, prior_covariance, 1, budget, false)?;
+
+    let mut selected_indices = Vec::with_capacity(batch_size);
+    let mut selection_order = Vec::with_capacity(batch_size);
+    let mut marginal_a_optimal_gains = Vec::with_capacity(batch_size);
+    let mut current_utility = 0.0;
+    let mut final_score: Option<BatchPortfolioScore> = None;
+
+    for _ in 0..batch_size {
+        let mut best: Option<(usize, BatchPortfolioScore, f64)> = None;
+        for candidate_index in 0..candidates.len() {
+            let candidate = &candidates[candidate_index];
+            if !candidate.feasible || selected_indices.contains(&candidate_index) {
+                continue;
+            }
+
+            let mut trial: Vec<BatchDesignCandidate> = selected_indices
+                .iter()
+                .map(|index| candidates[*index].clone())
+                .collect();
+            trial.push(candidate.clone());
+
+            let mut scored = enumerate_batch_portfolios(
+                &trial,
+                prior_covariance,
+                trial.len(),
+                budget,
+                require_complete_lineage,
+            )?;
+            if scored.portfolios.len() != 1 {
+                continue;
+            }
+
+            let score = scored.portfolios.remove(0);
+            let marginal_gain = score.a_optimal_trace_reduction - current_utility;
+            let replace_best = match &best {
+                None => true,
+                Some((best_index, _, best_gain)) => {
+                    marginal_gain > *best_gain
+                        || (marginal_gain == *best_gain
+                            && candidate.candidate_id
+                                < candidates[*best_index].candidate_id)
+                }
+            };
+            if replace_best {
+                best = Some((candidate_index, score, marginal_gain));
+            }
+        }
+
+        let Some((candidate_index, score, marginal_gain)) = best else {
+            return Err(ModelError::InvalidParameter(
+                "no_feasible_greedy_batch_portfolio",
+            ));
+        };
+        selected_indices.push(candidate_index);
+        selection_order.push(candidates[candidate_index].candidate_id.clone());
+        marginal_a_optimal_gains.push(marginal_gain);
+        current_utility = score.a_optimal_trace_reduction;
+        final_score = Some(score);
+    }
+
+    Ok(GreedyBatchSelection {
+        portfolio: final_score.ok_or(ModelError::InvalidParameter(
+            "greedy_batch_portfolio_missing_final_score",
+        ))?,
+        selection_order,
+        marginal_a_optimal_gains,
     })
 }
 
@@ -558,6 +655,47 @@ mod tests {
                 - 0.5 * (2121.0_f64 / 1820.0).ln())
             .abs()
                 < 1.0e-12
+        );
+    }
+
+    #[test]
+    fn greedy_recomputes_marginal_utility_with_shared_covariance() {
+        let candidates = vec![
+            candidate("A", [1.0, 0.0], 0.1, true, 9.0, true),
+            candidate("B", [1.0, 0.0], 0.1, true, 9.0, true),
+            candidate("C", [0.0, 1.0], 20.0, false, 0.0, true),
+        ];
+        let selected = select_greedy_batch_portfolio(
+            &candidates,
+            &[vec![1.0, 0.0], vec![0.0, 1.0]],
+            2,
+            2.0,
+            true,
+        )
+        .expect("greedy batch selection");
+        assert_eq!(selected.selection_order, vec!["A", "C"]);
+        assert_eq!(selected.portfolio.candidate_ids, vec!["A", "C"]);
+        assert!(selected.marginal_a_optimal_gains[0] > 0.0);
+        assert!(selected.marginal_a_optimal_gains[1] > 0.0);
+    }
+
+    #[test]
+    fn greedy_abstains_when_lineage_prevents_a_complete_batch() {
+        let candidates = vec![
+            candidate("A", [1.0, 0.0], 1.0, false, 0.0, true),
+            candidate("B", [0.0, 1.0], 1.0, false, 0.0, false),
+        ];
+        assert_eq!(
+            select_greedy_batch_portfolio(
+                &candidates,
+                &[vec![1.0, 0.0], vec![0.0, 1.0]],
+                2,
+                2.0,
+                true
+            ),
+            Err(ModelError::InvalidParameter(
+                "no_feasible_greedy_batch_portfolio"
+            ))
         );
     }
 

@@ -68,8 +68,8 @@ pub use sampler_diagnostics::{
 
 mod batch_design;
 pub use batch_design::{
-    enumerate_batch_portfolios, BatchDesignCandidate, BatchPortfolioEnumeration,
-    BatchPortfolioScore,
+    enumerate_batch_portfolios, select_greedy_batch_portfolio, BatchDesignCandidate,
+    BatchPortfolioEnumeration, BatchPortfolioScore, GreedyBatchSelection,
 };
 
 mod experiment_design;
