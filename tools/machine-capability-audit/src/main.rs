@@ -172,12 +172,20 @@ impl LocalClosure {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+struct DependencyMetrics {
+    critical_count: usize,
+    critical_without_alternate_source_count: usize,
+    critical_not_locally_repairable_count: usize,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct RouteResult {
     route_id: String,
     disposition: Disposition,
     blockers: Vec<String>,
     local_closure: LocalClosure,
+    dependency_metrics: DependencyMetrics,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -188,22 +196,45 @@ struct CaseResult {
     best_feasible_route_local_closure: LocalClosure,
 }
 
-fn insert_status(
+struct StatusRule<'a> {
+    good: &'a str,
+    bad: &'a str,
+    unknown: &'a str,
+    bad_code: &'a str,
+    unknown_code: &'a str,
+}
+
+fn assess_status(
     status: &str,
-    good: &str,
-    bad: &str,
-    unknown: &str,
+    rule: StatusRule<'_>,
     hard: &mut BTreeSet<String>,
     uncertain: &mut BTreeSet<String>,
-    bad_code: &str,
-    unknown_code: &str,
 ) {
-    if status == bad {
-        hard.insert(bad_code.to_owned());
-    } else if status == unknown {
-        uncertain.insert(unknown_code.to_owned());
-    } else if status != good {
+    if status == rule.bad {
+        hard.insert(rule.bad_code.to_owned());
+    } else if status == rule.unknown {
+        uncertain.insert(rule.unknown_code.to_owned());
+    } else if status != rule.good {
         hard.insert(format!("unsupported_status:{status}"));
+    }
+}
+
+fn dependency_metrics(dependencies: &[Dependency]) -> DependencyMetrics {
+    let critical: Vec<&Dependency> = dependencies
+        .iter()
+        .filter(|dependency| dependency.criticality == "critical")
+        .collect();
+
+    DependencyMetrics {
+        critical_count: critical.len(),
+        critical_without_alternate_source_count: critical
+            .iter()
+            .filter(|dependency| dependency.alternate_sources == 0)
+            .count(),
+        critical_not_locally_repairable_count: critical
+            .iter()
+            .filter(|dependency| dependency.local_repair_status == "not_repairable")
+            .count(),
     }
 }
 
@@ -214,6 +245,7 @@ fn evaluate_route(part: &Part, route: &Route) -> RouteResult {
             disposition: Disposition::Unsupported,
             blockers: vec!["process_family_unsupported".to_owned()],
             local_closure: dependency_closure(&route.dependencies),
+            dependency_metrics: dependency_metrics(&route.dependencies),
         };
     }
 
@@ -244,29 +276,53 @@ fn evaluate_route(part: &Part, route: &Route) -> RouteResult {
         hard.insert("process_family_mismatch".to_owned());
     }
 
-    insert_status(
-        &route.machine_identity_status, "verified", "revoked", "unknown",
-        &mut hard, &mut uncertain, "machine_identity_revoked", "machine_identity_unknown",
+    assess_status(
+        &route.machine_identity_status,
+        StatusRule {
+            good: "verified", bad: "revoked", unknown: "unknown",
+            bad_code: "machine_identity_revoked", unknown_code: "machine_identity_unknown",
+        },
+        &mut hard, &mut uncertain,
     );
-    insert_status(
-        &route.machine_safety_status, "qualified", "unqualified", "unknown",
-        &mut hard, &mut uncertain, "machine_safety_unqualified", "machine_safety_unknown",
+    assess_status(
+        &route.machine_safety_status,
+        StatusRule {
+            good: "qualified", bad: "unqualified", unknown: "unknown",
+            bad_code: "machine_safety_unqualified", unknown_code: "machine_safety_unknown",
+        },
+        &mut hard, &mut uncertain,
     );
-    insert_status(
-        &route.material_status, "approved", "prohibited", "unknown",
-        &mut hard, &mut uncertain, "material_prohibited", "material_unknown",
+    assess_status(
+        &route.material_status,
+        StatusRule {
+            good: "approved", bad: "prohibited", unknown: "unknown",
+            bad_code: "material_prohibited", unknown_code: "material_unknown",
+        },
+        &mut hard, &mut uncertain,
     );
-    insert_status(
-        &route.calibration_status, "current", "expired", "unknown",
-        &mut hard, &mut uncertain, "calibration_expired", "calibration_unknown",
+    assess_status(
+        &route.calibration_status,
+        StatusRule {
+            good: "current", bad: "expired", unknown: "unknown",
+            bad_code: "calibration_expired", unknown_code: "calibration_unknown",
+        },
+        &mut hard, &mut uncertain,
     );
-    insert_status(
-        &route.operator_status, "qualified", "unqualified", "unknown",
-        &mut hard, &mut uncertain, "operator_unqualified", "operator_unknown",
+    assess_status(
+        &route.operator_status,
+        StatusRule {
+            good: "qualified", bad: "unqualified", unknown: "unknown",
+            bad_code: "operator_unqualified", unknown_code: "operator_unknown",
+        },
+        &mut hard, &mut uncertain,
     );
-    insert_status(
-        &route.inspection_status, "qualified", "missing", "unknown",
-        &mut hard, &mut uncertain, "inspection_capability_missing", "inspection_capability_unknown",
+    assess_status(
+        &route.inspection_status,
+        StatusRule {
+            good: "qualified", bad: "missing", unknown: "unknown",
+            bad_code: "inspection_capability_missing", unknown_code: "inspection_capability_unknown",
+        },
+        &mut hard, &mut uncertain,
     );
 
     if part.required_inspection.iter().any(|method| {
@@ -316,6 +372,7 @@ fn evaluate_route(part: &Part, route: &Route) -> RouteResult {
         disposition,
         blockers,
         local_closure: dependency_closure(&route.dependencies),
+        dependency_metrics: dependency_metrics(&route.dependencies),
     }
 }
 
@@ -386,6 +443,20 @@ fn dependency_closure(dependencies: &[Dependency]) -> LocalClosure {
         ) || dep.sourcing_class == "unknown"
     }) {
         return LocalClosure::Unknown;
+    }
+
+    if critical.iter().any(|dep| {
+        dep.sourcing_class == "local_service_imported_inputs"
+            && dep.local_repair_status == "unknown"
+    }) {
+        return LocalClosure::Unknown;
+    }
+
+    if critical.iter().any(|dep| {
+        dep.sourcing_class == "local_service_imported_inputs"
+            && dep.local_repair_status == "not_repairable"
+    }) {
+        return LocalClosure::ImportDependent;
     }
 
     if critical
@@ -561,6 +632,12 @@ fn verify_corpus(corpus: &Corpus) -> Result<(), Vec<String>> {
     if corpus.cases.is_empty() {
         errors.push("corpus must not be empty".to_owned());
     }
+    let permitted_dispositions: BTreeSet<&str> = [
+        "feasible", "infeasible", "unknown", "unsupported",
+    ].into_iter().collect();
+    if corpus.dispositions.iter().any(|value| !permitted_dispositions.contains(value.as_str())) {
+        errors.push("corpus declares an unsupported disposition".to_owned());
+    }
 
     let mut scenario_ids = BTreeSet::new();
     for case in &corpus.cases {
@@ -576,6 +653,17 @@ fn verify_corpus(corpus: &Corpus) -> Result<(), Vec<String>> {
             }
         };
 
+        if !corpus.dispositions.iter().any(|value| value == &case.expected.disposition) {
+            errors.push(format!("{}: expected disposition is not declared by corpus", case.scenario_id));
+        }
+        if actual.route_results.iter().any(|route| {
+            route.dependency_metrics.critical_without_alternate_source_count
+                > route.dependency_metrics.critical_count
+                || route.dependency_metrics.critical_not_locally_repairable_count
+                    > route.dependency_metrics.critical_count
+        }) {
+            errors.push(format!("{}: invalid dependency risk metrics", case.scenario_id));
+        }
         if actual.disposition.as_str() != case.expected.disposition {
             errors.push(format!(
                 "{}: disposition expected {}, got {}",
