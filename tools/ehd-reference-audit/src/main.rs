@@ -16,6 +16,7 @@ mod drag_dissipation;
 mod drag_trajectory;
 mod control_volume;
 mod identifiability;
+mod exergy;
 
 const EMBEDDED_ATLAS: &str =
     include_str!("../../../data/research/ehd_reference_atlas_v0_1.json");
@@ -41,6 +42,8 @@ const EMBEDDED_CONTROL_VOLUME: &str =
     include_str!("../../../data/research/ehd_control_volume_v0_1.json");
 const EMBEDDED_IDENTIFIABILITY: &str =
     include_str!("../../../data/research/ehd_experiment_identifiability_kernel_v0_1.json");
+const EMBEDDED_EXERGY: &str =
+    include_str!("../../../data/research/ehd_exergy_kernel_v0_1.json");
 
 fn at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
     path.iter().try_fold(value, |node, key| node.get(*key))
@@ -2095,6 +2098,117 @@ pub fn audit_identifiability_contract(root: &Value) -> Vec<String> {
 }
 
 
+/// Audit the manufactured neutral ideal-gas exergy reference contract.
+/// This verifies its restricted equation and claim boundary, not plasma exergy.
+pub fn audit_exergy_contract(root: &Value) -> Vec<String> {
+    let mut findings = Vec::new();
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["schema"]) == Some("luminous.ehd_exergy_qualification")
+            && text_at(root, &["schema_version"]) == Some("0.1.0")
+            && text_at(root, &["benchmark_id"]) == Some("EHD-EXERGY-001")
+            && text_at(root, &["status"])
+                == Some("ideal_gas_neutral_exergy_reference_kernel_authored_tests_rust_execution_pending"),
+        "EXERGY_IDENTITY",
+        "exergy reference identity/version/status changed",
+    );
+    let flow = at(root, &["flow_exergy_model"]);
+    push_if_missing(
+        &mut findings,
+        flow.is_some_and(|value| {
+            text_at(value, &["equation"]).is_some_and(|equation| {
+                equation.contains("cp*((T-T0)-T0*ln(T/T0))")
+                    && equation.contains("R*T0*ln(p/p0)")
+                    && equation.contains("speed^2/2")
+                    && equation.contains("g*(z-z0)")
+            })
+                && text_at(value, &["gas_assumption"])
+                    == Some("fixed_composition_calorically_perfect_neutral_ideal_gas")
+                && at(value, &["pressure_flow_exergy_is_signed"]).and_then(Value::as_bool)
+                    == Some(true)
+                && at(value, &["chemical_exergy_supported"]).and_then(Value::as_bool)
+                    == Some(false)
+        }),
+        "EXERGY_FLOW_MODEL",
+        "fixed-composition neutral ideal-gas equation and signed pressure-flow exergy boundary changed",
+    );
+    let heat = at(root, &["heat_exergy"]);
+    push_if_missing(
+        &mut findings,
+        heat.is_some_and(|value| {
+            text_at(value, &["equation"]) == Some("Qdot_into_cv*(1-T0/T_boundary)")
+                && text_at(value, &["heat_direction"]) == Some("positive_into_control_volume")
+                && at(value, &["boundary_temperature_required"])
+                    .and_then(Value::as_bool) == Some(true)
+        }),
+        "EXERGY_HEAT_TRANSFER",
+        "heat-exergy equation, sign convention or boundary-temperature requirement changed",
+    );
+    let balance = at(root, &["control_volume_balance"]);
+    push_if_missing(
+        &mut findings,
+        balance.is_some_and(|value| {
+            text_at(value, &["equation"])
+                == Some("dB_CV/dt = work_exergy_in + heat_exergy_in + mass_flow_exergy_in - mass_flow_exergy_out - other_exergy_outputs - T0*S_gen")
+                && text_at(value, &["exergy_destruction"]) == Some("T0*S_gen")
+                && at(value, &["mass_flow_exergy_rates_may_be_signed"])
+                    .and_then(Value::as_bool) == Some(true)
+                && at(value, &["other_exergy_outputs_must_be_nonnegative"])
+                    .and_then(Value::as_bool) == Some(true)
+                && text_at(value, &["negative_destruction_beyond_tolerance"])
+                    == Some("reject_second_law_violation")
+                && text_at(value, &["tiny_negative_destruction_within_tolerance"])
+                    .is_some_and(|policy| policy.contains("retain_signed_residual"))
+        }),
+        "EXERGY_BALANCE_POLICY",
+        "exergy balance sign, signed mass flux and second-law rejection policy changed",
+    );
+    let implementation = at(root, &["reference_implementation"]);
+    push_if_missing(
+        &mut findings,
+        implementation.is_some_and(|value| {
+            text_at(value, &["path"]) == Some("tools/ehd-reference-audit/src/exergy.rs")
+                && at(value, &["checks"]).and_then(Value::as_array)
+                    .is_some_and(|checks| checks.len() == 7
+                        && checks.iter().any(|item| item.as_str() == Some("flow_exergy_zero_at_dead_state"))
+                        && checks.iter().any(|item| item.as_str() == Some("material_second_law_violation_rejected"))
+                        && checks.iter().any(|item| item.as_str() == Some("roundoff_negative_residual_retained")))
+        }),
+        "EXERGY_IMPLEMENTATION_SCOPE",
+        "neutral exergy reference path and required checks changed",
+    );
+    push_if_missing(
+        &mut findings,
+        at(root, &["test_families"]).and_then(Value::as_array)
+            .is_some_and(|tests| tests.len() == 9
+                && tests.iter().any(|item| item.as_str() == Some("flow_exergy_is_zero_at_dead_state"))
+                && tests.iter().any(|item| item.as_str() == Some("sub_dead_state_pressure_flow_exergy_remains_signed"))
+                && tests.iter().any(|item| item.as_str() == Some("materially_negative_exergy_destruction_is_rejected"))
+                && tests.iter().any(|item| item.as_str() == Some("tiny_negative_residual_is_retained_and_marked_as_roundoff"))
+                && tests.iter().any(|item| item.as_str() == Some("offline_reference_self_check"))),
+        "EXERGY_TEST_MATRIX",
+        "all nine ideal-gas exergy, signed-flow, balance and second-law controls are required",
+    );
+    let limits = at(root, &["limitations"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        limits.is_some_and(|rows| rows.iter().any(|item| item.as_str() == Some("neutral_ideal_gas_only"))
+            && rows.iter().any(|item| item.as_str() == Some("fixed_composition_only"))
+            && rows.iter().any(|item| item.as_str() == Some("no_chemical_exergy"))
+            && rows.iter().any(|item| item.as_str() == Some("no_plasma_charged_species_exergy"))
+            && rows.iter().any(|item| item.as_str() == Some("no_non_equilibrium_plasma_entropy_generation"))
+            && rows.iter().any(|item| item.as_str() == Some("no_physical_ehd_exergy_measurement")))
+            && text_at(root, &["claim_ceiling"]).is_some_and(|claim| {
+                claim.contains("not a plasma exergy model")
+                    && claim.contains("not a physical EHD validation")
+            }),
+        "EXERGY_CLAIM_BOUNDARY",
+        "ideal-gas exergy reference must not be promoted to plasma thermodynamics or physical EHD validation",
+    );
+    findings
+}
+
+
 fn main() {
     let mut args = env::args().skip(1);
     let path = args.next();
@@ -2211,6 +2325,14 @@ fn main() {
         }
     };
     findings.extend(audit_identifiability_contract(&identifiability_contract));
+    let exergy_contract: Value = match serde_json::from_str(EMBEDDED_EXERGY) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("invalid embedded neutral exergy contract JSON: {error}");
+            process::exit(2);
+        }
+    };
+    findings.extend(audit_exergy_contract(&exergy_contract));
     let exchange_kernel_ok = match exchange::reference_self_check() {
         Ok(()) => true,
         Err(error) => {
@@ -2274,6 +2396,13 @@ fn main() {
             false
         }
     };
+    let exergy_ok = match exergy::reference_self_check() {
+        Ok(()) => true,
+        Err(error) => {
+            findings.push(format!("EXERGY_SELF_CHECK: {error}"));
+            false
+        }
+    };
     if findings.is_empty() {
         let count = len_at(&atlas, &["source_records"]).unwrap_or(0);
         let system_count = len_at(&atlas, &["system_integration_references"]).unwrap_or(0);
@@ -2312,7 +2441,10 @@ fn main() {
         if identifiability_ok {
             println!("two-parameter experiment-identifiability reference self-check: passed");
         }
-        println!("scope: source structure and analytic reference checks only; no physical V&V, production ALE, TPE(1/2), nonlinear profile likelihood, complete collisional-energy closure or durable exactly-once claim");
+        if exergy_ok {
+            println!("neutral ideal-gas physical flow-exergy and second-law balance self-check: passed");
+        }
+        println!("scope: source structure and analytic reference checks only; no plasma exergy model, chemical exergy, production ALE, TPE(1/2), nonlinear profile likelihood, complete collisional-energy closure or durable exactly-once claim");
     } else {
         eprintln!("FAIL: {label} ({} finding(s))", findings.len());
         for finding in findings {
@@ -2978,6 +3110,37 @@ mod identifiability_contract_tests {
         value["parameter_contract"]["correlated_covariance_supported"] = Value::Bool(true);
         assert!(audit_identifiability_contract(&value).iter().any(|finding| {
             finding.starts_with("IDENTIFIABILITY_PARAMETER_CONTRACT")
+        }));
+    }
+}
+
+
+#[cfg(test)]
+mod exergy_contract_tests {
+    use super::*;
+
+    #[test]
+    fn neutral_exergy_contract_passes() {
+        let value: Value = serde_json::from_str(EMBEDDED_EXERGY)
+            .expect("embedded neutral exergy contract must be valid JSON");
+        assert!(audit_exergy_contract(&value).is_empty());
+    }
+
+    #[test]
+    fn exergy_contract_rejects_claim_of_chemical_exergy_support() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_EXERGY).unwrap();
+        value["flow_exergy_model"]["chemical_exergy_supported"] = Value::Bool(true);
+        assert!(audit_exergy_contract(&value).iter().any(|finding| {
+            finding.starts_with("EXERGY_FLOW_MODEL")
+        }));
+    }
+
+    #[test]
+    fn exergy_contract_rejects_promotion_to_plasma_model() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_EXERGY).unwrap();
+        value["limitations"] = Value::Array(Vec::new());
+        assert!(audit_exergy_contract(&value).iter().any(|finding| {
+            finding.starts_with("EXERGY_CLAIM_BOUNDARY")
         }));
     }
 }
