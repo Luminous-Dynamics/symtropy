@@ -1006,7 +1006,7 @@
         "environment": "quiescent indoor environment on a vibration-isolation platform",
         "independent_velocity_field_measurement_transcribed": false,
         "independent_control_volume_momentum_measurement_transcribed": false,
-        "uncertainty_details": "not transcribed into this atlas record; consult the final Version of Record and figure/table data before quantitative uncertainty comparison"
+        "uncertainty_details": "Each configuration tested ten times and reported as a mean; Fig. 10 caption states 95% confidence intervals for its configuration comparison. Exact interval values are not transcribed here."
       },
       "reported_results": {
         "applied_voltage_kv": 22,
@@ -1026,8 +1026,26 @@
         "thrust_to_power_tradeoff_reported_by_authors": true,
         "absolute_current_a": null,
         "absolute_real_power_w": null,
-        "absolute_thrust_to_power": null,
-        "thrust_to_power_optimum_configuration": null
+        "absolute_thrust_to_power": {
+          "value": null,
+          "reason": "figure-only approximate comparison is stored separately; exact source data and uncertainty not transcribed"
+        },
+        "thrust_to_power_optimum_configuration": null,
+        "figure9_22kv": {
+          "evidence_class": "approximate_visual_digitization_from_source_figure_not_tabulated_exact_values",
+          "voltage_kv": 22,
+          "conventional_comparator_configuration": "No sub unit G20 Guide40",
+          "sub_unit_plus_configuration": "Sub unit plus width 50 mm, collector distance 10 mm, Guide40",
+          "thrust_to_power_n_kw": {
+            "conventional_approx": 3,
+            "sub_unit_plus_approx": 2.4
+          },
+          "current_ma": {
+            "conventional_approx": 0.77,
+            "sub_unit_plus_approx": 1.34
+          },
+          "interpretation": "At matched voltage the modified configuration raises maximum absolute thrust, but the displayed T/P is lower and current is higher. These points are visually estimated from Fig. 9 and are not exact digitized raw measurements."
+        }
       },
       "unresolved_fields": [
         "complete numeric electrode geometry dimensions and tolerances",
@@ -1049,7 +1067,7 @@
         "absolute_thrust_leaderboard_eligible": false,
         "thrust_to_power_leaderboard_eligible": false,
         "system_thrust_to_weight_leaderboard_eligible": false,
-        "notes": "Keep the 22 kV within-study force comparison separate from T/P and integrated mass metrics. The abstract explicitly reports a thrust-versus-thrust-to-power trade-off but does not provide comparable absolute electrical power values in this transcription. Do not infer that the 68.70 mN configuration is the efficiency optimum."
+        "notes": "Keep the exact abstract headline thrust values separate from approximate Figure 9 visual digitizations. The Fig. 9 comparison suggests approximately 3.0 vs 2.4 N/kW at 22 kV for the named conventional/sub-unit-plus configurations, with approximately 0.77 vs 1.34 mA. Those graph-read estimates are not raw data or a benchmark-grade T/P result. Do not infer that the 68.70 mN configuration is the efficiency optimum."
       }
     }
   ],
