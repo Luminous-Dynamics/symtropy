@@ -128,7 +128,7 @@
         "Luminous-Dynamics/symtropy#6786",
         "Luminous-Dynamics/sol-atlas-leptos#606"
       ],
-      "evidence_state": "issue_open_design_spec_only_no_resource_offer_implementation"
+      "evidence_state": "draft_schema_fixture_PR_6534_stacked_on_MFG_PROC_001A; push_workflow_passed_exact_head_2b8e693153535483e3d3da26e5354e82d97c6f1b; PR_event_rerun_in_progress; schema_fixture_only_not_runtime_or_verified_resource"
     },
     {
       "owner": "Luminous-Dynamics/sol-atlas-leptos",
@@ -378,7 +378,8 @@
     "Simulation, synthetic fixtures, vendor declarations, mapped sites and machine advertisements are never promoted to physical qualification.",
     "A work-order completion is not an accepted part; a machine session is not a qualified process; a qualified individual unit is not production yield.",
     "Mycelix MFG-PROC-001A typed references bind exact Symthaea contract crate/type/source commit and BLAKE3 object/process identities; until external owner objects are fetched and verified, the only local state is TypedReferencePresent, not qualified.",
-    "Mycelix MFG-PROC-001B resource offers separate published claims, declared capacity, calendar availability, bookable capacity, reserved capacity and observed output. A published offer never proves resource qualification or schedulability."
+    "Mycelix MFG-PROC-001B resource offers separate published claims, declared capacity, calendar availability, bookable capacity, reserved capacity and observed output. A published offer never proves resource qualification or schedulability.",
+    "Mycelix MFG-PROC-001B v0.1 resource offers are provider declarations. They do not prove signer authority, owner-object resolution, resource/site existence, physical capability qualification, current calendar availability, bookable or reserved capacity, execution or accepted output."
   ],
-  "claim_ceiling": "Public owner/path audit only. Symthaea PR #5701 is still an open draft and its current-main replay #5901 is not qualified; Mycelix PR #6532 type-reference implementation passed its focused exact-head workflow but external process objects remain unresolved. Mycelix #6533 is a design issue only. No private-workspace completeness, schema conformance of external objects, physical machine qualification, supplier approval, resource availability, production capacity, cost savings or local productive closure is established."
+  "claim_ceiling": "Public owner/path audit only. Symthaea PR #5701 remains an open draft and its current-main replay #5901 is not qualified; Mycelix PR #6532 typed reference consumer passed its focused exact-head workflow but external process objects remain unresolved. Mycelix PR #6534 resource-offer schema/fixture tranche passed its exact-head push workflow but is stacked/draft and has no runtime, provider verification, resource qualification, calendar verification or booking. No private-workspace completeness, physical machine qualification, supplier approval, resource availability, production capacity, cost savings or local productive closure is established."
 }
