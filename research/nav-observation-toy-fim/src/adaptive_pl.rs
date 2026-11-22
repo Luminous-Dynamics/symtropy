@@ -520,7 +520,7 @@ mod tests {
         let dt = sample.delta_time_s;
         let alpha = (2.0 * PI * cfg.derivative_cutoff_hz * dt).min(1.0);
         let prior_derivative = state.derivative_state_mps();
-        let prior_error = state.previous_tracking_error_m();
+        let prior_error = state.previous_tracking_error_m;
         let raw = ((state.ideal_setpoint_m() - state.protection_level_m()) - prior_error) / dt;
         let expected = alpha * raw + (1.0 - alpha) * prior_derivative;
         let output = state.step(cfg, sample).unwrap();
@@ -544,7 +544,7 @@ mod tests {
         let dt = sample.delta_time_s;
         let alpha = 1.0 - (-2.0 * PI * cfg.derivative_cutoff_hz * dt).exp();
         let prior_derivative = state.derivative_state_mps();
-        let prior_error = state.previous_tracking_error_m();
+        let prior_error = state.previous_tracking_error_m;
         let raw = ((state.ideal_setpoint_m() - state.protection_level_m()) - prior_error) / dt;
         let expected = alpha * raw + (1.0 - alpha) * prior_derivative;
         let output = state.step(cfg, sample).unwrap();
