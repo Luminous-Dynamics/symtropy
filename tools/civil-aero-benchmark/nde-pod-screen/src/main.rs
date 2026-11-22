@@ -31,7 +31,7 @@ struct Corpus {
     cases: Vec<CaseSpec>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Scope {
     scope_ref: String,
@@ -183,10 +183,23 @@ fn sha256_hex(bytes: &[u8]) -> String {
     value
 }
 
-fn scope_sha256(scope: &Scope) -> ScreenResult<String> {
-    let bytes = serde_json::to_vec(scope)
-        .map_err(|error| format!("unable to serialize frozen scope: {error}"))?;
-    Ok(sha256_hex(&bytes))
+fn scope_sha256(scope: &Scope) -> String {
+    let mut bytes = Vec::new();
+    for value in [
+        &scope.scope_ref,
+        &scope.method_id,
+        &scope.procedure_revision,
+        &scope.material_system,
+        &scope.defect_family,
+        &scope.defect_orientation,
+        &scope.environment_id,
+    ] {
+        let encoded = value.as_bytes();
+        bytes.extend_from_slice(&(encoded.len() as u64).to_be_bytes());
+        bytes.extend_from_slice(encoded);
+    }
+    bytes.extend_from_slice(&scope.target_flaw_size_mm.to_bits().to_be_bytes());
+    sha256_hex(&bytes)
 }
 
 fn validate_criteria(criteria: &Criteria) -> ScreenResult<()> {
@@ -719,7 +732,7 @@ fn run_corpus(bytes: &[u8], source_commit: &str) -> ScreenResult<Receipt> {
     }
     validate_scope(&corpus.scope)?;
     validate_criteria(&corpus.criteria)?;
-    let scope_sha256 = scope_sha256(&corpus.scope)?;
+    let scope_sha256 = scope_sha256(&corpus.scope);
 
     let mut results = Vec::with_capacity(corpus.cases.len());
     let mut details = Vec::with_capacity(corpus.cases.len());
@@ -825,7 +838,7 @@ mod tests {
         assert_eq!(receipt.a90_95, "NOT_ESTIMATED");
         assert_eq!(
             receipt.scope_sha256,
-            "b47757abe316c68c020d1632004da63250a41bd5e85a8e21101872c62b365bac"
+            "2e5d9a349ec0dd879246005413da432ce0b9987f31f2a54b31dafd091cf059f0"
         );
         assert_eq!(receipt.inspector_details[0].len(), 10);
         assert!(
