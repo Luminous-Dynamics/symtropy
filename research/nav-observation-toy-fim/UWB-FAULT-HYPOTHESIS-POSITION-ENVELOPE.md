@@ -84,6 +84,29 @@ A complete envelope above the profile-owned alert limit returns **ExceedsAlertLi
 - Canonical hypothesis output is invariant to input order.
 - Duplicate hypothesis, dependency-group and observation identities are rejected.
 
+## Active hypothesis discrimination
+
+The companion `uwb_hypothesis_discrimination.rs` module evaluates a candidate observation action against the current surviving fault-hypothesis set.
+
+For each hypothesis h, an external action model supplies a bounded ball in normalized observation-feature space:
+
+`Y_h = Ball(mu_h, r_h)`
+
+For two hypotheses, the guaranteed outcome-set gap is:
+
+`gap(h_i,h_j) = max(0, ||mu_i - mu_j||_2 - r_i - r_j)`
+
+A positive gap certifies disjointness of the two supplied outcome enclosures. A zero gap means the action does not guarantee distinguishing that pair. The model must supply exactly one outcome set for every surviving hypothesis and bind:
+- the exact hypothesis-inventory SHA-256;
+- the outcome-model SHA-256;
+- the feature-ordering/normalization SHA-256.
+
+The report returns all pairwise gaps, the number of distinguishable and unresolved pairs, the minimum positive gap and maximum gap. This is a **conditional** score: the report assumes a successful, valid observation and does not predict action success or availability.
+
+This is deliberately not turned into one scalar action utility. The existing #6855 planner can compare discrimination coverage with conditional protection-level reduction, latency, energy, airtime and dependency novelty using a Pareto policy. The action plan remains advisory. No hypothesis may be removed until a real observation receipt arrives, passes source/clock/session/physical qualification, and a fresh posterior/hypothesis audit is performed.
+
+The action-outcome balls are caller-supplied and must be independently justified. A stale, uncalibrated or misspecified outcome model is not made trustworthy by its digest. No observation action, physical movement or sensor actuation is executed by this module.
+
 ## Deliberate boundaries and remaining proof obligations
 
 - The caller supplies the hypothesis-specific solutions. This module does not compute leave-one-anchor-out estimators or solve the range equations.
