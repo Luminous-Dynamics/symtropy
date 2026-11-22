@@ -507,13 +507,7 @@ mod tests {
     #[test]
     fn contact_cache_checked_lookup_rejects_negative_normal_impulse() {
         let mut cache = ContactCache::<3>::new();
-        cache.store(
-            BodyHandle(0),
-            BodyHandle(1),
-            SVector::zeros(),
-            -1.0,
-            0.0,
-        );
+        cache.store(BodyHandle(0), BodyHandle(1), SVector::zeros(), -1.0, 0.0);
         assert!(matches!(
             cache.lookup_checked(BodyHandle(0), BodyHandle(1), &SVector::zeros()),
             Err(ContactCacheLookupError::NegativeCachedNormalImpulse)
