@@ -23,7 +23,7 @@ pub enum FeatureDisposition {
     Unresolved,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Corpus {
     pub schema: String,
@@ -33,7 +33,7 @@ pub struct Corpus {
     pub cases: Vec<Case>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Case {
     pub case_id: String,
@@ -50,7 +50,7 @@ pub struct Case {
     pub measurements: Vec<FeatureMeasurement>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Registration {
     pub source_frame_id: String,
@@ -64,7 +64,7 @@ pub struct Registration {
     pub registration_uncertainty_m: f64,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Instrument {
     pub instrument_id: String,
@@ -75,7 +75,7 @@ pub struct Instrument {
     pub used_at_unix_ms: u64,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct FeatureRequirement {
     pub feature_id: String,
@@ -84,7 +84,7 @@ pub struct FeatureRequirement {
     pub critical: bool,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct FeatureMeasurement {
     pub feature_id: String,
