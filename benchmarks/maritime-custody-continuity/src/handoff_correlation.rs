@@ -622,8 +622,7 @@ pub fn qualify_custody_event_timeline(
     }
 
     let mut consumed_bindings = BTreeSet::new();
-    let mut events_by_box: BTreeMap<String, Vec<BoxEventTime<'_>>> =
-        BTreeMap::new();
+    let mut events_by_box: BTreeMap<String, Vec<BoxEventTime<'_>>> = BTreeMap::new();
 
     for group in &effective_actual_groups {
         let binding = bindings_by_key.get(&group.source_event).ok_or_else(|| {
@@ -938,15 +937,7 @@ mod tests {
 
     #[test]
     fn sorted_prefix_proof_matches_pairwise_oracle_for_small_interval_sets() {
-        let candidates = [
-            (0, 0),
-            (1, 0),
-            (2, 0),
-            (0, 1),
-            (2, 1),
-            (4, 1),
-            (50, 50),
-        ];
+        let candidates = [(0, 0), (1, 0), (2, 0), (0, 1), (2, 1), (4, 1), (50, 50)];
 
         for &(a_center, a_radius) in &candidates {
             for &(b_center, b_radius) in &candidates {
@@ -1006,12 +997,10 @@ mod tests {
 
                     if optimized.is_ok() {
                         for pair in box_events.windows(2) {
-                            assert!(
-                                matches!(
-                                    compare_time_evidence(&pair[0].2, &pair[1].2),
-                                    TemporalRelation::ProvenBefore
-                                )
-                            );
+                            assert!(matches!(
+                                compare_time_evidence(&pair[0].2, &pair[1].2),
+                                TemporalRelation::ProvenBefore
+                            ));
                         }
                     }
                 }
