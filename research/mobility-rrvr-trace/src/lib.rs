@@ -107,6 +107,21 @@ pub const TLA_ACTION_EVENT_MAPPING: [TlaActionEventMapping; 30] = [
 ];
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ClockObservation {
+    /// Source clock identity. Never compare values from different clock IDs.
+    pub clock_id: String,
+    /// Clock epoch; distinguishes monotonic-clock resets across boots.
+    pub boot_epoch_id: String,
+    /// Explicit source unit (for example `ns`, `ticks`, or a device-specific unit).
+    pub unit: String,
+    pub time_value: u64,
+    /// Smallest resolution represented by this source clock reading.
+    pub resolution: u64,
+    /// Owner-supplied upper bound on timestamp uncertainty in the same unit.
+    pub uncertainty: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TraceEvent {
     pub event_id: String,
     /// Strictly increasing deterministic serialization order. This is not
@@ -116,6 +131,10 @@ pub struct TraceEvent {
     pub actor_id: String,
     /// Every predecessor must appear earlier in the serialized trace.
     pub predecessor_event_ids: Vec<String>,
+    /// Source-clock metadata is retained but never used to order incomparable clocks.
+    pub clock_observation: Option<ClockObservation>,
+    /// Raw immutable evidence/artifact identities produced or consumed here.
+    pub raw_artifact_ids: Vec<String>,
     /// Commitment to the exact event input/parameters, computed externally.
     pub input_commitment: Commitment,
     /// Commitment to the exact event configuration/profile, computed externally.
@@ -182,6 +201,9 @@ pub enum TraceHoldReason {
     DuplicatePredecessor,
     InvalidArtifact,
     DuplicateArtifact,
+    DuplicateEventArtifactReference,
+    UnknownEventArtifactReference,
+    InvalidClockObservation,
     OracleRevisionMismatch,
     ReplayBudgetTooSmall,
     ReplayBudgetTooLarge,
@@ -391,6 +413,26 @@ pub fn validate_trace_bundle(bundle: &TraceBundle) -> TraceValidation {
         }
         if !artifact_ids.insert(artifact.artifact_id.as_str()) {
             return TraceValidation::Hold(TraceHoldReason::DuplicateArtifact);
+        }
+    }
+    for event in &bundle.events {
+        if event.clock_observation.as_ref().is_some_and(|clock| {
+            !nonempty(&clock.clock_id)
+                || !nonempty(&clock.boot_epoch_id)
+                || !nonempty(&clock.unit)
+                || clock.resolution == 0
+        }) {
+            return TraceValidation::Hold(TraceHoldReason::InvalidClockObservation);
+        }
+
+        let mut event_artifacts = BTreeSet::new();
+        for artifact_id in &event.raw_artifact_ids {
+            if !event_artifacts.insert(artifact_id.as_str()) {
+                return TraceValidation::Hold(TraceHoldReason::DuplicateEventArtifactReference);
+            }
+            if !artifact_ids.contains(artifact_id.as_str()) {
+                return TraceValidation::Hold(TraceHoldReason::UnknownEventArtifactReference);
+            }
         }
     }
     match validate_events(&bundle.events, &header.target_failure) {
@@ -788,6 +830,8 @@ mod tests {
                 .iter()
                 .map(|value| (*value).to_owned())
                 .collect(),
+            clock_observation: None,
+            raw_artifact_ids: Vec::new(),
             input_commitment: commitment(1),
             configuration_commitment: commitment(2),
         }
@@ -809,7 +853,18 @@ mod tests {
                 target_failure: target_failure(),
             },
             events: vec![
-                event("boot", 1, TraceEventKind::ProcessStarted, &[]),
+                {
+                    let mut item = event("boot", 1, TraceEventKind::ProcessStarted, &[]);
+                    item.clock_observation = Some(ClockObservation {
+                        clock_id: "controller-monotonic".to_owned(),
+                        boot_epoch_id: "boot-9".to_owned(),
+                        unit: "ns".to_owned(),
+                        time_value: 1_000,
+                        resolution: 1,
+                        uncertainty: 5,
+                    });
+                    item
+                },
                 event("old-command", 2, TraceEventKind::CommandQueued, &["boot"]),
                 event(
                     "controller-fence",
@@ -823,12 +878,16 @@ mod tests {
                     TraceEventKind::DownstreamGraphFenced,
                     &["controller-fence"],
                 ),
-                event(
-                    "late-old-apply",
-                    5,
-                    TraceEventKind::OldCommandApplied,
-                    &["old-command", "downstream-fence"],
-                ),
+                {
+                    let mut item = event(
+                        "late-old-apply",
+                        5,
+                        TraceEventKind::OldCommandApplied,
+                        &["old-command", "downstream-fence"],
+                    );
+                    item.raw_artifact_ids = vec!["raw-event-stream".to_owned()];
+                    item
+                },
                 event("telemetry", 6, TraceEventKind::TelemetryCaptured, &["boot"]),
                 event(
                     "trace-flush",
@@ -1124,6 +1183,62 @@ mod tests {
         assert_eq!(
             validate_trace_bundle(&input),
             TraceValidation::Hold(TraceHoldReason::UnsupportedFormatVersion)
+        );
+    }
+
+    #[test]
+    fn clock_metadata_is_retained_but_not_used_to_assert_cross_clock_order() {
+        let mut input = bundle();
+        input.events[0].clock_observation = Some(ClockObservation {
+            clock_id: "clock-a".to_owned(),
+            boot_epoch_id: "boot-a".to_owned(),
+            unit: "ticks".to_owned(),
+            time_value: 900,
+            resolution: 1,
+            uncertainty: 3,
+        });
+        input.events[1].clock_observation = Some(ClockObservation {
+            clock_id: "clock-b".to_owned(),
+            boot_epoch_id: "boot-b".to_owned(),
+            unit: "ns".to_owned(),
+            time_value: 5,
+            resolution: 1,
+            uncertainty: 0,
+        });
+        assert_eq!(validate_trace_bundle(&input), TraceValidation::Valid);
+
+        let mut invalid = bundle();
+        invalid.events[0].clock_observation = Some(ClockObservation {
+            clock_id: "clock-a".to_owned(),
+            boot_epoch_id: "boot-a".to_owned(),
+            unit: "ns".to_owned(),
+            time_value: 1,
+            resolution: 0,
+            uncertainty: 0,
+        });
+        assert_eq!(
+            validate_trace_bundle(&invalid),
+            TraceValidation::Hold(TraceHoldReason::InvalidClockObservation)
+        );
+    }
+
+    #[test]
+    fn event_raw_artifact_references_must_resolve_and_be_unique() {
+        let mut input = bundle();
+        input.events[4].raw_artifact_ids = vec!["missing-artifact".to_owned()];
+        assert_eq!(
+            validate_trace_bundle(&input),
+            TraceValidation::Hold(TraceHoldReason::UnknownEventArtifactReference)
+        );
+
+        let mut input = bundle();
+        input.events[4].raw_artifact_ids = vec![
+            "raw-event-stream".to_owned(),
+            "raw-event-stream".to_owned(),
+        ];
+        assert_eq!(
+            validate_trace_bundle(&input),
+            TraceValidation::Hold(TraceHoldReason::DuplicateEventArtifactReference)
         );
     }
 
