@@ -12,7 +12,8 @@ use std::fmt;
 mod decision_value;
 pub use decision_value::{
     recommend_finite_decision_step, DecisionAbstentionReason, FiniteDecisionRecommendation,
-    InformationAcquisitionKind, InformationAcquisitionOption, InformationSourceQualification,
+    InformationAcquisitionKind, InformationAcquisitionOption, InformationAcquisitionPolicy,
+    InformationSourceQualification,
 };
 
 mod design_decision;
