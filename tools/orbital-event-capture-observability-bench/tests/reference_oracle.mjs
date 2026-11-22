@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 "use strict";
 
-const fs = require("node:fs");
+import fs from "node:fs";
 
 function sha256(value) {
   return typeof value === "string" && /^[0-9a-f]{64}$/.test(value);
