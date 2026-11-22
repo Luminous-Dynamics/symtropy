@@ -1,5 +1,7 @@
 import hashlib
+import json
 import unittest
+from pathlib import Path
 
 from evaluate_evidence_certificate import (
     BENCHMARK_ID,
@@ -277,6 +279,23 @@ class EvidenceCertificateTests(unittest.TestCase):
         self.assertIsNone(result["per_claim"][0]["spatial_iou"])
         self.assertIsNone(result["mean_temporal_iou"])
         self.assertIsNone(result["mean_spatial_iou"])
+
+
+    def test_serialized_known_answer_fixture_matches_frozen_scorecard(self):
+        root = Path(__file__).resolve().parents[2]
+        base = root / "research" / "av-evidence-certificate-v0" / "fixtures"
+        with (base / "agent" / "workload-v1.json").open(encoding="utf-8") as handle:
+            workload_doc = json.load(handle)
+        with (base / "evaluator-only" / "truth-v1.json").open(encoding="utf-8") as handle:
+            truth_doc = json.load(handle)
+        with (base / "agent" / "submission-v1.json").open(encoding="utf-8") as handle:
+            submission_doc = json.load(handle)
+        with (base / "expected" / "scorecard-known-answer-v1.json").open(encoding="utf-8") as handle:
+            expected = json.load(handle)
+
+        result = evaluate(workload_doc, truth_doc, submission_doc)
+        for field, expected_value in expected.items():
+            self.assertEqual(result[field], expected_value, field)
 
     def test_replay_is_deterministic(self):
         a = evaluate(workload(), truth(), submission())
