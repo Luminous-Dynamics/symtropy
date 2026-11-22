@@ -69,6 +69,8 @@ pub enum Rejection {
     NoPendingAction,
     PendingAttemptMismatch,
     RecoveryPermitMissing,
+    RecoveryPermitMismatch,
+    RecoveryPermitReplay,
     InvalidNextSnapshot,
 }
 
@@ -89,6 +91,18 @@ pub enum ReceiptDisposition {
     AcceptedByNativeController,
     RejectedNoEffect,
     ReconciliationRequired,
+}
+
+/// Opaque reference to an M1-approved recovery/replan capability.
+/// The upstream M1 owner authenticates the permit, verifies allowlisting and
+/// checks that the plan digest is permitted. This boundary checks scope and
+/// consume-once identity only.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RecoveryPermitReference {
+    pub permit_id: String,
+    pub failed_attempt_key: String,
+    pub plan_digest: BindingCommitment,
+    pub authority_epoch: u64,
 }
 
 /// Outcome class supplied by the existing independent-observer/M1
@@ -131,6 +145,7 @@ struct BoundaryState {
     consumed: BTreeSet<String>,
     next_application_sequence: u64,
     pending_action_attempt: Option<String>,
+    consumed_recovery_permit_ids: BTreeSet<String>,
 }
 
 /// Single-process reference boundary. The production authority owner and
@@ -148,6 +163,7 @@ impl ApplicationBoundary {
                 consumed: BTreeSet::new(),
                 next_application_sequence: 1,
                 pending_action_attempt: None,
+                consumed_recovery_permit_ids: BTreeSet::new(),
             }),
         }
     }
@@ -267,7 +283,7 @@ impl ApplicationBoundary {
         attempt_key: &str,
         resolution: QualifiedOutcomeResolution,
         next_snapshot: Option<LiveAuthoritySnapshot>,
-        recovery_permit_digest: Option<&str>,
+        recovery_permit: Option<&RecoveryPermitReference>,
     ) -> Result<ResolutionDisposition, Rejection> {
         let mut state = self.state.lock().map_err(|_| Rejection::LockPoisoned)?;
         let pending = state
@@ -279,7 +295,7 @@ impl ApplicationBoundary {
         }
 
         if resolution == QualifiedOutcomeResolution::Unknown {
-            if next_snapshot.is_some() || recovery_permit_digest.is_some() {
+            if next_snapshot.is_some() || recovery_permit.is_some() {
                 return Err(Rejection::InvalidNextSnapshot);
             }
             return Ok(ResolutionDisposition::HoldRetained);
@@ -296,23 +312,32 @@ impl ApplicationBoundary {
 
         match resolution {
             QualifiedOutcomeResolution::Satisfied => {
-                if recovery_permit_digest.is_some() {
+                if recovery_permit.is_some() {
                     return Err(Rejection::InvalidNextSnapshot);
                 }
             }
             QualifiedOutcomeResolution::NoEffect
             | QualifiedOutcomeResolution::PartialEffect => {
-                if recovery_permit_digest
-                    .map(str::trim)
-                    .filter(|value| !value.is_empty())
-                    .is_none()
+                let permit = recovery_permit.ok_or(Rejection::RecoveryPermitMissing)?;
+                if permit.permit_id.trim().is_empty()
+                    || permit.failed_attempt_key != attempt_key
+                    || permit.authority_epoch != state.live.binding.controller_epoch
+                    || permit.plan_digest == [0; 32]
                 {
-                    return Err(Rejection::RecoveryPermitMissing);
+                    return Err(Rejection::RecoveryPermitMismatch);
+                }
+                if state.consumed_recovery_permit_ids.contains(&permit.permit_id) {
+                    return Err(Rejection::RecoveryPermitReplay);
                 }
             }
             QualifiedOutcomeResolution::Unknown => unreachable!("handled above"),
         }
 
+        if let Some(permit) = recovery_permit {
+            state
+                .consumed_recovery_permit_ids
+                .insert(permit.permit_id.clone());
+        }
         state.live = next;
         state.pending_action_attempt = None;
         Ok(ResolutionDisposition::ClearedForNewAuthoritySnapshot)
@@ -717,11 +742,17 @@ pub use history::{
         );
         assert_eq!(without_permit, Err(Rejection::RecoveryPermitMissing));
 
+        let permit = RecoveryPermitReference {
+            permit_id: "permit-2".to_owned(),
+            failed_attempt_key: "attempt-1".to_owned(),
+            plan_digest: [9; 32],
+            authority_epoch: 3,
+        };
         let with_permit = boundary.resolve_pending_action(
             "attempt-1",
             QualifiedOutcomeResolution::NoEffect,
             Some(next),
-            Some("permit-digest-2"),
+            Some(&permit),
         );
         assert_eq!(
             with_permit,
@@ -738,11 +769,17 @@ pub use history::{
             })
             .unwrap();
 
+        let permit = RecoveryPermitReference {
+            permit_id: "replan-permit-2".to_owned(),
+            failed_attempt_key: "attempt-1".to_owned(),
+            plan_digest: [8; 32],
+            authority_epoch: 3,
+        };
         let result = boundary.resolve_pending_action(
             "attempt-1",
             QualifiedOutcomeResolution::PartialEffect,
             Some(live("attempt-2", 8, 4)),
-            Some("replan-permit-2"),
+            Some(&permit),
         );
         assert_eq!(
             result,
