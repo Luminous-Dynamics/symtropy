@@ -114,6 +114,7 @@ pub enum HoldReason {
     DependencyCycle,
     UnreferencedComponent,
     InvalidObserverChannel,
+    MeasurementScopeMismatch,
     DuplicateObserverChannel,
     UnknownObserverSource,
     InvalidQuorum,
@@ -194,7 +195,7 @@ fn validate_packet(packet: &ObserverAssurancePacket) -> Result<(), HoldReason> {
     {
         return Err(HoldReason::ZeroProfileCommitment);
     }
-    if packet.components.is_empty() || packet.dependency_edges.is_empty() {
+    if packet.components.is_empty() {
         return Err(HoldReason::EmptyDependencyGraph);
     }
     if packet.components.len() > MAX_COMPONENTS {
@@ -260,6 +261,9 @@ fn validate_packet(packet: &ObserverAssurancePacket) -> Result<(), HoldReason> {
             || channel.maximum_sample_age_ns == 0
         {
             return Err(HoldReason::InvalidObserverChannel);
+        }
+        if channel.measurement_scope_commitment != packet.claim_scope_commitment {
+            return Err(HoldReason::MeasurementScopeMismatch);
         }
         if packet.channels[..index]
             .iter()
@@ -579,7 +583,7 @@ mod tests {
         ObserverChannel {
             channel_id: id.to_owned(),
             source_component_id: source.to_owned(),
-            measurement_scope_commitment: commitment(1),
+            measurement_scope_commitment: commitment(4),
             calibration_commitment: commitment(2),
             clock_profile_id: "clock-profile-independent".to_owned(),
             maximum_time_uncertainty_ns: 20,
@@ -590,7 +594,7 @@ mod tests {
     fn sample(channel_id: &str) -> ObserverSample {
         ObserverSample {
             channel_id: channel_id.to_owned(),
-            measurement_scope_commitment: commitment(1),
+            measurement_scope_commitment: commitment(4),
             calibration_commitment: commitment(2),
             clock_profile_id: "clock-profile-independent".to_owned(),
             time_uncertainty_ns: 10,
@@ -668,6 +672,7 @@ mod tests {
     #[test]
     fn shared_power_dependency_is_not_independent() {
         let mut input = packet();
+        input.required_independent_observers = 3;        let mut input = packet();
         input.components.push(component("shared-power", "shared-power-domain", "power"));
         input.dependency_edges.push(edge("sensor-a", "shared-power"));
         input.dependency_edges.push(edge("sensor-b", "shared-power"));
@@ -677,6 +682,7 @@ mod tests {
     #[test]
     fn shared_clock_dependency_is_not_independent() {
         let mut input = packet();
+        input.required_independent_observers = 3;        let mut input = packet();
         input.components.push(component("shared-clock", "shared-clock-domain", "clock"));
         input.dependency_edges.push(edge("sensor-a", "shared-clock"));
         input.dependency_edges.push(edge("sensor-b", "shared-clock"));
@@ -686,18 +692,19 @@ mod tests {
     #[test]
     fn duplicate_failure_domain_labels_reveal_hidden_common_cause() {
         let mut input = packet();
+        input.required_independent_observers = 3;        let mut input = packet();
         input.components[4].failure_domain_id =
             input.components[1].failure_domain_id.clone();
         assert_hold(&input, HoldReason::NoSurvivingIndependentQuorum);
     }
 
     #[test]
-    fn faulting_one_channel_is_tolerated_when_three_independent_channels_exist() {
+    fn two_declared_faults_in_one_observer_path_leave_two_independent_channels() {
         let mut input = packet();
         input.required_independent_observers = 2;
         input.scenarios.push(FaultScenario {
-            scenario_id: "shared-host-loss".to_owned(),
-            failed_component_ids: vec!["sensor-a".to_owned(), "sensor-b".to_owned()],
+            scenario_id: "two-faults-one-observer-path".to_owned(),
+            failed_component_ids: vec!["sensor-a".to_owned(), "power-a".to_owned()],
         });
         assert_eq!(
             assess_observer_assurance(&input),
@@ -730,6 +737,7 @@ mod tests {
     #[test]
     fn stale_sample_is_not_evidence_of_observer_availability() {
         let mut input = packet();
+        input.required_independent_observers = 3;        let mut input = packet();
         input.samples[0].observed_at_ns = 1;
         assert_eq!(
             assess_observer_assurance(&input),
@@ -744,6 +752,7 @@ mod tests {
     #[test]
     fn wrong_calibration_scope_or_clock_invalidates_a_channel() {
         let mut input = packet();
+        input.required_independent_observers = 3;        let mut input = packet();
         input.samples[0].calibration_commitment = commitment(99);
         assert_hold(&input, HoldReason::InsufficientValidChannels);
 
@@ -759,6 +768,7 @@ mod tests {
     #[test]
     fn calibration_placement_and_operating_envelope_must_be_valid() {
         let mut input = packet();
+        input.required_independent_observers = 3;        let mut input = packet();
         input.samples[0].calibration_valid = false;
         assert_hold(&input, HoldReason::InsufficientValidChannels);
 
@@ -774,6 +784,7 @@ mod tests {
     #[test]
     fn time_uncertainty_and_future_samples_are_rejected() {
         let mut input = packet();
+        input.required_independent_observers = 3;        let mut input = packet();
         input.samples[0].time_uncertainty_ns = 21;
         assert_hold(&input, HoldReason::InsufficientValidChannels);
 
@@ -785,6 +796,7 @@ mod tests {
     #[test]
     fn missing_or_zero_raw_evidence_does_not_count() {
         let mut input = packet();
+        input.required_independent_observers = 3;        let mut input = packet();
         input.samples.remove(0);
         assert_hold(&input, HoldReason::InsufficientValidChannels);
 
