@@ -60,7 +60,20 @@ Binds:
 - chunk size and overlap;
 - filtering/resampling transform digest.
 
-The sample range must map to the requested source-time interval within one sample period. Delivered audio must preserve the declared sample rate, channel count and sample format. A partial result must be a strict subrange; a complete result must match the full request.
+The sample range must map to the requested source-time interval within one sample period. Delivered audio must preserve the declared sample rate, channel count and sample format. A partial result must be a strict subrange; a complete result must match the full request. The result receipt also carries the executor-attested digest of the transform actually applied; it must match the requested transform digest. A transform receipt without delivered audio is invalid.
+
+#### Raw-audio versus HDC-derived representation boundary
+
+The audio-window receipt identifies the source PCM sample range. It is not an HDC embedding and must not be replaced by one.
+
+Symthaea's acoustic HDC work is a **derived perceptual representation**, not a waveform codec: HDC vectors can support similarity, event/prosody features and cross-modal binding, but do not by themselves provide a decodable reconstruction of the source waveform. Therefore:
+
+- preserve the source audio (or a separately qualified conventional codec representation) as the fidelity/transport record;
+- identify every HDC-derived artifact separately, binding it to the exact source sample interval and to the encoder schema/version, frontend configuration, basis/seed identity, dimensions, numeric or quantized format, and artifact digest;
+- keep transform identity and source provenance separate from the semantic embedding; a cryptographic digest establishes identity, not perceptual similarity;
+- never count a delivered HDC vector as an audio sample range, and never infer lossless or bitrate compression from a smaller embedding without a defined decoder and reconstruction test.
+
+This boundary allows HDC to be evaluated as a compact cognitive input while preserving replayable access to the underlying sound. It composes with Symthaea #10910/#10912 (live/offline HDC feature-space parity) and #10890 (acoustic-faithfulness evaluation); it does not create a second audio encoder or ASR path.
 
 ### External feedback request
 
