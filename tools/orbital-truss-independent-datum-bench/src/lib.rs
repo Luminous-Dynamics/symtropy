@@ -320,7 +320,7 @@ pub fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
         reasons.push("CONTROL_NETWORK_SPAN_BELOW_MINIMUM".to_owned());
     }
     if triangle_area < case.minimum_triangle_area_m2 {
-        reasons.push("CONTROL_NETWORK_NEAR_DEGENERATE".to_owned());
+        reasons.push("CONTROL_NETWORK_SPATIAL_FOOTPRINT_BELOW_MINIMUM".to_owned());
     }
 
     let Some(pose) = fit_proper_rigid_2d(&controls) else {
