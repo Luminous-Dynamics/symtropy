@@ -16,8 +16,7 @@ use std::fs;
 const CORPUS_SCHEMA: &str = "luminous.aero.nde-fixed-target-screen.v0.1";
 const CLAIM_CEILING: &str = "fixed_target_binomial_screening_only";
 const OUTPUT_SCHEMA: &str = "luminous.aero.nde-fixed-target-receipt.v0.1";
-const BINOMIAL_INDEPENDENCE_NOTE: &str =
-    "Bounds are conditional on independent Bernoulli trials within the declared fixed scope; independence and population representativeness are not authenticated.";
+const BINOMIAL_INDEPENDENCE_NOTE: &str = "Bounds are conditional on independent Bernoulli trials within the declared fixed scope; independence and population representativeness are not authenticated.";
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -190,13 +189,27 @@ fn validate_criteria(criteria: &Criteria) -> ScreenResult<()> {
         return Err("criteria sample counts must be positive".to_owned());
     }
     for (name, value) in [
-        ("target_detection_probability", criteria.target_detection_probability),
-        ("detection_one_sided_confidence", criteria.detection_one_sided_confidence),
-        ("maximum_false_call_probability", criteria.maximum_false_call_probability),
-        ("false_call_one_sided_confidence", criteria.false_call_one_sided_confidence),
+        (
+            "target_detection_probability",
+            criteria.target_detection_probability,
+        ),
+        (
+            "detection_one_sided_confidence",
+            criteria.detection_one_sided_confidence,
+        ),
+        (
+            "maximum_false_call_probability",
+            criteria.maximum_false_call_probability,
+        ),
+        (
+            "false_call_one_sided_confidence",
+            criteria.false_call_one_sided_confidence,
+        ),
     ] {
         if !value.is_finite() || !(0.0..1.0).contains(&value) {
-            return Err(format!("{name} must be finite and strictly between zero and one"));
+            return Err(format!(
+                "{name} must be finite and strictly between zero and one"
+            ));
         }
     }
     Ok(())
@@ -222,14 +235,17 @@ fn validate_scope(scope: &Scope) -> ScreenResult<()> {
     Ok(())
 }
 
-fn inspector_value_mut<'a>(study: &'a mut Value, inspector_id: &str) -> ScreenResult<&'a mut Value> {
+fn inspector_value_mut<'a>(
+    study: &'a mut Value,
+    inspector_id: &str,
+) -> ScreenResult<&'a mut Value> {
     study
         .get_mut("inspectors")
         .and_then(Value::as_array_mut)
         .and_then(|items| {
-            items.iter_mut().find(|item| {
-                item.get("inspector_id").and_then(Value::as_str) == Some(inspector_id)
-            })
+            items
+                .iter_mut()
+                .find(|item| item.get("inspector_id").and_then(Value::as_str) == Some(inspector_id))
         })
         .ok_or_else(|| format!("inspector not found: {inspector_id}"))
 }
@@ -295,7 +311,9 @@ fn apply_mutation(study: &mut Value, mutation: &Mutation) -> ScreenResult<()> {
             object.insert("calibration_valid".to_owned(), Value::Bool(value));
             Ok(())
         }
-        "set_flaw_detected" | "set_blank_false_call" | "set_flaw_size_mm"
+        "set_flaw_detected"
+        | "set_blank_false_call"
+        | "set_flaw_size_mm"
         | "set_flaw_specimen_id" => {
             let inspector_id = mutation
                 .inspector_id
@@ -326,8 +344,9 @@ fn apply_mutation(study: &mut Value, mutation: &Mutation) -> ScreenResult<()> {
                 .value
                 .as_ref()
                 .and_then(Value::as_u64)
-                .ok_or_else(|| "truncate_blank_trials requires a non-negative integer value".to_owned())?
-                as usize;
+                .ok_or_else(|| {
+                    "truncate_blank_trials requires a non-negative integer value".to_owned()
+                })? as usize;
             let inspector = inspector_value_mut(study, inspector_id)?;
             let trials = inspector
                 .get_mut("blank_trials")
@@ -345,9 +364,7 @@ fn apply_mutation(study: &mut Value, mutation: &Mutation) -> ScreenResult<()> {
 
 fn log_choose(n: usize, k: usize) -> f64 {
     let k = k.min(n - k);
-    (1..=k)
-        .map(|i| ((n + 1 - i) as f64 / i as f64).ln())
-        .sum()
+    (1..=k).map(|i| ((n + 1 - i) as f64 / i as f64).ln()).sum()
 }
 
 fn log_binomial_probability(n: usize, k: usize, p: f64) -> f64 {
@@ -365,7 +382,11 @@ fn log_sum_exp(values: &[f64]) -> f64 {
     if !max.is_finite() {
         return max;
     }
-    max + values.iter().map(|value| (*value - max).exp()).sum::<f64>().ln()
+    max + values
+        .iter()
+        .map(|value| (*value - max).exp())
+        .sum::<f64>()
+        .ln()
 }
 
 fn binomial_upper_tail(n: usize, x: usize, p: f64) -> f64 {
@@ -505,7 +526,9 @@ fn evaluate_study(
             ));
         }
         for trial in &inspector.flaw_trials {
-            if trial.specimen_id.trim().is_empty() || !specimen_ids.insert(trial.specimen_id.clone()) {
+            if trial.specimen_id.trim().is_empty()
+                || !specimen_ids.insert(trial.specimen_id.clone())
+            {
                 return Ok(result_without_inspectors(
                     case_id,
                     "NOT_EVALUABLE_DUPLICATE_SPECIMEN",
@@ -526,7 +549,9 @@ fn evaluate_study(
             }
         }
         for trial in &inspector.blank_trials {
-            if trial.specimen_id.trim().is_empty() || !specimen_ids.insert(trial.specimen_id.clone()) {
+            if trial.specimen_id.trim().is_empty()
+                || !specimen_ids.insert(trial.specimen_id.clone())
+            {
                 return Ok(result_without_inspectors(
                     case_id,
                     "NOT_EVALUABLE_DUPLICATE_SPECIMEN",
@@ -558,7 +583,11 @@ fn evaluate_study(
     let mut details = Vec::with_capacity(study.inspectors.len());
     for inspector in study.inspectors {
         let flaw_trials = inspector.flaw_trials.len();
-        let detections = inspector.flaw_trials.iter().filter(|trial| trial.detected).count();
+        let detections = inspector
+            .flaw_trials
+            .iter()
+            .filter(|trial| trial.detected)
+            .count();
         let detection_fraction = detections as f64 / flaw_trials as f64;
         let detection_lower = detection_lower_bound(
             flaw_trials,
@@ -567,7 +596,11 @@ fn evaluate_study(
         );
 
         let blank_trials = inspector.blank_trials.len();
-        let false_calls = inspector.blank_trials.iter().filter(|trial| trial.false_call).count();
+        let false_calls = inspector
+            .blank_trials
+            .iter()
+            .filter(|trial| trial.false_call)
+            .count();
         let false_call_fraction = false_calls as f64 / blank_trials as f64;
         let false_call_upper = false_call_upper_bound(
             blank_trials,
@@ -596,7 +629,10 @@ fn evaluate_study(
         });
     }
 
-    let inspectors_passing = details.iter().filter(|item| item.inspector_screen_pass).count();
+    let inspectors_passing = details
+        .iter()
+        .filter(|item| item.inspector_screen_pass)
+        .count();
     let worst_detection = details
         .iter()
         .map(|item| item.detection_lower_bound)
@@ -615,7 +651,10 @@ fn evaluate_study(
         case_id: case_id.to_owned(),
         disposition: disposition.to_owned(),
         reasons: if all_pass {
-            vec!["every inspector meets both predeclared fixed-target one-sided binomial bounds".to_owned()]
+            vec![
+                "every inspector meets both predeclared fixed-target one-sided binomial bounds"
+                    .to_owned(),
+            ]
         } else {
             vec!["one or more inspectors do not meet the detection lower-bound and/or false-call upper-bound criterion".to_owned()]
         },
@@ -645,7 +684,9 @@ fn run_corpus(bytes: &[u8], source_commit: &str) -> ScreenResult<Receipt> {
         || corpus.benchmark_id.trim().is_empty()
         || corpus.cases.is_empty()
     {
-        return Err("corpus schema, evidence class, claim ceiling, ID or case list is invalid".to_owned());
+        return Err(
+            "corpus schema, evidence class, claim ceiling, ID or case list is invalid".to_owned(),
+        );
     }
     validate_scope(&corpus.scope)?;
     validate_criteria(&corpus.criteria)?;
@@ -702,8 +743,8 @@ fn main() -> ScreenResult<()> {
     if args.len() != 3 {
         return Err("usage: aero-nde-binomial-screen <corpus.json> <source-commit-sha>".to_owned());
     }
-    let bytes = fs::read(&args[1])
-        .map_err(|error| format!("unable to read {}: {error}", args[1]))?;
+    let bytes =
+        fs::read(&args[1]).map_err(|error| format!("unable to read {}: {error}", args[1]))?;
     let receipt = run_corpus(&bytes, &args[2])?;
     println!(
         "{}",
@@ -742,11 +783,8 @@ mod tests {
     #[test]
     fn frozen_corpus_matches_all_expected_dispositions() {
         let bytes = include_bytes!("../fixtures/v0.1/corpus.json");
-        let receipt = run_corpus(
-            bytes,
-            "1111111111111111111111111111111111111111",
-        )
-        .expect("frozen NDE benchmark corpus must evaluate");
+        let receipt = run_corpus(bytes, "1111111111111111111111111111111111111111")
+            .expect("frozen NDE benchmark corpus must evaluate");
         assert_eq!(receipt.case_count, 8);
         assert_eq!(receipt.expected_matches, 8);
         assert_eq!(receipt.expected_mismatches, 0);
@@ -754,7 +792,13 @@ mod tests {
         assert_eq!(receipt.physical_pod, "NOT_ASSESSED");
         assert_eq!(receipt.a90_95, "NOT_ESTIMATED");
         assert_eq!(receipt.inspector_details[0].len(), 10);
-        assert!((receipt.results[0].worst_detection_lower_bound.unwrap() - 0.9233600050654955).abs() < 1.0e-12);
-        assert!((receipt.results[0].worst_false_call_upper_bound.unwrap() - 0.00837751942939624).abs() < 1.0e-12);
+        assert!(
+            (receipt.results[0].worst_detection_lower_bound.unwrap() - 0.9233600050654955).abs()
+                < 1.0e-12
+        );
+        assert!(
+            (receipt.results[0].worst_false_call_upper_bound.unwrap() - 0.00837751942939624).abs()
+                < 1.0e-12
+        );
     }
 }
