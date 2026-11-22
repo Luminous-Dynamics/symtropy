@@ -1,6 +1,8 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+use std::collections::BTreeSet;
+
 //! Loss-aware semantic decoding for EPCIS 2.0.1 AggregationEvent actions.
 //!
 //! This module translates the meaning of one already-parsed source event. It
@@ -130,7 +132,7 @@ fn valid_positive_integer_lexeme(value: &str) -> bool {
         return false;
     }
 
-    let (mantissa, exponent) = match value.find(['e', 'E']) {
+    let (mantissa, exponent) = match value.find(|character| character == 'e' || character == 'E') {
         Some(index) => {
             let Ok(exponent) = value[index + 1..].parse::<i64>() else {
                 return false;
