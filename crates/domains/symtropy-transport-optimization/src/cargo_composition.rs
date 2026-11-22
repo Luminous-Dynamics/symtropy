@@ -105,6 +105,9 @@ pub enum CompositionFailure {
         event_time: i64,
         module_id: String,
     },
+    EmptyMutationBatch,
+    DuplicateMutation,
+    ConflictingMutationsWithinBatch,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -129,6 +132,10 @@ pub struct CompositionReport {
     pub planned_event_rows: usize,
     pub actual_event_rows: usize,
     pub active_memberships: BTreeSet<Membership>,
+    /// Number of effective parent-scoped disaggregation-all transactions.
+    pub disaggregation_all_events: usize,
+    /// Number of direct parent/child membership edges removed by those events.
+    pub disaggregated_membership_edges: usize,
     pub failures: BTreeMap<CompositionFailure, usize>,
 }
 
@@ -455,6 +462,367 @@ pub fn evaluate_composition(
             }
 
             apply_event(&mut report, &known_modules, event);
+        }
+    }
+
+    Ok(report)
+}
+
+/// One atomic mutation in a source-event-level composition transaction.
+///
+/// A transaction may contain multiple child-specific ADDs or DELETEs from one
+/// source event. DELETE_ALL is parent-scoped and deliberately has no fabricated
+/// child identity.
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum CompositionMutation {
+    Add {
+        parent_module_id: String,
+        child_module_id: String,
+    },
+    Delete {
+        parent_module_id: String,
+        child_module_id: String,
+    },
+    DisaggregateAll {
+        parent_module_id: String,
+    },
+}
+
+/// A source-event-level, atomic composition transaction.
+///
+/// Unlike CompositionEvent, this shape retains the source event identity once
+/// and can carry the complete unordered child list. This avoids treating
+/// several children from one EPCIS event as independent simultaneous events.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CompositionEventBatch {
+    pub source_key: SourceEventKey,
+    pub revision: u32,
+    pub published_at: i64,
+    pub event_time: i64,
+    pub mutations: Vec<CompositionMutation>,
+    pub classification: EventClassification,
+    pub source_profile_id: String,
+    pub source_profile_version: String,
+    pub location_id: String,
+    pub evidence_id: String,
+    pub voided: bool,
+}
+
+fn mutation_touched_modules(mutation: &CompositionMutation) -> BTreeSet<&str> {
+    match mutation {
+        CompositionMutation::Add {
+            parent_module_id,
+            child_module_id,
+        }
+        | CompositionMutation::Delete {
+            parent_module_id,
+            child_module_id,
+        } => BTreeSet::from([parent_module_id.as_str(), child_module_id.as_str()]),
+        CompositionMutation::DisaggregateAll { parent_module_id } => {
+            BTreeSet::from([parent_module_id.as_str()])
+        }
+    }
+}
+
+fn batch_touched_modules(batch: &CompositionEventBatch) -> BTreeSet<&str> {
+    let mut touched = BTreeSet::new();
+    for mutation in &batch.mutations {
+        touched.extend(mutation_touched_modules(mutation));
+    }
+    touched
+}
+
+fn mutation_kind(mutation: &CompositionMutation) -> u8 {
+    match mutation {
+        CompositionMutation::Add { .. } => 0,
+        CompositionMutation::Delete { .. } => 1,
+        CompositionMutation::DisaggregateAll { .. } => 2,
+    }
+}
+
+fn validate_batch_shape(batch: &CompositionEventBatch) -> Option<CompositionFailure> {
+    if batch.source_key.source_id.trim().is_empty()
+        || batch.source_key.source_event_id.trim().is_empty()
+        || batch.source_key.source_id.trim() != batch.source_key.source_id
+        || batch.source_key.source_event_id.trim() != batch.source_key.source_event_id
+    {
+        return Some(CompositionFailure::EmptySourceIdentity);
+    }
+    if batch.revision == 0 {
+        return Some(CompositionFailure::InvalidRevision);
+    }
+    if batch.source_profile_id.trim().is_empty()
+        || batch.source_profile_version.trim().is_empty()
+        || batch.source_profile_id.trim() != batch.source_profile_id
+        || batch.source_profile_version.trim() != batch.source_profile_version
+    {
+        return Some(CompositionFailure::EmptySourceProfile);
+    }
+    if batch.location_id.trim().is_empty() || batch.location_id.trim() != batch.location_id {
+        return Some(CompositionFailure::EmptyLocation);
+    }
+    if batch.evidence_id.trim().is_empty() || batch.evidence_id.trim() != batch.evidence_id {
+        return Some(CompositionFailure::MissingEvidenceReference);
+    }
+    if batch.mutations.is_empty() {
+        return Some(CompositionFailure::EmptyMutationBatch);
+    }
+    let first_kind = mutation_kind(&batch.mutations[0]);
+    if batch
+        .mutations
+        .iter()
+        .any(|mutation| mutation_kind(mutation) != first_kind)
+        || (first_kind == 2 && batch.mutations.len() != 1)
+    {
+        return Some(CompositionFailure::ConflictingMutationsWithinBatch);
+    }
+    let mut unique_mutations = BTreeSet::new();
+    if batch
+        .mutations
+        .iter()
+        .any(|mutation| !unique_mutations.insert(mutation))
+    {
+        return Some(CompositionFailure::DuplicateMutation);
+    }
+    for mutation in &batch.mutations {
+        let identities = mutation_touched_modules(mutation);
+        if identities
+            .iter()
+            .any(|identity| identity.trim().is_empty() || identity.trim() != *identity)
+        {
+            return Some(CompositionFailure::EmptyModuleIdentity);
+        }
+    }
+    None
+}
+
+/// Apply one transaction against a candidate graph. A failed child assertion
+/// rejects the whole transaction; no partial child list is committed.
+fn apply_composition_batch(
+    report: &mut CompositionReport,
+    known_modules: &BTreeSet<&str>,
+    batch: &CompositionEventBatch,
+) {
+    if let Some(failure) = validate_batch_shape(batch) {
+        record_failure(report, failure);
+        return;
+    }
+
+    let mut candidate = report.active_memberships.clone();
+    let mut ordered = batch.mutations.clone();
+    ordered.sort();
+
+    let mut disaggregation_count = 0usize;
+    for mutation in &ordered {
+        let failure = match mutation {
+            CompositionMutation::Add {
+                parent_module_id,
+                child_module_id,
+            } => {
+                if !known_modules.contains(parent_module_id.as_str()) {
+                    Some(CompositionFailure::UnknownParent(parent_module_id.clone()))
+                } else if !known_modules.contains(child_module_id.as_str()) {
+                    Some(CompositionFailure::UnknownChild(child_module_id.clone()))
+                } else if parent_module_id == child_module_id {
+                    Some(CompositionFailure::SelfContainment(parent_module_id.clone()))
+                } else {
+                    let membership = Membership {
+                        parent_module_id: parent_module_id.clone(),
+                        child_module_id: child_module_id.clone(),
+                    };
+                    if candidate.contains(&membership) {
+                        Some(CompositionFailure::DuplicateMembership(membership))
+                    } else if let Some(existing_parent) =
+                        active_parent_of(&candidate, child_module_id)
+                    {
+                        Some(CompositionFailure::MultipleParents {
+                            child_module_id: child_module_id.clone(),
+                            existing_parent_id: existing_parent.to_string(),
+                            proposed_parent_id: parent_module_id.clone(),
+                        })
+                    } else if creates_cycle(&candidate, &membership) {
+                        Some(CompositionFailure::Cycle(membership))
+                    } else {
+                        candidate.insert(membership);
+                        None
+                    }
+                }
+            }
+            CompositionMutation::Delete {
+                parent_module_id,
+                child_module_id,
+            } => {
+                if !known_modules.contains(parent_module_id.as_str()) {
+                    Some(CompositionFailure::UnknownParent(parent_module_id.clone()))
+                } else if !known_modules.contains(child_module_id.as_str()) {
+                    Some(CompositionFailure::UnknownChild(child_module_id.clone()))
+                } else if parent_module_id == child_module_id {
+                    Some(CompositionFailure::SelfContainment(parent_module_id.clone()))
+                } else {
+                    let membership = Membership {
+                        parent_module_id: parent_module_id.clone(),
+                        child_module_id: child_module_id.clone(),
+                    };
+                    if !candidate.remove(&membership) {
+                        Some(CompositionFailure::UnmatchedDelete(membership))
+                    } else {
+                        None
+                    }
+                }
+            }
+            CompositionMutation::DisaggregateAll { parent_module_id } => {
+                if !known_modules.contains(parent_module_id.as_str()) {
+                    Some(CompositionFailure::UnknownParent(parent_module_id.clone()))
+                } else {
+                    let before = candidate.len();
+                    candidate.retain(|membership| {
+                        membership.parent_module_id != *parent_module_id
+                    });
+                    disaggregation_count += before - candidate.len();
+                    None
+                }
+            }
+        };
+
+        if let Some(failure) = failure {
+            record_failure(report, failure);
+            return;
+        }
+    }
+
+    if ordered
+        .iter()
+        .any(|mutation| matches!(mutation, CompositionMutation::DisaggregateAll { .. }))
+    {
+        report.disaggregation_all_events += 1;
+        report.disaggregated_membership_edges += disaggregation_count;
+    }
+    report.active_memberships = candidate;
+}
+
+/// Replay source-event-level transactions at a publication-time cutoff.
+///
+/// A batch is atomic: several child additions/deletions from one source event
+/// are one event-time actor, while independent source events touching a common
+/// module at the same tick remain ambiguous. DisaggregateAll removes only the
+/// selected parent's direct membership edges; it never cascades into child
+/// contents or other relation families.
+///
+/// The legacy evaluate_composition API remains available for single-edge
+/// callers. EPCIS adapters that carry unordered multi-child lists should use
+/// this grouped transaction API.
+pub fn evaluate_composition_batches(
+    modules: &[ModuleIdentity],
+    batches: &[CompositionEventBatch],
+    as_of: i64,
+) -> Result<CompositionReport, CompositionError> {
+    let mut known_modules = BTreeSet::new();
+    for module in modules {
+        if module.module_id.trim().is_empty() || module.module_id.trim() != module.module_id {
+            return Err(CompositionError::InvalidModuleId(module.module_id.clone()));
+        }
+        if !known_modules.insert(module.module_id.as_str()) {
+            return Err(CompositionError::DuplicateModuleId(
+                module.module_id.clone(),
+            ));
+        }
+    }
+
+    let mut report = CompositionReport {
+        module_ids: known_modules
+            .iter()
+            .map(|module_id| (*module_id).to_string())
+            .collect(),
+        input_event_rows: batches.len(),
+        ..CompositionReport::default()
+    };
+    let mut by_source_key: BTreeMap<&SourceEventKey, Vec<&CompositionEventBatch>> =
+        BTreeMap::new();
+
+    for batch in batches {
+        if batch.published_at <= as_of {
+            report.visible_event_rows += 1;
+            by_source_key
+                .entry(&batch.source_key)
+                .or_default()
+                .push(batch);
+        } else {
+            report.future_event_rows += 1;
+        }
+    }
+
+    let mut effective = Vec::new();
+    for (source_key, revisions) in by_source_key {
+        let latest_revision = revisions
+            .iter()
+            .map(|batch| batch.revision)
+            .max()
+            .unwrap_or_default();
+        let latest: Vec<&CompositionEventBatch> = revisions
+            .iter()
+            .copied()
+            .filter(|batch| batch.revision == latest_revision)
+            .collect();
+        let first = latest[0];
+        if latest.iter().any(|candidate| *candidate != first) {
+            return Err(CompositionError::ConflictingEventRevision {
+                source_key: source_key.clone(),
+                revision: latest_revision,
+            });
+        }
+        report.replayed_event_rows += latest.len().saturating_sub(1);
+        report.superseded_event_rows += revisions.len().saturating_sub(latest.len());
+        if first.voided {
+            report.voided_event_rows += 1;
+        } else {
+            effective.push(first);
+        }
+    }
+
+    let mut actual_by_time: BTreeMap<i64, Vec<&CompositionEventBatch>> = BTreeMap::new();
+    for batch in effective {
+        match batch.classification {
+            EventClassification::Planned => report.planned_event_rows += 1,
+            EventClassification::Actual => {
+                report.actual_event_rows += 1;
+                actual_by_time.entry(batch.event_time).or_default().push(batch);
+            }
+        }
+    }
+
+    for (event_time, time_batch) in actual_by_time {
+        let mut touched: BTreeMap<&str, usize> = BTreeMap::new();
+        for batch in &time_batch {
+            for module_id in batch_touched_modules(batch) {
+                *touched.entry(module_id).or_default() += 1;
+            }
+        }
+        let ambiguous_modules: BTreeSet<&str> = touched
+            .into_iter()
+            .filter_map(|(module_id, count)| (count > 1).then_some(module_id))
+            .collect();
+
+        let mut ordered_batches = time_batch;
+        ordered_batches.sort_by(|left, right| left.source_key.cmp(&right.source_key));
+        for batch in ordered_batches {
+            let batch_modules = batch_touched_modules(batch);
+            let conflicts: BTreeSet<&str> = batch_modules
+                .intersection(&ambiguous_modules)
+                .copied()
+                .collect();
+            if !conflicts.is_empty() {
+                for module_id in conflicts {
+                    record_failure(
+                        &mut report,
+                        CompositionFailure::AmbiguousEventTime {
+                            event_time,
+                            module_id: module_id.to_string(),
+                        },
+                    );
+                }
+                continue;
+            }
+            apply_composition_batch(&mut report, &known_modules, batch);
         }
     }
 
