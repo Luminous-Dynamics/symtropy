@@ -93,7 +93,7 @@ There are therefore two distinct supported ingestion modes, which must never be 
 - Do not apply another uint32 unwrap or tick conversion.
 - Preserve the source export revision and a clear `processed_unwrapped_ns` representation marker in the data receipt.
 
-Mode B is useful for reproducing the processed CSV values; it cannot repair rows already removed by truth-conditioned preprocessing.
+Mode B is implemented by the typed `MiluvProcessedUnwrappedTimestampsNs` input and `DsTwrDurationInput::from_miluv_processed_unwrapped_ns` in [follow-up PR #6815](https://github.com/Luminous-Dynamics/symtropy/pull/6815). The constructor maps event pairs to A/B/C/D and sums endpoint absolute-error bounds for each duration. It does not apply a second unit conversion or unwrap. Mode B is useful for reproducing processed CSV values; it cannot repair rows already removed by truth-conditioned preprocessing.
 
 ## 6. Propagation-speed constant: expose the baseline convention
 
@@ -101,12 +101,13 @@ The pinned reference implementation uses (299{,}702{,}547) m/s in both `computec
 
 These must not be silently mixed in a reproduction. Their relative difference is approximately 0.03%, or about 9 mm at a nominal 30 m range.
 
-Required change to the interval-kernel API:
+Implemented in [follow-up PR #6815](https://github.com/Luminous-Dynamics/symtropy/pull/6815): `propagation_speed_mps` is now an explicit validated kernel input, with named MILUV-reference and vacuum constants. The caller must preserve the selected value with its evidence receipt; the kernel does not yet serialize a complete measurement receipt.
 
-- Make `propagation_speed_mps` an explicit validated input.
-- Record the selected value and convention in each range receipt.
-- Provide a named MILUV-reference mode using the exact publisher/devkit value for matched reproduction.
-- Retain a separate vacuum/physical-model mode for experiments that explicitly justify it.
+Still required:
+
+- Include propagation-speed convention in every serialized range receipt.
+- Bound propagation-speed uncertainty when making a physical claim rather than reproducing the reference convention.
+- Retain a separate vacuum/physical-model mode only when the experiment explicitly justifies it.
 - Do not infer a universal RF propagation velocity from either constant alone; state the medium and calibration convention.
 
 The MILUV reference numeric constant is a reproduction parameter. The actual physical propagation model, environment and associated uncertainty remain part of the experiment specification.
@@ -158,11 +159,11 @@ Do not score a method only on the subset where its preferred sensor happens to b
 
 ## 10. Required implementation and verification sequence
 
-1. Add explicit input provenance mode: `raw_device_ticks` or `processed_unwrapped_ns`; reject ambiguous units.
+1. The processed/unwrapped-nanosecond mode is implemented in #6815. A raw-device-tick mode still needs experiment-context clock reconstruction; reject ambiguous or mixed representations.
 2. Add source-verified constructors for the four duration terms and explicit initiator/responder clock groups.
 3. Add independent rollover tests for each clock, including wrap immediately before each event, both clocks wrapping in one exchange, and long gaps / ambiguous multiwrap cases.
 4. Add a known-answer test that compares the Rust equation with the authors' formula using the same (A,B,C,D), speed constant and units.
-5. Make propagation speed explicit and retain a bit-for-bit MILUV-reference parameter set.
+5. Explicit propagation speed and named MILUV-reference / vacuum constants are implemented in #6815. Receipt serialization and bounded physical-speed uncertainty remain open.
 6. Add calibration receipt interfaces without allowing the estimator to access evaluator-only truth.
 7. Resolve issue #6813 before source-complete dataset admission; controller event IDs and row count must be invariant to truth mutation.
 8. Freeze exact upstream code revisions, payload hashes, schema, experiment-level splits and evaluation oracle before reporting any MILUV score.
