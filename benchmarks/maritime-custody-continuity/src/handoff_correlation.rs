@@ -484,6 +484,84 @@ pub struct QualifiedCustodyReport {
 
 type BoxEventTime<'a> = (SourceEventRef, u32, &'a TimeEvidence, Vec<usize>);
 
+/// Prove a box's strict interval total order in O(n log n) time.
+///
+/// Sorting by interval start plus a prefix-maximum end check is equivalent to
+/// checking every pair: any overlap or touching interval is detected against
+/// the prior interval with the greatest upper endpoint. The prefix maximum is
+/// required; comparing only adjacent intervals can miss a long enclosing
+/// interval. The vector is left in chronological order only on success.
+fn prove_box_interval_total_order(
+    box_id: &str,
+    box_events: &mut Vec<BoxEventTime<'_>>,
+) -> Result<(), QualifiedTimelineError> {
+    if box_events.is_empty() {
+        return Ok(());
+    }
+
+    // Stabilize the witness pair before checking basis comparability so
+    // diagnostics are independent of source input / ingestion order.
+    box_events.sort_by(|left, right| left.0.cmp(&right.0));
+    let (first_event, _, first_evidence, _) = &box_events[0];
+    let first_basis = first_evidence.time_basis_id();
+
+    for (event, _, evidence, _) in box_events.iter().skip(1) {
+        if evidence.time_basis_id() != first_basis {
+            return Err(QualifiedTimelineError::OrderNotProven {
+                box_id: box_id.to_string(),
+                first_event: first_event.clone(),
+                second_event: event.clone(),
+                relation: TemporalRelation::IncomparableTimeBasis,
+            });
+        }
+    }
+
+    box_events.sort_by(|left, right| {
+        left.2
+            .interval()
+            .earliest()
+            .cmp(&right.2.interval().earliest())
+            .then_with(|| {
+                left.2
+                    .interval()
+                    .latest()
+                    .cmp(&right.2.interval().latest())
+            })
+            .then_with(|| left.0.cmp(&right.0))
+    });
+
+    let mut prefix_max: Option<(i64, SourceEventRef)> = None;
+    for (event, _, evidence, _) in box_events.iter() {
+        let earliest = evidence.interval().earliest();
+        if let Some((latest, previous_event)) = &prefix_max {
+            if *latest >= earliest {
+                return Err(QualifiedTimelineError::OrderNotProven {
+                    box_id: box_id.to_string(),
+                    first_event: previous_event.clone(),
+                    second_event: event.clone(),
+                    relation: TemporalRelation::UnresolvedOverlap,
+                });
+            }
+        }
+
+        let latest = evidence.interval().latest();
+        let replace_prefix = prefix_max
+            .as_ref()
+            .map(|(prior_latest, prior_event)| {
+                latest > *prior_latest || (latest == *prior_latest && event < prior_event)
+            })
+            .unwrap_or(true);
+        if replace_prefix {
+            prefix_max = Some((latest, event.clone()));
+        }
+    }
+
+    Ok(())
+}
+
+
+type BoxEventTime<'a> = (SourceEventRef, u32, &'a TimeEvidence, Vec<usize>);
+
 /// Reconstruct the complete custody-event timeline from qualified event-time
 /// enclosures. Every effective ACTUAL event requires an exact time binding,
 /// and every pair of actual events for the same box must be strictly ordered.
@@ -599,26 +677,8 @@ pub fn qualify_custody_event_timeline(
     let mut ordinal_by_index: BTreeMap<usize, i64> = BTreeMap::new();
     let mut box_timelines = Vec::with_capacity(events_by_box.len());
     for (box_id, mut box_events) in events_by_box {
-        for first_index in 0..box_events.len() {
-            for second_index in (first_index + 1)..box_events.len() {
-                let (first_ref, _, first_time, _) = &box_events[first_index];
-                let (second_ref, _, second_time, _) = &box_events[second_index];
-                let relation = compare_time_evidence(first_time, second_time);
-                if !matches!(
-                    relation,
-                    TemporalRelation::ProvenBefore | TemporalRelation::ProvenAfter
-                ) {
-                    return Err(QualifiedTimelineError::OrderNotProven {
-                        box_id: box_id.clone(),
-                        first_event: first_ref.clone(),
-                        second_event: second_ref.clone(),
-                        relation,
-                    });
-                }
-            }
-        }
+        prove_box_interval_total_order(&box_id, &mut box_events)?;
 
-        box_events.sort_by_key(|(_, _, evidence, _)| evidence.interval().earliest());
         let mut ordered_time_bindings = Vec::with_capacity(box_events.len());
         for (ordinal, (source_event, revision, evidence, event_indices)) in
             box_events.into_iter().enumerate()
@@ -881,6 +941,185 @@ mod tests {
 
         assert_eq!(report.custody.complete_chains(), 1);
         assert_eq!(report.custody.incomplete_box_ids.len(), 1);
+    }
+
+    #[test]
+    fn sorted_prefix_proof_matches_pairwise_oracle_for_small_interval_sets() {
+        let candidates = [(0, 0), (1, 0), (2, 0), (0, 1), (2, 1), (4, 1), (50, 50)];
+
+        for &(a_center, a_radius) in &candidates {
+            for &(b_center, b_radius) in &candidates {
+                for &(c_center, c_radius) in &candidates {
+                    let bindings = [
+                        qualified_time_binding(
+                            &SourceEventRef::new("SRC", "EV-A"),
+                            1,
+                            a_center,
+                            a_radius,
+                        ),
+                        qualified_time_binding(
+                            &SourceEventRef::new("SRC", "EV-B"),
+                            1,
+                            b_center,
+                            b_radius,
+                        ),
+                        qualified_time_binding(
+                            &SourceEventRef::new("SRC", "EV-C"),
+                            1,
+                            c_center,
+                            c_radius,
+                        ),
+                    ];
+
+                    let pairwise_total = (0..bindings.len()).all(|left| {
+                        ((left + 1)..bindings.len()).all(|right| {
+                            matches!(
+                                compare_time_evidence(
+                                    &bindings[left].evidence,
+                                    &bindings[right].evidence,
+                                ),
+                                TemporalRelation::ProvenBefore | TemporalRelation::ProvenAfter
+                            )
+                        })
+                    });
+
+                    let mut box_events: Vec<BoxEventTime<'_>> = bindings
+                        .iter()
+                        .enumerate()
+                        .map(|(index, binding)| {
+                            (
+                                binding.source_event.clone(),
+                                binding.revision,
+                                &binding.evidence,
+                                vec![index],
+                            )
+                        })
+                        .collect();
+
+                    let optimized = prove_box_interval_total_order("BOX", &mut box_events);
+                    assert_eq!(
+                        optimized.is_ok(),
+                        pairwise_total,
+                        "interval centers/radii: {a_center}/{a_radius}, {b_center}/{b_radius}, {c_center}/{c_radius}",
+                    );
+
+                    if optimized.is_ok() {
+                        for pair in box_events.windows(2) {
+                            assert_eq!(
+                                compare_time_evidence(&pair[0].2, &pair[1].2),
+                                TemporalRelation::ProvenBefore
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn prefix_maximum_detects_overlap_hidden_by_adjacent_short_intervals() {
+        let bindings = [
+            qualified_time_binding(&SourceEventRef::new("SRC", "EV-A"), 1, 50, 50),
+            qualified_time_binding(&SourceEventRef::new("SRC", "EV-B"), 1, 2, 1),
+            qualified_time_binding(&SourceEventRef::new("SRC", "EV-C"), 1, 4, 1),
+        ];
+        let mut box_events: Vec<BoxEventTime<'_>> = bindings
+            .iter()
+            .enumerate()
+            .map(|(index, binding)| {
+                (
+                    binding.source_event.clone(),
+                    binding.revision,
+                    &binding.evidence,
+                    vec![index],
+                )
+            })
+            .collect();
+
+        assert!(matches!(
+            prove_box_interval_total_order("BOX", &mut box_events),
+            Err(QualifiedTimelineError::OrderNotProven {
+                relation: TemporalRelation::UnresolvedOverlap,
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn mixed_time_bases_reject_as_incomparable_before_interval_sort() {
+        let mut first =
+            qualified_time_binding(&SourceEventRef::new("SRC_A", "EV-A"), 1, 10, 0);
+        let second = qualified_time_binding(
+            &SourceEventRef::new("SRC_B", "EV-B"),
+            1,
+            20,
+            0,
+        );
+        first.evidence = TimeEvidence::new(
+            first.evidence.event_id().to_string(),
+            "OTHER_TIME_BASIS",
+            first.evidence.interval(),
+            super::super::temporal_order::TimeBoundKind::EstimateOnly,
+        )
+        .unwrap();
+
+        let make_events = |bindings: [&EventTimeBinding; 2]| {
+            bindings
+                .into_iter()
+                .map(|binding| {
+                    (
+                        binding.source_event.clone(),
+                        binding.revision,
+                        &binding.evidence,
+                        Vec::new(),
+                    )
+                })
+                .collect::<Vec<BoxEventTime<'_>>>()
+        };
+
+        let mut forward = make_events([&first, &second]);
+        let mut reverse = make_events([&second, &first]);
+        let forward_error = prove_box_interval_total_order("BOX", &mut forward).unwrap_err();
+        let reverse_error = prove_box_interval_total_order("BOX", &mut reverse).unwrap_err();
+
+        assert_eq!(forward_error, reverse_error);
+        assert!(matches!(
+            forward_error,
+            QualifiedTimelineError::OrderNotProven {
+                relation: TemporalRelation::IncomparableTimeBasis,
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn interval_order_offender_is_permutation_invariant() {
+        let bindings = [
+            qualified_time_binding(&SourceEventRef::new("SRC", "EV-A"), 1, 10, 5),
+            qualified_time_binding(&SourceEventRef::new("SRC", "EV-B"), 1, 12, 3),
+            qualified_time_binding(&SourceEventRef::new("SRC", "EV-C"), 1, 30, 0),
+        ];
+        let make_events = |order: [usize; 3]| {
+            order
+                .iter()
+                .map(|index| {
+                    let binding = &bindings[*index];
+                    (
+                        binding.source_event.clone(),
+                        binding.revision,
+                        &binding.evidence,
+                        vec![*index],
+                    )
+                })
+                .collect::<Vec<BoxEventTime<'_>>>()
+        };
+
+        let mut forward = make_events([0, 1, 2]);
+        let mut reverse = make_events([2, 1, 0]);
+        let forward_error = prove_box_interval_total_order("BOX", &mut forward).unwrap_err();
+        let reverse_error = prove_box_interval_total_order("BOX", &mut reverse).unwrap_err();
+
+        assert_eq!(forward_error, reverse_error);
     }
 
     #[test]
