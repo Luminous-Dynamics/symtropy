@@ -971,6 +971,136 @@
         "separate_gas_pressure_gap_cohort": true,
         "notes": "A CO2 working-gas DBD experiment in a low-pressure chamber. Per-span metrics and real-AC-power boundary must remain explicit."
       }
+    },
+    {
+      "source_id": "JIANG_2026_SUB_UNIT_ELECTRODE",
+      "title": "Performance enhancement of electrohydrodynamic thruster using sub unit electrode configuration",
+      "citation": "Jiang, Tsubata, Shimizu et al., Scientific Reports (2026), published 2026-11-07; Article in Press at source-atlas transcription",
+      "doi": "10.1038/s41598-026-78941-0",
+      "published_date": "2026-11-07",
+      "publication_status": "peer_reviewed_article_in_press_version_subject_to_final_editorial_edits",
+      "cohort": "ambient_air_corona_sub_unit_electrode_configuration",
+      "apparatus": {
+        "applied_voltage_kv": 22,
+        "conventional_configuration": "conventional emitter / collector configuration without sub unit",
+        "sub_unit_configuration": "sub unit electrode structure added to conventional configuration",
+        "sub_unit_plus_configuration": "additional sub unit plus structure beneath the original sub unit configuration",
+        "balance": "A&D Company Fz-5000i high-resolution electronic balance",
+        "high_voltage_supply": "HAR-120P18.3-LPs high-voltage power supply (Matsusada Precision)",
+        "geometry_parameter_definitions": [
+          "horizontal distance between sub unit electrode and collector",
+          "vertical emitter-to-collector gap",
+          "emitter-to-guide distance",
+          "guide-to-emitter length L1",
+          "collector plate length L2",
+          "sub unit plate length L3"
+        ],
+        "exact_transcribed_dimensions": null
+      },
+      "measurement": {
+        "thrust_method": "apparent-weight difference between discharge and non-discharge conditions on an electronic balance",
+        "repeated_measurements_per_condition": 10,
+        "reported_statistic": "mean of repeated trials",
+        "ambient_temperature_c": 21,
+        "relative_humidity_percent": 22.8,
+        "environment": "quiescent indoor environment on a vibration-isolation platform",
+        "independent_velocity_field_measurement_transcribed": false,
+        "independent_control_volume_momentum_measurement_transcribed": false,
+        "uncertainty_details": "Each configuration tested ten times and reported as a mean; Fig. 10 caption states 95% confidence intervals for its configuration comparison. Exact interval values are not transcribed here."
+      },
+      "reported_results": {
+        "applied_voltage_kv": 22,
+        "conventional": {
+          "thrust_mn": 50.23,
+          "relative_gain_percent": 0
+        },
+        "sub_unit": {
+          "thrust_mn": 64.09,
+          "relative_gain_percent_vs_conventional": 27.59
+        },
+        "sub_unit_plus": {
+          "thrust_mn": 68.7,
+          "relative_gain_percent_vs_conventional": 36.77,
+          "relative_gain_percent_vs_sub_unit": 7.19
+        },
+        "thrust_to_power_tradeoff_reported_by_authors": true,
+        "absolute_current_a": null,
+        "absolute_real_power_w": null,
+        "absolute_thrust_to_power": {
+          "value": null,
+          "reason": "figure-only approximate comparison is stored separately; exact source data and uncertainty not transcribed"
+        },
+        "thrust_to_power_optimum_configuration": null,
+        "figure9_22kv": {
+          "evidence_class": "approximate_visual_digitization_from_source_figure_not_tabulated_exact_values",
+          "voltage_kv": 22,
+          "conventional_comparator_configuration": "No sub unit G20 Guide40",
+          "sub_unit_plus_configuration": "Sub unit plus width 50 mm, collector distance 10 mm, Guide40",
+          "thrust_to_power_n_kw": {
+            "conventional_approx": 3,
+            "sub_unit_plus_approx": 2.4
+          },
+          "current_ma": {
+            "conventional_approx": 0.77,
+            "sub_unit_plus_approx": 1.34
+          },
+          "interpretation": "At matched voltage the modified configuration raises maximum absolute thrust, but the displayed T/P is lower and current is higher. These points are visually estimated from Fig. 9 and are not exact digitized raw measurements."
+        },
+        "figure10_22kv_sub_unit_plus_sweep": {
+          "evidence_class": "source_transcribed_values_from_figure_description",
+          "common_conditions": {
+            "voltage_kv": 22,
+            "inclination_angle_deg": 15,
+            "emitter_collector_gap_mm": 20,
+            "guide_mm": 40
+          },
+          "configurations": [
+            {
+              "sub_unit_plus_width_mm": 50,
+              "distance_mm": 10,
+              "thrust_mn": 68.7
+            },
+            {
+              "sub_unit_plus_width_mm": 50,
+              "distance_mm": 20,
+              "thrust_mn": 67.08
+            },
+            {
+              "sub_unit_plus_width_mm": 40,
+              "distance_mm": 10,
+              "thrust_mn": 63.23
+            },
+            {
+              "sub_unit_plus_width_mm": 40,
+              "distance_mm": 20,
+              "thrust_mn": 61.63
+            }
+          ],
+          "uncertainty_representation": "Figure caption states error bars are 95% confidence intervals; numerical interval endpoints not transcribed."
+        }
+      },
+      "unresolved_fields": [
+        "complete numeric electrode geometry dimensions and tolerances",
+        "absolute current and real electrical power at the 22 kV comparison point",
+        "absolute thrust-to-power values for each electrode configuration",
+        "complete uncertainty values and covariance for the 10 repeated trials",
+        "raw instrument time-series and calibration records",
+        "system mass and integrated power boundary",
+        "full-field PIV/LDV and all-surface momentum-flux validation"
+      ],
+      "provenance": {
+        "primary_source": "https://doi.org/10.1038/s41598-026-78941-0",
+        "source_publication_date": "2026-11-07",
+        "transcription_scope": "article abstract and accessible experimental-method excerpts; no raw instrument data imported",
+        "raw_instrument_timeseries_available_in_atlas": false
+      },
+      "comparability": {
+        "same_study_voltage_matched_comparison_only": true,
+        "absolute_thrust_leaderboard_eligible": false,
+        "thrust_to_power_leaderboard_eligible": false,
+        "system_thrust_to_weight_leaderboard_eligible": false,
+        "notes": "Keep the exact abstract headline thrust values separate from approximate Figure 9 visual digitizations. The Fig. 9 comparison suggests approximately 3.0 vs 2.4 N/kW at 22 kV for the named conventional/sub-unit-plus configurations, with approximately 0.77 vs 1.34 mA. Those graph-read estimates are not raw data or a benchmark-grade T/P result. Do not infer that the 68.70 mN configuration is the efficiency optimum. Figure 10 gives a within-study 22 kV geometry sweep with reported mean thrust values and 95% confidence-interval error bars; retain those as a separate configuration cohort."
+      }
     }
   ],
   "solver_profiles": [
