@@ -433,12 +433,26 @@ pub fn evaluate_mobility_flexibility(
         if permission.value.is_none() {
             add_error(&mut errors, "export_permission_present_but_unknown");
         }
+        if permission.value == Some(true)
+            && matches!(
+                permission.evidence.evidence_class,
+                EvidenceClass::Synthetic | EvidenceClass::Unknown
+            )
+        {
+            add_error(&mut errors, "export_permission_is_not_source_grade");
+        }
         push_evidence_class(&permission.evidence, &mut all_source_grade, &mut all_synthetic);
     }
     let export_permitted = input
         .export_permission
         .as_ref()
-        .is_some_and(|permission| permission.value == Some(true));
+        .is_some_and(|permission| {
+            permission.value == Some(true)
+                && matches!(
+                    permission.evidence.evidence_class,
+                    EvidenceClass::Measured | EvidenceClass::IndependentTest
+                )
+        });
 
     let mut sorted_pcc = input.pcc_slots.clone();
     sorted_pcc.sort_by_key(|slot| slot.slot);
