@@ -68,43 +68,183 @@
       "owner_evidence": [
         {
           "domain": "process_epoch",
+          "status": "current",
           "owner_id": "owner-0",
           "owner_revision": "revision-0",
           "evidence_id": "initial-evidence-0",
+          "scope": {
+            "logical_effect_id": "synthetic-effect-1",
+            "attempt_id": "attempt-1",
+            "subject_boot_epoch": 1,
+            "subject_controller_epoch": 1
+          },
+          "claim_id": null,
+          "claim_scope_sha256": null,
+          "observer_quorum": null,
           "raw_artifact_id": "initial-artifact-0",
           "raw_artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
         },
         {
           "domain": "persistence",
+          "status": "not_applicable",
           "owner_id": "owner-1",
           "owner_revision": "revision-1",
           "evidence_id": "initial-evidence-1",
+          "scope": {
+            "logical_effect_id": "synthetic-effect-1",
+            "attempt_id": "attempt-1",
+            "subject_boot_epoch": 1,
+            "subject_controller_epoch": 1
+          },
+          "claim_id": null,
+          "claim_scope_sha256": null,
+          "observer_quorum": null,
           "raw_artifact_id": "initial-artifact-1",
           "raw_artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
         },
         {
           "domain": "physical_outcome",
+          "status": "not_applicable",
           "owner_id": "owner-2",
           "owner_revision": "revision-2",
           "evidence_id": "initial-evidence-2",
+          "scope": {
+            "logical_effect_id": "synthetic-effect-1",
+            "attempt_id": "attempt-1",
+            "subject_boot_epoch": 1,
+            "subject_controller_epoch": 1
+          },
+          "claim_id": null,
+          "claim_scope_sha256": null,
+          "observer_quorum": null,
           "raw_artifact_id": "initial-artifact-2",
           "raw_artifact_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
         },
         {
-          "domain": "execution_graph",
+          "domain": "mission_resolution",
+          "status": "not_applicable",
           "owner_id": "owner-3",
           "owner_revision": "revision-3",
           "evidence_id": "initial-evidence-3",
+          "scope": {
+            "logical_effect_id": "synthetic-effect-1",
+            "attempt_id": "attempt-1",
+            "subject_boot_epoch": 1,
+            "subject_controller_epoch": 1
+          },
+          "claim_id": null,
+          "claim_scope_sha256": null,
+          "observer_quorum": null,
           "raw_artifact_id": "initial-artifact-3",
           "raw_artifact_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
         },
         {
-          "domain": "authority",
+          "domain": "controller_queue",
+          "status": "current",
           "owner_id": "owner-4",
           "owner_revision": "revision-4",
           "evidence_id": "initial-evidence-4",
+          "scope": {
+            "logical_effect_id": "synthetic-effect-1",
+            "attempt_id": "attempt-1",
+            "subject_boot_epoch": 1,
+            "subject_controller_epoch": 1
+          },
+          "claim_id": null,
+          "claim_scope_sha256": null,
+          "observer_quorum": null,
           "raw_artifact_id": "initial-artifact-4",
           "raw_artifact_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+        },
+        {
+          "domain": "downstream_execution_graph",
+          "status": "current",
+          "owner_id": "owner-5",
+          "owner_revision": "revision-5",
+          "evidence_id": "initial-evidence-5",
+          "scope": {
+            "logical_effect_id": "synthetic-effect-1",
+            "attempt_id": "attempt-1",
+            "subject_boot_epoch": 1,
+            "subject_controller_epoch": 1
+          },
+          "claim_id": null,
+          "claim_scope_sha256": null,
+          "observer_quorum": null,
+          "raw_artifact_id": "initial-artifact-5",
+          "raw_artifact_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+        },
+        {
+          "domain": "no_effect_observer_quorum",
+          "status": "not_applicable",
+          "owner_id": "owner-6",
+          "owner_revision": "revision-6",
+          "evidence_id": "initial-evidence-6",
+          "scope": {
+            "logical_effect_id": "synthetic-effect-1",
+            "attempt_id": "attempt-1",
+            "subject_boot_epoch": 1,
+            "subject_controller_epoch": 1
+          },
+          "claim_id": null,
+          "claim_scope_sha256": null,
+          "observer_quorum": null,
+          "raw_artifact_id": "initial-artifact-6",
+          "raw_artifact_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+        },
+        {
+          "domain": "downstream_observer_quorum",
+          "status": "not_applicable",
+          "owner_id": "owner-7",
+          "owner_revision": "revision-7",
+          "evidence_id": "initial-evidence-7",
+          "scope": {
+            "logical_effect_id": "synthetic-effect-1",
+            "attempt_id": "attempt-1",
+            "subject_boot_epoch": 1,
+            "subject_controller_epoch": 1
+          },
+          "claim_id": null,
+          "claim_scope_sha256": null,
+          "observer_quorum": null,
+          "raw_artifact_id": "initial-artifact-7",
+          "raw_artifact_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+        },
+        {
+          "domain": "action_applicability",
+          "status": "current",
+          "owner_id": "owner-8",
+          "owner_revision": "revision-8",
+          "evidence_id": "initial-evidence-8",
+          "scope": {
+            "logical_effect_id": "synthetic-effect-1",
+            "attempt_id": "attempt-1",
+            "subject_boot_epoch": 1,
+            "subject_controller_epoch": 1
+          },
+          "claim_id": null,
+          "claim_scope_sha256": null,
+          "observer_quorum": null,
+          "raw_artifact_id": "initial-artifact-8",
+          "raw_artifact_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
+        },
+        {
+          "domain": "recovery_authority",
+          "status": "current",
+          "owner_id": "owner-9",
+          "owner_revision": "revision-9",
+          "evidence_id": "initial-evidence-9",
+          "scope": {
+            "logical_effect_id": "synthetic-effect-1",
+            "attempt_id": "attempt-2",
+            "subject_boot_epoch": 1,
+            "subject_controller_epoch": 1
+          },
+          "claim_id": null,
+          "claim_scope_sha256": null,
+          "observer_quorum": null,
+          "raw_artifact_id": "initial-artifact-9",
+          "raw_artifact_sha256": "10101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010"
         }
       ]
     }
