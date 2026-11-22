@@ -598,12 +598,17 @@ fn check_artifact_evidence(
     ArtifactCheck::Accepted
 }
 
+enum ArtifactVerificationFailure {
+    Unknown(ClockAttestationReason),
+    Rejected(ClockAttestationReason),
+}
+
 fn verify_all_artifacts(
     calibration: &CalibrationMeasurementResult,
     observation: &ClockUseObservation,
     policy: &ClockAttestationPolicy,
     decision_as_of_utc_seconds: i64,
-) -> Result<Vec<String>, ClockAttestationDecision> {
+) -> Result<Vec<String>, ArtifactVerificationFailure> {
     let mut digests = Vec::with_capacity(calibration.traceability_links.len() + 2);
     let mut all = Vec::with_capacity(calibration.traceability_links.len() + 2);
     all.push(&calibration.artifact_evidence);
@@ -616,10 +621,10 @@ fn verify_all_artifacts(
         match check_artifact_evidence(evidence, policy, decision_as_of_utc_seconds) {
             ArtifactCheck::Accepted => digests.push(evidence.artifact.sha256.clone()),
             ArtifactCheck::Unknown(reason) => {
-                return Err(ClockAttestationDecision::unknown(reason));
+                return Err(ArtifactVerificationFailure::Unknown(reason));
             }
             ArtifactCheck::Rejected(reason) => {
-                return Err(ClockAttestationDecision::rejected(reason));
+                return Err(ArtifactVerificationFailure::Rejected(reason));
             }
         }
     }
@@ -993,7 +998,12 @@ pub fn attest_clock_for_event(
     let artifact_digests =
         match verify_all_artifacts(calibration, observation, policy, decision_as_of_utc_seconds) {
             Ok(digests) => digests,
-            Err(decision) => return decision,
+            Err(ArtifactVerificationFailure::Unknown(reason)) => {
+                return ClockAttestationDecision::unknown(reason);
+            }
+            Err(ArtifactVerificationFailure::Rejected(reason)) => {
+                return ClockAttestationDecision::rejected(reason);
+            }
         };
 
     ClockAttestationDecision::accepted(QualifiedClockCalibrationReceipt {
