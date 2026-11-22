@@ -33,8 +33,10 @@ pub use sequential::{BernoulliConfidenceSequence, BernoulliMixtureEProcess};
 pub use stats::{WeightedEventAccumulator, WeightedEventSummary};
 
 pub use coverage::{
-    CellSide, CoverageCell, CoverageSplit, Interval, affine_box_image_bounds,
-    affine_box_norm_lower_bound, affine_cell_excludes_collision_ball,
+    CellSide, CoverageCell, CoverageMassUpperBound, CoverageSplit, Interval,
+    affine_box_image_bounds, affine_box_norm_lower_bound, affine_cell_excludes_collision_ball,
+    standard_normal_box_probability_upper_bound,
+    standard_normal_cube_tail_probability_upper_bound,
 };
 
 /// Errors returned by the analytic probability kernels.
