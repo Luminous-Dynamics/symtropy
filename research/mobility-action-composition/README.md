@@ -22,6 +22,8 @@ The crate checks:
 
 The aggregate resource event sweep applies interval ends before starts at an equal time, matching half-open interval semantics.
 
+The v0.1 validator also rejects mixing exclusive-resource and cumulative-capacity semantics for the same resource ID; a future profile must define an explicit owner-backed conversion before allowing that combination.
+
 ## Existing owners to reuse
 
 - Symtropy #3644 / #4992 / #5009: resource and temporal reservation authority.
