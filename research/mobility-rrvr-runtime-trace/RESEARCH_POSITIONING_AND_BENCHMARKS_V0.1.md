@@ -41,6 +41,22 @@ RRVR's candidate differentiators:
 
 The projection deliberately refuses to turn `unknown`, `partial`, `disputed`, stale, wrong-attempt or missing owner evidence into a safe state. It also does not infer that a state/action sequence conforms to the TLA model; that requires a separate formal trace checker.
 
+### Runtime tracing performance baseline
+
+The published `ros2_tracing` evaluation reports an average end-to-end message latency overhead of 0.0033 ms with all ROS 2 instrumentation enabled in its tested message-publish/subscribe workload. This is a useful published reference point, not a transferable guarantee for other ROS distributions, robot workloads, hardware, storage settings or trace configurations. The ROS 2 benchmarking recommendation (REP-2014) advocates grey-box, non-functional benchmarking of individual nodes and complete computation graphs with LTTng/`ros2_tracing`.
+
+RRVR should therefore benchmark its projection and evidence sidecar separately from event collection:
+- tracepoint/collector overhead relative to tracing-disabled execution;
+- projection CPU and allocations per snapshot;
+- provenance/hash work per owner record and observer member;
+- durable-writer and upload overhead;
+- total p50/p95/p99 event-to-qualified-verdict latency;
+- dropped/incomplete event rates at a declared peak rate.
+
+Do not compare a pure Rust JSON projection microbenchmark directly with the 0.0033 ms end-to-end ROS message-latency result. Run a paired ROS 2 workload with the same instrumentation enabled/disabled, then separately report per-stage overhead.
+
+Sources: [Bédard et al., ros2_tracing, IEEE RA-L 2022](https://doi.org/10.1109/LRA.2022.3174346); [ROS 2 REP-2014, performance benchmarking methodology](https://reps.openrobotics.org/rep-2014/).
+
 ## 3. Benchmark design
 
 Use one frozen corpus of runtime schedules and run each schedule through the following arms:
