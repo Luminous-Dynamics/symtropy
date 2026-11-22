@@ -12,6 +12,11 @@ CONSTANTS
     NoPermit,
     MaxTick,
     MaxEpoch,
+    InitialBinding,
+    InitialAttempt,
+    InitialEpoch,
+    InitialClock,
+    InitialBoot,
     TicketBinding,
     TicketAttempt,
     TicketEpoch,
@@ -45,6 +50,7 @@ ASSUME
     /\ RANGE TicketBoot \subseteq BootEpochs
     /\ RANGE TicketIssued \subseteq 0..MaxTick
     /\ RANGE TicketExpires \subseteq 0..MaxTick
+    /\ \A t \in Tickets : TicketIssued[t] < TicketExpires[t]
 
 VARIABLES
     authorityBinding,
@@ -83,11 +89,11 @@ ResolutionRecord ==
       nextEpoch : 0..MaxEpoch ]
 
 Init ==
-    /\ authorityBinding \in Bindings
-    /\ activeAttempt \in Attempts
-    /\ authorityEpoch \in 0..MaxEpoch
-    /\ clockDomain \in ClockDomains
-    /\ bootEpoch \in BootEpochs
+    /\ authorityBinding = InitialBinding
+    /\ activeAttempt = InitialAttempt
+    /\ authorityEpoch = InitialEpoch
+    /\ clockDomain = InitialClock
+    /\ bootEpoch = InitialBoot
     /\ nowTicks = 0
     /\ pendingAttempt = NoPending
     /\ consumed = {}
