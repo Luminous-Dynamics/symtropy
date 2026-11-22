@@ -1,6 +1,8 @@
 import copy
 import hashlib
+import json
 import unittest
+from pathlib import Path
 
 from counterfactual_evidence_suite import (
     CounterfactualEvaluationError,
@@ -407,6 +409,36 @@ class CounterfactualEvidenceSuiteTests(unittest.TestCase):
         ]
         result = evaluate_counterfactual_suite(suite)
         self.assertEqual(result["necessary_evidence_withdrawal_rate"], 1.0)
+
+
+    def test_serialized_counterfactual_fixture_matches_frozen_scorecard(self):
+        root = Path(__file__).resolve().parents[2]
+        suite_path = (
+            root / "research" / "av-evidence-certificate-v0"
+            / "fixtures" / "evaluator-only" / "counterfactual-suite-v1.json"
+        )
+        expected_path = (
+            root / "research" / "av-evidence-certificate-v0"
+            / "fixtures" / "expected" / "counterfactual-scorecard-v1.json"
+        )
+        with suite_path.open(encoding="utf-8") as handle:
+            suite = json.load(handle)
+        with expected_path.open(encoding="utf-8") as handle:
+            expected = json.load(handle)
+
+        result = evaluate_counterfactual_suite(suite)
+        for field in (
+            "benchmark_id", "schema_version", "episode_id", "variant_count",
+            "passed_variant_count", "counterfactual_invariance_rate",
+            "necessary_evidence_withdrawal_rate",
+            "irrelevant_addition_resistance_rate",
+        ):
+            self.assertEqual(result[field], expected[field], field)
+        passes = {
+            row["variant_id"]: row["passed"]
+            for row in result["variant_results"]
+        }
+        self.assertEqual(passes, expected["variant_passes"])
 
     def test_replay_is_deterministic(self):
         suite = base_suite()
