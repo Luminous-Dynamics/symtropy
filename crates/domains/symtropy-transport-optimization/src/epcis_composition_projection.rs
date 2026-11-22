@@ -33,7 +33,9 @@ pub enum ProjectionTimeQualification {
         latest_event_time_ticks: i64,
     },
     /// P0 only: dimensionless fixture ticks, never physical clock chronology.
-    SyntheticP0 { fixture_profile_id: String },
+    SyntheticP0 {
+        fixture_profile_id: String,
+    },
     /// Missing / rejected / incomparable chronology; event is quarantined.
     Unqualified { reason: String },
 }
@@ -223,7 +225,9 @@ enum ChronologyDomain {
         time_basis_id: String,
         tick_quantum_id: String,
     },
-    SyntheticP0 { fixture_profile_id: String },
+    SyntheticP0 {
+        fixture_profile_id: String,
+    },
 }
 
 fn canonical_event_time_evidence_id(source: &ProjectionSourceRef) -> String {
@@ -299,11 +303,9 @@ fn chronology_domain(
                 fixture_profile_id: fixture_profile_id.clone(),
             })
         }
-        ProjectionTimeQualification::Unqualified { reason } => {
-            Err(ProjectionQuarantineReason::UnqualifiedChronology(
-                reason.clone(),
-            ))
-        }
+        ProjectionTimeQualification::Unqualified { reason } => Err(
+            ProjectionQuarantineReason::UnqualifiedChronology(reason.clone()),
+        ),
     }
 }
 
