@@ -121,7 +121,9 @@ impl fmt::Display for KernelError {
             Self::InvalidHardBodyRadius => "hard-body radius must be nonnegative and finite",
             Self::InvalidCoverageBudget => "coverage traversal cell budget must be nonzero",
             Self::CoverageChartOutsideDomain => "coverage chart box lies outside the search cube",
-            Self::EmptyEventUnion => "residual-mass event union must contain at least one component",
+            Self::EmptyEventUnion => {
+                "residual-mass event union must contain at least one component"
+            }
             Self::InvalidPolynomial => {
                 "trajectory polynomial must contain at least one coefficient per axis"
             }
