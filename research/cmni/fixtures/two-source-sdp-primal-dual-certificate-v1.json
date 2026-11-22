@@ -1,0 +1,119 @@
+{
+  "schema_version": "cmni.continuous_dependence_sdp_certificate.v1",
+  "benchmark_id": "two-source-sdp-primal-dual-zero-gap-v1",
+  "status": "synthetic_analytic_primal_dual_certificate",
+  "dependence_scope_receipt_id": "receipt:exact-two-source-sdp-example",
+  "primal": {
+    "prior_parameter_variance": 1,
+    "observation_sensitivities": [
+      1
+    ],
+    "independent_observation_noise_variances": [
+      1
+    ],
+    "source_standard_deviations": [
+      1,
+      1
+    ],
+    "source_jacobians": [
+      [
+        1,
+        1
+      ]
+    ],
+    "pairwise_correlation_bounds": [
+      [
+        -1,
+        1
+      ],
+      [
+        -1,
+        1
+      ]
+    ],
+    "correlation_matrix": [
+      [
+        1,
+        0.5
+      ],
+      [
+        0.5,
+        1
+      ]
+    ],
+    "epigraph_t": 0.25,
+    "observation_covariance": [
+      [
+        4
+      ]
+    ],
+    "observation_lmi": [
+      [
+        4,
+        1
+      ],
+      [
+        1,
+        0.25
+      ]
+    ]
+  },
+  "dual": {
+    "observation_lmi_dual": [
+      [
+        0.0625,
+        -0.25
+      ],
+      [
+        -0.25,
+        1
+      ]
+    ],
+    "correlation_psd_dual": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ]
+    ],
+    "diagonal_equality_multipliers": [
+      0.0625,
+      0.0625
+    ],
+    "pairwise_bound_multipliers": [
+      {
+        "source_i": 0,
+        "source_j": 1,
+        "lower_multiplier": 0,
+        "upper_multiplier": 0.125
+      }
+    ],
+    "observation_m0_inner_product": -0.4375,
+    "dual_objective": 0.25
+  },
+  "expected_verification": {
+    "primal_information_upper_bound": 0.25,
+    "raw_dual_information_lower_bound": 0.25,
+    "primal_dual_gap": 0,
+    "worst_case_eig_nats_bounds": [
+      0.11157177565710488,
+      0.11157177565710488
+    ],
+    "maximum_stationarity_residual": 0,
+    "min_eigenvalue_primal_correlation": 0.5,
+    "min_eigenvalue_observation_lmi": 0,
+    "min_eigenvalue_observation_dual": 0,
+    "min_eigenvalue_correlation_dual": 0,
+    "feasibility_tolerance": 1e-8,
+    "formal_certificate": false
+  },
+  "non_claims": [
+    "Numerical f64 verifier, not a formal interval-arithmetic proof",
+    "Receipt ID is a placeholder and does not authenticate physical source assumptions",
+    "No solver is included; the verifier checks supplied primal/dual witnesses",
+    "The test is synthetic and does not establish a physical source-correlation range"
+  ]
+}
