@@ -565,6 +565,27 @@ mod tests {
         assert_eq!(commercial.admitted_count, 0);
     }
     #[test]
+    fn hilti_noncommercial_license_blocks_commercial_payload_admission() {
+        let mut manifest = candidates();
+        manifest["manifest_status"] = json!("partially_admitted");
+        let record = manifest["datasets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .position(|item| item["dataset_id"] == "hilti-trimble-oxford-360vi-2026")
+            .unwrap();
+        manifest["datasets"][record]["status"] = json!("admitted");
+        manifest["datasets"][record]["admission_scope"] = json!("research_noncommercial");
+        manifest["datasets"][record]["snapshot"]["immutable"] = json!(true);
+        manifest["datasets"][record]["snapshot"]["release_tag"] = json!("hf-dataset-commit-pending");
+        manifest["datasets"][record]["snapshot"]["file_sha256"] = json!([hash()]);
+        manifest["datasets"][record]["metadata"]["train_group_ids"] = json!(["session-01"]);
+        manifest["datasets"][record]["metadata"]["test_group_ids"] = json!(["session-02"]);
+        manifest["datasets"][record]["metadata"]["split_sha256"] = json!(hash());
+        let errors = validate_dataset_admission(&schema(), &manifest, "commercial").unwrap_err();
+        assert!(errors.iter().any(|error| error.message.contains("does not explicitly permit requested use")));
+    }
+    #[test]
     fn complete_cc_by_payload_can_be_admitted_for_declared_use() {
         let mut manifest = candidates();
         admit_first_dataset(&mut manifest);
