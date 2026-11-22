@@ -191,9 +191,6 @@ pub fn import_tlc_json_trace(
     if state_values.len() < 2 {
         return Err(TlcImportError::TooFewStates);
     }
-    if action_values.is_empty() {
-        return Err(TlcImportError::TooFewStates);
-    }
     if state_values.len() > super::MAX_TRACE_EVENTS + 1 {
         return Err(TlcImportError::TooManyStates);
     }
