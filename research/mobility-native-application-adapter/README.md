@@ -62,6 +62,8 @@ The initial test suite covers:
 
 No test here authenticates the upstream owner, proves the commitment's canonicalization, establishes physical effect, or tests a real native driver.
 
+See [BENCHMARK_AND_INDUSTRY_COMPARISON_V0.1.md](BENCHMARK_AND_INDUSTRY_COMPARISON_V0.1.md) for matched experimental arms, non-compensatory acceptance targets, current external benchmarks and the path from software conformance to simulator/HIL/physical evaluation.
+
 ## Non-claims
 
 This is a software reference composition over supplied owner snapshots and a synchronous mock/application callback. It does not establish cross-process atomicity, restart-safe anti-replay, durable epoch persistence, external authority serialization, driver/firmware queue fencing, physical effect, emergency-stop behavior, real-time deadlines, HIL, physical safety or regulatory qualification.
