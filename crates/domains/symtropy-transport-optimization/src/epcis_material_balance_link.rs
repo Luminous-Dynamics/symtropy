@@ -527,8 +527,11 @@ mod tests {
     #[test]
     fn more_than_one_owner_mass_balance_receipt_is_blocked() {
         let receipt = receipt("EXACT_BALANCED");
-        let decision =
-            qualify_transformation_mass_balance_link(&group(), &case(), &[receipt.clone(), receipt]);
+        let decision = qualify_transformation_mass_balance_link(
+            &group(),
+            &case(),
+            &[receipt.clone(), receipt],
+        );
         assert_eq!(
             decision.reason,
             Some(MaterialBalanceLinkReason::MultipleOwnerReceipts)
@@ -571,14 +574,16 @@ mod tests {
         let mut case = case();
         case.group_ref = "wrong-group".to_string();
         assert_eq!(
-            qualify_transformation_mass_balance_link(&group(), &case, &[receipt("EXACT_BALANCED")]).reason,
+            qualify_transformation_mass_balance_link(&group(), &case, &[receipt("EXACT_BALANCED")])
+                .reason,
             Some(MaterialBalanceLinkReason::TransformationGroupBindingMismatch)
         );
 
         let mut case = case();
         case.transformation_id = Some("wrong-id".to_string());
         assert_eq!(
-            qualify_transformation_mass_balance_link(&group(), &case, &[receipt("EXACT_BALANCED")]).reason,
+            qualify_transformation_mass_balance_link(&group(), &case, &[receipt("EXACT_BALANCED")])
+                .reason,
             Some(MaterialBalanceLinkReason::TransformationIdBindingMismatch)
         );
     }
@@ -587,8 +592,7 @@ mod tests {
     fn missing_or_malformed_receipt_digest_never_passes() {
         let mut missing = receipt("EXACT_BALANCED");
         missing.source_digest = "-".to_string();
-        let decision =
-            qualify_transformation_mass_balance_link(&group(), &case(), &[missing]);
+        let decision = qualify_transformation_mass_balance_link(&group(), &case(), &[missing]);
         assert_eq!(
             decision.disposition,
             MaterialBalanceLinkDisposition::Indeterminate
@@ -621,14 +625,16 @@ mod tests {
         let mut bad = group();
         bad.effective_source_events[0].source_payload_sha256 = "bad".to_string();
         assert_eq!(
-            qualify_transformation_mass_balance_link(&bad, &case(), &[receipt("EXACT_BALANCED")]).reason,
+            qualify_transformation_mass_balance_link(&bad, &case(), &[receipt("EXACT_BALANCED")])
+                .reason,
             Some(MaterialBalanceLinkReason::InvalidSourcePayloadDigest)
         );
 
         let mut bad = group();
         bad.effective_source_events[0].revision = 0;
         assert_eq!(
-            qualify_transformation_mass_balance_link(&bad, &case(), &[receipt("EXACT_BALANCED")]).reason,
+            qualify_transformation_mass_balance_link(&bad, &case(), &[receipt("EXACT_BALANCED")])
+                .reason,
             Some(MaterialBalanceLinkReason::InvalidSourceEventIdentity)
         );
     }
@@ -655,7 +661,12 @@ mod tests {
         let mut invalid = group();
         invalid.transformation_id = None;
         assert_eq!(
-            qualify_transformation_mass_balance_link(&invalid, &case(), &[receipt("EXACT_BALANCED")]).reason,
+            qualify_transformation_mass_balance_link(
+                &invalid,
+                &case(),
+                &[receipt("EXACT_BALANCED")]
+            )
+            .reason,
             Some(MaterialBalanceLinkReason::EventLocalGroupHasMultipleEvents)
         );
     }
@@ -663,17 +674,14 @@ mod tests {
     #[test]
     fn same_source_event_with_different_revisions_is_a_conflict() {
         let mut group = group();
-        group.effective_source_events[1].source_id = group.effective_source_events[0].source_id.clone();
+        group.effective_source_events[1].source_id =
+            group.effective_source_events[0].source_id.clone();
         group.effective_source_events[1].source_event_id =
             group.effective_source_events[0].source_event_id.clone();
         group.effective_source_events[1].revision = 3;
         assert_eq!(
-            qualify_transformation_mass_balance_link(
-                &group,
-                &case(),
-                &[receipt("EXACT_BALANCED")]
-            )
-            .reason,
+            qualify_transformation_mass_balance_link(&group, &case(), &[receipt("EXACT_BALANCED")])
+                .reason,
             Some(MaterialBalanceLinkReason::ConflictingSourceEventRevision)
         );
     }
@@ -703,7 +711,8 @@ mod tests {
         group.effective_source_events[1].source_id = "WMS_A".to_string();
         group.effective_source_events[1].source_event_id = "urn:uuid:input".to_string();
         assert_eq!(
-            qualify_transformation_mass_balance_link(&group, &case(), &[receipt("EXACT_BALANCED")]).reason,
+            qualify_transformation_mass_balance_link(&group, &case(), &[receipt("EXACT_BALANCED")])
+                .reason,
             Some(MaterialBalanceLinkReason::DuplicateSourceEventRevision)
         );
     }
