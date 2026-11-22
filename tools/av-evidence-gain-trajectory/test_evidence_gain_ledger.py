@@ -128,7 +128,8 @@ def action_forecast(turn_id, tick, head, selected, *, include_alarm=True):
         "upper_gross_evsi": 0.0,
     })
     return {
-        "episode_id": turn_id,
+        "episode_id": "episode-gain-01",
+        "turn_id": turn_id,
         "transcript_head_sha256": digest(head),
         "forecast_tick": tick,
         "deadline_tick": tick + 10,
@@ -144,7 +145,8 @@ def turn(turn_id, index, previous_action, status, new_ids, work, sub, forecast, 
         resource = resource_delta()
     receipt = {
         "benchmark_id": "av-action-space-evsi-v0",
-        "episode_id": turn_id,
+        "episode_id": "episode-gain-01",
+        "turn_id": turn_id,
         "policy_id": "A5",
         "run_id": "run-001",
         "transcript_head_sha256": forecast["transcript_head_sha256"],
