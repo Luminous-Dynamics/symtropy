@@ -336,7 +336,10 @@ fn observer_quorum_is_qualified(proof: &ObserverQuorumProof) -> Result<bool, Pro
             || !nonempty(&member.raw_artifact_id)
             || !valid_sha256(&member.raw_artifact_sha256)
             || member.common_cause_domains.is_empty()
-            || member.common_cause_domains.iter().any(|domain| !nonempty(domain))
+            || member
+                .common_cause_domains
+                .iter()
+                .any(|domain| !nonempty(domain))
             || !observer_ids.insert(member.observer_id.as_str())
             || !observation_ids.insert(member.observation_id.as_str())
             || !artifact_ids.insert(member.raw_artifact_id.as_str())
@@ -1309,7 +1312,7 @@ mod tests {
                         format!("{label}-host-a"),
                     ],
                     raw_artifact_id: format!("{label}-raw-a"),
-                    raw_artifact_sha256: sha('d'),
+                    raw_artifact_sha256: sha256_hex(format!("{label}-raw-a").as_bytes()),
                 },
                 ObserverMemberEvidence {
                     observer_id: format!("{label}-observer-b"),
@@ -1321,7 +1324,7 @@ mod tests {
                         format!("{label}-host-b"),
                     ],
                     raw_artifact_id: format!("{label}-raw-b"),
-                    raw_artifact_sha256: sha('e'),
+                    raw_artifact_sha256: sha256_hex(format!("{label}-raw-b").as_bytes()),
                 },
             ],
         }
@@ -1346,7 +1349,8 @@ mod tests {
             .map(|(index, domain)| {
                 let scope = if matches!(
                     domain,
-                    OwnerEvidenceDomain::RecoveryAuthority | OwnerEvidenceDomain::ActionApplicability
+                    OwnerEvidenceDomain::RecoveryAuthority
+                        | OwnerEvidenceDomain::ActionApplicability
                 ) {
                     EvidenceScope {
                         logical_effect_id: "effect-1".into(),
@@ -1565,6 +1569,11 @@ mod tests {
 
         graph = observer_proof("graph-observers");
         graph.fault_model_revision = "different-fault-model".to_owned();
+        assert!(!observer_proofs_are_independent(&no_effect, &graph));
+
+        graph = observer_proof("graph-observers");
+        graph.members[0].raw_artifact_sha256 =
+            no_effect.members[0].raw_artifact_sha256.clone();
         assert!(!observer_proofs_are_independent(&no_effect, &graph));
     }
 
