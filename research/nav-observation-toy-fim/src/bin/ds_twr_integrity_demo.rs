@@ -1,4 +1,4 @@
-use nav_observation_toy_fim::ds_twr_integrity::{ds_twr_range_interval, DsTwrDurationInput};
+use nav_observation_toy_fim::ds_twr_integrity::{correct_positive_nlos_bias_interval, ds_twr_range_interval, DsTwrDurationInput, PositiveNlosBiasBound};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let base = DsTwrDurationInput {
@@ -28,6 +28,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             range.clock_ratio_upper
         );
     }
+    let observed = ds_twr_range_interval(base)?;
+    let nlos = correct_positive_nlos_bias_interval(
+        observed,
+        PositiveNlosBiasBound {
+            minimum_bias_m: 0.0,
+            maximum_bias_m: 1.5,
+        },
+    )?;
+    println!(
+        "nlos_bias_bound_m=[0.0,1.5] observed_range_m={:.6} possible_true_range_m=[{:.6},{:.6}]",
+        observed.nominal_range_m,
+        nlos.lower_bound_m,
+        nlos.upper_bound_m
+    );
     println!("scope=equation_level_interval_arithmetic_not_miluv_timestamp_parsing_or_range_calibration");
     Ok(())
 }
