@@ -9,6 +9,7 @@ pub mod integrity_evidence;
 pub mod mission_risk_budget;
 pub mod temporal_alignment_envelope;
 pub mod ds_twr_integrity;
+pub mod bregar_cir_features;
 pub mod active_evidence_acquisition;
 pub mod independent_posterior_audit;
 pub mod secure_session_evidence;
