@@ -7,9 +7,8 @@
 //! instrumentation returns Incomplete, never Pass.
 
 use super::{
-    ActionTicket, LiveAuthoritySnapshot, QualifiedMonotonicInstant,
-    QualifiedOutcomeResolution, ReceiptDisposition, RecoveryPermitReference, Rejection,
-    ResolutionDisposition,
+    ActionTicket, LiveAuthoritySnapshot, QualifiedMonotonicInstant, QualifiedOutcomeResolution,
+    ReceiptDisposition, RecoveryPermitReference, Rejection, ResolutionDisposition,
 };
 use std::collections::BTreeSet;
 
