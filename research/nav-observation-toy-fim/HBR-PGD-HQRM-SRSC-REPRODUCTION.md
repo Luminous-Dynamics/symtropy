@@ -108,6 +108,8 @@ It then fuses each time point using the paper's weighted mean, while retaining a
 
 The kernel does not infer curvature from the objective yet. It consumes the local Hessian/curvature supplied by the optimizer. Positive curvature trace is an algorithmic weighting heuristic, not a posterior covariance, statistical coverage certificate or protection level. The HBR paper claims the trace weight down-weights windows with severe NLOS and long-tailed errors; our extension must falsify that relationship on held-out trajectories rather than assume it as a guarantee.
 
+The fusion input requires exact SHA-256 commitments for the canonical window plan, fusion configuration, local position solution and local curvature artifact. These commitments are preserved in each contribution receipt; the module does not calculate or authenticate the underlying digests.
+
 The paper states W=11 in its parameter table; it describes a fixed overlap ratio but the accessible main-text method does not state its numeric value. The planner therefore takes overlap explicitly. Do not present a guessed overlap ratio as an author reproduction setting.
 
 ## Reproduction protocol to preserve
