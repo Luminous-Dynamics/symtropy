@@ -1,6 +1,6 @@
 # EHD-PIV-UQ-004 — cluster-conformal field coverage and physical-functional uncertainty
 
-**Status:** standalone Rust reference authored; 24 unit tests authored; Rust execution pending; exact-head hosted CI pending.  
+**Status:** standalone Rust reference authored; 31 unit tests authored; Rust execution pending; exact-head hosted CI pending.  
 **Branch:** research/ehd-piv-conformal-functional-uq-v0-1  
 **Parent:** EHD-PIV-UQ-003 covariance calibration
 
@@ -52,6 +52,14 @@ where each g_k concatenates the per-sample one-sigma sensitivities of one shared
 
 This is a first-order delta-method calculation. For strong nonlinearities or non-Gaussian inputs, the next comparison should be a Monte Carlo / polynomial-chaos reference using the same frozen joint distribution, with conservation-preserving sampling and independent random seeds.
 
+## Integrated-functional calibration against independent references
+
+The field-functional reducer produces the 4D predictive covariance of mass flow and advective momentum flux. That covariance is still a model output until it is checked against independent functional references. The new `functional_conformal.rs` module takes reference-minus-predicted residuals for the same four-component observable, with a full 4×4 predictive covariance and unique reference evidence identity. It calibrates the maximum 4D Mahalanobis score over all functional observations within each independent laboratory session.
+
+The result is a session-level prediction region for integrated functionals, not a thrust certificate. The reference measurements must be independent and traceable, and the functional contract must freeze surface, sign convention, units, density/reference conditions and estimator definition. The software standardizes the covariance to a dimensionless correlation matrix before Cholesky scoring so mixed physical units (kg/s and N) do not dominate numerical pivot tests.
+
+The calibrated functional radius can only qualify the exact integrated functional definition represented by the observations. It cannot fill missing control-volume pressure, viscous, body-force or momentum-storage terms, and cannot override a failed direct force-balance reconciliation.
+
 ## Existing literature and why this matters
 
 Sciacchitano & Wieneke (2016), *PIV uncertainty propagation*, DOI 10.1088/0957-0233/27/8/084006, explicitly derive propagation to vorticity, divergence, means and Reynolds stresses. They show that spatial correlation of displacement errors matters for derivatives and integrated/statistical quantities, and report experimental assessments with roughly 5–10% differences for vorticity uncertainty under their tested setup and within 5% / 10% for selected time-averaged quantities / Reynolds stresses. This is not a gap that the Luminous work invented; our opportunity is to carry that logic into complete field functionals and EHD force/mass/momentum boundaries with traceable shared modes.
@@ -88,7 +96,7 @@ The planar conformal kernel includes 10 tests:
 
 The 3D conformal kernel includes 4 tests for 19-field finite rank, correlated covariance, non-positive-definite covariance and field-size mismatch.
 
-The functional kernel includes 10 tests, including central finite-difference checks for all mass and three-component momentum Jacobian entries on an oblique face:
+The field-functional kernel includes 10 tests, including central finite-difference checks for all mass and three-component momentum Jacobian entries on an oblique face:
 - manufactured mass and momentum Jacobians;
 - shared calibration mode cross-sample covariance;
 - demonstration that shared uncertainty does not average away;
