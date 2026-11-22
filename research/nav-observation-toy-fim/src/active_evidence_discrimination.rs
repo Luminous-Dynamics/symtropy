@@ -22,6 +22,9 @@ use crate::uwb_hypothesis_discrimination::UwbHypothesisDiscriminationReport;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct EvidenceActionDiscriminationAssessment {
     pub action: EvidenceActionAssessment,
+    /// Signed: positive narrows the bound, zero leaves it unchanged, negative
+    /// means the conservative bound widens after the observation is qualified.
+    pub conditional_protection_level_delta_m: f64,
     pub distinguishable_hypothesis_pair_count: usize,
     pub ambiguous_hypothesis_pair_count: usize,
     /// Diagnostic only. Outcome-space normalization may differ between action
@@ -29,9 +32,17 @@ pub struct EvidenceActionDiscriminationAssessment {
     pub minimum_positive_normalized_gap: Option<f64>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ActiveEvidenceDiscriminationReason {
+    TargetAlreadySatisfied,
+    LowestLatencyTargetReachingAction,
+    BestHypothesisDiscriminationAvailableButTargetNotReached,
+    BestReductionAvailableButTargetNotReached,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct ActiveEvidenceDiscriminationPlan {
-    pub reason: AcquisitionPlanReason,
+    pub reason: ActiveEvidenceDiscriminationReason,
     pub recommended_action_id: Option<u64>,
     pub pareto_frontier: Vec<EvidenceActionDiscriminationAssessment>,
     pub conditional_target_reached: bool,
@@ -79,26 +90,31 @@ impl fmt::Display for ActiveEvidenceDiscriminationError {
 impl std::error::Error for ActiveEvidenceDiscriminationError {}
 
 /// Plan using four separate Pareto objectives:
-/// - greater conditional protection-level reduction;
+/// - signed conditional protection-level change (reduction is positive);
 /// - lower worst-case latency;
 /// - lower worst-case energy;
 /// - greater count of guaranteed distinguishable hypothesis pairs.
 ///
-/// Reports are required only for actions that satisfy the existing planner's
-/// availability, freshness, new-dependency and resource constraints. A
-/// candidate whose outcome model is incomplete cannot be considered feasible
-/// for this discrimination-aware policy.
+/// Unlike the original reduction-only planner, this wrapper can request a
+/// genuinely discriminating observation even when the conservative
+/// post-action protection level does not immediately shrink. It never
+/// claims that discrimination has occurred before the observation arrives.
 pub fn plan_active_evidence_with_hypothesis_discrimination(
     policy: &ActiveEvidencePolicy,
     candidates: &[EvidenceActionCandidate],
     reports: &[UwbHypothesisDiscriminationReport],
 ) -> Result<ActiveEvidenceDiscriminationPlan, ActiveEvidenceDiscriminationError> {
-    let baseline = plan_active_evidence_acquisition(policy, candidates)
-        .map_err(ActiveEvidenceDiscriminationError::Acquisition)?;
+    let baseline = match plan_active_evidence_acquisition(policy, candidates) {
+        Ok(plan) => Some(plan),
+        Err(ActiveEvidenceAcquisitionError::NoFeasibleAction) => None,
+        Err(error) => return Err(ActiveEvidenceDiscriminationError::Acquisition(error)),
+    };
 
-    if baseline.reason == AcquisitionPlanReason::TargetAlreadySatisfied {
+    if baseline.as_ref().is_some_and(|plan| {
+        plan.reason == AcquisitionPlanReason::TargetAlreadySatisfied
+    }) {
         return Ok(ActiveEvidenceDiscriminationPlan {
-            reason: AcquisitionPlanReason::TargetAlreadySatisfied,
+            reason: ActiveEvidenceDiscriminationReason::TargetAlreadySatisfied,
             recommended_action_id: None,
             pareto_frontier: Vec::new(),
             conditional_target_reached: true,
@@ -109,7 +125,11 @@ pub fn plan_active_evidence_with_hypothesis_discrimination(
     let known_groups: BTreeSet<u64> =
         policy.already_observed_dependency_groups.iter().copied().collect();
 
-    let feasible: Vec<&EvidenceActionCandidate> = candidates
+    // Preserve existing freshness, availability, dependency and resource
+    // gates, but do not require a pre-observation PL reduction. An action
+    // that resolves fault ambiguity can be valuable even when the current
+    // conservative bound only shrinks after the actual result is audited.
+    let resource_feasible: Vec<&EvidenceActionCandidate> = candidates
         .iter()
         .filter(|candidate| {
             candidate.available
@@ -118,19 +138,20 @@ pub fn plan_active_evidence_with_hypothesis_discrimination(
                 && candidate.worst_case_energy_uj <= policy.maximum_action_energy_uj
                 && (!policy.require_new_dependency_group
                     || !known_groups.contains(&candidate.dependency_group_id))
-                && candidate.conditional_post_action_protection_level_upper_m
-                    < policy.current_protection_level_upper_m
         })
         .collect();
 
-    let feasible_ids: BTreeSet<u64> = feasible.iter().map(|candidate| candidate.action_id).collect();
+    let resource_feasible_ids: BTreeSet<u64> = resource_feasible
+        .iter()
+        .map(|candidate| candidate.action_id)
+        .collect();
     let mut reports_by_action = BTreeMap::new();
     let mut inventory_commitment = None;
     let mut expected_hypothesis_count = None;
     let mut expected_pair_count = None;
 
     for report in reports {
-        if !feasible_ids.contains(&report.action_id) {
+        if !resource_feasible_ids.contains(&report.action_id) {
             return Err(ActiveEvidenceDiscriminationError::UnexpectedDiscriminationReport(
                 report.action_id,
             ));
@@ -206,6 +227,7 @@ pub fn plan_active_evidence_with_hypothesis_discrimination(
                 report.action_id,
             ));
         }
+
         match (inventory_commitment, expected_hypothesis_count, expected_pair_count) {
             (None, None, None) => {
                 inventory_commitment = Some(report.hypothesis_inventory_sha256);
@@ -220,20 +242,25 @@ pub fn plan_active_evidence_with_hypothesis_discrimination(
         }
     }
 
-    let mut assessments = Vec::with_capacity(feasible.len());
-    for candidate in &feasible {
+    let mut assessments = Vec::with_capacity(resource_feasible.len());
+    for candidate in &resource_feasible {
         let report = reports_by_action
             .get(&candidate.action_id)
             .ok_or(ActiveEvidenceDiscriminationError::MissingDiscriminationReport(
                 candidate.action_id,
             ))?;
 
-        let reduction = policy.current_protection_level_upper_m
+        let signed_delta = policy.current_protection_level_upper_m
             - candidate.conditional_post_action_protection_level_upper_m;
-        if !reduction.is_finite() || reduction <= 0.0 {
+        if !signed_delta.is_finite() {
             return Err(ActiveEvidenceDiscriminationError::Acquisition(
                 ActiveEvidenceAcquisitionError::ArithmeticOverflow,
             ));
+        }
+        // A non-improving or widening action is admissible only when its
+        // outcome model guarantees discrimination for at least one pair.
+        if signed_delta <= 0.0 && report.distinguishable_pair_count == 0 {
+            continue;
         }
 
         assessments.push(EvidenceActionDiscriminationAssessment {
@@ -243,17 +270,24 @@ pub fn plan_active_evidence_with_hypothesis_discrimination(
                 dependency_group_id: candidate.dependency_group_id,
                 conditional_post_action_protection_level_upper_m: candidate
                     .conditional_post_action_protection_level_upper_m,
-                guaranteed_protection_level_reduction_m: reduction,
+                guaranteed_protection_level_reduction_m: signed_delta.max(0.0),
                 worst_case_latency_ns: candidate.worst_case_latency_ns,
                 worst_case_energy_uj: candidate.worst_case_energy_uj,
                 reaches_target_if_acquisition_qualifies: candidate
                     .conditional_post_action_protection_level_upper_m
                     <= policy.target_protection_level_upper_m,
             },
+            conditional_protection_level_delta_m: signed_delta,
             distinguishable_hypothesis_pair_count: report.distinguishable_pair_count,
             ambiguous_hypothesis_pair_count: report.ambiguous_pair_count,
             minimum_positive_normalized_gap: report.minimum_positive_gap,
         });
+    }
+
+    if assessments.is_empty() {
+        return Err(ActiveEvidenceDiscriminationError::Acquisition(
+            ActiveEvidenceAcquisitionError::NoFeasibleAction,
+        ));
     }
 
     let mut pareto_frontier = Vec::new();
@@ -273,9 +307,8 @@ pub fn plan_active_evidence_with_hypothesis_discrimination(
             .cmp(&left.distinguishable_hypothesis_pair_count)
             .then_with(|| {
                 right
-                    .action
-                    .guaranteed_protection_level_reduction_m
-                    .total_cmp(&left.action.guaranteed_protection_level_reduction_m)
+                    .conditional_protection_level_delta_m
+                    .total_cmp(&left.conditional_protection_level_delta_m)
             })
             .then_with(|| {
                 left.action
@@ -316,19 +349,21 @@ pub fn plan_active_evidence_with_hypothesis_discrimination(
             })
             .ok_or(ActiveEvidenceDiscriminationError::InvalidDiscriminationReport(0))?;
         (
-            AcquisitionPlanReason::LowestLatencyTargetReachingAction,
+            ActiveEvidenceDiscriminationReason::LowestLatencyTargetReachingAction,
             selected,
         )
-    } else {
+    } else if assessments
+        .iter()
+        .any(|candidate| candidate.distinguishable_hypothesis_pair_count > 0)
+    {
         let selected = *pareto_frontier
             .iter()
             .max_by(|left, right| {
                 left.distinguishable_hypothesis_pair_count
                     .cmp(&right.distinguishable_hypothesis_pair_count)
                     .then_with(|| {
-                        left.action
-                            .guaranteed_protection_level_reduction_m
-                            .total_cmp(&right.action.guaranteed_protection_level_reduction_m)
+                        left.conditional_protection_level_delta_m
+                            .total_cmp(&right.conditional_protection_level_delta_m)
                     })
                     .then_with(|| {
                         right
@@ -346,7 +381,32 @@ pub fn plan_active_evidence_with_hypothesis_discrimination(
             })
             .ok_or(ActiveEvidenceDiscriminationError::InvalidDiscriminationReport(0))?;
         (
-            AcquisitionPlanReason::BestReductionAvailableButTargetNotReached,
+            ActiveEvidenceDiscriminationReason::BestHypothesisDiscriminationAvailableButTargetNotReached,
+            selected,
+        )
+    } else {
+        let selected = *pareto_frontier
+            .iter()
+            .max_by(|left, right| {
+                left.conditional_protection_level_delta_m
+                    .total_cmp(&right.conditional_protection_level_delta_m)
+                    .then_with(|| {
+                        right
+                            .action
+                            .worst_case_latency_ns
+                            .cmp(&left.action.worst_case_latency_ns)
+                    })
+                    .then_with(|| {
+                        right
+                            .action
+                            .worst_case_energy_uj
+                            .cmp(&left.action.worst_case_energy_uj)
+                    })
+                    .then_with(|| right.action.action_id.cmp(&left.action.action_id))
+            })
+            .ok_or(ActiveEvidenceDiscriminationError::InvalidDiscriminationReport(0))?;
+        (
+            ActiveEvidenceDiscriminationReason::BestReductionAvailableButTargetNotReached,
             selected,
         )
     };
@@ -359,7 +419,6 @@ pub fn plan_active_evidence_with_hypothesis_discrimination(
         authority_transition_not_authorized_by_plan: true,
     })
 }
-
 fn dominates_discrimination_assessment(
     left: &EvidenceActionDiscriminationAssessment,
     right: &EvidenceActionDiscriminationAssessment,
@@ -367,23 +426,15 @@ fn dominates_discrimination_assessment(
     let no_worse = left
         .distinguishable_hypothesis_pair_count
         >= right.distinguishable_hypothesis_pair_count
-        && left
-            .action
-            .guaranteed_protection_level_reduction_m
-            >= right
-                .action
-                .guaranteed_protection_level_reduction_m
+        && left.conditional_protection_level_delta_m
+            >= right.conditional_protection_level_delta_m
         && left.action.worst_case_latency_ns <= right.action.worst_case_latency_ns
         && left.action.worst_case_energy_uj <= right.action.worst_case_energy_uj;
     let strictly_better = left
         .distinguishable_hypothesis_pair_count
         > right.distinguishable_hypothesis_pair_count
-        || left
-            .action
-            .guaranteed_protection_level_reduction_m
-            > right
-                .action
-                .guaranteed_protection_level_reduction_m
+        || left.conditional_protection_level_delta_m
+            > right.conditional_protection_level_delta_m
         || left.action.worst_case_latency_ns < right.action.worst_case_latency_ns
         || left.action.worst_case_energy_uj < right.action.worst_case_energy_uj;
     no_worse && strictly_better
@@ -579,6 +630,41 @@ mod tests {
         assert_eq!(
             plan.reason,
             AcquisitionPlanReason::BestReductionAvailableButTargetNotReached
+        );
+    }
+
+    #[test]
+    fn can_select_a_discriminating_action_without_immediate_pl_reduction() {
+        let candidates = [candidate(1, 3.0, 40, 200)];
+        let reports = [full_report(1, 3)];
+        let plan =
+            plan_active_evidence_with_hypothesis_discrimination(&policy(), &candidates, &reports)
+                .unwrap();
+        assert_eq!(
+            plan.reason,
+            ActiveEvidenceDiscriminationReason::BestHypothesisDiscriminationAvailableButTargetNotReached
+        );
+        assert_eq!(plan.recommended_action_id, Some(1));
+        assert!(plan.pareto_frontier[0]
+            .conditional_protection_level_delta_m
+            .total_cmp(&0.0)
+            .is_eq());
+        assert!(!plan.conditional_target_reached);
+        assert!(plan.authority_transition_not_authorized_by_plan);
+    }
+
+    #[test]
+    fn can_request_a_discriminating_observation_even_when_bound_may_widen() {
+        let candidates = [candidate(1, 3.5, 40, 200)];
+        let reports = [full_report(1, 3)];
+        let plan =
+            plan_active_evidence_with_hypothesis_discrimination(&policy(), &candidates, &reports)
+                .unwrap();
+        assert_eq!(plan.recommended_action_id, Some(1));
+        assert_eq!(plan.pareto_frontier[0].conditional_protection_level_delta_m, -0.5);
+        assert_eq!(
+            plan.reason,
+            ActiveEvidenceDiscriminationReason::BestHypothesisDiscriminationAvailableButTargetNotReached
         );
     }
 
