@@ -43,6 +43,7 @@ The Rust research gate does not verify signatures, AES, STS waveforms, certifica
 - Session not-before / expiry checks and maximum validity lifetime.
 - Verification receipt freshness and same monotonic time domain.
 - Key epoch cannot move backwards for a peer pair.
+- Initiator and responder radio boot epochs cannot move backwards for a peer pair.
 - Measurement sequence must strictly increase within the session/sub-session.
 - Nonce and verification-receipt digest cannot be reused during the lifetime of the validator.
 - Replay state is committed only after all checks succeed; rejected evidence does not poison replay state.
@@ -57,7 +58,7 @@ The current in-memory nonce and receipt sets are also unbounded. Production use 
 
 ## 5. Tests
 
-Eleven deterministic unit tests cover:
+Twelve deterministic unit tests cover:
 - Dynamic and Provisioned STS acceptance;
 - Static STS rejection;
 - trusted-verifier and verification-result rejection;
@@ -67,6 +68,7 @@ Eleven deterministic unit tests cover:
 - stale and future verifier receipts;
 - nonce, receipt and measurement-sequence replay;
 - key epoch forward rotation and rollback;
+- independent initiator/responder boot-epoch advancement and rollback;
 - rejected evidence leaving replay state unchanged.
 
 These are structural contract tests, not cryptographic conformance tests.
