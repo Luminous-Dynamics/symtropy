@@ -2069,7 +2069,7 @@ pub fn audit_identifiability_contract(root: &Value) -> Vec<String> {
     push_if_missing(
         &mut findings,
         at(root, &["test_families"]).and_then(Value::as_array)
-            .is_some_and(|rows| rows.len() == 15
+            .is_some_and(|rows| rows.len() == 16
                 && rows.iter().any(|row| row.as_str() == Some("repeated_identical_conditions_do_not_repair_rank_deficiency"))
                 && rows.iter().any(|row| row.as_str() == Some("independent_variance_weights_are_applied"))
                 && rows.iter().any(|row| row.as_str() == Some("jacobi_spectrum_retains_a_small_but_resolvable_singular_direction"))
@@ -2093,7 +2093,28 @@ pub fn audit_identifiability_contract(root: &Value) -> Vec<String> {
                 && at(value, &["evaluated_design_count"]).and_then(Value::as_u64) == Some(20)
                 && at(value, &["max_observation_budget"]).and_then(Value::as_u64) == Some(32)
                 && at(value, &["candidate_conditions"]).and_then(Value::as_array)
-                    .is_some_and(|rows| rows.len() == 4)
+                    .is_some_and(|rows| rows.len() == 4
+                        && rows[0].get("index").and_then(Value::as_u64) == Some(0)
+                        && rows[0].get("sensitivity").and_then(Value::as_array)
+                            .is_some_and(|cols| cols.len() == 2
+                                && cols[0].as_f64() == Some(-3.0)
+                                && cols[1].as_f64() == Some(-3.0))
+                        && rows[1].get("index").and_then(Value::as_u64) == Some(1)
+                        && rows[1].get("sensitivity").and_then(Value::as_array)
+                            .is_some_and(|cols| cols.len() == 2
+                                && cols[0].as_f64() == Some(-3.0)
+                                && cols[1].as_f64() == Some(-2.0))
+                        && rows[2].get("index").and_then(Value::as_u64) == Some(2)
+                        && rows[2].get("sensitivity").and_then(Value::as_array)
+                            .is_some_and(|cols| cols.len() == 2
+                                && cols[0].as_f64() == Some(-3.0)
+                                && cols[1].as_f64() == Some(-1.0))
+                        && rows[3].get("index").and_then(Value::as_u64) == Some(3)
+                        && rows[3].get("sensitivity").and_then(Value::as_array)
+                            .is_some_and(|cols| cols.len() == 2
+                                && cols[0].as_f64() == Some(-2.0)
+                                && cols[1].as_f64() == Some(0.0))
+                        && rows.iter().all(|row| row.get("variance").and_then(Value::as_f64) == Some(1.0)))
                 && at(value, &["expected_d_optimal", "candidate_indices"]).and_then(Value::as_array)
                     .is_some_and(|rows| rows.len() == 3
                         && rows[0].as_u64() == Some(0)
@@ -2104,6 +2125,12 @@ pub fn audit_identifiability_contract(root: &Value) -> Vec<String> {
                         && rows[0].as_u64() == Some(0)
                         && rows[1].as_u64() == Some(3)
                         && rows[2].as_u64() == Some(3))
+                && number_at(value, &["expected_e_optimal", "minimum_information_eigenvalue"])
+                    .is_some_and(|value| (value - 3.1511421982038947).abs() < 1.0e-10)
+                && number_at(value, &["expected_d_optimal", "minimum_information_eigenvalue"])
+                    .is_some_and(|value| (value - 2.583592135001262).abs() < 1.0e-10)
+                && number_at(value, &["expected_d_optimal", "determinant_information"]) == Some(76.0)
+                && number_at(value, &["expected_e_optimal", "determinant_information"]) == Some(72.0)
                 && number_at(value, &["expected_e_optimal", "minimum_information_eigenvalue"])
                     .zip(number_at(value, &["expected_d_optimal", "minimum_information_eigenvalue"]))
                     .is_some_and(|(e, d)| e > d)
@@ -3030,6 +3057,16 @@ mod identifiability_contract_tests {
         }));
     }
 
+
+    #[test]
+    fn identifiability_contract_rejects_candidate_sensitivity_change() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_IDENTIFIABILITY).unwrap();
+        value["reference_implementation"]["design_tournament"]["candidate_conditions"][0]
+            ["sensitivity"][0] = serde_json::json!(-4.0);
+        assert!(audit_identifiability_contract(&value).iter().any(|finding| {
+            finding.starts_with("IDENTIFIABILITY_DESIGN_TOURNAMENT")
+        }));
+    }
 
     #[test]
     fn identifiability_contract_requires_distinct_d_and_e_optimal_selections() {
