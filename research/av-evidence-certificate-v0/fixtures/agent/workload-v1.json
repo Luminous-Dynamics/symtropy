@@ -1,0 +1,31 @@
+{
+  "benchmark_id": "av-evidence-certificate-v0",
+  "schema_version": 1,
+  "episode_id": "episode-001",
+  "transcript_head_sha256": "2aadfbadba86cbb9767993e2b1ea360698d31ccab9504e05f78a52d30e4e80f5",
+  "decision_cutoff_tick": 10,
+  "observation_catalog": [
+    {
+      "observation_id": "obs-video-01",
+      "modality": "video",
+      "available_tick": 5,
+      "capture_complete_tick": 5,
+      "capture_start_ms": 0,
+      "capture_end_ms": 1000,
+      "clock_domain_id": "camera-clock",
+      "clock_generation": 2,
+      "artifact_sha256": "79fd615a866fe7f9eb4da8d9c41ab57e3bd48056df42fd2c13e4d461a87afbe3"
+    },
+    {
+      "observation_id": "obs-audio-01",
+      "modality": "audio",
+      "available_tick": 6,
+      "capture_complete_tick": 6,
+      "capture_start_ms": 0,
+      "capture_end_ms": 1000,
+      "clock_domain_id": "mic-clock",
+      "clock_generation": 4,
+      "artifact_sha256": "15241589c52e7c4a511a160e040d12bab503cf5d0f586cba94889e554d8df241"
+    }
+  ]
+}
