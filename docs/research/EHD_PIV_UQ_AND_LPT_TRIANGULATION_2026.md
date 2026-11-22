@@ -6,7 +6,7 @@
 
 ## Why F1 is not a PIV quality certificate
 
-PIVPostProcess is a strong current vector-validity baseline. It reports F1 0.992, ROC-AUC 0.998 and log loss 0.037 on a stratified random vector-level test set (250,000 training and 50,000 testing vectors from six experiments), and mean F1 0.990 across six additional experimental datasets. It uses expert manual post-processing as the reference for the six additional datasets.
+PIVPostProcess is a strong current vector-validity baseline. Its abstract reports F1 0.991, while the detailed Section 4 test results report F1 0.992, ROC-AUC 0.998 and log loss 0.037 on a stratified random vector-level test set (250,000 training and 50,000 testing vectors from six experiments), and mean F1 0.990 across six additional experimental datasets. It uses expert manual post-processing as the reference for the six additional datasets.
 
 The same paper exposes important gaps:
 - subtle synthetic noise at 150% of clean-flow RMS and 1% spatial coverage gives mean F1 0.62;
