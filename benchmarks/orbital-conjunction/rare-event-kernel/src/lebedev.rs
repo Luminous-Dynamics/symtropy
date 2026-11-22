@@ -1637,8 +1637,7 @@ mod tests {
 
     #[test]
     fn nasa_5810_rule_matches_selected_high_degree_sphere_moments() {
-        let rule = lebedev_sphere_rule(LebedevRule::Points5810)
-            .expect("NASA 5,810-point rule");
+        let rule = lebedev_sphere_rule(LebedevRule::Points5810).expect("NASA 5,810-point rule");
         for (a, b, c) in [
             (130, 0, 0),
             (64, 64, 0),
