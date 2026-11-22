@@ -1139,8 +1139,7 @@ mod tests {
         // Independent kinetic energy from the particle-distribution identity
         // T = 1/2 tr(Omega^T Omega S), not from the operator's stored momentum.
         let omega_matrix = omega.to_matrix();
-        let direct_energy =
-            0.5 * (omega_matrix.transpose() * omega_matrix * second_moment).trace();
+        let direct_energy = 0.5 * (omega_matrix.transpose() * omega_matrix * second_moment).trace();
         let dense_energy = 0.5
             * omega_coordinates
                 .iter()
