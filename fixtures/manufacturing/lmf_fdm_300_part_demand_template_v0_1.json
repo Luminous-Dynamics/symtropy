@@ -11,6 +11,84 @@
   },
   "records": [
     {
+      "part_id": "FAN-PRODUCTION-WORKHOLDING-JIG-001",
+      "record_status": "candidate_unmeasured_not_admitted",
+      "function": "assembly workholding / positioning fixture candidate for the guarded low-voltage DC fan pilot",
+      "product_id": "FAN-PILOT",
+      "product_revision": null,
+      "owner": "Luminous-Dynamics/symtropy#1805",
+      "source_issue": "Luminous-Dynamics/symtropy#1805",
+      "risk_class": "P1",
+      "proposed_tiers": [
+        "N1",
+        "R2"
+      ],
+      "admitted_tiers": [],
+      "rights_status": "unknown",
+      "geometry": {
+        "x_mm": null,
+        "y_mm": null,
+        "z_mm": null,
+        "dimension_source": null,
+        "measurement_method": null,
+        "measurement_uncertainty_mm": null,
+        "CAD_revision": null,
+        "CAD_digest": null,
+        "usable_envelope_clearance_mm": null
+      },
+      "interfaces": [],
+      "functional_requirements": [
+        "hold or locate declared fan subassembly during one defined assembly operation",
+        "assembly repeatability and product damage limits to be specified by product owner"
+      ],
+      "prohibited_uses": [
+        "safety_guard",
+        "rotating_impeller_support_during_powered_test",
+        "uncalibrated_measurement_standard",
+        "final_product_component"
+      ],
+      "material": {
+        "specification": null,
+        "supplier": null,
+        "lot": null,
+        "conditioning": null,
+        "exposure_requirements": null
+      },
+      "process": {
+        "family": "material_extrusion_candidate",
+        "build_orientation": null,
+        "slicer_profile": null,
+        "supports_and_brim": null,
+        "estimated_build_time_hours": null,
+        "qualification_status": "not_assessed"
+      },
+      "demand": {
+        "quantity_per_year": null,
+        "observation_period_start": null,
+        "observation_period_end": null,
+        "source": null,
+        "population_denominator": null,
+        "forecast_or_measured": "unknown"
+      },
+      "baseline": {
+        "OEM_route": null,
+        "job_shop_route": null,
+        "observed_cost_zar": null,
+        "observed_lead_time_hours": null,
+        "quote_date": null,
+        "evidence_source": null
+      },
+      "acceptance": {
+        "critical_dimensions": [],
+        "inspection_method": null,
+        "fixture_repeatability_study": null,
+        "fixture_deflection_or_load_test": null,
+        "assembly_trial_protocol": null,
+        "post_use_verification": null
+      },
+      "claim_ceiling": "Candidate derived from #1805's explicit fixture/jig/gauge/test-adapter workstream. No geometry, rights, demand, material, process profile, fixture acceptance or safety qualification has been established."
+    },
+    {
       "part_id": "FAN-PACKAGING-SPACER-001",
       "record_status": "candidate_unmeasured_not_admitted",
       "function": "non-functional packaging / transport spacer candidate",
