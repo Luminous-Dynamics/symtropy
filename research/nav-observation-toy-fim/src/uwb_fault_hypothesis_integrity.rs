@@ -754,6 +754,66 @@ mod tests {
     }
 
     #[test]
+    fn an_unbounded_nominal_set_suppresses_the_protection_radius() {
+        let mut input = inventory(vec![nominal([0.0, 0.0, 0.0], 0.2)]);
+        input.hypotheses[0].position_set = QualifiedPositionSet3d::Unbounded {
+            reason: UnboundedPositionReason::MissingQualifiedRangeBound,
+        };
+        let report = evaluate_uwb_fault_hypothesis_envelope_3d(&input, config(3.0)).unwrap();
+        assert_eq!(report.protection_radius_m, None);
+        assert_eq!(
+            report.disposition,
+            UwbFaultHypothesisIntegrityDisposition::IntegrityUncertain
+        );
+    }
+
+    #[test]
+    fn rejects_multiple_nominal_hypotheses() {
+        let mut second_nominal = nominal([1.0, 0.0, 0.0], 0.2);
+        second_nominal.hypothesis_id = 2;
+        let input = inventory(vec![nominal([0.0, 0.0, 0.0], 0.2), second_nominal]);
+        assert_eq!(
+            evaluate_uwb_fault_hypothesis_envelope_3d(&input, config(3.0)),
+            Err(UwbFaultHypothesisIntegrityError::MultipleNominalHypotheses)
+        );
+    }
+
+    #[test]
+    fn rejects_zero_dependency_group_identity() {
+        let input = inventory(vec![
+            nominal([0.0, 0.0, 0.0], 0.2),
+            fault(2, [1.0, 0.0, 0.0], 0.1, &[0]),
+        ]);
+        assert_eq!(
+            evaluate_uwb_fault_hypothesis_envelope_3d(&input, config(3.0)),
+            Err(UwbFaultHypothesisIntegrityError::InvalidDependencyGroupIdentity(0))
+        );
+    }
+
+    #[test]
+    fn invalid_alert_limit_and_distance_overflow_fail_closed() {
+        let input = inventory(vec![
+            nominal([0.0, 0.0, 0.0], 0.2),
+            fault(2, [1.0, 0.0, 0.0], 0.1, &[10]),
+        ]);
+        let mut invalid_config = config(3.0);
+        invalid_config.alert_limit_m = f64::NAN;
+        assert_eq!(
+            evaluate_uwb_fault_hypothesis_envelope_3d(&input, invalid_config),
+            Err(UwbFaultHypothesisIntegrityError::InvalidConfiguration)
+        );
+
+        let overflow = inventory(vec![
+            nominal([-1.0e308, 0.0, 0.0], 0.0),
+            fault(2, [1.0e308, 0.0, 0.0], 0.0, &[10]),
+        ]);
+        assert_eq!(
+            evaluate_uwb_fault_hypothesis_envelope_3d(&overflow, config(3.0)),
+            Err(UwbFaultHypothesisIntegrityError::ArithmeticOverflow(2))
+        );
+    }
+
+    #[test]
     fn canonical_report_is_permutation_invariant() {
         let first = inventory(vec![
             nominal([0.0, 0.0, 0.0], 0.2),
