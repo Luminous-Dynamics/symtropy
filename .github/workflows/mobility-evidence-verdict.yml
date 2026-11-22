@@ -1,0 +1,48 @@
+name: Mobility Evidence Verdict Contract
+
+on:
+  push:
+    branches:
+      - research/mobility-evidence-verdict-v0-1
+    paths:
+      - "research/mobility-evidence-verdict/**"
+      - ".github/workflows/mobility-evidence-verdict.yml"
+  pull_request:
+    paths:
+      - "research/mobility-evidence-verdict/**"
+      - ".github/workflows/mobility-evidence-verdict.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evidence-verdict:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Validate public verdict corpus and schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq empty research/mobility-evidence-verdict/schemas/evidence_verdict_packet_v0_1.schema.json
+          jq empty research/mobility-evidence-verdict/fixtures/evidence_verdict_cases_v0_1.json
+          jq -e '
+            .cases as $cases
+            | .version == "0.1"
+              and ($cases | length >= 16)
+              and ([$cases[].case_id] | length == ([$cases[].case_id] | unique | length))
+              and ([$cases[] | select(.expected == "confirmed")] | length >= 1)
+              and ([$cases[] | select(.expected == "refuted")] | length >= 1)
+              and ([$cases[] | select(.expected == "insufficient_evidence")] | length >= 1)
+              and all($cases[]; .authority_capabilities == [])
+          ' research/mobility-evidence-verdict/fixtures/evidence_verdict_cases_v0_1.json
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/mobility-evidence-verdict/Cargo.toml -- --check
+      - name: Run evidence-verdict conformance tests
+        run: cargo test --manifest-path research/mobility-evidence-verdict/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/mobility-evidence-verdict/Cargo.toml --all-targets --locked -- -D warnings

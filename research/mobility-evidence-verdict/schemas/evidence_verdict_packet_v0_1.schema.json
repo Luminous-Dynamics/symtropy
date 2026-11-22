@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/mobility-evidence-verdict-v0.1.json",
+  "title": "Mobility Independent Evidence Verdict Packet v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "profile", "facts", "expected_verdict", "authority_capabilities"],
+  "properties": {
+    "version": { "const": "0.1" },
+    "expected_verdict": { "enum": ["confirmed", "refuted", "insufficient_evidence"] },
+    "authority_capabilities": { "const": [] },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["claim_id", "scope_commitment", "subject_failure_domain_id", "required_independent_domains"],
+      "properties": {
+        "claim_id": { "$ref": "#/$defs/identifier" },
+        "scope_commitment": { "$ref": "#/$defs/commitment" },
+        "subject_failure_domain_id": { "$ref": "#/$defs/identifier" },
+        "required_independent_domains": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/identifier" }
+        }
+      }
+    },
+    "facts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "claim_id", "scope_commitment", "evidence_id", "source_id", "failure_domain_id",
+          "source_kind", "relation", "current", "scope_matches", "raw_evidence_commitment"
+        ],
+        "properties": {
+          "claim_id": { "$ref": "#/$defs/identifier" },
+          "scope_commitment": { "$ref": "#/$defs/commitment" },
+          "evidence_id": { "$ref": "#/$defs/identifier" },
+          "source_id": { "$ref": "#/$defs/identifier" },
+          "failure_domain_id": { "$ref": "#/$defs/identifier" },
+          "source_kind": { "enum": ["subject_assertion", "independent_observation", "harness_observation"] },
+          "relation": { "enum": ["supports", "contradicts"] },
+          "current": { "type": "boolean" },
+          "scope_matches": { "type": "boolean" },
+          "raw_evidence_commitment": { "$ref": "#/$defs/commitment" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "identifier": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "\\S" },
+    "commitment": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" }
+  }
+}
