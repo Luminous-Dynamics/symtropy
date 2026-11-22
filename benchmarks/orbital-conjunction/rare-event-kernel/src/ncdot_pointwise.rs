@@ -348,15 +348,15 @@ fn validate_symmetric_positive_semidefinite(matrix: [[f64; 3]; 3]) -> Result<(),
     }
 
     let tolerance = SYMMETRY_TOLERANCE_FACTOR * f64::EPSILON * scale;
-    for index in 0..3 {
-        if matrix[index][index] < -tolerance {
+    for (index, row) in matrix.iter().enumerate() {
+        if row[index] < -tolerance {
             return Err(KernelError::InvalidConditionalVelocityCovariance);
         }
     }
 
-    for i in 0..3 {
-        for j in (i + 1)..3 {
-            let minor = matrix[i][i] * matrix[j][j] - matrix[i][j] * matrix[i][j];
+    for (i, row) in matrix.iter().enumerate() {
+        for (j, value) in row.iter().enumerate().skip(i + 1) {
+            let minor = row[i] * matrix[j][j] - value * value;
             if minor < -tolerance * scale {
                 return Err(KernelError::InvalidConditionalVelocityCovariance);
             }
@@ -375,9 +375,9 @@ fn validate_symmetric_positive_semidefinite(matrix: [[f64; 3]; 3]) -> Result<(),
 fn validate_symmetric(matrix: [[f64; 3]; 3]) -> Result<(), KernelError> {
     let scale = matrix_max_abs(matrix).max(f64::MIN_POSITIVE);
     let tolerance = SYMMETRY_TOLERANCE_FACTOR * f64::EPSILON * scale;
-    for i in 0..3 {
-        for j in (i + 1)..3 {
-            if (matrix[i][j] - matrix[j][i]).abs() > tolerance {
+    for (i, row) in matrix.iter().enumerate() {
+        for (j, value) in row.iter().enumerate().skip(i + 1) {
+            if (*value - matrix[j][i]).abs() > tolerance {
                 return Err(KernelError::NonSymmetricMatrix);
             }
         }
@@ -465,7 +465,10 @@ mod tests {
         let report = evaluate_ncdot_pointwise(inputs).expect("positive conditional variance");
         let x = -2.0 / (SQRT_2 * 2.0);
         assert!((report.standardized_inward_speed - x).abs() < 1.0e-14);
-        assert!((report.inward_speed_factor - 2.166_630_941_175_372_6).abs() < 2.0e-15);
+        let expected: f64 = "2.1666309411753725967661254771351972"
+            .parse()
+            .expect("reference decimal");
+        assert!((report.inward_speed_factor - expected).abs() < 2.0e-15);
         assert!(!report.used_zero_dispersion_limit);
     }
 
@@ -483,13 +486,14 @@ mod tests {
     #[test]
     fn large_positive_standardized_speeds_preserve_log_tail_without_cancellation() {
         let reference = [
-            (8.0, -68.874_857_632_189_31),
-            (20.0, -406.688_345_454_661_73),
-            (26.0, -683.211_553_474_962_6),
-            (30.0, -907.497_205_381_581_6),
-            (50.0, -2_508.517_792_771_967),
+            (8.0, "-68.8748576321893103302764592214683575365"),
+            (20.0, "-406.688345454661725366274170878205975448"),
+            (26.0, "-683.211553474962581959386296987508359009"),
+            (30.0, "-907.497205381581610392741480291282395258"),
+            (50.0, "-2508.51779277196722813991832440599746728"),
         ];
         for (x, expected_log_h) in reference {
+            let expected_log_h: f64 = expected_log_h.parse().expect("reference decimal");
             let actual = log_expected_positive_speed_kernel(x).expect("positive tail");
             assert!(
                 (actual - expected_log_h).abs() < 3.0e-12,
