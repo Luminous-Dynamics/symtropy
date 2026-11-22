@@ -192,7 +192,7 @@ pub enum ProjectionError {
     RecoveryAdmissionInvariant, PermitConsumptionMismatch, RecoveryFromUnqualifiedOutcome,
     IndeterminatePersistenceRecovery, FreshTicketBindingMismatch, InitialStateMismatch,
     DuplicatePhysicalEffectObserved, ObserverQuorumMismatch, DuplicateObserverClaim,
-    EvidenceScopeMismatch, ObserverQuorumMalformed,
+    EvidenceScopeMismatch, ObserverQuorumMalformed, ObserverClaimsShareCommonCause,
 }
 
 fn nonempty(value: &str) -> bool { !value.trim().is_empty() }
@@ -268,6 +268,38 @@ fn observer_quorum_is_qualified(proof: &ObserverQuorumProof) -> Result<bool, Pro
         }
     }
     Ok(pairwise_independent && proof.members.len() >= proof.required_independent_members)
+}
+
+fn observer_proofs_are_independent(
+    no_effect: &ObserverQuorumProof,
+    downstream: &ObserverQuorumProof,
+) -> bool {
+    if no_effect.fault_model_revision != downstream.fault_model_revision {
+        return false;
+    }
+    let no_effect_observers: BTreeSet<&str> =
+        no_effect.members.iter().map(|member| member.observer_id.as_str()).collect();
+    let downstream_observers: BTreeSet<&str> =
+        downstream.members.iter().map(|member| member.observer_id.as_str()).collect();
+    if !no_effect_observers.is_disjoint(&downstream_observers) {
+        return false;
+    }
+
+    let no_effect_dependencies: BTreeSet<&str> = no_effect.members.iter()
+        .flat_map(|member| member.common_cause_domains.iter().map(String::as_str))
+        .collect();
+    let downstream_dependencies: BTreeSet<&str> = downstream.members.iter()
+        .flat_map(|member| member.common_cause_domains.iter().map(String::as_str))
+        .collect();
+    if !no_effect_dependencies.is_disjoint(&downstream_dependencies) {
+        return false;
+    }
+
+    let no_effect_artifacts: BTreeSet<&str> =
+        no_effect.members.iter().map(|member| member.raw_artifact_id.as_str()).collect();
+    let downstream_artifacts: BTreeSet<&str> =
+        downstream.members.iter().map(|member| member.raw_artifact_id.as_str()).collect();
+    no_effect_artifacts.is_disjoint(&downstream_artifacts)
 }
 
 pub fn model_init_state() -> Value {
@@ -581,6 +613,17 @@ impl RuntimeProjectionRecording {
             if requires_quorums && (no_effect_observer.status!=OwnerEvidenceStatus::QuorumQualified
                 || downstream_observer.status!=OwnerEvidenceStatus::QuorumQualified)
             { return Err(ProjectionError::ObserverQuorumMismatch); }
+            if no_effect_observer.status==OwnerEvidenceStatus::QuorumQualified
+                && downstream_observer.status==OwnerEvidenceStatus::QuorumQualified
+            {
+                let no_effect_proof=no_effect_observer.observer_quorum.as_ref()
+                    .ok_or(ProjectionError::ObserverQuorumMalformed)?;
+                let downstream_proof=downstream_observer.observer_quorum.as_ref()
+                    .ok_or(ProjectionError::ObserverQuorumMalformed)?;
+                if !observer_proofs_are_independent(no_effect_proof,downstream_proof) {
+                    return Err(ProjectionError::ObserverClaimsShareCommonCause);
+                }
+            }
 
             if let Some(clock)=&s.source_clock {
                 if !nonempty(&clock.clock_id)||!nonempty(&clock.boot_epoch_id)||!nonempty(&clock.unit)||clock.resolution==0 {
@@ -797,6 +840,25 @@ mod tests {
         let mut insufficient = observer_proof("insufficient");
         insufficient.members.pop();
         assert_eq!(observer_quorum_is_qualified(&insufficient), Ok(false));
+    }
+
+    #[test]
+    fn separate_observer_claims_cannot_share_members_artifacts_or_common_causes() {
+        let no_effect = observer_proof("effect-observers");
+        let mut graph = observer_proof("graph-observers");
+        assert!(observer_proofs_are_independent(&no_effect, &graph));
+
+        graph.members[1].common_cause_domains[0] =
+            no_effect.members[0].common_cause_domains[0].clone();
+        assert!(!observer_proofs_are_independent(&no_effect, &graph));
+
+        graph = observer_proof("graph-observers");
+        graph.members[0].observer_id = no_effect.members[0].observer_id.clone();
+        assert!(!observer_proofs_are_independent(&no_effect, &graph));
+
+        graph = observer_proof("graph-observers");
+        graph.fault_model_revision = "different-fault-model".to_owned();
+        assert!(!observer_proofs_are_independent(&no_effect, &graph));
     }
 
     #[test]
