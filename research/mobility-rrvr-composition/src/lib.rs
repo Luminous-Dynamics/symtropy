@@ -33,16 +33,17 @@ pub const CONTRACT_VERSION: &str = "0.1";
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CompositionHold {
     RecoveryAssessmentHeld,
-    RecoveryPersistenceUnresolved,
-    RecoveryNotAReattemptCandidate,
     CrossOwnerLogicalEffectMismatch,
     CrossOwnerAttemptMismatch,
     CrossOwnerBootEpochMismatch,
     CrossOwnerControllerEpochMismatch,
     DownstreamGraphNotQualified,
-    RequiredClaimIdMismatch,
-    ClaimScopeMismatch,
-    EvidenceVerdictNotConfirmed,
+    RequiredNoEffectClaimIdMismatch,
+    NoEffectClaimScopeMismatch,
+    NoEffectEvidenceNotConfirmed,
+    RequiredDownstreamClaimIdMismatch,
+    DownstreamClaimScopeMismatch,
+    DownstreamEvidenceNotConfirmed,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -53,9 +54,8 @@ pub enum CompositionDisposition {
     /// The physical effect is independently observed, but local persistence
     /// remains unresolved; preserve both facts and never assess a retry.
     PhysicalEffectObservedPersistenceUnresolvedNoRetry,
-    /// All three owner contracts agree for this exact old attempt. The
-    /// ordinary native authority/permit/queue boundary must still revalidate
-    /// and consume all required owner state atomically.
+    /// All required claims and owner contracts agree for this exact old
+    /// attempt. The native authority owner must still revalidate everything.
     ReadyForOwnerNativeRevalidation,
     Hold(CompositionHold),
 }
@@ -66,28 +66,36 @@ pub struct CompositionAssessment {
     pub recovery: RecoveryDecision,
     /// Preserved graph-evidence result; never promoted to physical NoEffect.
     pub downstream: FenceDecision,
-    /// Preserved scoped evidence verdict; never converted to action authority.
-    pub evidence: EvidenceVerdict,
-    /// Whether the evaluator profile names the required exact old-attempt claim.
-    pub required_claim_id_matches: bool,
-    /// Whether the supplied claim profile is bound to the expected scope digest.
-    pub claim_scope_matches: bool,
-    /// Cross-owner identity join across the restart and downstream contracts.
+    /// Independent verdict for the exact old-attempt NoEffect claim.
+    pub no_effect_evidence: EvidenceVerdict,
+    /// Separate independent verdict for declared downstream graph quiescence.
+    pub downstream_evidence: EvidenceVerdict,
+    pub required_no_effect_claim_id_matches: bool,
+    pub no_effect_claim_scope_matches: bool,
+    pub required_downstream_claim_id_matches: bool,
+    pub downstream_claim_scope_matches: bool,
+    /// Cross-owner identity join across restart and downstream contracts.
     pub cross_owner_identity_matches: bool,
     pub disposition: CompositionDisposition,
+}
+
+/// One scoped evaluator claim. The commitment is computed/authenticated by
+/// the owner/evaluator outside this wrapper; equality is checked here.
+pub struct ScopedClaimInput<'a> {
+    pub profile: &'a ClaimProfile,
+    pub facts: &'a [EvidenceFact],
+    pub required_claim_id: &'a str,
+    pub expected_scope_commitment: EvidenceCommitment,
 }
 
 pub struct CompositionInput<'a> {
     pub recovery: &'a RestartRecoveryEvidence,
     pub downstream: &'a DownstreamFencePacket,
-    pub claim_profile: &'a ClaimProfile,
-    pub claim_facts: &'a [EvidenceFact],
-    /// Exact evaluator claim ID for the old attempt's NoEffect predicate.
-    pub required_claim_id: &'a str,
-    /// Externally derived commitment over the exact effect, attempt, stack,
-    /// transition, observer profile, operating scope and validity interval.
-    /// This crate checks equality but does not invent or authenticate a digest.
-    pub expected_scope_commitment: EvidenceCommitment,
+    /// Independent evidence that the exact old physical attempt was NoEffect.
+    pub old_attempt_no_effect: ScopedClaimInput<'a>,
+    /// Independent evidence that the declared downstream command graph is
+    /// quiescent. This is a distinct claim and scope from physical NoEffect.
+    pub downstream_graph_quiescence: ScopedClaimInput<'a>,
 }
 
 fn cross_owner_identity_matches(
@@ -113,10 +121,25 @@ fn cross_owner_identity_matches(
 pub fn assess_pre_native(input: &CompositionInput<'_>) -> CompositionAssessment {
     let recovery = assess_restart_recovery(input.recovery);
     let downstream = assess_downstream_quiescence(input.downstream);
-    let evidence = assess_evidence_claim(input.claim_profile, input.claim_facts);
-    let required_claim_id_matches = input.claim_profile.claim_id == input.required_claim_id;
-    let claim_scope_matches =
-        input.claim_profile.scope_commitment == input.expected_scope_commitment;
+    let no_effect_evidence = assess_evidence_claim(
+        input.old_attempt_no_effect.profile,
+        input.old_attempt_no_effect.facts,
+    );
+    let downstream_evidence = assess_evidence_claim(
+        input.downstream_graph_quiescence.profile,
+        input.downstream_graph_quiescence.facts,
+    );
+
+    let required_no_effect_claim_id_matches = input.old_attempt_no_effect.profile.claim_id
+        == input.old_attempt_no_effect.required_claim_id;
+    let no_effect_claim_scope_matches = input.old_attempt_no_effect.profile.scope_commitment
+        == input.old_attempt_no_effect.expected_scope_commitment;
+    let required_downstream_claim_id_matches =
+        input.downstream_graph_quiescence.profile.claim_id
+            == input.downstream_graph_quiescence.required_claim_id;
+    let downstream_claim_scope_matches =
+        input.downstream_graph_quiescence.profile.scope_commitment
+            == input.downstream_graph_quiescence.expected_scope_commitment;
     let cross_owner_identity_matches =
         cross_owner_identity_matches(input.recovery, input.downstream);
 
@@ -154,12 +177,20 @@ pub fn assess_pre_native(input: &CompositionInput<'_>) -> CompositionAssessment 
                 FenceDecision::AllDeclaredLayersHaveCurrentQuiescenceEvidence { .. }
             ) {
                 CompositionDisposition::Hold(CompositionHold::DownstreamGraphNotQualified)
-            } else if !required_claim_id_matches {
-                CompositionDisposition::Hold(CompositionHold::RequiredClaimIdMismatch)
-            } else if !claim_scope_matches {
-                CompositionDisposition::Hold(CompositionHold::ClaimScopeMismatch)
-            } else if evidence != EvidenceVerdict::Confirmed {
-                CompositionDisposition::Hold(CompositionHold::EvidenceVerdictNotConfirmed)
+            } else if !required_downstream_claim_id_matches {
+                CompositionDisposition::Hold(
+                    CompositionHold::RequiredDownstreamClaimIdMismatch,
+                )
+            } else if !downstream_claim_scope_matches {
+                CompositionDisposition::Hold(CompositionHold::DownstreamClaimScopeMismatch)
+            } else if downstream_evidence != EvidenceVerdict::Confirmed {
+                CompositionDisposition::Hold(CompositionHold::DownstreamEvidenceNotConfirmed)
+            } else if !required_no_effect_claim_id_matches {
+                CompositionDisposition::Hold(CompositionHold::RequiredNoEffectClaimIdMismatch)
+            } else if !no_effect_claim_scope_matches {
+                CompositionDisposition::Hold(CompositionHold::NoEffectClaimScopeMismatch)
+            } else if no_effect_evidence != EvidenceVerdict::Confirmed {
+                CompositionDisposition::Hold(CompositionHold::NoEffectEvidenceNotConfirmed)
             } else {
                 CompositionDisposition::ReadyForOwnerNativeRevalidation
             }
@@ -169,9 +200,12 @@ pub fn assess_pre_native(input: &CompositionInput<'_>) -> CompositionAssessment 
     CompositionAssessment {
         recovery,
         downstream,
-        evidence,
-        required_claim_id_matches,
-        claim_scope_matches,
+        no_effect_evidence,
+        downstream_evidence,
+        required_no_effect_claim_id_matches,
+        no_effect_claim_scope_matches,
+        required_downstream_claim_id_matches,
+        downstream_claim_scope_matches,
         cross_owner_identity_matches,
         disposition,
     }
