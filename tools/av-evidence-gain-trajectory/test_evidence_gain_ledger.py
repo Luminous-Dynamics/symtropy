@@ -377,6 +377,49 @@ class EvidenceGainLedgerTests(unittest.TestCase):
         with self.assertRaises(EvidenceGainError):
             evaluate_trajectory(doc)
 
+
+    def test_undelivered_future_source_stays_evaluator_only(self):
+        doc = base_trajectory(second_turn_status="FAILED")
+        doc["turns"][1]["workload"]["observation_catalog"] = []
+        doc["turns"][1]["new_observation_ids"] = []
+        doc["turns"][1]["submission"] = submission("head-1", abstain=True)
+        hidden_source = copy.deepcopy(alarm_observation())
+        hidden_source["available_tick"] = 50
+        hidden_source["capture_complete_tick"] = 50
+        doc["evaluator_source_catalog"] = [hidden_source]
+        result = evaluate_trajectory(doc)
+        self.assertEqual(result["newly_grounded_claim_count"], 0)
+        self.assertEqual(result["turns"][1]["new_observation_ids"], [])
+
+    def test_receipt_must_bind_both_episode_and_turn(self):
+        doc = base_trajectory()
+        doc["turns"][0]["action_value_receipt"]["episode_id"] = "another-episode"
+        with self.assertRaises(EvidenceGainError):
+            evaluate_trajectory(doc)
+
+    def test_delivered_catalog_cannot_invent_source_not_in_truth_catalog(self):
+        doc = base_trajectory()
+        extra_obs = {
+            "observation_id": "obs-invented",
+            "modality": "video",
+            "available_tick": 1,
+            "capture_complete_tick": 1,
+            "capture_start_ms": 0,
+            "capture_end_ms": 100,
+            "clock_domain_id": "camera",
+            "clock_generation": 1,
+            "artifact_sha256": digest("invented"),
+        }
+        doc["turns"][1]["workload"]["observation_catalog"].append(extra_obs)
+        doc["turns"][1]["new_observation_ids"].append("obs-invented")
+        doc["turns"][1]["submission"]["claims"][0]["evidence"].append({
+            "observation_ref": "obs-invented",
+            "start_ms": 10,
+            "end_ms": 20,
+        })
+        with self.assertRaises(EvidenceGainError):
+            evaluate_trajectory(doc)
+
     def test_replay_is_deterministic(self):
         doc = base_trajectory()
         first = evaluate_trajectory(doc)
