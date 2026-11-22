@@ -35,8 +35,10 @@ pub mod stats;
 pub mod trajectory;
 
 pub use lebedev::{
-    LebedevRule, LebedevSphereRule, SphereQuadratureDiagnosticsConfig, SphereQuadratureNode,
-    SphereQuadratureReport, integrate_sphere_samples, lebedev_sphere_rule,
+    AdaptiveSphereQuadratureConfig, AdaptiveSphereQuadratureReport, LebedevRule,
+    LebedevSphereRule, SphereQuadratureDiagnosticsConfig, SphereQuadratureNode,
+    SphereQuadratureReport, integrate_sphere_adaptive, integrate_sphere_samples,
+    lebedev_sphere_rule,
 };
 pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
@@ -165,6 +167,9 @@ impl fmt::Display for KernelError {
             }
             Self::InvalidSphereIntegrand => "sphere integrand samples must be nonnegative",
             Self::ZeroSphereIntegrand => "sphere integrand is zero at every quadrature node",
+            Self::InvalidSphereQuadratureTolerance => {
+                "sphere quadrature tolerances must be finite, nonnegative and not both zero"
+            }
         };
         f.write_str(message)
     }
