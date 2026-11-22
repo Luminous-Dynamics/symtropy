@@ -412,9 +412,8 @@ mod tests {
                 epsilon * target[1] + (1.0 - epsilon) * adapted[1],
             ];
             let mut conditional_mean = 0.0;
-            for (is_event, (target_density, proposal_density)) in event
-                .into_iter()
-                .zip(target.into_iter().zip(proposal))
+            for (is_event, (target_density, proposal_density)) in
+                event.into_iter().zip(target.into_iter().zip(proposal))
             {
                 if is_event {
                     let contribution = epsilon * target_density / proposal_density;
