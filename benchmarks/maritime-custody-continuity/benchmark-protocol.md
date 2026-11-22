@@ -75,3 +75,23 @@ A pair of overlapping intervals is not a simultaneity proof. This module returns
 The module does not itself normalize RFC 3339 timestamps, verify clock synchronization, establish a trustworthy error bound, authenticate the source, or validate event-time semantics. These remain owned by #1930/#1955 and the source/forecast applicability work in #1650. In the DCSA Track & Trace profile, preserve eventDateTime separately from eventCreatedDateTime; the DCSA Information Model defines the former as when the event occurred or will occur and the latter as when the event entry was created. For EPCIS, preserve eventTime separately from recordTime; the latter is repository bookkeeping, not real-world event time. Neither schema conformance nor a timezone offset alone certifies clock accuracy. References: https://reference.dcsa.org/files/content/standards/guidelines/information-model-2-0/dcsa-information-model-2-0.pdf and https://ref.gs1.org/epcis/ObjectEvent
 
 The existing P0 custody report still uses exact synthetic ticks. The next integration increment must require time-basis mapping receipts and qualified clock-error enclosures for each source event, then use the partial-order result as a precondition for custody-state mutation. An unresolved or incomparable release/acceptance pair must remain indeterminate and cannot complete a chain.
+
+## P1 exact cross-source handoff correlation
+
+The verifier now supports an optional explicit correlation receipt when release and acceptance systems use different source-local handoff IDs. The receipt binds the exact source event keys on both sides, canonical box ID from the lineage layer, both local handoff IDs, canonical handoff ID, parties, location, transport leg, quantity/unit, versioned mapping profile and opaque evidence reference.
+
+Acceptance conditions:
+- source event references resolve to the latest visible, non-void, ACTUAL records at the chosen as-of cutoff;
+- the referenced records are respectively RELEASE and ACCEPT;
+- canonical box identity matches on both sides and the receipt;
+- the receipt's local handoff IDs exactly equal the raw source event fields;
+- parties, location, transport leg, quantity and unit match on both events and the receipt;
+- each release event and each acceptance event can be mapped at most once;
+- all unreferenced records retain their source-local values;
+- correlation is applied to a cloned event tape; raw source records are never rewritten.
+
+No fuzzy matching by vessel name, timestamp proximity, route, location text or identifier edit-distance is allowed. A receipt that fails one exact binding does not repair the underlying event records. Without a receipt, mismatched local handoff IDs remain a hard handoff mismatch.
+
+The correlation receipt's evidence ID is opaque. P1 does not dereference or authenticate it, identify an issuer or validate representative authority. It records an explicit mapping claim; it is not physical proof of the handoff. Source identity resolution (#6631), semantic translation (#1955/#437) and authority admission (Mycelix) remain independent prerequisites/owners.
+
+The new finite corpus includes different source-local IDs that can be joined only by an exact receipt, no-receipt rejection, wrong field binding, wrong event reference, voided release, planned acceptance, duplicate release mapping, missing evidence reference and source-record immutability.
