@@ -1608,6 +1608,197 @@ mod tests {
         );
     }
 
+    fn resource_interval(
+        occupancy_id: &str,
+        resource_id: &str,
+        resource_kind: ExclusiveResourceKind,
+        start_unix_ms: u64,
+        end_unix_ms: u64,
+    ) -> ResourceOccupancyInterval {
+        let digest = format!("urn:synthetic:resource-config:{resource_id}");
+        ResourceOccupancyInterval {
+            occupancy_id: occupancy_id.to_string(),
+            idempotency_key: format!("idem:{occupancy_id}"),
+            operation_id: "operation-resource".to_string(),
+            owner_id: "mission-resource".to_string(),
+            resource_id: resource_id.to_string(),
+            resource_configuration_digest: digest.clone(),
+            resource_kind,
+            start_unix_ms,
+            end_unix_ms,
+            evidence: evidence(resource_id, &digest, occupancy_id),
+        }
+    }
+
+    #[test]
+    fn adjacent_half_open_resource_intervals_are_allowed() {
+        let mut input = ExclusiveResourceScheduleInput {
+            decision_time_unix_ms: DISPATCH_TIME_MS,
+            intervals: vec![
+                resource_interval(
+                    "charger-use-1",
+                    "charger-1",
+                    ExclusiveResourceKind::ChargingChannel,
+                    DISPATCH_TIME_MS + 1_000,
+                    DISPATCH_TIME_MS + 2_000,
+                ),
+                resource_interval(
+                    "charger-use-2",
+                    "charger-1",
+                    ExclusiveResourceKind::ChargingChannel,
+                    DISPATCH_TIME_MS + 2_000,
+                    DISPATCH_TIME_MS + 3_000,
+                ),
+            ],
+        };
+        input.intervals.reverse();
+        let report = validate_exclusive_resource_schedule(&input).unwrap();
+        assert_eq!(report.interval_count, 2);
+        assert_eq!(report.resource_count, 1);
+        assert_eq!(
+            report.deterministic_occupancy_order,
+            vec!["charger-use-1".to_string(), "charger-use-2".to_string()]
+        );
+        assert!(report.half_open_interval_semantics);
+    }
+
+    #[test]
+    fn overlapping_intervals_for_same_resource_are_rejected() {
+        let input = ExclusiveResourceScheduleInput {
+            decision_time_unix_ms: DISPATCH_TIME_MS,
+            intervals: vec![
+                resource_interval(
+                    "bay-use-1",
+                    "swap-bay-1",
+                    ExclusiveResourceKind::SwapBay,
+                    DISPATCH_TIME_MS + 1_000,
+                    DISPATCH_TIME_MS + 3_000,
+                ),
+                resource_interval(
+                    "bay-use-2",
+                    "swap-bay-1",
+                    ExclusiveResourceKind::SwapBay,
+                    DISPATCH_TIME_MS + 2_000,
+                    DISPATCH_TIME_MS + 4_000,
+                ),
+            ],
+        };
+        let errors = validate_exclusive_resource_schedule(&input).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("exclusive_resource_overlap")));
+    }
+
+    #[test]
+    fn distinct_resources_can_be_occupied_concurrently() {
+        let input = ExclusiveResourceScheduleInput {
+            decision_time_unix_ms: DISPATCH_TIME_MS,
+            intervals: vec![
+                resource_interval(
+                    "aircraft-use",
+                    "aircraft-1",
+                    ExclusiveResourceKind::Aircraft,
+                    DISPATCH_TIME_MS + 1_000,
+                    DISPATCH_TIME_MS + 4_000,
+                ),
+                resource_interval(
+                    "pack-use",
+                    "pack-1",
+                    ExclusiveResourceKind::BatteryPack,
+                    DISPATCH_TIME_MS + 1_000,
+                    DISPATCH_TIME_MS + 4_000,
+                ),
+            ],
+        };
+        let report = validate_exclusive_resource_schedule(&input).unwrap();
+        assert_eq!(report.interval_count, 2);
+        assert_eq!(report.resource_count, 2);
+    }
+
+    #[test]
+    fn evidence_observed_after_schedule_decision_is_rejected() {
+        let mut interval = resource_interval(
+            "future-evidence",
+            "rack-1",
+            ExclusiveResourceKind::Rack,
+            DISPATCH_TIME_MS + 1_000,
+            DISPATCH_TIME_MS + 2_000,
+        );
+        interval.evidence.observed_at_unix_ms = Some(DISPATCH_TIME_MS + 1);
+        let input = ExclusiveResourceScheduleInput {
+            decision_time_unix_ms: DISPATCH_TIME_MS,
+            intervals: vec![interval],
+        };
+        let errors = validate_exclusive_resource_schedule(&input).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("resource_interval_evidence_not_admissible")));
+    }
+
+    #[test]
+    fn resource_evidence_must_cover_the_complete_interval() {
+        let mut interval = resource_interval(
+            "short-evidence",
+            "technician-1",
+            ExclusiveResourceKind::Technician,
+            DISPATCH_TIME_MS + 1_000,
+            DISPATCH_TIME_MS + 2_000,
+        );
+        interval.evidence.valid_until_unix_ms = Some(DISPATCH_TIME_MS + 1_500);
+        let input = ExclusiveResourceScheduleInput {
+            decision_time_unix_ms: DISPATCH_TIME_MS,
+            intervals: vec![interval],
+        };
+        let errors = validate_exclusive_resource_schedule(&input).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("resource_interval_evidence_not_admissible")));
+    }
+
+    #[test]
+    fn duplicate_resource_idempotency_key_is_rejected() {
+        let mut first = resource_interval(
+            "occupancy-a",
+            "rack-1",
+            ExclusiveResourceKind::Rack,
+            DISPATCH_TIME_MS + 1_000,
+            DISPATCH_TIME_MS + 2_000,
+        );
+        let mut second = resource_interval(
+            "occupancy-b",
+            "rack-2",
+            ExclusiveResourceKind::Rack,
+            DISPATCH_TIME_MS + 1_000,
+            DISPATCH_TIME_MS + 2_000,
+        );
+        second.idempotency_key = first.idempotency_key.clone();
+        let input = ExclusiveResourceScheduleInput {
+            decision_time_unix_ms: DISPATCH_TIME_MS,
+            intervals: vec![first, second],
+        };
+        let errors = validate_exclusive_resource_schedule(&input).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("duplicate_resource_idempotency_key")));
+    }
+
+    #[test]
+    fn expired_or_zero_length_resource_intervals_are_rejected() {
+        let expired = resource_interval(
+            "expired",
+            "pack-1",
+            ExclusiveResourceKind::BatteryPack,
+            DISPATCH_TIME_MS - 2_000,
+            DISPATCH_TIME_MS,
+        );
+        let zero_length = resource_interval(
+            "zero-length",
+            "pack-2",
+            ExclusiveResourceKind::BatteryPack,
+            DISPATCH_TIME_MS + 1_000,
+            DISPATCH_TIME_MS + 1_000,
+        );
+        let input = ExclusiveResourceScheduleInput {
+            decision_time_unix_ms: DISPATCH_TIME_MS,
+            intervals: vec![expired, zero_length],
+        };
+        let errors = validate_exclusive_resource_schedule(&input).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("resource_interval_already_expired")));
+        assert!(errors.iter().any(|error| error.contains("invalid_half_open_resource_interval")));
+    }
+
     fn journal_input() -> PackStateJournalInput {
         let pack_id = "journal-pack";
         let digest = "urn:synthetic:configuration:journal-pack";
