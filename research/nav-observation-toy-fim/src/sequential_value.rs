@@ -600,7 +600,11 @@ mod tests {
         let greedy = greedy_first_horizon_two_plan(&candidates, belief, budget(), loss()).unwrap().unwrap();
 
         assert_eq!(greedy.first_action_id, "c-high-one-step-value");
-        assert_eq!(exact.first_action_id, "a-balanced-first");
+        assert_eq!(
+            exact.first_action_id,
+            "a-balanced-first",
+            "exact plan={exact:#?}; greedy plan={greedy:#?}"
+        );
         assert!(exact.expected_decision_value > greedy.expected_decision_value);
         let branch_after_state_zero = exact.branches.iter()
             .find(|branch| branch.branch_id == "measurement:supports-state-zero")
