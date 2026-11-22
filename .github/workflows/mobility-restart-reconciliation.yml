@@ -29,14 +29,15 @@ jobs:
           jq empty research/mobility-restart-reconciliation/conformance_cases_v0_1.json
           jq empty research/mobility-restart-reconciliation/conformance_cases.schema.json
           jq -e '
-            .version == "0.1"
-            and (.cases | length >= 20)
-            and ([.cases[].case_id] | length == ([.cases[].case_id] | unique | length))
-            and ([.cases[] | select(.class == "positive" and .expected == "fresh_attempt_candidate")] | length >= 1)
-            and ([.cases[] | select(.effect == "unknown" and .expected == "hold")] | length >= 1)
-            and ([.cases[] | select(.effect == "partial" and .expected == "hold")] | length >= 1)
-            and ([.cases[] | select(.effect == "disputed" and .expected == "hold")] | length >= 1)
-            and (.cases | all(.[]; .native_sink_calls == 0))
+            .cases as $cases
+            | .version == "0.1"
+              and ($cases | length >= 20)
+              and ([$cases[].case_id] | length == ([$cases[].case_id] | unique | length))
+              and ([$cases[] | select(.class == "positive" and .expected == "fresh_attempt_candidate")] | length >= 1)
+              and ([$cases[] | select(.effect == "unknown" and .expected == "hold")] | length >= 1)
+              and ([$cases[] | select(.effect == "partial" and .expected == "hold")] | length >= 1)
+              and ([$cases[] | select(.effect == "disputed" and .expected == "hold")] | length >= 1)
+              and all($cases[]; .native_sink_calls == 0)
           ' research/mobility-restart-reconciliation/conformance_cases_v0_1.json
       - name: Check formatting
         run: cargo fmt --manifest-path research/mobility-restart-reconciliation/Cargo.toml -- --check
