@@ -25,8 +25,8 @@ Sort the n scores in ascending order and set the tube radius to the k-th score. 
 | 95% | 19 | 19 | finite radius: calibration maximum |
 | 99% | 98 | 99 | no finite radius |
 | 99% | 99 | 99 | finite radius: calibration maximum |
-| 99.9% | 999 | 1000 | no finite radius |
-| 99.9% | 1000 | 1000 | finite radius: calibration maximum |
+| 99.9% | 998 | 999 | no finite radius |
+| 99.9% | 999 | 999 | finite radius: calibration maximum |
 
 The finite radius is an order statistic, not a claim that 19, 99 or 1,000 episodes establish an operationally acceptable hazard rate with a separate confidence level.
 
@@ -35,6 +35,8 @@ The implementation records evaluated-position count for audit context, but that 
 ## Guarantee and assumptions
 
 Under exchangeability of the independent episode-level scores, the split-conformal order statistic provides marginal coverage for a future complete episode drawn from the same exchangeable population. The covered event is joint across the episode: every evaluated true position lies within its corresponding radius disk around the predicted position.
+
+The predictor being calibrated must be fixed independently of the calibration episodes. Any estimator training, hyperparameter selection, feature selection, threshold selection or calibration-stratum design that uses the calibration outcomes changes the procedure and can invalidate the stated split-conformal guarantee. Use a separate development cohort for those choices, then freeze the full predictor and score definition before computing calibration scores.
 
 The guarantee does **not** imply:
 
@@ -49,11 +51,12 @@ The module accepts source-manifest, cohort, score-definition and solution commit
 
 ## Required evaluation protocol
 
-Use three disjoint cohorts:
+Use four disjoint cohorts:
 
-1. **Calibration cohort**: choose all hyperparameters and compute episode maximum errors. Freeze the cohort manifest and score definition before inspecting the final evaluation results.
-2. **In-distribution evaluation cohort**: evaluate whole-episode containment on independent episodes not used for calibration, and with independence-group IDs disjoint from calibration.
-3. **Shift/challenge cohort**: hold out entire environments, days, anchor configurations, device or firmware revisions, obstacle materials, and motion regimes. Report this separately; do not extend the in-distribution guarantee to unsupported strata.
+1. **Development/training cohort**: fit the estimator and choose every model, feature, threshold, hyperparameter, window, optimizer and preprocessing choice. This cohort must not be reused for conformal calibration or final evaluation.
+2. **Calibration cohort**: run the frozen prediction pipeline once and compute only the episode maximum-error scores used to select the conformal order statistic. Do not tune the estimator, select features, adjust thresholds or choose a subgroup policy using these scores. Freeze the cohort manifest, predictor version and score definition before calibration.
+3. **In-distribution evaluation cohort**: evaluate whole-episode containment on independent episodes not used for development or calibration, and with independence-group IDs disjoint from both.
+4. **Shift/challenge cohort**: hold out entire environments, days, anchor configurations, device or firmware revisions, obstacle materials, and motion regimes. Report this separately; do not extend the in-distribution guarantee to unsupported strata.
 
 Where multiple trajectories come from the same physical run, site visit, device session or common environmental episode, they must not silently count as independent calibration units. Define the independence group at the level justified by the data-generation process. If independence cannot be justified, group the observations conservatively or mark the result indeterminate.
 
