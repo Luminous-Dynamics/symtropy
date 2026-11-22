@@ -63,7 +63,7 @@ fn main() -> ExitCode {
     };
 
     let receipt = json!({
-        "receipt_schema": "luminous.orbital-observation-identifiability.receipt.v0.1",
+        "receipt_schema": "luminous.orbital-observation-identifiability.receipt.v0.2",
         "source_commit": source_commit,
         "fixture_sha256": sha256_hex(&raw),
         "result": report.result,

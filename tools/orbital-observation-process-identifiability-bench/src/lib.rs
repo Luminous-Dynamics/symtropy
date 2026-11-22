@@ -1,8 +1,10 @@
 use serde::{Deserialize, Serialize};
+
+pub mod pod;
 use std::collections::HashSet;
 
-const CORPUS_SCHEMA: &str = "luminous.orbital-observation-identifiability.corpus.v0.1";
-const CLAIM_CEILING: &str = "synthetic-thinned-plp-identifiability-only";
+const CORPUS_SCHEMA: &str = "luminous.orbital-observation-identifiability.corpus.v0.2";
+const CLAIM_CEILING: &str = "synthetic-thinned-plp-identifiability-and-pod-bounds-only";
 const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 const MAX_EVENTS: usize = 1_000_000;
 const MAX_SIMULATION_DRAWS: usize = 20_000_000;
@@ -78,6 +80,7 @@ pub struct Corpus {
     pub analytic_cases: Vec<AnalyticCase>,
     pub sensitivity_cases: Vec<SensitivityCase>,
     pub simulation_cases: Vec<SimulationCase>,
+    pub pod_trend_cases: Vec<pod::PodTrendCase>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -147,6 +150,12 @@ pub struct Summary {
     pub analytic_expected_result_mismatches: usize,
     pub sensitivity_mismatches: usize,
     pub simulation_case_count: usize,
+    pub pod_trend_case_count: usize,
+    pub pod_trend_bounded_count: usize,
+    pub pod_trend_unbounded_count: usize,
+    pub pod_trend_incompatible_count: usize,
+    pub pod_trend_indeterminate_count: usize,
+    pub pod_trend_expected_result_mismatches: usize,
     pub simulation_consistent_count: usize,
     pub simulation_inconsistent_count: usize,
     pub shape_nonidentifiability_cases: usize,
@@ -169,6 +178,7 @@ pub struct Report {
     pub analytic_cases: Vec<AnalyticResult>,
     pub sensitivity_cases: Vec<SensitivityResult>,
     pub simulation_cases: Vec<SimulationResult>,
+    pub pod_trend_cases: Vec<pod::PodTrendResult>,
 }
 
 #[derive(Debug, Clone)]
@@ -200,13 +210,21 @@ fn validate_physical_capture(
     capture: CaptureModel,
     exposure_horizon: f64,
 ) -> Result<(), String> {
-    if !physical.eta.is_finite() || physical.eta <= 0.0
-        || !physical.beta.is_finite() || physical.beta <= 0.0
-        || !capture.p0.is_finite() || capture.p0 <= 0.0 || capture.p0 > 1.0
-        || !capture.gamma.is_finite() || capture.gamma < 0.0
-        || !exposure_horizon.is_finite() || exposure_horizon <= 0.0
+    if !physical.eta.is_finite()
+        || physical.eta <= 0.0
+        || !physical.beta.is_finite()
+        || physical.beta <= 0.0
+        || !capture.p0.is_finite()
+        || capture.p0 <= 0.0
+        || capture.p0 > 1.0
+        || !capture.gamma.is_finite()
+        || capture.gamma < 0.0
+        || !exposure_horizon.is_finite()
+        || exposure_horizon <= 0.0
     {
-        return Err("physical PLP, capture model or horizon is outside the supported domain".to_owned());
+        return Err(
+            "physical PLP, capture model or horizon is outside the supported domain".to_owned(),
+        );
     }
     if !(physical.beta + capture.gamma).is_finite() {
         return Err("observed PLP shape overflows the supported numeric domain".to_owned());
@@ -243,18 +261,27 @@ pub fn equivalent_physical_decomposition(
     capture: CaptureModel,
     exposure_horizon: f64,
 ) -> Result<PlpParameters, String> {
-    if !observed.eta_observed.is_finite() || observed.eta_observed <= 0.0
-        || !observed.beta_observed.is_finite() || observed.beta_observed <= 0.0
-        || !capture.p0.is_finite() || capture.p0 <= 0.0 || capture.p0 > 1.0
-        || !capture.gamma.is_finite() || capture.gamma < 0.0
+    if !observed.eta_observed.is_finite()
+        || observed.eta_observed <= 0.0
+        || !observed.beta_observed.is_finite()
+        || observed.beta_observed <= 0.0
+        || !capture.p0.is_finite()
+        || capture.p0 <= 0.0
+        || capture.p0 > 1.0
+        || !capture.gamma.is_finite()
+        || capture.gamma < 0.0
         || capture.gamma >= observed.beta_observed
-        || !exposure_horizon.is_finite() || exposure_horizon <= 0.0
+        || !exposure_horizon.is_finite()
+        || exposure_horizon <= 0.0
     {
-        return Err("observed parameters or proposed detection decomposition are invalid".to_owned());
+        return Err(
+            "observed parameters or proposed detection decomposition are invalid".to_owned(),
+        );
     }
     let beta_physical = observed.beta_observed - capture.gamma;
     let eta_physical = observed.eta_observed * observed.beta_observed / beta_physical
-        * exposure_horizon.powf(capture.gamma) / capture.p0;
+        * exposure_horizon.powf(capture.gamma)
+        / capture.p0;
     if !eta_physical.is_finite() || eta_physical <= 0.0 {
         return Err("equivalent physical PLP scale is not finite and positive".to_owned());
     }
@@ -269,9 +296,12 @@ pub fn physical_beta_sensitivity_interval(
     gamma_min: f64,
     gamma_max: f64,
 ) -> Result<BetaSensitivityInterval, String> {
-    if !beta_observed.is_finite() || beta_observed <= 0.0
-        || !gamma_min.is_finite() || gamma_min < 0.0
-        || !gamma_max.is_finite() || gamma_max < gamma_min
+    if !beta_observed.is_finite()
+        || beta_observed <= 0.0
+        || !gamma_min.is_finite()
+        || gamma_min < 0.0
+        || !gamma_max.is_finite()
+        || gamma_max < gamma_min
     {
         return Err("observed beta or detection-trend interval is invalid".to_owned());
     }
@@ -323,11 +353,17 @@ pub fn simulate_thinned_history(
     physical_seed: u64,
     capture_seed: u64,
 ) -> Result<Vec<f64>, String> {
-    if !physical_beta.is_finite() || physical_beta <= 0.0
-        || !capture.p0.is_finite() || capture.p0 <= 0.0 || capture.p0 > 1.0
-        || !capture.gamma.is_finite() || capture.gamma < 0.0
-        || physical_event_count == 0 || physical_event_count > MAX_EVENTS
-        || physical_seed > MAX_SAFE_INTEGER || capture_seed > MAX_SAFE_INTEGER
+    if !physical_beta.is_finite()
+        || physical_beta <= 0.0
+        || !capture.p0.is_finite()
+        || capture.p0 <= 0.0
+        || capture.p0 > 1.0
+        || !capture.gamma.is_finite()
+        || capture.gamma < 0.0
+        || physical_event_count == 0
+        || physical_event_count > MAX_EVENTS
+        || physical_seed > MAX_SAFE_INTEGER
+        || capture_seed > MAX_SAFE_INTEGER
         || physical_seed == capture_seed
         || physical_event_count.saturating_mul(2) > MAX_SIMULATION_DRAWS
     {
@@ -368,11 +404,7 @@ fn evaluate_analytic_case(case: &AnalyticCase) -> Result<AnalyticResult, String>
             alternative_capture,
             case.exposure_horizon,
         )?;
-        let reproduced = observed_parameters(
-            physical,
-            alternative_capture,
-            case.exposure_horizon,
-        )?;
+        let reproduced = observed_parameters(physical, alternative_capture, case.exposure_horizon)?;
         let shape_residual = (reproduced.beta_observed - observed.beta_observed).abs();
         let scale_relative_residual =
             ((reproduced.eta_observed - observed.eta_observed) / observed.eta_observed).abs();
@@ -392,7 +424,8 @@ fn evaluate_analytic_case(case: &AnalyticCase) -> Result<AnalyticResult, String>
         .iter()
         .map(|item| item.physical.beta)
         .collect();
-    let expected_result_matched = (observed.eta_observed - case.expected_observed.eta_observed).abs()
+    let expected_result_matched = (observed.eta_observed - case.expected_observed.eta_observed)
+        .abs()
         <= 1.0e-10 * case.expected_observed.eta_observed.abs().max(1.0)
         && (observed.beta_observed - case.expected_observed.beta_observed).abs() <= 1.0e-12
         && equivalent_betas.len() == case.expected_equivalent_physical_betas.len()
@@ -400,8 +433,9 @@ fn evaluate_analytic_case(case: &AnalyticCase) -> Result<AnalyticResult, String>
             .iter()
             .zip(&case.expected_equivalent_physical_betas)
             .all(|(actual, expected)| (actual - expected).abs() <= 1.0e-10);
-    let all_decompositions_equivalent =
-        decompositions.iter().all(|item| item.observationally_equivalent);
+    let all_decompositions_equivalent = decompositions
+        .iter()
+        .all(|item| item.observationally_equivalent);
     Ok(AnalyticResult {
         case_id: case.case_id.clone(),
         observed,
@@ -417,11 +451,8 @@ fn evaluate_analytic_case(case: &AnalyticCase) -> Result<AnalyticResult, String>
 }
 
 fn evaluate_sensitivity_case(case: &SensitivityCase) -> Result<SensitivityResult, String> {
-    let interval = physical_beta_sensitivity_interval(
-        case.beta_observed,
-        case.gamma_min,
-        case.gamma_max,
-    )?;
+    let interval =
+        physical_beta_sensitivity_interval(case.beta_observed, case.gamma_min, case.gamma_max)?;
     let matched = (interval.beta_min - case.expected_beta_min).abs() <= 1.0e-12
         && (interval.beta_max - case.expected_beta_max).abs() <= 1.0e-12
         && interval.lower_open == case.expected_lower_open
@@ -464,8 +495,7 @@ fn evaluate_simulation_case(case: &SimulationCase) -> Result<SimulationResult, S
         None
     };
     let beta_absolute_error = estimated_beta.map(|estimate| (estimate - theoretical_beta).abs());
-    let theoretical_capture_fraction =
-        case.capture_p0 * case.physical_beta / theoretical_beta;
+    let theoretical_capture_fraction = case.capture_p0 * case.physical_beta / theoretical_beta;
     let empirical_capture_fraction = retained.len() as f64 / case.physical_event_count as f64;
     let consistent = beta_absolute_error.is_some_and(|error| error <= case.maximum_beta_error);
     Ok(SimulationResult {
@@ -502,13 +532,22 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
         || corpus.analytic_cases.is_empty()
         || corpus.sensitivity_cases.is_empty()
         || corpus.simulation_cases.is_empty()
+        || corpus.pod_trend_cases.is_empty()
     {
-        return Err("unsupported, empty or incorrectly classified identifiability corpus".to_owned());
+        return Err(
+            "unsupported, empty or incorrectly classified identifiability corpus".to_owned(),
+        );
     }
     let mut ids = HashSet::new();
     let mut analytic_cases = Vec::new();
     let mut sensitivity_cases = Vec::new();
     let mut simulation_cases = Vec::new();
+    let mut pod_trend_results = Vec::new();
+    let mut pod_trend_bounded_count = 0usize;
+    let mut pod_trend_unbounded_count = 0usize;
+    let mut pod_trend_incompatible_count = 0usize;
+    let mut pod_trend_indeterminate_count = 0usize;
+    let mut pod_trend_expected_result_mismatches = 0usize;
     let mut equivalent_decomposition_count = 0usize;
     let mut analytic_expected_result_mismatches = 0usize;
     let mut shape_nonidentifiability_cases = 0usize;
@@ -522,11 +561,16 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
             return Err("identifiability case IDs must be globally unique".to_owned());
         }
         let result = evaluate_analytic_case(case)?;
-        equivalent_decomposition_count += result.equivalent_decompositions
-            .iter().filter(|item| item.observationally_equivalent).count();
+        equivalent_decomposition_count += result
+            .equivalent_decompositions
+            .iter()
+            .filter(|item| item.observationally_equivalent)
+            .count();
         analytic_expected_result_mismatches += usize::from(!result.expected_result_matched);
-        shape_nonidentifiability_cases += usize::from(!result.shape_identifiable_from_timestamps_alone);
-        scale_nonidentifiability_cases += usize::from(!result.scale_identifiable_from_timestamps_alone);
+        shape_nonidentifiability_cases +=
+            usize::from(!result.shape_identifiable_from_timestamps_alone);
+        scale_nonidentifiability_cases +=
+            usize::from(!result.scale_identifiable_from_timestamps_alone);
         analytic_cases.push(result);
     }
     for case in &corpus.sensitivity_cases {
@@ -550,9 +594,25 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
         simulation_cases.push(result);
     }
 
+    for case in &corpus.pod_trend_cases {
+        if !ids.insert(case.case_id.as_str()) {
+            return Err("identifiability case IDs must be globally unique".to_owned());
+        }
+        let result = pod::analyze_pod_trend(case)?;
+        match result.status {
+            pod::PodTrendStatus::Bounded => pod_trend_bounded_count += 1,
+            pod::PodTrendStatus::Unbounded => pod_trend_unbounded_count += 1,
+            pod::PodTrendStatus::ModelIncompatible => pod_trend_incompatible_count += 1,
+            pod::PodTrendStatus::Indeterminate => pod_trend_indeterminate_count += 1,
+        }
+        pod_trend_expected_result_mismatches += usize::from(!result.expected_result_matched);
+        pod_trend_results.push(result);
+    }
+
     let result = if analytic_expected_result_mismatches == 0
         && sensitivity_mismatches == 0
         && simulation_inconsistent_count == 0
+        && pod_trend_expected_result_mismatches == 0
         && equivalent_decomposition_count > 0
     {
         "pass"
@@ -566,6 +626,12 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
         analytic_expected_result_mismatches,
         sensitivity_mismatches,
         simulation_case_count: simulation_cases.len(),
+        pod_trend_case_count: pod_trend_results.len(),
+        pod_trend_bounded_count,
+        pod_trend_unbounded_count,
+        pod_trend_incompatible_count,
+        pod_trend_indeterminate_count,
+        pod_trend_expected_result_mismatches,
         simulation_consistent_count,
         simulation_inconsistent_count,
         shape_nonidentifiability_cases,
@@ -578,8 +644,7 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
         result: result.to_owned(),
         evidence_class: "synthetic".to_owned(),
         claim_ceiling: CLAIM_CEILING.to_owned(),
-        mathematical_identity:
-            "beta_observed = beta_physical + gamma_detection".to_owned(),
+        mathematical_identity: "beta_observed = beta_physical + gamma_detection".to_owned(),
         physical_reliability_claim_granted: false,
         qualification_granted: false,
         authority_granted: false,
@@ -587,6 +652,7 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
         analytic_cases,
         sensitivity_cases,
         simulation_cases,
+        pod_trend_cases: pod_trend_results,
     })
 }
 
@@ -597,8 +663,14 @@ mod tests {
     #[test]
     fn observed_shape_is_physical_shape_plus_detection_trend() {
         let observed = observed_parameters(
-            PlpParameters { eta: 2.0, beta: 0.8 },
-            CaptureModel { p0: 0.9, gamma: 0.7 },
+            PlpParameters {
+                eta: 2.0,
+                beta: 0.8,
+            },
+            CaptureModel {
+                p0: 0.9,
+                gamma: 0.7,
+            },
             100.0,
         )
         .expect("valid thinned PLP");
@@ -607,9 +679,18 @@ mod tests {
 
     #[test]
     fn distinct_physical_and_detection_pairs_reproduce_same_observed_process() {
-        let target = ObservedParameters { eta_observed: 0.25, beta_observed: 1.5 };
-        let first_capture = CaptureModel { p0: 0.8, gamma: 0.0 };
-        let second_capture = CaptureModel { p0: 0.8, gamma: 0.7 };
+        let target = ObservedParameters {
+            eta_observed: 0.25,
+            beta_observed: 1.5,
+        };
+        let first_capture = CaptureModel {
+            p0: 0.8,
+            gamma: 0.0,
+        };
+        let second_capture = CaptureModel {
+            p0: 0.8,
+            gamma: 0.7,
+        };
         let first = equivalent_physical_decomposition(target, first_capture, 100.0)
             .expect("first decomposition");
         let second = equivalent_physical_decomposition(target, second_capture, 100.0)
@@ -640,15 +721,16 @@ mod tests {
 
     #[test]
     fn frozen_identifiability_corpus_replays_without_claim_escalation() {
-        let corpus: Corpus = serde_json::from_str(include_str!(
-            "../fixtures/v0.1/identifiability-cases.json"
-        ))
-        .expect("identifiability corpus parses");
+        let corpus: Corpus =
+            serde_json::from_str(include_str!("../fixtures/v0.2/identifiability-cases.json"))
+                .expect("identifiability corpus parses");
         let report = evaluate(&corpus).expect("identifiability corpus evaluates");
         assert_eq!(report.result, "pass");
         assert_eq!(report.summary.analytic_expected_result_mismatches, 0);
         assert_eq!(report.summary.sensitivity_mismatches, 0);
         assert_eq!(report.summary.simulation_inconsistent_count, 0);
+        assert_eq!(report.summary.pod_trend_expected_result_mismatches, 0);
+        assert!(report.summary.pod_trend_case_count >= 7);
         assert!(report.summary.shape_nonidentifiability_cases > 0);
         assert!(report.summary.scale_nonidentifiability_cases > 0);
         assert_eq!(report.summary.physical_reliability_claims, 0);
@@ -665,7 +747,10 @@ mod tests {
     fn independent_thinning_simulation_recovers_observed_shape() {
         let retained = simulate_thinned_history(
             0.8,
-            CaptureModel { p0: 0.9, gamma: 0.7 },
+            CaptureModel {
+                p0: 0.9,
+                gamma: 0.7,
+            },
             200_000,
             123_456,
             654_321,

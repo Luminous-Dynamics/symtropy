@@ -1,0 +1,210 @@
+{
+  "schema": "luminous.orbital-pod-trend-bounds.corpus.v0.2",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "two-anchor-hit-miss-pod-trend-bounds-only",
+  "cases": [
+    {
+      "case_id": "matched_pod_anchors_bound_gamma",
+      "early_anchor": {
+        "normalized_time_fraction": 0.25,
+        "hits": 400,
+        "trials": 1000,
+        "event_class": "impact-pulse",
+        "covariate_stratum_id": "amplitude-mid-duration-short-rate-isolated-ambient",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sampling_unit": "pulse",
+        "independent_trials_asserted": true,
+        "reference_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "late_anchor": {
+        "normalized_time_fraction": 1,
+        "hits": 800,
+        "trials": 1000,
+        "event_class": "impact-pulse",
+        "covariate_stratum_id": "amplitude-mid-duration-short-rate-isolated-ambient",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sampling_unit": "pulse",
+        "independent_trials_asserted": true,
+        "reference_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "familywise_alpha": 0.05,
+      "expected_status": "bounded",
+      "expected_gamma_min": 0.4110657441086766,
+      "expected_gamma_max": 0.5901946105323858
+    },
+    {
+      "case_id": "zero_early_hits_leave_gamma_upper_unbounded",
+      "early_anchor": {
+        "normalized_time_fraction": 0.25,
+        "hits": 0,
+        "trials": 1000,
+        "event_class": "impact-pulse",
+        "covariate_stratum_id": "amplitude-mid-duration-short-rate-isolated-ambient",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sampling_unit": "pulse",
+        "independent_trials_asserted": true,
+        "reference_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "late_anchor": {
+        "normalized_time_fraction": 1,
+        "hits": 800,
+        "trials": 1000,
+        "event_class": "impact-pulse",
+        "covariate_stratum_id": "amplitude-mid-duration-short-rate-isolated-ambient",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sampling_unit": "pulse",
+        "independent_trials_asserted": true,
+        "reference_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "familywise_alpha": 0.05,
+      "expected_status": "unbounded",
+      "expected_gamma_min": 3.7301862567603576,
+      "expected_gamma_max": null
+    },
+    {
+      "case_id": "later_pod_conflicts_with_non_decreasing_power_law",
+      "early_anchor": {
+        "normalized_time_fraction": 0.25,
+        "hits": 900,
+        "trials": 1000,
+        "event_class": "impact-pulse",
+        "covariate_stratum_id": "amplitude-mid-duration-short-rate-isolated-ambient",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sampling_unit": "pulse",
+        "independent_trials_asserted": true,
+        "reference_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "late_anchor": {
+        "normalized_time_fraction": 1,
+        "hits": 100,
+        "trials": 1000,
+        "event_class": "impact-pulse",
+        "covariate_stratum_id": "amplitude-mid-duration-short-rate-isolated-ambient",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sampling_unit": "pulse",
+        "independent_trials_asserted": true,
+        "reference_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "familywise_alpha": 0.05,
+      "expected_status": "model_incompatible",
+      "expected_gamma_min": 0,
+      "expected_gamma_max": -1.4151161275865694
+    },
+    {
+      "case_id": "unmatched_covariate_stratum_is_indeterminate",
+      "early_anchor": {
+        "normalized_time_fraction": 0.25,
+        "hits": 400,
+        "trials": 1000,
+        "event_class": "impact-pulse",
+        "covariate_stratum_id": "amplitude-mid-duration-short-rate-isolated-ambient",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sampling_unit": "pulse",
+        "independent_trials_asserted": true,
+        "reference_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "late_anchor": {
+        "normalized_time_fraction": 1,
+        "hits": 800,
+        "trials": 1000,
+        "event_class": "impact-pulse",
+        "covariate_stratum_id": "amplitude-high-duration-short-rate-isolated-ambient",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sampling_unit": "pulse",
+        "independent_trials_asserted": true,
+        "reference_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "familywise_alpha": 0.05,
+      "expected_status": "indeterminate",
+      "expected_gamma_min": 0,
+      "expected_gamma_max": 0.5901946105323858
+    },
+    {
+      "case_id": "unverified_independence_is_indeterminate",
+      "early_anchor": {
+        "normalized_time_fraction": 0.25,
+        "hits": 400,
+        "trials": 1000,
+        "event_class": "impact-pulse",
+        "covariate_stratum_id": "amplitude-mid-duration-short-rate-isolated-ambient",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sampling_unit": "pulse",
+        "independent_trials_asserted": false,
+        "reference_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "late_anchor": {
+        "normalized_time_fraction": 1,
+        "hits": 800,
+        "trials": 1000,
+        "event_class": "impact-pulse",
+        "covariate_stratum_id": "amplitude-mid-duration-short-rate-isolated-ambient",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sampling_unit": "pulse",
+        "independent_trials_asserted": true,
+        "reference_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "familywise_alpha": 0.05,
+      "expected_status": "indeterminate",
+      "expected_gamma_min": 0,
+      "expected_gamma_max": 0.5901946105323858
+    },
+    {
+      "case_id": "p0_ceiling_binds_gamma_upper_bound",
+      "early_anchor": {
+        "normalized_time_fraction": 0.25,
+        "hits": 900,
+        "trials": 1000,
+        "event_class": "impact-pulse",
+        "covariate_stratum_id": "amplitude-mid-duration-short-rate-isolated-ambient",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sampling_unit": "pulse",
+        "independent_trials_asserted": true,
+        "reference_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "late_anchor": {
+        "normalized_time_fraction": 0.5,
+        "hits": 950,
+        "trials": 1000,
+        "event_class": "impact-pulse",
+        "covariate_stratum_id": "amplitude-mid-duration-short-rate-isolated-ambient",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sampling_unit": "pulse",
+        "independent_trials_asserted": true,
+        "reference_evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "familywise_alpha": 0.05,
+      "expected_status": "bounded",
+      "expected_gamma_min": 0.018781515909236355,
+      "expected_gamma_max": 0.0949025860022344
+    },
+    {
+      "case_id": "late_anchor_p0_ceiling_exposes_incompatibility_when_early_lower_is_zero",
+      "early_anchor": {
+        "normalized_time_fraction": 0.25,
+        "hits": 0,
+        "trials": 1000,
+        "event_class": "impact-pulse",
+        "covariate_stratum_id": "amplitude-mid-duration-short-rate-isolated-ambient",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sampling_unit": "pulse",
+        "independent_trials_asserted": true,
+        "reference_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "late_anchor": {
+        "normalized_time_fraction": 0.5,
+        "hits": 900,
+        "trials": 1000,
+        "event_class": "impact-pulse",
+        "covariate_stratum_id": "amplitude-mid-duration-short-rate-isolated-ambient",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sampling_unit": "pulse",
+        "independent_trials_asserted": true,
+        "reference_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "familywise_alpha": 0.05,
+      "expected_status": "model_incompatible",
+      "expected_gamma_min": 7.647540669128555,
+      "expected_gamma_max": 0.1898051720044688
+    }
+  ]
+}

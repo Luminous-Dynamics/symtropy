@@ -1,0 +1,66 @@
+name: orbital observation-process identifiability v0.2
+
+on:
+  pull_request:
+    branches:
+      - main
+      - research/orbital-observation-process-identifiability-v0-1
+    paths:
+      - "tools/orbital-observation-process-identifiability-bench/**"
+      - ".github/workflows/orbital-observation-process-identifiability-v0-2.yml"
+  push:
+    branches:
+      - research/orbital-pod-trend-bounds-v0-2
+
+permissions:
+  contents: read
+
+concurrency:
+  group: orbital-observation-identifiability-v0-2-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify rustfmt
+        run: cargo fmt --manifest-path tools/orbital-observation-process-identifiability-bench/Cargo.toml -- --check
+      - name: Run Rust unit and frozen-corpus tests
+        run: cargo test --locked --manifest-path tools/orbital-observation-process-identifiability-bench/Cargo.toml --all-targets
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path tools/orbital-observation-process-identifiability-bench/Cargo.toml --all-targets -- -D warnings
+      - name: Generate source-pinned v0.2 receipt
+        run: |
+          mkdir -p artifacts
+          cargo run --locked --manifest-path tools/orbital-observation-process-identifiability-bench/Cargo.toml -- \
+            tools/orbital-observation-process-identifiability-bench/fixtures/v0.2/identifiability-cases.json \
+            --source-commit "${GITHUB_SHA}" > artifacts/identifiability-receipt-v0.2.json
+      - name: Run independent JavaScript oracle
+        run: |
+          node tools/orbital-observation-process-identifiability-bench/tests/reference_oracle.mjs \
+            tools/orbital-observation-process-identifiability-bench/fixtures/v0.2/identifiability-cases.json \
+            > artifacts/identifiability-oracle-v0.2.json
+      - name: Assert claim ceiling in both independent outputs
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            const r = JSON.parse(fs.readFileSync("artifacts/identifiability-receipt-v0.2.json"));
+            const o = JSON.parse(fs.readFileSync("artifacts/identifiability-oracle-v0.2.json"));
+            if (r.result !== "pass" || r.physical_reliability_claim_granted !== false ||
+                r.qualification_granted !== false || r.authority_granted !== false ||
+                r.report.summary.pod_trend_expected_result_mismatches !== 0 ||
+                o.pod_trend_expected_result_mismatches !== 0) process.exit(1);
+          '
+      - uses: actions/upload-artifact@v4
+        with:
+          name: orbital-observation-identifiability-v0.2-${{ github.sha }}
+          path: artifacts/
+          if-no-files-found: error
