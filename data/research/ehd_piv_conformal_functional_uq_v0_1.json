@@ -193,9 +193,9 @@
     "spatial_conformal_tests": 4,
     "field_functional_tests": 10,
     "integrated_functional_conformal_tests": 8,
-    "total_authored_rust_tests": 41,
+    "total_authored_rust_tests": 43,
     "rust_execution": "not_run_no_local_rust_toolchain",
-    "spatial_correlation_tests": 9
+    "spatial_correlation_tests": 11
   },
   "integrated_functional_conformal_contract": {
     "dimension": 4,
@@ -268,45 +268,20 @@
     "oscillatory_positive_definite_covariance_when_negative_lobes_are_observed"
   ],
   "spatial_correlation_contract": {
-    "model": "anisotropic Wendland C2 compact-support kernel in three spatial dimensions",
-    "covariance": "Cov(delta_u_i,delta_u_j) = K(x_i,x_j) * C_component",
-    "component_covariance": "symmetric positive semidefinite 3x3",
-    "support": "normalized anisotropic distance r < 1",
-    "calibration_receipt": {
-      "required": true,
-      "minimum_independent_acquisition_clusters": 20,
-      "processing_protocol_fingerprint_must_match": true,
+    "module_path": "tools/ehd-piv-conformal-functional-uq/src/spatial_correlation.rs",
+    "parameter_calibration_receipt": {
+      "minimum_independent_acquisition_count": 20,
       "maximum_absolute_correlation_fit_error_prospective": 0.05,
-      "reject_resolved_negative_correlation_lobe": true,
-      "note": "Thresholds are prospective gates; no empirical kernel fit has been performed."
+      "target_protocol_fingerprint_match_required": true,
+      "negative_correlation_lobe_rejected": true
     },
-    "assumptions": [
-      "stationary anisotropic correlation within the frozen processing protocol",
-      "kernel correlated component excluded from local per-sample covariance to avoid double counting",
-      "shared modes represent distinct common causes",
-      "compact-support Wendland C2 selected only when empirical autocorrelation is adequately fit and contains no resolved negative lobe"
+    "comparators": [
+      "empirical_autocorrelation_lookup",
+      "gaussian",
+      "matern",
+      "wendland_c2",
+      "oscillatory_positive_definite"
     ],
-    "outputs": [
-      "spatial_covariance_contribution_4x4",
-      "total_functional_covariance_4x4",
-      "total_standard_uncertainties",
-      "correlated_sample_pair_count",
-      "kernel_calibration_receipt_identity"
-    ],
-    "complexity": "O(N^2) reference implementation; production neighbor list / matrix-free implementation required",
-    "implementation": {
-      "path": "tools/ehd-piv-conformal-functional-uq/src/spatial_correlation.rs",
-      "function": "propagate_spatially_correlated_functional_uncertainty",
-      "authored_rust_tests": 9
-    },
-    "limitations": [
-      "no raw image or residual field fitting",
-      "no automatic kernel parameter estimation",
-      "stationary shared correlated component",
-      "no temporal covariance",
-      "no negative-lobe correlation",
-      "no spatially varying correlated amplitude",
-      "no raw data benchmark or empirical validation"
-    ]
+    "claim_boundary": "No spatial kernel parameters have been fitted to raw experimental PIV fields. Receipt is externally asserted; current kernel is a stationary, nonnegative-correlation candidate only."
   }
 }
