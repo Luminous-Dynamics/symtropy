@@ -690,7 +690,7 @@ pub fn minimize_trace<O: ReplayOracle>(
             match preserves_target(
                 &candidate,
                 &target,
-                &bundle.header,
+                bundle,
                 oracle,
                 &mut calls,
                 max_oracle_calls,
@@ -729,7 +729,7 @@ pub fn minimize_trace<O: ReplayOracle>(
             match preserves_target(
                 &candidate,
                 &target,
-                &bundle.header,
+                bundle,
                 oracle,
                 &mut calls,
                 max_oracle_calls,
@@ -772,7 +772,7 @@ pub fn minimize_trace<O: ReplayOracle>(
             match preserves_target(
                 &candidate,
                 &target,
-                &bundle.header,
+                bundle,
                 oracle,
                 &mut calls,
                 max_oracle_calls,
