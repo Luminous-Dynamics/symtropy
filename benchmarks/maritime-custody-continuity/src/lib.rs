@@ -1,4 +1,5 @@
 pub mod handoff_correlation;
+pub mod clock_attestation;
 pub mod temporal_order;
 
 use std::collections::{BTreeMap, BTreeSet};
