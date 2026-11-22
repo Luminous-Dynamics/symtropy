@@ -28,6 +28,12 @@ pub struct TransformationSourceEventRef {
 pub struct TransformationGroupEvidence {
     /// Stable group reference consumed by the external material-accounting case.
     pub group_ref: String,
+    /// Exact canonical process binding carried by the group manifest.
+    pub process_ref: String,
+    /// Exact input-lot scope represented by the normalized group manifest.
+    pub input_lot_set_ref: String,
+    /// Exact declared output scope represented by the normalized group manifest.
+    pub output_ref: String,
     /// Present for a shared EPCIS transformationID group.
     /// Absent only for an event-local transformation with exactly one event.
     pub transformation_id: Option<String>,
@@ -107,6 +113,10 @@ pub enum MaterialBalanceLinkReason {
     MissingCaseBinding(&'static str),
     TransformationGroupBindingMismatch,
     TransformationIdBindingMismatch,
+    InvalidGroupScopeBinding,
+    GroupProcessScopeMismatch,
+    GroupInputLotScopeMismatch,
+    GroupOutputScopeMismatch,
     InvalidExpectedReceiptDigest,
     MissingOwnerReceipt,
     MultipleOwnerReceipts,
@@ -211,6 +221,12 @@ fn validate_group(group: &TransformationGroupEvidence) -> Option<MaterialBalance
     if !valid_text(&group.group_ref) {
         return Some(MaterialBalanceLinkReason::MissingTransformationGroupRef);
     }
+    if !valid_text(&group.process_ref)
+        || !valid_text(&group.input_lot_set_ref)
+        || !valid_text(&group.output_ref)
+    {
+        return Some(MaterialBalanceLinkReason::InvalidGroupScopeBinding);
+    }
     if group
         .transformation_id
         .as_ref()
@@ -274,6 +290,15 @@ fn validate_case_binding(
     }
     if case.transformation_id != group.transformation_id {
         return Some(MaterialBalanceLinkReason::TransformationIdBindingMismatch);
+    }
+    if case.process_ref != group.process_ref {
+        return Some(MaterialBalanceLinkReason::GroupProcessScopeMismatch);
+    }
+    if case.input_lot_set_ref != group.input_lot_set_ref {
+        return Some(MaterialBalanceLinkReason::GroupInputLotScopeMismatch);
+    }
+    if case.output_ref != group.output_ref {
+        return Some(MaterialBalanceLinkReason::GroupOutputScopeMismatch);
     }
     if !valid_sha256(&case.expected_group_evidence_sha256) {
         return Some(MaterialBalanceLinkReason::InvalidGroupEvidenceDigest);
@@ -440,6 +465,9 @@ mod tests {
     fn group() -> TransformationGroupEvidence {
         TransformationGroupEvidence {
             group_ref: "urn:example:transformation:batch-42".to_string(),
+            process_ref: "urn:example:process:42".to_string(),
+            input_lot_set_ref: "urn:example:lot-set:42".to_string(),
+            output_ref: "urn:example:output-set:42".to_string(),
             transformation_id: Some("urn:example:transformation:batch-42".to_string()),
             group_evidence_sha256: "e".repeat(64),
             effective_source_events: vec![
@@ -609,6 +637,60 @@ mod tests {
             )
             .reason,
             Some(MaterialBalanceLinkReason::TransformationIdBindingMismatch)
+        );
+    }
+
+    #[test]
+    fn process_input_lot_and_output_scopes_must_match_the_canonical_group() {
+        let mut wrong_process = group();
+        wrong_process.process_ref = "urn:example:other-process".to_string();
+        assert_eq!(
+            qualify_transformation_mass_balance_link(
+                &wrong_process,
+                &case(),
+                &[receipt("EXACT_BALANCED")]
+            )
+            .reason,
+            Some(MaterialBalanceLinkReason::GroupProcessScopeMismatch)
+        );
+
+        let mut wrong_input_lots = group();
+        wrong_input_lots.input_lot_set_ref = "urn:example:other-lots".to_string();
+        assert_eq!(
+            qualify_transformation_mass_balance_link(
+                &wrong_input_lots,
+                &case(),
+                &[receipt("EXACT_BALANCED")]
+            )
+            .reason,
+            Some(MaterialBalanceLinkReason::GroupInputLotScopeMismatch)
+        );
+
+        let mut wrong_output = group();
+        wrong_output.output_ref = "urn:example:other-output".to_string();
+        assert_eq!(
+            qualify_transformation_mass_balance_link(
+                &wrong_output,
+                &case(),
+                &[receipt("EXACT_BALANCED")]
+            )
+            .reason,
+            Some(MaterialBalanceLinkReason::GroupOutputScopeMismatch)
+        );
+    }
+
+    #[test]
+    fn missing_group_scope_is_blocked_before_owner_receipt_evaluation() {
+        let mut invalid_group = group();
+        invalid_group.output_ref.clear();
+        assert_eq!(
+            qualify_transformation_mass_balance_link(
+                &invalid_group,
+                &case(),
+                &[receipt("EXACT_BALANCED")]
+            )
+            .reason,
+            Some(MaterialBalanceLinkReason::InvalidGroupScopeBinding)
         );
     }
 
