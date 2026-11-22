@@ -93,10 +93,10 @@ fn verify_two_disk_gap_certificate(
     // The declared objective Hessian is exactly I, so its strong-monotonicity
     // constant is alpha=1. Verify the matrix identity rather than trusting a
     // caller-supplied alpha value.
-    for row in 0..4 {
-        for column in 0..4 {
+    for (row, row_values) in H_NUM.iter().enumerate() {
+        for (column, value) in row_values.iter().enumerate() {
             let expected = if row == column { 10 } else { 0 };
-            if H_NUM[row][column] != expected {
+            if *value != expected {
                 return Err("objective Hessian does not match the certified identity metric");
             }
         }
