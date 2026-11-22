@@ -200,8 +200,17 @@ fn check_bound_evidence(
     }
     let _method_ref = required_string(evidence, "method_definition_ref", path, issues);
     let calibration_digest = nullable_sha256(evidence, "calibration_split_sha256", path, issues);
+    if !calibration_digest {
+        issue(issues, format!("{path}.calibration_split_sha256"), "qualified evidence requires a calibration-split receipt digest");
+    }
     let bound_digest = nullable_sha256(evidence, "bound_result_sha256", path, issues);
+    if !bound_digest {
+        issue(issues, format!("{path}.bound_result_sha256"), "qualified evidence requires a bound-result receipt digest");
+    }
     let truth_digest = nullable_sha256(evidence, "truth_oracle_receipt_sha256", path, issues);
+    if !truth_digest {
+        issue(issues, format!("{path}.truth_oracle_receipt_sha256"), "qualified evidence requires an independent truth/oracle receipt digest");
+    }
     let assumptions_reviewed = required_bool(evidence, "assumptions_reviewed", path, issues);
     let truth_reviewed = required_bool(evidence, "truth_oracle_reviewed", path, issues);
     if assumptions_reviewed == Some(false) {
