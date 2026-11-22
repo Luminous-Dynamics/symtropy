@@ -248,3 +248,10 @@ New public artifacts:
 The two source Git blob SHA-1 values match the exact locally executed source bytes. The scripts ran locally using Python 3.13.5 / SymPy 1.14.0. The coefficient-row fixture is committed in normalized JSON formatting; the published row expressions are the same expressions emitted by the extractor. This is a local exact-source replay, not a CI pass.
 
 This closes the first derivative of both columns at \(\lambda=0\). The next gates are finite-difference convergence against independently corrected small-positive-\(\lambda\) BVPs, finite-coupling invertibility under frozen endpoint metrics, a finite-coupling BVP, and interval-qualified continuation. No finite-coupling existence or hyperbolicity claim is made.
+
+
+## Endpoint singular-frame sensitivity (22 November 2026)
+
+The full \(J_1\) also yields exact first-order rotations of the left/right singular directions in the frozen raw Einstein-limit endpoint basis. The least-constrained right direction rotates with component slope \(0.0985611736238288\), and the least-constrained left direction with \(0.3942446944953152\). Complementary maximum directions rotate oppositely. These raw-coordinate slopes are not basis invariant; the continuation benchmark should compare them only under the same endpoint normalization or after consistently transporting declared metrics.
+
+The derivation and machine-readable result now include these values as additional finite-difference regression targets.
