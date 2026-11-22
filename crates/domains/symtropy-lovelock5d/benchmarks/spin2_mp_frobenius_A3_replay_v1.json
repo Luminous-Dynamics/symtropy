@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "einstein_limit_frobenius_A3_replay_receipt",
+  "status": "passed_local_exact_action_specialized_derivation_and_exact_rational_fixture_replay",
+  "local_derivation_source_sha256": "49fb0cb536a5f0a8acd588e4c36f94badca63585dc144203fb9d336c19b60fca",
+  "local_fixture_sha256": "80ce3b7cdca5fb224551ba6f4f7bc8b8b3dd3f2b0fe103129e840faa4db1dcff",
+  "local_verifier_sha256": "ac4af05afd7690acdfbfe0500241e6085825ece82e85b430623ed14528b24b43",
+  "environment": {
+    "python": "3.13.5",
+    "sympy": "1.14.0"
+  },
+  "checks": {
+    "A0_matches_previous_public_indicial_result": true,
+    "A1_A2_reproduced_from_action_specialization": true,
+    "A3_g3_extracted_exactly": true,
+    "analytic_recurrences_n0_n3": true,
+    "singular_log_obstruction_nonzero": true,
+    "Myers_Perry_reduced_Eb_Eh_and_Ef_exact_zero": true,
+    "Myers_Perry_recurrences_n0_n3": true
+  },
+  "evidence_boundary": "The action-specialized alpha=0 derivation ran locally and produced the recorded fixture hash. The independent exact-rational verifier passed. The source and verifier are being committed separately; exact execution of their fetched public Git blobs and CI are distinct gates. No finite-coupling result is claimed."
+}
