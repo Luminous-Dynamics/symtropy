@@ -212,6 +212,7 @@ pub enum ClockAttestationReason {
     MeasurandMismatch,
     TimeBasisMismatch,
     TimeQuantumMismatch,
+    OffsetCorrectionOverflow,
     TerminalReferenceMismatch,
     CalibrationOutsideValidity,
     EmptyTraceabilityChain,
@@ -259,6 +260,8 @@ pub struct QualifiedClockCalibrationReceipt {
     terminal_reference_id: String,
     /// Offset-corrected event timestamp in the declared reference time basis.
     event_time_ticks: i64,
+    /// Original clock-reported timestamp before correction.
+    reported_event_time_ticks: i64,
     /// Original device-reported timestamp before signed offset correction.
     reported_event_time_ticks: i64,
     observation_time_ticks: i64,
@@ -315,6 +318,9 @@ impl QualifiedClockCalibrationReceipt {
     }
     pub fn event_time_ticks(&self) -> i64 {
         self.event_time_ticks
+    }
+    pub fn reported_event_time_ticks(&self) -> i64 {
+        self.reported_event_time_ticks
     }
     pub fn observation_time_ticks(&self) -> i64 {
         self.observation_time_ticks
@@ -991,6 +997,7 @@ pub fn attest_clock_for_event(
         time_basis_id: calibration.time_basis_id.clone(),
         terminal_reference_id: calibration.terminal_reference_id.clone(),
         event_time_ticks: event_time,
+        reported_event_time_ticks: reported_event_time,
         observation_time_ticks: observation.observation_time_ticks,
         synchronization_method: observation.synchronization_method.clone(),
         sync_state: observation.sync_state,
