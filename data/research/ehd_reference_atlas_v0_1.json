@@ -9,7 +9,8 @@
     "Separate absolute thrust, per-span thrust, thrust density, thrust-to-power, thrust-to-weight, and net effective thrust after frame drag.",
     "A source figure export or interpolating pickle is not a raw instrument time-series.",
     "Unknown values are null, not zero; absent source conditions remain explicit.",
-    "Power boundary and system-mass boundary are required before cross-study ranking."
+    "Power boundary and system-mass boundary are required before cross-study ranking.",
+    "A diagnostic that changes the physical state is an intervention, not passive measurement noise; retain separate diagnostic and unperturbed cohorts."
   ],
   "metric_ontology": {
     "thrust_absolute": {
