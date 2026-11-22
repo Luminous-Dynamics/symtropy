@@ -526,6 +526,8 @@ mod tests {
             one_step.expected_net_utility,
             three_step.expected_net_utility
         );
+        assert!((one_step.expected_net_utility - 0.55).abs() < 1.0e-12);
+        assert!((three_step.expected_net_utility - 0.676).abs() < 1.0e-12);
         assert_eq!(count_acquisitions_on_longest_path(&one_step.root), 1);
         assert_eq!(count_acquisitions_on_longest_path(&three_step.root), 3);
         assert!(three_step.nodes_expanded > one_step.nodes_expanded);
