@@ -1,0 +1,757 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/tools/ev-passenger-cost-frontier/schemas/mobility_service_observability_v0_1.schema.json",
+  "title": "Mobility Service Observability Scorecard v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "decision_cutoff_unix_ms",
+    "window_start_unix_ms",
+    "window_end_exclusive_unix_ms",
+    "sites",
+    "assets",
+    "missions",
+    "swaps",
+    "turnarounds",
+    "charges",
+    "availability",
+    "energy",
+    "grid_service",
+    "costs",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "MOBILITY-SERVICE-OBSERVABILITY-001"
+    },
+    "decision_cutoff_unix_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "window_start_unix_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "window_end_exclusive_unix_ms": {
+      "type": "integer",
+      "minimum": 2
+    },
+    "sites": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "items": {
+        "$ref": "#/$defs/site"
+      }
+    },
+    "assets": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": {
+        "$ref": "#/$defs/asset"
+      }
+    },
+    "missions": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "$ref": "#/$defs/mission"
+      }
+    },
+    "swaps": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "$ref": "#/$defs/swap"
+      }
+    },
+    "turnarounds": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "$ref": "#/$defs/turnaround"
+      }
+    },
+    "charges": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "$ref": "#/$defs/charge"
+      }
+    },
+    "availability": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "$ref": "#/$defs/availability"
+      }
+    },
+    "energy": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "$ref": "#/$defs/energy"
+      }
+    },
+    "grid_service": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "$ref": "#/$defs/grid"
+      }
+    },
+    "costs": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "$ref": "#/$defs/cost"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "configuration_digest",
+        "producer_id",
+        "method_id",
+        "evidence_reference",
+        "evidence_class",
+        "observed_at_unix_ms",
+        "valid_from_unix_ms",
+        "valid_until_unix_ms"
+      ],
+      "properties": {
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "producer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_class": {
+          "enum": [
+            "synthetic",
+            "measured",
+            "independent_test",
+            "unknown"
+          ]
+        },
+        "observed_at_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_from_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_until_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "site": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "site_id",
+        "configuration_digest",
+        "evidence"
+      ],
+      "properties": {
+        "site_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "site_id",
+        "configuration_digest",
+        "kind",
+        "evidence"
+      ],
+      "properties": {
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "site_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "aircraft",
+            "battery_pack",
+            "charger",
+            "stationary_ess",
+            "vehicle",
+            "dock",
+            "mobile_unit",
+            "trailer",
+            "amr"
+          ]
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "mission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "mission_id",
+        "aircraft_id",
+        "aircraft_configuration_digest",
+        "committed_at_unix_ms",
+        "deadline_at_unix_ms",
+        "outcome",
+        "completed_at_unix_ms",
+        "evidence"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mission_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "aircraft_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "aircraft_configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "committed_at_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "deadline_at_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "outcome": {
+          "enum": [
+            "completed",
+            "failed",
+            "unserved",
+            "cancelled"
+          ]
+        },
+        "completed_at_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "swap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "battery_pack_id",
+        "battery_configuration_digest",
+        "site_id",
+        "started_at_unix_ms",
+        "completed_at_unix_ms",
+        "outcome",
+        "evidence"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "battery_pack_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "battery_configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "site_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "started_at_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completed_at_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "outcome": {
+          "enum": [
+            "completed",
+            "failed",
+            "interrupted"
+          ]
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "turnaround": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "aircraft_id",
+        "aircraft_configuration_digest",
+        "site_id",
+        "landed_at_unix_ms",
+        "next_takeoff_at_unix_ms",
+        "outcome",
+        "evidence"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "aircraft_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "aircraft_configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "site_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "landed_at_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "next_takeoff_at_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "outcome": {
+          "enum": [
+            "completed",
+            "failed",
+            "interrupted"
+          ]
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "charge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "battery_pack_id",
+        "battery_configuration_digest",
+        "charger_id",
+        "charger_configuration_digest",
+        "site_id",
+        "started_at_unix_ms",
+        "completed_at_unix_ms",
+        "outcome",
+        "charger_input_energy_wh",
+        "charger_input_evidence",
+        "pack_terminal_delta_energy_wh",
+        "pack_terminal_evidence",
+        "evidence"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "battery_pack_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "battery_configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "charger_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "charger_configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "site_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "started_at_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completed_at_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "outcome": {
+          "enum": [
+            "completed",
+            "failed",
+            "interrupted"
+          ]
+        },
+        "charger_input_energy_wh": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1000000000000000
+        },
+        "charger_input_evidence": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/evidence"
+            }
+          ]
+        },
+        "pack_terminal_delta_energy_wh": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1000000000000000
+        },
+        "pack_terminal_evidence": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/evidence"
+            }
+          ]
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "availability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "asset_id",
+        "asset_configuration_digest",
+        "start_at_unix_ms",
+        "end_at_unix_ms",
+        "state",
+        "evidence"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asset_configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start_at_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_at_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "state": {
+          "enum": [
+            "available",
+            "unavailable",
+            "unknown",
+            "not_scheduled"
+          ]
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "energy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "asset_id",
+        "asset_configuration_digest",
+        "boundary",
+        "start_at_unix_ms",
+        "end_at_unix_ms",
+        "energy_wh",
+        "evidence"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asset_configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "boundary": {
+          "enum": [
+            "vehicle_battery_terminal",
+            "aircraft_battery_terminal",
+            "charger_input",
+            "stationary_ess_terminal",
+            "site_meter_import",
+            "site_meter_export"
+          ]
+        },
+        "start_at_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_at_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "energy_wh": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000000000
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "grid": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "site_id",
+        "site_configuration_digest",
+        "started_at_unix_ms",
+        "response_at_unix_ms",
+        "ended_at_unix_ms",
+        "requested_power_w",
+        "requested_energy_wh",
+        "outcome",
+        "metered_delivered_energy_wh",
+        "request_evidence",
+        "meter_evidence"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "site_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "site_configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "started_at_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "response_at_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "ended_at_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "requested_power_w": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000000
+        },
+        "requested_energy_wh": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000000000
+        },
+        "outcome": {
+          "enum": [
+            "delivered",
+            "failed",
+            "cancelled"
+          ]
+        },
+        "metered_delivered_energy_wh": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1000000000000000
+        },
+        "request_evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "meter_evidence": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/evidence"
+            }
+          ]
+        }
+      }
+    },
+    "cost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "owner_id",
+        "owner_configuration_digest",
+        "site_id",
+        "category",
+        "currency_code",
+        "amount_minor_units",
+        "start_at_unix_ms",
+        "end_at_unix_ms",
+        "evidence"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner_configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "site_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1
+        },
+        "currency_code": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "amount_minor_units": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000000000
+        },
+        "start_at_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_at_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    }
+  }
+}

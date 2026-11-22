@@ -1,0 +1,883 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "MOBILITY-SERVICE-OBSERVABILITY-001",
+  "decision_cutoff_unix_ms": 1800000000000,
+  "window_start_unix_ms": 1799996400000,
+  "window_end_exclusive_unix_ms": 1800000000000,
+  "sites": [
+    {
+      "site_id": "site-01",
+      "configuration_digest": "sha256:site-01-v01",
+      "evidence": {
+        "asset_id": "site-01",
+        "configuration_digest": "sha256:site-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://site/site-01",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999999999,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    }
+  ],
+  "assets": [
+    {
+      "asset_id": "aircraft-01",
+      "site_id": "site-01",
+      "configuration_digest": "sha256:aircraft-01-v01",
+      "kind": "aircraft",
+      "evidence": {
+        "asset_id": "aircraft-01",
+        "configuration_digest": "sha256:aircraft-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://aircraft-01/identity",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999999999,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "asset_id": "pack-01",
+      "site_id": "site-01",
+      "configuration_digest": "sha256:pack-01-v01",
+      "kind": "battery_pack",
+      "evidence": {
+        "asset_id": "pack-01",
+        "configuration_digest": "sha256:pack-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://pack-01/identity",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999999999,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "asset_id": "charger-01",
+      "site_id": "site-01",
+      "configuration_digest": "sha256:charger-01-v01",
+      "kind": "charger",
+      "evidence": {
+        "asset_id": "charger-01",
+        "configuration_digest": "sha256:charger-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://charger-01/identity",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999999999,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "asset_id": "ess-01",
+      "site_id": "site-01",
+      "configuration_digest": "sha256:ess-01-v01",
+      "kind": "stationary_ess",
+      "evidence": {
+        "asset_id": "ess-01",
+        "configuration_digest": "sha256:ess-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://ess-01/identity",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999999999,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "asset_id": "vehicle-01",
+      "site_id": "site-01",
+      "configuration_digest": "sha256:vehicle-01-v01",
+      "kind": "vehicle",
+      "evidence": {
+        "asset_id": "vehicle-01",
+        "configuration_digest": "sha256:vehicle-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://vehicle-01/identity",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999999999,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "asset_id": "dock-01",
+      "site_id": "site-01",
+      "configuration_digest": "sha256:dock-01-v01",
+      "kind": "dock",
+      "evidence": {
+        "asset_id": "dock-01",
+        "configuration_digest": "sha256:dock-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://dock-01/identity",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999999999,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    }
+  ],
+  "missions": [
+    {
+      "event_id": "mission-event-01",
+      "mission_id": "mission-01",
+      "aircraft_id": "aircraft-01",
+      "aircraft_configuration_digest": "sha256:aircraft-01-v01",
+      "committed_at_unix_ms": 1799996500000,
+      "deadline_at_unix_ms": 1799997400000,
+      "outcome": "completed",
+      "completed_at_unix_ms": 1799997000000,
+      "evidence": {
+        "asset_id": "aircraft-01",
+        "configuration_digest": "sha256:aircraft-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://mission/01",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799997000000,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "event_id": "mission-event-02",
+      "mission_id": "mission-02",
+      "aircraft_id": "aircraft-01",
+      "aircraft_configuration_digest": "sha256:aircraft-01-v01",
+      "committed_at_unix_ms": 1799996700000,
+      "deadline_at_unix_ms": 1799997600000,
+      "outcome": "completed",
+      "completed_at_unix_ms": 1799997900000,
+      "evidence": {
+        "asset_id": "aircraft-01",
+        "configuration_digest": "sha256:aircraft-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://mission/02",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799997900000,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "event_id": "mission-event-03",
+      "mission_id": "mission-03",
+      "aircraft_id": "aircraft-01",
+      "aircraft_configuration_digest": "sha256:aircraft-01-v01",
+      "committed_at_unix_ms": 1799996900000,
+      "deadline_at_unix_ms": 1799998400000,
+      "outcome": "unserved",
+      "completed_at_unix_ms": null,
+      "evidence": {
+        "asset_id": "aircraft-01",
+        "configuration_digest": "sha256:aircraft-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://mission/03",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999999999,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "event_id": "mission-event-04",
+      "mission_id": "mission-04",
+      "aircraft_id": "aircraft-01",
+      "aircraft_configuration_digest": "sha256:aircraft-01-v01",
+      "committed_at_unix_ms": 1799997100000,
+      "deadline_at_unix_ms": 1799998100000,
+      "outcome": "failed",
+      "completed_at_unix_ms": null,
+      "evidence": {
+        "asset_id": "aircraft-01",
+        "configuration_digest": "sha256:aircraft-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://mission/04",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999999999,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "event_id": "mission-event-05",
+      "mission_id": "mission-05",
+      "aircraft_id": "aircraft-01",
+      "aircraft_configuration_digest": "sha256:aircraft-01-v01",
+      "committed_at_unix_ms": 1799997300000,
+      "deadline_at_unix_ms": 1799998200000,
+      "outcome": "cancelled",
+      "completed_at_unix_ms": null,
+      "evidence": {
+        "asset_id": "aircraft-01",
+        "configuration_digest": "sha256:aircraft-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://mission/05",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999999999,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    }
+  ],
+  "swaps": [
+    {
+      "event_id": "swap-event-01",
+      "battery_pack_id": "pack-01",
+      "battery_configuration_digest": "sha256:pack-01-v01",
+      "site_id": "site-01",
+      "started_at_unix_ms": 1799996410000,
+      "completed_at_unix_ms": 1799996430000,
+      "outcome": "completed",
+      "evidence": {
+        "asset_id": "pack-01",
+        "configuration_digest": "sha256:pack-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://swap/01",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799996430000,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "event_id": "swap-event-02",
+      "battery_pack_id": "pack-01",
+      "battery_configuration_digest": "sha256:pack-01-v01",
+      "site_id": "site-01",
+      "started_at_unix_ms": 1799996440000,
+      "completed_at_unix_ms": 1799996470000,
+      "outcome": "completed",
+      "evidence": {
+        "asset_id": "pack-01",
+        "configuration_digest": "sha256:pack-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://swap/02",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799996470000,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "event_id": "swap-event-03",
+      "battery_pack_id": "pack-01",
+      "battery_configuration_digest": "sha256:pack-01-v01",
+      "site_id": "site-01",
+      "started_at_unix_ms": 1799996480000,
+      "completed_at_unix_ms": null,
+      "outcome": "failed",
+      "evidence": {
+        "asset_id": "pack-01",
+        "configuration_digest": "sha256:pack-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://swap/03",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799996480000,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    }
+  ],
+  "turnarounds": [
+    {
+      "event_id": "turnaround-event-01",
+      "aircraft_id": "aircraft-01",
+      "aircraft_configuration_digest": "sha256:aircraft-01-v01",
+      "site_id": "site-01",
+      "landed_at_unix_ms": 1799996410000,
+      "next_takeoff_at_unix_ms": 1799996450000,
+      "outcome": "completed",
+      "evidence": {
+        "asset_id": "aircraft-01",
+        "configuration_digest": "sha256:aircraft-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://turnaround/01",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799996450000,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "event_id": "turnaround-event-02",
+      "aircraft_id": "aircraft-01",
+      "aircraft_configuration_digest": "sha256:aircraft-01-v01",
+      "site_id": "site-01",
+      "landed_at_unix_ms": 1799996460000,
+      "next_takeoff_at_unix_ms": 1799996510000,
+      "outcome": "completed",
+      "evidence": {
+        "asset_id": "aircraft-01",
+        "configuration_digest": "sha256:aircraft-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://turnaround/02",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799996510000,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "event_id": "turnaround-event-03",
+      "aircraft_id": "aircraft-01",
+      "aircraft_configuration_digest": "sha256:aircraft-01-v01",
+      "site_id": "site-01",
+      "landed_at_unix_ms": 1799996520000,
+      "next_takeoff_at_unix_ms": null,
+      "outcome": "failed",
+      "evidence": {
+        "asset_id": "aircraft-01",
+        "configuration_digest": "sha256:aircraft-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://turnaround/03",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799996520000,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    }
+  ],
+  "charges": [
+    {
+      "event_id": "charge-event-01",
+      "battery_pack_id": "pack-01",
+      "battery_configuration_digest": "sha256:pack-01-v01",
+      "charger_id": "charger-01",
+      "charger_configuration_digest": "sha256:charger-01-v01",
+      "site_id": "site-01",
+      "started_at_unix_ms": 1799996500000,
+      "completed_at_unix_ms": 1799998120000,
+      "outcome": "completed",
+      "charger_input_energy_wh": 800,
+      "charger_input_evidence": {
+        "asset_id": "charger-01",
+        "configuration_digest": "sha256:charger-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://charge/01/input",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799998120000,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      },
+      "pack_terminal_delta_energy_wh": 700,
+      "pack_terminal_evidence": {
+        "asset_id": "pack-01",
+        "configuration_digest": "sha256:pack-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://charge/01/terminal",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799998120000,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      },
+      "evidence": {
+        "asset_id": "pack-01",
+        "configuration_digest": "sha256:pack-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://charge/01/session",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799998120000,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "event_id": "charge-event-02",
+      "battery_pack_id": "pack-01",
+      "battery_configuration_digest": "sha256:pack-01-v01",
+      "charger_id": "charger-01",
+      "charger_configuration_digest": "sha256:charger-01-v01",
+      "site_id": "site-01",
+      "started_at_unix_ms": 1799998200000,
+      "completed_at_unix_ms": null,
+      "outcome": "failed",
+      "charger_input_energy_wh": 50,
+      "charger_input_evidence": {
+        "asset_id": "charger-01",
+        "configuration_digest": "sha256:charger-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://charge/02/input",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799998200000,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      },
+      "pack_terminal_delta_energy_wh": null,
+      "pack_terminal_evidence": null,
+      "evidence": {
+        "asset_id": "pack-01",
+        "configuration_digest": "sha256:pack-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://charge/02/session",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799998200000,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    }
+  ],
+  "availability": [
+    {
+      "event_id": "availability-aircraft-01-1",
+      "asset_id": "aircraft-01",
+      "asset_configuration_digest": "sha256:aircraft-01-v01",
+      "start_at_unix_ms": 1799996400000,
+      "end_at_unix_ms": 1799999100000,
+      "state": "available",
+      "evidence": {
+        "asset_id": "aircraft-01",
+        "configuration_digest": "sha256:aircraft-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://aircraft-01/availability/1",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999099999,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "event_id": "availability-aircraft-01-2",
+      "asset_id": "aircraft-01",
+      "asset_configuration_digest": "sha256:aircraft-01-v01",
+      "start_at_unix_ms": 1799999100000,
+      "end_at_unix_ms": 1799999700000,
+      "state": "unavailable",
+      "evidence": {
+        "asset_id": "aircraft-01",
+        "configuration_digest": "sha256:aircraft-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://aircraft-01/availability/2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999699999,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "event_id": "availability-aircraft-01-3",
+      "asset_id": "aircraft-01",
+      "asset_configuration_digest": "sha256:aircraft-01-v01",
+      "start_at_unix_ms": 1799999700000,
+      "end_at_unix_ms": 1800000000000,
+      "state": "unknown",
+      "evidence": {
+        "asset_id": "aircraft-01",
+        "configuration_digest": "sha256:aircraft-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://aircraft-01/availability/3",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999999999,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "event_id": "availability-pack-01-1",
+      "asset_id": "pack-01",
+      "asset_configuration_digest": "sha256:pack-01-v01",
+      "start_at_unix_ms": 1799996400000,
+      "end_at_unix_ms": 1799999400000,
+      "state": "available",
+      "evidence": {
+        "asset_id": "pack-01",
+        "configuration_digest": "sha256:pack-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://pack-01/availability/1",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999399999,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "event_id": "availability-pack-01-2",
+      "asset_id": "pack-01",
+      "asset_configuration_digest": "sha256:pack-01-v01",
+      "start_at_unix_ms": 1799999400000,
+      "end_at_unix_ms": 1800000000000,
+      "state": "unavailable",
+      "evidence": {
+        "asset_id": "pack-01",
+        "configuration_digest": "sha256:pack-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://pack-01/availability/2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999999999,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "event_id": "availability-charger-01-1",
+      "asset_id": "charger-01",
+      "asset_configuration_digest": "sha256:charger-01-v01",
+      "start_at_unix_ms": 1799996400000,
+      "end_at_unix_ms": 1799999600000,
+      "state": "available",
+      "evidence": {
+        "asset_id": "charger-01",
+        "configuration_digest": "sha256:charger-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://charger-01/availability/1",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999599999,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "event_id": "availability-charger-01-2",
+      "asset_id": "charger-01",
+      "asset_configuration_digest": "sha256:charger-01-v01",
+      "start_at_unix_ms": 1799999600000,
+      "end_at_unix_ms": 1800000000000,
+      "state": "unknown",
+      "evidence": {
+        "asset_id": "charger-01",
+        "configuration_digest": "sha256:charger-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://charger-01/availability/2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999999999,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "event_id": "availability-ess-01-1",
+      "asset_id": "ess-01",
+      "asset_configuration_digest": "sha256:ess-01-v01",
+      "start_at_unix_ms": 1799996400000,
+      "end_at_unix_ms": 1800000000000,
+      "state": "available",
+      "evidence": {
+        "asset_id": "ess-01",
+        "configuration_digest": "sha256:ess-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://ess-01/availability/1",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999999999,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "event_id": "availability-vehicle-01-1",
+      "asset_id": "vehicle-01",
+      "asset_configuration_digest": "sha256:vehicle-01-v01",
+      "start_at_unix_ms": 1799996400000,
+      "end_at_unix_ms": 1799999200000,
+      "state": "available",
+      "evidence": {
+        "asset_id": "vehicle-01",
+        "configuration_digest": "sha256:vehicle-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://vehicle-01/availability/1",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999199999,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "event_id": "availability-vehicle-01-2",
+      "asset_id": "vehicle-01",
+      "asset_configuration_digest": "sha256:vehicle-01-v01",
+      "start_at_unix_ms": 1799999200000,
+      "end_at_unix_ms": 1800000000000,
+      "state": "unavailable",
+      "evidence": {
+        "asset_id": "vehicle-01",
+        "configuration_digest": "sha256:vehicle-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://vehicle-01/availability/2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999999999,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "event_id": "availability-dock-01-1",
+      "asset_id": "dock-01",
+      "asset_configuration_digest": "sha256:dock-01-v01",
+      "start_at_unix_ms": 1799996400000,
+      "end_at_unix_ms": 1800000000000,
+      "state": "available",
+      "evidence": {
+        "asset_id": "dock-01",
+        "configuration_digest": "sha256:dock-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://dock-01/availability/1",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999999999,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    }
+  ],
+  "energy": [
+    {
+      "event_id": "energy-aircraft-terminal",
+      "asset_id": "aircraft-01",
+      "asset_configuration_digest": "sha256:aircraft-01-v01",
+      "boundary": "aircraft_battery_terminal",
+      "start_at_unix_ms": 1799997000000,
+      "end_at_unix_ms": 1799997600000,
+      "energy_wh": 1200,
+      "evidence": {
+        "asset_id": "aircraft-01",
+        "configuration_digest": "sha256:aircraft-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://energy/aircraft",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799997600000,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "event_id": "energy-charger-input",
+      "asset_id": "charger-01",
+      "asset_configuration_digest": "sha256:charger-01-v01",
+      "boundary": "charger_input",
+      "start_at_unix_ms": 1799996500000,
+      "end_at_unix_ms": 1799998120000,
+      "energy_wh": 800,
+      "evidence": {
+        "asset_id": "charger-01",
+        "configuration_digest": "sha256:charger-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://energy/charger",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799998120000,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "event_id": "energy-vehicle-terminal",
+      "asset_id": "vehicle-01",
+      "asset_configuration_digest": "sha256:vehicle-01-v01",
+      "boundary": "vehicle_battery_terminal",
+      "start_at_unix_ms": 1799996600000,
+      "end_at_unix_ms": 1799997200000,
+      "energy_wh": 3400,
+      "evidence": {
+        "asset_id": "vehicle-01",
+        "configuration_digest": "sha256:vehicle-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://energy/vehicle",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799997200000,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "event_id": "energy-ess-terminal",
+      "asset_id": "ess-01",
+      "asset_configuration_digest": "sha256:ess-01-v01",
+      "boundary": "stationary_ess_terminal",
+      "start_at_unix_ms": 1799996400000,
+      "end_at_unix_ms": 1799999999999,
+      "energy_wh": 500,
+      "evidence": {
+        "asset_id": "ess-01",
+        "configuration_digest": "sha256:ess-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://energy/ess",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999999999,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "event_id": "energy-site-import",
+      "asset_id": "site-01",
+      "asset_configuration_digest": "sha256:site-01-v01",
+      "boundary": "site_meter_import",
+      "start_at_unix_ms": 1799996400000,
+      "end_at_unix_ms": 1799999999999,
+      "energy_wh": 2000,
+      "evidence": {
+        "asset_id": "site-01",
+        "configuration_digest": "sha256:site-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://energy/site-import",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999999999,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "event_id": "energy-site-export",
+      "asset_id": "site-01",
+      "asset_configuration_digest": "sha256:site-01-v01",
+      "boundary": "site_meter_export",
+      "start_at_unix_ms": 1799996400000,
+      "end_at_unix_ms": 1799999999999,
+      "energy_wh": 100,
+      "evidence": {
+        "asset_id": "site-01",
+        "configuration_digest": "sha256:site-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://energy/site-export",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999999999,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    }
+  ],
+  "grid_service": [
+    {
+      "event_id": "grid-service-01",
+      "site_id": "site-01",
+      "site_configuration_digest": "sha256:site-01-v01",
+      "started_at_unix_ms": 1799998400000,
+      "response_at_unix_ms": 1799998405000,
+      "ended_at_unix_ms": 1799999000000,
+      "requested_power_w": 1000,
+      "requested_energy_wh": 1000,
+      "outcome": "delivered",
+      "metered_delivered_energy_wh": 800,
+      "request_evidence": {
+        "asset_id": "site-01",
+        "configuration_digest": "sha256:site-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://grid/01/request",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799998400000,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      },
+      "meter_evidence": {
+        "asset_id": "site-01",
+        "configuration_digest": "sha256:site-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://grid/01/meter",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999000000,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "event_id": "grid-service-02",
+      "site_id": "site-01",
+      "site_configuration_digest": "sha256:site-01-v01",
+      "started_at_unix_ms": 1799999100000,
+      "response_at_unix_ms": null,
+      "ended_at_unix_ms": null,
+      "requested_power_w": 500,
+      "requested_energy_wh": 500,
+      "outcome": "failed",
+      "metered_delivered_energy_wh": null,
+      "request_evidence": {
+        "asset_id": "site-01",
+        "configuration_digest": "sha256:site-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://grid/02/request",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999100000,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      },
+      "meter_evidence": null
+    }
+  ],
+  "costs": [
+    {
+      "event_id": "cost-record-01",
+      "owner_id": "site-01",
+      "owner_configuration_digest": "sha256:site-01-v01",
+      "site_id": "site-01",
+      "category": "site-energy-and-operation",
+      "currency_code": "ZAR",
+      "amount_minor_units": 10000,
+      "start_at_unix_ms": 1799996400000,
+      "end_at_unix_ms": 1799999999999,
+      "evidence": {
+        "asset_id": "site-01",
+        "configuration_digest": "sha256:site-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://cost/site",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999999999,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    },
+    {
+      "event_id": "cost-record-02",
+      "owner_id": "vehicle-01",
+      "owner_configuration_digest": "sha256:vehicle-01-v01",
+      "site_id": "site-01",
+      "category": "vehicle-and-labour",
+      "currency_code": "ZAR",
+      "amount_minor_units": 2000,
+      "start_at_unix_ms": 1799996400000,
+      "end_at_unix_ms": 1799999999999,
+      "evidence": {
+        "asset_id": "vehicle-01",
+        "configuration_digest": "sha256:vehicle-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-service-observability-v0.1",
+        "evidence_reference": "synthetic://cost/vehicle",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999999999,
+        "valid_from_unix_ms": 1799996400000,
+        "valid_until_unix_ms": 1799999999999
+      }
+    }
+  ],
+  "claim_ceiling": "Descriptive scorecard over supplied event observations only; no independent sensor calibration, supplier audit, operational permission, mission authorization, market settlement or physical actuation authority."
+}

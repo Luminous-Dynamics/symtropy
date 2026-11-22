@@ -142,6 +142,8 @@ jobs:
           jq empty tools/ev-passenger-cost-frontier/fixtures/mobility_commitment_lease_v0_1.json
           jq empty tools/ev-passenger-cost-frontier/schemas/mobility_commitment_journal_v0_1.schema.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/mobility_commitment_journal_v0_1.json
+          jq empty tools/ev-passenger-cost-frontier/schemas/mobility_service_observability_v0_1.schema.json
+          jq empty tools/ev-passenger-cost-frontier/fixtures/mobility_service_observability_v0_1.json
           jq -e --slurpfile schema tools/ev-passenger-cost-frontier/schemas/battery_charge_queue_v0_1.schema.json '
             . as $queue
             | ($schema[0].required | sort) as $root_required
@@ -491,6 +493,44 @@ jobs:
             and .physical_mutation_authority_granted == false
           ' mobility-commitment-journal-report.json
           cat mobility-commitment-journal-report.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin mobility_service_observability_screen -- \
+            tools/ev-passenger-cost-frontier/fixtures/mobility_service_observability_v0_1.json \
+            > mobility-service-observability-report.json
+          jq -e '
+            .benchmark_id == "MOBILITY-SERVICE-OBSERVABILITY-001"
+            and .mission.committed == 5
+            and .mission.completed == 2
+            and .mission.on_time == 1
+            and .mission.late == 1
+            and .mission.failed == 1
+            and .mission.unserved == 1
+            and .mission.cancelled == 1
+            and .swap.attempts == 3
+            and .swap.completed == 2
+            and .swap.failed == 1
+            and .swap.completed_duration.p50_ms == 20000
+            and .swap.completed_duration.p95_ms == 30000
+            and .turnaround.completed_duration.p50_ms == 40000
+            and .turnaround.completed_duration.p95_ms == 50000
+            and .charge.completed_duration.p50_ms == 1620000
+            and .charge.charger_input_energy.measured_total_wh == 850
+            and .charge.pack_terminal_delta_energy.measured_total_wh == 700
+            and .grid_service.requests == 2
+            and .grid_service.delivered == 1
+            and .grid_service.failed == 1
+            and .grid_service.requested_energy_wh == 1500
+            and .grid_service.metered_delivered_energy_wh == 800
+            and .grid_service.unmeasured_delivery_count == 1
+            and .cost.currency_code == "ZAR"
+            and .cost.total_amount_minor_units == 12000
+            and .cost.cost_per_on_time_mission_denominator == 1
+            and .all_evidence_synthetic == true
+            and .all_evidence_source_grade == false
+            and .dispatch_authority_granted == false
+            and .market_authority_granted == false
+            and .physical_mutation_authority_granted == false
+          ' mobility-service-observability-report.json
+          cat mobility-service-observability-report.json
           sha256sum \
             tools/ev-passenger-cost-frontier/schemas/ev_passenger_cost_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/ev_passenger_cost_v0_1.json \
@@ -525,6 +565,12 @@ jobs:
             docs/research/MOBILITY_CAPABILITY_COMMITMENT_AND_INDUSTRY_BENCHMARK_V0_1.md \
             mobility-commitment-lease-report.json \
             tools/ev-passenger-cost-frontier/src/mobility_commitment_journal.rs \
+            tools/ev-passenger-cost-frontier/src/mobility_service_observability.rs \
+            tools/ev-passenger-cost-frontier/src/bin/mobility_service_observability_screen.rs \
+            tools/ev-passenger-cost-frontier/schemas/mobility_service_observability_v0_1.schema.json \
+            tools/ev-passenger-cost-frontier/fixtures/mobility_service_observability_v0_1.json \
+            docs/research/MOBILITY_SERVICE_OBSERVABILITY_SCORECARD_V0_1.md \
+            mobility-service-observability-report.json \
             tools/ev-passenger-cost-frontier/src/bin/mobility_commitment_journal_screen.rs \
             tools/ev-passenger-cost-frontier/schemas/mobility_commitment_journal_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/mobility_commitment_journal_v0_1.json \
@@ -571,6 +617,10 @@ jobs:
             mobility-commitment-journal-report.json
             tools/ev-passenger-cost-frontier/fixtures/mobility_commitment_journal_v0_1.json
             tools/ev-passenger-cost-frontier/schemas/mobility_commitment_journal_v0_1.schema.json
+            tools/ev-passenger-cost-frontier/fixtures/mobility_service_observability_v0_1.json
+            tools/ev-passenger-cost-frontier/schemas/mobility_service_observability_v0_1.schema.json
+            docs/research/MOBILITY_SERVICE_OBSERVABILITY_SCORECARD_V0_1.md
+            mobility-service-observability-report.json
             docs/research/MOBILITY_COMMITMENT_JOURNAL_BENCHMARK_V0_1.md
             tools/ev-passenger-cost-frontier/fixtures/mobility_commitment_lease_v0_1.json
             tools/ev-passenger-cost-frontier/schemas/mobility_commitment_lease_v0_1.schema.json
