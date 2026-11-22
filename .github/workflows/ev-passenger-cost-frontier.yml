@@ -142,6 +142,8 @@ jobs:
           jq empty tools/ev-passenger-cost-frontier/fixtures/mobility_commitment_lease_v0_1.json
           jq empty tools/ev-passenger-cost-frontier/schemas/mobility_commitment_journal_v0_1.schema.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/mobility_commitment_journal_v0_1.json
+          jq empty tools/ev-passenger-cost-frontier/schemas/sustainable_mobility_service_capacity_v0_1.schema.json
+          jq empty tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_capacity_v0_1.json
           jq -e --slurpfile schema tools/ev-passenger-cost-frontier/schemas/battery_charge_queue_v0_1.schema.json '
             . as $queue
             | ($schema[0].required | sort) as $root_required
@@ -491,6 +493,27 @@ jobs:
             and .physical_mutation_authority_granted == false
           ' mobility-commitment-journal-report.json
           cat mobility-commitment-journal-report.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin sustainable_mobility_service_capacity_screen -- \
+            tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_capacity_v0_1.json \
+            > sustainable-mobility-service-capacity-report.json
+          jq -e '
+            .benchmark_id == "SUSTAINABLE-MOBILITY-SERVICE-CAPACITY-001"
+            and .horizon_seconds == 28800
+            and .capacity_is_physical_performance_claim == false
+            and (.architecture_results | length) == 4
+            and ([.architecture_results[] | select(.architecture_id == "fixed_dock4_reference_profile") | .effective_charging_channels] == [2])
+            and ([.architecture_results[] | select(.architecture_id == "fixed_dock4_grid_constrained") | .effective_charging_channels] == [1])
+            and ([.architecture_results[] | select(.architecture_id == "two_aircraft_shared_qualified_pool") | .effective_charging_channels] == [3])
+            and ([.architecture_results[] | select(.architecture_id == "direct_charge_single_pack") | .aircraft_wait_seconds > 0] == [true])
+            and ([.architecture_results[] | select(.architecture_id == "fixed_dock4_reference_profile") | .completed_sorties] | length) == 1
+            and ([(.architecture_results[] | select(.architecture_id == "fixed_dock4_reference_profile") | .steady_state_cycle_capacity_upper_bound_per_hour - 4.4444444444) | fabs] | all(.[]; . < 0.0001))
+            and ([(.architecture_results[] | select(.architecture_id == "fixed_dock4_grid_constrained") | .steady_state_cycle_capacity_upper_bound_per_hour - 2.2222222222) | fabs] | all(.[]; . < 0.0001))
+            and ([(.architecture_results[] | select(.architecture_id == "two_aircraft_shared_qualified_pool") | .steady_state_cycle_capacity_upper_bound_per_hour - 6.6666666667) | fabs] | all(.[]; . < 0.0001))
+            and all(.architecture_results[]; .completed_cycles_per_hour <= (.steady_state_cycle_capacity_upper_bound_per_hour + .initial_inventory_capacity_allowance_per_hour + 0.000000001))
+            and all(.architecture_results[]; .finite_horizon_excess_over_steady_state_upper_bound_per_hour >= 0)
+            and all(.architecture_results[]; .claim_ceiling | length > 0)
+          ' sustainable-mobility-service-capacity-report.json
+          cat sustainable-mobility-service-capacity-report.json
           sha256sum \
             tools/ev-passenger-cost-frontier/schemas/ev_passenger_cost_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/ev_passenger_cost_v0_1.json \
@@ -529,8 +552,15 @@ jobs:
             tools/ev-passenger-cost-frontier/schemas/mobility_commitment_journal_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/mobility_commitment_journal_v0_1.json \
             mobility-commitment-journal-report.json \
+            tools/ev-passenger-cost-frontier/src/sustainable_mobility_service_capacity.rs \
+            tools/ev-passenger-cost-frontier/src/bin/sustainable_mobility_service_capacity_screen.rs \
+            tools/ev-passenger-cost-frontier/schemas/sustainable_mobility_service_capacity_v0_1.schema.json \
+            tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_capacity_v0_1.json \
+            docs/research/SUSTAINABLE_MOBILITY_SERVICE_CAPACITY_BENCHMARK_V0_1.md \
+            sustainable-mobility-service-capacity-report.json \
             tools/ev-passenger-cost-frontier/Cargo.toml \
             docs/research/MOBILITY_COMMITMENT_JOURNAL_BENCHMARK_V0_1.md \
+            docs/research/SUSTAINABLE_MOBILITY_SERVICE_CAPACITY_BENCHMARK_V0_1.md \
             mobility-recovery-envelope-report.json \
             mobility-flexibility-envelope-report.json \
             tools/ev-passenger-cost-frontier/src/bin/ev_carrier_module_factory_screen.rs \
@@ -569,9 +599,14 @@ jobs:
             mobility-recovery-envelope-report.json
             mobility-commitment-lease-report.json
             mobility-commitment-journal-report.json
+            sustainable-mobility-service-capacity-report.json
+            tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_capacity_v0_1.json
+            tools/ev-passenger-cost-frontier/schemas/sustainable_mobility_service_capacity_v0_1.schema.json
+            docs/research/SUSTAINABLE_MOBILITY_SERVICE_CAPACITY_BENCHMARK_V0_1.md
             tools/ev-passenger-cost-frontier/fixtures/mobility_commitment_journal_v0_1.json
             tools/ev-passenger-cost-frontier/schemas/mobility_commitment_journal_v0_1.schema.json
             docs/research/MOBILITY_COMMITMENT_JOURNAL_BENCHMARK_V0_1.md
+            docs/research/SUSTAINABLE_MOBILITY_SERVICE_CAPACITY_BENCHMARK_V0_1.md
             tools/ev-passenger-cost-frontier/fixtures/mobility_commitment_lease_v0_1.json
             tools/ev-passenger-cost-frontier/schemas/mobility_commitment_lease_v0_1.schema.json
             docs/research/MOBILITY_CAPABILITY_COMMITMENT_AND_INDUSTRY_BENCHMARK_V0_1.md

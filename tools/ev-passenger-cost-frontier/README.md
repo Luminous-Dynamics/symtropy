@@ -281,3 +281,46 @@ and finishes at ledger version 4. It deliberately leaves `lease-001` unresolved 
 The module currently contains 14 focused Rust test definitions covering concurrency, idempotency, payload conflict, unresolved retention, terminal evidence, invalid transition, stale writer, digest mutation, previous-link mutation and event reordering. SHA-256 here provides an integrity-linked event chain; it does not authenticate producers or prove durable storage. Exact-head Actions run [#45042240520](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45042240520) passed schema/fixture parsing, workspace formatting, Cargo tests, deterministic report assertions and artifact upload (171 tests passed, 0 failed across test binaries). Clippy is not included and remains unverified.
 
 Source: `src/mobility_commitment_journal.rs`; CLI: `src/bin/mobility_commitment_journal_screen.rs`; strict schema: `schemas/mobility_commitment_journal_v0_1.schema.json`; fixture: `fixtures/mobility_commitment_journal_v0_1.json`.
+
+
+## SUSTAINABLE-MOBILITY-SERVICE-CAPACITY-001 — cross-architecture operating benchmark
+
+The benchmark dossier is `docs/research/SUSTAINABLE_MOBILITY_SERVICE_CAPACITY_BENCHMARK_V0_1.md`. It extends the existing industry baseline [#6226](https://github.com/Luminous-Dynamics/symtropy/issues/6226) and matched-instance tournament [#6247](https://github.com/Luminous-Dynamics/symtropy/issues/6247), rather than creating duplicate ownership.
+
+The central rule is to report six independent service denominators: mechanical swap success, landing-to-launch turnaround, charge restoration, qualified resource availability, successful on-time missions and independently metered grid service.
+
+The same assurance sequence is now applied to all optimizer proposals:
+- [#6803](https://github.com/Luminous-Dynamics/symtropy/pull/6803): per-resource offer-window flexibility;
+- [#6809](https://github.com/Luminous-Dynamics/symtropy/pull/6809): chronological recovery and repeated-shock viability;
+- [#6829](https://github.com/Luminous-Dynamics/symtropy/pull/6829): unique cross-domain capability leases;
+- [#6837](https://github.com/Luminous-Dynamics/symtropy/pull/6837): compare-and-swap promise journal and idempotent replay.
+
+DJI Dock 4's published <25 s swap and <45 s landing-to-takeoff turnaround are distinct from its 27 min 15–95% charging-time specification at 25°C. A fast mechanism is not evidence of sustainable fleet throughput. See the dossier for the matched workload, metric boundaries, SOTA tournament, hard gates and target ladder.
+
+
+## SUSTAINABLE-MOBILITY-SERVICE-CAPACITY-001 — bounded cyclic throughput evaluator
+
+The executable child of [#6909](https://github.com/Luminous-Dynamics/symtropy/issues/6909) composes mission duration, operational turnaround, ready spare inventory, fixed-duration charger channels and site import headroom into a deterministic event timeline.
+
+Run:
+
+```bash
+cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin sustainable_mobility_service_capacity_screen -- \
+  tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_capacity_v0_1.json
+```
+
+The frozen eight-hour fixture has four profiles:
+- direct one-pack recharge;
+- a Dock 4 specification-shaped profile (one aircraft, three stored spares, two channels, 45-second turnaround, 27-minute restoration); five-minute mission duration and 500 W per-channel input power are synthetic stress assumptions;
+- the same profile with site headroom reduced to one effective charging channel;
+- a two-aircraft shared compatible pool, with three effective channels after site-load headroom.
+
+At each mission completion the depleted pack enters an FCFS charge queue. The aircraft consumes a ready spare or waits. A completed charging job becomes a ready spare or is assigned to the oldest waiting aircraft. The site grid cap limits concurrent charging channels. Event ties are deterministic: charge completions are processed before mission completions, then by channel/aircraft ID.
+
+The output reports completed modeled sorties, cycles/hour, mission-hours, effective channels, queue peaks, charging starts/completions, aircraft wait, end-of-horizon inventory/queue state and a charger-input energy proxy. A 1-pack/no-recharge closed-form test independently checks the mission-completion schedule; a pack reuse bound checks that completed sorties cannot exceed initial packs plus completed recharges.
+
+Important: all modeled sorties are assumed to complete. v0.1 omits demand arrivals/deadlines, mission failures, weather, aviation permissions, maintenance, physical charge curves, battery aging, crew, mobile replenishment travel and cost. The 500 W charging-channel input proxy and site fixed load are synthetic; the Dock 4's published 2 kW is a maximum dock AC input, not a per-channel charging rating. This is capacity semantics only, not field service capacity or a DJI performance reproduction.
+
+Source: `src/sustainable_mobility_service_capacity.rs`; CLI: `src/bin/sustainable_mobility_service_capacity_screen.rs`; schema: `schemas/sustainable_mobility_service_capacity_v0_1.schema.json`; fixture: `fixtures/sustainable_mobility_service_capacity_v0_1.json`.
+
+Exact-head Actions run [#45068027684](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45068027684) at `28b353addd2c4da8b9896516a145f82a78af7595` passed strict schema/fixture parsing, workspace formatting, Rust tests, deterministic report assertions and artifact upload. Test binaries reported 156 + 16 + 8 + 9 = **189 passed, 0 failed**; all 18 service-capacity tests passed, including an independent second-by-second tick oracle across 20 bounded cases, pack-conservation controls and the finite-horizon stock-drawdown bound. All profiles use the same synthetic five-minute mission and 45-second turnaround. Eight-hour outputs: direct single-pack 15 sorties (1.875 per aircraft-hour); Dock-shaped two-channel 38 (4.75); grid-limited one-channel 21 (2.625); two-aircraft shared pool 59 (7.375 fleet cycles/hour, 3.6875 per aircraft-hour). Steady-state ceilings: 2.222, 4.444, 2.222 and 6.667 cycles/hour. These are model outputs, not field/customer service claims; every launched sortie is assumed to complete. Clippy remains unverified.

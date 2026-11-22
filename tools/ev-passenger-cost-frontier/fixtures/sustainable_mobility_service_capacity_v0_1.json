@@ -1,0 +1,68 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "SUSTAINABLE-MOBILITY-SERVICE-CAPACITY-001",
+  "horizon_seconds": 28800,
+  "architectures": [
+    {
+      "architecture_id": "direct_charge_single_pack",
+      "description": "Matched five-minute mission baseline with one aircraft, one battery pack, no ready spares and one charging channel.",
+      "aircraft_count": 1,
+      "battery_pack_count": 1,
+      "initial_ready_spares": 0,
+      "max_stored_spares_per_aircraft": 0,
+      "mission_duration_seconds": 300,
+      "operational_turnaround_seconds": 45,
+      "charge_duration_seconds": 1620,
+      "parallel_charging_channels": 1,
+      "charger_input_power_w": 500,
+      "site_grid_import_limit_w": 1000,
+      "site_fixed_load_w": 250
+    },
+    {
+      "architecture_id": "fixed_dock4_reference_profile",
+      "description": "Dock 4 specification-shaped profile with one aircraft, three stored spares, two channels, and the same five-minute mission/45-second turnaround workload; charge time is 27 minutes.",
+      "aircraft_count": 1,
+      "battery_pack_count": 4,
+      "initial_ready_spares": 3,
+      "max_stored_spares_per_aircraft": 3,
+      "mission_duration_seconds": 300,
+      "operational_turnaround_seconds": 45,
+      "charge_duration_seconds": 1620,
+      "parallel_charging_channels": 2,
+      "charger_input_power_w": 500,
+      "site_grid_import_limit_w": 2000,
+      "site_fixed_load_w": 250
+    },
+    {
+      "architecture_id": "fixed_dock4_grid_constrained",
+      "description": "Same single-aircraft, four-pack, five-minute mission workload as the Dock 4-shaped profile, but only one 500 W charging channel fits after site fixed-load allowance.",
+      "aircraft_count": 1,
+      "battery_pack_count": 4,
+      "initial_ready_spares": 3,
+      "max_stored_spares_per_aircraft": 3,
+      "mission_duration_seconds": 300,
+      "operational_turnaround_seconds": 45,
+      "charge_duration_seconds": 1620,
+      "parallel_charging_channels": 2,
+      "charger_input_power_w": 500,
+      "site_grid_import_limit_w": 750,
+      "site_fixed_load_w": 250
+    },
+    {
+      "architecture_id": "two_aircraft_shared_qualified_pool",
+      "description": "Two-aircraft fleet-scaled profile with eight packs, six ready spares, four nominal charge channels and three channels admitted by site headroom; each aircraft has the same five-minute mission/45-second turnaround workload.",
+      "aircraft_count": 2,
+      "battery_pack_count": 8,
+      "initial_ready_spares": 6,
+      "max_stored_spares_per_aircraft": 3,
+      "mission_duration_seconds": 300,
+      "operational_turnaround_seconds": 45,
+      "charge_duration_seconds": 1620,
+      "parallel_charging_channels": 4,
+      "charger_input_power_w": 500,
+      "site_grid_import_limit_w": 2000,
+      "site_fixed_load_w": 200
+    }
+  ],
+  "claim_ceiling": "Bounded synthetic cyclic service-capacity simulation only; all launched sorties are assumed to complete, and supplied mission, charge, turnaround, power and inventory values are assumptions unless separately sourced. No battery safety, field availability, aviation permission, grid interconnection, dispatch, market or physical authority."
+}
