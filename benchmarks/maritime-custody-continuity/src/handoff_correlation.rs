@@ -9,8 +9,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::{
-    CargoEvent, ChainFailure, Classification, EvaluationError, EvaluationReport, EventKind,
-    EntityKind, HandoffField, evaluate,
+    CargoEvent, Classification, EntityKind, EvaluationError, EvaluationReport, EventKind,
+    HandoffField, evaluate,
 };
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -317,6 +317,7 @@ mod tests {
     use super::*;
     use crate::parse_events_tsv;
     use crate::parse_expectations_tsv;
+    use crate::ChainFailure;
 
     fn fixtures() -> (Vec<super::CustodyExpectation>, Vec<CargoEvent>) {
         (
@@ -579,10 +580,9 @@ mod tests {
 
         assert_eq!(
             apply_handoff_correlations(&events, &[correlation], 200),
-            Err(CorrelationError::ConflictingEventRevision(SourceEventRef::new(
-                "SRC_DGT",
-                "B1-R1"
-            )))
+            Err(CorrelationError::ConflictingEventRevision(
+                SourceEventRef::new("SRC_DGT", "B1-R1")
+            ))
         );
     }
 
