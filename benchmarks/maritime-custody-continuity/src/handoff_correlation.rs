@@ -105,10 +105,7 @@ fn effective_event_index(
         .collect();
     let first = latest[0];
 
-    if latest
-        .iter()
-        .any(|index| events[*index] != events[first])
-    {
+    if latest.iter().any(|index| events[*index] != events[first]) {
         return Err(CorrelationError::ConflictingEventRevision(
             reference.clone(),
         ));
@@ -158,7 +155,10 @@ pub fn apply_handoff_correlations(
     for receipt in receipts {
         for (value, name) in [
             (receipt.receipt_id.as_str(), "receipt_id"),
-            (receipt.canonical_handoff_id.as_str(), "canonical_handoff_id"),
+            (
+                receipt.canonical_handoff_id.as_str(),
+                "canonical_handoff_id",
+            ),
             (receipt.canonical_box_id.as_str(), "canonical_box_id"),
             (
                 receipt.release_local_handoff_id.as_str(),
@@ -179,7 +179,10 @@ pub fn apply_handoff_correlations(
                 "mapping_profile_version",
             ),
             (receipt.evidence_id.as_str(), "evidence_id"),
-            (receipt.release_event.source_id.as_str(), "release_source_id"),
+            (
+                receipt.release_event.source_id.as_str(),
+                "release_source_id",
+            ),
             (
                 receipt.release_event.source_event_id.as_str(),
                 "release_source_event_id",
@@ -285,14 +288,8 @@ pub fn apply_handoff_correlations(
             HandoffField::Unit,
         )?;
 
-        rewrites.insert(
-            release_index,
-            receipt.canonical_handoff_id.clone(),
-        );
-        rewrites.insert(
-            accept_index,
-            receipt.canonical_handoff_id.clone(),
-        );
+        rewrites.insert(release_index, receipt.canonical_handoff_id.clone());
+        rewrites.insert(accept_index, receipt.canonical_handoff_id.clone());
     }
 
     let mut canonicalized = events.to_vec();
@@ -327,10 +324,7 @@ mod tests {
         )
     }
 
-    fn receipt(
-        release: &CargoEvent,
-        accept: &CargoEvent,
-    ) -> HandoffCorrelationReceipt {
+    fn receipt(release: &CargoEvent, accept: &CargoEvent) -> HandoffCorrelationReceipt {
         HandoffCorrelationReceipt {
             receipt_id: "CORR-001".to_string(),
             canonical_handoff_id: "CANON-HANDOFF-001".to_string(),
@@ -428,7 +422,9 @@ mod tests {
 
         assert_eq!(
             evaluate_with_handoff_correlations(&expectations, &events, &[correlation], 200),
-            Err(CorrelationError::HandoffFieldMismatch(HandoffField::Location))
+            Err(CorrelationError::HandoffFieldMismatch(
+                HandoffField::Location
+            ))
         );
     }
 
@@ -450,10 +446,9 @@ mod tests {
 
         assert_eq!(
             apply_handoff_correlations(&events, &[correlation], 200),
-            Err(CorrelationError::MissingReferencedEvent(SourceEventRef::new(
-                "SRC_DGT",
-                "OTHER-RELEASE"
-            )))
+            Err(CorrelationError::MissingReferencedEvent(
+                SourceEventRef::new("SRC_DGT", "OTHER-RELEASE")
+            ))
         );
     }
 
@@ -479,10 +474,9 @@ mod tests {
 
         assert_eq!(
             apply_handoff_correlations(&events, &[correlation], 200),
-            Err(CorrelationError::ReferencedEventNotEffective(SourceEventRef::new(
-                "SRC_DGT",
-                "B1-R1"
-            )))
+            Err(CorrelationError::ReferencedEventNotEffective(
+                SourceEventRef::new("SRC_DGT", "B1-R1")
+            ))
         );
     }
 
@@ -503,10 +497,9 @@ mod tests {
 
         assert_eq!(
             apply_handoff_correlations(&events, &[correlation], 200),
-            Err(CorrelationError::ReferencedEventNotActual(SourceEventRef::new(
-                "SRC_FEEDER",
-                "B2-A1-PLANNED"
-            )))
+            Err(CorrelationError::ReferencedEventNotActual(
+                SourceEventRef::new("SRC_FEEDER", "B2-A1-PLANNED")
+            ))
         );
     }
 
@@ -530,10 +523,9 @@ mod tests {
 
         assert_eq!(
             apply_handoff_correlations(&events, &[first, second], 200),
-            Err(CorrelationError::DuplicateReleaseMapping(SourceEventRef::new(
-                "SRC_DGT",
-                "B1-R1"
-            )))
+            Err(CorrelationError::DuplicateReleaseMapping(
+                SourceEventRef::new("SRC_DGT", "B1-R1")
+            ))
         );
     }
 
