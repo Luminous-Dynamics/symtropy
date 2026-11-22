@@ -597,11 +597,30 @@ fn validate_batch_shape(batch: &CompositionEventBatch) -> Option<CompositionFail
         return Some(CompositionFailure::DuplicateMutation);
     }
     for mutation in &batch.mutations {
-        let identities = mutation_touched_modules(mutation);
-        if identities
-            .iter()
-            .any(|identity| identity.trim().is_empty() || identity.trim() != *identity)
-        {
+        let invalid_identity = match mutation {
+            CompositionMutation::Add {
+                parent_module_id,
+                child_module_id,
+            }
+            | CompositionMutation::Delete {
+                parent_module_id,
+                child_module_id,
+            }
+            | CompositionMutation::RetractIfPresent {
+                parent_module_id,
+                child_module_id,
+            } => {
+                [parent_module_id.as_str(), child_module_id.as_str()]
+                    .into_iter()
+                    .any(|identity| {
+                        identity.trim().is_empty() || identity.trim() != identity
+                    })
+            }
+            CompositionMutation::DisaggregateAll { parent_module_id } => {
+                parent_module_id.trim().is_empty() || parent_module_id.trim() != parent_module_id
+            }
+        };
+        if invalid_identity {
             return Some(CompositionFailure::EmptyModuleIdentity);
         }
     }
