@@ -42,6 +42,8 @@ The adapter rejects empty source groups, invalid/padded source identities, revis
 
 These checks validate the shape and internal identity of the supplied effective group. They do not prove that the capture stream is complete, that the process is closed, or that every physical input/output event was reported. The upstream observation-completeness programme remains a separate necessary qualification.
 
+That upstream work is already tracked and has an executable synthetic benchmark: [ORBITAL-RELIABILITY-OBSERVATION-COMPLETENESS-001 #6659](https://github.com/Luminous-Dynamics/symtropy/issues/6659), [event-capture observability PR #6676](https://github.com/Luminous-Dynamics/symtropy/pull/6676), [observation-process identifiability PR #6731](https://github.com/Luminous-Dynamics/symtropy/pull/6731), and [externally anchored POD trend PR #6751](https://github.com/Luminous-Dynamics/symtropy/pull/6751). PR #6676's current exact head and both recorded workflows are green; this adapter does not recreate its independent event reference/counter/loss qualification. Its receipt should be connected by a future full owner-case composition, not inferred from an EPCIS group's own event count.
+
 ## Exact owner binding
 
 A MaterialBalanceCaseBinding names the owner case, manifest, transformation-group reference, transformationID, process, input-lot set, output scope and expected owner receipt source digest.
