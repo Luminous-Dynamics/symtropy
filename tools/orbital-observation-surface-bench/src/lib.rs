@@ -306,26 +306,26 @@ fn simulate_channel(scenario: &Scenario, channel: &ChannelConfig) -> Result<Chan
 
         let miss_reason =
             if in_intervals(event.time_fraction, &scenario.shared_common_cause_outages) {
-            miss_counts.shared_common_cause += 1;
-            Some(MissReason::SharedCommonCause)
-        } else if in_intervals(event.time_fraction, &channel.channel_outages) {
-            miss_counts.channel_outage += 1;
-            Some(MissReason::ChannelOutage)
-        } else if event.time_fraction < busy_until {
-            miss_counts.dead_time += 1;
-            Some(MissReason::DeadTime)
-        } else {
-            // Non-paralyzable front-end model: an event admitted to the detector
-            // starts recovery even if the downstream classifier returns a miss.
-            busy_until = event.time_fraction + channel.fixed_dead_time;
-            if draw < probability {
-                detected_event_count += 1;
-                None
+                miss_counts.shared_common_cause += 1;
+                Some(MissReason::SharedCommonCause)
+            } else if in_intervals(event.time_fraction, &channel.channel_outages) {
+                miss_counts.channel_outage += 1;
+                Some(MissReason::ChannelOutage)
+            } else if event.time_fraction < busy_until {
+                miss_counts.dead_time += 1;
+                Some(MissReason::DeadTime)
             } else {
-                miss_counts.stochastic += 1;
-                Some(MissReason::StochasticMiss)
-            }
-        };
+                // Non-paralyzable front-end model: an event admitted to the detector
+                // starts recovery even if the downstream classifier returns a miss.
+                busy_until = event.time_fraction + channel.fixed_dead_time;
+                if draw < probability {
+                    detected_event_count += 1;
+                    None
+                } else {
+                    miss_counts.stochastic += 1;
+                    Some(MissReason::StochasticMiss)
+                }
+            };
 
         event_outcomes.push(EventOutcome {
             event_id: event.event_id.clone(),
