@@ -110,6 +110,7 @@ pub enum CompositionFailure {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CompositionError {
     DuplicateModuleId(String),
+    InvalidModuleId(String),
     ConflictingEventRevision {
         source_key: SourceEventKey,
         revision: u32,
@@ -199,16 +200,24 @@ fn validate_event_shape(event: &CompositionEvent) -> Option<CompositionFailure> 
     if event.revision == 0 {
         return Some(CompositionFailure::InvalidRevision);
     }
-    if event.parent_module_id.trim().is_empty() || event.child_module_id.trim().is_empty() {
+    if event.parent_module_id.trim().is_empty()
+        || event.child_module_id.trim().is_empty()
+        || event.parent_module_id.trim() != event.parent_module_id
+        || event.child_module_id.trim() != event.child_module_id
+    {
         return Some(CompositionFailure::EmptyModuleIdentity);
     }
-    if event.source_profile_id.trim().is_empty() || event.source_profile_version.trim().is_empty() {
+    if event.source_profile_id.trim().is_empty()
+        || event.source_profile_version.trim().is_empty()
+        || event.source_profile_id.trim() != event.source_profile_id
+        || event.source_profile_version.trim() != event.source_profile_version
+    {
         return Some(CompositionFailure::EmptySourceProfile);
     }
-    if event.location_id.trim().is_empty() {
+    if event.location_id.trim().is_empty() || event.location_id.trim() != event.location_id {
         return Some(CompositionFailure::EmptyLocation);
     }
-    if event.evidence_id.trim().is_empty() {
+    if event.evidence_id.trim().is_empty() || event.evidence_id.trim() != event.evidence_id {
         return Some(CompositionFailure::MissingEvidenceReference);
     }
     None
@@ -323,8 +332,8 @@ pub fn evaluate_composition(
 ) -> Result<CompositionReport, CompositionError> {
     let mut known_modules = BTreeSet::new();
     for module in modules {
-        if module.module_id.trim().is_empty() {
-            return Err(CompositionError::DuplicateModuleId(
+        if module.module_id.trim().is_empty() || module.module_id.trim() != module.module_id {
+            return Err(CompositionError::InvalidModuleId(
                 module.module_id.clone(),
             ));
         }
@@ -541,6 +550,53 @@ mod tests {
                 .unwrap(),
             2
         );
+    }
+
+    #[test]
+    fn removing_a_parent_edge_does_not_cascade_to_nested_children() {
+        let modules = modules(&["CONTAINER", "PALLET", "CARTON"]);
+        let events = vec![
+            event("ADD-1", 10, "CONTAINER", "PALLET", MembershipAction::Add),
+            event("ADD-2", 20, "PALLET", "CARTON", MembershipAction::Add),
+            event("DELETE-1", 30, "CONTAINER", "PALLET", MembershipAction::Delete),
+        ];
+        let report = evaluate_composition(&modules, &events, 100).unwrap();
+
+        assert!(report.is_qualified());
+        assert_eq!(
+            report.active_memberships,
+            BTreeSet::from([Membership {
+                parent_module_id: "PALLET".to_string(),
+                child_module_id: "CARTON".to_string(),
+            }])
+        );
+        assert_eq!(
+            report.count_modules(ModuleCountBasis::RootHandlingUnits).unwrap(),
+            2
+        );
+        assert_eq!(
+            report.count_modules(ModuleCountBasis::LeafHandlingUnits).unwrap(),
+            2
+        );
+    }
+
+    #[test]
+    fn whitespace_identifiers_are_rejected_not_normalized() {
+        let invalid_modules = modules(&["CONTAINER", " PALLET "]);
+        assert_eq!(
+            evaluate_composition(&invalid_modules, &[], 100),
+            Err(CompositionError::InvalidModuleId(" PALLET ".to_string()))
+        );
+
+        let known_modules = modules(&["CONTAINER", "PALLET"]);
+        let mut invalid = event("ADD", 10, "CONTAINER", "PALLET", MembershipAction::Add);
+        invalid.child_module_id = " PALLET ".to_string();
+        let report = evaluate_composition(&known_modules, &[invalid], 100).unwrap();
+        assert_eq!(
+            report.failures.get(&CompositionFailure::EmptyModuleIdentity),
+            Some(&1)
+        );
+        assert!(!report.is_qualified());
     }
 
     #[test]
