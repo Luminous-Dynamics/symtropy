@@ -1009,6 +1009,7 @@ pub fn attest_clock_for_event(
         firmware_id: calibration.firmware_id.clone(),
         measurand_id: calibration.measurand_id.clone(),
         time_basis_id: calibration.time_basis_id.clone(),
+        tick_quantum_id: calibration.tick_quantum_id.clone(),
         terminal_reference_id: calibration.terminal_reference_id.clone(),
         event_time_ticks: event_time,
         reported_event_time_ticks: reported_event_time,
