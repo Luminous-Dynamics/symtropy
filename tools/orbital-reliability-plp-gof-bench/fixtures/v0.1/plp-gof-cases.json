@@ -483,7 +483,7 @@
       }
     },
     {
-      "case_id": "very_weak_mixed_regime_rejected",
+      "case_id": "very_weak_mixed_regime_not_rejected_at_1_percent",
       "model_profile": "power_law_process_repairable_minimal_repair",
       "termination_profile": "administrative_time_terminated_complete_window",
       "subject_group_id": "identical-repairable-item-group-01",
@@ -890,7 +890,7 @@
         "component_p_values": [],
         "bonferroni_adjusted_min_p_value": null,
         "blockers": [
-          "insufficient_event_count_for_v0_1_diagnostic"
+          "insufficient_event_count_for_v0_2_diagnostic"
         ]
       }
     },
@@ -1039,7 +1039,7 @@
         "component_p_values": [],
         "bonferroni_adjusted_min_p_value": null,
         "blockers": [
-          "monte_carlo_resolution_or_seed_outside_predeclared_contract"
+          "familywise_monte_carlo_resolution_or_seed_outside_predeclared_contract"
         ]
       }
     },
@@ -1198,7 +1198,7 @@
         "component_p_values": [],
         "bonferroni_adjusted_min_p_value": null,
         "blockers": [
-          "monte_carlo_resolution_or_seed_outside_predeclared_contract"
+          "familywise_monte_carlo_resolution_or_seed_outside_predeclared_contract"
         ]
       }
     },
