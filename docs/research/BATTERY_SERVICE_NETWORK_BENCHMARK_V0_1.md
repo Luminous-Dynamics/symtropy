@@ -234,7 +234,25 @@ These are controlled-environment manufacturer figures, not independent Luminous 
 
 Do not create one leaderboard by comparing aircraft swap time, car swap time and ePTW subscribers. Report battery class, service boundary, site density, pack inventory, charging parallelism, utilization, reliability and financial denominator.
 
-## 6. Benchmark tournament
+## 6. Cross-architecture endurance: ground, mobile and airborne replenishment
+
+A separate simulation/reproduction programme is tracked by [AERIAL-ENDURANCE-ARCHITECTURE-001 #6702](https://github.com/Luminous-Dynamics/symtropy/issues/6702). Its research trigger is the July 2026 IEEE Robotics and Automation Letters paper “A Mid-Air Autonomous Battery Exchange Aerial System” (DOI [10.1109/LRA.2026.3693549](https://doi.org/10.1109/LRA.2026.3693549)). The publisher abstract reports a supplier drone rendezvous/docking with a receiver and a belt/stepper mechanism that transfers a replacement battery and collects the depleted one, with simulations and outdoor flight tests under moderate wind. It is a research prototype, not evidence of commercial readiness, operational reliability, or a general aircraft certification basis. [IEEE paper record](https://xplorestaging.ieee.org/document/11520271).
+
+Compare this architecture against:
+- fixed automated ground dock;
+- mobile ground exchange via carrier/trailer/service vehicle;
+- carrier-based detachable UAV or AMR modules;
+- in-flight battery supplier aircraft;
+- airborne conductive energy transfer where technically feasible;
+- tethered ground-powered endurance for stationary missions;
+- wireless power only with measured transfer efficiency and alignment tolerance;
+- two-aircraft rotation/leapfrog where a second aircraft is safer/cheaper than mid-air physical contact.
+
+The key net-value question is whether mission-hours gained exceed the supplier aircraft's own flight/hover/return energy, payload penalty, hardware mass, extra crew/maintenance, rendezvous time, weather restrictions, risk and capital. Report receiver and supplier energy separately. Do not count transferred battery energy as free energy.
+
+A mid-air transfer event must be modeled as two coupled aircraft reservations plus the pack's serialized state/custody transition. Neither aircraft may be double-booked, and the donor must retain full return reserve after transfer. Unknown transfer outcome locks both asset states pending reconciliation. The entire architecture remains simulation/reproduction only until separately qualified engineering, aviation permission and controlled physical-test approval exist.
+
+## 7. Benchmark tournament
 
 Required matched baselines:
 1. one-pack-per-aircraft, charge-in-place;
@@ -260,7 +278,7 @@ Required ablations:
 - perfect information vs point-in-time observation only;
 - homogeneous packs vs multiple compatible classes.
 
-## 7. Metrics and aspirational gates
+## 8. Metrics and aspirational gates
 
 Report independent axes, not one score:
 - successful authorized on-time deliveries, late and unserved demand;
@@ -287,7 +305,7 @@ Aspirational v0.2+ targets:
 
 For a physical UAV-dock pilot, measure both DJI timing boundaries under the same start/end events, aircraft/pack class, environmental conditions, test protocol and acceptance checks. Report confidence intervals and sample counts. Do not claim superiority from a nominal best-case record.
 
-## 8. Battery health and passport boundary
+## 9. Battery health and passport boundary
 
 Battery mission health is at least two-dimensional:
 - **energy capability:** usable capacity/energy with reserve;
@@ -302,7 +320,7 @@ The European Commission's current Battery Passport FAQ clarifies that applicabil
 
 Mycelix owns the identity, custody, battery lineage and category-specific passport projection. Symtropy does not infer legal applicability or submit a Registry record on the operator's behalf.
 
-## 9. Standards, interoperability and safety boundary
+## 10. Standards, interoperability and safety boundary
 
 The current road-EV swapping standards are useful references for the carrier's ground-side battery-service equipment, but they do **not** certify a UAV battery, aircraft dock or aerial operation.
 
@@ -324,7 +342,7 @@ For future engineering verification, derive a design-specific test matrix coveri
 
 This is a **preliminary engineering verification matrix**, not a normative compliance checklist. The full standards and actual certification basis must be reviewed by competent specialists; the public abstracts/product pages do not establish clause-level conformity or exact acceptance limits.
 
-## 10. Compatibility graph and statistical reliability
+## 11. Compatibility graph and statistical reliability
 
 ### 10.1 Interchangeability is a qualified graph
 
@@ -362,7 +380,7 @@ It takes 2,995 zero-failure attempts to bound failure probability below 10^-3 (9
 
 Physical validation should stratify by distinct dock/mechanism units, pack serial/age/cycle count, temperature/humidity, dust/salt/moisture/contamination, vibration, insertion misalignment, mechanical wear, connector resistance, partial insertion, communication loss/replay, pack mismatch, charger/grid disturbances, emergency stops and operator interventions. Repeated tests on one dock are correlated; use cluster-aware or hierarchical reliability analysis where needed. Publish exact binomial intervals for independent cohorts and separate mechanism reliability from network service availability.
 
-## 11. Event-sourced state and transaction reconciliation
+## 12. Event-sourced state and transaction reconciliation
 
 A first event journal reducer is implemented in the same Rust module and tracked by [PACK-STATE-TRANSACTION-001 #6700](https://github.com/Luminous-Dynamics/symtropy/issues/6700). It consumes an initial evidence-bearing pack state and a time-ordered event stream:
 - confirmed events apply only an allowed transition;
@@ -374,7 +392,7 @@ The journal CLI is `battery_pack_journal_screen`, with strict schema `schemas/ba
 
 The journal is not yet a full resource scheduler: it does not reserve charger/rack/crew/aircraft time intervals, prove custody transfer across actors, or optimize cross-epoch inventory. Those remain later increments.
 
-## 12. Next implementation phases
+## 13. Next implementation phases
 
 **v0.2 — exact multi-period charging and inventory**
 - model pack-state transitions, charge curves, cooldown/balancing, parallel charger/rack occupancy and grid caps;
