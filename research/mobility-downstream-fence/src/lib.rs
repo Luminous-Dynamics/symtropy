@@ -76,10 +76,7 @@ pub enum QueueDisposition {
 
 impl QueueDisposition {
     fn is_admissible(self) -> bool {
-        matches!(
-            self,
-            Self::Quiescent | Self::Cancelled | Self::Drained
-        )
+        matches!(self, Self::Quiescent | Self::Cancelled | Self::Drained)
     }
 }
 
@@ -214,7 +211,11 @@ fn valid_inventory(inventory: &QueuePathInventory) -> Result<(), HoldReason> {
         }
     }
 
-    let mut indexes: Vec<u16> = inventory.layers.iter().map(|layer| layer.path_index).collect();
+    let mut indexes: Vec<u16> = inventory
+        .layers
+        .iter()
+        .map(|layer| layer.path_index)
+        .collect();
     indexes.sort_unstable();
     if indexes
         .iter()
@@ -295,9 +296,7 @@ pub fn assess_downstream_quiescence(packet: &DownstreamFencePacket) -> FenceDeci
         if receipt.layer_configuration_commitment != layer.configuration_commitment {
             return hold(HoldReason::LayerConfigurationMismatch);
         }
-        if receipt.stack_configuration_commitment
-            != inventory.stack_configuration_commitment
-        {
+        if receipt.stack_configuration_commitment != inventory.stack_configuration_commitment {
             return hold(HoldReason::StackConfigurationMismatch);
         }
         if receipt.inventory_commitment != inventory.inventory_commitment {
@@ -621,7 +620,9 @@ mod tests {
         let mut input = packet();
         for index in 3..=64 {
             let item = layer(&format!("layer-{index}"), index, &format!("owner-{index}"));
-            input.receipts.push(receipt(&item, QueueDisposition::Quiescent));
+            input
+                .receipts
+                .push(receipt(&item, QueueDisposition::Quiescent));
             input.inventory.layers.push(item);
         }
         assert_hold(&input, HoldReason::TooManyLayers);
