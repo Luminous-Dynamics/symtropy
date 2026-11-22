@@ -115,9 +115,7 @@ pub enum FiniteDecisionRecommendation {
 /// - action_utilities: action-major matrix [action][state]; larger is better.
 /// - abstention_utility: utility of taking no irreversible action.
 /// - information_options: finite observation models for candidate acquisitions.
-/// - remaining_budget: hard resource limit in the cost unit.
-/// - cost_to_utility_rate: utility units charged per unit cost.
-/// - minimum_net_benefit: minimum net utility required before acquiring.
+/// - acquisition_policy: hard budget, cost-to-utility conversion, and minimum net benefit.
 ///
 /// For each option, EVSI is computed exactly by summing the unnormalized joint
 /// state/outcome probabilities and selecting the best posterior action for each
@@ -430,7 +428,8 @@ mod tests {
         information_options: &[InformationAcquisitionOption],
         acquisition_policy: InformationAcquisitionPolicy,
     ) -> Result<FiniteDecisionRecommendation, ModelError> {
-        recommend_for_test(
+        recommend_finite_decision_step(
+            &actions(),
             state_probabilities,
             action_utilities,
             abstention_utility,
