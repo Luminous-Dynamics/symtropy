@@ -1,6 +1,6 @@
 # EHD-PIV-UQ-004 — cluster-conformal field coverage and physical-functional uncertainty
 
-**Status:** standalone Rust reference authored; 19 unit tests authored; Rust execution pending; exact-head hosted CI pending.  
+**Status:** standalone Rust reference authored; 23 unit tests authored; Rust execution pending; exact-head hosted CI pending.  
 **Branch:** research/ehd-piv-conformal-functional-uq-v0-1  
 **Parent:** EHD-PIV-UQ-003 covariance calibration
 
@@ -27,6 +27,10 @@ The calibrated squared radius is the kth sorted cluster maximum. If k>n, the exa
 Under exchangeability of complete calibration fields and the future field under the same protocol, the resulting ellipsoid provides finite-sample marginal coverage for the *entire target field*: every scored vector across bulk, near-wall, shear layer and wake is covered simultaneously with probability at least 1-alpha over calibration and target fields. It is not conditional coverage given a fixed calibration sample. A matching metadata fingerprint is necessary but cannot prove exchangeability. Changed flow families, geometries, tracers, acquisition chains, time regimes, masks or field sizes may invalidate the guarantee.
 
 This is deliberately more conservative and more engineering-relevant than treating thousands of correlated interrogation windows as independent calibration observations. It must be benchmarked against pointwise split conformal, region-wise conformal, Gaussian covariance calibration and cluster-max conformal on exactly the same held-out acquisition fields.
+
+## Dimension-matched 3D conformal path
+
+The first conformal scorer is explicitly planar (2D). To avoid applying a planar radius to an unmeasured out-of-plane component, this increment now also adds `conformal_3d.rs`, using a full positive-definite 3×3 covariance and three-component Mahalanobis residual. It uses the same field-maximum score, fixed protocol/field-size contract and exact split-conformal rank. Both paths are separate typed APIs; the 2D radius cannot be passed off as 3D. The functional reducer's local covariance is also 3D, so a field-functional multiplier can be sourced from the 3D scorer when the protocol fingerprints, vectors and covariance model truly match.
 
 ## Spatially correlated covariance to physical functionals
 
@@ -74,13 +78,15 @@ For field-functional propagation, freeze a deterministic face-sample fixture and
 
 ## Authored tests
 
-The conformal kernel includes 10 tests:
+The planar conformal kernel includes 10 tests:
 - exact rank at nineteen clusters for 95% coverage;
 - eighteen clusters correctly produce an unbounded set;
 - max score taken over all vectors and regions;
 - protocol mismatch, changed field size, missing region;
 - duplicate cluster/sample identity;
 - invalid covariance and invalid alpha/attestation.
+
+The 3D conformal kernel includes 4 tests for 19-field finite rank, correlated covariance, non-positive-definite covariance and field-size mismatch.
 
 The functional kernel includes 9 tests:
 - manufactured mass and momentum Jacobians;
