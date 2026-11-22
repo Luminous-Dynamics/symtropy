@@ -46,8 +46,8 @@ def rate_run(fps, frames, grounded, status="COMPLETED", energy_resource=None):
     frame_step = int(round(4.0 / fps))
     frame_manifest = [
         {
-            "frame_id": f"frame-{index * frame_step}",
-            "timestamp_ms": float(index * frame_step * 250),
+            "frame_id": f"frame-{int(round(index * 1000 / fps))}",
+            "timestamp_ms": float(index * 1000 / fps),
         }
         for index in range(frames)
     ]
@@ -97,6 +97,7 @@ def document(success_by_rate, *, seeds=("seed-1",), minimum_success_fraction=1.0
         "sampler_id": "nested-uniform-v1",
         "sampler_digest_sha256": digest("sampler-v1"),
         "fps_grid": list(RATES),
+        "sampling_design": "NESTED_FIXED_RATE",
         "media_duration_ms": 1000.0,
         "sampling_tolerance_ms": 1.0,
         "minimum_success_fraction": minimum_success_fraction,
@@ -283,6 +284,23 @@ class MinFpsCurveTests(unittest.TestCase):
                 ensure_ascii=False,
             ).encode()
         ).hexdigest()
+        with self.assertRaises(MinFpsEvaluationError):
+            evaluate_document(doc)
+
+
+    def test_official_independent_rate_grid_is_allowed_when_declared(self):
+        doc = document({"seed-1": {1.0: False, 2.0: False, 4.0: True}})
+        doc["fps_grid"] = [1.0, 2.0, 7.0]
+        doc["sampling_design"] = "INDEPENDENT_FIXED_RATE"
+        doc["seeds"][0]["runs"][2] = rate_run(7.0, 7, True)
+        result = evaluate_document(doc)
+        self.assertEqual(result["minimum_fps"]["status"], "MIN_FPS_FOUND")
+        self.assertEqual(result["minimum_fps"]["min_fps"], 7.0)
+
+    def test_non_nested_rate_grid_is_rejected_when_nested_design_declared(self):
+        doc = document({"seed-1": {1.0: False, 2.0: False, 4.0: True}})
+        doc["fps_grid"] = [1.0, 2.0, 7.0]
+        doc["seeds"][0]["runs"][2] = rate_run(7.0, 7, True)
         with self.assertRaises(MinFpsEvaluationError):
             evaluate_document(doc)
 
