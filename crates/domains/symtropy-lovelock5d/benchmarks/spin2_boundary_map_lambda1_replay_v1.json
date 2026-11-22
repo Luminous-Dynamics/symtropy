@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "spin2_boundary_map_lambda1_exact_source_replay",
+  "status": "exact_source_blobs_replayed_locally_and_symbolic_checks_passed",
+  "repository": "Luminous-Dynamics/symtropy",
+  "branch": "research/spin2-regularized-pivot-2026-11-21",
+  "source_blobs": {
+    "action_row_extractor": {
+      "path": "crates/domains/symtropy-lovelock5d/benchmarks/extract_spin2_boundary_map_lambda1_rows.py",
+      "git_blob_sha1": "db81c43219bae9507fcba16bd19eb06209e973df",
+      "sha256": "3fe5da27ce7bcada7efd3013b432966a58688c5826247609407a9b05aa7b9a98",
+      "exact_local_blob_match": true
+    },
+    "green_lagrange_verifier": {
+      "path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_spin2_boundary_map_lambda1.py",
+      "git_blob_sha1": "79c49e0dcddefb161386e525c917b66b40ab0d84",
+      "sha256": "05af6b48c7a484b4e2674223883608747995655243be70ce7f0963af05cd84f0",
+      "exact_local_blob_match": true
+    }
+  },
+  "fixtures": {
+    "action_rows": {
+      "path": "crates/domains/symtropy-lovelock5d/benchmarks/spin2_boundary_map_lambda1_action_rows_v1.json",
+      "git_blob_sha1": "0c3388caf7d78460124c0d930eafa6a2313a0c60",
+      "published_content_sha256": "9fbb6be1c2705469215ceb47ee263ad1891be8fcf9c709f0b751d6608f292d61",
+      "local_action_extractor_output_sha256": "db4f76452f8b4e96f820e8fcb8528e51a23151d28775290b4a7484dc36a5c592",
+      "note": "Published JSON was whitespace-normalized during GitHub contents upload; exact coefficient-row strings and structured values were retained."
+    },
+    "verified_result": {
+      "path": "crates/domains/symtropy-lovelock5d/benchmarks/spin2_boundary_map_lambda1_v1.json",
+      "git_blob_sha1": "0c14f8822fa0b0dcd06d18e12702ac2be15e5d64",
+      "locally_verified_result_sha256_before_presentation_normalization": "1bb8766058e84a8e99d0b8aa8102cb26958c4ab014df6d6225bddba68b08fa9e"
+    }
+  },
+  "environment": {
+    "python": "3.13.5",
+    "sympy": "1.14.0",
+    "arithmetic": "exact rational and symbolic arithmetic"
+  },
+  "commands": [
+    "python extract_spin2_boundary_map_lambda1_rows.py --output /tmp/spin2_boundary_map_lambda1_action_rows_v1.json",
+    "python verify_spin2_boundary_map_lambda1.py --rows /tmp/spin2_boundary_map_lambda1_action_rows_v1.json --output /tmp/spin2_boundary_map_lambda1_v1.json"
+  ],
+  "result": {
+    "J1": [
+      ["1/2", "19 - 2*pi**2"],
+      ["0", "67 - 6*pi**2"]
+    ],
+    "J1_numeric": [
+      ["0.500000000000000000", "-0.739208802178717238"],
+      ["0", "7.78237359346384829"]
+    ],
+    "determinant_slope": "69/2 - 3*pi**2",
+    "affine_offset_derivative": ["-53/9", "28/3"],
+    "wrong_sign_control": "rejected",
+    "horizon_data_mutation": "rejected",
+    "decaying_adjoint_growth_contamination": "rejected"
+  },
+  "checks": {
+    "all_four_original_even_coefficient_rows_extracted": true,
+    "E_f_algebraic_pivot_and_reconstruction": true,
+    "reduced_E_b_and_E_h_operators": true,
+    "b1_homogeneous_sensitivity_column": true,
+    "h0_scalar_sensitivity_equation": true,
+    "Green_Lagrange_weighted_Wronskian": true,
+    "dilogarithmic_integral_and_endpoint_values": true,
+    "horizon_Frobenius_recurrence": true,
+    "B21_constant_amplitude_projection": true,
+    "E_f_F21_growing_mode_relation": true,
+    "physical_branch_affine_offset_cross_check": true,
+    "E_g_constraint": "retained in source fixture and propagated by the separate exact action-level radial Noether identity verifier"
+  },
+  "claim_ceiling": "Exact first derivative at lambda=0 of both columns of the global boundary map for the specified five-dimensional O(a^2) perturbative system in fixed Einstein-limit endpoint coordinates. No finite-lambda BVP, interval-invertibility proof, global uniqueness theorem, or PDE hyperbolicity result is claimed."
+}
