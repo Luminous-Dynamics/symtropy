@@ -1405,6 +1405,294 @@ mod tests {
         );
     }
 
+    fn journal_input() -> PackStateJournalInput {
+        let pack_id = "journal-pack";
+        let digest = "urn:synthetic:configuration:journal-pack";
+        PackStateJournalInput {
+            pack_id: pack_id.to_string(),
+            configuration_digest: digest.to_string(),
+            replay_cutoff_unix_ms: DISPATCH_TIME_MS + 5_000,
+            initial_state: PackStateEvidence {
+                evidence: evidence(pack_id, digest, "journal-initial-state"),
+                value: PackState::Available,
+            },
+            events: Vec::new(),
+        }
+    }
+
+    fn journal_event(
+        sequence: u64,
+        seconds_after_epoch: u64,
+        event_id: &str,
+        idempotency_key: &str,
+        from_state: PackState,
+        proposed_to_state: PackState,
+        disposition: PackTransitionDisposition,
+        evidence_class: EvidenceClass,
+    ) -> PackTransitionEvent {
+        let pack_id = "journal-pack";
+        let digest = "urn:synthetic:configuration:journal-pack";
+        let mut event_evidence = evidence(pack_id, digest, event_id);
+        event_evidence.evidence_class = evidence_class;
+        PackTransitionEvent {
+            event_id: event_id.to_string(),
+            idempotency_key: idempotency_key.to_string(),
+            operation_id: "operation-1".to_string(),
+            sequence,
+            event_time_unix_ms: DISPATCH_TIME_MS + seconds_after_epoch * 1_000,
+            from_state,
+            proposed_to_state,
+            disposition,
+            evidence: event_evidence,
+        }
+    }
+
+    #[test]
+    fn confirmed_journal_event_advances_pack_state() {
+        let mut journal = journal_input();
+        journal.events.push(journal_event(
+            1,
+            1,
+            "event-reserve",
+            "idempotency-reserve",
+            PackState::Available,
+            PackState::Reserved,
+            PackTransitionDisposition::Confirmed,
+            EvidenceClass::Synthetic,
+        ));
+        let report = replay_pack_state_journal(&journal).unwrap();
+        assert_eq!(report.final_state, PackState::Reserved);
+        assert_eq!(report.final_sequence, 1);
+        assert!(!report.reconciliation_required);
+        assert_eq!(report.accepted_event_ids, vec!["event-reserve".to_string()]);
+    }
+
+    #[test]
+    fn timeout_preserves_last_confirmed_state_and_locks_mutation() {
+        let mut journal = journal_input();
+        journal.events.push(journal_event(
+            1,
+            1,
+            "event-timeout",
+            "idempotency-timeout",
+            PackState::Available,
+            PackState::Reserved,
+            PackTransitionDisposition::Timeout,
+            EvidenceClass::Synthetic,
+        ));
+        let report = replay_pack_state_journal(&journal).unwrap();
+        assert_eq!(report.final_state, PackState::Available);
+        assert!(report.reconciliation_required);
+        assert_eq!(report.last_uncertain_event_id, Some("event-timeout".to_string()));
+    }
+
+    #[test]
+    fn normal_transition_is_rejected_while_reconciliation_is_required() {
+        let mut journal = journal_input();
+        journal.events.push(journal_event(
+            1,
+            1,
+            "event-timeout",
+            "idempotency-timeout",
+            PackState::Available,
+            PackState::Reserved,
+            PackTransitionDisposition::Timeout,
+            EvidenceClass::Synthetic,
+        ));
+        journal.events.push(journal_event(
+            2,
+            2,
+            "event-retry",
+            "idempotency-retry",
+            PackState::Available,
+            PackState::Reserved,
+            PackTransitionDisposition::Confirmed,
+            EvidenceClass::Synthetic,
+        ));
+        let errors = replay_pack_state_journal(&journal).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("normal_event_blocked_pending_reconciliation")));
+    }
+
+    #[test]
+    fn independent_reconciliation_clears_timeout_lock() {
+        let mut journal = journal_input();
+        journal.events.push(journal_event(
+            1,
+            1,
+            "event-timeout",
+            "idempotency-timeout",
+            PackState::Available,
+            PackState::Reserved,
+            PackTransitionDisposition::Timeout,
+            EvidenceClass::Synthetic,
+        ));
+        journal.events.push(journal_event(
+            2,
+            2,
+            "event-reconcile",
+            "idempotency-reconcile",
+            PackState::Available,
+            PackState::Reserved,
+            PackTransitionDisposition::Reconciled,
+            EvidenceClass::IndependentTest,
+        ));
+        let report = replay_pack_state_journal(&journal).unwrap();
+        assert_eq!(report.final_state, PackState::Reserved);
+        assert!(!report.reconciliation_required);
+        assert_eq!(report.last_uncertain_event_id, None);
+    }
+
+    #[test]
+    fn synthetic_evidence_cannot_clear_reconciliation_lock() {
+        let mut journal = journal_input();
+        journal.events.push(journal_event(
+            1,
+            1,
+            "event-timeout",
+            "idempotency-timeout",
+            PackState::Available,
+            PackState::Reserved,
+            PackTransitionDisposition::Timeout,
+            EvidenceClass::Synthetic,
+        ));
+        journal.events.push(journal_event(
+            2,
+            2,
+            "event-reconcile",
+            "idempotency-reconcile",
+            PackState::Available,
+            PackState::Reserved,
+            PackTransitionDisposition::Reconciled,
+            EvidenceClass::Synthetic,
+        ));
+        let errors = replay_pack_state_journal(&journal).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("reconciliation_requires_measured_or_independent_evidence")));
+    }
+
+    #[test]
+    fn duplicate_idempotency_key_is_rejected() {
+        let mut journal = journal_input();
+        journal.events.push(journal_event(
+            1,
+            1,
+            "event-one",
+            "same-idempotency-key",
+            PackState::Available,
+            PackState::Reserved,
+            PackTransitionDisposition::Confirmed,
+            EvidenceClass::Synthetic,
+        ));
+        journal.events.push(journal_event(
+            2,
+            2,
+            "event-two",
+            "same-idempotency-key",
+            PackState::Reserved,
+            PackState::Installed,
+            PackTransitionDisposition::Confirmed,
+            EvidenceClass::Synthetic,
+        ));
+        let errors = replay_pack_state_journal(&journal).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("duplicate_idempotency_key")));
+    }
+
+    #[test]
+    fn non_contiguous_event_sequence_is_rejected() {
+        let mut journal = journal_input();
+        journal.events.push(journal_event(
+            2,
+            1,
+            "event-gap",
+            "idempotency-gap",
+            PackState::Available,
+            PackState::Reserved,
+            PackTransitionDisposition::Confirmed,
+            EvidenceClass::Synthetic,
+        ));
+        let errors = replay_pack_state_journal(&journal).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("non_contiguous_event_sequence")));
+    }
+
+    #[test]
+    fn illegal_pack_state_transition_is_rejected() {
+        let mut journal = journal_input();
+        journal.events.push(journal_event(
+            1,
+            1,
+            "event-illegal",
+            "idempotency-illegal",
+            PackState::Available,
+            PackState::Charging,
+            PackTransitionDisposition::Confirmed,
+            EvidenceClass::Synthetic,
+        ));
+        let errors = replay_pack_state_journal(&journal).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("illegal_pack_state_transition")));
+    }
+
+    #[test]
+    fn duplicate_event_id_is_rejected() {
+        let mut journal = journal_input();
+        journal.events.push(journal_event(
+            1,
+            1,
+            "duplicate-event",
+            "idempotency-one",
+            PackState::Available,
+            PackState::Reserved,
+            PackTransitionDisposition::Confirmed,
+            EvidenceClass::Synthetic,
+        ));
+        journal.events.push(journal_event(
+            2,
+            2,
+            "duplicate-event",
+            "idempotency-two",
+            PackState::Reserved,
+            PackState::Installed,
+            PackTransitionDisposition::Confirmed,
+            EvidenceClass::Synthetic,
+        ));
+        let errors = replay_pack_state_journal(&journal).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("duplicate_event_id")));
+    }
+
+    #[test]
+    fn event_after_replay_cutoff_is_rejected() {
+        let mut journal = journal_input();
+        journal.events.push(journal_event(
+            1,
+            6,
+            "event-after-cutoff",
+            "idempotency-after-cutoff",
+            PackState::Available,
+            PackState::Reserved,
+            PackTransitionDisposition::Confirmed,
+            EvidenceClass::Synthetic,
+        ));
+        let errors = replay_pack_state_journal(&journal).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("event_time_non_monotonic_or_after_cutoff")));
+    }
+
+    #[test]
+    fn journal_rejects_wrong_pack_evidence() {
+        let mut journal = journal_input();
+        let mut event = journal_event(
+            1,
+            1,
+            "event-wrong-pack",
+            "idempotency-wrong-pack",
+            PackState::Available,
+            PackState::Reserved,
+            PackTransitionDisposition::Confirmed,
+            EvidenceClass::Synthetic,
+        );
+        event.evidence.asset_id = "different-pack".to_string();
+        journal.events.push(event);
+        let errors = replay_pack_state_journal(&journal).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("event_evidence_not_admissible")));
+    }
+
     #[test]
     fn over_limit_exact_instance_is_rejected() {
         let packs = (0..7)
