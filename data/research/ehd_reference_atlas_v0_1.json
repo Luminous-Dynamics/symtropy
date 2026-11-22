@@ -1823,6 +1823,80 @@
         "No executable public code or raw data release is transcribed in this source profile."
       ],
       "recommended_role": "experimental ML baseline for matched airflow prediction; reproduce Gradient Boosting, Random Forest, KNN and SHAP on identical sealed geometry/session holdouts before comparing Luminous models"
+    },
+    {
+      "solver_id": "PIVPOSTPROCESS_2026",
+      "category": "PIV vector-validity postprocessor",
+      "paper_doi": "10.1007/s00348-026-04319-7",
+      "publication": "Experiments in Fluids 67, article 176 (published 2026-10-16)",
+      "code_doi": "10.5281/zenodo.18794853",
+      "method": "XGBoost gradient-boosted decision tree classifier using 43 local/global velocity and gradient features",
+      "training_evaluation": {
+        "source_experiments": 6,
+        "combined_source_vector_points_approx": 203000000,
+        "training_vector_samples": 250000,
+        "testing_vector_samples": 50000,
+        "partition": "all vectors from six source experiments randomly shuffled then stratified by valid/invalid class; not a geometry/session holdout",
+        "test_metrics": {
+          "log_loss": 0.037,
+          "f1": 0.992,
+          "roc_auc": 0.998
+        },
+        "feature_count": 43,
+        "input_dimensions": "two-component U/W vector fields and local/global spatial features"
+      },
+      "external_experiment_evaluation": {
+        "additional_experiments": 6,
+        "reported_mean_f1": 0.99,
+        "individual_dataset_f1_lower_bound": 0.97,
+        "reference_labels": "manual expert post-processing; agreement with analyst is not independent physical truth"
+      },
+      "synthetic_dns_stress": {
+        "source": "JHTDB DNS fields with empirical or Gaussian noise injected",
+        "sample_count": 459,
+        "conditions": 5,
+        "low_noise_case": {
+          "noise_rms_percent_of_clean_flow": 150,
+          "spatial_coverage_percent": 1,
+          "mean_recall": 0.78,
+          "mean_precision": 0.5,
+          "mean_f1": 0.62
+        },
+        "high_noise_case": {
+          "noise_rms_percent_of_clean_flow": 2000,
+          "mean_recall": 0.91,
+          "mean_precision": 0.91,
+          "mean_f1": 0.91
+        },
+        "mhd_dataset_f1": 0.68,
+        "limitation": "synthetic noise injection does not fully reproduce experimental PIV measurement error or EHD diagnostic observer effects"
+      },
+      "reported_runtime": {
+        "average_seconds_per_vector_field": 0.08,
+        "1500_image_pairs_minutes": 2,
+        "manual_filter_runtime_minutes": [
+          30,
+          60
+        ],
+        "speedup_scope": "post-processing runtime only after expert has already selected suitable filter settings; not end-to-end experimental workflow"
+      },
+      "capabilities": [
+        "automated valid/invalid PIV vector classification",
+        "local/global vector-field and gradient feature extraction",
+        "trained on laboratory PIV data",
+        "tests on six additional experimental datasets",
+        "synthetic DNS noise stress tests"
+      ],
+      "important_limits": [
+        "This is a vector outlier classifier, not an a-posteriori per-vector velocity-uncertainty estimator.",
+        "The 0.992 test F1 uses a stratified random split of vectors drawn from six source experiments, not a full unseen-geometry/session split.",
+        "The six additional experimental datasets use expert manual filtering as the reference; agreement with expert labels is not independent velocity truth.",
+        "Subtle synthetic errors near the flow RMS are difficult: the reported 150% RMS, 1% coverage case has mean F1 0.62.",
+        "Performance varies with flow physics; the MHD DNS case reports F1 0.68.",
+        "The implementation uses two-component PIV fields; 3D/tomographic extension is future work.",
+        "No EHD-specific diagnostic perturbation model, full control-volume momentum closure, direct thrust validation or exergy closure is included."
+      ],
+      "recommended_role": "strong published baseline for PIV vector-validity classification; compare on matched sealed geometry/session/tracer/pressure holdouts, then add calibrated vector uncertainty and independent physical cross-validation"
     }
   ],
   "system_integration_references": [
