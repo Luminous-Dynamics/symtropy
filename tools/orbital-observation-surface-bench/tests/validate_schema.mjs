@@ -81,6 +81,12 @@ function validate(schema, value, path, root) {
       for (const key of Object.keys(value)) {
         if (!(key in (schema.properties ?? {}))) fail(`${path}: unexpected property ${key}`);
       }
+    } else if (schema.additionalProperties && typeof schema.additionalProperties === "object") {
+      for (const [key, childValue] of Object.entries(value)) {
+        if (!(key in (schema.properties ?? {}))) {
+          validate(schema.additionalProperties, childValue, `${path}.${key}`, root);
+        }
+      }
     }
     for (const [key, childSchema] of Object.entries(schema.properties ?? {})) {
       if (key in value) validate(childSchema, value[key], `${path}.${key}`, root);
