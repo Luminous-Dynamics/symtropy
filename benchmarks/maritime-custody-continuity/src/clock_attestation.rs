@@ -313,6 +313,9 @@ impl QualifiedClockCalibrationReceipt {
     pub fn time_basis_id(&self) -> &str {
         &self.time_basis_id
     }
+    pub fn tick_quantum_id(&self) -> &str {
+        &self.tick_quantum_id
+    }
     pub fn terminal_reference_id(&self) -> &str {
         &self.terminal_reference_id
     }
@@ -1199,8 +1202,20 @@ mod tests {
             "5:WMS_A:27:urn:uuid:custody-event-1000:4"
         );
         assert_eq!(evidence.time_basis_id(), "UTC(ZA)");
-        assert_eq!(evidence.interval().earliest(), 976);
-        assert_eq!(evidence.interval().latest(), 1_024);
+        assert_eq!(
+            decision.receipt.as_ref().unwrap().event_time_ticks(),
+            996
+        );
+        assert_eq!(
+            decision.receipt.as_ref().unwrap().reported_event_time_ticks(),
+            1_000
+        );
+        assert_eq!(
+            decision.receipt.as_ref().unwrap().tick_quantum_id(),
+            "SI_NANOSECOND"
+        );
+        assert_eq!(evidence.interval().earliest(), 972);
+        assert_eq!(evidence.interval().latest(), 1_020);
         assert_eq!(
             evidence.bound_kind(),
             crate::temporal_order::TimeBoundKind::QualifiedEnclosure
@@ -1462,6 +1477,36 @@ mod tests {
         assert_eq!(
             evaluate(&calibration_fixture(), &observation).reason,
             Some(ClockAttestationReason::ClockProfileMismatch)
+        );
+    }
+
+    #[test]
+    fn negative_clock_offset_moves_corrected_reference_time_forward() {
+        let mut calibration = calibration_fixture();
+        calibration.measured_offset_ticks = -7;
+        let decision = evaluate(&calibration, &observation_fixture());
+        assert_eq!(
+            decision.receipt.as_ref().unwrap().reported_event_time_ticks(),
+            1_000
+        );
+        assert_eq!(
+            decision.receipt.as_ref().unwrap().event_time_ticks(),
+            1_007
+        );
+        let evidence = decision.to_time_evidence().unwrap();
+        assert_eq!(evidence.interval().earliest(), 983);
+        assert_eq!(evidence.interval().latest(), 1_031);
+    }
+
+    #[test]
+    fn signed_offset_correction_overflow_is_rejected() {
+        let mut calibration = calibration_fixture();
+        calibration.measured_offset_ticks = i64::MIN;
+        let decision = evaluate(&calibration, &observation_fixture());
+        assert_eq!(decision.status, ClockAttestationStatus::Rejected);
+        assert_eq!(
+            decision.reason,
+            Some(ClockAttestationReason::OffsetCorrectionOverflow)
         );
     }
 
