@@ -18,6 +18,8 @@ use crate::battery_service_network::{
 const MAX_JOBS: usize = 4;
 const MAX_CHARGERS: usize = 3;
 const MAX_HORIZON_SLOTS: u8 = 8;
+const MAX_SLOT_DURATION_SECONDS: u32 = 86_400;
+const MAX_CHARGING_POWER_W: u32 = 100_000_000;
 const CLAIM_CEILING: &str = "Exact synthetic fixed-duration charging-block schedule only; not a measured charge curve, battery physics model, safe charging authorization, return-to-service authority, flight authorization or commercial performance.";
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -126,7 +128,6 @@ struct ExactChargeSearch<'a> {
     candidates: &'a [Vec<CandidatePlacement>],
     jobs: &'a [ChargeJob],
     chargers: &'a [ChargerChannel],
-    horizon_slots: u8,
     slot_power_headroom_w: &'a [u32],
     nodes: usize,
     best: Option<SearchBest>,
@@ -311,6 +312,7 @@ pub fn evaluate_battery_charge_queue(
         || input.claim_ceiling.trim().is_empty()
         || input.decision_time_unix_ms == 0
         || input.slot_duration_seconds == 0
+        || input.slot_duration_seconds > MAX_SLOT_DURATION_SECONDS
         || input.horizon_slots == 0
         || input.horizon_slots > MAX_HORIZON_SLOTS
     {
@@ -351,6 +353,7 @@ pub fn evaluate_battery_charge_queue(
         if charger.charger_id.trim().is_empty()
             || charger.configuration_digest.trim().is_empty()
             || charger.max_power_w == 0
+            || charger.max_power_w > MAX_CHARGING_POWER_W
             || charger.supported_pack_configuration_digests.is_empty()
             || !charger_ids.insert(charger.charger_id.as_str())
         {
@@ -387,6 +390,7 @@ pub fn evaluate_battery_charge_queue(
             || !pack_ids.insert(job.pack_id.as_str())
             || job.duration_slots == 0
             || job.requested_power_w == 0
+            || job.requested_power_w > MAX_CHARGING_POWER_W
             || job.release_slot >= job.deadline_slot_exclusive
             || job.deadline_slot_exclusive > input.horizon_slots
         {
@@ -396,9 +400,6 @@ pub fn evaluate_battery_charge_queue(
             || job.pack_state.evidence.configuration_digest != job.pack_configuration_digest
         {
             add_error(&mut errors, format!("charge_job_pack_state_binding_mismatch:{}", job.job_id));
-        }
-        if job.pack_state.value != PackState::Cooling {
-            add_error(&mut errors, format!("charge_job_pack_not_cooling:{}", job.job_id));
         }
     }
 
@@ -465,6 +466,11 @@ pub fn evaluate_battery_charge_queue(
     for job in &jobs {
         let mut job_placements = Vec::new();
         let mut had_compatible_charger = false;
+        if job.pack_state.value != PackState::Cooling {
+            findings.push(format!("pack_not_charge_ready:{}", job.job_id));
+            candidates.push(job_placements);
+            continue;
+        }
         for (charger_index, charger) in chargers.iter().enumerate() {
             if charger.max_power_w < job.requested_power_w
                 || !charger
@@ -487,11 +493,7 @@ pub fn evaluate_battery_charge_queue(
                 ) else {
                     continue;
                 };
-                let Some(end_time) = slot_time_ms(
-                    input.decision_time_unix_ms,
-                    input.slot_duration_seconds,
-                    end,
-                ) else {
+                let Some(state_evidence_end) = start_time.checked_add(1) else {
                     continue;
                 };
                 if !evidence_covers_interval(
@@ -500,7 +502,7 @@ pub fn evaluate_battery_charge_queue(
                     &job.pack_configuration_digest,
                     input.decision_time_unix_ms,
                     start_time,
-                    end_time,
+                    state_evidence_end,
                 ) {
                     continue;
                 }
@@ -532,7 +534,6 @@ pub fn evaluate_battery_charge_queue(
         candidates: &candidates,
         jobs: &jobs,
         chargers: &chargers,
-        horizon_slots: input.horizon_slots,
         slot_power_headroom_w: &slot_power_headroom_w,
         nodes: 0,
         best: None,
@@ -578,12 +579,14 @@ pub fn evaluate_battery_charge_queue(
             .then_with(|| left.job_id.cmp(&right.job_id))
     });
 
-    let total_declared_grid_input_watt_seconds = assignments
+    let Some(total_declared_grid_input_watt_seconds) = assignments
         .iter()
         .try_fold(0_u64, |total, assignment| {
             total.checked_add(assignment.declared_grid_input_watt_seconds)
         })
-        .expect("bounded exact instance grid input energy sum must fit u64");
+    else {
+        return Err(vec!["declared_grid_input_energy_overflow".to_string()]);
+    };
     let all_fixture_evidence_synthetic = input.site_evidence.evidence_class == EvidenceClass::Synthetic
         && input.chargers.iter().all(|charger| charger.availability_evidence.evidence_class == EvidenceClass::Synthetic)
         && input.grid_slots.iter().all(|slot| slot.evidence.evidence_class == EvidenceClass::Synthetic)
@@ -656,7 +659,7 @@ mod tests {
                     configuration_digest,
                     &format!("{job_id}-state"),
                     DECISION_TIME_MS - 1_000,
-                    DECISION_TIME_MS + 100_000,
+                    DECISION_TIME_MS + 10_000_000,
                 ),
                 value: PackState::Cooling,
             },
@@ -778,7 +781,7 @@ mod tests {
         input.jobs[0].pack_state.value = PackState::Quarantined;
         let report = evaluate_battery_charge_queue(&input).unwrap();
         assert!(!report.assignments.iter().any(|assignment| assignment.job_id == "job-a"));
-        assert!(report.findings.iter().any(|finding| finding == "no_evidence_valid_deadline_feasible_placement:job-a"));
+        assert!(report.findings.iter().any(|finding| finding == "pack_not_charge_ready:job-a"));
     }
 
     #[test]
