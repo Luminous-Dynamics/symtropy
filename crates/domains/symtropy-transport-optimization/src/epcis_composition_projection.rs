@@ -1250,7 +1250,7 @@ mod tests {
 
     #[test]
     fn projection_is_deterministic_under_source_arrival_permutation() {
-        let first = envelope(
+        let mut first = envelope(
             "permutation-a",
             1,
             AggregationAction::Add,
@@ -1258,6 +1258,14 @@ mod tests {
             &["pallet-1"],
             Vec::new(),
         );
+        first.time_qualification = ProjectionTimeQualification::Qualified {
+            time_basis_id: "UTC(ZA)".to_string(),
+            tick_quantum_id: "SI_NANOSECOND".to_string(),
+            time_evidence_id: canonical_event_time_evidence_id(&source_ref(&first)),
+            time_evidence_sha256: "c".repeat(64),
+            earliest_event_time_ticks: 990,
+            latest_event_time_ticks: 1_005,
+        };
         let mut second = envelope(
             "permutation-b",
             1,
