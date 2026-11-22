@@ -60,3 +60,30 @@ The released Akribeia paper references DiffLearning v2.1.1 and the deterministic
 ## Current research frontier
 
 The next mathematical bottleneck remains the finite-coupling lower-order horizon residue. A direct lambda=1/2 action-specialized experiment exposed removable horizon 0/0 terms and did not yield a qualified residue; no finite-coupling residue is claimed. Next work should reuse the exact scaled-row and algebraic-pivot reduction, specialize rational coupling before coefficient expansion, and calculate only the horizon jets needed for C0,s0 before considering A1(lambda).
+
+
+## A3 Einstein-limit horizon-series extension (22 November 2026)
+
+New files:
+- `derive_spin2_mp_horizon_frobenius_A3.py`: direct alpha=0 action-specialized derivation; five radial fields are varied before imposing the radial gauge.
+- `spin2_mp_frobenius_A3_v1.json` and `spin2_mp_frobenius_A3_v1.md`: exact A0..A3, g0..g3 and analytic U0..U3.
+- `verify_spin2_mp_frobenius_A3.py`: exact-rational recurrence and Myers–Perry verifier.
+- `spin2_mp_frobenius_A3_replay_v1.json`: source, fixture, verifier, and replay boundaries.
+
+The new coefficients are
+`A3=[[0,0,0,0],[0,-3,-97/4,-43/8],[0,0,0,0],[0,0,-51/4,23/8]]`,
+`g3=(0,2849/3,0,209)`.
+For the analytic branch, with b1=Bhat2'(1), h0=Hhat2(1):
+`U3=(2*b1-44, 444-10*b1, 8*h0-12, 8*h0+12)`.
+The same two local horizon data remain free. The Myers–Perry U3 vector is (-52,484,-4,20). The exact public A3 fixture and exact public verifier blobs were replayed locally; all recurrences n=0..3 passed. The action-specialized derivation source was executed locally, while exact-byte execution of its committed public copy is still pending.
+
+## SOTA and reproduction additions
+
+- `spin2_sota_benchmark_scorecard_v1.md`: separates discovery/refinement, mathematical qualification, and PDE hyperbolicity; defines proposed metrics such as validated branch yield, qualification conversion, proof latency, proof debt, and claim coverage.
+- `spin2_akribeia_reproduction_manifest_v1.json`: records the paper/README dependency-pin discrepancy, inspected code-file blob identities, the observed 5D configuration, and the conditions needed for a source-faithful reproduction.
+
+The source audit is not a completed Akribeia run. The local environment has no detected Wolfram Engine, and no Akribeia training or spectral refinement is claimed.
+
+## Remaining frontier
+
+The finite-coupling lower-order residue is still open. The lambda=1/2 specialization attempt encountered removable horizon 0/0 expressions and did not yield a qualified result; this is a symbolic-computation bottleneck, not evidence of mathematical singularity. Priorities remain rational-coupling jet extraction, infinity modes, global boundary-map rank/Fredholm index, finite-coupling BVP, and interval/continuation qualification.
