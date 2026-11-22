@@ -1,0 +1,84 @@
+{
+  "schema_version": "nav-generalization-split/v0.1",
+  "fold_id": "leave-site-new-out",
+  "protocol": "leave_one_environment_out",
+  "holdout_axis": "environment_id",
+  "held_out_value": "site-new",
+  "records": [
+    {
+      "record_id": "train-001",
+      "dataset_id": "dataset-indoor-a",
+      "sequence_group_id": "seq-train-01",
+      "event_id": "event-train-01",
+      "environment_id": "site-lab-a",
+      "device_id": "tag-01",
+      "firmware_id": "fw-1.2",
+      "event_class": "multipath",
+      "failure_domain_ids": [
+        "site-lab-a-power",
+        "tag-01-clock"
+      ],
+      "split": "train"
+    },
+    {
+      "record_id": "train-002",
+      "dataset_id": "dataset-indoor-a",
+      "sequence_group_id": "seq-train-02",
+      "event_id": "event-train-02",
+      "environment_id": "site-lab-b",
+      "device_id": "tag-02",
+      "firmware_id": "fw-1.2",
+      "event_class": "nlos",
+      "failure_domain_ids": [
+        "site-lab-b-power",
+        "tag-02-clock"
+      ],
+      "split": "train"
+    },
+    {
+      "record_id": "validation-001",
+      "dataset_id": "dataset-indoor-a",
+      "sequence_group_id": "seq-validation-01",
+      "event_id": "event-validation-01",
+      "environment_id": "site-lab-a",
+      "device_id": "tag-03",
+      "firmware_id": "fw-1.3",
+      "event_class": "clock-drift",
+      "failure_domain_ids": [
+        "site-lab-a-power",
+        "tag-03-clock"
+      ],
+      "split": "validation"
+    },
+    {
+      "record_id": "test-001",
+      "dataset_id": "dataset-held-out",
+      "sequence_group_id": "seq-test-01",
+      "event_id": "event-test-01",
+      "environment_id": "site-new",
+      "device_id": "tag-04",
+      "firmware_id": "fw-2.0",
+      "event_class": "dynamic-obstruction",
+      "failure_domain_ids": [
+        "site-new-power",
+        "tag-04-clock"
+      ],
+      "split": "test"
+    },
+    {
+      "record_id": "test-002",
+      "dataset_id": "dataset-held-out",
+      "sequence_group_id": "seq-test-02",
+      "event_id": "event-test-02",
+      "environment_id": "site-new",
+      "device_id": "tag-05",
+      "firmware_id": "fw-2.0",
+      "event_class": "dynamic-obstruction",
+      "failure_domain_ids": [
+        "site-new-power",
+        "tag-05-clock"
+      ],
+      "split": "test"
+    }
+  ]
+}
