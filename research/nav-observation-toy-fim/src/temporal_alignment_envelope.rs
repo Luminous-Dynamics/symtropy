@@ -1,0 +1,231 @@
+//! Deterministic pose-misalignment envelope from bounded clock error and motion.
+//!
+//! The result is a conservative first-order/constant-acceleration displacement
+//! envelope for a declared time-misalignment bound. It is not a covariance,
+//! probability, protection level or integrity certificate. The caller must
+//! independently qualify every clock, age, motion and lever-arm bound.
+
+use std::f64::consts::PI;
+use std::fmt;
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct TemporalAlignmentBounds {
+    /// Maximum absolute relative clock offset at the last synchronization, seconds.
+    pub max_abs_offset_s: f64,
+    /// Maximum absolute relative clock scale error, parts per million.
+    pub max_abs_clock_drift_ppm: f64,
+    /// Elapsed time since the last qualified synchronization, seconds.
+    pub elapsed_since_sync_s: f64,
+    /// Maximum age of the measurement relative to the output epoch, seconds.
+    pub max_observation_age_s: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct MotionEnvelope {
+    /// Maximum translational speed of the navigation reference point, m/s.
+    pub max_linear_speed_mps: f64,
+    /// Maximum translational acceleration magnitude, m/s^2.
+    pub max_linear_acceleration_mps2: f64,
+    /// Maximum angular rate magnitude, rad/s.
+    pub max_angular_rate_radps: f64,
+    /// Maximum angular acceleration magnitude, rad/s^2.
+    pub max_angular_acceleration_radps2: f64,
+    /// Distance from the navigation reference point to the sensor origin, metres.
+    pub sensor_lever_arm_m: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct TemporalMisalignmentEnvelope {
+    pub clock_offset_component_s: f64,
+    pub clock_drift_component_s: f64,
+    pub observation_age_component_s: f64,
+    pub total_time_misalignment_bound_s: f64,
+    pub linear_motion_displacement_bound_m: f64,
+    pub angular_misalignment_bound_rad: f64,
+    pub rotational_lever_arm_displacement_bound_m: f64,
+    pub total_position_misalignment_bound_m: f64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum TemporalAlignmentError {
+    NonFiniteOrNegativeInput,
+    ClockDriftBoundTooLarge,
+    NonFiniteOutput,
+}
+
+impl fmt::Display for TemporalAlignmentError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::NonFiniteOrNegativeInput => write!(f, "temporal and motion bounds must be finite and nonnegative"),
+            Self::ClockDriftBoundTooLarge => write!(f, "relative clock drift bound must not exceed 1,000,000 ppm"),
+            Self::NonFiniteOutput => write!(f, "temporal misalignment envelope overflowed or became non-finite"),
+        }
+    }
+}
+impl std::error::Error for TemporalAlignmentError {}
+
+fn all_finite_nonnegative(values: &[f64]) -> bool {
+    values.iter().all(|value| value.is_finite() && *value >= 0.0)
+}
+
+/// Compute a deterministic position/orientation error envelope from bounded
+/// relative clock offset, clock scale drift, observation age and motion.
+///
+/// Relative skew is bounded by:
+/// `offset + drift_ppm * 1e-6 * elapsed_since_sync + observation_age`.
+///
+/// Translational displacement is bounded by `v_max * dt + 0.5 * a_max * dt^2`.
+/// Angular displacement uses the analogous rate/acceleration expression.
+/// Rotational lever-arm displacement is bounded by the chord length
+/// `2 * r * sin(min(theta, pi)/2)`.
+///
+/// The result is a deterministic sensitivity bound, not a probability or PL.
+pub fn temporal_misalignment_envelope(
+    clock: TemporalAlignmentBounds,
+    motion: MotionEnvelope,
+) -> Result<TemporalMisalignmentEnvelope, TemporalAlignmentError> {
+    let temporal = [
+        clock.max_abs_offset_s,
+        clock.max_abs_clock_drift_ppm,
+        clock.elapsed_since_sync_s,
+        clock.max_observation_age_s,
+    ];
+    let physical = [
+        motion.max_linear_speed_mps,
+        motion.max_linear_acceleration_mps2,
+        motion.max_angular_rate_radps,
+        motion.max_angular_acceleration_radps2,
+        motion.sensor_lever_arm_m,
+    ];
+    if !all_finite_nonnegative(&temporal) || !all_finite_nonnegative(&physical) {
+        return Err(TemporalAlignmentError::NonFiniteOrNegativeInput);
+    }
+    if clock.max_abs_clock_drift_ppm > 1_000_000.0 {
+        return Err(TemporalAlignmentError::ClockDriftBoundTooLarge);
+    }
+
+    let clock_drift_component_s =
+        clock.max_abs_clock_drift_ppm * 1.0e-6 * clock.elapsed_since_sync_s;
+    let total_time_misalignment_bound_s = clock.max_abs_offset_s
+        + clock_drift_component_s
+        + clock.max_observation_age_s;
+    let dt = total_time_misalignment_bound_s;
+    let linear_motion_displacement_bound_m =
+        motion.max_linear_speed_mps * dt
+            + 0.5 * motion.max_linear_acceleration_mps2 * dt * dt;
+    let angular_misalignment_bound_rad =
+        motion.max_angular_rate_radps * dt
+            + 0.5 * motion.max_angular_acceleration_radps2 * dt * dt;
+    let bounded_angle = angular_misalignment_bound_rad.min(PI);
+    let rotational_lever_arm_displacement_bound_m =
+        2.0 * motion.sensor_lever_arm_m * (0.5 * bounded_angle).sin();
+    let total_position_misalignment_bound_m =
+        linear_motion_displacement_bound_m + rotational_lever_arm_displacement_bound_m;
+
+    let output = TemporalMisalignmentEnvelope {
+        clock_offset_component_s: clock.max_abs_offset_s,
+        clock_drift_component_s,
+        observation_age_component_s: clock.max_observation_age_s,
+        total_time_misalignment_bound_s,
+        linear_motion_displacement_bound_m,
+        angular_misalignment_bound_rad,
+        rotational_lever_arm_displacement_bound_m,
+        total_position_misalignment_bound_m,
+    };
+    let values = [
+        output.clock_drift_component_s,
+        output.total_time_misalignment_bound_s,
+        output.linear_motion_displacement_bound_m,
+        output.angular_misalignment_bound_rad,
+        output.rotational_lever_arm_displacement_bound_m,
+        output.total_position_misalignment_bound_m,
+    ];
+    if !values.iter().all(|value| value.is_finite() && *value >= 0.0) {
+        return Err(TemporalAlignmentError::NonFiniteOutput);
+    }
+    Ok(output)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn clock(offset: f64, drift_ppm: f64, elapsed: f64, age: f64) -> TemporalAlignmentBounds {
+        TemporalAlignmentBounds {
+            max_abs_offset_s: offset,
+            max_abs_clock_drift_ppm: drift_ppm,
+            elapsed_since_sync_s: elapsed,
+            max_observation_age_s: age,
+        }
+    }
+
+    fn motion(speed: f64, accel: f64, omega: f64, alpha: f64, lever: f64) -> MotionEnvelope {
+        MotionEnvelope {
+            max_linear_speed_mps: speed,
+            max_linear_acceleration_mps2: accel,
+            max_angular_rate_radps: omega,
+            max_angular_acceleration_radps2: alpha,
+            sensor_lever_arm_m: lever,
+        }
+    }
+
+    #[test]
+    fn zero_clock_age_and_motion_produce_zero_envelope() {
+        let result = temporal_misalignment_envelope(clock(0.0, 0.0, 0.0, 0.0), motion(0.0, 0.0, 0.0, 0.0, 0.0)).unwrap();
+        assert_eq!(result.total_time_misalignment_bound_s, 0.0);
+        assert_eq!(result.total_position_misalignment_bound_m, 0.0);
+        assert_eq!(result.angular_misalignment_bound_rad, 0.0);
+    }
+
+    #[test]
+    fn offset_and_age_propagate_through_linear_motion_bound() {
+        let result = temporal_misalignment_envelope(clock(0.01, 0.0, 0.0, 0.02), motion(2.0, 0.0, 0.0, 0.0, 0.0)).unwrap();
+        assert!((result.total_time_misalignment_bound_s - 0.03).abs() < 1.0e-12);
+        assert!((result.linear_motion_displacement_bound_m - 0.06).abs() < 1.0e-12);
+        assert_eq!(result.rotational_lever_arm_displacement_bound_m, 0.0);
+    }
+
+    #[test]
+    fn clock_scale_drift_accumulates_since_last_qualified_sync() {
+        let result = temporal_misalignment_envelope(clock(0.0, 50.0, 1_000.0, 0.0), motion(3.0, 0.0, 0.0, 0.0, 0.0)).unwrap();
+        assert!((result.clock_drift_component_s - 0.05).abs() < 1.0e-12);
+        assert!((result.linear_motion_displacement_bound_m - 0.15).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn angular_skew_propagates_to_sensor_lever_arm_position_error() {
+        let result = temporal_misalignment_envelope(clock(0.0, 0.0, 0.0, 0.1), motion(0.0, 0.0, 1.0, 0.0, 1.0)).unwrap();
+        let expected = 2.0 * (0.05_f64).sin();
+        assert!((result.angular_misalignment_bound_rad - 0.1).abs() < 1.0e-12);
+        assert!((result.rotational_lever_arm_displacement_bound_m - expected).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn acceleration_bounds_contribute_quadratically() {
+        let result = temporal_misalignment_envelope(clock(0.0, 0.0, 0.0, 0.1), motion(0.0, 2.0, 0.0, 2.0, 0.5)).unwrap();
+        assert!((result.linear_motion_displacement_bound_m - 0.01).abs() < 1.0e-12);
+        assert!((result.angular_misalignment_bound_rad - 0.01).abs() < 1.0e-12);
+        assert!((result.rotational_lever_arm_displacement_bound_m - 2.0 * 0.5 * (0.005_f64).sin()).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn increasing_clock_age_or_observation_age_never_reduces_the_bound() {
+        let fast_sync = temporal_misalignment_envelope(clock(0.001, 100.0, 10.0, 0.01), motion(5.0, 1.0, 0.4, 0.2, 0.4)).unwrap();
+        let stale_sync = temporal_misalignment_envelope(clock(0.001, 100.0, 100.0, 0.01), motion(5.0, 1.0, 0.4, 0.2, 0.4)).unwrap();
+        let stale_observation = temporal_misalignment_envelope(clock(0.001, 100.0, 10.0, 0.05), motion(5.0, 1.0, 0.4, 0.2, 0.4)).unwrap();
+        assert!(stale_sync.total_position_misalignment_bound_m > fast_sync.total_position_misalignment_bound_m);
+        assert!(stale_observation.total_position_misalignment_bound_m > fast_sync.total_position_misalignment_bound_m);
+    }
+
+    #[test]
+    fn invalid_inputs_and_unreasonable_clock_drift_fail_closed() {
+        assert_eq!(temporal_misalignment_envelope(clock(-0.1, 0.0, 0.0, 0.0), motion(1.0, 0.0, 0.0, 0.0, 0.0)), Err(TemporalAlignmentError::NonFiniteOrNegativeInput));
+        assert_eq!(temporal_misalignment_envelope(clock(0.0, 1_000_001.0, 1.0, 0.0), motion(1.0, 0.0, 0.0, 0.0, 0.0)), Err(TemporalAlignmentError::ClockDriftBoundTooLarge));
+        assert_eq!(temporal_misalignment_envelope(clock(0.0, f64::NAN, 1.0, 0.0), motion(1.0, 0.0, 0.0, 0.0, 0.0)), Err(TemporalAlignmentError::NonFiniteOrNegativeInput));
+    }
+
+    #[test]
+    fn arithmetic_overflow_fails_closed() {
+        assert_eq!(temporal_misalignment_envelope(clock(0.0, 0.0, 0.0, 1.0e200), motion(1.0e200, 0.0, 0.0, 0.0, 0.0)), Err(TemporalAlignmentError::NonFiniteOutput));
+    }
+}
