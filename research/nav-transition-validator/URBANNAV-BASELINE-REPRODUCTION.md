@@ -111,6 +111,15 @@ Reference:
 - https://doi.org/10.1109/TITS.2020.2983681
 - https://www.mdpi.com/1424-8220/26/16/5140 (Section 5.1)
 
+
+## 3B. Executable controller and pointwise / breach-event metric harnesses
+
+Two downstream implementations are being developed separately from the route parser:
+- [Adaptive PID + Student-t PL equation-level harness PR #6737](https://github.com/Luminous-Dynamics/symtropy/pull/6737): controller equations, the Al Hage 2D Student-t PL equations and a 2D radial-tail multiplier helper. It does not produce an ES-EKF covariance or raw LiDAR/IMU residuals.
+- [Protection-level trace metrics PR #6745](https://github.com/Luminous-Dynamics/symtropy/pull/6745): pointwise Stanford exceedance, distinct contiguous breach episodes, support-time above PL, invalid-truth accounting and maximum breach duration. It consumes explicit support intervals; it does not infer sample duration from row frequency.
+
+These harnesses make the evaluation pipeline executable before route-specific sensor parsing is finished. They are not a paper reproduction or a physical result until fed from the same timestamp/frame/calibration-qualified UrbanNav run and exact baseline configurations.
+
 ## 4. Primary baseline B: adaptive temporal Kalman filter plus solution separation
 
 **Luo, Sun and Fu**, “ATM: Adaptive Temporal Kalman Filter-Based Solution Separation Method for Positioning and Integrity Monitoring”, IEEE Transactions on Instrumentation and Measurement 75 (2026), DOI 10.1109/TIM.2026.3670522.
