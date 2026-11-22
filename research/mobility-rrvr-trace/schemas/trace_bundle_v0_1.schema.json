@@ -33,6 +33,7 @@
             "property_id": { "$ref": "#/$defs/identifier" },
             "violation_class": { "$ref": "#/$defs/identifier" },
             "witness_event_id": { "$ref": "#/$defs/identifier" },
+            "witness_state_commitment": { "$ref": "#/$defs/commitment" },
             "witness_state_commitment": { "$ref": "#/$defs/commitment" }
           }
         }
@@ -62,7 +63,8 @@
               "physical_effect_observed", "physical_no_effect_observed",
               "physical_outcome_unknown", "mission_resolution_recorded",
               "recovery_permit_issued", "fresh_ticket_created", "native_recovery_accepted",
-              "recovery_command_applied", "recovery_command_no_effect",
+              "recovery_command_applied", "recovery_command_no_effect", "recovery_command_partial",
+              "m1_authority_revoked", "m2_applicability_revoked", "live_binding_invalidated",
               "naive_retry_attempted", "observer_common_cause_injected",
               "observer_sample_captured", "telemetry_captured", "trace_flushed", "other"
             ]
