@@ -565,6 +565,76 @@ mod tests {
     }
 
     #[test]
+    fn child_can_be_disaggregated_then_reparented_without_identity_change() {
+        let modules = modules(&["CONTAINER_A", "CONTAINER_B", "PALLET"]);
+        let events = vec![
+            event("ADD-A", 10, "CONTAINER_A", "PALLET", MembershipAction::Add),
+            event("DELETE-A", 20, "CONTAINER_A", "PALLET", MembershipAction::Delete),
+            event("ADD-B", 30, "CONTAINER_B", "PALLET", MembershipAction::Add),
+        ];
+        let report = evaluate_composition(&modules, &events, 100).unwrap();
+
+        assert!(report.is_qualified());
+        assert_eq!(
+            report.active_memberships,
+            BTreeSet::from([Membership {
+                parent_module_id: "CONTAINER_B".to_string(),
+                child_module_id: "PALLET".to_string(),
+            }])
+        );
+        assert_eq!(
+            report.count_modules(ModuleCountBasis::AllModuleIdentities).unwrap(),
+            3
+        );
+        assert_eq!(
+            report.count_modules(ModuleCountBasis::RootHandlingUnits).unwrap(),
+            2
+        );
+        assert_eq!(
+            report.count_modules(ModuleCountBasis::LeafHandlingUnits).unwrap(),
+            2
+        );
+    }
+
+    #[test]
+    fn missing_evidence_reference_blocks_composition_and_count_projection() {
+        let modules = modules(&["CONTAINER", "PALLET"]);
+        let mut missing = event("ADD", 10, "CONTAINER", "PALLET", MembershipAction::Add);
+        missing.evidence_id.clear();
+        let report = evaluate_composition(&modules, &[missing], 100).unwrap();
+
+        assert!(!report.is_qualified());
+        assert_eq!(
+            report
+                .failures
+                .get(&CompositionFailure::MissingEvidenceReference),
+            Some(&1)
+        );
+        assert_eq!(
+            report.count_modules(ModuleCountBasis::AllModuleIdentities),
+            Err(CompositionProjectionError::UnqualifiedComposition)
+        );
+    }
+
+    #[test]
+    fn historical_cutoff_replays_only_membership_events_visible_at_that_time() {
+        let modules = modules(&["CONTAINER", "PALLET"]);
+        let add = event("ADD", 10, "CONTAINER", "PALLET", MembershipAction::Add);
+        let mut delete = event("DELETE", 20, "CONTAINER", "PALLET", MembershipAction::Delete);
+        delete.published_at = 30;
+
+        let before_publication = evaluate_composition(&modules, &[add.clone(), delete.clone()], 20)
+            .unwrap();
+        let after_publication =
+            evaluate_composition(&modules, &[add, delete], 30).unwrap();
+
+        assert_eq!(before_publication.active_edges(), 1);
+        assert_eq!(after_publication.active_edges(), 0);
+        assert!(before_publication.is_qualified());
+        assert!(after_publication.is_qualified());
+    }
+
+    #[test]
     fn unmatched_delete_is_a_visible_failure() {
         let modules = modules(&["CONTAINER", "PALLET"]);
         let events = vec![event(
