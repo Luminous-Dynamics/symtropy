@@ -242,9 +242,7 @@ pub fn import_tlc_json_trace(
             .as_array()
             .filter(|items| items.len() == 3)
             .ok_or(TlcImportError::ActionFrameShape(index + 1))?;
-        if action_frame[0] != state_values[index]
-            || action_frame[2] != state_values[index + 1]
-        {
+        if action_frame[0] != state_values[index] || action_frame[2] != state_values[index + 1] {
             return Err(TlcImportError::DisconnectedTransition(index + 1));
         }
 
@@ -428,11 +426,7 @@ pub fn trace_bundle_to_json_value(bundle: &TraceBundle) -> Value {
 mod tests {
     use super::*;
 
-    fn context<'a>(
-        model: &'a [u8],
-        config: &'a [u8],
-        tool: &'a [u8],
-    ) -> TlcImportContext<'a> {
+    fn context<'a>(model: &'a [u8], config: &'a [u8], tool: &'a [u8]) -> TlcImportContext<'a> {
         TlcImportContext {
             bundle_id: "tlc-import-test-001",
             system_id: "synthetic-rrvr-system",
@@ -516,10 +510,7 @@ mod tests {
             bundle.header.target_failure.witness_event_id,
             "tlc-action-001-ReserveAttempt"
         );
-        assert_eq!(
-            bundle.artifacts[0].raw_artifact_commitment,
-            sha256(&bytes)
-        );
+        assert_eq!(bundle.artifacts[0].raw_artifact_commitment, sha256(&bytes));
         assert_eq!(bundle.artifacts.len(), 4);
         assert_eq!(validate_trace_bundle(&bundle), TraceValidation::Valid);
     }
@@ -538,9 +529,22 @@ mod tests {
         .expect("full TLC import");
 
         assert_eq!(bundle.events.len(), 30);
-        assert_eq!(bundle.events.last().expect("last event").kind, TraceEventKind::NaiveRetryAttempted);
-        assert_eq!(bundle.events.last().expect("last event").predecessor_event_ids, vec![bundle.events[28].event_id.clone()]);
-        assert_eq!(bundle.header.target_failure.witness_event_id, bundle.events[29].event_id);
+        assert_eq!(
+            bundle.events.last().expect("last event").kind,
+            TraceEventKind::NaiveRetryAttempted
+        );
+        assert_eq!(
+            bundle
+                .events
+                .last()
+                .expect("last event")
+                .predecessor_event_ids,
+            vec![bundle.events[28].event_id.clone()]
+        );
+        assert_eq!(
+            bundle.header.target_failure.witness_event_id,
+            bundle.events[29].event_id
+        );
     }
 
     #[test]
@@ -579,7 +583,9 @@ mod tests {
                 &unknown,
                 &context(b"model source", b"model config", b"TLC jar bytes")
             ),
-            Err(TlcImportError::UnknownAction("NotADeclaredAction".to_owned()))
+            Err(TlcImportError::UnknownAction(
+                "NotADeclaredAction".to_owned()
+            ))
         );
 
         let mut value: Value = serde_json::from_slice(&tlc_trace(&["ReserveAttempt"])).unwrap();
@@ -608,8 +614,7 @@ mod tests {
             Err(TlcImportError::StateIndexMismatch(2))
         );
 
-        let mut missing_s: Value =
-            serde_json::from_slice(&tlc_trace(&["ReserveAttempt"])).unwrap();
+        let mut missing_s: Value = serde_json::from_slice(&tlc_trace(&["ReserveAttempt"])).unwrap();
         missing_s["counterexample"]["state"][0][1] = json!({"other": true});
         let bytes = serde_json::to_vec(&missing_s).unwrap();
         assert_eq!(
