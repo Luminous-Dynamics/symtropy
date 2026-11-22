@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/mobility-downstream-fence-v0.1.json",
+  "title": "Mobility Downstream Command-Path Fence Evidence v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "inventory", "transition", "receipts", "native_sink_calls"],
+  "properties": {
+    "version": { "const": "0.1" },
+    "native_sink_calls": { "const": 0 },
+    "inventory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stack_id", "profile_revision", "stack_configuration_commitment", "inventory_commitment", "layers"],
+      "properties": {
+        "stack_id": { "$ref": "#/$defs/identifier" },
+        "profile_revision": { "$ref": "#/$defs/identifier" },
+        "stack_configuration_commitment": { "$ref": "#/$defs/commitment" },
+        "inventory_commitment": { "$ref": "#/$defs/commitment" },
+        "layers": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["layer_id", "path_index", "kind", "configuration_commitment", "sequence_generation_id", "owner_failure_domain_id"],
+            "properties": {
+              "layer_id": { "$ref": "#/$defs/identifier" },
+              "path_index": { "type": "integer", "minimum": 0, "maximum": 63 },
+              "kind": { "$ref": "#/$defs/identifier" },
+              "configuration_commitment": { "$ref": "#/$defs/commitment" },
+              "sequence_generation_id": { "$ref": "#/$defs/identifier" },
+              "owner_failure_domain_id": { "$ref": "#/$defs/identifier" }
+            }
+          }
+        }
+      }
+    },
+    "transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["logical_effect_id", "old_attempt_id", "old_boot_epoch_id", "new_boot_epoch_id", "old_controller_epoch", "new_controller_epoch"],
+      "properties": {
+        "logical_effect_id": { "$ref": "#/$defs/identifier" },
+        "old_attempt_id": { "$ref": "#/$defs/identifier" },
+        "old_boot_epoch_id": { "$ref": "#/$defs/identifier" },
+        "new_boot_epoch_id": { "$ref": "#/$defs/identifier" },
+        "old_controller_epoch": { "type": "integer", "minimum": 0 },
+        "new_controller_epoch": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "receipts": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "receipt_id", "evidence_id", "layer_id", "layer_configuration_commitment",
+          "stack_configuration_commitment", "inventory_commitment", "logical_effect_id",
+          "old_attempt_id", "old_boot_epoch_id", "new_boot_epoch_id",
+          "old_controller_epoch", "new_controller_epoch", "sequence_generation_id",
+          "last_accepted_sequence", "last_retired_sequence", "outstanding_commands",
+          "disposition", "issuer_failure_domain_id", "verifier_failure_domain_id",
+          "raw_evidence_commitment"
+        ],
+        "properties": {
+          "receipt_id": { "$ref": "#/$defs/identifier" },
+          "evidence_id": { "$ref": "#/$defs/identifier" },
+          "layer_id": { "$ref": "#/$defs/identifier" },
+          "layer_configuration_commitment": { "$ref": "#/$defs/commitment" },
+          "stack_configuration_commitment": { "$ref": "#/$defs/commitment" },
+          "inventory_commitment": { "$ref": "#/$defs/commitment" },
+          "logical_effect_id": { "$ref": "#/$defs/identifier" },
+          "old_attempt_id": { "$ref": "#/$defs/identifier" },
+          "old_boot_epoch_id": { "$ref": "#/$defs/identifier" },
+          "new_boot_epoch_id": { "$ref": "#/$defs/identifier" },
+          "old_controller_epoch": { "type": "integer", "minimum": 0 },
+          "new_controller_epoch": { "type": "integer", "minimum": 1 },
+          "sequence_generation_id": { "$ref": "#/$defs/identifier" },
+          "last_accepted_sequence": { "type": "integer", "minimum": 0 },
+          "last_retired_sequence": { "type": "integer", "minimum": 0 },
+          "outstanding_commands": { "type": "integer", "minimum": 0 },
+          "disposition": {
+            "enum": ["quiescent", "cancelled", "drained", "not_quiescent", "unknown", "disputed", "unsupported"]
+          },
+          "issuer_failure_domain_id": { "$ref": "#/$defs/identifier" },
+          "verifier_failure_domain_id": { "$ref": "#/$defs/identifier" },
+          "raw_evidence_commitment": { "$ref": "#/$defs/commitment" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "identifier": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "\\S" },
+    "commitment": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" }
+  }
+}
