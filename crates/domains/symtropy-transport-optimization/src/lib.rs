@@ -15,6 +15,8 @@
 //! minor units of the network's explicitly declared currency. Risk fields are
 //! comparable proxies only when every edge uses the same documented risk model.
 
+pub mod cargo_composition;
+
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fmt;
 
