@@ -66,6 +66,42 @@ w^TU_0=\frac83
 \]
 There is one scalar compatibility condition, not a second independent equation hidden in the duplicate rows.
 
+### 2.1 Exact horizon-adapted coordinates
+
+Choose the columns of
+\[
+T=\begin{pmatrix}
+1&0&0&0\\
+0&1&0&1\\
+0&0&1&0\\
+0&0&6&3
+\end{pmatrix},\qquad \det T=3,
+\]
+as a basis of three zero-eigenvalue vectors and the \(-1\)-eigenvector. The inverse state transformation is
+\[
+\widetilde U=T^{-1}U=
+\begin{pmatrix}
+\widehat B_2\\
+\widehat B_2'+2\widehat H_2-\widehat H_2'/3\\
+\widehat H_2\\
+\widehat H_2'/3-2\widehat H_2
+\end{pmatrix}.
+\]
+Direct exact multiplication gives
+\[
+\boxed{T^{-1}A_0T=\operatorname{diag}(0,0,0,-1)},\qquad
+\boxed{T^{-1}g_0=(0,0,0,-8/3)^T}.
+\]
+Thus the fourth transformed coordinate is precisely the singular-mode amplitude, while the first three coordinates span the analytic eigenspace. The leading inhomogeneous horizon equation fixes that fourth coordinate to
+\[
+\widetilde U_4(0)=\widehat H_2'(1)/3-2\widehat H_2(1)=-8/3.
+\]
+With the existing normalization \(\widehat B_2(1)=0\), the horizon data become
+\[
+\boxed{\widetilde U(0)=(0,\widehat B_2'(1)+8/3,\widehat H_2(1),-8/3)^T.}
+\]
+The two unconstrained local data are therefore \(\widehat B_2'(1)\) and \(\widehat H_2(1)\). This basis is a practical solver coordinate system: it isolates the excluded singular direction and imposes the inhomogeneous regularity condition as a fixed endpoint value, rather than mixing it with the regular variables.
+
 ## 3. The analytic branch has no positive-order resonance
 
 Write an analytic solution and analytic source as
