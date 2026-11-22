@@ -36,6 +36,21 @@ cargo clippy --offline --locked --all-targets -- -D warnings
 - Only an acceptance by the declared receiver with a RECEIVER_RECEIPT evidence class qualifies as a receiver-receipted arrival.
 - Every box is an indivisible quantity of one BOX. This is not a TEU, tonnes, move-count or consignment ledger.
 
+## Temporal partial-order primitive
+
+The package also exposes a standalone, conservative event-time comparison primitive:
+
+- each event has a closed interval in a declared normalized time basis;
+- disjoint intervals produce a proof-grade order only when both bounds are marked as qualified enclosures;
+- disjoint estimate-only or mixed-quality bounds produce an estimated order, never a proof-grade order;
+- touching or overlapping intervals remain unresolved; identical singleton times are not a simultaneity certificate;
+- differing time-basis identifiers are incomparable;
+- pairwise reports are deterministic under input permutation and do not manufacture a total order.
+
+The primitive assumes the caller has normalized timestamps and qualified the enclosures. It does not validate clock synchronization, source timestamp semantics, the accuracy of a clock bound, or UTC/TAI conversion. The P0 custody state-machine evaluator still uses its exact synthetic ticks; interval-order integration into the custody transitions is a subsequent P1 step.
+
+Reuse the existing maritime timestamp owners (#1930/#1955/#1650) for source parsing, profile semantics and decision-time applicability. The interval-order concept is also related to the generic hybrid event-order work in [#3410](https://github.com/Luminous-Dynamics/symtropy/issues/3410) and the exact-rational interval reference in [#4113](https://github.com/Luminous-Dynamics/symtropy/issues/4113); this crate does not duplicate their continuous-simulation or exact-rational arithmetic scope.
+
 ## Frozen synthetic result
 
 The fixtures contain 11 rows: 10 visible at tick 200 and one future-published row. They include one three-handoff chain with a synthetic receiver receipt and one chain that remains pending after release. The correct result is one complete chain and one incomplete chain. The data contain no real DGT IDs, documents or cargo.
