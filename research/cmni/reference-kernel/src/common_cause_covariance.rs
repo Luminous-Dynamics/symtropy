@@ -103,7 +103,8 @@ pub struct ExperimentNoiseModel {
     /// False means unrecorded common-cause dependencies may remain.
     /// It never means those omitted dependencies have zero covariance.
     pub lineage_coverage_complete: bool,
-    /// Whether dependence between different source IDs is fully specified.
+    /// Portfolio-scope qualification for dependence between different source IDs.
+    /// The receipt must cover the complete set of IDs in the assembled portfolio.
     /// Distinct IDs are otherwise mathematically added as independent blocks.
     pub inter_source_dependence: InterSourceDependenceQualification,
 }
@@ -289,9 +290,16 @@ pub fn assemble_joint_experiment_covariance(
         lineage_coverage_complete: experiments
             .iter()
             .all(|experiment| experiment.lineage_coverage_complete),
-        inter_source_dependence_complete: experiments
-            .iter()
-            .all(|experiment| experiment.inter_source_dependence.is_qualified()),
+        inter_source_dependence_complete: {
+            let receipts: BTreeSet<&str> = experiments
+                .iter()
+                .filter_map(|experiment| experiment.inter_source_dependence.receipt_id())
+                .collect();
+            receipts.len() == 1
+                && experiments
+                    .iter()
+                    .all(|experiment| experiment.inter_source_dependence.is_qualified())
+        },
         inter_source_dependence_receipt_ids: experiments
             .iter()
             .filter_map(|experiment| experiment.inter_source_dependence.receipt_id())
@@ -649,6 +657,62 @@ mod tests {
         // The known marginal contributions remain numerically represented, but
         // the output is not an independence-qualified evidence model.
         assert_eq!(result.covariance, vec![vec![6.0]]);
+    }
+
+    #[test]
+    fn inter_source_receipt_must_cover_the_whole_joint_portfolio() {
+        let contribution = |source_id: &str| SharedUncertaintyContribution {
+            source_id: source_id.to_owned(),
+            source_covariance: vec![vec![2.0]],
+            observation_jacobian: vec![vec![1.0]],
+        };
+        let result = assemble_joint_experiment_covariance(&[
+            ExperimentNoiseModel {
+                experiment_id: "exp-detector".to_owned(),
+                independent_observation_covariance: vec![vec![1.0]],
+                shared_sources: vec![contribution("detector-calibration")],
+                lineage_coverage_complete: true,
+                inter_source_dependence:
+                    InterSourceDependenceQualification::joint_blocks_modelled(
+                        "receipt:detector-only",
+                    ),
+            },
+            ExperimentNoiseModel {
+                experiment_id: "exp-reference".to_owned(),
+                independent_observation_covariance: vec![vec![1.0]],
+                shared_sources: vec![contribution("reference-evaluation")],
+                lineage_coverage_complete: true,
+                inter_source_dependence:
+                    InterSourceDependenceQualification::joint_blocks_modelled(
+                        "receipt:reference-only",
+                    ),
+            },
+        ])
+        .expect("known marginal source covariance");
+        assert!(!result.inter_source_dependence_complete);
+        assert_eq!(
+            result.inter_source_dependence_receipt_ids,
+            vec!["receipt:detector-only", "receipt:reference-only"]
+        );
+        assert_eq!(result.covariance, vec![vec![3.0, 0.0], vec![0.0, 3.0]]);
+    }
+
+    #[test]
+    fn empty_inter_source_receipt_fails_closed() {
+        let result = assemble_joint_experiment_covariance(&[ExperimentNoiseModel {
+            experiment_id: "exp-empty-receipt".to_owned(),
+            independent_observation_covariance: vec![vec![1.0]],
+            shared_sources: Vec::new(),
+            lineage_coverage_complete: true,
+            inter_source_dependence:
+                InterSourceDependenceQualification::joint_blocks_modelled("  "),
+        }]);
+        assert_eq!(
+            result,
+            Err(ModelError::InvalidParameter(
+                "inter_source_dependence_receipt_must_be_nonempty"
+            ))
+        );
     }
 
     #[test]
