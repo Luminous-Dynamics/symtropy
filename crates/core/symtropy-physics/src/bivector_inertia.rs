@@ -1075,6 +1075,96 @@ mod tests {
         assert!((momentum.get(1, 2) - 0.25).abs() < 1e-12);
     }
 
+    fn assert_second_moment_map_matches_independent_dense_plane_operator<const D: usize>() {
+        // Strictly diagonally dominant, non-diagonal SPD second moment. The
+        // off-diagonal terms couple independent rotation planes.
+        let mut second_moment = SMatrix::<f64, D, D>::zeros();
+        for axis in 0..D {
+            second_moment[(axis, axis)] = 2.0 + axis as f64;
+        }
+        for row in 0..D {
+            for column in (row + 1)..D {
+                let value = 0.025 * ((row + 1) * (column + 2)) as f64;
+                second_moment[(row, column)] = value;
+                second_moment[(column, row)] = value;
+            }
+        }
+
+        let inertia = BivectorInertia::<D>::from_second_moment(second_moment).unwrap();
+        let planes = (0..D)
+            .flat_map(|i| ((i + 1)..D).map(move |j| (i, j)))
+            .collect::<Vec<_>>();
+        let dof = planes.len();
+        let mut dense_operator = vec![0.0; dof * dof];
+
+        // Independent coordinate construction from the defining trace
+        // identity I[a,b] = tr(E_a^T E_b S), where E_(i,j) has +1 at
+        // (i,j) and -1 at (j,i). This is deliberately assembled without
+        // calling BivectorInertia::angular_momentum or its internal map.
+        for (row, &(i, j)) in planes.iter().enumerate() {
+            let mut basis_row = SMatrix::<f64, D, D>::zeros();
+            basis_row[(i, j)] = 1.0;
+            basis_row[(j, i)] = -1.0;
+            for (column, &(k, l)) in planes.iter().enumerate() {
+                let mut basis_column = SMatrix::<f64, D, D>::zeros();
+                basis_column[(k, l)] = 1.0;
+                basis_column[(l, k)] = -1.0;
+                dense_operator[row * dof + column] =
+                    (basis_row.transpose() * basis_column * second_moment).trace();
+            }
+        }
+
+        let mut omega = Bivector::<D>::zero();
+        let mut omega_coordinates = Vec::with_capacity(dof);
+        for (index, &(i, j)) in planes.iter().enumerate() {
+            let value = 0.17 * (index as f64 + 1.0) - 0.31;
+            omega.set(i, j, value);
+            omega_coordinates.push(value);
+        }
+
+        let structured_momentum = inertia.angular_momentum(&omega).unwrap();
+        let mut dense_momentum = Bivector::<D>::zero();
+        for (row, &(i, j)) in planes.iter().enumerate() {
+            let expected = (0..dof)
+                .map(|column| dense_operator[row * dof + column] * omega_coordinates[column])
+                .sum::<f64>();
+            dense_momentum.set(i, j, expected);
+        }
+        let momentum_error = (structured_momentum.to_matrix() - dense_momentum.to_matrix()).norm();
+        assert!(
+            momentum_error < 1e-11,
+            "D={D}: structured/dense momentum mismatch {momentum_error:e}"
+        );
+
+        // Independent kinetic energy from the particle-distribution identity
+        // T = 1/2 tr(Omega^T Omega S), not from the operator's stored momentum.
+        let omega_matrix = omega.to_matrix();
+        let direct_energy =
+            0.5 * (omega_matrix.transpose() * omega_matrix * second_moment).trace();
+        let dense_energy = 0.5
+            * omega_coordinates
+                .iter()
+                .enumerate()
+                .map(|(row, value)| {
+                    value
+                        * (0..dof)
+                            .map(|column| {
+                                dense_operator[row * dof + column] * omega_coordinates[column]
+                            })
+                            .sum::<f64>()
+                })
+                .sum::<f64>();
+        let structured_energy = inertia.kinetic_energy(&omega).unwrap();
+        assert!((direct_energy - dense_energy).abs() < 1e-11);
+        assert!((direct_energy - structured_energy).abs() < 1e-11);
+    }
+
+    #[test]
+    fn structured_second_moment_map_matches_independent_dense_operator_in_3d_and_4d() {
+        assert_second_moment_map_matches_independent_dense_plane_operator::<3>();
+        assert_second_moment_map_matches_independent_dense_plane_operator::<4>();
+    }
+
     #[test]
     fn rotated_inertia_is_covariant_and_preserves_kinetic_energy() {
         let body_inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(
