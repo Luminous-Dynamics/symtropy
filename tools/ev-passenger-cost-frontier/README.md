@@ -105,6 +105,29 @@ Point estimates are not accepted as capability bounds: the energy/power inputs a
 
 The machine-readable input contract is `schemas/battery_service_network_v0_1.schema.json`; the frozen known-answer is `fixtures/battery_service_network_v0_1.json`. The focused workflow runs Rust formatting, tests, CLI evaluation and JSON assertions, and retains a report/hash artifact.
 
+## CHARGER-QUEUE-ORACLE-001 — exact fixed-duration charging queue
+
+Run:
+
+```bash
+cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin battery_charge_queue_screen -- \
+  tools/ev-passenger-cost-frontier/fixtures/battery_charge_queue_v0_1.json
+```
+
+This is a bounded exhaustive scheduler for up to four jobs, three charger channels and eight integer time slots. It models each charge as a fixed-duration, fixed-input-power block; requires the pack to be evidence-bound and in Cooling/charge-ready state at the planned start; requires exact pack-configuration digest compatibility; enforces one job per charger channel at a time; and enforces per-slot charging power no greater than site import cap less non-charging site load. Charger and site evidence must cover the horizon; grid evidence must cover each full slot.
+
+The objective is lexicographic: maximize completed jobs, minimize total waiting slots, minimize makespan, then deterministic identifiers. It reports declared grid input in watt-seconds (= requested charger input power × duration seconds). This is not pack-terminal energy: charging efficiency, charge curves, battery degradation and thermal evolution are not modeled.
+
+The synthetic fixture has four jobs, two charger channels and six 15-minute slots. Its exact known answer schedules:
+- job-a / pack-a on charger-1, slots [0,2), 3,000 W;
+- job-d / pack-d on charger-2, slots [0,3), 2,500 W;
+- job-b / pack-b on charger-1, slots [2,4), 3,500 W;
+- job-c is unserved because its release/deadline window is shorter than its three-slot fixed charge block.
+
+Site import cap is 8,000 W per slot and declared non-charging load is 1,000 W, leaving at most 7,000 W for charging. The known-answer report has 54 exact-search nodes and 18,450,000 declared watt-seconds of grid input across the three scheduled jobs.
+
+Schema: `schemas/battery_charge_queue_v0_1.schema.json`; fixture: `fixtures/battery_charge_queue_v0_1.json`; CLI: `src/bin/battery_charge_queue_screen.rs`.
+
 ## PACK-STATE-TRANSACTION-001 — evidence-bound pack event journal
 
 This v0.1 event-sourced reducer is tracked in [#6700](https://github.com/Luminous-Dynamics/symtropy/issues/6700).
