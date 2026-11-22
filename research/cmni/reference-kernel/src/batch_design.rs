@@ -204,6 +204,10 @@ pub fn enumerate_batch_portfolios(
             .map(|candidate| candidate.noise_model.clone())
             .collect();
         let joint = assemble_joint_experiment_covariance(&noise_models)?;
+        if require_complete_lineage && !joint.inter_source_dependence_complete {
+            skipped_unknown_inter_source_dependence_portfolios += 1;
+            continue;
+        }
         let mut design_jacobian = Vec::new();
         for candidate in &selected {
             design_jacobian.extend(candidate.design_jacobian.iter().cloned());
@@ -767,6 +771,26 @@ mod tests {
             true,
         )
         .expect("strict source-dependence qualification");
+        assert!(result.portfolios.is_empty());
+        assert_eq!(result.skipped_unknown_inter_source_dependence_portfolios, 1);
+    }
+
+    #[test]
+    fn strict_batch_design_requires_one_portfolio_scope_receipt() {
+        let mut candidate_a = candidate("A", [1.0, 0.0], 1.0, false, 0.0, true);
+        let mut candidate_b = candidate("B", [0.0, 1.0], 1.0, false, 0.0, true);
+        candidate_a.noise_model.inter_source_dependence =
+            InterSourceDependenceQualification::joint_blocks_modelled("receipt:scope-a");
+        candidate_b.noise_model.inter_source_dependence =
+            InterSourceDependenceQualification::joint_blocks_modelled("receipt:scope-b");
+        let result = enumerate_batch_portfolios(
+            &[candidate_a, candidate_b],
+            &[vec![1.0, 0.0], vec![0.0, 1.0]],
+            2,
+            2.0,
+            true,
+        )
+        .expect("portfolio scope qualification");
         assert!(result.portfolios.is_empty());
         assert_eq!(result.skipped_unknown_inter_source_dependence_portfolios, 1);
     }
