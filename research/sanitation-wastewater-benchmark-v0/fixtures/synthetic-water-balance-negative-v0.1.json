@@ -1,0 +1,104 @@
+{
+  "schema_version": "0.1.0",
+  "case_id": "san-t0.synthetic.water-balance-negative-001",
+  "case_class": "synthetic_accounting_only",
+  "evidence_ceiling": "arithmetic_conformance_only_no_physical_or_safety_claim",
+  "description": "Deliberately inconsistent synthetic water ledger used to verify that an accounting evaluator rejects unexplained mass residual. Invented test data only; not representative of a real plant.",
+  "model_scope": {
+    "process_kinetics": "not_modelled",
+    "pathogen_model": "not_modelled",
+    "physical_measurements": "none_synthetic_values_only",
+    "purpose": "check_declared_arithmetic_and_units"
+  },
+  "water_balance": {
+    "unit": "L/day",
+    "influent_l_day": 1000,
+    "effluent_l_day": 850,
+    "sludge_water_l_day": 100,
+    "evaporation_l_day": 45,
+    "expected_closure_l_day": 5,
+    "closure_tolerance_l_day": 0.01
+  },
+  "conserved_constituent_balances": [
+    {
+      "constituent": "TSS",
+      "unit": "kg/day",
+      "influent_kg_day": 0.25,
+      "effluent_kg_day": 0.0085,
+      "sludge_kg_day": 0.2415,
+      "other_outputs_kg_day": 0,
+      "expected_closure_kg_day": 0,
+      "closure_tolerance_kg_day": 1e-9
+    },
+    {
+      "constituent": "total_nitrogen",
+      "unit": "kg/day",
+      "influent_kg_day": 0.04,
+      "effluent_kg_day": 0.0085,
+      "sludge_kg_day": 0.005,
+      "other_outputs_kg_day": 0.0265,
+      "expected_closure_kg_day": 0,
+      "closure_tolerance_kg_day": 1e-9
+    },
+    {
+      "constituent": "total_phosphorus",
+      "unit": "kg/day",
+      "influent_kg_day": 0.007,
+      "effluent_kg_day": 0.00085,
+      "sludge_kg_day": 0.00615,
+      "other_outputs_kg_day": 0,
+      "expected_closure_kg_day": 0,
+      "closure_tolerance_kg_day": 1e-9
+    }
+  ],
+  "nonconservative_performance_metrics": [
+    {
+      "parameter": "BOD5",
+      "unit": "mg/L",
+      "influent_mg_l": 200,
+      "effluent_mg_l": 20,
+      "influent_flow_l_day": 1000,
+      "effluent_flow_l_day": 850,
+      "expected_load_removal_percent": 91.5,
+      "interpretation": "calculated_metric_not_a_conserved_species_or_compliance_result"
+    },
+    {
+      "parameter": "COD",
+      "unit": "mg/L",
+      "influent_mg_l": 400,
+      "effluent_mg_l": 50,
+      "influent_flow_l_day": 1000,
+      "effluent_flow_l_day": 850,
+      "expected_load_removal_percent": 89.375,
+      "interpretation": "calculated_metric_not_a_conserved_species_or_compliance_result"
+    }
+  ],
+  "energy": {
+    "unit": "kWh/day",
+    "gross_import_kwh_day": 0.12,
+    "recovered_kwh_day": 0,
+    "net_import_kwh_day": 0.12,
+    "meter_boundary": "hypothetical process package only; upstream pumping, buildings and downstream distribution excluded",
+    "status": "synthetic_arithmetic_only_not_an_energy_performance_claim"
+  },
+  "effluent_disposition": {
+    "unit": "L/day",
+    "effluent_produced_l_day": 850,
+    "allocated_for_reuse_l_day": 800,
+    "discharged_l_day": 50,
+    "reuse_delivered_l_day": 700,
+    "reuse_storage_change_l_day": 100
+  },
+  "expected_disposition": "Rejected",
+  "expected_reason_codes": [
+    "WATER_BALANCE_EXCEEDS_TOLERANCE"
+  ],
+  "notes": [
+    "Water closure check: 1000 - 850 - 100 - 45 = 5 L/day unexplained residual.",
+    "TSS, total nitrogen and total phosphorus are explicit conserved-load allocations across declared outputs.",
+    "BOD5/COD are load-based performance metrics, not conserved species; their calculated removal does not prove process kinetics or effluent compliance.",
+    "Effluent allocation: 850 = 800 allocated for reuse + 50 discharged; reuse allocation is split into 700 delivered + 100 stored.",
+    "No pathogen, micropollutant, toxicity, discharge-permit, reuse-suitability, energy-efficiency or operational-reliability assertion is made.",
+    "Negative control: water residual is 5 L/day, above the declared 0.01 L/day tolerance; expected disposition is Rejected."
+  ]
+}
