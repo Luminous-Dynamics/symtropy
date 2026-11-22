@@ -13,7 +13,7 @@ CDAAB should evaluate three independent propositions:
 
 1. **Authority-linearizable application:** every native mutation can be placed at a legal linearization point against the current M1/M2/platform authority snapshot. A stale, revoked, expired, replayed or mismatched ticket never reaches the native sink.
 2. **Evidence-correct outcome:** native acceptance, actuator response, observed physical effect and mission completion remain distinct. An independent evaluator can reproduce the outcome claim and its source lineage.
-3. **Epistemically safe recovery:** unknown or partial effects block further mutation until reconciliation. A timeout is not evidence of no effect; retries require an independently justified new action/attempt.
+3. **Epistemically safe recovery:** every native application occupies a single unresolved-mutation slot until independent outcome reconciliation. Unknown effects retain the hold; NoEffect and PartialEffect require a one-shot M1 permit bound to the failed attempt, current authority epoch and exact next action binding. A timeout is not evidence of no effect; retries require a new independently justified action/attempt.
 
 Linearizability itself is established concurrency theory, not a new invention. Herlihy and Wing define the property as the illusion that each concurrent operation takes effect at one instant between invocation and response, while preserving real-time order for non-overlapping operations. CDAAB's research contribution is to make the *complete authority binding and one-shot physical mutation* the sequential specification being checked, then connect that application history to independent physical-outcome evidence.
 
@@ -161,6 +161,10 @@ All values below are **research targets**, not current results or operational sa
 | Negative-control detection | 100% of preregistered mutation families | Mutations covering authority, configuration, ODD/mode, clock, navigation, observer dependency and ticket identity |
 | Valid positive-control admission | At least 99% | Frozen positive fixtures; report unnecessary-hold rate and confidence interval |
 | History conformance | 100% of fully explored bounded histories linearizable | Independent sequential-specification checker; incomplete exploration is INCOMPLETE |
+| Pending mutation hold | 0 new native mutations while an earlier action lacks a resolved independent outcome | Cross-history oracle and native sink-call-count assertions |
+| Recovery permit scope | 0 accepted attempt/epoch/plan mismatches | Typed permit lineage and negative mutation corpus |
+| Recovery permit replay | 0 duplicate permit consumptions | Global permit-ID ledger and cross-attempt replay tests |
+| Reconciliation hold release | Only qualified Satisfied, NoEffect-with-permit or PartialEffect-with-replan-permit transitions may clear the hold | M1-owned outcome/permit integration; Unknown always retains the hold |
 | Receipt lineage | 100% of required fields and exact digests present | Independent schema + semantic validator; incomplete records never promoted |
 
 ### Utility and recovery targets
@@ -202,7 +206,17 @@ For task-performance comparison, use identical policies across A–E. Separately
 5. **Recovery as state restoration:** measure whether the system returns to a known, admissible state—not whether it simply retries until a green task score appears.
 6. **Benchmark integrity as a product feature:** hidden evaluator truth, frozen manifests, reproducible receipts, negative controls and audit diagnostics are release gates, not paper appendices.
 
-## 8. Engineering sequence
+## 8. Formal verification and reconciliation semantics
+
+The current research branch includes a bounded Rust history checker and a finite TLA+ model in addition to the in-process application reference. The checker distinguishes Linearizable, NonLinearizable and Incomplete. It requires one complete ordered event recorder; missing invocations, responses or trace events cannot produce PASS.
+
+The reference model prevents a second mutation while an earlier native application is pending. An unknown outcome retains the hold. Recovery permits must match the failed attempt, current authority epoch and exact next authority/action binding, and the permit ID is consumed once. This is a structural contract check only; M1 remains responsible for authenticating the permit and validating plan allowlisting.
+
+The TLA+ model expresses the same finite-state concepts and checks invariants for one-shot tickets, exact ticket binding, application sequence, one pending mutation and scoped one-shot permits. The TLC workflow is configured with a pinned stable tool artifact. Until its exact-head workflow passes, no TLC verification result is claimed.
+
+This formal-method layer complements rather than replaces independent physical outcome evaluation or domain-specific runtime assurance.
+
+## 9. Engineering sequence
 
 1. Finish the public contract and dependency ownership map in Symtropy #6669 / PR #6671.
 2. Extend the in-process reference model into an independent history checker; exercise adversarial concurrent schedules and one-shot semantics.
@@ -212,7 +226,7 @@ For task-performance comparison, use identical policies across A–E. Separately
 6. Run a frozen evaluator-separated fault campaign; publish all planned, failed, timed-out and excluded cases.
 7. Progress through HIL and approved supervised physical testing only when the named platform/domain owners have provided the required hardware and safety evidence.
 
-## 9. Non-claims
+## 10. Non-claims
 
 No robot-policy SOTA, simulator score, physical-effect accuracy, sensor truth, cryptographic authentication, complete failure-domain inventory, real-time guarantee, HIL, physical safety, regulatory approval or operational authorization is claimed by this research note or the current reference crate.
 
