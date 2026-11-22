@@ -571,19 +571,27 @@ mod tests {
 
     #[test]
     fn source_group_identity_and_transformation_id_must_match_owner_case() {
-        let mut case = case();
-        case.group_ref = "wrong-group".to_string();
+        let mut case_binding = case();
+        case_binding.group_ref = "wrong-group".to_string();
         assert_eq!(
-            qualify_transformation_mass_balance_link(&group(), &case, &[receipt("EXACT_BALANCED")])
-                .reason,
+            qualify_transformation_mass_balance_link(
+                &group(),
+                &case_binding,
+                &[receipt("EXACT_BALANCED")]
+            )
+            .reason,
             Some(MaterialBalanceLinkReason::TransformationGroupBindingMismatch)
         );
 
-        let mut case = case();
-        case.transformation_id = Some("wrong-id".to_string());
+        let mut case_binding = case();
+        case_binding.transformation_id = Some("wrong-id".to_string());
         assert_eq!(
-            qualify_transformation_mass_balance_link(&group(), &case, &[receipt("EXACT_BALANCED")])
-                .reason,
+            qualify_transformation_mass_balance_link(
+                &group(),
+                &case_binding,
+                &[receipt("EXACT_BALANCED")]
+            )
+            .reason,
             Some(MaterialBalanceLinkReason::TransformationIdBindingMismatch)
         );
     }
@@ -645,13 +653,13 @@ mod tests {
         event_local.transformation_id = None;
         event_local.group_ref = "event-local:WMS_A:urn:uuid:input:2".to_string();
         event_local.effective_source_events.truncate(1);
-        let mut case = case();
-        case.transformation_id = None;
-        case.group_ref = event_local.group_ref.clone();
+        let mut case_binding = case();
+        case_binding.transformation_id = None;
+        case_binding.group_ref = event_local.group_ref.clone();
         assert_eq!(
             qualify_transformation_mass_balance_link(
                 &event_local,
-                &case,
+                &case_binding,
                 &[receipt("EXACT_BALANCED")]
             )
             .disposition,
