@@ -417,7 +417,10 @@ fn probe_rank(probe: &Probe, compatible_worlds: &[&World]) -> Result<ProbeRank, 
     })
 }
 
-fn select_probe(case: &DecisionCase, compatible_worlds: &[&World]) -> Result<ProbeSelection, String> {
+fn select_probe(
+    case: &DecisionCase,
+    compatible_worlds: &[&World],
+) -> Result<ProbeSelection, String> {
     let mut excluded_probe_ids = Vec::new();
     let mut ranked = Vec::new();
 
@@ -437,7 +440,11 @@ fn select_probe(case: &DecisionCase, compatible_worlds: &[&World]) -> Result<Pro
         left.worst_case_decision_class_count
             .cmp(&right.worst_case_decision_class_count)
             .then_with(|| left.cost.reference_trials.cmp(&right.cost.reference_trials))
-            .then_with(|| left.cost.exposure_micro_units.cmp(&right.cost.exposure_micro_units))
+            .then_with(|| {
+                left.cost
+                    .exposure_micro_units
+                    .cmp(&right.cost.exposure_micro_units)
+            })
             .then_with(|| left.cost.elapsed_millis.cmp(&right.cost.elapsed_millis))
             .then_with(|| left.probe_id.cmp(&right.probe_id))
     });
@@ -495,7 +502,11 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
     let compatible_worlds = case
         .worlds
         .iter()
-        .filter(|world| world.observation_law.exactly_equals(&case.evidence.observation_law))
+        .filter(|world| {
+            world
+                .observation_law
+                .exactly_equals(&case.evidence.observation_law)
+        })
         .collect::<Vec<_>>();
     let mut compatible_world_ids = compatible_worlds
         .iter()
@@ -650,10 +661,7 @@ mod tests {
         let case = result(&evaluation, "constant-thinning-opposite-decisions");
         assert_eq!(case.disposition, "DECISION_NOT_IDENTIFIED");
         assert_eq!(case.decision_classes, vec!["HOLD", "PROCEED"]);
-        assert_eq!(
-            case.probe_selection.status,
-            "selected_resolving_probe"
-        );
+        assert_eq!(case.probe_selection.status, "selected_resolving_probe");
         assert_eq!(
             case.probe_selection.selected_probe_id.as_deref(),
             Some("independent-reference-probe")
@@ -667,10 +675,11 @@ mod tests {
         assert_eq!(case.disposition, "DECISION_NOT_IDENTIFIED");
         assert_eq!(case.probe_selection.status, "no_admissible_probe");
         assert_eq!(case.probe_selection.selected_probe_id, None);
-        assert!(case
-            .probe_selection
-            .excluded_probe_ids
-            .contains(&"unsafe-but-discriminating".to_owned()));
+        assert!(
+            case.probe_selection
+                .excluded_probe_ids
+                .contains(&"unsafe-but-discriminating".to_owned())
+        );
         assert!(!evaluation.authority_granted);
     }
 
@@ -678,10 +687,7 @@ mod tests {
     fn empty_compatible_world_set_is_not_normalized_to_nearest_world() {
         let evaluation = evaluate(&corpus()).expect("corpus must evaluate");
         let case = result(&evaluation, "out-of-domain-observation");
-        assert_eq!(
-            case.disposition,
-            "IDENTIFIED_SET_EMPTY_MODEL_INCOMPATIBLE"
-        );
+        assert_eq!(case.disposition, "IDENTIFIED_SET_EMPTY_MODEL_INCOMPATIBLE");
         assert!(case.compatible_world_ids.is_empty());
         assert_eq!(case.parameter_identified, None);
     }
@@ -700,7 +706,10 @@ mod tests {
             outcomes: vec![
                 ProbabilityMass {
                     outcome: "hit".to_owned(),
-                    probability: Rational { numerator: 1, denominator: 2 },
+                    probability: Rational {
+                        numerator: 1,
+                        denominator: 2,
+                    },
                 },
                 ProbabilityMass {
                     outcome: "miss".to_owned(),
@@ -712,11 +721,17 @@ mod tests {
             outcomes: vec![
                 ProbabilityMass {
                     outcome: "miss".to_owned(),
-                    probability: Rational { numerator: 2, denominator: 4 },
+                    probability: Rational {
+                        numerator: 2,
+                        denominator: 4,
+                    },
                 },
                 ProbabilityMass {
                     outcome: "hit".to_owned(),
-                    probability: Rational { numerator: 3, denominator: 6 },
+                    probability: Rational {
+                        numerator: 3,
+                        denominator: 6,
+                    },
                 },
             ],
         };
@@ -756,8 +771,10 @@ mod tests {
     #[test]
     fn malformed_probability_law_is_rejected() {
         let mut invalid = corpus();
-        invalid.cases[0].evidence.observation_law.outcomes[0].probability =
-            Rational { numerator: 1, denominator: 3 };
+        invalid.cases[0].evidence.observation_law.outcomes[0].probability = Rational {
+            numerator: 1,
+            denominator: 3,
+        };
         assert!(evaluate(&invalid).is_err());
     }
 }
