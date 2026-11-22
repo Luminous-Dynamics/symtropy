@@ -708,7 +708,7 @@ fn evaluate_case(case: &GofCase) -> Decision {
         case.random_seed,
     ) {
         Ok((beta_hat, observed_cvm, monte_carlo)) => Decision {
-            disposition: if monte_carlo.monte_carlo_p_value <= case.significance_level {
+            disposition: if monte_carlo.bonferroni_adjusted_min_p_value <= case.significance_level {
                 Disposition::FitRejected
             } else {
                 Disposition::FitNotRejectedAtDeclaredLevel
@@ -798,6 +798,33 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
             (None, None) => true,
             _ => false,
         };
+        let actual_component_p_values: Vec<f64> = decision
+            .monte_carlo
+            .as_ref()
+            .map(|result| {
+                result
+                    .component_results
+                    .iter()
+                    .map(|component| component.monte_carlo_p_value)
+                    .collect()
+            })
+            .unwrap_or_default();
+        let component_p_values_match = actual_component_p_values.len()
+            == expected.component_p_values.len()
+            && actual_component_p_values
+                .iter()
+                .zip(&expected.component_p_values)
+                .all(|(actual, expected)| (actual - expected).abs() <= 1.0e-10);
+        let adjusted_p_value_match = decision
+            .monte_carlo
+            .as_ref()
+            .map(|result| result.bonferroni_adjusted_min_p_value)
+            .zip(expected.bonferroni_adjusted_min_p_value)
+            .map(|(actual, expected)| (actual - expected).abs() <= 1.0e-10)
+            .unwrap_or(
+                expected.bonferroni_adjusted_min_p_value.is_none()
+                    && decision.monte_carlo.is_none(),
+            );
         let matched = decision.disposition == expected.disposition
             && decision.event_count == expected.event_count
             && close(decision.beta_hat, expected.beta_hat)
@@ -813,6 +840,8 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
                 .unwrap_or(
                     expected.monte_carlo_p_value.is_none() && decision.monte_carlo.is_none(),
                 )
+            && component_p_values_match
+            && adjusted_p_value_match
             && decision.blockers == expected.blockers;
         summary.expected_result_mismatches += usize::from(!matched);
 
