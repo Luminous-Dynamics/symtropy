@@ -1,0 +1,2256 @@
+{
+  "schema_id": "MACHINE-CAPABILITY-COMPILER-CASES-0.1",
+  "status": "synthetic_known_answer_corpus_pending_independent_review",
+  "owner_issue": "Luminous-Dynamics/symtropy#6786",
+  "schema_path": "schemas/manufacturing/machine_capability_case_v0_1.schema.json",
+  "dispositions": [
+    "feasible",
+    "infeasible",
+    "unknown",
+    "unsupported"
+  ],
+  "case_count": 20,
+  "cases": [
+    {
+      "scenario_id": "MCC-001",
+      "description": "One admitted P0 item has an N1 MEX route with current machine, material, calibration, operator, inspection and post-repair evidence.",
+      "part": {
+        "part_id": "LUM-P0-ACCESSORY-001",
+        "revision": "A",
+        "risk_class": "P0",
+        "allowed_tiers": [
+          "H0",
+          "N1",
+          "R2",
+          "Q3",
+          "OEM"
+        ],
+        "rights_status": "verified",
+        "revision_status": "exact",
+        "process_family": "material_extrusion",
+        "required_inspection": [
+          "dimensional"
+        ],
+        "post_repair_verification_required": true,
+        "required_max_temperature_c": 40,
+        "deadline_hours": 24
+      },
+      "routes": [
+        {
+          "route_id": "N1-FDM-01",
+          "tier": "N1",
+          "machine_id": "LMF-FDM-N1-001",
+          "process_family": "material_extrusion",
+          "support_status": "supported",
+          "machine_identity_status": "verified",
+          "machine_safety_status": "qualified",
+          "material_status": "approved",
+          "calibration_status": "current",
+          "operator_status": "qualified",
+          "inspection_status": "qualified",
+          "post_repair_status": "complete",
+          "machine_envelope_status": "within",
+          "max_process_temperature_c": 80,
+          "inspection_methods": [
+            "dimensional"
+          ],
+          "capacity_units": {
+            "required": 1,
+            "available": 4,
+            "unit": "parts"
+          },
+          "lead_time_hours": 4,
+          "dependencies": [
+            {
+              "dependency_id": "frame-profile",
+              "criticality": "critical",
+              "sourcing_class": "locally_manufactured",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "measured",
+              "requires": []
+            },
+            {
+              "dependency_id": "controller",
+              "criticality": "critical",
+              "sourcing_class": "local_service_imported_inputs",
+              "alternate_sources": 1,
+              "local_repair_status": "repairable",
+              "evidence_status": "independently_verified",
+              "requires": []
+            },
+            {
+              "dependency_id": "linear-motion-set",
+              "criticality": "important",
+              "sourcing_class": "imported_stocked",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "vendor_declared",
+              "requires": []
+            }
+          ],
+          "cost": {
+            "capital_allocation_zar": 20,
+            "material_zar": 12,
+            "energy_zar": 2,
+            "labour_zar": 18,
+            "setup_zar": 3,
+            "calibration_zar": 1,
+            "inspection_zar": 4,
+            "finishing_zar": 2,
+            "transport_zar": 0,
+            "maintenance_zar": 2,
+            "failure_rework_zar": 3,
+            "warranty_reserve_zar": 1,
+            "accepted_outputs": 1
+          }
+        }
+      ],
+      "expected": {
+        "disposition": "feasible",
+        "feasible_route_ids": [
+          "N1-FDM-01"
+        ],
+        "route_results": [
+          {
+            "route_id": "N1-FDM-01",
+            "disposition": "feasible",
+            "blockers": []
+          }
+        ],
+        "local_closure_disposition": "local_service_only"
+      }
+    },
+    {
+      "scenario_id": "MCC-002",
+      "description": "The CAD is available but manufacturing rights are unknown; the route must not be treated as authorized.",
+      "part": {
+        "part_id": "LUM-P0-ACCESSORY-001",
+        "revision": "A",
+        "risk_class": "P0",
+        "allowed_tiers": [
+          "H0",
+          "N1",
+          "R2",
+          "Q3",
+          "OEM"
+        ],
+        "rights_status": "unknown",
+        "revision_status": "exact",
+        "process_family": "material_extrusion",
+        "required_inspection": [
+          "dimensional"
+        ],
+        "post_repair_verification_required": true,
+        "required_max_temperature_c": 40,
+        "deadline_hours": 24
+      },
+      "routes": [
+        {
+          "route_id": "N1-FDM-01",
+          "tier": "N1",
+          "machine_id": "LMF-FDM-N1-001",
+          "process_family": "material_extrusion",
+          "support_status": "supported",
+          "machine_identity_status": "verified",
+          "machine_safety_status": "qualified",
+          "material_status": "approved",
+          "calibration_status": "current",
+          "operator_status": "qualified",
+          "inspection_status": "qualified",
+          "post_repair_status": "complete",
+          "machine_envelope_status": "within",
+          "max_process_temperature_c": 80,
+          "inspection_methods": [
+            "dimensional"
+          ],
+          "capacity_units": {
+            "required": 1,
+            "available": 4,
+            "unit": "parts"
+          },
+          "lead_time_hours": 4,
+          "dependencies": [
+            {
+              "dependency_id": "frame-profile",
+              "criticality": "critical",
+              "sourcing_class": "locally_manufactured",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "measured",
+              "requires": []
+            },
+            {
+              "dependency_id": "controller",
+              "criticality": "critical",
+              "sourcing_class": "local_service_imported_inputs",
+              "alternate_sources": 1,
+              "local_repair_status": "repairable",
+              "evidence_status": "independently_verified",
+              "requires": []
+            },
+            {
+              "dependency_id": "linear-motion-set",
+              "criticality": "important",
+              "sourcing_class": "imported_stocked",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "vendor_declared",
+              "requires": []
+            }
+          ],
+          "cost": {
+            "capital_allocation_zar": 20,
+            "material_zar": 12,
+            "energy_zar": 2,
+            "labour_zar": 18,
+            "setup_zar": 3,
+            "calibration_zar": 1,
+            "inspection_zar": 4,
+            "finishing_zar": 2,
+            "transport_zar": 0,
+            "maintenance_zar": 2,
+            "failure_rework_zar": 3,
+            "warranty_reserve_zar": 1,
+            "accepted_outputs": 1
+          }
+        }
+      ],
+      "expected": {
+        "disposition": "unknown",
+        "feasible_route_ids": [],
+        "route_results": [
+          {
+            "route_id": "N1-FDM-01",
+            "disposition": "unknown",
+            "blockers": [
+              "rights_unknown"
+            ]
+          }
+        ],
+        "local_closure_disposition": "unknown"
+      }
+    },
+    {
+      "scenario_id": "MCC-003",
+      "description": "The appliance/product revision does not match the released part package.",
+      "part": {
+        "part_id": "LUM-P0-ACCESSORY-001",
+        "revision": "B",
+        "risk_class": "P0",
+        "allowed_tiers": [
+          "H0",
+          "N1",
+          "R2",
+          "Q3",
+          "OEM"
+        ],
+        "rights_status": "verified",
+        "revision_status": "mismatch",
+        "process_family": "material_extrusion",
+        "required_inspection": [
+          "dimensional"
+        ],
+        "post_repair_verification_required": true,
+        "required_max_temperature_c": 40,
+        "deadline_hours": 24
+      },
+      "routes": [
+        {
+          "route_id": "N1-FDM-01",
+          "tier": "N1",
+          "machine_id": "LMF-FDM-N1-001",
+          "process_family": "material_extrusion",
+          "support_status": "supported",
+          "machine_identity_status": "verified",
+          "machine_safety_status": "qualified",
+          "material_status": "approved",
+          "calibration_status": "current",
+          "operator_status": "qualified",
+          "inspection_status": "qualified",
+          "post_repair_status": "complete",
+          "machine_envelope_status": "within",
+          "max_process_temperature_c": 80,
+          "inspection_methods": [
+            "dimensional"
+          ],
+          "capacity_units": {
+            "required": 1,
+            "available": 4,
+            "unit": "parts"
+          },
+          "lead_time_hours": 4,
+          "dependencies": [
+            {
+              "dependency_id": "frame-profile",
+              "criticality": "critical",
+              "sourcing_class": "locally_manufactured",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "measured",
+              "requires": []
+            },
+            {
+              "dependency_id": "controller",
+              "criticality": "critical",
+              "sourcing_class": "local_service_imported_inputs",
+              "alternate_sources": 1,
+              "local_repair_status": "repairable",
+              "evidence_status": "independently_verified",
+              "requires": []
+            },
+            {
+              "dependency_id": "linear-motion-set",
+              "criticality": "important",
+              "sourcing_class": "imported_stocked",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "vendor_declared",
+              "requires": []
+            }
+          ],
+          "cost": {
+            "capital_allocation_zar": 20,
+            "material_zar": 12,
+            "energy_zar": 2,
+            "labour_zar": 18,
+            "setup_zar": 3,
+            "calibration_zar": 1,
+            "inspection_zar": 4,
+            "finishing_zar": 2,
+            "transport_zar": 0,
+            "maintenance_zar": 2,
+            "failure_rework_zar": 3,
+            "warranty_reserve_zar": 1,
+            "accepted_outputs": 1
+          }
+        }
+      ],
+      "expected": {
+        "disposition": "infeasible",
+        "feasible_route_ids": [],
+        "route_results": [
+          {
+            "route_id": "N1-FDM-01",
+            "disposition": "infeasible",
+            "blockers": [
+              "product_revision_mismatch"
+            ]
+          }
+        ],
+        "local_closure_disposition": "unknown"
+      }
+    },
+    {
+      "scenario_id": "MCC-004",
+      "description": "The filament identity or lot is not established, so process suitability cannot be asserted.",
+      "part": {
+        "part_id": "LUM-P0-ACCESSORY-001",
+        "revision": "A",
+        "risk_class": "P0",
+        "allowed_tiers": [
+          "H0",
+          "N1",
+          "R2",
+          "Q3",
+          "OEM"
+        ],
+        "rights_status": "verified",
+        "revision_status": "exact",
+        "process_family": "material_extrusion",
+        "required_inspection": [
+          "dimensional"
+        ],
+        "post_repair_verification_required": true,
+        "required_max_temperature_c": 40,
+        "deadline_hours": 24
+      },
+      "routes": [
+        {
+          "route_id": "N1-FDM-UNKNOWN-MATERIAL",
+          "tier": "N1",
+          "machine_id": "LMF-FDM-N1-001",
+          "process_family": "material_extrusion",
+          "support_status": "supported",
+          "machine_identity_status": "verified",
+          "machine_safety_status": "qualified",
+          "material_status": "unknown",
+          "calibration_status": "current",
+          "operator_status": "qualified",
+          "inspection_status": "qualified",
+          "post_repair_status": "complete",
+          "machine_envelope_status": "within",
+          "max_process_temperature_c": 80,
+          "inspection_methods": [
+            "dimensional"
+          ],
+          "capacity_units": {
+            "required": 1,
+            "available": 4,
+            "unit": "parts"
+          },
+          "lead_time_hours": 4,
+          "dependencies": [
+            {
+              "dependency_id": "frame-profile",
+              "criticality": "critical",
+              "sourcing_class": "locally_manufactured",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "measured",
+              "requires": []
+            },
+            {
+              "dependency_id": "controller",
+              "criticality": "critical",
+              "sourcing_class": "local_service_imported_inputs",
+              "alternate_sources": 1,
+              "local_repair_status": "repairable",
+              "evidence_status": "independently_verified",
+              "requires": []
+            },
+            {
+              "dependency_id": "linear-motion-set",
+              "criticality": "important",
+              "sourcing_class": "imported_stocked",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "vendor_declared",
+              "requires": []
+            }
+          ],
+          "cost": {
+            "capital_allocation_zar": 20,
+            "material_zar": 12,
+            "energy_zar": 2,
+            "labour_zar": 18,
+            "setup_zar": 3,
+            "calibration_zar": 1,
+            "inspection_zar": 4,
+            "finishing_zar": 2,
+            "transport_zar": 0,
+            "maintenance_zar": 2,
+            "failure_rework_zar": 3,
+            "warranty_reserve_zar": 1,
+            "accepted_outputs": 1
+          }
+        }
+      ],
+      "expected": {
+        "disposition": "unknown",
+        "feasible_route_ids": [],
+        "route_results": [
+          {
+            "route_id": "N1-FDM-UNKNOWN-MATERIAL",
+            "disposition": "unknown",
+            "blockers": [
+              "material_unknown"
+            ]
+          }
+        ],
+        "local_closure_disposition": "unknown"
+      }
+    },
+    {
+      "scenario_id": "MCC-005",
+      "description": "A CNC route is offered for a part requiring material extrusion, and the machine envelope is outside the requirement.",
+      "part": {
+        "part_id": "LUM-P0-ACCESSORY-001",
+        "revision": "A",
+        "risk_class": "P0",
+        "allowed_tiers": [
+          "H0",
+          "N1",
+          "R2",
+          "Q3",
+          "OEM"
+        ],
+        "rights_status": "verified",
+        "revision_status": "exact",
+        "process_family": "material_extrusion",
+        "required_inspection": [
+          "dimensional"
+        ],
+        "post_repair_verification_required": true,
+        "required_max_temperature_c": 40,
+        "deadline_hours": 24
+      },
+      "routes": [
+        {
+          "route_id": "N1-CNC-01",
+          "tier": "N1",
+          "machine_id": "LMF-FDM-N1-001",
+          "process_family": "cnc_milling",
+          "support_status": "supported",
+          "machine_identity_status": "verified",
+          "machine_safety_status": "qualified",
+          "material_status": "approved",
+          "calibration_status": "current",
+          "operator_status": "qualified",
+          "inspection_status": "qualified",
+          "post_repair_status": "complete",
+          "machine_envelope_status": "outside",
+          "max_process_temperature_c": 80,
+          "inspection_methods": [
+            "dimensional"
+          ],
+          "capacity_units": {
+            "required": 1,
+            "available": 4,
+            "unit": "parts"
+          },
+          "lead_time_hours": 4,
+          "dependencies": [
+            {
+              "dependency_id": "frame-profile",
+              "criticality": "critical",
+              "sourcing_class": "locally_manufactured",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "measured",
+              "requires": []
+            },
+            {
+              "dependency_id": "controller",
+              "criticality": "critical",
+              "sourcing_class": "local_service_imported_inputs",
+              "alternate_sources": 1,
+              "local_repair_status": "repairable",
+              "evidence_status": "independently_verified",
+              "requires": []
+            },
+            {
+              "dependency_id": "linear-motion-set",
+              "criticality": "important",
+              "sourcing_class": "imported_stocked",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "vendor_declared",
+              "requires": []
+            }
+          ],
+          "cost": {
+            "capital_allocation_zar": 20,
+            "material_zar": 12,
+            "energy_zar": 2,
+            "labour_zar": 18,
+            "setup_zar": 3,
+            "calibration_zar": 1,
+            "inspection_zar": 4,
+            "finishing_zar": 2,
+            "transport_zar": 0,
+            "maintenance_zar": 2,
+            "failure_rework_zar": 3,
+            "warranty_reserve_zar": 1,
+            "accepted_outputs": 1
+          }
+        }
+      ],
+      "expected": {
+        "disposition": "infeasible",
+        "feasible_route_ids": [],
+        "route_results": [
+          {
+            "route_id": "N1-CNC-01",
+            "disposition": "infeasible",
+            "blockers": [
+              "process_family_mismatch",
+              "machine_envelope_outside"
+            ]
+          }
+        ],
+        "local_closure_disposition": "unknown"
+      }
+    },
+    {
+      "scenario_id": "MCC-006",
+      "description": "A critical inspection instrument is past its calibration expiry.",
+      "part": {
+        "part_id": "LUM-P0-ACCESSORY-001",
+        "revision": "A",
+        "risk_class": "P0",
+        "allowed_tiers": [
+          "H0",
+          "N1",
+          "R2",
+          "Q3",
+          "OEM"
+        ],
+        "rights_status": "verified",
+        "revision_status": "exact",
+        "process_family": "material_extrusion",
+        "required_inspection": [
+          "dimensional"
+        ],
+        "post_repair_verification_required": true,
+        "required_max_temperature_c": 40,
+        "deadline_hours": 24
+      },
+      "routes": [
+        {
+          "route_id": "N1-FDM-STALE-CAL",
+          "tier": "N1",
+          "machine_id": "LMF-FDM-N1-001",
+          "process_family": "material_extrusion",
+          "support_status": "supported",
+          "machine_identity_status": "verified",
+          "machine_safety_status": "qualified",
+          "material_status": "approved",
+          "calibration_status": "expired",
+          "operator_status": "qualified",
+          "inspection_status": "qualified",
+          "post_repair_status": "complete",
+          "machine_envelope_status": "within",
+          "max_process_temperature_c": 80,
+          "inspection_methods": [
+            "dimensional"
+          ],
+          "capacity_units": {
+            "required": 1,
+            "available": 4,
+            "unit": "parts"
+          },
+          "lead_time_hours": 4,
+          "dependencies": [
+            {
+              "dependency_id": "frame-profile",
+              "criticality": "critical",
+              "sourcing_class": "locally_manufactured",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "measured",
+              "requires": []
+            },
+            {
+              "dependency_id": "controller",
+              "criticality": "critical",
+              "sourcing_class": "local_service_imported_inputs",
+              "alternate_sources": 1,
+              "local_repair_status": "repairable",
+              "evidence_status": "independently_verified",
+              "requires": []
+            },
+            {
+              "dependency_id": "linear-motion-set",
+              "criticality": "important",
+              "sourcing_class": "imported_stocked",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "vendor_declared",
+              "requires": []
+            }
+          ],
+          "cost": {
+            "capital_allocation_zar": 20,
+            "material_zar": 12,
+            "energy_zar": 2,
+            "labour_zar": 18,
+            "setup_zar": 3,
+            "calibration_zar": 1,
+            "inspection_zar": 4,
+            "finishing_zar": 2,
+            "transport_zar": 0,
+            "maintenance_zar": 2,
+            "failure_rework_zar": 3,
+            "warranty_reserve_zar": 1,
+            "accepted_outputs": 1
+          }
+        }
+      ],
+      "expected": {
+        "disposition": "infeasible",
+        "feasible_route_ids": [],
+        "route_results": [
+          {
+            "route_id": "N1-FDM-STALE-CAL",
+            "disposition": "infeasible",
+            "blockers": [
+              "calibration_expired"
+            ]
+          }
+        ],
+        "local_closure_disposition": "unknown"
+      }
+    },
+    {
+      "scenario_id": "MCC-007",
+      "description": "The part's declared operating temperature exceeds the qualified route envelope.",
+      "part": {
+        "part_id": "LUM-P0-ACCESSORY-001",
+        "revision": "A",
+        "risk_class": "P0",
+        "allowed_tiers": [
+          "H0",
+          "N1",
+          "R2",
+          "Q3",
+          "OEM"
+        ],
+        "rights_status": "verified",
+        "revision_status": "exact",
+        "process_family": "material_extrusion",
+        "required_inspection": [
+          "dimensional"
+        ],
+        "post_repair_verification_required": true,
+        "required_max_temperature_c": 95,
+        "deadline_hours": 24
+      },
+      "routes": [
+        {
+          "route_id": "N1-FDM-THERMAL-LIMIT",
+          "tier": "N1",
+          "machine_id": "LMF-FDM-N1-001",
+          "process_family": "material_extrusion",
+          "support_status": "supported",
+          "machine_identity_status": "verified",
+          "machine_safety_status": "qualified",
+          "material_status": "approved",
+          "calibration_status": "current",
+          "operator_status": "qualified",
+          "inspection_status": "qualified",
+          "post_repair_status": "complete",
+          "machine_envelope_status": "within",
+          "max_process_temperature_c": 80,
+          "inspection_methods": [
+            "dimensional"
+          ],
+          "capacity_units": {
+            "required": 1,
+            "available": 4,
+            "unit": "parts"
+          },
+          "lead_time_hours": 4,
+          "dependencies": [
+            {
+              "dependency_id": "frame-profile",
+              "criticality": "critical",
+              "sourcing_class": "locally_manufactured",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "measured",
+              "requires": []
+            },
+            {
+              "dependency_id": "controller",
+              "criticality": "critical",
+              "sourcing_class": "local_service_imported_inputs",
+              "alternate_sources": 1,
+              "local_repair_status": "repairable",
+              "evidence_status": "independently_verified",
+              "requires": []
+            },
+            {
+              "dependency_id": "linear-motion-set",
+              "criticality": "important",
+              "sourcing_class": "imported_stocked",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "vendor_declared",
+              "requires": []
+            }
+          ],
+          "cost": {
+            "capital_allocation_zar": 20,
+            "material_zar": 12,
+            "energy_zar": 2,
+            "labour_zar": 18,
+            "setup_zar": 3,
+            "calibration_zar": 1,
+            "inspection_zar": 4,
+            "finishing_zar": 2,
+            "transport_zar": 0,
+            "maintenance_zar": 2,
+            "failure_rework_zar": 3,
+            "warranty_reserve_zar": 1,
+            "accepted_outputs": 1
+          }
+        }
+      ],
+      "expected": {
+        "disposition": "infeasible",
+        "feasible_route_ids": [],
+        "route_results": [
+          {
+            "route_id": "N1-FDM-THERMAL-LIMIT",
+            "disposition": "infeasible",
+            "blockers": [
+              "process_temperature_exceeded"
+            ]
+          }
+        ],
+        "local_closure_disposition": "unknown"
+      }
+    },
+    {
+      "scenario_id": "MCC-008",
+      "description": "A P3 protective component is requested at H0; household capability cannot admit it.",
+      "part": {
+        "part_id": "LUM-P0-ACCESSORY-001",
+        "revision": "A",
+        "risk_class": "P3",
+        "allowed_tiers": [
+          "Q3",
+          "OEM"
+        ],
+        "rights_status": "verified",
+        "revision_status": "exact",
+        "process_family": "material_extrusion",
+        "required_inspection": [
+          "dimensional"
+        ],
+        "post_repair_verification_required": true,
+        "required_max_temperature_c": 40,
+        "deadline_hours": 24
+      },
+      "routes": [
+        {
+          "route_id": "H0-FDM-P3",
+          "tier": "H0",
+          "machine_id": "LMF-FDM-N1-001",
+          "process_family": "material_extrusion",
+          "support_status": "supported",
+          "machine_identity_status": "verified",
+          "machine_safety_status": "qualified",
+          "material_status": "approved",
+          "calibration_status": "current",
+          "operator_status": "qualified",
+          "inspection_status": "qualified",
+          "post_repair_status": "complete",
+          "machine_envelope_status": "within",
+          "max_process_temperature_c": 80,
+          "inspection_methods": [
+            "dimensional"
+          ],
+          "capacity_units": {
+            "required": 1,
+            "available": 4,
+            "unit": "parts"
+          },
+          "lead_time_hours": 4,
+          "dependencies": [
+            {
+              "dependency_id": "frame-profile",
+              "criticality": "critical",
+              "sourcing_class": "locally_manufactured",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "measured",
+              "requires": []
+            },
+            {
+              "dependency_id": "controller",
+              "criticality": "critical",
+              "sourcing_class": "local_service_imported_inputs",
+              "alternate_sources": 1,
+              "local_repair_status": "repairable",
+              "evidence_status": "independently_verified",
+              "requires": []
+            },
+            {
+              "dependency_id": "linear-motion-set",
+              "criticality": "important",
+              "sourcing_class": "imported_stocked",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "vendor_declared",
+              "requires": []
+            }
+          ],
+          "cost": {
+            "capital_allocation_zar": 20,
+            "material_zar": 12,
+            "energy_zar": 2,
+            "labour_zar": 18,
+            "setup_zar": 3,
+            "calibration_zar": 1,
+            "inspection_zar": 4,
+            "finishing_zar": 2,
+            "transport_zar": 0,
+            "maintenance_zar": 2,
+            "failure_rework_zar": 3,
+            "warranty_reserve_zar": 1,
+            "accepted_outputs": 1
+          }
+        }
+      ],
+      "expected": {
+        "disposition": "infeasible",
+        "feasible_route_ids": [],
+        "route_results": [
+          {
+            "route_id": "H0-FDM-P3",
+            "disposition": "infeasible",
+            "blockers": [
+              "tier_not_allowed",
+              "p3_forbidden_tier"
+            ]
+          }
+        ],
+        "local_closure_disposition": "unknown"
+      }
+    },
+    {
+      "scenario_id": "MCC-009",
+      "description": "The route lacks the required dimensional inspection method and cannot release an accepted part.",
+      "part": {
+        "part_id": "LUM-P0-ACCESSORY-001",
+        "revision": "A",
+        "risk_class": "P0",
+        "allowed_tiers": [
+          "H0",
+          "N1",
+          "R2",
+          "Q3",
+          "OEM"
+        ],
+        "rights_status": "verified",
+        "revision_status": "exact",
+        "process_family": "material_extrusion",
+        "required_inspection": [
+          "dimensional"
+        ],
+        "post_repair_verification_required": true,
+        "required_max_temperature_c": 40,
+        "deadline_hours": 24
+      },
+      "routes": [
+        {
+          "route_id": "N1-NO-INSPECTION",
+          "tier": "N1",
+          "machine_id": "LMF-FDM-N1-001",
+          "process_family": "material_extrusion",
+          "support_status": "supported",
+          "machine_identity_status": "verified",
+          "machine_safety_status": "qualified",
+          "material_status": "approved",
+          "calibration_status": "current",
+          "operator_status": "qualified",
+          "inspection_status": "missing",
+          "post_repair_status": "complete",
+          "machine_envelope_status": "within",
+          "max_process_temperature_c": 80,
+          "inspection_methods": [],
+          "capacity_units": {
+            "required": 1,
+            "available": 4,
+            "unit": "parts"
+          },
+          "lead_time_hours": 4,
+          "dependencies": [
+            {
+              "dependency_id": "frame-profile",
+              "criticality": "critical",
+              "sourcing_class": "locally_manufactured",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "measured",
+              "requires": []
+            },
+            {
+              "dependency_id": "controller",
+              "criticality": "critical",
+              "sourcing_class": "local_service_imported_inputs",
+              "alternate_sources": 1,
+              "local_repair_status": "repairable",
+              "evidence_status": "independently_verified",
+              "requires": []
+            },
+            {
+              "dependency_id": "linear-motion-set",
+              "criticality": "important",
+              "sourcing_class": "imported_stocked",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "vendor_declared",
+              "requires": []
+            }
+          ],
+          "cost": {
+            "capital_allocation_zar": 20,
+            "material_zar": 12,
+            "energy_zar": 2,
+            "labour_zar": 18,
+            "setup_zar": 3,
+            "calibration_zar": 1,
+            "inspection_zar": 4,
+            "finishing_zar": 2,
+            "transport_zar": 0,
+            "maintenance_zar": 2,
+            "failure_rework_zar": 3,
+            "warranty_reserve_zar": 1,
+            "accepted_outputs": 1
+          }
+        }
+      ],
+      "expected": {
+        "disposition": "infeasible",
+        "feasible_route_ids": [],
+        "route_results": [
+          {
+            "route_id": "N1-NO-INSPECTION",
+            "disposition": "infeasible",
+            "blockers": [
+              "inspection_capability_missing",
+              "inspection_method_missing"
+            ]
+          }
+        ],
+        "local_closure_disposition": "unknown"
+      }
+    },
+    {
+      "scenario_id": "MCC-010",
+      "description": "The route is otherwise qualified but its lead time misses the required deadline.",
+      "part": {
+        "part_id": "LUM-P0-ACCESSORY-001",
+        "revision": "A",
+        "risk_class": "P0",
+        "allowed_tiers": [
+          "H0",
+          "N1",
+          "R2",
+          "Q3",
+          "OEM"
+        ],
+        "rights_status": "verified",
+        "revision_status": "exact",
+        "process_family": "material_extrusion",
+        "required_inspection": [
+          "dimensional"
+        ],
+        "post_repair_verification_required": true,
+        "required_max_temperature_c": 40,
+        "deadline_hours": 3
+      },
+      "routes": [
+        {
+          "route_id": "N1-LATE",
+          "tier": "N1",
+          "machine_id": "LMF-FDM-N1-001",
+          "process_family": "material_extrusion",
+          "support_status": "supported",
+          "machine_identity_status": "verified",
+          "machine_safety_status": "qualified",
+          "material_status": "approved",
+          "calibration_status": "current",
+          "operator_status": "qualified",
+          "inspection_status": "qualified",
+          "post_repair_status": "complete",
+          "machine_envelope_status": "within",
+          "max_process_temperature_c": 80,
+          "inspection_methods": [
+            "dimensional"
+          ],
+          "capacity_units": {
+            "required": 1,
+            "available": 4,
+            "unit": "parts"
+          },
+          "lead_time_hours": 9,
+          "dependencies": [
+            {
+              "dependency_id": "frame-profile",
+              "criticality": "critical",
+              "sourcing_class": "locally_manufactured",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "measured",
+              "requires": []
+            },
+            {
+              "dependency_id": "controller",
+              "criticality": "critical",
+              "sourcing_class": "local_service_imported_inputs",
+              "alternate_sources": 1,
+              "local_repair_status": "repairable",
+              "evidence_status": "independently_verified",
+              "requires": []
+            },
+            {
+              "dependency_id": "linear-motion-set",
+              "criticality": "important",
+              "sourcing_class": "imported_stocked",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "vendor_declared",
+              "requires": []
+            }
+          ],
+          "cost": {
+            "capital_allocation_zar": 20,
+            "material_zar": 12,
+            "energy_zar": 2,
+            "labour_zar": 18,
+            "setup_zar": 3,
+            "calibration_zar": 1,
+            "inspection_zar": 4,
+            "finishing_zar": 2,
+            "transport_zar": 0,
+            "maintenance_zar": 2,
+            "failure_rework_zar": 3,
+            "warranty_reserve_zar": 1,
+            "accepted_outputs": 1
+          }
+        }
+      ],
+      "expected": {
+        "disposition": "infeasible",
+        "feasible_route_ids": [],
+        "route_results": [
+          {
+            "route_id": "N1-LATE",
+            "disposition": "infeasible",
+            "blockers": [
+              "deadline_missed"
+            ]
+          }
+        ],
+        "local_closure_disposition": "unknown"
+      }
+    },
+    {
+      "scenario_id": "MCC-011",
+      "description": "The route can make the part, but a critical controller dependency is imported with no alternate source or local repair.",
+      "part": {
+        "part_id": "LUM-P0-ACCESSORY-001",
+        "revision": "A",
+        "risk_class": "P0",
+        "allowed_tiers": [
+          "H0",
+          "N1",
+          "R2",
+          "Q3",
+          "OEM"
+        ],
+        "rights_status": "verified",
+        "revision_status": "exact",
+        "process_family": "material_extrusion",
+        "required_inspection": [
+          "dimensional"
+        ],
+        "post_repair_verification_required": true,
+        "required_max_temperature_c": 40,
+        "deadline_hours": 24
+      },
+      "routes": [
+        {
+          "route_id": "N1-IMPORT-DEPENDENCY",
+          "tier": "N1",
+          "machine_id": "LMF-FDM-N1-001",
+          "process_family": "material_extrusion",
+          "support_status": "supported",
+          "machine_identity_status": "verified",
+          "machine_safety_status": "qualified",
+          "material_status": "approved",
+          "calibration_status": "current",
+          "operator_status": "qualified",
+          "inspection_status": "qualified",
+          "post_repair_status": "complete",
+          "machine_envelope_status": "within",
+          "max_process_temperature_c": 80,
+          "inspection_methods": [
+            "dimensional"
+          ],
+          "capacity_units": {
+            "required": 1,
+            "available": 4,
+            "unit": "parts"
+          },
+          "lead_time_hours": 4,
+          "dependencies": [
+            {
+              "dependency_id": "frame-profile",
+              "criticality": "critical",
+              "sourcing_class": "locally_manufactured",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "measured",
+              "requires": []
+            },
+            {
+              "dependency_id": "motion-controller",
+              "criticality": "critical",
+              "sourcing_class": "imported_long_lead",
+              "alternate_sources": 0,
+              "local_repair_status": "not_repairable",
+              "evidence_status": "vendor_declared",
+              "requires": []
+            }
+          ],
+          "cost": {
+            "capital_allocation_zar": 20,
+            "material_zar": 12,
+            "energy_zar": 2,
+            "labour_zar": 18,
+            "setup_zar": 3,
+            "calibration_zar": 1,
+            "inspection_zar": 4,
+            "finishing_zar": 2,
+            "transport_zar": 0,
+            "maintenance_zar": 2,
+            "failure_rework_zar": 3,
+            "warranty_reserve_zar": 1,
+            "accepted_outputs": 1
+          }
+        }
+      ],
+      "expected": {
+        "disposition": "feasible",
+        "feasible_route_ids": [
+          "N1-IMPORT-DEPENDENCY"
+        ],
+        "route_results": [
+          {
+            "route_id": "N1-IMPORT-DEPENDENCY",
+            "disposition": "feasible",
+            "blockers": []
+          }
+        ],
+        "local_closure_disposition": "import_dependent"
+      }
+    },
+    {
+      "scenario_id": "MCC-012",
+      "description": "An imported machine is operational and can make the part, but its critical controller cannot be locally repaired or reproduced.",
+      "part": {
+        "part_id": "LUM-P0-ACCESSORY-001",
+        "revision": "A",
+        "risk_class": "P0",
+        "allowed_tiers": [
+          "H0",
+          "N1",
+          "R2",
+          "Q3",
+          "OEM"
+        ],
+        "rights_status": "verified",
+        "revision_status": "exact",
+        "process_family": "material_extrusion",
+        "required_inspection": [
+          "dimensional"
+        ],
+        "post_repair_verification_required": true,
+        "required_max_temperature_c": 40,
+        "deadline_hours": 24
+      },
+      "routes": [
+        {
+          "route_id": "R2-IMPORTED-MACHINE",
+          "tier": "R2",
+          "machine_id": "LMF-FDM-N1-001",
+          "process_family": "material_extrusion",
+          "support_status": "supported",
+          "machine_identity_status": "verified",
+          "machine_safety_status": "qualified",
+          "material_status": "approved",
+          "calibration_status": "current",
+          "operator_status": "qualified",
+          "inspection_status": "qualified",
+          "post_repair_status": "complete",
+          "machine_envelope_status": "within",
+          "max_process_temperature_c": 80,
+          "inspection_methods": [
+            "dimensional"
+          ],
+          "capacity_units": {
+            "required": 1,
+            "available": 4,
+            "unit": "parts"
+          },
+          "lead_time_hours": 4,
+          "dependencies": [
+            {
+              "dependency_id": "machine-controller",
+              "criticality": "critical",
+              "sourcing_class": "imported_stocked",
+              "alternate_sources": 1,
+              "local_repair_status": "not_repairable",
+              "evidence_status": "vendor_declared",
+              "requires": []
+            },
+            {
+              "dependency_id": "hotend-assembly",
+              "criticality": "critical",
+              "sourcing_class": "imported_stocked",
+              "alternate_sources": 1,
+              "local_repair_status": "not_repairable",
+              "evidence_status": "vendor_declared",
+              "requires": []
+            }
+          ],
+          "cost": {
+            "capital_allocation_zar": 20,
+            "material_zar": 12,
+            "energy_zar": 2,
+            "labour_zar": 18,
+            "setup_zar": 3,
+            "calibration_zar": 1,
+            "inspection_zar": 4,
+            "finishing_zar": 2,
+            "transport_zar": 0,
+            "maintenance_zar": 2,
+            "failure_rework_zar": 3,
+            "warranty_reserve_zar": 1,
+            "accepted_outputs": 1
+          }
+        }
+      ],
+      "expected": {
+        "disposition": "feasible",
+        "feasible_route_ids": [
+          "R2-IMPORTED-MACHINE"
+        ],
+        "route_results": [
+          {
+            "route_id": "R2-IMPORTED-MACHINE",
+            "disposition": "feasible",
+            "blockers": []
+          }
+        ],
+        "local_closure_disposition": "import_dependent"
+      }
+    },
+    {
+      "scenario_id": "MCC-013",
+      "description": "The N1 alternative has unknown material evidence, but a distinct R2 route has all mandatory evidence and is feasible.",
+      "part": {
+        "part_id": "LUM-P0-ACCESSORY-001",
+        "revision": "A",
+        "risk_class": "P0",
+        "allowed_tiers": [
+          "N1",
+          "R2"
+        ],
+        "rights_status": "verified",
+        "revision_status": "exact",
+        "process_family": "material_extrusion",
+        "required_inspection": [
+          "dimensional"
+        ],
+        "post_repair_verification_required": true,
+        "required_max_temperature_c": 40,
+        "deadline_hours": 24
+      },
+      "routes": [
+        {
+          "route_id": "N1-ALT-UNKNOWN",
+          "tier": "N1",
+          "machine_id": "LMF-FDM-N1-001",
+          "process_family": "material_extrusion",
+          "support_status": "supported",
+          "machine_identity_status": "verified",
+          "machine_safety_status": "qualified",
+          "material_status": "unknown",
+          "calibration_status": "current",
+          "operator_status": "qualified",
+          "inspection_status": "qualified",
+          "post_repair_status": "complete",
+          "machine_envelope_status": "within",
+          "max_process_temperature_c": 80,
+          "inspection_methods": [
+            "dimensional"
+          ],
+          "capacity_units": {
+            "required": 1,
+            "available": 4,
+            "unit": "parts"
+          },
+          "lead_time_hours": 4,
+          "dependencies": [
+            {
+              "dependency_id": "frame-profile",
+              "criticality": "critical",
+              "sourcing_class": "locally_manufactured",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "measured",
+              "requires": []
+            },
+            {
+              "dependency_id": "controller",
+              "criticality": "critical",
+              "sourcing_class": "local_service_imported_inputs",
+              "alternate_sources": 1,
+              "local_repair_status": "repairable",
+              "evidence_status": "independently_verified",
+              "requires": []
+            },
+            {
+              "dependency_id": "linear-motion-set",
+              "criticality": "important",
+              "sourcing_class": "imported_stocked",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "vendor_declared",
+              "requires": []
+            }
+          ],
+          "cost": {
+            "capital_allocation_zar": 20,
+            "material_zar": 12,
+            "energy_zar": 2,
+            "labour_zar": 18,
+            "setup_zar": 3,
+            "calibration_zar": 1,
+            "inspection_zar": 4,
+            "finishing_zar": 2,
+            "transport_zar": 0,
+            "maintenance_zar": 2,
+            "failure_rework_zar": 3,
+            "warranty_reserve_zar": 1,
+            "accepted_outputs": 1
+          }
+        },
+        {
+          "route_id": "R2-QUALIFIED-ALT",
+          "tier": "R2",
+          "machine_id": "R2-MEX-004",
+          "process_family": "material_extrusion",
+          "support_status": "supported",
+          "machine_identity_status": "verified",
+          "machine_safety_status": "qualified",
+          "material_status": "approved",
+          "calibration_status": "current",
+          "operator_status": "qualified",
+          "inspection_status": "qualified",
+          "post_repair_status": "complete",
+          "machine_envelope_status": "within",
+          "max_process_temperature_c": 80,
+          "inspection_methods": [
+            "dimensional"
+          ],
+          "capacity_units": {
+            "required": 1,
+            "available": 4,
+            "unit": "parts"
+          },
+          "lead_time_hours": 4,
+          "dependencies": [
+            {
+              "dependency_id": "frame-profile",
+              "criticality": "critical",
+              "sourcing_class": "locally_manufactured",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "measured",
+              "requires": []
+            },
+            {
+              "dependency_id": "controller",
+              "criticality": "critical",
+              "sourcing_class": "local_service_imported_inputs",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "independently_verified",
+              "requires": []
+            }
+          ],
+          "cost": {
+            "capital_allocation_zar": 20,
+            "material_zar": 12,
+            "energy_zar": 2,
+            "labour_zar": 18,
+            "setup_zar": 3,
+            "calibration_zar": 1,
+            "inspection_zar": 4,
+            "finishing_zar": 2,
+            "transport_zar": 0,
+            "maintenance_zar": 2,
+            "failure_rework_zar": 3,
+            "warranty_reserve_zar": 1,
+            "accepted_outputs": 1
+          }
+        }
+      ],
+      "expected": {
+        "disposition": "feasible",
+        "feasible_route_ids": [
+          "R2-QUALIFIED-ALT"
+        ],
+        "route_results": [
+          {
+            "route_id": "N1-ALT-UNKNOWN",
+            "disposition": "unknown",
+            "blockers": [
+              "material_unknown"
+            ]
+          },
+          {
+            "route_id": "R2-QUALIFIED-ALT",
+            "disposition": "feasible",
+            "blockers": []
+          }
+        ],
+        "local_closure_disposition": "local_service_only"
+      }
+    },
+    {
+      "scenario_id": "MCC-014",
+      "description": "A machine dependency graph contains a cycle; the existing machine can operate, but local reproduction closure remains unknown.",
+      "part": {
+        "part_id": "LUM-P0-ACCESSORY-001",
+        "revision": "A",
+        "risk_class": "P0",
+        "allowed_tiers": [
+          "H0",
+          "N1",
+          "R2",
+          "Q3",
+          "OEM"
+        ],
+        "rights_status": "verified",
+        "revision_status": "exact",
+        "process_family": "material_extrusion",
+        "required_inspection": [
+          "dimensional"
+        ],
+        "post_repair_verification_required": true,
+        "required_max_temperature_c": 40,
+        "deadline_hours": 24
+      },
+      "routes": [
+        {
+          "route_id": "N1-CYCLIC-CLOSURE",
+          "tier": "N1",
+          "machine_id": "LMF-FDM-N1-001",
+          "process_family": "material_extrusion",
+          "support_status": "supported",
+          "machine_identity_status": "verified",
+          "machine_safety_status": "qualified",
+          "material_status": "approved",
+          "calibration_status": "current",
+          "operator_status": "qualified",
+          "inspection_status": "qualified",
+          "post_repair_status": "complete",
+          "machine_envelope_status": "within",
+          "max_process_temperature_c": 80,
+          "inspection_methods": [
+            "dimensional"
+          ],
+          "capacity_units": {
+            "required": 1,
+            "available": 4,
+            "unit": "parts"
+          },
+          "lead_time_hours": 4,
+          "dependencies": [
+            {
+              "dependency_id": "controller",
+              "criticality": "critical",
+              "sourcing_class": "locally_manufactured",
+              "alternate_sources": 1,
+              "local_repair_status": "repairable",
+              "evidence_status": "measured",
+              "requires": [
+                "assembly-cell"
+              ]
+            },
+            {
+              "dependency_id": "assembly-cell",
+              "criticality": "critical",
+              "sourcing_class": "locally_manufactured",
+              "alternate_sources": 1,
+              "local_repair_status": "repairable",
+              "evidence_status": "measured",
+              "requires": [
+                "controller"
+              ]
+            }
+          ],
+          "cost": {
+            "capital_allocation_zar": 20,
+            "material_zar": 12,
+            "energy_zar": 2,
+            "labour_zar": 18,
+            "setup_zar": 3,
+            "calibration_zar": 1,
+            "inspection_zar": 4,
+            "finishing_zar": 2,
+            "transport_zar": 0,
+            "maintenance_zar": 2,
+            "failure_rework_zar": 3,
+            "warranty_reserve_zar": 1,
+            "accepted_outputs": 1
+          }
+        }
+      ],
+      "expected": {
+        "disposition": "feasible",
+        "feasible_route_ids": [
+          "N1-CYCLIC-CLOSURE"
+        ],
+        "route_results": [
+          {
+            "route_id": "N1-CYCLIC-CLOSURE",
+            "disposition": "feasible",
+            "blockers": []
+          }
+        ],
+        "local_closure_disposition": "unknown"
+      }
+    },
+    {
+      "scenario_id": "MCC-015",
+      "description": "Two queued jobs require more units than the shared machine has available capacity for in the declared window.",
+      "part": {
+        "part_id": "LUM-P0-ACCESSORY-001",
+        "revision": "A",
+        "risk_class": "P0",
+        "allowed_tiers": [
+          "H0",
+          "N1",
+          "R2",
+          "Q3",
+          "OEM"
+        ],
+        "rights_status": "verified",
+        "revision_status": "exact",
+        "process_family": "material_extrusion",
+        "required_inspection": [
+          "dimensional"
+        ],
+        "post_repair_verification_required": true,
+        "required_max_temperature_c": 40,
+        "deadline_hours": 24
+      },
+      "routes": [
+        {
+          "route_id": "N1-CAPACITY-CONTENTION",
+          "tier": "N1",
+          "machine_id": "LMF-FDM-N1-001",
+          "process_family": "material_extrusion",
+          "support_status": "supported",
+          "machine_identity_status": "verified",
+          "machine_safety_status": "qualified",
+          "material_status": "approved",
+          "calibration_status": "current",
+          "operator_status": "qualified",
+          "inspection_status": "qualified",
+          "post_repair_status": "complete",
+          "machine_envelope_status": "within",
+          "max_process_temperature_c": 80,
+          "inspection_methods": [
+            "dimensional"
+          ],
+          "capacity_units": {
+            "required": 3,
+            "available": 2,
+            "unit": "parts"
+          },
+          "lead_time_hours": 4,
+          "dependencies": [
+            {
+              "dependency_id": "frame-profile",
+              "criticality": "critical",
+              "sourcing_class": "locally_manufactured",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "measured",
+              "requires": []
+            },
+            {
+              "dependency_id": "controller",
+              "criticality": "critical",
+              "sourcing_class": "local_service_imported_inputs",
+              "alternate_sources": 1,
+              "local_repair_status": "repairable",
+              "evidence_status": "independently_verified",
+              "requires": []
+            },
+            {
+              "dependency_id": "linear-motion-set",
+              "criticality": "important",
+              "sourcing_class": "imported_stocked",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "vendor_declared",
+              "requires": []
+            }
+          ],
+          "cost": {
+            "capital_allocation_zar": 20,
+            "material_zar": 12,
+            "energy_zar": 2,
+            "labour_zar": 18,
+            "setup_zar": 3,
+            "calibration_zar": 1,
+            "inspection_zar": 4,
+            "finishing_zar": 2,
+            "transport_zar": 0,
+            "maintenance_zar": 2,
+            "failure_rework_zar": 3,
+            "warranty_reserve_zar": 1,
+            "accepted_outputs": 1
+          }
+        }
+      ],
+      "expected": {
+        "disposition": "infeasible",
+        "feasible_route_ids": [],
+        "route_results": [
+          {
+            "route_id": "N1-CAPACITY-CONTENTION",
+            "disposition": "infeasible",
+            "blockers": [
+              "capacity_insufficient"
+            ]
+          }
+        ],
+        "local_closure_disposition": "unknown"
+      }
+    },
+    {
+      "scenario_id": "MCC-016",
+      "description": "The machine identity and safety qualification are unknown; successful operation cannot be presumed.",
+      "part": {
+        "part_id": "LUM-P0-ACCESSORY-001",
+        "revision": "A",
+        "risk_class": "P0",
+        "allowed_tiers": [
+          "H0",
+          "N1",
+          "R2",
+          "Q3",
+          "OEM"
+        ],
+        "rights_status": "verified",
+        "revision_status": "exact",
+        "process_family": "material_extrusion",
+        "required_inspection": [
+          "dimensional"
+        ],
+        "post_repair_verification_required": true,
+        "required_max_temperature_c": 40,
+        "deadline_hours": 24
+      },
+      "routes": [
+        {
+          "route_id": "N1-UNKNOWN-MACHINE",
+          "tier": "N1",
+          "machine_id": "LMF-FDM-N1-001",
+          "process_family": "material_extrusion",
+          "support_status": "supported",
+          "machine_identity_status": "unknown",
+          "machine_safety_status": "unknown",
+          "material_status": "approved",
+          "calibration_status": "current",
+          "operator_status": "qualified",
+          "inspection_status": "qualified",
+          "post_repair_status": "complete",
+          "machine_envelope_status": "within",
+          "max_process_temperature_c": 80,
+          "inspection_methods": [
+            "dimensional"
+          ],
+          "capacity_units": {
+            "required": 1,
+            "available": 4,
+            "unit": "parts"
+          },
+          "lead_time_hours": 4,
+          "dependencies": [
+            {
+              "dependency_id": "frame-profile",
+              "criticality": "critical",
+              "sourcing_class": "locally_manufactured",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "measured",
+              "requires": []
+            },
+            {
+              "dependency_id": "controller",
+              "criticality": "critical",
+              "sourcing_class": "local_service_imported_inputs",
+              "alternate_sources": 1,
+              "local_repair_status": "repairable",
+              "evidence_status": "independently_verified",
+              "requires": []
+            },
+            {
+              "dependency_id": "linear-motion-set",
+              "criticality": "important",
+              "sourcing_class": "imported_stocked",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "vendor_declared",
+              "requires": []
+            }
+          ],
+          "cost": {
+            "capital_allocation_zar": 20,
+            "material_zar": 12,
+            "energy_zar": 2,
+            "labour_zar": 18,
+            "setup_zar": 3,
+            "calibration_zar": 1,
+            "inspection_zar": 4,
+            "finishing_zar": 2,
+            "transport_zar": 0,
+            "maintenance_zar": 2,
+            "failure_rework_zar": 3,
+            "warranty_reserve_zar": 1,
+            "accepted_outputs": 1
+          }
+        }
+      ],
+      "expected": {
+        "disposition": "unknown",
+        "feasible_route_ids": [],
+        "route_results": [
+          {
+            "route_id": "N1-UNKNOWN-MACHINE",
+            "disposition": "unknown",
+            "blockers": [
+              "machine_identity_unknown",
+              "machine_safety_unknown"
+            ]
+          }
+        ],
+        "local_closure_disposition": "unknown"
+      }
+    },
+    {
+      "scenario_id": "MCC-017",
+      "description": "The rights holder has revoked the manufacturing permission.",
+      "part": {
+        "part_id": "LUM-P0-ACCESSORY-001",
+        "revision": "A",
+        "risk_class": "P0",
+        "allowed_tiers": [
+          "H0",
+          "N1",
+          "R2",
+          "Q3",
+          "OEM"
+        ],
+        "rights_status": "revoked",
+        "revision_status": "exact",
+        "process_family": "material_extrusion",
+        "required_inspection": [
+          "dimensional"
+        ],
+        "post_repair_verification_required": true,
+        "required_max_temperature_c": 40,
+        "deadline_hours": 24
+      },
+      "routes": [
+        {
+          "route_id": "N1-REVOKED-RIGHTS",
+          "tier": "N1",
+          "machine_id": "LMF-FDM-N1-001",
+          "process_family": "material_extrusion",
+          "support_status": "supported",
+          "machine_identity_status": "verified",
+          "machine_safety_status": "qualified",
+          "material_status": "approved",
+          "calibration_status": "current",
+          "operator_status": "qualified",
+          "inspection_status": "qualified",
+          "post_repair_status": "complete",
+          "machine_envelope_status": "within",
+          "max_process_temperature_c": 80,
+          "inspection_methods": [
+            "dimensional"
+          ],
+          "capacity_units": {
+            "required": 1,
+            "available": 4,
+            "unit": "parts"
+          },
+          "lead_time_hours": 4,
+          "dependencies": [
+            {
+              "dependency_id": "frame-profile",
+              "criticality": "critical",
+              "sourcing_class": "locally_manufactured",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "measured",
+              "requires": []
+            },
+            {
+              "dependency_id": "controller",
+              "criticality": "critical",
+              "sourcing_class": "local_service_imported_inputs",
+              "alternate_sources": 1,
+              "local_repair_status": "repairable",
+              "evidence_status": "independently_verified",
+              "requires": []
+            },
+            {
+              "dependency_id": "linear-motion-set",
+              "criticality": "important",
+              "sourcing_class": "imported_stocked",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "vendor_declared",
+              "requires": []
+            }
+          ],
+          "cost": {
+            "capital_allocation_zar": 20,
+            "material_zar": 12,
+            "energy_zar": 2,
+            "labour_zar": 18,
+            "setup_zar": 3,
+            "calibration_zar": 1,
+            "inspection_zar": 4,
+            "finishing_zar": 2,
+            "transport_zar": 0,
+            "maintenance_zar": 2,
+            "failure_rework_zar": 3,
+            "warranty_reserve_zar": 1,
+            "accepted_outputs": 1
+          }
+        }
+      ],
+      "expected": {
+        "disposition": "infeasible",
+        "feasible_route_ids": [],
+        "route_results": [
+          {
+            "route_id": "N1-REVOKED-RIGHTS",
+            "disposition": "infeasible",
+            "blockers": [
+              "rights_revoked"
+            ]
+          }
+        ],
+        "local_closure_disposition": "unknown"
+      }
+    },
+    {
+      "scenario_id": "MCC-018",
+      "description": "Required post-repair verification is missing; the produced part cannot be released for installation.",
+      "part": {
+        "part_id": "LUM-P0-ACCESSORY-001",
+        "revision": "A",
+        "risk_class": "P0",
+        "allowed_tiers": [
+          "H0",
+          "N1",
+          "R2",
+          "Q3",
+          "OEM"
+        ],
+        "rights_status": "verified",
+        "revision_status": "exact",
+        "process_family": "material_extrusion",
+        "required_inspection": [
+          "dimensional"
+        ],
+        "post_repair_verification_required": true,
+        "required_max_temperature_c": 40,
+        "deadline_hours": 24
+      },
+      "routes": [
+        {
+          "route_id": "N1-NO-POST-REPAIR",
+          "tier": "N1",
+          "machine_id": "LMF-FDM-N1-001",
+          "process_family": "material_extrusion",
+          "support_status": "supported",
+          "machine_identity_status": "verified",
+          "machine_safety_status": "qualified",
+          "material_status": "approved",
+          "calibration_status": "current",
+          "operator_status": "qualified",
+          "inspection_status": "qualified",
+          "post_repair_status": "missing",
+          "machine_envelope_status": "within",
+          "max_process_temperature_c": 80,
+          "inspection_methods": [
+            "dimensional"
+          ],
+          "capacity_units": {
+            "required": 1,
+            "available": 4,
+            "unit": "parts"
+          },
+          "lead_time_hours": 4,
+          "dependencies": [
+            {
+              "dependency_id": "frame-profile",
+              "criticality": "critical",
+              "sourcing_class": "locally_manufactured",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "measured",
+              "requires": []
+            },
+            {
+              "dependency_id": "controller",
+              "criticality": "critical",
+              "sourcing_class": "local_service_imported_inputs",
+              "alternate_sources": 1,
+              "local_repair_status": "repairable",
+              "evidence_status": "independently_verified",
+              "requires": []
+            },
+            {
+              "dependency_id": "linear-motion-set",
+              "criticality": "important",
+              "sourcing_class": "imported_stocked",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "vendor_declared",
+              "requires": []
+            }
+          ],
+          "cost": {
+            "capital_allocation_zar": 20,
+            "material_zar": 12,
+            "energy_zar": 2,
+            "labour_zar": 18,
+            "setup_zar": 3,
+            "calibration_zar": 1,
+            "inspection_zar": 4,
+            "finishing_zar": 2,
+            "transport_zar": 0,
+            "maintenance_zar": 2,
+            "failure_rework_zar": 3,
+            "warranty_reserve_zar": 1,
+            "accepted_outputs": 1
+          }
+        }
+      ],
+      "expected": {
+        "disposition": "infeasible",
+        "feasible_route_ids": [],
+        "route_results": [
+          {
+            "route_id": "N1-NO-POST-REPAIR",
+            "disposition": "infeasible",
+            "blockers": [
+              "post_repair_verification_missing"
+            ]
+          }
+        ],
+        "local_closure_disposition": "unknown"
+      }
+    },
+    {
+      "scenario_id": "MCC-019",
+      "description": "A specialist process family is outside the v0.1 supported process model.",
+      "part": {
+        "part_id": "LUM-P0-ACCESSORY-001",
+        "revision": "A",
+        "risk_class": "P0",
+        "allowed_tiers": [
+          "H0",
+          "N1",
+          "R2",
+          "Q3",
+          "OEM"
+        ],
+        "rights_status": "verified",
+        "revision_status": "exact",
+        "process_family": "electron_beam_melting",
+        "required_inspection": [
+          "dimensional"
+        ],
+        "post_repair_verification_required": true,
+        "required_max_temperature_c": 40,
+        "deadline_hours": 24
+      },
+      "routes": [
+        {
+          "route_id": "Q3-UNSUPPORTED-AM",
+          "tier": "Q3",
+          "machine_id": "LMF-FDM-N1-001",
+          "process_family": "electron_beam_melting",
+          "support_status": "unsupported",
+          "machine_identity_status": "verified",
+          "machine_safety_status": "qualified",
+          "material_status": "approved",
+          "calibration_status": "current",
+          "operator_status": "qualified",
+          "inspection_status": "qualified",
+          "post_repair_status": "complete",
+          "machine_envelope_status": "within",
+          "max_process_temperature_c": 80,
+          "inspection_methods": [
+            "dimensional"
+          ],
+          "capacity_units": {
+            "required": 1,
+            "available": 4,
+            "unit": "parts"
+          },
+          "lead_time_hours": 4,
+          "dependencies": [
+            {
+              "dependency_id": "frame-profile",
+              "criticality": "critical",
+              "sourcing_class": "locally_manufactured",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "measured",
+              "requires": []
+            },
+            {
+              "dependency_id": "controller",
+              "criticality": "critical",
+              "sourcing_class": "local_service_imported_inputs",
+              "alternate_sources": 1,
+              "local_repair_status": "repairable",
+              "evidence_status": "independently_verified",
+              "requires": []
+            },
+            {
+              "dependency_id": "linear-motion-set",
+              "criticality": "important",
+              "sourcing_class": "imported_stocked",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "vendor_declared",
+              "requires": []
+            }
+          ],
+          "cost": {
+            "capital_allocation_zar": 20,
+            "material_zar": 12,
+            "energy_zar": 2,
+            "labour_zar": 18,
+            "setup_zar": 3,
+            "calibration_zar": 1,
+            "inspection_zar": 4,
+            "finishing_zar": 2,
+            "transport_zar": 0,
+            "maintenance_zar": 2,
+            "failure_rework_zar": 3,
+            "warranty_reserve_zar": 1,
+            "accepted_outputs": 1
+          }
+        }
+      ],
+      "expected": {
+        "disposition": "unsupported",
+        "feasible_route_ids": [],
+        "route_results": [
+          {
+            "route_id": "Q3-UNSUPPORTED-AM",
+            "disposition": "unsupported",
+            "blockers": [
+              "process_family_unsupported"
+            ]
+          }
+        ],
+        "local_closure_disposition": "unknown"
+      }
+    },
+    {
+      "scenario_id": "MCC-020",
+      "description": "The process control safety state is explicitly unqualified; speed and cost cannot override this hard stop.",
+      "part": {
+        "part_id": "LUM-P0-ACCESSORY-001",
+        "revision": "A",
+        "risk_class": "P0",
+        "allowed_tiers": [
+          "H0",
+          "N1",
+          "R2",
+          "Q3",
+          "OEM"
+        ],
+        "rights_status": "verified",
+        "revision_status": "exact",
+        "process_family": "material_extrusion",
+        "required_inspection": [
+          "dimensional"
+        ],
+        "post_repair_verification_required": true,
+        "required_max_temperature_c": 40,
+        "deadline_hours": 24
+      },
+      "routes": [
+        {
+          "route_id": "N1-UNSAFE-CONTROL",
+          "tier": "N1",
+          "machine_id": "LMF-FDM-N1-001",
+          "process_family": "material_extrusion",
+          "support_status": "supported",
+          "machine_identity_status": "verified",
+          "machine_safety_status": "unqualified",
+          "material_status": "approved",
+          "calibration_status": "current",
+          "operator_status": "qualified",
+          "inspection_status": "qualified",
+          "post_repair_status": "complete",
+          "machine_envelope_status": "within",
+          "max_process_temperature_c": 80,
+          "inspection_methods": [
+            "dimensional"
+          ],
+          "capacity_units": {
+            "required": 1,
+            "available": 4,
+            "unit": "parts"
+          },
+          "lead_time_hours": 4,
+          "dependencies": [
+            {
+              "dependency_id": "frame-profile",
+              "criticality": "critical",
+              "sourcing_class": "locally_manufactured",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "measured",
+              "requires": []
+            },
+            {
+              "dependency_id": "controller",
+              "criticality": "critical",
+              "sourcing_class": "local_service_imported_inputs",
+              "alternate_sources": 1,
+              "local_repair_status": "repairable",
+              "evidence_status": "independently_verified",
+              "requires": []
+            },
+            {
+              "dependency_id": "linear-motion-set",
+              "criticality": "important",
+              "sourcing_class": "imported_stocked",
+              "alternate_sources": 2,
+              "local_repair_status": "repairable",
+              "evidence_status": "vendor_declared",
+              "requires": []
+            }
+          ],
+          "cost": {
+            "capital_allocation_zar": 20,
+            "material_zar": 12,
+            "energy_zar": 2,
+            "labour_zar": 18,
+            "setup_zar": 3,
+            "calibration_zar": 1,
+            "inspection_zar": 4,
+            "finishing_zar": 2,
+            "transport_zar": 0,
+            "maintenance_zar": 2,
+            "failure_rework_zar": 3,
+            "warranty_reserve_zar": 1,
+            "accepted_outputs": 1
+          }
+        }
+      ],
+      "expected": {
+        "disposition": "infeasible",
+        "feasible_route_ids": [],
+        "route_results": [
+          {
+            "route_id": "N1-UNSAFE-CONTROL",
+            "disposition": "infeasible",
+            "blockers": [
+              "machine_safety_unqualified"
+            ]
+          }
+        ],
+        "local_closure_disposition": "unknown"
+      }
+    }
+  ],
+  "claim_ceiling": "All inputs are synthetic. Expected outputs are provisional known-answer labels for independent review, not evidence of physical process qualification, machine safety, rights, local sourcing, cost savings or repair performance."
+}
