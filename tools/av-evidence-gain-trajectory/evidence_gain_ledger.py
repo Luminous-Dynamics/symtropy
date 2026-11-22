@@ -168,7 +168,7 @@ def _validate_action_forecast(
     forecast = _strict_object(
         turn["action_forecast"],
         {
-            "turn_id",
+            "episode_id",
             "transcript_head_sha256",
             "forecast_tick",
             "deadline_tick",
@@ -181,8 +181,8 @@ def _validate_action_forecast(
     )
     turn_id = turn["turn_id"]
     head = _sha256(workload.get("transcript_head_sha256"), f"{turn_id}.workload.transcript_head_sha256")
-    if forecast["turn_id"] != turn_id:
-        raise EvidenceGainError(f"{turn_id}: action forecast turn ID mismatch")
+    if forecast["episode_id"] != turn_id:
+        raise EvidenceGainError(f"{turn_id}: action forecast episode_id must equal the turn ID")
     if _sha256(forecast["transcript_head_sha256"], f"{turn_id}.forecast.transcript_head_sha256") != head:
         raise EvidenceGainError(f"{turn_id}: forecast is not bound to the current transcript head")
 
@@ -415,14 +415,28 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(turns, list) or not turns:
         raise EvidenceGainError("turns must be a non-empty array")
 
+    # Construct the evaluator-only full source catalog before scoring any turn.
+    # Future observations may appear in hidden truth annotations, but each
+    # candidate submission is still checked against that turn's delivered
+    # workload catalog only.
+    full_truth_catalog: dict[str, dict[str, Any]] = {}
+    for index, raw_turn in enumerate(turns):
+        if not isinstance(raw_turn, dict) or not isinstance(raw_turn.get("workload"), dict):
+            raise EvidenceGainError(f"turn[{index}]: missing workload object")
+        source_rows = _validate_observation_catalog(raw_turn["workload"])
+        for observation_id, row in source_rows.items():
+            if observation_id in full_truth_catalog and full_truth_catalog[observation_id] != row:
+                raise EvidenceGainError(
+                    f"turn[{index}]: immutable source observation {observation_id} changed"
+                )
+            full_truth_catalog[observation_id] = row
+
     turn_results = []
     seen_turn_ids: set[str] = set()
     prior_catalog: dict[str, dict[str, Any]] | None = None
-    prior_workload: dict[str, Any] | None = None
     prior_scorecard: dict[str, Any] | None = None
     prior_action: str | None = None
     prior_cutoff = -1
-    all_catalog: dict[str, dict[str, Any]] = {}
     resource_summaries = {
         field: {"observed_count": 0, "sum": 0.0}
         for field in RESOURCE_FIELDS
@@ -534,12 +548,11 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
         if submission.get("transcript_head_sha256") != workload.get("transcript_head_sha256"):
             raise EvidenceGainError(f"{turn_id}: evidence submission is bound to a different transcript head")
 
-        # Freeze a union source catalog for evaluator truth, while each turn's
-        # candidate submission is checked against only its currently visible catalog.
+        # Truth is evaluated against the immutable full source catalog;
+        # the candidate remains limited to this turn's delivered catalog.
         for observation_id, row in catalog.items():
-            if observation_id in all_catalog and all_catalog[observation_id] != row:
-                raise EvidenceGainError(f"{turn_id}: source observation {observation_id} changed across turns")
-            all_catalog[observation_id] = row
+            if full_truth_catalog.get(observation_id) != row:
+                raise EvidenceGainError(f"{turn_id}: delivered observation differs from full source record")
 
         action_result = _validate_action_forecast(
             turn, workload, policy_id, index
@@ -549,7 +562,7 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
             workload,
             truth,
             submission,
-            evaluator_observation_catalog=all_catalog,
+            evaluator_observation_catalog=full_truth_catalog,
         )
         transition = None
         if prior_scorecard is not None:
@@ -598,7 +611,6 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
         })
 
         prior_catalog = catalog
-        prior_workload = workload
         prior_scorecard = scorecard
         prior_action = action_result["selected_action_id"]
         prior_cutoff = cutoff
