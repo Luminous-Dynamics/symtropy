@@ -29,6 +29,14 @@ This does **not** implement:
 
 Those inputs are required for a paper-faithful route reproduction. This module is an isolated equation-level baseline harness that allows its numeric controller law to be tested now without claiming the route experiment has been reproduced.
 
+## Derivative-filter fidelity
+
+The derivative low-pass term now uses the exact first-order exponential coefficient:
+- alpha_D = exp(-2 pi f_c Delta-t);
+- D_k = alpha_D D_(k-1) + (1-alpha_D) (e_k-e_(k-1))/Delta-t.
+
+A dedicated test checks the coefficient numerically for the configured cutoff and sample interval. This avoids replacing the exponential filter with a forward-Euler approximation, which may be close for some sample intervals but is not the paper's exact discrete update.
+
 ## Conditional-integration fidelity
 
 The implementation exposes two modes rather than silently altering the paper's discrete rule:
