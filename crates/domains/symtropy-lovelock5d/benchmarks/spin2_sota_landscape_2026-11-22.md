@@ -165,3 +165,64 @@ If achieved, this would combine Akribeia-style nonlinear discovery/refinement wi
 - Li, Hu & Yunes, [One Method to Find Them All: Analytic Black Holes beyond Einstein](https://arxiv.org/abs/2610.37515), arXiv:2610.37515 (2026).
 - Lessard & Reinhardt, [Rigorous Numerics for Nonlinear Differential Equations Using Chebyshev Series](https://doi.org/10.1137/13090883X), SIAM J. Numer. Anal. 52 (2014).
 - Papallo & Reall, [On the local well-posedness of Lovelock and Horndeski theories](https://doi.org/10.1103/PhysRevD.96.044019), Phys. Rev. D 96 (2017).
+
+
+## 7. Literature and qualification update — 22 November 2026
+
+This addendum records details checked against the full current papers, not only abstracts.
+
+### Akribeia v2: separate the accuracy quantities and test branch topology
+
+The 19 November v2 reports the following distinct measures:
+
+- The Myers–Perry Einstein-limit control uses an aggregate \(\Delta_{\rm Total}\) made from relative \(L^2\) profile errors of the metric functions, evaluated at approximately \(10^3\) out-of-collocation points. The table reports values varying by dimension and \(\Omega_H\); for example, its 5D row spans approximately \(10^{-104}\) to \(10^{-92}\) over \(\Omega_H=0.1,\ldots,0.6\). This is a profile-error control, not a finite-coupling equation residual.
+- The spectral method reports residuals around \(10^{-80}\) at \(N=200\), 300-digit arithmetic, and roughly one minute per solution. The 7D cubic Lovelock example is then extended from \(N=200\) to \(N=500\), with total four-row \(L^2\) residual of order \(10^{-80}\). Keep dimension, configuration, \(N\), arithmetic and residual definition attached to each figure.
+- In the 5D \(\Omega_H=0.68\) family, the paper describes non-monotonic profile evolution as \(\alpha\) increases and notes that a given profile point \((r,f(r))\) may be crossed by more than one coupling value. This is not by itself a proof of a fold or a complete branch classification, but it makes branch identity, injectivity of the parameter-to-profile projection, pseudo-arclength and deflation important matched tests.
+
+This suggests a stronger benchmark than residual alone: **branch projection diagnostics**. For every parameterized family, record whether selected profile/observable projections remain one-to-one, identify self-overlaps without conflating them with duplicate solutions, and verify any suspected fold/intersection through the full solution-space Jacobian and transversality conditions.
+
+Paper sections checked: spectral refinement and computational cost, Myers–Perry error definition/table, 5D \(\Omega_H=0.68\) discussion, and 7D residual definition. The source is [arXiv:2607.07418v2](https://arxiv.org/abs/2607.07418v2), revised 19 Nov 2026 and accepted by PRD on 12 Nov 2026.
+
+### Li–Hu–Yunes: source-to-metric reconstruction is a distinct frontier
+
+The 27 October 2026 paper [arXiv:2610.37515](https://arxiv.org/abs/2610.37515) should be treated as a methodological comparator for a separate 4D Kerr/EFT track, not as a direct 5D equal-spin EGB benchmark.
+
+It constructs leading-coupling metric deformations for six four-dimensional purely metric interactions (cubic, quartic and quintic) at generic subextremal spin. Its common generating-kernel construction uses sourced Teukolsky/curvature equations and a Newman–Penrose metric-reconstruction hierarchy, removing the mode decomposition used in the authors' earlier mode-by-mode solution.
+
+A reported cross-check at \(a/M=0.9999\) compares \(\Psi_0^{(1)}\) at five polar angles and 200 logarithmically spaced radii from \(r_++10^{-6}M\) to \(100M\), against mode sums truncated at \(\ell_{\max}=100\). The maximum relative discrepancy is below \(1.4\times10^{-22}\). This is a high-accuracy sampled comparison against a distinct construction; it is not a full-domain interval bound, a generic metric error theorem, or a runtime benchmark. The paper also checks horizon-thermodynamic quantities against independent analytic predictions where available.
+
+The paradigm opportunity for Symtropy is a **source-to-solution compiler** with multiple interchangeable mathematical backends:
+- direct action-derived tensor ODE/PDE reduction;
+- curvature/Teukolsky source generation;
+- metric reconstruction by quadratures or exact kernels;
+- independent metric and original-field-equation qualification;
+- common asymptotic charge, horizon observable and branch-sensitivity interface.
+
+The reconstructed metric must still pass the full field equations and all gauge/regularity/charge conditions. The new method is not a shortcut around verification.
+
+### Hyperbolicity literature: keep theory identity explicit
+
+Rossi, Gualtieri and Sotiriou, *Minimum mass, maximum charge, and hyperbolicity in scalar Gauss-Bonnet gravity*, Phys. Rev. D 114, 064042 (published 9 September 2026), [DOI](https://doi.org/10.1103/2qq5-cqzx), studies perturbation-equation hyperbolicity in scalar Gauss–Bonnet black-hole solutions. It reports a minimum-mass threshold below which perturbation equations become elliptic for the studied class of coupling functions.
+
+This is scalar-tensor Gauss–Bonnet, not pure metric Einstein–Gauss–Bonnet. Its numerical threshold must not be transferred to the 5D EGB system. Its relevance is methodological: physical admissibility can impose a branch boundary distinct from stationary BVP existence, and that boundary should be mapped rather than inferred from curvature invariants or residuals.
+
+## 8. Normalization-aware boundary-map metrics
+
+The exact Einstein-limit raw Jacobian is \(J_0=\operatorname{diag}(1/2,2)\), with determinant \(1\) and raw Euclidean condition number \(4\) in the published coordinates. The new exact-rational metamorphic check establishes that under nonsingular basis changes \(\widetilde J=RJS^{-1}\), rank/nullity are invariant but determinant magnitude and Euclidean singular values are not. Output rescaling can change the same map's raw Euclidean condition number to \(1\) or \(16\).
+
+Therefore, a branch-degeneracy detector must not rely on an unqualified Euclidean condition number. Every atlas node must report the coordinate convention and a frozen pair of positive-definite endpoint metrics (or explicitly state that no canonical metric has yet been established). Generalized singular values should be computed in those metrics, while rank/invertibility is reported separately. If a coupling-dependent endpoint basis is used, its derivative must be included in the reported \(J_1\).
+
+See [the boundary-map normalization protocol](spin2_boundary_map_normalization_v1.md) and its exact-rational replay receipt.
+
+## 9. Updated challenge set
+
+Add the following to the frozen comparator suite:
+
+1. Akribeia MP control across the published \(\Omega_H\) values, reporting profile error separately from every equation residual.
+2. Akribeia 5D \(\Omega_H=0.68\) family as a branch-projection/multi-crossing diagnostic; do not label a crossing a fold until the full solution Jacobian verifies it.
+3. Akribeia 7D \(N=200\) to \(N=500\) refinement as a work-precision case, with all four residual rows and the exact total norm definition.
+4. Li–Hu–Yunes near-extremal \(\Psi_0\) comparison as a 4D reconstruction cross-check, with its sampled grid and mode-sum truncation preserved.
+5. Scalar-GB hyperbolicity threshold as an external theory-specific control; never reuse its parameter thresholds for pure EGB.
+6. Boundary-map coordinate metamorphisms: row/column rescaling must alter raw condition numbers but preserve rank, and metric-aware generalized singular values must remain invariant when the metrics are transformed consistently.
+
+All comparison entries remain problem-specific. No Symtropy superiority or finite-coupling existence claim follows from this literature update.
