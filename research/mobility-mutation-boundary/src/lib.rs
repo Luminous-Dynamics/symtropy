@@ -640,4 +640,114 @@ pub use history::{
     check_history, HistoryCheckResult, HistoryObservedResult, HistoryOperation,
     HistoryOperationKind, IncompleteReason, OperationHistory, DEFAULT_SEARCH_BUDGET,
     MAX_HISTORY_OPERATIONS,
+    #[test]
+    fn pending_physical_outcome_blocks_a_second_native_mutation() {
+        let boundary = ApplicationBoundary::new(live("attempt-1", 7, 3));
+        let first = boundary.apply(&ticket("attempt-1"), &now(150), |_| {
+            NativeApplicationResult::Accepted
+        });
+        assert!(first.is_ok());
+
+        let mut second_ticket = ticket("attempt-1");
+        second_ticket.ticket_id = "ticket-18".to_owned();
+        let calls = AtomicUsize::new(0);
+        let second = boundary.apply(&second_ticket, &now(151), |_| {
+            calls.fetch_add(1, Ordering::SeqCst);
+            NativeApplicationResult::Accepted
+        });
+
+        assert_eq!(second, Err(Rejection::PendingActionExists));
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
+    }
+
+    #[test]
+    fn unknown_outcome_retains_hold_until_independent_resolution() {
+        let boundary = ApplicationBoundary::new(live("attempt-1", 7, 3));
+        boundary
+            .apply(&ticket("attempt-1"), &now(150), |_| {
+                NativeApplicationResult::UnknownAfterPossibleApplication
+            })
+            .unwrap();
+
+        let held = boundary
+            .resolve_pending_action(
+                "attempt-1",
+                QualifiedOutcomeResolution::Unknown,
+                None,
+                None,
+            )
+            .unwrap();
+        assert_eq!(held, ResolutionDisposition::HoldRetained);
+
+        let next = live("attempt-2", 8, 4);
+        let cleared = boundary
+            .resolve_pending_action(
+                "attempt-1",
+                QualifiedOutcomeResolution::Satisfied,
+                Some(next),
+                None,
+            )
+            .unwrap();
+        assert_eq!(cleared, ResolutionDisposition::ClearedForNewAuthoritySnapshot);
+
+        let mut next_ticket = ticket("attempt-2");
+        next_ticket.ticket_id = "ticket-18".to_owned();
+        next_ticket.binding = binding(8, 4);
+        let applied = boundary.apply(&next_ticket, &now(151), |_| {
+            NativeApplicationResult::Accepted
+        });
+        assert!(applied.is_ok());
+    }
+
+    #[test]
+    fn no_effect_resolution_requires_m1_recovery_permit() {
+        let boundary = ApplicationBoundary::new(live("attempt-1", 7, 3));
+        boundary
+            .apply(&ticket("attempt-1"), &now(150), |_| {
+                NativeApplicationResult::RejectedNoEffect
+            })
+            .unwrap();
+
+        let next = live("attempt-2", 8, 4);
+        let without_permit = boundary.resolve_pending_action(
+            "attempt-1",
+            QualifiedOutcomeResolution::NoEffect,
+            Some(next.clone()),
+            None,
+        );
+        assert_eq!(without_permit, Err(Rejection::RecoveryPermitMissing));
+
+        let with_permit = boundary.resolve_pending_action(
+            "attempt-1",
+            QualifiedOutcomeResolution::NoEffect,
+            Some(next),
+            Some("permit-digest-2"),
+        );
+        assert_eq!(
+            with_permit,
+            Ok(ResolutionDisposition::ClearedForNewAuthoritySnapshot)
+        );
+    }
+
+    #[test]
+    fn partial_effect_requires_replan_permit_and_newer_authority() {
+        let boundary = ApplicationBoundary::new(live("attempt-1", 7, 3));
+        boundary
+            .apply(&ticket("attempt-1"), &now(150), |_| {
+                NativeApplicationResult::Accepted
+            })
+            .unwrap();
+
+        let result = boundary.resolve_pending_action(
+            "attempt-1",
+            QualifiedOutcomeResolution::PartialEffect,
+            Some(live("attempt-2", 8, 4)),
+            Some("replan-permit-2"),
+        );
+        assert_eq!(
+            result,
+            Ok(ResolutionDisposition::ClearedForNewAuthoritySnapshot)
+        );
+    }
+
 };
