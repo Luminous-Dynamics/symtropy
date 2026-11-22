@@ -420,7 +420,49 @@ The new `battery_charge_queue_screen` CLI, strict JSON schema and fixture are in
 
 This exact scheduler does not yet model variable charge curves, efficiency, battery thermal evolution, degradation, charger faults, demand charges or stochastic grid uncertainty. It does not energize a pack or release it to service; the event journal #6700 remains the state transition/reconciliation owner.
 
-## 14. Next implementation phases
+## 14. Reserve-first grid resilience and energy flexibility
+
+The connected system-level programme is [MOBILITY-ENERGY-RESILIENCE-001 #6707](https://github.com/Luminous-Dynamics/symtropy/issues/6707). It consumes the exact pack allocation, event journal, resource interval and charger queue interfaces defined above; it does not duplicate the charge scheduler or energy ledger.
+
+### 14.1 One reserve ledger across four horizons
+
+The main paradigm shift is a mobility-first grid-interactive depot with one canonical reserve ledger:
+1. **Capacity planning:** PV, stationary ESS, grid connection, chargers/channels, conditioning, pack inventory, backup and mobile service capacity under joint demand/weather/renewables/outage uncertainty.
+2. **Day-ahead commitment:** conservative grid flexibility bidding only after forecast mobility demand, minimum charged-pack buffer, emergency reserve and outage autonomy are protected.
+3. **Intra-day tracking:** adapt pack charging, stationary ESS and qualified bidirectional assets as arrivals, grid instructions and forecast errors evolve.
+4. **Local real-time protection:** BMS, inverter, contactor, insulation, overcurrent, voltage, thermal and anti-islanding protections remain autonomous. LSTM, Symthaea, aggregators and optimizers may propose setpoints; they do not authorize contactor switching or override local protection.
+
+At each time boundary:
+
+`verified flexible energy = conservative qualified available energy - committed mission energy - minimum mobility inventory buffer - safety/outage reserve - uncertainty allowance`.
+
+A pack cannot be counted as both mission-reserved and grid-flexible. An idle aircraft pack is not automatically a stationary ESS. V2G export requires exact bidirectional hardware/BMS/interface qualification, grid connection and permission. Islanding, grid-forming control and black start are distinct physical/protection capabilities.
+
+### 14.2 2026 research comparators
+
+- **Cluster aggregation and multi-timescale dispatch:** Chen et al., *Electronics* 15(11), 2444 (3 June 2026), [DOI 10.3390/electronics15112444](https://doi.org/10.3390/electronics15112444). Day-ahead cluster grid-regulation bidding, intra-day charging/discharging and battery demand allocation, real-time swap-site recommendation, and rolling optimization for forecast error/user rejection. Its case study uses real operating data. It assumes a 3-minute swap and 4C discharge over 15 minutes—road-EV/BSS modelling assumptions, not UAV battery parameters. [Open article](https://www.mdpi.com/2079-9292/15/11/2444).
+- **Cyber-physical smart-grid resilience:** Ghelichpour et al., *Renewable Energy* 275, Article 126219 (1 November 2026), [DOI 10.1016/j.renene.2026.126219](https://doi.org/10.1016/j.renene.2026.126219). Combines LSTM hour-ahead proposals, fuzzy Monte Carlo, BSS, microgrids, ESS, grid reconfiguration, false-data injection, communication delays and security/loadability measures. Evaluation is simulation on a modified 118/124-bus system, not field-proven UAV-site control.
+- **Two-stage robust PV-storage charge/swap planning:** Wang et al., *Journal of Energy Storage* 152, Article 120628 (30 March 2026), [DOI 10.1016/j.est.2026.120628](https://doi.org/10.1016/j.est.2026.120628). Multi-bandwidth Gamma-budget polyhedra and alpha-cut fuzzy intervals for PV, arrivals and loads; two-stage robust capacity planning + adaptive intraday dispatch, solved as MILP via duality and column-and-constraint generation. The paper reports up to 43.8% lower operating cost, 43.6% lower grid-purchased energy and 43.3% lower daily equivalent full cycles against its paper-specific comparisons. These are not Luminous results.
+- **PV-enabled active distribution and Volt/VAR:** Kim et al., *Energies* 19(5), 1223 (28 February 2026), [DOI 10.3390/en19051223](https://doi.org/10.3390/en19051223). Data-driven Wasserstein DRO schedules real/reactive battery power, Volt/VAR, battery-to-battery exchange and demand response under PV uncertainty on an IEEE 33-node system. [Open article](https://www.mdpi.com/1996-1073/19/5/1223).
+
+All four are road-EV/BSS/grid comparisons with different test systems, battery classes, market assumptions and objectives. Reproduce each method on its own source cases before comparing; do not aggregate paper-reported percentages into one leaderboard.
+
+### 14.3 Benchmark and hard constraints
+
+Keep separate:
+- successful mobility deliveries and p95/p99 charger wait under grid events;
+- minimum charged-pack reserve, mobility autonomy and outage safe-degradation time;
+- site-meter import/export, peak kW, PV curtailment, non-charging site load and conditioning/standby energy;
+- pack-terminal energy, charger input and site-meter energy;
+- qualified demand-response capacity and delivered tracking error;
+- voltage deviation, losses, loadability and expected energy not supplied only where a valid grid model/test system is used;
+- battery degradation and ESS throughput;
+- false acceptance of stale/replayed grid data and mission reserve encroachment (target zero);
+- safe-mode entry/recovery time under network partition, aggregator outage and bad forecasts.
+
+Baselines: mobility-only fixed-cap charging; time-of-use; PV + ESS self-consumption; day-ahead bidding + rolling intra-day tracking; Wasserstein DRO; two-stage robust capacity/dispatch; cyber-physical resilience with LSTM proposals and deterministic independent shield. Keep grid services disabled where bidirectional capability, site connection, protection, metering or permission is not independently qualified.
+
+## 15. Next implementation phases
 
 **v0.2 — exact multi-period charging and inventory**
 - model pack-state transitions, charge curves, cooldown/balancing, parallel charger/rack occupancy and grid caps;
