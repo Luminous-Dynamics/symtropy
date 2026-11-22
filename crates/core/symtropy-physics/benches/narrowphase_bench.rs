@@ -38,7 +38,9 @@ fn run_window(mut world: PhysicsWorld<3>) -> [usize; 8] {
 }
 
 fn analytic_box_plane_scene(count: usize) -> PhysicsWorld<3> {
-    let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+    // Gravity keeps the boxes loaded against the plane throughout the window,
+    // so this measures a persistent resting-contact workload.
+    let mut world = PhysicsWorld::<3>::new(SVector::new(0.0, -9.81, 0.0));
     world.solver_iterations = 4;
     world.add_body(RigidBody::<3>::static_body(
         BodyHandle(0),
@@ -51,7 +53,7 @@ fn analytic_box_plane_scene(count: usize) -> PhysicsWorld<3> {
         let body = RigidBody::<3>::new(
             BodyHandle(index + 1),
             BodyType::Dynamic,
-            Transform::from_translation(Point::new([x, 0.49, 0.0])),
+            Transform::from_translation(Point::new([x, 0.5, 0.0])),
             Box::new(HyperBox::<3>::cube(0.5)),
             1.0,
             SVector::from_element(1.0),
