@@ -140,7 +140,7 @@
         },
         {
           "domain": "controller_queue",
-          "status": "current",
+          "status": "not_applicable",
           "owner_id": "owner-4",
           "owner_revision": "revision-4",
           "evidence_id": "initial-evidence-4",
@@ -158,7 +158,7 @@
         },
         {
           "domain": "downstream_execution_graph",
-          "status": "current",
+          "status": "not_applicable",
           "owner_id": "owner-5",
           "owner_revision": "revision-5",
           "evidence_id": "initial-evidence-5",
@@ -384,7 +384,7 @@
         },
         {
           "domain": "controller_queue",
-          "status": "current",
+          "status": "not_applicable",
           "owner_id": "owner-4",
           "owner_revision": "revision-4",
           "evidence_id": "initial-evidence-4",
@@ -402,7 +402,7 @@
         },
         {
           "domain": "downstream_execution_graph",
-          "status": "current",
+          "status": "not_applicable",
           "owner_id": "owner-5",
           "owner_revision": "revision-5",
           "evidence_id": "initial-evidence-5",
@@ -628,7 +628,7 @@
         },
         {
           "domain": "controller_queue",
-          "status": "current",
+          "status": "not_applicable",
           "owner_id": "owner-4",
           "owner_revision": "revision-4",
           "evidence_id": "initial-evidence-4",
@@ -646,7 +646,7 @@
         },
         {
           "domain": "downstream_execution_graph",
-          "status": "current",
+          "status": "not_applicable",
           "owner_id": "owner-5",
           "owner_revision": "revision-5",
           "evidence_id": "initial-evidence-5",
@@ -872,7 +872,7 @@
         },
         {
           "domain": "controller_queue",
-          "status": "current",
+          "status": "not_applicable",
           "owner_id": "owner-4",
           "owner_revision": "revision-4",
           "evidence_id": "initial-evidence-4",
@@ -890,7 +890,7 @@
         },
         {
           "domain": "downstream_execution_graph",
-          "status": "current",
+          "status": "not_applicable",
           "owner_id": "owner-5",
           "owner_revision": "revision-5",
           "evidence_id": "initial-evidence-5",
