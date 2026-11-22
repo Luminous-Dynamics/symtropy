@@ -40,6 +40,10 @@ pub enum IdentifiabilityError {
     InvalidRankTolerance,
     NonFiniteDerivedValue,
     SingularSolveAfterRankCheck,
+    InvalidCandidateCount,
+    InvalidObservationBudget,
+    SearchSpaceLimitExceeded { limit: usize },
+    NoIdentifiableDesign,
 }
 
 impl fmt::Display for IdentifiabilityError {
@@ -54,6 +58,10 @@ impl fmt::Display for IdentifiabilityError {
             Self::InvalidRankTolerance => write!(f, "relative rank tolerance must be finite and in (0, 1)"),
             Self::NonFiniteDerivedValue => write!(f, "identifiability calculation produced a non-finite value"),
             Self::SingularSolveAfterRankCheck => write!(f, "normal-equation solve was singular after full-rank classification"),
+            Self::InvalidCandidateCount => write!(f, "design tournament requires at least one candidate condition"),
+            Self::InvalidObservationBudget => write!(f, "design tournament observation budget must be positive"),
+            Self::SearchSpaceLimitExceeded { limit } => write!(f, "design tournament search exceeded its evaluation limit of {limit}"),
+            Self::NoIdentifiableDesign => write!(f, "no full-rank design exists within the candidate set and observation budget"),
         }
     }
 }
@@ -271,6 +279,254 @@ pub fn reference_self_check() -> Result<(), IdentifiabilityError> {
     Ok(())
 }
 
+
+/// One admissible candidate observation condition in a manufactured design
+/// tournament. This is a sensitivity row and variance, not a physical EHD
+/// voltage/current operating point.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct CandidateCondition {
+    pub sensitivity: [f64; 2],
+    pub observation_variance: f64,
+}
+
+/// A full-rank design score at a fixed observation budget.
+#[derive(Clone, Debug, PartialEq)]
+pub struct DesignScore {
+    pub candidate_indices: Vec<usize>,
+    pub information_matrix: [[f64; 2]; 2],
+    pub singular_values: [f64; 2],
+    pub minimum_information_eigenvalue: f64,
+    pub log_determinant_information: f64,
+    pub condition_number: f64,
+}
+
+/// D-optimal and E-optimal selections evaluated on the same candidate set
+/// and identical observation budget.
+#[derive(Clone, Debug, PartialEq)]
+pub struct DesignTournament {
+    pub observation_budget: usize,
+    pub evaluated_design_count: usize,
+    pub identifiable_design_count: usize,
+    pub d_optimal: DesignScore,
+    pub e_optimal: DesignScore,
+}
+
+fn enumerate_designs(
+    candidate_count: usize,
+    start_index: usize,
+    remaining: usize,
+    current: &mut Vec<usize>,
+    output: &mut Vec<Vec<usize>>,
+    max_evaluations: usize,
+) -> Result<(), IdentifiabilityError> {
+    if remaining == 0 {
+        if output.len() >= max_evaluations {
+            return Err(IdentifiabilityError::SearchSpaceLimitExceeded {
+                limit: max_evaluations,
+            });
+        }
+        output.push(current.clone());
+        return Ok(());
+    }
+    for index in start_index..candidate_count {
+        current.push(index);
+        enumerate_designs(
+            candidate_count,
+            index,
+            remaining - 1,
+            current,
+            output,
+            max_evaluations,
+        )?;
+        current.pop();
+    }
+    Ok(())
+}
+
+fn score_candidate_design(
+    indices: &[usize],
+    candidates: &[CandidateCondition],
+    parameter_scales: [f64; 2],
+    relative_rank_tolerance: f64,
+) -> Result<Option<DesignScore>, IdentifiabilityError> {
+    let rows: Vec<[f64; 2]> = indices
+        .iter()
+        .map(|index| candidates[*index].sensitivity)
+        .collect();
+    let variances: Vec<f64> = indices
+        .iter()
+        .map(|index| candidates[*index].observation_variance)
+        .collect();
+    let observations = vec![0.0; indices.len()];
+    let report = analyse_two_parameter_design(
+        &rows,
+        &observations,
+        &variances,
+        parameter_scales,
+        relative_rank_tolerance,
+    )?;
+    if report.numerical_rank != 2 {
+        return Ok(None);
+    }
+    let sigma_max = report.singular_values[0];
+    let sigma_min = report.singular_values[1];
+    let minimum_information_eigenvalue = sigma_min * sigma_min;
+    let log_determinant_information =
+        2.0 * sigma_max.ln() + 2.0 * sigma_min.ln();
+    let condition_number = sigma_max / sigma_min;
+    if !minimum_information_eigenvalue.is_finite()
+        || !log_determinant_information.is_finite()
+        || !condition_number.is_finite()
+    {
+        return Err(IdentifiabilityError::NonFiniteDerivedValue);
+    }
+    Ok(Some(DesignScore {
+        candidate_indices: indices.to_vec(),
+        information_matrix: report.information_matrix,
+        singular_values: report.singular_values,
+        minimum_information_eigenvalue,
+        log_determinant_information,
+        condition_number,
+    }))
+}
+
+fn is_better_d(candidate: &DesignScore, incumbent: &DesignScore) -> bool {
+    candidate
+        .log_determinant_information
+        .total_cmp(&incumbent.log_determinant_information)
+        .is_gt()
+        || (candidate.log_determinant_information
+            .total_cmp(&incumbent.log_determinant_information)
+            .is_eq()
+            && candidate.candidate_indices < incumbent.candidate_indices)
+}
+
+fn is_better_e(candidate: &DesignScore, incumbent: &DesignScore) -> bool {
+    candidate
+        .minimum_information_eigenvalue
+        .total_cmp(&incumbent.minimum_information_eigenvalue)
+        .is_gt()
+        || (candidate.minimum_information_eigenvalue
+            .total_cmp(&incumbent.minimum_information_eigenvalue)
+            .is_eq()
+            && candidate.candidate_indices < incumbent.candidate_indices)
+}
+
+/// Exhaustively compare D-optimal and E-optimal designs for a small discrete
+/// candidate set at a fixed observation count. Each selected observation has
+/// unit resource cost; heteroscedastic measurement variance is supported.
+///
+/// D-optimal maximizes log(det(F)); E-optimal maximizes the weakest eigenvalue
+/// of F. Rank-deficient designs are excluded from both selections. The search
+/// is deterministic, lexicographically tie-broken and bounded by a fixed cap.
+pub fn select_discrete_designs(
+    candidates: &[CandidateCondition],
+    observation_budget: usize,
+    parameter_scales: [f64; 2],
+    relative_rank_tolerance: f64,
+    max_evaluations: usize,
+) -> Result<DesignTournament, IdentifiabilityError> {
+    if candidates.is_empty() {
+        return Err(IdentifiabilityError::InvalidCandidateCount);
+    }
+    if observation_budget == 0 {
+        return Err(IdentifiabilityError::InvalidObservationBudget);
+    }
+    if max_evaluations == 0 {
+        return Err(IdentifiabilityError::SearchSpaceLimitExceeded { limit: 0 });
+    }
+    for (index, candidate) in candidates.iter().enumerate() {
+        for column in 0..2 {
+            if !candidate.sensitivity[column].is_finite() {
+                return Err(IdentifiabilityError::NonFiniteDesign {
+                    row: index,
+                    column,
+                });
+            }
+        }
+        if !candidate.observation_variance.is_finite()
+            || candidate.observation_variance <= 0.0
+        {
+            return Err(IdentifiabilityError::InvalidVariance { row: index });
+        }
+    }
+
+    let mut designs = Vec::new();
+    enumerate_designs(
+        candidates.len(),
+        0,
+        observation_budget,
+        &mut Vec::with_capacity(observation_budget),
+        &mut designs,
+        max_evaluations,
+    )?;
+
+    let mut d_best: Option<DesignScore> = None;
+    let mut e_best: Option<DesignScore> = None;
+    let mut identifiable_design_count = 0usize;
+    for indices in &designs {
+        if let Some(score) = score_candidate_design(
+            indices,
+            candidates,
+            parameter_scales,
+            relative_rank_tolerance,
+        )? {
+            identifiable_design_count += 1;
+            if d_best.as_ref().is_none_or(|best| is_better_d(&score, best)) {
+                d_best = Some(score.clone());
+            }
+            if e_best.as_ref().is_none_or(|best| is_better_e(&score, best)) {
+                e_best = Some(score);
+            }
+        }
+    }
+
+    let d_optimal = d_best.ok_or(IdentifiabilityError::NoIdentifiableDesign)?;
+    let e_optimal = e_best.ok_or(IdentifiabilityError::NoIdentifiableDesign)?;
+    Ok(DesignTournament {
+        observation_budget,
+        evaluated_design_count: designs.len(),
+        identifiable_design_count,
+        d_optimal,
+        e_optimal,
+    })
+}
+
+/// A manufactured design where D-optimality and E-optimality select different
+/// allocations at the same three-observation budget.
+pub fn tournament_reference_case() -> [CandidateCondition; 4] {
+    [
+        CandidateCondition { sensitivity: [-3.0, -3.0], observation_variance: 1.0 },
+        CandidateCondition { sensitivity: [-3.0, -2.0], observation_variance: 1.0 },
+        CandidateCondition { sensitivity: [-3.0, -1.0], observation_variance: 1.0 },
+        CandidateCondition { sensitivity: [-2.0, 0.0], observation_variance: 1.0 },
+    ]
+}
+
+pub fn tournament_reference_self_check() -> Result<(), IdentifiabilityError> {
+    let result = select_discrete_designs(
+        &tournament_reference_case(),
+        3,
+        [1.0, 1.0],
+        1.0e-12,
+        100,
+    )?;
+    if result.evaluated_design_count != 20
+        || result.identifiable_design_count == 0
+        || result.d_optimal.candidate_indices != [0, 2, 3]
+        || result.e_optimal.candidate_indices != [0, 3, 3]
+        || (result.d_optimal.log_determinant_information - 76.0_f64.ln()).abs() > 1.0e-12
+        || (result.e_optimal.log_determinant_information - 72.0_f64.ln()).abs() > 1.0e-12
+        || (result.d_optimal.minimum_information_eigenvalue - 2.583592135001262).abs() > 1.0e-10
+        || (result.e_optimal.minimum_information_eigenvalue - 3.1511421982038947).abs() > 1.0e-10
+        || result.e_optimal.minimum_information_eigenvalue
+            <= result.d_optimal.minimum_information_eigenvalue
+    {
+        return Err(IdentifiabilityError::NonFiniteDerivedValue);
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -371,3 +627,52 @@ mod tests {
         assert!(report.condition_number.unwrap() > 1.0e8);
     }
 }
+
+    #[test]
+    fn d_and_e_optimal_designs_can_differ_at_the_same_budget() {
+        let result = select_discrete_designs(
+            &tournament_reference_case(), 3, [1.0, 1.0], 1.0e-12, 100,
+        ).unwrap();
+        assert_eq!(result.evaluated_design_count, 20);
+        assert_eq!(result.d_optimal.candidate_indices, vec![0, 2, 3]);
+        assert_eq!(result.e_optimal.candidate_indices, vec![0, 3, 3]);
+        assert!(result.d_optimal.log_determinant_information
+            > result.e_optimal.log_determinant_information);
+        assert!(result.e_optimal.minimum_information_eigenvalue
+            > result.d_optimal.minimum_information_eigenvalue);
+    }
+
+    #[test]
+    fn design_tournament_rejects_search_space_over_limit() {
+        assert_eq!(
+            select_discrete_designs(
+                &tournament_reference_case(), 3, [1.0, 1.0], 1.0e-12, 19,
+            ).unwrap_err(),
+            IdentifiabilityError::SearchSpaceLimitExceeded { limit: 19 }
+        );
+    }
+
+    #[test]
+    fn design_tournament_rejects_all_rank_deficient_allocations() {
+        let candidates = [
+            CandidateCondition { sensitivity: [1.0, 1.0], observation_variance: 1.0 },
+            CandidateCondition { sensitivity: [2.0, 2.0], observation_variance: 1.0 },
+        ];
+        assert_eq!(
+            select_discrete_designs(&candidates, 3, [1.0, 1.0], 1.0e-12, 20).unwrap_err(),
+            IdentifiabilityError::NoIdentifiableDesign
+        );
+    }
+
+    #[test]
+    fn design_tournament_rejects_nonpositive_candidate_variance() {
+        let candidates = [
+            CandidateCondition { sensitivity: [1.0, 0.0], observation_variance: 1.0 },
+            CandidateCondition { sensitivity: [0.0, 1.0], observation_variance: 0.0 },
+        ];
+        assert_eq!(
+            select_discrete_designs(&candidates, 2, [1.0, 1.0], 1.0e-12, 10).unwrap_err(),
+            IdentifiabilityError::InvalidVariance { row: 1 }
+        );
+    }
+
