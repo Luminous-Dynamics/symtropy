@@ -136,6 +136,8 @@ pub struct CompositionReport {
     pub disaggregation_all_events: usize,
     /// Number of direct parent/child membership edges removed by those events.
     pub disaggregated_membership_edges: usize,
+    /// Number of superseded source-revision edges retracted when present.
+    pub revision_retracted_membership_edges: usize,
     pub failures: BTreeMap<CompositionFailure, usize>,
 }
 
@@ -483,6 +485,12 @@ pub enum CompositionMutation {
         parent_module_id: String,
         child_module_id: String,
     },
+    /// Source-revision compensation: retract an earlier assertion if present.
+    /// Unlike physical DELETE, absence is not a failure during from-scratch replay.
+    RetractIfPresent {
+        parent_module_id: String,
+        child_module_id: String,
+    },
     DisaggregateAll {
         parent_module_id: String,
     },
@@ -517,6 +525,10 @@ fn mutation_touched_modules(mutation: &CompositionMutation) -> BTreeSet<&str> {
         | CompositionMutation::Delete {
             parent_module_id,
             child_module_id,
+        }
+        | CompositionMutation::RetractIfPresent {
+            parent_module_id,
+            child_module_id,
         } => BTreeSet::from([parent_module_id.as_str(), child_module_id.as_str()]),
         CompositionMutation::DisaggregateAll { parent_module_id } => {
             BTreeSet::from([parent_module_id.as_str()])
@@ -530,14 +542,6 @@ fn batch_touched_modules(batch: &CompositionEventBatch) -> BTreeSet<&str> {
         touched.extend(mutation_touched_modules(mutation));
     }
     touched
-}
-
-fn mutation_kind(mutation: &CompositionMutation) -> u8 {
-    match mutation {
-        CompositionMutation::Add { .. } => 0,
-        CompositionMutation::Delete { .. } => 1,
-        CompositionMutation::DisaggregateAll { .. } => 2,
-    }
 }
 
 fn validate_batch_shape(batch: &CompositionEventBatch) -> Option<CompositionFailure> {
@@ -612,14 +616,16 @@ fn apply_composition_batch(
     // latest source revision's child list. All changes still commit atomically.
     ordered.sort_by(|left, right| {
         let rank = |mutation: &CompositionMutation| match mutation {
-            CompositionMutation::Delete { .. } => 0_u8,
-            CompositionMutation::DisaggregateAll { .. } => 1,
-            CompositionMutation::Add { .. } => 2,
+            CompositionMutation::RetractIfPresent { .. } => 0_u8,
+            CompositionMutation::Delete { .. } => 1,
+            CompositionMutation::DisaggregateAll { .. } => 2,
+            CompositionMutation::Add { .. } => 3,
         };
         rank(left).cmp(&rank(right)).then_with(|| left.cmp(right))
     });
 
     let mut disaggregation_count = 0usize;
+    let mut retracted_count = 0usize;
     for mutation in &ordered {
         let failure = match mutation {
             CompositionMutation::Add {
@@ -677,6 +683,28 @@ fn apply_composition_batch(
                     }
                 }
             }
+            CompositionMutation::RetractIfPresent {
+                parent_module_id,
+                child_module_id,
+            } => {
+                if !known_modules.contains(parent_module_id.as_str()) {
+                    Some(CompositionFailure::UnknownParent(parent_module_id.clone()))
+                } else if !known_modules.contains(child_module_id.as_str()) {
+                    Some(CompositionFailure::UnknownChild(child_module_id.clone()))
+                } else if parent_module_id == child_module_id {
+                    Some(CompositionFailure::SelfContainment(parent_module_id.clone()))
+                } else {
+                    let membership = Membership {
+                        parent_module_id: parent_module_id.clone(),
+                        child_module_id: child_module_id.clone(),
+                    };
+                    if candidate.remove(&membership) {
+                        disaggregation_count = disaggregation_count.saturating_add(0);
+                        retracted_count += 1;
+                    }
+                    None
+                }
+            }
             CompositionMutation::DisaggregateAll { parent_module_id } => {
                 if !known_modules.contains(parent_module_id.as_str()) {
                     Some(CompositionFailure::UnknownParent(parent_module_id.clone()))
@@ -704,6 +732,7 @@ fn apply_composition_batch(
         report.disaggregation_all_events += 1;
         report.disaggregated_membership_edges += disaggregation_count;
     }
+    report.revision_retracted_membership_edges += retracted_count;
     report.active_memberships = candidate;
 }
 
