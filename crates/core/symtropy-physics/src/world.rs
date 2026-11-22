@@ -897,14 +897,14 @@ impl<const D: usize> PhysicsWorld<D> {
                     let contact = self.contacts[ci].clone();
                     let body_a = contact.body_a;
                     let body_b = contact.body_b;
-                    let updated =
-                        self.try_resolve_contact(contact, dt, callback, pending_effects)
-                            .map_err(|cause| PhysicsStepError {
-                                phase: PhysicsStepPhase::ContactSolve,
-                                body_a: Some(body_a),
-                                body_b: Some(body_b),
-                                cause,
-                            })?;
+                    let updated = self
+                        .try_resolve_contact(contact, dt, callback, pending_effects)
+                        .map_err(|cause| PhysicsStepError {
+                            phase: PhysicsStepPhase::ContactSolve,
+                            body_a: Some(body_a),
+                            body_b: Some(body_b),
+                            cause,
+                        })?;
                     self.contacts[ci] = updated;
                 }
             }
