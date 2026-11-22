@@ -74,14 +74,14 @@ The scenario digest binds the supplied scenario records. It does not prove the r
 
 ## 4. Frozen challenge cases
 
-The v0.1 corpus contains six cases:
+The v0.1 corpus contains seven cases:
 
 1. **Correlated common loss shift.** Two coherent scenarios move both action losses by the same amount. `alpha` has joint worst-case regret (0), while rectangularized regret is (1/2). This demonstrates exact conservatism from breaking the action-loss correlation.
 2. **Action-rank reversal.** The best action changes between loss-model scenarios. The evaluator must preserve the reversal and report the worst joint regret.
 3. **Unqualified loss model.** A model scenario marked indeterminate yields `LOSS_MODEL_INDETERMINATE`, with no numeric action frontier.
 4. **Out-of-profile loss model.** A deployment scenario outside the admitted loss profile yields `OUT_OF_PROFILE`, with no numeric action frontier.
 5. **Inadmissible low-loss action.** A zero-loss action is upstream-inadmissible and cannot influence any best-action baseline or frontier.
-6. **All actions excluded.** No metric or fallback action is fabricated.
+6. **All actions excluded.** No metric or fallback action is fabricated.\n7. **Multi-world strata.** Two physical worlds each contain multiple loss-model scenarios; the evaluator must take the per-world rectangular envelope and then the outer worst-world maximum, independent of input order.
 
 Rust tests and the independent JavaScript `BigInt` oracle also exercise canonical manifest digests, complete vector coverage, and invariance to case, action, world and scenario order.
 
