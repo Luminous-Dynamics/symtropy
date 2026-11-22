@@ -526,13 +526,14 @@ mod tests {
         )
         .unwrap();
 
-        // S_xx = 0.4 + 2*1^2 + 0.0125 + 1*2^2 = 5.4125.
-        // S_yy = S_zz = 0.4 + 0.0125 = 0.4125.
-        assert!((combined.second_moment()[(0, 0)] - 5.4125).abs() < 1e-12);
-        assert!((combined.second_moment()[(1, 1)] - 0.4125).abs() < 1e-12);
-        assert!((combined.second_moment()[(2, 2)] - 0.4125).abs() < 1e-12);
+        // S_a = 2*1^2/5 = 0.4; S_b = 1*0.5^2/5 = 0.05.
+        // S_xx = 0.4 + 2*1^2 + 0.05 + 1*2^2 = 6.45.
+        // S_yy = S_zz = 0.4 + 0.05 = 0.45.
+        assert!((combined.second_moment()[(0, 0)] - 6.45).abs() < 1e-12);
+        assert!((combined.second_moment()[(1, 1)] - 0.45).abs() < 1e-12);
+        assert!((combined.second_moment()[(2, 2)] - 0.45).abs() < 1e-12);
         let plane_xy = Bivector::<3>::unit_plane(0, 1);
-        assert!((combined.angular_momentum(&plane_xy).get(0, 1) - 5.825).abs() < 1e-12);
+        assert!((combined.angular_momentum(&plane_xy).get(0, 1) - 6.90).abs() < 1e-12);
     }
 
     #[test]
