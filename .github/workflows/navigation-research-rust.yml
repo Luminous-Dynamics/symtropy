@@ -58,7 +58,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for bin in nav-observation-toy-fim correlation_demo robust_design_demo correlation_envelope_demo geometry_outcome_demo correlation_audit_demo observability_3d_demo correlated_3d_demo decision_value_demo robust_decision_value_demo risk_coverage_demo; do
+          for bin in nav-observation-toy-fim correlation_demo robust_design_demo correlation_envelope_demo geometry_outcome_demo correlation_audit_demo observability_3d_demo correlated_3d_demo decision_value_demo robust_decision_value_demo risk_coverage_demo clustered_risk_demo; do
             echo "::group::Run $bin"
             cargo run --quiet --manifest-path research/nav-observation-toy-fim/Cargo.toml --bin "$bin"
             echo "::endgroup::"
