@@ -392,7 +392,31 @@ The journal CLI is `battery_pack_journal_screen`, with strict schema `schemas/ba
 
 A companion `validate_exclusive_resource_schedule` function and `battery_resource_occupancy_screen` CLI now validate half-open occupancy intervals for packs, aircraft, carrier slots, swap bays, chargers/channels, racks, technicians and mobile service units. It rejects same-resource overlap, expired/invalid reservations, duplicate idempotency keys and evidence that does not cover the full interval. This is a validator, not yet a time-expanded optimizer: it does not choose the best assignment, model charging curves/queue dynamics or optimize cross-epoch inventory.
 
-## 13. Next implementation phases
+## 13. Exact fixed-duration charging queue oracle
+
+A separate bounded exact scheduler is now implemented and tracked under [CHARGER-QUEUE-ORACLE-001 #6705](https://github.com/Luminous-Dynamics/symtropy/issues/6705).
+
+The v0.1 scheduler searches at most four jobs, three charger channels and eight discrete time slots. It requires:
+- a pack state evidence record declaring the pack Cooling/charge-ready, with exact serial/configuration and validity at the proposed start;
+- exact charger-to-pack configuration digest compatibility and charger availability evidence across the planning horizon;
+- release slot, exclusive deadline slot, fixed duration and requested charger input power;
+- one job per charger channel at a time;
+- per-slot aggregate charging draw no greater than site import cap minus non-charging site load;
+- grid evidence covering each scheduled time slot.
+
+Its lexicographic objective maximizes completed jobs, then minimizes aggregate waiting slots, then makespan, then deterministic ID tie-breaks. The declared grid input is reported as integer watt-seconds under the constant-power block abstraction. This is not pack-terminal energy or a measured charging profile.
+
+The synthetic fixture uses four pack jobs, two charger channels and six 15-minute slots. The exact known answer schedules:
+- job-a / pack-a on charger-1 in slots [0,2) at 3,000 W;
+- job-d / pack-d on charger-2 in slots [0,3) at 2,500 W;
+- job-b / pack-b on charger-1 in slots [2,4) at 3,500 W;
+- job-c remains unserved because its window cannot contain its three-slot duration.
+
+The 8,000 W import cap less 1,000 W non-charging load gives 7,000 W/slot charging headroom. Expected search count is 54 and total declared grid input is 18,450,000 watt-seconds. The workflow asserts the exact assignment, interval boundaries, power, energy-accounting values and no-authority flags.
+
+The new `battery_charge_queue_screen` CLI, strict JSON schema and fixture are integrated into the EV Passenger Cost Frontier workflow. This exact scheduler does not yet model variable charge curves, efficiency, battery thermal evolution, degradation, charger faults, demand charges or stochastic grid uncertainty. It does not energize a pack or release it to service; the event journal #6700 remains the state transition/reconciliation owner.
+
+## 14. Next implementation phases
 
 **v0.2 — exact multi-period charging and inventory**
 - model pack-state transitions, charge curves, cooldown/balancing, parallel charger/rack occupancy and grid caps;
