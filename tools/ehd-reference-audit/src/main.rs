@@ -309,6 +309,92 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
         );
     }
 
+    // Wang et al. is a 10-Torr numerical needle-ring cohort. The
+    // reported grid differences are not physical thrust uncertainty, and
+    // the model's thermal-equilibrium / no-heating / chemistry limits remain
+    // part of the solver applicability envelope.
+    let wang = records.and_then(|rows| rows.iter().find(|r| {
+        text_at(r, &["source_id"]) == Some("WANG_2026_NEEDLE_RING_10_TORR")
+    }));
+    push_if_missing(
+        &mut findings,
+        wang.is_some(),
+        "WANG_RECORD",
+        "missing 10-Torr needle-ring numerical EHD cohort",
+    );
+    if let Some(record) = wang {
+        push_if_missing(
+            &mut findings,
+            text_at(record, &["doi"]) == Some("10.1088/1674-1056/adf829")
+                && text_at(record, &["cohort"]) == Some("low_pressure_air_corona_needle_ring_numerical")
+                && number_at(record, &["operating_envelope", "pressure_torr"]) == Some(10.0)
+                && number_at(record, &["operating_envelope", "pressure_pa"]) == Some(1333.22),
+            "WANG_COHORT_IDENTITY",
+            "Wang needle-ring cohort DOI, regime or pressure identity changed",
+        );
+        push_if_missing(
+            &mut findings,
+            number_at(record, &["method", "species_count"]) == Some(12.0)
+                && number_at(record, &["method", "reaction_count"]) == Some(26.0)
+                && text_at(record, &["method", "dimensionality"]) == Some("2D axisymmetric cylindrical")
+                && text_at(record, &["method", "solver"]) == Some("COMSOL Multiphysics"),
+            "WANG_MODEL_IDENTITY",
+            "source model dimensionality, solver or 12-species/26-reaction chemistry changed",
+        );
+        push_if_missing(
+            &mut findings,
+            number_at(record, &["reported_results", "nitrogen_oxygen_comparison", "current_ma", "baseline"])
+                == Some(0.00244)
+                && number_at(record, &["reported_results", "nitrogen_oxygen_comparison", "current_ma", "comparison"])
+                    == Some(0.00179)
+                && number_at(record, &["reported_results", "nitrogen_oxygen_comparison", "thrust_to_power_mn_kw", "baseline"])
+                    == Some(29.38)
+                && number_at(record, &["reported_results", "nitrogen_oxygen_comparison", "thrust_to_power_mn_kw", "comparison"])
+                    == Some(41.52),
+            "WANG_GAS_COMPOSITION_RESULTS",
+            "source-reported 4:1/5:1 current and thrust-to-power values changed",
+        );
+        push_if_missing(
+            &mut findings,
+            number_at(record, &["reported_results", "secondary_electron_emission_sweep", "reported_thrust_increase_percent"])
+                == Some(34.5)
+                && number_at(record, &["reported_results", "secondary_electron_emission_sweep", "reported_thrust_to_power_increase_percent"])
+                    == Some(142.2)
+                && number_at(record, &["reported_results", "polarity_comparison", "negative_corona_thrust_percent_of_positive"])
+                    == Some(0.57)
+                && number_at(record, &["reported_results", "polarity_comparison", "negative_corona_thrust_to_power_percent_of_positive"])
+                    == Some(0.78),
+            "WANG_SENSITIVITY_RESULTS",
+            "source-reported secondary-emission or polarity sensitivity values changed",
+        );
+        push_if_missing(
+            &mut findings,
+            number_at(record, &["reported_results", "grid_refinement", "thrust_difference_percent"])
+                == Some(0.15)
+                && number_at(record, &["reported_results", "grid_refinement", "current_difference_percent"])
+                    == Some(0.36)
+                && contains_any(record, &["reported_results", "grid_refinement", "claim_boundary"], "not total predictive uncertainty")
+                && at(record, &["measurement", "physical_force_balance_performed"])
+                    .and_then(Value::as_bool) == Some(false)
+                && text_at(record, &["measurement", "evidence_class"]) == Some("simulation_output"),
+            "WANG_GRID_AND_EVIDENCE_BOUNDARY",
+            "grid-refinement differences must not be promoted to physical accuracy or force-balance evidence",
+        );
+        push_if_missing(
+            &mut findings,
+            contains_any(record, &["method", "physical_assumptions"], "thermal equilibrium")
+                && contains_any(record, &["method", "physical_assumptions"], "corona discharge heating is neglected")
+                && contains_any(record, &["method", "physical_assumptions"], "excited-state quenching")
+                && contains_any(record, &["method", "model_limitations"], "not suitable for arc-discharge")
+                && at(record, &["measurement", "physical_velocity_field_measurement_performed"])
+                    .and_then(Value::as_bool) == Some(false)
+                && text_at(record, &["measurement", "thrust_estimator"])
+                    .is_some_and(|value| value.contains("outlet velocity profile")),
+            "WANG_MODEL_LIMITS",
+            "thermal, quenching, arc-regime and outlet-profile thrust limitations must remain explicit",
+        );
+    }
+
     // Specialist solver scopes are intentionally narrow.
     let solvers = at(root, &["solver_profiles"]).and_then(Value::as_array);
     let merlino = solvers.and_then(|rows| rows.iter().find(|s| text_at(s, &["solver_id"]) == Some("MERLINO2D")));
@@ -1421,6 +1507,32 @@ mod tests {
         value["source_records"][1]["extracted_figure_data"]["figure3_ignition_voltage"]["rows"][0]["ignition_voltage_kv"] =
             Value::from(7.31);
         assert!(has_code(&audit_atlas(&value), "USUELLI_SOURCE_POINTS"));
+    }
+
+    #[test]
+    fn wang_low_pressure_numerical_cohort_passes_source_contract() {
+        assert!(audit_atlas(&atlas()).is_empty());
+    }
+
+    #[test]
+    fn wang_grid_refinement_cannot_be_promoted_to_physical_uncertainty() {
+        let mut value = atlas();
+        let wang = value["source_records"].as_array_mut().unwrap()
+            .iter_mut().find(|record| record["source_id"] == "WANG_2026_NEEDLE_RING_10_TORR")
+            .unwrap();
+        wang["reported_results"]["grid_refinement"]["claim_boundary"] =
+            Value::String("physical thrust uncertainty".into());
+        assert!(has_code(&audit_atlas(&value), "WANG_GRID_AND_EVIDENCE_BOUNDARY"));
+    }
+
+    #[test]
+    fn wang_thermal_and_quenching_limits_cannot_be_removed() {
+        let mut value = atlas();
+        let wang = value["source_records"].as_array_mut().unwrap()
+            .iter_mut().find(|record| record["source_id"] == "WANG_2026_NEEDLE_RING_10_TORR")
+            .unwrap();
+        wang["method"]["physical_assumptions"] = Value::Array(vec![]);
+        assert!(has_code(&audit_atlas(&value), "WANG_MODEL_LIMITS"));
     }
 
     #[test]

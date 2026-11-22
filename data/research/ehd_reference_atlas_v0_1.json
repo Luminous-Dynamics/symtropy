@@ -971,6 +971,146 @@
         "separate_gas_pressure_gap_cohort": true,
         "notes": "A CO2 working-gas DBD experiment in a low-pressure chamber. Per-span metrics and real-AC-power boundary must remain explicit."
       }
+    },
+    {
+      "source_id": "WANG_2026_NEEDLE_RING_10_TORR",
+      "title": "Numerical investigation on performance of electrohydrodynamic thruster with needle-ring electrode",
+      "citation": "Wang, Huang, Li, Chen & Hu, Chinese Physics B 35(3), 035205 (2026), published online 1 March 2026",
+      "doi": "10.1088/1674-1056/adf829",
+      "full_text_url": "https://www.cpsjournals.cn/en/article/doi/10.1088/1674-1056/adf829",
+      "cohort": "low_pressure_air_corona_needle_ring_numerical",
+      "evidence_class": "published_2d_axisymmetric_comsol_plasma_flow_simulation_not_physical_thrust_measurement",
+      "operating_envelope": {
+        "pressure_torr": 10,
+        "pressure_pa": 1333.22,
+        "gas_mixture_reference": {
+          "baseline_nitrogen_to_oxygen_ratio": "4:1",
+          "comparison_nitrogen_to_oxygen_ratio": "5:1"
+        },
+        "geometry": "axisymmetric needle-ring electrode pair with insulating shell",
+        "electrical_drive": "DC emitter, grounded collector, RC series coupling circuit",
+        "corona_polarities": [
+          "positive",
+          "negative"
+        ],
+        "secondary_electron_emission_coefficient_range": [
+          0.001,
+          0.01
+        ],
+        "emitter_voltage_kv": null,
+        "note": "Do not infer an unstated full voltage sweep or merge with ambient-air, CO2-DBD or vacuum cohorts."
+      },
+      "method": {
+        "solver": "COMSOL Multiphysics",
+        "dimensionality": "2D axisymmetric cylindrical",
+        "plasma_model": "drift-diffusion multi-fluid plasma model with electron transport and electron energy-density equations, heavy-species transport and Poisson coupling",
+        "species_count": 12,
+        "reaction_count": 26,
+        "diffusion_model": "mixture-averaged multicomponent diffusion",
+        "neutral_flow_model": "laminar Navier-Stokes",
+        "reported_reynolds_number_range": [
+          1.3,
+          5.4
+        ],
+        "time_integration": {
+          "method": "BDF",
+          "maximum_order": 2,
+          "maximum_step_seconds": 1e-7,
+          "linear_solver": "PARDISO"
+        },
+        "boundary_and_initialization_notes": [
+          "grounded collector",
+          "emitter DC voltage",
+          "insulating shell",
+          "series RC coupling circuit",
+          "zero-charge boundary conditions on shell",
+          "secondary electron energy 5 eV"
+        ],
+        "physical_assumptions": [
+          "thermal equilibrium between the gas and plasma is assumed",
+          "corona discharge heating is neglected in the neutral-gas model",
+          "excited-state quenching reactions are omitted from the selected chemistry"
+        ],
+        "model_limitations": [
+          "2D axisymmetric geometry",
+          "laminar neutral-flow treatment",
+          "thermal equilibrium assumption",
+          "corona heating omitted",
+          "excited-state quenching omitted",
+          "the authors state the chemistry is not suitable for arc-discharge regimes with significant thermal generation",
+          "not an independently measured thrust result"
+        ]
+      },
+      "measurement": {
+        "physical_force_balance_performed": false,
+        "physical_velocity_field_measurement_performed": false,
+        "thrust_estimator": "derived from the outlet velocity profile",
+        "evidence_class": "simulation_output",
+        "raw_instrument_time_series_available": false,
+        "note": "The reported grid-refinement differences are numerical sensitivity results, not experimental measurement uncertainty."
+      },
+      "reported_results": {
+        "nitrogen_oxygen_comparison": {
+          "baseline_ratio": "4:1",
+          "comparison_ratio": "5:1",
+          "current_ma": {
+            "baseline": 0.00244,
+            "comparison": 0.00179
+          },
+          "thrust_change_description": "reported thrust remains nearly unchanged",
+          "thrust_to_power_mn_kw": {
+            "baseline": 29.38,
+            "comparison": 41.52
+          },
+          "thrust_to_power_relative_increase_percent": 41.3
+        },
+        "secondary_electron_emission_sweep": {
+          "coefficient_range": [
+            0.001,
+            0.01
+          ],
+          "reported_thrust_increase_percent": 34.5,
+          "reported_thrust_to_power_increase_percent": 142.2,
+          "interpretation": "source-model sensitivity to the prescribed secondary-electron emission coefficient, not a universal material improvement"
+        },
+        "polarity_comparison": {
+          "negative_corona_thrust_percent_of_positive": 0.57,
+          "negative_corona_thrust_to_power_percent_of_positive": 0.78,
+          "pressure_torr": 10
+        },
+        "grid_refinement": {
+          "comparison": "M3 relative to M4",
+          "thrust_difference_percent": 0.15,
+          "current_difference_percent": 0.36,
+          "claim_boundary": "grid-refinement difference only; not total predictive uncertainty or experimental accuracy"
+        },
+        "literature_comparison": {
+          "reported_reference_thrust_n": 1.096e-8,
+          "reported_reference_thrust_to_power_micro_w": 20.4,
+          "relative_difference_thrust_percent": 0.5,
+          "relative_difference_thrust_to_power_percent": 6.8,
+          "claim_boundary": "comparison against literature values; not an independent physical force-balance validation by this study"
+        }
+      },
+      "comparability": {
+        "separate_from": [
+          "ambient atmospheric corona",
+          "atmospheric wind-tunnel EHD",
+          "low-pressure CO2 DBD",
+          "vacuum propellantless claims"
+        ],
+        "not_independent_physical_thrust_validation": true,
+        "not_a_complete_exergy_ledger": true,
+        "outlet_profile_thrust_not_equivalent_to_complete_measured_control_volume_by_default": true,
+        "recommendations": [
+          "use the source as a numerical 10-Torr challenge cohort",
+          "test sensitivity to thermal equilibrium and omitted corona heating",
+          "assess missing excited-state quenching before extrapolating the chemistry envelope",
+          "reconcile outlet-profile thrust with complete all-surface momentum and traction accounting under matched assumptions",
+          "treat secondary-electron emission coefficient as a source-pinned uncertain surface parameter, not a free optimizer knob",
+          "reconcile electric body-force and explicit ion-neutral exchange closure to prevent double counting"
+        ]
+      }
     }
   ],
   "solver_profiles": [
