@@ -1,0 +1,26 @@
+{
+  "version": "0.1",
+  "cases": [
+    { "case_id": "OBS-001", "class": "positive", "mutation": "three_separate_power_clock_sensor_domains_and_single_faults", "expected": "quorum_qualified", "authority_capabilities": [] },
+    { "case_id": "OBS-002", "class": "negative", "mutation": "shared_power_dependency", "expected": "hold", "authority_capabilities": [] },
+    { "case_id": "OBS-003", "class": "negative", "mutation": "shared_clock_dependency", "expected": "hold", "authority_capabilities": [] },
+    { "case_id": "OBS-004", "class": "negative", "mutation": "same_failure_domain_label_on_distinct_components", "expected": "hold", "authority_capabilities": [] },
+    { "case_id": "OBS-005", "class": "positive", "mutation": "three_channels_tolerate_two_declared_sensor_faults", "expected": "quorum_qualified", "authority_capabilities": [] },
+    { "case_id": "OBS-006", "class": "negative", "mutation": "fault_scenario_reduces_quorum_below_two", "expected": "hold", "authority_capabilities": [] },
+    { "case_id": "OBS-007", "class": "negative", "mutation": "stale_sample", "expected": "hold", "authority_capabilities": [] },
+    { "case_id": "OBS-008", "class": "negative", "mutation": "wrong_calibration_scope_or_clock_profile", "expected": "hold", "authority_capabilities": [] },
+    { "case_id": "OBS-009", "class": "negative", "mutation": "calibration_or_placement_or_envelope_invalid", "expected": "hold", "authority_capabilities": [] },
+    { "case_id": "OBS-010", "class": "negative", "mutation": "time_uncertainty_exceeds_profile_or_future_sample", "expected": "hold", "authority_capabilities": [] },
+    { "case_id": "OBS-011", "class": "negative", "mutation": "missing_or_zero_raw_evidence", "expected": "hold", "authority_capabilities": [] },
+    { "case_id": "OBS-012", "class": "negative", "mutation": "dependency_cycle_or_unknown_endpoint", "expected": "hold", "authority_capabilities": [] },
+    { "case_id": "OBS-013", "class": "negative", "mutation": "unreferenced_hidden_dependency_component", "expected": "hold", "authority_capabilities": [] },
+    { "case_id": "OBS-014", "class": "negative", "mutation": "unknown_or_duplicate_failed_component", "expected": "hold", "authority_capabilities": [] },
+    { "case_id": "OBS-015", "class": "negative", "mutation": "missing_baseline_fault_scenario", "expected": "hold", "authority_capabilities": [] },
+    { "case_id": "OBS-016", "class": "negative", "mutation": "duplicate_component_channel_edge_scenario_or_sample", "expected": "hold", "authority_capabilities": [] },
+    { "case_id": "OBS-017", "class": "negative", "mutation": "zero_scope_commitment_or_invalid_quorum", "expected": "hold", "authority_capabilities": [] },
+    { "case_id": "OBS-018", "class": "negative", "mutation": "unknown_channel_source_or_missing_clock_profile", "expected": "hold", "authority_capabilities": [] },
+    { "case_id": "OBS-019", "class": "negative", "mutation": "fault_scenario_disables_all_observers", "expected": "hold", "authority_capabilities": [] },
+    { "case_id": "OBS-020", "class": "negative", "mutation": "sample_for_unregistered_channel", "expected": "hold", "authority_capabilities": [] },
+    { "case_id": "OBS-021", "class": "negative", "mutation": "component_or_observer_count_exceeds_declared_bound", "expected": "hold", "authority_capabilities": [] }
+  ]
+}

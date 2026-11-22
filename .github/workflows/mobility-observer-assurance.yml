@@ -1,0 +1,47 @@
+name: Mobility Observer Assurance Contract
+
+on:
+  push:
+    branches:
+      - research/mobility-observer-assurance-v0-1
+    paths:
+      - "research/mobility-observer-assurance/**"
+      - ".github/workflows/mobility-observer-assurance.yml"
+  pull_request:
+    paths:
+      - "research/mobility-observer-assurance/**"
+      - ".github/workflows/mobility-observer-assurance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  observer-assurance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Validate observer assurance corpus and schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq empty research/mobility-observer-assurance/schemas/observer_assurance_packet_v0_1.schema.json
+          jq empty research/mobility-observer-assurance/fixtures/observer_assurance_cases_v0_1.json
+          jq -e '
+            .cases as $cases
+            | .version == "0.1"
+              and ($cases | length >= 20)
+              and ([$cases[].case_id] | length == ([$cases[].case_id] | unique | length))
+              and ([$cases[] | select(.expected == "quorum_qualified")] | length >= 1)
+              and ([$cases[] | select(.expected == "hold")] | length >= 10)
+              and all($cases[]; .authority_capabilities == [])
+          ' research/mobility-observer-assurance/fixtures/observer_assurance_cases_v0_1.json
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/mobility-observer-assurance/Cargo.toml -- --check
+      - name: Run observer-assurance conformance tests
+        run: cargo test --manifest-path research/mobility-observer-assurance/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/mobility-observer-assurance/Cargo.toml --all-targets --locked -- -D warnings
