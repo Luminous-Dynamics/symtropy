@@ -6,13 +6,22 @@
   "status": "ideal_gas_neutral_exergy_reference_kernel_authored_tests_rust_execution_pending",
   "claim_ceiling": "The reference kernel covers fixed-composition calorically perfect neutral ideal-gas physical flow exergy and a reduced exergy balance with supplied boundary exergy rates. It is not a plasma exergy model, chemical-exergy model, raw-flow reducer or physical EHD validation.",
   "reference_environment": {
-    "required_fields": ["temperature_k", "pressure_pa", "elevation_m", "reference_state_identity"],
+    "required_fields": [
+      "temperature_k",
+      "pressure_pa",
+      "elevation_m",
+      "reference_state_identity"
+    ],
     "dead_state_changes_must_be_versioned": true
   },
   "flow_exergy_model": {
     "equation": "cp*((T-T0)-T0*ln(T/T0)) + R*T0*ln(p/p0) + speed^2/2 + g*(z-z0)",
     "gas_assumption": "fixed_composition_calorically_perfect_neutral_ideal_gas",
-    "required_properties": ["cp_j_per_kg_k", "gas_constant_j_per_kg_k", "gravity_m_per_s2"],
+    "required_properties": [
+      "cp_j_per_kg_k",
+      "gas_constant_j_per_kg_k",
+      "gravity_m_per_s2"
+    ],
     "pressure_flow_exergy_is_signed": true,
     "chemical_exergy_supported": false
   },
@@ -44,6 +53,7 @@
   "test_families": [
     "flow_exergy_is_zero_at_dead_state",
     "flow_exergy_increases_with_kinetic_and_potential_terms",
+    "sub_dead_state_pressure_flow_exergy_remains_signed",
     "heat_exergy_uses_dead_state_temperature_and_direction",
     "reversible_balance_has_zero_destruction",
     "irreversible_balance_reports_exergy_destruction_and_entropy_generation",
