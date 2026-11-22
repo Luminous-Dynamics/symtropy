@@ -225,3 +225,85 @@ Exact-rational metamorphic replay is recorded in:
 - \`spin2_boundary_map_normalization_replay_v1.json\`.
 
 The verifier passed locally from the exact public Git blob bytes. It establishes coordinate-covariance identities only; it does not compute \(J_1\), solve a finite-coupling BVP, or establish a theorem about a physical black-hole branch.
+
+
+## 9. Complete first derivative of the global boundary-map Jacobian
+
+**Status:** exact coefficient calculation completed for both homogeneous columns at \(\lambda=0\), with the Einstein-limit horizon and infinity bases held fixed.
+
+The action-derived \(O(\lambda a^2)\) rows and the independent Green--Lagrange projector give
+
+\[
+\boxed{
+J_1=\left.\partial_\lambda D_p C(p,\lambda)\right|_{(p_0,0)}
+=
+\begin{pmatrix}
+1/2&19-2\pi^2\\
+0&67-6\pi^2
+\end{pmatrix}.
+}
+\]
+
+The corresponding first-order map is
+
+\[
+J(\lambda)=
+\begin{pmatrix}1/2&0\\0&2\end{pmatrix}
++\lambda
+\begin{pmatrix}
+1/2&19-2\pi^2\\
+0&67-6\pi^2
+\end{pmatrix}
++O(\lambda^2).
+\]
+
+The first column is obtained from the elementary fixed-\(b_1\) sensitivity
+\[
+B_{21}^{(b)}(x)=1/2-3/(4x)+1/(4x^3),\qquad H_{21}^{(b)}=0.
+\]
+
+For the fixed-\(h_0\) column, eliminating \(B_{21}\) between the two reduced rows gives
+\[
+x^2(x-1)H_{21}''+xH_{21}'-(2x+1)H_{21}=x^2+12x-3.
+\]
+The self-adjoint Green--Lagrange projection, with weighted Wronskian one, gives \(C_H=67-6\pi^2\) from the exact dilogarithmic endpoint integral. The first reduced row then gives \(C_B=(C_H-10)/3=19-2\pi^2\). The algebraic \(E_f\) reconstruction retains \(C_F=-C_H\), so there is no third independent growing condition.
+
+The result is cross-checked against the already known physical-branch tangent:
+\[
+\partial_\lambda C(p_0,0)=-J_0p_*'(0)=(-53/9,28/3)^T.
+\]
+
+In the fixed published Euclidean coordinates, this predicts
+\[
+\det J(\lambda)=1+(69/2-3\pi^2)\lambda+O(\lambda^2),
+\]
+\[
+\sigma_{\min}'(0)=1/2,\quad
+\sigma_{\max}'(0)=67-6\pi^2,\quad
+\kappa_2'(0)=130-12\pi^2.
+\]
+The raw singular-value and condition-number slopes are coordinate-dependent. The normalization-aware endpoint-metric protocol above remains mandatory for physical conditioning claims.
+
+### Exact replay artifacts
+
+- \`extract_spin2_boundary_map_lambda1_rows.py\`: five-field action variation and all four original even-sector coefficient rows.
+- \`spin2_boundary_map_lambda1_action_rows_v1.json\`: exact coefficient-row fixture, including \(E_g\).
+- \`verify_spin2_boundary_map_lambda1.py\`: independent two-column Green--Lagrange endpoint projection and exact algebraic checks.
+- \`spin2_boundary_map_lambda1_v1.json\`: machine-readable \(J_1\), sensitivities and diagnostics.
+- \`spin2_boundary_map_lambda1_derivation_v1.md\`: full derivation.
+- \`spin2_boundary_map_lambda1_replay_v1.json\`: source Git blob identifiers, replay environment, fixture/result hashes and claim ceiling.
+
+Both source scripts were fetched from the public branch; their Git blob identifiers match the locally executed source bytes. The action-row extraction and verifier passed locally using Python 3.13.5 and SymPy 1.14.0. The committed row JSON has whitespace-normalized formatting; the coefficient expressions and structured values are retained. This is a local exact-source replay, not a GitHub Actions/CI pass.
+
+### What this closes and what it does not
+
+This closes the **first derivative of the complete two-by-two boundary-map Jacobian** at the Einstein limit, not just the derivative of the physical asymptotically flat root.
+
+Still required:
+1. independently corrected small-positive-\(\lambda\) BVPs and finite-difference convergence for both columns;
+2. finite-\(\lambda\) rank/invertibility bounds in frozen endpoint metrics;
+3. a finite-coupling corrected BVP and at least one continuation segment;
+4. an interval-Newton/radii-polynomial existence and local-uniqueness certificate;
+5. a separate full gravitational principal-symbol and strong-hyperbolicity qualification.
+
+No finite-\(\lambda\) existence, finite-\(\lambda\) uniqueness, full nonlinear uniqueness, or hyperbolicity claim follows from \(J_1\).
