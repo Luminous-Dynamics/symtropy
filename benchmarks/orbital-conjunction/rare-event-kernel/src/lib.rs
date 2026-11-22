@@ -18,7 +18,8 @@
 //! - a structural check for a strict covariance floor
 //!   Sigma_component > alpha * Sigma_nominal;
 //! - a budgeted affine-cell traversal that accounts for possible event mass
-//!   outside caller-declared geometric chart boxes.
+//!   outside caller-declared geometric chart boxes;
+//! - a pointwise NASA-style 3D-Nc conditional inward-speed and Gaussian-density integrand.
 //!
 //! These primitives do not establish event-mode completeness, finite-budget
 //! confidence-interval coverage, physical-model adequacy, or the assumptions
