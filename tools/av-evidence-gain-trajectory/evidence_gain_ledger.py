@@ -369,6 +369,12 @@ def _transition(
             "claim_id": claim_id,
             "grounded_success_before": old["grounded_success"],
             "grounded_success_after": new["grounded_success"],
+            "answer_correct_before": old["answer_correct"],
+            "answer_correct_after": new["answer_correct"],
+            "answer_correct_changed": old["answer_correct"] != new["answer_correct"],
+            "abstained_before": old["abstained"],
+            "abstained_after": new["abstained"],
+            "abstention_changed": old["abstained"] != new["abstained"],
             "citation_precision_delta": _delta(new["citation_precision"], old["citation_precision"]),
             "citation_recall_delta": _delta(new["citation_recall"], old["citation_recall"]),
             "citation_f1_delta": _delta(new["citation_f1"], old["citation_f1"]),
@@ -489,6 +495,10 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
     prior_action: str | None = None
     prior_head: str | None = None
     prior_cutoff = -1
+    seen_feedback_ids: set[str] = set()
+    feedback_source_counts: dict[str, int] = {}
+    feedback_kind_counts: dict[str, int] = {}
+    total_feedback_events = 0
     resource_summaries = {
         field: {"observed_count": 0, "sum": 0.0}
         for field in RESOURCE_FIELDS
@@ -512,6 +522,7 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
                 "action_result_status",
                 "action_result_digest_sha256",
                 "new_observation_ids",
+                "external_feedback_events",
                 "workload",
                 "submission",
                 "action_forecast",
@@ -533,11 +544,14 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
         status = turn["action_result_status"]
         parent_head = turn["parent_transcript_head_sha256"]
         action_result_digest = turn["action_result_digest_sha256"]
+        feedback_rows = turn["external_feedback_events"]
+        if not isinstance(feedback_rows, list):
+            raise EvidenceGainError(f"{turn_id}: external_feedback_events must be an array")
         if index == 0:
             if preceding_action != "__initial__" or status != "INITIAL":
                 raise EvidenceGainError("first turn must use __initial__ / INITIAL")
-            if parent_head is not None or action_result_digest is not None:
-                raise EvidenceGainError("initial turn must not claim a parent head or action result")
+            if parent_head is not None or action_result_digest is not None or feedback_rows:
+                raise EvidenceGainError("initial turn must not claim a parent head, action result or feedback event")
         else:
             if preceding_action != prior_action:
                 raise EvidenceGainError(f"{turn_id}: preceding_action_id does not match prior selection")
@@ -550,6 +564,51 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
             action_result_digest = _sha256(
                 action_result_digest, f"{turn_id}.action_result_digest_sha256"
             )
+
+        feedback_ids: list[str] = []
+        for feedback_index, feedback in enumerate(feedback_rows):
+            context = f"{turn_id}.external_feedback_events[{feedback_index}]"
+            feedback = _strict_object(
+                feedback,
+                {
+                    "feedback_id",
+                    "source_role",
+                    "feedback_kind",
+                    "delivered_tick",
+                    "content_sha256",
+                    "parent_transcript_head_sha256",
+                },
+                context,
+            )
+            feedback_id = _nonempty(feedback["feedback_id"], f"{context}.feedback_id")
+            if feedback_id in seen_feedback_ids:
+                raise EvidenceGainError(f"{turn_id}: duplicate external feedback ID {feedback_id}")
+            seen_feedback_ids.add(feedback_id)
+            source_role = feedback["source_role"]
+            if source_role not in {"user_simulator", "human_user", "operator"}:
+                raise EvidenceGainError(f"{context}: unsupported feedback source_role")
+            feedback_kind = feedback["feedback_kind"]
+            if feedback_kind not in {"hint", "clarification", "correction", "challenge", "request"}:
+                raise EvidenceGainError(f"{context}: unsupported feedback_kind")
+            delivered_tick = _integer(feedback["delivered_tick"], f"{context}.delivered_tick")
+            if delivered_tick <= prior_cutoff or delivered_tick > _integer(
+                turn.get("workload", {}).get("decision_cutoff_tick")
+                if isinstance(turn.get("workload"), dict) else None,
+                f"{turn_id}.workload.decision_cutoff_tick",
+            ):
+                raise EvidenceGainError(f"{context}: feedback must arrive after prior cutoff and by current cutoff")
+            if index == 0:
+                raise EvidenceGainError("initial turn cannot contain an external feedback event")
+            if _sha256(
+                feedback["parent_transcript_head_sha256"],
+                f"{context}.parent_transcript_head_sha256",
+            ) != prior_head:
+                raise EvidenceGainError(f"{context}: feedback must bind to the parent transcript head")
+            _sha256(feedback["content_sha256"], f"{context}.content_sha256")
+            feedback_ids.append(feedback_id)
+            feedback_source_counts[source_role] = feedback_source_counts.get(source_role, 0) + 1
+            feedback_kind_counts[feedback_kind] = feedback_kind_counts.get(feedback_kind, 0) + 1
+            total_feedback_events += 1
 
         workload = turn["workload"]
         submission = turn["submission"]
@@ -603,10 +662,10 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
             ):
                 raise EvidenceGainError(f"{turn_id}: new_observation_ids must exactly match catalog growth")
             if index > 0:
-                if status == "DELIVERED" and not new_ids:
-                    raise EvidenceGainError(f"{turn_id}: DELIVERED result requires new observations")
-                if status != "DELIVERED" and new_ids:
-                    raise EvidenceGainError(f"{turn_id}: failed/timeout result cannot add observations")
+                if status == "DELIVERED" and not new_ids and not feedback_ids:
+                    raise EvidenceGainError(f"{turn_id}: DELIVERED result requires a new observation or external feedback event")
+                if status != "DELIVERED" and (new_ids or feedback_ids):
+                    raise EvidenceGainError(f"{turn_id}: failed/timeout result cannot add observations or feedback")
                 for observation_id in new_ids:
                     if catalog[observation_id]["available_tick"] <= prior_cutoff:
                         raise EvidenceGainError(
@@ -656,6 +715,8 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
             "turn_index": index,
             "parent_transcript_head_sha256": parent_head,
             "action_result_digest_sha256": action_result_digest,
+            "external_feedback_event_ids": feedback_ids,
+            "external_feedback_count": len(feedback_ids),
             "decision_cutoff_tick": cutoff,
             "preceding_action_id": preceding_action,
             "action_result_status": status,
@@ -701,6 +762,9 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
         **identity_digests,
         "turn_count": len(turn_results),
         "acquisition_count": max(0, len(turn_results) - 1),
+        "external_feedback_event_count": total_feedback_events,
+        "external_feedback_source_counts": dict(sorted(feedback_source_counts.items())),
+        "external_feedback_kind_counts": dict(sorted(feedback_kind_counts.items())),
         "newly_grounded_claim_count": total_newly_grounded,
         "lost_grounded_claim_count": total_lost_grounded,
         "uncited_new_observation_count": total_uncited,
