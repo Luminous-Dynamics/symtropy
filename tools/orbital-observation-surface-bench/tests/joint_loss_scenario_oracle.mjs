@@ -272,8 +272,8 @@ function evaluateCase(item) {
     }
   }
   const uniform=metrics.filter(metric=>metric.uniformly_optimal_across_joint_scenarios).map(metric=>metric.action_id);
-  const jointFrontier=metrics.filter(candidate=>!metrics.some(other=>other.action_id!==candidate.action_id&&!dominates(other,candidate,false))).map(metric=>metric.action_id);
-  const rectangularFrontier=metrics.filter(candidate=>!metrics.some(other=>other.action_id!==candidate.action_id&&!dominates(other,candidate,true))).map(metric=>metric.action_id);
+  const jointFrontier=metrics.filter(candidate=>!metrics.some(other=>other.action_id!==candidate.action_id&&dominates(other,candidate,false))).map(metric=>metric.action_id);
+  const rectangularFrontier=metrics.filter(candidate=>!metrics.some(other=>other.action_id!==candidate.action_id&&dominates(other,candidate,true))).map(metric=>metric.action_id);
   const modelIds=[...new Set(scenarios.map(scenario=>scenario.loss_model_id))].sort(codePointCompare);
   return {
     case_id:item.case_id,
