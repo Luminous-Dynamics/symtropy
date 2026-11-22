@@ -17,8 +17,8 @@
 
 pub mod cargo_composition;
 pub mod epcis_aggregation;
-pub mod epcis_material_balance_link;
 pub mod epcis_composition_projection;
+pub mod epcis_material_balance_link;
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fmt;
