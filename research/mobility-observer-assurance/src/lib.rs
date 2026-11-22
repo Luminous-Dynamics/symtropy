@@ -612,7 +612,7 @@ mod tests {
             claim_id: "old-attempt-no-effect".to_owned(),
             claim_scope_commitment: commitment(4),
             dependency_profile_commitment: commitment(5),
-            required_independent_observers: 2,
+            required_independent_observers: 3,
             components: vec![
                 component("sensor-a", "sensor-domain-a", "encoder"),
                 component("power-a", "power-domain-a", "power"),
@@ -660,8 +660,10 @@ mod tests {
 
     #[test]
     fn independent_channels_survive_declared_single_faults() {
+        let mut input = packet();
+        input.required_independent_observers = 2;
         assert_eq!(
-            assess_observer_assurance(&packet()),
+            assess_observer_assurance(&input),
             ObserverAssuranceDecision::QuorumQualifiedForDeclaredFaultModel {
                 minimum_independent_observers: 2,
                 evaluated_scenarios: 2
@@ -722,8 +724,6 @@ mod tests {
             scenario_id: "shared-bus-loss".to_owned(),
             failed_component_ids: vec!["power-a".to_owned(), "power-b".to_owned()],
         });
-        input.channels.pop();
-        input.samples.pop();
         assert!(matches!(
             assess_observer_assurance(&input),
             ObserverAssuranceDecision::Hold {
