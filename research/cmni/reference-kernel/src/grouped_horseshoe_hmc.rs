@@ -12,7 +12,8 @@
 use crate::horseshoe_hmc::SplitMix64;
 use crate::GroupedRawScaleHorseshoePosterior;
 use crate::{
-    GlobalScalePrior, HorseshoeHmcConfig, ModelError, PreparedGroupedRawScaleHorseshoeModel,
+    GlobalScalePrior, HorseshoeHmcConfig, ModelError, PreparedGroupedHorseshoeEvaluation,
+    PreparedGroupedRawScaleHorseshoeModel,
 };
 use std::collections::BTreeSet;
 
