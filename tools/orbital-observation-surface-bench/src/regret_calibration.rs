@@ -250,13 +250,13 @@ fn validate(corpus: &CalibrationCorpus) -> Result<(), String> {
                 .regret_upper_bound_score
                 .validate()
                 .map_err(|error| format!("regret score is invalid: {error}"))?;
-            if let Some(bound) = &corpus.score_support_upper_bound {
-                if sample.regret_upper_bound_score.compare_exact(bound) == Ordering::Greater {
-                    return Err(format!(
-                        "score exceeds declared support bound in regime {}",
-                        regime.regime_id
-                    ));
-                }
+            if let Some(bound) = &corpus.score_support_upper_bound
+                && sample.regret_upper_bound_score.compare_exact(bound) == Ordering::Greater
+            {
+                return Err(format!(
+                    "score exceeds declared support bound in regime {}",
+                    regime.regime_id
+                ));
             }
         }
 
