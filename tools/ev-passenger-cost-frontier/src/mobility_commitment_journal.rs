@@ -45,12 +45,6 @@ impl CommitmentState {
         )
     }
 
-    fn is_active(self) -> bool {
-        matches!(
-            self,
-            Self::FirmOffered | Self::Accepted | Self::Executing | Self::Unresolved
-        )
-    }
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
@@ -161,7 +155,7 @@ pub struct AppendResult {
     pub receipt: CommitmentReceipt,
 }
 
-#[derive(Debug, Clone, Default, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct ReplayedCommitment {
     pub state: CommitmentState,
     pub payload_digest: String,
