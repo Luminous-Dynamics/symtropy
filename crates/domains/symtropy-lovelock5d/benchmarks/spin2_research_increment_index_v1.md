@@ -255,3 +255,24 @@ This closes the first derivative of both columns at \(\lambda=0\). The next gate
 The full \(J_1\) also yields exact first-order rotations of the left/right singular directions in the frozen raw Einstein-limit endpoint basis. The least-constrained right direction rotates with component slope \(0.0985611736238288\), and the least-constrained left direction with \(0.3942446944953152\). Complementary maximum directions rotate oppositely. These raw-coordinate slopes are not basis invariant; the continuation benchmark should compare them only under the same endpoint normalization or after consistently transporting declared metrics.
 
 The derivation and machine-readable result now include these values as additional finite-difference regression targets.
+
+
+## Independent numerical oracle for the Green projection (22 November 2026)
+
+A separate arbitrary-precision numerical quadrature now checks the non-elementary endpoint projection without importing SymPy, the action-row fixture, or the symbolic Green--Lagrange verifier.
+
+Using mpmath 1.3.0 / Python 3.13.5, a tanh-sinh quadrature after \(s=1-t^2\) endpoint regularization independently reproduces:
+\[
+C_H=67-6\pi^2,\qquad C_B=19-2\pi^2.
+\]
+At 40, 60 and 80 requested decimal digits, the largest reported discrepancy is \(1.44\times10^{-46}\) for \(C_H\) and \(4.80\times10^{-47}\) for \(C_B\). These are numerical discrepancies against the closed form, not interval enclosures.
+
+Artifacts:
+- \`verify_spin2_green_projection_quadrature.py\`: separate numerical oracle; no SymPy or equation fixture imports.
+- \`spin2_green_projection_quadrature_v1.json\`: precision sweep and numerical outputs.
+- \`spin2_green_projection_quadrature_v1.md\`: integral transformation and reproduction contract.
+- \`spin2_green_projection_quadrature_replay_v1.json\`: exact public Git source blob SHA and local replay receipt.
+
+The public source blob SHA-1 is \`1c87297c407ed288ef521b685985ba9352370b07\`; its SHA-256 was independently recomputed locally as \`3d1d30e290c3bffa410075fbce84659081be2e3073225c24490f584fc297d88c\`, matching the source digest embedded in the numerical fixture. This is a local replay, not a GitHub Actions pass.
+
+This reduces risk in the dilogarithmic endpoint calculation. It does not verify the action-row source or establish finite-\(\lambda\) BVP existence.
