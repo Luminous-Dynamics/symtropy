@@ -24,6 +24,14 @@ pub struct BregarCsvPreamble {
     pub normalized_header_fields: Vec<String>,
 }
 
+/// Caller-supplied streaming limits. They must be set from the frozen source
+/// inventory / expected CIR encoding, not silently guessed by the parser.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct BregarCsvIngestLimits {
+    pub maximum_record_bytes: usize,
+    pub maximum_cir_samples: usize,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct BregarCsvControllerView {
     pub source_file_id: String,
@@ -89,6 +97,9 @@ pub enum BregarCsvIngestError {
     InvalidCsvQuoting,
     UnterminatedQuotedCell,
     EmptyHeaderRecord,
+    InvalidIngestLimits,
+    RecordTooLarge,
+    CirSampleCountExceeded,
     InvalidSourceFileIdentity,
     TooFewRowFields,
     EmptyTagIdentity,
@@ -111,6 +122,9 @@ impl fmt::Display for BregarCsvIngestError {
             Self::InvalidCsvQuoting => write!(f, "CSV quote appears inside an unquoted nonempty field"),
             Self::UnterminatedQuotedCell => write!(f, "CSV record contains an unterminated quoted cell"),
             Self::EmptyHeaderRecord => write!(f, "Bregar CSV header record must contain at least one cell"),
+            Self::InvalidIngestLimits => write!(f, "maximum record bytes and CIR sample count must both be positive"),
+            Self::RecordTooLarge => write!(f, "Bregar CSV data record exceeds the configured byte limit"),
+            Self::CirSampleCountExceeded => write!(f, "Bregar CSV row exceeds the configured CIR sample count"),
             Self::InvalidSourceFileIdentity => write!(f, "source file identity must be nonempty"),
             Self::TooFewRowFields => write!(f, "Bregar data row must contain 26 metadata fields and at least one CIR sample"),
             Self::EmptyTagIdentity => write!(f, "TAG_ID must be nonempty"),
@@ -173,13 +187,23 @@ pub fn parse_bregar_csv_data_row(
     source_file_id: &str,
     source_row_index: u64,
     record: &str,
+    limits: BregarCsvIngestLimits,
 ) -> Result<BregarCsvPartitionedRow, BregarCsvIngestError> {
+    if limits.maximum_record_bytes == 0 || limits.maximum_cir_samples == 0 {
+        return Err(BregarCsvIngestError::InvalidIngestLimits);
+    }
+    if record.len() > limits.maximum_record_bytes {
+        return Err(BregarCsvIngestError::RecordTooLarge);
+    }
     if source_file_id.trim().is_empty() {
         return Err(BregarCsvIngestError::InvalidSourceFileIdentity);
     }
     let fields = parse_csv_record(record)?;
-    if fields.len() <= BREGAR_CIR_START_FIELD {
+    if fields.len() <= BREGAR_CSV_PREFIX_FIELDS {
         return Err(BregarCsvIngestError::TooFewRowFields);
+    }
+    if fields.len() - BREGAR_CIR_START_FIELD > limits.maximum_cir_samples {
+        return Err(BregarCsvIngestError::CirSampleCountExceeded);
     }
 
     let tag_id = required_text(&fields, 0, "TAG_ID")?;
@@ -471,6 +495,22 @@ mod tests {
         ]
     }
 
+    fn parse_row(
+        source_file_id: &str,
+        source_row_index: u64,
+        record: &str,
+    ) -> Result<BregarCsvPartitionedRow, BregarCsvIngestError> {
+        parse_bregar_csv_data_row(
+            source_file_id,
+            source_row_index,
+            record,
+            BregarCsvIngestLimits {
+                maximum_record_bytes: 1_000_000,
+                maximum_cir_samples: 1_024,
+            },
+        )
+    }
+
     fn row_record(cir_count: usize) -> String {
         let mut fields = row_fields();
         fields.extend((0..cir_count).map(|index| {
@@ -521,7 +561,7 @@ mod tests {
 
     #[test]
     fn parses_controller_and_evaluator_views_without_mixing_labels() {
-        let parsed = parse_bregar_csv_data_row("environment0/ch1_A1.csv", 42, &row_record(200)).unwrap();
+        let parsed = parse_row("environment0/ch1_A1.csv", 42, &row_record(200)).unwrap();
         assert_eq!(parsed.controller.source_row_index, 42);
         assert_eq!(parsed.controller.tag_id, "T1");
         assert_eq!(parsed.controller.anchor_id, "A1");
@@ -539,7 +579,7 @@ mod tests {
         fields[11] = "NaN".into();
         fields[12] = "".into();
         fields.extend((0..200).map(|_| "0.0".to_owned()));
-        let parsed = parse_bregar_csv_data_row("environment0/ch1_A1.csv", 0, &fields.join(",")).unwrap();
+        let parsed = parse_row("environment0/ch1_A1.csv", 0, &fields.join(",")).unwrap();
         assert_eq!(parsed.controller.rss_dbm, None);
         assert_eq!(parsed.controller.rss_fp_dbm, None);
     }
@@ -550,7 +590,7 @@ mod tests {
         fields[3] = "".into();
         fields.extend((0..200).map(|_| "0.0".to_owned()));
         assert_eq!(
-            parse_bregar_csv_data_row("environment0/ch1_A1.csv", 0, &fields.join(",")),
+            parse_row("environment0/ch1_A1.csv", 0, &fields.join(",")),
             Err(BregarCsvIngestError::PartialCoordinateTriplet("tag"))
         );
     }
@@ -578,14 +618,61 @@ mod tests {
         fields.extend((0..200).map(|_| "0.0+0.0j".to_owned()));
         fields[0] = "\"T1\"x".to_owned();
         assert_eq!(
-            parse_bregar_csv_data_row("environment0/ch1_A1.csv", 0, &fields.join(",")),
+            parse_row("environment0/ch1_A1.csv", 0, &fields.join(",")),
             Err(BregarCsvIngestError::InvalidCsvQuoting)
+        );
+    }
+
+
+    #[test]
+    fn enforces_explicit_record_byte_and_cir_sample_limits() {
+        let record = row_record(200);
+        let too_small_bytes = BregarCsvIngestLimits {
+            maximum_record_bytes: 10,
+            maximum_cir_samples: 1_024,
+        };
+        assert_eq!(
+            parse_bregar_csv_data_row(
+                "environment0/ch1_A1.csv",
+                0,
+                &record,
+                too_small_bytes,
+            ),
+            Err(BregarCsvIngestError::RecordTooLarge)
+        );
+
+        let too_few_samples = BregarCsvIngestLimits {
+            maximum_record_bytes: 1_000_000,
+            maximum_cir_samples: 100,
+        };
+        assert_eq!(
+            parse_bregar_csv_data_row(
+                "environment0/ch1_A1.csv",
+                0,
+                &record,
+                too_few_samples,
+            ),
+            Err(BregarCsvIngestError::CirSampleCountExceeded)
+        );
+
+        let invalid_limits = BregarCsvIngestLimits {
+            maximum_record_bytes: 0,
+            maximum_cir_samples: 100,
+        };
+        assert_eq!(
+            parse_bregar_csv_data_row(
+                "environment0/ch1_A1.csv",
+                0,
+                &record,
+                invalid_limits,
+            ),
+            Err(BregarCsvIngestError::InvalidIngestLimits)
         );
     }
 
     #[test]
     fn converts_partitioned_controller_row_to_explicit_sample_period_cir_observation() {
-        let parsed = parse_bregar_csv_data_row("environment0/ch1_A1.csv", 3, &row_record(200)).unwrap();
+        let parsed = parse_row("environment0/ch1_A1.csv", 3, &row_record(200)).unwrap();
         let observation = parsed.controller.to_cir_observation(77, 0.015);
         assert_eq!(observation.measurement_id, 77);
         assert_eq!(observation.fp_index, 100.75);
@@ -596,11 +683,11 @@ mod tests {
     #[test]
     fn fails_closed_on_missing_source_identity_and_short_rows() {
         assert_eq!(
-            parse_bregar_csv_data_row("", 0, &row_record(200)),
+            parse_row("", 0, &row_record(200)),
             Err(BregarCsvIngestError::InvalidSourceFileIdentity)
         );
         assert_eq!(
-            parse_bregar_csv_data_row("environment0/ch1_A1.csv", 0, "T1,A1"),
+            parse_row("environment0/ch1_A1.csv", 0, "T1,A1"),
             Err(BregarCsvIngestError::TooFewRowFields)
         );
     }
@@ -611,21 +698,21 @@ mod tests {
         fields[19] = "0".into();
         fields.extend((0..200).map(|_| "0.0".to_owned()));
         assert_eq!(
-            parse_bregar_csv_data_row("environment0/ch1_A1.csv", 0, &fields.join(",")),
+            parse_row("environment0/ch1_A1.csv", 0, &fields.join(",")),
             Err(BregarCsvIngestError::InvalidRxpacc)
         );
 
         let mut fields = row_fields();
         fields.extend((0..200).map(|_| "not-a-complex".to_owned()));
         assert!(matches!(
-            parse_bregar_csv_data_row("environment0/ch1_A1.csv", 0, &fields.join(",")),
+            parse_row("environment0/ch1_A1.csv", 0, &fields.join(",")),
             Err(BregarCsvIngestError::InvalidComplexCirSample { index: 0, .. })
         ));
     }
 
     #[test]
     fn controller_csv_view_flows_into_cir_features_without_evaluator_labels() {
-        let parsed = parse_bregar_csv_data_row(
+        let parsed = parse_row(
             "environment0/ch1_A1.csv",
             42,
             &row_record(300),
@@ -644,7 +731,7 @@ mod tests {
         let mut fields = row_fields();
         fields.extend((0..200).map(|_| "\"(1.0+2.0j)\"".to_owned()));
         let row = fields.join(",");
-        let parsed = parse_bregar_csv_data_row("environment0/ch1_A1.csv", 0, &row).unwrap();
+        let parsed = parse_row("environment0/ch1_A1.csv", 0, &row).unwrap();
         assert_eq!(parsed.controller.cir_samples[0], ComplexCirSample { real: 1.0, imaginary: 2.0 });
     }
 }
