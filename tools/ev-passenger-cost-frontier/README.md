@@ -281,3 +281,21 @@ and finishes at ledger version 4. It deliberately leaves `lease-001` unresolved 
 The module currently contains 14 focused Rust test definitions covering concurrency, idempotency, payload conflict, unresolved retention, terminal evidence, invalid transition, stale writer, digest mutation, previous-link mutation and event reordering. SHA-256 here provides an integrity-linked event chain; it does not authenticate producers or prove durable storage. Exact-head Actions run [#45042240520](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45042240520) passed schema/fixture parsing, workspace formatting, Cargo tests, deterministic report assertions and artifact upload (171 tests passed, 0 failed across test binaries). Clippy is not included and remains unverified.
 
 Source: `src/mobility_commitment_journal.rs`; CLI: `src/bin/mobility_commitment_journal_screen.rs`; strict schema: `schemas/mobility_commitment_journal_v0_1.schema.json`; fixture: `fixtures/mobility_commitment_journal_v0_1.json`.
+
+
+## MOBILITY-SERVICE-OBSERVABILITY-001 — evidence-bound operating scorecard
+
+The Rust reducer computes a denominator-separated operating scorecard from timestamped, configuration-bound evidence. It is tracked in [#6850](https://github.com/Luminous-Dynamics/symtropy/issues/6850) and supports the existing [industry baseline #6226](https://github.com/Luminous-Dynamics/symtropy/issues/6226) and [matched tournament #6247](https://github.com/Luminous-Dynamics/symtropy/issues/6247).
+
+Run:
+
+```bash
+cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin mobility_service_observability_screen -- \
+  tools/ev-passenger-cost-frontier/fixtures/mobility_service_observability_v0_1.json
+```
+
+The report keeps independent numerators and denominators for committed missions, completed/on-time/late/failed/unserved/cancelled outcomes; swap attempts and successful exchanges; turnaround attempts; charge sessions; qualified availability state seconds; each energy measurement boundary; requested versus metered grid service; and lifecycle cost/currency. Percentiles use nearest-rank p50/p95/p99 and include sample counts. Missing values remain missing; unknown availability time is reported separately; charger-input Wh, pack-terminal Wh, aircraft-terminal Wh and site-meter Wh are never pooled.
+
+The frozen synthetic fixture intentionally demonstrates that two completed missions do not imply two on-time missions, that failed swaps stay in the attempt denominator, and that 1,500 Wh requested grid service is not reported as 1,500 Wh delivered. The fixture is not a supplier-performance claim or field measurement.
+
+Schema: `schemas/mobility_service_observability_v0_1.schema.json`; fixture: `fixtures/mobility_service_observability_v0_1.json`; evaluator: `src/mobility_service_observability.rs`; CLI: `src/bin/mobility_service_observability_screen.rs`.
