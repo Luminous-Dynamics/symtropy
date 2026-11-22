@@ -65,8 +65,9 @@ class ResourceFrontierTests(unittest.TestCase):
                 metric["status"] = "MEASURED"
                 metric["evidence_sha256"] = "a" * 64
                 metric["method"] = "instrumented test trace"
-                if metric["metric_id"] == "energy_joules":
-                    metric["status"] = "ESTIMATED"
+        always_on = next(run for run in candidate["runs"] if run["run_id"] == "run-always-on")
+        energy = next(metric for metric in always_on["metrics"] if metric["metric_id"] == "energy_joules")
+        energy["status"] = "ESTIMATED"
         score = evaluator.evaluate(candidate)
         by_id = {row["run_id"]: row for row in score["runs"]}
         self.assertFalse(by_id["run-always-on"]["eligible"])
