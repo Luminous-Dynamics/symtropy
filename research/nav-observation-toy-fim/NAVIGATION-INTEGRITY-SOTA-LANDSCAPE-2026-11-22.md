@@ -20,6 +20,7 @@ These papers solve different tasks and use different hardware, datasets, labels 
 | [Lu et al., Measurement 2026, “A decoupled backend optimizer for UWB localization in NLOS environments”](https://doi.org/10.1016/j.measurement.2026.121494) | Reusable posterior refinement layer that combines front-end estimates, ranges and anchor geometry, jointly estimating position and residual range errors | Integrate as a baseline behind multiple front ends; add bounded residuals, bias observability, failure cases and evidence provenance |
 | [IUCA, IEEE Journal of Selected Areas in Sensors 2026](https://doi.org/10.1109/JSAS.2026.3731931) | Model-agnostic high-dimensional conformal calibration of joint/correlated state uncertainty, including pose ellipses | Reproduce exchangeability assumptions; measure joint coverage, sharpness, conditional/domain-shift failure and mission-level risk |
 | 2026 CIR NLOS survey, Computers & Electrical Engineering 139B | Reviews 80 representative studies; distinguishes handcrafted CIR-feature and raw-CIR sequence methods; highlights label efficiency, domain generalization and physics-guided interpretability | Use as taxonomy and ablation guide; evaluate cross-scenario robustness and deployment feasibility, not just accuracy |
+| [Bregar et al., Scientific Data 2023, UWB Positioning and Tracking Data Set v2.0](https://doi.org/10.5281/zenodo.8280736) | Four indoor environments, eight fixed DW1000 anchors + one mobile tag; raw per-channel CIR / first-path / RSS and LOS/NLOS metadata; CC BY 4.0 v2.0 record, 4.4 GB archive | Use as a smaller raw-CIR and indoor ranging-calibration candidate; verify payload hashes, timing, calibration and label lineage. Not a continuous UAV or motion-capture trajectory benchmark |
 | [IEEE TII 2026 secure indoor ranging review](https://doi.org/10.1109/TII.2026.3680098) / [FiRa Core 4.1](https://www.firaconsortium.org/news/press-releases/2026/10/fira-consortium-launches-core-4-1-specifications-and-enhanced) | Overshadowing, early-path injection, relay and clock-related threats; FiRa Core 4.1 expands DS-TWR security certification, responder-specific sub-session keys and 256-bit STS key testing | Separate protocol authentication, physical channel integrity, clock integrity and navigation decision integrity |
 
 ## 2. Competitive paradigm: a verified front end and an independent posterior
@@ -127,6 +128,8 @@ The posterior auditor is implemented in [draft PR #6852](https://github.com/Lumi
 
 The publisher links the source archive through [Figshare DOI 10.25452/figshare.plus.28386041.v1](https://doi.org/10.25452/figshare.plus.28386041.v1). The [NLM Dataset Catalog record](https://datasetcatalog.nlm.nih.gov/dataset?q=0002392468) lists CC BY 4.0 rights; the paper describes a 173 GB archive with 217 minutes across 36 experiments. The [authors' devkit](https://github.com/decargroup/miluv) loads original per-robot ROS bags under each experiment.
 
+For an earlier, smaller raw-CIR step, [Bregar's UWB Positioning and Tracking Data Set v2.0](https://doi.org/10.5281/zenodo.8280736) is a 4.4 GB CC BY 4.0 candidate with four indoor environments, eight fixed anchors and one mobile tag. Its CSVs include raw CIR and first-path/RSS features. Use the v2.0 Zenodo record only; the earlier v1.0 record has different CC BY-NC-SA terms. It is suited to indoor range/CIR calibration and LOS/NLOS experiments, not multi-UAV trajectories. The registry entry remains candidate_not_admitted until every file is inventoried and SHA-256 hashed and the time, anchor-survey, calibration and label lineage are checked.
+
 Do not download the entire archive simply to reproduce one range baseline. First inspect publisher metadata and the archive's experiment/file inventory, identify a small experiment whose original robot bags contain UWB raw messages, CIR and passive receptions, verify its licensing/attribution and freeze its exact file hashes. Process the source-complete messages without Vicon-conditioned row filtering; construct evaluator truth separately. The truth-conditioned processed CSV remains blocked by [issue #6813](https://github.com/Luminous-Dynamics/symtropy/issues/6813).
 
 ## 10. Current Symtropy work
@@ -141,7 +144,9 @@ Do not download the entire archive simply to reproduce one range baseline. First
 - [#6849](https://github.com/Luminous-Dynamics/symtropy/pull/6849): external-verifier session evidence gate.
 - [#6852](https://github.com/Luminous-Dynamics/symtropy/pull/6852): independent 3D range-set posterior audit.
 - [#6853](https://github.com/Luminous-Dynamics/symtropy/issues/6853): risk-aware active evidence acquisition programme.
-- [#6855](https://github.com/Luminous-Dynamics/symtropy/pull/6855): Pareto active evidence-acquisition planner.
+- [#6855](https://github.com/Luminous-Dynamics/symtropy/pull/6855): Pareto active evidence-acquisition planner (run #212 passed).
+- [#6858](https://github.com/Luminous-Dynamics/symtropy/pull/6858): integrated clock, secure-session, posterior and active-acquisition research kernels (combined run #213 passed).
+- [#6779](https://github.com/Luminous-Dynamics/symtropy/pull/6779): candidate dataset registry and controller/evaluator boundary; now includes Bregar UWB v2.0 as an unadmitted raw-CIR candidate.
 
 ## 11. Claim boundary
 
