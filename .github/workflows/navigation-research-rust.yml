@@ -57,6 +57,16 @@ jobs:
             fi
           done
 
+      - name: Run equation-level adaptive PL baseline demo
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f research/nav-observation-toy-fim/Cargo.toml && -f research/nav-observation-toy-fim/src/bin/adaptive_pl_demo.rs ]]; then
+            cargo run --quiet --manifest-path research/nav-observation-toy-fim/Cargo.toml --bin adaptive_pl_demo
+          else
+            echo "Adaptive PL baseline crate is not part of this branch; demo skipped."
+          fi
+
       - name: Run schema and semantic validator CLI when corpus is present
         shell: bash
         run: |
