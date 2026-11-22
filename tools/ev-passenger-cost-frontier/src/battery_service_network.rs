@@ -1447,29 +1447,31 @@ mod tests {
         }
     }
 
-    fn journal_event(
+    struct JournalEventSpec<'a> {
         sequence: u64,
         seconds_after_epoch: u64,
-        event_id: &str,
-        idempotency_key: &str,
+        event_id: &'a str,
+        idempotency_key: &'a str,
         from_state: PackState,
         proposed_to_state: PackState,
         disposition: PackTransitionDisposition,
         evidence_class: EvidenceClass,
-    ) -> PackTransitionEvent {
+    }
+
+    fn journal_event(spec: JournalEventSpec<'_>) -> PackTransitionEvent {
         let pack_id = "journal-pack";
         let digest = "urn:synthetic:configuration:journal-pack";
-        let mut event_evidence = evidence(pack_id, digest, event_id);
-        event_evidence.evidence_class = evidence_class;
+        let mut event_evidence = evidence(pack_id, digest, spec.event_id);
+        event_evidence.evidence_class = spec.evidence_class;
         PackTransitionEvent {
-            event_id: event_id.to_string(),
-            idempotency_key: idempotency_key.to_string(),
+            event_id: spec.event_id.to_string(),
+            idempotency_key: spec.idempotency_key.to_string(),
             operation_id: "operation-1".to_string(),
-            sequence,
-            event_time_unix_ms: DISPATCH_TIME_MS + seconds_after_epoch * 1_000,
-            from_state,
-            proposed_to_state,
-            disposition,
+            sequence: spec.sequence,
+            event_time_unix_ms: DISPATCH_TIME_MS + spec.seconds_after_epoch * 1_000,
+            from_state: spec.from_state,
+            proposed_to_state: spec.proposed_to_state,
+            disposition: spec.disposition,
             evidence: event_evidence,
         }
     }
@@ -1489,16 +1491,16 @@ mod tests {
     #[test]
     fn confirmed_journal_event_advances_pack_state() {
         let mut journal = journal_input();
-        journal.events.push(journal_event(
-            1,
-            1,
-            "event-reserve",
-            "idempotency-reserve",
-            PackState::Available,
-            PackState::Reserved,
-            PackTransitionDisposition::Confirmed,
-            EvidenceClass::Synthetic,
-        ));
+        journal.events.push(journal_event(JournalEventSpec {
+            sequence: 1,
+            seconds_after_epoch: 1,
+            event_id: "event-reserve",
+            idempotency_key: "idempotency-reserve",
+            from_state: PackState::Available,
+            proposed_to_state: PackState::Reserved,
+            disposition: PackTransitionDisposition::Confirmed,
+            evidence_class: EvidenceClass::Synthetic,
+        }));
         let report = replay_pack_state_journal(&journal).unwrap();
         assert_eq!(report.final_state, PackState::Reserved);
         assert_eq!(report.final_sequence, 1);
@@ -1509,16 +1511,16 @@ mod tests {
     #[test]
     fn timeout_preserves_last_confirmed_state_and_locks_mutation() {
         let mut journal = journal_input();
-        journal.events.push(journal_event(
-            1,
-            1,
-            "event-timeout",
-            "idempotency-timeout",
-            PackState::Available,
-            PackState::Reserved,
-            PackTransitionDisposition::Timeout,
-            EvidenceClass::Synthetic,
-        ));
+        journal.events.push(journal_event(JournalEventSpec {
+            sequence: 1,
+            seconds_after_epoch: 1,
+            event_id: "event-timeout",
+            idempotency_key: "idempotency-timeout",
+            from_state: PackState::Available,
+            proposed_to_state: PackState::Reserved,
+            disposition: PackTransitionDisposition::Timeout,
+            evidence_class: EvidenceClass::Synthetic,
+        }));
         let report = replay_pack_state_journal(&journal).unwrap();
         assert_eq!(report.final_state, PackState::Available);
         assert!(report.reconciliation_required);
@@ -1528,26 +1530,26 @@ mod tests {
     #[test]
     fn normal_transition_is_rejected_while_reconciliation_is_required() {
         let mut journal = journal_input();
-        journal.events.push(journal_event(
-            1,
-            1,
-            "event-timeout",
-            "idempotency-timeout",
-            PackState::Available,
-            PackState::Reserved,
-            PackTransitionDisposition::Timeout,
-            EvidenceClass::Synthetic,
-        ));
-        journal.events.push(journal_event(
-            2,
-            2,
-            "event-retry",
-            "idempotency-retry",
-            PackState::Available,
-            PackState::Reserved,
-            PackTransitionDisposition::Confirmed,
-            EvidenceClass::Synthetic,
-        ));
+        journal.events.push(journal_event(JournalEventSpec {
+            sequence: 1,
+            seconds_after_epoch: 1,
+            event_id: "event-timeout",
+            idempotency_key: "idempotency-timeout",
+            from_state: PackState::Available,
+            proposed_to_state: PackState::Reserved,
+            disposition: PackTransitionDisposition::Timeout,
+            evidence_class: EvidenceClass::Synthetic,
+        }));
+        journal.events.push(journal_event(JournalEventSpec {
+            sequence: 2,
+            seconds_after_epoch: 2,
+            event_id: "event-retry",
+            idempotency_key: "idempotency-retry",
+            from_state: PackState::Available,
+            proposed_to_state: PackState::Reserved,
+            disposition: PackTransitionDisposition::Confirmed,
+            evidence_class: EvidenceClass::Synthetic,
+        }));
         let errors = replay_pack_state_journal(&journal).unwrap_err();
         assert!(errors.iter().any(|error| error.contains("normal_event_blocked_pending_reconciliation")));
     }
@@ -1555,26 +1557,26 @@ mod tests {
     #[test]
     fn independent_reconciliation_clears_timeout_lock() {
         let mut journal = journal_input();
-        journal.events.push(journal_event(
-            1,
-            1,
-            "event-timeout",
-            "idempotency-timeout",
-            PackState::Available,
-            PackState::Reserved,
-            PackTransitionDisposition::Timeout,
-            EvidenceClass::Synthetic,
-        ));
-        journal.events.push(journal_event(
-            2,
-            2,
-            "event-reconcile",
-            "idempotency-reconcile",
-            PackState::Available,
-            PackState::Reserved,
-            PackTransitionDisposition::Reconciled,
-            EvidenceClass::IndependentTest,
-        ));
+        journal.events.push(journal_event(JournalEventSpec {
+            sequence: 1,
+            seconds_after_epoch: 1,
+            event_id: "event-timeout",
+            idempotency_key: "idempotency-timeout",
+            from_state: PackState::Available,
+            proposed_to_state: PackState::Reserved,
+            disposition: PackTransitionDisposition::Timeout,
+            evidence_class: EvidenceClass::Synthetic,
+        }));
+        journal.events.push(journal_event(JournalEventSpec {
+            sequence: 2,
+            seconds_after_epoch: 2,
+            event_id: "event-reconcile",
+            idempotency_key: "idempotency-reconcile",
+            from_state: PackState::Available,
+            proposed_to_state: PackState::Reserved,
+            disposition: PackTransitionDisposition::Reconciled,
+            evidence_class: EvidenceClass::IndependentTest,
+        }));
         let report = replay_pack_state_journal(&journal).unwrap();
         assert_eq!(report.final_state, PackState::Reserved);
         assert!(!report.reconciliation_required);
@@ -1584,26 +1586,26 @@ mod tests {
     #[test]
     fn synthetic_evidence_cannot_clear_reconciliation_lock() {
         let mut journal = journal_input();
-        journal.events.push(journal_event(
-            1,
-            1,
-            "event-timeout",
-            "idempotency-timeout",
-            PackState::Available,
-            PackState::Reserved,
-            PackTransitionDisposition::Timeout,
-            EvidenceClass::Synthetic,
-        ));
-        journal.events.push(journal_event(
-            2,
-            2,
-            "event-reconcile",
-            "idempotency-reconcile",
-            PackState::Available,
-            PackState::Reserved,
-            PackTransitionDisposition::Reconciled,
-            EvidenceClass::Synthetic,
-        ));
+        journal.events.push(journal_event(JournalEventSpec {
+            sequence: 1,
+            seconds_after_epoch: 1,
+            event_id: "event-timeout",
+            idempotency_key: "idempotency-timeout",
+            from_state: PackState::Available,
+            proposed_to_state: PackState::Reserved,
+            disposition: PackTransitionDisposition::Timeout,
+            evidence_class: EvidenceClass::Synthetic,
+        }));
+        journal.events.push(journal_event(JournalEventSpec {
+            sequence: 2,
+            seconds_after_epoch: 2,
+            event_id: "event-reconcile",
+            idempotency_key: "idempotency-reconcile",
+            from_state: PackState::Available,
+            proposed_to_state: PackState::Reserved,
+            disposition: PackTransitionDisposition::Reconciled,
+            evidence_class: EvidenceClass::Synthetic,
+        }));
         let errors = replay_pack_state_journal(&journal).unwrap_err();
         assert!(errors.iter().any(|error| error.contains("reconciliation_requires_measured_or_independent_evidence")));
     }
@@ -1611,26 +1613,26 @@ mod tests {
     #[test]
     fn duplicate_idempotency_key_is_rejected() {
         let mut journal = journal_input();
-        journal.events.push(journal_event(
-            1,
-            1,
-            "event-one",
-            "same-idempotency-key",
-            PackState::Available,
-            PackState::Reserved,
-            PackTransitionDisposition::Confirmed,
-            EvidenceClass::Synthetic,
-        ));
-        journal.events.push(journal_event(
-            2,
-            2,
-            "event-two",
-            "same-idempotency-key",
-            PackState::Reserved,
-            PackState::Installed,
-            PackTransitionDisposition::Confirmed,
-            EvidenceClass::Synthetic,
-        ));
+        journal.events.push(journal_event(JournalEventSpec {
+            sequence: 1,
+            seconds_after_epoch: 1,
+            event_id: "event-one",
+            idempotency_key: "same-idempotency-key",
+            from_state: PackState::Available,
+            proposed_to_state: PackState::Reserved,
+            disposition: PackTransitionDisposition::Confirmed,
+            evidence_class: EvidenceClass::Synthetic,
+        }));
+        journal.events.push(journal_event(JournalEventSpec {
+            sequence: 2,
+            seconds_after_epoch: 2,
+            event_id: "event-two",
+            idempotency_key: "same-idempotency-key",
+            from_state: PackState::Reserved,
+            proposed_to_state: PackState::Installed,
+            disposition: PackTransitionDisposition::Confirmed,
+            evidence_class: EvidenceClass::Synthetic,
+        }));
         let errors = replay_pack_state_journal(&journal).unwrap_err();
         assert!(errors.iter().any(|error| error.contains("duplicate_idempotency_key")));
     }
@@ -1638,16 +1640,16 @@ mod tests {
     #[test]
     fn non_contiguous_event_sequence_is_rejected() {
         let mut journal = journal_input();
-        journal.events.push(journal_event(
-            2,
-            1,
-            "event-gap",
-            "idempotency-gap",
-            PackState::Available,
-            PackState::Reserved,
-            PackTransitionDisposition::Confirmed,
-            EvidenceClass::Synthetic,
-        ));
+        journal.events.push(journal_event(JournalEventSpec {
+            sequence: 2,
+            seconds_after_epoch: 1,
+            event_id: "event-gap",
+            idempotency_key: "idempotency-gap",
+            from_state: PackState::Available,
+            proposed_to_state: PackState::Reserved,
+            disposition: PackTransitionDisposition::Confirmed,
+            evidence_class: EvidenceClass::Synthetic,
+        }));
         let errors = replay_pack_state_journal(&journal).unwrap_err();
         assert!(errors.iter().any(|error| error.contains("non_contiguous_event_sequence")));
     }
@@ -1655,16 +1657,16 @@ mod tests {
     #[test]
     fn illegal_pack_state_transition_is_rejected() {
         let mut journal = journal_input();
-        journal.events.push(journal_event(
-            1,
-            1,
-            "event-illegal",
-            "idempotency-illegal",
-            PackState::Available,
-            PackState::Charging,
-            PackTransitionDisposition::Confirmed,
-            EvidenceClass::Synthetic,
-        ));
+        journal.events.push(journal_event(JournalEventSpec {
+            sequence: 1,
+            seconds_after_epoch: 1,
+            event_id: "event-illegal",
+            idempotency_key: "idempotency-illegal",
+            from_state: PackState::Available,
+            proposed_to_state: PackState::Charging,
+            disposition: PackTransitionDisposition::Confirmed,
+            evidence_class: EvidenceClass::Synthetic,
+        }));
         let errors = replay_pack_state_journal(&journal).unwrap_err();
         assert!(errors.iter().any(|error| error.contains("illegal_pack_state_transition")));
     }
@@ -1672,26 +1674,26 @@ mod tests {
     #[test]
     fn duplicate_event_id_is_rejected() {
         let mut journal = journal_input();
-        journal.events.push(journal_event(
-            1,
-            1,
-            "duplicate-event",
-            "idempotency-one",
-            PackState::Available,
-            PackState::Reserved,
-            PackTransitionDisposition::Confirmed,
-            EvidenceClass::Synthetic,
-        ));
-        journal.events.push(journal_event(
-            2,
-            2,
-            "duplicate-event",
-            "idempotency-two",
-            PackState::Reserved,
-            PackState::Installed,
-            PackTransitionDisposition::Confirmed,
-            EvidenceClass::Synthetic,
-        ));
+        journal.events.push(journal_event(JournalEventSpec {
+            sequence: 1,
+            seconds_after_epoch: 1,
+            event_id: "duplicate-event",
+            idempotency_key: "idempotency-one",
+            from_state: PackState::Available,
+            proposed_to_state: PackState::Reserved,
+            disposition: PackTransitionDisposition::Confirmed,
+            evidence_class: EvidenceClass::Synthetic,
+        }));
+        journal.events.push(journal_event(JournalEventSpec {
+            sequence: 2,
+            seconds_after_epoch: 2,
+            event_id: "duplicate-event",
+            idempotency_key: "idempotency-two",
+            from_state: PackState::Reserved,
+            proposed_to_state: PackState::Installed,
+            disposition: PackTransitionDisposition::Confirmed,
+            evidence_class: EvidenceClass::Synthetic,
+        }));
         let errors = replay_pack_state_journal(&journal).unwrap_err();
         assert!(errors.iter().any(|error| error.contains("duplicate_event_id")));
     }
@@ -1699,16 +1701,16 @@ mod tests {
     #[test]
     fn event_after_replay_cutoff_is_rejected() {
         let mut journal = journal_input();
-        journal.events.push(journal_event(
-            1,
-            6,
-            "event-after-cutoff",
-            "idempotency-after-cutoff",
-            PackState::Available,
-            PackState::Reserved,
-            PackTransitionDisposition::Confirmed,
-            EvidenceClass::Synthetic,
-        ));
+        journal.events.push(journal_event(JournalEventSpec {
+            sequence: 1,
+            seconds_after_epoch: 6,
+            event_id: "event-after-cutoff",
+            idempotency_key: "idempotency-after-cutoff",
+            from_state: PackState::Available,
+            proposed_to_state: PackState::Reserved,
+            disposition: PackTransitionDisposition::Confirmed,
+            evidence_class: EvidenceClass::Synthetic,
+        }));
         let errors = replay_pack_state_journal(&journal).unwrap_err();
         assert!(errors.iter().any(|error| error.contains("event_time_non_monotonic_or_after_cutoff")));
     }
@@ -1716,16 +1718,16 @@ mod tests {
     #[test]
     fn journal_rejects_wrong_pack_evidence() {
         let mut journal = journal_input();
-        let mut event = journal_event(
-            1,
-            1,
-            "event-wrong-pack",
-            "idempotency-wrong-pack",
-            PackState::Available,
-            PackState::Reserved,
-            PackTransitionDisposition::Confirmed,
-            EvidenceClass::Synthetic,
-        );
+        let mut event = journal_event(JournalEventSpec {
+            sequence: 1,
+            seconds_after_epoch: 1,
+            event_id: "event-wrong-pack",
+            idempotency_key: "idempotency-wrong-pack",
+            from_state: PackState::Available,
+            proposed_to_state: PackState::Reserved,
+            disposition: PackTransitionDisposition::Confirmed,
+            evidence_class: EvidenceClass::Synthetic,
+        });
         event.evidence.asset_id = "different-pack".to_string();
         journal.events.push(event);
         let errors = replay_pack_state_journal(&journal).unwrap_err();
