@@ -1,0 +1,41 @@
+name: EPCIS AggregationEvent semantic qualification
+
+on:
+  pull_request:
+    branches:
+      - research/cargo-composition-lineage-v0-1
+      - main
+    paths:
+      - "crates/domains/symtropy-transport-optimization/**"
+      - ".github/workflows/epcis-aggregation-qualification.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: epcis-aggregation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: Verify exact adapter revision
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact source revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --all --check
+
+      - name: Run locked offline adapter tests
+        run: cargo test --offline --locked -p symtropy-transport-optimization
+
+      - name: Run strict adapter Clippy
+        run: cargo clippy --offline --locked --all-targets -p symtropy-transport-optimization -- -D warnings
