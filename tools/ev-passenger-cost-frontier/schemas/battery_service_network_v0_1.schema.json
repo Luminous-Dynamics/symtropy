@@ -86,7 +86,7 @@
         "evidence": {
           "$ref": "#/$defs/evidenceEnvelope"
         },
-        "value": {
+        "conservative_lower_bound": {
           "type": [
             "integer",
             "null"
@@ -108,7 +108,7 @@
         "evidence": {
           "$ref": "#/$defs/evidenceEnvelope"
         },
-        "pack_temperature_c": {
+        "qualified_max_temperature_c": {
           "type": [
             "integer",
             "null"
@@ -116,7 +116,7 @@
           "minimum": -100,
           "maximum": 250
         },
-        "qualified_max_temperature_c": {
+        "conservative_upper_bound_c": {
           "type": [
             "integer",
             "null"
