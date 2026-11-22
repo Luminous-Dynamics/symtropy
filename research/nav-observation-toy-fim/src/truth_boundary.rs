@@ -511,10 +511,6 @@ mod tests {
                 outcome_state_one_ppm: 700_000,
             },
         );
-        let truth = EvaluatorTruth {
-            service_state_one: true,
-            truth_manifest_commitment: [0x33; 32],
-        };
         assert_eq!(
             controller_decide_after_acquisition(&first, &event),
             Err(BoundaryError::ProposalMismatch)
@@ -555,10 +551,6 @@ mod tests {
             &proposal,
             AcquisitionStatus::Failed,
         );
-        let truth = EvaluatorTruth {
-            service_state_one: true,
-            truth_manifest_commitment: [0x44; 32],
-        };
         assert_eq!(
             controller_decide_after_acquisition(&proposal, &event),
             Err(BoundaryError::ProposalMismatch)
