@@ -198,7 +198,9 @@ def evaluate(workload: dict[str, Any], truth: dict[str, Any], submission: dict[s
                     for a in candidates
                 )
                 decision_ok = not floor_disrupting
-            elif expected_action in {"respond", "clarify"}:
+            elif expected_action == "respond":
+                # WRR is defined over required response events, not clarification
+                # opportunities. Clarification quality remains part of decision accuracy.
                 response_windows += 1
                 candidate_action = expected_match
                 output_tick = candidate_action.get("output_start_tick") if candidate_action else None
@@ -210,6 +212,20 @@ def evaluate(workload: dict[str, Any], truth: dict[str, Any], submission: dict[s
                     late += 1
                 else:
                     window_hits += 1
+                    decision_ok = True
+                    event_ref = event_by_id[trigger].get("observation_ref")
+                    if event_ref and event_ref not in candidate_action.get("evidence_refs", []):
+                        violations.append(f"{candidate_action['action_id']}:required_trigger_evidence_not_cited")
+                        decision_ok = False
+            elif expected_action == "clarify":
+                # A clarify action is scored as a correct interaction decision,
+                # but is intentionally excluded from DIVE-style response-window WRR.
+                candidate_action = expected_match
+                if candidate_action is not None and candidate_action["action_id"] not in invalid_action_ids and in_window(
+                    candidate_action.get("output_start_tick"),
+                    decision.get("window_start_tick"),
+                    decision.get("window_end_tick"),
+                ):
                     decision_ok = True
                     event_ref = event_by_id[trigger].get("observation_ref")
                     if event_ref and event_ref not in candidate_action.get("evidence_refs", []):
