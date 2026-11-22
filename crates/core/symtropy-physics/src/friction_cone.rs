@@ -70,6 +70,7 @@ pub fn solve_planar_friction_cone(
     {
         return Err(FrictionConeError::NonFinite);
     }
+    let free_velocity = *free_velocity;
     if !friction_coefficient.is_finite() || friction_coefficient < 0.0 {
         return Err(FrictionConeError::InvalidFrictionCoefficient);
     }
@@ -117,7 +118,7 @@ pub fn solve_planar_friction_cone(
         if positive_denominator > relative_tolerance * matrix_scale {
             let normal_impulse = -free_velocity[0] / positive_denominator;
             if normal_impulse > impulse_tolerance {
-                let sliding = SVector::new(normal_impulse, -mu * normal_impulse);
+                let sliding: SVector<f64, 2> = SVector::new(normal_impulse, -mu * normal_impulse);
                 let post = matrix * sliding + free_velocity;
                 if post[0].abs() <= 10.0 * velocity_tolerance && post[1] >= -velocity_tolerance {
                     admissible.push((sliding, ContactMode::SlidingPositive));
@@ -130,7 +131,7 @@ pub fn solve_planar_friction_cone(
         if negative_denominator > relative_tolerance * matrix_scale {
             let normal_impulse = -free_velocity[0] / negative_denominator;
             if normal_impulse > impulse_tolerance {
-                let sliding = SVector::new(normal_impulse, mu * normal_impulse);
+                let sliding: SVector<f64, 2> = SVector::new(normal_impulse, mu * normal_impulse);
                 let post = matrix * sliding + free_velocity;
                 if post[0].abs() <= 10.0 * velocity_tolerance && post[1] <= velocity_tolerance {
                     admissible.push((sliding, ContactMode::SlidingNegative));
