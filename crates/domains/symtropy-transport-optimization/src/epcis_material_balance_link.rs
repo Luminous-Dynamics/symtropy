@@ -31,6 +31,9 @@ pub struct TransformationGroupEvidence {
     /// Present for a shared EPCIS transformationID group.
     /// Absent only for an event-local transformation with exactly one event.
     pub transformation_id: Option<String>,
+    /// Digest of the canonical serialized group manifest (identity + event refs).
+    /// The adapter checks shape/equality only; it does not hash or authenticate bytes.
+    pub group_evidence_sha256: String,
     /// Effective, non-void source event revisions selected at the same as-of
     /// cutoff. This is not a claim that the physical process is complete.
     pub effective_source_events: Vec<TransformationSourceEventRef>,
@@ -50,6 +53,8 @@ pub struct MaterialBalanceCaseBinding {
     pub input_lot_set_ref: String,
     /// Exact declared output scope. This adapter does not infer or expand it.
     pub output_ref: String,
+    /// Expected canonical digest of the exact transformation-group manifest.
+    pub expected_group_evidence_sha256: String,
     /// Expected immutable owner evidence digest for this exact process + lot set.
     pub expected_receipt_source_digest: String,
 }
@@ -91,6 +96,8 @@ pub enum OwnerDigestQualification {
 pub enum MaterialBalanceLinkReason {
     MissingTransformationGroupRef,
     InvalidTransformationId,
+    InvalidGroupEvidenceDigest,
+    GroupEvidenceDigestMismatch,
     EmptyEffectiveEventSet,
     EventLocalGroupHasMultipleEvents,
     DuplicateSourceEventRevision,
@@ -211,6 +218,9 @@ fn validate_group(group: &TransformationGroupEvidence) -> Option<MaterialBalance
     {
         return Some(MaterialBalanceLinkReason::InvalidTransformationId);
     }
+    if !valid_sha256(&group.group_evidence_sha256) {
+        return Some(MaterialBalanceLinkReason::InvalidGroupEvidenceDigest);
+    }
     if group.effective_source_events.is_empty() {
         return Some(MaterialBalanceLinkReason::EmptyEffectiveEventSet);
     }
@@ -264,6 +274,12 @@ fn validate_case_binding(
     }
     if case.transformation_id != group.transformation_id {
         return Some(MaterialBalanceLinkReason::TransformationIdBindingMismatch);
+    }
+    if !valid_sha256(&case.expected_group_evidence_sha256) {
+        return Some(MaterialBalanceLinkReason::InvalidGroupEvidenceDigest);
+    }
+    if case.expected_group_evidence_sha256 != group.group_evidence_sha256 {
+        return Some(MaterialBalanceLinkReason::GroupEvidenceDigestMismatch);
     }
     if !valid_sha256(&case.expected_receipt_source_digest) {
         return Some(MaterialBalanceLinkReason::InvalidExpectedReceiptDigest);
@@ -425,6 +441,7 @@ mod tests {
         TransformationGroupEvidence {
             group_ref: "urn:example:transformation:batch-42".to_string(),
             transformation_id: Some("urn:example:transformation:batch-42".to_string()),
+            group_evidence_sha256: "e".repeat(64),
             effective_source_events: vec![
                 TransformationSourceEventRef {
                     source_id: "WMS_A".to_string(),
@@ -448,6 +465,7 @@ mod tests {
             manifest_ref: "urn:example:route-manifest:42".to_string(),
             group_ref: "urn:example:transformation:batch-42".to_string(),
             transformation_id: Some("urn:example:transformation:batch-42".to_string()),
+            expected_group_evidence_sha256: "e".repeat(64),
             process_ref: "urn:example:process:42".to_string(),
             input_lot_set_ref: "urn:example:lot-set:42".to_string(),
             output_ref: "urn:example:output-set:42".to_string(),
@@ -623,6 +641,45 @@ mod tests {
         assert_eq!(
             qualify_transformation_mass_balance_link(&group(), &case(), &[mismatched]).reason,
             Some(MaterialBalanceLinkReason::OwnerReceiptDigestMismatch)
+        );
+    }
+
+    #[test]
+    fn exact_group_manifest_digest_is_pinned_by_the_owner_case() {
+        let mut group = group();
+        group.group_evidence_sha256 = "f".repeat(64);
+        assert_eq!(
+            qualify_transformation_mass_balance_link(
+                &group,
+                &case(),
+                &[receipt("EXACT_BALANCED")]
+            )
+            .reason,
+            Some(MaterialBalanceLinkReason::GroupEvidenceDigestMismatch)
+        );
+
+        let mut group = group();
+        group.group_evidence_sha256 = "not-a-digest".to_string();
+        assert_eq!(
+            qualify_transformation_mass_balance_link(
+                &group,
+                &case(),
+                &[receipt("EXACT_BALANCED")]
+            )
+            .reason,
+            Some(MaterialBalanceLinkReason::InvalidGroupEvidenceDigest)
+        );
+
+        let mut case_binding = case();
+        case_binding.expected_group_evidence_sha256 = "not-a-digest".to_string();
+        assert_eq!(
+            qualify_transformation_mass_balance_link(
+                &group(),
+                &case_binding,
+                &[receipt("EXACT_BALANCED")]
+            )
+            .reason,
+            Some(MaterialBalanceLinkReason::InvalidGroupEvidenceDigest)
         );
     }
 
