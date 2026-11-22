@@ -6,6 +6,8 @@ on:
       - ".github/workflows/av-action-argument-replay.yml"
       - "research/av-action-argument-replay-v0/**"
       - "schemas/av-action-argument-replay-v1.schema.json"
+      - "schemas/evidence-gain-trajectory-v1.schema.json"
+      - "tools/av-evidence-gain-trajectory/**"
 
 permissions:
   contents: read
@@ -23,5 +25,9 @@ jobs:
         run: cargo fmt --manifest-path research/av-action-argument-replay-v0/Cargo.toml -- --check
       - name: Run Rust unit tests
         run: cargo test --manifest-path research/av-action-argument-replay-v0/Cargo.toml --locked
+      - name: Validate trajectory schema
+        run: python3 -m json.tool schemas/evidence-gain-trajectory-v1.schema.json > /dev/null
+      - name: Run trajectory ledger integration tests
+        run: python3 -m unittest discover -s tools/av-evidence-gain-trajectory -p "test_*.py" -v
       - name: Run Clippy with warnings as errors
         run: cargo clippy --manifest-path research/av-action-argument-replay-v0/Cargo.toml --all-targets --locked -- -D warnings
