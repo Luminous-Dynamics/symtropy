@@ -75,3 +75,10 @@ https://www.caa.co.za/industry-information/airworthiness/
 6. Only then compare physical inspection / supplemental SHM architectures with matched mass, power, maintenance and lifecycle boundaries.
 
 The design goal is not to maximize sensor count. It is to find the least costly defensible structure + access + NDE + sensing system that detects relevant damage, distinguishes faults and remains independently inspectable.
+
+## Fixed-target NDE statistical preflight
+
+The separate [fixed-target NDE hit/miss screen](../nde-pod-screen/README.md) adds a narrow statistical preflight for one exact target flaw size and procedure/material/defect scope. It reports per-inspector one-sided exact binomial lower detection bounds and upper false-call bounds, rejects stale/mismatched calibration and specimen scope, and retains an explicit non-authorizing claim ceiling.
+
+It complements rather than replaces this synthetic DFI/SHM policy oracle. It is **not** a POD curve, `a90/95`, ASTM E2862-23, MIL-HDBK-1823A, physical inspection acceptance or airworthiness evidence. A later physical-study implementation must use a representative blinded specimen population, the applicable controlled procedure, competent inspectors, independent flaw truth and an approved statistical plan; the fixed-target screen must not be used to bypass that work.
+
