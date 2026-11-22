@@ -76,6 +76,8 @@ pub enum MaterialBalanceLinkDisposition {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum OwnerDigestQualification {
+    /// The digest was not evaluated because the receipt or its bindings failed first.
+    NotEvaluated,
     /// A well-formed SHA-256 string matched the expected reference.
     /// This is not a signature check or proof that the bytes were retrieved.
     ShapeAndReferenceMatchedOnly,
@@ -152,7 +154,7 @@ impl MaterialBalanceLinkDecision {
             reason,
             owner_receipt_ref,
             source_event_count,
-            OwnerDigestQualification::Missing,
+            OwnerDigestQualification::NotEvaluated,
         )
     }
 
@@ -296,7 +298,7 @@ pub fn qualify_transformation_mass_balance_link(
                 MaterialBalanceLinkReason::MissingOwnerReceipt,
                 None,
                 source_event_count,
-                OwnerDigestQualification::Missing,
+                OwnerDigestQualification::NotEvaluated,
             );
         }
         [receipt] => {
