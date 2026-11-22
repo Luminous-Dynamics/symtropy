@@ -906,9 +906,9 @@ mod tests {
         assert_hold(&input, HoldReason::EmptyDependencyGraph);
 
         let mut input = packet();
-        input.dependency_edges.extend(
-            (0..=MAX_DEPENDENCY_EDGES).map(|_| edge("sensor-a", "power-a")),
-        );
+        input
+            .dependency_edges
+            .extend((0..=MAX_DEPENDENCY_EDGES).map(|_| edge("sensor-a", "power-a")));
         assert_hold(&input, HoldReason::TooManyDependencyEdges);
     }
 
