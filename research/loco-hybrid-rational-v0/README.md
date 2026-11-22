@@ -93,3 +93,11 @@ The next step is to add independently tested guard intersections and reset-image
 - Madabushi et al. (2026), Differentiable Invariant Sets for Hybrid Limit Cycles with Application to Legged Robots: https://arxiv.org/abs/2604.05108
 - Maoudj et al. (2026), SPINDER, an open-source 18-DoF hexapod robot with hierarchical CPG control and analytic IK: https://doi.org/10.1038/s41598-026-56856-0
 - Xue et al. (2026), Impact-Aware Robust Convex Model Predictive Control for Quadruped Locomotion on Uncertain Terrain: https://doi.org/10.1109/LRA.2026.3692086
+
+## Exact constant-gravity impact-time enclosure
+
+The exact impact-enclosure module verifies a caller-supplied rational time window against the guard y(t) = h + v0*t - g*t^2/2. For positive height and gravity, it recomputes both endpoint guard values using checked rational arithmetic and establishes a strict negative upper bound on y'(t) across the interval. A nonnegative lower guard, nonpositive upper guard and strict downward transversality prove existence and uniqueness of one downward crossing in the closed window. Exact roots at either endpoint and exact singleton roots are supported.
+
+Every claim is bound to a model-build digest, guard digest and time-basis identity. The verifier does not authenticate those external digests; it verifies that the claim matches the model supplied to this checker. The rational equations and endpoint inequalities are independently recomputed. A caller-supplied ordinary floating-point bisection interval is not accepted as proof-grade merely because its endpoints are relabelled.
+
+The checker returns exact endpoint guard values and the derivative upper bound. Overflow, invalid model parameters, identity mismatch, bad signs, or a non-transverse interval return typed errors without floating-point fallback. It is a bounded exact proof for this one-dimensional constant-gravity model, not an ODE reachability engine or general hybrid event certificate.
