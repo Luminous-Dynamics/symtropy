@@ -158,10 +158,7 @@ fn verify_two_disk_gap_certificate(
     let primal_objective = candidate_norm_squared / 2 - 30 * (candidate[0] + candidate[2]);
     let mut dual_objective = dual_norm_squared / 2 - 30 * (dual_minimizer[0] + dual_minimizer[2]);
     for disk in [0..2, 2..4] {
-        let pair = [
-            dual_minimizer[disk.start],
-            dual_minimizer[disk.start + 1],
-        ];
+        let pair = [dual_minimizer[disk.start], dual_minimizer[disk.start + 1]];
         dual_objective += certificate.multipliers[disk.start / 2]
             * (disk_squared(&pair) - DISK_RADIUS_SQUARED_NUM_OVER_100);
     }
