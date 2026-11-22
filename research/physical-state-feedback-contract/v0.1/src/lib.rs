@@ -1824,6 +1824,31 @@ mod tests {
     }
 
     #[test]
+    fn canonical_snapshot_bytes_reject_non_finite_state() {
+        let mut snapshot = valid_snapshot(0, 0);
+        snapshot.entities[0].linear_velocity_m_s.value = Some([f64::NAN, 0.0, 0.0]);
+        assert!(snapshot.canonical_content_bytes().is_err());
+    }
+
+    #[test]
+    fn canonical_snapshot_bytes_bind_model_configuration_and_trajectory_identity() {
+        let snapshot = valid_snapshot(0, 0);
+        let original = snapshot.canonical_content_bytes().unwrap();
+
+        let mut changed_model = snapshot.clone();
+        changed_model.identity.model_build_sha256 = "b".repeat(64);
+        assert_ne!(original, changed_model.canonical_content_bytes().unwrap());
+
+        let mut changed_configuration = snapshot.clone();
+        changed_configuration.identity.configuration_sha256 = "c".repeat(64);
+        assert_ne!(original, changed_configuration.canonical_content_bytes().unwrap());
+
+        let mut changed_trajectory = snapshot;
+        changed_trajectory.identity.trajectory_id.push_str("-other");
+        assert_ne!(original, changed_trajectory.canonical_content_bytes().unwrap());
+    }
+
+    #[test]
     fn valid_snapshot_accepts_measured_and_explicitly_unavailable_fields() {
         assert!(valid_snapshot(0, 0).validate().is_ok());
     }
