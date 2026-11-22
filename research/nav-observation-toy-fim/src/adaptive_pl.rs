@@ -581,7 +581,7 @@ mod tests {
         cfg.geometric_weight_mps = 0.0;
         cfg.kp_base = 0.0;
         cfg.kd_base = 0.0;
-        cfg.ki_base = 0.0;
+        cfg.ki_base = 1.0e-12;
         cfg.integral_anti_windup = IntegralAntiWindup::PaperConditional;
         let mut state = AdaptivePlState::new(cfg, 10.0, 0.0).unwrap();
         let mut sample = input(0.0);
@@ -601,7 +601,7 @@ mod tests {
         cfg.geometric_weight_mps = 0.0;
         cfg.kp_base = 0.0;
         cfg.kd_base = 0.0;
-        cfg.ki_base = 0.0;
+        cfg.ki_base = 1.0e-12;
         cfg.integral_anti_windup = IntegralAntiWindup::PaperConditional;
         let mut state = AdaptivePlState::new(cfg, 10.0, 0.0).unwrap();
         let mut sample = input(0.0);
@@ -623,7 +623,7 @@ mod tests {
         cfg.geometric_weight_mps = 0.0;
         cfg.kp_base = 0.0;
         cfg.kd_base = 0.0;
-        cfg.ki_base = 0.0;
+        cfg.ki_base = 1.0e-12;
         cfg.integral_anti_windup = IntegralAntiWindup::HardClamped;
         let mut state = AdaptivePlState::new(cfg, 10.0, 0.0).unwrap();
         let mut sample = input(0.0);
