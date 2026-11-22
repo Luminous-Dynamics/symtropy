@@ -236,6 +236,13 @@ ObserveOldEffect ==
     /\ s.effectEvidence = "none"
     /\ s' = [s EXCEPT !.effectEvidence = s.oldPhysicalOutcome]
 
+ObserveUnknownEffect ==
+    /\ s.processStatus = "running"
+    /\ s.bootEpoch > 1
+    /\ s.downstreamFenceBootEpoch = s.bootEpoch
+    /\ s.effectEvidence = "none"
+    /\ s' = [s EXCEPT !.effectEvidence = "unknown"]
+
 ObserveDisputedEffect ==
     /\ s.processStatus = "running"
     /\ s.bootEpoch > 1
@@ -248,7 +255,7 @@ ObserveDisputedEffect ==
 
 ResolveMission ==
     /\ s.processStatus = "running"
-    /\ s.effectEvidence \in {"applied", "no_effect", "partial", "disputed"}
+    /\ s.effectEvidence \in {"unknown", "applied", "no_effect", "partial", "disputed"}
     /\ s.missionResolution = "none"
     /\ s' = [s EXCEPT !.missionResolution = s.effectEvidence]
 
