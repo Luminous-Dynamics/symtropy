@@ -62,6 +62,10 @@ pub struct LossScenario {
 #[serde(deny_unknown_fields)]
 pub struct LossScenarioManifest {
     pub source_manifest_id: String,
+    /// Planned scenario inventory supplied by the upstream loss-model manifest.
+    pub expected_scenario_ids: Vec<String>,
+    /// SHA-256 over the sorted compact JSON array of expected scenario IDs.
+    pub expected_scenario_ids_sha256: String,
     /// SHA-256 over the canonical JSON of all scenario records, sorted by scenario_id.
     pub scenarios_sha256: String,
     pub scenarios: Vec<LossScenario>,
@@ -187,6 +191,14 @@ fn digest_world_ids(world_ids: &[String]) -> Result<String, String> {
     Ok(hex_sha256(&bytes))
 }
 
+fn digest_scenario_ids(scenario_ids: &[String]) -> Result<String, String> {
+    let mut sorted = scenario_ids.to_vec();
+    sorted.sort();
+    let bytes = serde_json::to_vec(&sorted)
+        .map_err(|error| format!("failed to serialize planned scenario IDs: {error}"))?;
+    Ok(hex_sha256(&bytes))
+}
+
 fn canonical_scenario_manifest(scenarios: &[LossScenario]) -> Result<Value, String> {
     let mut sorted = scenarios.to_vec();
     sorted.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
@@ -272,6 +284,25 @@ fn validate_corpus(corpus: &DecisionCorpus) -> Result<(), String> {
             }
         }
 
+        if case.loss_scenario_manifest.expected_scenario_ids.is_empty()
+            || case.loss_scenario_manifest.expected_scenario_ids.len() > MAX_SCENARIOS
+        {
+            return Err("planned loss scenario inventory has invalid size".to_owned());
+        }
+        let mut expected_scenario_ids = BTreeSet::new();
+        for scenario_id in &case.loss_scenario_manifest.expected_scenario_ids {
+            if !validate_ascii_id(scenario_id)
+                || !expected_scenario_ids.insert(scenario_id.as_str())
+            {
+                return Err("planned scenario IDs must be unique, nonempty ASCII strings".to_owned());
+            }
+        }
+        let expected_ids_digest =
+            digest_scenario_ids(&case.loss_scenario_manifest.expected_scenario_ids)?;
+        if case.loss_scenario_manifest.expected_scenario_ids_sha256 != expected_ids_digest {
+            return Err("planned loss scenario ID digest mismatch".to_owned());
+        }
+
         let mut scenario_ids = BTreeSet::new();
         let mut covered_worlds = BTreeSet::new();
         for scenario in &case.loss_scenario_manifest.scenarios {
@@ -316,6 +347,9 @@ fn validate_corpus(corpus: &DecisionCorpus) -> Result<(), String> {
                 loss.validate()
                     .map_err(|error| format!("loss scenario contains invalid value: {error}"))?;
             }
+        }
+        if scenario_ids != expected_scenario_ids {
+            return Err("observed loss scenarios do not match the upstream planned scenario inventory".to_owned());
         }
         if covered_worlds != world_ids {
             return Err("loss scenario manifest must cover every compatible world".to_owned());
@@ -870,6 +904,16 @@ mod tests {
             .get_mut("alpha")
             .expect("loss exists")
             .numerator = 1;
+        assert!(evaluate(&corpus).is_err());
+    }
+
+    #[test]
+    fn missing_planned_scenario_is_detected_even_if_world_remains_covered() {
+        let mut corpus = fixture();
+        let manifest = &mut corpus.cases[0].loss_scenario_manifest;
+        manifest.scenarios.pop();
+        manifest.scenarios_sha256 =
+            digest_scenarios(&manifest.scenarios).expect("remaining rows can be digested");
         assert!(evaluate(&corpus).is_err());
     }
 
