@@ -27,6 +27,12 @@ pub use design_decision::{
     DominanceDecision, DominanceUnresolvedReason, PortfolioUtilityInterval, UtilityBoundEvidence,
 };
 
+mod continuous_dependence_envelope;
+pub use continuous_dependence_envelope::{
+    bound_continuous_source_dependence, ContinuousDependenceEIGEnvelope,
+    CorrelationCoefficientBounds, PairwiseCorrelationIntervalSet,
+};
+
 mod detector;
 pub use detector::DetectorResponseMatrix;
 
