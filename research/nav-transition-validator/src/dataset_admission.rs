@@ -465,14 +465,14 @@ mod tests {
         let summary =
             validate_dataset_admission(&schema(), &candidates(), "research_noncommercial")
                 .unwrap();
-        assert_eq!(summary.record_count, 8);
-        assert_eq!(summary.candidate_count, 8);
+        assert_eq!(summary.record_count, 9);
+        assert_eq!(summary.candidate_count, 9);
         assert_eq!(summary.admitted_count, 0);
         assert_eq!(summary.quarantined_count, 0);
         assert!(summary.unknown_time_count >= 3);
         assert!(summary.unknown_frame_count >= 3);
-        assert_eq!(summary.partial_ground_truth_count, 5);
-        assert_eq!(summary.clock_state_truth_not_provided_count, 1);
+        assert_eq!(summary.partial_ground_truth_count, 6);
+        assert_eq!(summary.clock_state_truth_not_provided_count, 2);
         assert_eq!(summary.clock_state_truth_unknown_count, 7);
     }
 
@@ -558,10 +558,10 @@ mod tests {
 
         let research = validate_dataset_admission(&schema(), &manifest, "research_noncommercial").unwrap();
         let commercial = validate_dataset_admission(&schema(), &manifest, "commercial").unwrap();
-        assert_eq!(research.record_count, 8);
-        assert_eq!(research.candidate_count, 8);
+        assert_eq!(research.record_count, 9);
+        assert_eq!(research.candidate_count, 9);
         assert_eq!(research.admitted_count, 0);
-        assert_eq!(commercial.candidate_count, 8);
+        assert_eq!(commercial.candidate_count, 9);
         assert_eq!(commercial.admitted_count, 0);
     }
     #[test]
@@ -607,13 +607,45 @@ mod tests {
         assert_eq!(commercial.admitted_count, 0);
     }
     #[test]
+    fn twr_cloud_bern_v6_remains_rights_unknown_and_not_admitted() {
+        let manifest = candidates();
+        let record = manifest["datasets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|item| item["dataset_id"] == "twr-cloud-bern-v6")
+            .unwrap();
+
+        assert_eq!(record["status"], "candidate_not_admitted");
+        assert_eq!(record["admission_scope"], "none");
+        assert_eq!(record["rights"]["status"], "unknown");
+        assert_eq!(record["rights"]["scope"], "unknown");
+        assert_eq!(record["rights"]["research_use"], "unknown");
+        assert_eq!(record["rights"]["commercial_use"], "unknown");
+        assert_eq!(record["rights"]["redistribution"], "unknown");
+        assert_eq!(record["snapshot"]["release_tag"], "Zenodo-v6-2026-10-17");
+        assert_eq!(record["snapshot"]["immutable"], false);
+        assert_eq!(record["snapshot"]["file_sha256"].as_array().unwrap().len(), 0);
+
+        let research =
+            validate_dataset_admission(&schema(), &manifest, "research_noncommercial").unwrap();
+        let commercial =
+            validate_dataset_admission(&schema(), &manifest, "commercial").unwrap();
+        assert_eq!(research.record_count, 9);
+        assert_eq!(research.admitted_count, 0);
+        assert_eq!(research.candidate_count, 9);
+        assert_eq!(commercial.admitted_count, 0);
+        assert_eq!(commercial.candidate_count, 9);
+    }
+
+    #[test]
     fn complete_cc_by_payload_can_be_admitted_for_declared_use() {
         let mut manifest = candidates();
         admit_first_dataset(&mut manifest);
         let summary =
             validate_dataset_admission(&schema(), &manifest, "research_noncommercial").unwrap();
         assert_eq!(summary.admitted_count, 1);
-        assert_eq!(summary.candidate_count, 7);
+        assert_eq!(summary.candidate_count, 8);
     }
 
     #[test]
@@ -703,6 +735,6 @@ mod tests {
         let summary =
             validate_dataset_admission(&schema(), &manifest, "research_noncommercial").unwrap();
         assert_eq!(summary.admitted_count, 1);
-        assert_eq!(summary.unqualified_time_count, 2);
+        assert_eq!(summary.unqualified_time_count, 3);
     }
 }
