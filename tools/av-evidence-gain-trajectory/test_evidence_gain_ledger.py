@@ -113,7 +113,15 @@ def action_forecast(turn_id, tick, head, selected, *, include_alarm=True):
     forecasts = []
     if include_alarm:
         catalogue = [
-            {"action_id": "listen-alarm", "cost_units": 0.1, "arrival_tick": tick + 1}
+            {
+                "action_id": "listen-alarm",
+                "modality": "audio",
+                "description": "Acquire short alarm audio",
+                "cost_units": 0.1,
+                "arrival_tick": tick + 1,
+                "source_dependency_group": "independent-microphone",
+                "information_gain_proxy": 0.05,
+            }
         ]
         forecasts = [
             {
@@ -135,6 +143,7 @@ def action_forecast(turn_id, tick, head, selected, *, include_alarm=True):
         "transcript_head_sha256": digest(head),
         "forecast_tick": tick,
         "deadline_tick": tick + 10,
+        "cost_weight": 1.0,
         "budget_cost_units": 1.0,
         "action_catalogue": catalogue,
         "selected_action_id": selected,
@@ -280,6 +289,25 @@ class EvidenceGainLedgerTests(unittest.TestCase):
         doc = base_trajectory()
         doc["turns"][0]["action_forecast"]["transcript_head_sha256"] = digest("wrong-head")
         doc["turns"][0]["action_value_receipt"]["transcript_head_sha256"] = digest("wrong-head")
+        doc["turns"][0]["action_value_receipt"]["forecast_digest_sha256"] = canonical_digest(
+            doc["turns"][0]["action_forecast"]
+        )
+        with self.assertRaises(EvidenceGainError):
+            evaluate_trajectory(doc)
+
+
+    def test_action_catalogue_requires_full_6753_fields(self):
+        doc = base_trajectory()
+        del doc["turns"][0]["action_forecast"]["action_catalogue"][0]["modality"]
+        doc["turns"][0]["action_value_receipt"]["forecast_digest_sha256"] = canonical_digest(
+            doc["turns"][0]["action_forecast"]
+        )
+        with self.assertRaises(EvidenceGainError):
+            evaluate_trajectory(doc)
+
+    def test_action_catalogue_rejects_invalid_information_gain_proxy(self):
+        doc = base_trajectory()
+        doc["turns"][0]["action_forecast"]["action_catalogue"][0]["information_gain_proxy"] = -1.0
         doc["turns"][0]["action_value_receipt"]["forecast_digest_sha256"] = canonical_digest(
             doc["turns"][0]["action_forecast"]
         )
