@@ -42,9 +42,14 @@ pub struct CryptoVerificationReceipt {
     pub time_domain_id: u32,
     pub initiator_id: u32,
     pub responder_id: u32,
+    pub initiator_boot_epoch: u64,
+    pub responder_boot_epoch: u64,
     pub session_id: [u8; 16],
     pub sub_session_id: u32,
     pub key_epoch: u64,
+    pub sts_mode: StsMode,
+    pub not_before_ns: u64,
+    pub expires_at_ns: u64,
     pub measurement_sequence: u64,
     pub nonce: [u8; 16],
     pub transcript_digest: [u8; 32],
@@ -60,6 +65,8 @@ pub struct RangingSessionEvidence {
     pub time_domain_id: u32,
     pub initiator_id: u32,
     pub responder_id: u32,
+    pub initiator_boot_epoch: u64,
+    pub responder_boot_epoch: u64,
     pub session_id: [u8; 16],
     pub sub_session_id: u32,
     pub key_epoch: u64,
@@ -213,6 +220,8 @@ impl SessionEvidenceValidator {
         }
         if evidence.session_id.iter().all(|byte| *byte == 0)
             || evidence.sub_session_id == 0
+            || evidence.initiator_boot_epoch == 0
+            || evidence.responder_boot_epoch == 0
             || evidence.key_epoch == 0
             || evidence.measurement_sequence == 0
         {
@@ -247,9 +256,14 @@ impl SessionEvidenceValidator {
             || evidence.verification.time_domain_id != evidence.time_domain_id
             || evidence.verification.initiator_id != evidence.initiator_id
             || evidence.verification.responder_id != evidence.responder_id
+            || evidence.verification.initiator_boot_epoch != evidence.initiator_boot_epoch
+            || evidence.verification.responder_boot_epoch != evidence.responder_boot_epoch
             || evidence.verification.session_id != evidence.session_id
             || evidence.verification.sub_session_id != evidence.sub_session_id
             || evidence.verification.key_epoch != evidence.key_epoch
+            || evidence.verification.sts_mode != evidence.sts_mode
+            || evidence.verification.not_before_ns != evidence.not_before_ns
+            || evidence.verification.expires_at_ns != evidence.expires_at_ns
             || evidence.verification.measurement_sequence != evidence.measurement_sequence
             || evidence.verification.nonce != evidence.nonce
         {
@@ -377,6 +391,8 @@ mod tests {
             time_domain_id: 7,
             initiator_id: 10,
             responder_id: 20,
+            initiator_boot_epoch: 5,
+            responder_boot_epoch: 8,
             session_id,
             sub_session_id: 2,
             key_epoch: 3,
@@ -392,9 +408,14 @@ mod tests {
                 time_domain_id: 7,
                 initiator_id: 10,
                 responder_id: 20,
+                initiator_boot_epoch: 5,
+                responder_boot_epoch: 8,
                 session_id,
                 sub_session_id: 2,
                 key_epoch: 3,
+                sts_mode: StsMode::Dynamic,
+                not_before_ns: 100,
+                expires_at_ns: 200,
                 measurement_sequence: sequence,
                 nonce,
                 transcript_digest,
@@ -475,6 +496,27 @@ mod tests {
         let mut validator = SessionEvidenceValidator::new();
         let mut event = evidence(1, 3, 4);
         event.verification.responder_id = 99;
+        assert_eq!(
+            validator.validate(policy(), event, 150),
+            Err(SessionEvidenceError::ReceiptBindingMismatch)
+        );
+
+        let mut event = evidence(1, 3, 4);
+        event.expires_at_ns = 300;
+        assert_eq!(
+            validator.validate(policy(), event, 150),
+            Err(SessionEvidenceError::ReceiptBindingMismatch)
+        );
+
+        let mut event = evidence(1, 3, 4);
+        event.sts_mode = StsMode::Provisioned;
+        assert_eq!(
+            validator.validate(policy(), event, 150),
+            Err(SessionEvidenceError::ReceiptBindingMismatch)
+        );
+
+        let mut event = evidence(1, 3, 4);
+        event.initiator_boot_epoch = 6;
         assert_eq!(
             validator.validate(policy(), event, 150),
             Err(SessionEvidenceError::ReceiptBindingMismatch)
