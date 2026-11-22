@@ -289,7 +289,13 @@ class RankConfidenceSequenceTests(unittest.TestCase):
         self.assertEqual(result["retirement_rule"], "NONE")
 
     def test_top_k_retirement_stops_model_scoring_early(self):
-        doc = make_retirement_document(rule="TOP_K_RESOLVED", top_k=1)
+        doc = make_retirement_document(
+            rule="TOP_K_RESOLVED",
+            top_k=1,
+            episode_count=100,
+            arms=("A0", "A1", "A2", "A3"),
+            scores={"A0": 0.0, "A1": 0.0, "A2": 0.0, "A3": 1.0},
+        )
         result = evaluate_document(doc)
         self.assertEqual(result["completion_status"], "ALL_MODELS_RETIRED")
         self.assertLess(result["episodes_processed"], result["episode_count"])
