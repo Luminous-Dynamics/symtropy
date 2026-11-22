@@ -550,17 +550,13 @@ pub fn qualify_custody_event_timeline(
     }
 
     let mut consumed_bindings = BTreeSet::new();
-    let mut events_by_box: BTreeMap<
-        String,
-        Vec<(SourceEventRef, u32, &TimeEvidence, Vec<usize>)>,
-    > = BTreeMap::new();
+    let mut events_by_box: BTreeMap<String, Vec<(SourceEventRef, u32, &TimeEvidence, Vec<usize>)>> =
+        BTreeMap::new();
 
     for group in &effective_actual_groups {
-        let binding = bindings_by_key
-            .get(&group.source_event)
-            .ok_or_else(|| {
-                QualifiedTimelineError::MissingEventTimeBinding(group.source_event.clone())
-            })?;
+        let binding = bindings_by_key.get(&group.source_event).ok_or_else(|| {
+            QualifiedTimelineError::MissingEventTimeBinding(group.source_event.clone())
+        })?;
 
         if binding.revision != group.revision {
             return Err(QualifiedTimelineError::EventTimeRevisionMismatch(
@@ -574,8 +570,7 @@ pub fn qualify_custody_event_timeline(
                 group.source_event.clone(),
             ));
         }
-        if binding.evidence.bound_kind()
-            != super::temporal_order::TimeBoundKind::QualifiedEnclosure
+        if binding.evidence.bound_kind() != super::temporal_order::TimeBoundKind::QualifiedEnclosure
         {
             return Err(QualifiedTimelineError::EventTimeNotQualified(
                 group.source_event.clone(),
@@ -852,13 +847,9 @@ mod tests {
             .clone();
         let qualified = qualified_receipt(&release, &accept, 100, 110, 2);
 
-        let report = evaluate_with_paired_handoff_time_evidence(
-            &expectations,
-            &events,
-            &[qualified],
-            200,
-        )
-        .unwrap();
+        let report =
+            evaluate_with_paired_handoff_time_evidence(&expectations, &events, &[qualified], 200)
+                .unwrap();
         assert_eq!(report.custody.complete_chains(), 1);
         assert_eq!(report.custody.incomplete_box_ids.len(), 1);
     }
@@ -874,12 +865,7 @@ mod tests {
             .map(|event| {
                 let event_ref =
                     SourceEventRef::new(event.source_id.clone(), event.source_event_id.clone());
-                qualified_time_binding(
-                    &event_ref,
-                    event.revision,
-                    event.event_time,
-                    0,
-                )
+                qualified_time_binding(&event_ref, event.revision, event.event_time, 0)
             })
             .collect()
     }
@@ -888,14 +874,9 @@ mod tests {
     fn general_custody_evaluator_requires_a_qualified_total_order_per_box() {
         let (expectations, events) = fixtures();
         let time_bindings = qualified_timeline_bindings(&events, 200);
-        let report = evaluate_with_handoff_correlations(
-            &expectations,
-            &events,
-            &time_bindings,
-            &[],
-            200,
-        )
-        .unwrap();
+        let report =
+            evaluate_with_handoff_correlations(&expectations, &events, &time_bindings, &[], 200)
+                .unwrap();
 
         assert_eq!(report.complete_chains(), 1);
         assert_eq!(report.incomplete_box_ids.len(), 1);
@@ -945,13 +926,7 @@ mod tests {
         time_bindings.pop();
 
         assert!(matches!(
-            evaluate_with_handoff_correlations(
-                &expectations,
-                &events,
-                &time_bindings,
-                &[],
-                200
-            ),
+            evaluate_with_handoff_correlations(&expectations, &events, &time_bindings, &[], 200),
             Err(QualifiedTimelineError::MissingEventTimeBinding(_))
         ));
     }
@@ -991,19 +966,17 @@ mod tests {
             .unwrap();
 
         assert!(matches!(
-            evaluate_with_handoff_correlations(
-                &expectations,
-                &events,
-                &time_bindings,
-                &[],
-                200
-            ),
+            evaluate_with_handoff_correlations(&expectations, &events, &time_bindings, &[], 200),
             Err(QualifiedTimelineError::OrderNotProven {
                 relation: TemporalRelation::UnresolvedOverlap,
                 ..
             })
         ));
-        assert!(time_bindings.iter().any(|binding| binding.source_event == accept));
+        assert!(
+            time_bindings
+                .iter()
+                .any(|binding| binding.source_event == accept)
+        );
     }
 
     #[test]
