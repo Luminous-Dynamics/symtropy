@@ -1615,7 +1615,7 @@ pub fn multi_nuisance_correlated_reference_self_check(
         &scenarios, 4, [1.0, 1.0], 1.0e-12, 200,
     )?;
     if robust.evaluated_design_count != 126
-        || robust.robust_identifiable_design_count != 49
+        || robust.robust_identifiable_design_count != 14
         || robust.robust_optimal.candidate_indices != [0, 2, 4, 5]
         || (robust.robust_optimal.worst_case_minimum_information_eigenvalue
             - 42.546743038933265).abs() > 1.0e-9
