@@ -1,6 +1,6 @@
 # EHD-PIV-UQ-004 — cluster-conformal field coverage and physical-functional uncertainty
 
-**Status:** standalone Rust reference authored; 31 unit tests authored; Rust execution pending; exact-head hosted CI pending.  
+**Status:** standalone Rust reference authored; 32 unit tests authored; Rust execution pending; exact-head hosted CI pending.  
 **Branch:** research/ehd-piv-conformal-functional-uq-v0-1  
 **Parent:** EHD-PIV-UQ-003 covariance calibration
 
@@ -104,7 +104,7 @@ The field-functional kernel includes 10 tests, including central finite-differen
 - covariance multiplier propagation;
 - rejection of non-PSD local covariance, malformed shared modes and duplicate mode identities.
 
-The integrated-functional conformal kernel adds 7 tests for:
+The integrated-functional conformal kernel adds 8 tests for:
 - exact 95% rank at nineteen independent sessions and unbounded result at eighteen;
 - 4D Cholesky Mahalanobis scoring with cross-functional covariance;
 - standardization of mixed mass-flow / force units before Cholesky;
