@@ -427,6 +427,33 @@ mod tests {
     }
 
     #[test]
+    fn multiple_contact_episodes_return_the_earliest_entry() {
+        // r(t) = (t - 0.25)(t - 0.75) has two distinct visits to the
+        // radius-0.01 collision interval. The first entry is the smaller root
+        // of t^2 - t + 0.1775 = 0.
+        let first_entry = (1.0 - 0.29_f64.sqrt()) / 2.0;
+        let report = isolate_polynomial_first_contact(
+            &[vec![
+                interval(0.1875, 0.1875),
+                interval(-1.0, -1.0),
+                interval(1.0, 1.0),
+            ]],
+            config(0.0, 1.0, 0.01, 0.002, 4096, 24),
+        )
+        .expect("valid multiple-episode polynomial");
+        assert_eq!(
+            report.disposition,
+            FirstContactDisposition::FirstContactBracket
+        );
+        let (lower, upper) = report
+            .first_contact_time_bounds_seconds
+            .expect("earliest entry bracket");
+        assert!(lower <= first_entry && first_entry <= upper);
+        assert!(upper < 0.5);
+        assert!(upper - lower <= 0.002);
+    }
+
+    #[test]
     fn enter_exit_event_with_both_root_cell_endpoints_outside_is_found() {
         // r(t) = (t - 0.5)^2 enters and exits HBR while r(0), r(1) are outside.
         let report = isolate_polynomial_first_contact(
