@@ -148,3 +148,10 @@ The local derivation and independent verifier passed. The public source/fixture/
 ## Next frontier: first coupling derivative of the global map
 
 The next mathematical increment is the derivative of the boundary map with respect to (lambda=alpha/r_H^2) at (lambda=0). This should reveal whether the diagonal Einstein-limit map deforms smoothly and quantify coupling-induced mixing between the horizon data and forbidden asymptotic amplitudes. The finite-(lambda) horizon residue and interval BVP remain subsequent gates.
+
+
+## First coupling derivative of the asymptotically flat branch (22 November 2026)
+
+At λ=α/r_H^2=0, the first exact coupling derivative of the five-dimensional O(a^2) EGB branch has been derived from the reduced action. With the MP solution at zeroth order, the corrections are `B21=(r^2-1)*(11*r^6+11*r^4+22*r^2+9)/(9*r^10)`, `F21=(r^2-1)*(22*r^4-11*r^2-35)/(18*r^8)`, and `H21=-(11*r^4+14*r^2+3)/(6*r^6)`. All four original order-λ even-sector equations `Eb,Ef,Eg,Eh` vanish exactly. The selected horizon data shift as `b1(lambda)=-4+(106/9)*lambda+O(lambda^2)`, `h0(lambda)=1-(14/3)*lambda+O(lambda^2)`. The leading asymptotic corrections remain decaying: `r^2 B21 -> 11/9`, `r^2 F21 -> 11/9`, `r^2 H21 -> -11/6`.
+
+Artifacts: `derive_spin2_global_branch_lambda1.py`, `spin2_global_branch_lambda1_v1.json`, `verify_spin2_global_branch_lambda1.py`, `spin2_global_branch_lambda1_v1.md`, and replay receipt to follow. This is the derivative of the asymptotically flat branch, not the derivative of the full boundary-map Jacobian and not a proof of finite-λ analyticity or interval existence.
