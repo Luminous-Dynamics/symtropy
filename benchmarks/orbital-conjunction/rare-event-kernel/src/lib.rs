@@ -31,13 +31,8 @@ pub mod stats;
 pub use stats::{WeightedEventAccumulator, WeightedEventSummary};
 
 pub use coverage::{
-    CellSide,
-    CoverageCell,
-    CoverageSplit,
-    Interval,
-    affine_box_image_bounds,
-    affine_box_norm_lower_bound,
-    affine_cell_excludes_collision_ball,
+    CellSide, CoverageCell, CoverageSplit, Interval, affine_box_image_bounds,
+    affine_box_norm_lower_bound, affine_cell_excludes_collision_ball,
 };
 
 /// Errors returned by the analytic probability kernels.
