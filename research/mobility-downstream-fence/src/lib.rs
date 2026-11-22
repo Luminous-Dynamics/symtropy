@@ -1,7 +1,7 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! Bounded consistency checks for a declared downstream command-holding path.
+//! Bounded consistency checks for a declared downstream command-holding graph.
 //!
 //! This crate does not stop hardware, cancel queues, authenticate receipts,
 //! prove inventory completeness, classify physical effects, or authorize a
@@ -352,23 +352,6 @@ fn valid_inventory(inventory: &QueuePathInventory) -> Result<(), HoldReason> {
     if processed != inventory.layers.len() {
         return Err(HoldReason::ForwardingGraphCycle);
     }
-    if roots.len() != 1 || roots[0] != entry_index {
-        return Err(HoldReason::UnexpectedRootLayer);
-    }
-
-    let mut actual_terminals: Vec<String> = inventory
-        .layers
-        .iter()
-        .enumerate()
-        .filter_map(|(index, layer)| (outdegree[index] == 0).then_some(layer.layer_id.clone()))
-        .collect();
-    let mut declared_terminals = inventory.terminal_layer_ids.clone();
-    actual_terminals.sort();
-    declared_terminals.sort();
-    if actual_terminals != declared_terminals {
-        return Err(HoldReason::TerminalInventoryMismatch);
-    }
-
     // All declared command-holding nodes must be reachable from the single
     // entry point. Directed edges permit fan-out/fan-in.
     let mut reachable = vec![false; inventory.layers.len()];
@@ -396,10 +379,27 @@ fn valid_inventory(inventory: &QueuePathInventory) -> Result<(), HoldReason> {
         return Err(HoldReason::UnreachableLayer);
     }
 
+    if roots.len() != 1 || roots[0] != entry_index {
+        return Err(HoldReason::UnexpectedRootLayer);
+    }
+
+    let mut actual_terminals: Vec<String> = inventory
+        .layers
+        .iter()
+        .enumerate()
+        .filter_map(|(index, layer)| (outdegree[index] == 0).then_some(layer.layer_id.clone()))
+        .collect();
+    let mut declared_terminals = inventory.terminal_layer_ids.clone();
+    actual_terminals.sort();
+    declared_terminals.sort();
+    if actual_terminals != declared_terminals {
+        return Err(HoldReason::TerminalInventoryMismatch);
+    }
+
     Ok(())
 }
 
-/// Assess supplied downstream queue receipts against the exact declared path.
+/// Assess supplied downstream queue receipts against the exact declared graph.
 ///
 /// The function is deterministic and dependency-free. It performs shape and
 /// binding checks only; no cryptographic verification, persistence access,
@@ -616,7 +616,7 @@ mod tests {
     }
 
     #[test]
-    fn complete_declared_path_is_only_a_quiescence_evidence_candidate() {
+    fn complete_declared_graph_is_only_a_quiescence_evidence_candidate() {
         assert_eq!(
             assess_downstream_quiescence(&packet()),
             FenceDecision::AllDeclaredLayersHaveCurrentQuiescenceEvidence {
