@@ -73,7 +73,7 @@ pub enum OwnerEvidenceDomain {
     MissionResolution,
     ControllerQueue,
     DownstreamExecutionGraph,
-    NoEffectObserverQuorum,
+    PhysicalOutcomeObserverQuorum,
     DownstreamObserverQuorum,
     ActionApplicability,
     RecoveryAuthority,
@@ -88,7 +88,7 @@ impl OwnerEvidenceDomain {
             Self::MissionResolution => "mission_resolution",
             Self::ControllerQueue => "controller_queue",
             Self::DownstreamExecutionGraph => "downstream_execution_graph",
-            Self::NoEffectObserverQuorum => "no_effect_observer_quorum",
+            Self::PhysicalOutcomeObserverQuorum => "physical_outcome_observer_quorum",
             Self::DownstreamObserverQuorum => "downstream_observer_quorum",
             Self::ActionApplicability => "action_applicability",
             Self::RecoveryAuthority => "recovery_authority",
@@ -362,7 +362,7 @@ fn observer_proofs_are_independent(
     if no_effect.fault_model_revision != downstream.fault_model_revision {
         return false;
     }
-    let no_effect_observers: BTreeSet<&str> = no_effect
+    let physical_outcome_observers: BTreeSet<&str> = no_effect
         .members
         .iter()
         .map(|member| member.observer_id.as_str())
@@ -372,11 +372,11 @@ fn observer_proofs_are_independent(
         .iter()
         .map(|member| member.observer_id.as_str())
         .collect();
-    if !no_effect_observers.is_disjoint(&downstream_observers) {
+    if !physical_outcome_observers.is_disjoint(&downstream_observers) {
         return false;
     }
 
-    let no_effect_dependencies: BTreeSet<&str> = no_effect
+    let physical_outcome_dependencies: BTreeSet<&str> = no_effect
         .members
         .iter()
         .flat_map(|member| member.common_cause_domains.iter().map(String::as_str))
@@ -386,11 +386,11 @@ fn observer_proofs_are_independent(
         .iter()
         .flat_map(|member| member.common_cause_domains.iter().map(String::as_str))
         .collect();
-    if !no_effect_dependencies.is_disjoint(&downstream_dependencies) {
+    if !physical_outcome_dependencies.is_disjoint(&downstream_dependencies) {
         return false;
     }
 
-    let no_effect_artifacts: BTreeSet<&str> = no_effect
+    let physical_outcome_artifacts: BTreeSet<&str> = no_effect
         .members
         .iter()
         .map(|member| member.raw_artifact_id.as_str())
@@ -400,7 +400,7 @@ fn observer_proofs_are_independent(
         .iter()
         .map(|member| member.raw_artifact_id.as_str())
         .collect();
-    no_effect_artifacts.is_disjoint(&downstream_artifacts)
+    physical_outcome_artifacts.is_disjoint(&downstream_artifacts)
 }
 
 pub fn model_init_state() -> Value {
@@ -776,7 +776,7 @@ impl RuntimeProjectionRecording {
             OwnerEvidenceDomain::MissionResolution,
             OwnerEvidenceDomain::ControllerQueue,
             OwnerEvidenceDomain::DownstreamExecutionGraph,
-            OwnerEvidenceDomain::NoEffectObserverQuorum,
+            OwnerEvidenceDomain::PhysicalOutcomeObserverQuorum,
             OwnerEvidenceDomain::DownstreamObserverQuorum,
             OwnerEvidenceDomain::ActionApplicability,
             OwnerEvidenceDomain::RecoveryAuthority,
@@ -834,7 +834,7 @@ impl RuntimeProjectionRecording {
 
                 let observer_domain = matches!(
                     evidence.domain,
-                    OwnerEvidenceDomain::NoEffectObserverQuorum
+                    OwnerEvidenceDomain::PhysicalOutcomeObserverQuorum
                         | OwnerEvidenceDomain::DownstreamObserverQuorum
                 );
                 if observer_domain {
@@ -901,7 +901,7 @@ impl RuntimeProjectionRecording {
                 OwnerEvidenceDomain::MissionResolution,
                 OwnerEvidenceDomain::ControllerQueue,
                 OwnerEvidenceDomain::DownstreamExecutionGraph,
-                OwnerEvidenceDomain::NoEffectObserverQuorum,
+                OwnerEvidenceDomain::PhysicalOutcomeObserverQuorum,
                 OwnerEvidenceDomain::DownstreamObserverQuorum,
                 OwnerEvidenceDomain::ActionApplicability,
             ] {
@@ -935,7 +935,6 @@ impl RuntimeProjectionRecording {
             let state_old_outcome = str_field(&s.state_s, "oldPhysicalOutcome")?;
             let state_mission = str_field(&s.state_s, "missionResolution")?;
             let state_permit = str_field(&s.state_s, "recoveryPermit")?;
-            let state_boot = u64_field(&s.state_s, "bootEpoch")?;
             let state_queue_fence = u64_field(&s.state_s, "queueFenceBootEpoch")?;
             let state_downstream_fence = u64_field(&s.state_s, "downstreamFenceBootEpoch")?;
             let state_m1 = bool_field(&s.state_s, "m1Current")?;
@@ -1014,12 +1013,12 @@ impl RuntimeProjectionRecording {
                 return Err(ProjectionError::OwnerEvidenceStatusMismatch);
             }
 
-            let no_effect_observer =
-                owner_evidence_by_domain(s, OwnerEvidenceDomain::NoEffectObserverQuorum)?;
+            let physical_outcome_observer =
+                owner_evidence_by_domain(s, OwnerEvidenceDomain::PhysicalOutcomeObserverQuorum)?;
             let downstream_observer =
                 owner_evidence_by_domain(s, OwnerEvidenceDomain::DownstreamObserverQuorum)?;
             if let (Some(a), Some(b)) = (
-                no_effect_observer.claim_id.as_deref(),
+                physical_outcome_observer.claim_id.as_deref(),
                 downstream_observer.claim_id.as_deref(),
             ) {
                 if a == b {
@@ -1030,26 +1029,26 @@ impl RuntimeProjectionRecording {
             let independent = bool_field(&s.state_s, "observerIndependent")?;
             match effect_state {
                 "none" => {
-                    if no_effect_observer.status != OwnerEvidenceStatus::NotApplicable {
+                    if physical_outcome_observer.status != OwnerEvidenceStatus::NotApplicable {
                         return Err(ProjectionError::ObserverQuorumMismatch);
                     }
                 }
                 "unknown" => {
                     if !matches!(
-                        no_effect_observer.status,
+                        physical_outcome_observer.status,
                         OwnerEvidenceStatus::Unknown | OwnerEvidenceStatus::InsufficientEvidence
                     ) {
                         return Err(ProjectionError::ObserverQuorumMismatch);
                     }
                 }
                 "disputed" => {
-                    if independent || no_effect_observer.status != OwnerEvidenceStatus::Disputed {
+                    if independent || physical_outcome_observer.status != OwnerEvidenceStatus::Disputed {
                         return Err(ProjectionError::ObserverQuorumMismatch);
                     }
                 }
                 "applied" | "no_effect" | "partial" => {
                     if !independent
-                        || no_effect_observer.status != OwnerEvidenceStatus::QuorumQualified
+                        || physical_outcome_observer.status != OwnerEvidenceStatus::QuorumQualified
                         || downstream_observer.status != OwnerEvidenceStatus::QuorumQualified
                     {
                         return Err(ProjectionError::ObserverQuorumMismatch);
@@ -1064,15 +1063,15 @@ impl RuntimeProjectionRecording {
                     Some("IssueRecoveryPermit" | "NativeAcceptRecovery")
                 );
             if requires_quorums
-                && (no_effect_observer.status != OwnerEvidenceStatus::QuorumQualified
+                && (physical_outcome_observer.status != OwnerEvidenceStatus::QuorumQualified
                     || downstream_observer.status != OwnerEvidenceStatus::QuorumQualified)
             {
                 return Err(ProjectionError::ObserverQuorumMismatch);
             }
-            if no_effect_observer.status == OwnerEvidenceStatus::QuorumQualified
+            if physical_outcome_observer.status == OwnerEvidenceStatus::QuorumQualified
                 && downstream_observer.status == OwnerEvidenceStatus::QuorumQualified
             {
-                let no_effect_proof = no_effect_observer
+                let physical_outcome_proof = physical_outcome_observer
                     .observer_quorum
                     .as_ref()
                     .ok_or(ProjectionError::ObserverQuorumMalformed)?;
@@ -1080,7 +1079,7 @@ impl RuntimeProjectionRecording {
                     .observer_quorum
                     .as_ref()
                     .ok_or(ProjectionError::ObserverQuorumMalformed)?;
-                if !observer_proofs_are_independent(no_effect_proof, downstream_proof) {
+                if !observer_proofs_are_independent(physical_outcome_proof, downstream_proof) {
                     return Err(ProjectionError::ObserverClaimsShareCommonCause);
                 }
             }
@@ -1231,7 +1230,7 @@ mod tests {
             OwnerEvidenceDomain::MissionResolution,
             OwnerEvidenceDomain::ControllerQueue,
             OwnerEvidenceDomain::DownstreamExecutionGraph,
-            OwnerEvidenceDomain::NoEffectObserverQuorum,
+            OwnerEvidenceDomain::PhysicalOutcomeObserverQuorum,
             OwnerEvidenceDomain::DownstreamObserverQuorum,
             OwnerEvidenceDomain::ActionApplicability,
             OwnerEvidenceDomain::RecoveryAuthority,
@@ -1262,7 +1261,7 @@ mod tests {
                     evidence_id: format!("evidence-{index}"),
                     status: if matches!(
                         domain,
-                        OwnerEvidenceDomain::NoEffectObserverQuorum
+                        OwnerEvidenceDomain::PhysicalOutcomeObserverQuorum
                             | OwnerEvidenceDomain::DownstreamObserverQuorum
                             | OwnerEvidenceDomain::PhysicalOutcome
                             | OwnerEvidenceDomain::MissionResolution
@@ -1460,11 +1459,11 @@ mod tests {
     }
 
     #[test]
-    fn no_effect_and_downstream_quiescence_claims_have_distinct_scope_commitments() {
+    fn physical_outcome_and_downstream_quiescence_claims_have_distinct_scope_commitments() {
         let record = recording();
         let scope = record.snapshots[0].owner_evidence[6].scope.clone();
         let no_effect = claim_scope_digest(
-            OwnerEvidenceDomain::NoEffectObserverQuorum,
+            OwnerEvidenceDomain::PhysicalOutcomeObserverQuorum,
             "effect-1-no-effect",
             &scope,
         );
@@ -1476,12 +1475,12 @@ mod tests {
         assert_ne!(no_effect, downstream);
         assert_ne!(
             claim_scope_digest(
-                OwnerEvidenceDomain::NoEffectObserverQuorum,
+                OwnerEvidenceDomain::PhysicalOutcomeObserverQuorum,
                 "effect-1-no-effect",
                 &scope
             ),
             claim_scope_digest(
-                OwnerEvidenceDomain::NoEffectObserverQuorum,
+                OwnerEvidenceDomain::PhysicalOutcomeObserverQuorum,
                 "effect-2-no-effect",
                 &scope
             )
@@ -1502,7 +1501,7 @@ mod tests {
     fn qualified_claim_rejects_a_tampered_scope_commitment() {
         let mut record = recording();
         let evidence = &mut record.snapshots[0].owner_evidence[6];
-        let claim = "old-attempt-no-effect";
+        let claim = "old-attempt-physical-outcome";
         set_quorum(evidence, claim, "no-effect");
         evidence.claim_scope_sha256 = Some(sha('f'));
         assert_eq!(
