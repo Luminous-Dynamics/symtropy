@@ -309,6 +309,7 @@
         "commitment_id",
         "idempotency_key",
         "state",
+        "state_receipt_id",
         "start_slot",
         "end_slot",
         "expires_at_unix_ms",
@@ -360,6 +361,10 @@
           "items": {
             "$ref": "#/$defs/allocation"
           }
+        },
+        "state_receipt_id": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
