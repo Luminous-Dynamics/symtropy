@@ -72,6 +72,18 @@ jobs:
             echo "Transition validator corpus is not part of this branch; CLI integration step skipped."
           fi
 
+      - name: Validate cross-domain generalization split when fixture is present
+        shell: bash
+        run: |
+          set -euo pipefail
+          schema="docs/research/nav-generalization-v0.1/nav_generalization_split.schema.json"
+          fixture="docs/research/nav-generalization-v0.1/fixtures/leave_site_out.example.json"
+          if [[ -f research/nav-transition-validator/Cargo.toml && -f "$schema" && -f "$fixture" ]]; then
+            cargo run --manifest-path research/nav-transition-validator/Cargo.toml --bin nav-generalization-validate -- "$schema" "$fixture"
+          else
+            echo "Generalization split fixture is not part of this branch; validation skipped."
+          fi
+
       - name: Run rights-gated dataset admission CLI when registry is present
         shell: bash
         run: |
