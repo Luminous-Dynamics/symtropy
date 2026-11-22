@@ -26,7 +26,27 @@ use crate::multisource_dependence_design::{
     canonicalize_and_validate_correlation_matrix, scalar_parameter_information_and_source_gradient,
     validate_candidate, FiniteCorrelationScenario, MultiSourceDependenceDesignCandidate,
 };
+use crate::design_decision::{PortfolioUtilityInterval, UtilityBoundEvidence};
 use crate::ModelError;
+
+/// Convert a continuous dependence EIG bracket into the shared decision
+/// interface without promoting f64 bounds to a formal certificate.
+///
+/// This implementation always marks the result Heuristic because it does not
+/// use directed rounding or independently verified floating-point enclosures.
+/// The interval can inform exploration, but the interval-dominance gate must
+/// abstain from certifying a winner until the numerical evidence is upgraded.
+pub fn continuous_dependence_eig_utility_interval(
+    portfolio_id: impl Into<String>,
+    envelope: &ContinuousDependenceEIGEnvelope,
+) -> PortfolioUtilityInterval {
+    PortfolioUtilityInterval {
+        portfolio_id: portfolio_id.into(),
+        lower: envelope.worst_case_eig_nats_bounds[0],
+        upper: envelope.worst_case_eig_nats_bounds[1],
+        evidence: UtilityBoundEvidence::Heuristic,
+    }
+}
 
 /// Inclusive correlation interval for one off-diagonal source pair.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -501,6 +521,27 @@ mod tests {
             Err(ModelError::InvalidParameter(
                 "continuous_dependence_requires_at_least_one_feasible_witness"
             ))
+        );
+    }
+
+    #[test]
+    fn f64_continuous_envelope_cannot_be_promoted_to_certified_dominance() {
+        let envelope = bound_continuous_source_dependence(
+            &scalar_candidate(),
+            &interval_set(-0.5, 0.5),
+            &[witness("worst-correlation", 0.5), witness("best-correlation", -0.5)],
+            RECEIPT,
+        )
+        .expect("continuous envelope");
+        let interval = continuous_dependence_eig_utility_interval("candidate-a", &envelope);
+        assert_eq!(interval.lower, envelope.worst_case_eig_nats_bounds[0]);
+        assert_eq!(interval.upper, envelope.worst_case_eig_nats_bounds[1]);
+        assert_eq!(interval.evidence, UtilityBoundEvidence::Heuristic);
+        assert_eq!(
+            crate::certify_maximum_utility(&[interval], 0.0),
+            Ok(crate::DominanceDecision::Unresolved {
+                reason: crate::DominanceUnresolvedReason::UnqualifiedOrHeuristicBounds,
+            })
         );
     }
 
