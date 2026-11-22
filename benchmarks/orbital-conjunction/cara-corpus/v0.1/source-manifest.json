@@ -214,6 +214,51 @@
       "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/DistributedMatlab/CovarianceRealism/EvaluateResiduals.m",
       "rights_status": "review_required",
       "redistribution_allowed": false
+    },
+    {
+      "path": "DistributedMatlab/ProbabilityOfCollision/PcMultiStep.m",
+      "role": "CARA_multistep_adaptive_policy",
+      "git_blob_sha1": "d3f35ab42c66cbe87c4aede660a7f92cd635ccee",
+      "size_bytes": 68689,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/DistributedMatlab/ProbabilityOfCollision/PcMultiStep.m",
+      "rights_status": "review_required",
+      "redistribution_allowed": false
+    },
+    {
+      "path": "DistributedMatlab/ProbabilityOfCollision/PcMultiStepWithSDMC.m",
+      "role": "CARA_multistep_policy_with_SDMC",
+      "git_blob_sha1": "814e780a8ccbd5945c44fc36ef3a326ceeaae817",
+      "size_bytes": 26015,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/DistributedMatlab/ProbabilityOfCollision/PcMultiStepWithSDMC.m",
+      "rights_status": "review_required",
+      "redistribution_allowed": false
+    },
+    {
+      "path": "DistributedMatlab/ProbabilityOfCollision/Utils/UsageViolationPc2D.m",
+      "role": "CARA_2D_Pc_usage_violation_diagnostics",
+      "git_blob_sha1": "0ce38c2d04937a05b67730165df872e1f7d180e0",
+      "size_bytes": 38816,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/DistributedMatlab/ProbabilityOfCollision/Utils/UsageViolationPc2D.m",
+      "rights_status": "review_required",
+      "redistribution_allowed": false
+    },
+    {
+      "path": "DistributedMatlab/ProbabilityOfCollision/UnitTests/PcMultiStep_UnitTest.m",
+      "role": "CARA_multistep_reference_tests",
+      "git_blob_sha1": "46592661b8814b9b130855ad35f74322d9e7fe87",
+      "size_bytes": 14946,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/DistributedMatlab/ProbabilityOfCollision/UnitTests/PcMultiStep_UnitTest.m",
+      "rights_status": "review_required",
+      "redistribution_allowed": false
+    },
+    {
+      "path": "DistributedMatlab/ProbabilityOfCollision/UnitTests/PcMultiStepWithSDMC_UnitTest.m",
+      "role": "CARA_multistep_SDMC_reference_tests",
+      "git_blob_sha1": "2dbf63f2c5bbceee7a6fe3aa798ffde6514550e7",
+      "size_bytes": 5191,
+      "url": "https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/DistributedMatlab/ProbabilityOfCollision/UnitTests/PcMultiStepWithSDMC_UnitTest.m",
+      "rights_status": "review_required",
+      "redistribution_allowed": false
     }
   ],
   "license_documents": [
@@ -252,5 +297,31 @@
     "Record whether use is permitted for local test execution, derived numeric comparison, redistribution, and publication; these are separate permissions.",
     "If a file cannot be redistributed, download only in a controlled test workflow and publish derived metrics plus source path and digest where allowed.",
     "Do not promote any corpus case to a frozen benchmark until the exact file bytes are retrieved, SHA-256 is computed locally, parser conventions are documented, and event semantics are checked."
-  ]
+  ],
+  "baseline_policy": {
+    "name": "NASA CARA PcMultiStep / PcMultiStepWithSDMC",
+    "status": "public-source comparator; rights review required before redistribution",
+    "stages": [
+      "input data quality and TCA / covariance processing",
+      "2D-Pc conjunction-plane estimate",
+      "2D-Pc usage-violation indicators and rough/proxy correction",
+      "conditional 2D-Nc refinement",
+      "conditional 3D-Nc refinement",
+      "conditional SDMC refinement in PcMultiStepWithSDMC"
+    ],
+    "usage_violation_axes": [
+      "non-positive-definite covariance / covariance remediation",
+      "extended conjunction duration",
+      "collision-rate peak offset from TCA",
+      "potential 2D-Pc inaccuracy under curvilinear dynamics",
+      "convergence / quadrature adequacy for advanced methods",
+      "very-low-relative-velocity and blended encounter behavior"
+    ],
+    "internal_only_capability": {
+      "name": "BFMC",
+      "description": "Brute-force high-fidelity Monte Carlo from OD epoch over multiple encounters",
+      "public_source_status": "not publicly released according to PcMultiStepWithSDMC source documentation"
+    },
+    "benchmark_rule": "Compare the full public escalation policy and its thresholds, not only each estimator independently. Any BFMC comparison requires an independently available implementation and matching event / dynamics assumptions."
+  }
 }
