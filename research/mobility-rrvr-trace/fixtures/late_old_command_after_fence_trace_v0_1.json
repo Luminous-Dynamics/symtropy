@@ -1,0 +1,183 @@
+{
+  "header": {
+    "bundle_id": "rrvr-synthetic-late-old-command-0001",
+    "parent_bundle_id": null,
+    "format_version": "0.1",
+    "system_id": "synthetic-robot-stack-a",
+    "implementation_revision": "symtropy-reference-contract-synthetic",
+    "model_revision": "RestartSafeEffectContinuity.tla@908ddc1d734a7cae6a5c8be358dfe4354592a78b",
+    "fault_profile_revision": "late-old-command-after-fence-v0.1",
+    "oracle_revision": "late-execution-oracle-v1",
+    "replay_seed": 42,
+    "initial_state_commitment": "3333333333333333333333333333333333333333333333333333333333333333",
+    "target_failure": {
+      "property_id": "DownstreamFenceClosesPendingCommand",
+      "violation_class": "old_command_executes_after_fence",
+      "witness_event_id": "late-old-apply",
+      "witness_state_commitment": "5555555555555555555555555555555555555555555555555555555555555555"
+    }
+  },
+  "events": [
+    {
+      "event_id": "boot",
+      "logical_sequence": 1,
+      "kind": "process_started",
+      "actor_id": "robot-runtime",
+      "predecessor_event_ids": [],
+      "clock_observation": {
+        "clock_id": "controller-monotonic",
+        "boot_epoch_id": "boot-9",
+        "unit": "ns",
+        "time_value": 1000,
+        "resolution": 1,
+        "uncertainty": 5
+      },
+      "raw_artifact_ids": [],
+      "input_commitment": "1111111111111111111111111111111111111111111111111111111111111111",
+      "configuration_commitment": "2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    {
+      "event_id": "old-command",
+      "logical_sequence": 2,
+      "kind": "command_queued",
+      "actor_id": "robot-runtime",
+      "predecessor_event_ids": [
+        "boot"
+      ],
+      "clock_observation": {
+        "clock_id": "controller-monotonic",
+        "boot_epoch_id": "boot-9",
+        "unit": "ns",
+        "time_value": 1010,
+        "resolution": 1,
+        "uncertainty": 5
+      },
+      "raw_artifact_ids": [],
+      "input_commitment": "1111111111111111111111111111111111111111111111111111111111111111",
+      "configuration_commitment": "2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    {
+      "event_id": "controller-fence",
+      "logical_sequence": 3,
+      "kind": "controller_queue_fenced",
+      "actor_id": "robot-runtime",
+      "predecessor_event_ids": [
+        "boot"
+      ],
+      "clock_observation": {
+        "clock_id": "controller-monotonic",
+        "boot_epoch_id": "boot-9",
+        "unit": "ns",
+        "time_value": 1020,
+        "resolution": 1,
+        "uncertainty": 5
+      },
+      "raw_artifact_ids": [],
+      "input_commitment": "1111111111111111111111111111111111111111111111111111111111111111",
+      "configuration_commitment": "2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    {
+      "event_id": "downstream-fence",
+      "logical_sequence": 4,
+      "kind": "downstream_graph_fenced",
+      "actor_id": "robot-runtime",
+      "predecessor_event_ids": [
+        "controller-fence"
+      ],
+      "clock_observation": {
+        "clock_id": "driver-monotonic",
+        "boot_epoch_id": "firmware-boot-4",
+        "unit": "ticks",
+        "time_value": 30,
+        "resolution": 1,
+        "uncertainty": 2
+      },
+      "raw_artifact_ids": [],
+      "input_commitment": "1111111111111111111111111111111111111111111111111111111111111111",
+      "configuration_commitment": "2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    {
+      "event_id": "late-old-apply",
+      "logical_sequence": 5,
+      "kind": "old_command_applied",
+      "actor_id": "robot-runtime",
+      "predecessor_event_ids": [
+        "old-command",
+        "downstream-fence"
+      ],
+      "clock_observation": {
+        "clock_id": "driver-monotonic",
+        "boot_epoch_id": "firmware-boot-4",
+        "unit": "ticks",
+        "time_value": 31,
+        "resolution": 1,
+        "uncertainty": 2
+      },
+      "raw_artifact_ids": [
+        "raw-event-stream"
+      ],
+      "input_commitment": "1111111111111111111111111111111111111111111111111111111111111111",
+      "configuration_commitment": "2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    {
+      "event_id": "telemetry",
+      "logical_sequence": 6,
+      "kind": "telemetry_captured",
+      "actor_id": "robot-runtime",
+      "predecessor_event_ids": [
+        "boot"
+      ],
+      "clock_observation": {
+        "clock_id": "host-clock",
+        "boot_epoch_id": "host-boot-2",
+        "unit": "ticks",
+        "time_value": 8,
+        "resolution": 1,
+        "uncertainty": 1
+      },
+      "raw_artifact_ids": [],
+      "input_commitment": "1111111111111111111111111111111111111111111111111111111111111111",
+      "configuration_commitment": "2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    {
+      "event_id": "trace-flush",
+      "logical_sequence": 7,
+      "kind": "trace_flushed",
+      "actor_id": "robot-runtime",
+      "predecessor_event_ids": [
+        "telemetry"
+      ],
+      "clock_observation": {
+        "clock_id": "host-clock",
+        "boot_epoch_id": "host-boot-2",
+        "unit": "ticks",
+        "time_value": 9,
+        "resolution": 1,
+        "uncertainty": 1
+      },
+      "raw_artifact_ids": [],
+      "input_commitment": "1111111111111111111111111111111111111111111111111111111111111111",
+      "configuration_commitment": "2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    {
+      "event_id": "metrics",
+      "logical_sequence": 8,
+      "kind": "other",
+      "actor_id": "robot-runtime",
+      "predecessor_event_ids": [
+        "boot"
+      ],
+      "clock_observation": null,
+      "raw_artifact_ids": [],
+      "input_commitment": "1111111111111111111111111111111111111111111111111111111111111111",
+      "configuration_commitment": "2222222222222222222222222222222222222222222222222222222222222222"
+    }
+  ],
+  "artifacts": [
+    {
+      "artifact_id": "raw-event-stream",
+      "media_type": "application/octet-stream",
+      "raw_artifact_commitment": "4444444444444444444444444444444444444444444444444444444444444444"
+    }
+  ]
+}
