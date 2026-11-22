@@ -129,7 +129,9 @@ fn validate_architecture(
         || scenario.battery_pack_count < scenario.aircraft_count
         || scenario.battery_pack_count > MAX_BATTERY_PACKS
         || scenario.initial_ready_spares
-            != scenario.battery_pack_count.saturating_sub(scenario.aircraft_count)
+            != scenario
+                .battery_pack_count
+                .saturating_sub(scenario.aircraft_count)
         || scenario.max_stored_spares_per_aircraft > 8
         || scenario.initial_ready_spares
             > scenario
@@ -149,7 +151,10 @@ fn validate_architecture(
     {
         add_error(
             &mut errors,
-            format!("architecture_identity_or_bounds_invalid:{}", scenario.architecture_id),
+            format!(
+                "architecture_identity_or_bounds_invalid:{}",
+                scenario.architecture_id
+            ),
         );
     }
 
@@ -192,9 +197,10 @@ fn start_queued_charges(
     charge_starts: &mut u64,
     charging_input_energy_mwh: &mut u64,
 ) -> Result<(), String> {
-    while let (Some(channel_id), Some(())) =
-        (free_channels.iter().next().copied(), charge_queue.front().copied())
-    {
+    while let (Some(channel_id), Some(())) = (
+        free_channels.iter().next().copied(),
+        charge_queue.front().copied(),
+    ) {
         charge_queue.pop_front();
         free_channels.remove(&channel_id);
 
@@ -295,9 +301,9 @@ pub fn evaluate_architecture_capacity(
                             .or_default()
                             .push(ScheduledEvent::MissionComplete { aircraft_id });
                     } else {
-                        ready_spares = ready_spares.checked_add(1).ok_or_else(|| {
-                            vec!["ready_spare_count_overflow".to_owned()]
-                        })?;
+                        ready_spares = ready_spares
+                            .checked_add(1)
+                            .ok_or_else(|| vec!["ready_spare_count_overflow".to_owned()])?;
                     }
 
                     start_queued_charges(
@@ -308,7 +314,7 @@ pub fn evaluate_architecture_capacity(
                         &mut free_channels,
                         &mut charge_queue,
                         &mut timeline,
-                                        &mut charge_starts,
+                        &mut charge_starts,
                         &mut charging_input_energy_mwh,
                     )
                     .map_err(|error| vec![error])?;
@@ -336,8 +342,7 @@ pub fn evaluate_architecture_capacity(
                             .push(ScheduledEvent::MissionComplete { aircraft_id });
                     } else {
                         waiting_aircraft.push_back((aircraft_id, now));
-                        waiting_aircraft_peak =
-                            waiting_aircraft_peak.max(waiting_aircraft.len());
+                        waiting_aircraft_peak = waiting_aircraft_peak.max(waiting_aircraft.len());
                     }
 
                     start_queued_charges(
@@ -348,7 +353,7 @@ pub fn evaluate_architecture_capacity(
                         &mut free_channels,
                         &mut charge_queue,
                         &mut timeline,
-                                        &mut charge_starts,
+                        &mut charge_starts,
                         &mut charging_input_energy_mwh,
                     )
                     .map_err(|error| vec![error])?;
@@ -363,8 +368,7 @@ pub fn evaluate_architecture_capacity(
         aircraft_wait_seconds = aircraft_wait_seconds
             .checked_add(remaining_wait)
             .ok_or_else(|| vec!["aircraft_wait_accumulator_overflow".to_owned()])?;
-        max_single_aircraft_wait_seconds =
-            max_single_aircraft_wait_seconds.max(remaining_wait);
+        max_single_aircraft_wait_seconds = max_single_aircraft_wait_seconds.max(remaining_wait);
     }
 
     let mission_seconds = completed_sorties
@@ -498,10 +502,12 @@ mod tests {
             serde_json::to_string(&first).expect("serialize first"),
             serde_json::to_string(&second).expect("serialize second")
         );
-        assert!(first
-            .architecture_results
-            .windows(2)
-            .all(|pair| pair[0].architecture_id <= pair[1].architecture_id));
+        assert!(
+            first
+                .architecture_results
+                .windows(2)
+                .all(|pair| pair[0].architecture_id <= pair[1].architecture_id)
+        );
         assert!(!first.capacity_is_physical_performance_claim);
     }
 
@@ -520,10 +526,12 @@ mod tests {
     #[test]
     fn site_power_caps_effective_charging_channels() {
         let input = fixture();
-        let unconstrained = evaluate_architecture_capacity(&input.architectures[1], input.horizon_seconds)
-            .expect("unconstrained profile");
-        let constrained = evaluate_architecture_capacity(&input.architectures[2], input.horizon_seconds)
-            .expect("constrained profile");
+        let unconstrained =
+            evaluate_architecture_capacity(&input.architectures[1], input.horizon_seconds)
+                .expect("unconstrained profile");
+        let constrained =
+            evaluate_architecture_capacity(&input.architectures[2], input.horizon_seconds)
+                .expect("constrained profile");
         assert_eq!(unconstrained.effective_charging_channels, 2);
         assert_eq!(constrained.effective_charging_channels, 1);
         assert!(constrained.aircraft_wait_seconds >= unconstrained.aircraft_wait_seconds);
@@ -595,7 +603,11 @@ mod tests {
         let mut input = fixture();
         input.architectures[1].architecture_id = input.architectures[0].architecture_id.clone();
         let errors = evaluate_sustainable_service_capacity(&input).expect_err("duplicate");
-        assert!(errors.iter().any(|error| error.starts_with("architecture_id_duplicate")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.starts_with("architecture_id_duplicate"))
+        );
     }
 
     #[test]
@@ -624,8 +636,8 @@ mod tests {
     fn sorties_never_exceed_initial_packs_plus_completed_recharges() {
         let input = fixture();
         for scenario in &input.architectures {
-            let result = evaluate_architecture_capacity(scenario, input.horizon_seconds)
-                .expect("scenario");
+            let result =
+                evaluate_architecture_capacity(scenario, input.horizon_seconds).expect("scenario");
             assert!(
                 result.completed_sorties
                     <= u64::from(scenario.battery_pack_count) + result.charge_completions,
@@ -634,8 +646,7 @@ mod tests {
             );
             assert_eq!(
                 result.completed_mission_hours,
-                result.completed_sorties as f64
-                    * f64::from(scenario.mission_duration_seconds)
+                result.completed_sorties as f64 * f64::from(scenario.mission_duration_seconds)
                     / 3_600.0
             );
             assert!(result.effective_charging_channels <= scenario.parallel_charging_channels);
@@ -679,8 +690,7 @@ mod tests {
             .expect("dock profile");
         assert_eq!(
             result.site_fixed_load_energy_wh,
-            input.architectures[1].site_fixed_load_w as f64
-                * input.horizon_seconds as f64
+            input.architectures[1].site_fixed_load_w as f64 * input.horizon_seconds as f64
                 / 3_600.0
         );
         assert!(result.charger_input_energy_proxy_wh > 0.0);
@@ -690,8 +700,8 @@ mod tests {
     fn battery_pool_conservation_holds_at_all_reported_end_states() {
         let input = fixture();
         for scenario in &input.architectures {
-            let result = evaluate_architecture_capacity(scenario, input.horizon_seconds)
-                .expect("scenario");
+            let result =
+                evaluate_architecture_capacity(scenario, input.horizon_seconds).expect("scenario");
             let active_chargers = u64::from(result.active_chargers_at_horizon);
             let known_packs = u64::from(result.ready_spares_at_horizon)
                 + result.charge_queue_at_horizon as u64
