@@ -1329,6 +1329,303 @@ impl ReplayReceipt {
     }
 }
 
+
+/// Canonical, deterministic byte encoding for the content of a physical-state
+/// snapshot. The claimed snapshot_sha256 is deliberately excluded to avoid a
+/// self-referential digest; callers hash these bytes with SHA-256 and compare
+/// the result to SnapshotIdentity::snapshot_sha256.
+///
+/// The format is versioned by a fixed magic prefix and SCHEMA_VERSION. Strings
+/// are encoded as their exact UTF-8 bytes (no Unicode normalization). Numeric
+/// fields are big-endian; finite -0.0 is normalized to +0.0. Entities and
+/// contact partner IDs are sorted because those collections are sets; empirical
+/// uncertainty samples retain their supplied order because sample order may
+/// carry meaning.
+impl StateSnapshot {
+    pub fn canonical_content_bytes(&self) -> Result<Vec<u8>, ValidationError> {
+        self.validate()?;
+        let mut writer = CanonicalWriter::default();
+        writer.raw(b"PSF-CANONICAL\0");
+        writer.string(&self.schema_version)?;
+
+        // Digest excluded: every other identity field is committed.
+        writer.string(&self.identity.model_build_sha256)?;
+        writer.string(&self.identity.configuration_sha256)?;
+        writer.string(&self.identity.world_id)?;
+        writer.string(&self.identity.episode_id)?;
+        writer.string(&self.identity.trajectory_id)?;
+        writer.u64(self.identity.step_index);
+        writer.u64(self.identity.simulation_time_ns);
+        writer.string(&self.identity.clock_source)?;
+        writer.string(&self.identity.world_frame)?;
+        writer.tag(match self.identity.transform_convention {
+            TransformConvention::RightHandedXyzw => 0,
+        });
+        writer.string(&self.identity.unit_system)?;
+
+        let mut entities = self.entities.iter().collect::<Vec<_>>();
+        entities.sort_by(|left, right| left.entity_id.cmp(&right.entity_id));
+        writer.count(entities.len())?;
+        for entity in entities {
+            encode_entity(&mut writer, entity)?;
+        }
+        Ok(writer.bytes)
+    }
+}
+
+#[derive(Default)]
+struct CanonicalWriter {
+    bytes: Vec<u8>,
+}
+
+impl CanonicalWriter {
+    fn raw(&mut self, value: &[u8]) {
+        self.bytes.extend_from_slice(value);
+    }
+
+    fn tag(&mut self, value: u8) {
+        self.bytes.push(value);
+    }
+
+    fn count(&mut self, value: usize) -> Result<(), ValidationError> {
+        let value = u64::try_from(value)
+            .map_err(|_| ValidationError::new("canonical", "collection length exceeds u64"))?;
+        self.u64(value);
+        Ok(())
+    }
+
+    fn u64(&mut self, value: u64) {
+        self.raw(&value.to_be_bytes());
+    }
+
+    fn string(&mut self, value: &str) -> Result<(), ValidationError> {
+        self.count(value.len())?;
+        self.raw(value.as_bytes());
+        Ok(())
+    }
+
+    fn f64(&mut self, value: f64, path: &str) -> Result<(), ValidationError> {
+        if !value.is_finite() {
+            return Err(ValidationError::new(path, "canonical floats must be finite"));
+        }
+        let normalized = if value == 0.0 { 0.0 } else { value };
+        self.raw(&normalized.to_bits().to_be_bytes());
+        Ok(())
+    }
+
+    fn optional_string(
+        &mut self,
+        value: Option<&str>,
+    ) -> Result<(), ValidationError> {
+        match value {
+            Some(value) => {
+                self.tag(1);
+                self.string(value)?;
+            }
+            None => self.tag(0),
+        }
+        Ok(())
+    }
+}
+
+fn encode_field_status(writer: &mut CanonicalWriter, status: FieldStatus) {
+    writer.tag(match status {
+        FieldStatus::Measured => 0,
+        FieldStatus::Estimated => 1,
+        FieldStatus::Predicted => 2,
+        FieldStatus::Assumed => 3,
+        FieldStatus::Unavailable => 4,
+    });
+}
+
+fn encode_uncertainty(
+    writer: &mut CanonicalWriter,
+    uncertainty: &Uncertainty,
+    path: &str,
+) -> Result<(), ValidationError> {
+    match uncertainty {
+        Uncertainty::NotQuantified { reason } => {
+            writer.tag(0);
+            writer.string(reason)?;
+        }
+        Uncertainty::ScalarStdDev { standard_deviation } => {
+            writer.tag(1);
+            writer.f64(*standard_deviation, path)?;
+        }
+        Uncertainty::Interval { lower, upper } => {
+            writer.tag(2);
+            writer.f64(*lower, path)?;
+            writer.f64(*upper, path)?;
+        }
+        Uncertainty::Covariance3 {
+            matrix,
+            unit,
+            frame_id,
+        } => {
+            writer.tag(3);
+            for row in matrix {
+                for value in row {
+                    writer.f64(*value, path)?;
+                }
+            }
+            writer.string(unit)?;
+            writer.string(frame_id)?;
+        }
+        Uncertainty::EmpiricalSamples { values } => {
+            writer.tag(4);
+            writer.count(values.len())?;
+            for value in values {
+                writer.f64(*value, path)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn encode_provenance(
+    writer: &mut CanonicalWriter,
+    provenance: &Provenance,
+) -> Result<(), ValidationError> {
+    writer.optional_string(provenance.source_sha256.as_deref())?;
+    writer.optional_string(provenance.model_build_sha256.as_deref())?;
+    writer.optional_string(provenance.synthetic_fixture_id.as_deref())?;
+    writer.optional_string(provenance.derivation.as_deref())?;
+    Ok(())
+}
+
+fn encode_field_metadata(
+    writer: &mut CanonicalWriter,
+    metadata: &FieldMetadata,
+    path: &str,
+) -> Result<(), ValidationError> {
+    encode_field_status(writer, metadata.status);
+    writer.string(&metadata.unit)?;
+    writer.optional_string(metadata.frame_id.as_deref())?;
+    match &metadata.uncertainty {
+        Some(uncertainty) => {
+            writer.tag(1);
+            encode_uncertainty(writer, uncertainty, path)?;
+        }
+        None => writer.tag(0),
+    }
+    encode_provenance(writer, &metadata.provenance)?;
+    writer.optional_string(metadata.unavailable_reason.as_deref())?;
+    Ok(())
+}
+
+fn encode_field_value_f64(
+    writer: &mut CanonicalWriter,
+    field: &FieldValue<f64>,
+    path: &str,
+) -> Result<(), ValidationError> {
+    match field.value {
+        Some(value) => {
+            writer.tag(1);
+            writer.f64(value, path)?;
+        }
+        None => writer.tag(0),
+    }
+    encode_field_metadata(writer, &field.metadata, path)
+}
+
+fn encode_field_value_array<const N: usize>(
+    writer: &mut CanonicalWriter,
+    field: &FieldValue<[f64; N]>,
+    path: &str,
+) -> Result<(), ValidationError> {
+    match &field.value {
+        Some(values) => {
+            writer.tag(1);
+            for value in values {
+                writer.f64(*value, path)?;
+            }
+        }
+        None => writer.tag(0),
+    }
+    encode_field_metadata(writer, &field.metadata, path)
+}
+
+fn encode_pose(writer: &mut CanonicalWriter, pose: &Pose3, path: &str) -> Result<(), ValidationError> {
+    encode_field_value_array(writer, &pose.translation_m, &format!("{path}.translation"))?;
+    encode_field_value_array(writer, &pose.rotation_xyzw, &format!("{path}.rotation"))?;
+    writer.string(&pose.child_frame_id)?;
+    writer.tag(match pose.direction {
+        TransformDirection::WorldFromEntity => 0,
+    });
+    Ok(())
+}
+
+fn encode_contact(
+    writer: &mut CanonicalWriter,
+    contact: &ContactObservation,
+    path: &str,
+) -> Result<(), ValidationError> {
+    match &contact.status {
+        ContactStatus::NoContact => writer.tag(0),
+        ContactStatus::InContact => writer.tag(1),
+        ContactStatus::Unavailable { reason } => {
+            writer.tag(2);
+            writer.string(reason)?;
+        }
+    }
+    encode_field_metadata(writer, &contact.metadata, &format!("{path}.metadata"))?;
+    let mut partners = contact.partner_entity_ids.iter().collect::<Vec<_>>();
+    partners.sort();
+    writer.count(partners.len())?;
+    for partner in partners {
+        writer.string(partner)?;
+    }
+    match &contact.impulse_ns {
+        Some(impulse) => {
+            writer.tag(1);
+            encode_field_value_array(writer, impulse, &format!("{path}.impulse"))?;
+        }
+        None => writer.tag(0),
+    }
+    Ok(())
+}
+
+fn encode_entity(
+    writer: &mut CanonicalWriter,
+    entity: &EntityState,
+) -> Result<(), ValidationError> {
+    writer.string(&entity.entity_id)?;
+    writer.u64(entity.generation);
+    writer.optional_string(entity.parent_entity_id.as_deref())?;
+    encode_pose(writer, &entity.pose, &format!("entity[{}].pose", entity.entity_id))?;
+    encode_field_value_array(
+        writer,
+        &entity.linear_velocity_m_s,
+        &format!("entity[{}].linear_velocity", entity.entity_id),
+    )?;
+    encode_field_value_array(
+        writer,
+        &entity.angular_velocity_rad_s,
+        &format!("entity[{}].angular_velocity", entity.entity_id),
+    )?;
+    encode_field_value_array(
+        writer,
+        &entity.linear_acceleration_m_s2,
+        &format!("entity[{}].linear_acceleration", entity.entity_id),
+    )?;
+    encode_field_value_f64(
+        writer,
+        &entity.mass_kg,
+        &format!("entity[{}].mass", entity.entity_id),
+    )?;
+    encode_field_value_array(
+        writer,
+        &entity.inertia_kg_m2,
+        &format!("entity[{}].inertia", entity.entity_id),
+    )?;
+    encode_contact(
+        writer,
+        &entity.contact,
+        &format!("entity[{}].contact", entity.entity_id),
+    )?;
+    Ok(())
+}
+
 fn validate_sha256(value: &str, path: &str) -> Result<(), ValidationError> {
     if value.len() != SHA256_HEX_LEN || !value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
         return Err(ValidationError::new(
@@ -1468,6 +1765,55 @@ mod tests {
             },
             entities: vec![valid_entity("body-1")],
         }
+    }
+
+    #[test]
+    fn canonical_snapshot_bytes_ignore_entity_order_and_claimed_digest() {
+        let mut first = valid_snapshot(0, 0);
+        let mut second = valid_entity("body-2");
+        second.parent_entity_id = Some("body-1".to_owned());
+        first.entities.push(second);
+        first.validate().unwrap();
+
+        let mut reordered = first.clone();
+        reordered.entities.reverse();
+        reordered.identity.snapshot_sha256 = "b".repeat(64);
+
+        assert_eq!(
+            first.canonical_content_bytes().unwrap(),
+            reordered.canonical_content_bytes().unwrap()
+        );
+    }
+
+    #[test]
+    fn canonical_snapshot_bytes_normalize_negative_zero_but_bind_state_changes() {
+        let mut negative_zero = valid_snapshot(0, 0);
+        negative_zero.entities[0].linear_velocity_m_s.value = Some([-0.0, 0.0, -0.0]);
+
+        let mut positive_zero = negative_zero.clone();
+        positive_zero.entities[0].linear_velocity_m_s.value = Some([0.0, 0.0, 0.0]);
+
+        assert_eq!(
+            negative_zero.canonical_content_bytes().unwrap(),
+            positive_zero.canonical_content_bytes().unwrap()
+        );
+
+        let mut changed = positive_zero.clone();
+        changed.entities[0].linear_velocity_m_s.value = Some([1.0, 0.0, 0.0]);
+        assert_ne!(
+            positive_zero.canonical_content_bytes().unwrap(),
+            changed.canonical_content_bytes().unwrap()
+        );
+    }
+
+    #[test]
+    fn canonical_snapshot_bytes_are_repeatable_and_begin_with_versioned_magic() {
+        let snapshot = valid_snapshot(7, 7_000_000);
+        let first = snapshot.canonical_content_bytes().unwrap();
+        let second = snapshot.canonical_content_bytes().unwrap();
+
+        assert_eq!(first, second);
+        assert!(first.starts_with(b"PSF-CANONICAL\0"));
     }
 
     #[test]
