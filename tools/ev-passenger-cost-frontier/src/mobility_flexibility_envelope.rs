@@ -952,6 +952,7 @@ mod tests {
         let mut input = fixture();
         let levels = [0_u32, 1_000, 2_000, 3_000, 4_000];
         let mut compared = 0_usize;
+        let mut independently_feasible = 0_usize;
 
         for p0 in levels {
             for p1 in levels {
@@ -972,12 +973,14 @@ mod tests {
                             .expect("each enumerated profile has valid frozen evidence")
                             .candidate_model_feasible;
                         assert_eq!(actual, expected, "profile={profile:?}");
+                        independently_feasible += usize::from(expected);
                         compared += 1;
                     }
                 }
             }
         }
         assert_eq!(compared, 625);
+        assert_eq!(independently_feasible, 253);
     }
 
     #[test]
