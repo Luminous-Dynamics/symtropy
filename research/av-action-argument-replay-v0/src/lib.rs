@@ -102,7 +102,11 @@ pub struct PixelRoiV1 {
 
 /// Region of interest with explicit coordinate system.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(tag = "coordinate_space", content = "region", rename_all = "snake_case")]
+#[serde(
+    tag = "coordinate_space",
+    content = "region",
+    rename_all = "snake_case"
+)]
 pub enum RegionOfInterestV1 {
     /// Normalized [0,1] coordinates.
     Normalized(NormalizedRoiV1),
@@ -450,10 +454,12 @@ pub struct ActionParameterForecastV1 {
 pub fn manifest_sha256(
     manifest: &ActionParameterManifestV1,
 ) -> Result<String, ActionArgumentError> {
-    let canonical_value = serde_json::to_value(manifest)
-        .map_err(|error| ActionArgumentError::new(format!("manifest serialization failed: {error}")))?;
-    let encoded = serde_json::to_vec(&canonical_value)
-        .map_err(|error| ActionArgumentError::new(format!("canonical manifest encoding failed: {error}")))?;
+    let canonical_value = serde_json::to_value(manifest).map_err(|error| {
+        ActionArgumentError::new(format!("manifest serialization failed: {error}"))
+    })?;
+    let encoded = serde_json::to_vec(&canonical_value).map_err(|error| {
+        ActionArgumentError::new(format!("canonical manifest encoding failed: {error}"))
+    })?;
     Ok(hex_sha256(&encoded))
 }
 
@@ -485,10 +491,14 @@ pub fn validate_forecast(
     require_text(&forecast.transcript_head_sha256, "transcript_head_sha256")?;
     validate_digest(&forecast.transcript_head_sha256, "transcript_head_sha256")?;
     if forecast.actions.is_empty() {
-        return Err(ActionArgumentError::new("forecast acquisition catalogue cannot be empty"));
+        return Err(ActionArgumentError::new(
+            "forecast acquisition catalogue cannot be empty",
+        ));
     }
     if forecast.eligible_action_ids.is_empty() {
-        return Err(ActionArgumentError::new("eligible_action_ids cannot be empty"));
+        return Err(ActionArgumentError::new(
+            "eligible_action_ids cannot be empty",
+        ));
     }
     let eligible_ids: BTreeSet<String> = forecast.eligible_action_ids.iter().cloned().collect();
     if eligible_ids.len() != forecast.eligible_action_ids.len()
@@ -502,7 +512,9 @@ pub fn validate_forecast(
     for entry in &forecast.actions {
         require_text(&entry.action_id, "forecast action_id")?;
         if !action_ids.insert(entry.action_id.clone()) {
-            return Err(ActionArgumentError::new("forecast contains duplicate action IDs"));
+            return Err(ActionArgumentError::new(
+                "forecast contains duplicate action IDs",
+            ));
         }
         if entry.manifest.action_id != entry.action_id {
             return Err(ActionArgumentError::new(
@@ -512,7 +524,9 @@ pub fn validate_forecast(
         let digest = validate_manifest(&entry.manifest)?;
         validate_digest(&entry.manifest_sha256, "forecast manifest digest")?;
         if digest != entry.manifest_sha256.to_ascii_lowercase() {
-            return Err(ActionArgumentError::new("forecast manifest digest mismatch"));
+            return Err(ActionArgumentError::new(
+                "forecast manifest digest mismatch",
+            ));
         }
     }
     if action_ids != eligible_ids {
@@ -524,7 +538,9 @@ pub fn validate_forecast(
     for entry in &forecast.evsi_forecasts {
         require_text(&entry.action_id, "EVSI forecast action_id")?;
         if !forecast_ids.insert(entry.action_id.clone()) {
-            return Err(ActionArgumentError::new("EVSI forecast contains duplicate action IDs"));
+            return Err(ActionArgumentError::new(
+                "EVSI forecast contains duplicate action IDs",
+            ));
         }
         let values = [
             entry.estimated_gross_evsi,
@@ -532,15 +548,21 @@ pub fn validate_forecast(
             entry.upper_gross_evsi,
         ];
         if values.iter().any(|value| !value.is_finite()) {
-            return Err(ActionArgumentError::new("EVSI forecast values must be finite"));
+            return Err(ActionArgumentError::new(
+                "EVSI forecast values must be finite",
+            ));
         }
         if entry.lower_gross_evsi > entry.estimated_gross_evsi
             || entry.estimated_gross_evsi > entry.upper_gross_evsi
         {
-            return Err(ActionArgumentError::new("EVSI forecast interval is inconsistent"));
+            return Err(ActionArgumentError::new(
+                "EVSI forecast interval is inconsistent",
+            ));
         }
         if entry.action_id == STOP_ACTION_ID_V1 && values.iter().any(|value| *value != 0.0) {
-            return Err(ActionArgumentError::new("stop/no-acquisition EVSI forecast must be zero"));
+            return Err(ActionArgumentError::new(
+                "stop/no-acquisition EVSI forecast must be zero",
+            ));
         }
     }
     let mut expected_forecast_ids = eligible_ids.clone();
@@ -562,12 +584,19 @@ pub fn validate_forecast(
             .actions
             .iter()
             .find(|entry| entry.action_id == forecast.selected_action_id)
-            .ok_or_else(|| ActionArgumentError::new(
-                "selected action is not present in the forecasted parameter catalogue",
-            ))?;
-        let selected_digest = forecast.selected_manifest_sha256.as_deref().ok_or_else(|| {
-            ActionArgumentError::new("selected acquisition requires a parameter manifest digest")
-        })?;
+            .ok_or_else(|| {
+                ActionArgumentError::new(
+                    "selected action is not present in the forecasted parameter catalogue",
+                )
+            })?;
+        let selected_digest = forecast
+            .selected_manifest_sha256
+            .as_deref()
+            .ok_or_else(|| {
+                ActionArgumentError::new(
+                    "selected acquisition requires a parameter manifest digest",
+                )
+            })?;
         validate_digest(selected_digest, "selected manifest digest")?;
         if selected.manifest_sha256 != selected_digest {
             return Err(ActionArgumentError::new(
@@ -580,7 +609,12 @@ pub fn validate_forecast(
     let mut manifest_entries: Vec<(String, String)> = forecast
         .actions
         .iter()
-        .map(|entry| (entry.action_id.clone(), entry.manifest_sha256.to_ascii_lowercase()))
+        .map(|entry| {
+            (
+                entry.action_id.clone(),
+                entry.manifest_sha256.to_ascii_lowercase(),
+            )
+        })
         .collect();
     manifest_entries.sort_by(|left, right| left.0.cmp(&right.0));
     let material = ForecastDigestMaterialV1 {
@@ -592,10 +626,12 @@ pub fn validate_forecast(
         selected_action_id: &forecast.selected_action_id,
         selected_manifest_sha256: forecast.selected_manifest_sha256.as_deref(),
     };
-    let canonical_value = serde_json::to_value(&material)
-        .map_err(|error| ActionArgumentError::new(format!("forecast serialization failed: {error}")))?;
-    let encoded = serde_json::to_vec(&canonical_value)
-        .map_err(|error| ActionArgumentError::new(format!("canonical forecast encoding failed: {error}")))?;
+    let canonical_value = serde_json::to_value(&material).map_err(|error| {
+        ActionArgumentError::new(format!("forecast serialization failed: {error}"))
+    })?;
+    let encoded = serde_json::to_vec(&canonical_value).map_err(|error| {
+        ActionArgumentError::new(format!("canonical forecast encoding failed: {error}"))
+    })?;
     Ok(hex_sha256(&encoded))
 }
 
@@ -613,9 +649,12 @@ pub fn validate_action_lifecycle(
         ));
     }
     let selected_action_id = &forecast.selected_action_id;
-    let selected_digest = forecast.selected_manifest_sha256.as_deref().ok_or_else(|| {
-        ActionArgumentError::new("selected action is missing its manifest digest")
-    })?;
+    let selected_digest = forecast
+        .selected_manifest_sha256
+        .as_deref()
+        .ok_or_else(|| {
+            ActionArgumentError::new("selected action is missing its manifest digest")
+        })?;
     let manifest = forecast
         .actions
         .iter()
@@ -633,7 +672,10 @@ pub fn validate_action_lifecycle(
         ));
     }
     require_text(&acceptance.request_id, "acceptance request_id")?;
-    validate_digest(&acceptance.parameter_manifest_sha256, "acceptance manifest digest")?;
+    validate_digest(
+        &acceptance.parameter_manifest_sha256,
+        "acceptance manifest digest",
+    )?;
     validate_digest(
         &acceptance.parent_transcript_head_sha256,
         "acceptance parent transcript head",
@@ -661,16 +703,26 @@ pub fn validate_action_lifecycle(
         ));
     }
     validate_digest(&result.parameter_manifest_sha256, "result manifest digest")?;
-    validate_digest(&result.parent_transcript_head_sha256, "result parent transcript head")?;
-    validate_digest(&result.actual_resource_digest_sha256, "actual resource digest")?;
+    validate_digest(
+        &result.parent_transcript_head_sha256,
+        "result parent transcript head",
+    )?;
+    validate_digest(
+        &result.actual_resource_digest_sha256,
+        "actual resource digest",
+    )?;
     validate_digest(&result.result_event_sha256, "result event digest")?;
     if result.result_tick < acceptance.expected_arrival_tick {
-        return Err(ActionArgumentError::new("action result arrived before its expected arrival tick"));
+        return Err(ActionArgumentError::new(
+            "action result arrived before its expected arrival tick",
+        ));
     }
     if result.status == ActionResultStatusV1::Late
         && result.result_tick <= acceptance.decision_deadline_tick
     {
-        return Err(ActionArgumentError::new("late result tick is not after the decision deadline"));
+        return Err(ActionArgumentError::new(
+            "late result tick is not after the decision deadline",
+        ));
     }
     if matches!(
         result.status,
@@ -747,22 +799,29 @@ fn validate_manifest_fields(
     manifest: &ActionParameterManifestV1,
 ) -> Result<(), ActionArgumentError> {
     if manifest.schema_version != ACTION_ARGUMENT_SCHEMA_V1 {
-        return Err(ActionArgumentError::new("unsupported action manifest schema_version"));
+        return Err(ActionArgumentError::new(
+            "unsupported action manifest schema_version",
+        ));
     }
     require_text(&manifest.action_id, "action_id")?;
     require_text(&manifest.source.source_id, "source_id")?;
-    validate_digest(&manifest.source.source_content_sha256, "source content digest")?;
+    validate_digest(
+        &manifest.source.source_content_sha256,
+        "source content digest",
+    )?;
     require_text(&manifest.source.clock_domain_id, "clock_domain_id")?;
     if manifest.requested_interval.end_ns <= manifest.requested_interval.start_ns {
-        return Err(ActionArgumentError::new("requested source interval is empty or reversed"));
+        return Err(ActionArgumentError::new(
+            "requested source interval is empty or reversed",
+        ));
     }
 
     match &manifest.parameters {
         ActionParametersV1::VideoCrop(parameters) => {
-            if parameters.output_resolution.width == 0
-                || parameters.output_resolution.height == 0
-            {
-                return Err(ActionArgumentError::new("video output resolution must be positive"));
+            if parameters.output_resolution.width == 0 || parameters.output_resolution.height == 0 {
+                return Err(ActionArgumentError::new(
+                    "video output resolution must be positive",
+                ));
             }
             require_text(&parameters.crop_policy_id, "crop_policy_id")?;
             validate_digest(&parameters.crop_policy_sha256, "crop_policy_sha256")?;
@@ -782,13 +841,20 @@ fn validate_manifest_fields(
         }
         ActionParametersV1::AudioWindow(parameters) => {
             if parameters.sample_rate_hz == 0 || parameters.channels == 0 {
-                return Err(ActionArgumentError::new("audio sample rate and channel count must be positive"));
+                return Err(ActionArgumentError::new(
+                    "audio sample rate and channel count must be positive",
+                ));
             }
             if parameters.end_sample <= parameters.start_sample {
-                return Err(ActionArgumentError::new("audio sample range is empty or reversed"));
+                return Err(ActionArgumentError::new(
+                    "audio sample range is empty or reversed",
+                ));
             }
-            if parameters.chunk_frames == 0 || parameters.overlap_frames >= parameters.chunk_frames {
-                return Err(ActionArgumentError::new("audio chunk size must be positive and overlap smaller than chunk"));
+            if parameters.chunk_frames == 0 || parameters.overlap_frames >= parameters.chunk_frames
+            {
+                return Err(ActionArgumentError::new(
+                    "audio chunk size must be positive and overlap smaller than chunk",
+                ));
             }
             validate_digest(&parameters.transform_sha256, "audio transform digest")?;
             let start_ns = sample_to_ns(parameters.start_sample, parameters.sample_rate_hz)?;
@@ -818,8 +884,14 @@ fn validate_roi(roi: &RegionOfInterestV1) -> Result<(), ActionArgumentError> {
         RegionOfInterestV1::Normalized(region) => {
             if region.width_bp == 0
                 || region.height_bp == 0
-                || region.x_bp.checked_add(region.width_bp).is_none_or(|end| end > 10_000)
-                || region.y_bp.checked_add(region.height_bp).is_none_or(|end| end > 10_000)
+                || region
+                    .x_bp
+                    .checked_add(region.width_bp)
+                    .is_none_or(|end| end > 10_000)
+                || region
+                    .y_bp
+                    .checked_add(region.height_bp)
+                    .is_none_or(|end| end > 10_000)
             {
                 return Err(ActionArgumentError::new(
                     "normalized ROI must be a positive rectangle inside [0,1]",
@@ -831,8 +903,14 @@ fn validate_roi(roi: &RegionOfInterestV1) -> Result<(), ActionArgumentError> {
                 || region.source_height == 0
                 || region.width == 0
                 || region.height == 0
-                || region.x.checked_add(region.width).is_none_or(|end| end > region.source_width)
-                || region.y.checked_add(region.height).is_none_or(|end| end > region.source_height)
+                || region
+                    .x
+                    .checked_add(region.width)
+                    .is_none_or(|end| end > region.source_width)
+                || region
+                    .y
+                    .checked_add(region.height)
+                    .is_none_or(|end| end > region.source_height)
             {
                 return Err(ActionArgumentError::new(
                     "pixel ROI must be a positive rectangle inside source dimensions",
@@ -859,8 +937,10 @@ fn validate_result_payload(
             if !result.delivered_frames.is_empty() {
                 if result.delivered_roi != parameters.roi
                     || result.delivered_output_resolution != Some(parameters.output_resolution)
-                    || result.delivered_crop_policy_sha256.as_deref() != Some(parameters.crop_policy_sha256.as_str())
-                    || result.delivered_preprocessing_sha256.as_deref() != Some(parameters.preprocessing_sha256.as_str())
+                    || result.delivered_crop_policy_sha256.as_deref()
+                        != Some(parameters.crop_policy_sha256.as_str())
+                    || result.delivered_preprocessing_sha256.as_deref()
+                        != Some(parameters.preprocessing_sha256.as_str())
                 {
                     return Err(ActionArgumentError::new(
                         "actual video ROI/resolution/crop/preprocessing differs from requested manifest",
@@ -888,7 +968,10 @@ fn validate_result_payload(
                     || frame.capture_timestamp_ns >= manifest.requested_interval.end_ns
                     || schedule
                         .get(frame.frame_index as usize)
-                        .is_none_or(|expected| abs_diff(*expected, frame.capture_timestamp_ns) > manifest.timestamp_tolerance_ns)
+                        .is_none_or(|expected| {
+                            abs_diff(*expected, frame.capture_timestamp_ns)
+                                > manifest.timestamp_tolerance_ns
+                        })
                 {
                     return Err(ActionArgumentError::new(
                         "delivered frame identity/index/time is not a unique member of the request schedule",
@@ -1009,7 +1092,9 @@ fn validate_result_payload(
         && result.delivered_audio.is_none()
         && result.delivered_feedback.is_none()
     {
-        return Err(ActionArgumentError::new("late result must retain the late payload receipt"));
+        return Err(ActionArgumentError::new(
+            "late result must retain the late payload receipt",
+        ));
     }
     if matches!(
         result.status,
@@ -1053,7 +1138,9 @@ fn require_text(value: &str, field: &str) -> Result<(), ActionArgumentError> {
 
 fn validate_digest(value: &str, field: &str) -> Result<(), ActionArgumentError> {
     if value.len() != 64 || !value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
-        return Err(ActionArgumentError::new(format!("{field} must be a SHA-256 hex digest")));
+        return Err(ActionArgumentError::new(format!(
+            "{field} must be a SHA-256 hex digest"
+        )));
     }
     Ok(())
 }
@@ -1201,7 +1288,10 @@ mod tests {
             width_bp: 5_000,
             height_bp: 4_000,
         }));
-        assert_ne!(validate_manifest(&first).unwrap(), validate_manifest(&second).unwrap());
+        assert_ne!(
+            validate_manifest(&first).unwrap(),
+            validate_manifest(&second).unwrap()
+        );
     }
 
     #[test]
@@ -1217,7 +1307,10 @@ mod tests {
             phase_ns: 0,
             frame_count: 4,
         };
-        assert_ne!(validate_manifest(&first).unwrap(), validate_manifest(&second).unwrap());
+        assert_ne!(
+            validate_manifest(&first).unwrap(),
+            validate_manifest(&second).unwrap()
+        );
     }
 
     #[test]
@@ -1225,7 +1318,10 @@ mod tests {
         let first = video_manifest();
         let mut second = video_manifest();
         second.source.clock_generation += 1;
-        assert_ne!(validate_manifest(&first).unwrap(), validate_manifest(&second).unwrap());
+        assert_ne!(
+            validate_manifest(&first).unwrap(),
+            validate_manifest(&second).unwrap()
+        );
     }
 
     #[test]
@@ -1464,7 +1560,10 @@ mod tests {
                 width_bp: 5_000,
                 height_bp: 4_000,
             })),
-            delivered_output_resolution: Some(OutputResolutionV1 { width: 640, height: 360 }),
+            delivered_output_resolution: Some(OutputResolutionV1 {
+                width: 640,
+                height: 360,
+            }),
             delivered_crop_policy_sha256: Some(digest("crop-policy")),
             delivered_preprocessing_sha256: Some(digest("preprocess")),
             delivered_audio: None,
@@ -1546,7 +1645,10 @@ mod tests {
                 width_bp: 5_000,
                 height_bp: 4_000,
             })),
-            delivered_output_resolution: Some(OutputResolutionV1 { width: 640, height: 360 }),
+            delivered_output_resolution: Some(OutputResolutionV1 {
+                width: 640,
+                height: 360,
+            }),
             delivered_crop_policy_sha256: Some(digest("crop-policy")),
             delivered_preprocessing_sha256: Some(digest("preprocess")),
             delivered_audio: None,
@@ -1781,7 +1883,10 @@ mod tests {
                 width_bp: 5_000,
                 height_bp: 4_000,
             })),
-            delivered_output_resolution: Some(OutputResolutionV1 { width: 640, height: 360 }),
+            delivered_output_resolution: Some(OutputResolutionV1 {
+                width: 640,
+                height: 360,
+            }),
             delivered_crop_policy_sha256: Some(digest("crop-policy")),
             delivered_preprocessing_sha256: Some(digest("preprocess")),
             delivered_audio: None,
@@ -1850,7 +1955,10 @@ mod tests {
                 width_bp: 5_000,
                 height_bp: 4_000,
             })),
-            delivered_output_resolution: Some(OutputResolutionV1 { width: 640, height: 360 }),
+            delivered_output_resolution: Some(OutputResolutionV1 {
+                width: 640,
+                height: 360,
+            }),
             delivered_crop_policy_sha256: Some(digest("crop-policy")),
             delivered_preprocessing_sha256: Some(digest("preprocess")),
             delivered_audio: None,
@@ -1934,7 +2042,10 @@ mod tests {
                 width_bp: 5_000,
                 height_bp: 4_000,
             })),
-            delivered_output_resolution: Some(OutputResolutionV1 { width: 640, height: 360 }),
+            delivered_output_resolution: Some(OutputResolutionV1 {
+                width: 640,
+                height: 360,
+            }),
             delivered_crop_policy_sha256: Some(digest("crop-policy")),
             delivered_preprocessing_sha256: Some(digest("preprocess")),
             delivered_audio: None,
