@@ -227,7 +227,7 @@ struct AssignmentSearch<'a> {
     best: Option<SearchBest>,
 }
 
-impl AssignmentSearch<'_> {
+impl<'a> AssignmentSearch<'a> {
     fn search(
         &mut self,
         mission_index: usize,
@@ -253,9 +253,8 @@ impl AssignmentSearch<'_> {
             return;
         }
 
-        for candidate_index in 0..self.candidates[mission_index].len() {
-            let (pack_index, energy_margin_wh) =
-                self.candidates[mission_index][candidate_index];
+        let mission_candidates = self.candidates[mission_index].clone();
+        for (pack_index, energy_margin_wh) in mission_candidates {
             if used.insert(pack_index) {
                 selected.push(Some(pack_index));
                 self.search(
