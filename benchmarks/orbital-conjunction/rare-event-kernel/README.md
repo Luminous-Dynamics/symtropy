@@ -18,8 +18,10 @@ This crate is a research kernel, not an operational collision-probability produc
 From the repository root:
 
 ```sh
-cargo test --manifest-path benchmarks/orbital-conjunction/rare-event-kernel/Cargo.toml
+cargo generate-lockfile --manifest-path benchmarks/orbital-conjunction/rare-event-kernel/Cargo.toml
 cargo fmt --manifest-path benchmarks/orbital-conjunction/rare-event-kernel/Cargo.toml -- --check
+cargo test --locked --manifest-path benchmarks/orbital-conjunction/rare-event-kernel/Cargo.toml --all-targets
+cargo clippy --locked --manifest-path benchmarks/orbital-conjunction/rare-event-kernel/Cargo.toml --all-targets -- -D warnings
 ```
 
 The package has its own Cargo workspace and does not require the full Symtropy/Bevy workspace.
