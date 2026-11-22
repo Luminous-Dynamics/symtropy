@@ -1,0 +1,265 @@
+{
+  "schema": "luminous.ehd_correlated_robust_design",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-OED-003",
+  "as_of": "2026-11-22",
+  "status": "manufactured_two_nuisance_full_covariance_kernel_authored_tests_execution_pending",
+  "claim_ceiling": "A manufactured two-physical-parameter, two-nuisance-channel, four-observation, two-scenario local linear design oracle. It is not a real EHD parameter model, calibration covariance estimate, experiment recommendation, or physical validation.",
+  "model_contract": {
+    "physical_parameter_count": 2,
+    "nuisance_parameter_count": 2,
+    "nuisance_channels": [
+      "constant_offset",
+      "linear_drift"
+    ],
+    "observation_count": 4,
+    "candidate_count": 6,
+    "allocation": "combinations_with_replacement",
+    "observation_noise": "zero_mean_multivariate_normal_with_full_covariance",
+    "covariance_support": "symmetric_positive_definite_4x4",
+    "correlated_covariance_supported": true,
+    "covariance_factorization": "Cholesky; solve Lx=b for whitening; no explicit inverse, jitter or diagonal loading",
+    "covariance_invalid_policy": "reject_asymmetric_nonfinite_or_non_positive_definite"
+  },
+  "nuisance_adjustment": {
+    "observation_model": "y = X theta + Z eta + epsilon; epsilon ~ N(0, Sigma)",
+    "effective_information": "F_eff = X^T Sigma^-1 X - X^T Sigma^-1 Z (Z^T Sigma^-1 Z)^-1 Z^T Sigma^-1 X",
+    "implementation": "whiten X and Z using Cholesky solve; project physical columns onto orthogonal complement of the two-channel nuisance basis",
+    "acceptance": "nuisance rank = 2 and effective physical rank = 2 in every scenario",
+    "rank_deficient_policy": "exclude allocation; do not regularize or impute an unidentifiable direction"
+  },
+  "selection_policy": {
+    "algorithm": "bounded_exhaustive_discrete_maximin",
+    "objective": "maximize_design minimum_over_scenarios lambda_min(F_eff)",
+    "observation_budget": 4,
+    "max_evaluations": 200,
+    "relative_rank_tolerance": 1e-12,
+    "tie_break": "lexicographic_candidate_indices"
+  },
+  "reference_implementation": {
+    "path": "tools/ehd-reference-audit/src/identifiability.rs",
+    "scenario_function": "multi_nuisance_correlated_reference_scenarios",
+    "score_function": "multi_nuisance_correlated_scenario_score",
+    "selector_function": "select_multi_nuisance_correlated_design",
+    "self_check": "multi_nuisance_correlated_reference_self_check",
+    "rust_unit_tests": 8
+  },
+  "candidates": [
+    {
+      "index": 0,
+      "x": -3,
+      "physical_nominal": [
+        9,
+        -27
+      ],
+      "physical_shifted": [
+        9,
+        -6.75
+      ],
+      "nuisance": [
+        1,
+        -3
+      ]
+    },
+    {
+      "index": 1,
+      "x": -2,
+      "physical_nominal": [
+        4,
+        -8
+      ],
+      "physical_shifted": [
+        4,
+        -4
+      ],
+      "nuisance": [
+        1,
+        -2
+      ]
+    },
+    {
+      "index": 2,
+      "x": -1,
+      "physical_nominal": [
+        1,
+        -1
+      ],
+      "physical_shifted": [
+        1,
+        -0.75
+      ],
+      "nuisance": [
+        1,
+        -1
+      ]
+    },
+    {
+      "index": 3,
+      "x": 1,
+      "physical_nominal": [
+        1,
+        1
+      ],
+      "physical_shifted": [
+        1,
+        1.25
+      ],
+      "nuisance": [
+        1,
+        1
+      ]
+    },
+    {
+      "index": 4,
+      "x": 2,
+      "physical_nominal": [
+        4,
+        8
+      ],
+      "physical_shifted": [
+        4,
+        12
+      ],
+      "nuisance": [
+        1,
+        2
+      ]
+    },
+    {
+      "index": 5,
+      "x": 3,
+      "physical_nominal": [
+        9,
+        27
+      ],
+      "physical_shifted": [
+        9,
+        47.25
+      ],
+      "nuisance": [
+        1,
+        3
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "nominal_polynomial_independent_noise",
+      "physical_sensitivity_model": "[x^2, x^3]",
+      "nuisance_sensitivity_model": "[1, x]",
+      "covariance": [
+        [
+          1,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          1
+        ]
+      ]
+    },
+    {
+      "scenario_id": "curvature_shift_correlated_ar1_noise",
+      "physical_sensitivity_model": "[x^2, x^3 + 0.25*x^4]",
+      "nuisance_sensitivity_model": "[1, x]",
+      "covariance": [
+        [
+          1,
+          0.45,
+          0.2025,
+          0.091125
+        ],
+        [
+          0.45,
+          1,
+          0.45,
+          0.2025
+        ],
+        [
+          0.2025,
+          0.45,
+          1,
+          0.45
+        ],
+        [
+          0.091125,
+          0.2025,
+          0.45,
+          1
+        ]
+      ]
+    }
+  ],
+  "expected_result": {
+    "evaluated_design_count": 126,
+    "robust_identifiable_design_count": 14,
+    "robust_optimal_candidate_indices": [
+      0,
+      2,
+      4,
+      5
+    ],
+    "robust_worst_case_minimum_information_eigenvalue": 42.546743038933265,
+    "robust_scenario_minimum_eigenvalues": [
+      42.546743038933265,
+      43.29584146959236
+    ],
+    "nominal_only_optimal_candidate_indices": [
+      0,
+      2,
+      3,
+      5
+    ],
+    "nominal_only_design_minimum_eigenvalue_under_shifted_scenario": 27.647171014409295,
+    "worst_case_information_improvement_percent": 53.89185033347004
+  },
+  "adversarial_policy": {
+    "asymmetric_covariance": "reject",
+    "non_finite_covariance": "reject",
+    "non_positive_definite_covariance": "reject_without_jitter",
+    "nuisance_rank_deficiency": "exclude_allocation",
+    "physical_rank_deficiency": "exclude_allocation",
+    "unsupported_observation_budget": "reject"
+  },
+  "test_families": [
+    "correlated_multi_nuisance_maximin_beats_nominal_design_on_worst_case_information",
+    "full_covariance_cholesky_whitening_preserves_correlation",
+    "nonsymmetric_covariance_is_rejected_without_silent_symmetrization",
+    "non_positive_definite_covariance_is_rejected_without_jitter",
+    "physical_signal_fully_explained_by_nuisance_is_not_counted_from_roundoff",
+    "rank_deficient_nuisance_designs_are_not_promoted",
+    "correlated_reference_rejects_non_four_observation_budget",
+    "invalid_covariance_component_is_rejected"
+  ],
+  "limitations": [
+    "manufactured_polynomial_sensitivity_rows_only",
+    "two_physical_parameters_only",
+    "two_nuisance_channels_only",
+    "four_observation_slots_only",
+    "two_frozen_scenarios_only",
+    "local_linear_sensitivity_model_only",
+    "fixed_covariance_per_scenario_and_sorted_observation_slot",
+    "no_profile_likelihood",
+    "no_parameter_uncertainty_propagation",
+    "no_sequential_design",
+    "no_model_discrimination_beyond_two_declared_scenarios",
+    "no_physical_EHD_measurements_or_experiment_recommendations",
+    "no_explicit_acquisition_order_randomization"
+  ]
+}

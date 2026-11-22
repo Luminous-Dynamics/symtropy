@@ -50,6 +50,10 @@ pub enum IdentifiabilityError {
     RobustScenarioCandidateCountMismatch { scenario: usize },
     ZeroNuisanceInformation,
     NoRobustIdentifiableDesign,
+    NonFiniteCovariance { row: usize, column: usize },
+    AsymmetricCovariance { row: usize, column: usize },
+    NonPositiveDefiniteCovariance { pivot: usize },
+    CorrelatedDesignRequiresFourObservations,
 }
 
 impl fmt::Display for IdentifiabilityError {
@@ -74,6 +78,10 @@ impl fmt::Display for IdentifiabilityError {
             Self::RobustScenarioCandidateCountMismatch { scenario } => write!(f, "robust design scenario {scenario} has a different candidate count"),
             Self::ZeroNuisanceInformation => write!(f, "robust design scenario has no information for the declared nuisance channel"),
             Self::NoRobustIdentifiableDesign => write!(f, "no allocation remains identifiable in every declared robust scenario"),
+            Self::NonFiniteCovariance { row, column } => write!(f, "observation covariance component ({row}, {column}) is non-finite"),
+            Self::AsymmetricCovariance { row, column } => write!(f, "observation covariance is not symmetric at ({row}, {column})"),
+            Self::NonPositiveDefiniteCovariance { pivot } => write!(f, "observation covariance is not positive definite at Cholesky pivot {pivot}"),
+            Self::CorrelatedDesignRequiresFourObservations => write!(f, "correlated covariance reference requires exactly four observation slots"),
         }
     }
 }
@@ -1181,6 +1189,548 @@ mod robust_design_tests {
         assert!(matches!(
             nuisance_adjusted_scenario_score(&[0, 1, 3], &scenarios[0], [1.0, 1.0], 1.0e-12),
             Err(IdentifiabilityError::ZeroNuisanceInformation)
+        ));
+    }
+}
+
+
+// ---------------------------------------------------------------------------
+// EHD-OED-003: two physical parameters, two nuisance channels and full
+// correlated 4x4 observation covariance. Manufactured local linear oracle.
+// ---------------------------------------------------------------------------
+
+pub const CORRELATED_REFERENCE_OBSERVATION_COUNT: usize = 4;
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct MultiNuisanceCandidateCondition {
+    pub physical_sensitivity: [f64; 2],
+    pub nuisance_sensitivity: [f64; 2],
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct CorrelatedNoiseDesignScenario {
+    pub scenario_id: String,
+    pub candidates: Vec<MultiNuisanceCandidateCondition>,
+    pub observation_covariance: [[f64; 4]; 4],
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct MultiNuisanceScenarioScore {
+    pub scenario_id: String,
+    pub effective_information_matrix: [[f64; 2]; 2],
+    pub singular_values: [f64; 2],
+    pub minimum_information_eigenvalue: f64,
+    pub numerical_rank: usize,
+    pub condition_number: Option<f64>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct MultiNuisanceRobustDesignScore {
+    pub candidate_indices: Vec<usize>,
+    pub worst_case_minimum_information_eigenvalue: f64,
+    pub scenario_scores: Vec<MultiNuisanceScenarioScore>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct MultiNuisanceRobustDesignTournament {
+    pub observation_budget: usize,
+    pub evaluated_design_count: usize,
+    pub robust_identifiable_design_count: usize,
+    pub robust_optimal: MultiNuisanceRobustDesignScore,
+}
+
+fn dot_four(left: &[f64; 4], right: &[f64; 4]) -> f64 {
+    let mut value = 0.0_f64;
+    for i in 0..4 {
+        value = left[i].mul_add(right[i], value);
+    }
+    value
+}
+
+/// Cholesky only: no jitter, symmetrization, diagonal loading or pseudo-inverse.
+fn cholesky_covariance_4x4(
+    covariance: &[[f64; 4]; 4],
+) -> Result<[[f64; 4]; 4], IdentifiabilityError> {
+    for row in 0..4 {
+        for column in 0..4 {
+            if !covariance[row][column].is_finite() {
+                return Err(IdentifiabilityError::NonFiniteCovariance { row, column });
+            }
+            let scale = covariance[row][column].abs()
+                .max(covariance[column][row].abs())
+                .max(1.0);
+            if (covariance[row][column] - covariance[column][row]).abs() > 1.0e-12 * scale {
+                return Err(IdentifiabilityError::AsymmetricCovariance { row, column });
+            }
+        }
+    }
+    let mut lower = [[0.0_f64; 4]; 4];
+    for row in 0..4 {
+        for column in 0..=row {
+            let mut value = covariance[row][column];
+            for k in 0..column {
+                value -= lower[row][k] * lower[column][k];
+            }
+            if !value.is_finite() {
+                return Err(IdentifiabilityError::NonFiniteDerivedValue);
+            }
+            if row == column {
+                if value <= 0.0 {
+                    return Err(IdentifiabilityError::NonPositiveDefiniteCovariance { pivot: row });
+                }
+                lower[row][column] = value.sqrt();
+            } else {
+                lower[row][column] = value / lower[column][column];
+            }
+        }
+    }
+    Ok(lower)
+}
+
+/// Whiten by solving Lx=b, where Sigma=LL^T. Sigma inverse is never formed.
+fn forward_solve_covariance_4x4(
+    lower: &[[f64; 4]; 4],
+    input: &[f64; 4],
+) -> Result<[f64; 4], IdentifiabilityError> {
+    let mut output = [0.0_f64; 4];
+    for row in 0..4 {
+        let mut value = input[row];
+        for column in 0..row {
+            value -= lower[row][column] * output[column];
+        }
+        output[row] = value / lower[row][row];
+        if !output[row].is_finite() {
+            return Err(IdentifiabilityError::NonFiniteDerivedValue);
+        }
+    }
+    Ok(output)
+}
+
+/// Two-pass modified Gram-Schmidt for two nuisance channels. Rank-deficient
+/// nuisance blocks make an allocation inadmissible; no hidden regularization.
+fn nuisance_basis_4x2(
+    columns: &[[f64; 4]; 2],
+    tolerance: f64,
+) -> Result<Option<[[f64; 4]; 2]>, IdentifiabilityError> {
+    let mut basis = [[0.0_f64; 4]; 2];
+    for col in 0..2 {
+        let original_norm = dot_four(&columns[col], &columns[col]).sqrt();
+        if !original_norm.is_finite() {
+            return Err(IdentifiabilityError::NonFiniteDerivedValue);
+        }
+        if original_norm == 0.0 {
+            return Ok(None);
+        }
+        let mut residual = columns[col];
+        for _ in 0..2 {
+            for prior in 0..col {
+                let projection = dot_four(&basis[prior], &residual);
+                for row in 0..4 {
+                    residual[row] -= projection * basis[prior][row];
+                }
+            }
+        }
+        let norm = dot_four(&residual, &residual).sqrt();
+        if !norm.is_finite() {
+            return Err(IdentifiabilityError::NonFiniteDerivedValue);
+        }
+        if norm <= tolerance * original_norm {
+            return Ok(None);
+        }
+        for row in 0..4 {
+            basis[col][row] = residual[row] / norm;
+        }
+    }
+    Ok(Some(basis))
+}
+
+fn validate_correlated_scenarios(
+    scenarios: &[CorrelatedNoiseDesignScenario],
+) -> Result<usize, IdentifiabilityError> {
+    let first = scenarios.first().ok_or(IdentifiabilityError::EmptyRobustScenarioSet)?;
+    if first.scenario_id.trim().is_empty() {
+        return Err(IdentifiabilityError::EmptyRobustScenarioId { scenario: 0 });
+    }
+    if first.candidates.is_empty() {
+        return Err(IdentifiabilityError::InvalidCandidateCount);
+    }
+    let count = first.candidates.len();
+    for (scenario_index, scenario) in scenarios.iter().enumerate() {
+        if scenario.scenario_id.trim().is_empty() {
+            return Err(IdentifiabilityError::EmptyRobustScenarioId { scenario: scenario_index });
+        }
+        if scenarios[..scenario_index].iter().any(|p| p.scenario_id == scenario.scenario_id) {
+            return Err(IdentifiabilityError::DuplicateRobustScenarioId { scenario: scenario_index });
+        }
+        if scenario.candidates.len() != count {
+            return Err(IdentifiabilityError::RobustScenarioCandidateCountMismatch { scenario: scenario_index });
+        }
+        for (candidate_index, candidate) in scenario.candidates.iter().enumerate() {
+            for column in 0..2 {
+                if !candidate.physical_sensitivity[column].is_finite()
+                    || !candidate.nuisance_sensitivity[column].is_finite()
+                {
+                    return Err(IdentifiabilityError::NonFiniteDesign {
+                        row: candidate_index,
+                        column,
+                    });
+                }
+            }
+        }
+        let _ = cholesky_covariance_4x4(&scenario.observation_covariance)?;
+    }
+    Ok(count)
+}
+
+/// Returns None for rank-deficient nuisance or physical designs.
+pub fn multi_nuisance_correlated_scenario_score(
+    candidate_indices: &[usize],
+    scenario: &CorrelatedNoiseDesignScenario,
+    parameter_scales: [f64; 2],
+    relative_rank_tolerance: f64,
+) -> Result<Option<MultiNuisanceScenarioScore>, IdentifiabilityError> {
+    if candidate_indices.len() != CORRELATED_REFERENCE_OBSERVATION_COUNT {
+        return Err(IdentifiabilityError::CorrelatedDesignRequiresFourObservations);
+    }
+    if !relative_rank_tolerance.is_finite()
+        || relative_rank_tolerance <= 0.0
+        || relative_rank_tolerance >= 1.0
+    {
+        return Err(IdentifiabilityError::InvalidRankTolerance);
+    }
+    for (parameter, scale) in parameter_scales.iter().enumerate() {
+        if !scale.is_finite() || *scale <= 0.0 {
+            return Err(IdentifiabilityError::InvalidParameterScale { parameter });
+        }
+    }
+
+    let lower = cholesky_covariance_4x4(&scenario.observation_covariance)?;
+    let mut physical_columns = [[0.0_f64; 4]; 2];
+    let mut nuisance_columns = [[0.0_f64; 4]; 2];
+    for (row, index) in candidate_indices.iter().copied().enumerate() {
+        let candidate = scenario.candidates.get(index)
+            .ok_or(IdentifiabilityError::LengthMismatch)?;
+        for column in 0..2 {
+            physical_columns[column][row] =
+                candidate.physical_sensitivity[column] * parameter_scales[column];
+            nuisance_columns[column][row] = candidate.nuisance_sensitivity[column];
+        }
+    }
+    let whitened_physical = [
+        forward_solve_covariance_4x4(&lower, &physical_columns[0])?,
+        forward_solve_covariance_4x4(&lower, &physical_columns[1])?,
+    ];
+    let whitened_nuisance = [
+        forward_solve_covariance_4x4(&lower, &nuisance_columns[0])?,
+        forward_solve_covariance_4x4(&lower, &nuisance_columns[1])?,
+    ];
+    let Some(basis) = nuisance_basis_4x2(&whitened_nuisance, relative_rank_tolerance)? else {
+        return Ok(None);
+    };
+
+    let mut residual = whitened_physical;
+    for _ in 0..2 {
+        for nuisance_direction in &basis {
+            for physical_column in &mut residual {
+                let projection = dot_four(nuisance_direction, physical_column);
+                for row in 0..4 {
+                    physical_column[row] -= projection * nuisance_direction[row];
+                }
+            }
+        }
+    }
+    let g00 = dot_four(&residual[0], &residual[0]);
+    let g01 = dot_four(&residual[0], &residual[1]);
+    let g11 = dot_four(&residual[1], &residual[1]);
+    if ![g00, g01, g11].iter().all(|v| v.is_finite()) {
+        return Err(IdentifiabilityError::NonFiniteDerivedValue);
+    }
+
+    let tau = if g01 == 0.0 { 0.0 } else { (g11 - g00) / (2.0 * g01) };
+    let tangent = if g01 == 0.0 {
+        0.0
+    } else {
+        let sign = if tau.is_sign_negative() { -1.0 } else { 1.0 };
+        sign / (tau.abs() + tau.hypot(1.0))
+    };
+    let cosine = 1.0 / tangent.hypot(1.0);
+    let sine = tangent * cosine;
+    let mut norm_0 = 0.0_f64;
+    let mut norm_1 = 0.0_f64;
+    for row in 0..4 {
+        let rotated_0 = cosine.mul_add(residual[0][row], -sine * residual[1][row]);
+        let rotated_1 = sine.mul_add(residual[0][row], cosine * residual[1][row]);
+        norm_0 = rotated_0.mul_add(rotated_0, norm_0);
+        norm_1 = rotated_1.mul_add(rotated_1, norm_1);
+    }
+    if !norm_0.is_finite() || !norm_1.is_finite() {
+        return Err(IdentifiabilityError::NonFiniteDerivedValue);
+    }
+    let lambda_max = norm_0.max(norm_1);
+    let lambda_min = norm_0.min(norm_1);
+    let singular_values = [lambda_max.sqrt(), lambda_min.sqrt()];
+    let physical_reference_norm = (
+        dot_four(&whitened_physical[0], &whitened_physical[0])
+            + dot_four(&whitened_physical[1], &whitened_physical[1])
+    ).sqrt();
+    if !physical_reference_norm.is_finite() {
+        return Err(IdentifiabilityError::NonFiniteDerivedValue);
+    }
+    // A relative-only test can promote roundoff left after exact nuisance
+    // projection when both effective singular values are near zero. Require
+    // the largest retained direction to be material relative to the original
+    // whitened physical sensitivity scale before testing the smaller one.
+    let numerical_rank = if singular_values[0]
+        <= relative_rank_tolerance * physical_reference_norm
+    {
+        0
+    } else {
+        let threshold = relative_rank_tolerance * singular_values[0];
+        singular_values.iter().filter(|v| **v > threshold).count()
+    };
+    let condition_number = if numerical_rank == 2 && singular_values[1] > 0.0 {
+        Some(singular_values[0] / singular_values[1])
+    } else {
+        None
+    };
+    Ok(Some(MultiNuisanceScenarioScore {
+        scenario_id: scenario.scenario_id.clone(),
+        effective_information_matrix: [[g00, g01], [g01, g11]],
+        singular_values,
+        minimum_information_eigenvalue: lambda_min,
+        numerical_rank,
+        condition_number,
+    }))
+}
+
+pub fn select_multi_nuisance_correlated_design(
+    scenarios: &[CorrelatedNoiseDesignScenario],
+    observation_budget: usize,
+    parameter_scales: [f64; 2],
+    relative_rank_tolerance: f64,
+    max_evaluations: usize,
+) -> Result<MultiNuisanceRobustDesignTournament, IdentifiabilityError> {
+    if observation_budget != CORRELATED_REFERENCE_OBSERVATION_COUNT {
+        return Err(IdentifiabilityError::CorrelatedDesignRequiresFourObservations);
+    }
+    let candidate_count = validate_correlated_scenarios(scenarios)?;
+    if max_evaluations == 0 {
+        return Err(IdentifiabilityError::SearchSpaceLimitExceeded { limit: 0 });
+    }
+    let mut designs = Vec::new();
+    enumerate_designs(
+        candidate_count, 0, observation_budget,
+        &mut Vec::with_capacity(observation_budget), &mut designs, max_evaluations,
+    )?;
+
+    let mut best: Option<MultiNuisanceRobustDesignScore> = None;
+    let mut robust_identifiable_design_count = 0usize;
+    for indices in &designs {
+        let mut scenario_scores = Vec::with_capacity(scenarios.len());
+        let mut worst_case = f64::INFINITY;
+        let mut admissible = true;
+        for scenario in scenarios {
+            let Some(score) = multi_nuisance_correlated_scenario_score(
+                indices, scenario, parameter_scales, relative_rank_tolerance,
+            )? else {
+                admissible = false;
+                break;
+            };
+            if score.numerical_rank != 2 {
+                admissible = false;
+                break;
+            }
+            worst_case = worst_case.min(score.minimum_information_eigenvalue);
+            scenario_scores.push(score);
+        }
+        if !admissible {
+            continue;
+        }
+        robust_identifiable_design_count += 1;
+        let candidate = MultiNuisanceRobustDesignScore {
+            candidate_indices: indices.clone(),
+            worst_case_minimum_information_eigenvalue: worst_case,
+            scenario_scores,
+        };
+        let replace = best.as_ref().is_none_or(|incumbent| {
+            candidate.worst_case_minimum_information_eigenvalue
+                .total_cmp(&incumbent.worst_case_minimum_information_eigenvalue).is_gt()
+                || (candidate.worst_case_minimum_information_eigenvalue
+                    .total_cmp(&incumbent.worst_case_minimum_information_eigenvalue).is_eq()
+                    && candidate.candidate_indices < incumbent.candidate_indices)
+        });
+        if replace {
+            best = Some(candidate);
+        }
+    }
+    Ok(MultiNuisanceRobustDesignTournament {
+        observation_budget,
+        evaluated_design_count: designs.len(),
+        robust_identifiable_design_count,
+        robust_optimal: best.ok_or(IdentifiabilityError::NoRobustIdentifiableDesign)?,
+    })
+}
+
+pub fn multi_nuisance_correlated_reference_scenarios(
+) -> Vec<CorrelatedNoiseDesignScenario> {
+    let x_values = [-3.0_f64, -2.0, -1.0, 1.0, 2.0, 3.0];
+    let nominal = x_values.iter().map(|x| MultiNuisanceCandidateCondition {
+        physical_sensitivity: [x.powi(2), x.powi(3)],
+        nuisance_sensitivity: [1.0, *x],
+    }).collect();
+    let model_shift = x_values.iter().map(|x| MultiNuisanceCandidateCondition {
+        physical_sensitivity: [x.powi(2), x.powi(3) + 0.25 * x.powi(4)],
+        nuisance_sensitivity: [1.0, *x],
+    }).collect();
+    let identity = [
+        [1.0, 0.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0],
+    ];
+    let ar1 = [
+        [1.0, 0.45, 0.2025, 0.091125],
+        [0.45, 1.0, 0.45, 0.2025],
+        [0.2025, 0.45, 1.0, 0.45],
+        [0.091125, 0.2025, 0.45, 1.0],
+    ];
+    vec![
+        CorrelatedNoiseDesignScenario {
+            scenario_id: "nominal_polynomial_independent_noise".to_owned(),
+            candidates: nominal,
+            observation_covariance: identity,
+        },
+        CorrelatedNoiseDesignScenario {
+            scenario_id: "curvature_shift_correlated_ar1_noise".to_owned(),
+            candidates: model_shift,
+            observation_covariance: ar1,
+        },
+    ]
+}
+
+pub fn multi_nuisance_correlated_reference_self_check(
+) -> Result<(), IdentifiabilityError> {
+    let scenarios = multi_nuisance_correlated_reference_scenarios();
+    let robust = select_multi_nuisance_correlated_design(
+        &scenarios, 4, [1.0, 1.0], 1.0e-12, 200,
+    )?;
+    if robust.evaluated_design_count != 126
+        || robust.robust_identifiable_design_count != 14
+        || robust.robust_optimal.candidate_indices != [0, 2, 4, 5]
+        || (robust.robust_optimal.worst_case_minimum_information_eigenvalue
+            - 42.546743038933265).abs() > 1.0e-9
+        || robust.robust_optimal.scenario_scores.len() != 2
+        || (robust.robust_optimal.scenario_scores[1].minimum_information_eigenvalue
+            - 43.29584146959236).abs() > 1.0e-9
+    {
+        return Err(IdentifiabilityError::NonFiniteDerivedValue);
+    }
+    let nominal = select_multi_nuisance_correlated_design(
+        &scenarios[..1], 4, [1.0, 1.0], 1.0e-12, 200,
+    )?;
+    if nominal.robust_optimal.candidate_indices != [0, 2, 3, 5] {
+        return Err(IdentifiabilityError::NonFiniteDerivedValue);
+    }
+    let nominal_shifted = multi_nuisance_correlated_scenario_score(
+        &[0, 2, 3, 5], &scenarios[1], [1.0, 1.0], 1.0e-12,
+    )?.ok_or(IdentifiabilityError::NoRobustIdentifiableDesign)?;
+    if (nominal_shifted.minimum_information_eigenvalue - 27.647171014409295).abs() > 1.0e-9 {
+        return Err(IdentifiabilityError::NonFiniteDerivedValue);
+    }
+    let improvement = robust.robust_optimal.worst_case_minimum_information_eigenvalue
+        / nominal_shifted.minimum_information_eigenvalue - 1.0;
+    if (improvement - 0.5389185033347004).abs() > 1.0e-8 {
+        return Err(IdentifiabilityError::NonFiniteDerivedValue);
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod multi_nuisance_correlated_tests {
+    use super::*;
+
+    #[test]
+    fn correlated_multi_nuisance_maximin_beats_nominal_design_on_worst_case_information() {
+        let scenarios = multi_nuisance_correlated_reference_scenarios();
+        let result = select_multi_nuisance_correlated_design(
+            &scenarios, 4, [1.0, 1.0], 1.0e-12, 200,
+        ).unwrap();
+        assert_eq!(result.evaluated_design_count, 126);
+        assert_eq!(result.robust_identifiable_design_count, 14);
+        assert_eq!(result.robust_optimal.candidate_indices, [0, 2, 4, 5]);
+        assert!((result.robust_optimal.worst_case_minimum_information_eigenvalue
+            - 42.546743038933265).abs() < 1.0e-9);
+    }
+
+    #[test]
+    fn full_covariance_cholesky_whitening_preserves_correlation() {
+        let scenarios = multi_nuisance_correlated_reference_scenarios();
+        let lower = cholesky_covariance_4x4(&scenarios[1].observation_covariance).unwrap();
+        assert!(lower[0][0] > 0.0 && lower[1][0] != 0.0 && lower[3][0] != 0.0);
+    }
+
+    #[test]
+    fn nonsymmetric_covariance_is_rejected_without_silent_symmetrization() {
+        let mut scenarios = multi_nuisance_correlated_reference_scenarios();
+        scenarios[1].observation_covariance[0][1] += 0.1;
+        assert!(matches!(
+            select_multi_nuisance_correlated_design(&scenarios, 4, [1.0, 1.0], 1.0e-12, 200),
+            Err(IdentifiabilityError::AsymmetricCovariance { .. })
+        ));
+    }
+
+    #[test]
+    fn non_positive_definite_covariance_is_rejected_without_jitter() {
+        let mut scenarios = multi_nuisance_correlated_reference_scenarios();
+        scenarios[1].observation_covariance[3][3] = 0.0;
+        assert!(matches!(
+            select_multi_nuisance_correlated_design(&scenarios, 4, [1.0, 1.0], 1.0e-12, 200),
+            Err(IdentifiabilityError::NonPositiveDefiniteCovariance { .. })
+        ));
+    }
+
+    #[test]
+    fn physical_signal_fully_explained_by_nuisance_is_not_counted_from_roundoff() {
+        let scenarios = multi_nuisance_correlated_reference_scenarios();
+        let score = multi_nuisance_correlated_scenario_score(
+            &[0, 0, 3, 3], &scenarios[0], [1.0, 1.0], 1.0e-12,
+        ).unwrap().unwrap();
+        assert_eq!(score.numerical_rank, 0);
+        assert!(score.condition_number.is_none());
+    }
+
+    #[test]
+    fn rank_deficient_nuisance_designs_are_not_promoted() {
+        let mut scenarios = multi_nuisance_correlated_reference_scenarios();
+        for scenario in &mut scenarios {
+            for candidate in &mut scenario.candidates {
+                candidate.nuisance_sensitivity = [1.0, 1.0];
+            }
+        }
+        assert_eq!(
+            select_multi_nuisance_correlated_design(&scenarios, 4, [1.0, 1.0], 1.0e-12, 200)
+                .unwrap_err(),
+            IdentifiabilityError::NoRobustIdentifiableDesign
+        );
+    }
+
+    #[test]
+    fn correlated_reference_rejects_non_four_observation_budget() {
+        let scenarios = multi_nuisance_correlated_reference_scenarios();
+        assert_eq!(
+            select_multi_nuisance_correlated_design(&scenarios, 3, [1.0, 1.0], 1.0e-12, 200)
+                .unwrap_err(),
+            IdentifiabilityError::CorrelatedDesignRequiresFourObservations
+        );
+    }
+
+    #[test]
+    fn invalid_covariance_component_is_rejected() {
+        let mut scenarios = multi_nuisance_correlated_reference_scenarios();
+        scenarios[0].observation_covariance[1][2] = f64::NAN;
+        assert!(matches!(
+            select_multi_nuisance_correlated_design(&scenarios, 4, [1.0, 1.0], 1.0e-12, 200),
+            Err(IdentifiabilityError::NonFiniteCovariance { row: 1, column: 2 })
         ));
     }
 }
