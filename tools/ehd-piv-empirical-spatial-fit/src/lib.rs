@@ -57,6 +57,7 @@ pub struct EmpiricalSpatialFit {
     pub fit_config_id: String,
     pub protocol_fingerprint: String,
     pub reference_contract_id: String,
+    pub coordinates_m: Vec<[f64; 3]>,
     pub length_scale_m: f64,
     /// Correlated stationary component S, in (m/s)^2.
     pub spatial_component_covariance_m2_s2: Matrix3,
@@ -504,6 +505,7 @@ pub fn fit_spatial_error_kernel(
         fit_config_id: config.fit_config_id.clone(),
         protocol_fingerprint: config.protocol_fingerprint.clone(),
         reference_contract_id: config.reference_contract_id.clone(),
+        coordinates_m: coordinates.clone(),
         length_scale_m: best.length_scale_m,
         spatial_component_covariance_m2_s2: best.spatial_covariance,
         local_nugget_covariance_m2_s2: best.nugget_covariance,
@@ -577,12 +579,7 @@ pub fn validate_spatial_error_kernel(
     let coordinates = validate_fields(
         validation_fields,
         &fit.protocol_fingerprint,
-        Some(&fit.calibration_mean_bias_profile_m_s.iter().zip(
-            // Coordinates are carried in the fields and checked for mutual
-            // identity below; this placeholder is replaced by the first
-            // validation field's grid after validating its dimensions.
-            validation_fields.first().map(|f| f.coordinates_m.as_slice()).unwrap_or(&[])
-        ).map(|(bias, point)| { let _ = bias; *point }).collect::<Vec<_>>()),
+        Some(&fit.coordinates_m),
     )?;
     if fit.calibration_mean_bias_profile_m_s.len() != coordinates.len() {
         return Err(SpatialFitError::CoordinateCountMismatch);
