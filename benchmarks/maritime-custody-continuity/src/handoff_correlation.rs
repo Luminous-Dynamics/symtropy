@@ -315,7 +315,7 @@ mod tests {
     use crate::parse_events_tsv;
     use crate::parse_expectations_tsv;
 
-    fn fixtures() -> (Vec<super::CustodyExpectation>, Vec<CustodyEvent>) {
+    fn fixtures() -> (Vec<crate::CustodyExpectation>, Vec<CustodyEvent>) {
         (
             parse_expectations_tsv(include_str!("../data/expectations.tsv")).unwrap(),
             parse_events_tsv(include_str!("../data/events.tsv")).unwrap(),
@@ -554,7 +554,6 @@ mod tests {
         );
     }
 
-    #[test]
     #[test]
     fn conflicting_latest_event_revision_cannot_be_correlated() {
         let (_, mut events) = fixtures();
