@@ -28,8 +28,16 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+      - name: Apply rustfmt
+        run: cargo fmt --manifest-path tools/machine-capability-audit/Cargo.toml
       - name: Check formatting
         run: cargo fmt --manifest-path tools/machine-capability-audit/Cargo.toml -- --check
+      - name: Upload formatted Rust source for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine-capability-audit-rustfmt
+          path: tools/machine-capability-audit/src/main.rs
+          if-no-files-found: error
       - name: Run known-answer and adversarial tests
         run: cargo test --manifest-path tools/machine-capability-audit/Cargo.toml
       - name: Run explicit corpus audit
