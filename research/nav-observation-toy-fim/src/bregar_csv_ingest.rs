@@ -3,8 +3,9 @@
 //! The authors' converter skips the first two CSV lines, reads each data row
 //! without a header and uses the first 26 fields as metadata, with CIR samples
 //! starting at position 26. This module preserves that positional contract,
-//! validates the fixed header names, parses complex CIR cells, and partitions
-//! NLOS/position fields away from the controller view.
+//! preserves the two preamble lines without trusting their human-readable
+//! header labels, parses rows using the source-pinned positional map, decodes
+//! complex CIR cells, and partitions NLOS/position fields from the controller.
 //!
 //! This is a line-at-a-time parser: callers can stream a large archive without
 //! loading the whole CSV file into memory. It does not open ZIP files or parse
@@ -263,6 +264,7 @@ fn parse_csv_record(record: &str) -> Result<Vec<String>, BregarCsvIngestError> {
     let mut current = String::new();
     let mut chars = record.chars().peekable();
     let mut in_quotes = false;
+    let mut closed_quote = false;
 
     while let Some(character) = chars.next() {
         if in_quotes {
@@ -272,9 +274,19 @@ fn parse_csv_record(record: &str) -> Result<Vec<String>, BregarCsvIngestError> {
                     current.push('"');
                 } else {
                     in_quotes = false;
+                    closed_quote = true;
                 }
             } else {
                 current.push(character);
+            }
+        } else if closed_quote {
+            match character {
+                ',' => {
+                    fields.push(std::mem::take(&mut current));
+                    closed_quote = false;
+                }
+                ' ' | '\\t' => {}
+                _ => return Err(BregarCsvIngestError::InvalidCsvQuoting),
             }
         } else {
             match character {
@@ -561,6 +573,18 @@ mod tests {
         assert_eq!(
             parse_python_complex("2.5"),
             Ok(ComplexCirSample { real: 2.5, imaginary: 0.0 })
+        );
+    }
+
+
+    #[test]
+    fn rejects_non_delimiter_characters_after_a_quoted_cell() {
+        let mut fields = row_fields();
+        fields.extend((0..200).map(|_| "0.0+0.0j".to_owned()));
+        fields[0] = "\"T1\"x".to_owned();
+        assert_eq!(
+            parse_bregar_csv_data_row("environment0/ch1_A1.csv", 0, &fields.join(",")),
+            Err(BregarCsvIngestError::InvalidCsvQuoting)
         );
     }
 
