@@ -1,0 +1,394 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/av-action-argument-replay-v1.schema.json",
+  "title": "AV Action Argument Replay Contract v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["forecast", "acceptance", "result"],
+  "properties": {
+    "forecast": {"$ref": "#/$defs/actionForecast"},
+    "acceptance": {"$ref": "#/$defs/requestAcceptance"},
+    "result": {"$ref": "#/$defs/actionResult"}
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{64}$"
+    },
+    "sourceIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_id", "source_content_sha256", "clock_domain_id", "clock_generation"],
+      "properties": {
+        "source_id": {"type": "string", "minLength": 1},
+        "source_content_sha256": {"$ref": "#/$defs/sha256"},
+        "clock_domain_id": {"type": "string", "minLength": 1},
+        "clock_generation": {"type": "integer", "minimum": 0}
+      }
+    },
+    "sourceInterval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start_ns", "end_ns"],
+      "properties": {
+        "start_ns": {"type": "integer", "minimum": 0},
+        "end_ns": {"type": "integer", "minimum": 1}
+      }
+    },
+    "normalizedRoi": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["coordinate_space", "region"],
+      "properties": {
+        "coordinate_space": {"const": "normalized"},
+        "region": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["x_bp", "y_bp", "width_bp", "height_bp"],
+          "properties": {
+            "x_bp": {"type": "integer", "minimum": 0, "maximum": 10000},
+            "y_bp": {"type": "integer", "minimum": 0, "maximum": 10000},
+            "width_bp": {"type": "integer", "minimum": 1, "maximum": 10000},
+            "height_bp": {"type": "integer", "minimum": 1, "maximum": 10000}
+          }
+        }
+      }
+    },
+    "pixelRoi": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["coordinate_space", "region"],
+      "properties": {
+        "coordinate_space": {"const": "pixels"},
+        "region": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["x", "y", "width", "height", "source_width", "source_height"],
+          "properties": {
+            "x": {"type": "integer", "minimum": 0},
+            "y": {"type": "integer", "minimum": 0},
+            "width": {"type": "integer", "minimum": 1},
+            "height": {"type": "integer", "minimum": 1},
+            "source_width": {"type": "integer", "minimum": 1},
+            "source_height": {"type": "integer", "minimum": 1}
+          }
+        }
+      }
+    },
+    "outputResolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width", "height"],
+      "properties": {
+        "width": {"type": "integer", "minimum": 1},
+        "height": {"type": "integer", "minimum": 1}
+      }
+    },
+    "fixedRateSampling": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sampling_mode", "fps_numerator", "fps_denominator", "phase_ns", "frame_count"],
+      "properties": {
+        "sampling_mode": {"const": "fixed_rate"},
+        "fps_numerator": {"type": "integer", "minimum": 1},
+        "fps_denominator": {"type": "integer", "minimum": 1},
+        "phase_ns": {"type": "integer", "minimum": 0},
+        "frame_count": {"type": "integer", "minimum": 1}
+      }
+    },
+    "explicitTimestampSampling": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sampling_mode", "timestamps_ns"],
+      "properties": {
+        "sampling_mode": {"const": "explicit_timestamps"},
+        "timestamps_ns": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "integer", "minimum": 0}
+        }
+      }
+    },
+    "videoCropParameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sampling", "roi", "output_resolution",
+        "crop_policy_id", "crop_policy_sha256", "preprocessing_sha256"
+      ],
+      "properties": {
+        "sampling": {
+          "oneOf": [
+            {"$ref": "#/$defs/fixedRateSampling"},
+            {"$ref": "#/$defs/explicitTimestampSampling"}
+          ]
+        },
+        "roi": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/normalizedRoi"},
+            {"$ref": "#/$defs/pixelRoi"}
+          ]
+        },
+        "output_resolution": {"$ref": "#/$defs/outputResolution"},
+        "crop_policy_id": {"type": "string", "minLength": 1},
+        "crop_policy_sha256": {"$ref": "#/$defs/sha256"},
+        "preprocessing_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "audioWindowParameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start_sample", "end_sample", "sample_rate_hz", "channels",
+        "sample_format", "chunk_frames", "overlap_frames", "transform_sha256"
+      ],
+      "properties": {
+        "start_sample": {"type": "integer", "minimum": 0},
+        "end_sample": {"type": "integer", "minimum": 1},
+        "sample_rate_hz": {"type": "integer", "minimum": 1},
+        "channels": {"type": "integer", "minimum": 1},
+        "sample_format": {"enum": ["s16_le", "s24_le", "s32_le", "f32_le"]},
+        "chunk_frames": {"type": "integer", "minimum": 1},
+        "overlap_frames": {"type": "integer", "minimum": 0},
+        "transform_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "feedbackRequestParameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_role", "feedback_kind", "expected_delivery_tick"],
+      "properties": {
+        "source_role": {"enum": ["user_simulator", "human_user", "operator"]},
+        "feedback_kind": {"enum": ["hint", "clarification", "correction", "challenge", "request"]},
+        "expected_delivery_tick": {"type": "integer", "minimum": 1}
+      }
+    },
+    "actionManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version", "action_id", "source", "requested_interval",
+        "timestamp_tolerance_ns", "parameters"
+      ],
+      "properties": {
+        "schema_version": {"const": 1},
+        "action_id": {"type": "string", "minLength": 1},
+        "source": {"$ref": "#/$defs/sourceIdentity"},
+        "requested_interval": {"$ref": "#/$defs/sourceInterval"},
+        "timestamp_tolerance_ns": {"type": "integer", "minimum": 0},
+        "parameters": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["action_kind", "parameters"],
+              "properties": {
+                "action_kind": {"const": "video_crop"},
+                "parameters": {"$ref": "#/$defs/videoCropParameters"}
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["action_kind", "parameters"],
+              "properties": {
+                "action_kind": {"const": "audio_window"},
+                "parameters": {"$ref": "#/$defs/audioWindowParameters"}
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["action_kind", "parameters"],
+              "properties": {
+                "action_kind": {"const": "feedback_request"},
+                "parameters": {"$ref": "#/$defs/feedbackRequestParameters"}
+              }
+            }
+          ]
+        }
+      }
+    },
+    "forecastAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action_id", "manifest", "manifest_sha256"],
+      "properties": {
+        "action_id": {"type": "string", "minLength": 1},
+        "manifest": {"$ref": "#/$defs/actionManifest"},
+        "manifest_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "evsiForecast": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_id", "estimated_gross_evsi", "lower_gross_evsi", "upper_gross_evsi"
+      ],
+      "properties": {
+        "action_id": {"type": "string", "minLength": 1},
+        "estimated_gross_evsi": {"type": "number"},
+        "lower_gross_evsi": {"type": "number"},
+        "upper_gross_evsi": {"type": "number"}
+      }
+    },
+    "actionForecast": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_id", "turn_id", "transcript_head_sha256", "eligible_action_ids",
+        "actions", "evsi_forecasts", "selected_action_id", "selected_manifest_sha256"
+      ],
+      "properties": {
+        "episode_id": {"type": "string", "minLength": 1},
+        "turn_id": {"type": "integer", "minimum": 0},
+        "transcript_head_sha256": {"$ref": "#/$defs/sha256"},
+        "eligible_action_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "not": {"const": "__stop__"}}
+        },
+        "actions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/forecastAction"}
+        },
+        "evsi_forecasts": {
+          "type": "array",
+          "minItems": 2,
+          "items": {"$ref": "#/$defs/evsiForecast"}
+        },
+        "selected_action_id": {"type": "string", "minLength": 1},
+        "selected_manifest_sha256": {
+          "oneOf": [
+            {"$ref": "#/$defs/sha256"},
+            {"type": "null"}
+          ]
+        }
+      }
+    },
+    "requestAcceptance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_id", "turn_id", "request_id", "action_id",
+        "parameter_manifest_sha256", "parent_transcript_head_sha256",
+        "accepted_tick", "expected_arrival_tick", "decision_deadline_tick"
+      ],
+      "properties": {
+        "episode_id": {"type": "string", "minLength": 1},
+        "turn_id": {"type": "integer", "minimum": 0},
+        "request_id": {"type": "string", "minLength": 1},
+        "action_id": {"type": "string", "minLength": 1, "not": {"const": "__stop__"}},
+        "parameter_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "parent_transcript_head_sha256": {"$ref": "#/$defs/sha256"},
+        "accepted_tick": {"type": "integer", "minimum": 0},
+        "expected_arrival_tick": {"type": "integer", "minimum": 0},
+        "decision_deadline_tick": {"type": "integer", "minimum": 0}
+      }
+    },
+    "deliveredFrame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["observation_ref", "frame_index", "capture_timestamp_ns", "byte_count"],
+      "properties": {
+        "observation_ref": {"type": "string", "minLength": 1},
+        "frame_index": {"type": "integer", "minimum": 0},
+        "capture_timestamp_ns": {"type": "integer", "minimum": 0},
+        "byte_count": {"type": "integer", "minimum": 1}
+      }
+    },
+    "deliveredAudioRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start_sample", "end_sample", "sample_rate_hz", "channels", "sample_format"
+      ],
+      "properties": {
+        "start_sample": {"type": "integer", "minimum": 0},
+        "end_sample": {"type": "integer", "minimum": 1},
+        "sample_rate_hz": {"type": "integer", "minimum": 1},
+        "channels": {"type": "integer", "minimum": 1},
+        "sample_format": {"enum": ["s16_le", "s24_le", "s32_le", "f32_le"]}
+      }
+    },
+    "deliveredFeedback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "feedback_id", "source_role", "feedback_kind", "delivered_tick", "content_sha256"
+      ],
+      "properties": {
+        "feedback_id": {"type": "string", "minLength": 1},
+        "source_role": {"enum": ["user_simulator", "human_user", "operator"]},
+        "feedback_kind": {"enum": ["hint", "clarification", "correction", "challenge", "request"]},
+        "delivered_tick": {"type": "integer", "minimum": 0},
+        "content_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "actionResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_id", "turn_id", "request_id", "action_id",
+        "parameter_manifest_sha256", "parent_transcript_head_sha256",
+        "status", "result_tick", "delivered_frames", "delivered_roi",
+        "delivered_output_resolution", "delivered_crop_policy_sha256",
+        "delivered_preprocessing_sha256", "delivered_audio", "delivered_feedback",
+        "actual_resource_digest_sha256", "result_event_sha256"
+      ],
+      "properties": {
+        "episode_id": {"type": "string", "minLength": 1},
+        "turn_id": {"type": "integer", "minimum": 0},
+        "request_id": {"type": "string", "minLength": 1},
+        "action_id": {"type": "string", "minLength": 1},
+        "parameter_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "parent_transcript_head_sha256": {"$ref": "#/$defs/sha256"},
+        "status": {"enum": ["delivered", "partial", "late", "unavailable", "failed", "cancelled"]},
+        "result_tick": {"type": "integer", "minimum": 0},
+        "delivered_frames": {"type": "array", "items": {"$ref": "#/$defs/deliveredFrame"}},
+        "delivered_roi": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/normalizedRoi"},
+            {"$ref": "#/$defs/pixelRoi"}
+          ]
+        },
+        "delivered_output_resolution": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/outputResolution"}
+          ]
+        },
+        "delivered_crop_policy_sha256": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/sha256"}
+          ]
+        },
+        "delivered_preprocessing_sha256": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/sha256"}
+          ]
+        },
+        "delivered_audio": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/deliveredAudioRange"}
+          ]
+        },
+        "delivered_feedback": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/deliveredFeedback"}
+          ]
+        },
+        "actual_resource_digest_sha256": {"$ref": "#/$defs/sha256"},
+        "result_event_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  }
+}
