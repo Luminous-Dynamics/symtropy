@@ -86,7 +86,7 @@ pub struct CommitmentContract {
     pub resource_allocations: Vec<JournalResourceAllocation>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ResourceTerminalEvidence {
     pub resource_id: String,
@@ -110,7 +110,7 @@ pub struct AppendRequest {
     pub contract: Option<CommitmentContract>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct CommitmentEvent {
     pub sequence: u64,
@@ -130,7 +130,7 @@ pub struct CommitmentEvent {
     pub event_digest: String,
 }
 
-#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct JournalSnapshot {
     pub version: u64,
@@ -149,7 +149,7 @@ pub struct CommitmentReceipt {
     pub idempotent_replay: bool,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize)]
 pub struct AppendResult {
     pub snapshot: JournalSnapshot,
     pub receipt: CommitmentReceipt,
