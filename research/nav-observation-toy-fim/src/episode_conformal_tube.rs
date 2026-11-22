@@ -417,7 +417,7 @@ mod tests {
             independence_group_id: id + 10_000,
             evaluated_position_count: position_count,
             maximum_position_error_m: error_m,
-            source_manifest_sha256: [id as u8; SHA256_BYTES],
+            source_manifest_sha256: [((id % 255) + 1) as u8; SHA256_BYTES],
         }
     }
 
