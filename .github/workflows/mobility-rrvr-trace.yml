@@ -48,7 +48,7 @@ jobs:
           set -euo pipefail
           MODEL="research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla"
           MAP="research/mobility-rrvr-trace/model_action_event_mapping_v0_1.tsv"
-          map_count=$(grep -cv '^#' "$MAP")
+          map_count=$(grep -Ev '^(#|$)' "$MAP" | wc -l | tr -d ' ')
           next_action_count=$(awk '
             /^Next ==/ { in_next=1; next }
             /^Spec ==/ { in_next=0 }
