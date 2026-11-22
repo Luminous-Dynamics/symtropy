@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "research/nav-transition-validator/**"
+      - "docs/research/navigation-transition-v0.1/**"
       - "research/nav-observation-toy-fim/**"
       - "research/miluv-ingest/**"
       - ".github/workflows/navigation-research-rust.yml"
