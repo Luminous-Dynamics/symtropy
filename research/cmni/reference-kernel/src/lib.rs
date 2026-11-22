@@ -29,8 +29,8 @@ pub use design_decision::{
 
 mod continuous_dependence_envelope;
 pub use continuous_dependence_envelope::{
-    bound_continuous_source_dependence, ContinuousDependenceEIGEnvelope,
-    CorrelationCoefficientBounds, PairwiseCorrelationIntervalSet,
+    bound_continuous_source_dependence, continuous_dependence_eig_utility_interval,
+    ContinuousDependenceEIGEnvelope, CorrelationCoefficientBounds, PairwiseCorrelationIntervalSet,
 };
 
 mod detector;
