@@ -50,7 +50,83 @@
       "scale_aware_rank_coordinates",
       "positive_variance_validation",
       "finite_input_validation"
-    ]
+    ],
+    "design_tournament": {
+      "path": "tools/ehd-reference-audit/src/identifiability.rs",
+      "algorithm": "deterministic_exhaustive_discrete_design_enumeration",
+      "criteria": [
+        "D_optimal_maximize_log_determinant_information",
+        "E_optimal_maximize_minimum_information_eigenvalue"
+      ],
+      "observation_budget": 3,
+      "candidate_resource_cost": "one_equal_unit_per_observation",
+      "candidate_conditions": [
+        {
+          "index": 0,
+          "sensitivity": [
+            -3,
+            -3
+          ],
+          "variance": 1
+        },
+        {
+          "index": 1,
+          "sensitivity": [
+            -3,
+            -2
+          ],
+          "variance": 1
+        },
+        {
+          "index": 2,
+          "sensitivity": [
+            -3,
+            -1
+          ],
+          "variance": 1
+        },
+        {
+          "index": 3,
+          "sensitivity": [
+            -2,
+            0
+          ],
+          "variance": 1
+        }
+      ],
+      "evaluated_design_count": 20,
+      "max_observation_budget": 32,
+      "max_evaluations": 100,
+      "expected_d_optimal": {
+        "candidate_indices": [
+          0,
+          2,
+          3
+        ],
+        "determinant_information": 76,
+        "log_determinant_information": 4.330733340286331,
+        "minimum_information_eigenvalue": 2.583592135001262,
+        "condition_number": 3.3742933990922253
+      },
+      "expected_e_optimal": {
+        "candidate_indices": [
+          0,
+          3,
+          3
+        ],
+        "determinant_information": 72,
+        "log_determinant_information": 4.276666119016055,
+        "minimum_information_eigenvalue": 3.1511421982038947,
+        "condition_number": 2.6927637156695297
+      },
+      "interpretation": {
+        "d_optimality_prefers_total_information_volume": true,
+        "e_optimality_prefers_weakest_parameter_direction": true,
+        "e_optimal_minimum_eigenvalue_improvement_over_d_optimal": 0.21967479135492707,
+        "d_optimal_log_determinant_advantage_over_e_optimal": 0.054067221270275745
+      },
+      "claim_boundary": "All sensitivity vectors are abstract manufactured candidates, not EHD operating points or experimental recommendations."
+    }
   },
   "manufactured_cases": [
     {
@@ -212,7 +288,14 @@
     "parameter_scaling_changes_information_in_declared_coordinates",
     "independent_variance_weights_are_applied",
     "jacobi_spectrum_retains_a_small_but_resolvable_singular_direction",
-    "offline_reference_self_check"
+    "offline_reference_self_check",
+    "d_and_e_optimal_designs_can_differ_at_the_same_budget",
+    "design_tournament_rejects_search_space_over_limit",
+    "design_tournament_rejects_all_rank_deficient_allocations",
+    "design_tournament_rejects_observation_budget_above_recursion_bound",
+    "design_tournament_rejects_nonpositive_candidate_variance",
+    "d_and_e_optimal_reference_self_check",
+    "contract_audit_rejects_candidate_sensitivity_change"
   ],
   "limitations": [
     "two_parameters_only",
@@ -224,7 +307,11 @@
     "no_model_discrimination",
     "no_sequential_design_optimizer",
     "no_physical_ehd_parameter_estimation",
-    "no_physical_experiment"
+    "no_physical_experiment",
+    "exhaustive_discrete_designs_only",
+    "equal_unit_observation_cost_only",
+    "no_continuous_design_optimizer",
+    "no_real_ehd_operating_condition_recommendations"
   ],
   "prospective_targets": {
     "nominal_95_percent_interval_empirical_coverage_range": [

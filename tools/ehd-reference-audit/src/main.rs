@@ -2069,13 +2069,79 @@ pub fn audit_identifiability_contract(root: &Value) -> Vec<String> {
     push_if_missing(
         &mut findings,
         at(root, &["test_families"]).and_then(Value::as_array)
-            .is_some_and(|rows| rows.len() == 9
+            .is_some_and(|rows| rows.len() == 16
                 && rows.iter().any(|row| row.as_str() == Some("repeated_identical_conditions_do_not_repair_rank_deficiency"))
                 && rows.iter().any(|row| row.as_str() == Some("independent_variance_weights_are_applied"))
                 && rows.iter().any(|row| row.as_str() == Some("jacobi_spectrum_retains_a_small_but_resolvable_singular_direction"))
+                && rows.iter().any(|row| row.as_str() == Some("d_and_e_optimal_designs_can_differ_at_the_same_budget"))
+                && rows.iter().any(|row| row.as_str() == Some("design_tournament_rejects_search_space_over_limit"))
                 && rows.iter().any(|row| row.as_str() == Some("offline_reference_self_check"))),
         "IDENTIFIABILITY_TEST_MATRIX",
-        "identifiability benchmark must retain the eight authored test families",
+        "identifiability benchmark must retain all fifteen rank, stability, tournament and self-check families",
+    );
+    let tournament = at(root, &["reference_implementation", "design_tournament"]);
+    push_if_missing(
+        &mut findings,
+        tournament.is_some_and(|value| {
+            text_at(value, &["algorithm"])
+                == Some("deterministic_exhaustive_discrete_design_enumeration")
+                && at(value, &["criteria"]).and_then(Value::as_array)
+                    .is_some_and(|rows| rows.len() == 2
+                        && rows[0].as_str() == Some("D_optimal_maximize_log_determinant_information")
+                        && rows[1].as_str() == Some("E_optimal_maximize_minimum_information_eigenvalue"))
+                && at(value, &["observation_budget"]).and_then(Value::as_u64) == Some(3)
+                && at(value, &["evaluated_design_count"]).and_then(Value::as_u64) == Some(20)
+                && at(value, &["max_observation_budget"]).and_then(Value::as_u64) == Some(32)
+                && at(value, &["candidate_conditions"]).and_then(Value::as_array)
+                    .is_some_and(|rows| rows.len() == 4
+                        && rows[0].get("index").and_then(Value::as_u64) == Some(0)
+                        && rows[0].get("sensitivity").and_then(Value::as_array)
+                            .is_some_and(|cols| cols.len() == 2
+                                && cols[0].as_f64() == Some(-3.0)
+                                && cols[1].as_f64() == Some(-3.0))
+                        && rows[1].get("index").and_then(Value::as_u64) == Some(1)
+                        && rows[1].get("sensitivity").and_then(Value::as_array)
+                            .is_some_and(|cols| cols.len() == 2
+                                && cols[0].as_f64() == Some(-3.0)
+                                && cols[1].as_f64() == Some(-2.0))
+                        && rows[2].get("index").and_then(Value::as_u64) == Some(2)
+                        && rows[2].get("sensitivity").and_then(Value::as_array)
+                            .is_some_and(|cols| cols.len() == 2
+                                && cols[0].as_f64() == Some(-3.0)
+                                && cols[1].as_f64() == Some(-1.0))
+                        && rows[3].get("index").and_then(Value::as_u64) == Some(3)
+                        && rows[3].get("sensitivity").and_then(Value::as_array)
+                            .is_some_and(|cols| cols.len() == 2
+                                && cols[0].as_f64() == Some(-2.0)
+                                && cols[1].as_f64() == Some(0.0))
+                        && rows.iter().all(|row| row.get("variance").and_then(Value::as_f64) == Some(1.0)))
+                && at(value, &["expected_d_optimal", "candidate_indices"]).and_then(Value::as_array)
+                    .is_some_and(|rows| rows.len() == 3
+                        && rows[0].as_u64() == Some(0)
+                        && rows[1].as_u64() == Some(2)
+                        && rows[2].as_u64() == Some(3))
+                && at(value, &["expected_e_optimal", "candidate_indices"]).and_then(Value::as_array)
+                    .is_some_and(|rows| rows.len() == 3
+                        && rows[0].as_u64() == Some(0)
+                        && rows[1].as_u64() == Some(3)
+                        && rows[2].as_u64() == Some(3))
+                && number_at(value, &["expected_e_optimal", "minimum_information_eigenvalue"])
+                    .is_some_and(|value| (value - 3.1511421982038947).abs() < 1.0e-10)
+                && number_at(value, &["expected_d_optimal", "minimum_information_eigenvalue"])
+                    .is_some_and(|value| (value - 2.583592135001262).abs() < 1.0e-10)
+                && number_at(value, &["expected_d_optimal", "determinant_information"]) == Some(76.0)
+                && number_at(value, &["expected_e_optimal", "determinant_information"]) == Some(72.0)
+                && number_at(value, &["expected_e_optimal", "minimum_information_eigenvalue"])
+                    .zip(number_at(value, &["expected_d_optimal", "minimum_information_eigenvalue"]))
+                    .is_some_and(|(e, d)| e > d)
+                && number_at(value, &["expected_d_optimal", "log_determinant_information"])
+                    .zip(number_at(value, &["expected_e_optimal", "log_determinant_information"]))
+                    .is_some_and(|(d, e)| d > e)
+                && text_at(value, &["claim_boundary"])
+                    .is_some_and(|claim| claim.contains("not EHD operating points")))
+        }),
+        "IDENTIFIABILITY_DESIGN_TOURNAMENT",
+        "matched-budget D/E tournament outcomes, criteria and manufactured claim boundary must remain explicit",
     );
     let limits = at(root, &["limitations"]).and_then(Value::as_array);
     push_if_missing(
@@ -2274,6 +2340,13 @@ fn main() {
             false
         }
     };
+    let design_tournament_ok = match identifiability::tournament_reference_self_check() {
+        Ok(()) => true,
+        Err(error) => {
+            findings.push(format!("IDENTIFIABILITY_DESIGN_TOURNAMENT_SELF_CHECK: {error}"));
+            false
+        }
+    };
     if findings.is_empty() {
         let count = len_at(&atlas, &["source_records"]).unwrap_or(0);
         let system_count = len_at(&atlas, &["system_integration_references"]).unwrap_or(0);
@@ -2312,7 +2385,10 @@ fn main() {
         if identifiability_ok {
             println!("two-parameter experiment-identifiability reference self-check: passed");
         }
-        println!("scope: source structure and analytic reference checks only; no physical V&V, production ALE, TPE(1/2), nonlinear profile likelihood, complete collisional-energy closure or durable exactly-once claim");
+        if design_tournament_ok {
+            println!("matched-budget D/E discrete experiment-design tournament self-check: passed");
+        }
+        println!("scope: source structure and analytic reference checks only; no physical V&V, production ALE, TPE(1/2), nonlinear profile likelihood, continuous design optimization, complete collisional-energy closure or durable exactly-once claim");
     } else {
         eprintln!("FAIL: {label} ({} finding(s))", findings.len());
         for finding in findings {
@@ -2978,6 +3054,27 @@ mod identifiability_contract_tests {
         value["parameter_contract"]["correlated_covariance_supported"] = Value::Bool(true);
         assert!(audit_identifiability_contract(&value).iter().any(|finding| {
             finding.starts_with("IDENTIFIABILITY_PARAMETER_CONTRACT")
+        }));
+    }
+
+
+    #[test]
+    fn identifiability_contract_rejects_candidate_sensitivity_change() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_IDENTIFIABILITY).unwrap();
+        value["reference_implementation"]["design_tournament"]["candidate_conditions"][0]
+            ["sensitivity"][0] = serde_json::json!(-4.0);
+        assert!(audit_identifiability_contract(&value).iter().any(|finding| {
+            finding.starts_with("IDENTIFIABILITY_DESIGN_TOURNAMENT")
+        }));
+    }
+
+    #[test]
+    fn identifiability_contract_requires_distinct_d_and_e_optimal_selections() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_IDENTIFIABILITY).unwrap();
+        value["reference_implementation"]["design_tournament"]["expected_e_optimal"]
+            ["candidate_indices"] = serde_json::json!([0, 2, 3]);
+        assert!(audit_identifiability_contract(&value).iter().any(|finding| {
+            finding.starts_with("IDENTIFIABILITY_DESIGN_TOURNAMENT")
         }));
     }
 }
