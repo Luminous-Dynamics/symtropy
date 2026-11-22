@@ -250,6 +250,25 @@ fn validate_physical_inertia3(matrix: &[[f64; 3]; 3], path: &str) -> Result<(), 
         diagonalized = rotated;
     }
 
+    // A bounded iteration count is not itself a convergence certificate.
+    // Refuse to classify the inertia tensor if Jacobi's residual is still
+    // above the declared dimensionless tolerance.
+    let maximum_off_diagonal = [
+        diagonalized[0][1].abs(),
+        diagonalized[0][2].abs(),
+        diagonalized[1][2].abs(),
+    ]
+    .into_iter()
+    .fold(0.0_f64, f64::max);
+    if !maximum_off_diagonal.is_finite()
+        || maximum_off_diagonal > MATRIX_RELATIVE_TOLERANCE
+    {
+        return Err(ValidationError::new(
+            path,
+            "principal-moment eigensolve did not converge to the relative tolerance",
+        ));
+    }
+
     let mut principal = [diagonalized[0][0], diagonalized[1][1], diagonalized[2][2]];
     principal.sort_by(f64::total_cmp);
     let largest = principal[2].max(0.0);
@@ -1817,6 +1836,40 @@ mod tests {
                 "triangle-violating inertia accepted at positive scale {scale:e}"
             );
         }
+    }
+
+    #[test]
+    fn inertia_triangle_validation_is_rotation_covariant_for_anisotropic_tensors() {
+        // A non-axis-aligned orthogonal frame change creates off-diagonal
+        // entries while preserving the tensor's principal moments.
+        let rotation = [[0.6, -0.8, 0.0], [0.8, 0.6, 0.0], [0.0, 0.0, 1.0]];
+        let rotate_tensor = |tensor: [[f64; 3]; 3]| {
+            std::array::from_fn(|row| {
+                std::array::from_fn(|column| {
+                    (0..3)
+                        .map(|left| {
+                            (0..3)
+                                .map(|right| {
+                                    rotation[row][left]
+                                        * tensor[left][right]
+                                        * rotation[column][right]
+                                })
+                                .sum::<f64>()
+                        })
+                        .sum::<f64>()
+                })
+            })
+        };
+
+        let valid_principal = [[1.5, 0.0, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 2.5]];
+        let invalid_principal = [[1.0, 0.0, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 4.0]];
+        let valid_rotated = rotate_tensor(valid_principal);
+        let invalid_rotated = rotate_tensor(invalid_principal);
+
+        assert!((valid_rotated[0][1]).abs() > 0.1);
+        assert!((invalid_rotated[0][1]).abs() > 0.1);
+        assert!(validate_physical_inertia3(&valid_rotated, "inertia").is_ok());
+        assert!(validate_physical_inertia3(&invalid_rotated, "inertia").is_err());
     }
 
     #[test]
