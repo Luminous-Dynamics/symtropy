@@ -6,7 +6,6 @@
     {
       "scenario_id": "marked-pod-with-dead-time-and-outages",
       "configuration_id": "synthetic-config-a",
-      "exposure_horizon": 3600,
       "events": [
         {
           "event_id": "a01",
@@ -110,7 +109,6 @@
     {
       "scenario_id": "shared-common-cause-suppression",
       "configuration_id": "synthetic-config-b",
-      "exposure_horizon": 120,
       "events": [
         {
           "event_id": "b01",
@@ -173,7 +171,6 @@
     {
       "scenario_id": "separate-false-positive-process",
       "configuration_id": "synthetic-config-c",
-      "exposure_horizon": 600,
       "events": [
         {
           "event_id": "c01",
