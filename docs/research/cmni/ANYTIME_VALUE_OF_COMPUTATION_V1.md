@@ -122,3 +122,53 @@ The present Rust module only compares caller-supplied intervals. It does not:
 - establish real-world measurement independence.
 
 The module is a contract and regression-test substrate for those later components, not yet a complete value-of-computation engine.
+
+
+## 8. Exact finite-state value-of-information policy
+
+The kernel now includes `research/cmni/reference-kernel/src/decision_value.rs`, an exact one-step decision oracle. It computes expected value of sample information (EVSI) for finite state, action, and outcome sets:
+
+\[
+\operatorname{EVSI}(Z)=
+\mathbb E_Z\left[\max\left\{
+\max_a \mathbb E[U(a,\theta)\mid Z],\,
+U_{\mathrm{abstain}}
+\right\}\right]
+-
+\max\left\{
+\max_a \mathbb E[U(a,\theta)],\,
+U_{\mathrm{abstain}}
+\right\}.
+\]
+
+Net benefit of sampling is
+
+\[
+\operatorname{ENBS}(Z)=\operatorname{EVSI}(Z)-c_Z\lambda_c,
+\]
+
+where (c_Z) is acquisition cost and (lambda_c) is the caller-declared conversion from cost units to utility units. The hard remaining budget is enforced separately.
+
+An acquisition may represent low/high-fidelity simulation, posterior sampling, independent calibration, source documentation, or human expert review. Its likelihood matrix is state-major and must describe the full conditional distribution of possible outcomes given each state. This means shared-source dependence belongs in the likelihood model, not in an after-the-fact penalty.
+
+Only options with a non-empty source/dependence qualification receipt are allowed to influence a qualified recommendation. Unqualified options are counted and skipped. The function returns one of:
+- acquire the qualified option with the highest positive net benefit above the declared threshold;
+- select the best current action when it beats abstention and no acquisition is worth its cost;
+- abstain when no action beats the abstention utility and no qualified positive-value information option exists.
+
+The function is exact for the declared finite-state model, but one-step and myopic. It does not solve a multi-stage campaign tree, generate likelihoods, authenticate receipt IDs, infer posterior states from real data, or guarantee that a physical likelihood is correct.
+
+### Synthetic exact oracle
+
+The machine-readable fixture `research/cmni/fixtures/evsi-cost-aware-acquisition-v1.json` defines two equally likely states and an intervention with utilities (100) and (-30). Current expected utility is (35), while perfect information has value (15).
+
+A perfect high-fidelity diagnostic has EVSI (15), costs (14), and therefore has net sampling benefit (1). A partial low-fidelity diagnostic has EVSI (7), costs (1), and has net benefit (6). The policy correctly chooses the cheaper partial information rather than maximizing raw EVSI. The Rust tests independently encode these exact values and check EVPI as an upper bound on EVSI.
+
+This fixture is entirely synthetic. The receipt IDs are placeholders; no actual physical calibration is qualified by the fixture.
+
+### Research references
+
+- Expected value of sample information and expected net benefit of sampling: https://www.degruyterbrill.com/document/doi/10.1515/em-2021-0012/html
+- Guo et al. (2026), *Constrained Bayesian Experimental Design via Online Planning*, ICML 2026, PMLR 306: https://proceedings.mlr.press/v306/guo26g.html
+
+The next step is a small exact scenario-tree campaign oracle, using this one-step EVSI policy as a myopic baseline. See issue #6889.
