@@ -78,7 +78,7 @@ fn controller_allowlist(stream: MiluvStream) -> BTreeSet<&'static str> {
 fn evaluator_truth_allowlist(stream: MiluvStream) -> BTreeSet<&'static str> {
     let fields: &[&str] = match stream {
         MiluvStream::UwbRange => &["gt_range", "bias", "bias_raw"],
-        MiluvStream::UwbPassive => &["gt_range_n", "bias_n", "bias_raw_n"],
+        MiluvStream::UwbPassive => &["gt_range_n", "bias_n", "bias_raw_n", "gt_range", "bias", "bias_raw"],
         MiluvStream::Mocap => &[
             "timestamp", "pose.position.x", "pose.position.y", "pose.position.z",
             "pose.orientation.x", "pose.orientation.y", "pose.orientation.z", "pose.orientation.w",
