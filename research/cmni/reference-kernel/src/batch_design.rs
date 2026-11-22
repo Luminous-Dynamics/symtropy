@@ -5,9 +5,7 @@
 //! linear-Gaussian posterior using the full observation covariance assembled
 //! from independent noise and named shared uncertainty sources.
 
-use crate::common_cause_covariance::{
-    assemble_joint_experiment_covariance, ExperimentNoiseModel,
-};
+use crate::common_cause_covariance::{assemble_joint_experiment_covariance, ExperimentNoiseModel};
 use crate::ModelError;
 use std::collections::BTreeSet;
 
@@ -116,7 +114,10 @@ pub fn enumerate_batch_portfolios(
         {
             return Err(ModelError::NonFiniteValue("batch_design_jacobian"));
         }
-        if candidate.noise_model.independent_observation_covariance.len()
+        if candidate
+            .noise_model
+            .independent_observation_covariance
+            .len()
             != candidate.design_jacobian.len()
         {
             return Err(ModelError::MismatchedDataLengths);
@@ -154,7 +155,9 @@ pub fn enumerate_batch_portfolios(
             .collect();
         let total_cost: f64 = selected.iter().map(|candidate| candidate.cost).sum();
         if !total_cost.is_finite() {
-            return Err(ModelError::InvalidParameter("batch_portfolio_cost_overflowed"));
+            return Err(ModelError::InvalidParameter(
+                "batch_portfolio_cost_overflowed",
+            ));
         }
         if total_cost > budget {
             skipped_over_budget_portfolios += 1;
@@ -188,9 +191,7 @@ pub fn enumerate_batch_portfolios(
         let posterior_trace = trace(&posterior_covariance)?;
         let a_optimal_trace_reduction = prior_trace - posterior_trace;
         let d_optimal_logdet_reduction = prior_logdet - posterior_logdet;
-        if !a_optimal_trace_reduction.is_finite()
-            || !d_optimal_logdet_reduction.is_finite()
-        {
+        if !a_optimal_trace_reduction.is_finite() || !d_optimal_logdet_reduction.is_finite() {
             return Err(ModelError::InvalidParameter(
                 "batch_portfolio_utility_nonfinite",
             ));
@@ -254,7 +255,11 @@ fn validate_prior(prior_covariance: &[Vec<f64>]) -> Result<(), ModelError> {
     if dimension == 0 || prior_covariance.iter().any(|row| row.len() != dimension) {
         return Err(ModelError::MismatchedDataLengths);
     }
-    if prior_covariance.iter().flatten().any(|value| !value.is_finite()) {
+    if prior_covariance
+        .iter()
+        .flatten()
+        .any(|value| !value.is_finite())
+    {
         return Err(ModelError::NonFiniteValue("batch_prior_covariance"));
     }
     cholesky(prior_covariance, "batch_prior_covariance").map(|_| ())
@@ -278,18 +283,13 @@ fn gaussian_linear_posterior(
     }
 
     let prior_lower = cholesky(prior_covariance, "batch_prior_covariance")?;
-    let observation_lower =
-        cholesky(observation_covariance, "batch_observation_covariance")?;
+    let observation_lower = cholesky(observation_covariance, "batch_observation_covariance")?;
     let prior_precision = inverse_from_cholesky(&prior_lower)?;
-    let observation_weighted_design =
-        solve_spd(&observation_lower, design_jacobian)?;
-    let information_increment = multiply(
-        &transpose(design_jacobian),
-        &observation_weighted_design,
-    )?;
+    let observation_weighted_design = solve_spd(&observation_lower, design_jacobian)?;
+    let information_increment =
+        multiply(&transpose(design_jacobian), &observation_weighted_design)?;
     let posterior_precision = add(&prior_precision, &information_increment)?;
-    let posterior_lower =
-        cholesky(&posterior_precision, "batch_posterior_precision")?;
+    let posterior_lower = cholesky(&posterior_precision, "batch_posterior_precision")?;
     let posterior_covariance = inverse_from_cholesky(&posterior_lower)?;
 
     Ok((
@@ -367,8 +367,7 @@ fn solve_spd(
             let correction: f64 = (0..row)
                 .map(|index| lower[row][index] * forward[index][column])
                 .sum();
-            forward[row][column] =
-                (right_hand_side[row][column] - correction) / lower[row][row];
+            forward[row][column] = (right_hand_side[row][column] - correction) / lower[row][row];
         }
     }
 
@@ -378,8 +377,7 @@ fn solve_spd(
             let correction: f64 = (row + 1..dimension)
                 .map(|index| lower[index][row] * solution[index][column])
                 .sum();
-            solution[row][column] =
-                (forward[row][column] - correction) / lower[row][row];
+            solution[row][column] = (forward[row][column] - correction) / lower[row][row];
         }
     }
     if solution.iter().flatten().any(|value| !value.is_finite()) {
@@ -436,7 +434,9 @@ fn multiply(left: &[Vec<f64>], right: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, Mode
         }
     }
     if output.iter().flatten().any(|value| !value.is_finite()) {
-        return Err(ModelError::InvalidParameter("batch_matrix_product_nonfinite"));
+        return Err(ModelError::InvalidParameter(
+            "batch_matrix_product_nonfinite",
+        ));
     }
     Ok(output)
 }
@@ -531,16 +531,13 @@ mod tests {
         assert!((shared.posterior_covariance[0][0] - 181.0 / 201.0).abs() < 1.0e-12);
         assert!((shared.posterior_covariance[1][1] - 1.0).abs() < 1.0e-12);
         assert!((shared.a_optimal_trace_reduction - 20.0 / 201.0).abs() < 1.0e-12);
-        assert!(
-            (shared.d_optimal_logdet_reduction - (201.0_f64 / 181.0).ln()).abs() < 1.0e-12
-        );
+        assert!((shared.d_optimal_logdet_reduction - (201.0_f64 / 181.0).ln()).abs() < 1.0e-12);
         let complementary = &result.portfolios[0];
         assert!((complementary.posterior_covariance[0][0] - 91.0 / 101.0).abs() < 1.0e-12);
         assert!((complementary.posterior_covariance[1][1] - 20.0 / 21.0).abs() < 1.0e-12);
         assert!((complementary.a_optimal_trace_reduction - 311.0 / 2121.0).abs() < 1.0e-12);
         assert!(
-            (complementary.d_optimal_logdet_reduction - (2121.0_f64 / 1820.0).ln()).abs()
-                < 1.0e-12
+            (complementary.d_optimal_logdet_reduction - (2121.0_f64 / 1820.0).ln()).abs() < 1.0e-12
         );
     }
 
@@ -607,13 +604,7 @@ mod tests {
             candidate("same", [0.0, 1.0], 1.0, false, 0.0, true),
         ];
         assert_eq!(
-            enumerate_batch_portfolios(
-                &duplicate,
-                &[vec![1.0, 0.0], vec![0.0, 1.0]],
-                2,
-                2.0,
-                true
-            ),
+            enumerate_batch_portfolios(&duplicate, &[vec![1.0, 0.0], vec![0.0, 1.0]], 2, 2.0, true),
             Err(ModelError::InvalidParameter(
                 "batch_candidate_ids_must_be_nonempty_and_unique"
             ))
