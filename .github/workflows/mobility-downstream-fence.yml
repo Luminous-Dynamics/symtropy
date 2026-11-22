@@ -31,16 +31,13 @@ jobs:
           jq empty research/mobility-downstream-fence/schemas/downstream_fence_packet_v0_1.schema.json
           jq empty research/mobility-downstream-fence/fixtures/downstream_fence_cases_v0_1.json
           jq -e '
-            .version == "0.1"
-            and (.cases | length >= 20)
-            and ([$cases[].case_id] | length == ([$cases[].case_id] | unique | length))
-          ' --argjson unused '{}' research/mobility-downstream-fence/fixtures/downstream_fence_cases_v0_1.json
-          jq -e '
-            [.cases[] | select(.class == "positive" and .expected == "all_declared_layers_have_current_quiescence_evidence")] | length >= 1
-          ' research/mobility-downstream-fence/fixtures/downstream_fence_cases_v0_1.json
-          jq -e '
-            [.cases[] | select(.class == "negative" and .expected == "hold")] | length >= 10
-            and all(.cases[]; .native_sink_calls == 0)
+            .cases as $cases
+            | .version == "0.1"
+              and ($cases | length >= 20)
+              and ([$cases[].case_id] | length == ([$cases[].case_id] | unique | length))
+              and ([$cases[] | select(.class == "positive" and .expected == "all_declared_layers_have_current_quiescence_evidence")] | length >= 1)
+              and ([$cases[] | select(.class == "negative" and .expected == "hold")] | length >= 10)
+              and all($cases[]; .native_sink_calls == 0)
           ' research/mobility-downstream-fence/fixtures/downstream_fence_cases_v0_1.json
       - name: Check formatting
         run: cargo fmt --manifest-path research/mobility-downstream-fence/Cargo.toml -- --check
