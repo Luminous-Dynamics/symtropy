@@ -181,10 +181,7 @@ impl CompositionReport {
         })
     }
 }
-fn record_failure(
-    report: &mut CompositionReport,
-    failure: CompositionFailure,
-) {
+fn record_failure(report: &mut CompositionReport, failure: CompositionFailure) {
     *report.failures.entry(failure).or_default() += 1;
 }
 
@@ -202,8 +199,7 @@ fn validate_event_shape(event: &CompositionEvent) -> Option<CompositionFailure> 
     if event.parent_module_id.trim().is_empty() || event.child_module_id.trim().is_empty() {
         return Some(CompositionFailure::EmptyModuleIdentity);
     }
-    if event.source_profile_id.trim().is_empty() || event.source_profile_version.trim().is_empty()
-    {
+    if event.source_profile_id.trim().is_empty() || event.source_profile_version.trim().is_empty() {
         return Some(CompositionFailure::EmptySourceProfile);
     }
     if event.location_id.trim().is_empty() {
@@ -215,20 +211,14 @@ fn validate_event_shape(event: &CompositionEvent) -> Option<CompositionFailure> 
     None
 }
 
-fn active_parent_of(
-    active: &BTreeSet<Membership>,
-    child_module_id: &str,
-) -> Option<&str> {
+fn active_parent_of(active: &BTreeSet<Membership>, child_module_id: &str) -> Option<&str> {
     active
         .iter()
         .find(|membership| membership.child_module_id == child_module_id)
         .map(|membership| membership.parent_module_id.as_str())
 }
 
-fn creates_cycle(
-    active: &BTreeSet<Membership>,
-    proposed: &Membership,
-) -> bool {
+fn creates_cycle(active: &BTreeSet<Membership>, proposed: &Membership) -> bool {
     let mut cursor = proposed.parent_module_id.as_str();
     let mut visited = BTreeSet::new();
 
@@ -287,10 +277,7 @@ fn apply_event(
     match event.action {
         MembershipAction::Add => {
             if report.active_memberships.contains(&membership) {
-                record_failure(
-                    report,
-                    CompositionFailure::DuplicateMembership(membership),
-                );
+                record_failure(report, CompositionFailure::DuplicateMembership(membership));
                 return;
             }
             if let Some(existing_parent) =
@@ -406,7 +393,10 @@ pub fn evaluate_composition(
             }
             EventClassification::Actual => {
                 report.actual_event_rows += 1;
-                actual_by_time.entry(event.event_time).or_default().push(event);
+                actual_by_time
+                    .entry(event.event_time)
+                    .or_default()
+                    .push(event);
             }
         }
     }
@@ -464,9 +454,7 @@ mod tests {
 
     fn modules(ids: &[&str]) -> Vec<ModuleIdentity> {
         ids.iter()
-            .map(|id| {
-                ModuleIdentity::new(*id, CargoModuleFamily::Custom)
-            })
+            .map(|id| ModuleIdentity::new(*id, CargoModuleFamily::Custom))
             .collect()
     }
 
@@ -507,15 +495,21 @@ mod tests {
         assert!(report.is_qualified());
         assert_eq!(report.active_edges(), 3);
         assert_eq!(
-            report.count_modules(ModuleCountBasis::AllModuleIdentities).unwrap(),
+            report
+                .count_modules(ModuleCountBasis::AllModuleIdentities)
+                .unwrap(),
             4
         );
         assert_eq!(
-            report.count_modules(ModuleCountBasis::RootHandlingUnits).unwrap(),
+            report
+                .count_modules(ModuleCountBasis::RootHandlingUnits)
+                .unwrap(),
             1
         );
         assert_eq!(
-            report.count_modules(ModuleCountBasis::LeafHandlingUnits).unwrap(),
+            report
+                .count_modules(ModuleCountBasis::LeafHandlingUnits)
+                .unwrap(),
             2
         );
     }
@@ -533,11 +527,15 @@ mod tests {
         assert!(report.is_qualified());
         assert_eq!(report.active_edges(), 1);
         assert_eq!(
-            report.count_modules(ModuleCountBasis::RootHandlingUnits).unwrap(),
+            report
+                .count_modules(ModuleCountBasis::RootHandlingUnits)
+                .unwrap(),
             2
         );
         assert_eq!(
-            report.count_modules(ModuleCountBasis::LeafHandlingUnits).unwrap(),
+            report
+                .count_modules(ModuleCountBasis::LeafHandlingUnits)
+                .unwrap(),
             2
         );
     }
@@ -553,13 +551,11 @@ mod tests {
 
         assert!(!report.is_qualified());
         assert_eq!(
-            report
-                .failures
-                .get(&CompositionFailure::MultipleParents {
-                    child_module_id: "PALLET".to_string(),
-                    existing_parent_id: "CONTAINER_A".to_string(),
-                    proposed_parent_id: "CONTAINER_B".to_string(),
-                }),
+            report.failures.get(&CompositionFailure::MultipleParents {
+                child_module_id: "PALLET".to_string(),
+                existing_parent_id: "CONTAINER_A".to_string(),
+                proposed_parent_id: "CONTAINER_B".to_string(),
+            }),
             Some(&1)
         );
         assert_eq!(report.active_edges(), 1);
@@ -579,10 +575,12 @@ mod tests {
 
         assert!(!report.is_qualified());
         assert_eq!(
-            report.failures.get(&CompositionFailure::UnmatchedDelete(Membership {
-                parent_module_id: "CONTAINER".to_string(),
-                child_module_id: "PALLET".to_string(),
-            })),
+            report
+                .failures
+                .get(&CompositionFailure::UnmatchedDelete(Membership {
+                    parent_module_id: "CONTAINER".to_string(),
+                    child_module_id: "PALLET".to_string(),
+                })),
             Some(&1)
         );
     }
@@ -600,9 +598,9 @@ mod tests {
         let report = evaluate_composition(&modules, &events, 100).unwrap();
 
         assert_eq!(
-            report
-                .failures
-                .get(&CompositionFailure::SelfContainment("CONTAINER".to_string())),
+            report.failures.get(&CompositionFailure::SelfContainment(
+                "CONTAINER".to_string()
+            )),
             Some(&1)
         );
     }
@@ -652,8 +650,20 @@ mod tests {
     fn same_time_independent_aggregations_are_permutation_invariant() {
         let modules = modules(&["CONTAINER_A", "PALLET_A", "CONTAINER_B", "PALLET_B"]);
         let events = vec![
-            event("ADD-A", 10, "CONTAINER_A", "PALLET_A", MembershipAction::Add),
-            event("ADD-B", 10, "CONTAINER_B", "PALLET_B", MembershipAction::Add),
+            event(
+                "ADD-A",
+                10,
+                "CONTAINER_A",
+                "PALLET_A",
+                MembershipAction::Add,
+            ),
+            event(
+                "ADD-B",
+                10,
+                "CONTAINER_B",
+                "PALLET_B",
+                MembershipAction::Add,
+            ),
         ];
         let forward = evaluate_composition(&modules, &events, 100).unwrap();
         let mut reversed_events = events;
@@ -697,8 +707,7 @@ mod tests {
     fn exact_duplicate_source_event_is_idempotent() {
         let modules = modules(&["CONTAINER", "PALLET"]);
         let original = event("ADD", 10, "CONTAINER", "PALLET", MembershipAction::Add);
-        let report =
-            evaluate_composition(&modules, &[original.clone(), original], 100).unwrap();
+        let report = evaluate_composition(&modules, &[original.clone(), original], 100).unwrap();
 
         assert_eq!(report.replayed_event_rows, 1);
         assert_eq!(report.active_edges(), 1);
@@ -778,15 +787,21 @@ mod tests {
         .unwrap();
 
         assert_eq!(
-            report.count_modules(ModuleCountBasis::AllModuleIdentities).unwrap(),
+            report
+                .count_modules(ModuleCountBasis::AllModuleIdentities)
+                .unwrap(),
             3
         );
         assert_eq!(
-            report.count_modules(ModuleCountBasis::RootHandlingUnits).unwrap(),
+            report
+                .count_modules(ModuleCountBasis::RootHandlingUnits)
+                .unwrap(),
             1
         );
         assert_eq!(
-            report.count_modules(ModuleCountBasis::LeafHandlingUnits).unwrap(),
+            report
+                .count_modules(ModuleCountBasis::LeafHandlingUnits)
+                .unwrap(),
             1
         );
         // There is no inventory or custody mutation API in this module.
