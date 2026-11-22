@@ -88,6 +88,7 @@ pub enum ExergyError {
     InvalidHeatBoundaryTemperature { index: usize },
     NonFiniteInput,
     InvalidTolerance,
+    InvalidNonnegativeExergyRate { field: &'static str },
     NonFiniteDerivedValue,
     SecondLawViolation { residual_w: f64, allowed_w: f64 },
 }
@@ -102,6 +103,7 @@ impl fmt::Display for ExergyError {
             Self::InvalidHeatBoundaryTemperature { index } => write!(f, "heat boundary temperature at index {index} must be finite and positive"),
             Self::NonFiniteInput => write!(f, "exergy balance contains a non-finite input"),
             Self::InvalidTolerance => write!(f, "exergy tolerances must be finite and non-negative"),
+            Self::InvalidNonnegativeExergyRate { field } => write!(f, "exergy boundary rate {field} must be finite and non-negative"),
             Self::NonFiniteDerivedValue => write!(f, "exergy calculation produced a non-finite value"),
             Self::SecondLawViolation { residual_w, allowed_w } => write!(
                 f,
@@ -237,11 +239,18 @@ pub fn reconcile_exergy_balance(
     if !scalar_inputs.iter().all(|value| value.is_finite()) {
         return Err(ExergyError::NonFiniteInput);
     }
-    if input.dead_state_temperature_k <= 0.0
-        || input.work_exergy_input_w < 0.0
-        || input.other_exergy_outputs_w < 0.0
-    {
+    if input.dead_state_temperature_k <= 0.0 {
         return Err(ExergyError::InvalidDeadState);
+    }
+    if input.work_exergy_input_w < 0.0 {
+        return Err(ExergyError::InvalidNonnegativeExergyRate {
+            field: "work_exergy_input_w",
+        });
+    }
+    if input.other_exergy_outputs_w < 0.0 {
+        return Err(ExergyError::InvalidNonnegativeExergyRate {
+            field: "other_exergy_outputs_w",
+        });
     }
     if tolerance.absolute_w < 0.0 || tolerance.relative < 0.0 {
         return Err(ExergyError::InvalidTolerance);
@@ -495,6 +504,27 @@ mod tests {
         }).unwrap();
         assert!((report.exergy_destruction_w - 100.0).abs() < 1.0e-12);
         assert!((report.entropy_generation_w_per_k - (1.0 / 3.0)).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn negative_work_input_is_rejected_with_boundary_field_identity() {
+        let input = ExergyBalanceInput {
+            dead_state_temperature_k: 300.0,
+            work_exergy_input_w: -1.0,
+            heat_transfers: Vec::new(),
+            mass_flow_exergy_in_w: 0.0,
+            mass_flow_exergy_out_w: 0.0,
+            other_exergy_outputs_w: 0.0,
+            stored_exergy_accumulation_w: 0.0,
+        };
+        assert_eq!(
+            reconcile_exergy_balance(&input, ExergyBalanceTolerance {
+                absolute_w: 1.0e-10, relative: 1.0e-12,
+            }).unwrap_err(),
+            ExergyError::InvalidNonnegativeExergyRate {
+                field: "work_exergy_input_w",
+            }
+        );
     }
 
     #[test]
