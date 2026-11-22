@@ -72,7 +72,14 @@ The next integration issue is [MOBILITY-MUTATION-BOUNDARY-001 #6669](https://git
 
 The proposed shift is from **validated-before-queue** to **authority-linearized mutation**: the native application boundary must atomically compare the full current M1/M2/platform binding, check the controller generation and qualified monotonic lease, consume the exact action attempt once, and invoke the native sink. A wrapper mutex is not enough if a process, driver or second queue can bypass it.
 
-The design and initial dependency-free reference model are under:
+The design, dependency-free reference boundary, history checker and formal finite-state model are under:
+- AUTHORITY_MUTATION_BOUNDARY_V0.1.md
+- the sibling mobility-mutation-boundary directory
+- HISTORY_CHECKER_AND_TLA_MODEL_V0.1.md: operation-history linearizability checking, explicit PASS/FAIL/INCOMPLETE semantics, and a bounded TLA+/TLC protocol model.
+
+The current reference now also models the M1 single-unresolved-mutation rule. Every native application occupies the pending slot until an independently qualified outcome is reconciled. Unknown retains the hold; NoEffect and PartialEffect require a typed recovery-permit reference bound to the failed attempt, authority epoch and approved plan digest. Recovery-permit IDs are consumed once.
+
+The reference model validates the shape and scope of the permit reference but does not authenticate it. M1 remains the authoritative permit issuer and allowlist owner.
 - AUTHORITY_MUTATION_BOUNDARY_V0.1.md
 - the sibling mobility-mutation-boundary directory.
 
