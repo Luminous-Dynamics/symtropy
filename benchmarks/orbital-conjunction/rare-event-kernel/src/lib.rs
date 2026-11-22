@@ -829,18 +829,9 @@ mod tests {
             for (offset, expected_probability) in tail_cases {
                 let mut mean = vec![0.0; dimension];
                 mean[0] = offset;
-                let log_probability = gaussian_half_space_log_probability(
-                    &mean,
-                    &covariance,
-                    &normal,
-                    0.0,
-                )
-                .unwrap();
-                assert_close(
-                    log_probability,
-                    expected_probability.ln(),
-                    1.0e-7,
-                );
+                let log_probability =
+                    gaussian_half_space_log_probability(&mean, &covariance, &normal, 0.0).unwrap();
+                assert_close(log_probability, expected_probability.ln(), 1.0e-7);
             }
         }
     }
