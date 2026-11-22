@@ -18,3 +18,7 @@ name = "nav-observation-toy-fim"
 path = "src/main.rs"
 
 [dependencies]
+
+[[bin]]
+name = "risk_coverage_demo"
+path = "src/bin/risk_coverage_demo.rs"
