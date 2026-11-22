@@ -29,6 +29,19 @@ This does **not** implement:
 
 Those inputs are required for a paper-faithful route reproduction. This module is an isolated equation-level baseline harness that allows its numeric controller law to be tested now without claiming the route experiment has been reproduced.
 
+## Conditional-integration fidelity
+
+The implementation exposes two modes rather than silently altering the paper's discrete rule:
+
+- `IntegralAntiWindup::PaperConditional` is the default in `paper_2026()` and follows the paper's Equation (33): integrate when the previous integral state is inside the threshold or when the error unwinds it. Because it accepts one full discrete increment, it may cross the threshold by one increment before subsequent integration is blocked. This finite-step detail is retained for faithful reproduction.
+- `IntegralAntiWindup::HardClamped` is an explicit conservative variant that additionally clamps the newly computed integral state to the threshold. It is a robustness modification, not the default paper implementation.
+
+The tests cover both behaviours. Do not mix their results in a baseline comparison: report the selected policy in the configuration receipt.
+
+## LiDAR residual equation caveat
+
+The paper describes the geometric residual as an RMS point-to-map distance. However, its displayed formula is printed as the square root of the mean of Euclidean norms, without an explicit square on each norm. The latter is dimensionally inconsistent with a distance. This module accepts a precomputed geometric residual and therefore does not silently choose between the prose and printed formula. The raw LiDAR frontend must reproduce the author's exact preprocessing or resolve the discrepancy before a route-level result is labelled a paper reproduction.
+
 ## Tests
 
 The tests cover:
