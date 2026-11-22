@@ -29,7 +29,9 @@ impl Rational {
             || self.numerator > MAX_SAFE_INTEGER
             || self.denominator > MAX_SAFE_INTEGER
         {
-            return Err("probability fractions must be in [0,1] with safe nonzero denominators".to_owned());
+            return Err(
+                "probability fractions must be in [0,1] with safe nonzero denominators".to_owned(),
+            );
         }
         Ok(())
     }
@@ -317,7 +319,10 @@ fn validate_corpus(corpus: &DecisionCorpus) -> Result<(), String> {
             || case.worlds.len() > MAX_WORLDS
             || case.probes.len() > MAX_PROBES
         {
-            return Err("case identity, evidence scope, admissibility or fixture size is invalid".to_owned());
+            return Err(
+                "case identity, evidence scope, admissibility or fixture size is invalid"
+                    .to_owned(),
+            );
         }
         validate_law(&case.evidence.observation_law)?;
 
@@ -332,7 +337,10 @@ fn validate_corpus(corpus: &DecisionCorpus) -> Result<(), String> {
                     .iter()
                     .any(|(key, value)| key.trim().is_empty() || value.trim().is_empty())
             {
-                return Err("world identity, parameter signature and decision class must be explicit".to_owned());
+                return Err(
+                    "world identity, parameter signature and decision class must be explicit"
+                        .to_owned(),
+                );
             }
             validate_law(&world.observation_law)?;
         }
@@ -367,7 +375,9 @@ fn validate_corpus(corpus: &DecisionCorpus) -> Result<(), String> {
                 .map(String::as_str)
                 .collect::<BTreeSet<_>>();
             if supplied_world_ids != expected_world_ids {
-                return Err("each probe must declare an outcome law for every candidate world".to_owned());
+                return Err(
+                    "each probe must declare an outcome law for every candidate world".to_owned(),
+                );
             }
             for law in probe.world_outcome_laws.values() {
                 validate_law(law)?;
@@ -392,7 +402,9 @@ fn probe_rank(probe: &Probe, compatible_worlds: &[&World]) -> Result<ProbeRank, 
                     .entry(mass.outcome.clone())
                     .or_default()
                     .insert(world.decision_class.clone());
-                *outcome_world_counts.entry(mass.outcome.clone()).or_default() += 1;
+                *outcome_world_counts
+                    .entry(mass.outcome.clone())
+                    .or_default() += 1;
             }
         }
     }
@@ -402,11 +414,8 @@ fn probe_rank(probe: &Probe, compatible_worlds: &[&World]) -> Result<ProbeRank, 
         .map(BTreeSet::len)
         .max()
         .ok_or_else(|| "probe has no possible outcome under compatible worlds".to_owned())?;
-    let worst_case_compatible_world_count = outcome_world_counts
-        .values()
-        .copied()
-        .max()
-        .unwrap_or(0);
+    let worst_case_compatible_world_count =
+        outcome_world_counts.values().copied().max().unwrap_or(0);
 
     Ok(ProbeRank {
         rank: 0,
@@ -713,7 +722,10 @@ mod tests {
                 },
                 ProbabilityMass {
                     outcome: "miss".to_owned(),
-                    probability: Rational { numerator: 1, denominator: 2 },
+                    probability: Rational {
+                        numerator: 1,
+                        denominator: 2,
+                    },
                 },
             ],
         };
