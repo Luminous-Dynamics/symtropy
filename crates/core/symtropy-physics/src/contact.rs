@@ -171,6 +171,11 @@ pub enum ContactCacheLookupError {
     /// Without stable feature/contact identities, choosing the nearest entry
     /// would silently guess which previous contact belongs to this one.
     AmbiguousMatches { matching_entries: usize },
+    /// A single cached point was the only candidate for multiple query points.
+    ///
+    /// Batch matching must remain one-to-one: one previous contact cannot be
+    /// reused to seed two distinct current contacts.
+    AmbiguousBatchMatch { matching_queries: usize },
 }
 
 /// Cache of previous-frame impulses for warm-starting the contact solver.
@@ -213,11 +218,10 @@ impl<const D: usize> ContactCache<D> {
         });
     }
 
-    /// Look up a cached impulse only when the proximity match is unambiguous.
+    /// Look up one cached impulse only when the proximity match is unambiguous.
     ///
-    /// The compatibility API deliberately maps invalid or ambiguous matches to
-    /// a cold start. Use lookup_checked when the caller needs the reason a cached
-    /// impulse was not admitted.
+    /// This delegates to batch lookup so single-point and multi-point cache
+    /// admission share the same validation rules.
     pub fn lookup(
         &self,
         body_a: BodyHandle,
@@ -229,22 +233,43 @@ impl<const D: usize> ContactCache<D> {
 
     /// Checked warm-start lookup that refuses to guess between nearby contacts.
     ///
-    /// The cache currently identifies contacts by body pair plus world-space
-    /// proximity, not by persistent collision-feature IDs. Consequently, more
-    /// than one cached entry inside the matching radius is ambiguous even when
-    /// one happens to be slightly closer. The safe fallback is no warm-start;
-    /// stable feature identities belong to a separate cache-schema migration.
+    /// Returns an error if multiple cached contacts match this point. Use
+    /// lookup_batch_checked when admitting a complete manifold.
     pub fn lookup_checked(
         &self,
         body_a: BodyHandle,
         body_b: BodyHandle,
         point: &SVector<f64, D>,
     ) -> Result<Option<&CachedImpulse<D>>, ContactCacheLookupError> {
-        if !point.iter().all(|value| value.is_finite()) {
-            return Err(ContactCacheLookupError::NonFiniteQueryPoint);
-        }
+        let mut matches = self.lookup_batch_checked(body_a, body_b, std::slice::from_ref(point))?;
+        Ok(matches.pop().flatten())
+    }
+
+    /// Conservatively match a set of current contact points to cached impulses.
+    ///
+    /// Every query must have at most one cached candidate, and no cached entry
+    /// may be the candidate for more than one query. This deliberately rejects
+    /// ambiguous geometry instead of solving a nearest-neighbour assignment:
+    /// proximity-only cache records do not provide persistent contact identity.
+    ///
+    /// Entries are returned in query order. A query with no candidate receives
+    /// None (cold start). If any query has multiple candidates, or one cached
+    /// entry would be reused by multiple queries, the whole batch is rejected.
+    /// The cache is read-only throughout.
+    pub fn lookup_batch_checked(
+        &self,
+        body_a: BodyHandle,
+        body_b: BodyHandle,
+        points: &[SVector<f64, D>],
+    ) -> Result<Vec<Option<&CachedImpulse<D>>>, ContactCacheLookupError> {
         if !self.match_threshold.is_finite() || self.match_threshold <= 0.0 {
             return Err(ContactCacheLookupError::InvalidMatchThreshold);
+        }
+        if points
+            .iter()
+            .any(|point| !point.iter().all(|value| value.is_finite()))
+        {
+            return Err(ContactCacheLookupError::NonFiniteQueryPoint);
         }
 
         let key = if body_a < body_b {
@@ -253,12 +278,14 @@ impl<const D: usize> ContactCache<D> {
             (body_b, body_a)
         };
         let Some(entries) = self.entries.get(&key) else {
-            return Ok(None);
+            return Ok(vec![None; points.len()]);
         };
 
-        let mut unique_match = None;
-        let mut matching_entries = 0usize;
-        for cached in entries {
+        let mut query_match_counts = vec![0usize; points.len()];
+        let mut query_entry_indices = vec![None; points.len()];
+        let mut entry_match_counts = vec![0usize; entries.len()];
+
+        for (entry_index, cached) in entries.iter().enumerate() {
             if !cached.normal_impulse.is_finite() || !cached.tangent_impulse.is_finite() {
                 return Err(ContactCacheLookupError::NonFiniteCachedImpulse);
             }
@@ -268,23 +295,34 @@ impl<const D: usize> ContactCache<D> {
             if !cached.point.iter().all(|value| value.is_finite()) {
                 return Err(ContactCacheLookupError::NonFiniteCachedPoint);
             }
-            let distance = (cached.point - point).norm();
-            if !distance.is_finite() {
-                return Err(ContactCacheLookupError::NonFiniteDistance);
-            }
-            if distance < self.match_threshold {
-                matching_entries += 1;
-                if matching_entries == 1 {
-                    unique_match = Some(cached);
+
+            for (query_index, point) in points.iter().enumerate() {
+                let distance = (cached.point - point).norm();
+                if !distance.is_finite() {
+                    return Err(ContactCacheLookupError::NonFiniteDistance);
+                }
+                if distance < self.match_threshold {
+                    query_match_counts[query_index] += 1;
+                    query_entry_indices[query_index] = Some(entry_index);
+                    entry_match_counts[entry_index] += 1;
                 }
             }
         }
 
-        if matching_entries > 1 {
+        if let Some(matching_entries) = query_match_counts.iter().copied().find(|count| *count > 1)
+        {
             return Err(ContactCacheLookupError::AmbiguousMatches { matching_entries });
         }
 
-        Ok(unique_match)
+        if let Some(matching_queries) = entry_match_counts.iter().copied().find(|count| *count > 1)
+        {
+            return Err(ContactCacheLookupError::AmbiguousBatchMatch { matching_queries });
+        }
+
+        Ok(query_entry_indices
+            .into_iter()
+            .map(|index| index.map(|entry_index| &entries[entry_index]))
+            .collect())
     }
 
     /// Clear all cached data (call at the start of each frame before resolving).
@@ -427,6 +465,53 @@ mod tests {
             .expect("one nearby cached point is unambiguous")
             .expect("the unique cached point should be admitted");
         assert!((hit.normal_impulse - 3.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn contact_cache_batch_lookup_rejects_one_entry_matching_two_queries() {
+        let mut cache = ContactCache::<3>::new();
+        cache.store(BodyHandle(0), BodyHandle(1), SVector::zeros(), 3.0, 0.0);
+
+        let points = [
+            SVector::from([-0.5, 0.0, 0.0]),
+            SVector::from([0.5, 0.0, 0.0]),
+        ];
+        assert!(matches!(
+            cache.lookup_batch_checked(BodyHandle(0), BodyHandle(1), &points),
+            Err(ContactCacheLookupError::AmbiguousBatchMatch {
+                matching_queries: 2
+            })
+        ));
+    }
+
+    #[test]
+    fn contact_cache_batch_lookup_admits_distinct_unique_entries() {
+        let mut cache = ContactCache::<3>::new();
+        cache.store(
+            BodyHandle(0),
+            BodyHandle(1),
+            SVector::from([0.0, 0.0, 0.0]),
+            2.0,
+            0.0,
+        );
+        cache.store(
+            BodyHandle(0),
+            BodyHandle(1),
+            SVector::from([5.0, 0.0, 0.0]),
+            7.0,
+            0.0,
+        );
+
+        let points = [
+            SVector::from([0.25, 0.0, 0.0]),
+            SVector::from([5.25, 0.0, 0.0]),
+        ];
+        let matches = cache
+            .lookup_batch_checked(BodyHandle(0), BodyHandle(1), &points)
+            .expect("both point-to-cache assignments are unique");
+        assert_eq!(matches.len(), 2);
+        assert!((matches[0].unwrap().normal_impulse - 2.0).abs() < 1e-12);
+        assert!((matches[1].unwrap().normal_impulse - 7.0).abs() < 1e-12);
     }
 
     #[test]
