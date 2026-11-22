@@ -144,6 +144,7 @@ pub enum BatchBlock {
     DuplicateStateAccess { action_id: String, key: String },
     InvalidInterval { action_id: String },
     EmptyResourceId { action_id: String },
+    ResourceClaimKindMismatch { resource: String },
     ActionCapacityExceeded { action_id: String, resource: String, amount: u64, capacity: u64 },
     EmptyOwnerFamily,
     DuplicateRequiredOwnerFamily,
@@ -233,6 +234,8 @@ fn validate_footprints(
     let mut actions = BTreeSet::new();
     let mut action_ids = BTreeSet::new();
     let mut tickets = BTreeSet::new();
+    let mut exclusive_resources = BTreeSet::new();
+    let mut capacity_resources = BTreeSet::new();
 
     for footprint in footprints {
         let action = &footprint.action;
@@ -256,7 +259,7 @@ fn validate_footprints(
                 });
             }
             FootprintQualification::Qualified { footprint_digest } => {
-                if !is_nonzero_digest(&footprint_digest) {
+                if !is_nonzero_digest(footprint_digest) {
                     return Err(BatchBlock::EmptyFootprintDigest {
                         action_id: action.action_id.clone(),
                     });
@@ -285,6 +288,7 @@ fn validate_footprints(
                     action_id: action.action_id.clone(),
                 });
             }
+            exclusive_resources.insert(claim.resource_id.clone());
             if claim.interval.start >= claim.interval.end
                 || !is_nonzero_digest(&claim.interval.time_basis_digest)
             {
@@ -311,6 +315,7 @@ fn validate_footprints(
                     action_id: action.action_id.clone(),
                 });
             }
+            capacity_resources.insert(claim.resource_id.clone());
             if claim.amount > claim.capacity {
                 return Err(BatchBlock::ActionCapacityExceeded {
                     action_id: action.action_id.clone(),
@@ -320,6 +325,12 @@ fn validate_footprints(
                 });
             }
         }
+    }
+
+    if let Some(resource) = exclusive_resources.intersection(&capacity_resources).next() {
+        return Err(BatchBlock::ResourceClaimKindMismatch {
+            resource: resource.clone(),
+        });
     }
 
     Ok(first.clone())
@@ -840,7 +851,8 @@ mod tests {
     fn missing_owner_pair_check_blocks_batch() {
         let a = footprint("arm-a", 10);
         let b = footprint("arm-b", 11);
-        let only_one = vec![checks(&a.action, &b.action).remove(0)];
+        let mut all_checks = checks(&a.action, &b.action);
+        let only_one = vec![all_checks.remove(0)];
         assert!(matches!(
             qualify_concurrent_batch(&profile(), &[a.clone(), b.clone()], &only_one),
             Err(BatchBlock::MissingOwnerCheck { .. })
@@ -988,6 +1000,34 @@ mod tests {
             qualify_concurrent_batch(&profile(), &[a, b], &owner_checks),
             Err(BatchBlock::UnexpectedOwnerCheck { .. })
         ));
+    }
+
+    #[test]
+    fn same_resource_cannot_mix_exclusive_and_capacity_claim_semantics() {
+        let mut a = footprint("arm-a", 10);
+        let mut b = footprint("arm-b", 11);
+        let resource = "shared-resource".to_owned();
+        a.exclusive_claims[0].resource_id = resource.clone();
+        b.capacity_claims = vec![CapacityClaim {
+            resource_id: resource.clone(),
+            unit_profile_digest: d(30),
+            capacity_profile_digest: d(31),
+            interval: TimeInterval {
+                time_basis_digest: d(3),
+                start: 10,
+                end: 20,
+            },
+            amount: 1,
+            capacity: 4,
+        }];
+        assert_eq!(
+            qualify_concurrent_batch(
+                &profile(),
+                &[a.clone(), b.clone()],
+                &checks(&a.action, &b.action),
+            ),
+            Err(BatchBlock::ResourceClaimKindMismatch { resource })
+        );
     }
 
 }
