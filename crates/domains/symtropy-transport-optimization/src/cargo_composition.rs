@@ -223,7 +223,10 @@ fn validate_event_shape(event: &CompositionEvent) -> Option<CompositionFailure> 
     None
 }
 
-fn active_parent_of<'a>(active: &'a BTreeSet<Membership>, child_module_id: &str) -> Option<&'a str> {
+fn active_parent_of<'a>(
+    active: &'a BTreeSet<Membership>,
+    child_module_id: &str,
+) -> Option<&'a str> {
     active
         .iter()
         .find(|membership| membership.child_module_id == child_module_id)
@@ -333,9 +336,7 @@ pub fn evaluate_composition(
     let mut known_modules = BTreeSet::new();
     for module in modules {
         if module.module_id.trim().is_empty() || module.module_id.trim() != module.module_id {
-            return Err(CompositionError::InvalidModuleId(
-                module.module_id.clone(),
-            ));
+            return Err(CompositionError::InvalidModuleId(module.module_id.clone()));
         }
         if !known_modules.insert(module.module_id.as_str()) {
             return Err(CompositionError::DuplicateModuleId(
@@ -558,7 +559,13 @@ mod tests {
         let events = vec![
             event("ADD-1", 10, "CONTAINER", "PALLET", MembershipAction::Add),
             event("ADD-2", 20, "PALLET", "CARTON", MembershipAction::Add),
-            event("DELETE-1", 30, "CONTAINER", "PALLET", MembershipAction::Delete),
+            event(
+                "DELETE-1",
+                30,
+                "CONTAINER",
+                "PALLET",
+                MembershipAction::Delete,
+            ),
         ];
         let report = evaluate_composition(&modules, &events, 100).unwrap();
 
@@ -571,11 +578,15 @@ mod tests {
             }])
         );
         assert_eq!(
-            report.count_modules(ModuleCountBasis::RootHandlingUnits).unwrap(),
+            report
+                .count_modules(ModuleCountBasis::RootHandlingUnits)
+                .unwrap(),
             2
         );
         assert_eq!(
-            report.count_modules(ModuleCountBasis::LeafHandlingUnits).unwrap(),
+            report
+                .count_modules(ModuleCountBasis::LeafHandlingUnits)
+                .unwrap(),
             2
         );
     }
@@ -593,7 +604,9 @@ mod tests {
         invalid.child_module_id = " PALLET ".to_string();
         let report = evaluate_composition(&known_modules, &[invalid], 100).unwrap();
         assert_eq!(
-            report.failures.get(&CompositionFailure::EmptyModuleIdentity),
+            report
+                .failures
+                .get(&CompositionFailure::EmptyModuleIdentity),
             Some(&1)
         );
         assert!(!report.is_qualified());
@@ -625,7 +638,13 @@ mod tests {
         let modules = modules(&["CONTAINER_A", "CONTAINER_B", "PALLET"]);
         let events = vec![
             event("ADD-A", 10, "CONTAINER_A", "PALLET", MembershipAction::Add),
-            event("DELETE-A", 20, "CONTAINER_A", "PALLET", MembershipAction::Delete),
+            event(
+                "DELETE-A",
+                20,
+                "CONTAINER_A",
+                "PALLET",
+                MembershipAction::Delete,
+            ),
             event("ADD-B", 30, "CONTAINER_B", "PALLET", MembershipAction::Add),
         ];
         let report = evaluate_composition(&modules, &events, 100).unwrap();
@@ -639,15 +658,21 @@ mod tests {
             }])
         );
         assert_eq!(
-            report.count_modules(ModuleCountBasis::AllModuleIdentities).unwrap(),
+            report
+                .count_modules(ModuleCountBasis::AllModuleIdentities)
+                .unwrap(),
             3
         );
         assert_eq!(
-            report.count_modules(ModuleCountBasis::RootHandlingUnits).unwrap(),
+            report
+                .count_modules(ModuleCountBasis::RootHandlingUnits)
+                .unwrap(),
             2
         );
         assert_eq!(
-            report.count_modules(ModuleCountBasis::LeafHandlingUnits).unwrap(),
+            report
+                .count_modules(ModuleCountBasis::LeafHandlingUnits)
+                .unwrap(),
             2
         );
     }
@@ -679,10 +704,9 @@ mod tests {
         let mut delete = event("DELETE", 20, "CONTAINER", "PALLET", MembershipAction::Delete);
         delete.published_at = 30;
 
-        let before_publication = evaluate_composition(&modules, &[add.clone(), delete.clone()], 20)
-            .unwrap();
-        let after_publication =
-            evaluate_composition(&modules, &[add, delete], 30).unwrap();
+        let before_publication =
+            evaluate_composition(&modules, &[add.clone(), delete.clone()], 20).unwrap();
+        let after_publication = evaluate_composition(&modules, &[add, delete], 30).unwrap();
 
         assert_eq!(before_publication.active_edges(), 1);
         assert_eq!(after_publication.active_edges(), 0);
