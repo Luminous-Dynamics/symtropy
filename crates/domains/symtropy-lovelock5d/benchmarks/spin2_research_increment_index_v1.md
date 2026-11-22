@@ -87,3 +87,23 @@ The source audit is not a completed Akribeia run. The local environment has no d
 ## Remaining frontier
 
 The finite-coupling lower-order residue is still open. The lambda=1/2 specialization attempt encountered removable horizon 0/0 expressions and did not yield a qualified result; this is a symbolic-computation bottleneck, not evidence of mathematical singularity. Priorities remain rational-coupling jet extraction, infinity modes, global boundary-map rank/Fredholm index, finite-coupling BVP, and interval/continuation qualification.
+
+
+## Einstein-limit infinity indicial anchor (22 November 2026)
+
+The A3 action-specialized reduction was extended to logarithmic radius `tau=log(r)) and state `V=(Bhat2,r*Bhat2_prime,Hhat2,r*Hhat2_prime)`. The frozen-coefficient matrix is
+`[[0,1,0,0],[0,-2,0,0],[0,0,0,1],[0,0,8,2]]`,
+with zero leading source and polynomial `sigma*(sigma-4)*(sigma+2)^2`. Its modes are two independent (r^{-2}) decays, one constant, and one (r^4) growing mode. The repeated (-2) eigenvalue is semisimple at leading order; subleading asymptotic logarithms remain open.
+
+Artifacts:
+- `spin2_mp_infinity_indicial_v1.md/.json`
+- `verify_spin2_mp_infinity_indicial.py`
+- `spin2_mp_infinity_indicial_replay_v1.json`
+
+The committed fixture and verifier were replayed from exact Git blob bytes. This is only a (lambda=0) frozen-coefficient endpoint anchor, not the full asymptotic recurrence, boundary-data map or Fredholm index.
+
+## Updated research index: SOTA scorecard and comparator manifest
+
+The public scorecard and machine-readable reproduction manifest are:
+- `spin2_sota_benchmark_scorecard_v1.md`: separates discovery, refinement, mathematical qualification and PDE hyperbolicity; proposes validated branch yield, qualification conversion, proof latency and claim coverage.
+- `spin2_akribeia_reproduction_manifest_v1.json`: preserves the Akribeia/DiffLearning/refiner pin discrepancy, observed 5D settings and uncompleted reproduction gates.
