@@ -250,12 +250,12 @@ pub fn fit_sparse_bayesian_correlated_log_bias(
         for (local, feature) in fit.active_bias_features.iter().enumerate() {
             let global = fixed_count + *feature;
             full_mean[global] = fit.parameter_mean[fixed_count + local];
-            for fixed in 0..fixed_count {
-                full_covariance[fixed][global] =
-                    fit.parameter_covariance[fixed][fixed_count + local];
-                full_covariance[global][fixed] =
-                    fit.parameter_covariance[fixed_count + local][fixed];
+            for (fixed, full_row) in full_covariance.iter_mut().take(fixed_count).enumerate() {
+                full_row[global] = fit.parameter_covariance[fixed][fixed_count + local];
             }
+            full_covariance[global][..fixed_count].copy_from_slice(
+                &fit.parameter_covariance[fixed_count + local][..fixed_count],
+            );
             for (local_other, feature_other) in fit.active_bias_features.iter().enumerate() {
                 let global_other = fixed_count + *feature_other;
                 full_covariance[global][global_other] =
