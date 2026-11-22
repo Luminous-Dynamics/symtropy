@@ -16,36 +16,6 @@ use std::fmt;
 pub const BREGAR_CSV_PREFIX_FIELDS: usize = 26;
 pub const BREGAR_CIR_START_FIELD: usize = 26;
 
-const EXPECTED_HEADER_FIELDS: [&str; 27] = [
-    "tag_id",
-    "anchor_id",
-    "x_tag",
-    "y_tag",
-    "z_tag",
-    "x_anchor",
-    "y_anchor",
-    "z_anchor",
-    "nlos",
-    "range",
-    "fp_index",
-    "rss",
-    "rss_fp",
-    "fp_point1",
-    "fp_point2",
-    "fp_point3",
-    "stdev_noise",
-    "cir_power",
-    "max_noise",
-    "rxpacc",
-    "channel_number",
-    "frame_length",
-    "preamble_length",
-    "bitrate",
-    "prfr",
-    "preamble_code",
-    "cir",
-];
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BregarCsvPreamble {
     pub version_line: String,
@@ -117,8 +87,7 @@ pub enum BregarCsvIngestError {
     EmptyPreambleLine,
     InvalidCsvQuoting,
     UnterminatedQuotedCell,
-    InvalidHeaderFieldCount,
-    UnexpectedHeaderField { index: usize, expected: &'static str, actual: String },
+    EmptyHeaderRecord,
     InvalidSourceFileIdentity,
     InvalidRowIdentity,
     TooFewRowFields,
@@ -141,10 +110,7 @@ impl fmt::Display for BregarCsvIngestError {
             Self::EmptyPreambleLine => write!(f, "Bregar CSV version/header preamble line is empty"),
             Self::InvalidCsvQuoting => write!(f, "CSV quote appears inside an unquoted nonempty field"),
             Self::UnterminatedQuotedCell => write!(f, "CSV record contains an unterminated quoted cell"),
-            Self::InvalidHeaderFieldCount => write!(f, "Bregar CSV header must contain exactly 27 fields"),
-            Self::UnexpectedHeaderField { index, expected, actual } => {
-                write!(f, "Bregar CSV header field {index} must be {expected}, found {actual}")
-            }
+            Self::EmptyHeaderRecord => write!(f, "Bregar CSV header record must contain at least one cell"),
             Self::InvalidSourceFileIdentity => write!(f, "source file identity must be nonempty"),
             Self::InvalidRowIdentity => write!(f, "source row index cannot be represented as a nonzero measurement ID"),
             Self::TooFewRowFields => write!(f, "Bregar data row must contain 26 metadata fields and at least one CIR sample"),
@@ -178,22 +144,20 @@ pub fn parse_bregar_csv_preamble(
         return Err(BregarCsvIngestError::EmptyPreambleLine);
     }
 
+    // The pinned authors' converter skips these two preamble lines and
+    // reads all subsequent rows with header=None. Preserve the human-readable
+    // header for provenance, but do not treat its labels or count as the data
+    // schema. The row parser uses the versioned positional map below instead.
     let header_fields = parse_csv_record(&header_line)?;
-    if header_fields.len() != EXPECTED_HEADER_FIELDS.len() {
-        return Err(BregarCsvIngestError::InvalidHeaderFieldCount);
+    if header_fields.is_empty()
+        || header_fields.iter().all(|field| field.trim().is_empty())
+    {
+        return Err(BregarCsvIngestError::EmptyHeaderRecord);
     }
-    let mut normalized = Vec::with_capacity(header_fields.len());
-    for (index, (actual, expected)) in header_fields.iter().zip(EXPECTED_HEADER_FIELDS).enumerate() {
-        let normalized_name = actual.trim().trim_matches('\u{feff}').to_ascii_lowercase();
-        if normalized_name != expected {
-            return Err(BregarCsvIngestError::UnexpectedHeaderField {
-                index,
-                expected,
-                actual: actual.clone(),
-            });
-        }
-        normalized.push(normalized_name);
-    }
+    let normalized = header_fields
+        .iter()
+        .map(|field| field.trim().trim_matches('\u{feff}').to_ascii_lowercase())
+        .collect();
 
     Ok(BregarCsvPreamble {
         version_line,
@@ -519,23 +483,32 @@ mod tests {
     }
 
     #[test]
-    fn validates_two_line_preamble_and_fixed_26_field_metadata_prefix() {
+    fn preserves_two_line_preamble_without_trusting_header_labels() {
         let parsed = parse_bregar_csv_preamble("v1.1", &header()).unwrap();
         assert_eq!(parsed.version_line, "v1.1");
         assert_eq!(parsed.normalized_header_fields.len(), 27);
-        assert_eq!(parsed.normalized_header_fields[26], "cir");
+        let unusual_header = parse_bregar_csv_preamble(
+            "v1.1",
+            "publisher-specific heading that is preserved,not used as row schema",
+        )
+        .unwrap();
+        assert_eq!(unusual_header.header_line, "publisher-specific heading that is preserved,not used as row schema");
+        assert_eq!(unusual_header.normalized_header_fields.len(), 2);
     }
 
     #[test]
-    fn rejects_wrong_header_order_and_unsupported_header_count() {
-        let wrong_order = header().replacen("tag_id,anchor_id", "anchor_id,tag_id", 1);
-        assert!(matches!(
-            parse_bregar_csv_preamble("v1.1", &wrong_order),
-            Err(BregarCsvIngestError::UnexpectedHeaderField { index: 0, .. })
-        ));
+    fn rejects_empty_or_malformed_preamble() {
         assert_eq!(
-            parse_bregar_csv_preamble("v1.1", "TAG_ID,ANCHOR_ID"),
-            Err(BregarCsvIngestError::InvalidHeaderFieldCount)
+            parse_bregar_csv_preamble("v1.1", ""),
+            Err(BregarCsvIngestError::EmptyPreambleLine)
+        );
+        assert_eq!(
+            parse_bregar_csv_preamble("v1.1", ",,,"),
+            Err(BregarCsvIngestError::EmptyHeaderRecord)
+        );
+        assert_eq!(
+            parse_bregar_csv_preamble("v1.1", "\"unterminated"),
+            Err(BregarCsvIngestError::UnterminatedQuotedCell)
         );
     }
 
