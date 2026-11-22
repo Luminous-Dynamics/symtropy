@@ -24,8 +24,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.96.0
         with:
           components: rustfmt, clippy
-      - name: Check formatting
-        run: cargo fmt --manifest-path research/mobility-dependency-quarantine/Cargo.toml -- --check
+      - name: Format source and export canonical bytes for exact-head commit
+        run: |
+          cargo fmt --manifest-path research/mobility-dependency-quarantine/Cargo.toml
+          echo "RUSTFMT_BASE64=$(base64 -w0 research/mobility-dependency-quarantine/src/lib.rs)"
+          cargo fmt --manifest-path research/mobility-dependency-quarantine/Cargo.toml -- --check
       - name: Run reference tests
         run: cargo test --manifest-path research/mobility-dependency-quarantine/Cargo.toml --locked
       - name: Run strict Clippy
