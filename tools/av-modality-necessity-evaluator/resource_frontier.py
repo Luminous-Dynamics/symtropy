@@ -205,6 +205,8 @@ def evaluate(bundle: dict[str, Any]) -> dict[str, Any]:
     measurement_class = comparison.get("measurement_class")
     if not isinstance(comparison_id, str) or not comparison_id:
         raise EvaluationError("comparison_id is required")
+    if comparison.get("comparison_mode") not in {"policy_only", "system_level"}:
+        raise EvaluationError("comparison_mode must be policy_only or system_level")
     if measurement_class not in {"synthetic", "measured"}:
         raise EvaluationError("measurement_class must be synthetic or measured")
     match_identity = comparison.get("match_identity")
