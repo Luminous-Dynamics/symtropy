@@ -244,12 +244,18 @@ fn bench_nd_contact_frame_and_wrench(c: &mut Criterion) {
             )
         });
     });
+    assert!(wrench.validate(&frame, &limits, 1e-12).is_ok());
+    assert!(
+        ellipsoidal_wrench
+            .validate_ellipsoidal_friction_budget(&frame, &limits, 1e-12)
+            .is_ok()
+    );
     c.bench_function("contact_wrench_validate_independent_channels_4d", |bench| {
         bench.iter(|| {
             black_box(
                 wrench
                     .validate(black_box(&frame), black_box(&limits), 1e-12)
-                    .expect("admissible independent-channel 4D wrench"),
+                    .is_ok(),
             )
         });
     });
@@ -268,7 +274,7 @@ fn bench_nd_contact_frame_and_wrench(c: &mut Criterion) {
                         black_box(&limits),
                         1e-12,
                     )
-                    .expect("admissible coupled-ellipsoid 4D wrench"),
+                    .is_ok(),
             )
         });
     });
