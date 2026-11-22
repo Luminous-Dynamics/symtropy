@@ -429,8 +429,46 @@ The equation-level Rust implementation is in [PR #6737](https://github.com/Lumin
 
 ### 13.7 Pointwise protection-level exceedance versus breach events
 
-[PR #6745](https://github.com/Luminous-Dynamics/symtropy/pull/6745) adds an offline trace evaluator that keeps the paper's pointwise Stanford-style exceedance fraction and reports distinct contiguous breach episodes and time exposed above PL separately.
+[PR #6757](https://github.com/Luminous-Dynamics/symtropy/pull/6757) carries the #6745 trace evaluator onto the current #6737 baseline head. It keeps the paper's pointwise Stanford-style exceedance fraction and reports distinct contiguous breach episodes and time exposed above PL separately.
 
-Each record must carry an explicit support duration. The evaluator does not infer time support from row frequency, treats invalid truth as invalid rather than safe, splits events at support gaps/safe intervals/invalid truth, and reports max contiguous breach duration. This helps avoid counting 400Hz or 100Hz windows as independent hazard events, while preserving the pointwise metric required to reproduce the published controller baseline.
+Each record must carry an explicit support duration. The evaluator does not infer time support from row frequency, treats invalid truth as invalid rather than safe, splits events at support gaps/safe intervals/invalid truth/**cluster boundaries**, and reports maximum contiguous breach duration. Cluster boundaries prevent adjacent intervals from two independent route/session units being merged into one apparent physical breach.
 
-The method assumes each sample's exceedance state is constant over its declared support interval. It is not continuous-time interpolation or a calibrated probability-of-integrity metric. Exact-head workflow verification remains pending after the final episode-accumulator correction; do not use until the branch's final CI passes.
+The method assumes each sample's exceedance state is constant over its declared support interval. It is not continuous-time interpolation or a calibrated probability-of-integrity metric. Predecessor exact-head workflows #153/#154 failed at compile time; #6757 fixes the identified field/getter errors, but its updated exact-head workflow must be independently confirmed before promotion.
+
+
+### 13.8 Equation fidelity and mathematical alternatives
+
+The source audit found that the current #6737 code used the exponential first-order derivative coefficient while describing it as the paper's exact equation. Maharmeh et al. (2026), Eq. (34)-(35), prints the linear coefficient `alpha = min(1, 2*pi*f_c*dt)`, applied to the current finite-difference derivative. [PR #6757](https://github.com/Luminous-Dynamics/symtropy/pull/6757) makes this `PaperLinear` mode the default and keeps `ExactExponential` (`alpha = 1-exp(-2*pi*f_c*dt)`) as a separately named experimental alternative. Baseline result manifests must record the mode.
+
+The Student-t baseline preserves the paper's printed directional equation but adds an independent covariance-projection comparison. The conventional directional variance is `e_i^T P e_i = sum_j lambda_j * v_(j,i)^2`, not generally the paper's printed `max(lambda_j * |v_(j,i)|)`. A constructed 45-degree covariance with eigenvalues 2 and 1 yields projected variance 1.5 versus a printed maximum term of sqrt(2); with the same degrees of freedom and radial multiplier, the printed PL is approximately 2.90% smaller. This is a formula-convention counterexample, not a claim about paper route results. Both methods remain separately reported pending author/source clarification.
+
+The 2D radial multiplier `K_TIR = sqrt(TIR^(-2/nu)-1)` assumes the supplied matrix is covariance (not Student-t scale) and TIR means total 2D radial tail probability. A per-axis/two-sided marginal probability is a different convention. The paper's precise convention must be confirmed before route-result comparison. The article's LiDAR residual prose/formula ambiguity also remains unresolved in the frontend reproduction.
+
+### 13.9 Zero-failure confidence gate
+
+The isolated Rust evidence kernel in [PR #6757](https://github.com/Luminous-Dynamics/symtropy/pull/6757) implements the exact one-sided binomial upper bound for the special case of zero observed failures:
+
+`p_upper = 1 - (1-confidence)^(1/n)`
+
+For a target mission-failure probability of 1e-3 at 95% one-sided confidence, at least **2,995 independent, exchangeable, same-scope mission trials** with zero failures are required. 2,994 do not suffice. This is not 2,995 epochs, not 2,995 samples from a single route, and not a per-hour guarantee. A route loop is not automatically independent merely because it has a new ID; independence needs predeclared failure-domain and mission-scope justification. The helper deliberately rejects nonzero failures, which need a general binomial confidence method.
+
+This bound is a statistical gate for a declared Bernoulli mission unit. It does not by itself prove ground-truth validity, independence, representativeness or protection-level calibration.
+
+### 13.10 Competitive strategy and promotion targets
+
+The competitive object is a **risk/accuracy/availability/continuity/latency/energy Pareto frontier**, not a single average-RMSE number. Every comparison must freeze the same sensor observations, privileges, initialization, calibration set, map, route split, compute/energy budget and independent truth manifest. Report the per-method Pareto points; do not collapse them into one weighted scalar before hard safety limits are satisfied.
+
+| Dimension | Proposed promotion target (aspirational, not achieved) | Required comparator/report |
+|---|---|---|
+| Nominal position accuracy | p95 error no more than 5% worse than the strongest matched baseline | same sensor set, route, initialization, calibration and compute |
+| Degraded-domain accuracy | at least 10% lower p95 error than the best reproduced matched baseline | predeclared GNSS multipath/LOS loss/LiDAR degeneracy/IMU fault slices |
+| False-safe exposure | at least 30% lower time above PL than the strongest matched baseline, without more than 1 percentage point loss in service availability | breach episodes, maximum contiguous duration, event rate and uncertainty by independent cluster |
+| Integrity claim | upper confidence bound at or below the declared use-profile target | independent mission units; no epoch-level independence substitution |
+| Degradation response | p95 time-to-alert within the downstream hazard-analysis actuation budget | fault injection with onset adjudication and measured sensor/compute latency |
+| Recovery | no false restoration to NORMAL; recovery latency inside the declared service budget | explicit requalification, reset, and common-cause recovery tests |
+| Efficiency | at least 20% lower sensing/compute energy at matched integrity and accuracy, or a measured Pareto improvement | joules per kilometre/mission, sensing duty cycle, CPU/GPU time and p99 latency |
+| Generalization | maintain coverage and false-safe limits on untouched site/device/firmware/weather/failure-domain holdouts | per-domain metrics and worst-domain confidence bounds |
+
+These thresholds are research targets to make progress measurable; they are not universal safety limits. Application-specific alert limits, time-to-alert, availability and continuity must come from the declared ODD, hazard analysis and downstream response budget.
+
+The standards comparison is complementary, not substitutive: ISO 26262 addresses hazards from malfunctioning safety-related E/E behaviour; ISO 21448 addresses SOTIF risks from functional insufficiencies and performance limits of complex sensing. Neither standard makes this research benchmark a safety approval or certifies a navigation estimator. Aviation-style HPL/VPL, alert-limit, availability, continuity and time-to-alert discipline are useful design references, but automotive claims require the relevant automotive safety case and applicable requirements.
