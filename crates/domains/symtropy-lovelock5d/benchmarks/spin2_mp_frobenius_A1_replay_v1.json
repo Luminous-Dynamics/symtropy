@@ -1,12 +1,28 @@
 {
   "schema_version": 1,
-  "artifact_kind": "einstein_limit_next_frobenius_replay_receipt",
-  "status": "passed_local_exact_replay",
-  "script_sha256": "de47e44c3fe86d36bef19e82a604fb802ac1b54ad137ea41b6c410a7aca52bab",
-  "fixture_sha256": "763cffb759b32e7ba941aea02e126a72314469e57653fdf220a02f0dfa1140d7",
-  "markdown_sha256": "155f13d9a15727e07edbcc926938d015d71c9aa09b3cf06b518b0e030b4760d6",
-  "replay_sha256": "763cffb759b32e7ba941aea02e126a72314469e57653fdf220a02f0dfa1140d7",
-  "exact_replay_match": true,
+  "artifact_kind": "einstein_limit_next_frobenius_local_replay_receipt",
+  "status": "passed_local_development_source_replay_public_source_replay_pending",
+  "local_development_source": {
+    "sha256": "de47e44c3fe86d36bef19e82a604fb802ac1b54ad137ea41b6c410a7aca52bab",
+    "git_blob_sha1": "75003ca56cb33c0c45b49bc5056c3a4f7f63e23f",
+    "executed_locally": true
+  },
+  "local_fixture": {
+    "sha256": "763cffb759b32e7ba941aea02e126a72314469e57653fdf220a02f0dfa1140d7",
+    "regenerated_output_exact_match": true,
+    "semantic_match_to_committed_fixture": true,
+    "exact_byte_match_to_committed_fixture": false
+  },
+  "committed_public_source": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/derive_spin2_mp_horizon_frobenius_A1.py",
+    "current_git_blob_sha1": "026542b262470e505793ce20cfdbb3e25b783dd3",
+    "syntax_checked_by_fetch": true,
+    "exact_byte_replay": "pending"
+  },
+  "committed_public_fixture": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/spin2_mp_frobenius_A1_v1.json",
+    "git_blob_sha1": "0f8dc512ca084c3aced05d43cba808537c491624"
+  },
   "environment": {
     "python": "3.13.5",
     "sympy": "1.14.0"
@@ -14,11 +30,16 @@
   "checks": {
     "A0_matches_public_indicial_result": true,
     "g0_matches_public_indicial_result": true,
-    "singular_eigenvector_exact": true,
-    "projectors_idempotent_and_orthogonal": true,
-    "log_coefficient_in_regular_eigenspace": true,
+    "A1_extracted_exactly_in_local_specialized_action": true,
+    "forced_singular_branch_log_coefficient": [
+      "1",
+      "2",
+      "3",
+      "18"
+    ],
     "analytic_first_recurrence_exact": true,
-    "myers_perry_reduced_equations_exact": true
+    "myers_perry_reduced_equations_exact": true,
+    "myers_perry_recurrence_n0_n1_exact": true
   },
-  "evidence_boundary": "The direct alpha=0 action-specialized source was replayed locally. The public generic-coupling equation generator and its clean-checkout replay are not prerequisites to this specialized derivation. This receipt is not CI and does not establish finite-coupling results."
+  "evidence_boundary": "The local alpha=0 action-specialized source replay passed and regenerated its local fixture byte-for-byte. The committed public fixture is semantically equivalent but was not shown to be byte-identical to the local output; the public derivation script was fetched after a syntax repair but exact-byte execution of that public source remains pending. This is not CI and does not establish finite-coupling results."
 }
