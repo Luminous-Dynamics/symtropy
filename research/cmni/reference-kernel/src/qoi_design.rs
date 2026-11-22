@@ -60,14 +60,14 @@ pub fn score_linear_quantity_of_interest(
         return Err(ModelError::MismatchedDataLengths);
     }
     let quantity_count = quantity_map.len();
-    if quantity_count == 0
-        || quantity_map
-            .iter()
-            .any(|row| row.len() != parameter_count)
-    {
+    if quantity_count == 0 || quantity_map.iter().any(|row| row.len() != parameter_count) {
         return Err(ModelError::MismatchedDataLengths);
     }
-    if quantity_map.iter().flatten().any(|value| !value.is_finite()) {
+    if quantity_map
+        .iter()
+        .flatten()
+        .any(|value| !value.is_finite())
+    {
         return Err(ModelError::NonFiniteValue("qoi_linear_map"));
     }
 
@@ -77,10 +77,7 @@ pub fn score_linear_quantity_of_interest(
     let posterior_qoi_covariance =
         project_covariance(posterior_parameter_covariance, quantity_map)?;
     let prior_logdet = logdet_spd(&prior_qoi_covariance, "qoi_prior_covariance")?;
-    let posterior_logdet = logdet_spd(
-        &posterior_qoi_covariance,
-        "qoi_posterior_covariance",
-    )?;
+    let posterior_logdet = logdet_spd(&posterior_qoi_covariance, "qoi_posterior_covariance")?;
     let a_optimal_trace_reduction =
         trace(&prior_qoi_covariance)? - trace(&posterior_qoi_covariance)?;
     let d_optimal_logdet_reduction = prior_logdet - posterior_logdet;
@@ -148,10 +145,7 @@ pub fn rank_portfolios_by_linear_quantity_of_interest(
     Ok(ranked)
 }
 
-fn validate_square_covariance(
-    matrix: &[Vec<f64>],
-    name: &'static str,
-) -> Result<(), ModelError> {
+fn validate_square_covariance(matrix: &[Vec<f64>], name: &'static str) -> Result<(), ModelError> {
     let dimension = matrix.len();
     if dimension == 0 || matrix.iter().any(|row| row.len() != dimension) {
         return Err(ModelError::MismatchedDataLengths);
@@ -207,7 +201,9 @@ fn multiply(left: &[Vec<f64>], right: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, Mode
         }
     }
     if output.iter().flatten().any(|value| !value.is_finite()) {
-        return Err(ModelError::InvalidParameter("qoi_covariance_product_nonfinite"));
+        return Err(ModelError::InvalidParameter(
+            "qoi_covariance_product_nonfinite",
+        ));
     }
     Ok(output)
 }
@@ -272,8 +268,10 @@ fn logdet_spd(matrix: &[Vec<f64>], name: &'static str) -> Result<f64, ModelError
             }
         }
     }
-    let logdet =
-        2.0 * (0..dimension).map(|index| lower[index][index].ln()).sum::<f64>();
+    let logdet = 2.0
+        * (0..dimension)
+            .map(|index| lower[index][index].ln())
+            .sum::<f64>();
     if !logdet.is_finite() {
         return Err(ModelError::InvalidCovariance(name));
     }
@@ -350,7 +348,9 @@ pub fn rank_portfolios_by_weighted_finite_scenario_lower_cvar(
     }
     let total_weight = scenario_weights.iter().sum::<f64>();
     if !total_weight.is_finite() {
-        return Err(ModelError::InvalidParameter("risk_scenario_weight_sum_nonfinite"));
+        return Err(ModelError::InvalidParameter(
+            "risk_scenario_weight_sum_nonfinite",
+        ));
     }
     if total_weight <= 0.0 {
         return Err(ModelError::NonPositiveValue("risk_scenario_weight_sum"));
@@ -458,43 +458,31 @@ mod tests {
     #[test]
     fn quantity_of_interest_can_reverse_parameter_space_portfolio_ranking() {
         let prior = vec![vec![1.0, 0.0], vec![0.0, 1.0]];
-        let ab = portfolio(
-            "A+B",
-            vec![vec![181.0 / 201.0, 0.0], vec![0.0, 1.0]],
-        );
-        let ac = portfolio(
-            "A+C",
-            vec![vec![91.0 / 101.0, 0.0], vec![0.0, 20.0 / 21.0]],
-        );
+        let ab = portfolio("A+B", vec![vec![181.0 / 201.0, 0.0], vec![0.0, 1.0]]);
+        let ac = portfolio("A+C", vec![vec![91.0 / 101.0, 0.0], vec![0.0, 20.0 / 21.0]]);
         let portfolios = vec![ab, ac];
 
         // A physical-component target slightly prefers the shared pair.
-        let physical = rank_portfolios_by_linear_quantity_of_interest(
-            &portfolios,
-            &prior,
-            &[vec![1.0, 0.0]],
-        )
-        .expect("physical QoI ranking");
+        let physical =
+            rank_portfolios_by_linear_quantity_of_interest(&portfolios, &prior, &[vec![1.0, 0.0]])
+                .expect("physical QoI ranking");
         assert_eq!(physical[0].portfolio.candidate_ids, vec!["A+B"]);
         assert!(
             (physical[0].quantity_score.expected_information_gain_nats
                 - 0.5 * (201.0_f64 / 181.0).ln())
-                .abs()
+            .abs()
                 < 1.0e-12
         );
 
         // A measurement-artifact target prefers the complementary experiment.
-        let artifact = rank_portfolios_by_linear_quantity_of_interest(
-            &portfolios,
-            &prior,
-            &[vec![0.0, 1.0]],
-        )
-        .expect("artifact QoI ranking");
+        let artifact =
+            rank_portfolios_by_linear_quantity_of_interest(&portfolios, &prior, &[vec![0.0, 1.0]])
+                .expect("artifact QoI ranking");
         assert_eq!(artifact[0].portfolio.candidate_ids, vec!["A+C"]);
         assert!(
             (artifact[0].quantity_score.expected_information_gain_nats
                 - 0.5 * (21.0_f64 / 20.0).ln())
-                .abs()
+            .abs()
                 < 1.0e-12
         );
     }
@@ -593,10 +581,7 @@ mod tests {
     #[test]
     fn lower_tail_cvar_rejects_invalid_scenario_inputs() {
         assert_eq!(
-            rank_portfolios_by_finite_scenario_lower_cvar(
-                &[("p".to_owned(), vec![1.0, 2.0])],
-                0.0
-            ),
+            rank_portfolios_by_finite_scenario_lower_cvar(&[("p".to_owned(), vec![1.0, 2.0])], 0.0),
             Err(ModelError::InvalidParameter("risk_alpha_must_be_in_(0,1]"))
         );
         assert_eq!(
