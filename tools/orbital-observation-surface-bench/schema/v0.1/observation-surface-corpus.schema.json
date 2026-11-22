@@ -1,0 +1,198 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/orbital-observation-surface-corpus-v0.1.json",
+  "title": "Orbital observation-surface scenario corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "evidence_class",
+    "claim_ceiling",
+    "scenarios"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-observation-surface.corpus.v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "stateful-marked-observation-simulation-only"
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/scenario"
+      }
+    }
+  },
+  "$defs": {
+    "interval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "end"
+      ],
+      "properties": {
+        "start": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "end": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "time_fraction",
+        "amplitude",
+        "duration"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "time_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "amplitude": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "duration": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "channel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "channel_id",
+        "logit_intercept",
+        "time_slope",
+        "log_amplitude_slope",
+        "log_duration_slope",
+        "fixed_dead_time",
+        "false_positive_rate",
+        "channel_outages",
+        "detection_seed",
+        "false_positive_seed"
+      ],
+      "properties": {
+        "channel_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "logit_intercept": {
+          "type": "number",
+          "minimum": -10000,
+          "maximum": 10000
+        },
+        "time_slope": {
+          "type": "number",
+          "minimum": -10000,
+          "maximum": 10000
+        },
+        "log_amplitude_slope": {
+          "type": "number",
+          "minimum": -10000,
+          "maximum": 10000
+        },
+        "log_duration_slope": {
+          "type": "number",
+          "minimum": -10000,
+          "maximum": 10000
+        },
+        "fixed_dead_time": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "false_positive_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "channel_outages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/interval"
+          }
+        },
+        "detection_seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "false_positive_seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "configuration_id",
+        "exposure_horizon",
+        "events",
+        "shared_common_cause_outages",
+        "channels"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "exposure_horizon": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "events": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100000,
+          "items": {
+            "$ref": "#/$defs/event"
+          }
+        },
+        "shared_common_cause_outages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/interval"
+          }
+        },
+        "channels": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/channel"
+          }
+        }
+      }
+    }
+  }
+}
