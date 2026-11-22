@@ -1,0 +1,135 @@
+{
+  "schema": "luminous.ehd_piv_conformal_functional_uq",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-PIV-UQ-004",
+  "as_of": "2026-11-22",
+  "status": "standalone_reference_kernels_authored_tests_execution_pending",
+  "claim_ceiling": "Cluster-conformal field-coverage evaluator and first-order field-functional uncertainty reference. No raw PIV processing, empirical calibration, EHD force measurement or thrust validation is claimed.",
+  "parent_increments": [
+    "EHD-PIV-UQ-001",
+    "EHD-PIV-UQ-002",
+    "EHD-PIV-UQ-003",
+    "EHD-CV-001"
+  ],
+  "conformal_contract": {
+    "unit": "complete independent acquisition/field cluster",
+    "vector_score": "e^T Sigma^-1 e, squared Mahalanobis residual",
+    "cluster_score": "maximum squared Mahalanobis score over every vector in the field and all four physical regions",
+    "finite_sample_rank": "ceil((n_calibration_clusters + 1) * (1 - alpha))",
+    "nominal_coverage": 0.95,
+    "finite_radius_minimum_calibration_clusters": 19,
+    "field_size_policy": "exact vector count per calibration and target field",
+    "regions": [
+      "bulk",
+      "near_wall",
+      "shear_layer",
+      "wake"
+    ],
+    "assumptions": [
+      "calibration field clusters and future field cluster exchangeable",
+      "same frozen acquisition, geometry, grid, masks, processing and field size",
+      "independent or exchangeable cluster-level units; no hidden shared acquisition cause"
+    ],
+    "guarantee": "finite-sample marginal coverage of every scored vector in one future field with probability >= 1-alpha over calibration and target fields, conditional on the stated cluster exchangeability design",
+    "non_guarantees": [
+      "not conditional on the fixed observed calibration sample",
+      "not robust to unaccounted distribution shift",
+      "protocol fingerprint does not prove exchangeability",
+      "temporal dependence between clusters is not corrected",
+      "changed number of vectors or region masks invalidates the same max-score calibration"
+    ],
+    "implementation": {
+      "path": "tools/ehd-piv-conformal-functional-uq/src/conformal.rs",
+      "function": "calibrate_cluster_conformal",
+      "authored_rust_tests": 10
+    }
+  },
+  "functional_contract": {
+    "functionals": [
+      "mass_flow",
+      "advective_momentum_flux_x",
+      "advective_momentum_flux_y",
+      "advective_momentum_flux_z"
+    ],
+    "inputs": [
+      "3D_velocity_per_face_sample",
+      "oriented_area_vector_per_sample",
+      "density_per_sample",
+      "local_3x3_velocity_covariance",
+      "shared_latent_modes"
+    ],
+    "covariance_model": "blockdiag(local covariance) + sum(shared mode sensitivity outer product)",
+    "shared_mode_sensitivities": [
+      "velocity",
+      "density",
+      "oriented_area_vector"
+    ],
+    "output": "4x4 covariance over mass and three momentum-flux components including cross-covariance",
+    "propagation": "first-order delta method / Jacobian",
+    "assumptions": [
+      "local velocity errors independent across samples",
+      "cross-location dependence represented by declared shared modes",
+      "shared modes independent after supplied factorization",
+      "all local covariance matrices positive semidefinite"
+    ],
+    "excluded_terms": [
+      "pressure_traction",
+      "viscous_traction",
+      "body_force",
+      "momentum_storage",
+      "direct_force_balance",
+      "unmodelled_spatial_dependence"
+    ],
+    "implementation": {
+      "path": "tools/ehd-piv-conformal-functional-uq/src/functional.rs",
+      "function": "propagate_field_functional_uncertainty",
+      "authored_rust_tests": 9
+    }
+  },
+  "dataset_and_comparator_plan": {
+    "image_benchmarks": [
+      "FFS-S-PIV Zenodo 10.5281/zenodo.21732072",
+      "PIVtools validation cohort DOI 10.5258/SOTON/D3981"
+    ],
+    "methods": [
+      "pointwise split conformal",
+      "region-wise conformal",
+      "cluster-max conformal",
+      "Gaussian Hessian covariance",
+      "empirical covariance scaling"
+    ],
+    "functional_references": [
+      "central finite differences",
+      "Monte Carlo with frozen covariance factors",
+      "existing EHD control-volume reducer and direct force balance"
+    ]
+  },
+  "prospective_targets": {
+    "whole_field_nominal_coverage": 0.95,
+    "reporting": [
+      "calibration cluster count",
+      "field size",
+      "protocol fingerprint",
+      "alpha",
+      "finite-sample rank",
+      "calibrated radius",
+      "whole-field coverage",
+      "region-specific failure frequency",
+      "ellipse area",
+      "abstention rate"
+    ],
+    "functional_jacobian_relative_covariance_error_max": 0.000001,
+    "monte_carlo_comparison": "report confidence intervals and convergence, not a single point tolerance"
+  },
+  "limitations": [
+    "no_raw_image_processing",
+    "no_empirical_covariance_calibration",
+    "no_exchangeability_proof",
+    "no_distribution_shift_robustness",
+    "no_general_spatial_covariance_except_shared_factor_modes",
+    "first_order_functional_propagation",
+    "no_pressure_viscous_body_or_storage_terms",
+    "no_direct_force_balance_or_thrust_measurement",
+    "rust_execution_pending"
+  ]
+}
