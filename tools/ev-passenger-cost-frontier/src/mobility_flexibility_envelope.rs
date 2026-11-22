@@ -1113,17 +1113,42 @@ mod tests {
         .expect("frozen mobility flexibility fixture must parse")
     }
 
-    fn independent_reference_feasible(input: &MobilityFlexibilityInput) -> bool {
-        let candidate_energy_wh = input
-            .candidate_dispatch
-            .iter()
-            .map(|slot| {
-                (u64::from(slot.requested_discharge_power_w)
-                    * u64::from(input.slot_duration_seconds)
-                    + 3_599)
-                    / 3_600
+    fn set_test_profile(input: &mut MobilityFlexibilityInput, profile: [u32; 4]) {
+        input.candidate_dispatch = profile
+            .into_iter()
+            .enumerate()
+            .map(|(slot, requested_discharge_power_w)| CandidateDispatchSlot {
+                slot: slot as u8,
+                requested_discharge_power_w,
             })
-            .sum::<u64>();
+            .collect();
+
+        let mut resources: Vec<_> = input
+            .storage_resources
+            .iter()
+            .map(|resource| resource.resource_id.clone())
+            .collect();
+        resources.sort();
+        assert_eq!(resources.len(), 2, "the exhaustive fixture has two resources");
+
+        input.resource_dispatch.clear();
+        for (slot, total_power) in profile.into_iter().enumerate() {
+            let first_power = (u64::from(total_power) * 29 / 40) as u32;
+            let second_power = total_power - first_power;
+            input.resource_dispatch.push(CandidateResourceDispatchSlot {
+                resource_id: resources[0].clone(),
+                slot: slot as u8,
+                requested_discharge_power_w: first_power,
+            });
+            input.resource_dispatch.push(CandidateResourceDispatchSlot {
+                resource_id: resources[1].clone(),
+                slot: slot as u8,
+                requested_discharge_power_w: second_power,
+            });
+        }
+    }
+
+    fn independent_reference_feasible(input: &MobilityFlexibilityInput) -> bool {
         let export_permitted = input.export_permission.as_ref().is_some_and(|permission| {
             permission.value == Some(true)
                 && matches!(
@@ -1133,9 +1158,6 @@ mod tests {
         });
 
         input.reserve_scenarios.iter().all(|scenario| {
-            let mut horizon_energy_budget_wh = 0_u64;
-            let mut slot_power_budget_w = vec![0_u64; usize::from(input.horizon_slots)];
-
             for resource in &input.storage_resources {
                 let Some(reserve) = scenario
                     .resource_reserves
@@ -1145,46 +1167,79 @@ mod tests {
                     return false;
                 };
 
-                let reserved_energy_wh = reserve.mission_energy_reserve_wh
+                let reserved_energy = reserve.mission_energy_reserve_wh
                     + reserve.inventory_buffer_energy_wh
                     + reserve.safety_outage_reserve_energy_wh
                     + reserve.uncertainty_energy_allowance_wh;
-                if reserved_energy_wh > resource.available_energy_lower_bound_wh {
+                if reserved_energy > resource.available_energy_lower_bound_wh {
                     return false;
                 }
-                horizon_energy_budget_wh +=
-                    resource.available_energy_lower_bound_wh - reserved_energy_wh;
+                let available_energy = resource.available_energy_lower_bound_wh - reserved_energy;
 
-                for slot in 0..usize::from(input.horizon_slots) {
-                    let reserved_power_w = reserve.mission_power_reserve_w_by_slot[slot]
-                        + reserve.inventory_buffer_power_w_by_slot[slot]
-                        + reserve.safety_outage_power_reserve_w_by_slot[slot]
-                        + reserve.uncertainty_power_allowance_w_by_slot[slot];
-                    if reserved_power_w > resource.max_discharge_power_lower_bound_w {
+                let resource_profile: Vec<_> = (0..input.horizon_slots)
+                    .filter_map(|slot| {
+                        input
+                            .resource_dispatch
+                            .iter()
+                            .find(|item| item.resource_id == resource.resource_id && item.slot == slot)
+                    })
+                    .collect();
+                if resource_profile.len() != usize::from(input.horizon_slots) {
+                    return false;
+                }
+                let resource_energy = resource_profile
+                    .iter()
+                    .map(|item| {
+                        (u64::from(item.requested_discharge_power_w)
+                            * u64::from(input.slot_duration_seconds)
+                            + 3_599)
+                            / 3_600
+                    })
+                    .sum::<u64>();
+                if resource_energy > available_energy {
+                    return false;
+                }
+
+                for slot in 0..input.horizon_slots {
+                    let reserved_power = reserve.mission_power_reserve_w_by_slot[usize::from(slot)]
+                        + reserve.inventory_buffer_power_w_by_slot[usize::from(slot)]
+                        + reserve.safety_outage_power_reserve_w_by_slot[usize::from(slot)]
+                        + reserve.uncertainty_power_allowance_w_by_slot[usize::from(slot)];
+                    if reserved_power > resource.max_discharge_power_lower_bound_w {
                         return false;
                     }
-                    slot_power_budget[slot] +=
-                        u64::from(resource.max_discharge_power_lower_bound_w - reserved_power_w);
+                    let available_power = resource.max_discharge_power_lower_bound_w - reserved_power;
+                    let requested_power = resource_profile[usize::from(slot)].requested_discharge_power_w;
+                    if requested_power > available_power {
+                        return false;
+                    }
                 }
             }
 
-            if candidate_energy_wh > horizon_energy_budget_wh {
-                return false;
-            }
-
-            input.candidate_dispatch.iter().all(|dispatch| {
+            for dispatch in &input.candidate_dispatch {
+                let allocated_power = input
+                    .resource_dispatch
+                    .iter()
+                    .filter(|item| item.slot == dispatch.slot)
+                    .map(|item| item.requested_discharge_power_w)
+                    .sum::<u32>();
+                if allocated_power != dispatch.requested_discharge_power_w {
+                    return false;
+                }
                 let Some(pcc) = input.pcc_slots.iter().find(|pcc| pcc.slot == dispatch.slot) else {
                     return false;
                 };
-                let power_available = slot_power_budget[usize::from(dispatch.slot)];
                 let net_import_w = i64::from(pcc.base_site_load_w)
                     + i64::from(pcc.scheduled_mobility_charging_load_w)
                     - i64::from(dispatch.requested_discharge_power_w);
-                u64::from(dispatch.requested_discharge_power_w) <= power_available
-                    && net_import_w <= i64::from(pcc.import_limit_w)
-                    && net_import_w >= -i64::from(pcc.export_limit_w)
-                    && (net_import_w >= 0 || export_permitted)
-            })
+                if net_import_w > i64::from(pcc.import_limit_w)
+                    || net_import_w < -i64::from(pcc.export_limit_w)
+                    || (net_import_w < 0 && !export_permitted)
+                {
+                    return false;
+                }
+            }
+            true
         })
     }
 
