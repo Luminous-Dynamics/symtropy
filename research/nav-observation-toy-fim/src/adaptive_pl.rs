@@ -10,8 +10,6 @@
 use std::f64::consts::PI;
 use std::fmt;
 
-const EPSILON: f64 = 1.0e-12;
-
 /// Conditional anti-windup policy.
 ///
 /// PaperConditional reproduces Equation (33) exactly: when the previous
