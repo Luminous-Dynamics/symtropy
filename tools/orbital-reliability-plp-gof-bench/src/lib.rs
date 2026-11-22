@@ -352,11 +352,6 @@ fn conditional_reference_statistics(
     from_sorted_log_transforms(&log_transforms)
 }
 
-/// CvM-only adapter retained for the original v0.1 outer calibration smoke test.
-fn conditional_reference_cvm(count: usize, rng: &mut SplitMix64) -> Result<f64, String> {
-    Ok(conditional_reference_statistics(count, rng)?.cramer_von_mises)
-}
-
 #[derive(Debug, Clone, Copy)]
 struct TailSummary<'a> {
     method: &'a str,
@@ -1034,8 +1029,9 @@ mod tests {
             let mut reference_rng = SplitMix64::new(outer_rng.next_u64());
             let mut exceedances = 0usize;
             for _ in 0..999 {
-                if conditional_reference_cvm(10, &mut reference_rng)
+                if conditional_reference_statistics(10, &mut reference_rng)
                     .expect("conditional reference sample")
+                    .cramer_von_mises
                     >= observed
                 {
                     exceedances += 1;
