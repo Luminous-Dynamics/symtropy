@@ -1098,50 +1098,30 @@ mod tests {
         let action = ticket();
         let mut live = snapshot(&action, 5, 1_050);
         live.m2_context.operation.odd_revision = digest(91);
-        assert_rejected_at_application(
-            action,
-            live,
-            m2::AdmissionError::OddRevisionMismatch,
-        );
+        assert_rejected_at_application(action, live, m2::AdmissionError::OddRevisionMismatch);
 
         // Mode revision.
         let action = ticket();
         let mut live = snapshot(&action, 5, 1_050);
         live.m2_context.operation.mode_revision = digest(92);
-        assert_rejected_at_application(
-            action,
-            live,
-            m2::AdmissionError::ModeRevisionMismatch,
-        );
+        assert_rejected_at_application(action, live, m2::AdmissionError::ModeRevisionMismatch);
 
         // Revoked authority and authority epoch drift.
         let action = ticket();
         let mut live = snapshot(&action, 5, 1_050);
         live.m2_context.authority_revoked = true;
-        assert_rejected_at_application(
-            action,
-            live,
-            m2::AdmissionError::AuthorityRevoked,
-        );
+        assert_rejected_at_application(action, live, m2::AdmissionError::AuthorityRevoked);
 
         let action = ticket();
         let mut live = snapshot(&action, 5, 1_050);
         live.m2_context.authority_epoch += 1;
-        assert_rejected_at_application(
-            action,
-            live,
-            m2::AdmissionError::AuthorityEpochMismatch,
-        );
+        assert_rejected_at_application(action, live, m2::AdmissionError::AuthorityEpochMismatch);
 
         // Navigation sequence and qualified time-basis drift.
         let action = ticket();
         let mut live = snapshot(&action, 5, 1_050);
         live.m2_context.navigation_source_sequence = 6;
-        assert_rejected_at_application(
-            action,
-            live,
-            m2::AdmissionError::NavigationSequenceStale,
-        );
+        assert_rejected_at_application(action, live, m2::AdmissionError::NavigationSequenceStale);
 
         let action = ticket();
         let mut live = snapshot(&action, 5, 1_050);
@@ -1165,6 +1145,4 @@ mod tests {
         let live = snapshot(&action, 5, 1_050);
         assert_rejected_at_application(action, live, m2::AdmissionError::TicketExpired);
     }
-
-
 }
