@@ -192,8 +192,8 @@
     "planar_conformal_tests": 10,
     "spatial_conformal_tests": 4,
     "field_functional_tests": 10,
-    "integrated_functional_conformal_tests": 7,
-    "total_authored_rust_tests": 31,
+    "integrated_functional_conformal_tests": 8,
+    "total_authored_rust_tests": 32,
     "rust_execution": "not_run_no_local_rust_toolchain"
   },
   "integrated_functional_conformal_contract": {
@@ -219,7 +219,8 @@
     "implementation": {
       "path": "tools/ehd-piv-conformal-functional-uq/src/functional_conformal.rs",
       "function": "calibrate_functional_conformal",
-      "authored_rust_tests": 7
+      "authored_rust_tests": 8,
+      "adapter": "functional_observation_from_report"
     },
     "limitations": [
       "does_not_complete_missing_control_volume_terms",
@@ -228,7 +229,23 @@
       "exchangeability_is_external",
       "marginal_coverage_is_over_calibration_and_future_sessions_not_conditional_on_fixed_calibration",
       "mixed_unit_covariance_is_standardized_before_cholesky"
-    ]
+    ],
+    "adapter_contract": {
+      "source": "FieldFunctionalReport",
+      "preserves": [
+        "predicted_run_id",
+        "reference_evidence_id",
+        "functional_values_order",
+        "functional_covariance"
+      ],
+      "residual": "reference_functionals - predicted_functionals",
+      "output_order": [
+        "mass_flow_kg_s",
+        "momentum_x_N",
+        "momentum_y_N",
+        "momentum_z_N"
+      ]
+    }
   },
   "field_functional_implementation": {
     "path": "tools/ehd-piv-conformal-functional-uq/src/functional.rs",
