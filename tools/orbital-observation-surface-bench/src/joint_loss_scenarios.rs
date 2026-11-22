@@ -926,6 +926,7 @@ mod tests {
             case.actions.reverse();
             case.compatible_world_set.world_ids.reverse();
             case.loss_scenario_manifest.scenarios.reverse();
+            case.loss_scenario_manifest.expected_scenario_ids.reverse();
         }
         let a = evaluate(&corpus).expect("original evaluates");
         let b = evaluate(&reversed).expect("reversed evaluates");
