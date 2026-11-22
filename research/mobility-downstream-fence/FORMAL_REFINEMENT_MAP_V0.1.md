@@ -12,7 +12,7 @@ The TLA+ model contains one abstract state:
 
 and a transition `FenceDownstreamExecution`. The transition models the assumption that commands accepted by the prior incarnation cannot execute later.
 
-The Rust reference contract does **not** perform that transition. It assesses whether supplied receipts consistently cover every layer in a declared command-holding inventory:
+The Rust reference contract does **not** perform that transition. It assesses whether supplied receipts consistently cover every node in a declared directed execution graph, including fan-out and multiple terminal branches:
 
 `AllDeclaredLayersHaveCurrentQuiescenceEvidence`
 
@@ -40,8 +40,9 @@ Do not collapse the Rust decision and the real fence operation into one function
 | `bootEpoch` / controller epoch | `RestartTransition.new_boot_epoch_id` / `new_controller_epoch` |
 | Original boot/controller epoch | `old_boot_epoch_id` / `old_controller_epoch` |
 | `oldPhysicalOutcome` attempt identity | `logical_effect_id` + `old_attempt_id` |
-| Abstract path of command holders | `QueuePathInventory.layers[]`, ordered by `path_index` |
+| Abstract path of command holders | `QueuePathInventory.layers[]` plus `entry_layer_id`, `terminal_layer_ids` and `edges[]` |
 | One per-layer fence receipt | `LayerQuiescenceReceipt` keyed by `layer_id` |
+| Fan-out/fan-in forwarding topology | Acyclic graph edges with one ingress, exact sink set and reachability coverage |
 | Platform/firmware profile applicability | Stack and per-layer configuration commitments |
 | Counter reset / wrap | `sequence_generation_id` mismatch, which holds |
 | Outstanding old work | `outstanding_commands != 0` or accepted/retired high-water mismatch, which holds |
