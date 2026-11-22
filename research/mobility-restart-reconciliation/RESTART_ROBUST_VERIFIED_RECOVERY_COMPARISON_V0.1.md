@@ -56,6 +56,46 @@ This moves RRVR beyond merely injecting more faults: it makes every failure repr
 
 Reference: Mucheng Yang et al., “A Survey of Fuzzing for ROS-Based Robotic Systems,” *Applied Sciences* 16(14), 7250, published 20 July 2026: https://doi.org/10.3390/app16147250.
 
+## 2B. Closest explicit architecture: October 2026 IETF Internet-Draft on staged physical effectuation
+
+A directly relevant prior-art document must be acknowledged: Sangam Das's *A Permit to Effect Once Is Not a Permit to Effect Permanently: Reality as a Cryptographic Dependency for AI Machines, Frontier AI Model Providers, and Critical Systems*, `draft-das-safety-first-execution-finality-00`, published 1 October 2026.
+
+**Status matters:** the Datatracker identifies it as an active individual Internet-Draft, intended experimental, expiring 4 April 2027; it is explicitly not endorsed by the IETF and has no formal standing in the IETF standards process. Treat it as work in progress, not an adopted standard.
+
+The draft explicitly describes:
+- robotic staged actuation: bounded real motion, protected physical observation, and continuation authority conditioned on the measured result (E23);
+- hardware-rooted actuator gating, protected sensor/encoder confirmation, monotonic phase counters and hardware latches that keep a subsequent command unavailable until the preceding receipt is validated (E24);
+- the distinction between command acceptance and physical effect;
+- crash after physical effect but before receipt processing, where blind reissue can duplicate motion and recovery may need an actuator phase counter, encoder position, controller journal, monotonic counter, trajectory ID, sequence number or independent machine state;
+- out-of-band validation, anti-replay and atomic consumption of continuation authority, subject to explicit assumptions including receipt integrity, path completeness and atomic consumption.
+
+This is substantive overlap with the broader research thesis of staged physical effects, evidence-gated continuation and restart-safe non-duplication. RRVR should **not** claim to invent those general concepts, protected physical receipts, hardware latches, or crash-after-effect reconciliation.
+
+### What RRVR is actually building beyond the high-level pattern
+
+The current contribution is an executable, testable *cross-owner qualification package* for restart/recovery, not a competing cryptographic-finality architecture:
+
+| Dimension | Internet-Draft E23/E24 | Current RRVR engineering tranche |
+|---|---|---|
+| Physical progression | Proposes bounded real effect followed by protected observation and continuation | Keeps physical outcome distinct from local persistence, M1 resolution and current M1/M2 authority; no physical effect authority in the reference crate |
+| Crash after effect | Explicitly recognizes duplicate motion risk and identifies possible hardware/encoder/journal evidence | Bounded TLA+ crash/restart transitions and an exact Rust decision corpus; exact-head checked at the stated bounded scope |
+| Downstream path | Describes hardware latch, actuator-side enforcement and path-completeness assumptions | Adds an executable declared command-holding graph contract: one ingress, explicit forwarding edges, multiple actuator sinks, graph reachability/acyclicity and one evidence receipt per buffering layer |
+| Independent assessment | Out-of-band validator and protected receipt concepts | Separate three-valued black-box verdict contract and fixed expected-refutation / insufficient-evidence corpus; no verdict mints authority |
+| Reproducibility | Architecture and implementation variations described in the draft | Public schemas, adversarial cases, focused CI, model-checker negative control, exact-head workflow receipts and a proposed matched RRVR benchmark |
+| Qualification boundary | Explicit assumptions and hardware/software embodiments | Explicitly separates reference-contract, bounded-model, ROS/simulator, HIL and physical-stack claims; no hardware qualification is asserted |
+
+The draft itself makes path completeness and atomic consumption assumptions explicit. RRVR's immediate research task is to turn those assumptions into exact platform-specific inventory, owner receipts, independent evaluation and fault-injection evidence. Our graph checker only validates supplied evidence against a supplied declared graph; it does not prove the graph is complete, receipts authentic, a hardware latch real, or all queues physically quiescent.
+
+### Revised novelty claim
+
+The defensible claim is not “first restart-safe robot” or “first receipt-gated actuation.” A defensible future claim would be:
+
+> A reproducible, independently replayable benchmark and executable reference package that tests cross-owner physical-effect continuity after process/host/controller failures, including durable commit ambiguity, exact attempt/authority lineage, graph-wide downstream queue coverage and three-valued evidence evaluation on a declared robotics stack.
+
+That claim remains a research target until we integrate an exact ROS/controller/driver/firmware stack and complete simulator, HIL and physical evidence campaigns.
+
+Primary reference: [IETF Datatracker: draft-das-safety-first-execution-finality-00](https://datatracker.ietf.org/doc/html/draft-das-safety-first-execution-finality-00). See Abstract and E23/E24, particularly E23.3, E23.8, E23.20, E24.5 and E24.12–E24.14.
+
 ## 3. The critical stack-specific observation
 
 ROS 2 hardware lifecycle states are not sufficient evidence of downstream command quiescence. The current rolling `ros2_control` hardware-component documentation says that, in INACTIVE, command interfaces can remain available and be written; whether the hardware component continues using commands or skips them is left to its implementation, with safety-critical interface work noted as a roadmap item.
