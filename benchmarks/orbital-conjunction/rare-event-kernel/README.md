@@ -12,6 +12,8 @@ This crate is a research kernel, not an operational collision-probability produc
 - Stable log-domain standard-normal interval mass, including extreme positive and negative tails.
 - Log mass for axis-aligned boxes under independent standard-normal coordinates.
 - A Gaussian cube-tail union-bound primitive for probability bookkeeping.
+- Outward-rounded interval enclosures for affine images of finite axis-aligned cells.
+- A conservative norm lower bound and static collision-ball cell-exclusion predicate.
 - Full normalized Gaussian-mixture log density using log-sum-exp.
 - Log importance weights and one-draw weighted event indicators.
 - Strict Loewner covariance-floor validation, including the strictness test needed for a half-nominal covariance lower bound.
@@ -35,5 +37,6 @@ The package has its own Cargo workspace and does not require the full Symtropy/B
 - A finite proposal mixture does not prove event-mode completeness.
 - The Gaussian half-space function is an analytic fixture, not a disk/ellipsoid collision integral or trajectory first-contact solver.
 - The log-tail, box-mass and cube-tail routines are floating-point numerical kernels, not formally verified outward-rounded probability bounds; they cannot be used as an independent residual-mass certificate without additional enclosure work.
+- The affine-cell module widens basic IEEE-754 operations by one adjacent representable value and fails closed on overflow. It covers finite affine maps only; it is not a validated nonlinear ODE enclosure, nor a complete residual-mass certificate.
 - The weighted indicator primitive does not construct confidence intervals or establish finite-sample coverage.
 - The proposal density must be the complete mixture density, including all defensive components.
