@@ -105,7 +105,7 @@
           }
         },
         {
-          "if": { "properties": { "status": { "const": "empirical_clopper_pearson" } }, "required": ["method", "status"] },
+          "if": { "properties": { "method": { "const": "empirical_clopper_pearson" }, "status": { "const": "qualified" } }, "required": ["method", "status"] },
           "then": { "properties": { "failure_count": { "type": "integer", "minimum": 0 } } }
         },
         {
