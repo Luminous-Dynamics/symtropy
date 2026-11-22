@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/symtropy/mission-supervisor/mission-evidence/v0.1",
+  "title": "Mission Supervisor action-attempt-bound evidence v0.1",
+  "description": "Wire-contract schema for the typed evidence wrappers accepted by M1. This schema complements receipt_envelope.schema.json; it does not authenticate any receipt.",
+  "oneOf": [
+    { "$ref": "#/$defs/goalEvidence" },
+    { "$ref": "#/$defs/reconciliationEvidence" },
+    { "$ref": "#/$defs/recoveryPermit" }
+  ],
+  "$defs": {
+    "receiptEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "content_digest",
+        "source_id",
+        "source_sequence",
+        "observed_at_ms",
+        "time_qualification",
+        "observer_role",
+        "confidence_basis_points"
+      ],
+      "properties": {
+        "event_id": { "type": "string", "minLength": 1 },
+        "content_digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "source_id": { "type": "string", "minLength": 1 },
+        "source_sequence": { "type": "integer", "minimum": 0 },
+        "observed_at_ms": { "type": "integer", "minimum": 0 },
+        "time_qualification": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source_clock_id",
+            "source_boot_epoch_id",
+            "comparison_basis_id",
+            "comparison_epoch_id",
+            "source_time_commitment",
+            "correlation_commitment",
+            "normalized_time_commitment",
+            "uncertainty_bound_nanoseconds"
+          ],
+          "properties": {
+            "source_clock_id": { "type": "string", "minLength": 1 },
+            "source_boot_epoch_id": { "type": "string", "minLength": 1 },
+            "comparison_basis_id": { "type": "string", "minLength": 1 },
+            "comparison_epoch_id": { "type": "string", "minLength": 1 },
+            "source_time_commitment": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "correlation_commitment": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "normalized_time_commitment": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "uncertainty_bound_nanoseconds": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "observer_role": {
+          "enum": ["independent_sensor", "independent_evaluator", "agent_self_report"]
+        },
+        "confidence_basis_points": { "type": "integer", "minimum": 0, "maximum": 10000 }
+      }
+    },
+    "actionAttemptBinding": {
+      "type": "object",
+      "required": ["subgoal_id", "action_id", "attempt"],
+      "properties": {
+        "subgoal_id": { "type": "string", "minLength": 1 },
+        "action_id": { "type": "string", "minLength": 1 },
+        "attempt": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "goalEvidence": {
+      "allOf": [
+        { "$ref": "#/$defs/actionAttemptBinding" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["envelope", "subgoal_id", "action_id", "attempt", "predicate_id", "verdict"],
+          "properties": {
+            "envelope": { "$ref": "#/$defs/receiptEnvelope" },
+            "subgoal_id": { "type": "string", "minLength": 1 },
+            "action_id": { "type": "string", "minLength": 1 },
+            "attempt": { "type": "integer", "minimum": 1 },
+            "predicate_id": { "type": "string", "minLength": 1 },
+            "verdict": { "enum": ["satisfied", "not_satisfied", "ambiguous"] }
+          }
+        }
+      ]
+    },
+    "reconciliationEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["envelope", "subgoal_id", "action_id", "attempt", "verdict"],
+      "properties": {
+        "envelope": { "$ref": "#/$defs/receiptEnvelope" },
+        "subgoal_id": { "type": "string", "minLength": 1 },
+        "action_id": { "type": "string", "minLength": 1 },
+        "attempt": { "type": "integer", "minimum": 1 },
+        "verdict": { "enum": ["goal_satisfied", "no_effect", "partial_effect", "unknown"] }
+      }
+    },
+    "recoveryPermit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "envelope",
+        "subgoal_id",
+        "action_id",
+        "attempt",
+        "recovery_plan_digest",
+        "safe_to_mutate"
+      ],
+      "properties": {
+        "envelope": { "$ref": "#/$defs/receiptEnvelope" },
+        "subgoal_id": { "type": "string", "minLength": 1 },
+        "action_id": { "type": "string", "minLength": 1 },
+        "attempt": { "type": "integer", "minimum": 1 },
+        "recovery_plan_digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "safe_to_mutate": { "const": true }
+      }
+    }
+  }
+}
