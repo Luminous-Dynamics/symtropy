@@ -149,14 +149,15 @@ pub fn isolate_polynomial_first_contact(
             return Ok(report(
                 FirstContactDisposition::Ambiguous,
                 None,
-                visited_time_intervals,
-                excluded_time_intervals,
-                unresolved_time_intervals,
-                stack.len(),
-                maximum_depth_reached,
-                true,
-                unresolved_time_intervals == 0,
-                false,
+                FirstContactAccounting {
+                    visited_time_intervals,
+                    excluded_time_intervals,
+                    unresolved_time_intervals,
+                    remaining_time_intervals: stack.len(),
+                    maximum_depth_reached,
+                    budget_exhausted: true,
+                    search_complete_for_first_contact: false,
+                },
             ));
         }
 
@@ -189,17 +190,18 @@ pub fn isolate_polynomial_first_contact(
             return Ok(report(
                 FirstContactDisposition::FirstContactBracket,
                 Some((config.time_lower_seconds, config.time_lower_seconds)),
-                visited_time_intervals,
-                excluded_time_intervals,
-                unresolved_time_intervals,
-                stack
-                    .len()
-                    .checked_add(1)
-                    .ok_or(KernelError::CounterOverflow)?,
-                maximum_depth_reached,
-                false,
-                true,
-                true,
+                FirstContactAccounting {
+                    visited_time_intervals,
+                    excluded_time_intervals,
+                    unresolved_time_intervals,
+                    remaining_time_intervals: stack
+                        .len()
+                        .checked_add(1)
+                        .ok_or(KernelError::CounterOverflow)?,
+                    maximum_depth_reached,
+                    budget_exhausted: false,
+                    search_complete_for_first_contact: true,
+                },
             ));
         }
 
@@ -218,14 +220,15 @@ pub fn isolate_polynomial_first_contact(
             return Ok(report(
                 FirstContactDisposition::FirstContactBracket,
                 Some((lower, cell.upper)),
-                visited_time_intervals,
-                excluded_time_intervals,
-                unresolved_time_intervals,
-                stack.len(),
-                maximum_depth_reached,
-                false,
-                true,
-                true,
+                FirstContactAccounting {
+                    visited_time_intervals,
+                    excluded_time_intervals,
+                    unresolved_time_intervals,
+                    remaining_time_intervals: stack.len(),
+                    maximum_depth_reached,
+                    budget_exhausted: false,
+                    search_complete_for_first_contact: true,
+                },
             ));
         }
 
@@ -236,14 +239,15 @@ pub fn isolate_polynomial_first_contact(
             return Ok(report(
                 FirstContactDisposition::Ambiguous,
                 None,
-                visited_time_intervals,
-                excluded_time_intervals,
-                unresolved_time_intervals,
-                stack.len(),
-                maximum_depth_reached,
-                false,
-                true,
-                false,
+                FirstContactAccounting {
+                    visited_time_intervals,
+                    excluded_time_intervals,
+                    unresolved_time_intervals,
+                    remaining_time_intervals: stack.len(),
+                    maximum_depth_reached,
+                    budget_exhausted: false,
+                    search_complete_for_first_contact: false,
+                },
             ));
         }
 
@@ -255,14 +259,15 @@ pub fn isolate_polynomial_first_contact(
             return Ok(report(
                 FirstContactDisposition::Ambiguous,
                 None,
-                visited_time_intervals,
-                excluded_time_intervals,
-                unresolved_time_intervals,
-                stack.len(),
-                maximum_depth_reached,
-                false,
-                true,
-                false,
+                FirstContactAccounting {
+                    visited_time_intervals,
+                    excluded_time_intervals,
+                    unresolved_time_intervals,
+                    remaining_time_intervals: stack.len(),
+                    maximum_depth_reached,
+                    budget_exhausted: false,
+                    search_complete_for_first_contact: false,
+                },
             ));
         }
 
@@ -292,14 +297,15 @@ pub fn isolate_polynomial_first_contact(
     Ok(report(
         FirstContactDisposition::DefinitelyNoContact,
         None,
-        visited_time_intervals,
-        excluded_time_intervals,
-        unresolved_time_intervals,
-        0,
-        maximum_depth_reached,
-        false,
-        true,
-        true,
+        FirstContactAccounting {
+            visited_time_intervals,
+            excluded_time_intervals,
+            unresolved_time_intervals,
+            remaining_time_intervals: 0,
+            maximum_depth_reached,
+            budget_exhausted: false,
+            search_complete_for_first_contact: true,
+        },
     ))
 }
 
@@ -321,29 +327,35 @@ fn evaluate_coordinates(
         .collect()
 }
 
-fn report(
-    disposition: FirstContactDisposition,
-    first_contact_time_bounds_seconds: Option<(f64, f64)>,
+#[derive(Debug, Clone, Copy)]
+struct FirstContactAccounting {
     visited_time_intervals: usize,
     excluded_time_intervals: usize,
     unresolved_time_intervals: usize,
     remaining_time_intervals: usize,
     maximum_depth_reached: usize,
     budget_exhausted: bool,
-    earlier_time_proven_clear: bool,
     search_complete_for_first_contact: bool,
+}
+
+fn report(
+    disposition: FirstContactDisposition,
+    first_contact_time_bounds_seconds: Option<(f64, f64)>,
+    accounting: FirstContactAccounting,
 ) -> FirstContactIsolationReport {
     FirstContactIsolationReport {
         disposition,
         first_contact_time_bounds_seconds,
-        visited_time_intervals,
-        excluded_time_intervals,
-        unresolved_time_intervals,
-        remaining_time_intervals,
-        maximum_depth_reached,
-        budget_exhausted,
-        earlier_time_proven_clear,
-        search_complete_for_first_contact,
+        visited_time_intervals: accounting.visited_time_intervals,
+        excluded_time_intervals: accounting.excluded_time_intervals,
+        unresolved_time_intervals: accounting.unresolved_time_intervals,
+        remaining_time_intervals: accounting.remaining_time_intervals,
+        maximum_depth_reached: accounting.maximum_depth_reached,
+        budget_exhausted: accounting.budget_exhausted,
+        // The traversal returns at the first unresolved frontier or bracket;
+        // all cells strictly before that frontier have been excluded.
+        earlier_time_proven_clear: true,
+        search_complete_for_first_contact: accounting.search_complete_for_first_contact,
     }
 }
 
