@@ -247,6 +247,41 @@
       },
       "admission_scope": "none",
       "notes": "Non-commercial research candidate only. Official challenge repository pinned at commit 655df637120786621be8ffb14c4ee367abfee85a; repository LICENSE and official challenge site specify CC BY-NC-SA 3.0, so no commercial product, commercial dataset use or incompatible redistribution is permitted without separate authorization. Thirty 360-degree visual-inertial sequences span ten floors over an eight-month active construction project. Released data are ROS 2 bags with two 30 Hz fisheye camera streams and 1 kHz IMU, plus floor-plan priors and per-run ground-truth trajectories. Camera/IMU calibration files are supplied. Ground truth is produced by a rigidly attached Hesai XT32 LiDAR-inertial system, but raw LiDAR data are not released; the reference is therefore not an independently reprocessable oracle from the distributed payload. The Insta360 camera and reference LiDAR-inertial device use separate timing systems: alignment is estimated from gyro-norm correlation, nonlinear time-offset/clock-scale refinement and joint gyro-bias optimization. The published constant timestamp shift of 1e4 seconds and first-five-seconds exclusion must be preserved exactly. The official leaderboard evaluates 25 SLAM runs / 24 floorplan-localization runs, requires at least 99% trajectory coverage and scores per-pose error exponentially; this is useful as an industry baseline, but the proposed integrity extension must additionally evaluate false-safe exposure, drift, failure detection and recovery. Hugging Face payload objects and per-file hashes are not frozen in this registry; do not admit until exact payload snapshot, calibration/time review, sequence-level split and truth-oracle review are complete."
+    },
+    {
+      "dataset_id": "bregar-uwb-indoor-2023-v2",
+      "name": "UWB Positioning and Tracking Data Set (v2.0, four indoor environments)",
+      "domain": "indoor",
+      "source_url": "https://doi.org/10.5281/zenodo.8280736",
+      "status": "candidate_not_admitted",
+      "snapshot": {
+        "immutable": false,
+        "release_tag": "v2.0",
+        "repository_commit": null,
+        "file_sha256": []
+      },
+      "rights": {
+        "license_id": "CC-BY-4.0",
+        "status": "explicit",
+        "scope": "dataset_payload",
+        "evidence_url": "https://zenodo.org/records/8280736",
+        "research_use": "permitted",
+        "commercial_use": "permitted",
+        "redistribution": "permitted"
+      },
+      "metadata": {
+        "time_basis_status": "unknown",
+        "spatial_reference_status": "unqualified",
+        "calibration_status": "partial",
+        "ground_truth_status": "partial",
+        "split_basis": "none",
+        "train_group_ids": [],
+        "test_group_ids": [],
+        "split_sha256": null,
+        "clock_state_truth_status": "unknown"
+      },
+      "admission_scope": "none",
+      "notes": "Zenodo record v2.0 published 2023-08-25; explicit CC BY 4.0 licence. The source archive data_set.zip is 4.4 GB; Zenodo records upstream MD5 030cce5aadeab7b1b3dbd6901a49bfc2, which is not a SHA-256 payload commitment and must not be substituted for one. The dataset contains four indoor environments, eight fixed DW1000 anchors and one mobile tag. Raw per-environment/per-anchor/per-channel CSV data include NLOS labels, range, first-path index, RSS/RSS_FP, first-path and early-path features, noise metrics, channel metadata and accumulated CIR samples. The predefined tag/reference positions support controlled indoor ranging/localization experiments, but this is not a motion-capture trajectory ground truth or a multi-UAV swarm dataset. Zenodo v1 (record 7629141) has different CC BY-NC-SA terms; this candidate is specifically v2.0 at record 8280736 under CC BY 4.0. Payload files have not yet been downloaded, independently inventoried or SHA-256 hashed. Time-base semantics, anchor survey provenance, calibration lineage, NLOS label construction, environment IDs and a leakage-resistant environment-held-out split require review. Remains candidate_not_admitted with admission_scope none."
     }
   ]
 }
