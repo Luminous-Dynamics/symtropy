@@ -624,17 +624,22 @@ pub fn evaluate_mobility_recovery(
 
         let mut obligations_by_resource = BTreeMap::new();
         for obligation in &scenario.resource_obligations {
-            if !resource_map.contains_key(obligation.resource_id.as_str())
-                || obligations_by_resource
-                    .insert(obligation.resource_id.as_str(), obligation)
-                    .is_some()
-            {
+            if !resource_map.contains_key(obligation.resource_id.as_str()) {
                 add_error(
                     &mut errors,
-                    format!("recovery_obligation_resource_duplicate_or_unknown:{}", scenario.scenario_id),
+                    format!("recovery_obligation_resource_unknown:{}", scenario.scenario_id),
                 );
                 continue;
             }
+            if obligations_by_resource.contains_key(obligation.resource_id.as_str()) {
+                add_error(
+                    &mut errors,
+                    format!("recovery_obligation_resource_duplicate:{}", scenario.scenario_id),
+                );
+                obligations_by_resource.remove(obligation.resource_id.as_str());
+                continue;
+            }
+            obligations_by_resource.insert(obligation.resource_id.as_str(), obligation);
             let correct_len = usize::from(input.horizon_slots);
             let resource = resource_map[obligation.resource_id.as_str()];
             let values_within_bound = obligation
@@ -819,11 +824,20 @@ pub fn evaluate_mobility_recovery(
                     add_error(&mut errors, "recovery_withdrawal_sum_overflow");
                     break;
                 };
-                let next_energy = i128::from(energy)
-                    + i128::from(charge_wh)
+                // Missions, disturbances and grid delivery consume start-of-slot
+                // energy before this interval's recovery charge is credited. This
+                // conservative order prevents same-slot charging from backfilling
+                // an earlier mission obligation.
+                let before_recovery_charge = i128::from(energy)
                     - i128::from(discharge_wh)
                     - i128::from(withdrawal_wh);
-                if next_energy > i128::from(MAX_ENERGY_WH) || next_energy < -i128::from(MAX_ENERGY_WH) {
+                if before_recovery_charge < 0 {
+                    first_failed_slot.get_or_insert(slot);
+                    resource_findings.insert(format!("resource_energy_underflow:{slot}"));
+                }
+                let before_recovery_charge = before_recovery_charge.max(0);
+                let next_energy = before_recovery_charge + i128::from(charge_wh);
+                if next_energy > i128::from(MAX_ENERGY_WH) {
                     add_error(&mut errors, format!("recovery_state_out_of_bounds:{}:{slot}", resource.resource_id));
                     break;
                 }
