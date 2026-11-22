@@ -87,6 +87,48 @@ fn separated_sphere_aabb_candidates(pair_count: usize) -> PhysicsWorld<3> {
     world
 }
 
+fn two_dimensional_box_stack(count: usize) -> PhysicsWorld<2> {
+    let mut world = PhysicsWorld::<2>::new(SVector::new(0.0, -9.81));
+    world.solver_iterations = 8;
+    world.add_body(RigidBody::<2>::static_body(
+        BodyHandle(0),
+        Point::origin(),
+        Box::new(HalfSpace::<2>::ground(1, 0.0)),
+    ));
+
+    for index in 0..count {
+        let y = 0.5 + index as f64;
+        world.add_body(RigidBody::<2>::new(
+            BodyHandle(index + 1),
+            BodyType::Dynamic,
+            Transform::from_translation(Point::new([0.0, y])),
+            Box::new(HyperBox::<2>::cube(0.5)),
+            1.0,
+            SVector::from_element(1.0),
+        ));
+    }
+    world
+}
+
+fn run_window_2d(mut world: PhysicsWorld<2>) -> [usize; 8] {
+    let mut totals = [0usize; 8];
+    for _ in 0..FRAMES_PER_SAMPLE {
+        world.step(DT);
+        accumulate(world.narrowphase_stats(), &mut totals);
+    }
+    totals
+}
+
+fn bench_2d_box_stack_narrowphase(c: &mut Criterion) {
+    c.bench_function("narrowphase_2d_box_stack_6x32_steps", |bench| {
+        bench.iter_batched(
+            || two_dimensional_box_stack(6),
+            |world| black_box(run_window_2d(world)),
+            BatchSize::SmallInput,
+        );
+    });
+}
+
 fn bench_analytic_box_plane_narrowphase(c: &mut Criterion) {
     c.bench_function("narrowphase_analytic_box_plane_64x32_steps", |bench| {
         bench.iter_batched(
@@ -110,6 +152,7 @@ fn bench_gjk_rejected_aabb_candidates(c: &mut Criterion) {
 criterion_group!(
     benches,
     bench_analytic_box_plane_narrowphase,
-    bench_gjk_rejected_aabb_candidates
+    bench_gjk_rejected_aabb_candidates,
+    bench_2d_box_stack_narrowphase
 );
 criterion_main!(benches);
