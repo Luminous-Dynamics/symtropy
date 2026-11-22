@@ -34,13 +34,13 @@ pub mod sequential;
 pub mod stats;
 pub mod trajectory;
 
+pub use defensive_is::{
+    DefensiveImportanceConfidenceAccumulator, DefensiveImportanceConfidenceReport,
+};
 pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
     AffineResidualMassReport, AffineUnionResidualMassConfig,
     affine_collision_residual_mass_upper_bound, affine_union_collision_residual_mass_upper_bound,
-};
-pub use defensive_is::{
-    DefensiveImportanceConfidenceAccumulator, DefensiveImportanceConfidenceReport,
 };
 pub use sequential::{BernoulliConfidenceSequence, BernoulliMixtureEProcess};
 pub use stats::{WeightedEventAccumulator, WeightedEventSummary};
@@ -149,8 +149,12 @@ impl fmt::Display for KernelError {
             Self::ZeroProjectedVariance => "half-space projection has zero variance",
             Self::NumericalOverflow => "numerical intermediate is outside the representable range",
             Self::ProposalHasZeroDensity => "proposal density is zero at the evaluation point",
-            Self::InvalidDefensiveMass => "defensive mixture mass must lie strictly between zero and one",
-            Self::InvalidStepSize => "confidence-sequence step-size cap must lie strictly between zero and one",
+            Self::InvalidDefensiveMass => {
+                "defensive mixture mass must lie strictly between zero and one"
+            }
+            Self::InvalidStepSize => {
+                "confidence-sequence step-size cap must lie strictly between zero and one"
+            }
             Self::NumericalUnderflow => "positive importance contribution underflowed to zero",
             Self::EmptyConfidenceSet => "confidence-sequence intersection is empty",
         };
