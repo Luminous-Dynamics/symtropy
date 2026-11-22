@@ -1,0 +1,183 @@
+{
+  "schema_version": "nav-urbannav-baseline-plan/v0.1",
+  "dataset_candidate": "urbannav-hk-medium-urban-1",
+  "upstream_repository_commit": "e53717a40c94803cd479a140433f6d803b1a0876",
+  "status": "protocol_only_no_baselines_reproduced",
+  "route_splits": {
+    "grouping_unit": [
+      "complete_loop",
+      "route_session",
+      "physical_fault_event"
+    ],
+    "random_epoch_split": false,
+    "development_route": null,
+    "validation_route": null,
+    "test_route": null,
+    "known_fault_exclusions": [
+      {
+        "fault": "u-blox F9P malfunction interval",
+        "source": "UrbanNav upstream README and issue #11",
+        "exact_start_end": null,
+        "status": "interval_not_yet_qualified"
+      }
+    ]
+  },
+  "baselines": [
+    {
+      "id": "maharmeh-2026-adaptive-pid-protection-level",
+      "doi": "10.3390/s26165140",
+      "status": "literature_only",
+      "full_method_available": true,
+      "reproduction_status": "not_started",
+      "required_outputs": [
+        "pointwise_stanford_exceedance",
+        "breach_events",
+        "false_safe_exposure_seconds",
+        "time_above_alert",
+        "pl_smoothness"
+      ],
+      "paper_sensitivity": [
+        "full_pid",
+        "non_integral_pid",
+        "smax_10",
+        "smax_12",
+        "smax_14"
+      ]
+    },
+    {
+      "id": "al-hage-2020-heavy-tailed-student-t-protection-level",
+      "doi": "10.1109/TITS.2020.2983681",
+      "parent_article_doi": "10.3390/s26165140",
+      "status": "equation_level_reference_implementation_added",
+      "full_method_available": true,
+      "reproduction_status": "not_started",
+      "exact_dof_sweep": [
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        100
+      ],
+      "tir_convention": "two_dimensional_multivariate_student_t_radial_tail_probability; must be reconciled against paper's exact TIR definition",
+      "reference_implementation_pr": "https://github.com/Luminous-Dynamics/symtropy/pull/6737",
+      "reference_module": "research/nav-observation-toy-fim/src/student_t_pl.rs",
+      "reference_implementation_scope": "2D covariance eigenframe and paper-printed overall/directional PL equations; K_TIR helper for covariance-normalized 2D radial Student-t",
+      "required_outputs": [
+        "overall_pl",
+        "longitudinal_pl",
+        "lateral_pl",
+        "integrity_exceedance",
+        "dof_sensitivity",
+        "hpl_vpl_calibration"
+      ],
+      "outstanding": [
+        "confirm printed directional eigenvector projection power against original typeset equation and author code",
+        "confirm total 2D radial TIR convention",
+        "derive/fit degrees of freedom on frozen training/calibration routes only",
+        "validate Student-t fit and coverage on held-out route/session"
+      ]
+    },
+    {
+      "id": "luo-2026-adaptive-temporal-kalman-solution-separation",
+      "doi": "10.1109/TIM.2026.3670522",
+      "status": "abstract_only_full_method_required",
+      "full_method_available": false,
+      "reproduction_status": "blocked_pending_full_method",
+      "required_outputs": [
+        "horizontal_error",
+        "vertical_error",
+        "hpl",
+        "vpl",
+        "detection_probability",
+        "false_alarm",
+        "fde"
+      ]
+    },
+    {
+      "id": "liu-2026-resilient-glvio-loop-fusion",
+      "doi": "10.1016/j.isprsjprs.2026.05.035",
+      "status": "paper_available_code_match_and_license_unverified",
+      "code_repository": "https://github.com/TK72/FAST-LIVOSAM",
+      "code_commit": "9aa51993cdf30bebd6d24d538bdba75f11b9ab3e",
+      "reproduction_status": "blocked_pending_exact_urbannav_config_and_license",
+      "required_outputs": [
+        "pose_error",
+        "trajectory_drift",
+        "map_quality",
+        "degeneracy_detection",
+        "runtime",
+        "gpu_memory"
+      ]
+    },
+    {
+      "id": "fang-2026-doppler-rate-spoof-detection",
+      "doi": "10.1007/s42401-026-00509-7",
+      "status": "paper_available",
+      "reproduction_status": "not_started",
+      "required_outputs": [
+        "detection_probability_by_scenario",
+        "false_alarm_rate",
+        "detection_delay",
+        "multipath_false_alarms"
+      ]
+    }
+  ],
+  "data_gate": {
+    "payload_downloaded": false,
+    "file_sha256_manifest_present": false,
+    "time_frame_calibration_audit_complete": false,
+    "ground_truth_lineage_review_complete": false,
+    "dataset_admitted": false
+  },
+  "claims": {
+    "sota_claim_allowed": false,
+    "physical_integrity_claim_allowed": false,
+    "paper_reproduction_claim_allowed": false
+  },
+  "metrics_harnesses": [
+    {
+      "id": "adaptive-pid-protection-level-controller",
+      "pull_request": "https://github.com/Luminous-Dynamics/symtropy/pull/6737",
+      "status": "equation_level_reference_harness",
+      "raw_frontend_present": false,
+      "routes_reproduced": false,
+      "notes": "PID law consumes projected directional drift, LiDAR residual and Hessian sensitivity as explicit inputs; does not implement ES-EKF, IMU propagation or LiDAR frontend. PaperConditional anti-windup is default; HardClamped is a separate conservative variant. Derivative filter follows the exponential low-pass coefficient."
+    },
+    {
+      "id": "al-hage-student-t-protection-level",
+      "pull_request": "https://github.com/Luminous-Dynamics/symtropy/pull/6737",
+      "status": "equation_level_reference_harness",
+      "covariance_estimator_present": false,
+      "dof_sweep": [
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        100
+      ],
+      "k_tir_convention": "2D total radial tail probability, requires confirmation against paper's precise TIR definition",
+      "notes": "Consumes a supplied 2D covariance and implements the paper-printed eigenframe formula; no covariance estimator, dof fitting or route-level reproduction yet."
+    },
+    {
+      "id": "pointwise-stanford-and-breach-exposure-evaluator",
+      "pull_request": "https://github.com/Luminous-Dynamics/symtropy/pull/6745",
+      "status": "software_metric_harness",
+      "exact_head_validation": "pending",
+      "metrics": [
+        "pointwise_along_cross_union_exceedance",
+        "explicit_support_time_above_pl",
+        "contiguous_breach_event_count",
+        "maximum_contiguous_breach_duration",
+        "invalid_truth_sample_count",
+        "cluster_count"
+      ],
+      "notes": "Each record supplies its support duration. No sample duration is inferred from row frequency; this is not a calibrated integrity risk."
+    }
+  ]
+}
