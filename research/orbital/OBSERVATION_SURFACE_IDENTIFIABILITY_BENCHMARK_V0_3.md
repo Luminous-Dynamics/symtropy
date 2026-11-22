@@ -49,7 +49,7 @@ F_c(dt,dz),\qquad
 
 Cross-channel misses can share a latent common-cause state G(t) (power, timing, mount, environment, shared firmware, reference path). Distinct channel IDs do not imply conditional independence. Event association has its own uncertainty: timing jitter, duplicate detections, ambiguous matches and unpaired reports.
 
-The first executable v0.3 kernel implements a deliberately restricted subset: mark-dependent logistic detection, fixed non-paralyzable dead time, declared common-cause outage intervals, channel-specific outage intervals and a separate Poisson false-positive process. This kernel is a simulator and counterfactual test fixture, not an estimator of physical truth.
+The first executable v0.3 kernel implements a deliberately restricted subset: mark-dependent logistic classifier acceptance, fixed non-paralyzable dead time, declared common-cause outage intervals, channel-specific outage intervals and a separate Poisson false-positive process. This kernel is a simulator and counterfactual test fixture, not an estimator of physical truth.
 
 ## 3. Causal structure
 
@@ -131,7 +131,7 @@ The machine-readable scenario matrix is tools/orbital-observation-surface-bench/
 - low POD, sparse strata, calibration drift and covariate shift;
 - deliberately misspecified model families.
 
-The first synthetic kernel currently covers mark-dependent POD, fixed dead time, common-cause outages, channel outages and false-positive arrivals. Remaining cases are explicit future gates, not represented as implemented.
+The first synthetic kernel currently covers mark-dependent conditional classifier acceptance, fixed dead time, common-cause outages, channel outages and false-positive arrivals. Remaining cases are explicit future gates, not represented as implemented.
 
 ## 7. Metrics and preregistered targets
 
