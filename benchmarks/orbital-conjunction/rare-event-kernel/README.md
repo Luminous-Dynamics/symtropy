@@ -21,7 +21,7 @@ This crate is a research kernel, not an operational collision-probability produc
 - A budgeted affine-cell traversal that separately classifies cells wholly inside caller-declared chart boxes, cells proven event-free, and unresolved cells outside chart coverage.
 - A disconnected-event-union verifier with component-specific chart assignments. A cell is accounted only when each event component is either covered by its own chart or proven event-free; one chart cannot suppress another mode, even when their input-space regions overlap.
 - An interval-polynomial time-window classifier that proves no-contact / guaranteed-contact only by enclosing the entire relevant time interval, and otherwise returns an explicit ambiguous disposition.
-- A fail-closed event-mass composition primitive that combines an unnormalised admitted-region event-mass interval with an independent upper bound on the disjoint residual complement. It requires matching event/model/target/partition identities and a caller-declared disjoint/exhaustive partition, preserving both component evidence records and keeping the composition explicitly conditional on that declaration.
+- A fail-closed event-mass composition primitive that combines an unnormalised admitted-region event-mass interval with an independent upper bound on the disjoint residual complement. It requires matching event/model/target/partition identities and a caller-declared disjoint/exhaustive partition, preserving both component evidence records and keeping the composition explicitly conditional on that declaration. A typed adapter converts the existing affine-union residual verifier report into residual evidence while preserving its budget-exhaustion state.
 - Dense-grid adversarial tests checking sampled affine images remain inside the interval enclosure and sampled norms remain above the reported lower bound.
 - Streaming log-domain weighted event sums, contribution ESS, plug-in relative standard error, and a clearly labelled normal-approximation interval diagnostic.
 - A beta(1,1)-mixture Bernoulli e-process and inverted time-uniform confidence sequence for independent bounded event indicators, with an exhaustive short-horizon optional-stopping coverage test.
@@ -42,7 +42,7 @@ cargo clippy --locked --manifest-path benchmarks/orbital-conjunction/rare-event-
 
 The package has its own Cargo workspace and does not require the full Symtropy/Bevy workspace.
 
-The current authored test corpus contains 111 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, and 13 in `event_mass_composition.rs`. The 98-test parent passed its exact-head gate; this 111-test revision requires its own exact-head workflow.
+The current authored test corpus contains 114 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, and 16 in `event_mass_composition.rs`. The 98-test parent passed its exact-head gate; this 111-test revision requires its own exact-head workflow.
 
 ## Important limitations
 
