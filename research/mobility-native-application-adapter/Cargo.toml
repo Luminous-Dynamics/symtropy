@@ -1,0 +1,18 @@
+[package]
+name = "mobility-native-application-adapter"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96.0"
+publish = false
+license = "Apache-2.0"
+description = "Compose M2 live action applicability, authority-linearized mutation and the epoch-fenced native application queue"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+mobility-action-evidence = { path = "../../m2-src/research/mobility-action-evidence" }
+mobility-mutation-boundary = { path = "../../mutation-src/research/mobility-mutation-boundary" }
+symtropy-robotics-bridge-core = { path = "../../crates/bridges/symtropy-robotics-bridge-core" }
+
+[workspace]
