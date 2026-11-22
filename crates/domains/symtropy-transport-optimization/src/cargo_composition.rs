@@ -1336,9 +1336,9 @@ mod tests {
             parent_module_id: "CONTAINER".to_string(),
             child_module_id: "PALLET".to_string(),
         }));
-        assert!(!report.active_memberships.iter().any(|edge| {
-            edge.parent_module_id == "OTHER" || edge.child_module_id == "PALLET"
-                && edge.parent_module_id == "OTHER"
+        assert!(!report.active_memberships.contains(&Membership {
+            parent_module_id: "OTHER".to_string(),
+            child_module_id: "PALLET".to_string(),
         }));
         assert!(report.failures.contains_key(
             &CompositionFailure::AmbiguousEventTime {
