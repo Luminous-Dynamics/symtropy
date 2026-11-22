@@ -167,6 +167,8 @@ pub struct OwnerEvidenceRef {
     pub owner_revision: String,
     pub evidence_id: String,
     pub status: OwnerEvidenceStatus,
+    /// Exact owner-asserted value whose provenance is carried by this receipt.
+    pub asserted_value: String,
     pub scope: EvidenceScope,
     /// Populated for claim-specific observer-quorum records.
     pub claim_id: Option<String>,
@@ -297,11 +299,13 @@ fn sha256_hex(bytes: &[u8]) -> String {
 fn claim_scope_digest(
     domain: OwnerEvidenceDomain,
     claim_id: &str,
+    asserted_value: &str,
     scope: &EvidenceScope,
 ) -> String {
     let value = json!({
         "domain": domain.as_str(),
         "claim_id": claim_id,
+        "asserted_value": asserted_value,
         "scope": {
             "logical_effect_id": scope.logical_effect_id,
             "attempt_id": scope.attempt_id,
@@ -842,6 +846,7 @@ impl RuntimeProjectionRecording {
                 if !nonempty(&evidence.owner_id)
                     || !nonempty(&evidence.owner_revision)
                     || !nonempty(&evidence.evidence_id)
+                    || !nonempty(&evidence.asserted_value)
                     || !nonempty(&evidence.raw_artifact_id)
                     || !valid_sha256(&evidence.raw_artifact_sha256)
                     || !nonempty(&evidence.scope.logical_effect_id)
@@ -877,7 +882,12 @@ impl RuntimeProjectionRecording {
                             .filter(|v| nonempty(v))
                             .ok_or(ProjectionError::InvalidOwnerEvidence)?;
                         let expected =
-                            claim_scope_digest(evidence.domain, claim_id, &evidence.scope);
+                            claim_scope_digest(
+                                evidence.domain,
+                                claim_id,
+                                &evidence.asserted_value,
+                                &evidence.scope,
+                            );
                         if evidence.claim_scope_sha256.as_deref() != Some(expected.as_str()) {
                             return Err(ProjectionError::InvalidOwnerEvidence);
                         }
@@ -1245,6 +1255,7 @@ impl RuntimeProjectionRecording {
                 "owner_evidence":s.owner_evidence.iter().map(|e|json!({
                     "domain":e.domain.as_str(),"owner_id":e.owner_id,"owner_revision":e.owner_revision,
                     "evidence_id":e.evidence_id,"status":e.status.as_str(),
+                    "asserted_value":e.asserted_value,
                     "scope": {
                         "logical_effect_id":e.scope.logical_effect_id,
                         "attempt_id":e.scope.attempt_id,
@@ -1366,11 +1377,24 @@ mod tests {
                         subject_controller_epoch: 1,
                     }
                 };
+                let asserted_value = match domain {
+                    OwnerEvidenceDomain::ProcessEpoch => "running",
+                    OwnerEvidenceDomain::Persistence => "definitely_not_committed",
+                    OwnerEvidenceDomain::PhysicalOutcome => "none",
+                    OwnerEvidenceDomain::MissionResolution => "none",
+                    OwnerEvidenceDomain::ControllerQueue => "not_fenced",
+                    OwnerEvidenceDomain::DownstreamExecutionGraph => "not_fenced",
+                    OwnerEvidenceDomain::PhysicalOutcomeObserverQuorum => "none",
+                    OwnerEvidenceDomain::DownstreamObserverQuorum => "not_applicable",
+                    OwnerEvidenceDomain::ActionApplicability => "current",
+                    OwnerEvidenceDomain::RecoveryAuthority => "absent",
+                };
                 OwnerEvidenceRef {
                     domain,
                     owner_id: format!("owner-{index}"),
                     owner_revision: format!("revision-{index}"),
                     evidence_id: format!("evidence-{index}"),
+                    asserted_value: asserted_value.to_owned(),
                     status: if matches!(
                         domain,
                         OwnerEvidenceDomain::PhysicalOutcomeObserverQuorum
@@ -1403,6 +1427,7 @@ mod tests {
         evidence.claim_scope_sha256 = Some(claim_scope_digest(
             evidence.domain,
             claim_id,
+            &evidence.asserted_value,
             &evidence.scope,
         ));
         evidence.observer_quorum = Some(observer_proof(label));
