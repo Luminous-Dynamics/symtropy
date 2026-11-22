@@ -248,6 +248,24 @@ fn evaluate_route(part: &Part, route: &Route) -> RouteResult {
             dependency_metrics: dependency_metrics(&route.dependencies),
         };
     }
+    if route.support_status == "unknown" {
+        return RouteResult {
+            route_id: route.route_id.clone(),
+            disposition: Disposition::Unknown,
+            blockers: vec!["process_support_unknown".to_owned()],
+            local_closure: dependency_closure(&route.dependencies),
+            dependency_metrics: dependency_metrics(&route.dependencies),
+        };
+    }
+    if route.support_status != "supported" {
+        return RouteResult {
+            route_id: route.route_id.clone(),
+            disposition: Disposition::Unsupported,
+            blockers: vec!["process_support_status_unsupported".to_owned()],
+            local_closure: dependency_closure(&route.dependencies),
+            dependency_metrics: dependency_metrics(&route.dependencies),
+        };
+    }
 
     let mut hard = BTreeSet::new();
     let mut uncertain = BTreeSet::new();
@@ -480,9 +498,26 @@ fn dependency_closure(dependencies: &[Dependency]) -> LocalClosure {
     LocalClosure::Unknown
 }
 
+fn is_one_of(value: &str, choices: &[&str]) -> bool {
+    choices.iter().any(|choice| value == *choice)
+}
+
 fn validate_case(case: &Case) -> Result<(), String> {
     if case.scenario_id.trim().is_empty() || case.description.trim().is_empty() {
         return Err("empty scenario identity or description".to_owned());
+    }
+    if !is_one_of(&case.part.risk_class, &["P0", "P1", "P2", "P3"])
+        || !is_one_of(&case.part.rights_status, &["verified", "unknown", "revoked", "not_permitted"])
+        || !is_one_of(&case.part.revision_status, &["exact", "unknown", "mismatch"])
+    {
+        return Err("unsupported part risk, rights or revision state".to_owned());
+    }
+    if case.part.deadline_hours < 0.0
+        || case.part.required_max_temperature_c < -273.15
+        || case.part.required_inspection.is_empty()
+        || has_duplicates(&case.part.required_inspection)
+    {
+        return Err("invalid part limits or inspection requirements".to_owned());
     }
     if case.part.part_id.trim().is_empty() || case.part.revision.trim().is_empty() {
         return Err("empty part identity or revision".to_owned());
@@ -490,8 +525,12 @@ fn validate_case(case: &Case) -> Result<(), String> {
     if case.part.allowed_tiers.is_empty() {
         return Err("allowed_tiers cannot be empty".to_owned());
     }
-    if has_duplicates(&case.part.allowed_tiers) {
-        return Err("duplicate allowed_tiers".to_owned());
+    if has_duplicates(&case.part.allowed_tiers)
+        || case.part.allowed_tiers.iter().any(|tier| {
+            !is_one_of(tier, &["H0", "N1", "R2", "Q3", "OEM"])
+        })
+    {
+        return Err("duplicate or unsupported allowed_tiers".to_owned());
     }
     if case.routes.is_empty() {
         return Err("route list cannot be empty".to_owned());
@@ -505,9 +544,26 @@ fn validate_case(case: &Case) -> Result<(), String> {
         if route.route_id.trim().is_empty() || route.machine_id.trim().is_empty() {
             return Err("empty route or machine identity".to_owned());
         }
+        if !is_one_of(&route.tier, &["H0", "N1", "R2", "Q3", "OEM"])
+            || !is_one_of(&route.support_status, &["supported", "unknown", "unsupported"])
+            || !is_one_of(&route.machine_identity_status, &["verified", "unknown", "revoked"])
+            || !is_one_of(&route.machine_safety_status, &["qualified", "unknown", "unqualified"])
+            || !is_one_of(&route.material_status, &["approved", "unknown", "prohibited"])
+            || !is_one_of(&route.calibration_status, &["current", "unknown", "expired"])
+            || !is_one_of(&route.operator_status, &["qualified", "unknown", "unqualified"])
+            || !is_one_of(&route.inspection_status, &["qualified", "unknown", "missing"])
+            || !is_one_of(&route.post_repair_status, &["complete", "unknown", "missing", "not_required"])
+            || !is_one_of(&route.machine_envelope_status, &["within", "unknown", "outside"])
+        {
+            return Err(format!("unsupported route state in {}", route.route_id));
+        }
         if route.capacity_units.required <= 0.0
             || route.capacity_units.available < 0.0
+            || !route.capacity_units.required.is_finite()
+            || !route.capacity_units.available.is_finite()
             || route.capacity_units.unit.trim().is_empty()
+            || route.lead_time_hours < 0.0
+            || route.max_process_temperature_c < -273.15
         {
             return Err(format!("invalid capacity units in {}", route.route_id));
         }
@@ -531,6 +587,33 @@ fn validate_case(case: &Case) -> Result<(), String> {
             {
                 return Err(format!("empty or duplicate dependency id in {}", route.route_id));
             }
+            if !is_one_of(&dep.criticality, &["critical", "important", "noncritical"])
+                || !is_one_of(
+                    &dep.sourcing_class,
+                    &[
+                        "locally_manufactured",
+                        "local_service_imported_inputs",
+                        "imported_stocked",
+                        "imported_long_lead",
+                        "unknown",
+                    ],
+                )
+                || !is_one_of(&dep.local_repair_status, &["repairable", "not_repairable", "unknown"])
+                || !is_one_of(
+                    &dep.evidence_status,
+                    &[
+                        "measured",
+                        "independently_verified",
+                        "vendor_declared",
+                        "assumed",
+                        "synthetic",
+                        "unknown",
+                        "revoked",
+                    ],
+                )
+            {
+                return Err(format!("unsupported dependency state in {}", route.route_id));
+            }
             if has_duplicates(&dep.requires) {
                 return Err(format!("duplicate dependency edge in {}", route.route_id));
             }
@@ -545,8 +628,17 @@ fn validate_case(case: &Case) -> Result<(), String> {
         return Err("expected route-results do not exactly cover candidate routes".to_owned());
     }
 
-    if has_duplicates(&case.expected.feasible_route_ids) {
-        return Err("duplicate feasible route ids".to_owned());
+    if has_duplicates(&case.expected.feasible_route_ids)
+        || !is_one_of(
+            &case.expected.disposition,
+            &["feasible", "infeasible", "unknown", "unsupported"],
+        )
+        || !is_one_of(
+            &case.expected.local_closure_disposition,
+            &["locally_reproducible", "local_service_only", "import_dependent", "unknown"],
+        )
+    {
+        return Err("duplicate feasible routes or unsupported expected disposition".to_owned());
     }
 
     Ok(())
