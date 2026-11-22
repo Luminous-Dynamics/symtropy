@@ -268,3 +268,76 @@ Never skip levels by changing terminology. A research benchmark pass cannot impl
 **P3 — independent release**
 - public protocol, pinned artifacts, rights-cleared data, independent evaluator, cluster-aware intervals, raw receipts and limitations;
 - no SOTA statement unless a matched external baseline is reproduced and a statistically supported improvement appears on held-out domains.
+
+
+---
+
+## 12. Addendum: dependency, time and dataset qualification — 22 November 2026
+
+This addendum supersedes earlier “current work” snapshots where new PRs below exist. It does not change the charter's claim ceilings.
+
+### 12.1 From one shared fault flag to overlapping source dependency domains
+
+[Common-cause sequential sensing PR #6713](https://github.com/Luminous-Dynamics/symtropy/pull/6713) implements an exact four-state service-state × common-regime model. Its synthetic negative control has two modality-labelled sensors produce a safe reading during an unsafe service state with actual joint probability 0.082800 versus a naive independent approximation of 0.021600 (3.833×).
+
+[Multi-cause dependency graph PR #6723](https://github.com/Luminous-Dynamics/symtropy/pull/6723) generalizes this to one service-state bit plus up to four binary failure-domain bits (maximum 32 joint states). Each source declares its failure-domain membership. The model rejects a source likelihood or acquisition vector that varies with an undeclared failure domain.
+
+Exact-head workflow: 44996185330. Result: 117 tests passed, 0 failed, formatting, Clippy and all configured demos. Synthetic controls demonstrate:
+- UWB/camera share a power cause: actual P(both safe | unsafe service) 0.082800 versus product of marginals 0.021600;
+- UWB/IMU use distinct power and clock causes: joint probability equals product of marginals 0.022950 under the deliberately factorized cause prior;
+- undeclared cause sensitivity fails closed.
+
+These are constructed model checks. The dependency hypergraph must be populated from real wiring, power, clock, compute, firmware, mounting, map, calibration and environmental evidence. The algorithm cannot discover missing dependencies by itself.
+
+### 12.2 From static-state sensing to time-aware evidence
+
+[Temporal VoI PR #6732](https://github.com/Luminous-Dynamics/symtropy/pull/6732) propagates service-state belief through measurement/acquisition latency after sampling. It propagates the no-observation branch as well.
+
+Exact-head workflow: 44996682429. Result: 125 tests passed, 0 failed, formatting, Clippy and configured demos. In the synthetic policy-reversal example:
+- static planner: slow 95%-accurate sensor, 4-tick latency, expected terminal Bayes risk 0.050000;
+- time-aware planner: fast 80%-accurate sensor, 1-tick latency, expected terminal Bayes risk 0.251000 under a constructed per-tick service degradation/recovery Markov model.
+
+The higher risk for the time-aware policy is not a contradiction: the model shows that even a more accurate observation can be stale when the service state evolves before the decision. These transition rates are synthetic, not fitted vehicle hazard rates.
+
+Next extension: estimate state-transition and evidence-freshness models on separate calibration routes; calibrate uncertainty and perform held-out tests before claims about a physical vehicle or service.
+
+### 12.3 Rights-aware public data candidates
+
+The public dataset registry now contains six candidates and admits none. Exact-head validation in [UrbanNav admission PR #6728](https://github.com/Luminous-Dynamics/symtropy/pull/6728) passed 31 dataset-admission tests and 12 additional research-crate tests, plus Draft 2020-12 schema, split and both use-scope admission CLIs. Both research-noncommercial and commercial CLI calls reported six candidates, zero admitted.
+
+**UrbanNav-HK-Medium-Urban-1** is the recommended first physical-data target:
+- upstream repository [IPNL-POLYU/UrbanNavDataset](https://github.com/IPNL-POLYU/UrbanNavDataset);
+- pinned upstream commit `e53717a40c94803cd479a140433f6d803b1a0876`;
+- upstream repository identifies MIT and the README explicitly says that dataset files distributed via its download links (ROS bags, GNSS RINEX, IMU and ground truth) are included under MIT, including commercial use/redistribution with notices;
+- publisher reports 33.7 GB, 785 seconds, 3.64 km; GNSS, LiDAR, stereo camera and IMU; SPAN-CPT + Inertial Explorer reference; RINEX v3.02 and ROS TimeReference;
+- important caveats: a known F9P malfunction interval, 1 Hz ground truth versus 400 Hz IMU, and separate sequence-specific time/frame/extrinsic/oracle review.
+
+Rights are explicit but the local payload is not immutable: download object versions, sizes and SHA-256s are not yet frozen. The dataset remains candidate_not_admitted and no files are claimed downloaded or qualified.
+
+**HK-UrbanSpoof** remains a second candidate, [upstream repo](https://github.com/Fangjingxiaotao/HK-UrbanSpoof) pinned at `95def2b6a42eee6299bbc1a5b880a9f3bfc070d6`. It is a strong receiver-level GPS L1 synchronous spoofing benchmark with S1–S3 real recordings and S4 simulated, 17 attacks, S2/S3 trajectory files, and ray-tracing labels described by the paper. Its GitHub API currently reports no licence and its raw IF payload is external Google Drive. Ground-truth file availability and README statements are inconsistent; rights and oracle status remain unknown. It stays candidate_not_admitted.
+
+The first physical comparative benchmark should use UrbanNav's Medium-Urban route with entire loops/sessions as indivisible groups. First exclude or label the known F9P malfunction period, qualify SPAN-CPT/IE truth lineage and time/frame calibration, then reproduce standalone GNSS, GNSS/INS and available LiDAR/INS baselines before evaluating active-sensing or integrity policies.
+
+### 12.4 New exact-head evidence snapshot
+
+| Workstream | Exact-head evidence | Claim ceiling |
+|---|---|---|
+| Common-cause sequential sensing [#6713](https://github.com/Luminous-Dynamics/symtropy/pull/6713) | 110 tests | static binary shared-regime toy |
+| Multi-cause dependency graph [#6723](https://github.com/Luminous-Dynamics/symtropy/pull/6723) | 117 tests | up to four static binary causes, declared dependencies |
+| Temporal service-state VoI [#6732](https://github.com/Luminous-Dynamics/symtropy/pull/6732) | 125 tests | binary Markov service state, known synthetic transition rates |
+| UrbanNav rights/metadata candidate [#6728](https://github.com/Luminous-Dynamics/symtropy/pull/6728) | 31 validator tests + 12 additional tests; all schema/split/admission CLIs pass | explicit rights but no frozen payload or physical/oracle qualification |
+| HK-UrbanSpoof rights candidate [#6716](https://github.com/Luminous-Dynamics/symtropy/pull/6716) | 30 validator tests + 12 additional tests; admission CLIs pass | rights unknown; not admitted |
+
+All results are software or metadata-admission evidence. No dataset payload has been admitted and no physical navigation trial has been executed.
+
+### 12.5 Immediate next research gates
+
+1. Freeze the UrbanNav Medium-Urban payload and compute exact file hashes, without mirroring data unless the license and distribution conditions are retained.
+2. Qualify per-sensor timestamps, ROS/NMEA time relation, clock drift, camera/LiDAR/IMU extrinsics, antenna/IMU lever arm and SPAN-CPT/IE processing lineage.
+3. Create whole-loop/site/device held-out splits. Keep overlapping windows and the same physical run together.
+4. Reproduce standalone GNSS, GNSS/INS and LiDAR/INS baselines on identical segments before comparing new policies.
+5. Estimate service-transition rates and confidence calibration on separate training/calibration routes.
+6. Evaluate static vs temporal VoI, dependency-aware fusion, sequential acquisition, risk–coverage and cluster-bootstrap confidence on untouched held-out routes.
+7. Run an independent evaluator with a separate truth capability; no controller-readable ground truth, shared truth cache or label-derived feature leakage.
+
+No SOTA claim is available until published baselines are reproduced under matched conditions and an independently supported improvement appears on held-out environments.
