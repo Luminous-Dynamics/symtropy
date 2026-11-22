@@ -518,9 +518,14 @@ pub fn evaluate_hbr_bctr_position_curvature_2d(
 
     // Diagonal block contribution from all adjacent velocity differences.
     let velocity_edge_count =
-        usize::from(time_index > 0) + usize::from(time_index + 1 < state.positions_m.len());
+        (if time_index > 0 { 1.0 } else { 0.0 })
+            + (if time_index < state.positions_m.len().saturating_sub(1) {
+                1.0
+            } else {
+                0.0
+            });
     let velocity_diagonal =
-        2.0 * config.lambda_velocity * velocity_edge_count as f64;
+        2.0 * config.lambda_velocity * velocity_edge_count;
     hessian[0][0] += velocity_diagonal;
     hessian[1][1] += velocity_diagonal;
 
