@@ -83,7 +83,9 @@ impl Rational {
         if reduced_numerator > u128::from(MAX_SAFE_INTEGER)
             || reduced_denominator > u128::from(MAX_SAFE_INTEGER)
         {
-            return Err("exact rational subtraction exceeds the portable integer envelope".to_owned());
+            return Err(
+                "exact rational subtraction exceeds the portable integer envelope".to_owned(),
+            );
         }
         Ok(Self {
             numerator: u64::try_from(reduced_numerator)
