@@ -83,7 +83,7 @@
         "value": "cooling"
       },
       "release_slot": 1,
-      "deadline_slot_exclusive": 6,
+      "deadline_slot_exclusive": 3,
       "duration_slots": 3,
       "requested_power_w": 3000
     },
