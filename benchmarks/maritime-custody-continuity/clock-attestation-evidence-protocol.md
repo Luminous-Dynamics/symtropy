@@ -18,7 +18,7 @@ The v0.1 Rust module models:
 2. **External verifier receipt** — signature decision, certificate-chain decision, signer fingerprint, trust anchor, algorithm, key usage, revocation status and freshness, verifier build, trust-store version and policy version.
 3. **Measurement result** — result ID, clock/profile/firmware identity, measurand, time basis, measured offset, calibration validity, uncertainty model and coverage-factor lexeme.
 4. **Traceability links** — each calibrated subject and reference, measurement-result ID, measurand/time basis, measured date, validity, uncertainty upper bound and artifact evidence.
-5. **In-service event observation** — exact source event ID/revision, clock/profile/firmware identity, observation time, event time, last sync, lock/holdover/alarm state, maximum observation age, maximum sync age or holdover duration, offset/drift, capture-path and rounding bounds.
+5. **In-service event observation** — exact source event ID/revision, clock/profile/firmware identity, time-basis ID and explicit tick quantum (e.g. SI nanosecond), raw reported event time, observation time, last sync, lock/holdover/alarm state, maximum observation age, maximum sync age or holdover duration, offset/drift, capture-path and rounding bounds.
 6. **Qualified receipt** — opaque accepted result binding the artifact digests, exact event revision, policy/verifier/trust-store versions, scope, validity intersection and every uncertainty contribution.
 
 The SHA-256 field binds immutable bytes; it does not establish who authored the artifact. Signature, chain and revocation statuses must be supplied by a separately audited verifier whose implementation and trust-store version are pinned by policy. This Rust module checks that the verifier receipt binds the exact artifact digest and matches the configured verifier, trust store, anchor, algorithm, key usage and policy. It does not verify signatures itself. The verifier implementation and its authenticated transport are part of the trusted computing base.
@@ -37,15 +37,15 @@ Only an accepted, opaque QualifiedClockCalibrationReceipt can be converted to Ti
 
 The conversion:
 - binds evidence ID to the exact (source_id, source_event_id, revision) tuple using the custody evaluator's canonical event-time evidence ID;
-- uses the exact time-basis ID and clock/device profile;
-- derives a closed interval using the receipt's conservative total error;
+- uses the exact time-basis ID, tick quantum and clock/device profile;
+- derives a closed interval around the offset-corrected reference timestamp using the receipt's conservative total error;
 - checks that the entire interval, not only its centre, lies inside the intersection of the calibration and traceability-link validity windows;
 - carries the clock ID, profile, calibration digest, synchronization method/state, applicable validity range and maximum total error in ClockQualificationRef;
 - returns an error for Unknown/Rejected decisions, arithmetic overflow or an interval that leaves validity.
 
 No caller can construct an AcceptedForDeclaredScope receipt by populating its fields: the receipt fields are private and the only successful constructor is the attestation decision path. This does not make the upstream artifact-verifier receipt cryptographically unforgeable; the verifier and its transport remain trusted components.
 
-The caller must still ensure that the event timestamp lexeme and normalized tick value are correctly bound by the upstream source/time adapter (#1930/#1955). The clock attestation module does not parse or normalize timestamps and does not silently convert UTC(ZA), UTC, TAI or GPS.
+The caller must still ensure that the event timestamp lexeme, tick quantum and device-reported tick value are correctly bound by the upstream source/time adapter (#1930/#1955). The attestation applies the signed calibration offset within the same declared tick quantum: measured offset is device clock minus reference time, so normalized reference time equals raw device time minus the signed offset. The raw device value remains in the receipt. The module does not perform time-scale conversions or silently convert UTC(ZA), UTC, TAI or GPS. Qualified events with the same time-basis label but different tick quanta are incomparable in the custody temporal-order layer.
 
 ## South African first reference profile
 
@@ -81,7 +81,8 @@ Record the exact clock, firmware, terminal, reference, instrument, measurand, me
 - 100% rejection of frozen invalid artifact, digest, signature, chain, scope, device, validity, revocation, alarm and missing-bound cases.
 - Zero Unknown/Rejected receipts converted into proof-grade TimeEvidence.
 - Deterministic receipt/evidence IDs under replay.
-- Exact source-event revision and artifact digest binding.
+- Exact source-event revision, artifact digest and tick-quantum binding.
+- Positive and negative signed offset correction, raw timestamp preservation and correction overflow negatives.
 - Conservative sum and interval-validity checks with overflow and boundary negatives.
 
 **P1 independent artifact corpus**
