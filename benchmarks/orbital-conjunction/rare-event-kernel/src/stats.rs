@@ -175,13 +175,12 @@ impl WeightedEventAccumulator {
         if !log_correction.is_finite() {
             return Err(KernelError::NumericalOverflow);
         }
-        let log_centered_sum_squares =
-            log_difference_exp(self.log_sum_squares, log_correction)?;
+        let log_centered_sum_squares = log_difference_exp(self.log_sum_squares, log_correction)?;
         let log_standard_error = if log_centered_sum_squares == f64::NEG_INFINITY {
             f64::NEG_INFINITY
         } else {
-            let log_denominator = (self.sample_count as f64).ln()
-                + ((self.sample_count - 1) as f64).ln();
+            let log_denominator =
+                (self.sample_count as f64).ln() + ((self.sample_count - 1) as f64).ln();
             0.5 * (log_centered_sum_squares - log_denominator)
         };
 
@@ -201,8 +200,7 @@ impl WeightedEventAccumulator {
         } else if log_95_margin > 709.0 {
             0.0
         } else {
-            let log_upper =
-                log_estimate + log_95_margin.exp().ln_1p();
+            let log_upper = log_estimate + log_95_margin.exp().ln_1p();
             log_upper.min(0.0)
         };
 
@@ -210,9 +208,7 @@ impl WeightedEventAccumulator {
             sample_count: self.sample_count,
             nonzero_contribution_count: self.nonzero_contribution_count,
             log_estimate: Some(log_estimate),
-            log_contribution_effective_sample_size: Some(
-                log_contribution_effective_sample_size,
-            ),
+            log_contribution_effective_sample_size: Some(log_contribution_effective_sample_size),
             log_relative_standard_error: Some(log_relative_standard_error),
             normal_approximation_95_log_lower,
             normal_approximation_95_log_upper: Some(upper_log),
@@ -227,7 +223,9 @@ impl WeightedEventAccumulator {
         if !log_ess.is_finite() {
             return Err(KernelError::NumericalOverflow);
         }
-        Ok(Some(log_ess.min((self.nonzero_contribution_count as f64).ln())))
+        Ok(Some(
+            log_ess.min((self.nonzero_contribution_count as f64).ln()),
+        ))
     }
 }
 
@@ -347,7 +345,10 @@ mod tests {
         accumulator.push_log_contribution(Some(-2.0)).unwrap();
         accumulator.push_log_contribution(Some(-2.0)).unwrap();
         let summary = accumulator.summary().unwrap();
-        assert!((summary.log_contribution_effective_sample_size.unwrap() - 2.0_f64.ln()).abs() < 1.0e-12);
+        assert!(
+            (summary.log_contribution_effective_sample_size.unwrap() - 2.0_f64.ln()).abs()
+                < 1.0e-12
+        );
         assert_eq!(summary.log_relative_standard_error, Some(f64::NEG_INFINITY));
     }
 
@@ -366,8 +367,12 @@ mod tests {
     #[test]
     fn importance_sample_path_uses_the_log_density_ratio() {
         let mut accumulator = WeightedEventAccumulator::new();
-        accumulator.push_importance_sample(true, -3.0, -5.0).unwrap();
-        accumulator.push_importance_sample(false, -3.0, -5.0).unwrap();
+        accumulator
+            .push_importance_sample(true, -3.0, -5.0)
+            .unwrap();
+        accumulator
+            .push_importance_sample(false, -3.0, -5.0)
+            .unwrap();
         let summary = accumulator.summary().unwrap();
         assert!((summary.log_estimate.unwrap() - (2.0 - 2.0_f64.ln())).abs() < 1.0e-12);
     }
