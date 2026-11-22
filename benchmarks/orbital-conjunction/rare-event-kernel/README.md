@@ -28,6 +28,7 @@ This crate is a research kernel, not an operational collision-probability produc
 - Log importance weights and one-draw weighted event indicators.
 - Strict Loewner covariance-floor validation, including the strictness test needed for a half-nominal covariance lower bound.
 - A pointwise NASA-style 3D-Nc sphere integrand implementing the conditional expected inward normal speed multiplied by the relative-position Gaussian density, including the deterministic zero-dispersion limit and log-domain tail handling.
+- A pointwise NASA-style 3D-Nc sphere integrand implementing the conditional expected inward normal speed multiplied by the relative-position Gaussian density, including the deterministic zero-dispersion limit and log-domain tail handling.
 
 ## Run the isolated tests
 
@@ -56,5 +57,6 @@ The current authored test corpus contains 109 authored `#[test]` cases: 30 in `l
 - The Gaussian cell-mass bound is intentionally loose and the cube-tail bound uses a Chernoff polynomial lower bound. The traversal is preliminary numerical conservative bookkeeping, not a formally machine-verified certificate or a proof of the physical model.
 - The cell splitter uses a deterministic longest-axis rule. Shared closed faces are covered by both children; they have zero measure only for a nondegenerate continuous Gaussian and still remain relevant to geometric tangency tests.
 - The weighted indicator primitive does not construct confidence intervals or establish finite-sample coverage.
+- The pointwise Ncdot module is not full 3D-Nc. It does not compute PeakOverlapPos, map equinoctial states/covariances, apply common atmospheric-density cross-object covariance corrections, integrate over the sphere, apply the outer R-squared factor or integrate over time. Its large-positive-x asymptotic for conditional inward speed is numerically accurate on the tested domain but is not a validated interval bound.
 - The pointwise Ncdot module is not full 3D-Nc. It does not compute PeakOverlapPos, covariance transforms/cross-object common-density corrections, Lebedev integration, the outer R-squared factor or adaptive time integration. Its large-positive-x asymptotic for the conditional inward-speed kernel is numerically accurate on tested inputs but is not a validated interval bound.
 - The proposal density must be the complete mixture density, including all defensive components.
