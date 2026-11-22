@@ -61,3 +61,17 @@ Use identical adjudicated, permissioned event tapes, as-of cutoffs, crosswalks a
 - identity-plus-custody composition.
 
 Publish event/chain precision and recall, false-complete and false-incomplete rates, abstention/unresolved fraction, correction/void handling, interval-order abstention, mismatch-reason coverage, runtime, memory and sensitivity to reporting delay. Keep physical truth adjudication independent of every tested system. No superiority claim until this matched experiment is complete.
+
+## P1 time evidence: partial order, not timestamp sorting
+
+The standalone time-order primitive now included with the benchmark accepts event-time intervals in one explicitly named normalized time basis. Its relation is:
+- `ProvenBefore/After` only when the intervals are strictly disjoint and both inputs are upstream-qualified enclosures;
+- `EstimatedBefore/After` when intervals are disjoint but at least one bound is estimate-only;
+- `UnresolvedOverlap` for intersecting intervals, including touching endpoints and identical singleton times;
+- `IncomparableTimeBasis` when event times have not been mapped to the same declared basis.
+
+A pair of overlapping intervals is not a simultaneity proof. This module returns pairwise relations and never inserts an arbitrary total-order tie-break. Its P1 acceptance corpus covers interval overlap, touching, identical singleton times, clock-basis mismatch, proof-grade vs estimate-only bounds, positive time-unit scaling and input permutation.
+
+The module does not itself normalize RFC 3339 timestamps, verify clock synchronization, establish a trustworthy error bound, authenticate the source, or validate event-time semantics. These remain owned by #1930/#1955 and the source/forecast applicability work in #1650. In the DCSA Track & Trace profile, preserve eventDateTime separately from eventCreatedDateTime; the DCSA Information Model defines the former as when the event occurred or will occur and the latter as when the event entry was created. For EPCIS, preserve eventTime separately from recordTime; the latter is repository bookkeeping, not real-world event time. Neither schema conformance nor a timezone offset alone certifies clock accuracy. References: https://reference.dcsa.org/files/content/standards/guidelines/information-model-2-0/dcsa-information-model-2-0.pdf and https://ref.gs1.org/epcis/ObjectEvent
+
+The existing P0 custody report still uses exact synthetic ticks. The next integration increment must require time-basis mapping receipts and qualified clock-error enclosures for each source event, then use the partial-order result as a precondition for custody-state mutation. An unresolved or incomparable release/acceptance pair must remain indeterminate and cannot complete a chain.
