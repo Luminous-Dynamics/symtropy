@@ -17,7 +17,7 @@ For centered source coordinates x_i and target coordinates y_i:
 - theta = atan2(C, D)
 - t = mean(y) - R(theta) mean(x)
 
-A returned pose is not automatically observable. The control network must meet declared minimum span and maximum triangle-area requirements. At least three control points are required to expose planar degeneracy, and at least one independent check point is mandatory.
+A returned pose is not automatically accepted. This benchmark requires at least three controls by policy for redundancy, plus declared minimum span and triangle-area gates for off-axis spatial coverage. A 2D rigid pose with known correspondences can be determined from two distinct points; therefore the triangle-area rule is a conservative coverage/redundancy policy, not a mathematical rank test for 2D pose identifiability. Collinear networks are marked INDETERMINATE here because they fail the predeclared footprint policy, not because a 2D rigid pose is impossible to fit. The maximum-triangle-area screen also does not prove uniform spatial distribution; later versions should use explicit coverage/conditioning metrics appropriate to the inspection volume. At least one independent check point is mandatory.
 
 Check points are withheld from fitting and evaluated only after the transform is fixed. Each residual is compared with a declared hard radial allowance:
 
@@ -25,9 +25,9 @@ allowed = base residual limit + source point error bound + target point error bo
 
 These terms are hard upper bounds in this synthetic contract, not GUM standard uncertainties, standard deviations, coverage intervals or an ISO 14253-1 decision profile. No RSS aggregation or independence assumption is made.
 
-- QUALIFIED: control network observable and all controls and withheld checks are within hard bounds.
+- QUALIFIED: the control network meets the declared footprint policy and all controls and withheld checks are within hard bounds.
 - REJECTED: fitted transform is contradicted by a control or withheld-check residual.
-- INDETERMINATE: insufficient/ill-conditioned network, missing checks, duplicate identities, article-derived basis or invalid frame labels.
+- INDETERMINATE: insufficient controls, failed footprint policy, missing checks, duplicate identities, article-derived basis or invalid frame labels.
 
 ## Frozen corpus
 
