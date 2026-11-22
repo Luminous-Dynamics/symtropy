@@ -45,6 +45,16 @@ impl Rational {
             == u128::from(other.numerator) * u128::from(self.denominator)
     }
 
+    pub(crate) fn canonicalized(&self) -> Self {
+        let numerator = u128::from(self.numerator);
+        let denominator = u128::from(self.denominator);
+        let divisor = gcd_u128(numerator, denominator);
+        Self {
+            numerator: (numerator / divisor) as u64,
+            denominator: (denominator / divisor) as u64,
+        }
+    }
+
     pub(crate) fn compare_exact(&self, other: &Self) -> std::cmp::Ordering {
         (u128::from(self.numerator) * u128::from(other.denominator))
             .cmp(&(u128::from(other.numerator) * u128::from(self.denominator)))
