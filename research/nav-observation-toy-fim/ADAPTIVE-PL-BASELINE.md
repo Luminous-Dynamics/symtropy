@@ -31,11 +31,11 @@ Those inputs are required for a paper-faithful route reproduction. This module i
 
 ## Derivative-filter fidelity
 
-The derivative low-pass term now uses the exact first-order exponential coefficient:
-- alpha_D = exp(-2 pi f_c Delta-t);
-- D_k = alpha_D D_(k-1) + (1-alpha_D) (e_k-e_(k-1))/Delta-t.
+The published paper's Eq. (34)-(35) uses a linear discrete coefficient:
+- alpha_D = min(1, 2 pi f_c Delta-t);
+- D_k = alpha_D (e_k-e_(k-1))/Delta-t + (1-alpha_D) D_(k-1).
 
-A dedicated test checks the coefficient numerically for the configured cutoff and sample interval. This avoids replacing the exponential filter with a forward-Euler approximation, which may be close for some sample intervals but is not the paper's exact discrete update.
+`AdaptivePlConfig::paper_2026()` defaults to `DerivativeFilterMode::PaperLinear`, so the reference profile follows the printed paper equation. The optional `ExactExponential` mode uses alpha_D = 1-exp(-2 pi f_c Delta-t), a separately named continuous-time first-order low-pass discretization. It is an experimental alternative, not the paper's default. Each mode has a separate equation-level test, and every benchmark receipt must record the selected mode.
 
 ## Conditional-integration fidelity
 
