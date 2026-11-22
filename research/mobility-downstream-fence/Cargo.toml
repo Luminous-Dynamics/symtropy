@@ -1,0 +1,16 @@
+# Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+[package]
+name = "mobility-downstream-fence"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Bounded evidence contract for downstream command-path quiescence"
+
+[lib]
+path = "src/lib.rs"
+
+# Isolated research reference crate; do not join the production workspace.
+[workspace]

@@ -1,0 +1,47 @@
+name: Mobility Downstream Fence Contract
+
+on:
+  push:
+    branches:
+      - research/mobility-downstream-fence-v0-1
+    paths:
+      - "research/mobility-downstream-fence/**"
+      - ".github/workflows/mobility-downstream-fence.yml"
+  pull_request:
+    paths:
+      - "research/mobility-downstream-fence/**"
+      - ".github/workflows/mobility-downstream-fence.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  downstream-fence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Validate public downstream-fence corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq empty research/mobility-downstream-fence/schemas/downstream_fence_packet_v0_1.schema.json
+          jq empty research/mobility-downstream-fence/fixtures/downstream_fence_cases_v0_1.json
+          jq -e '
+            .cases as $cases
+            | .version == "0.1"
+              and ($cases | length >= 20)
+              and ([$cases[].case_id] | length == ([$cases[].case_id] | unique | length))
+              and ([$cases[] | select(.class == "positive" and .expected == "all_declared_layers_have_current_quiescence_evidence")] | length >= 1)
+              and ([$cases[] | select(.class == "negative" and .expected == "hold")] | length >= 10)
+              and all($cases[]; .native_sink_calls == 0)
+          ' research/mobility-downstream-fence/fixtures/downstream_fence_cases_v0_1.json
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/mobility-downstream-fence/Cargo.toml -- --check
+      - name: Run downstream-fence conformance tests
+        run: cargo test --manifest-path research/mobility-downstream-fence/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/mobility-downstream-fence/Cargo.toml --all-targets --locked -- -D warnings
