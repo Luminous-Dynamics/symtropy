@@ -662,12 +662,55 @@ mod tests {
         ];
         let report =
             fuse_hbr_window_positions_2d(&window_plan, &estimates, fusion_config()).unwrap();
-        assert!((report.positions[1].position_m[0] - 3.0).abs() < 1e-9);
+        let epsilon = fusion_config().epsilon_kappa;
+        let total_weight = 8.0 + 2.0 * epsilon;
+        let expected_position = 4.0 * (6.0 + epsilon) / total_weight;
+        let expected_first_weight = (2.0 + epsilon) / total_weight;
+        let expected_second_weight = (6.0 + epsilon) / total_weight;
+        assert!((report.positions[1].position_m[0] - expected_position).abs() < 1e-12);
         assert_eq!(report.positions[1].contributors.len(), 2);
-        assert!((report.positions[1].contributors[0].normalized_fusion_weight - 0.25).abs() < 1e-9);
-        assert!((report.positions[1].contributors[1].normalized_fusion_weight - 0.75).abs() < 1e-9);
+        assert!(
+            (report.positions[1].contributors[0].normalized_fusion_weight
+                - expected_first_weight)
+                .abs()
+                < 1e-12
+        );
+        assert!(
+            (report.positions[1].contributors[1].normalized_fusion_weight
+                - expected_second_weight)
+                .abs()
+                < 1e-12
+        );
         assert_eq!(report.expected_window_position_count, 4);
         assert_eq!(report.observed_window_position_count, 4);
+    }
+
+    #[test]
+    fn increasing_epsilon_reduces_curvature_weight_contrast() {
+        let window_plan = plan(3, 2, 1);
+        let estimates = vec![
+            estimate(1, 0, [0.0, 0.0], [[1.0, 0.0], [0.0, 1.0]]),
+            estimate(1, 1, [0.0, 0.0], [[1.0, 0.0], [0.0, 1.0]]),
+            estimate(2, 1, [4.0, 0.0], [[3.0, 0.0], [0.0, 3.0]]),
+            estimate(2, 2, [2.0, 0.0], [[1.0, 0.0], [0.0, 1.0]]),
+        ];
+        let low_epsilon =
+            fuse_hbr_window_positions_2d(&window_plan, &estimates, fusion_config()).unwrap();
+        let mut high_epsilon_config = fusion_config();
+        high_epsilon_config.epsilon_kappa = 1_000.0;
+        let high_epsilon =
+            fuse_hbr_window_positions_2d(&window_plan, &estimates, high_epsilon_config).unwrap();
+
+        let low_first_weight =
+            low_epsilon.positions[1].contributors[0].normalized_fusion_weight;
+        let high_first_weight =
+            high_epsilon.positions[1].contributors[0].normalized_fusion_weight;
+        assert!(high_first_weight > low_first_weight);
+        assert!(high_first_weight < 0.5);
+        assert!(
+            (high_epsilon.positions[1].position_m[0] - 2.0).abs()
+                < (low_epsilon.positions[1].position_m[0] - 2.0).abs()
+        );
     }
 
     #[test]
