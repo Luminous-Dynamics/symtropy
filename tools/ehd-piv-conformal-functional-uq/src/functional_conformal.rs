@@ -15,6 +15,8 @@ use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt;
 
+use crate::functional::FieldFunctionalReport;
+
 const FUNCTIONAL_DIMENSION: usize = 4;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -22,10 +24,35 @@ pub struct FunctionalObservation {
     pub observation_id: String,
     /// Independent reference evidence for all four functional components.
     pub reference_evidence_id: String,
+    /// Run identity of the predicted field-functional receipt.
+    pub predicted_run_id: String,
     /// Reference minus predicted values in [kg/s, N, N, N].
     pub residual: [f64; FUNCTIONAL_DIMENSION],
     /// Full predictive covariance in the same mixed physical units.
     pub covariance: [[f64; FUNCTIONAL_DIMENSION]; FUNCTIONAL_DIMENSION],
+}
+
+/// Construct an integrated-functional calibration observation directly
+/// from a field-propagation receipt and independent reference values.
+///
+/// The residual sign is reference minus prediction. The covariance is copied
+/// from the exact prediction receipt, preserving component order
+/// [mass flow, momentum-x, momentum-y, momentum-z].
+pub fn functional_observation_from_report(
+    observation_id: impl Into<String>,
+    reference_evidence_id: impl Into<String>,
+    predicted: &FieldFunctionalReport,
+    reference_functionals: [f64; FUNCTIONAL_DIMENSION],
+) -> FunctionalObservation {
+    FunctionalObservation {
+        observation_id: observation_id.into(),
+        reference_evidence_id: reference_evidence_id.into(),
+        predicted_run_id: predicted.run_id.clone(),
+        residual: std::array::from_fn(|index| {
+            reference_functionals[index] - predicted.functional_values[index]
+        }),
+        covariance: predicted.functional_covariance,
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -358,6 +385,7 @@ mod tests {
         FunctionalObservation {
             observation_id: format!("functional-{index}"),
             reference_evidence_id: format!("reference-{index}"),
+            predicted_run_id: format!("predicted-run-{index}"),
             residual: [score.sqrt(), 0.0, 0.0, 0.0],
             covariance: identity_covariance(),
         }
@@ -384,6 +412,40 @@ mod tests {
                 .map(|index| cluster(index, index as f64 + 1.0))
                 .collect(),
         }
+    }
+
+    #[test]
+    fn functional_report_adapter_preserves_output_order_covariance_and_residual_sign() {
+        use crate::functional::{
+            propagate_field_functional_uncertainty, Covariance3, FaceVelocitySample,
+            FieldFunctionalInput,
+        };
+
+        let predicted = propagate_field_functional_uncertainty(&FieldFunctionalInput {
+            run_id: "adapter-run".to_owned(),
+            control_surface_id: "adapter-surface".to_owned(),
+            sign_convention_id: "outward-v1".to_owned(),
+            covariance_multiplier: 1.0,
+            samples: vec![FaceVelocitySample {
+                velocity_m_s: [2.0, 0.0, 0.0],
+                oriented_area_vector_m2: [1.0, 0.0, 0.0],
+                density_kg_m3: 1.0,
+                local_velocity_covariance_m2_s2: Covariance3 {
+                    xx: 0.25, xy: 0.0, xz: 0.0, yy: 0.0, yz: 0.0, zz: 0.0,
+                },
+            }],
+            shared_modes: Vec::new(),
+        }).unwrap();
+
+        let observation = functional_observation_from_report(
+            "observation-1",
+            "independent-reference-1",
+            &predicted,
+            [2.5, 5.0, 0.0, 0.0],
+        );
+        assert_eq!(observation.predicted_run_id, "adapter-run");
+        assert_eq!(observation.residual, [0.5, 1.0, 0.0, 0.0]);
+        assert_eq!(observation.covariance, predicted.functional_covariance);
     }
 
     #[test]
