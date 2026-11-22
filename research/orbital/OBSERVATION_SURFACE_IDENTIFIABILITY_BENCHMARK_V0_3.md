@@ -184,3 +184,36 @@ The aim is to outperform by **coverage under misspecification, lower decision er
 ## 10. Evidence ceiling
 
 This specification and initial simulator are synthetic research artifacts. The simulator has no calibration authority, it cannot authenticate independence or reference metrology, and it does not establish any real sensor's probability of detection. Electronic injection qualifies only downstream acquisition behavior; an end-to-end claim requires a physical stimulus at the actual sensor/mount and an independently qualified reference measurement.
+
+## 11. Estimator / ground-truth separation
+
+A benchmark result is invalid if an estimator can read information that would not exist in the real observation channel. The simulator therefore emits two separate artifacts:
+
+- **Audit receipt:** latent-event identities, detected/missed outcomes, miss causes, conditional classifier probabilities, false-positive timestamps and aggregate counters. This is evaluation truth only.
+- **Declassified observations:** channel/configuration identifiers and the sorted timestamps actually emitted by the channel. No latent event IDs, miss labels, classifier probabilities, false-positive labels or simulator audit fields are present.
+
+The observation artifact carries the exact source commit and corpus SHA-256; the audit receipt binds the exact observation bytes with a second SHA-256. A baseline method must consume only the declassified artifact. The CI comparator asserts that forbidden audit fields are absent and that Rust, independent JavaScript and exported observations agree. The schema validator is a dependency-free validator for the restricted JSON Schema keyword subset used in this repository, not a general-purpose Draft 2020-12 implementation.
+
+v0.1 observation streams are deliberately timestamp-only. The simulator uses a normalized time window [0,1]; event timestamps, outage boundaries, fixed dead time and false-positive intensity are all expressed on that normalized scale. No physical time unit is claimed. A later mark-aware benchmark must generate realistic marks for both true and false reports and must never copy latent event marks onto an observed report unless the measurement model justifies that information.
+
+## 12. Multi-sensor identifiability is conditional, not automatic
+
+For a latent event with mark z and a set of channels S that report it, the familiar independent-capture expression is:
+
+\[
+\Pr(C=S\mid z,t)
+=
+\prod_{c\in S}p_c(t,z)
+\prod_{c\notin S}(1-p_c(t,z)).
+\]
+
+That factorization is valid only under an explicit conditional-independence model. With shared power, clock, mounting, environment, firmware or reference-path failures, a common-cause state G must be included:
+
+\[
+\Pr(C=S\mid z,t)
+=
+\int
+\Pr(C=S\mid z,t,G=g)\,dP(g).
+\]
+
+If a common-cause state can make every channel miss an event, the all-miss class is invisible in the channel overlap data. Adding more sensors does not, by itself, identify the size or physical trend of an entirely unobserved class. The model needs independent reference evidence, a validated lower bound on at-least-one-channel capture, or a set-valued partial-identification result that keeps the unseen class explicit. Capture-recapture estimators must be tested under violations of their identifying assumptions; channel diversity is a hypothesis to qualify, not proof of independent detection.
