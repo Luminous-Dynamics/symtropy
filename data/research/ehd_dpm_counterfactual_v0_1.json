@@ -1,0 +1,107 @@
+{
+  "schema": "luminous.ehd_diagnostic_counterfactual",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-DPM-002",
+  "as_of": "2026-11-22",
+  "status": "manufactured_randomized_crossover_reference_authored_tests_execution_pending",
+  "claim_ceiling": "A scalar counterfactual evaluator for supplied measurements and externally qualified receipts. No laboratory randomization, physical reset/purge, raw PIV reanalysis, tracer model or thrust validation is claimed.",
+  "research_basis": {
+    "source": "Zwolińska-Glądys, Cardona Murillo and Jaszczur 2026",
+    "doi": "10.1007/s00348-026-04322-y",
+    "publication_date": "2026-10-06",
+    "reported_effects": {
+      "condition": "14 kV needle-to-ring ionic fan",
+      "peak_axial_velocity_m_s": {
+        "DEHS": 3.8,
+        "incense_smoke": 5.9
+      },
+      "DEHS_peak_velocity_reduction_percent": 36,
+      "volumetric_flow_l_s": {
+        "DEHS": 0.89,
+        "incense_smoke": 1.07
+      },
+      "DEHS_flow_underestimate_percent": 17
+    },
+    "methodological_observation": "The study describes sequential clean-air, DEHS and incense-smoke conditions and reports collector deposition/current evolution, motivating explicit time-order, surface-reset and purge controls.",
+    "raw_data_access": "Generated data available from corresponding author on reasonable request; not independently reprocessed in this programme."
+  },
+  "design": {
+    "sequences": {
+      "ABBA": [
+        "control",
+        "diagnostic",
+        "diagnostic",
+        "control"
+      ],
+      "BAAB": [
+        "diagnostic",
+        "control",
+        "control",
+        "diagnostic"
+      ]
+    },
+    "period_timing": "strictly increasing; control and diagnostic mean times equal within declared tolerance",
+    "drift_property": "symmetric timing cancels first-order linear within-block drift; balanced ABBA/BAAB assignment counterbalances a common quadratic component under cohort assumptions",
+    "minimum_independent_clusters": 20,
+    "sequence_balance": "ABBA and BAAB independent-cluster counts differ by at most one",
+    "period_receipts": [
+      "unique_outcome_evidence_id",
+      "unique_surface_reset_receipt_id",
+      "unique_purge_receipt_id",
+      "surface_reset_verified",
+      "purge_verified"
+    ],
+    "independence_unit": "highest defensible acquisition/common-cause cluster; repeated blocks within one cluster are averaged before campaign inference"
+  },
+  "estimator": {
+    "block_effect": "mean(diagnostic periods) - mean(control periods)",
+    "block_measurement_bound": "0.5 * sum(four per-period absolute uncertainty bounds)",
+    "cluster_aggregation": "equal-weight average of block effects within each independent cluster",
+    "campaign_aggregation": "equal-weight average of independent cluster means",
+    "sampling_uncertainty": "cluster-level standard error and approximate Student-t 95 percent margin, t=2.093 for n>=20",
+    "total_uncertainty": "statistical 95 percent margin plus mean conservative absolute measurement bound",
+    "passivity_rule": "full uncertainty interval must fit inside predeclared equivalence tolerance; non-significance is not a pass"
+  },
+  "decision_precedence": [
+    "physical_ledger_failure",
+    "out_of_validation_envelope",
+    "randomization_not_verified",
+    "sequence_allocation_imbalance",
+    "surface_reset_unverified",
+    "purge_unverified",
+    "insufficient_independent_clusters",
+    "effect_interval_classification"
+  ],
+  "prospective_targets": {
+    "minimum_independent_clusters": 20,
+    "abba_baab_cluster_count_difference_max": 1,
+    "surface_reset_before_every_period": true,
+    "purge_before_every_period": true,
+    "pre_register_effect_tolerance": true,
+    "pre_run_power_analysis": true,
+    "repeat_across": [
+      "voltage",
+      "relative_humidity",
+      "tracer_material",
+      "tracer_concentration",
+      "electrode_geometry"
+    ]
+  },
+  "implementation": {
+    "crate": "tools/ehd-dpm-counterfactual",
+    "path": "tools/ehd-dpm-counterfactual/src/lib.rs",
+    "function": "qualify_counterfactual_intervention",
+    "authored_rust_tests": 14,
+    "execution": "not_run_no_local_rust_toolchain"
+  },
+  "limitations": [
+    "no_randomization_generation_or_signature_verification",
+    "no_surface_reset_or_purge_physics",
+    "no_nonlinear_drift_model",
+    "no_hidden_common_cause_identification",
+    "no_particle_charge_or_tracer_transport_model",
+    "no_raw_image_processing",
+    "no_momentum_or_thrust_reduction",
+    "cluster_t_interval_is_approximate"
+  ]
+}
