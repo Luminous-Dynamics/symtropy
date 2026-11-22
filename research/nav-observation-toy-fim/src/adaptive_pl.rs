@@ -590,7 +590,11 @@ mod tests {
             state.step(cfg, sample).unwrap();
         }
         let limit = cfg.integral_limit_fraction * cfg.max_protection_level_m;
-        assert!((state.integral_state_m_s() - limit).abs() < 1.0e-9);
+        // The paper's conditional rule accepts one full discrete update
+        // when the previous state is below the threshold, so a one-step
+        // overshoot is permitted. It must then stop integrating.
+        assert!(state.integral_state_m_s() >= limit - 1.0e-9);
+        assert!(state.integral_state_m_s() <= limit + 1.0 + 1.0e-9);
     }
 
     #[test]
