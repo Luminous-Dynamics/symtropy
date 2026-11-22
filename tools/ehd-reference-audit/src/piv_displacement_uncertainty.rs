@@ -139,7 +139,7 @@ fn validate_input(input: &PivDisplacementInput) -> Result<(), PivDisplacementErr
         }
     }
     if input.calibration_coverage_gate_passed
-        && input.calibration_receipt_id.as_deref().is_none_or(str::trim.is_empty)
+        && input.calibration_receipt_id.as_deref().is_none_or(|id| id.trim().is_empty())
     {
         return Err(PivDisplacementError::CalibrationReceiptRequired);
     }
