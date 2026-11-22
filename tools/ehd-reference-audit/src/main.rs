@@ -19,6 +19,7 @@ mod identifiability;
 mod observer_perturbation;
 mod tracer_screening;
 mod piv_qualification;
+mod piv_displacement_uncertainty;
 
 const EMBEDDED_ATLAS: &str =
     include_str!("../../../data/research/ehd_reference_atlas_v0_1.json");
@@ -52,6 +53,8 @@ const EMBEDDED_PIV_TRACER_SCREENING: &str =
     include_str!("../../../data/research/ehd_piv_tracer_screening_v0_1.json");
 const EMBEDDED_PIV_UQ_TRIANGULATION: &str =
     include_str!("../../../data/research/ehd_piv_uq_triangulation_v0_1.json");
+const EMBEDDED_PIV_DISPLACEMENT_UNCERTAINTY: &str =
+    include_str!("../../../data/research/ehd_piv_displacement_uncertainty_v0_1.json");
 
 fn at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
     path.iter().try_fold(value, |node, key| node.get(*key))
@@ -3034,6 +3037,99 @@ pub fn audit_piv_uq_triangulation_contract(root: &Value) -> Vec<String> {
 }
 
 
+
+
+/// Audit the local correlation-peak displacement covariance reference.
+pub fn audit_piv_displacement_uncertainty_contract(root: &Value) -> Vec<String> {
+    let mut findings = Vec::new();
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["schema"]) == Some("luminous.ehd_piv_local_displacement_uncertainty")
+            && text_at(root, &["schema_version"]) == Some("0.1.0")
+            && text_at(root, &["benchmark_id"]) == Some("EHD-PIV-UQ-002")
+            && text_at(root, &["status"])
+                == Some("manufactured_local_hessian_uncertainty_kernel_authored_tests_execution_pending"),
+        "PIV_DISPLACEMENT_UQ_IDENTITY",
+        "PIV local displacement uncertainty identity, version or status changed",
+    );
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["statistical_model", "local_covariance"])
+            .is_some_and(|value| value.contains("inverse observed Hessian"))
+            && text_at(root, &["statistical_model", "calibration_status"])
+                .is_some_and(|value| value.contains("external empirical interval-coverage receipt"))
+            && text_at(root, &["statistical_model", "invalid_curvature"])
+                .is_some_and(|value| value.contains("positive definite")),
+        "PIV_DISPLACEMENT_UQ_STATISTICAL_BOUNDARY",
+        "local Laplace covariance and positive-definite/empirical calibration boundaries changed",
+    );
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["velocity_model", "cross_component_covariance"])
+            .is_some_and(|value| value.contains("shared calibration/timing"))
+            && text_at(root, &["velocity_model", "assumptions"])
+                .is_some_and(|value| value.contains("mutually independent"))
+            && text_at(root, &["velocity_model", "velocity"])
+                == Some("v = d * metres_per_pixel / pulse_separation_seconds"),
+        "PIV_DISPLACEMENT_UQ_PROPAGATION",
+        "pixel scale, timing and cross-component covariance propagation assumptions changed",
+    );
+    let expected = at(root, &["manufactured_case"]);
+    push_if_missing(
+        &mut findings,
+        expected.is_some_and(|value| {
+            at(value, &["displacement_px"]) == Some(&serde_json::json!([10, -5]))
+                && at(value, &["negative_log_likelihood_hessian_px_inverse_squared"])
+                    == Some(&serde_json::json!([[4, 1], [1, 9]]))
+                && at(value, &["expected_velocity_m_s"]) == Some(&serde_json::json!([10, -5]))
+                && text_at(value, &["expected_uncertainty_status"]) == Some("LocalApproximationOnly")
+                && text_at(value, &["status"])
+                    == Some("manufactured_hessian_and_metrology_values_not_experimental_piv_data")
+        }),
+        "PIV_DISPLACEMENT_UQ_MANUFACTURED_CASE",
+        "manufactured Hessian, displacement, velocity and uncalibrated status changed",
+    );
+    push_if_missing(
+        &mut findings,
+        at(root, &["rejection_cases"]).and_then(Value::as_array)
+            .is_some_and(|cases| cases.len() == 7
+                && text_at(&cases[0], &["expected"]) == Some("RejectedNonUniquePeak")
+                && text_at(&cases[1], &["expected"]) == Some("RejectedPeakToSidelobeRatio")
+                && text_at(&cases[2], &["expected"]) == Some("RejectedPeakFitResidual")
+                && text_at(&cases[3], &["expected"]) == Some("NonPositiveDefinitePeakHessian")
+                && text_at(&cases[4], &["expected"]) == Some("LocalApproximationOnly")
+                && text_at(&cases[5], &["expected"]) == Some("CalibrationReceiptAccepted")
+                && text_at(&cases[6], &["expected"]) == Some("CalibrationReceiptRequired")),
+        "PIV_DISPLACEMENT_UQ_REJECTION_CASES",
+        "seven peak-quality and calibration-receipt controls must remain frozen",
+    );
+    push_if_missing(
+        &mut findings,
+        at(root, &["test_families"]).and_then(Value::as_array)
+            .is_some_and(|tests| tests.len() == 10
+                && tests.iter().any(|value| value.as_str() == Some("non_unique_correlation_peak_is_rejected_without_covariance"))
+                && tests.iter().any(|value| value.as_str() == Some("calibration_and_timing_uncertainty_create_cross_component_covariance"))
+                && tests.iter().any(|value| value.as_str() == Some("local_covariance_without_coverage_receipt_is_not_called_calibrated"))
+                && tests.iter().any(|value| value.as_str() == Some("calibration_gate_without_receipt_is_rejected"))),
+        "PIV_DISPLACEMENT_UQ_TEST_MATRIX",
+        "ten local covariance, peak rejection and calibration-status tests must remain declared",
+    );
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["reference_implementation", "path"])
+            == Some("tools/ehd-reference-audit/src/piv_displacement_uncertainty.rs")
+            && at(root, &["limitations"]).and_then(Value::as_array).is_some_and(|limits| {
+                limits.iter().any(|value| value.as_str() == Some("local_laplace_hessian_approximation_only"))
+                    && limits.iter().any(|value| value.as_str() == Some("no_empirical_coverage_calibration_by_this_kernel"))
+                    && limits.iter().any(|value| value.as_str() == Some("no_physical_ehd_validation"))
+            }),
+        "PIV_DISPLACEMENT_UQ_CLAIM_BOUNDARY",
+        "local-approximation-only and no physical calibration limits must remain explicit",
+    );
+    findings
+}
+
+
 fn main() {
     let mut args = env::args().skip(1);
     let path = args.next();
@@ -3186,6 +3282,15 @@ fn main() {
             }
         };
     findings.extend(audit_piv_uq_triangulation_contract(&piv_uq_triangulation_contract));
+    let piv_displacement_uncertainty_contract: Value =
+        match serde_json::from_str(EMBEDDED_PIV_DISPLACEMENT_UNCERTAINTY) {
+            Ok(value) => value,
+            Err(error) => {
+                eprintln!("invalid embedded PIV displacement uncertainty JSON: {error}");
+                process::exit(2);
+            }
+        };
+    findings.extend(audit_piv_displacement_uncertainty_contract(&piv_displacement_uncertainty_contract));
     let exchange_kernel_ok = match exchange::reference_self_check() {
         Ok(()) => true,
         Err(error) => {
@@ -3249,6 +3354,14 @@ fn main() {
             false
         }
     };
+    let piv_displacement_uncertainty_ok =
+        match piv_displacement_uncertainty::reference_self_check() {
+            Ok(()) => true,
+            Err(error) => {
+                findings.push(format!("PIV_DISPLACEMENT_UNCERTAINTY_SELF_CHECK: {error}"));
+                false
+            }
+        };
     let piv_uq_triangulation_ok = match piv_qualification::reference_self_check() {
         Ok(()) => true,
         Err(error) => {
@@ -3327,6 +3440,9 @@ fn main() {
         if piv_uq_triangulation_ok {
             println!("PIV vector validity, regional uncertainty and PIV/LPT comparison self-check: passed");
         }
+        if piv_displacement_uncertainty_ok {
+            println!("local PIV displacement and velocity covariance self-check: passed");
+        }
         println!("scope: source structure and analytic reference checks only; no physical V&V, production ALE, TPE(1/2), nonlinear profile likelihood, continuous design optimization, complete collisional-energy closure or durable exactly-once claim");
     } else {
         eprintln!("FAIL: {label} ({} finding(s))", findings.len());
@@ -3391,6 +3507,23 @@ mod tests {
         record["method"]["independent_velocity_reference"] = serde_json::json!("PIV only");
         assert!(audit_atlas(&value).iter().any(|finding| {
             finding.starts_with("HAMDI_TRACER_METHOD")
+        }));
+    }
+
+    #[test]
+    fn piv_displacement_uncertainty_contract_passes() {
+        let value: Value = serde_json::from_str(EMBEDDED_PIV_DISPLACEMENT_UNCERTAINTY)
+            .expect("embedded PIV displacement uncertainty contract must be valid JSON");
+        assert!(audit_piv_displacement_uncertainty_contract(&value).is_empty());
+    }
+
+    #[test]
+    fn piv_displacement_uncertainty_contract_rejects_calibration_without_coverage_receipt() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_PIV_DISPLACEMENT_UNCERTAINTY).unwrap();
+        value["statistical_model"]["calibration_status"] =
+            serde_json::json!("calibrated from local curvature alone");
+        assert!(audit_piv_displacement_uncertainty_contract(&value).iter().any(|finding| {
+            finding.starts_with("PIV_DISPLACEMENT_UQ_STATISTICAL_BOUNDARY")
         }));
     }
 
