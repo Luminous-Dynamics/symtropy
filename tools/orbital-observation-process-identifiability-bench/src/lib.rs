@@ -639,6 +639,29 @@ mod tests {
     }
 
     #[test]
+    fn frozen_identifiability_corpus_replays_without_claim_escalation() {
+        let corpus: Corpus = serde_json::from_str(include_str!(
+            "../fixtures/v0.1/identifiability-cases.json"
+        ))
+        .expect("identifiability corpus parses");
+        let report = evaluate(&corpus).expect("identifiability corpus evaluates");
+        assert_eq!(report.result, "pass");
+        assert_eq!(report.summary.analytic_expected_result_mismatches, 0);
+        assert_eq!(report.summary.sensitivity_mismatches, 0);
+        assert_eq!(report.summary.simulation_inconsistent_count, 0);
+        assert!(report.summary.shape_nonidentifiability_cases > 0);
+        assert!(report.summary.scale_nonidentifiability_cases > 0);
+        assert_eq!(report.summary.physical_reliability_claims, 0);
+        assert_eq!(report.summary.qualification_claims, 0);
+        assert_eq!(report.summary.authority_grants, 0);
+        assert!(report.analytic_cases.iter().all(|case| {
+            !case.shape_identifiable_from_timestamps_alone
+                && !case.scale_identifiable_from_timestamps_alone
+                && case.expected_result_matched
+        }));
+    }
+
+    #[test]
     fn independent_thinning_simulation_recovers_observed_shape() {
         let retained = simulate_thinned_history(
             0.8,
