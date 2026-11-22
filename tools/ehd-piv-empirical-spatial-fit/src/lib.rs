@@ -619,17 +619,17 @@ pub fn validate_spatial_error_kernel(
         .map(|_| std::array::from_fn(|_| Vec::new()))
         .collect();
     let validation_mean_profile = mean_residual_profile(validation_fields, coordinates.len());
+    // Use one variance scale estimated from the entire independent holdout,
+    // not a noisy per-field denominator based on a handful of spatial points.
+    // Each acquisition still contributes one equally weighted correlation
+    // observation to the lag-bin means and cluster-level standard errors.
+    let validation_c0 = zero_lag_covariance(validation_fields, &validation_mean_profile);
 
     for field in validation_fields {
         // Estimate the held-out mean profile only to separate its covariance
         // from a systematic shift. The shift itself is retained below as a
         // separate validation diagnostic and never applied as a correction.
         let residuals = centered_residuals(field, &validation_mean_profile);
-        let mut c0 = zero_matrix();
-        for residual in &residuals {
-            add_scaled(&mut c0, symmetric_outer(*residual, *residual), 1.0 / residuals.len() as f64);
-        }
-
         let mut bins = vec![BinAccumulator::empty(); max_bin + 1];
         for pair in &pairs {
             let bin = &mut bins[pair.bin];
@@ -652,7 +652,7 @@ pub fn validate_spatial_error_kernel(
             let mut predicted_correlation = zero_matrix();
             for a in 0..3 {
                 for b in 0..3 {
-                    let denominator = (c0[a][a].max(0.0) * c0[b][b].max(0.0)).sqrt();
+                    let denominator = (validation_c0[a][a].max(0.0) * validation_c0[b][b].max(0.0)).sqrt();
                     if denominator > MATRIX_EPSILON {
                         observed_correlation[a][b] = observed[a][b] / denominator;
                         predicted_correlation[a][b] = predicted[a][b] / denominator;
@@ -765,11 +765,6 @@ impl SpatialFitValidation {
 mod tests {
     use super::*;
 
-    fn next_sign(state: &mut u64) -> f64 {
-        *state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
-        if (*state >> 63) == 0 { -1.0 } else { 1.0 }
-    }
-
     fn cholesky(a: [[f64; 3]; 3]) -> [[f64; 3]; 3] {
         let mut l = [[0.0; 3]; 3];
         for i in 0..3 {
@@ -798,9 +793,16 @@ mod tests {
             }
         }
         let l = cholesky(covariance);
-        let mut state = seed;
         (0..count).map(|index| {
-            let z = [next_sign(&mut state), next_sign(&mut state), next_sign(&mut state)];
+            // Repeated complete 2^3 Hadamard sign blocks give exact zero mean
+            // and identity second moments. This is a manufactured deterministic
+            // covariance fixture, not a pseudo-random physical experiment.
+            let code = (index as u64).wrapping_add(seed);
+            let z = [
+                if code & 1 == 0 { -1.0 } else { 1.0 },
+                if code & 2 == 0 { -1.0 } else { 1.0 },
+                if code & 4 == 0 { -1.0 } else { 1.0 },
+            ];
             let mut residuals = vec![[0.0; 3]; 3];
             for i in 0..3 {
                 let x = (0..=i).map(|j| l[i][j] * z[j]).sum::<f64>();
