@@ -157,6 +157,9 @@ pub struct AggregationCompositionProjectionReport {
     pub superseded_event_rows: usize,
     pub exact_duplicate_replays: usize,
     pub voided_source_events: usize,
+    /// Latest visible source envelopes, retaining raw time lexemes, recordTime,
+    /// source profile and source/adapter evidence digests for independent replay.
+    pub source_envelopes: Vec<AggregationProjectionEnvelope>,
     pub membership_events: Vec<ProjectedMembershipEvent>,
     pub observations: Vec<ProjectedObservation>,
     pub class_quantity_assertions: Vec<ProjectedQuantityAssertion>,
@@ -393,6 +396,7 @@ pub fn project_aggregation_events(
         superseded_event_rows: 0,
         exact_duplicate_replays: 0,
         voided_source_events: 0,
+        source_envelopes: Vec::new(),
         membership_events: Vec::new(),
         observations: Vec::new(),
         class_quantity_assertions: Vec::new(),
@@ -448,6 +452,7 @@ pub fn project_aggregation_events(
 
     let mut common_domain: Option<ChronologyDomain> = None;
     for (envelope, _) in &effective {
+        report.source_envelopes.push((*envelope).clone());
         if envelope.revision == 0 {
             report.quarantined.push(QuarantinedAggregationEvent {
                 source: source_ref(envelope),
@@ -490,7 +495,8 @@ pub fn project_aggregation_events(
             && !envelope.location_id.trim().is_empty()
             && valid_sha256(&envelope.source_payload_sha256)
             && valid_sha256(&envelope.adapter_build_sha256)
-            && (!matches!(envelope.classification, EventClassification::Actual)
+            && (envelope.voided
+                || !matches!(envelope.classification, EventClassification::Actual)
                 || chronology_domain(envelope).is_ok());
 
         if !source_context_valid {
@@ -525,16 +531,21 @@ pub fn project_aggregation_events(
         // A newer source revision replaces the earlier event in full. Create
         // explicit void tombstones for old per-child projection keys that are
         // no longer asserted as an instance membership by the latest revision.
-        let mut previous_children: BTreeMap<String, String> = BTreeMap::new();
+        let mut previous_children: BTreeMap<String, (u32, String)> = BTreeMap::new();
         for previous in revisions
             .iter()
             .filter(|previous| previous.revision < envelope.revision && !previous.voided)
         {
             for (child, parent) in membership_children(&previous.event) {
-                previous_children.insert(child, parent);
+                let replace = previous_children
+                    .get(&child)
+                    .is_none_or(|(revision, _)| previous.revision > *revision);
+                if replace {
+                    previous_children.insert(child, (previous.revision, parent));
+                }
             }
         }
-        for (child, previous_parent) in previous_children {
+        for (child, (_, previous_parent)) in previous_children {
             if !latest_children.contains_key(&child) {
                 let tombstone = composition_event(
                     envelope,
@@ -637,6 +648,13 @@ pub fn project_aggregation_events(
         }
     }
 
+    report.source_envelopes.sort_by(|left, right| {
+        left.event
+            .source_id
+            .cmp(&right.event.source_id)
+            .then_with(|| left.event.source_event_id.cmp(&right.event.source_event_id))
+            .then_with(|| left.revision.cmp(&right.revision))
+    });
     report.membership_events.sort_by(|left, right| {
         left.event
             .source_key
