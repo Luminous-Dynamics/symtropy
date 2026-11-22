@@ -443,6 +443,8 @@ mod tests {
             .map(|item| item.regime_id.clone())
             .collect::<Vec<_>>();
         ids.sort();
+        let support_receipt_id =
+            support.as_ref().map(|_| "support-bound-receipt".to_owned());
         CalibrationCorpus {
             schema: CORPUS_SCHEMA.to_owned(),
             evidence_class: "synthetic".to_owned(),
@@ -454,7 +456,7 @@ mod tests {
             stopping_rule: "fixed".to_owned(),
             alpha,
             score_support_upper_bound: support,
-            score_support_receipt_id: support.as_ref().map(|_| "support-bound-receipt".to_owned()),
+            score_support_receipt_id: support_receipt_id,
             expected_regime_ids_sha256: digest_ids(&ids).unwrap(),
             expected_regime_ids: ids,
             regimes,
