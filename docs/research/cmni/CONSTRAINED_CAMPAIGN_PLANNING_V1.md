@@ -90,3 +90,14 @@ Do not claim superiority over the ICML 2026 online-planning method until a match
 ### Cross-check against the one-step EVSI implementation
 
 The depth-one scenario-tree regression now invokes the public `recommend_finite_decision_step` function from the parent finite decision module using the same prior, utilities, single-option likelihood, cost conversion, and budget. It asserts that the one-step campaign value matches that independently implemented finite EVSI net benefit to (10^{-12}). This makes the myopic baseline an executable cross-module parity check rather than only a shared hard-coded expected value.
+
+
+## 7. Shared-calibration sequential negative control
+
+A second campaign regression expands the hidden state to include both the physical hypothesis and a shared calibration state. Two repeated tests are conditionally independent only given this expanded state; after marginalizing the calibration state, their outcomes are dependent.
+
+The synthetic prior is 0.35 / 0.35 for physical A/B under a good calibration and 0.15 / 0.15 under a bad calibration. Each test has 0.99 accuracy with good calibration and 0.01 accuracy with bad calibration, and costs 0.002 utility units. The same campaign-scoped receipt covers the conditional likelihood model for all three options.
+
+The exact scenario-tree oracle returns net utility 0.395722. It uses three tests only on the branch where the first two disagree, whose probability is 0.0198. The expected number of acquisitions is 2.0198; the remaining paths stop after two observations. This provides a concrete shared-cause example: repeated measurements do not supply fresh independent calibration information, and the planner must preserve the shared latent state when calculating the joint outcome law.
+
+The test does not establish any real calibration probability or detector likelihood. It tests the mathematics of the declared finite model and the requirement to include common-cause variables in the expanded state.
