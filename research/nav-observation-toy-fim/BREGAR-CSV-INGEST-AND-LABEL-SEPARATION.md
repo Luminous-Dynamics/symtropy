@@ -48,7 +48,7 @@ The measured RANGE remains an unqualified observation until its timestamp, calib
 
 ## 4. Streaming and parsing
 
-- The API accepts one physical CSV line at a time; it does not load the 4.4GB archive or a whole environment into memory.
+- The API accepts one physical CSV line at a time; it does not load the 4.4GB archive or a whole environment into memory. Callers must supply explicit maximum record-byte and CIR-sample limits, and rows exceeding either bound are rejected before CIR allocation.
 - It supports quoted cells, doubled quote escapes and the complex string forms used by the authors' Python converter.
 - It rejects malformed quote state, missing metadata/CIR, invalid required values, partial coordinate triplets, invalid RXPACC and malformed/nonfinite complex values.
 - Optional RSS/feature metadata can be absent or NaN and remains explicitly unavailable.
@@ -58,7 +58,7 @@ The caller remains responsible for opening the exact publisher archive, selectin
 
 ## 5. Tests
 
-Eleven deterministic synthetic tests cover:
+Thirteen deterministic synthetic tests cover:
 1. Two-line preamble preservation and fixed positional prefix.
 2. Human-readable header variation without changing positional row parsing.
 3. Empty/malformed preamble rejection.
@@ -70,6 +70,8 @@ Eleven deterministic synthetic tests cover:
 9. File/row identity and short-row rejection.
 10. Invalid required metadata and complex cell rejection.
 11. Quoted CIR cells and invalid quoting after close.
+12. Controller-view to CIR-feature integration without evaluator labels.
+13. Explicit record-byte and CIR-sample resource limits.
 
 These validate parser logic on synthetic fixtures, not the actual Zenodo archive.
 
