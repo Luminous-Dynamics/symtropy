@@ -161,10 +161,14 @@ fn action_set(actions: &[ActionRef]) -> Option<BTreeSet<ActionRef>> {
     Some(set)
 }
 
-fn hold(scope: &Scope, seeds: Vec<ActionRef>, reason: Block) -> Decision {
+fn hold(scope: &Scope, mut seeds: Vec<ActionRef>, reason: Block) -> Decision {
+    let mut all_actions = scope.actions.clone();
+    all_actions.sort();
+    seeds.sort();
+    seeds.dedup();
     Decision::GlobalHold {
         scope_id: scope.scope_id.clone(),
-        all_actions: scope.actions.clone(),
+        all_actions,
         seeds,
         reason,
     }
@@ -302,7 +306,7 @@ pub fn qualify(
         return hold(s, vec![], Block::MissingOutcome);
     }
 
-    let seeds: Vec<_> = s
+    let mut seeds: Vec<_> = s
         .actions
         .iter()
         .filter(|a| {
@@ -313,6 +317,7 @@ pub fn qualify(
         })
         .cloned()
         .collect();
+    seeds.sort();
     if seeds.is_empty() {
         return Decision::NoUnresolvedEffects {
             scope_id: s.scope_id.clone(),
@@ -639,5 +644,98 @@ mod tests {
                 action_count: 2
             }
         );
+    } 
+    #[test]
+    fn exhaustive_four_action_pair_graphs_match_fixed_point_oracle() {
+        let xs = vec![a("a"), a("b"), a("c"), a("d")];
+        let possible_edges = [(0usize, 1usize), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)];
+
+        for edge_mask in 0u32..(1 << possible_edges.len()) {
+            let domains: Vec<_> = possible_edges
+                .iter()
+                .enumerate()
+                .filter(|(i, _)| (edge_mask & (1 << i)) != 0)
+                .map(|(i, (left, right))| {
+                    domain(
+                        &format!("edge-{i}"),
+                        Impact::Component,
+                        &[xs[*left].clone(), xs[*right].clone()],
+                    )
+                })
+                .collect();
+
+            for seed_mask in 1u32..(1 << xs.len()) {
+                let s = scope(&xs);
+                let os: Vec<_> = xs
+                    .iter()
+                    .enumerate()
+                    .map(|(i, action)| ActionOutcome {
+                        action: action.clone(),
+                        outcome: if (seed_mask & (1 << i)) != 0 {
+                            Outcome::Unknown
+                        } else {
+                            Outcome::NotApplied
+                        },
+                    })
+                    .collect();
+                let vs = views(&s, domains.clone(), vec![], vec![]);
+
+                // Independent reference: repeatedly scan all pair domains
+                // until no additional action is reachable from any seed.
+                let mut expected = vec![false; xs.len()];
+                for (i, selected) in expected.iter_mut().enumerate() {
+                    *selected = (seed_mask & (1 << i)) != 0;
+                }
+                loop {
+                    let before = expected.clone();
+                    for (i, (left, right)) in possible_edges.iter().enumerate() {
+                        if (edge_mask & (1 << i)) != 0 && (expected[*left] || expected[*right]) {
+                            expected[*left] = true;
+                            expected[*right] = true;
+                        }
+                    }
+                    if expected == before {
+                        break;
+                    }
+                }
+                let expected_held: Vec<_> = xs
+                    .iter()
+                    .zip(expected.iter())
+                    .filter_map(|(action, held)| held.then_some(action.clone()))
+                    .collect();
+                let expected_outside: Vec<_> = xs
+                    .iter()
+                    .zip(expected.iter())
+                    .filter_map(|(action, held)| (!held).then_some(action.clone()))
+                    .collect();
+
+                let (held, outside) = parts(qualify(&p(), &s, &os, &vs));
+                assert_eq!(held, expected_held, "edge mask {edge_mask}, seed mask {seed_mask}");
+                assert_eq!(outside, expected_outside, "edge mask {edge_mask}, seed mask {seed_mask}");
+            }
+        }
     }
+
+    #[test]
+    fn output_is_canonical_under_action_and_domain_permutation() {
+        let xs = vec![a("a"), a("b"), a("c"), a("d")];
+        let s1 = scope(&xs);
+        let ds1 = vec![
+            domain("ab", Impact::Component, &xs[0..2]),
+            domain("bc", Impact::Component, &xs[1..3]),
+        ];
+        let os1 = outcomes(&xs, &["a"]);
+        let v1 = views(&s1, ds1.clone(), vec![], vec![]);
+        let first = qualify(&p(), &s1, &os1, &v1);
+
+        let reversed: Vec<_> = xs.iter().cloned().rev().collect();
+        let s2 = scope(&reversed);
+        let ds2: Vec<_> = ds1.into_iter().rev().collect();
+        let os2: Vec<_> = os1.into_iter().rev().collect();
+        let v2 = views(&s2, ds2, vec![], vec![]);
+        let second = qualify(&p(), &s2, &os2, &v2);
+
+        assert_eq!(first, second);
+    }
+
 }
