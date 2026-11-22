@@ -505,7 +505,7 @@ class EvidenceGainLedgerTests(unittest.TestCase):
         second["action_result_status"] = "DELIVERED"
         second["workload"]["observation_catalog"] = []
         second["new_observation_ids"] = []
-        second["submission"] = submission("head-1", abstain=True)
+        second["submission"] = submission("head-1", abstain=False, refs=[])
         second["external_feedback_events"] = [{
             "feedback_id": "feedback-001",
             "source_role": "user_simulator",
@@ -522,6 +522,14 @@ class EvidenceGainLedgerTests(unittest.TestCase):
         self.assertEqual(result["turns"][1]["external_feedback_event_ids"], ["feedback-001"])
         self.assertEqual(result["turns"][1]["transition_from_previous"]["new_observation_count"], 0)
         self.assertEqual(result["newly_grounded_claim_count"], 0)
+        claim_delta = result["turns"][1]["transition_from_previous"]["claim_deltas"][0]
+        self.assertTrue(claim_delta["answer_correct_changed"])
+        self.assertTrue(claim_delta["answer_correct_after"])
+        self.assertFalse(claim_delta["grounded_success_after"])
+        self.assertEqual(
+            result["turns"][1]["external_feedback_events"][0]["content_sha256"],
+            digest("look closer at the left edge"),
+        )
 
     def test_feedback_must_bind_parent_transcript_head(self):
         doc = base_trajectory()
