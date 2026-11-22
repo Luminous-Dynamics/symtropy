@@ -45,6 +45,8 @@ pub struct EpisodeConformalConfig {
     pub calibration_cohort_sha256: [u8; SHA256_BYTES],
     /// Caller-computed digest of the maximum-error score definition.
     pub score_definition_sha256: [u8; SHA256_BYTES],
+    /// Commitment to the frozen predictor, including weights and preprocessing.
+    pub predictor_sha256: [u8; SHA256_BYTES],
 }
 
 /// Result of finite-sample episode-level split-conformal calibration.
@@ -62,6 +64,7 @@ pub struct EpisodeConformalCalibration2d {
     selected_order_statistic_rank: usize,
     calibration_cohort_sha256: [u8; SHA256_BYTES],
     score_definition_sha256: [u8; SHA256_BYTES],
+    predictor_sha256: [u8; SHA256_BYTES],
     calibration_episode_ids: Vec<u64>,
     calibration_independence_group_ids: Vec<u64>,
 }
@@ -96,6 +99,10 @@ impl EpisodeConformalCalibration2d {
         self.score_definition_sha256
     }
 
+    pub fn predictor_sha256(&self) -> [u8; SHA256_BYTES] {
+        self.predictor_sha256
+    }
+
     pub fn calibration_episode_ids(&self) -> &[u64] {
         &self.calibration_episode_ids
     }
@@ -120,6 +127,7 @@ pub struct EpisodeConformalTube2d {
     pub selected_order_statistic_rank: usize,
     pub calibration_cohort_sha256: [u8; SHA256_BYTES],
     pub score_definition_sha256: [u8; SHA256_BYTES],
+    pub predictor_sha256: [u8; SHA256_BYTES],
     pub solution_sha256: [u8; SHA256_BYTES],
 }
 
@@ -145,6 +153,8 @@ pub enum EpisodeConformalError {
     InvalidConfiguration,
     MissingCalibrationCohortCommitment,
     MissingScoreDefinitionCommitment,
+    MissingPredictorCommitment,
+    PredictorCommitmentMismatch,
     InvalidEpisodeIdentity,
     DuplicateEpisodeIdentity(u64),
     DuplicateIndependenceGroup(u64),
@@ -176,6 +186,8 @@ impl fmt::Display for EpisodeConformalError {
             Self::InvalidConfiguration => write!(f, "coverage must be finite and in (0, 1), and the minimum episode count must be positive"),
             Self::MissingCalibrationCohortCommitment => write!(f, "calibration cohort SHA-256 commitment is missing"),
             Self::MissingScoreDefinitionCommitment => write!(f, "score-definition SHA-256 commitment is missing"),
+            Self::MissingPredictorCommitment => write!(f, "frozen predictor SHA-256 commitment is missing"),
+            Self::PredictorCommitmentMismatch => write!(f, "evaluation predictor differs from the predictor used for conformal calibration"),
             Self::InvalidEpisodeIdentity => write!(f, "episode and independence-group identities must be nonzero"),
             Self::DuplicateEpisodeIdentity(id) => write!(f, "duplicate calibration episode identity: {id}"),
             Self::DuplicateIndependenceGroup(id) => write!(f, "calibration episodes are not independent: repeated group {id}"),
@@ -220,6 +232,9 @@ pub fn calibrate_episode_conformal_radius_2d(
     }
     if config.score_definition_sha256.iter().all(|byte| *byte == 0) {
         return Err(EpisodeConformalError::MissingScoreDefinitionCommitment);
+    }
+    if config.predictor_sha256.iter().all(|byte| *byte == 0) {
+        return Err(EpisodeConformalError::MissingPredictorCommitment);
     }
     if episodes.is_empty() {
         return Err(EpisodeConformalError::EmptyCalibrationCohort);
@@ -314,6 +329,7 @@ pub fn calibrate_episode_conformal_radius_2d(
         selected_order_statistic_rank,
         calibration_cohort_sha256: config.calibration_cohort_sha256,
         score_definition_sha256: config.score_definition_sha256,
+        predictor_sha256: config.predictor_sha256,
         calibration_episode_ids,
         calibration_independence_group_ids,
     })
@@ -328,6 +344,7 @@ pub fn build_episode_conformal_tube_2d(
     episode_id: u64,
     independence_group_id: u64,
     predicted_positions_m: &[[f64; DIM]],
+    predictor_sha256: [u8; SHA256_BYTES],
     solution_sha256: [u8; SHA256_BYTES],
     calibration: &EpisodeConformalCalibration2d,
 ) -> Result<EpisodeConformalTube2d, EpisodeConformalError> {
@@ -358,6 +375,12 @@ pub fn build_episode_conformal_tube_2d(
             .unwrap_or(0);
         return Err(EpisodeConformalError::InvalidEvaluationPosition(index));
     }
+    if predictor_sha256.iter().all(|byte| *byte == 0) {
+        return Err(EpisodeConformalError::MissingPredictorCommitment);
+    }
+    if predictor_sha256 != calibration.predictor_sha256 {
+        return Err(EpisodeConformalError::PredictorCommitmentMismatch);
+    }
     if solution_sha256.iter().all(|byte| *byte == 0) {
         return Err(EpisodeConformalError::MissingSolutionCommitment);
     }
@@ -380,6 +403,10 @@ pub fn build_episode_conformal_tube_2d(
             .score_definition_sha256
             .iter()
             .all(|byte| *byte == 0)
+        || calibration
+            .predictor_sha256
+            .iter()
+            .all(|byte| *byte == 0)
     {
         return Err(EpisodeConformalError::InvalidCalibrationReport);
     }
@@ -394,6 +421,7 @@ pub fn build_episode_conformal_tube_2d(
         selected_order_statistic_rank: calibration.selected_order_statistic_rank,
         calibration_cohort_sha256: calibration.calibration_cohort_sha256,
         score_definition_sha256: calibration.score_definition_sha256,
+        predictor_sha256: calibration.predictor_sha256,
         solution_sha256,
     })
 }
@@ -408,6 +436,7 @@ mod tests {
             minimum_independent_episodes,
             calibration_cohort_sha256: [0xA1; SHA256_BYTES],
             score_definition_sha256: [0xB2; SHA256_BYTES],
+            predictor_sha256: [0xD4; SHA256_BYTES],
         }
     }
 
@@ -524,6 +553,34 @@ mod tests {
     }
 
     #[test]
+    fn evaluation_must_use_the_predictor_frozen_for_calibration() {
+        let calibration =
+            calibrate_episode_conformal_radius_2d(&episodes(19), config(0.95, 19)).unwrap();
+        assert_eq!(
+            build_episode_conformal_tube_2d(
+                500,
+                20_500,
+                &[[0.0, 0.0]],
+                [0xE5; SHA256_BYTES],
+                [0xC3; SHA256_BYTES],
+                &calibration
+            ),
+            Err(EpisodeConformalError::PredictorCommitmentMismatch)
+        );
+        assert_eq!(
+            build_episode_conformal_tube_2d(
+                500,
+                20_500,
+                &[[0.0, 0.0]],
+                [0; SHA256_BYTES],
+                [0xC3; SHA256_BYTES],
+                &calibration
+            ),
+            Err(EpisodeConformalError::MissingPredictorCommitment)
+        );
+    }
+
+    #[test]
     fn whole_trajectory_tube_applies_one_joint_radius_to_every_position() {
         let calibration =
             calibrate_episode_conformal_radius_2d(&episodes(19), config(0.95, 19)).unwrap();
@@ -531,7 +588,8 @@ mod tests {
             500,
             20_500,
             &[[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]],
-            [0xC3; SHA256_BYTES],
+            [0xD4; SHA256_BYTES],
+                [0xC3; SHA256_BYTES],
             &calibration,
         )
         .unwrap();
@@ -552,6 +610,7 @@ mod tests {
                 1,
                 20_001,
                 &[[0.0, 0.0]],
+                [0xD4; SHA256_BYTES],
                 [0xC3; SHA256_BYTES],
                 &calibration
             ),
@@ -562,6 +621,7 @@ mod tests {
                 500,
                 10_001,
                 &[[0.0, 0.0]],
+                [0xD4; SHA256_BYTES],
                 [0xC3; SHA256_BYTES],
                 &calibration
             ),
@@ -590,6 +650,7 @@ mod tests {
                 500,
                 20_500,
                 &[[f64::INFINITY, 0.0]],
+                [0xD4; SHA256_BYTES],
                 [0xC3; SHA256_BYTES],
                 &calibration
             ),
