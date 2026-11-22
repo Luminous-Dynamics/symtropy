@@ -66,7 +66,8 @@
         "model_incompatible_cases",
         "evidence_indeterminate_cases",
         "resolving_probe_selected_cases",
-        "no_admissible_probe_cases"
+        "no_admissible_probe_cases",
+        "no_resolving_admissible_probe_cases"
       ],
       "properties": {
         "case_count": {
@@ -98,6 +99,10 @@
           "minimum": 0
         },
         "no_admissible_probe_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "no_resolving_admissible_probe_cases": {
           "type": "integer",
           "minimum": 0
         }
@@ -178,8 +183,8 @@
             "not_evaluated",
             "not_required_decision_already_identified",
             "no_admissible_probe",
-            "selected_resolving_probe",
-            "selected_best_available_non_resolving_probe"
+            "no_resolving_admissible_probe",
+            "selected_resolving_probe"
           ]
         },
         "selected_probe_id": {
