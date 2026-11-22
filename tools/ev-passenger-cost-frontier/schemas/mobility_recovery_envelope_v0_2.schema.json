@@ -302,6 +302,7 @@
       "additionalProperties": false,
       "required": [
         "channel_id",
+        "evidence",
         "available_by_slot"
       ],
       "properties": {
@@ -316,6 +317,9 @@
           "items": {
             "type": "boolean"
           }
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
         }
       }
     },
