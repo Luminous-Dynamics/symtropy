@@ -641,6 +641,18 @@ mod tests {
         }
     }
 
+    struct PassingOracle;
+
+    impl ReplayOracle for PassingOracle {
+        fn revision(&self) -> &str {
+            "late-execution-oracle-v1"
+        }
+
+        fn replay(&self, _seed: u64, _events: &[TraceEvent]) -> ReplayOutcome {
+            ReplayOutcome::Pass
+        }
+    }
+
     struct WrongSignatureSameRevisionOracle;
 
     impl ReplayOracle for WrongSignatureSameRevisionOracle {
@@ -774,9 +786,9 @@ mod tests {
     #[test]
     fn a_baseline_that_no_longer_reproduces_is_not_minimized() {
         let mut input = bundle();
-        input.header.oracle_revision = DifferentFailureOracle.revision().to_owned();
+        input.header.oracle_revision = PassingOracle.revision().to_owned();
         assert_eq!(
-            minimize_trace(&input, &DifferentFailureOracle, 500),
+            minimize_trace(&input, &PassingOracle, 500),
             Err(MinimizationError::BaselineDoesNotReproduce)
         );
     }
@@ -864,6 +876,53 @@ mod tests {
         assert_eq!(
             validate_trace_bundle(&input),
             TraceValidation::Hold(TraceHoldReason::InvalidLogicalSequence)
+        );
+    }
+
+    #[test]
+    fn trace_event_and_artifact_inventory_bounds_hold() {
+        let mut input = bundle();
+        let template = input.events[0].clone();
+        for index in 0..MAX_TRACE_EVENTS {
+            let mut item = template.clone();
+            item.event_id = format!("extra-{index}");
+            item.logical_sequence = 100 + index as u64;
+            item.predecessor_event_ids.clear();
+            input.events.push(item);
+        }
+        assert_eq!(
+            validate_trace_bundle(&input),
+            TraceValidation::Hold(TraceHoldReason::TooManyEvents)
+        );
+
+        let mut input = bundle();
+        for index in 0..=MAX_ARTIFACTS {
+            input.artifacts.push(TraceArtifact {
+                artifact_id: format!("artifact-{index}"),
+                media_type: "application/octet-stream".to_owned(),
+                raw_artifact_commitment: commitment(9),
+            });
+        }
+        assert_eq!(
+            validate_trace_bundle(&input),
+            TraceValidation::Hold(TraceHoldReason::TooManyArtifacts)
+        );
+    }
+
+    #[test]
+    fn parent_bundle_identity_and_trace_format_are_validated() {
+        let mut input = bundle();
+        input.header.parent_bundle_id = Some(" ".to_owned());
+        assert_eq!(
+            validate_trace_bundle(&input),
+            TraceValidation::Hold(TraceHoldReason::MissingHeaderIdentity)
+        );
+
+        let mut input = bundle();
+        input.header.format_version = "9.9".to_owned();
+        assert_eq!(
+            validate_trace_bundle(&input),
+            TraceValidation::Hold(TraceHoldReason::UnsupportedFormatVersion)
         );
     }
 
