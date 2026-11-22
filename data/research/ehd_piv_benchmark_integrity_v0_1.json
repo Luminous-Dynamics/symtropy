@@ -10,7 +10,10 @@
       "id": "FFS_S_PIV_V1",
       "doi": "10.5281/zenodo.21732072",
       "sequences": 12466,
-      "frame_dimensions_px": [256, 256],
+      "frame_dimensions_px": [
+        256,
+        256
+      ],
       "frames_per_sequence": 5,
       "flow_scenarios": 9,
       "archive_size_gb": 29.4,
@@ -36,7 +39,8 @@
     "camera_calibration_batch_id",
     "tracer_id",
     "pressure_regime_id",
-    "raw_sequence_sha256"
+    "raw_sequence_sha256",
+    "raw_asset_sha256s"
   ],
   "holdout_dimensions": [
     "flow_family",
@@ -53,36 +57,53 @@
     "raw_sequence_hashes_unique": true,
     "declared_holdout_dimensions_disjoint_across_all_splits": true,
     "dimension_values_required": true,
-    "source_dataset_identity_consistent": true
+    "source_dataset_identity_consistent": true,
+    "no_raw_asset_shared_across_splits": true
   },
   "benchmark_lanes": [
     {
       "id": "WITHIN_COHORT_SANITY",
-      "holdout_dimensions": ["raw_sequence_sha256"],
+      "holdout_dimensions": [
+        "raw_sequence_sha256"
+      ],
       "claim": "within-cohort algorithm sanity only"
     },
     {
       "id": "NEW_SESSION",
-      "holdout_dimensions": ["session", "acquisition", "camera_calibration_batch"]
+      "holdout_dimensions": [
+        "session",
+        "acquisition",
+        "camera_calibration_batch"
+      ]
     },
     {
       "id": "NEW_GEOMETRY",
-      "holdout_dimensions": ["geometry", "acquisition"]
+      "holdout_dimensions": [
+        "geometry",
+        "acquisition"
+      ]
     },
     {
       "id": "NEW_FLOW_FAMILY",
-      "holdout_dimensions": ["flow_family", "geometry"]
+      "holdout_dimensions": [
+        "flow_family",
+        "geometry"
+      ]
     },
     {
       "id": "NEW_TRACER_PRESSURE",
-      "holdout_dimensions": ["tracer", "pressure_regime", "session"]
+      "holdout_dimensions": [
+        "tracer",
+        "pressure_regime",
+        "session"
+      ]
     }
   ],
   "implementation": {
     "crate": "tools/ehd-piv-benchmark-integrity",
     "path": "tools/ehd-piv-benchmark-integrity/src/lib.rs",
     "function": "audit_split_integrity",
-    "authored_rust_tests": 10,
+    "authored_rust_tests": 12,
     "execution": "not_run_no_local_rust_toolchain"
   },
   "limitations": [
@@ -91,6 +112,16 @@
     "no_image_quality_or_piv_processing",
     "no_proof_of_statistical_independence",
     "no_claim_that_all_holdout_dimensions_are_required_in_every_lane",
-    "no_empirical_or_EHD_results"
+    "no_empirical_or_EHD_results",
+    "constituent raw asset SHA-256 values must be supplied by the curator; no image hashing is performed"
+  ],
+  "limits": [
+    "metadata_only",
+    "raw_hashes_supplied_by_curation_pipeline",
+    "no_image_quality_or_piv_processing",
+    "no_proof_of_statistical_independence",
+    "no_claim_that_all_holdout_dimensions_are_required_in_every_lane",
+    "no_empirical_or_EHD_results",
+    "constituent raw asset SHA-256 values must be supplied by the curator; no image hashing is performed"
   ]
 }
