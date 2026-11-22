@@ -1538,10 +1538,22 @@ mod tests {
     #[test]
     fn calibration_must_cover_the_event_time() {
         let mut calibration = calibration_fixture();
-        calibration.valid_until_ticks = 999;
+        calibration.valid_until_ticks = 990;
         assert_eq!(
             evaluate(&calibration, &observation_fixture()).reason,
             Some(ClockAttestationReason::CalibrationOutsideValidity)
+        );
+    }
+
+    #[test]
+    fn full_uncertainty_interval_must_fit_inside_calibration_validity() {
+        let mut calibration = calibration_fixture();
+        // Corrected event centre is 996 and remains within this window, but
+        // the upper uncertainty endpoint is 1020 and therefore is not.
+        calibration.valid_until_ticks = 1_010;
+        assert_eq!(
+            evaluate(&calibration, &observation_fixture()).reason,
+            Some(ClockAttestationReason::UncertaintyIntervalOutsideValidity)
         );
     }
 
@@ -1572,7 +1584,7 @@ mod tests {
         );
 
         let mut calibration = calibration_fixture();
-        calibration.traceability_links[0].valid_until_ticks = 999;
+        calibration.traceability_links[0].valid_until_ticks = 990;
         assert_eq!(
             evaluate(&calibration, &observation_fixture()).reason,
             Some(ClockAttestationReason::TraceabilityOutsideValidity)
