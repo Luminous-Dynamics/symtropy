@@ -851,7 +851,7 @@ pub fn evaluate_mobility_recovery(
             let mut energy_after_slot = Vec::new();
             let mut reserve_floor_by_slot = Vec::new();
             let mut reserve_margin_by_slot = Vec::new();
-            let mut minimum_reserve_margin = i64::MAX;
+            let minimum_reserve_margin = i64::MAX;
             let mut resource_findings = BTreeSet::new();
             let mut first_failed_slot = None;
             let mut recovery_complete = false;
