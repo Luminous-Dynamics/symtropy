@@ -14,7 +14,7 @@ A different failure is not the same counterexample. A passing trace, invalid tra
 
 ## Causal rules
 
-Each event has a stable identity, strictly increasing logical sequence and predecessor IDs.
+Each event has a stable identity, strictly increasing deterministic serialization sequence and predecessor IDs. The serialization order is not itself a happens-before assertion; explicit predecessor edges carry causal order.
 
 - **Removal:** deleting an event also deletes every descendant that depends on it.
 - **Retention:** keeping an event also keeps every causal ancestor it requires.
@@ -48,4 +48,4 @@ Report exact-failure replay rate, event and byte reduction, causal-closure reten
 
 ## Non-claims
 
-The crate does not execute a simulator, parse TLC output, capture ROS events, authenticate artifacts, prove physical causality, call hardware or authorize recovery. The replay oracle and artifact owner must be independently qualified. A pass means only that the supplied trace and oracle satisfy this reference contract.
+The crate does not execute a simulator, parse TLC output, capture ROS events, authenticate artifacts, prove physical causality, call hardware or authorize recovery. The replay oracle receives the complete trace bundle, including initial-state/system/model/fault-profile revisions and raw-artifact commitments. The exact failure signature also binds a normalized witness-state commitment. The replay oracle and artifact owner must be independently qualified. A pass means only that the supplied trace and oracle satisfy this reference contract.
