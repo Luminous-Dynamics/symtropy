@@ -82,13 +82,12 @@ fn main() -> ExitCode {
             return ExitCode::from(1);
         }
     };
-    if let Some(parent) = Path::new(&observations_output).parent() {
-        if !parent.as_os_str().is_empty() {
-            if let Err(error) = fs::create_dir_all(parent) {
-                eprintln!("failed to create observation output directory: {error}");
-                return ExitCode::from(1);
-            }
-        }
+    if let Some(parent) = Path::new(&observations_output).parent()
+        && !parent.as_os_str().is_empty()
+        && let Err(error) = fs::create_dir_all(parent)
+    {
+        eprintln!("failed to create observation output directory: {error}");
+        return ExitCode::from(1);
     }
     if let Err(error) = fs::write(&observations_output, &observations_bytes) {
         eprintln!("failed to write observed event stream: {error}");
