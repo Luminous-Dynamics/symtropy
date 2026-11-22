@@ -28,10 +28,10 @@ use core::fmt;
 
 /// Outward-rounded affine geometry used by the independent coverage research.
 pub mod coverage;
+pub mod pathwise_event;
 pub mod residual;
 pub mod sequential;
 pub mod stats;
-pub mod pathwise_event;
 pub mod trajectory;
 
 pub use pathwise_event::{
