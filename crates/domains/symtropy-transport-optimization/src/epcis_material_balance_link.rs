@@ -646,11 +646,11 @@ mod tests {
 
     #[test]
     fn exact_group_manifest_digest_is_pinned_by_the_owner_case() {
-        let mut group = group();
-        group.group_evidence_sha256 = "f".repeat(64);
+        let mut group_binding = group();
+        group_binding.group_evidence_sha256 = "f".repeat(64);
         assert_eq!(
             qualify_transformation_mass_balance_link(
-                &group,
+                &group_binding,
                 &case(),
                 &[receipt("EXACT_BALANCED")]
             )
@@ -658,11 +658,11 @@ mod tests {
             Some(MaterialBalanceLinkReason::GroupEvidenceDigestMismatch)
         );
 
-        let mut group = group();
-        group.group_evidence_sha256 = "not-a-digest".to_string();
+        let mut group_binding = group();
+        group_binding.group_evidence_sha256 = "not-a-digest".to_string();
         assert_eq!(
             qualify_transformation_mass_balance_link(
-                &group,
+                &group_binding,
                 &case(),
                 &[receipt("EXACT_BALANCED")]
             )
