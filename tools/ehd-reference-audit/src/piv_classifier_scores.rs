@@ -59,7 +59,7 @@ pub struct PivProbabilityMetrics {
 pub struct PivProbabilityScoreReport {
     pub overall: PivProbabilityMetrics,
     /// All four physical regions are present; AUC is None in a one-class region.
-    pub by_region: Vec<(FlowRegion, PivProbabilityMetrics)>,
+    pub by_region: Vec<(FlowRegion, Option<PivProbabilityMetrics>)>,
     pub limitations: &'static str,
 }
 
@@ -175,7 +175,7 @@ fn evaluate_cohort(
             .min(RELIABILITY_BIN_COUNT - 1);
         bin_counts[bin_index] += 1;
         bin_probability_sums[bin_index] += raw_probability;
-        bin_positive_counts[bin_index] += usize::from(observation.reference_invalid);
+        bin_positive_counts[bin_index] += if observation.reference_invalid { 1 } else { 0 };
     }
 
     let mut expected_calibration_error = 0.0;
@@ -276,7 +276,12 @@ pub fn evaluate_piv_probability_scores(
     .into_iter()
     .map(|region| {
         let cohort = regional.remove(&region).unwrap_or_default();
-        (region, evaluate_cohort(&cohort))
+        let metrics = if cohort.is_empty() {
+            None
+        } else {
+            Some(evaluate_cohort(&cohort))
+        };
+        (region, metrics)
     })
     .collect();
 
@@ -389,7 +394,8 @@ mod tests {
         let report = evaluate_piv_probability_scores(&observations).unwrap();
         assert_eq!(report.by_region.len(), 4);
         assert!(report.by_region.iter().all(|(region, metrics)| {
-            metrics.sample_count == observations.iter().filter(|row| row.region == *region).count()
+            metrics.as_ref().map(|metrics| metrics.sample_count)
+                == Some(observations.iter().filter(|row| row.region == *region).count())
         }));
     }
 
@@ -402,8 +408,21 @@ mod tests {
         let report = evaluate_piv_probability_scores(&observations).unwrap();
         let near_wall = report.by_region.iter()
             .find(|(region, _)| *region == FlowRegion::NearWall).unwrap();
-        assert_eq!(near_wall.1.roc_auc_invalid_positive, None);
-        assert!(near_wall.1.log_loss_nats.is_finite());
+        let metrics = near_wall.1.as_ref().unwrap();
+        assert_eq!(metrics.roc_auc_invalid_positive, None);
+        assert!(metrics.log_loss_nats.is_finite());
+    }
+
+    #[test]
+    fn missing_region_is_explicitly_unavailable_not_nan() {
+        let observations = vec![
+            observation("a", FlowRegion::Bulk, true, 0.8),
+            observation("b", FlowRegion::Bulk, false, 0.2),
+        ];
+        let report = evaluate_piv_probability_scores(&observations).unwrap();
+        let wake = report.by_region.iter()
+            .find(|(region, _)| *region == FlowRegion::Wake).unwrap();
+        assert!(wake.1.is_none());
     }
 
     #[test]
