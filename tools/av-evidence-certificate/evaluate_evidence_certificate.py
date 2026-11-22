@@ -103,7 +103,8 @@ def _validate_observation_catalog(workload: dict[str, Any]) -> dict[str, dict[st
         observation_id = _identifier(row["observation_id"], "observation_id")
         if observation_id in catalog:
             raise EvidenceEvaluationError(f"duplicate observation_id: {observation_id}")
-        if row["modality"] not in {"audio", "video"}:
+        modality = row["modality"]
+        if not isinstance(modality, str) or modality not in {"audio", "video"}:
             raise EvidenceEvaluationError(f"{observation_id}: modality must be audio or video")
         for field in ("available_tick", "capture_complete_tick", "clock_generation"):
             if not _is_int(row[field]) or row[field] < 0:
@@ -120,7 +121,7 @@ def _validate_observation_catalog(workload: dict[str, Any]) -> dict[str, dict[st
         digest = _sha256(row["artifact_sha256"], "artifact_sha256")
         catalog[observation_id] = {
             "observation_id": observation_id,
-            "modality": row["modality"],
+            "modality": modality,
             "available_tick": row["available_tick"],
             "capture_complete_tick": row["capture_complete_tick"],
             "capture_start_ms": start,
