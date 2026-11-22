@@ -34,10 +34,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.96.0
         with:
           components: rustfmt, clippy
-      - name: Resolve and export the isolated dependency lock
-        run: |
-          cargo generate-lockfile --manifest-path research/mobility-native-application-adapter/Cargo.toml
-          echo "CARGO_LOCK_BASE64=$(base64 -w0 research/mobility-native-application-adapter/Cargo.lock)"
       - name: Format source and export canonical source bytes for exact-head commit
         run: |
           cargo fmt --manifest-path research/mobility-native-application-adapter/Cargo.toml
