@@ -6,7 +6,6 @@ on:
       - ".github/workflows/aero-inspection-observability.yml"
       - "tools/civil-aero-benchmark/inspection-observability/**"
       - "tools/civil-aero-benchmark/nde-pod-screen/**"
-      - ".github/workflows/aero-nde-binomial-screen.yml"
   workflow_dispatch:
 
 permissions:
@@ -26,7 +25,6 @@ jobs:
         run: |
           actual_subject_sha="$(git rev-parse HEAD)"
           test "$actual_subject_sha" = "$EXPECTED_SUBJECT_SHA"
-          printf 'subject_commit=%s\n' "$actual_subject_sha"
           printf 'event_commit=%s\n' "$GITHUB_SHA"
           printf 'workflow_ref=%s\n' "$GITHUB_WORKFLOW_REF"
 
@@ -96,7 +94,6 @@ jobs:
         run: |
           actual_subject_sha="$(git rev-parse HEAD)"
           test "$actual_subject_sha" = "$EXPECTED_SUBJECT_SHA"
-          printf 'subject_commit=%s\\n' "$actual_subject_sha"
 
       - name: Install stable Rust with rustfmt and Clippy
         uses: dtolnay/rust-toolchain@stable
