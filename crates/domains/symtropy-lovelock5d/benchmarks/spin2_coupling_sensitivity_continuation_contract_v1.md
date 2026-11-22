@@ -307,3 +307,13 @@ Still required:
 5. a separate full gravitational principal-symbol and strong-hyperbolicity qualification.
 
 No finite-\(\lambda\) existence, finite-\(\lambda\) uniqueness, full nonlinear uniqueness, or hyperbolicity claim follows from \(J_1\).
+
+
+### Singular-frame continuation observables
+
+In addition to the determinant and singular-value slopes, the full \(J_1\) determines first-order rotations of the least/most constrained horizon and asymptotic combinations in the fixed raw Euclidean coordinates:
+\[
+v_{\min}'(0)=-\frac{2(19-2\pi^2)}{15}e_h,\qquad
+u_{\min}'(0)=-\frac{8(19-2\pi^2)}{15}e_H.
+\]
+The minimum right singular-frame component slope is \(0.0985611736238288\); the left singular-frame component slope is \(0.3942446944953152\). Complementary maximum singular vectors rotate oppositely. These are coordinate-dependent regression targets for the fixed-basis finite-\(\lambda\) BVP study, not invariant angles under arbitrary endpoint rescaling. The machine-readable result and replay receipt record the convention.
