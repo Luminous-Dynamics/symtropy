@@ -40,7 +40,7 @@ pub struct ContactWrenchRow<const D: usize> {
 #[derive(Clone, Debug)]
 enum ContactWrenchBasis<const D: usize> {
     Linear(SVector<f64, D>),
-    Angular(Bivector<D>),
+    Angular(Box<Bivector<D>>),
 }
 
 fn contact_wrench_basis<const D: usize>(frame: &ContactFrame<D>) -> Vec<ContactWrenchBasis<D>> {
@@ -57,15 +57,15 @@ fn contact_wrench_basis<const D: usize>(frame: &ContactFrame<D>) -> Vec<ContactW
         frame
             .rolling_basis()
             .iter()
-            .cloned()
-            .map(ContactWrenchBasis::Angular),
+            .copied()
+            .map(|angular| ContactWrenchBasis::Angular(Box::new(angular))),
     );
     basis.extend(
         frame
             .torsional_basis()
             .iter()
-            .cloned()
-            .map(ContactWrenchBasis::Angular),
+            .copied()
+            .map(|angular| ContactWrenchBasis::Angular(Box::new(angular))),
     );
     basis
 }
