@@ -1159,6 +1159,4 @@ mod tests {
             Err(AdapterError::QueueClockMismatch)
         ));
     }
-
-
 }
