@@ -349,7 +349,8 @@ mod tests {
             partition_sha256: HASH_C.to_owned(),
             region_id: "residual-complement".to_owned(),
             evidence_id: "residual-run-52".to_owned(),
-            source_sha256: "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee".to_owned(),
+            source_sha256: "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                .to_owned(),
             residual_event_mass_upper: 0.2e-6,
             coverage: ResidualMassCoverage::Complete,
         }
@@ -362,19 +363,17 @@ mod tests {
             partition_sha256: HASH_C.to_owned(),
             admitted_region_id: "admitted-union".to_owned(),
             residual_region_id: "residual-complement".to_owned(),
-            declaration_sha256: "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff".to_owned(),
+            declaration_sha256: "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+                .to_owned(),
             claim: PartitionClaim::CallerDeclaredDisjointAndExhaustive,
         }
     }
 
     #[test]
     fn matching_evidence_composes_only_the_full_event_upper_bound() {
-        let result = compose_admitted_and_residual_event_mass(
-            &admitted(),
-            &residual(),
-            &partition(),
-        )
-        .expect("matching evidence");
+        let result =
+            compose_admitted_and_residual_event_mass(&admitted(), &residual(), &partition())
+                .expect("matching evidence");
         assert_eq!(result.admitted_event_mass_interval, (1.0e-6, 1.2e-6));
         assert_eq!(result.residual_event_mass_upper, 0.2e-6);
         assert_eq!(result.full_event_probability_lower, 1.0e-6);
@@ -391,12 +390,8 @@ mod tests {
         admitted.event_mass_upper = 0.8;
         let mut residual = residual();
         residual.residual_event_mass_upper = 0.4;
-        let result = compose_admitted_and_residual_event_mass(
-            &admitted,
-            &residual,
-            &partition(),
-        )
-        .expect("matching high mass evidence");
+        let result = compose_admitted_and_residual_event_mass(&admitted, &residual, &partition())
+            .expect("matching high mass evidence");
         assert_eq!(result.full_event_probability_upper, 1.0);
     }
 
@@ -449,11 +444,7 @@ mod tests {
         let mut partition_input = partition();
         partition_input.identity.target_distribution_sha256 = HASH_D.to_owned();
         assert_eq!(
-            compose_admitted_and_residual_event_mass(
-                &admitted(),
-                &residual(),
-                &partition_input
-            ),
+            compose_admitted_and_residual_event_mass(&admitted(), &residual(), &partition_input),
             Err(KernelError::EvidenceIdentityMismatch)
         );
     }
