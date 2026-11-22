@@ -1,0 +1,5409 @@
+{
+  "schema": "luminous.aero.nde-fixed-target-screen.v0.1",
+  "benchmark_id": "AER01-NDE-FIXED-TARGET-BINOMIAL-001",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "fixed_target_binomial_screening_only",
+  "scope": {
+    "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+    "method_id": "SYNTHETIC-ULTRASONIC-METHOD",
+    "procedure_revision": "SYN-PROC-UT-001-R1",
+    "material_system": "SYNTHETIC-CFRP-LAMINATE-A",
+    "defect_family": "SYNTHETIC-DELAMINATION",
+    "defect_orientation": "SYNTHETIC-PLANAR-PARALLEL",
+    "environment_id": "SYNTHETIC-LAB-ENV-001",
+    "target_flaw_size_mm": 1
+  },
+  "criteria": {
+    "minimum_inspectors": 10,
+    "minimum_flaw_trials_per_inspector": 29,
+    "minimum_blank_trials_per_inspector": 69,
+    "target_detection_probability": 0.9,
+    "detection_one_sided_confidence": 0.95,
+    "maximum_false_call_probability": 0.01,
+    "false_call_one_sided_confidence": 0.5
+  },
+  "base_study": {
+    "study_id": "SYN-STUDY-AER01-001",
+    "evidence_class": "synthetic",
+    "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+    "inspectors": [
+      {
+        "inspector_id": "INSPECTOR-01",
+        "equipment_serial": "SYN-EQUIP-01",
+        "calibration_id": "SYN-CAL-01-R1",
+        "calibration_valid": true,
+        "flaw_trials": [
+          {
+            "specimen_id": "SYN-FLAW-01-001",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-01-002",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-01-003",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-01-004",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-01-005",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-01-006",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-01-007",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-01-008",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-01-009",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-01-010",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-01-011",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-01-012",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-01-013",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-01-014",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-01-015",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-01-016",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-01-017",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-01-018",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-01-019",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-01-020",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-01-021",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-01-022",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-01-023",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-01-024",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-01-025",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-01-026",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-01-027",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-01-028",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-01-029",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          }
+        ],
+        "blank_trials": [
+          {
+            "specimen_id": "SYN-BLANK-01-001",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-002",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-003",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-004",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-005",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-006",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-007",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-008",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-009",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-010",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-011",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-012",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-013",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-014",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-015",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-016",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-017",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-018",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-019",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-020",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-021",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-022",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-023",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-024",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-025",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-026",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-027",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-028",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-029",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-030",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-031",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-032",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-033",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-034",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-035",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-036",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-037",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-038",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-039",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-040",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-041",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-042",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-043",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-044",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-045",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-046",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-047",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-048",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-049",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-050",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-051",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-052",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-053",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-054",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-055",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-056",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-057",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-058",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-059",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-060",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-061",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-062",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-063",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-064",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-065",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-066",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-067",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-068",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-01-069",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          }
+        ]
+      },
+      {
+        "inspector_id": "INSPECTOR-02",
+        "equipment_serial": "SYN-EQUIP-02",
+        "calibration_id": "SYN-CAL-02-R1",
+        "calibration_valid": true,
+        "flaw_trials": [
+          {
+            "specimen_id": "SYN-FLAW-02-001",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-02-002",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-02-003",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-02-004",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-02-005",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-02-006",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-02-007",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-02-008",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-02-009",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-02-010",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-02-011",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-02-012",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-02-013",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-02-014",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-02-015",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-02-016",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-02-017",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-02-018",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-02-019",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-02-020",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-02-021",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-02-022",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-02-023",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-02-024",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-02-025",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-02-026",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-02-027",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-02-028",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-02-029",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          }
+        ],
+        "blank_trials": [
+          {
+            "specimen_id": "SYN-BLANK-02-001",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-002",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-003",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-004",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-005",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-006",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-007",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-008",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-009",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-010",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-011",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-012",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-013",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-014",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-015",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-016",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-017",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-018",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-019",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-020",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-021",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-022",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-023",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-024",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-025",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-026",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-027",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-028",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-029",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-030",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-031",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-032",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-033",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-034",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-035",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-036",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-037",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-038",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-039",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-040",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-041",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-042",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-043",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-044",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-045",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-046",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-047",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-048",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-049",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-050",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-051",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-052",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-053",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-054",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-055",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-056",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-057",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-058",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-059",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-060",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-061",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-062",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-063",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-064",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-065",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-066",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-067",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-068",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-02-069",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          }
+        ]
+      },
+      {
+        "inspector_id": "INSPECTOR-03",
+        "equipment_serial": "SYN-EQUIP-03",
+        "calibration_id": "SYN-CAL-03-R1",
+        "calibration_valid": true,
+        "flaw_trials": [
+          {
+            "specimen_id": "SYN-FLAW-03-001",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-03-002",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-03-003",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-03-004",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-03-005",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-03-006",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-03-007",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-03-008",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-03-009",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-03-010",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-03-011",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-03-012",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-03-013",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-03-014",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-03-015",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-03-016",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-03-017",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-03-018",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-03-019",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-03-020",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-03-021",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-03-022",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-03-023",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-03-024",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-03-025",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-03-026",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-03-027",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-03-028",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-03-029",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          }
+        ],
+        "blank_trials": [
+          {
+            "specimen_id": "SYN-BLANK-03-001",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-002",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-003",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-004",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-005",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-006",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-007",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-008",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-009",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-010",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-011",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-012",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-013",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-014",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-015",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-016",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-017",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-018",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-019",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-020",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-021",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-022",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-023",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-024",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-025",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-026",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-027",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-028",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-029",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-030",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-031",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-032",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-033",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-034",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-035",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-036",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-037",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-038",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-039",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-040",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-041",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-042",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-043",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-044",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-045",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-046",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-047",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-048",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-049",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-050",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-051",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-052",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-053",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-054",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-055",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-056",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-057",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-058",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-059",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-060",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-061",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-062",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-063",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-064",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-065",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-066",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-067",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-068",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-03-069",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          }
+        ]
+      },
+      {
+        "inspector_id": "INSPECTOR-04",
+        "equipment_serial": "SYN-EQUIP-04",
+        "calibration_id": "SYN-CAL-04-R1",
+        "calibration_valid": true,
+        "flaw_trials": [
+          {
+            "specimen_id": "SYN-FLAW-04-001",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-04-002",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-04-003",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-04-004",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-04-005",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-04-006",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-04-007",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-04-008",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-04-009",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-04-010",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-04-011",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-04-012",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-04-013",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-04-014",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-04-015",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-04-016",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-04-017",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-04-018",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-04-019",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-04-020",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-04-021",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-04-022",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-04-023",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-04-024",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-04-025",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-04-026",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-04-027",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-04-028",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-04-029",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          }
+        ],
+        "blank_trials": [
+          {
+            "specimen_id": "SYN-BLANK-04-001",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-002",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-003",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-004",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-005",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-006",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-007",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-008",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-009",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-010",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-011",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-012",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-013",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-014",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-015",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-016",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-017",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-018",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-019",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-020",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-021",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-022",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-023",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-024",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-025",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-026",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-027",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-028",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-029",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-030",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-031",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-032",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-033",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-034",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-035",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-036",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-037",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-038",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-039",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-040",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-041",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-042",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-043",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-044",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-045",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-046",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-047",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-048",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-049",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-050",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-051",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-052",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-053",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-054",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-055",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-056",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-057",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-058",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-059",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-060",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-061",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-062",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-063",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-064",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-065",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-066",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-067",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-068",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-04-069",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          }
+        ]
+      },
+      {
+        "inspector_id": "INSPECTOR-05",
+        "equipment_serial": "SYN-EQUIP-05",
+        "calibration_id": "SYN-CAL-05-R1",
+        "calibration_valid": true,
+        "flaw_trials": [
+          {
+            "specimen_id": "SYN-FLAW-05-001",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-05-002",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-05-003",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-05-004",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-05-005",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-05-006",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-05-007",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-05-008",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-05-009",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-05-010",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-05-011",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-05-012",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-05-013",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-05-014",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-05-015",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-05-016",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-05-017",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-05-018",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-05-019",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-05-020",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-05-021",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-05-022",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-05-023",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-05-024",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-05-025",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-05-026",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-05-027",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-05-028",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-05-029",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          }
+        ],
+        "blank_trials": [
+          {
+            "specimen_id": "SYN-BLANK-05-001",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-002",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-003",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-004",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-005",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-006",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-007",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-008",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-009",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-010",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-011",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-012",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-013",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-014",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-015",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-016",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-017",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-018",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-019",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-020",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-021",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-022",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-023",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-024",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-025",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-026",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-027",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-028",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-029",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-030",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-031",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-032",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-033",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-034",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-035",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-036",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-037",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-038",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-039",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-040",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-041",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-042",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-043",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-044",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-045",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-046",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-047",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-048",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-049",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-050",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-051",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-052",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-053",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-054",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-055",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-056",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-057",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-058",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-059",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-060",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-061",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-062",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-063",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-064",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-065",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-066",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-067",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-068",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-05-069",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          }
+        ]
+      },
+      {
+        "inspector_id": "INSPECTOR-06",
+        "equipment_serial": "SYN-EQUIP-06",
+        "calibration_id": "SYN-CAL-06-R1",
+        "calibration_valid": true,
+        "flaw_trials": [
+          {
+            "specimen_id": "SYN-FLAW-06-001",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-06-002",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-06-003",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-06-004",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-06-005",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-06-006",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-06-007",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-06-008",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-06-009",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-06-010",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-06-011",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-06-012",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-06-013",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-06-014",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-06-015",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-06-016",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-06-017",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-06-018",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-06-019",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-06-020",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-06-021",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-06-022",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-06-023",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-06-024",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-06-025",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-06-026",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-06-027",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-06-028",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-06-029",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          }
+        ],
+        "blank_trials": [
+          {
+            "specimen_id": "SYN-BLANK-06-001",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-002",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-003",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-004",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-005",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-006",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-007",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-008",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-009",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-010",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-011",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-012",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-013",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-014",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-015",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-016",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-017",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-018",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-019",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-020",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-021",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-022",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-023",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-024",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-025",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-026",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-027",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-028",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-029",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-030",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-031",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-032",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-033",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-034",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-035",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-036",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-037",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-038",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-039",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-040",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-041",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-042",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-043",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-044",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-045",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-046",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-047",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-048",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-049",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-050",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-051",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-052",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-053",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-054",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-055",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-056",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-057",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-058",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-059",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-060",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-061",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-062",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-063",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-064",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-065",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-066",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-067",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-068",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-06-069",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          }
+        ]
+      },
+      {
+        "inspector_id": "INSPECTOR-07",
+        "equipment_serial": "SYN-EQUIP-07",
+        "calibration_id": "SYN-CAL-07-R1",
+        "calibration_valid": true,
+        "flaw_trials": [
+          {
+            "specimen_id": "SYN-FLAW-07-001",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-07-002",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-07-003",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-07-004",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-07-005",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-07-006",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-07-007",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-07-008",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-07-009",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-07-010",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-07-011",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-07-012",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-07-013",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-07-014",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-07-015",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-07-016",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-07-017",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-07-018",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-07-019",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-07-020",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-07-021",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-07-022",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-07-023",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-07-024",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-07-025",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-07-026",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-07-027",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-07-028",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-07-029",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          }
+        ],
+        "blank_trials": [
+          {
+            "specimen_id": "SYN-BLANK-07-001",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-002",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-003",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-004",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-005",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-006",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-007",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-008",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-009",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-010",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-011",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-012",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-013",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-014",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-015",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-016",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-017",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-018",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-019",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-020",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-021",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-022",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-023",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-024",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-025",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-026",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-027",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-028",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-029",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-030",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-031",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-032",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-033",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-034",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-035",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-036",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-037",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-038",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-039",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-040",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-041",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-042",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-043",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-044",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-045",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-046",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-047",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-048",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-049",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-050",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-051",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-052",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-053",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-054",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-055",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-056",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-057",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-058",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-059",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-060",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-061",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-062",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-063",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-064",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-065",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-066",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-067",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-068",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-07-069",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          }
+        ]
+      },
+      {
+        "inspector_id": "INSPECTOR-08",
+        "equipment_serial": "SYN-EQUIP-08",
+        "calibration_id": "SYN-CAL-08-R1",
+        "calibration_valid": true,
+        "flaw_trials": [
+          {
+            "specimen_id": "SYN-FLAW-08-001",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-08-002",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-08-003",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-08-004",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-08-005",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-08-006",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-08-007",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-08-008",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-08-009",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-08-010",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-08-011",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-08-012",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-08-013",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-08-014",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-08-015",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-08-016",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-08-017",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-08-018",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-08-019",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-08-020",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-08-021",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-08-022",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-08-023",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-08-024",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-08-025",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-08-026",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-08-027",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-08-028",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-08-029",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          }
+        ],
+        "blank_trials": [
+          {
+            "specimen_id": "SYN-BLANK-08-001",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-002",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-003",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-004",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-005",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-006",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-007",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-008",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-009",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-010",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-011",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-012",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-013",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-014",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-015",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-016",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-017",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-018",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-019",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-020",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-021",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-022",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-023",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-024",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-025",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-026",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-027",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-028",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-029",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-030",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-031",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-032",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-033",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-034",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-035",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-036",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-037",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-038",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-039",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-040",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-041",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-042",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-043",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-044",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-045",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-046",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-047",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-048",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-049",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-050",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-051",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-052",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-053",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-054",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-055",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-056",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-057",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-058",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-059",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-060",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-061",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-062",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-063",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-064",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-065",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-066",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-067",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-068",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-08-069",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          }
+        ]
+      },
+      {
+        "inspector_id": "INSPECTOR-09",
+        "equipment_serial": "SYN-EQUIP-09",
+        "calibration_id": "SYN-CAL-09-R1",
+        "calibration_valid": true,
+        "flaw_trials": [
+          {
+            "specimen_id": "SYN-FLAW-09-001",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-09-002",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-09-003",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-09-004",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-09-005",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-09-006",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-09-007",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-09-008",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-09-009",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-09-010",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-09-011",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-09-012",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-09-013",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-09-014",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-09-015",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-09-016",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-09-017",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-09-018",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-09-019",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-09-020",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-09-021",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-09-022",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-09-023",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-09-024",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-09-025",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-09-026",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-09-027",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-09-028",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-09-029",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          }
+        ],
+        "blank_trials": [
+          {
+            "specimen_id": "SYN-BLANK-09-001",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-002",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-003",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-004",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-005",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-006",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-007",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-008",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-009",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-010",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-011",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-012",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-013",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-014",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-015",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-016",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-017",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-018",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-019",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-020",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-021",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-022",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-023",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-024",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-025",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-026",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-027",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-028",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-029",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-030",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-031",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-032",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-033",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-034",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-035",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-036",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-037",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-038",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-039",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-040",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-041",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-042",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-043",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-044",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-045",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-046",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-047",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-048",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-049",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-050",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-051",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-052",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-053",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-054",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-055",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-056",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-057",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-058",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-059",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-060",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-061",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-062",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-063",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-064",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-065",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-066",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-067",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-068",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-09-069",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          }
+        ]
+      },
+      {
+        "inspector_id": "INSPECTOR-10",
+        "equipment_serial": "SYN-EQUIP-10",
+        "calibration_id": "SYN-CAL-10-R1",
+        "calibration_valid": true,
+        "flaw_trials": [
+          {
+            "specimen_id": "SYN-FLAW-10-001",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-10-002",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-10-003",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-10-004",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-10-005",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-10-006",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-10-007",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-10-008",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-10-009",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-10-010",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-10-011",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-10-012",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-10-013",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-10-014",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-10-015",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-10-016",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-10-017",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-10-018",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-10-019",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-10-020",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-10-021",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-10-022",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-10-023",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-10-024",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-10-025",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-10-026",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-10-027",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-10-028",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          },
+          {
+            "specimen_id": "SYN-FLAW-10-029",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "flaw_size_mm": 1,
+            "detected": true
+          }
+        ],
+        "blank_trials": [
+          {
+            "specimen_id": "SYN-BLANK-10-001",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-002",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-003",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-004",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-005",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-006",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-007",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-008",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-009",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-010",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-011",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-012",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-013",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-014",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-015",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-016",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-017",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-018",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-019",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-020",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-021",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-022",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-023",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-024",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-025",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-026",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-027",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-028",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-029",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-030",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-031",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-032",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-033",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-034",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-035",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-036",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-037",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-038",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-039",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-040",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-041",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-042",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-043",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-044",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-045",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-046",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-047",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-048",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-049",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-050",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-051",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-052",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-053",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-054",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-055",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-056",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-057",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-058",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-059",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-060",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-061",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-062",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-063",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-064",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-065",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-066",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-067",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-068",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          },
+          {
+            "specimen_id": "SYN-BLANK-10-069",
+            "scope_ref": "inspection-scope://AER01/SYN-UT-CFRP-DELAM/REV1",
+            "false_call": false
+          }
+        ]
+      }
+    ]
+  },
+  "cases": [
+    {
+      "case_id": "NDE-FIXED-001",
+      "mutations": [],
+      "expected_disposition": "PASS_FIXED_TARGET_SCREEN"
+    },
+    {
+      "case_id": "NDE-FIXED-002",
+      "mutations": [
+        {
+          "operation": "set_flaw_detected",
+          "inspector_id": "INSPECTOR-01",
+          "trial_index": 0,
+          "value": false
+        }
+      ],
+      "expected_disposition": "SCREENING_BOUNDS_NOT_MET"
+    },
+    {
+      "case_id": "NDE-FIXED-003",
+      "mutations": [
+        {
+          "operation": "set_blank_false_call",
+          "inspector_id": "INSPECTOR-01",
+          "trial_index": 0,
+          "value": true
+        }
+      ],
+      "expected_disposition": "SCREENING_BOUNDS_NOT_MET"
+    },
+    {
+      "case_id": "NDE-FIXED-004",
+      "mutations": [
+        {
+          "operation": "remove_inspector",
+          "inspector_id": "INSPECTOR-10"
+        }
+      ],
+      "expected_disposition": "INSUFFICIENT_INSPECTOR_COUNT"
+    },
+    {
+      "case_id": "NDE-FIXED-005",
+      "mutations": [
+        {
+          "operation": "set_flaw_size_mm",
+          "inspector_id": "INSPECTOR-01",
+          "trial_index": 0,
+          "value": 0.9
+        }
+      ],
+      "expected_disposition": "NOT_EVALUABLE_SCOPE_MISMATCH"
+    },
+    {
+      "case_id": "NDE-FIXED-006",
+      "mutations": [
+        {
+          "operation": "set_calibration_valid",
+          "inspector_id": "INSPECTOR-03",
+          "value": false
+        }
+      ],
+      "expected_disposition": "NOT_EVALUABLE_INVALID_CALIBRATION"
+    },
+    {
+      "case_id": "NDE-FIXED-007",
+      "mutations": [
+        {
+          "operation": "set_flaw_specimen_id",
+          "inspector_id": "INSPECTOR-01",
+          "trial_index": 0,
+          "value": "SYN-BLANK-01-001"
+        }
+      ],
+      "expected_disposition": "NOT_EVALUABLE_DUPLICATE_SPECIMEN"
+    },
+    {
+      "case_id": "NDE-FIXED-008",
+      "mutations": [
+        {
+          "operation": "truncate_blank_trials",
+          "inspector_id": "INSPECTOR-01",
+          "value": 68
+        }
+      ],
+      "expected_disposition": "SAMPLE_COUNT_INSUFFICIENT"
+    }
+  ]
+}
