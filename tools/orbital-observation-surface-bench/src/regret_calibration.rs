@@ -162,7 +162,9 @@ fn validate(corpus: &CalibrationCorpus) -> Result<(), String> {
         || corpus.regimes.is_empty()
         || corpus.regimes.len() > MAX_REGIMES
     {
-        return Err("unsupported calibration corpus, score contract, selection or stopping rule".to_owned());
+        return Err(
+            "unsupported calibration corpus, score contract, selection or stopping rule".to_owned(),
+        );
     }
 
     corpus
@@ -223,7 +225,10 @@ fn validate(corpus: &CalibrationCorpus) -> Result<(), String> {
             }
         }
         if digest_ids(&regime.expected_sample_ids)? != regime.expected_sample_ids_sha256 {
-            return Err(format!("planned sample ID digest mismatch for regime {}", regime.regime_id));
+            return Err(format!(
+                "planned sample ID digest mismatch for regime {}",
+                regime.regime_id
+            ));
         }
 
         let mut observed_samples = BTreeSet::new();
@@ -236,7 +241,10 @@ fn validate(corpus: &CalibrationCorpus) -> Result<(), String> {
                 || !global_sample_ids.insert(sample.sample_id.as_str())
                 || !global_replication_units.insert(sample.replication_unit_id.as_str())
             {
-                return Err("calibration sample IDs and independent replication units must be unique".to_owned());
+                return Err(
+                    "calibration sample IDs and independent replication units must be unique"
+                        .to_owned(),
+                );
             }
             sample
                 .regret_upper_bound_score
@@ -244,16 +252,25 @@ fn validate(corpus: &CalibrationCorpus) -> Result<(), String> {
                 .map_err(|error| format!("regret score is invalid: {error}"))?;
             if let Some(bound) = &corpus.score_support_upper_bound {
                 if sample.regret_upper_bound_score.compare_exact(bound) == Ordering::Greater {
-                    return Err(format!("score exceeds declared support bound in regime {}", regime.regime_id));
+                    return Err(format!(
+                        "score exceeds declared support bound in regime {}",
+                        regime.regime_id
+                    ));
                 }
             }
         }
 
         if observed_samples != expected_samples {
-            return Err(format!("observed sample IDs do not match planned inventory for regime {}", regime.regime_id));
+            return Err(format!(
+                "observed sample IDs do not match planned inventory for regime {}",
+                regime.regime_id
+            ));
         }
         if digest_samples(&regime.samples)? != regime.samples_sha256 {
-            return Err(format!("calibration sample digest mismatch for regime {}", regime.regime_id));
+            return Err(format!(
+                "calibration sample digest mismatch for regime {}",
+                regime.regime_id
+            ));
         }
     }
 
@@ -380,7 +397,8 @@ pub fn evaluate(corpus: &CalibrationCorpus) -> Result<CalibrationResult, String>
         worst_regime_ids,
         regimes_without_finite_nontrivial_threshold,
         regime_results,
-        coverage_claim: "marginal_per_declared_regime_under_within_regime_exchangeability_only".to_owned(),
+        coverage_claim: "marginal_per_declared_regime_under_within_regime_exchangeability_only"
+            .to_owned(),
         physical_qualification_granted: false,
         authority_granted: false,
     })
@@ -402,7 +420,10 @@ mod tests {
     }
 
     fn regime(id: &str, samples: Vec<CalibrationSample>) -> RegimeCalibration {
-        let ids = samples.iter().map(|item| item.sample_id.clone()).collect::<Vec<_>>();
+        let ids = samples
+            .iter()
+            .map(|item| item.sample_id.clone())
+            .collect::<Vec<_>>();
         RegimeCalibration {
             regime_id: id.to_owned(),
             expected_sample_ids_sha256: digest_ids(&ids).unwrap(),
@@ -412,8 +433,15 @@ mod tests {
         }
     }
 
-    fn corpus(regimes: Vec<RegimeCalibration>, alpha: Rational, support: Option<Rational>) -> CalibrationCorpus {
-        let mut ids = regimes.iter().map(|item| item.regime_id.clone()).collect::<Vec<_>>();
+    fn corpus(
+        regimes: Vec<RegimeCalibration>,
+        alpha: Rational,
+        support: Option<Rational>,
+    ) -> CalibrationCorpus {
+        let mut ids = regimes
+            .iter()
+            .map(|item| item.regime_id.clone())
+            .collect::<Vec<_>>();
         ids.sort();
         CalibrationCorpus {
             schema: CORPUS_SCHEMA.to_owned(),
@@ -435,15 +463,28 @@ mod tests {
 
     #[test]
     fn exact_order_statistic_uses_one_indexed_conformal_rank() {
-        let r = regime("dry", vec![
-            sample("s1", "u1", 1),
-            sample("s2", "u2", 4),
-            sample("s3", "u3", 8),
-        ]);
-        let input = corpus(vec![r], Rational { numerator: 1, denominator: 4 }, None);
+        let r = regime(
+            "dry",
+            vec![
+                sample("s1", "u1", 1),
+                sample("s2", "u2", 4),
+                sample("s3", "u3", 8),
+            ],
+        );
+        let input = corpus(
+            vec![r],
+            Rational {
+                numerator: 1,
+                denominator: 4,
+            },
+            None,
+        );
         let result = evaluate(&input).unwrap();
         assert_eq!(result.regime_results[0].rank, 3);
-        assert_eq!(result.regime_results[0].threshold_status, "EMPIRICAL_ORDER_STATISTIC");
+        assert_eq!(
+            result.regime_results[0].threshold_status,
+            "EMPIRICAL_ORDER_STATISTIC"
+        );
         let threshold = result.regime_results[0].threshold.as_ref().unwrap();
         assert_eq!(threshold.numerator, 4);
         assert_eq!(threshold.denominator, 5);
@@ -451,12 +492,22 @@ mod tests {
 
     #[test]
     fn no_support_bound_never_uses_largest_observed_score_as_fake_quantile() {
-        let r = regime("sparse", vec![
-            sample("s1", "u1", 1),
-            sample("s2", "u2", 2),
-            sample("s3", "u3", 3),
-        ]);
-        let input = corpus(vec![r], Rational { numerator: 1, denominator: 10 }, None);
+        let r = regime(
+            "sparse",
+            vec![
+                sample("s1", "u1", 1),
+                sample("s2", "u2", 2),
+                sample("s3", "u3", 3),
+            ],
+        );
+        let input = corpus(
+            vec![r],
+            Rational {
+                numerator: 1,
+                denominator: 10,
+            },
+            None,
+        );
         let result = evaluate(&input).unwrap();
         assert_eq!(result.regime_results[0].rank, 4);
         assert_eq!(result.global_status, "NO_FINITE_NONTRIVIAL_THRESHOLD");
@@ -465,15 +516,24 @@ mod tests {
 
     #[test]
     fn independent_support_bound_is_reported_as_support_only_not_empirical() {
-        let r = regime("sparse", vec![
-            sample("s1", "u1", 1),
-            sample("s2", "u2", 2),
-            sample("s3", "u3", 3),
-        ]);
+        let r = regime(
+            "sparse",
+            vec![
+                sample("s1", "u1", 1),
+                sample("s2", "u2", 2),
+                sample("s3", "u3", 3),
+            ],
+        );
         let input = corpus(
             vec![r],
-            Rational { numerator: 1, denominator: 10 },
-            Some(Rational { numerator: 1, denominator: 1 }),
+            Rational {
+                numerator: 1,
+                denominator: 10,
+            },
+            Some(Rational {
+                numerator: 1,
+                denominator: 1,
+            }),
         );
         let result = evaluate(&input).unwrap();
         assert_eq!(result.global_status, "WORST_REGIME_SUPPORT_BOUND_ONLY");
@@ -482,19 +542,28 @@ mod tests {
 
     #[test]
     fn unknown_regime_threshold_is_the_worst_of_all_declared_regime_thresholds() {
-        let dry = regime("dry", vec![
-            sample("d1", "du1", 1),
-            sample("d2", "du2", 4),
-            sample("d3", "du3", 8),
-        ]);
-        let wet = regime("wet", vec![
-            sample("w1", "wu1", 1),
-            sample("w2", "wu2", 3),
-            sample("w3", "wu3", 7),
-        ]);
+        let dry = regime(
+            "dry",
+            vec![
+                sample("d1", "du1", 1),
+                sample("d2", "du2", 4),
+                sample("d3", "du3", 8),
+            ],
+        );
+        let wet = regime(
+            "wet",
+            vec![
+                sample("w1", "wu1", 1),
+                sample("w2", "wu2", 3),
+                sample("w3", "wu3", 7),
+            ],
+        );
         let input = corpus(
             vec![wet, dry],
-            Rational { numerator: 1, denominator: 4 },
+            Rational {
+                numerator: 1,
+                denominator: 4,
+            },
             None,
         );
         let result = evaluate(&input).unwrap();
@@ -506,12 +575,22 @@ mod tests {
 
     #[test]
     fn missing_planned_sample_is_rejected_even_when_regime_is_present() {
-        let dry = regime("dry", vec![
-            sample("d1", "du1", 1),
-            sample("d2", "du2", 4),
-            sample("d3", "du3", 8),
-        ]);
-        let mut input = corpus(vec![dry], Rational { numerator: 1, denominator: 4 }, None);
+        let dry = regime(
+            "dry",
+            vec![
+                sample("d1", "du1", 1),
+                sample("d2", "du2", 4),
+                sample("d3", "du3", 8),
+            ],
+        );
+        let mut input = corpus(
+            vec![dry],
+            Rational {
+                numerator: 1,
+                denominator: 4,
+            },
+            None,
+        );
         input.regimes[0].samples.pop();
         input.regimes[0].samples_sha256 = digest_samples(&input.regimes[0].samples).unwrap();
         assert!(evaluate(&input).is_err());
@@ -519,50 +598,87 @@ mod tests {
 
     #[test]
     fn post_hoc_regime_or_score_selection_is_rejected() {
-        let dry = regime("dry", vec![
-            sample("d1", "du1", 1),
-            sample("d2", "du2", 4),
-            sample("d3", "du3", 8),
-        ]);
-        let mut input = corpus(vec![dry], Rational { numerator: 1, denominator: 4 }, None);
+        let dry = regime(
+            "dry",
+            vec![
+                sample("d1", "du1", 1),
+                sample("d2", "du2", 4),
+                sample("d3", "du3", 8),
+            ],
+        );
+        let mut input = corpus(
+            vec![dry],
+            Rational {
+                numerator: 1,
+                denominator: 4,
+            },
+            None,
+        );
         input.selection_status = "selected_after_outcomes".to_owned();
         assert!(evaluate(&input).is_err());
     }
 
     #[test]
     fn repeated_replication_unit_is_not_double_counted() {
-        let r = regime("dry", vec![
-            sample("s1", "same-unit", 1),
-            sample("s2", "same-unit", 4),
-            sample("s3", "u3", 8),
-        ]);
-        let input = corpus(vec![r], Rational { numerator: 1, denominator: 4 }, None);
+        let r = regime(
+            "dry",
+            vec![
+                sample("s1", "same-unit", 1),
+                sample("s2", "same-unit", 4),
+                sample("s3", "u3", 8),
+            ],
+        );
+        let input = corpus(
+            vec![r],
+            Rational {
+                numerator: 1,
+                denominator: 4,
+            },
+            None,
+        );
         assert!(evaluate(&input).is_err());
     }
 
     #[test]
     fn alpha_must_be_strictly_between_zero_and_one() {
-        let r = regime("dry", vec![
-            sample("s1", "u1", 1),
-            sample("s2", "u2", 4),
-            sample("s3", "u3", 8),
-        ]);
-        let input = corpus(vec![r], Rational { numerator: 0, denominator: 1 }, None);
+        let r = regime(
+            "dry",
+            vec![
+                sample("s1", "u1", 1),
+                sample("s2", "u2", 4),
+                sample("s3", "u3", 8),
+            ],
+        );
+        let input = corpus(
+            vec![r],
+            Rational {
+                numerator: 0,
+                denominator: 1,
+            },
+            None,
+        );
         assert!(evaluate(&input).is_err());
     }
 
     #[test]
     fn no_physical_qualification_or_authority_is_granted() {
-        let r = regime("dry", vec![
-            sample("s1", "u1", 1),
-            sample("s2", "u2", 4),
-            sample("s3", "u3", 8),
-        ]);
+        let r = regime(
+            "dry",
+            vec![
+                sample("s1", "u1", 1),
+                sample("s2", "u2", 4),
+                sample("s3", "u3", 8),
+            ],
+        );
         let result = evaluate(&corpus(
             vec![r],
-            Rational { numerator: 1, denominator: 4 },
+            Rational {
+                numerator: 1,
+                denominator: 4,
+            },
             None,
-        )).unwrap();
+        ))
+        .unwrap();
         assert!(!result.physical_qualification_granted);
         assert!(!result.authority_granted);
     }
