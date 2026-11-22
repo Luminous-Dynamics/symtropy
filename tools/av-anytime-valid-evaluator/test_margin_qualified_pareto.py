@@ -272,13 +272,13 @@ class MarginQualifiedParetoTests(unittest.TestCase):
                 "transform_id": f"{metric}-identity-v1",
                 "transform_digest_sha256": hashlib.sha256(f"{metric}-identity-v1".encode()).hexdigest(),
                 "provenance": "SYNTHETIC",
-                "no_worse_tolerance": 0.1,
+                "no_worse_tolerance": 0.4,
                 "material_improvement_margin": 0.1,
             })
         scores = {
-            "A": {"axis_1": 0.61, "axis_2": 0.445, "axis_3": 0.445},
+            "A": {"axis_1": 0.70, "axis_2": 0.40, "axis_3": 0.40},
             "B": {"axis_1": 0.50, "axis_2": 0.50, "axis_3": 0.50},
-            "C": {"axis_1": 0.555, "axis_2": 0.39, "axis_3": 0.555},
+            "C": {"axis_1": 0.50, "axis_2": 0.30, "axis_3": 0.70},
         }
         doc = make_document(
             policies=policies,
