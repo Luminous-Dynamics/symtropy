@@ -1199,8 +1199,8 @@ impl<const D: usize> PhysicsWorld<D> {
 
                 let r_a = pt.position - com_a;
                 let r_b = pt.position - com_b;
-                let torque_a = Bivector::from_wedge(&(-per_pt_impulse), &r_a);
-                let torque_b = Bivector::from_wedge(&per_pt_impulse, &r_b);
+                let torque_a = Bivector::from_angular_impulse(&r_a, &(-per_pt_impulse));
+                let torque_b = Bivector::from_angular_impulse(&r_b, &per_pt_impulse);
                 integrator::try_apply_angular_impulse(&mut self.bodies[a], &torque_a)?;
                 integrator::try_apply_angular_impulse(&mut self.bodies[b], &torque_b)?;
             }
@@ -1222,7 +1222,7 @@ impl<const D: usize> PhysicsWorld<D> {
     ///
     /// Includes lever-arm angular contact response: relative velocity at the
     /// contact point (not just the centers of mass) drives the impulse, and
-    /// impulses apply a matching angular impulse via `Bivector::from_wedge`
+    /// impulses apply a matching angular impulse via `Bivector::from_angular_impulse`
     /// (the dimension-agnostic replacement for the 3D `r × J` torque). This
     /// lets off-center impacts induce spin and friction induce rotation,
     /// instead of only ever translating the center of mass.
@@ -1379,9 +1379,9 @@ impl<const D: usize> PhysicsWorld<D> {
                 integrator::apply_impulse(&mut self.bodies[b], &impulse);
 
                 // Lever-arm angular impulse: torque = impulse ∧ r (order
-                // matters — see `Bivector::from_wedge` doc comment).
-                let torque_a = Bivector::from_wedge(&(-impulse), &r_a);
-                let torque_b = Bivector::from_wedge(&impulse, &r_b);
+                // matters — see `Bivector::from_angular_impulse` doc comment).
+                let torque_a = Bivector::from_angular_impulse(&r_a, &(-impulse));
+                let torque_b = Bivector::from_angular_impulse(&r_b, &impulse);
                 integrator::try_apply_angular_impulse(&mut self.bodies[a], &torque_a)?;
                 integrator::try_apply_angular_impulse(&mut self.bodies[b], &torque_b)?;
 
@@ -1518,8 +1518,8 @@ impl<const D: usize> PhysicsWorld<D> {
                     integrator::apply_impulse(&mut self.bodies[a], &(-friction_impulse));
                     integrator::apply_impulse(&mut self.bodies[b], &friction_impulse);
 
-                    let torque_a = Bivector::from_wedge(&(-friction_impulse), &r_a);
-                    let torque_b = Bivector::from_wedge(&friction_impulse, &r_b);
+                    let torque_a = Bivector::from_angular_impulse(&r_a, &(-friction_impulse));
+                    let torque_b = Bivector::from_angular_impulse(&r_b, &friction_impulse);
                     integrator::try_apply_angular_impulse(&mut self.bodies[a], &torque_a)?;
                     integrator::try_apply_angular_impulse(&mut self.bodies[b], &torque_b)?;
 
