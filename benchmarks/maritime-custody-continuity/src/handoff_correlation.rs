@@ -1049,22 +1049,34 @@ mod tests {
         )
         .unwrap();
 
-        let make_events = |bindings: [&EventTimeBinding; 2]| {
-            bindings
-                .into_iter()
-                .map(|binding| {
-                    (
-                        binding.source_event.clone(),
-                        binding.revision,
-                        &binding.evidence,
-                        Vec::new(),
-                    )
-                })
-                .collect::<Vec<BoxEventTime<'_>>>()
-        };
-
-        let mut forward = make_events([&first, &second]);
-        let mut reverse = make_events([&second, &first]);
+        let mut forward: Vec<BoxEventTime<'_>> = vec![
+            (
+                first.source_event.clone(),
+                first.revision,
+                &first.evidence,
+                Vec::new(),
+            ),
+            (
+                second.source_event.clone(),
+                second.revision,
+                &second.evidence,
+                Vec::new(),
+            ),
+        ];
+        let mut reverse: Vec<BoxEventTime<'_>> = vec![
+            (
+                second.source_event.clone(),
+                second.revision,
+                &second.evidence,
+                Vec::new(),
+            ),
+            (
+                first.source_event.clone(),
+                first.revision,
+                &first.evidence,
+                Vec::new(),
+            ),
+        ];
         let forward_error = prove_box_interval_total_order("BOX", &mut forward).unwrap_err();
         let reverse_error = prove_box_interval_total_order("BOX", &mut reverse).unwrap_err();
 
