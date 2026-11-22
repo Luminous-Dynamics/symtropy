@@ -247,6 +247,10 @@ pub fn lebedev_sphere_rule(rule: LebedevRule) -> Result<LebedevSphereRule, Kerne
 // the listed normalized weight.
 //
 // Source: https://github.com/nasa/CARA_Analysis_Tools/blob/master/DistributedMatlab/ProbabilityOfCollision/Utils/getLebedevSphere.m
+//
+// Preserve the published decimal coefficients verbatim; they are source data,
+// not hand-authored f64 constants whose excess precision should be rounded.
+#[allow(clippy::excessive_precision)]
 const LEBEDEV_5810_ORBITS: &[(u8, f64, f64, f64)] = &[
     (1, 0.0, 0.6112185773983089E-1, 0.9735347946175486E-5),
     (2, 0.0, 0.6112185773983089E-1, 0.1907581241803167E-3),
