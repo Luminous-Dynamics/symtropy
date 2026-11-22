@@ -11,7 +11,7 @@
     "run_id":{"type":"string","minLength":1},
     "totals":{
       "type":"object","additionalProperties":false,
-      "required":["episode_count","forecast_count","action_space_coverage","gross_evsi_mae","gross_evsi_signed_bias","net_evsi_mae","net_evsi_signed_bias","forecast_interval_coverage","pairwise_rank_accuracy","pairwise_rank_pairs","missed_best_action_count","decision_regret_total","decision_regret_mean","oracle_action_selection_accuracy"],
+      "required":["episode_count","forecast_count","action_space_coverage","gross_evsi_mae","gross_evsi_signed_bias","net_evsi_mae","net_evsi_signed_bias","forecast_interval_alpha","forecast_interval_coverage","forecast_interval_mean_width","forecast_interval_winkler_score","pairwise_rank_accuracy","pairwise_rank_pairs","missed_best_action_count","decision_regret_total","decision_regret_mean","oracle_action_selection_accuracy"],
       "properties":{
         "episode_count":{"type":"integer","minimum":0},
         "forecast_count":{"type":"integer","minimum":0},
@@ -20,7 +20,10 @@
         "gross_evsi_signed_bias":{"type":"number"},
         "net_evsi_mae":{"type":"number","minimum":0},
         "net_evsi_signed_bias":{"type":"number"},
+        "forecast_interval_alpha":{"const":0.1},
         "forecast_interval_coverage":{"type":"number","minimum":0,"maximum":1},
+        "forecast_interval_mean_width":{"type":"number","minimum":0},
+        "forecast_interval_winkler_score":{"type":"number","minimum":0},
         "pairwise_rank_accuracy":{"type":"number","minimum":0,"maximum":1},
         "pairwise_rank_pairs":{"type":"integer","minimum":0},
         "missed_best_action_count":{"type":"integer","minimum":0},
