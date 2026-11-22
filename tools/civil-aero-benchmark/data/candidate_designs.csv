@@ -1,0 +1,5 @@
+case_id,parameter_basis,source_ref,source_sha256,airframe_mass_kg,payload_mass_kg,wing_area_m2,aspect_ratio,oswald_efficiency,cd0,cruise_speed_m_s,air_density_kg_m3,propulsive_efficiency,battery_energy_wh,reserve_fraction,route_distance_km,assumed_max_lift_coefficient
+balanced_reference,synthetic,synthetic-counterfactual-v0.1,-,2.0,0.5,0.55,8.0,0.8,0.035,15.0,1.225,0.65,160.0,0.2,20.0,1.2
+lower_mass_higher_drag,synthetic,synthetic-counterfactual-v0.1,-,1.7,0.5,0.55,8.0,0.8,0.040,15.0,1.225,0.65,160.0,0.2,20.0,1.2
+higher_mass_lower_drag,synthetic,synthetic-counterfactual-v0.1,-,2.2,0.5,0.55,8.0,0.8,0.030,15.0,1.225,0.65,160.0,0.2,20.0,1.2
+dominated_high_drag,synthetic,synthetic-counterfactual-v0.1,-,2.0,0.5,0.55,8.0,0.8,0.040,15.0,1.225,0.65,160.0,0.2,20.0,1.2

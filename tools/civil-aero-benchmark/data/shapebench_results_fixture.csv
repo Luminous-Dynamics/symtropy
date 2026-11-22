@@ -1,0 +1,4 @@
+iteration,design,reward,best_reward
+1,"{""sweep"":25.0,""twist"":0.1}",0.42,0.42
+2,"{""sweep"":25.5,""twist"":0.2}",0.51,0.51
+3,"{""sweep"":25.2,""twist"":0.15}",0.48,0.51
