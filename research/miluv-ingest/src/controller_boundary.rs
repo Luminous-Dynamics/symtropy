@@ -77,7 +77,11 @@ fn controller_allowlist(stream: MiluvStream) -> BTreeSet<&'static str> {
 
 fn evaluator_truth_allowlist(stream: MiluvStream) -> BTreeSet<&'static str> {
     let fields: &[&str] = match stream {
-        MiluvStream::UwbRange => &["gt_range", "bias", "bias_raw"],
+        MiluvStream::UwbRange => &[
+            "gt_range", "bias", "bias_raw",
+            "r_iw_a_ifo001", "r_iw_a_ifo002", "r_iw_a_ifo003",
+            "q_ai_ifo001", "q_ai_ifo002", "q_ai_ifo003",
+        ],
         MiluvStream::UwbPassive => &["gt_range_n", "bias_n", "bias_raw_n", "gt_range", "bias", "bias_raw"],
         MiluvStream::Mocap => &[
             "timestamp", "pose.position.x", "pose.position.y", "pose.position.z",
@@ -217,6 +221,27 @@ mod tests {
         assert_eq!(part.quarantined_fields["debug_future_feature"], "do-not-auto-promote");
     }
 
+    #[test]
+    fn vicon_pose_fields_embedded_in_uwb_range_are_evaluator_only() {
+        let csv = concat!(
+            "timestamp,range,from_id,to_id,std,gt_range,bias,",
+            "r_iw_a_ifo001,r_iw_a_ifo002,r_iw_a_ifo003,",
+            "q_ai_ifo001,q_ai_ifo002,q_ai_ifo003\n",
+            "1.0,3.5,10,4,0.1,3.4,0.1,",
+            "[1,2,3],[4,5,6],[7,8,9],",
+            "[0,0,0,1],[0,0,0,1],[0,0,0,1]\n"
+        );
+        let events = parse_miluv_csv(csv.as_bytes(), MiluvStream::UwbRange, context("uwb_range.csv")).unwrap();
+        let partition = partition_miluv_event(&events[0]);
+        let controller = partition.controller.unwrap();
+        for field in ["gt_range", "bias", "r_iw_a_ifo001", "r_iw_a_ifo002", "r_iw_a_ifo003", "q_ai_ifo001", "q_ai_ifo002", "q_ai_ifo003"] {
+            assert!(!controller.fields.contains_key(field), "field leaked into controller: {field}");
+        }
+        let truth = partition.evaluator_truth.unwrap();
+        assert_eq!(truth.fields["gt_range"], "3.4");
+        assert_eq!(truth.fields["r_iw_a_ifo003"], "[7,8,9]");
+        assert_eq!(truth.fields["q_ai_ifo001"], "[0,0,0,1]");
+    }
     #[test]
     fn passive_listener_truth_labels_are_separate_from_reception_fields() {
         let csv = "timestamp,timestamp_n,my_id,from_id,to_id,rx1,rx2,rx3,std,gt_range_n,bias_n\n1.0,0.98,11,10,4,100,101,102,0.1,3.5,0.2\n";
