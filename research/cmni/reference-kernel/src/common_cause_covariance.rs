@@ -567,5 +567,4 @@ mod tests {
         assert!(naive_a_utility > complementary_a_utility);
         assert!(naive_d_utility > complementary_d_utility);
     }
-
 }
