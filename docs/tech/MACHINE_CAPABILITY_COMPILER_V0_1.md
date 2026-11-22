@@ -114,9 +114,11 @@ Do not produce a single self-sufficiency scalar. Do not allow a cyclic dependenc
 
 ## 6. Whole-route economics
 
-Rank only feasible routes using full cost per accepted output and total restoration time.
+Rank only routes that pass every hard requirement. The current v0.1 evaluator calculates synthetic cost per accepted output and a delivery lead-time measure, then reports the Pareto frontier across those two objectives. It deliberately does not collapse them into a weighted score.
 
 `C_accepted = (capital allocation + material + energy + labour + setup + calibration + inspection + finishing + transport + maintenance + failed attempts + rework + warranty reserve) / accepted outputs`
+
+The Pareto frontier retains feasible routes for which no other feasible route is both no more expensive and no slower, with at least one strict improvement. A low-cost route that is slower may remain alongside a faster but more expensive route. Infeasible, unknown and unsupported routes are excluded from the frontier regardless of cost.
 
 Also report:
 - request-to-part P50/P90;
@@ -127,7 +129,7 @@ Also report:
 - spare/alternate supplier risk;
 - uncertainty and missing cost categories.
 
-Do not compare an OEM quoted part price against a local print's filament cost. Missing cost components remain unknown, not zero.
+Do not compare an OEM quoted part price against a local print's filament cost. Missing cost components remain unknown, not zero. The current corpus uses synthetic cost inputs; no route price ranking is a measured procurement recommendation.
 
 ## 7. Owner boundaries
 
