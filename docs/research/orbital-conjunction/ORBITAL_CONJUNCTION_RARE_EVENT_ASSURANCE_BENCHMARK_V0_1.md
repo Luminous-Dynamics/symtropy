@@ -253,6 +253,25 @@ For synthetic truth, use analytic fixtures first and independent high-budget Mon
 
 Data splits must be by complete conjunction / physical encounter and, where relevant, by satellite, event family or model regime. Adjacent or overlapping arcs from one event cannot be split across train and test and then counted as independent evidence.
 
+## Direct Monte Carlo sample-budget floor
+
+For a Bernoulli collision indicator with event probability p, the large-sample relative standard error is approximately 1/sqrt(N p). A normal-approximation 95% interval with relative half-width r therefore requires approximately:
+
+`N ≈ (1.96 / r)^2 (1-p) / p`.
+
+For r = 0.10 (a 10% relative 95% half-width), this is approximately 384/p when p is small:
+
+| Nominal event probability | Approximate direct-MC draws |
+|---:|---:|
+| 1e-3 | 3.84e5 |
+| 1e-5 | 3.84e7 |
+| 1e-7 | 3.84e9 |
+| 1e-9 | 3.84e11 |
+
+This is a planning approximation, not a replacement for exact binomial intervals or repeated-run coverage measurements. At p = 1e-9, 1e8 direct draws have expected hit count 0.1 and approximately 90.5% probability of observing zero events.
+
+This is why the importance-sampling and bifidelity portfolio matters. It is not a reason to accept a smaller sample blindly: methods must still meet matched error, interval coverage, proposal-support, model-fidelity, and independent-evaluation gates. The benchmark reports the actual number of high-fidelity physical-model evaluations and the full adaptation / training costs.
+
 ## 9. Metrics and proposed targets
 
 Report by probability band, event geometry, physical regime, and mode:
