@@ -47,9 +47,6 @@ pub struct IndependentPosteriorAuditConfig {
     pub minimum_geometry_eigenvalue: f64,
     /// Maximum allowed gap between predicted and observed range sets.
     pub maximum_range_conflict_m: f64,
-    /// Prevents exact/very narrow intervals from creating unbounded numerical
-    /// weights; dependency groups are equally weighted, not row-count weighted.
-    pub minimum_range_width_for_geometry_m: f64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -89,6 +86,8 @@ pub enum IndependentPosteriorAuditError {
     EmptyConstraints,
     InsufficientConfiguredObservations,
     InsufficientConfiguredDependencyGroups,
+    InsufficientObservationCount,
+    InsufficientDependencyGroupCount,
     InvalidConfiguration,
     InvalidCandidatePosition,
     InvalidCandidatePositionBound,
@@ -112,6 +111,12 @@ impl fmt::Display for IndependentPosteriorAuditError {
             }
             Self::InsufficientConfiguredDependencyGroups => {
                 write!(f, "minimum dependency-group count must be at least four")
+            }
+            Self::InsufficientObservationCount => {
+                write!(f, "candidate posterior has fewer observations than the configured minimum")
+            }
+            Self::InsufficientDependencyGroupCount => {
+                write!(f, "candidate posterior has fewer dependency groups than the configured minimum")
             }
             Self::InvalidConfiguration => {
                 write!(f, "posterior audit thresholds must be finite and physically meaningful")
@@ -273,10 +278,11 @@ pub fn audit_independent_posterior_3d(
     }
 
     let dependency_group_count = group_matrices.len();
-    if constraints.len() < config.minimum_observation_count
-        || dependency_group_count < config.minimum_dependency_group_count
-    {
-        return Err(IndependentPosteriorAuditError::InvalidConfiguration);
+    if constraints.len() < config.minimum_observation_count {
+        return Err(IndependentPosteriorAuditError::InsufficientObservationCount);
+    }
+    if dependency_group_count < config.minimum_dependency_group_count {
+        return Err(IndependentPosteriorAuditError::InsufficientDependencyGroupCount);
     }
 
     // Each dependency group contributes one normalized average direction
@@ -339,8 +345,7 @@ fn validate_config(
         || config.minimum_geometry_eigenvalue > 1.0 / 3.0
         || !config.maximum_range_conflict_m.is_finite()
         || config.maximum_range_conflict_m < 0.0
-        || !config.minimum_range_width_for_geometry_m.is_finite()
-        || config.minimum_range_width_for_geometry_m <= 0.0
+
     {
         return Err(IndependentPosteriorAuditError::InvalidConfiguration);
     }
@@ -420,7 +425,6 @@ mod tests {
             minimum_dependency_group_count: 4,
             minimum_geometry_eigenvalue: 0.05,
             maximum_range_conflict_m: 0.01,
-            minimum_range_width_for_geometry_m: 0.05,
         }
     }
 
@@ -515,7 +519,7 @@ mod tests {
             audit_independent_posterior_3d([0.0; 3], 0.0, &constraints, config());
         assert_eq!(
             result,
-            Err(IndependentPosteriorAuditError::InvalidConfiguration)
+            Err(IndependentPosteriorAuditError::InsufficientDependencyGroupCount)
         );
     }
 
