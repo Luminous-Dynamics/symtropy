@@ -26,3 +26,7 @@ path = "src/bin/risk_coverage_demo.rs"
 [[bin]]
 name = "sequential_value_demo"
 path = "src/bin/sequential_value_demo.rs"
+
+[[bin]]
+name = "common_cause_sequential_demo"
+path = "src/bin/common_cause_sequential_demo.rs"
