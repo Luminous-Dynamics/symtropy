@@ -622,7 +622,7 @@ pub fn qualify_custody_event_timeline(
     }
 
     let mut consumed_bindings = BTreeSet::new();
-    let mut events_by_box: BTreeMap<String, Vec<(SourceEventRef, u32, &TimeEvidence, Vec<usize>)>> =
+    let mut events_by_box: BTreeMap<String, Vec<BoxEventTime<'_>>> =
         BTreeMap::new();
 
     for group in &effective_actual_groups {
@@ -1096,7 +1096,7 @@ mod tests {
             &expectations,
             &events,
             &time_bindings,
-            &[receipt.clone()],
+            std::slice::from_ref(&receipt),
             200,
         )
         .unwrap();
