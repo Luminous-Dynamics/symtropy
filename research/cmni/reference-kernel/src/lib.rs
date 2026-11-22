@@ -65,6 +65,12 @@ pub use sampler_diagnostics::{
     HmcDiagnosticSummary,
 };
 
+mod batch_design;
+pub use batch_design::{
+    enumerate_batch_portfolios, BatchDesignCandidate, BatchPortfolioEnumeration,
+    BatchPortfolioScore,
+};
+
 mod experiment_design;
 pub use experiment_design::{
     combine_fisher_information, identifiability_summary, pairwise_poisson_kl_matrix,
