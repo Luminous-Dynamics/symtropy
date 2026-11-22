@@ -2942,9 +2942,9 @@ mod transformed_halfspace_tests {
         block.apply_force(SVector::<f64, 3>::new(1.0, 0.0, 0.0));
         let block_handle = world.add_body(block);
 
-        let block_position = world.bodies[1].transform.translation.0.clone();
-        let block_velocity = world.bodies[1].linear_velocity.clone();
-        let block_force = world.bodies[1].force_accumulator.clone();
+        let block_position = world.bodies[1].transform.translation.0;
+        let block_velocity = world.bodies[1].linear_velocity;
+        let block_force = world.bodies[1].force_accumulator;
         let previous_contacts = world.contacts.clone();
         let previous_events = world.collision_events.clone();
 
@@ -3273,11 +3273,11 @@ mod transformed_halfspace_tests {
         );
         world.bodies[1].apply_torque(Bivector::unit_plane(1, 2));
 
-        let first_position = world.bodies[0].transform.translation.0.clone();
-        let first_velocity = world.bodies[0].linear_velocity.clone();
-        let first_force = world.bodies[0].force_accumulator.clone();
-        let second_position = world.bodies[1].transform.translation.0.clone();
-        let second_torque = world.bodies[1].torque_accumulator.clone();
+        let first_position = world.bodies[0].transform.translation.0;
+        let first_velocity = world.bodies[0].linear_velocity;
+        let first_force = world.bodies[0].force_accumulator;
+        let second_position = world.bodies[1].transform.translation.0;
+        let second_torque = world.bodies[1].torque_accumulator;
         let first_handle = world.bodies[0].handle;
         let second_handle = world.bodies[1].handle;
         let cache_point = SVector::<f64, 3>::new(0.0, 0.0, 0.0);
@@ -3363,8 +3363,8 @@ mod transformed_halfspace_tests {
             SVector::<f64, 3>::new(0.0, 1.0, 0.0),
             0.2,
         );
-        let before_a = world.bodies[0].linear_velocity.clone();
-        let before_b = world.bodies[1].linear_velocity.clone();
+        let before_a = world.bodies[0].linear_velocity;
+        let before_b = world.bodies[1].linear_velocity;
         let mut callback = NoOpCallback;
         let mut pending_effects = Vec::new();
 
