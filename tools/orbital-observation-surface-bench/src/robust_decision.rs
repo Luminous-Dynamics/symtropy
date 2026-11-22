@@ -151,13 +151,19 @@ fn validate_corpus(corpus: &DecisionCorpus) -> Result<(), String> {
     for case in &corpus.cases {
         if case.case_id.trim().is_empty()
             || !case_ids.insert(case.case_id.as_str())
-            || case.compatible_world_set.source_receipt_id.trim().is_empty()
+            || case
+                .compatible_world_set
+                .source_receipt_id
+                .trim()
+                .is_empty()
             || case.compatible_world_set.world_ids.is_empty()
             || case.compatible_world_set.world_ids.len() > MAX_WORLDS
             || case.actions.is_empty()
             || case.actions.len() > MAX_ACTIONS
         {
-            return Err("case identity, compatible-world reference or fixture size is invalid".to_owned());
+            return Err(
+                "case identity, compatible-world reference or fixture size is invalid".to_owned(),
+            );
         }
 
         let mut world_ids = BTreeSet::new();
@@ -168,7 +174,9 @@ fn validate_corpus(corpus: &DecisionCorpus) -> Result<(), String> {
         }
         let digest = world_ids_digest(&case.compatible_world_set.world_ids)?;
         if case.compatible_world_set.world_ids_sha256 != digest {
-            return Err("compatible-world ID digest does not match the canonical world set".to_owned());
+            return Err(
+                "compatible-world ID digest does not match the canonical world set".to_owned(),
+            );
         }
 
         let mut action_ids = BTreeSet::new();
@@ -192,7 +200,9 @@ fn validate_corpus(corpus: &DecisionCorpus) -> Result<(), String> {
                 .iter()
                 .any(|value| *value > MAX_SAFE_INTEGER)
             {
-                return Err("action identity, admissibility receipt, status or cost is invalid".to_owned());
+                return Err(
+                    "action identity, admissibility receipt, status or cost is invalid".to_owned(),
+                );
             }
 
             let supplied_world_ids = action
@@ -201,7 +211,10 @@ fn validate_corpus(corpus: &DecisionCorpus) -> Result<(), String> {
                 .map(String::as_str)
                 .collect::<BTreeSet<_>>();
             if supplied_world_ids != world_ids {
-                return Err("every action must supply exactly one loss for every compatible world".to_owned());
+                return Err(
+                    "every action must supply exactly one loss for every compatible world"
+                        .to_owned(),
+                );
             }
             for loss in action.world_losses.values() {
                 loss.validate()
@@ -233,9 +246,12 @@ where
 fn dominates(left: &ActionMetric, right: &ActionMetric) -> bool {
     let dimensions = [
         left.worst_case_loss.compare_exact(&right.worst_case_loss),
-        left.worst_case_regret.compare_exact(&right.worst_case_regret),
+        left.worst_case_regret
+            .compare_exact(&right.worst_case_regret),
         left.cost.reference_trials.cmp(&right.cost.reference_trials),
-        left.cost.exposure_micro_units.cmp(&right.cost.exposure_micro_units),
+        left.cost
+            .exposure_micro_units
+            .cmp(&right.cost.exposure_micro_units),
         left.cost.elapsed_millis.cmp(&right.cost.elapsed_millis),
     ];
     dimensions.iter().all(|order| *order != Ordering::Greater)
@@ -297,7 +313,12 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
             .admissibility_receipt_id
             .as_deref()
             .filter(|value| !value.trim().is_empty())
-            .ok_or_else(|| format!("admissible action {} has no receipt identity", action.action_id))?
+            .ok_or_else(|| {
+                format!(
+                    "admissible action {} has no receipt identity",
+                    action.action_id
+                )
+            })?
             .to_owned();
 
         let mut per_world = Vec::with_capacity(world_ids.len());
@@ -310,9 +331,12 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
             let best = best_loss_by_world
                 .get(world_id)
                 .ok_or_else(|| format!("no per-world optimum for {world_id}"))?;
-            let regret = loss
-                .checked_sub(best)
-                .map_err(|error| format!("regret underflow for {} / {world_id}: {error}", action.action_id))?;
+            let regret = loss.checked_sub(best).map_err(|error| {
+                format!(
+                    "regret underflow for {} / {world_id}: {error}",
+                    action.action_id
+                )
+            })?;
             per_world.push(WorldLoss {
                 world_id: world_id.clone(),
                 loss,
@@ -362,7 +386,8 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
         .filter(|metric| metric.uniformly_optimal)
         .map(|metric| metric.action_id.clone())
         .collect::<Vec<_>>();
-    let minimax_loss_action_ids = argmin_action_ids(&action_metrics, |metric| &metric.worst_case_loss);
+    let minimax_loss_action_ids =
+        argmin_action_ids(&action_metrics, |metric| &metric.worst_case_loss);
     let minimax_regret_action_ids =
         argmin_action_ids(&action_metrics, |metric| &metric.worst_case_regret);
 
@@ -450,7 +475,11 @@ mod tests {
     }
 
     fn case<'a>(evaluation: &'a Evaluation, id: &str) -> &'a CaseResult {
-        evaluation.cases.iter().find(|item| item.case_id == id).expect("case exists")
+        evaluation
+            .cases
+            .iter()
+            .find(|item| item.case_id == id)
+            .expect("case exists")
     }
 
     #[test]
@@ -483,7 +512,11 @@ mod tests {
         assert_eq!(result.excluded_actions.len(), 1);
         assert_eq!(result.excluded_actions[0].action_id, "unsafe-perfect");
         assert_eq!(result.minimax_loss_action_ids, vec!["admissible-action"]);
-        assert!(!result.joint_pareto_frontier_action_ids.contains(&"unsafe-perfect".to_owned()));
+        assert!(
+            !result
+                .joint_pareto_frontier_action_ids
+                .contains(&"unsafe-perfect".to_owned())
+        );
     }
 
     #[test]
@@ -516,8 +549,16 @@ mod tests {
             .iter_mut()
             .find(|action| action.action_id == "conservative")
             .expect("conservative action exists");
-        action.world_losses.get_mut("world-a").expect("world loss exists").numerator = 2;
-        action.world_losses.get_mut("world-a").expect("world loss exists").denominator = 20;
+        action
+            .world_losses
+            .get_mut("world-a")
+            .expect("world loss exists")
+            .numerator = 2;
+        action
+            .world_losses
+            .get_mut("world-a")
+            .expect("world loss exists")
+            .denominator = 20;
 
         let evaluation = evaluate(&corpus).expect("equivalent fractions remain valid");
         let result = case(&evaluation, "uniform-optimum-across-worlds");
