@@ -458,12 +458,21 @@ mod tests {
     }
 
     #[test]
-    fn all_three_owner_contracts_must_agree_before_native_owner_revalidation() {
+    fn independent_no_effect_and_graph_quiescence_claims_are_both_required() {
         let recovery = recovery_packet();
         let downstream = downstream_packet();
-        let profile = claim_profile();
-        let facts = facts(&profile);
-        let result = assess_pre_native(&input(&recovery, &downstream, &profile, &facts));
+        let no_effect_profile = no_effect_profile();
+        let no_effect_facts = no_effect_facts(&no_effect_profile);
+        let graph_profile = downstream_profile();
+        let graph_facts = downstream_facts(&graph_profile);
+        let result = assess_pre_native(&input(
+            &recovery,
+            &downstream,
+            &no_effect_profile,
+            &no_effect_facts,
+            &graph_profile,
+            &graph_facts,
+        ));
 
         assert_eq!(result.recovery, RecoveryDecision::FreshAttemptCandidate);
         assert!(matches!(
@@ -472,9 +481,11 @@ mod tests {
                 qualified_layers: 5
             }
         ));
-        assert_eq!(result.evidence, EvidenceVerdict::Confirmed);
+        assert_eq!(result.no_effect_evidence, EvidenceVerdict::Confirmed);
+        assert_eq!(result.downstream_evidence, EvidenceVerdict::Confirmed);
         assert!(result.cross_owner_identity_matches);
-        assert!(result.claim_scope_matches);
+        assert!(result.no_effect_claim_scope_matches);
+        assert!(result.downstream_claim_scope_matches);
         assert_eq!(
             result.disposition,
             CompositionDisposition::ReadyForOwnerNativeRevalidation
@@ -486,9 +497,18 @@ mod tests {
         let recovery = recovery_packet();
         let mut downstream = downstream_packet();
         downstream.receipts.pop();
-        let profile = claim_profile();
-        let facts = facts(&profile);
-        let result = assess_pre_native(&input(&recovery, &downstream, &profile, &facts));
+        let no_effect_profile = no_effect_profile();
+        let no_effect_facts = no_effect_facts(&no_effect_profile);
+        let graph_profile = downstream_profile();
+        let graph_facts = downstream_facts(&graph_profile);
+        let result = assess_pre_native(&input(
+            &recovery,
+            &downstream,
+            &no_effect_profile,
+            &no_effect_facts,
+            &graph_profile,
+            &graph_facts,
+        ));
 
         assert_eq!(result.recovery, RecoveryDecision::FreshAttemptCandidate);
         assert!(matches!(result.downstream, FenceDecision::Hold(_)));
@@ -503,9 +523,18 @@ mod tests {
         let recovery = recovery_packet();
         let mut downstream = downstream_packet();
         downstream.transition.logical_effect_id = "other-effect".to_owned();
-        let profile = claim_profile();
-        let facts = facts(&profile);
-        let result = assess_pre_native(&input(&recovery, &downstream, &profile, &facts));
+        let no_effect_profile = no_effect_profile();
+        let no_effect_facts = no_effect_facts(&no_effect_profile);
+        let graph_profile = downstream_profile();
+        let graph_facts = downstream_facts(&graph_profile);
+        let result = assess_pre_native(&input(
+            &recovery,
+            &downstream,
+            &no_effect_profile,
+            &no_effect_facts,
+            &graph_profile,
+            &graph_facts,
+        ));
         assert_eq!(
             result.disposition,
             CompositionDisposition::Hold(CompositionHold::CrossOwnerLogicalEffectMismatch)
@@ -513,7 +542,14 @@ mod tests {
 
         let mut downstream = downstream_packet();
         downstream.transition.old_attempt_id = "other-attempt".to_owned();
-        let result = assess_pre_native(&input(&recovery, &downstream, &profile, &facts));
+        let result = assess_pre_native(&input(
+            &recovery,
+            &downstream,
+            &no_effect_profile,
+            &no_effect_facts,
+            &graph_profile,
+            &graph_facts,
+        ));
         assert_eq!(
             result.disposition,
             CompositionDisposition::Hold(CompositionHold::CrossOwnerAttemptMismatch)
@@ -525,9 +561,18 @@ mod tests {
         let recovery = recovery_packet();
         let mut downstream = downstream_packet();
         downstream.transition.new_boot_epoch_id = "stale-boot".to_owned();
-        let profile = claim_profile();
-        let facts = facts(&profile);
-        let result = assess_pre_native(&input(&recovery, &downstream, &profile, &facts));
+        let no_effect_profile = no_effect_profile();
+        let no_effect_facts = no_effect_facts(&no_effect_profile);
+        let graph_profile = downstream_profile();
+        let graph_facts = downstream_facts(&graph_profile);
+        let result = assess_pre_native(&input(
+            &recovery,
+            &downstream,
+            &no_effect_profile,
+            &no_effect_facts,
+            &graph_profile,
+            &graph_facts,
+        ));
         assert_eq!(
             result.disposition,
             CompositionDisposition::Hold(CompositionHold::CrossOwnerBootEpochMismatch)
@@ -535,7 +580,14 @@ mod tests {
 
         let mut downstream = downstream_packet();
         downstream.transition.new_controller_epoch = 10;
-        let result = assess_pre_native(&input(&recovery, &downstream, &profile, &facts));
+        let result = assess_pre_native(&input(
+            &recovery,
+            &downstream,
+            &no_effect_profile,
+            &no_effect_facts,
+            &graph_profile,
+            &graph_facts,
+        ));
         assert_eq!(
             result.disposition,
             CompositionDisposition::Hold(CompositionHold::CrossOwnerControllerEpochMismatch)
@@ -543,81 +595,212 @@ mod tests {
     }
 
     #[test]
-    fn wrong_claim_id_or_scope_never_confirms_the_required_no_effect_claim() {
+    fn wrong_no_effect_claim_id_or_scope_holds() {
         let recovery = recovery_packet();
         let downstream = downstream_packet();
-        let mut profile = claim_profile();
-        let facts = facts(&profile);
-        profile.claim_id = "some-other-claim".to_owned();
-        let result = assess_pre_native(&input(&recovery, &downstream, &profile, &facts));
+        let mut no_effect_profile = no_effect_profile();
+        let no_effect_facts = no_effect_facts(&no_effect_profile);
+        no_effect_profile.claim_id = "some-other-claim".to_owned();
+        let graph_profile = downstream_profile();
+        let graph_facts = downstream_facts(&graph_profile);
+        let result = assess_pre_native(&input(
+            &recovery,
+            &downstream,
+            &no_effect_profile,
+            &no_effect_facts,
+            &graph_profile,
+            &graph_facts,
+        ));
         assert_eq!(
             result.disposition,
-            CompositionDisposition::Hold(CompositionHold::RequiredClaimIdMismatch)
+            CompositionDisposition::Hold(CompositionHold::RequiredNoEffectClaimIdMismatch)
         );
 
-        let mut profile = claim_profile();
-        let facts = facts(&profile);
-        let mut composition_input = input(&recovery, &downstream, &profile, &facts);
-        composition_input.expected_scope_commitment = evidence_commitment(99);
+        let no_effect_profile = no_effect_profile();
+        let no_effect_facts = no_effect_facts(&no_effect_profile);
+        let mut composition_input = input(
+            &recovery,
+            &downstream,
+            &no_effect_profile,
+            &no_effect_facts,
+            &graph_profile,
+            &graph_facts,
+        );
+        composition_input.old_attempt_no_effect.expected_scope_commitment =
+            evidence_commitment(99);
         let result = assess_pre_native(&composition_input);
         assert_eq!(
             result.disposition,
-            CompositionDisposition::Hold(CompositionHold::ClaimScopeMismatch)
+            CompositionDisposition::Hold(CompositionHold::NoEffectClaimScopeMismatch)
         );
     }
 
     #[test]
-    fn refuted_or_insufficient_evidence_cannot_become_a_native_candidate() {
+    fn wrong_graph_claim_id_or_scope_holds() {
         let recovery = recovery_packet();
         let downstream = downstream_packet();
-        let profile = claim_profile();
+        let no_effect_profile = no_effect_profile();
+        let no_effect_facts = no_effect_facts(&no_effect_profile);
+        let mut graph_profile = downstream_profile();
+        let graph_facts = downstream_facts(&graph_profile);
+        graph_profile.claim_id = "different-graph-claim".to_owned();
+        let result = assess_pre_native(&input(
+            &recovery,
+            &downstream,
+            &no_effect_profile,
+            &no_effect_facts,
+            &graph_profile,
+            &graph_facts,
+        ));
+        assert_eq!(
+            result.disposition,
+            CompositionDisposition::Hold(CompositionHold::RequiredDownstreamClaimIdMismatch)
+        );
 
-        let mut contradictory = facts(&profile);
-        contradictory.push(EvidenceFact {
-            claim_id: profile.claim_id.clone(),
-            scope_commitment: profile.scope_commitment,
-            evidence_id: "contradictory-observation".to_owned(),
-            source_id: "source-contradictory-observation".to_owned(),
-            failure_domain_id: "external-motion-observer".to_owned(),
+        let graph_profile = downstream_profile();
+        let graph_facts = downstream_facts(&graph_profile);
+        let mut composition_input = input(
+            &recovery,
+            &downstream,
+            &no_effect_profile,
+            &no_effect_facts,
+            &graph_profile,
+            &graph_facts,
+        );
+        composition_input.downstream_graph_quiescence.expected_scope_commitment =
+            evidence_commitment(100);
+        let result = assess_pre_native(&composition_input);
+        assert_eq!(
+            result.disposition,
+            CompositionDisposition::Hold(CompositionHold::DownstreamClaimScopeMismatch)
+        );
+    }
+
+    #[test]
+    fn graph_quiescence_requires_its_own_confirmed_evidence() {
+        let recovery = recovery_packet();
+        let downstream = downstream_packet();
+        let no_effect_profile = no_effect_profile();
+        let no_effect_facts = no_effect_facts(&no_effect_profile);
+        let graph_profile = downstream_profile();
+        let incomplete_graph_facts = vec![claim_fact(
+            &graph_profile,
+            "bus-observation-only",
+            "read-only-bus-observer",
+        )];
+        let result = assess_pre_native(&input(
+            &recovery,
+            &downstream,
+            &no_effect_profile,
+            &no_effect_facts,
+            &graph_profile,
+            &incomplete_graph_facts,
+        ));
+        assert_eq!(
+            result.downstream_evidence,
+            EvidenceVerdict::InsufficientEvidence
+        );
+        assert_eq!(
+            result.disposition,
+            CompositionDisposition::Hold(CompositionHold::DownstreamEvidenceNotConfirmed)
+        );
+
+        let mut contradictory_graph_facts = downstream_facts(&graph_profile);
+        contradictory_graph_facts.push(EvidenceFact {
+            claim_id: graph_profile.claim_id.clone(),
+            scope_commitment: graph_profile.scope_commitment,
+            evidence_id: "old-driver-command-observed".to_owned(),
+            source_id: "independent-driver-monitor".to_owned(),
+            failure_domain_id: "independent-driver-monitor-domain".to_owned(),
             source_kind: EvidenceSourceKind::IndependentObservation,
             relation: EvidenceRelation::Contradicts,
             current: true,
             scope_matches: true,
-            raw_evidence_commitment: evidence_commitment(57),
+            raw_evidence_commitment: evidence_commitment(61),
         });
         let result = assess_pre_native(&input(
             &recovery,
             &downstream,
-            &profile,
-            &contradictory,
+            &no_effect_profile,
+            &no_effect_facts,
+            &graph_profile,
+            &contradictory_graph_facts,
         ));
-        assert_eq!(result.evidence, EvidenceVerdict::Refuted);
+        assert_eq!(result.downstream_evidence, EvidenceVerdict::Refuted);
         assert_eq!(
             result.disposition,
-            CompositionDisposition::Hold(CompositionHold::EvidenceVerdictNotConfirmed)
-        );
-
-        let incomplete = vec![claim_fact(
-            &profile,
-            "controller-observation-only",
-            "read-only-controller-observer",
-        )];
-        let result = assess_pre_native(&input(&recovery, &downstream, &profile, &incomplete));
-        assert_eq!(result.evidence, EvidenceVerdict::InsufficientEvidence);
-        assert_eq!(
-            result.disposition,
-            CompositionDisposition::Hold(CompositionHold::EvidenceVerdictNotConfirmed)
+            CompositionDisposition::Hold(CompositionHold::DownstreamEvidenceNotConfirmed)
         );
     }
 
     #[test]
-    fn subject_support_alone_does_not_satisfy_the_independent_claim() {
+    fn no_effect_claim_requires_its_own_independent_confirmation() {
         let recovery = recovery_packet();
         let downstream = downstream_packet();
-        let profile = claim_profile();
+        let no_effect_profile = no_effect_profile();
+        let graph_profile = downstream_profile();
+        let graph_facts = downstream_facts(&graph_profile);
+
+        let mut contradictory_no_effect_facts = no_effect_facts(&no_effect_profile);
+        contradictory_no_effect_facts.push(EvidenceFact {
+            claim_id: no_effect_profile.claim_id.clone(),
+            scope_commitment: no_effect_profile.scope_commitment,
+            evidence_id: "observed-motion".to_owned(),
+            source_id: "independent-motion-observer".to_owned(),
+            failure_domain_id: "independent-motion-domain".to_owned(),
+            source_kind: EvidenceSourceKind::IndependentObservation,
+            relation: EvidenceRelation::Contradicts,
+            current: true,
+            scope_matches: true,
+            raw_evidence_commitment: evidence_commitment(62),
+        });
+        let result = assess_pre_native(&input(
+            &recovery,
+            &downstream,
+            &no_effect_profile,
+            &contradictory_no_effect_facts,
+            &graph_profile,
+            &graph_facts,
+        ));
+        assert_eq!(result.no_effect_evidence, EvidenceVerdict::Refuted);
+        assert_eq!(
+            result.disposition,
+            CompositionDisposition::Hold(CompositionHold::NoEffectEvidenceNotConfirmed)
+        );
+
+        let incomplete_no_effect_facts = vec![claim_fact(
+            &no_effect_profile,
+            "controller-observation-only",
+            "read-only-controller-observer",
+        )];
+        let result = assess_pre_native(&input(
+            &recovery,
+            &downstream,
+            &no_effect_profile,
+            &incomplete_no_effect_facts,
+            &graph_profile,
+            &graph_facts,
+        ));
+        assert_eq!(
+            result.no_effect_evidence,
+            EvidenceVerdict::InsufficientEvidence
+        );
+        assert_eq!(
+            result.disposition,
+            CompositionDisposition::Hold(CompositionHold::NoEffectEvidenceNotConfirmed)
+        );
+    }
+
+    #[test]
+    fn subject_support_alone_does_not_satisfy_the_no_effect_claim() {
+        let recovery = recovery_packet();
+        let downstream = downstream_packet();
+        let no_effect_profile = no_effect_profile();
+        let graph_profile = downstream_profile();
+        let graph_facts = downstream_facts(&graph_profile);
         let subject_only = vec![EvidenceFact {
-            claim_id: profile.claim_id.clone(),
-            scope_commitment: profile.scope_commitment,
+            claim_id: no_effect_profile.claim_id.clone(),
+            scope_commitment: no_effect_profile.scope_commitment,
             evidence_id: "subject-claim".to_owned(),
             source_id: "robot-self-report".to_owned(),
             failure_domain_id: "robot-under-test".to_owned(),
@@ -627,11 +810,21 @@ mod tests {
             scope_matches: true,
             raw_evidence_commitment: evidence_commitment(58),
         }];
-        let result = assess_pre_native(&input(&recovery, &downstream, &profile, &subject_only));
-        assert_eq!(result.evidence, EvidenceVerdict::InsufficientEvidence);
+        let result = assess_pre_native(&input(
+            &recovery,
+            &downstream,
+            &no_effect_profile,
+            &subject_only,
+            &graph_profile,
+            &graph_facts,
+        ));
+        assert_eq!(
+            result.no_effect_evidence,
+            EvidenceVerdict::InsufficientEvidence
+        );
         assert_eq!(
             result.disposition,
-            CompositionDisposition::Hold(CompositionHold::EvidenceVerdictNotConfirmed)
+            CompositionDisposition::Hold(CompositionHold::NoEffectEvidenceNotConfirmed)
         );
     }
 
@@ -645,9 +838,18 @@ mod tests {
         recovery.recovery_permit = None;
         recovery.next_ticket = None;
         let downstream = downstream_packet();
-        let profile = claim_profile();
-        let facts = facts(&profile);
-        let result = assess_pre_native(&input(&recovery, &downstream, &profile, &facts));
+        let no_effect_profile = no_effect_profile();
+        let no_effect_facts = no_effect_facts(&no_effect_profile);
+        let graph_profile = downstream_profile();
+        let graph_facts = downstream_facts(&graph_profile);
+        let result = assess_pre_native(&input(
+            &recovery,
+            &downstream,
+            &no_effect_profile,
+            &no_effect_facts,
+            &graph_profile,
+            &graph_facts,
+        ));
         assert_eq!(
             result.disposition,
             CompositionDisposition::PhysicalEffectAlreadyObservedNoRetry
@@ -666,9 +868,18 @@ mod tests {
         recovery.recovery_permit = None;
         recovery.next_ticket = None;
         let downstream = downstream_packet();
-        let profile = claim_profile();
-        let facts = facts(&profile);
-        let result = assess_pre_native(&input(&recovery, &downstream, &profile, &facts));
+        let no_effect_profile = no_effect_profile();
+        let no_effect_facts = no_effect_facts(&no_effect_profile);
+        let graph_profile = downstream_profile();
+        let graph_facts = downstream_facts(&graph_profile);
+        let result = assess_pre_native(&input(
+            &recovery,
+            &downstream,
+            &no_effect_profile,
+            &no_effect_facts,
+            &graph_profile,
+            &graph_facts,
+        ));
         assert_eq!(
             result.recovery,
             RecoveryDecision::EffectPredicateObservedPersistenceUnresolved
@@ -680,17 +891,27 @@ mod tests {
     }
 
     #[test]
-    fn indeterminate_persistence_cannot_be_overridden_by_graph_and_verdict_passes() {
+    fn indeterminate_persistence_cannot_be_overridden_by_graph_and_both_evidence_passes() {
         let mut recovery = recovery_packet();
         recovery.persistence =
             mobility_restart_reconciliation::PersistenceVerdict::IndeterminateCommit;
         let downstream = downstream_packet();
-        let profile = claim_profile();
-        let facts = facts(&profile);
-        let result = assess_pre_native(&input(&recovery, &downstream, &profile, &facts));
+        let no_effect_profile = no_effect_profile();
+        let no_effect_facts = no_effect_facts(&no_effect_profile);
+        let graph_profile = downstream_profile();
+        let graph_facts = downstream_facts(&graph_profile);
+        let result = assess_pre_native(&input(
+            &recovery,
+            &downstream,
+            &no_effect_profile,
+            &no_effect_facts,
+            &graph_profile,
+            &graph_facts,
+        ));
         assert_eq!(
             result.disposition,
             CompositionDisposition::Hold(CompositionHold::RecoveryAssessmentHeld)
         );
     }
+
 }
