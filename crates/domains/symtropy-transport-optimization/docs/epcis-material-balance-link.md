@@ -134,7 +134,7 @@ P2 physical validation:
 
 GS1 EPCIS/CBV 2.0.1 publishes normative schemas, JSON-LD/ontology artefacts and event semantics. Its AggregationEvent already distinguishes ADD, incomplete OBSERVE and DELETE-all; its TransformationEvent already defines unordered, many-to-many input/output contribution and shared transformationID groups. The implementation must remain loss-aware and must not claim that parsing or passing a private fixture suite is GS1 certification.
 
-DCSA Track & Trace 2.2 already defines interoperable shipment, transport, equipment and related visibility events and provides an official implementation guide, reference implementation, conformance tool and sandbox. The strategy is to adopt DCSA's event language and pass its conformance tests, not create a competing event taxonomy or claim that our adapter supersedes DCSA.
+DCSA Track & Trace 2.2 already defines interoperable shipment, transport, equipment and related visibility events and provides an official implementation guide, reference implementation, conformance framework and hosted sandbox. The strategy is to adopt DCSA's event language and use its official conformance process, not create a competing event taxonomy or claim that our adapter supersedes DCSA. DCSA states that a conformance certification is specific to the tested standard version, role, module and scope; it does not cover an entire product, prove that it is live in production, or transfer automatically to another major version. The public DCSA Track & Trace consumer certification toolkit repository is explicitly marked pre-alpha and says it must not be used to establish conformance; do not treat it as a substitute for the hosted suite.
 
 Operational comparators have different jobs:
 - **Kaleris N4** is a terminal operating system integrating vessel, yard, rail, gate and control-room workflows. Its 2026 Yard Intelligence Suite extends yard planning/optimization. We should integrate with the TOS and measure evidence quality across the boundary, not replace dispatch or terminal execution.
@@ -195,6 +195,9 @@ The benchmark should compete on false-accept prevention, exact-scope binding, tr
 
 - GS1 EPCIS/CBV 2.0.1 normative artefacts: https://ref.gs1.org/standards/epcis/2.0.1/artefacts
 - GS1 TransformationEvent model: https://ref.gs1.org/epcis/TransformationEvent
+- DCSA official conformance scope and hosted suite: https://dcsa.org/standard-conformance
+- DCSA Track & Trace 2.2 implementation guide: https://reference.dcsa.org/content/standards/guidelines/implementation-guides/implementing-track-and-trace
+- DCSA Track & Trace certification toolkit (pre-alpha; not a conformance authority): https://github.com/dcsaorg/DCSA-Certification-ToolKit-API-Consumer
 - GS1 Global Traceability Standard and CTE/KDE framework: https://support.gs1.org/support/solutions/articles/43000734535-what-is-the-gs1-traceability-standard-
 - NIST metrological traceability policy: https://www.nist.gov/metrology/metrological-traceability
 - MATERIAL-ACCOUNTED-ROUTES-001A: https://github.com/Luminous-Dynamics/symtropy/issues/5879
