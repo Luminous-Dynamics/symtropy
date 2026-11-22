@@ -170,3 +170,19 @@ New comparison artifacts:
 - `spin2_sota_reference_metrics_v1.json`: structured reference metrics and explicit problem-class caveats.
 
 The updated strategy separates (i) 5D/7D full nonlinear Lovelock, (ii) 4D Kerr at leading EFT coupling with generic spin, and (iii) the current 5D (O(a^2)) perturbative global map/sensitivity. It adds a sensitivity-carrying, proof-producing continuation target rather than one residual-only leaderboard. No cross-track superiority claim is made.
+
+
+## Boundary-map coordinate invariance and metric-aware conditioning (22 November 2026)
+
+A new exact-rational metamorphic qualification found that raw Euclidean conditioning is basis-dependent even when the physical boundary map is unchanged. Under nonsingular horizon and asymptotic coordinate changes, \(\widetilde J=RJS^{-1}\): rank/nullity are invariant, while determinant magnitude and Euclidean singular values are not. For the current \(J_0=\operatorname{diag}(1/2,2)\), output rescaling alone produces condition number 1 or 16 instead of 4 without changing the solution problem.
+
+New artifacts:
+- \`spin2_boundary_map_normalization_v1.md\`: transformation law, weighted/generalized singular values, coupling-dependent basis derivative, and reporting contract.
+- \`verify_spin2_boundary_map_normalization.py\`: standard-library-only exact-rational metamorphic verifier.
+- \`spin2_boundary_map_normalization_replay_v1.json\`: exact public Git-blob replay receipt.
+
+The verifier was fetched by public Git blob SHA and executed locally byte-for-byte. It passed determinant covariance, the full first-order basis-transport derivative, and generalized singular-value invariance when the domain/range metrics are transformed with the coordinate bases. It also demonstrated that the raw Euclidean condition number can change from 4 to 1 or 16 by output scaling alone.
+
+This does not invalidate the exact Einstein-limit full-rank result. It narrows interpretation: \(\kappa_2=4\) is the correct value in the published raw coordinates, not an invariant physical conditioning value. Future finite-coupling continuation must record the raw map, freeze declared endpoint metrics before a parameter sweep, and report metric-aware conditioning separately from rank/invertibility.
+
+Claim ceiling: coordinate-covariance identities only; no calculation of the missing \(J_1\), finite-coupling BVP, interval existence theorem, or hyperbolicity result is established by this increment.
