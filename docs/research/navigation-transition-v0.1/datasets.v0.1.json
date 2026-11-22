@@ -282,6 +282,55 @@
       },
       "admission_scope": "none",
       "notes": "Zenodo record v2.0 published 2023-08-25; explicit CC BY 4.0 licence. The source archive data_set.zip is 4.4 GB; Zenodo records upstream MD5 030cce5aadeab7b1b3dbd6901a49bfc2, which is not a SHA-256 payload commitment and must not be substituted for one. The dataset contains four indoor environments, eight fixed DW1000 anchors and one mobile tag. Raw per-environment/per-anchor/per-channel CSV data include NLOS labels, range, first-path index, RSS/RSS_FP, first-path and early-path features, noise metrics, channel metadata and accumulated CIR samples. The predefined tag/reference positions support controlled indoor ranging/localization experiments, but this is not a motion-capture trajectory ground truth or a multi-UAV swarm dataset. Zenodo v1 (record 7629141) has different CC BY-NC-SA terms; this candidate is specifically v2.0 at record 8280736 under CC BY 4.0. Payload files have not yet been downloaded, independently inventoried or SHA-256 hashed. Time-base semantics, anchor survey provenance, calibration lineage, NLOS label construction, environment IDs and a leakage-resistant environment-held-out split require review. Remains candidate_not_admitted with admission_scope none."
+    },
+    {
+      "dataset_id": "twr-cloud-bern-v6",
+      "name": "TWR-CLOUD-Bern cooperative UWB ranging and localization dataset (Zenodo Version 6)",
+      "domain": "indoor_cooperative",
+      "source_url": "https://doi.org/10.5281/zenodo.23434390",
+      "status": "candidate_not_admitted",
+      "snapshot": {
+        "immutable": false,
+        "release_tag": "Zenodo-v6-2026-10-17",
+        "repository_commit": null,
+        "file_sha256": []
+      },
+      "rights": {
+        "license_id": "UNKNOWN",
+        "status": "unknown",
+        "scope": "unknown",
+        "evidence_url": "https://zenodo.org/records/23434390",
+        "research_use": "unknown",
+        "commercial_use": "unknown",
+        "redistribution": "unknown"
+      },
+      "metadata": {
+        "time_basis_status": "partial",
+        "spatial_reference_status": "partial",
+        "calibration_status": "partial",
+        "ground_truth_status": "partial",
+        "split_basis": "scan_id",
+        "train_group_ids": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "10",
+          "11"
+        ],
+        "test_group_ids": [
+          "12"
+        ],
+        "split_sha256": null,
+        "clock_state_truth_status": "not_provided"
+      },
+      "admission_scope": "none",
+      "notes": "Version 6 is the current source snapshot (Zenodo record 23434390, published 2026-10-17). It corrects device-to-surveyed-position assignments in training scans 5, 6 and 7; 44,280 rows and 191,514 values change across the four measurement/statistics tables. The publisher states all 386,033 evaluation rows, all 148,260 evaluation scenarios and the official scorer remain unchanged. Do not mix training data or results from earlier releases with v6. Dataset comprises 40 Raspberry Pi Zero 2W nodes with Qorvo DWM3001CDK/DWM3001C IEEE 802.15.4z UWB modules, an approximately 500 m2 indoor environment and 170 surveyed positions. Twelve scans comprise 11 training scans and one held-out scan using entirely unseen positions. Provides responder/poller four-message TWR measurement tables and one-second statistics; approximately 2.1M responder-side and 1.9M poller-side measurements, timestamps, node/position IDs, ToF/range and protocol-stage success/failure data. Unscheduled and unsynchronized node operation produces realistic contention/collision effects; responder-side results include successful calculations even where the fourth message was not delivered to the poller. Official evaluation supports anchor-free cooperative, anchor-aided cooperative and anchor-only positioning, with 148,260 scenarios and variations in anchor/agent counts, single versus 10-sample ranges and initial positions. UWB channel 5; documented profile lists STS OFF. No raw CIR/waveform data are present; this is not a continuous robot/UAV trajectory benchmark and cannot establish CIR-classifier, STS-security or mission-level rare-event claims. Zenodo labels the record Open but the Version 6 Rights/License field is blank in the reviewed metadata and the technical website provides no explicit payload licence. Obtain written author/publisher confirmation for research, commercial, derivative and redistribution rights before payload use or redistribution. No payload files have been downloaded, inventoried, SHA-256 hashed or admitted. Publisher MD5 values are secondary metadata only and never substitute for SHA-256 commitments. Keep candidate_not_admitted and admission_scope none until rights, exact v6 file inventory/hashes, decoded-data reconciliation, time/frame/ground-truth review and controller/evaluator isolation pass. Generated scenarios from the single held-out scan are dependent cases, not independent missions or rare-event trials."
     }
   ]
 }
