@@ -54,8 +54,6 @@ pub struct MaterialBalanceCaseBinding {
     pub output_ref: String,
     /// Expected immutable owner evidence digest for this exact process + lot set.
     pub expected_receipt_source_digest: String,
-    /// Version/reference identifying the external evaluator contract.
-    pub owner_evaluator_ref: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -83,6 +81,9 @@ pub enum OwnerDigestQualification {
     /// A well-formed SHA-256 string matched the expected reference.
     /// This is not a signature check or proof that the bytes were retrieved.
     ShapeAndReferenceMatchedOnly,
+    /// A well-formed digest did not match the exact digest pinned by the case.
+    ShapeValidReferenceMismatch,
+    Malformed,
     Missing,
 }
 
@@ -149,12 +150,26 @@ impl MaterialBalanceLinkDecision {
         owner_receipt_ref: Option<String>,
         source_event_count: usize,
     ) -> Self {
+        Self::blocked_with_digest(
+            reason,
+            owner_receipt_ref,
+            source_event_count,
+            OwnerDigestQualification::Missing,
+        )
+    }
+
+    fn blocked_with_digest(
+        reason: MaterialBalanceLinkReason,
+        owner_receipt_ref: Option<String>,
+        source_event_count: usize,
+        digest_qualification: OwnerDigestQualification,
+    ) -> Self {
         Self::new(
             MaterialBalanceLinkDisposition::Blocked,
             Some(reason),
             owner_receipt_ref,
             source_event_count,
-            OwnerDigestQualification::Missing,
+            digest_qualification,
         )
     }
 
@@ -203,8 +218,7 @@ fn validate_group(group: &TransformationGroupEvidence) -> Option<MaterialBalance
         return Some(MaterialBalanceLinkReason::EventLocalGroupHasMultipleEvents);
     }
 
-    let mut event_keys = BTreeSet::new();
-    let mut event_revisions = BTreeSet::new();
+    let mut event_revisions = std::collections::BTreeMap::new();
     for event in &group.effective_source_events {
         if !valid_text(&event.source_id) || !valid_text(&event.source_event_id) {
             return Some(MaterialBalanceLinkReason::InvalidSourceEventIdentity);
@@ -216,11 +230,14 @@ fn validate_group(group: &TransformationGroupEvidence) -> Option<MaterialBalance
             return Some(MaterialBalanceLinkReason::InvalidSourcePayloadDigest);
         }
         let key = (event.source_id.as_str(), event.source_event_id.as_str());
-        if !event_keys.insert(key) {
-            return Some(MaterialBalanceLinkReason::DuplicateSourceEventRevision);
-        }
-        if !event_revisions.insert((event.source_id.as_str(), event.source_event_id.as_str(), event.revision)) {
-            return Some(MaterialBalanceLinkReason::ConflictingSourceEventRevision);
+        match event_revisions.insert(key, event.revision) {
+            Some(previous_revision) if previous_revision == event.revision => {
+                return Some(MaterialBalanceLinkReason::DuplicateSourceEventRevision);
+            }
+            Some(_) => {
+                return Some(MaterialBalanceLinkReason::ConflictingSourceEventRevision);
+            }
+            None => {}
         }
     }
     None
@@ -237,7 +254,6 @@ fn validate_case_binding(
         (case.process_ref.as_str(), "process_ref"),
         (case.input_lot_set_ref.as_str(), "input_lot_set_ref"),
         (case.output_ref.as_str(), "output_ref"),
-        (case.owner_evaluator_ref.as_str(), "owner_evaluator_ref"),
     ] {
         if !valid_text(value) {
             return Some(MaterialBalanceLinkReason::MissingCaseBinding(field));
@@ -346,17 +362,19 @@ pub fn qualify_transformation_mass_balance_link(
                 );
             }
             if !valid_sha256(&receipt.source_digest) {
-                return MaterialBalanceLinkDecision::blocked(
+                return MaterialBalanceLinkDecision::blocked_with_digest(
                     MaterialBalanceLinkReason::OwnerReceiptDigestMalformed,
                     receipt_ref,
                     source_event_count,
+                    OwnerDigestQualification::Malformed,
                 );
             }
             if receipt.source_digest != case.expected_receipt_source_digest {
-                return MaterialBalanceLinkDecision::blocked(
+                return MaterialBalanceLinkDecision::blocked_with_digest(
                     MaterialBalanceLinkReason::OwnerReceiptDigestMismatch,
                     receipt_ref,
                     source_event_count,
+                    OwnerDigestQualification::ShapeValidReferenceMismatch,
                 );
             }
 
@@ -378,16 +396,18 @@ pub fn qualify_transformation_mass_balance_link(
                     )
                 }
                 "EXACT_UNBALANCED" | "IMPOSSIBLE_WITHIN_BOUNDS" | "INVALID" => {
-                    MaterialBalanceLinkDecision::blocked(
+                    MaterialBalanceLinkDecision::blocked_with_digest(
                         MaterialBalanceLinkReason::OwnerStatusBlocked,
                         receipt_ref,
                         source_event_count,
+                        digest_qualification,
                     )
                 }
-                _ => MaterialBalanceLinkDecision::blocked(
+                _ => MaterialBalanceLinkDecision::blocked_with_digest(
                     MaterialBalanceLinkReason::UnsupportedOwnerStatus,
                     receipt_ref,
                     source_event_count,
+                    digest_qualification,
                 ),
             }
         }
@@ -434,7 +454,6 @@ mod tests {
             input_lot_set_ref: "urn:example:lot-set:42".to_string(),
             output_ref: "urn:example:output-set:42".to_string(),
             expected_receipt_source_digest: "c".repeat(64),
-            owner_evaluator_ref: "MATERIAL-ACCOUNTED-ROUTES-001A@v0.1".to_string(),
         }
     }
 
@@ -639,6 +658,43 @@ mod tests {
             qualify_transformation_mass_balance_link(&invalid, &case(), &[receipt("EXACT_BALANCED")]).reason,
             Some(MaterialBalanceLinkReason::EventLocalGroupHasMultipleEvents)
         );
+    }
+
+    #[test]
+    fn same_source_event_with_different_revisions_is_a_conflict() {
+        let mut group = group();
+        group.effective_source_events[1].source_id = group.effective_source_events[0].source_id.clone();
+        group.effective_source_events[1].source_event_id =
+            group.effective_source_events[0].source_event_id.clone();
+        group.effective_source_events[1].revision = 3;
+        assert_eq!(
+            qualify_transformation_mass_balance_link(
+                &group,
+                &case(),
+                &[receipt("EXACT_BALANCED")]
+            )
+            .reason,
+            Some(MaterialBalanceLinkReason::ConflictingSourceEventRevision)
+        );
+    }
+
+    #[test]
+    fn blocked_owner_status_retains_well_formed_digest_qualification() {
+        let decision = evaluate("EXACT_UNBALANCED");
+        assert_eq!(
+            decision.digest_qualification,
+            OwnerDigestQualification::ShapeAndReferenceMatchedOnly
+        );
+    }
+
+    #[test]
+    fn digest_shape_and_reference_are_not_claimed_as_authentication() {
+        let decision = evaluate("EXACT_BALANCED");
+        assert_eq!(
+            decision.digest_qualification,
+            OwnerDigestQualification::ShapeAndReferenceMatchedOnly
+        );
+        assert!(decision.claim_ceiling.contains("NO_PHYSICAL"));
     }
 
     #[test]
