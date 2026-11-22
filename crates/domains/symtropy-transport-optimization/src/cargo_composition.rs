@@ -699,7 +699,6 @@ fn apply_composition_batch(
                         child_module_id: child_module_id.clone(),
                     };
                     if candidate.remove(&membership) {
-                        disaggregation_count = disaggregation_count.saturating_add(0);
                         retracted_count += 1;
                     }
                     None
