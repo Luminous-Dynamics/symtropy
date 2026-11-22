@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 "use strict";
 
-const fs = require("node:fs");
+import fs from "node:fs";
 const MASK64 = (1n << 64n) - 1n;
 const SPLIT_INCREMENT = 0x9E3779B97F4A7C15n;
 const MIX1 = 0xBF58476D1CE4E5B9n;
