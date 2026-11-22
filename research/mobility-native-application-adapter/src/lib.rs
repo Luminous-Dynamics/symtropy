@@ -1,3 +1,6 @@
+// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Proof-carrying composition of the existing mobility action owners.
 //!
 //! This crate does not implement a scheduler, authority system, controller,
