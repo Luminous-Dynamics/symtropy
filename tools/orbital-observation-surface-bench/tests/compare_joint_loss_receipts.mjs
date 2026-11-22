@@ -1,11 +1,69 @@
 import fs from "node:fs";
 import assert from "node:assert/strict";
 function fail(message) { throw new Error(message); }
+function rationalCompare(a,b) {
+  const left = BigInt(a.numerator) * BigInt(b.denominator);
+  const right = BigInt(b.numerator) * BigInt(a.denominator);
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+function serializedDominates(left,right,rectangular) {
+  const regretKey = rectangular ? "worst_case_rectangular_regret" : "worst_case_joint_regret";
+  const dimensions = [
+    rationalCompare(left.worst_case_loss,right.worst_case_loss),
+    rationalCompare(left[regretKey],right[regretKey]),
+    left.cost.reference_trials - right.cost.reference_trials,
+    left.cost.exposure_micro_units - right.cost.exposure_micro_units,
+    left.cost.elapsed_millis - right.cost.elapsed_millis
+  ];
+  return dimensions.every(value=>value<=0) && dimensions.some(value=>value<0);
+}
+function recomputeFrontier(metrics,rectangular) {
+  return metrics.filter(candidate=>!metrics.some(other=>
+    other.action_id!==candidate.action_id && serializedDominates(other,candidate,rectangular)
+  )).map(metric=>metric.action_id);
+}
+function emitFrontierDiagnostics(receipt,oracle) {
+  const oracleCases = new Map(oracle.cases.map(item=>[item.case_id,item]));
+  for (const actualCase of receipt.cases) {
+    const expectedCase = oracleCases.get(actualCase.case_id);
+    if (!expectedCase || !actualCase.action_metrics.length) continue;
+    const rustJoint = actualCase.joint_scenario_pareto_frontier_action_ids;
+    const jsJoint = expectedCase.joint_scenario_pareto_frontier_action_ids;
+    const recomputedRustJoint = recomputeFrontier(actualCase.action_metrics,false);
+    const recomputedJsJoint = recomputeFrontier(expectedCase.action_metrics,false);
+    const rustRect = actualCase.rectangular_pareto_frontier_action_ids;
+    const jsRect = expectedCase.rectangular_pareto_frontier_action_ids;
+    const recomputedRustRect = recomputeFrontier(actualCase.action_metrics,true);
+    const recomputedJsRect = recomputeFrontier(expectedCase.action_metrics,true);
+    const changedMetrics = actualCase.action_metrics.map(metric=>{
+      const expectedMetric=expectedCase.action_metrics.find(item=>item.action_id===metric.action_id);
+      if (!expectedMetric) return {action_id:metric.action_id,missing_in_oracle:true};
+      const fields=["worst_case_loss","worst_case_joint_regret","worst_case_rectangular_regret","cost"];
+      const mismatches=fields.filter(field=>JSON.stringify(metric[field])!==JSON.stringify(expectedMetric[field]));
+      return mismatches.length ? {action_id:metric.action_id,mismatched_fields:mismatches,rust:Object.fromEntries(mismatches.map(k=>[k,metric[k]])),js:Object.fromEntries(mismatches.map(k=>[k,expectedMetric[k]]))} : null;
+    }).filter(Boolean);
+    if (JSON.stringify(rustJoint)!==JSON.stringify(jsJoint) ||
+        JSON.stringify(rustRect)!==JSON.stringify(jsRect) ||
+        JSON.stringify(rustJoint)!==JSON.stringify(recomputedRustJoint) ||
+        JSON.stringify(jsJoint)!==JSON.stringify(recomputedJsJoint) ||
+        changedMetrics.length) {
+      process.stderr.write(JSON.stringify({
+        case_id:actualCase.case_id,
+        rust_frontier:{joint:rustJoint,rectangular:rustRect},
+        js_frontier:{joint:jsJoint,rectangular:jsRect},
+        recomputed_from_rust_metrics:{joint:recomputedRustJoint,rectangular:recomputedRustRect},
+        recomputed_from_js_metrics:{joint:recomputedJsJoint,rectangular:recomputedJsRect},
+        changedMetrics
+      })+"\n");
+    }
+  }
+}
 try {
   const [receiptPath, oraclePath] = process.argv.slice(2);
   if (!receiptPath || !oraclePath) fail("usage: compare_joint_loss_receipts.mjs <rust-receipt.json> <oracle.json>");
   const receipt = JSON.parse(fs.readFileSync(receiptPath,"utf8"));
   const oracle = JSON.parse(fs.readFileSync(oraclePath,"utf8"));
+  emitFrontierDiagnostics(receipt,oracle);
   if (receipt.receipt_schema !== "luminous.orbital-joint-loss-scenario.receipt.v0.1") fail("unexpected joint-loss receipt schema");
   if (!/^[0-9a-f]{40}$/.test(receipt.source_commit ?? "")) fail("receipt is not pinned to a full source commit");
   if (!/^[0-9a-f]{64}$/.test(receipt.corpus_sha256 ?? "")) fail("receipt lacks corpus SHA-256");
