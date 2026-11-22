@@ -9,6 +9,12 @@
 
 use std::fmt;
 
+mod design_decision;
+pub use design_decision::{
+    certify_maximum_utility, DominanceDecision, DominanceUnresolvedReason,
+    PortfolioUtilityInterval, UtilityBoundEvidence,
+};
+
 mod detector;
 pub use detector::DetectorResponseMatrix;
 
