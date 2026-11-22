@@ -93,12 +93,14 @@ The Rust evaluator at \`tools/ev-passenger-cost-frontier/src/mobility_flexibilit
 - binds each per-slot non-charging load to the site-meter receipt and each per-slot charging load to the exact charging-queue report reference;
 - checks unique resource IDs, scenario IDs, reserve receipt IDs and contiguous slot indices;
 - computes resource-specific residual energy and residual power for each scenario;
-- evaluates one caller-supplied discharge profile against cumulative energy, per-slot power and PCC import/export constraints;
+- requires a caller-supplied per-resource/per-slot discharge allocation and a site-level PCC profile that reconciles exactly to the sum of those allocations;
+- checks each resource's own cumulative energy budget and every resource/slot power ceiling before checking the aggregate PCC import/export constraints;
+- reports per-resource energy and per-resource/slot power margins so cross-asset pooling cannot hide an infeasible pack;
 - emits reason-coded findings and deterministic output ordering;
 - includes an independent arithmetic reference used to compare 625 four-slot candidate power profiles against the implementation;
 - never grants dispatch or export authority.
 
-The 625-profile comparison and 253/372 split are test definitions only until the current PR head executes them.
+The 625-profile comparison and 158/467 split are test definitions only until the current PR head executes them.
 
 The fixture deliberately uses synthetic evidence. Its two stationary storage descriptors sum to 4,000 Wh and 5,500 W of lower-bound capability. The most demanding reserve scenario leaves a 2,000 Wh horizon budget. The proposed 15-minute profile consumes 1,875 Wh, leaving 125 Wh of modelled energy margin. Its requested power remains inside the worst-case per-slot power envelope, and the PCC profile remains an import-reduction case with no export permission.
 
@@ -243,8 +245,8 @@ The business case must not include SAWEM or export revenue merely because an opt
 
 ### v0.3 — exact small-instance dispatch oracle
 
-- enumerate per-resource dispatch allocations, not just site aggregates;
-- compare greedy, MPC, MILP/robust and DRO schedules against the same exact cases;
+- compare greedy, MPC, MILP/robust and DRO schedulers against exact small-instance resource allocations;
+- measure the opportunity cost of conservative reserve allocation and quantify when reconfiguration or pack relocation restores otherwise stranded flexibility;
 - include demand response by charging deferral as a separate service from storage discharge;
 - add common-cause resource groups and deterministic conflict detection.
 
