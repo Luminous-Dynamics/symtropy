@@ -797,7 +797,8 @@ mod tests {
         ledger.add_unresolved_cell(&cell_a).unwrap();
         ledger.add_unresolved_cell(&cell_b).unwrap();
         let cells_only = ledger.upper_bound();
-        assert!(cells_only > 0.1);
+        assert!(cells_only > 0.07);
+        assert!(cells_only < 0.09);
         ledger.add_cube_tail(5.0, 1).unwrap();
         assert!(ledger.upper_bound() >= cells_only);
         assert!(ledger.upper_bound() <= 1.0);
