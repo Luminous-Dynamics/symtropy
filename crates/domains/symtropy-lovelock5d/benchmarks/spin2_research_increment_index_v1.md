@@ -276,3 +276,16 @@ Artifacts:
 The public source blob SHA-1 is \`1c87297c407ed288ef521b685985ba9352370b07\`; its SHA-256 was independently recomputed locally as \`3d1d30e290c3bffa410075fbce84659081be2e3073225c24490f584fc297d88c\`, matching the source digest embedded in the numerical fixture. This is a local replay, not a GitHub Actions pass.
 
 This reduces risk in the dilogarithmic endpoint calculation. It does not verify the action-row source or establish finite-\(\lambda\) BVP existence.
+
+
+## Second solver backend: 4D Kerr source-to-metric reconstruction (22 November 2026)
+
+Opened [#6891 BH-4D-KERR-SOURCE-RECONSTRUCTION-001](https://github.com/Luminous-Dynamics/symtropy/issues/6891) to reproduce a distinct perturbative 4D route from Li, Hu & Yunes, arXiv:2610.37515 (27 October 2026). The target is the composition:
+\[
+\text{conserved EFT source}
+\rightarrow \text{stationary Teukolsky curvature}
+\rightarrow \text{universal Newman--Penrose reconstruction}
+\rightarrow \text{independent linearized Einstein-equation verifier}.
+\]
+
+This is separate from nonlinear 5D equal-spin EGB and only applies at the stated leading order around Kerr. The new task freezes conservation, tetrad, reflection, horizon/asymptotic charge completion and no-mode-decomposition controls. It is a portfolio expansion, not evidence that the 5D task is complete.
