@@ -77,10 +77,31 @@ jobs:
       - name: Run independent JavaScript conditional GOF oracle
         run: node tools/orbital-reliability-plp-gof-bench/tests/reference_oracle.mjs tools/orbital-reliability-plp-gof-bench/fixtures/v0.1/plp-gof-cases.json
 
-      - name: Upload reproducible conditional GOF receipt
+      - name: Run outer null-calibration smoke study
+        run: node tools/orbital-reliability-plp-gof-bench/tests/outer_null_calibration.mjs > orbital-plp-outer-null-calibration.json
+
+      - name: Validate outer calibration receipt boundaries
+        run: |
+          jq -e '
+            .schema == "luminous.orbital-plp-outer-null-calibration.v0.1"
+            and .evidence_class == "synthetic"
+            and .study_kind == "deterministic_outer_null_calibration_smoke_study"
+            and .outer_replicates_per_beta == 250
+            and .inner_conditional_replicates == 999
+            and (.scenarios | length) == 3
+            and (.scenarios | all(.rejection_rates["0.01"].trials == 250 and .rejection_rates["0.05"].trials == 250 and .rejection_rates["0.1"].trials == 250))
+            and .calibrated_for_all_sample_sizes_or_alternatives == false
+            and .physical_reliability_claim_granted == false
+            and .qualification_granted == false
+            and .authority_granted == false
+          ' orbital-plp-outer-null-calibration.json
+
+      - name: Upload reproducible conditional GOF and calibration receipts
         uses: actions/upload-artifact@v4
         with:
           name: orbital-plp-conditional-gof-${{ github.event.pull_request.head.sha || github.sha }}
-          path: orbital-plp-conditional-gof-receipt.json
+          path: |
+            orbital-plp-conditional-gof-receipt.json
+            orbital-plp-outer-null-calibration.json
           if-no-files-found: error
           retention-days: 30
