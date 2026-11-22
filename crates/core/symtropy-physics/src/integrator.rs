@@ -413,8 +413,11 @@ mod tests {
 
         let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 1.0);
         body.set_rotational_inertia_operator(
-            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::<f64, 3>::new(2.0, 1.0, 0.5))
-                .unwrap(),
+            BivectorInertia::<3>::uniform_solid_ellipsoid(
+                1.0,
+                SVector::<f64, 3>::new(2.0, 1.0, 0.5),
+            )
+            .unwrap(),
         );
         body.angular_damping = 0.0;
         body.angular_velocity.set(0, 1, 0.7);
@@ -501,8 +504,11 @@ mod tests {
 
         let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 1.0);
         body.set_rotational_inertia_operator(
-            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::<f64, 3>::new(2.0, 1.0, 0.5))
-                .unwrap(),
+            BivectorInertia::<3>::uniform_solid_ellipsoid(
+                1.0,
+                SVector::<f64, 3>::new(2.0, 1.0, 0.5),
+            )
+            .unwrap(),
         );
         body.transform.rotation = Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 1), 0.43);
 
@@ -788,7 +794,8 @@ mod tests {
         let force_before = body.force_accumulator.clone();
         let torque_before = body.torque_accumulator.clone();
 
-        let error = try_integrate(&mut body, &SVector::<f64, 3>::new(0.0, -9.81, 0.0), 0.01).unwrap_err();
+        let error =
+            try_integrate(&mut body, &SVector::<f64, 3>::new(0.0, -9.81, 0.0), 0.01).unwrap_err();
         assert_eq!(error, RotationalInertiaError::SingularInertia);
         assert_eq!(body.transform.translation.0, position_before);
         assert_eq!(body.linear_velocity, linear_before);
@@ -839,9 +846,11 @@ mod tests {
             .and_then(BivectorInertia::total_mass);
         assert_eq!(original_mass_metadata, Some(1.0));
 
-        let mismatched =
-            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::<f64, 3>::new(1.0, 0.8, 0.6))
-                .unwrap();
+        let mismatched = BivectorInertia::<3>::uniform_solid_ellipsoid(
+            2.0,
+            SVector::<f64, 3>::new(1.0, 0.8, 0.6),
+        )
+        .unwrap();
         assert_eq!(
             body.try_set_rotational_inertia_operator(mismatched.clone()),
             Err(RotationalInertiaError::MassMismatch)
