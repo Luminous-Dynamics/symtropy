@@ -13,6 +13,136 @@
 
 use crate::KernelError;
 
+/// Which half of a split cell a child represents.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CellSide {
+    /// Child containing the lower half of the split axis.
+    Left,
+    /// Child containing the upper half of the split axis.
+    Right,
+}
+
+/// One deterministic longest-axis subdivision step.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CoverageSplit {
+    /// Axis split by the deterministic subdivision rule.
+    pub axis: usize,
+    /// Side represented by this child.
+    pub side: CellSide,
+}
+
+/// A finite closed axis-aligned cell used by the residual-mass coverage search.
+///
+/// The split path is stable for a fixed root cell and deterministic longest-axis
+/// policy. This structure stores geometry only; it does not attach a probability
+/// mass, classification, or qualification claim to the cell.
+#[derive(Debug, Clone, PartialEq)]
+pub struct CoverageCell {
+    lower: Vec<f64>,
+    upper: Vec<f64>,
+    path: Vec<CoverageSplit>,
+}
+
+impl CoverageCell {
+    /// Construct a finite closed axis-aligned cell.
+    pub fn new(lower: Vec<f64>, upper: Vec<f64>) -> Result<Self, KernelError> {
+        if lower.is_empty() || upper.is_empty() {
+            return Err(KernelError::EmptyDimension);
+        }
+        if lower.len() != upper.len() {
+            return Err(KernelError::DimensionMismatch);
+        }
+        for (axis_lower, axis_upper) in lower.iter().zip(upper.iter()) {
+            Interval::new(*axis_lower, *axis_upper)?;
+        }
+        Ok(Self {
+            lower,
+            upper,
+            path: Vec::new(),
+        })
+    }
+
+    /// Return the cell's lower coordinate vector.
+    pub fn lower(&self) -> &[f64] {
+        &self.lower
+    }
+
+    /// Return the cell's upper coordinate vector.
+    pub fn upper(&self) -> &[f64] {
+        &self.upper
+    }
+
+    /// Return the deterministic split path from the root cell.
+    pub fn path(&self) -> &[CoverageSplit] {
+        &self.path
+    }
+
+    /// Split the cell along its longest axis, breaking ties toward the lowest
+    /// axis index. Returns None when no representable interior midpoint exists.
+    ///
+    /// The two closed child cells share the split boundary and together cover
+    /// the parent exactly. Their intersection is a measure-zero face for a
+    /// nondegenerate continuous Gaussian measure.
+    pub fn split_longest_axis(&self) -> Result<Option<(Self, Self)>, KernelError> {
+        let mut selected_axis = 0;
+        let mut selected_half_width = -1.0_f64;
+
+        for (axis, (lower, upper)) in self.lower.iter().zip(self.upper.iter()).enumerate() {
+            let half_width = 0.5 * *upper - 0.5 * *lower;
+            if !half_width.is_finite() {
+                return Err(KernelError::NumericalOverflow);
+            }
+            if half_width > selected_half_width {
+                selected_half_width = half_width;
+                selected_axis = axis;
+            }
+        }
+
+        if selected_half_width <= 0.0 {
+            return Ok(None);
+        }
+
+        let lower_endpoint = self.lower[selected_axis];
+        let upper_endpoint = self.upper[selected_axis];
+        let midpoint = 0.5 * lower_endpoint + 0.5 * upper_endpoint;
+        if !midpoint.is_finite() {
+            return Err(KernelError::NumericalOverflow);
+        }
+        if midpoint <= lower_endpoint || midpoint >= upper_endpoint {
+            return Ok(None);
+        }
+
+        let mut left_upper = self.upper.clone();
+        left_upper[selected_axis] = midpoint;
+        let mut right_lower = self.lower.clone();
+        right_lower[selected_axis] = midpoint;
+
+        let mut left_path = self.path.clone();
+        left_path.push(CoverageSplit {
+            axis: selected_axis,
+            side: CellSide::Left,
+        });
+        let mut right_path = self.path.clone();
+        right_path.push(CoverageSplit {
+            axis: selected_axis,
+            side: CellSide::Right,
+        });
+
+        Ok(Some((
+            Self {
+                lower: self.lower.clone(),
+                upper: left_upper,
+                path: left_path,
+            },
+            Self {
+                lower: right_lower,
+                upper: self.upper.clone(),
+                path: right_path,
+            },
+        )))
+    }
+}
+
 /// A closed finite interval with outward-rounded endpoints.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Interval {
@@ -358,6 +488,54 @@ mod tests {
                 assert!(bound <= sampled_norm);
             }
         }
+    }
+
+    #[test]
+    fn coverage_cell_splits_longest_axis_and_preserves_union() {
+        let cell = CoverageCell::new(vec![-1.0, -2.0], vec![1.0, 2.0]).unwrap();
+        let (left, right) = cell.split_longest_axis().unwrap().unwrap();
+
+        assert_eq!(left.lower(), &[-1.0, -2.0]);
+        assert_eq!(left.upper(), &[1.0, 0.0]);
+        assert_eq!(right.lower(), &[-1.0, 0.0]);
+        assert_eq!(right.upper(), &[1.0, 2.0]);
+        assert_eq!(left.path()[0].axis, 1);
+        assert_eq!(left.path()[0].side, CellSide::Left);
+        assert_eq!(right.path()[0].side, CellSide::Right);
+    }
+
+    #[test]
+    fn coverage_cell_longest_axis_ties_break_toward_lowest_index() {
+        let cell = CoverageCell::new(vec![-1.0, -1.0], vec![1.0, 1.0]).unwrap();
+        let (left, right) = cell.split_longest_axis().unwrap().unwrap();
+        assert_eq!(left.path()[0].axis, 0);
+        assert_eq!(right.path()[0].axis, 0);
+    }
+
+    #[test]
+    fn coverage_cell_does_not_split_without_interior_float_midpoint() {
+        let lower = 1.0_f64;
+        let upper = f64::from_bits(lower.to_bits() + 1);
+        let cell = CoverageCell::new(vec![lower], vec![upper]).unwrap();
+        assert_eq!(cell.split_longest_axis().unwrap(), None);
+    }
+
+    #[test]
+    fn degenerate_coverage_cell_is_not_split() {
+        let cell = CoverageCell::new(vec![1.0, -2.0], vec![1.0, -2.0]).unwrap();
+        assert_eq!(cell.split_longest_axis().unwrap(), None);
+    }
+
+    #[test]
+    fn coverage_cell_rejects_non_finite_or_mismatched_bounds() {
+        assert_eq!(
+            CoverageCell::new(vec![0.0], vec![f64::INFINITY]),
+            Err(KernelError::NonFiniteValue)
+        );
+        assert_eq!(
+            CoverageCell::new(vec![0.0, 0.0], vec![1.0]),
+            Err(KernelError::DimensionMismatch)
+        );
     }
 
     #[test]
