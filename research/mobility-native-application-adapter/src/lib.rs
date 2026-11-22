@@ -123,12 +123,12 @@ impl<P> NativeApplicationGate<P> {
     pub fn new(
         initial_epoch: ControllerEpoch,
         queue_clock: QueueClockIdentity,
-    ) -> Result<Self, EpochCommandQueueError> {
+    ) -> Result<Self, AdapterError<()>> {
         if queue_clock.clock_id.trim().is_empty() || queue_clock.boot_epoch_id.trim().is_empty() {
-            return Err(EpochCommandQueueError::ZeroCapacity);
+            return Err(AdapterError::QueueClockMismatch);
         }
         Ok(Self {
-            queue: EpochCommandQueue::new(initial_epoch, 1)?,
+            queue: EpochCommandQueue::new(initial_epoch, 1).map_err(AdapterError::Queue)?,
             queue_clock,
             boundary: None,
             pending_attempt_key: None,
@@ -1145,4 +1145,17 @@ mod tests {
         let live = snapshot(&action, 5, 1_050);
         assert_rejected_at_application(action, live, m2::AdmissionError::TicketExpired);
     }
+    #[test]
+    fn invalid_queue_clock_identity_is_not_misreported_as_queue_capacity() {
+        let invalid = QueueClockIdentity {
+            clock_id: String::new(),
+            boot_epoch_id: "bridge-boot-2".into(),
+        };
+        assert!(matches!(
+            NativeApplicationGate::<String>::new(ControllerEpoch::new(1).unwrap(), invalid),
+            Err(AdapterError::QueueClockMismatch)
+        ));
+    }
+
+
 }
