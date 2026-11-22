@@ -276,10 +276,7 @@ pub fn cramer_von_mises(sorted_values: &[f64]) -> Result<f64, String> {
     let mut statistic = 1.0 / (12.0 * n);
     let mut previous = 0.0;
     for (index, value) in sorted_values.iter().enumerate() {
-        if !value.is_finite()
-            || !(0.0..=1.0).contains(value)
-            || *value < previous
-        {
+        if !value.is_finite() || !(0.0..=1.0).contains(value) || *value < previous {
             return Err("fitted transforms must be finite, ordered and in [0,1]".to_owned());
         }
         let expected = (2 * index + 1) as f64 / (2.0 * n);
@@ -324,9 +321,8 @@ fn wilson_interval(successes: usize, trials: usize) -> Result<(f64, f64, f64, f6
     let z2 = WILSON_Z_95 * WILSON_Z_95;
     let denominator = 1.0 + z2 / n;
     let center = (estimate + z2 / (2.0 * n)) / denominator;
-    let half_width = WILSON_Z_95
-        * (estimate * (1.0 - estimate) / n + z2 / (4.0 * n * n)).sqrt()
-        / denominator;
+    let half_width =
+        WILSON_Z_95 * (estimate * (1.0 - estimate) / n + z2 / (4.0 * n * n)).sqrt() / denominator;
     Ok((
         estimate,
         standard_error,
@@ -364,8 +360,7 @@ pub fn conditional_gof(
         }
     }
 
-    let monte_carlo_p_value =
-        (tail_exceedances as f64 + 1.0) / (replicates as f64 + 1.0);
+    let monte_carlo_p_value = (tail_exceedances as f64 + 1.0) / (replicates as f64 + 1.0);
     let (tail_probability_estimate, monte_carlo_standard_error, wilson_95_lower, wilson_95_upper) =
         wilson_interval(tail_exceedances, replicates)?;
     let monte_carlo = MonteCarloResult {
@@ -402,7 +397,9 @@ fn evaluate_case(case: &GofCase) -> Decision {
             beta_hat: None,
             observed_cvm: None,
             monte_carlo: None,
-            blockers: blocker("only_complete_fixed_time_terminated_windows_from_zero_are_supported"),
+            blockers: blocker(
+                "only_complete_fixed_time_terminated_windows_from_zero_are_supported",
+            ),
         };
     }
     if !case.complete_event_history {
@@ -602,9 +599,7 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
 
         let expected = &case.expected;
         let close = |actual: Option<f64>, expected: Option<f64>| match (actual, expected) {
-            (Some(left), Some(right)) => {
-                (left - right).abs() <= 1.0e-10 * left.abs().max(1.0)
-            }
+            (Some(left), Some(right)) => (left - right).abs() <= 1.0e-10 * left.abs().max(1.0),
             (None, None) => true,
             _ => false,
         };
@@ -612,10 +607,7 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
             && decision.event_count == expected.event_count
             && close(decision.beta_hat, expected.beta_hat)
             && close(decision.observed_cvm, expected.observed_cvm)
-            && decision
-                .monte_carlo
-                .as_ref()
-                .map(|m| m.tail_exceedances)
+            && decision.monte_carlo.as_ref().map(|m| m.tail_exceedances)
                 == expected.tail_exceedances
             && decision
                 .monte_carlo
@@ -623,7 +615,9 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
                 .map(|m| m.monte_carlo_p_value)
                 .zip(expected.monte_carlo_p_value)
                 .map(|(actual, expected)| close(Some(actual), Some(expected)))
-                .unwrap_or(expected.monte_carlo_p_value.is_none() && decision.monte_carlo.is_none())
+                .unwrap_or(
+                    expected.monte_carlo_p_value.is_none() && decision.monte_carlo.is_none(),
+                )
             && decision.blockers == expected.blockers;
         summary.expected_result_mismatches += usize::from(!matched);
 
@@ -718,9 +712,7 @@ mod tests {
     #[test]
     fn conditional_gof_rejects_excessive_draw_budget() {
         let events = [10_000; 200];
-        assert!(
-            conditional_gof(&events, 100_000, 100_000, 123).is_err()
-        );
+        assert!(conditional_gof(&events, 100_000, 100_000, 123).is_err());
     }
 
     #[test]
@@ -735,24 +727,29 @@ mod tests {
 
     #[test]
     fn frozen_corpus_replays_without_claim_escalation() {
-        let corpus: Corpus = serde_json::from_str(include_str!(
-            "../fixtures/v0.1/plp-gof-cases.json"
-        ))
-        .expect("frozen PLP GOF corpus parses");
+        let corpus: Corpus =
+            serde_json::from_str(include_str!("../fixtures/v0.1/plp-gof-cases.json"))
+                .expect("frozen PLP GOF corpus parses");
         let report = evaluate(&corpus).expect("frozen PLP GOF corpus evaluates");
         assert_eq!(report.result, "pass");
-        assert_eq!(report.summary.case_count, 22);
+        assert_eq!(report.summary.case_count, 23);
         assert_eq!(report.summary.expected_result_mismatches, 0);
         assert_eq!(report.summary.fit_acceptances, 0);
         assert_eq!(report.summary.reliability_claims, 0);
         assert_eq!(report.summary.physical_qualifications, 0);
         assert_eq!(report.summary.authority_grants, 0);
-        assert!(report.cases.iter().any(|case| {
-            case.disposition == Disposition::FitRejected
-        }));
-        assert!(report.cases.iter().any(|case| {
-            case.disposition == Disposition::FitNotRejectedAtDeclaredLevel
-        }));
+        assert!(
+            report
+                .cases
+                .iter()
+                .any(|case| { case.disposition == Disposition::FitRejected })
+        );
+        assert!(
+            report
+                .cases
+                .iter()
+                .any(|case| { case.disposition == Disposition::FitNotRejectedAtDeclaredLevel })
+        );
         assert!(report.cases.iter().all(|case| {
             !case.fit_acceptance_granted
                 && !case.reliability_claim_granted
