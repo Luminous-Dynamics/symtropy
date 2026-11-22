@@ -1,6 +1,6 @@
 # EHD PIV conformal and functional uncertainty
 
-This crate adds five typed reference paths that complete important missing layers between per-vector covariance and engineering decisions: planar conformal calibration, 3D conformal calibration, field-functional propagation, conformal calibration of integrated outputs against independent functional references, and compact-support spatial covariance for overlapping PIV windows.
+This crate adds six typed reference paths that complete important missing layers between per-vector covariance and engineering decisions: planar conformal calibration, 3D conformal calibration, field-functional propagation, conformal calibration of integrated outputs against independent functional references, compact-support spatial covariance for overlapping PIV windows, and integrated-functional calibration against independent references.
 
 ## 1. Cluster-wise conformal field calibration
 
@@ -40,6 +40,12 @@ It does not qualify total thrust unless all control-volume terms and an independ
 The `spatial_correlation` module adds an anisotropic Wendland C2 compact-support covariance between neighboring vector locations. It composes with, but is distinct from, independent local covariance and shared global nuisance modes. Each kernel requires a calibration receipt carrying a matching protocol fingerprint, at least 20 independent acquisition clusters, a declared correlation-fit error below its frozen limit, and no resolved negative correlation lobe.
 
 The current Wendland model is nonnegative and stationary. It must be rejected if empirical error correlation has a negative lobe or if the fit fails. Compare it against empirical covariance, Gaussian/Matérn and oscillatory positive-definite alternatives. The reference implementation costs O(N²); production needs compact neighbor lists or a matrix-free implementation.
+
+## 5. Spatially correlated PIV errors
+
+The `spatial_correlation` module represents neighboring interrogation-window error dependence using an anisotropic Wendland C2 kernel. A fit receipt must identify the exact processing protocol, include at least 20 independent calibration acquisitions, and meet a frozen empirical autocorrelation fit-error limit. The current model rejects a resolved negative correlation lobe because the nonnegative Wendland family cannot represent it.
+
+It adds cross-sample covariance to the functional outputs. The local covariance supplied to the base reducer must exclude the same correlated component. The reference implementation is O(N²); production needs compact neighbor lists or a matrix-free operator.
 
 ## Run
 
