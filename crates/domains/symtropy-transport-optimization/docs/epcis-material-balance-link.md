@@ -47,16 +47,17 @@ That upstream work is already tracked and has an executable synthetic benchmark:
 
 ## Exact owner binding
 
-A MaterialBalanceCaseBinding names the owner case, manifest, transformation-group reference, transformationID, process, input-lot set, output scope and expected owner receipt source digest.
+A MaterialBalanceCaseBinding names the owner case, manifest, transformation-group reference, transformationID, process, input-lot set, output scope and expected owner receipt source digest. The normalized TransformationGroupEvidence must carry the same exact process_ref, input_lot_set_ref and output_ref, and all three must equal the owner case binding. This prevents an owner mass-balance receipt for one input/output scope from being attached to a different transformation group by merely reusing the case ID.
 
 The one supplied owner receipt must satisfy:
 1. gate == MASS_BALANCE;
 2. exact case_id and manifest_ref;
 3. exact subject_ref == process_ref;
 4. exact scope_ref == input_lot_set_ref;
-5. the canonical transformation-group manifest digest exactly matches the digest pinned by the owner case;
-6. the owner receipt source digest is well-formed and exactly matches the digest pinned by the case binding;
-7. exactly one MassBalance receipt for this case.
+5. exact process, input-lot-set and output-scope references match between the normalized transformation group and owner case;
+6. the canonical transformation-group manifest digest exactly matches the digest pinned by the owner case;
+7. the owner receipt source digest is well-formed and exactly matches the digest pinned by the case binding;
+8. exactly one MassBalance receipt for this case.
 
 Missing receipt produces Indeterminate. Multiple receipts, a wrong gate, a mismatched case/manifest/process/lot scope or an incorrect/malformed digest produce Blocked. No nearest timestamp, fuzzy identity, label match or quantity inference is performed.
 
@@ -129,18 +130,66 @@ P2 physical validation:
 - Use the OCEAN-MULTISTREAM-BALANCE-001 contract for multi-stream physical control volumes where applicable.
 - Report empirical residuals and uncertainty coverage only from the owner evaluator and admitted field evidence. This adapter produces no physical residual or accuracy metric.
 
-## Competitive position
+## Competitive position and standards boundary
 
-GS1 EPCIS/CBV 2.0.1 publishes normative JSON Schema, SHACL, XSD, JSON-LD context, ontology and REST OpenAPI artefacts. Conformance to those artefacts can establish data-shape and interface consistency; it cannot by itself establish the physical truth, completeness or mass conservation of the represented process.
+GS1 EPCIS/CBV 2.0.1 publishes normative schemas, JSON-LD/ontology artefacts and event semantics. Its AggregationEvent already distinguishes ADD, incomplete OBSERVE and DELETE-all; its TransformationEvent already defines unordered, many-to-many input/output contribution and shared transformationID groups. The implementation must remain loss-aware and must not claim that parsing or passing a private fixture suite is GS1 certification.
+
+DCSA Track & Trace 2.2 already defines interoperable shipment, transport, equipment and related visibility events and provides an official implementation guide, reference implementation, conformance tool and sandbox. The strategy is to adopt DCSA's event language and pass its conformance tests, not create a competing event taxonomy or claim that our adapter supersedes DCSA.
+
+Operational comparators have different jobs:
+- **Kaleris N4** is a terminal operating system integrating vessel, yard, rail, gate and control-room workflows. Its 2026 Yard Intelligence Suite extends yard planning/optimization. We should integrate with the TOS and measure evidence quality across the boundary, not replace dispatch or terminal execution.
+- **project44 Ocean Visibility** markets broad carrier/forwarder connections, multimodal stitching, exception alerts and predictive ETAs. Its published coverage and performance figures are vendor claims, not independently adjudicated ground truth. It is a strong baseline for visibility and ETA quality.
+- **Dues** is a particularly useful Southern African comparator. It aggregates terminal-published vessel, berth, stack and update information and retains observed plan changes. Its update cadence is published as every 30 minutes. It can support tests of publication-to-display latency, change detection and forecast quality, but its derived display is not independent physical ground truth and does not establish the cargo's physical composition or custody.
+
+The field is not missing dashboards, event standards, visibility networks or operational TOS capability. The opportunity is an interoperable *assurance layer* that can identify which source/revision/evidence supports a cargo identity, composition, process lineage, custody claim or delivery projection—and explicitly abstain where it cannot.
 
 Symtropy's contribution is a layered assurance boundary:
-1. GS1 event-family semantics and identity preservation;
-2. source-revision replay and atomic composition;
-3. clock/capture evidence applicability and chronology qualification;
-4. a bound handoff to independent process/material conservation receipts;
-5. full route-gate composition remaining with the independent owner.
+1. preserve GS1/DCSA source semantics and exact source identities;
+2. reconstruct source revisions and atomic composition without losing parent/child or nested identity;
+3. qualify chronology and observation-channel limitations separately;
+4. preserve TransformationEvent many-to-many semantics and bind the group to a separately owned process/material balance receipt;
+5. keep inventory, custody, terminal execution, full route disposition and physical acceptance with their respective owners.
 
-The benchmark should compete on false-accept prevention, exact-scope binding, transparent abstention, replay determinism and evidence coverage—not by claiming to replace established EPCIS repositories, manufacturing execution systems, process simulators or metrology laboratories.
+### Matched benchmark protocol
+
+Do not compare a synthetic Symtropy reducer against a live commercial platform as if the datasets and responsibilities were equivalent. Use the same shipment/container cohort, source snapshot, as-of cutoff, event availability and identity catalogue for each arm. Keep the strongest operational product in its own domain and compare each capability only where responsibilities overlap.
+
+| Capability | Matched comparators | Primary metrics | Safety/validity gate |
+|---|---|---|---|
+| Standards interoperability | GS1 EPCIS 2.0.1 artefacts; DCSA T&T 2.2 conformance implementation | Normative test pass rate, semantic preservation, unsupported-field rate | No silent coercion; unsupported features remain explicit |
+| Composition reconstruction | Source-native WMS/TOS replay; EPCIS reference fixtures; independent graph oracle | Edge precision/recall, revision accuracy, replay agreement, permutation invariance where semantics allow | Zero false-complete states on negative controls |
+| Custody chronology | Carrier/terminal event sequence; independently adjudicated handoff manifests | Strictly ordered chain precision, ambiguous/unqualified fraction, false-order rate | No event is ordered on overlapping/touching/incomparable time intervals |
+| Observation completeness | Independent event injection/counters; capture HIL #6659 | Miss probability bounds, detection probability, false-bounded rate, loss-counter sensitivity | No completeness claim from an internally consistent log alone |
+| Transformation/material accounting | MATERIAL-ACCOUNTED-ROUTES-001A owner oracle; independent process/material measurements | Exact scope joins, owner-gate agreement, material-balance residual and uncertainty coverage from owner | No yield/allocation/physical balance inferred from EPCIS lists |
+| Visibility/ETA | project44 outputs, Dues published board/history, carrier/terminal source publications | Publication-to-display latency, event availability, ETA MAE/median absolute error, p90 error, interval coverage and calibration by prediction horizon | Compare only events available at prediction time; vendor display is not physical truth |
+| Terminal execution | Kaleris N4 / terminal-native operational records | Yard dwell, rehandles, moves/hour, gate turn time, berth/yard plan deviation | Read-only shadow before any operational-policy trial |
+| Network outcomes | Existing terminal policy, FCFS, local optimizer, robust/multi-objective planner | Backlog area, p90 end-to-end delay, demurrage/detention, essential-cargo reliability, cost and emissions | Preregistered matched or randomized rollout; report spillovers and worst-served cohorts |
+
+### Proposed qualification targets (not achieved results)
+
+**P0 software contracts**
+- 100% expected-state agreement on the frozen positive/negative corpus.
+- Zero false-complete or false-balanced outputs on every frozen negative control.
+- 100% deterministic replay for identical source bytes, schemas, evaluator and policy versions.
+- 100% exact identity/scope binding; zero fuzzy-ID or nearest-timestamp fallback.
+- 100% preservation of source fields that the adapter does not own; unsupported semantics are quarantined or explicitly represented.
+
+**P2 independent adjudication**
+- At least 3,000 independently adjudicated negative cases before making a tight false-complete-rate statement. With zero false accepts in 3,000 independent representative Bernoulli trials, the one-sided 95% exact upper bound is approximately 0.10%; clustered/common-cause cases require cluster-aware inference and a larger effective sample.
+- Report precision, recall, false-complete rate, abstention rate and coverage-risk curves separately. Do not hide unsafe false accepts inside a single F1 or accuracy score.
+- Report all strata: event family, terminal/source, container/module type, revision pattern, event density, clock domain, missingness mechanism and observation-channel fault class.
+
+**P3 read-only shadow**
+- Measure p50/p95 source-publication-to-ingestion, ingestion-to-qualified-projection and correction-to-reconciled-state latency.
+- Measure fraction of source records retained, rejected, quarantined, duplicated, superseded and still unresolved at each as-of cutoff.
+- Require zero unexplained changes in deterministic replay and zero operational writes.
+
+**P4/P5 operational evaluation**
+- Compare existing terminal-local planning, FCFS, current TOS recommendations, exact small-case optimization and robust recovery policies on identical demand/capacity/weather/closure inputs.
+- Retain the prior stretch target of at least 10% reduction in held-out network backlog area and p90 end-to-end delay only if essential-cargo reliability, safety, emissions and worst-served cohorts do not degrade. This is a research target, not a forecast or current achievement.
+- Require preregistered outcome definitions, independent adjudication, spillover analysis and a holdout period/site before a superiority claim.
+
+The benchmark should compete on false-accept prevention, exact-scope binding, transparent abstention, replay determinism and evidence coverage—not by claiming to replace established EPCIS repositories, TOS products, visibility networks, process simulators or metrology laboratories.
 
 ## References
 
