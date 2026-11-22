@@ -212,6 +212,41 @@
       },
       "admission_scope": "none",
       "notes": "Rights are explicitly stated by the upstream README: the MIT licence covers the dataset files provided by the README download links (ROS bags, GNSS RINEX, IMU and ground-truth files), including commercial use and redistribution with notices. Snapshot is only the repository commit, not the downloaded dataset payload. Recommended first segment: UrbanNav-HK-Medium-Urban-1 (33.7 GB, 785 s, 3.64 km; GNSS, IMU, LiDAR, stereo camera; SPAN-CPT + IE ground truth; raw RINEX v3.02; ROS TimeReference topic). All download files remain un-hashed, so payload snapshot is not immutable. Upstream README reports a malfunctioning u-blox F9P receiver during a particular interval (upstream issue #11); exclude or explicitly label that interval. The broader repository also contains Deep, Harsh and Tunnel routes; the Harsh route has only partial verified ground truth and must not be assumed fully covered. SPAN-CPT/IE ground truth is 1 Hz, lower than 400 Hz IMU; time alignment, frame/extrinsic calibration and oracle lineage must be qualified for the chosen route. Tokyo data lack LiDAR extrinsic calibration in the README and is not the first target. This record remains candidate_not_admitted pending exact payload hashes, subset split, calibration/time/frame audit, and ground-truth review."
+    },
+    {
+      "dataset_id": "hilti-trimble-oxford-360vi-2026",
+      "name": "Hilti-Trimble-Oxford 360-degree visual-inertial SLAM and floor-plan localization benchmark",
+      "domain": "indoor",
+      "source_url": "https://github.com/Hilti-Research/hilti-trimble-slam-challenge-2026",
+      "status": "candidate_not_admitted",
+      "snapshot": {
+        "immutable": false,
+        "release_tag": null,
+        "repository_commit": "655df637120786621be8ffb14c4ee367abfee85a",
+        "file_sha256": []
+      },
+      "rights": {
+        "license_id": "CC-BY-NC-SA-3.0",
+        "status": "explicit",
+        "scope": "dataset_payload",
+        "evidence_url": "https://hilti-trimble-challenge.com/dataset-2026",
+        "research_use": "permitted",
+        "commercial_use": "prohibited",
+        "redistribution": "permitted"
+      },
+      "metadata": {
+        "time_basis_status": "unqualified",
+        "spatial_reference_status": "unqualified",
+        "calibration_status": "partial",
+        "ground_truth_status": "partial",
+        "split_basis": "session_id",
+        "train_group_ids": [],
+        "test_group_ids": [],
+        "split_sha256": null,
+        "clock_state_truth_status": "unknown"
+      },
+      "admission_scope": "none",
+      "notes": "Non-commercial research candidate only. Official challenge repository pinned at commit 655df637120786621be8ffb14c4ee367abfee85a; repository LICENSE and official challenge site specify CC BY-NC-SA 3.0, so no commercial product, commercial dataset use or incompatible redistribution is permitted without separate authorization. Thirty 360-degree visual-inertial sequences span ten floors over an eight-month active construction project. Released data are ROS 2 bags with two 30 Hz fisheye camera streams and 1 kHz IMU, plus floor-plan priors and per-run ground-truth trajectories. Camera/IMU calibration files are supplied. Ground truth is produced by a rigidly attached Hesai XT32 LiDAR-inertial system, but raw LiDAR data are not released; the reference is therefore not an independently reprocessable oracle from the distributed payload. The Insta360 camera and reference LiDAR-inertial device use separate timing systems: alignment is estimated from gyro-norm correlation, nonlinear time-offset/clock-scale refinement and joint gyro-bias optimization. The published constant timestamp shift of 1e4 seconds and first-five-seconds exclusion must be preserved exactly. The official leaderboard evaluates 25 SLAM runs / 24 floorplan-localization runs, requires at least 99% trajectory coverage and scores per-pose error exponentially; this is useful as an industry baseline, but the proposed integrity extension must additionally evaluate false-safe exposure, drift, failure detection and recovery. Hugging Face payload objects and per-file hashes are not frozen in this registry; do not admit until exact payload snapshot, calibration/time review, sequence-level split and truth-oracle review are complete."
     }
   ]
 }
