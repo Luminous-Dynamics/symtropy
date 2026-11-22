@@ -265,6 +265,11 @@ impl ClockBoundProfile {
             .ok_or(ClockBoundError::IntervalOverflow)?;
         let interval =
             TimeInterval::new(earliest, latest).map_err(|_| ClockBoundError::IntervalOverflow)?;
+        if interval.earliest() < self.spec.calibrated_at
+            || interval.latest() > self.spec.valid_until
+        {
+            return Err(ClockBoundError::CalibrationOutsideValidityWindow);
+        }
 
         let qualification = ClockQualificationRef {
             clock_id: self.spec.clock_id.clone(),
@@ -509,6 +514,22 @@ mod tests {
         .unwrap();
         assert_eq!(
             profile.qualify_event("late_event", 1_001),
+            Err(ClockBoundError::CalibrationOutsideValidityWindow)
+        );
+    }
+
+    #[test]
+    fn derived_interval_must_fit_inside_clock_calibration_window() {
+        let profile = clock_profile(
+            ClockSyncState::Locked,
+            Some(5),
+            Some(0),
+            Some(0),
+            Some(0),
+        )
+        .unwrap();
+        assert_eq!(
+            profile.qualify_event("near_window_start", 2),
             Err(ClockBoundError::CalibrationOutsideValidityWindow)
         );
     }
