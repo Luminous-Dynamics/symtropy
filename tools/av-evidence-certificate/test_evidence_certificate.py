@@ -189,6 +189,8 @@ class EvidenceCertificateTests(unittest.TestCase):
         self.assertEqual(result["grounded_answer_accuracy"], 0.5)
         self.assertTrue(result["per_claim"][0]["evidence_sufficient"])
         self.assertFalse(result["per_claim"][0]["grounded_success"])
+        self.assertTrue(result["per_claim"][0]["unsupported_claim"])
+        self.assertEqual(result["unsupported_claim_rate"], 0.5)
 
     def test_spatial_grounding_requires_matching_observation_and_frame(self):
         candidate = submission()
@@ -216,6 +218,12 @@ class EvidenceCertificateTests(unittest.TestCase):
         candidate["claims"][0]["evidence"][0]["end_ms"] = 1200
         with self.assertRaises(EvidenceEvaluationError):
             evaluate(workload(), truth(), candidate)
+
+    def test_non_string_modality_is_rejected(self):
+        data = workload()
+        data["observation_catalog"][0]["modality"] = []
+        with self.assertRaises(EvidenceEvaluationError):
+            evaluate(data, truth(), submission())
 
     def test_observations_after_cutoff_are_rejected_from_workload(self):
         data = workload()
