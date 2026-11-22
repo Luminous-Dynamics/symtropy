@@ -374,7 +374,7 @@ mod tests {
         }
     }
 
-    fn claim_profile() -> ClaimProfile {
+    fn no_effect_profile() -> ClaimProfile {
         ClaimProfile {
             claim_id: "old-attempt-effect-1-attempt-1-no-effect".to_owned(),
             scope_commitment: evidence_commitment(55),
@@ -382,6 +382,18 @@ mod tests {
             required_independent_domains: vec![
                 "read-only-controller-observer".to_owned(),
                 "independent-physical-observer".to_owned(),
+            ],
+        }
+    }
+
+    fn downstream_profile() -> ClaimProfile {
+        ClaimProfile {
+            claim_id: "downstream-graph-boot-new-epoch-9-quiescent".to_owned(),
+            scope_commitment: evidence_commitment(59),
+            subject_failure_domain_id: "robot-under-test".to_owned(),
+            required_independent_domains: vec![
+                "read-only-bus-observer".to_owned(),
+                "firmware-state-observer".to_owned(),
             ],
         }
     }
@@ -405,26 +417,43 @@ mod tests {
         }
     }
 
-    fn facts(profile: &ClaimProfile) -> Vec<EvidenceFact> {
+    fn no_effect_facts(profile: &ClaimProfile) -> Vec<EvidenceFact> {
         vec![
             claim_fact(profile, "controller-observation", "read-only-controller-observer"),
             claim_fact(profile, "physical-observation", "independent-physical-observer"),
         ]
     }
 
+    fn downstream_facts(profile: &ClaimProfile) -> Vec<EvidenceFact> {
+        vec![
+            claim_fact(profile, "bus-quiescence-observation", "read-only-bus-observer"),
+            claim_fact(profile, "firmware-quiescence-observation", "firmware-state-observer"),
+        ]
+    }
+
     fn input<'a>(
         recovery: &'a RestartRecoveryEvidence,
         downstream: &'a DownstreamFencePacket,
-        profile: &'a ClaimProfile,
-        facts: &'a [EvidenceFact],
+        no_effect_profile: &'a ClaimProfile,
+        no_effect_facts: &'a [EvidenceFact],
+        graph_profile: &'a ClaimProfile,
+        graph_facts: &'a [EvidenceFact],
     ) -> CompositionInput<'a> {
         CompositionInput {
             recovery,
             downstream,
-            claim_profile: profile,
-            claim_facts: facts,
-            required_claim_id: "old-attempt-effect-1-attempt-1-no-effect",
-            expected_scope_commitment: evidence_commitment(55),
+            old_attempt_no_effect: ScopedClaimInput {
+                profile: no_effect_profile,
+                facts: no_effect_facts,
+                required_claim_id: "old-attempt-effect-1-attempt-1-no-effect",
+                expected_scope_commitment: evidence_commitment(55),
+            },
+            downstream_graph_quiescence: ScopedClaimInput {
+                profile: graph_profile,
+                facts: graph_facts,
+                required_claim_id: "downstream-graph-boot-new-epoch-9-quiescent",
+                expected_scope_commitment: evidence_commitment(59),
+            },
         }
     }
 
