@@ -151,31 +151,28 @@ class AnytimeValidPolicyEvalTests(unittest.TestCase):
         self.assertEqual(len(result["transcript_chain_sha256"]), 64)
 
     def test_stream_respects_maximum_observation_budget(self):
-        emitted = []
         events = [
             start_record(max_observations=2),
             {"type": "observation", "cluster_id": "s1", "paired_difference": 0.1},
             {"type": "observation", "cluster_id": "s2", "paired_difference": 0.1},
             {"type": "observation", "cluster_id": "s3", "paired_difference": 0.1},
         ]
-        result = run_stream(iter(events), emitted.append)
+        result = run_stream(iter(events), lambda _: None)
         self.assertEqual(result["status"], "INCONCLUSIVE")
         self.assertEqual(result["reason"], "maximum_observations_reached")
         self.assertEqual(result["observations_consumed"], 2)
 
     def test_stream_exhaustion_is_inconclusive(self):
-        emitted = []
         result = run_stream(iter([
             start_record(),
             {"type": "observation", "cluster_id": "s1", "paired_difference": 0.0},
-        ]), emitted.append)
+        ]), lambda _: None)
         self.assertEqual(result["status"], "INCONCLUSIVE")
         self.assertEqual(result["reason"], "input_exhausted")
         self.assertEqual(result["observations_consumed"], 1)
 
     def test_stream_end_before_any_observation_is_inconclusive(self):
-        emitted = []
-        result = run_stream(iter([start_record(), {"type": "end"}]), emitted.append)
+        result = run_stream(iter([start_record(), {"type": "end"}]), lambda _: None)
         self.assertEqual(result["status"], "INCONCLUSIVE")
         self.assertEqual(result["looks_used"], 0)
 
@@ -198,6 +195,20 @@ class AnytimeValidPolicyEvalTests(unittest.TestCase):
                 start_record(),
                 {"type": "observation", "cluster_id": "s1", "paired_difference": 1.01},
             ]), lambda _: None)
+
+    def test_stream_rejects_unknown_fields_that_could_leak_truth(self):
+        start = start_record()
+        start["evaluator_truth"] = {"label": True}
+        with self.assertRaises(EvaluationError):
+            run_stream(iter([start]), lambda _: None)
+        observation = {
+            "type": "observation",
+            "cluster_id": "s1",
+            "paired_difference": 0.1,
+            "potential_outcome": 1.0,
+        }
+        with self.assertRaises(EvaluationError):
+            run_stream(iter([start_record(), observation]), lambda _: None)
 
 
 if __name__ == "__main__":
