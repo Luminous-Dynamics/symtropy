@@ -12,6 +12,11 @@
 //! execute ROS, a simulator, hardware, a TLA+ model or a native sink. The replay
 //! oracle remains an independently versioned owner-supplied implementation.
 
+pub mod tlc_json;
+pub use tlc_json::{
+    TlcImportContext, TlcImportError, import_tlc_json_trace, trace_bundle_to_json_value,
+};
+
 use std::collections::BTreeSet;
 
 pub const CONTRACT_VERSION: &str = "0.1";
@@ -61,6 +66,7 @@ pub enum TraceEventKind {
     ObserverSampleCaptured,
     TelemetryCaptured,
     TraceFlushed,
+    TlaNextTransition,
     Other,
 }
 

@@ -42,6 +42,12 @@ The canonical machine-readable mapping is [model_action_event_mapping_v0_1.tsv](
 | `RecoveryDevicePartiallyApplies` | `RecoveryCommandPartial` | New attempt partially applies |
 | `NaiveRetry` | `NaiveRetryAttempted` | Deliberately unsafe control used to produce a counterexample |
 
+## TLC JSON wrapper action
+
+For the pinned restart model, the TLC JSON counterexample reports the exported transition label `Next` for the outer disjunction. It does not expose the selected inner action name in the JSON action metadata. The importer therefore represents this as `TlaNextTransition`, outside the 30-entry inner-action catalogue. The raw before/action/after state triple and exact model/config/tool commitments remain available for independent replay and interpretation.
+
+Do not relabel a `Next` transition as `NaiveRetry` solely because the negative-control config enables naive retry. The workflow identifies the experiment and violated invariant separately; the event-kind field records only what TLC actually exported.
+
 ## Semantics and limitations
 
 - `Init` is represented by the trace header's initial-state commitment, not by a `Next` event.

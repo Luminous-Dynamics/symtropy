@@ -67,7 +67,7 @@
               "recovery_command_applied", "recovery_command_no_effect", "recovery_command_partial",
               "m1_authority_revoked", "m2_applicability_revoked", "live_binding_invalidated",
               "naive_retry_attempted", "observer_common_cause_injected",
-              "observer_sample_captured", "telemetry_captured", "trace_flushed", "other"
+              "observer_sample_captured", "telemetry_captured", "trace_flushed", "tla_next_transition", "other"
             ]
           },
           "actor_id": { "$ref": "#/$defs/identifier" },
