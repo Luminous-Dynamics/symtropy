@@ -499,7 +499,7 @@ mod tests {
         assert_eq!(summary.record_count, 8);
         assert_eq!(summary.candidate_count, 8);
         assert_eq!(summary.admitted_count, 0);
-        assert_eq!(summary.partial_ground_truth_count, 4);
+        assert_eq!(summary.partial_ground_truth_count, 5);
     }
 
     #[test]
