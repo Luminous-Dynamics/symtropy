@@ -550,8 +550,7 @@ pub fn qualify_custody_event_timeline(
     }
 
     let mut consumed_bindings = BTreeSet::new();
-    let mut events_by_box: BTreeMap<String, Vec<BoxEventTime<'_>>> =
-        BTreeMap::new();
+    let mut events_by_box: BTreeMap<String, Vec<BoxEventTime<'_>>> = BTreeMap::new();
 
     for group in &effective_actual_groups {
         let binding = bindings_by_key.get(&group.source_event).ok_or_else(|| {
