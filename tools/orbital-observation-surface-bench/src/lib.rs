@@ -71,7 +71,7 @@ pub enum MissReason {
 #[derive(Debug, Clone, Serialize)]
 pub struct EventOutcome {
     pub event_id: String,
-    pub pod_probability: f64,
+    pub conditional_classifier_probability: f64,
     pub detected: bool,
     pub miss_reason: Option<MissReason>,
 }
@@ -165,7 +165,9 @@ fn logistic(value: f64) -> f64 {
 
 /// A marked, time-varying POD surface with a logistic link.
 /// Amplitude and duration are expressed in the caller's frozen reference units.
-pub fn pod_probability(event: &PhysicalEvent, channel: &ChannelConfig) -> f64 {
+/// Probability that the classifier accepts an event, conditional on the event reaching
+/// the classifier. This is not end-to-end POD: outage and dead-time gates are separate.
+pub fn conditional_classifier_probability(event: &PhysicalEvent, channel: &ChannelConfig) -> f64 {
     let linear_predictor = channel.logit_intercept
         + channel.time_slope * (event.time_fraction - 0.5)
         + channel.log_amplitude_slope * event.amplitude.ln()
@@ -299,7 +301,7 @@ fn simulate_channel(scenario: &Scenario, channel: &ChannelConfig) -> Result<Chan
         // Consume one draw for every latent event so deterministic gating does not
         // shift the future Bernoulli stream when an outage interval is edited.
         let draw = detection_random.uniform_open();
-        let probability = pod_probability(event, channel);
+        let probability = conditional_classifier_probability(event, channel);
 
         let miss_reason =
             if in_intervals(event.time_fraction, &scenario.shared_common_cause_outages) {
@@ -326,7 +328,7 @@ fn simulate_channel(scenario: &Scenario, channel: &ChannelConfig) -> Result<Chan
 
         event_outcomes.push(EventOutcome {
             event_id: event.event_id.clone(),
-            pod_probability: probability,
+            conditional_classifier_probability: probability,
             detected: miss_reason.is_none(),
             miss_reason,
         });
@@ -462,7 +464,7 @@ mod tests {
         c.log_amplitude_slope = 1.5;
         let small = event("small", 0.5, 0.2, 1.0);
         let large = event("large", 0.5, 5.0, 1.0);
-        assert!(pod_probability(&large, &c) > pod_probability(&small, &c));
+        assert!(conditional_classifier_probability(&large, &c) > conditional_classifier_probability(&small, &c));
     }
 
     #[test]
@@ -493,7 +495,6 @@ mod tests {
         let scenario = Scenario {
             scenario_id: "common-cause".to_owned(),
             configuration_id: "cfg-b".to_owned(),
-            exposure_horizon: 1.0,
             events: vec![event("e1", 0.2, 1.0, 0.01), event("e2", 0.3, 1.0, 0.01)],
             shared_common_cause_outages: vec![TimeInterval {
                 start: 0.25,
@@ -505,6 +506,8 @@ mod tests {
         for channel in &report.scenarios[0].channels {
             assert_eq!(channel.detected_event_count, 1);
             assert_eq!(channel.miss_counts.shared_common_cause, 1);
+            assert!(channel.event_outcomes[1].conditional_classifier_probability > 0.0);
+            assert!(!channel.event_outcomes[1].detected);
         }
     }
 
@@ -516,7 +519,6 @@ mod tests {
         let scenario = Scenario {
             scenario_id: "false-positives".to_owned(),
             configuration_id: "cfg-c".to_owned(),
-            exposure_horizon: 1.0,
             events: vec![event("e1", 0.2, 1.0, 0.01)],
             shared_common_cause_outages: Vec::new(),
             channels: vec![c],
@@ -541,7 +543,6 @@ mod tests {
         let scenario = Scenario {
             scenario_id: "miss-trigger".to_owned(),
             configuration_id: "cfg-d".to_owned(),
-            exposure_horizon: 1.0,
             events: vec![event("e1", 0.1, 1.0, 0.01), event("e2", 0.15, 1.0, 0.01)],
             shared_common_cause_outages: Vec::new(),
             channels: vec![c],
@@ -557,7 +558,6 @@ mod tests {
         let scenario = Scenario {
             scenario_id: "invalid-order".to_owned(),
             configuration_id: "cfg-e".to_owned(),
-            exposure_horizon: 1.0,
             events: vec![event("e1", 0.2, 1.0, 0.01), event("e2", 0.2, 1.0, 0.01)],
             shared_common_cause_outages: Vec::new(),
             channels: vec![channel("sensor", 61, 0.0)],
@@ -579,7 +579,6 @@ mod tests {
         let scenario = Scenario {
             scenario_id: "rng-stability".to_owned(),
             configuration_id: "cfg-rng".to_owned(),
-            exposure_horizon: 1.0,
             events: vec![
                 event("e1", 0.1, 1.0, 0.01),
                 event("e2", 0.2, 1.0, 0.01),
