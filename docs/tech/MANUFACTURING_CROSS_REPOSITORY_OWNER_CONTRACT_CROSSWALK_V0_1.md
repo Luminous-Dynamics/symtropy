@@ -160,7 +160,42 @@ The integrated benchmark should compare the same exact product/task, design/BOM 
 
 Report each objective separately: accepted output per hour; first-pass/final yield; total cost per accepted part; P50/P90 request-to-part and request-to-restoration; measurement uncertainty and spatial worst-region error; energy/material/waste; downtime/MTTR/spares; second-source coverage; local service vs local manufacture; and safety/claim blockers. Do not use one weighted “smart factory” score or count failed jobs outside the denominator.
 
-## 6. Immediate implementation order
+### External benchmark and standards positioning — 23 November 2026
+
+This work should compete on **evidence-qualified production outcomes and decision quality**, not pretend to replace industrial interoperability or additive-manufacturing physics standards.
+
+- **NIST AM-Bench** provides controlled additive-manufacturing measurement challenges and blind model-validation datasets. AM-Bench 2025 includes eight metal-AM sets and one polymer vat-photopolymerization challenge; it is not a desktop material-extrusion leaderboard. NIST's AM-Bench 2028 planning points toward higher-TRL industrial components. Our complementary benchmark is a spatially resolved desktop MEX / local-production campaign with independently inspected accepted parts, route feasibility, repair and cost per conforming output. Links: [NIST AM-Bench](https://www.nist.gov/ambench), [2026 NIST AM-Bench publication](https://www.nist.gov/publications/ambench-2025-additive-manufacturing-benchmark-test-series-overview).
+- **ISO 23247** should be treated as an interoperability envelope: [Part 1: general principles](https://www.iso.org/standard/75066.html), [Part 5: manufacturing digital thread (2026)](https://www.iso.org/standard/87425.html), and [Part 6: composing independently developed digital twins (2026)](https://www.iso.org/standard/87426.html). This reinforces the current owner model: semantic and evidence adapters across independent twins, not a single universal database/twin.
+- **MTConnect and OPC UA** remain the preferred equipment observation/interoperability pathways where supported: [MTConnect documentation](https://mtconnect.squarespace.com/documentation) and [OPC Foundation / MTConnect collaboration](https://opcfoundation.org/markets-collaboration/mtconnect/). Do not create a replacement device protocol or infer control authority from an observation adapter.
+- **Symthaea FDM #7960/#7961/#7998 and MFG-VALUE #7608** remain the benchmark owners. Symtropy consumes their exact artifact/profile/metrology/outcome references; it does not create another FDM evaluator or an AI-industry-wide benchmark.
+
+### Targeted benchmark tournament
+
+Compare on the same task, exact revision, material lot, machine configuration, staffing, utilities, inspection system and time/cost accounting:
+
+1. OEM supply and warranty route.
+2. Conventional regional job shop / bureau route.
+3. Fixed recipe plus conventional inspection and repair policy.
+4. Standard SPC / threshold-monitoring policy where valid.
+5. Conventional rules-based resource/route planner.
+6. Calibrated statistical/ML predictor with abstention and uncertainty.
+7. Symthaea process prediction/decision recommendation alone.
+8. Symtropy deterministic route/simulation evaluation alone.
+9. Integrated Symthaea–Symtropy workflow, with Mycelix provenance/coordination measured as a separate contribution.
+
+Mandatory independent outcomes (do not aggregate into a weighted score):
+- **Safety and route admissibility:** false-feasible count on rights/revision/material/safety/calibration/operator/inspection negative controls; report false-unknown and false-infeasible separately.
+- **Conformity:** first-pass yield, final yield, rework/scrap, critical escapes, feature-level dimensional error by location/orientation, measurement uncertainty and inspection coverage.
+- **Economics:** fully burdened cost per independently accepted/conforming part; include inspection, setup, labour, energy, transport, maintenance, rework, scrap and warranty reserve.
+- **Time:** request-to-first-conforming-part P50/P90, request-to-restoration P50/P90, queue/inspection delays and schedule adherence.
+- **Resilience:** MTTR, second-source coverage, critical single-source dependencies, local-service versus local-manufacture status, replacement-generation requirements.
+- **Material/energy:** accepted-part normalized material, energy, water/consumable and waste metrics; recovered feedstock counts only with grade/custody/requalification evidence.
+- **Traceability:** percentage of accepted units bound to exact design/BOM, process/recipe, machine/configuration, material lot, calibration, independent inspection, execution and post-repair verification records.
+- **Digital-twin credibility:** prediction calibration, uncertainty coverage, domain-of-validity abstention and simulation-to-measurement discrepancy on held-out campaigns.
+
+Preregister the primary metric and hard guardrails, group holdouts by independent machine/lot/campaign (not windows from one part), and report paired uncertainty at the lot/campaign level. The MFG-VALUE #7608 hypothesis is at least 10% lower cost per conforming part than the strongest fair conventional baseline at matched quality-escape risk, with a paired 95% interval excluding zero and no guardrail regression. This is a target, not an achieved result or universal industry benchmark. A single physical article can support only a bounded demonstration, not a yield or SOTA claim.
+
+## 7. Immediate implementation order
 
 1. Finish Symthaea #12533 architecture dossier using Symtropy #6791 as contribution material.
 2. Freeze the existing FDM quality/spatial test protocol and use it for LD-Print design/qualification; no second FDM evaluator.
@@ -170,6 +205,6 @@ Report each objective separately: accepted output per hour; first-pass/final yie
 6. Use Sol-Atlas #606 to build exact owner-native adapter registrations; use #602/#569/#573/#837 for downstream service, material, delivery and resident projections.
 7. Keep Symtropy #6786 synthetic-only until exact external contracts and at least one physical low-risk article are available.
 
-## 7. Claim ceiling
+## 8. Claim ceiling
 
 This crosswalk records publicly visible owner scopes and accessible main-branch implementation details. It is not a complete private-workspace audit, schema-conformance result, physical machine qualification, supplier approval, city service-capacity finding or NIST/ISO certification. Public main may change; adapters must pin exact commits/schema revisions and rerun conformance when source contracts change.
