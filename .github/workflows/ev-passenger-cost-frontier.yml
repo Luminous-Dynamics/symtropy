@@ -531,6 +531,7 @@ jobs:
             mobility-commitment-journal-report.json \
             tools/ev-passenger-cost-frontier/Cargo.toml \
             docs/research/MOBILITY_COMMITMENT_JOURNAL_BENCHMARK_V0_1.md \
+            docs/research/SUSTAINABLE_MOBILITY_SERVICE_CAPACITY_BENCHMARK_V0_1.md \
             mobility-recovery-envelope-report.json \
             mobility-flexibility-envelope-report.json \
             tools/ev-passenger-cost-frontier/src/bin/ev_carrier_module_factory_screen.rs \
@@ -572,6 +573,7 @@ jobs:
             tools/ev-passenger-cost-frontier/fixtures/mobility_commitment_journal_v0_1.json
             tools/ev-passenger-cost-frontier/schemas/mobility_commitment_journal_v0_1.schema.json
             docs/research/MOBILITY_COMMITMENT_JOURNAL_BENCHMARK_V0_1.md
+            docs/research/SUSTAINABLE_MOBILITY_SERVICE_CAPACITY_BENCHMARK_V0_1.md
             tools/ev-passenger-cost-frontier/fixtures/mobility_commitment_lease_v0_1.json
             tools/ev-passenger-cost-frontier/schemas/mobility_commitment_lease_v0_1.schema.json
             docs/research/MOBILITY_CAPABILITY_COMMITMENT_AND_INDUSTRY_BENCHMARK_V0_1.md
