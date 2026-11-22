@@ -277,6 +277,18 @@
     },
     {
       "owner": "Luminous-Dynamics/symtropy",
+      "issue": 1805,
+      "contract": "APPLIANCE-QUAL-001",
+      "scope": "first guarded low-voltage DC fan product requirements, control-unit baseline, functional, repair and endurance benchmarks",
+      "authority": "appliance_product_qualification_and_repair_benchmark",
+      "consumed_by": [
+        "Luminous-Dynamics/symtropy#6603",
+        "Luminous-Dynamics/symtropy#6787"
+      ],
+      "evidence_state": "issue_open_no_physical_product_performance_result_claimed"
+    },
+    {
+      "owner": "Luminous-Dynamics/symtropy",
       "issue": 6603,
       "contract": "APPLIANCE-MICROFACTORY-001",
       "scope": "first appliance product cell and fan pilot",
