@@ -13,6 +13,7 @@
 //! this module checks identity consistency but cannot prove the geometry.
 
 use crate::KernelError;
+use crate::residual::AffineResidualMassReport;
 
 /// Immutable event and target-distribution identity shared by source evidence.
 ///
@@ -153,6 +154,49 @@ pub struct ComposedEventMassEnvelope {
     pub full_event_probability_upper: f64,
     /// Explicit basis and assumptions of the composition.
     pub basis: EventMassCompositionBasis,
+}
+
+/// Construct residual evidence from the existing static affine-union verifier report.
+///
+/// A non-budget-exhausted report is marked Complete even when it contains
+/// unresolved cells: the verifier includes a conservative mass upper bound
+/// for every unresolved cell and the probability outside its finite cube.
+/// A budget-exhausted report is kept explicitly unqualified by this adapter.
+///
+/// The caller must bind the report to the correct event/model identity, region,
+/// partition and immutable source artifact. This helper validates the scalar
+/// bound and carries the verifier's budget state; it cannot prove that those
+/// caller-supplied identities actually describe the affine model.
+pub fn residual_event_mass_evidence_from_affine_union_report(
+    identity: EventModelIdentity,
+    partition_sha256: String,
+    region_id: String,
+    evidence_id: String,
+    source_sha256: String,
+    report: &AffineResidualMassReport,
+) -> Result<ResidualEventMassEvidence, KernelError> {
+    validate_identity(&identity)?;
+    validate_digest(&partition_sha256)?;
+    validate_identifier(&region_id)?;
+    validate_identifier(&evidence_id)?;
+    validate_digest(&source_sha256)?;
+    validate_probability(report.residual_event_mass_upper_bound)?;
+
+    let coverage = if report.budget_exhausted {
+        ResidualMassCoverage::BudgetExhausted
+    } else {
+        ResidualMassCoverage::Complete
+    };
+
+    Ok(ResidualEventMassEvidence {
+        identity,
+        partition_sha256,
+        region_id,
+        evidence_id,
+        source_sha256,
+        residual_event_mass_upper: report.residual_event_mass_upper_bound,
+        coverage,
+    })
 }
 
 /// Compose admitted-region event mass with an independent residual upper bound.
@@ -367,6 +411,81 @@ mod tests {
                 .to_owned(),
             claim: PartitionClaim::CallerDeclaredDisjointAndExhaustive,
         }
+    }
+
+    fn affine_residual_report(
+        residual_upper: f64,
+        unresolved_cells: usize,
+        budget_exhausted: bool,
+    ) -> AffineResidualMassReport {
+        AffineResidualMassReport {
+            visited_cells: 16,
+            chart_covered_cells: 3,
+            event_free_cells: 8,
+            unresolved_cells,
+            budget_exhausted,
+            residual_event_mass_upper_bound: residual_upper,
+        }
+    }
+
+    #[test]
+    fn affine_union_report_adapter_preserves_unresolved_mass_as_a_complete_bound() {
+        let report = affine_residual_report(2.5e-7, 4, false);
+        let evidence = residual_event_mass_evidence_from_affine_union_report(
+            identity(),
+            HASH_C.to_owned(),
+            "residual-complement".to_owned(),
+            "affine-union-run-53".to_owned(),
+            "1111111111111111111111111111111111111111111111111111111111111111".to_owned(),
+            &report,
+        )
+        .expect("conservative affine union report");
+        assert_eq!(evidence.coverage, ResidualMassCoverage::Complete);
+        assert_eq!(evidence.residual_event_mass_upper, 2.5e-7);
+    }
+
+    #[test]
+    fn affine_union_report_adapter_preserves_budget_exhaustion() {
+        let report = affine_residual_report(1.0, 9, true);
+        let evidence = residual_event_mass_evidence_from_affine_union_report(
+            identity(),
+            HASH_C.to_owned(),
+            "residual-complement".to_owned(),
+            "affine-union-run-54".to_owned(),
+            "2222222222222222222222222222222222222222222222222222222222222222".to_owned(),
+            &report,
+        )
+        .expect("budget-exhausted report is still recorded");
+        assert_eq!(evidence.coverage, ResidualMassCoverage::BudgetExhausted);
+    }
+
+    #[test]
+    fn affine_union_report_adapter_rejects_invalid_mass_or_identity() {
+        let invalid_mass = affine_residual_report(f64::NAN, 0, false);
+        assert_eq!(
+            residual_event_mass_evidence_from_affine_union_report(
+                identity(),
+                HASH_C.to_owned(),
+                "residual-complement".to_owned(),
+                "affine-run-invalid".to_owned(),
+                "1111111111111111111111111111111111111111111111111111111111111111".to_owned(),
+                &invalid_mass,
+            ),
+            Err(KernelError::InvalidProbability)
+        );
+
+        let valid = affine_residual_report(0.01, 0, false);
+        assert_eq!(
+            residual_event_mass_evidence_from_affine_union_report(
+                identity(),
+                "bad-partition-digest".to_owned(),
+                "residual-complement".to_owned(),
+                "affine-run-invalid".to_owned(),
+                "1111111111111111111111111111111111111111111111111111111111111111".to_owned(),
+                &valid,
+            ),
+            Err(KernelError::InvalidEvidenceDigest)
+        );
     }
 
     #[test]
