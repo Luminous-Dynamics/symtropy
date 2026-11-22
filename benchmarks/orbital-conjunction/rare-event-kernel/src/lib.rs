@@ -40,6 +40,7 @@ pub use event_mass_composition::{
     AdmittedEventMassEvidence, ComposedEventMassEnvelope, EventMassCompositionBasis,
     EventMassPartitionDeclaration, EventModelIdentity, PartitionClaim, ResidualEventMassEvidence,
     ResidualMassCoverage, compose_admitted_and_residual_event_mass,
+    residual_event_mass_evidence_from_affine_union_report,
 };
 pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
