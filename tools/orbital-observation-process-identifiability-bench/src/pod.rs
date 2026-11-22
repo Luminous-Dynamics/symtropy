@@ -515,5 +515,4 @@ mod tests {
         assert!(result.gamma_max.unwrap() < result.gamma_min.unwrap());
         assert!(result.expected_result_matched);
     }
-
 }
