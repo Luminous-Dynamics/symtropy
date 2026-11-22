@@ -11,8 +11,8 @@ use std::fmt;
 
 mod campaign_planning;
 pub use campaign_planning::{
-    plan_finite_evidence_campaign, CampaignOutcomeBranch, CampaignPlanNode,
-    EvidenceCampaignConfig, EvidenceCampaignPlan,
+    plan_finite_evidence_campaign, CampaignOutcomeBranch, CampaignPlanNode, EvidenceCampaignConfig,
+    EvidenceCampaignPlan,
 };
 
 mod decision_value;
