@@ -104,6 +104,14 @@ The field-functional kernel includes 10 tests, including central finite-differen
 - covariance multiplier propagation;
 - rejection of non-PSD local covariance, malformed shared modes and duplicate mode identities.
 
+The integrated-functional conformal kernel adds 7 tests for:
+- exact 95% rank at nineteen independent sessions and unbounded result at eighteen;
+- 4D Cholesky Mahalanobis scoring with cross-functional covariance;
+- standardization of mixed mass-flow / force units before Cholesky;
+- rejection of nonsymmetric or singular covariance;
+- protocol and functional-contract identity mismatch;
+- duplicate independent-reference evidence.
+
 ## Limitations and pending work
 
 This implementation is a mathematical reference only. It has not run under Rust locally; formatting, compilation, Clippy, unit tests and exact-head hosted CI are pending. No raw PIV field, PIVtools output, experimental data or force-balance measurement has been processed.
