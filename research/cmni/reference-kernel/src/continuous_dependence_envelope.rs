@@ -228,7 +228,7 @@ pub fn bound_continuous_source_dependence(
     })
 }
 
-fn validate_pairwise_interval_set(
+pub(crate) fn validate_pairwise_interval_set(
     intervals: &PairwiseCorrelationIntervalSet,
     source_count: usize,
 ) -> Result<(), ModelError> {
@@ -277,7 +277,7 @@ fn validate_pairwise_interval_set(
     Ok(())
 }
 
-fn validate_witness_within_intervals(
+pub(crate) fn validate_witness_within_intervals(
     correlation: &[Vec<f64>],
     intervals: &PairwiseCorrelationIntervalSet,
 ) -> Result<(), ModelError> {
