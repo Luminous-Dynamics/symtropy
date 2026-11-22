@@ -16,7 +16,7 @@ For acquisition cluster a and spatial point i, the input is a 3-component residu
 
 `e_{a,i} = u^{PIV}_{a,i} - u^{ref}_{a,i}`
 
-Coordinates use metres; residuals use m/s. The reference may be synthetic known-displacement truth, an independently calibrated measurement, or a separately qualified diagnostic. A unique reference-evidence ID is required for every acquisition.
+Coordinates use metres; residuals use m/s. The reference may be synthetic known-displacement truth, an independently calibrated measurement, or a separately qualified diagnostic. A unique reference-evidence ID is required for every acquisition. The fit configuration also requires a reference-uncertainty assessment ID. Residual covariance includes uncertainty from both PIV and the reference measurement. This crate does not deconvolve or infer the reference contribution. The fitted covariance may be interpreted as PIV-only error only when the reference contribution is negligible under the cited assessment or has already been separately modelled and removed by an externally qualified procedure.
 
 The independent unit is a complete acquisition/dependence cluster, not a vector, interrogation window, image pair, or video frame. Calibration and validation cohorts require at least 20 independent acquisitions each as an initial screening floor. IDs and reference-evidence IDs must be disjoint. Every field in both cohorts must share the exact ordered grid and processing-protocol fingerprint.
 
@@ -53,7 +53,7 @@ A same-component negative correlation lobe is flagged only when the mean across 
 - `RejectedNegativeCorrelationLobe`: the fitted nonnegative Wendland family cannot represent the held-out evidence.
 - `RejectedHeldOutCorrelationFit`: the held-out correlation discrepancy exceeds the frozen bound.
 
-The maximum-error gate and negative-lobe z threshold are stored in the fit record; validation cannot override them. A qualified report can create a UQ-005 `SpatialErrorKernel`.
+The maximum-error gate and negative-lobe z threshold are stored in the fit record; validation cannot override them. Correlation normalization uses one variance scale estimated across the complete holdout, while every acquisition contributes exactly one lag-bin statistic and one independent-cluster observation. Individual vector pairs are not counted as independent samples. The report is bound to the exact fit configuration, reference assessment, calibration manifest, selected range and spatial covariance; it cannot be applied to a substituted fit. A qualified report can create a UQ-005 `SpatialErrorKernel`.
 
 **Double-counting rule:** the fitted `N` must be supplied as each face sample's local velocity covariance. UQ-005 adds `S` through cross-location covariance. Supplying `C(0)` as local covariance and then adding `S` again is invalid.
 
@@ -69,7 +69,8 @@ The current implementation is deliberately narrow:
 - no anisotropic range fitting, despite UQ-005 being able to consume anisotropic scales;
 - no negative-lobe covariance family;
 - no raw image, correlation-plane, LPT-track, pressure, viscous traction, body-force, storage or direct thrust ingestion;
-- no proof that reference evidence is independent, exchangeable, or physically adequate.
+- no proof that reference evidence is independent, exchangeable, or physically adequate;
+- no deconvolution of reference measurement uncertainty: residual covariance contains both PIV and reference contributions unless an externally qualified method has already bounded or removed the reference contribution.
 
 If validation rejects this model, the next research branch should compare empirical lag tables, Gaussian, Matérn 1/2 and 3/2, anisotropic and nonstationary models, plus oscillatory positive-definite kernels where a negative lobe is resolved. Do not expand the model family by relaxing the held-out gate.
 
