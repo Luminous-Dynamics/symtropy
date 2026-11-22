@@ -250,28 +250,25 @@ fn blocker(code: &str) -> Vec<String> {
     vec![code.to_owned()]
 }
 
-pub fn estimate_beta_and_cvm(
+pub fn estimate_beta_and_statistics(
     event_times_seconds: &[u64],
     exposure_end_seconds: u64,
-) -> Result<(f64, f64), String> {
+) -> Result<(f64, TestStatisticValues), String> {
     if exposure_end_seconds == 0 || exposure_end_seconds > MAX_EXPOSURE_SECONDS {
         return Err("exposure endpoint is outside the supported v0.1 range".to_owned());
     }
     if !(MIN_EVENTS..=MAX_EVENTS).contains(&event_times_seconds.len()) {
         return Err("event count is outside the supported v0.1 range".to_owned());
     }
-
     let exposure = exposure_end_seconds as f64;
     let mut previous = 0u64;
     let mut sum_log_ratio = 0.0;
     for time in event_times_seconds {
         if *time == 0 || *time >= exposure_end_seconds || *time <= previous {
-            return Err(
-                "event times must be strictly increasing inside the fixed observation window"
-                    .to_owned(),
-            );
+            return Err("event times must be strictly increasing inside the fixed observation window".to_owned());
         }
-        sum_log_ratio += (exposure / *time as f64).ln();
+        let delta = (exposure_end_seconds - *time) as f64;
+        sum_log_ratio += (delta / *time as f64).ln_1p();
         previous = *time;
     }
     if !sum_log_ratio.is_finite() || sum_log_ratio <= 0.0 {
@@ -284,15 +281,27 @@ pub fn estimate_beta_and_cvm(
         return Err("estimated PLP shape is not finite and positive".to_owned());
     }
 
-    let mut fitted_uniform = Vec::with_capacity(count);
-    for time in event_times_seconds {
-        fitted_uniform.push((*time as f64 / exposure).powf(beta_hat));
-    }
-    let statistic = cramer_von_mises(&fitted_uniform)?;
-    Ok((beta_hat, statistic))
+    let log_transforms: Vec<f64> = event_times_seconds
+        .iter()
+        .map(|time| {
+            let delta = (exposure_end_seconds - *time) as f64;
+            beta_hat * (-(delta / exposure)).ln_1p()
+        })
+        .collect();
+    let statistics = from_sorted_log_transforms(&log_transforms)?;
+    Ok((beta_hat, statistics))
 }
 
-/// One-sample Cramer-von Mises statistic for already sorted fitted transforms.
+pub fn estimate_beta_and_cvm(
+    event_times_seconds: &[u64],
+    exposure_end_seconds: u64,
+) -> Result<(f64, f64), String> {
+    let (beta_hat, statistics) =
+        estimate_beta_and_statistics(event_times_seconds, exposure_end_seconds)?;
+    Ok((beta_hat, statistics.cramer_von_mises))
+}
+
+/// Backwards-compatible one-sample CvM statistic for sorted fitted transforms.
 pub fn cramer_von_mises(sorted_values: &[f64]) -> Result<f64, String> {
     let count = sorted_values.len();
     if count == 0 {
@@ -315,9 +324,12 @@ pub fn cramer_von_mises(sorted_values: &[f64]) -> Result<f64, String> {
     Ok(statistic)
 }
 
-/// Generate one fitted-transform reference sample under the exact conditional
+/// Generate one five-statistic reference sample under the exact conditional
 /// PLP null. Normalized iid Exp(1) values have Dirichlet(1,...,1) proportions.
-fn conditional_reference_cvm(count: usize, rng: &mut SplitMix64) -> Result<f64, String> {
+fn conditional_reference_statistics(
+    count: usize,
+    rng: &mut SplitMix64,
+) -> Result<TestStatisticValues, String> {
     let mut proportions = Vec::with_capacity(count);
     let mut total = 0.0;
     for _ in 0..count {
@@ -328,13 +340,170 @@ fn conditional_reference_cvm(count: usize, rng: &mut SplitMix64) -> Result<f64, 
     if !total.is_finite() || total <= 0.0 {
         return Err("conditional reference normalization failed".to_owned());
     }
-
     proportions.sort_by(|left, right| right.total_cmp(left));
-    let fitted: Vec<f64> = proportions
+    let log_transforms: Vec<f64> = proportions
         .iter()
-        .map(|proportion| (-((count as f64) * proportion / total)).exp())
+        .map(|proportion| -((count as f64) * proportion / total))
         .collect();
-    cramer_von_mises(&fitted)
+    from_sorted_log_transforms(&log_transforms)
+}
+
+/// CvM-only adapter retained for the original v0.1 outer calibration smoke test.
+fn conditional_reference_cvm(count: usize, rng: &mut SplitMix64) -> Result<f64, String> {
+    Ok(conditional_reference_statistics(count, rng)?.cramer_von_mises)
+}
+
+fn component_monte_carlo_result(
+    statistic_id: &str,
+    observed_value: f64,
+    tail_method: &str,
+    selected_tail_exceedances: usize,
+    lower_tail_exceedances: Option<usize>,
+    upper_tail_exceedances: Option<usize>,
+    replicates: usize,
+    two_sided_tail_multiplier: f64,
+) -> Result<StatisticMonteCarloResult, String> {
+    let (tail_probability_estimate, monte_carlo_standard_error, wilson_95_lower, wilson_95_upper) =
+        wilson_interval(selected_tail_exceedances, replicates)?;
+    let one_sided_p = (selected_tail_exceedances as f64 + 1.0) / (replicates as f64 + 1.0);
+    let monte_carlo_p_value = (two_sided_tail_multiplier * one_sided_p).min(1.0);
+    Ok(StatisticMonteCarloResult {
+        statistic_id: statistic_id.to_owned(),
+        observed_value,
+        tail_method: tail_method.to_owned(),
+        tail_exceedances: selected_tail_exceedances,
+        lower_tail_exceedances,
+        upper_tail_exceedances,
+        monte_carlo_p_value,
+        bonferroni_adjusted_p_value: (STATISTIC_COUNT as f64 * monte_carlo_p_value).min(1.0),
+        tail_probability_estimate,
+        monte_carlo_standard_error,
+        wilson_95_lower,
+        wilson_95_upper,
+    })
+}
+
+pub fn conditional_gof(
+    event_times_seconds: &[u64],
+    exposure_end_seconds: u64,
+    replicates: usize,
+    seed: u64,
+) -> Result<(f64, f64, MonteCarloResult), String> {
+    if !(MIN_REPLICATES..=MAX_REPLICATES).contains(&replicates) {
+        return Err("Monte Carlo replicate count is outside the supported v0.2 range".to_owned());
+    }
+    if seed > MAX_SAFE_INTEGER {
+        return Err("random seed exceeds the interoperable safe-integer range".to_owned());
+    }
+    if event_times_seconds.len().saturating_mul(replicates) > MAX_TOTAL_DRAWS {
+        return Err("conditional Monte Carlo draw budget is exceeded".to_owned());
+    }
+
+    let (beta_hat, observed) =
+        estimate_beta_and_statistics(event_times_seconds, exposure_end_seconds)?;
+    let count = event_times_seconds.len();
+    let mut rng = SplitMix64::new(seed);
+    let mut laplace_extreme = 0usize;
+    let mut greenwood_lower = 0usize;
+    let mut greenwood_upper = 0usize;
+    let mut cvm_upper = 0usize;
+    let mut ad_upper = 0usize;
+    let mut ks_upper = 0usize;
+
+    for _ in 0..replicates {
+        let simulated = conditional_reference_statistics(count, &mut rng)?;
+        laplace_extreme += usize::from(simulated.laplace.abs() >= observed.laplace.abs());
+        greenwood_lower += usize::from(simulated.greenwood <= observed.greenwood);
+        greenwood_upper += usize::from(simulated.greenwood >= observed.greenwood);
+        cvm_upper += usize::from(simulated.cramer_von_mises >= observed.cramer_von_mises);
+        ad_upper += usize::from(simulated.anderson_darling >= observed.anderson_darling);
+        ks_upper += usize::from(simulated.kolmogorov_smirnov >= observed.kolmogorov_smirnov);
+    }
+
+    let greenwood_selected_tail = greenwood_lower.min(greenwood_upper);
+    let component_results = vec![
+        component_monte_carlo_result(
+            "laplace-two-sided-v1",
+            observed.laplace,
+            "absolute_two_sided",
+            laplace_extreme,
+            None,
+            Some(laplace_extreme),
+            replicates,
+            1.0,
+        )?,
+        component_monte_carlo_result(
+            "greenwood-two-sided-v1",
+            observed.greenwood,
+            "doubled_minimum_of_lower_and_upper_tails",
+            greenwood_selected_tail,
+            Some(greenwood_lower),
+            Some(greenwood_upper),
+            replicates,
+            2.0,
+        )?,
+        component_monte_carlo_result(
+            STATISTIC_ID,
+            observed.cramer_von_mises,
+            "upper_tail",
+            cvm_upper,
+            None,
+            Some(cvm_upper),
+            replicates,
+            1.0,
+        )?,
+        component_monte_carlo_result(
+            "anderson-darling-upper-tail-v1",
+            observed.anderson_darling,
+            "upper_tail",
+            ad_upper,
+            None,
+            Some(ad_upper),
+            replicates,
+            1.0,
+        )?,
+        component_monte_carlo_result(
+            "kolmogorov-smirnov-upper-tail-v1",
+            observed.kolmogorov_smirnov,
+            "upper_tail",
+            ks_upper,
+            None,
+            Some(ks_upper),
+            replicates,
+            1.0,
+        )?,
+    ];
+
+    let cvm_result = component_results
+        .iter()
+        .find(|component| component.statistic_id == STATISTIC_ID)
+        .expect("the predeclared CvM component is present");
+    let (tail_probability_estimate, monte_carlo_standard_error, wilson_95_lower, wilson_95_upper) =
+        wilson_interval(cvm_upper, replicates)?;
+    let bonferroni_adjusted_min_p_value = (STATISTIC_COUNT as f64
+        * component_results
+            .iter()
+            .map(|component| component.monte_carlo_p_value)
+            .fold(1.0_f64, f64::min))
+    .min(1.0);
+
+    let monte_carlo = MonteCarloResult {
+        prng_id: PRNG_ID.to_owned(),
+        suite_id: SUITE_ID.to_owned(),
+        statistic_id: STATISTIC_ID.to_owned(),
+        seed,
+        replicate_count: replicates,
+        tail_exceedances: cvm_upper,
+        monte_carlo_minimum_p_value: 1.0 / (replicates as f64 + 1.0),
+        monte_carlo_p_value: cvm_result.monte_carlo_p_value,
+        tail_probability_estimate,
+        monte_carlo_standard_error,
+        wilson_95_lower,
+        wilson_95_upper,
+        component_results,
+        bonferroni_adjusted_min_p_value,
+    };
+    Ok((beta_hat, observed.cramer_von_mises, monte_carlo))
 }
 
 fn wilson_interval(successes: usize, trials: usize) -> Result<(f64, f64, f64, f64), String> {
