@@ -1,0 +1,16 @@
+{
+  "benchmark_id": "av-evidence-certificate-v0",
+  "schema_version": 1,
+  "episode_id": "episode-001",
+  "claim_count": 2,
+  "observation_count": 2,
+  "answer_accuracy": 1,
+  "grounded_answer_accuracy": 1,
+  "unsupported_claim_rate": 0,
+  "mean_citation_precision": 0.5,
+  "mean_citation_recall": 0.5,
+  "mean_citation_f1": 0.5,
+  "mean_temporal_iou": 0.8,
+  "mean_spatial_iou": 1,
+  "correct_abstention_count": 1
+}
