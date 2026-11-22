@@ -27,6 +27,13 @@ pub use design_decision::{
     DominanceDecision, DominanceUnresolvedReason, PortfolioUtilityInterval, UtilityBoundEvidence,
 };
 
+mod continuous_psd_sdp_certificate;
+pub use continuous_psd_sdp_certificate::{
+    verify_continuous_dependence_sdp_certificate, CorrelationBoundDualMultipliers,
+    ContinuousDependenceSdpCertificate, ContinuousDependenceSdpVerification,
+    SdpCertificateVerificationPolicy, SdpCertificateVerificationStatus,
+};
+
 mod continuous_dependence_envelope;
 pub use continuous_dependence_envelope::{
     bound_continuous_source_dependence, continuous_dependence_eig_utility_interval,
