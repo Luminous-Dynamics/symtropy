@@ -90,7 +90,6 @@ pub enum BregarCsvIngestError {
     UnterminatedQuotedCell,
     EmptyHeaderRecord,
     InvalidSourceFileIdentity,
-    InvalidRowIdentity,
     TooFewRowFields,
     EmptyTagIdentity,
     EmptyAnchorIdentity,
@@ -113,7 +112,6 @@ impl fmt::Display for BregarCsvIngestError {
             Self::UnterminatedQuotedCell => write!(f, "CSV record contains an unterminated quoted cell"),
             Self::EmptyHeaderRecord => write!(f, "Bregar CSV header record must contain at least one cell"),
             Self::InvalidSourceFileIdentity => write!(f, "source file identity must be nonempty"),
-            Self::InvalidRowIdentity => write!(f, "source row index cannot be represented as a nonzero measurement ID"),
             Self::TooFewRowFields => write!(f, "Bregar data row must contain 26 metadata fields and at least one CIR sample"),
             Self::EmptyTagIdentity => write!(f, "TAG_ID must be nonempty"),
             Self::EmptyAnchorIdentity => write!(f, "ANCHOR_ID must be nonempty"),
@@ -179,10 +177,6 @@ pub fn parse_bregar_csv_data_row(
     if source_file_id.trim().is_empty() {
         return Err(BregarCsvIngestError::InvalidSourceFileIdentity);
     }
-    if source_row_index == u64::MAX {
-        return Err(BregarCsvIngestError::InvalidRowIdentity);
-    }
-
     let fields = parse_csv_record(record)?;
     if fields.len() <= BREGAR_CIR_START_FIELD {
         return Err(BregarCsvIngestError::TooFewRowFields);
@@ -457,6 +451,7 @@ fn parse_python_complex(value: &str) -> Result<ComplexCirSample, ()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bregar_cir_features::extract_bregar_cir_features;
 
     fn header() -> String {
         "tag_id,anchor_id,x_tag,y_tag,z_tag,x_anchor,y_anchor,z_anchor,nlos,range,fp_index,rss,rss_fp,fp_point1,fp_point2,fp_point3,stdev_noise,cir_power,max_noise,rxpacc,channel_number,frame_length,preamble_length,bitrate,prfr,preamble_code,cir".to_owned()
@@ -605,10 +600,6 @@ mod tests {
             Err(BregarCsvIngestError::InvalidSourceFileIdentity)
         );
         assert_eq!(
-            parse_bregar_csv_data_row("environment0/ch1_A1.csv", u64::MAX, &row_record(200)),
-            Err(BregarCsvIngestError::InvalidRowIdentity)
-        );
-        assert_eq!(
             parse_bregar_csv_data_row("environment0/ch1_A1.csv", 0, "T1,A1"),
             Err(BregarCsvIngestError::TooFewRowFields)
         );
@@ -630,6 +621,22 @@ mod tests {
             parse_bregar_csv_data_row("environment0/ch1_A1.csv", 0, &fields.join(",")),
             Err(BregarCsvIngestError::InvalidComplexCirSample { index: 0, .. })
         ));
+    }
+
+    #[test]
+    fn controller_csv_view_flows_into_cir_features_without_evaluator_labels() {
+        let parsed = parse_bregar_csv_data_row(
+            "environment0/ch1_A1.csv",
+            42,
+            &row_record(200),
+        )
+        .unwrap();
+        let observation = parsed.controller.to_cir_observation(77, 0.015);
+        let features = extract_bregar_cir_features(&observation).unwrap();
+        assert_eq!(features.measurement_id, 77);
+        assert_eq!(features.fp_index_integer, 100);
+        assert_eq!(features.normalized_magnitude_window.len(), 152);
+        assert_eq!(parsed.evaluator.nlos_label.as_deref(), Some("NLOS"));
     }
 
     #[test]
