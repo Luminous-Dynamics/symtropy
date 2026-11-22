@@ -12,8 +12,8 @@
 //! exhaustive partition. The caller supplies that partition declaration;
 //! this module checks identity consistency but cannot prove the geometry.
 
-use crate::residual::AffineResidualMassReport;
 use crate::KernelError;
+use crate::residual::AffineResidualMassReport;
 
 /// Immutable event and target-distribution identity shared by source evidence.
 ///
