@@ -608,7 +608,10 @@ pub fn evaluate_mobility_flexibility(
         {
             add_error(
                 &mut errors,
-                format!("resource_dispatch_identity_or_value_invalid:{}:{}", item.resource_id, item.slot),
+                format!(
+                    "resource_dispatch_identity_or_value_invalid:{}:{}",
+                    item.resource_id, item.slot
+                ),
             );
             continue;
         }
@@ -618,7 +621,10 @@ pub fn evaluate_mobility_flexibility(
         {
             add_error(
                 &mut errors,
-                format!("resource_dispatch_duplicate:{}:{}", item.resource_id, item.slot),
+                format!(
+                    "resource_dispatch_duplicate:{}:{}",
+                    item.resource_id, item.slot
+                ),
             );
         }
     }
@@ -637,14 +643,19 @@ pub fn evaluate_mobility_flexibility(
     for slot in 0..input.horizon_slots {
         let mut allocated_power = 0_u32;
         for resource in &input.storage_resources {
-            if let Some(item) = resource_dispatch_by_key.get(&(resource.resource_id.clone(), slot)) {
-                allocated_power = match allocated_power.checked_add(item.requested_discharge_power_w) {
-                    Some(value) => value,
-                    None => {
-                        add_error(&mut errors, format!("resource_dispatch_power_overflow:{slot}"));
-                        allocated_power
-                    }
-                };
+            if let Some(item) = resource_dispatch_by_key.get(&(resource.resource_id.clone(), slot))
+            {
+                allocated_power =
+                    match allocated_power.checked_add(item.requested_discharge_power_w) {
+                        Some(value) => value,
+                        None => {
+                            add_error(
+                                &mut errors,
+                                format!("resource_dispatch_power_overflow:{slot}"),
+                            );
+                            allocated_power
+                        }
+                    };
             }
         }
         if let Some(site_profile) = profile_by_slot.get(&slot) {
@@ -817,10 +828,8 @@ pub fn evaluate_mobility_flexibility(
         let mut resource_slot_power_margins = Vec::new();
         let mut energy_feasible = reserve_feasible;
         let mut power_feasible = reserve_feasible;
-        let candidate_energy = candidate_energy_wh(
-            &sorted_resource_dispatch,
-            input.slot_duration_seconds,
-        );
+        let candidate_energy =
+            candidate_energy_wh(&sorted_resource_dispatch, input.slot_duration_seconds);
         let Some(candidate_energy) = candidate_energy else {
             add_error(&mut errors, "candidate_energy_arithmetic_overflow");
             return Err(errors);
@@ -844,17 +853,18 @@ pub fn evaluate_mobility_flexibility(
                 energy_feasible = false;
                 continue;
             };
-            let resource_residual_energy = if reserved_energy > resource.available_energy_lower_bound_wh {
-                reserve_feasible = false;
-                energy_feasible = false;
-                findings.push(format!(
-                    "energy_reserve_exceeds_available:{}",
-                    resource.resource_id
-                ));
-                0
-            } else {
-                resource.available_energy_lower_bound_wh - reserved_energy
-            };
+            let resource_residual_energy =
+                if reserved_energy > resource.available_energy_lower_bound_wh {
+                    reserve_feasible = false;
+                    energy_feasible = false;
+                    findings.push(format!(
+                        "energy_reserve_exceeds_available:{}",
+                        resource.resource_id
+                    ));
+                    0
+                } else {
+                    resource.available_energy_lower_bound_wh - reserved_energy
+                };
             residual_energy = match residual_energy.checked_add(resource_residual_energy) {
                 Some(value) => value,
                 None => {
@@ -875,7 +885,10 @@ pub fn evaluate_mobility_flexibility(
             let Some(resource_candidate_energy) = resource_candidate_energy else {
                 add_error(
                     &mut errors,
-                    format!("resource_candidate_energy_overflow:{}", resource.resource_id),
+                    format!(
+                        "resource_candidate_energy_overflow:{}",
+                        resource.resource_id
+                    ),
                 );
                 energy_feasible = false;
                 continue;
@@ -911,7 +924,8 @@ pub fn evaluate_mobility_flexibility(
                     power_feasible = false;
                     continue;
                 };
-                let residual_power = if reserved_power > resource.max_discharge_power_lower_bound_w {
+                let residual_power = if reserved_power > resource.max_discharge_power_lower_bound_w
+                {
                     reserve_feasible = false;
                     power_feasible = false;
                     findings.push(format!(
@@ -950,7 +964,8 @@ pub fn evaluate_mobility_flexibility(
             }
         }
 
-        resource_energy_margins.sort_by(|a: &ResourceEnergyMargin, b| a.resource_id.cmp(&b.resource_id));
+        resource_energy_margins
+            .sort_by(|a: &ResourceEnergyMargin, b| a.resource_id.cmp(&b.resource_id));
         resource_slot_power_margins.sort_by(|a: &ResourceSlotPowerMargin, b| {
             (&a.resource_id, a.slot).cmp(&(&b.resource_id, b.slot))
         });
@@ -960,7 +975,7 @@ pub fn evaluate_mobility_flexibility(
             findings.push("candidate_exceeds_horizon_residual_energy".to_owned());
         }
 
-                let mut pcc_feasible = true;
+        let mut pcc_feasible = true;
         for slot in 0..usize::from(input.horizon_slots) {
             let slot_id = slot as u8;
             let Some(candidate) = profile_by_slot.get(&slot_id) else {
@@ -1023,8 +1038,9 @@ pub fn evaluate_mobility_flexibility(
         return Err(errors);
     }
 
-    let candidate_energy = candidate_energy_wh(&sorted_resource_dispatch, input.slot_duration_seconds)
-        .ok_or_else(|| vec!["candidate_energy_arithmetic_overflow".to_owned()])?;
+    let candidate_energy =
+        candidate_energy_wh(&sorted_resource_dispatch, input.slot_duration_seconds)
+            .ok_or_else(|| vec!["candidate_energy_arithmetic_overflow".to_owned()])?;
     let worst_case_energy_budget = scenario_results
         .iter()
         .map(|result| result.residual_energy_budget_wh)
@@ -1117,10 +1133,12 @@ mod tests {
         input.candidate_dispatch = profile
             .into_iter()
             .enumerate()
-            .map(|(slot, requested_discharge_power_w)| CandidateDispatchSlot {
-                slot: slot as u8,
-                requested_discharge_power_w,
-            })
+            .map(
+                |(slot, requested_discharge_power_w)| CandidateDispatchSlot {
+                    slot: slot as u8,
+                    requested_discharge_power_w,
+                },
+            )
             .collect();
 
         let mut resources: Vec<_> = input
@@ -1129,7 +1147,11 @@ mod tests {
             .map(|resource| resource.resource_id.clone())
             .collect();
         resources.sort();
-        assert_eq!(resources.len(), 2, "the exhaustive fixture has two resources");
+        assert_eq!(
+            resources.len(),
+            2,
+            "the exhaustive fixture has two resources"
+        );
 
         input.resource_dispatch.clear();
         for (slot, total_power) in profile.into_iter().enumerate() {
@@ -1178,10 +1200,9 @@ mod tests {
 
                 let resource_profile: Vec<_> = (0..input.horizon_slots)
                     .filter_map(|slot| {
-                        input
-                            .resource_dispatch
-                            .iter()
-                            .find(|item| item.resource_id == resource.resource_id && item.slot == slot)
+                        input.resource_dispatch.iter().find(|item| {
+                            item.resource_id == resource.resource_id && item.slot == slot
+                        })
                     })
                     .collect();
                 if resource_profile.len() != usize::from(input.horizon_slots) {
@@ -1208,8 +1229,10 @@ mod tests {
                     if reserved_power > resource.max_discharge_power_lower_bound_w {
                         return false;
                     }
-                    let available_power = resource.max_discharge_power_lower_bound_w - reserved_power;
-                    let requested_power = resource_profile[usize::from(slot)].requested_discharge_power_w;
+                    let available_power =
+                        resource.max_discharge_power_lower_bound_w - reserved_power;
+                    let requested_power =
+                        resource_profile[usize::from(slot)].requested_discharge_power_w;
                     if requested_power > available_power {
                         return false;
                     }
@@ -1304,12 +1327,14 @@ mod tests {
     fn aggregate_site_power_cannot_hide_resource_power_overcommit() {
         let mut input = fixture();
         input.candidate_dispatch[0].requested_discharge_power_w = 2_300;
-        input.resource_dispatch
+        input
+            .resource_dispatch
             .iter_mut()
             .find(|item| item.resource_id == "ess-01" && item.slot == 0)
             .expect("ess-01 slot 0")
             .requested_discharge_power_w = 2_300;
-        input.resource_dispatch
+        input
+            .resource_dispatch
             .iter_mut()
             .find(|item| item.resource_id == "ess-02" && item.slot == 0)
             .expect("ess-02 slot 0")
@@ -1317,21 +1342,24 @@ mod tests {
         let report = evaluate_mobility_flexibility(&input).expect("valid input");
         assert!(!report.candidate_model_feasible);
         assert!(
-            report.findings.iter().any(|item| {
-                item == "candidate_exceeds_resource_residual_power:ess-01:0"
-            })
+            report
+                .findings
+                .iter()
+                .any(|item| { item == "candidate_exceeds_resource_residual_power:ess-01:0" })
         );
     }
 
     #[test]
     fn aggregate_energy_cannot_hide_one_resource_energy_overdraw() {
         let mut input = fixture();
-        input.resource_dispatch
+        input
+            .resource_dispatch
             .iter_mut()
             .find(|item| item.resource_id == "ess-02" && item.slot == 0)
             .expect("ess-02 slot 0")
             .requested_discharge_power_w = 600;
-        input.resource_dispatch
+        input
+            .resource_dispatch
             .iter_mut()
             .find(|item| item.resource_id == "ess-01" && item.slot == 0)
             .expect("ess-01 slot 0")
@@ -1339,9 +1367,10 @@ mod tests {
         let report = evaluate_mobility_flexibility(&input).expect("valid input");
         assert!(!report.candidate_model_feasible);
         assert!(
-            report.findings.iter().any(|item| {
-                item == "candidate_exceeds_resource_residual_energy:ess-02"
-            })
+            report
+                .findings
+                .iter()
+                .any(|item| { item == "candidate_exceeds_resource_residual_energy:ess-02" })
         );
     }
 
@@ -1374,12 +1403,14 @@ mod tests {
     fn no_export_is_inferred_from_a_positive_energy_residual() {
         let mut input = fixture();
         input.candidate_dispatch[0].requested_discharge_power_w = 4_500;
-        input.resource_dispatch
+        input
+            .resource_dispatch
             .iter_mut()
             .find(|item| item.resource_id == "ess-01" && item.slot == 0)
             .expect("ess-01 slot 0")
             .requested_discharge_power_w = 2_500;
-        input.resource_dispatch
+        input
+            .resource_dispatch
             .iter_mut()
             .find(|item| item.resource_id == "ess-02" && item.slot == 0)
             .expect("ess-02 slot 0")
@@ -1398,12 +1429,14 @@ mod tests {
     fn synthetic_export_permission_cannot_authorize_export() {
         let mut input = fixture();
         input.candidate_dispatch[0].requested_discharge_power_w = 4_100;
-        input.resource_dispatch
+        input
+            .resource_dispatch
             .iter_mut()
             .find(|item| item.resource_id == "ess-01" && item.slot == 0)
             .expect("ess-01 slot 0")
             .requested_discharge_power_w = 2_200;
-        input.resource_dispatch
+        input
+            .resource_dispatch
             .iter_mut()
             .find(|item| item.resource_id == "ess-02" && item.slot == 0)
             .expect("ess-02 slot 0")
