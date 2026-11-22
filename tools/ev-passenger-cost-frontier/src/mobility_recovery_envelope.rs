@@ -781,6 +781,17 @@ pub fn evaluate_mobility_recovery(
             let mut resource_findings = BTreeSet::new();
             let mut first_failed_slot = None;
             let mut recovery_complete = false;
+            let initial_floor = reserve_floor_wh(obligation, 0);
+            let Some(initial_floor) = initial_floor else {
+                add_error(&mut errors, "recovery_initial_reserve_floor_overflow");
+                continue;
+            };
+            let initial_margin = energy - i64::try_from(initial_floor).unwrap_or(i64::MAX);
+            let mut minimum_reserve_margin = minimum_reserve_margin.min(initial_margin);
+            if initial_margin < 0 {
+                first_failed_slot = Some(0);
+                resource_findings.insert("initial_energy_below_starting_reserve".to_owned());
+            }
 
             for slot in 0..input.horizon_slots {
                 let index = usize::from(slot);
@@ -986,6 +997,36 @@ mod tests {
                 assert_eq!(resource.energy_after_slot_wh.len(), 8);
             }
         }
+    }
+
+    #[test]
+    fn initial_energy_below_required_reserve_cannot_be_backfilled_by_charging() {
+        let mut input = fixture();
+        input.resources[0].initial_energy_lower_bound_wh = 500;
+        let report = evaluate_mobility_recovery(&input).expect("valid evidence shape");
+        assert!(!report.candidate_model_feasible);
+        assert!(report.scenario_results.iter().any(|scenario| {
+            scenario.resource_trajectories.iter().any(|trajectory| {
+                trajectory.resource_id == "ess-01"
+                    && trajectory.findings.iter().any(|finding| {
+                        finding == "initial_energy_below_starting_reserve"
+                    })
+            })
+        }));
+    }
+
+    #[test]
+    fn capacity_overrun_is_not_hidden_by_later_discharge() {
+        let mut input = fixture();
+        input.resources[0].initial_energy_lower_bound_wh = 1_900;
+        let report = evaluate_mobility_recovery(&input).expect("valid evidence shape");
+        assert!(!report.candidate_model_feasible);
+        assert!(report.scenario_results.iter().any(|scenario| {
+            scenario.resource_trajectories.iter().any(|trajectory| {
+                trajectory.resource_id == "ess-01"
+                    && trajectory.findings.iter().any(|finding| finding.contains("energy_capacity_exceeded"))
+            })
+        }));
     }
 
     #[test]
