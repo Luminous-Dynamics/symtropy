@@ -401,6 +401,20 @@ pub struct SelectedActionManifestV1 {
     pub manifest_sha256: String,
 }
 
+/// One pre-outcome value forecast for an eligible acquisition or stop.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ActionEvsiForecastV1 {
+    /// Action ID, or the reserved stop/no-acquisition ID.
+    pub action_id: String,
+    /// Point estimate of gross EVSI.
+    pub estimated_gross_evsi: f64,
+    /// Lower forecast interval bound.
+    pub lower_gross_evsi: f64,
+    /// Upper forecast interval bound.
+    pub upper_gross_evsi: f64,
+}
+
 /// Full all-action parameter catalogue and selected action for one transcript head.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -415,6 +429,8 @@ pub struct ActionParameterForecastV1 {
     pub eligible_action_ids: Vec<String>,
     /// Complete per-action parameter manifests for every eligible acquisition action.
     pub actions: Vec<ForecastActionManifestV1>,
+    /// Complete #6753-style gross EVSI forecasts, including explicit stop.
+    pub evsi_forecasts: Vec<ActionEvsiForecastV1>,
     /// Selected action ID. May be the reserved stop ID.
     pub selected_action_id: String,
     /// Selected manifest digest. None only when selecting stop/no-acquisition.
@@ -481,6 +497,36 @@ pub fn validate_forecast(
     if action_ids != eligible_ids {
         return Err(ActionArgumentError::new(
             "forecast action manifests do not exactly cover the eligible action catalogue",
+        ));
+    }
+    let mut forecast_ids = BTreeSet::new();
+    for entry in &forecast.evsi_forecasts {
+        require_text(&entry.action_id, "EVSI forecast action_id")?;
+        if !forecast_ids.insert(entry.action_id.clone()) {
+            return Err(ActionArgumentError::new("EVSI forecast contains duplicate action IDs"));
+        }
+        let values = [
+            entry.estimated_gross_evsi,
+            entry.lower_gross_evsi,
+            entry.upper_gross_evsi,
+        ];
+        if values.iter().any(|value| !value.is_finite()) {
+            return Err(ActionArgumentError::new("EVSI forecast values must be finite"));
+        }
+        if entry.lower_gross_evsi > entry.estimated_gross_evsi
+            || entry.estimated_gross_evsi > entry.upper_gross_evsi
+        {
+            return Err(ActionArgumentError::new("EVSI forecast interval is inconsistent"));
+        }
+        if entry.action_id == STOP_ACTION_ID_V1 && values.iter().any(|value| *value != 0.0) {
+            return Err(ActionArgumentError::new("stop/no-acquisition EVSI forecast must be zero"));
+        }
+    }
+    let mut expected_forecast_ids = eligible_ids.clone();
+    expected_forecast_ids.insert(STOP_ACTION_ID_V1.to_string());
+    if forecast_ids != expected_forecast_ids {
+        return Err(ActionArgumentError::new(
+            "EVSI forecasts must cover every eligible action plus explicit stop",
         ));
     }
     require_text(&forecast.selected_action_id, "selected_action_id")?;
@@ -742,7 +788,7 @@ fn validate_roi(roi: &RegionOfInterestV1) -> Result<(), ActionArgumentError> {
 fn validate_result_payload(
     manifest: &ActionParameterManifestV1,
     result: &ActionResultV1,
-    _expected_arrival_tick: u64,
+    expected_arrival_tick: u64,
 ) -> Result<(), ActionArgumentError> {
     match &manifest.parameters {
         ActionParametersV1::VideoCrop(parameters) => {
@@ -787,9 +833,12 @@ fn validate_result_payload(
                     "failed/unavailable/cancelled video action cannot deliver frames",
                 ));
             }
-            if result.status == ActionResultStatusV1::Partial && result.delivered_frames.is_empty() {
+            if result.status == ActionResultStatusV1::Partial
+                && (result.delivered_frames.is_empty()
+                    || result.delivered_frames.len() >= schedule.len())
+            {
                 return Err(ActionArgumentError::new(
-                    "partial video result must retain its partial frame delivery",
+                    "partial video result must retain a non-empty strict subset of requested frames",
                 ));
             }
         }
@@ -845,6 +894,7 @@ fn validate_result_payload(
                 if feedback.source_role != parameters.source_role
                     || feedback.feedback_kind != parameters.feedback_kind
                     || feedback.delivered_tick < parameters.expected_delivery_tick
+                    || feedback.delivered_tick < expected_arrival_tick
                 {
                     return Err(ActionArgumentError::new(
                         "delivered feedback does not match the requested source/type/arrival",
@@ -1285,15 +1335,28 @@ mod tests {
             episode_id: "episode-1".to_string(),
             turn_id: 1,
             transcript_head_sha256: hex_sha256(b"head"),
+            eligible_action_ids: vec![manifest.action_id.clone()],
             actions: vec![ForecastActionManifestV1 {
                 action_id: manifest.action_id.clone(),
                 manifest: manifest.clone(),
                 manifest_sha256: manifest_digest.clone(),
             }],
-            selected: SelectedActionManifestV1 {
-                action_id: manifest.action_id.clone(),
-                manifest_sha256: manifest_digest.clone(),
-            },
+            evsi_forecasts: vec![
+                ActionEvsiForecastV1 {
+                    action_id: manifest.action_id.clone(),
+                    estimated_gross_evsi: 0.4,
+                    lower_gross_evsi: 0.2,
+                    upper_gross_evsi: 0.6,
+                },
+                ActionEvsiForecastV1 {
+                    action_id: STOP_ACTION_ID_V1.to_string(),
+                    estimated_gross_evsi: 0.0,
+                    lower_gross_evsi: 0.0,
+                    upper_gross_evsi: 0.0,
+                },
+            ],
+            selected_action_id: manifest.action_id.clone(),
+            selected_manifest_sha256: Some(manifest_digest.clone()),
         };
         let acceptance = RequestAcceptanceV1 {
             episode_id: "episode-1".to_string(),
@@ -1345,15 +1408,28 @@ mod tests {
             episode_id: "episode-1".to_string(),
             turn_id: 1,
             transcript_head_sha256: hex_sha256(b"head"),
+            eligible_action_ids: vec![manifest.action_id.clone()],
             actions: vec![ForecastActionManifestV1 {
                 action_id: manifest.action_id.clone(),
                 manifest: manifest.clone(),
                 manifest_sha256: manifest_digest.clone(),
             }],
-            selected: SelectedActionManifestV1 {
-                action_id: manifest.action_id.clone(),
-                manifest_sha256: manifest_digest.clone(),
-            },
+            evsi_forecasts: vec![
+                ActionEvsiForecastV1 {
+                    action_id: manifest.action_id.clone(),
+                    estimated_gross_evsi: 0.4,
+                    lower_gross_evsi: 0.2,
+                    upper_gross_evsi: 0.6,
+                },
+                ActionEvsiForecastV1 {
+                    action_id: STOP_ACTION_ID_V1.to_string(),
+                    estimated_gross_evsi: 0.0,
+                    lower_gross_evsi: 0.0,
+                    upper_gross_evsi: 0.0,
+                },
+            ],
+            selected_action_id: manifest.action_id.clone(),
+            selected_manifest_sha256: Some(manifest_digest.clone()),
         };
         let acceptance = RequestAcceptanceV1 {
             episode_id: "episode-1".to_string(),
