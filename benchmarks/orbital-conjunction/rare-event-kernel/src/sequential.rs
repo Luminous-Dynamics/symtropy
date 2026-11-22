@@ -178,7 +178,7 @@ impl BernoulliMixtureEProcess {
             });
         }
 
-        let threshold = (1.0 / alpha).ln();
+        let threshold = -alpha.ln();
         let empirical_mean = self.event_count as f64 / self.sample_count as f64;
         let minimum_log_e = self.log_e_value(empirical_mean)?;
         if minimum_log_e > threshold {
