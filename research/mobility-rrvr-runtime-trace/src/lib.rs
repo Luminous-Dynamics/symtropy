@@ -15,7 +15,7 @@ use std::collections::BTreeSet;
 pub const CONTRACT_VERSION: &str = "0.1";
 pub const REQUIRED_OWNER_DOMAINS: usize = 5;
 
-pub const STATE_FIELDS: [&str; 48] = [
+pub const STATE_FIELDS: [&str; 43] = [
     "processStatus", "bootEpoch", "controllerEpoch", "stage", "reservationCommitted",
     "oldTicketBootEpoch", "oldTicketControllerEpoch", "oldAccepted", "oldAcceptedBootEpoch",
     "oldAcceptedControllerEpoch", "commandPending", "commandOwnerAttempt",
@@ -27,11 +27,9 @@ pub const STATE_FIELDS: [&str; 48] = [
     "recoveryAccepted", "admittedFreshBoot", "admittedFreshController",
     "admittedControllerFence", "admittedDownstreamFence", "admittedM1", "admittedM2",
     "admittedBinding", "naiveReplayCount", "crashCut",
-    // Reserved fields are not accepted; this constant documents model cardinality.
-    "reserved-not-a-model-field", "reserved-not-a-model-field-2", "reserved-not-a-model-field-3",
 ];
 
-pub const MODEL_STATE_FIELD_COUNT: usize = 45;
+pub const MODEL_STATE_FIELD_COUNT: usize = 43;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum OwnerEvidenceDomain { ProcessEpoch, Persistence, PhysicalOutcome, ExecutionGraph, Authority }
