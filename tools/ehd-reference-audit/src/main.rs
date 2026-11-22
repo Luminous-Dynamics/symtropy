@@ -111,6 +111,7 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
         "A source figure export or interpolating pickle is not a raw instrument time-series",
         "Unknown values are null, not zero",
         "Power boundary and system-mass boundary are required",
+        "A diagnostic that changes the physical state is an intervention, not passive measurement noise",
     ] {
         let found = at(root, &["comparability_policy"])
             .and_then(Value::as_array)
