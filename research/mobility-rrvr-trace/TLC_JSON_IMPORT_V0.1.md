@@ -30,12 +30,12 @@ The importer rejects:
 - duplicate, non-sequential or malformed state frames;
 - malformed transition triples;
 - before/after frames that do not exactly equal adjacent state snapshots;
-- missing action names and any action not present in the pinned 30-action map;
+- missing action names, unknown actions, and any inner action not present in the pinned 30-action map. The outer disjunction label `Next` is represented separately as `TlaNextTransition`;
 - empty source artifacts or missing context identifiers;
 - output that fails the common RRVR `TraceBundle` validator.
 
 For an accepted trace, the importer creates:
-- one event per TLC action, with the exact mapped `TraceEventKind`;
+- one event per exported TLC transition. A direct action name uses the exact mapped `TraceEventKind`; when TLC exports the top-level disjunction name `Next`, the importer emits `TlaNextTransition` and does not guess the selected inner disjunct;
 - an explicit linear predecessor edge from each action to the prior action, because one TLC behavior is a sequential state-transition trace;
 - event input commitments over the complete before/action/after triple;
 - initial-state and final witness-state commitments;
@@ -43,6 +43,22 @@ For an accepted trace, the importer creates:
 - four raw artifact records: the exact JSON, model source, model config and pinned tool JAR.
 
 The binary writes a JSON RRVR bundle. The workflow uploads the original TLC JSON, imported bundle, exact model/config/tool files and a SHA256SUMS manifest together.
+
+## Actual pinned model export behavior
+
+The current pinned restart model exports the 7-transition unsafe-retry counterexample with action metadata names:
+
+`ReserveAttempt`, `MarkDispatchStarted`, `NativeAcceptOld`, `OldDeviceApplies`, `Crash`, `Restart`, `Next`.
+
+The final exported name is the outer disjunction `Next`, not `NaiveRetry`. TLC's JSON trace identifies the top-level action and source location; it does not encode which inner disjunct of `Next` was selected. Therefore the importer preserves this transition as `TlaNextTransition`, rather than falsely labelling the event `NaiveRetryAttempted`.
+
+The negative-control context still binds:
+- invariant ID `NoDuplicatePhysicalEffects`;
+- violation class `no_duplicate_physical_effects_violated_in_naive_retry_control`;
+- exact initial and final state commitments;
+- exact raw TLC JSON, source model, negative-control config and JAR commitments.
+
+The model/config and invariant establish what experiment produced the counterexample. The event-kind label does not claim more than TLC emitted.
 
 ## Critical minimization boundary
 
