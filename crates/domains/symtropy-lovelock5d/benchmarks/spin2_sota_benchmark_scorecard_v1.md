@@ -211,3 +211,10 @@ v_{\min}'(0)=-(2b/15)e_h,\qquad
 u_{\min}'(0)=-(8b/15)e_H,
 \]
 with the complementary maximum-singular-vector directions rotating oppositely. Numerically the minimum right-frame component slope is \(0.0985611736238288\), and the minimum left-frame component slope is \(0.3942446944953152\). These values are prospective finite-difference regression targets in the frozen raw basis; they are not invariant under endpoint rescaling. When using metric-aware singular vectors, transform both endpoint metrics and track the same continuous orientation convention.
+
+
+## Independent endpoint-projection cross-check (22 November 2026)
+
+The exact Green--Lagrange endpoint amplitudes now have a second, implementation-independent numerical check. A separate mpmath tanh-sinh quadrature (without SymPy, the action-row fixture, or the symbolic verifier) reproduces \(C_H=67-6\pi^2\) and \(C_B=19-2\pi^2\) at requested precisions 40/60/80 digits. The largest reported discrepancies are below \(1.5\times10^{-46}\) and \(4.8\times10^{-47}\), respectively.
+
+This validates the integral evaluation numerically, not the action variation, not the finite-coupling BVP, and not an existence theorem. It is a second oracle to catch integration/endpoint algebra mistakes before proceeding to finite-positive-coupling corrections.
