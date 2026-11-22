@@ -18,3 +18,7 @@ name = "adaptive_pl_demo"
 path = "src/bin/adaptive_pl_demo.rs"
 
 [dependencies]
+
+[[bin]]
+name = "student_t_pl_demo"
+path = "src/bin/student_t_pl_demo.rs"
