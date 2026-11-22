@@ -7,7 +7,7 @@ license = "AGPL-3.0-or-later"
 description = "Conditional Monte Carlo goodness-of-fit diagnostic for complete-window PLP histories"
 
 [dependencies]
-serde = { version = "1.0.228", features = ["derive"] }
+serde = { version = "=1.0.228", features = ["derive"] }
 serde_json = "1.0.150"
 sha2 = "0.10.9"
 
