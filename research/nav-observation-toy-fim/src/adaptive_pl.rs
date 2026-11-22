@@ -23,6 +23,15 @@ pub enum IntegralAntiWindup {
     HardClamped,
 }
 
+/// Derivative-filter discretization. PaperLinear reproduces Eq. (34)-(35)
+/// from Maharmeh et al. (2026); ExactExponential is a separate matched
+/// continuous-time first-order low-pass discretization for sensitivity tests.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DerivativeFilterMode {
+    PaperLinear,
+    ExactExponential,
+}
+
 /// Published controller parameters plus explicit TIR inflation constant.
 ///
 /// k_tir is deliberately caller-supplied. The paper states that it is derived
@@ -42,6 +51,7 @@ pub struct AdaptivePlConfig {
     pub kd_base: f64,
     pub decay_modifier: f64,
     pub derivative_cutoff_hz: f64,
+    pub derivative_filter: DerivativeFilterMode,
     pub integral_limit_fraction: f64,
     pub integral_anti_windup: IntegralAntiWindup,
     pub entropy_kp_scale: f64,
@@ -66,6 +76,7 @@ impl AdaptivePlConfig {
             kd_base: 0.001,
             decay_modifier: 0.15,
             derivative_cutoff_hz: 5.0,
+            derivative_filter: DerivativeFilterMode::PaperLinear,
             integral_limit_fraction: 0.3,
             integral_anti_windup: IntegralAntiWindup::PaperConditional,
             entropy_kp_scale: 2.0,
@@ -355,16 +366,22 @@ impl AdaptivePlState {
             }
         };
 
-        // Eqs. (34)-(35): low-pass filtered derivative.
-        // Exact first-order low-pass coefficient from the paper:
-        // alpha_D = exp(-2*pi*f_c*dt); old derivative gets alpha_D and the
-        // finite-difference derivative gets (1-alpha_D).
-        let derivative_alpha =
-            (-2.0 * PI * config.derivative_cutoff_hz * dt).exp();
+        // Eqs. (34)-(35): preserve the published coefficient by default.
+        // The paper weights the current finite-difference derivative by
+        // min(1, 2*pi*f_c*dt). The exponential alternative is explicitly
+        // separate and uses 1-exp(-2*pi*f_c*dt).
         let raw_derivative =
             (tracking_error - self.previous_tracking_error_m) / dt;
-        let next_derivative = derivative_alpha * self.derivative_state_mps
-            + (1.0 - derivative_alpha) * raw_derivative;
+        let derivative_alpha = match config.derivative_filter {
+            DerivativeFilterMode::PaperLinear => {
+                (2.0 * PI * config.derivative_cutoff_hz * dt).min(1.0)
+            }
+            DerivativeFilterMode::ExactExponential => {
+                1.0 - (-2.0 * PI * config.derivative_cutoff_hz * dt).exp()
+            }
+        };
+        let next_derivative = derivative_alpha * raw_derivative
+            + (1.0 - derivative_alpha) * self.derivative_state_mps;
 
         // Eq. (32): PID command (m/s).
         let command = gains.kp * tracking_error
@@ -487,8 +504,33 @@ mod tests {
     }
 
     #[test]
-    fn derivative_filter_uses_exact_exponential_cutoff_coefficient() {
+    fn default_derivative_filter_reproduces_published_linear_coefficient() {
         let mut cfg = config();
+        cfg.base_imu_drift_mps = 0.0;
+        cfg.drift_weight = 0.0;
+        cfg.geometric_weight_mps = 0.0;
+        cfg.kp_base = 0.0;
+        cfg.ki_base = 1.0e-12;
+        cfg.kd_base = 1.0;
+        cfg.derivative_cutoff_hz = 5.0;
+        assert_eq!(cfg.derivative_filter, DerivativeFilterMode::PaperLinear);
+        let mut state = AdaptivePlState::new(cfg, 2.0, 1.0).unwrap();
+        let mut sample = input(0.0);
+        sample.delta_time_s = 0.01;
+        let dt = sample.delta_time_s;
+        let alpha = (2.0 * PI * cfg.derivative_cutoff_hz * dt).min(1.0);
+        let prior_derivative = state.derivative_state_mps();
+        let prior_error = state.previous_tracking_error_m();
+        let raw = ((state.ideal_setpoint_m() - state.protection_level_m()) - prior_error) / dt;
+        let expected = alpha * raw + (1.0 - alpha) * prior_derivative;
+        let output = state.step(cfg, sample).unwrap();
+        assert!((output.derivative_state_mps - expected).abs() < 1.0e-10);
+    }
+
+    #[test]
+    fn exponential_derivative_filter_remains_an_explicit_alternative() {
+        let mut cfg = config();
+        cfg.derivative_filter = DerivativeFilterMode::ExactExponential;
         cfg.base_imu_drift_mps = 0.0;
         cfg.drift_weight = 0.0;
         cfg.geometric_weight_mps = 0.0;
@@ -500,14 +542,14 @@ mod tests {
         let mut sample = input(0.0);
         sample.delta_time_s = 0.01;
         let dt = sample.delta_time_s;
-        let expected_alpha = (-2.0 * PI * cfg.derivative_cutoff_hz * dt).exp();
+        let alpha = 1.0 - (-2.0 * PI * cfg.derivative_cutoff_hz * dt).exp();
         let prior_derivative = state.derivative_state_mps();
         let prior_error = state.previous_tracking_error_m();
-        let initial_error = state.ideal_setpoint_m() - state.protection_level_m();
-        let raw = (initial_error - prior_error) / dt;
-        let expected = expected_alpha * prior_derivative + (1.0 - expected_alpha) * raw;
+        let raw = ((state.ideal_setpoint_m() - state.protection_level_m()) - prior_error) / dt;
+        let expected = alpha * raw + (1.0 - alpha) * prior_derivative;
         let output = state.step(cfg, sample).unwrap();
         assert!((output.derivative_state_mps - expected).abs() < 1.0e-10);
+        assert_eq!(cfg.derivative_filter, DerivativeFilterMode::ExactExponential);
     }
 
     #[test]
