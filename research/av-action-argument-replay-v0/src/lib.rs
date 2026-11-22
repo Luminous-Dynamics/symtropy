@@ -1864,6 +1864,143 @@ mod tests {
     }
 
     #[test]
+    fn canonical_manifest_digest_is_independent_of_json_key_order() {
+        let first = r#"{"b":2,"a":1}"#;
+        let second = r#"{"a":1,"b":2}"#;
+        let first_value: serde_json::Value = serde_json::from_str(first).unwrap();
+        let second_value: serde_json::Value = serde_json::from_str(second).unwrap();
+        assert_eq!(
+            hex_sha256(&serde_json::to_vec(&first_value).unwrap()),
+            hex_sha256(&serde_json::to_vec(&second_value).unwrap())
+        );
+    }
+
+    #[test]
+    fn delivered_video_timestamp_must_respect_declared_tolerance() {
+        let mut manifest = video_manifest();
+        manifest.timestamp_tolerance_ns = 2;
+        let manifest_digest = validate_manifest(&manifest).unwrap();
+        let forecast = ActionParameterForecastV1 {
+            episode_id: "episode-tolerance".to_string(),
+            turn_id: 1,
+            transcript_head_sha256: hex_sha256(b"head"),
+            eligible_action_ids: vec![manifest.action_id.clone()],
+            actions: vec![ForecastActionManifestV1 {
+                action_id: manifest.action_id.clone(),
+                manifest: manifest.clone(),
+                manifest_sha256: manifest_digest.clone(),
+            }],
+            evsi_forecasts: evsi_forecasts(&manifest.action_id),
+            selected_action_id: manifest.action_id.clone(),
+            selected_manifest_sha256: Some(manifest_digest.clone()),
+        };
+        let acceptance = RequestAcceptanceV1 {
+            episode_id: "episode-tolerance".to_string(),
+            turn_id: 1,
+            request_id: "req-tolerance".to_string(),
+            action_id: manifest.action_id.clone(),
+            parameter_manifest_sha256: manifest_digest.clone(),
+            parent_transcript_head_sha256: hex_sha256(b"head"),
+            accepted_tick: 1,
+            expected_arrival_tick: 2,
+            decision_deadline_tick: 10,
+        };
+        let result = ActionResultV1 {
+            episode_id: "episode-tolerance".to_string(),
+            turn_id: 1,
+            request_id: "req-tolerance".to_string(),
+            action_id: manifest.action_id,
+            parameter_manifest_sha256: manifest_digest,
+            parent_transcript_head_sha256: hex_sha256(b"head"),
+            status: ActionResultStatusV1::Delivered,
+            result_tick: 2,
+            delivered_frames: vec![
+                DeliveredFrameV1 {
+                    observation_ref: "frame-0".to_string(),
+                    frame_index: 0,
+                    capture_timestamp_ns: 1,
+                    byte_count: 100,
+                },
+                DeliveredFrameV1 {
+                    observation_ref: "frame-1".to_string(),
+                    frame_index: 1,
+                    capture_timestamp_ns: 500_000_001,
+                    byte_count: 100,
+                },
+            ],
+            delivered_roi: Some(RegionOfInterestV1::Normalized(NormalizedRoiV1 {
+                x_bp: 1_000,
+                y_bp: 2_000,
+                width_bp: 5_000,
+                height_bp: 4_000,
+            })),
+            delivered_output_resolution: Some(OutputResolutionV1 { width: 640, height: 360 }),
+            delivered_crop_policy_sha256: Some(digest("crop-policy")),
+            delivered_preprocessing_sha256: Some(digest("preprocess")),
+            delivered_audio: None,
+            delivered_feedback: None,
+            actual_resource_digest_sha256: hex_sha256(b"resources"),
+            result_event_sha256: hex_sha256(b"result"),
+        };
+        assert!(validate_action_lifecycle(&forecast, &acceptance, &result).is_ok());
+    }
+
+    #[test]
+    fn video_roi_basis_points_are_bounded_to_ten_thousand() {
+        let mut manifest = video_manifest();
+        let ActionParametersV1::VideoCrop(parameters) = &mut manifest.parameters else {
+            unreachable!();
+        };
+        parameters.roi = Some(RegionOfInterestV1::Normalized(NormalizedRoiV1 {
+            x_bp: 8_000,
+            y_bp: 2_000,
+            width_bp: 3_000,
+            height_bp: 4_000,
+        }));
+        assert!(validate_manifest(&manifest).is_err());
+    }
+
+    #[test]
+    fn action_forecast_manifest_must_cover_each_eligible_action_exactly_once() {
+        let manifest = video_manifest();
+        let digest_value = validate_manifest(&manifest).unwrap();
+        let forecast = ActionParameterForecastV1 {
+            episode_id: "episode-1".to_string(),
+            turn_id: 1,
+            transcript_head_sha256: hex_sha256(b"head"),
+            eligible_action_ids: vec!["crop-video".to_string(), "listen-audio".to_string()],
+            actions: vec![ForecastActionManifestV1 {
+                action_id: "crop-video".to_string(),
+                manifest: manifest.clone(),
+                manifest_sha256: digest_value.clone(),
+            }],
+            evsi_forecasts: vec![
+                ActionEvsiForecastV1 {
+                    action_id: "crop-video".to_string(),
+                    estimated_gross_evsi: 0.4,
+                    lower_gross_evsi: 0.2,
+                    upper_gross_evsi: 0.6,
+                },
+                ActionEvsiForecastV1 {
+                    action_id: "listen-audio".to_string(),
+                    estimated_gross_evsi: 0.5,
+                    lower_gross_evsi: 0.3,
+                    upper_gross_evsi: 0.7,
+                },
+                ActionEvsiForecastV1 {
+                    action_id: STOP_ACTION_ID_V1.to_string(),
+                    estimated_gross_evsi: 0.0,
+                    lower_gross_evsi: 0.0,
+                    upper_gross_evsi: 0.0,
+                },
+            ],
+            selected_action_id: manifest.action_id,
+            selected_manifest_sha256: Some(digest_value),
+        };
+        assert!(validate_forecast(&forecast).is_err());
+    }
+
+    #[test]
     fn feedback_request_is_not_a_sensor_observation() {
         let manifest = feedback_manifest();
         assert!(validate_manifest(&manifest).is_ok());
