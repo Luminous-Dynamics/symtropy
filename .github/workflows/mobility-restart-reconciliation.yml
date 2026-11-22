@@ -37,6 +37,9 @@ jobs:
               and ([$cases[] | select(.effect == "unknown" and .expected == "hold")] | length >= 1)
               and ([$cases[] | select(.effect == "partial" and .expected == "hold")] | length >= 1)
               and ([$cases[] | select(.effect == "disputed" and .expected == "hold")] | length >= 1)
+              and ([$cases[] | select(.persistence == "indeterminate_commit" and .effect == "applied" and .expected == "effect_predicate_observed_persistence_unresolved")] | length >= 1)
+              and ([$cases[] | select(.persistence == "indeterminate_commit" and .effect == "no_effect" and .expected == "hold")] | length >= 1)
+              and ([$cases[] | select(.persistence == "indeterminate_commit" and .expected == "fresh_attempt_candidate")] | length == 0)
               and all($cases[]; .native_sink_calls == 0)
           ' research/mobility-restart-reconciliation/conformance_cases_v0_1.json
       - name: Check formatting
