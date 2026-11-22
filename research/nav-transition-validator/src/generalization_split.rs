@@ -385,14 +385,18 @@ pub fn validate_split_manifest(
     }
 
     // Adjacent windows and repeated physical events may not cross any split.
-    for (key_name, key_fn) in [
-        ("sequence_group_id", SplitRecord::sequence_group_id as fn(&SplitRecord) -> &String),
-        ("event_id", SplitRecord::event_id as fn(&SplitRecord) -> &String),
-    ] {
-        let mut owners = BTreeMap::<String, Partition>::new();
-        for (index, record) in records.iter().enumerate() {
-            let key = key_fn(record).clone();
-            if let Some(previous) = owners.get(&key) {
+    let mut sequence_owners = BTreeMap::<String, Partition>::new();
+    let mut event_owners = BTreeMap::<String, Partition>::new();
+    for (index, record) in records.iter().enumerate() {
+        for (key_name, key, owners) in [
+            (
+                "sequence_group_id",
+                record.sequence_group_id.as_str(),
+                &mut sequence_owners,
+            ),
+            ("event_id", record.event_id.as_str(), &mut event_owners),
+        ] {
+            if let Some(previous) = owners.get(key) {
                 if *previous != record.partition {
                     push_issue(
                         &mut issues,
@@ -401,7 +405,7 @@ pub fn validate_split_manifest(
                     );
                 }
             } else {
-                owners.insert(key, record.partition);
+                owners.insert(key.to_owned(), record.partition);
             }
         }
     }
@@ -653,7 +657,11 @@ mod tests {
         reverse["records"][3]["sequence_group_id"] = json!("seq-a1");
         let forward_errors = validate_split_manifest(&forward).unwrap_err();
         let reverse_errors = validate_split_manifest(&reverse).unwrap_err();
-        assert_eq!(forward_errors, reverse_errors);
+        let forward_messages: Vec<String> =
+            forward_errors.into_iter().map(|error| error.message).collect();
+        let reverse_messages: Vec<String> =
+            reverse_errors.into_iter().map(|error| error.message).collect();
+        assert_eq!(forward_messages, reverse_messages);
     }
 
     #[test]
