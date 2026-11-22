@@ -69,6 +69,140 @@ fn assert_product_of_disks_feasible(vector_numerators: &[i128; 4], denominator: 
     assert!(disk_squared(&second) < 9 * denominator_squared);
 }
 
+#[derive(Clone, Copy, Debug)]
+struct TwoDiskGapCertificate {
+    candidate_num_over_10: Vector4,
+    dual_minimizer_num_over_10: Vector4,
+    multipliers: [i128; 2],
+    primal_objective_num_over_100: i128,
+    dual_objective_num_over_100: i128,
+    gap_num_over_100: i128,
+    squared_error_num_over_100: i128,
+}
+
+/// Exact, solver-blind checker for the two-unit-disk strongly-convex QP
+/// witness below. All inputs and claims are integer numerators over the
+/// declared denominators; no solver status or floating-point tolerance enters.
+fn verify_two_disk_gap_certificate(
+    certificate: &TwoDiskGapCertificate,
+) -> Result<(), &'static str> {
+    const H_NUM: Matrix4 = [
+        [10, 0, 0, 0],
+        [0, 10, 0, 0],
+        [0, 0, 10, 0],
+        [0, 0, 0, 10],
+    ];
+    const C_NUM_OVER_100: Vector4 = [-300, 0, -300, 0];
+    const DISK_RADIUS_SQUARED_NUM_OVER_100: i128 = 100;
+
+    // The declared objective Hessian is exactly I, so its strong-monotonicity
+    // constant is alpha=1. Verify the matrix identity rather than trusting a
+    // caller-supplied alpha value.
+    for row in 0..4 {
+        for column in 0..4 {
+            let expected = if row == column { 10 } else { 0 };
+            if H_NUM[row][column] != expected {
+                return Err("objective Hessian does not match the certified identity metric");
+            }
+        }
+    }
+
+    let candidate = &certificate.candidate_num_over_10;
+    let dual_minimizer = &certificate.dual_minimizer_num_over_10;
+    for disk in [0..2, 2..4] {
+        let candidate_pair = [candidate[disk.start], candidate[disk.start + 1]];
+        let dual_pair = [
+            dual_minimizer[disk.start],
+            dual_minimizer[disk.start + 1],
+        ];
+        if disk_squared(&candidate_pair) > DISK_RADIUS_SQUARED_NUM_OVER_100
+            || disk_squared(&dual_pair) > DISK_RADIUS_SQUARED_NUM_OVER_100
+        {
+            return Err("primal candidate or dual minimizer is outside a Coulomb disk");
+        }
+        if certificate.multipliers[disk.start / 2] < 0 {
+            return Err("dual multiplier must be non-negative");
+        }
+    }
+
+    // Verify positive curvature of the Lagrangian Hessian H+2*diag(lambda).
+    // This fixture is diagonal, so strict positivity of all exact diagonal
+    // entries is a complete positive-definiteness check.
+    for coordinate in 0..4 {
+        let diagonal = 10 + 20 * certificate.multipliers[coordinate / 2];
+        if diagonal <= 0 {
+            return Err("Lagrangian Hessian is not positive definite");
+        }
+    }
+
+    // Verify exact Lagrangian stationarity at the dual minimizer:
+    // H*x + c + 2*lambda_k*x_k = 0. Numerators are scaled to denominator 100.
+    let h_x = mat_vec(&H_NUM, dual_minimizer);
+    for coordinate in 0..4 {
+        let multiplier_term =
+            20 * certificate.multipliers[coordinate / 2] * dual_minimizer[coordinate];
+        if h_x[coordinate] + C_NUM_OVER_100[coordinate] + multiplier_term != 0 {
+            return Err("dual point does not satisfy exact Lagrangian stationarity");
+        }
+    }
+
+    // Complementary slackness makes the dual minimizer a feasible primal
+    // minimizer of the original disk-constrained problem.
+    for disk in [0..2, 2..4] {
+        let pair = [
+            dual_minimizer[disk.start],
+            dual_minimizer[disk.start + 1],
+        ];
+        let slack = disk_squared(&pair) - DISK_RADIUS_SQUARED_NUM_OVER_100;
+        if certificate.multipliers[disk.start / 2] * slack != 0 {
+            return Err("dual multiplier and disk slack violate complementary slackness");
+        }
+    }
+
+    // f(x) = 1/2 ||x||^2 - 3*x0 - 3*x2. With x represented over 10,
+    // the objective numerator over 100 is ||x_num||^2/2 - 30*(x0+x2).
+    let candidate_norm_squared = squared_norm(candidate);
+    let dual_norm_squared = squared_norm(dual_minimizer);
+    if candidate_norm_squared % 2 != 0 || dual_norm_squared % 2 != 0 {
+        return Err("objective numerator is not integral at the declared scale");
+    }
+    let primal_objective = candidate_norm_squared / 2 - 30 * (candidate[0] + candidate[2]);
+    let mut dual_objective =
+        dual_norm_squared / 2 - 30 * (dual_minimizer[0] + dual_minimizer[2]);
+    for disk in [0..2, 2..4] {
+        let pair = [
+            dual_minimizer[disk.start],
+            dual_minimizer[disk.start + 1],
+        ];
+        dual_objective += certificate.multipliers[disk.start / 2]
+            * (disk_squared(&pair) - DISK_RADIUS_SQUARED_NUM_OVER_100);
+    }
+    if primal_objective != certificate.primal_objective_num_over_100
+        || dual_objective != certificate.dual_objective_num_over_100
+    {
+        return Err("claimed primal or dual objective does not match exact recomputation");
+    }
+
+    let gap = primal_objective - dual_objective;
+    if gap < 0 || gap != certificate.gap_num_over_100 {
+        return Err("claimed primal-dual gap is negative or inconsistent");
+    }
+
+    let error: Vector4 =
+        std::array::from_fn(|index| candidate[index] - dual_minimizer[index]);
+    let squared_error = squared_norm(&error);
+    if squared_error != certificate.squared_error_num_over_100 {
+        return Err("claimed squared error does not match exact recomputation");
+    }
+
+    // Strong convexity alpha=1: ||x_hat-x*||^2 <= 2*(f(x_hat)-d(lambda)).
+    if squared_error > 2 * gap {
+        return Err("primal-dual gap does not enclose the squared state error");
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -280,57 +414,44 @@ mod tests {
 
     #[test]
     fn primal_dual_gap_certificate_covers_two_active_contact_disks() {
-        // H=I and two unit Coulomb disks. The exact minimizer is on both
-        // boundaries with nonzero multipliers lambda_1=lambda_2=1.
-        // f(j)=1/2||j||^2 - 3*j0 - 3*j2.
-        let h_num: Matrix4 = [[10, 0, 0, 0], [0, 10, 0, 0], [0, 0, 10, 0], [0, 0, 0, 10]];
-        let solution_num: Vector4 = [10, 0, 10, 0];
-        let candidate_num: Vector4 = [8, 6, 8, 6];
-        let linear_term_num_over_100: Vector4 = [-300, 0, -300, 0];
+        let certificate = TwoDiskGapCertificate {
+            candidate_num_over_10: [8, 6, 8, 6],
+            dual_minimizer_num_over_10: [10, 0, 10, 0],
+            multipliers: [1, 1],
+            primal_objective_num_over_100: -380,
+            dual_objective_num_over_100: -500,
+            gap_num_over_100: 120,
+            squared_error_num_over_100: 80,
+        };
 
-        for disk in [0..2, 2..4] {
-            let solution_radius_squared = solution_num[disk.start] * solution_num[disk.start]
-                + solution_num[disk.start + 1] * solution_num[disk.start + 1];
-            let candidate_radius_squared = candidate_num[disk.start] * candidate_num[disk.start]
-                + candidate_num[disk.start + 1] * candidate_num[disk.start + 1];
-            assert_eq!(solution_radius_squared, 100);
-            assert_eq!(candidate_radius_squared, 100);
-        }
+        // The solver-blind checker verifies feasibility, both nonzero dual
+        // multipliers, exact stationarity, Lagrangian positive-definiteness,
+        // complementary slackness, objective values, gap and error enclosure.
+        assert_eq!(verify_two_disk_gap_certificate(&certificate), Ok(()));
 
-        // Exact KKT stationarity, with each active disk contributing 2*x.
-        let h_solution_num = mat_vec(&h_num, &solution_num);
-        let stationarity_num: Vector4 = std::array::from_fn(|index| {
-            h_solution_num[index]
-                + linear_term_num_over_100[index]
-                + if index == 0 || index == 2 { 200 } else { 0 }
-        });
-        assert_eq!(stationarity_num, [0; 4]);
+        // Negative controls: a wrong multiplier breaks stationarity; a
+        // tampered gap cannot be smuggled into the error enclosure; and an
+        // infeasible candidate is rejected before any bound is considered.
+        let mut wrong_multiplier = certificate;
+        wrong_multiplier.multipliers[0] = 0;
+        assert_eq!(
+            verify_two_disk_gap_certificate(&wrong_multiplier),
+            Err("dual point does not satisfy exact Lagrangian stationarity")
+        );
 
-        // Lagrangian Hessian is diag(3,3,3,3), so the stationary
-        // complementary point is the unique global minimizer.
-        let lagrangian_hessian_diagonal = [3_i128; 4];
-        assert!(lagrangian_hessian_diagonal.iter().all(|value| *value >= 1));
+        let mut wrong_gap = certificate;
+        wrong_gap.gap_num_over_100 += 1;
+        assert_eq!(
+            verify_two_disk_gap_certificate(&wrong_gap),
+            Err("claimed primal-dual gap is negative or inconsistent")
+        );
 
-        // Exact objectives over denominator 100:
-        // f(j_hat)=100/100 - 480/100 = -380/100.
-        // d(lambda)=f(j_star)=100/100 - 600/100 = -500/100.
-        assert_eq!(squared_norm(&candidate_num), 200);
-        let primal_num_over_100 = 100_i128 - 480_i128;
-        let dual_num_over_100 = 100_i128 - 600_i128;
-        assert_eq!(primal_num_over_100, -380);
-        assert_eq!(dual_num_over_100, -500);
-        let gap_num_over_100 = primal_num_over_100 - dual_num_over_100;
-        assert_eq!(gap_num_over_100, 120);
-
-        // Exact squared error is ||(-2,6,-2,6)/10||^2 = 80/100.
-        let error_num: Vector4 =
-            std::array::from_fn(|index| candidate_num[index] - solution_num[index]);
-        assert_eq!(error_num, [-2, 6, -2, 6]);
-        let error_squared_num = squared_norm(&error_num);
-        assert_eq!(error_squared_num, 80);
-
-        // Strong convexity alpha=1 gives 80/100 <= 2*120/100.
-        assert!(error_squared_num <= 2 * gap_num_over_100);
+        let mut infeasible_candidate = certificate;
+        infeasible_candidate.candidate_num_over_10 = [11, 0, 10, 0];
+        assert_eq!(
+            verify_two_disk_gap_certificate(&infeasible_candidate),
+            Err("primal candidate or dual minimizer is outside a Coulomb disk")
+        );
     }
 
     #[test]
