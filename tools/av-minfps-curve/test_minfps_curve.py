@@ -80,7 +80,7 @@ def document(success_by_rate, *, seeds=("seed-1",), minimum_success_fraction=1.0
             status = statuses.get((seed, rate), "COMPLETED") if statuses else "COMPLETED"
             runs.append(rate_run(
                 rate,
-                index + 1,
+                int(round(rate)),
                 success_by_rate[seed][rate],
                 status=status,
             ))
@@ -229,6 +229,7 @@ class MinFpsCurveTests(unittest.TestCase):
 
     def test_shared_frame_ids_must_keep_same_timestamps(self):
         doc = document({"seed-1": {1.0: True, 2.0: True, 4.0: True}})
+        doc["sampling_tolerance_ms"] = 20.0
         low = doc["seeds"][0]["runs"][0]["frame_manifest"][0]
         high = doc["seeds"][0]["runs"][1]["frame_manifest"][0]
         high["timestamp_ms"] = 10.0
