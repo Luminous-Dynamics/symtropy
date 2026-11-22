@@ -450,7 +450,6 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
     scenarios.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
 
     let mut best_loss_by_scenario = BTreeMap::new();
-    let mut best_loss_by_world = BTreeMap::new();
     let mut worst_loss_by_world_action = BTreeMap::new();
     let mut best_loss_lower_by_world = BTreeMap::new();
 
@@ -462,14 +461,6 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
             .ok_or_else(|| format!("no admissible action loss in scenario {}", scenario.scenario_id))?
             .canonicalized();
         best_loss_by_scenario.insert(scenario.scenario_id.clone(), best);
-
-        let world_best = best_loss_by_world
-            .entry(scenario.world_id.clone())
-            .or_insert_with(|| {
-                admitted[0]
-                    .world_id_placeholder()
-            });
-        let _ = world_best;
     }
 
     // Per-world loss envelopes are intentionally rectangularized only in this block.
@@ -515,8 +506,6 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
     }
 
     let mut action_metrics = Vec::with_capacity(admitted.len());
-    let mut best_count_by_action = BTreeMap::new();
-
     for action in &admitted {
         let receipt_id = action
             .admissibility_receipt_id
@@ -598,7 +587,6 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
             .checked_sub(&worst_case_joint_regret)
             .map_err(|_| "rectangular regret must not be below joint regret".to_owned())?;
 
-        best_count_by_action.insert(action.action_id.clone(), best_count);
         action_metrics.push(ActionMetric {
             action_id: action.action_id.clone(),
             admissibility_receipt_id: receipt_id,
