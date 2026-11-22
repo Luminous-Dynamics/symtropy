@@ -606,7 +606,7 @@ mod tests {
             shared("experiment-b", vec![0.25, 1.0]),
         ])
         .expect("joint correlated calibration block");
-        let expected = vec![vec![8.75, 7.1875], vec![7.1875, 11.0]];
+        let expected = [[8.75, 7.1875], [7.1875, 11.0]];
         for (actual_row, expected_row) in result.covariance.iter().zip(expected.iter()) {
             for (actual, expected) in actual_row.iter().zip(expected_row.iter()) {
                 assert!((actual - expected).abs() < 1.0e-12);
