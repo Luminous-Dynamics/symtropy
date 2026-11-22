@@ -1,0 +1,53 @@
+name: Mobility RRVR Composition Contract
+
+on:
+  push:
+    branches:
+      - research/mobility-rrvr-composition-v0-1
+    paths:
+      - "research/mobility-rrvr-composition/**"
+      - "research/mobility-restart-reconciliation/**"
+      - "research/mobility-downstream-fence/**"
+      - "research/mobility-evidence-verdict/**"
+      - ".github/workflows/mobility-rrvr-composition.yml"
+  pull_request:
+    paths:
+      - "research/mobility-rrvr-composition/**"
+      - "research/mobility-restart-reconciliation/**"
+      - "research/mobility-downstream-fence/**"
+      - "research/mobility-evidence-verdict/**"
+      - ".github/workflows/mobility-rrvr-composition.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rrvr-composition:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Validate public composition corpus and schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq empty research/mobility-rrvr-composition/schemas/rrvr_composition_cases_v0_1.schema.json
+          jq empty research/mobility-rrvr-composition/fixtures/rrvr_composition_cases_v0_1.json
+          jq -e '
+            .cases as $cases
+            | .version == "0.1"
+              and ($cases | length >= 8)
+              and ([$cases[].case_id] | length == ([$cases[].case_id] | unique | length))
+              and ([$cases[] | select(.expected == "ready_for_owner_native_revalidation")] | length >= 1)
+              and ([$cases[] | select(.expected == "hold")] | length >= 1)
+              and all($cases[]; .native_sink_calls == 0 and .authority_capabilities == [])
+          ' research/mobility-rrvr-composition/fixtures/rrvr_composition_cases_v0_1.json
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/mobility-rrvr-composition/Cargo.toml -- --check
+      - name: Run cross-owner composition tests
+        run: cargo test --manifest-path research/mobility-rrvr-composition/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/mobility-rrvr-composition/Cargo.toml --all-targets --locked -- -D warnings
