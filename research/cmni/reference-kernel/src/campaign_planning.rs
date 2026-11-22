@@ -139,9 +139,7 @@ pub fn plan_finite_evidence_campaign(
     let mut qualified_option_indices = Vec::new();
     let mut skipped_unqualified_options = 0usize;
     for (option_index, option) in information_options.iter().enumerate() {
-        if option.option_id.trim().is_empty()
-            || !seen_options.insert(option.option_id.as_str())
-        {
+        if option.option_id.trim().is_empty() || !seen_options.insert(option.option_id.as_str()) {
             return Err(ModelError::InvalidParameter(
                 "campaign_option_ids_must_be_nonempty_and_unique",
             ));
@@ -317,9 +315,7 @@ impl CampaignSolver<'_> {
                     "campaign_expected_utility_nonfinite",
                 ));
             }
-            if net_expected_utility
-                > best_value + self.config.minimum_net_improvement
-            {
+            if net_expected_utility > best_value + self.config.minimum_net_improvement {
                 best_value = net_expected_utility;
                 best_node = CampaignPlanNode::Acquire {
                     option_id: option.option_id.clone(),
@@ -351,19 +347,28 @@ fn validate_decision_inputs(
     {
         return Err(ModelError::MismatchedDataLengths);
     }
-    if action_ids.iter().any(|action_id| action_id.trim().is_empty()) {
+    if action_ids
+        .iter()
+        .any(|action_id| action_id.trim().is_empty())
+    {
         return Err(ModelError::InvalidParameter(
             "campaign_action_ids_must_be_nonempty",
         ));
     }
     let mut seen = std::collections::BTreeSet::new();
-    if action_ids.iter().any(|action_id| !seen.insert(action_id.as_str())) {
+    if action_ids
+        .iter()
+        .any(|action_id| !seen.insert(action_id.as_str()))
+    {
         return Err(ModelError::InvalidParameter(
             "campaign_action_ids_must_be_unique",
         ));
     }
     if !abstention_utility.is_finite()
-        || action_utilities.iter().flatten().any(|utility| !utility.is_finite())
+        || action_utilities
+            .iter()
+            .flatten()
+            .any(|utility| !utility.is_finite())
     {
         return Err(ModelError::NonFiniteValue("campaign_action_utility"));
     }
@@ -371,7 +376,10 @@ fn validate_decision_inputs(
 }
 
 fn normalize_probabilities(probabilities: &[f64]) -> Result<Vec<f64>, ModelError> {
-    if probabilities.iter().any(|probability| !probability.is_finite()) {
+    if probabilities
+        .iter()
+        .any(|probability| !probability.is_finite())
+    {
         return Err(ModelError::NonFiniteValue("campaign_state_probability"));
     }
     if probabilities.iter().any(|probability| *probability < 0.0) {
@@ -386,15 +394,17 @@ fn normalize_probabilities(probabilities: &[f64]) -> Result<Vec<f64>, ModelError
         ));
     }
     if total <= 0.0 {
-        return Err(ModelError::NonPositiveValue("campaign_state_probability_sum"));
+        return Err(ModelError::NonPositiveValue(
+            "campaign_state_probability_sum",
+        ));
     }
-    Ok(probabilities.iter().map(|probability| probability / total).collect())
+    Ok(probabilities
+        .iter()
+        .map(|probability| probability / total)
+        .collect())
 }
 
-fn best_current_action(
-    state_probabilities: &[f64],
-    action_utilities: &[Vec<f64>],
-) -> (usize, f64) {
+fn best_current_action(state_probabilities: &[f64], action_utilities: &[Vec<f64>]) -> (usize, f64) {
     let mut best_index = 0usize;
     let mut best_utility = f64::NEG_INFINITY;
     for (action_index, utilities) in action_utilities.iter().enumerate() {
@@ -429,11 +439,12 @@ fn validate_option_likelihoods(
     }
     for row in &option.outcome_likelihoods {
         if row.iter().any(|likelihood| !likelihood.is_finite()) {
-            return Err(ModelError::NonFiniteValue(
-                "campaign_outcome_likelihood",
-            ));
+            return Err(ModelError::NonFiniteValue("campaign_outcome_likelihood"));
         }
-        if row.iter().any(|likelihood| *likelihood < 0.0 || *likelihood > 1.0) {
+        if row
+            .iter()
+            .any(|likelihood| *likelihood < 0.0 || *likelihood > 1.0)
+        {
             return Err(ModelError::InvalidParameter(
                 "campaign_outcome_likelihood_must_be_in_[0,1]",
             ));
@@ -463,7 +474,10 @@ mod tests {
             option_id: id.to_owned(),
             kind: InformationAcquisitionKind::LowFidelitySimulation,
             cost,
-            outcome_likelihoods: vec![vec![accuracy, 1.0 - accuracy], vec![1.0 - accuracy, accuracy]],
+            outcome_likelihoods: vec![
+                vec![accuracy, 1.0 - accuracy],
+                vec![1.0 - accuracy, accuracy],
+            ],
             source_qualification: InformationSourceQualification::Qualified {
                 receipt_id: RECEIPT.to_owned(),
             },
@@ -552,10 +566,7 @@ mod tests {
     fn hard_budget_prevents_over_budget_campaign_sequences() {
         let mut policy = config(3);
         policy.remaining_budget = 0.09;
-        let options = vec![
-            option("test-1", 0.05, 0.8),
-            option("test-2", 0.05, 0.8),
-        ];
+        let options = vec![option("test-1", 0.05, 0.8), option("test-2", 0.05, 0.8)];
         let plan = plan_finite_evidence_campaign(
             &actions(),
             &[0.5, 0.5],
