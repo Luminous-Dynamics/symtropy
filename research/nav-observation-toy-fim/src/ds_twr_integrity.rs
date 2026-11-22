@@ -1,9 +1,10 @@
 //! Deterministic double-sided two-way ranging (DS-TWR) range interval.
 //!
 //! This implements the printed MILUV ranging equation over four explicitly
-//! supplied positive duration terms. It does not infer how CSV tx/rx fields
-//! map to the equation's clock domains. The caller must perform protocol-
-//! versioned timestamp unwrapping, unit conversion, and duration construction.
+//! supplied positive duration terms. A typed adapter accepts the authors'
+//! processed CSV representation (unwrapped nanoseconds); it never guesses
+//! raw-tick units or repairs rollover. Original device ticks still require
+//! protocol-versioned, per-radio clock reconstruction before this kernel.
 //!
 //! Input duration errors are hard absolute bounds in seconds. The module
 //! propagates them with positive interval arithmetic; it does not assume
@@ -11,9 +12,11 @@
 
 use std::fmt;
 
-/// Numeric propagation-speed convention used by the pinned MILUV reference implementation.
+/// Numeric propagation-speed convention used by the pinned MILUV reference
+/// implementation.
 pub const MILUV_REFERENCE_PROPAGATION_SPEED_MPS: f64 = 299_702_547.0;
-/// Vacuum speed of light, available only when that physical convention is intended.
+/// Vacuum speed of light, available only when that physical convention is
+/// intended.
 pub const VACUUM_PROPAGATION_SPEED_MPS: f64 = 299_792_458.0;
 
 /// One timestamp from a processed MILUV CSV, already converted to nanoseconds
@@ -55,7 +58,8 @@ pub struct DsTwrDurationInput {
     /// D = T2 - R1 in the published range equation, seconds.
     pub turnaround_term_s: f64,
     pub turnaround_abs_error_bound_s: f64,
-    /// Explicit signal propagation speed selected for this reproduction/physical model.
+    /// Explicit signal propagation speed selected for this reproduction/physical
+    /// model.
     pub propagation_speed_mps: f64,
 }
 
@@ -176,9 +180,16 @@ impl fmt::Display for DsTwrRangeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::NonFiniteOrNegativeInput => write!(f, "DS-TWR duration centres must be finite and positive and error bounds finite and nonnegative"),
-            Self::InvalidTimestampInput => write!(f, "processed MILUV timestamps and absolute error bounds must be finite and nonnegative"),
-            Self::InvalidRadioIdentity => write!(f, "MILUV initiator and responder IDs must be different"),
-            Self::InvalidPropagationSpeed => write!(f, "propagation speed must be finite and strictly positive"),
+            Self::InvalidTimestampInput => write!(
+                f,
+                "processed MILUV timestamps and absolute error bounds must be finite and nonnegative"
+            ),
+            Self::InvalidRadioIdentity => {
+                write!(f, "MILUV initiator and responder IDs must be different")
+            },
+            Self::InvalidPropagationSpeed => {
+                write!(f, "propagation speed must be finite and strictly positive")
+            },
             Self::DurationIntervalNotStrictlyPositive(name) => write!(f, "DS-TWR duration interval must remain strictly positive: {name}"),
             Self::NonPhysicalRangeInterval => write!(f, "DS-TWR time-of-flight interval contains no physically admissible nonnegative range"),
             Self::InvalidNlosBiasBound => write!(f, "positive NLOS bias interval must be finite, nonnegative and ordered"),
