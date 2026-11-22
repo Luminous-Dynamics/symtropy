@@ -528,14 +528,26 @@ pub fn assess_observer_assurance(
             .iter()
             .map(String::as_str)
             .collect();
+        // A fault assigned to one component invalidates every component that
+        // shares its declared failure-domain label, even if the inventory
+        // models those components as separate nodes.
+        let failed_domains: BTreeSet<&str> = packet
+            .components
+            .iter()
+            .filter(|component| failed.contains(component.component_id.as_str()))
+            .map(|component| component.failure_domain_id.as_str())
+            .collect();
         let survivors: Vec<ChannelFootprint> = footprints
             .iter()
             .filter(|channel| {
                 channel.valid_sample
-                    && !channel
-                        .components
-                        .iter()
-                        .any(|component| failed.contains(component.as_str()))
+                    && !channel.components.iter().any(|component_id| {
+                        failed.contains(component_id.as_str())
+                            || find_component(&packet.components, component_id)
+                                .is_some_and(|component| {
+                                    failed_domains.contains(component.failure_domain_id.as_str())
+                                })
+                    })
             })
             .cloned()
             .collect();
@@ -715,6 +727,25 @@ mod tests {
                 evaluated_scenarios: 3
             }
         );
+    }
+
+    #[test]
+    fn failed_component_invalidates_every_node_in_its_failure_domain() {
+        let mut input = packet();
+        input.components[4].failure_domain_id =
+            input.components[1].failure_domain_id.clone();
+        input.scenarios.push(FaultScenario {
+            scenario_id: "power-domain-a-fails".to_owned(),
+            failed_component_ids: vec!["power-a".to_owned()],
+        });
+        assert!(matches!(
+            assess_observer_assurance(&input),
+            ObserverAssuranceDecision::Hold {
+                reason: HoldReason::InsufficientValidChannels,
+                scenario_id: Some(id),
+                maximum_surviving_independent_observers: Some(1)
+            } if id == "power-domain-a-fails"
+        ));
     }
 
     #[test]
