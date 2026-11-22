@@ -33,6 +33,7 @@ pub struct FunctionalCalibrationCluster {
     /// Highest defensible independent laboratory session/common-cause unit.
     pub cluster_id: String,
     pub protocol_fingerprint: String,
+    pub functional_contract_id: String,
     pub observations: Vec<FunctionalObservation>,
 }
 
@@ -132,41 +133,55 @@ fn squared_mahalanobis_4(
         });
     }
 
-    let scale = covariance.iter().flatten()
-        .map(|value| value.abs())
-        .fold(0.0_f64, f64::max);
-    if !scale.is_finite() || scale <= 0.0 {
+    if !covariance.iter().flatten().all(|value| value.is_finite()) {
         return Err(FunctionalConformalError::InvalidCovariance {
             observation_id: observation_id.to_owned(),
         });
     }
-    let symmetry_tolerance = 1.0e-10 * scale.max(1.0);
 
+    // Functional components have heterogeneous units (kg/s versus N).
+    // Standardize to a dimensionless correlation matrix before Cholesky;
+    // otherwise pivot tolerances can be dominated by whichever unit is largest.
+    let mut standard_deviations = [0.0_f64; FUNCTIONAL_DIMENSION];
+    for index in 0..FUNCTIONAL_DIMENSION {
+        let variance = covariance[index][index];
+        if !variance.is_finite() || variance <= 0.0 {
+            return Err(FunctionalConformalError::InvalidCovariance {
+                observation_id: observation_id.to_owned(),
+            });
+        }
+        standard_deviations[index] = variance.sqrt();
+    }
+
+    let mut correlation = [[0.0_f64; FUNCTIONAL_DIMENSION]; FUNCTIONAL_DIMENSION];
     for row in 0..FUNCTIONAL_DIMENSION {
         for column in 0..FUNCTIONAL_DIMENSION {
-            let value = covariance[row][column];
-            if !value.is_finite()
-                || (value - covariance[column][row]).abs() > symmetry_tolerance
-            {
+            let left = covariance[row][column];
+            let right = covariance[column][row];
+            let covariance_scale = standard_deviations[row] * standard_deviations[column];
+            let symmetry_tolerance = 1.0e-10 * covariance_scale;
+            if (left - right).abs() > symmetry_tolerance {
                 return Err(FunctionalConformalError::InvalidCovariance {
                     observation_id: observation_id.to_owned(),
                 });
             }
+            correlation[row][column] =
+                0.5 * (left + right) / covariance_scale;
         }
     }
 
     // Cholesky factorization validates positive definiteness and lets us
-    // compute e^T C^-1 e as ||L^-1 e||^2 without explicitly inverting C.
+    // compute e^T C^-1 e as ||L^-1 D^-1 e||^2, where D contains standard
+    // deviations. This scaling is important for mixed-unit functional vectors.
     let mut lower = [[0.0_f64; FUNCTIONAL_DIMENSION]; FUNCTIONAL_DIMENSION];
-    let positive_pivot_tolerance = f64::EPSILON * scale;
     for row in 0..FUNCTIONAL_DIMENSION {
         for column in 0..=row {
-            let mut value = covariance[row][column];
+            let mut value = correlation[row][column];
             for inner in 0..column {
                 value -= lower[row][inner] * lower[column][inner];
             }
             if row == column {
-                if !value.is_finite() || value <= positive_pivot_tolerance {
+                if !value.is_finite() || value <= f64::EPSILON {
                     return Err(FunctionalConformalError::InvalidCovariance {
                         observation_id: observation_id.to_owned(),
                     });
@@ -180,7 +195,7 @@ fn squared_mahalanobis_4(
 
     let mut whitened = [0.0_f64; FUNCTIONAL_DIMENSION];
     for row in 0..FUNCTIONAL_DIMENSION {
-        let mut value = residual[row];
+        let mut value = residual[row] / standard_deviations[row];
         for column in 0..row {
             value -= lower[row][column] * whitened[column];
         }
@@ -236,6 +251,11 @@ pub fn calibrate_functional_conformal(
         }
         if cluster.protocol_fingerprint != input.target_protocol_fingerprint {
             return Err(FunctionalConformalError::ProtocolFingerprintMismatch {
+                cluster_id: cluster.cluster_id.clone(),
+            });
+        }
+        if cluster.functional_contract_id != input.functional_contract_id {
+            return Err(FunctionalConformalError::FunctionalContractMismatch {
                 cluster_id: cluster.cluster_id.clone(),
             });
         }
@@ -347,6 +367,7 @@ mod tests {
         FunctionalCalibrationCluster {
             cluster_id: format!("lab-session-{index}"),
             protocol_fingerprint: "cv-functional-protocol-v1".to_owned(),
+            functional_contract_id: "mass-momentum-all-surface-v1".to_owned(),
             observations: vec![observation(index, score)],
         }
     }
@@ -426,12 +447,23 @@ mod tests {
     }
 
     #[test]
+    fn functional_contract_must_match_target() {
+        let mut campaign = input(19);
+        campaign.calibration_clusters[0].functional_contract_id =
+            "different-surface-and-sign-v2".to_owned();
+        assert!(matches!(
+            calibrate_functional_conformal(&campaign),
+            Err(FunctionalConformalError::FunctionalContractMismatch { .. })
+        ));
+    }
+
+    #[test]
     fn duplicate_reference_evidence_is_rejected() {
         let mut campaign = input(19);
         campaign.expected_observations_per_cluster = 2;
-        campaign.calibration_clusters[0].observations.push(
-            campaign.calibration_clusters[0].observations[0].clone()
-        );
+        let mut duplicate_reference = campaign.calibration_clusters[0].observations[0].clone();
+        duplicate_reference.observation_id = "new-functional-observation".to_owned();
+        campaign.calibration_clusters[0].observations.push(duplicate_reference);
         for (index, cluster) in campaign.calibration_clusters.iter_mut().enumerate().skip(1) {
             cluster.observations.push(observation(index + 100, index as f64 + 1.0));
         }
