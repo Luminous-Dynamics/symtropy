@@ -17,7 +17,9 @@
           "log_loss": 0.037,
           "training_vectors": 250000,
           "test_vectors": 50000,
-          "source_experiments": 6
+          "source_experiments": 6,
+          "abstract_f1": 0.991,
+          "detailed_section_4_f1": 0.992
         },
         "additional_experimental_datasets": {
           "count": 6,
@@ -36,7 +38,8 @@
         "Expert manual labels are a processing reference, not independent physical velocity truth.",
         "High F1 does not establish calibrated per-vector velocity uncertainty.",
         "The weak 0.62 subtle-noise and 0.68 MHD cases are important domain-transfer challenges.",
-        "The reported external 6-dataset evaluation is stronger than a random vector split but still requires detailed cohort matching before direct EHD claims."
+        "The reported external 6-dataset evaluation is stronger than a random vector split but still requires detailed cohort matching before direct EHD claims.",
+        "The published abstract reports F1 0.991, while detailed Section 4 reports F1 0.992 for the 50,000-vector test set; retain this source-internal discrepancy until independent reproduction."
       ]
     },
     {
