@@ -147,13 +147,30 @@
         }
       }
     },
+
+    "externalFeedbackEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "feedback_id", "source_role", "feedback_kind", "delivered_tick",
+        "content_sha256", "parent_transcript_head_sha256"
+      ],
+      "properties": {
+        "feedback_id": {"type": "string", "minLength": 1},
+        "source_role": {"enum": ["user_simulator", "human_user", "operator"]},
+        "feedback_kind": {"enum": ["hint", "clarification", "correction", "challenge", "request"]},
+        "delivered_tick": {"type": "integer", "minimum": 0},
+        "content_sha256": {"type": "string", "pattern": "^[0-9a-fA-F]{64}$"},
+        "parent_transcript_head_sha256": {"type": "string", "pattern": "^[0-9a-fA-F]{64}$"}
+      }
+    },
     "turn": {
       "type": "object",
       "additionalProperties": false,
       "required": [
         "turn_id", "turn_index", "parent_transcript_head_sha256",
         "preceding_action_id", "action_result_status", "action_result_digest_sha256",
-        "new_observation_ids", "workload", "submission", "action_forecast",
+        "new_observation_ids", "external_feedback_events", "workload", "submission", "action_forecast",
         "action_value_receipt", "resource_delta"
       ],
       "properties": {
@@ -175,6 +192,10 @@
           "type": "array",
           "uniqueItems": true,
           "items": {"type": "string", "minLength": 1}
+        },
+        "external_feedback_events": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/externalFeedbackEvent"}
         },
         "workload": {"$ref": "workload-v1.schema.json"},
         "submission": {"$ref": "submission-v1.schema.json"},
