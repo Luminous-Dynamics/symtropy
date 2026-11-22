@@ -1,0 +1,93 @@
+{
+  "decision_time_unix_ms": 1795219200000,
+  "intervals": [
+    {
+      "occupancy_id": "swap-bay-use-2",
+      "idempotency_key": "idem:swap-bay-use-2",
+      "operation_id": "operation:mission-2",
+      "owner_id": "mission-2",
+      "resource_id": "swap-bay-1",
+      "resource_configuration_digest": "urn:synthetic:resource-config:swap-bay-1",
+      "resource_kind": "swap_bay",
+      "start_unix_ms": 1795219202000,
+      "end_unix_ms": 1795219203000,
+      "evidence": {
+        "asset_id": "swap-bay-1",
+        "configuration_digest": "urn:synthetic:resource-config:swap-bay-1",
+        "producer_id": "urn:synthetic:producer:testbench",
+        "method_id": "urn:synthetic:method:resource-reservation",
+        "evidence_reference": "urn:synthetic:resource-evidence:swap-bay-use-2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1795219199000,
+        "valid_from_unix_ms": 1795219190000,
+        "valid_until_unix_ms": 1795219210000
+      }
+    },
+    {
+      "occupancy_id": "aircraft-use",
+      "idempotency_key": "idem:aircraft-use",
+      "operation_id": "operation:mission-1",
+      "owner_id": "mission-1",
+      "resource_id": "aircraft-1",
+      "resource_configuration_digest": "urn:synthetic:resource-config:aircraft-1",
+      "resource_kind": "aircraft",
+      "start_unix_ms": 1795219201000,
+      "end_unix_ms": 1795219203000,
+      "evidence": {
+        "asset_id": "aircraft-1",
+        "configuration_digest": "urn:synthetic:resource-config:aircraft-1",
+        "producer_id": "urn:synthetic:producer:testbench",
+        "method_id": "urn:synthetic:method:resource-reservation",
+        "evidence_reference": "urn:synthetic:resource-evidence:aircraft-use",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1795219199000,
+        "valid_from_unix_ms": 1795219190000,
+        "valid_until_unix_ms": 1795219210000
+      }
+    },
+    {
+      "occupancy_id": "pack-use",
+      "idempotency_key": "idem:pack-use",
+      "operation_id": "operation:mission-1",
+      "owner_id": "mission-1",
+      "resource_id": "pack-1",
+      "resource_configuration_digest": "urn:synthetic:resource-config:pack-1",
+      "resource_kind": "battery_pack",
+      "start_unix_ms": 1795219201000,
+      "end_unix_ms": 1795219203000,
+      "evidence": {
+        "asset_id": "pack-1",
+        "configuration_digest": "urn:synthetic:resource-config:pack-1",
+        "producer_id": "urn:synthetic:producer:testbench",
+        "method_id": "urn:synthetic:method:resource-reservation",
+        "evidence_reference": "urn:synthetic:resource-evidence:pack-use",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1795219199000,
+        "valid_from_unix_ms": 1795219190000,
+        "valid_until_unix_ms": 1795219210000
+      }
+    },
+    {
+      "occupancy_id": "swap-bay-use-1",
+      "idempotency_key": "idem:swap-bay-use-1",
+      "operation_id": "operation:mission-1",
+      "owner_id": "mission-1",
+      "resource_id": "swap-bay-1",
+      "resource_configuration_digest": "urn:synthetic:resource-config:swap-bay-1",
+      "resource_kind": "swap_bay",
+      "start_unix_ms": 1795219201000,
+      "end_unix_ms": 1795219202000,
+      "evidence": {
+        "asset_id": "swap-bay-1",
+        "configuration_digest": "urn:synthetic:resource-config:swap-bay-1",
+        "producer_id": "urn:synthetic:producer:testbench",
+        "method_id": "urn:synthetic:method:resource-reservation",
+        "evidence_reference": "urn:synthetic:resource-evidence:swap-bay-use-1",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1795219199000,
+        "valid_from_unix_ms": 1795219190000,
+        "valid_until_unix_ms": 1795219210000
+      }
+    }
+  ]
+}
