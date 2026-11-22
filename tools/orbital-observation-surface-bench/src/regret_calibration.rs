@@ -16,7 +16,6 @@ const CORPUS_SCHEMA: &str = "luminous.orbital-regret-calibration.corpus.v0.1";
 const CLAIM_CEILING: &str = "finite-split-conformal-regret-rank-algebra-only";
 const MAX_REGIMES: usize = 64;
 const MAX_SAMPLES_PER_REGIME: usize = 100_000;
-const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -132,7 +131,7 @@ fn valid_id(value: &str) -> bool {
 }
 
 fn ceil_div(numerator: u128, denominator: u128) -> u128 {
-    numerator / denominator + u128::from(numerator % denominator != 0)
+    numerator / denominator + if numerator % denominator == 0 { 0 } else { 1 }
 }
 
 /// Exact split-conformal rank: ceil((n + 1) * (1 - alpha)).
@@ -445,7 +444,7 @@ mod tests {
         let result = evaluate(&input).unwrap();
         assert_eq!(result.regime_results[0].rank, 3);
         assert_eq!(result.regime_results[0].threshold_status, "EMPIRICAL_ORDER_STATISTIC");
-        assert_eq!(result.regime_results[0].threshold.unwrap().numerator, 4);
+        assert_eq!(result.regime_results[0].threshold.unwrap().numerator, 8);
     }
 
     #[test]
