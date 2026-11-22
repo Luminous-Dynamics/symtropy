@@ -238,6 +238,58 @@ pub struct AcquisitionEvent {
     pub status: AcquisitionStatus,
 }
 
+/// Post-acquisition controller decision. It is created without evaluator
+/// truth, then passed to the evaluator for scoring.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PostAcquisitionDecision {
+    pub action_id: String,
+    pub proposal_bytes: Vec<u8>,
+    pub claim_state_one: bool,
+    /// Confidence in the emitted state claim, if an acquisition succeeded.
+    /// A failed/unavailable acquisition falls back to the prior claim and
+    /// explicitly has no new confidence value.
+    pub decision_confidence_ppm: Option<u32>,
+}
+
+/// Controller-side post-acquisition decision. Its signature accepts no
+/// evaluator truth or manifest commitment.
+pub fn controller_decide_after_acquisition(
+    proposal: &ActionProposal,
+    event: &AcquisitionEvent,
+) -> Result<PostAcquisitionDecision, BoundaryError> {
+    validate_event_binding(proposal, event)?;
+
+    let (claim_state_one, decision_confidence_ppm) = match event.status {
+        AcquisitionStatus::Succeeded { outcome_state_one_ppm } => {
+            if outcome_state_one_ppm > 1_000_000 {
+                return Err(BoundaryError::InvalidBelief);
+            }
+            let claim = outcome_state_one_ppm >= 500_000;
+            let confidence = if claim {
+                outcome_state_one_ppm
+            } else {
+                1_000_000 - outcome_state_one_ppm
+            };
+            (claim, Some(confidence))
+        }
+        AcquisitionStatus::Failed | AcquisitionStatus::Unavailable => {
+            (proposal.claim_state_one, None)
+        }
+    };
+
+    let action_id = match &proposal.disposition {
+        ProposalDisposition::Acquire { action_id } => action_id.clone(),
+        ProposalDisposition::Abstain { .. } => return Err(BoundaryError::ProposalMismatch),
+    };
+
+    Ok(PostAcquisitionDecision {
+        action_id,
+        proposal_bytes: proposal.canonical_bytes(),
+        claim_state_one,
+        decision_confidence_ppm,
+    })
+}
+
 /// Evaluator-only truth. This type is accepted only by score_evaluation.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct EvaluatorTruth {
@@ -266,37 +318,23 @@ fn validate_event_binding(
     }
 }
 
-/// Score only after the controller proposal and acquisition receipt exist.
-/// The truth manifest commitment is introduced here and nowhere in the
-/// controller proposal path.
+/// Score a controller-produced post-acquisition decision. Evaluator truth
+/// enters only at this boundary; it cannot alter the already-frozen proposal
+/// or the controller-side decision.
 pub fn score_evaluation(
-    proposal: &ActionProposal,
-    event: &AcquisitionEvent,
+    decision: &PostAcquisitionDecision,
     truth: &EvaluatorTruth,
     false_safe_loss_micros: u64,
     false_degraded_loss_micros: u64,
 ) -> Result<EvaluationScore, BoundaryError> {
-    validate_event_binding(proposal, event)?;
     if false_safe_loss_micros == 0 && false_degraded_loss_micros == 0 {
         return Err(BoundaryError::InvalidLoss);
     }
 
-    let evaluated_claim = match event.status {
-        AcquisitionStatus::Succeeded { outcome_state_one_ppm } => {
-            if outcome_state_one_ppm > 1_000_000 {
-                return Err(BoundaryError::InvalidBelief);
-            }
-            outcome_state_one_ppm >= 500_000
-        }
-        AcquisitionStatus::Failed | AcquisitionStatus::Unavailable => {
-            proposal.claim_state_one
-        }
-    };
-
-    let correct = evaluated_claim == truth.service_state_one;
+    let correct = decision.claim_state_one == truth.service_state_one;
     let loss_micros = if correct {
         0
-    } else if evaluated_claim && !truth.service_state_one {
+    } else if decision.claim_state_one && !truth.service_state_one {
         false_safe_loss_micros
     } else {
         false_degraded_loss_micros
@@ -393,11 +431,14 @@ mod tests {
             service_state_one: false,
             truth_manifest_commitment: [0xbb; 32],
         };
-        let score_a = score_evaluation(&proposal_a, &event_a, &truth_a, 10, 1).unwrap();
-        let score_b = score_evaluation(&proposal_b, &event_b, &truth_b, 10, 1).unwrap();
+        let decision_a = controller_decide_after_acquisition(&proposal_a, &event_a).unwrap();
+        let decision_b = controller_decide_after_acquisition(&proposal_b, &event_b).unwrap();
+        let score_a = score_evaluation(&decision_a, &truth_a, 10, 1).unwrap();
+        let score_b = score_evaluation(&decision_b, &truth_b, 10, 1).unwrap();
 
         assert_eq!(bytes_a, bytes_b);
         assert_eq!(proposal_a, proposal_b);
+        assert_eq!(decision_a, decision_b);
         assert!(score_a.correct);
         assert!(!score_b.correct);
         assert_ne!(score_a.loss_micros, score_b.loss_micros);
@@ -475,7 +516,7 @@ mod tests {
             truth_manifest_commitment: [0x33; 32],
         };
         assert_eq!(
-            score_evaluation(&first, &event, &truth, 10, 1),
+            controller_decide_after_acquisition(&first, &event),
             Err(BoundaryError::ProposalMismatch)
         );
     }
@@ -494,7 +535,7 @@ mod tests {
             truth_manifest_commitment: [0x44; 32],
         };
         assert_eq!(
-            score_evaluation(&proposal, &event, &truth, 10, 1),
+            controller_decide_after_acquisition(&proposal, &event),
             Err(BoundaryError::ProposalMismatch)
         );
     }
