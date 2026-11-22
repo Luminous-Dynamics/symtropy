@@ -273,7 +273,7 @@ mod tests {
         world.add_body(RigidBody::<3>::static_body(
             BodyHandle(1),
             Point::origin(),
-            Box::new(HalfSpace::<3>::new(SVector::new(0.0, 1.0, 0.0), 0.0)),
+            Box::new(HalfSpace::<3>::new(SVector::<f64, 3>::new(0.0, 1.0, 0.0), 0.0)),
         ));
 
         world.step(1.0 / 60.0);
