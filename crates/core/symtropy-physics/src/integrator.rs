@@ -535,6 +535,63 @@ mod tests {
     }
 
     #[test]
+    fn anisotropic_contact_impulse_matches_independent_spatial_inertia() {
+        use crate::inertia::BivectorInertia;
+        use nalgebra::SMatrix;
+
+        let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
+        let inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(
+            1.0,
+            SVector::<f64, 3>::new(2.0, 1.0, 0.5),
+        )
+        .unwrap();
+        let body_second_moment = *inertia.second_moment();
+        body.set_rotational_inertia_operator(inertia);
+        body.transform.rotation =
+            Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 1), 0.61);
+
+        let offset = SVector::<f64, 3>::new(0.4, -0.7, 0.9);
+        let impulse = SVector::<f64, 3>::new(-0.3, 0.8, 0.5);
+        let stored_state_before = body.angular_velocity;
+        try_apply_contact_angular_impulse(&mut body, &offset, &impulse)
+            .expect("admitted anisotropic contact impulse must apply");
+
+        // Independent conventional 3D spatial-inertia oracle:
+        // I = tr(S) Identity - S, transformed into world coordinates.
+        let rotation = body.transform.rotation.to_matrix();
+        let second_moment_world =
+            rotation * body_second_moment * rotation.transpose();
+        let physical_inertia_world =
+            SMatrix::<f64, 3, 3>::identity() * second_moment_world.trace()
+                - second_moment_world;
+        let physical_torque = offset.cross(&impulse);
+        let expected_angular_velocity = physical_inertia_world
+            .lu()
+            .solve(&physical_torque)
+            .expect("physical inertia tensor is nonsingular");
+        let expected_point_velocity = expected_angular_velocity.cross(&offset);
+
+        let stored_state_delta = body.angular_velocity.add(&stored_state_before.scale(-1.0));
+        let observed_point_velocity = angular_point_velocity(&stored_state_delta, &offset);
+        let point_error = (observed_point_velocity - expected_point_velocity).norm();
+        assert!(
+            point_error < 1e-10,
+            "bivector response differs from independent spatial inertia by {point_error:e}; observed={observed_point_velocity:?}, expected={expected_point_velocity:?}"
+        );
+
+        // The instantaneous rotational kinetic-energy increment equals
+        // half the impulse dotted with the induced contact-point velocity.
+        let rotational_energy = 0.5
+            * expected_angular_velocity.dot(&(physical_inertia_world * expected_angular_velocity));
+        let impulse_work = 0.5 * impulse.dot(&expected_point_velocity);
+        assert!(
+            (rotational_energy - impulse_work).abs()
+                < 1e-11 * rotational_energy.abs().max(impulse_work.abs()).max(1.0),
+            "energy/work mismatch: kinetic={rotational_energy:e}, impulse_work={impulse_work:e}"
+        );
+    }
+
+    #[test]
     fn angular_impulse_produces_point_velocity_in_impulse_direction() {
         let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 1.0);
         let offset = SVector::from([1.0, 0.0, 0.0]);
