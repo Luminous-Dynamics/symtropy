@@ -372,7 +372,7 @@ def evaluate_document(document: dict[str, Any]) -> dict[str, Any]:
         raise RankEvaluationError("precommitted order digest mismatch")
 
     retirement_rule = document.get("retirement_rule", "NONE")
-    if retirement_rule not in {"NONE", "TOP_K_RESOLVED", "RANK_SINGLETON", "PAIRWISE_RESOLVED"}:
+    if not isinstance(retirement_rule, str) or retirement_rule not in {"NONE", "TOP_K_RESOLVED", "RANK_SINGLETON", "PAIRWISE_RESOLVED"}:
         raise RankEvaluationError("unsupported retirement_rule")
     top_k_target = document.get("retirement_top_k")
     if retirement_rule == "TOP_K_RESOLVED":
@@ -415,6 +415,8 @@ def evaluate_document(document: dict[str, Any]) -> dict[str, Any]:
         "episode_order": episode_order,
         "seed_commitment": seed_commitment,
         "order_commitment_sha256": order_commitment,
+        "retirement_rule": retirement_rule,
+        "retirement_top_k": top_k_target,
     })).digest()
 
     looks = []
@@ -572,7 +574,11 @@ def evaluate_document(document: dict[str, Any]) -> dict[str, Any]:
         "active_arms": expected_active_arms,
         "model_invocation_counts": invocation_counts,
         "model_invocations_avoided_vs_full": {
-            arm: total_episodes - invocation_counts[arm] for arm in arms
+            arm: (
+                total_episodes - invocation_counts[arm]
+                if arm in retirement_log else 0
+            )
+            for arm in arms
         },
         "retirement_log": retirement_log,
         "seed_commitment": seed_commitment,
