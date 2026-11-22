@@ -1,6 +1,6 @@
 # EHD-DPM-002 — randomized drift-balanced diagnostic counterfactuals
 
-**Status:** standalone Rust reference authored; 13 unit tests authored; local Rust execution pending; exact-head hosted CI pending.  
+**Status:** standalone Rust reference authored; 14 unit tests authored; local Rust execution pending; exact-head hosted CI pending.  
 **Branch:** research/ehd-dpm-counterfactual-v0-1  
 **Parent:** EHD-DPM-001 observer-perturbation receipt
 
@@ -76,7 +76,7 @@ The larger opportunity is a diagnostic-specific causal record: every tracer, pro
 
 ## Authored adversarial tests
 
-Thirteen Rust tests cover:
+Fourteen Rust tests cover:
 - causal intervention detection despite strong linear drift;
 - equivalence under no intervention with linear drift;
 - balanced sequences counterbalancing manufactured common quadratic drift;
