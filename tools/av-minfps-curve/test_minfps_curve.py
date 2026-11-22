@@ -43,7 +43,6 @@ def resource(
 
 
 def rate_run(fps, frames, grounded, status="COMPLETED", energy_resource=None):
-    frame_step = int(round(4.0 / fps))
     frame_manifest = [
         {
             "frame_id": f"frame-{int(round(index * 1000 / fps))}",
