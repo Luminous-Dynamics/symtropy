@@ -82,7 +82,7 @@ Supported only for:
 
 The v0.1 profile rejects or leaves indeterminate delayed entry, interval censoring, failure-terminated plans, mixed environments/configurations, gapped windows, non-minimal repair, missing capture evidence, incomplete histories and unsupported model families. Do not transplant the fixed-window conditional distribution to failure-terminated designs: their conditional endpoint and terminal-event conventions differ.
 
-The supported significance range is 1%–10%. The Monte Carlo replicate count is 999–100,000 and must provide at least the declared p-value resolution. A hard 10,000,000 total conditional-draw budget bounds work per case; the evaluator rejects rather than silently reducing B. Multiple diagnostic testing requires an externally declared multiplicity policy.
+The supported significance range is 1%–10%. The Monte Carlo replicate count is 999–100,000 and must provide at least the declared p-value resolution. A hard 10,000,000 total conditional-draw budget bounds work per case; the evaluator rejects rather than silently reducing B. Exact direct dependency versions and a minimal committed `Cargo.lock` pin the Rust build graph; CI uses `--locked`. Multiple diagnostic testing requires an externally declared multiplicity policy.
 
 ## Result semantics
 
@@ -104,6 +104,12 @@ The v0.1 corpus contains 23 cases:
 - insufficient event count, invalid chronology, unsupported alpha, insufficient Monte Carlo resolution, an excessive total-draw request, imperfect repair, malformed configuration and unsafe random seed.
 
 The separately implemented JavaScript reference oracle reproduces the conditional reference simulation and case dispositions. Agreement on this finite corpus is software/statistical-contract validation only; it is not an empirical estimate of field error rates or proof of diagnostic operating characteristics.
+
+## Outer null-calibration smoke study
+
+The exact-head workflow also runs `tests/outer_null_calibration.mjs`. It generates 250 independent complete-window PLP histories at each true beta in {0.6, 1.0, 1.6}, with 10 events per history, and uses 999 independent conditional reference draws per test. It reports rejection rates at alpha = 1%, 5% and 10%, each with an exact two-sided 95% Clopper–Pearson interval. The report is synthetic and explicitly capped at `finite_smoke_calibration_only`; it is a smoke test, not sufficient evidence of nominal size.
+
+The full calibration target must use a pre-registered outer replication count and independent holdout seeds. As rough planning values only, a normal-approximation calculation suggests about 38,000 independent outer null replications for a 95% half-width near 0.1 percentage points at a 1% rejection rate; exact binomial intervals must be used for the final report. Calibration should be repeated across event-count strata, with the conditional beta-invariance claim tested using independently generated PLP histories.
 
 ## Calibration and SOTA comparison
 
