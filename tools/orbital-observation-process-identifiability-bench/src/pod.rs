@@ -340,9 +340,16 @@ pub fn analyze_pod_trend(case: &PodTrendCase) -> Result<PodTrendResult, String> 
             physical_beta_lower_open_if_used: true,
             familywise_alpha: case.familywise_alpha,
             anchor_alpha_allocation,
-            expected_result_matched: case.expected_status == PodTrendStatus::ModelIncompatible,
+            expected_result_matched: case.expected_status == PodTrendStatus::ModelIncompatible
+                && (gamma_min - case.expected_gamma_min).abs() <= 1.0e-8
+                && match (gamma_max, case.expected_gamma_max) {
+                    (Some(actual), Some(expected)) => (actual - expected).abs() <= 1.0e-8,
+                    (None, None) => true,
+                    _ => false,
+                },
             blockers: vec![
                 "POD confidence regions are incompatible with p0<=1 and a nondecreasing power-law detection model".to_owned(),
+                "evidence digests are caller-supplied identifiers; calibration, randomization, independence and chain of custody are not authenticated by this evaluator".to_owned(),
             ],
         });
     }
@@ -368,6 +375,7 @@ pub fn analyze_pod_trend(case: &PodTrendCase) -> Result<PodTrendResult, String> 
                 blockers: vec![
                     "gamma bounds are conditional on the two-anchor power-law POD model and p0<=1".to_owned(),
                     "POD bounds apply only to the exact matched event/configuration stratum".to_owned(),
+                    "evidence digests are caller-supplied identifiers; calibration, randomization, independence and chain of custody are not authenticated by this evaluator".to_owned(),
                 ],
             })
         }
@@ -389,6 +397,7 @@ pub fn analyze_pod_trend(case: &PodTrendCase) -> Result<PodTrendResult, String> 
                 blockers: vec![
                     "POD confidence evidence does not impose a finite gamma upper bound".to_owned(),
                     "physical beta lower endpoint remains open without a finite gamma upper bound".to_owned(),
+                    "evidence digests are caller-supplied identifiers; calibration, randomization, independence and chain of custody are not authenticated by this evaluator".to_owned(),
                 ],
             })
         }
@@ -469,4 +478,42 @@ mod tests {
         };
         assert_eq!(analyze_pod_trend(&case).unwrap().status, PodTrendStatus::Indeterminate);
     }
+
+    #[test]
+    fn p0_ceiling_tightens_a_finite_gamma_upper_bound() {
+        let case = PodTrendCase {
+            case_id: "p0_cap".to_owned(),
+            early_anchor: anchor(0.25, 900, 1000),
+            late_anchor: anchor(0.5, 950, 1000),
+            familywise_alpha: 0.05,
+            expected_status: PodTrendStatus::Bounded,
+            expected_gamma_min: 0.018781515909236355,
+            expected_gamma_max: Some(0.0949025860022344),
+        };
+        let result = analyze_pod_trend(&case).unwrap();
+        assert_eq!(result.status, PodTrendStatus::Bounded);
+        assert!((result.gamma_min.unwrap() - 0.018781515909236355).abs() < 1.0e-8);
+        assert!((result.gamma_max.unwrap() - 0.0949025860022344).abs() < 1.0e-8);
+        assert!(result.expected_result_matched);
+    }
+
+    #[test]
+    fn later_anchor_p0_ceiling_can_bound_gamma_when_early_lower_is_zero() {
+        let case = PodTrendCase {
+            case_id: "late_p0_cap".to_owned(),
+            early_anchor: anchor(0.25, 0, 1000),
+            late_anchor: anchor(0.5, 900, 1000),
+            familywise_alpha: 0.05,
+            expected_status: PodTrendStatus::ModelIncompatible,
+            expected_gamma_min: 7.647540669128555,
+            expected_gamma_max: Some(0.1898051720044688),
+        };
+        let result = analyze_pod_trend(&case).unwrap();
+        assert_eq!(result.status, PodTrendStatus::ModelIncompatible);
+        assert!((result.gamma_min.unwrap() - 7.647540669128555).abs() < 1.0e-8);
+        assert!((result.gamma_max.unwrap() - 0.1898051720044688).abs() < 1.0e-8);
+        assert!(result.gamma_max.unwrap() < result.gamma_min.unwrap());
+        assert!(result.expected_result_matched);
+    }
+
 }
