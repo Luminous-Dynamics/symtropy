@@ -823,6 +823,10 @@ mod tests {
         assert!(!receipt.authority_granted);
         assert_eq!(receipt.physical_pod, "NOT_ASSESSED");
         assert_eq!(receipt.a90_95, "NOT_ESTIMATED");
+        assert_eq!(
+            receipt.scope_sha256,
+            "b47757abe316c68c020d1632004da63250a41bd5e85a8e21101872c62b365bac"
+        );
         assert_eq!(receipt.inspector_details[0].len(), 10);
         assert!(
             (receipt.results[0].worst_detection_lower_bound.unwrap() - 0.9233600050654955).abs()
