@@ -117,9 +117,11 @@ It preserves four independent objectives:
 - worst-case energy;
 - number of fault-hypothesis pairs whose conditional outcome sets are guaranteed disjoint.
 
-The module computes a Pareto frontier across those four dimensions. It does not convert metres, time, energy and discrimination coverage into a weighted scalar. If a profile's protection target can be reached conditionally, the deterministic tie-break first prefers more distinguishable hypothesis pairs, then latency and energy. If the target cannot be reached, the plan remains explicitly conditional and does not claim recovery.
+The module computes a Pareto frontier across those four dimensions. It does not convert metres, time, energy and discrimination coverage into a weighted scalar. If a profile's protection target can be reached conditionally, the deterministic tie-break first prefers more distinguishable hypothesis pairs, then latency and energy.
 
-Only feasible actions with a complete, inventory-matched discrimination report can participate. The hypothesis-inventory digest and hypothesis/pair counts must agree across action reports. The minimum positive outcome gap is retained as an action-local diagnostic rather than compared across sensors with potentially different feature normalizations.
+A genuinely discriminating action is also allowed to remain on the frontier when its conservative protection bound does not immediately shrink—or widens because the new evidence could reveal a fault. In that case the plan is explicitly a diagnostic request, not a recovery request; it remains DEGRADED/INTEGRITY_UNCERTAIN until the acquired observation is qualified and the posterior is recomputed. An action with neither positive PL reduction nor at least one guaranteed distinguishable hypothesis pair is not feasible.
+
+Only resource-feasible actions with a complete, inventory-matched discrimination report can participate. The hypothesis-inventory digest and hypothesis/pair counts must agree across action reports. The minimum positive outcome gap is retained as an action-local diagnostic rather than compared across sensors with potentially different feature normalizations.
 
 This remains a planning result, not evidence. The actual acquired observation must independently pass source, time, cryptographic/session, physical and statistical qualification, then trigger a fresh estimator/posterior and hypothesis audit. Until that sequence completes, no hypothesis is removed and navigation authority remains unchanged.
 
