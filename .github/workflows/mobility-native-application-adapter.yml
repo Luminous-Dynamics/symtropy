@@ -34,11 +34,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.96.0
         with:
           components: rustfmt, clippy
-      - name: Format source and export canonical bytes for exact-head commit
-        run: |
-          cargo fmt --manifest-path research/mobility-native-application-adapter/Cargo.toml
-          echo "RUSTFMT_BASE64=$(base64 -w0 research/mobility-native-application-adapter/src/lib.rs)"
-          cargo fmt --manifest-path research/mobility-native-application-adapter/Cargo.toml -- --check
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/mobility-native-application-adapter/Cargo.toml -- --check
       - name: Run composed-owner integration tests
         run: cargo test --manifest-path research/mobility-native-application-adapter/Cargo.toml --locked
       - name: Run strict Clippy
