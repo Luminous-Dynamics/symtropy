@@ -264,11 +264,7 @@ fn signed_margin(limit: u64, requested: u64) -> i64 {
     }
 }
 
-fn slot_end_unix_ms(
-    decision_time_unix_ms: u64,
-    duration_seconds: u32,
-    slot: u8,
-) -> Option<u64> {
+fn slot_end_unix_ms(decision_time_unix_ms: u64, duration_seconds: u32, slot: u8) -> Option<u64> {
     u64::from(slot)
         .checked_add(1)?
         .checked_mul(u64::from(duration_seconds))?
@@ -303,10 +299,12 @@ pub fn evaluate_mobility_recovery(
         || input.charger_channels.is_empty()
         || input.charger_channels.len() > MAX_CHANNELS
         || input.pcc_slots.len() != usize::from(input.horizon_slots)
-        || input.recovery_schedule.len()
-            != input.resources.len() * usize::from(input.horizon_slots)
+        || input.recovery_schedule.len() != input.resources.len() * usize::from(input.horizon_slots)
     {
-        add_error(&mut errors, "resource_scenario_channel_or_horizon_bound_invalid");
+        add_error(
+            &mut errors,
+            "resource_scenario_channel_or_horizon_bound_invalid",
+        );
     }
 
     let horizon_end = slot_end_unix_ms(
@@ -360,7 +358,10 @@ pub fn evaluate_mobility_recovery(
         {
             add_error(
                 &mut errors,
-                format!("resource_identity_or_capability_invalid:{}", resource.resource_id),
+                format!(
+                    "resource_identity_or_capability_invalid:{}",
+                    resource.resource_id
+                ),
             );
             continue;
         }
@@ -396,7 +397,10 @@ pub fn evaluate_mobility_recovery(
         ) {
             add_error(
                 &mut errors,
-                format!("site_connection_evidence_not_admissible:{}", resource.resource_id),
+                format!(
+                    "site_connection_evidence_not_admissible:{}",
+                    resource.resource_id
+                ),
             );
         }
         push_evidence_class(
@@ -413,16 +417,20 @@ pub fn evaluate_mobility_recovery(
             || channel.max_input_power_lower_bound_w == 0
             || channel.max_input_power_lower_bound_w > MAX_POWER_W
             || channel.compatible_resource_ids.is_empty()
-            || channel.compatible_resource_ids.iter().any(|id| {
-                id.trim().is_empty() || !resource_map.contains_key(id.as_str())
-            })
+            || channel
+                .compatible_resource_ids
+                .iter()
+                .any(|id| id.trim().is_empty() || !resource_map.contains_key(id.as_str()))
             || channel_map
                 .insert(channel.channel_id.as_str(), channel)
                 .is_some()
         {
             add_error(
                 &mut errors,
-                format!("charger_channel_identity_or_compatibility_invalid:{}", channel.channel_id),
+                format!(
+                    "charger_channel_identity_or_compatibility_invalid:{}",
+                    channel.channel_id
+                ),
             );
             continue;
         }
@@ -435,7 +443,10 @@ pub fn evaluate_mobility_recovery(
         ) {
             add_error(
                 &mut errors,
-                format!("charger_channel_evidence_not_admissible:{}", channel.channel_id),
+                format!(
+                    "charger_channel_evidence_not_admissible:{}",
+                    channel.channel_id
+                ),
             );
         }
         push_evidence_class(&channel.evidence, &mut all_source_grade, &mut all_synthetic);
@@ -446,14 +457,15 @@ pub fn evaluate_mobility_recovery(
     let mut schedule_map = BTreeMap::new();
     let mut channel_occupancy = BTreeMap::new();
     for item in &sorted_schedule {
-        let resource_power_valid = resource_map
-            .get(item.resource_id.as_str())
-            .is_some_and(|resource| {
-                item.recovery_charge_input_power_w
-                    <= resource.max_charge_input_power_lower_bound_w
-                    && item.grid_discharge_output_power_w
-                        <= resource.max_discharge_output_power_lower_bound_w
-            });
+        let resource_power_valid =
+            resource_map
+                .get(item.resource_id.as_str())
+                .is_some_and(|resource| {
+                    item.recovery_charge_input_power_w
+                        <= resource.max_charge_input_power_lower_bound_w
+                        && item.grid_discharge_output_power_w
+                            <= resource.max_discharge_output_power_lower_bound_w
+                });
         if !resource_map.contains_key(item.resource_id.as_str())
             || item.slot >= input.horizon_slots
             || item.recovery_charge_input_power_w > MAX_POWER_W
@@ -464,7 +476,10 @@ pub fn evaluate_mobility_recovery(
         {
             add_error(
                 &mut errors,
-                format!("recovery_schedule_identity_power_or_queue_invalid:{}:{}", item.resource_id, item.slot),
+                format!(
+                    "recovery_schedule_identity_power_or_queue_invalid:{}:{}",
+                    item.resource_id, item.slot
+                ),
             );
             continue;
         }
@@ -475,20 +490,32 @@ pub fn evaluate_mobility_recovery(
         {
             add_error(
                 &mut errors,
-                format!("recovery_schedule_duplicate:{}:{}", item.resource_id, item.slot),
+                format!(
+                    "recovery_schedule_duplicate:{}:{}",
+                    item.resource_id, item.slot
+                ),
             );
             continue;
         }
 
-        match (item.recovery_charge_input_power_w, item.charger_channel_id.as_deref()) {
+        match (
+            item.recovery_charge_input_power_w,
+            item.charger_channel_id.as_deref(),
+        ) {
             (0, None) => {}
             (0, Some(_)) => add_error(
                 &mut errors,
-                format!("idle_schedule_has_charger_channel:{}:{}", item.resource_id, item.slot),
+                format!(
+                    "idle_schedule_has_charger_channel:{}:{}",
+                    item.resource_id, item.slot
+                ),
             ),
             (_, None) => add_error(
                 &mut errors,
-                format!("recovery_charge_missing_charger_channel:{}:{}", item.resource_id, item.slot),
+                format!(
+                    "recovery_charge_missing_charger_channel:{}:{}",
+                    item.resource_id, item.slot
+                ),
             ),
             (charge_power, Some(channel_id)) => {
                 let Some(channel) = channel_map.get(channel_id) else {
@@ -508,7 +535,10 @@ pub fn evaluate_mobility_recovery(
                 {
                     add_error(
                         &mut errors,
-                        format!("recovery_schedule_channel_incompatible:{}:{channel_id}", item.resource_id),
+                        format!(
+                            "recovery_schedule_channel_incompatible:{}:{channel_id}",
+                            item.resource_id
+                        ),
                     );
                 }
                 if channel_occupancy
@@ -517,7 +547,10 @@ pub fn evaluate_mobility_recovery(
                 {
                     add_error(
                         &mut errors,
-                        format!("recovery_charger_channel_double_booked:{channel_id}:{}", item.slot),
+                        format!(
+                            "recovery_charger_channel_double_booked:{channel_id}:{}",
+                            item.slot
+                        ),
                     );
                 }
             }
@@ -529,7 +562,10 @@ pub fn evaluate_mobility_recovery(
             if !schedule_map.contains_key(&(resource.resource_id.as_str(), slot)) {
                 add_error(
                     &mut errors,
-                    format!("recovery_schedule_slot_missing:{}:{slot}", resource.resource_id),
+                    format!(
+                        "recovery_schedule_slot_missing:{}:{slot}",
+                        resource.resource_id
+                    ),
                 );
             }
         }
@@ -576,7 +612,10 @@ pub fn evaluate_mobility_recovery(
             || !slot_evidence_valid
             || pcc_by_slot.insert(pcc.slot, pcc).is_some()
         {
-            add_error(&mut errors, format!("recovery_pcc_slot_or_evidence_invalid:{}", pcc.slot));
+            add_error(
+                &mut errors,
+                format!("recovery_pcc_slot_or_evidence_invalid:{}", pcc.slot),
+            );
         }
         for evidence in [
             &pcc.base_load_evidence,
@@ -608,17 +647,27 @@ pub fn evaluate_mobility_recovery(
         ) {
             add_error(
                 &mut errors,
-                format!("recovery_scenario_evidence_not_admissible:{}", scenario.scenario_id),
+                format!(
+                    "recovery_scenario_evidence_not_admissible:{}",
+                    scenario.scenario_id
+                ),
             );
         }
-        push_evidence_class(&scenario.evidence, &mut all_source_grade, &mut all_synthetic);
+        push_evidence_class(
+            &scenario.evidence,
+            &mut all_source_grade,
+            &mut all_synthetic,
+        );
 
         if scenario.resource_obligations.len() != input.resources.len()
             || scenario.channel_availability.len() != input.charger_channels.len()
         {
             add_error(
                 &mut errors,
-                format!("recovery_scenario_coverage_incomplete:{}", scenario.scenario_id),
+                format!(
+                    "recovery_scenario_coverage_incomplete:{}",
+                    scenario.scenario_id
+                ),
             );
         }
 
@@ -627,14 +676,20 @@ pub fn evaluate_mobility_recovery(
             if !resource_map.contains_key(obligation.resource_id.as_str()) {
                 add_error(
                     &mut errors,
-                    format!("recovery_obligation_resource_unknown:{}", scenario.scenario_id),
+                    format!(
+                        "recovery_obligation_resource_unknown:{}",
+                        scenario.scenario_id
+                    ),
                 );
                 continue;
             }
             if obligations_by_resource.contains_key(obligation.resource_id.as_str()) {
                 add_error(
                     &mut errors,
-                    format!("recovery_obligation_resource_duplicate:{}", scenario.scenario_id),
+                    format!(
+                        "recovery_obligation_resource_duplicate:{}",
+                        scenario.scenario_id
+                    ),
                 );
                 obligations_by_resource.remove(obligation.resource_id.as_str());
                 continue;
@@ -663,7 +718,10 @@ pub fn evaluate_mobility_recovery(
             {
                 add_error(
                     &mut errors,
-                    format!("recovery_obligation_horizon_or_deadline_invalid:{}", obligation.resource_id),
+                    format!(
+                        "recovery_obligation_horizon_or_deadline_invalid:{}",
+                        obligation.resource_id
+                    ),
                 );
                 obligations_by_resource.remove(obligation.resource_id.as_str());
                 continue;
@@ -677,10 +735,17 @@ pub fn evaluate_mobility_recovery(
             ) {
                 add_error(
                     &mut errors,
-                    format!("recovery_obligation_evidence_not_admissible:{}", obligation.resource_id),
+                    format!(
+                        "recovery_obligation_evidence_not_admissible:{}",
+                        obligation.resource_id
+                    ),
                 );
             }
-            push_evidence_class(&obligation.evidence, &mut all_source_grade, &mut all_synthetic);
+            push_evidence_class(
+                &obligation.evidence,
+                &mut all_source_grade,
+                &mut all_synthetic,
+            );
         }
 
         let mut channel_availability_by_id = BTreeMap::new();
@@ -705,7 +770,10 @@ pub fn evaluate_mobility_recovery(
             {
                 add_error(
                     &mut errors,
-                    format!("recovery_channel_availability_invalid:{}", scenario.scenario_id),
+                    format!(
+                        "recovery_channel_availability_invalid:{}",
+                        scenario.scenario_id
+                    ),
                 );
             }
             push_evidence_class(
@@ -736,7 +804,9 @@ pub fn evaluate_mobility_recovery(
                 } else if let Some(channel_id) = item.charger_channel_id.as_deref() {
                     channel_availability_by_id
                         .get(channel_id)
-                        .and_then(|availability| availability.available_by_slot.get(usize::from(slot)))
+                        .and_then(|availability| {
+                            availability.available_by_slot.get(usize::from(slot))
+                        })
                         .copied()
                         .unwrap_or(false)
                 } else {
@@ -768,12 +838,16 @@ pub fn evaluate_mobility_recovery(
         }
 
         for resource in &input.resources {
-            let Some(obligation) = obligations_by_resource.get(resource.resource_id.as_str()) else {
-                scenario_findings.insert(format!("resource_obligation_missing:{}", resource.resource_id));
+            let Some(obligation) = obligations_by_resource.get(resource.resource_id.as_str())
+            else {
+                scenario_findings.insert(format!(
+                    "resource_obligation_missing:{}",
+                    resource.resource_id
+                ));
                 continue;
             };
-            let mut energy = i64::try_from(resource.initial_energy_lower_bound_wh)
-                .unwrap_or(i64::MAX);
+            let mut energy =
+                i64::try_from(resource.initial_energy_lower_bound_wh).unwrap_or(i64::MAX);
             let mut energy_after_slot = Vec::new();
             let mut reserve_floor_by_slot = Vec::new();
             let mut reserve_margin_by_slot = Vec::new();
@@ -839,9 +913,8 @@ pub fn evaluate_mobility_recovery(
                 // energy before this interval's recovery charge is credited. This
                 // conservative order prevents same-slot charging from backfilling
                 // an earlier mission obligation.
-                let before_recovery_charge = i128::from(energy)
-                    - i128::from(discharge_wh)
-                    - i128::from(withdrawal_wh);
+                let before_recovery_charge =
+                    i128::from(energy) - i128::from(discharge_wh) - i128::from(withdrawal_wh);
                 if before_recovery_charge < 0 {
                     first_failed_slot.get_or_insert(slot);
                     resource_findings.insert(format!("resource_energy_underflow:{slot}"));
@@ -849,11 +922,19 @@ pub fn evaluate_mobility_recovery(
                 let before_recovery_charge = before_recovery_charge.max(0);
                 let next_energy = before_recovery_charge + i128::from(charge_wh);
                 if next_energy > i128::from(MAX_ENERGY_WH) {
-                    add_error(&mut errors, format!("recovery_state_out_of_bounds:{}:{slot}", resource.resource_id));
+                    add_error(
+                        &mut errors,
+                        format!(
+                            "recovery_state_out_of_bounds:{}:{slot}",
+                            resource.resource_id
+                        ),
+                    );
                     break;
                 }
                 energy = next_energy as i64;
-                if energy > i64::try_from(resource.energy_capacity_lower_bound_wh).unwrap_or(i64::MAX) {
+                if energy
+                    > i64::try_from(resource.energy_capacity_lower_bound_wh).unwrap_or(i64::MAX)
+                {
                     first_failed_slot.get_or_insert(slot);
                     resource_findings.insert(format!("energy_capacity_exceeded:{slot}"));
                 }
@@ -872,16 +953,21 @@ pub fn evaluate_mobility_recovery(
                     resource_findings.insert(format!("mission_or_reserve_floor_violated:{slot}"));
                 }
                 if slot == obligation.recovery_deadline_slot {
-                    recovery_complete = energy >= i64::try_from(obligation.recovery_target_energy_wh).unwrap_or(i64::MAX);
+                    recovery_complete = energy
+                        >= i64::try_from(obligation.recovery_target_energy_wh).unwrap_or(i64::MAX);
                     if !recovery_complete {
                         first_failed_slot.get_or_insert(slot);
-                        resource_findings.insert(format!("reserve_not_restored_by_deadline:{slot}"));
+                        resource_findings
+                            .insert(format!("reserve_not_restored_by_deadline:{slot}"));
                     }
                 }
             }
 
             if energy_after_slot.len() != usize::from(input.horizon_slots) {
-                scenario_findings.insert(format!("resource_trajectory_incomplete:{}", resource.resource_id));
+                scenario_findings.insert(format!(
+                    "resource_trajectory_incomplete:{}",
+                    resource.resource_id
+                ));
             }
             if !recovery_complete {
                 resource_findings.insert("recovery_target_not_confirmed".to_owned());
@@ -934,7 +1020,9 @@ pub fn evaluate_mobility_recovery(
     }
 
     let candidate_model_feasible = !scenario_results.is_empty()
-        && scenario_results.iter().all(|result| result.scenario_feasible);
+        && scenario_results
+            .iter()
+            .all(|result| result.scenario_feasible);
     let mut findings = BTreeSet::new();
     for result in &scenario_results {
         for finding in &result.findings {
@@ -970,8 +1058,10 @@ mod tests {
     use super::*;
 
     fn fixture() -> MobilityRecoveryInput {
-        serde_json::from_str(include_str!("../fixtures/mobility_recovery_envelope_v0_2.json"))
-            .expect("frozen recovery fixture must parse")
+        serde_json::from_str(include_str!(
+            "../fixtures/mobility_recovery_envelope_v0_2.json"
+        ))
+        .expect("frozen recovery fixture must parse")
     }
 
     #[test]
@@ -1008,9 +1098,10 @@ mod tests {
         assert!(report.scenario_results.iter().any(|scenario| {
             scenario.resource_trajectories.iter().any(|trajectory| {
                 trajectory.resource_id == "ess-01"
-                    && trajectory.findings.iter().any(|finding| {
-                        finding == "initial_energy_below_starting_reserve"
-                    })
+                    && trajectory
+                        .findings
+                        .iter()
+                        .any(|finding| finding == "initial_energy_below_starting_reserve")
             })
         }));
     }
@@ -1024,7 +1115,10 @@ mod tests {
         assert!(report.scenario_results.iter().any(|scenario| {
             scenario.resource_trajectories.iter().any(|trajectory| {
                 trajectory.resource_id == "ess-01"
-                    && trajectory.findings.iter().any(|finding| finding.contains("energy_capacity_exceeded"))
+                    && trajectory
+                        .findings
+                        .iter()
+                        .any(|finding| finding.contains("energy_capacity_exceeded"))
             })
         }));
     }
@@ -1041,7 +1135,10 @@ mod tests {
         let report = evaluate_mobility_recovery(&input).expect("valid plan shape");
         assert!(!report.candidate_model_feasible);
         assert!(report.scenario_results.iter().any(|scenario| {
-            scenario.findings.iter().any(|finding| finding.contains("reserve_not_restored_by_deadline"))
+            scenario
+                .findings
+                .iter()
+                .any(|finding| finding.contains("reserve_not_restored_by_deadline"))
         }));
     }
 
@@ -1061,7 +1158,10 @@ mod tests {
         let report = evaluate_mobility_recovery(&input).expect("valid scenario shape");
         assert!(!report.candidate_model_feasible);
         assert!(report.scenario_results.iter().any(|scenario| {
-            scenario.findings.iter().any(|finding| finding.contains("mission_or_reserve_floor_violated"))
+            scenario
+                .findings
+                .iter()
+                .any(|finding| finding.contains("mission_or_reserve_floor_violated"))
         }));
     }
 
@@ -1081,7 +1181,10 @@ mod tests {
         let report = evaluate_mobility_recovery(&input).expect("valid scenario shape");
         assert!(!report.candidate_model_feasible);
         assert!(report.scenario_results.iter().any(|scenario| {
-            scenario.findings.iter().any(|finding| finding.contains("charger_channel_unavailable"))
+            scenario
+                .findings
+                .iter()
+                .any(|finding| finding.contains("charger_channel_unavailable"))
         }));
     }
 
@@ -1118,7 +1221,10 @@ mod tests {
         let report = evaluate_mobility_recovery(&input).expect("valid PCC data");
         assert!(!report.candidate_model_feasible);
         assert!(report.scenario_results.iter().all(|scenario| {
-            scenario.findings.iter().any(|finding| finding.contains("pcc_import_limit_exceeded:2"))
+            scenario
+                .findings
+                .iter()
+                .any(|finding| finding.contains("pcc_import_limit_exceeded:2"))
         }));
     }
 
