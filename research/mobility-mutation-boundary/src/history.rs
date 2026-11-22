@@ -793,4 +793,182 @@ mod tests {
             HistoryCheckResult::NonLinearizable { .. }
         ));
     }
+    #[test]
+    fn applied_action_blocks_another_mutation_until_outcome_is_resolved() {
+        let b = binding(1, 1);
+        let history = OperationHistory {
+            trace_complete: true,
+            initial_snapshot: snapshot("attempt-1", 1, 1),
+            operations: vec![
+                op(
+                    "apply-1",
+                    1,
+                    2,
+                    HistoryOperationKind::Apply {
+                        ticket: ticket("ticket-1", "attempt-1", 1, 1),
+                        now: now(20),
+                    },
+                    applied(1, &b, ReceiptDisposition::AcceptedByNativeController),
+                ),
+                op(
+                    "second-mutation",
+                    3,
+                    4,
+                    HistoryOperationKind::Apply {
+                        ticket: ticket("ticket-2", "attempt-1", 1, 1),
+                        now: now(21),
+                    },
+                    HistoryObservedResult::Rejected(Rejection::PendingActionExists),
+                ),
+            ],
+        };
+
+        assert!(matches!(
+            check_history(&history, DEFAULT_SEARCH_BUDGET),
+            HistoryCheckResult::Linearizable { .. }
+        ));
+    }
+
+    #[test]
+    fn unknown_result_holds_until_explicit_reconciliation() {
+        let b = binding(1, 1);
+        let history = OperationHistory {
+            trace_complete: true,
+            initial_snapshot: snapshot("attempt-1", 1, 1),
+            operations: vec![
+                op(
+                    "unknown-apply",
+                    1,
+                    2,
+                    HistoryOperationKind::Apply {
+                        ticket: ticket("ticket-1", "attempt-1", 1, 1),
+                        now: now(20),
+                    },
+                    applied(1, &b, ReceiptDisposition::ReconciliationRequired),
+                ),
+                op(
+                    "still-unknown",
+                    3,
+                    4,
+                    HistoryOperationKind::ResolvePendingAction {
+                        attempt_key: "attempt-1".to_owned(),
+                        resolution: QualifiedOutcomeResolution::Unknown,
+                        next_snapshot: None,
+                        recovery_permit_digest: None,
+                    },
+                    HistoryObservedResult::PendingActionResolved {
+                        disposition: ResolutionDisposition::HoldRetained,
+                    },
+                ),
+                op(
+                    "blocked-mutation",
+                    5,
+                    6,
+                    HistoryOperationKind::Apply {
+                        ticket: ticket("ticket-2", "attempt-1", 1, 1),
+                        now: now(22),
+                    },
+                    HistoryObservedResult::Rejected(Rejection::PendingActionExists),
+                ),
+            ],
+        };
+
+        assert!(matches!(
+            check_history(&history, DEFAULT_SEARCH_BUDGET),
+            HistoryCheckResult::Linearizable { .. }
+        ));
+    }
+
+    #[test]
+    fn no_effect_recovery_requires_permit_and_new_authority_snapshot() {
+        let old_binding = binding(1, 1);
+        let new_binding = binding(2, 2);
+        let next = snapshot("attempt-2", 2, 2);
+        let history = OperationHistory {
+            trace_complete: true,
+            initial_snapshot: snapshot("attempt-1", 1, 1),
+            operations: vec![
+                op(
+                    "apply-1",
+                    1,
+                    2,
+                    HistoryOperationKind::Apply {
+                        ticket: ticket("ticket-1", "attempt-1", 1, 1),
+                        now: now(20),
+                    },
+                    applied(1, &old_binding, ReceiptDisposition::RejectedNoEffect),
+                ),
+                op(
+                    "recover-1",
+                    3,
+                    4,
+                    HistoryOperationKind::ResolvePendingAction {
+                        attempt_key: "attempt-1".to_owned(),
+                        resolution: QualifiedOutcomeResolution::NoEffect,
+                        next_snapshot: Some(next),
+                        recovery_permit_digest: Some("permit-digest-2".to_owned()),
+                    },
+                    HistoryObservedResult::PendingActionResolved {
+                        disposition: ResolutionDisposition::ClearedForNewAuthoritySnapshot,
+                    },
+                ),
+                op(
+                    "apply-new-attempt",
+                    5,
+                    6,
+                    HistoryOperationKind::Apply {
+                        ticket: ticket("ticket-2", "attempt-2", 2, 2),
+                        now: now(30),
+                    },
+                    applied(2, &new_binding, ReceiptDisposition::AcceptedByNativeController),
+                ),
+            ],
+        };
+
+        assert!(matches!(
+            check_history(&history, DEFAULT_SEARCH_BUDGET),
+            HistoryCheckResult::Linearizable { .. }
+        ));
+    }
+
+    #[test]
+    fn no_effect_recovery_without_permit_is_not_linearizable() {
+        let old_binding = binding(1, 1);
+        let history = OperationHistory {
+            trace_complete: true,
+            initial_snapshot: snapshot("attempt-1", 1, 1),
+            operations: vec![
+                op(
+                    "apply-1",
+                    1,
+                    2,
+                    HistoryOperationKind::Apply {
+                        ticket: ticket("ticket-1", "attempt-1", 1, 1),
+                        now: now(20),
+                    },
+                    applied(1, &old_binding, ReceiptDisposition::RejectedNoEffect),
+                ),
+                op(
+                    "unauthorized-recovery",
+                    3,
+                    4,
+                    HistoryOperationKind::ResolvePendingAction {
+                        attempt_key: "attempt-1".to_owned(),
+                        resolution: QualifiedOutcomeResolution::NoEffect,
+                        next_snapshot: Some(snapshot("attempt-2", 2, 2)),
+                        recovery_permit_digest: None,
+                    },
+                    HistoryObservedResult::PendingActionResolved {
+                        disposition: ResolutionDisposition::ClearedForNewAuthoritySnapshot,
+                    },
+                ),
+            ],
+        };
+
+        assert!(matches!(
+            check_history(&history, DEFAULT_SEARCH_BUDGET),
+            HistoryCheckResult::NonLinearizable { .. }
+        ));
+    }
+
 }
