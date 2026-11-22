@@ -692,6 +692,52 @@ mod tests {
     }
 
     #[test]
+    fn source_correlation_calibration_can_be_worth_more_than_immediate_design_choice() {
+        let calibration = options(
+            "shared-source-correlation-calibration",
+            InformationAcquisitionKind::IndependentCalibration,
+            0.03,
+            vec![vec![0.9, 0.1], vec![0.1, 0.9]],
+        );
+        let result = recommend_finite_decision_step(
+            &["design-A".to_owned(), "design-B".to_owned()],
+            &[0.5, 0.5],
+            &[vec![0.1, 0.8], vec![0.5, 0.5]],
+            0.0,
+            &[calibration],
+            InformationAcquisitionPolicy {
+                remaining_budget: 0.03,
+                cost_to_utility_rate: 1.0,
+                minimum_net_benefit: 0.0,
+            },
+        )
+        .expect("dependence calibration value");
+        match result {
+            FiniteDecisionRecommendation::AcquireInformation {
+                option_id,
+                expected_value_of_sample_information,
+                cost_in_utility_units,
+                expected_net_benefit_of_sampling,
+                expected_utility_before_information,
+                expected_utility_after_information,
+                expected_value_of_perfect_information,
+                current_best_action_id,
+                ..
+            } => {
+                assert_eq!(option_id, "shared-source-correlation-calibration");
+                assert_eq!(current_best_action_id.as_deref(), Some("design-B"));
+                assert!((expected_utility_before_information - 0.5).abs() < 1.0e-12);
+                assert!((expected_utility_after_information - 0.615).abs() < 1.0e-12);
+                assert!((expected_value_of_sample_information - 0.115).abs() < 1.0e-12);
+                assert!((cost_in_utility_units - 0.03).abs() < 1.0e-12);
+                assert!((expected_net_benefit_of_sampling - 0.085).abs() < 1.0e-12);
+                assert!((expected_value_of_perfect_information - 0.15).abs() < 1.0e-12);
+            }
+            other => panic!("expected dependence calibration, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn information_cannot_exceed_perfect_information() {
         let fully_informative = options(
             "perfect",
