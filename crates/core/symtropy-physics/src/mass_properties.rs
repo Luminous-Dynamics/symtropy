@@ -210,7 +210,8 @@ impl<const D: usize> RotationalInertiaOperator<D> {
         let raw_second_moment = DMatrix::from_row_slice(D, D, &second_moment_row_major);
         let mut second_moment = DMatrix::zeros(D, D);
         for row in 0..D {
-            for column in 0..D {
+            second_moment[(row, row)] = raw_second_moment[(row, row)];
+            for column in 0..row {
                 let a = raw_second_moment[(row, column)];
                 let b = raw_second_moment[(column, row)];
                 if (a / source_scale - b / source_scale).abs()
@@ -218,7 +219,9 @@ impl<const D: usize> RotationalInertiaOperator<D> {
                 {
                     return Err(MassPropertiesError::NotSymmetric);
                 }
-                second_moment[(row, column)] = a + 0.5 * (b - a);
+                let average = a + 0.5 * (b - a);
+                second_moment[(row, column)] = average;
+                second_moment[(column, row)] = average;
             }
         }
         let normalized_second_moment = &second_moment / source_scale;
