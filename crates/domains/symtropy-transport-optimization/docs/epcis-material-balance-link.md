@@ -34,11 +34,12 @@ The adapter's TransformationGroupEvidence is a DTO for the caller to build from 
 - exact group_ref;
 - optional exact transformation_id;
 - effective source-event revisions selected at one declared publication/as-of cutoff;
-- each source namespace, event ID, source-local revision and immutable source-payload digest.
+- each source namespace, event ID, source-local revision and immutable source-payload digest;
+- a canonical group-manifest SHA-256 reference, which the owner case pins separately.
 
 For a shared transformation group, the exact transformation_id must match the owner case's transformation_id. For an event-local TransformationEvent with no transformationID, exactly one effective source event is allowed. A no-ID event cannot be used to silently assemble a multi-event group.
 
-The adapter rejects empty source groups, invalid/padded source identities, revision zero, malformed source digests, duplicate source event revisions and conflicting revisions for the same (source_id, source_event_id) identity.
+The adapter rejects empty source groups, invalid/padded source identities, revision zero, malformed source digests, duplicate source event revisions and conflicting revisions for the same (source_id, source_event_id) identity. It also requires the supplied group-manifest digest to be well-formed and to match the exact digest pinned in the owner case binding. The group manifest's canonical serialization and digest production are upstream responsibilities; this adapter checks syntax/equality only and does not hash or authenticate bytes.
 
 These checks validate the shape and internal identity of the supplied effective group. They do not prove that the capture stream is complete, that the process is closed, or that every physical input/output event was reported. The upstream observation-completeness programme remains a separate necessary qualification.
 
@@ -53,8 +54,9 @@ The one supplied owner receipt must satisfy:
 2. exact case_id and manifest_ref;
 3. exact subject_ref == process_ref;
 4. exact scope_ref == input_lot_set_ref;
-5. a well-formed source digest exactly matching the digest pinned by the case binding;
-6. exactly one MassBalance receipt for this case.
+5. the canonical transformation-group manifest digest exactly matches the digest pinned by the owner case;
+6. the owner receipt source digest is well-formed and exactly matches the digest pinned by the case binding;
+7. exactly one MassBalance receipt for this case.
 
 Missing receipt produces Indeterminate. Multiple receipts, a wrong gate, a mismatched case/manifest/process/lot scope or an incorrect/malformed digest produce Blocked. No nearest timestamp, fuzzy identity, label match or quantity inference is performed.
 
