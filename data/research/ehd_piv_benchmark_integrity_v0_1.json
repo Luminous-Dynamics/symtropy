@@ -25,7 +25,39 @@
       "id": "PIVTOOLS_TURBULENT_CHANNEL",
       "paper_doi": "10.1016/j.softx.2026.102967",
       "dataset_doi": "10.5258/SOTON/D3981",
-      "role": "end-to-end planar/stereo/ensemble processing comparator with DNS statistics and reproducibility scripts"
+      "role": "end-to-end planar/stereo/ensemble processing comparator with DNS statistics and reproducibility scripts",
+      "paper_metrics": {
+        "synthetic_channel": {
+          "friction_reynolds_number": 1000,
+          "ensemble_mean_velocity_recovered_to_y_plus_approx": 2,
+          "ensemble_streamwise_stress_mean_relative_error_percent": 1.6,
+          "streamwise_stress_range_y_plus": [
+            30,
+            1000
+          ],
+          "ensemble_window_px": [
+            8,
+            8
+          ]
+        },
+        "experimental_boundary_layer": {
+          "friction_reynolds_number_approx": 6400,
+          "mean_velocity_difference_from_hotwire_percent_max": 1.5,
+          "mean_velocity_y_plus_lower_limit_approx": 40,
+          "ensemble_streamwise_stress_mean_relative_error_percent": 3,
+          "streamwise_stress_y_plus_range": [
+            40,
+            300
+          ]
+        },
+        "performance": {
+          "image_pairs_per_second_at_128_cores": 117,
+          "parallel_efficiency_at_128_cores_percent": 77,
+          "image_pairs_per_second_at_192_cores": 100,
+          "earlier_preprint_speedup_vs_commercial_20_core_4mp_four_pass": 10.5
+        }
+      },
+      "caveat": "All figures are source-reported, configuration-specific comparator points. Reproduce with matched hardware, image cohorts, processing passes, masks and output quality; do not treat as universal rankings or Luminous results."
     }
   ],
   "required_metadata": [
