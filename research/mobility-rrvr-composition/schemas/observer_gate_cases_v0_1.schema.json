@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/mobility-rrvr-observer-gate-v0.1.json",
+  "title": "Mobility RRVR Claim-Specific Observer Gate Cases v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "cases"],
+  "properties": {
+    "version": { "const": "0.1" },
+    "cases": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id", "class", "base_disposition", "no_effect_observer",
+          "downstream_observer", "no_effect_scope_match", "downstream_scope_match",
+          "expected", "native_sink_calls", "authority_capabilities"
+        ],
+        "properties": {
+          "case_id": { "type": "string", "pattern": "^RVO-[0-9]{3}$" },
+          "class": { "enum": ["positive", "negative", "observed_outcome"] },
+          "base_disposition": { "enum": ["ready", "applied", "applied_persistence_unresolved", "hold"] },
+          "no_effect_observer": { "enum": ["quorum_qualified", "hold"] },
+          "downstream_observer": { "enum": ["quorum_qualified", "hold"] },
+          "no_effect_scope_match": { "type": "boolean" },
+          "downstream_scope_match": { "type": "boolean" },
+          "expected": { "enum": ["ready_for_owner_native_revalidation", "hold", "physical_effect_already_observed_no_retry", "physical_effect_observed_persistence_unresolved_no_retry"] },
+          "native_sink_calls": { "const": 0 },
+          "authority_capabilities": { "const": [] }
+        }
+      }
+    }
+  }
+}

@@ -30,6 +30,12 @@ use mobility_restart_reconciliation::{
 
 pub const CONTRACT_VERSION: &str = "0.1";
 
+pub mod observer_gate;
+pub use observer_gate::{
+    ObserverBoundAssessment, ObserverBoundDisposition, ObserverBoundHold,
+    assess_pre_native_with_observers,
+};
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CompositionHold {
     RecoveryAssessmentHeld,
@@ -68,8 +74,14 @@ pub struct CompositionAssessment {
     pub downstream: FenceDecision,
     /// Independent verdict for the exact old-attempt NoEffect claim.
     pub no_effect_evidence: EvidenceVerdict,
+    /// Exact claim identity and scope used by the NoEffect evidence evaluator.
+    pub no_effect_claim_id: String,
+    pub no_effect_claim_scope_commitment: EvidenceCommitment,
     /// Separate independent verdict for declared downstream graph quiescence.
     pub downstream_evidence: EvidenceVerdict,
+    /// Exact claim identity and scope used by the graph evidence evaluator.
+    pub downstream_claim_id: String,
+    pub downstream_claim_scope_commitment: EvidenceCommitment,
     pub required_no_effect_claim_id_matches: bool,
     pub no_effect_claim_scope_matches: bool,
     pub required_downstream_claim_id_matches: bool,
@@ -197,7 +209,14 @@ pub fn assess_pre_native(input: &CompositionInput<'_>) -> CompositionAssessment 
         recovery,
         downstream,
         no_effect_evidence,
+        no_effect_claim_id: input.old_attempt_no_effect.profile.claim_id.clone(),
+        no_effect_claim_scope_commitment: input.old_attempt_no_effect.profile.scope_commitment,
         downstream_evidence,
+        downstream_claim_id: input.downstream_graph_quiescence.profile.claim_id.clone(),
+        downstream_claim_scope_commitment: input
+            .downstream_graph_quiescence
+            .profile
+            .scope_commitment,
         required_no_effect_claim_id_matches,
         no_effect_claim_scope_matches,
         required_downstream_claim_id_matches,
