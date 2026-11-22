@@ -34,15 +34,16 @@ pub mod sequential;
 pub mod stats;
 pub mod trajectory;
 
-pub use residual::{
-    AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
-    AffineResidualMassReport, AffineUnionResidualMassConfig,
-    affine_collision_residual_mass_upper_bound, affine_union_collision_residual_mass_upper_bound,
-};
+
 pub use model_envelope::{
     ModelFamilyEnvelopeReport, ModelProbabilityInterval, ModelSetCoverage,
     WeightedModelAverageReport, WeightedModelScenario, finite_model_family_envelope,
     weighted_model_probability_interval,
+};
+pub use residual::{
+    AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
+    AffineResidualMassReport, AffineUnionResidualMassConfig,
+    affine_collision_residual_mass_upper_bound, affine_union_collision_residual_mass_upper_bound,
 };
 pub use sequential::{BernoulliConfidenceSequence, BernoulliMixtureEProcess};
 pub use stats::{WeightedEventAccumulator, WeightedEventSummary};
@@ -151,7 +152,9 @@ impl fmt::Display for KernelError {
             Self::ProposalHasZeroDensity => "proposal density is zero at the evaluation point",
             Self::InvalidModelIdentifier => "model identifier must be nonempty",
             Self::InvalidModelRevision => "model revision identifier must be nonempty",
-            Self::DuplicateModelIdentifier => "model identifier must be unique within a model family",
+            Self::DuplicateModelIdentifier => {
+                "model identifier must be unique within a model family"
+            },
         };
         f.write_str(message)
     }
