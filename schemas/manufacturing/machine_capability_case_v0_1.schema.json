@@ -131,7 +131,8 @@
           "dependencies",
           "cost",
           "max_process_temperature_c",
-          "inspection_methods"
+          "inspection_methods",
+          "support_status"
         ],
         "properties": {
           "route_id": {
@@ -250,7 +251,8 @@
                 "sourcing_class",
                 "alternate_sources",
                 "local_repair_status",
-                "evidence_status"
+                "evidence_status",
+                "requires"
               ],
               "properties": {
                 "dependency_id": {
@@ -294,6 +296,14 @@
                     "unknown",
                     "revoked"
                   ]
+                },
+                "requires": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
                 }
               }
             }
@@ -382,6 +392,13 @@
               "type": "string",
               "minLength": 1
             }
+          },
+          "support_status": {
+            "enum": [
+              "supported",
+              "unknown",
+              "unsupported"
+            ]
           }
         }
       }
