@@ -113,6 +113,12 @@ jobs:
           set -euo pipefail
           cargo run --quiet --manifest-path research/nav-observation-toy-fim/Cargo.toml --bin temporal_alignment_demo
 
+      - name: Run DS-TWR range interval demo
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run --quiet --manifest-path research/nav-observation-toy-fim/Cargo.toml --bin ds_twr_integrity_demo
+
       - name: Run schema and semantic validator CLI when corpus is present
         shell: bash
         run: |
