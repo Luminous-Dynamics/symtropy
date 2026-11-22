@@ -620,6 +620,9 @@ fn validate_state(state: &Value, max_epoch: u64) -> Result<(), ProjectionError> 
     if (permit == "consumed") != (use_count == 1) || accepted != (permit == "consumed") {
         return Err(ProjectionError::PermitConsumptionMismatch);
     }
+    if persist == "indeterminate_commit" && permit != "absent" {
+        return Err(ProjectionError::IndeterminatePersistenceRecovery);
+    }
     if permit != "absent"
         && (evidence != "no_effect"
             || old_physical != "no_effect"
@@ -630,9 +633,6 @@ fn validate_state(state: &Value, max_epoch: u64) -> Result<(), ProjectionError> 
             || !bool_field(state, "m2Current")?)
     {
         return Err(ProjectionError::RecoveryFromUnqualifiedOutcome);
-    }
-    if persist == "indeterminate_commit" && permit != "absent" {
-        return Err(ProjectionError::IndeterminatePersistenceRecovery);
     }
     if permit == "issued"
         && (u64_field(state, "queueFenceBootEpoch")? != boot
@@ -1753,25 +1753,34 @@ mod tests {
     }
     #[test]
     fn indeterminate_persistence_cannot_carry_permit() {
-        let mut r = recording();
-        r.snapshots[0].state_s["persistStatus"] = json!("indeterminate_commit");
-        r.snapshots[0].state_s["recoveryPermit"] = json!("issued");
+        let mut state = model_init_state();
+        state["persistStatus"] = json!("indeterminate_commit");
+        state["effectEvidence"] = json!("no_effect");
+        state["oldPhysicalOutcome"] = json!("no_effect");
+        state["missionResolution"] = json!("no_effect");
+        state["recoveryPermit"] = json!("issued");
         assert_eq!(
-            r.validate(),
-            Err(ProjectionError::RecoveryFromUnqualifiedOutcome)
+            validate_state(&state, 4),
+            Err(ProjectionError::IndeterminatePersistenceRecovery)
         );
     }
     #[test]
     fn applied_unknown_partial_or_disputed_cannot_carry_permit() {
-        for outcome in ["applied", "unknown", "partial", "disputed"] {
-            let mut r = recording();
-            r.snapshots[0].state_s["effectEvidence"] = json!(outcome);
-            r.snapshots[0].state_s["missionResolution"] = json!("no_effect");
-            r.snapshots[0].state_s["oldPhysicalOutcome"] = json!("no_effect");
-            r.snapshots[0].state_s["recoveryPermit"] = json!("issued");
+        for (outcome, physical) in [
+            ("applied", "applied"),
+            ("unknown", "no_effect"),
+            ("partial", "partial"),
+            ("disputed", "partial"),
+        ] {
+            let mut state = model_init_state();
+            state["effectEvidence"] = json!(outcome);
+            state["missionResolution"] = json!(outcome);
+            state["oldPhysicalOutcome"] = json!(physical);
+            state["recoveryPermit"] = json!("issued");
             assert_eq!(
-                r.validate(),
-                Err(ProjectionError::RecoveryFromUnqualifiedOutcome)
+                validate_state(&state, 4),
+                Err(ProjectionError::RecoveryFromUnqualifiedOutcome),
+                "outcome={outcome}"
             );
         }
     }
