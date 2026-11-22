@@ -80,7 +80,7 @@
       "additionalProperties": false,
       "required": [
         "evidence",
-        "value"
+        "conservative_lower_bound"
       ],
       "properties": {
         "evidence": {
@@ -101,7 +101,7 @@
       "additionalProperties": false,
       "required": [
         "evidence",
-        "pack_temperature_c",
+        "conservative_upper_bound_c",
         "qualified_max_temperature_c"
       ],
       "properties": {
