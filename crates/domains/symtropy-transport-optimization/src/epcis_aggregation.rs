@@ -132,7 +132,7 @@ fn valid_positive_integer_lexeme(value: &str) -> bool {
         return false;
     }
 
-    let (mantissa, exponent) = match value.find(|character| character == 'e' || character == 'E') {
+    let (mantissa, exponent) = match value.find(['e', 'E']) {
         Some(index) => {
             let Ok(exponent) = value[index + 1..].parse::<i64>() else {
                 return false;
