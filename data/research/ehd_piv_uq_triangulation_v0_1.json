@@ -75,6 +75,12 @@
       "precision_invalid_class",
       "recall_invalid_class",
       "f1_invalid_class",
+      "precision_valid_class",
+      "recall_valid_class",
+      "f1_valid_class",
+      "macro_f1",
+      "balanced_accuracy",
+      "matthews_correlation_coefficient",
       "false_valid_vector_removal_rate",
       "valid_vector_retention_rate",
       "accuracy"
@@ -84,7 +90,8 @@
       "minimum_recall": 0.9,
       "maximum_false_valid_vector_removal_rate": 0.01
     },
-    "principle": "report false removal of reference-valid vectors separately; an apparently good F1 must not hide destructive filtering of real near-wall/shear/wake structures"
+    "principle": "report false removal of reference-valid vectors separately; an apparently good F1 must not hide destructive filtering of real near-wall/shear/wake structures",
+    "comparison_reporting": "Report both valid-class and invalid-class precision/recall/F1, macro-F1, balanced accuracy and MCC. Align the published comparator's positive-class convention and confusion matrix before making direct F1 comparisons."
   },
   "uncertainty_contract": {
     "interval_nominal_coverage": 0.95,
@@ -142,7 +149,7 @@
       "compare_piv_lpt_velocity"
     ],
     "self_check": "reference_self_check",
-    "rust_unit_tests": 12
+    "rust_unit_tests": 13
   },
   "manufactured_examples": {
     "classifier_confusion_counts": {
@@ -155,7 +162,11 @@
       "f1_approx": 0.9925,
       "recall_invalid_class": 0.99,
       "false_valid_vector_removal_rate": 0.005,
-      "valid_vector_retention_rate": 0.995
+      "valid_vector_retention_rate": 0.995,
+      "f1_valid_class": 0.9949999999999999,
+      "macro_f1": 0.9937,
+      "balanced_accuracy": 0.9949999999999999,
+      "matthews_correlation_coefficient": "computed_by_reference_implementation"
     },
     "regional_coverage": [
       {
