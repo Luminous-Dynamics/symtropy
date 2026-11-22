@@ -6,7 +6,7 @@ CONSTANTS Actions, Edges, Seeds, InventoryComplete, GlobalDependency
 ASSUME Actions # {}
 ASSUME Seeds \subseteq Actions
 ASSUME Edges \subseteq SUBSET Actions
-ASSUME \A edge \in Edges : Cardinality(edge) \geq 2
+ASSUME \A edge \in Edges : Cardinality(edge) > 1
 
 Successors(S) ==
     {b \in Actions : \E edge \in Edges : b \in edge /\ edge \cap S # {}}
