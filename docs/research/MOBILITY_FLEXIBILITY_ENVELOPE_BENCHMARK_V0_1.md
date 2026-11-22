@@ -98,7 +98,7 @@ The Rust evaluator at \`tools/ev-passenger-cost-frontier/src/mobility_flexibilit
 - includes an independent arithmetic reference used to compare 625 four-slot candidate power profiles against the implementation;
 - never grants dispatch or export authority.
 
-The 625-profile comparison is a test definition only until the current PR head executes it.
+The 625-profile comparison and 253/372 split are test definitions only until the current PR head executes them.
 
 The fixture deliberately uses synthetic evidence. Its two stationary storage descriptors sum to 4,000 Wh and 5,500 W of lower-bound capability. The most demanding reserve scenario leaves a 2,000 Wh horizon budget. The proposed 15-minute profile consumes 1,875 Wh, leaving 125 Wh of modelled energy margin. Its requested power remains inside the worst-case per-slot power envelope, and the PCC profile remains an import-reduction case with no export permission.
 
