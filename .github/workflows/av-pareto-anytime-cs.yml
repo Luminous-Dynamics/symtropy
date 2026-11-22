@@ -1,0 +1,24 @@
+name: AV margin-qualified Pareto confidence sequences
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/av-pareto-anytime-cs.yml"
+      - "tools/av-anytime-valid-evaluator/margin_qualified_pareto.py"
+      - "tools/av-anytime-valid-evaluator/test_margin_qualified_pareto.py"
+      - "research/av-pareto-anytime-cs-v0/**"
+
+permissions:
+  contents: read
+
+jobs:
+  exact-head:
+    name: Exact-head Pareto-CS contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run margin-qualified Pareto tests
+        run: python3 -m unittest discover -s tools/av-anytime-valid-evaluator -p "test_margin_qualified_pareto.py" -v
