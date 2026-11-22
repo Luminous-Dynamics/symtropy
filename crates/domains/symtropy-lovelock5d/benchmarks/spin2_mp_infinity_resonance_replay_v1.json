@@ -1,22 +1,28 @@
 {
   "schema_version": 1,
   "artifact_kind": "einstein_limit_infinity_resonance_replay_receipt",
-  "status": "passed_exact_rational_fixture_replay",
+  "status": "passed_exact_committed_fixture_and_verifier_replay",
   "local_source_sha256": "527def539b76a8cf7b11b0df39b7902228310242ca6550418d7f470ae6d556f2",
   "local_infinity_jet_output_sha256": "20f8ec05e3581db9279129cd76c531b8f8104fc55a67b22fc2d2c3fb6771b56c",
   "environment": {
     "python": "3.13.5",
     "sympy": "1.14.0"
   },
+  "exact_committed_replay": {
+    "fixture_blob_sha": "c855d38634a3536e0e9afab5c4f0009792850c20",
+    "verifier_blob_sha": "a7c4995fcf1218e63fb2c0f371b862385312e217",
+    "result": "pending_execution_after_sign_correction"
+  },
   "checks": {
     "A0_A1_A2_infinity_coefficients_exact": true,
     "g0_g1_g2_infinity_source_coefficients_exact": true,
     "n0_constant_mode_compatible": true,
-    "n1_matrix_invertible_det_minus5": true,
+    "n1_matrix_invertible": true,
+    "n1_determinant": "+5",
     "n2_matrix_rank2_nullity2": true,
     "n2_resonance_compatibility_exact": true,
     "two_decaying_eigenmodes_independent": true,
-    "exact_myers_perry_log_radius_evolution_checked": true
+    "exact_myers_perry_full_log_radius_evolution_checked": true
   },
-  "evidence_boundary": "The local action-specialized source was run to extract infinity coefficients through x^6 and checked against the exact Myers-Perry log-radius evolution. The committed verifier checks the x^2 resonance fixture. The public derivation script's current x^2 output is independently committed, but the extended x^6 local debugging script is not committed. No global boundary-map rank or finite-coupling result is claimed."
+  "evidence_boundary": "The previously committed fixture/verifier exposed a sign error in the reported n=1 determinant (the exact value is +5, not -5). The fixture, verifier, prose, and receipt are being corrected; do not rely on the previous replay claim until the corrected exact Git blobs are run. No global boundary-map rank or finite-coupling result is claimed."
 }
