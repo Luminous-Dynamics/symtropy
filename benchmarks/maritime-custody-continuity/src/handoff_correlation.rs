@@ -315,9 +315,9 @@ pub fn evaluate_with_handoff_correlations(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ChainFailure;
     use crate::parse_events_tsv;
     use crate::parse_expectations_tsv;
-    use crate::ChainFailure;
 
     fn fixtures() -> (Vec<super::CustodyExpectation>, Vec<CargoEvent>) {
         (
