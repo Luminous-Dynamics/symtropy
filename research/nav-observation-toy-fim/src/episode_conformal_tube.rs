@@ -118,20 +118,64 @@ impl EpisodeConformalCalibration2d {
 /// not that an arbitrary individual packet is covered independently.
 #[derive(Clone, Debug, PartialEq)]
 pub struct EpisodeConformalTube2d {
-    pub episode_id: u64,
-    pub independence_group_id: u64,
-    pub centers_m: Vec<[f64; DIM]>,
-    pub radius_m: f64,
-    pub target_coverage: f64,
-    pub calibration_episode_count: usize,
-    pub selected_order_statistic_rank: usize,
-    pub calibration_cohort_sha256: [u8; SHA256_BYTES],
-    pub score_definition_sha256: [u8; SHA256_BYTES],
-    pub predictor_sha256: [u8; SHA256_BYTES],
-    pub solution_sha256: [u8; SHA256_BYTES],
+    episode_id: u64,
+    independence_group_id: u64,
+    centers_m: Vec<[f64; DIM]>,
+    radius_m: f64,
+    target_coverage: f64,
+    calibration_episode_count: usize,
+    selected_order_statistic_rank: usize,
+    calibration_cohort_sha256: [u8; SHA256_BYTES],
+    score_definition_sha256: [u8; SHA256_BYTES],
+    predictor_sha256: [u8; SHA256_BYTES],
+    solution_sha256: [u8; SHA256_BYTES],
 }
 
 impl EpisodeConformalTube2d {
+    pub fn episode_id(&self) -> u64 {
+        self.episode_id
+    }
+
+    pub fn independence_group_id(&self) -> u64 {
+        self.independence_group_id
+    }
+
+    pub fn centers_m(&self) -> &[[f64; DIM]] {
+        &self.centers_m
+    }
+
+    pub fn radius_m(&self) -> f64 {
+        self.radius_m
+    }
+
+    pub fn target_coverage(&self) -> f64 {
+        self.target_coverage
+    }
+
+    pub fn calibration_episode_count(&self) -> usize {
+        self.calibration_episode_count
+    }
+
+    pub fn selected_order_statistic_rank(&self) -> usize {
+        self.selected_order_statistic_rank
+    }
+
+    pub fn calibration_cohort_sha256(&self) -> [u8; SHA256_BYTES] {
+        self.calibration_cohort_sha256
+    }
+
+    pub fn score_definition_sha256(&self) -> [u8; SHA256_BYTES] {
+        self.score_definition_sha256
+    }
+
+    pub fn predictor_sha256(&self) -> [u8; SHA256_BYTES] {
+        self.predictor_sha256
+    }
+
+    pub fn solution_sha256(&self) -> [u8; SHA256_BYTES] {
+        self.solution_sha256
+    }
+
     /// Return whether a finite truth position lies in the disk at time_index.
     /// Invalid indices or non-finite truth values return false.
     pub fn contains_position(&self, time_index: usize, truth_position_m: [f64; DIM]) -> bool {
@@ -600,7 +644,7 @@ mod tests {
             &calibration,
         )
         .unwrap();
-        assert_eq!(tube.radius_m, 0.19);
+        assert_eq!(tube.radius_m(), 0.19);
         assert!(tube.contains_position(0, [0.1, 0.0]));
         assert!(tube.contains_position(1, [1.0, 1.1]));
         assert!(tube.contains_position(2, [2.0, 2.19]));
