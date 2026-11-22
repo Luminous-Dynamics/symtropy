@@ -1,6 +1,7 @@
 # AV Evidence Certificate v0
 
 **Issue:** Symtropy #6856  
+**Implementation:** draft PR #6859  
 **Programme:** #6806  
 **Composes:** #6183 audiovisual truth/observation planes; #6357/#6359 long-horizon source-linked memory; #6753/#6555 EVSI and multi-round acquisition; #6497 response/silence; #6754 custody; Symthaea #13179 candidate trace export.
 
@@ -10,17 +11,17 @@ Score whether each candidate answer or abstention is supported by the exact obse
 
 ## Files
 
-- `tools/av-evidence-certificate/evaluate_evidence_certificate.py`: standard-library evaluator and CLI.
-- `tools/av-evidence-certificate/test_evidence_certificate.py`: deterministic and adversarial contract tests.
+- `tools/av-evidence-certificate/evaluate_evidence_certificate.py`: standard-library claim scorer and CLI.
+- `tools/av-evidence-certificate/test_evidence_certificate.py`: deterministic and adversarial certificate tests.
 - `tools/av-evidence-certificate/counterfactual_evidence_suite.py`: controlled evidence-removal / distractor-addition robustness harness that reuses the same claim scorer.
-- `tools/av-evidence-certificate/test_counterfactual_evidence_suite.py`: counterfactual invariance, necessary-evidence withdrawal and adversarial tests.
+- `tools/av-evidence-certificate/test_counterfactual_evidence_suite.py`: invariance, necessary-evidence withdrawal and adversarial counterfactual tests.
 - `schemas/workload-v1.schema.json`: candidate-visible workload and delivered observation catalog.
 - `schemas/submission-v1.schema.json`: candidate claims and observation references.
 - `schemas/truth-v1.schema.json`: evaluator-only acceptable answers, minimal sufficient evidence sets, temporal spans and spatial boxes.
-- `schemas/counterfactual-evidence-suite-v1.schema.json`: baseline plus independently generated evidence-intervention runs.
+- `schemas/counterfactual-evidence-suite-v1.schema.json`: baseline plus separately generated candidate-visible intervention runs.
 - `fixtures/agent/`: candidate-visible workload and submission.
-- `fixtures/evaluator-only/`: hidden truth for the synthetic known-answer fixture.
-- `fixtures/expected/`: frozen expected scorecard.
+- `fixtures/evaluator-only/`: hidden truth and the counterfactual suite fixture.
+- `fixtures/expected/`: frozen expected scorecards.
 
 ## Evidence and custody boundary
 
@@ -36,11 +37,11 @@ The evaluator rejects:
 - missing/extra candidate claims or duplicate IDs;
 - spatial boxes on audio observations or invalid normalized geometry.
 
-Temporal IoU is computed per observation reference, so the evaluator does not compare timestamps from different clock domains as though they shared a clock. It does not perform clock transformations or infer physical localization.
+Temporal IoU is computed per observation reference, so timestamps from different clock domains are never compared as if they shared one clock. The evaluator does not perform clock transformations or infer physical localization.
 
-## Scorecard
+## Base claim scorecard
 
-Every episode reports separate:
+Every episode reports separately:
 - answer accuracy;
 - grounded answer accuracy (correct answer + sufficient source evidence + temporal/spatial thresholds where annotated);
 - unsupported claim rate;
@@ -50,16 +51,21 @@ Every episode reports separate:
 - correct abstentions;
 - unnecessary citations relative to the chosen minimal sufficient evidence set.
 
+Unannotated temporal/spatial axes are reported as null/NOT_EVALUATED, never silently as zero. The v0 uses exact structured answer values; free-form semantic matching is outside its scope.
+
 ## Counterfactual evidence robustness
 
-The suite runner consumes a baseline and separate candidate submissions generated after each intervention. It never fabricates the model's counterfactual response.
+The suite runner consumes a baseline and separate candidate submissions generated after each intervention. It never fabricates the model's counterfactual response and reuses the same #6859 claim scorer.
 
 Supported interventions:
-- `REMOVE_IRRELEVANT`: remove only observations outside every minimal sufficient evidence set for the target claim. The answer/abstention must remain unchanged and the claim must remain grounded.
-- `REMOVE_ALL_SUFFICIENT`: remove at least one source from every alternative minimal sufficient evidence set. The candidate must abstain with no answer or citations rather than keep asserting an unsupported claim.
-- `ADD_IRRELEVANT`: add delivered distractor observations outside every sufficient evidence set. The candidate must preserve its grounded answer and not cite the distractors.
 
-The variant transcript head must differ from the baseline. All retained source observations must be byte-for-byte metadata-identical; only the declared observation addition/removal is allowed. Evaluator truth continues to reference the immutable baseline source catalog while candidate evidence is validated against the changed candidate-visible catalog.
+- **REMOVE_IRRELEVANT:** remove only observations outside every minimal sufficient evidence set for the target claim. The candidate's answer/abstention must remain unchanged, with the claim still grounded.
+- **REMOVE_ALL_SUFFICIENT:** break every alternative minimal sufficient evidence set. The candidate must abstain with no answer or citations rather than keep asserting an unsupported claim.
+- **ADD_IRRELEVANT:** add delivered distractor observations outside every sufficient evidence set. The candidate must preserve its grounded answer and not cite the distractors.
+
+The variant transcript head must differ from the baseline. All retained source observations must be metadata-identical; only the declared observation addition/removal is permitted. Evaluator truth continues to reference the immutable baseline source catalog while candidate evidence is validated against the changed candidate-visible catalog.
+
+The scorecard reports separate invariance, necessary-evidence-withdrawal and distractor-resistance rates. These are behavioral robustness measurements, not proofs of internal causal feature use. Their interpretation depends on the correctness of the evaluator's minimal-sufficiency annotations and on the intervention changing no unrelated task context.
 
 Run:
 
@@ -68,31 +74,27 @@ Run:
 
 Input schema: `schemas/counterfactual-evidence-suite-v1.schema.json`.
 
-The counterfactual rates are policy robustness metrics, not causal proofs. Their interpretation depends on the evaluator's minimal-sufficient-evidence annotations and the intervention not changing unrelated task context.
+## Running the base scorer
 
-Unannotated temporal/spatial axes are reported as null/NOT_EVALUATED, never silently as zero. The v0 uses exact structured answer values; free-form semantic matching is outside its scope.
-
-## Running
-
-    python3 -m unittest discover -s tools/av-evidence-certificate -p 'test_*.py' -v
     python3 tools/av-evidence-certificate/evaluate_evidence_certificate.py \
       --workload research/av-evidence-certificate-v0/fixtures/agent/workload-v1.json \
       --truth research/av-evidence-certificate-v0/fixtures/evaluator-only/truth-v1.json \
       --submission research/av-evidence-certificate-v0/fixtures/agent/submission-v1.json \
       --output /tmp/av-evidence-scorecard.json
 
-The synthetic fixture is a mechanics test, not a blind benchmark or model result. Real media must be rights-qualified, source/session split and independently custodied under #6754 for confirmatory use.
+The serialized synthetic fixtures are mechanics tests, not blind benchmarks or model results. Real media must be rights-qualified, source/session split and independently custodied under #6754 for confirmatory use.
 
 ## Explicit v0 limits
 
 - One episode at a time; no streaming candidate runtime or automatic sensor acquisition.
 - Exact structured answer values only; no semantic LLM judge.
 - Temporal overlap is measured within observation IDs; no cross-clock alignment service is introduced.
-- Spatial support is 2D normalized bounding-box IoU only; no inferred 3D position, physical geometry or acoustic bearing.
-- Minimal evidence groups are declared by the evaluator; this does not prove causal sufficiency beyond the annotation.
-- No measured minimum-FPS curve yet; v0 provides the certificate scorecard onto which fixed-FPS and adaptive acquisition runs can be joined later.
+- Spatial support is normalized 2D bounding-box IoU only; no inferred 3D position, physical geometry or acoustic bearing.
+- Minimal evidence groups are evaluator annotations; passing the evaluator does not establish causal sufficiency beyond those annotations.
+- The counterfactual harness requires the candidate to be re-run for each altered workload. It does not claim that a static post-hoc deletion reveals the model's unobserved internal reasoning.
+- No measured minimum-FPS curve yet; #6861 provides the separate fixed-rate sweep adapter.
 - No independent blind result or SOTA claim.
 
 ## Claim boundary
 
-A passing evaluator contract establishes only schema, cutoff, citation and overlap-scoring mechanics. It does not prove the truth of the annotations, causality, human explanation quality or universal evidence-grounded reasoning.
+Passing these tests qualifies schema, cutoff, citation, overlap and counterfactual intervention mechanics. It does not prove annotation correctness, causality, human explanation quality, universal evidence-grounded reasoning or SOTA superiority.
