@@ -65,6 +65,11 @@ pub enum Rejection {
     Replay,
     SequenceExhausted,
     LockPoisoned,
+    PendingActionExists,
+    NoPendingAction,
+    PendingAttemptMismatch,
+    RecoveryPermitMissing,
+    InvalidNextSnapshot,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -84,6 +89,23 @@ pub enum ReceiptDisposition {
     AcceptedByNativeController,
     RejectedNoEffect,
     ReconciliationRequired,
+}
+
+/// Outcome class supplied by the existing independent-observer/M1
+/// reconciliation owners. This crate validates the transition shape only;
+/// it does not authenticate the evidence or recovery permit.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum QualifiedOutcomeResolution {
+    Satisfied,
+    NoEffect,
+    PartialEffect,
+    Unknown,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ResolutionDisposition {
+    ClearedForNewAuthoritySnapshot,
+    HoldRetained,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -108,6 +130,7 @@ struct BoundaryState {
     live: LiveAuthoritySnapshot,
     consumed: BTreeSet<String>,
     next_application_sequence: u64,
+    pending_action_attempt: Option<String>,
 }
 
 /// Single-process reference boundary. The production authority owner and
@@ -124,6 +147,7 @@ impl ApplicationBoundary {
                 live,
                 consumed: BTreeSet::new(),
                 next_application_sequence: 1,
+                pending_action_attempt: None,
             }),
         }
     }
@@ -188,15 +212,21 @@ impl ApplicationBoundary {
         if state.consumed.contains(&consumption_key) {
             return Err(Rejection::Replay);
         }
+        if state.pending_action_attempt.is_some() {
+            return Err(Rejection::PendingActionExists);
+        }
 
         let sequence = state.next_application_sequence;
         state.next_application_sequence = sequence
             .checked_add(1)
             .ok_or(Rejection::SequenceExhausted)?;
 
-        // Consume before crossing the native boundary. No result path,
-        // including UnknownAfterPossibleApplication, reopens this capability.
+        // Consume the ticket and occupy the single-mutation slot before
+        // crossing the native boundary. Even a definitive no-effect or
+        // ambiguous result must be reconciled through the existing M1 owner
+        // before another mutation can enter this boundary.
         state.consumed.insert(consumption_key);
+        state.pending_action_attempt = Some(ticket.attempt_key.clone());
 
         let context = NativeApplicationContext {
             ticket_id: &ticket.ticket_id,
@@ -225,6 +255,69 @@ impl ApplicationBoundary {
             disposition,
         })
     }
+
+    /// Resolve the one outstanding native application using an independently
+    /// qualified M1 outcome. A new mutation remains blocked until this method
+    /// clears the pending attempt with a strictly newer authority snapshot.
+    ///
+    /// NoEffect and PartialEffect require an upstream M1-approved recovery or
+    /// replan permit commitment. Satisfied does not. Unknown retains the hold.
+    pub fn resolve_pending_action(
+        &self,
+        attempt_key: &str,
+        resolution: QualifiedOutcomeResolution,
+        next_snapshot: Option<LiveAuthoritySnapshot>,
+        recovery_permit_digest: Option<&str>,
+    ) -> Result<ResolutionDisposition, Rejection> {
+        let mut state = self.state.lock().map_err(|_| Rejection::LockPoisoned)?;
+        let pending = state
+            .pending_action_attempt
+            .as_deref()
+            .ok_or(Rejection::NoPendingAction)?;
+        if pending != attempt_key {
+            return Err(Rejection::PendingAttemptMismatch);
+        }
+
+        if resolution == QualifiedOutcomeResolution::Unknown {
+            if next_snapshot.is_some() || recovery_permit_digest.is_some() {
+                return Err(Rejection::InvalidNextSnapshot);
+            }
+            return Ok(ResolutionDisposition::HoldRetained);
+        }
+
+        let next = next_snapshot.ok_or(Rejection::InvalidNextSnapshot)?;
+        if next.active_attempt_key.trim().is_empty()
+            || next.active_attempt_key == attempt_key
+            || next.binding == state.live.binding
+            || next.binding.controller_epoch <= state.live.binding.controller_epoch
+        {
+            return Err(Rejection::InvalidNextSnapshot);
+        }
+
+        match resolution {
+            QualifiedOutcomeResolution::Satisfied => {
+                if recovery_permit_digest.is_some() {
+                    return Err(Rejection::InvalidNextSnapshot);
+                }
+            }
+            QualifiedOutcomeResolution::NoEffect
+            | QualifiedOutcomeResolution::PartialEffect => {
+                if recovery_permit_digest
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty())
+                    .is_none()
+                {
+                    return Err(Rejection::RecoveryPermitMissing);
+                }
+            }
+            QualifiedOutcomeResolution::Unknown => unreachable!("handled above"),
+        }
+
+        state.live = next;
+        state.pending_action_attempt = None;
+        Ok(ResolutionDisposition::ClearedForNewAuthoritySnapshot)
+    }
+
 }
 
 #[cfg(test)]
