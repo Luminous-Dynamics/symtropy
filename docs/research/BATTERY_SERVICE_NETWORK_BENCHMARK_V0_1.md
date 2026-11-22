@@ -462,6 +462,30 @@ Keep separate:
 
 Baselines: mobility-only fixed-cap charging; time-of-use; PV + ESS self-consumption; day-ahead bidding + rolling intra-day tracking; Wasserstein DRO; two-stage robust capacity/dispatch; cyber-physical resilience with LSTM proposals and deterministic independent shield. Keep grid services disabled where bidirectional capability, site connection, protection, metering or permission is not independently qualified.
 
+### 14.4 South African deployment and market-readiness boundary
+
+Separate the local economics into three cases:
+
+1. **Current base case:** approved behind-the-meter self-consumption, measured peak management and site resilience; no wholesale-market revenue assumption.
+2. **Conditional physical wheeling/bilateral supply:** only with a viable network connection, licensed network-service-provider arrangements, use-of-system charges, compliant metering, contracts and settlement.
+3. **Future virtual wheeling / SAWEM participation:** only after final rules, external market go-live, participant certification, credit/settlement onboarding and exact customer eligibility are verified.
+
+As of the latest reporting available on 22 November 2026, National Treasury's 2026 Q1 Operation Vulindlela report says SAWEM internal trading began in April 2026 with 32 participants and external trading was being prepared for early 2027; Stats SA's October 2026 brief gives April 2027 as the planned launch. NERSA's 2025/26 annual report says finalisation of trading rules, Market Code, pricing and vesting-contract frameworks remained work in progress. NERSA's May/July 2026 virtual-wheeling proposals are draft consultation materials, not current trading rights; the draft's >100 kVA contestable-consumer threshold is conditional on SAWEM go-live.
+
+For embedded generation, the NERSA/Eskom clarification says registration is triggered by a grid point-of-connection and installed capacity, not by whether electricity is exported. The published registration category is up to 100 kW with the relevant licensed distributor and above 100 kW with NERSA. Separately, Eskom's 30 September 2026 statement extended a waiver of registration-related charges until further notice for eligible customer-owned generation up to 50 kVA connected directly to Eskom's distribution network. The waiver does **not** remove registration or technical compliance; municipal customers must check their licensed municipal distributor. Do not conflate the 100 kW registration threshold with the 50 kVA waiver eligibility threshold.
+
+A Certificate of Compliance, inverter type-test, EGI commissioning test, metering, tariffs and connection agreements must be assessed for the actual system. A conventional PV SSEG registration or road-EV inverter approval does not automatically qualify aircraft-pack V2G. Grid-service revenue, export or virtual wheeling must not enter the base-case financial model until the relevant market, site and bidirectional hardware permissions are evidenced.
+
+Official sources:
+- National Treasury, Operation Vulindlela Q1 2026: https://archive.treasury.gov.za/comm_media/press/2026/Operation%20Vulindlela%20Progress%20Report%20Q1%20-%202026.pdf
+- Stats SA, Mbalo Brief October 2026, p.14: https://www.statssa.gov.za/publications/MbaloBrief/MbaloBriefOctober2026.pdf
+- NERSA Annual Report 2025/26: https://www.nersa.org.za/files/files/2026/10/NERSAAnnualReportfor2025-26.pdf
+- NERSA Draft Rules for Electricity Trading, version 3 May 2026: https://www.nersa.org.za/files/files/2026/07/DraftNERSARulesforElectricityTradinginSouthAfricaversion3May2026.pdf
+- NERSA round-two consultation paper, 17 July 2026: https://www.nersa.org.za/files/files/2026/07/ConsultationPaperonDraftNERSARulesforElectricityTrading17July2026.pdf
+- Eskom registration and SSEG clarification, 30 September 2026: https://www.eskom.co.za/eskom-extends-assistance-to-customers-to-register-their-grid-tied-solar-installations-in-the-interests-of-safe-grid-integration-and-customer-value-in-line-with-international-best-practice/
+- Eskom SSEG requirements: https://www.eskom.co.za/distribution/small-scale-embedded-generators/
+- NERSA final third-party wheeling network-charge rules, 30 May 2025: https://www.gov.za/sites/default/files/gcis_document/202506/52781gon6263.pdf
+
 ## 15. Next implementation phases
 
 **v0.2 — exact multi-period charging and inventory**
