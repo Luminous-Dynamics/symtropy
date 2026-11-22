@@ -405,4 +405,114 @@ mod tests {
         });
         assert_eq!(result, Err(KernelError::InvalidMatrixLength));
     }
+    #[test]
+    fn uncovered_second_mode_remains_in_residual_mass_union() {
+        let chart = CoverageCell::new(vec![-0.5], vec![0.5]).expect("valid chart box");
+        let components = [
+            AffineCollisionComponent {
+                offset: &[0.0],
+                matrix: &[1.0],
+                hard_body_radius: 0.2,
+            },
+            AffineCollisionComponent {
+                offset: &[-3.0],
+                matrix: &[1.0],
+                hard_body_radius: 0.2,
+            },
+        ];
+        let report = affine_union_collision_residual_mass_upper_bound(
+            &AffineUnionResidualMassConfig {
+                components: &components,
+                covered_chart_boxes: &[chart],
+                cube_radius: 4.0,
+                max_cells: 4096,
+                max_depth: 24,
+            },
+        )
+        .expect("valid disconnected event union");
+
+        assert!(!report.budget_exhausted);
+        assert!(report.chart_covered_cells > 0);
+        assert!(report.event_free_cells > 0);
+        assert!(report.unresolved_cells > 0);
+        assert!(report.residual_event_mass_upper_bound > 0.0);
+    }
+
+    #[test]
+    fn chart_boxes_covering_both_modes_leave_only_cube_tail() {
+        let central = CoverageCell::new(vec![-0.5], vec![0.5]).expect("valid central chart");
+        let remote = CoverageCell::new(vec![2.5], vec![3.5]).expect("valid remote chart");
+        let components = [
+            AffineCollisionComponent {
+                offset: &[0.0],
+                matrix: &[1.0],
+                hard_body_radius: 0.2,
+            },
+            AffineCollisionComponent {
+                offset: &[-3.0],
+                matrix: &[1.0],
+                hard_body_radius: 0.2,
+            },
+        ];
+        let report = affine_union_collision_residual_mass_upper_bound(
+            &AffineUnionResidualMassConfig {
+                components: &components,
+                covered_chart_boxes: &[central, remote],
+                cube_radius: 4.0,
+                max_cells: 4096,
+                max_depth: 24,
+            },
+        )
+        .expect("valid chart union");
+
+        let tail =
+            standard_normal_cube_tail_probability_upper_bound(4.0, 1).expect("valid tail bound");
+        assert_eq!(report.unresolved_cells, 0);
+        assert!(!report.budget_exhausted);
+        assert!(report.chart_covered_cells > 0);
+        assert!(report.event_free_cells > 0);
+        assert!(report.residual_event_mass_upper_bound >= tail);
+        assert!(report.residual_event_mass_upper_bound <= tail + 1.0e-12);
+    }
+
+    #[test]
+    fn empty_event_union_is_rejected() {
+        let result = affine_union_collision_residual_mass_upper_bound(
+            &AffineUnionResidualMassConfig {
+                components: &[],
+                covered_chart_boxes: &[],
+                cube_radius: 4.0,
+                max_cells: 32,
+                max_depth: 8,
+            },
+        );
+        assert_eq!(result, Err(KernelError::EmptyEventUnion));
+    }
+
+    #[test]
+    fn every_union_component_is_validated_before_search() {
+        let components = [
+            AffineCollisionComponent {
+                offset: &[0.0],
+                matrix: &[1.0],
+                hard_body_radius: 0.2,
+            },
+            AffineCollisionComponent {
+                offset: &[0.0, 0.0],
+                matrix: &[1.0],
+                hard_body_radius: 0.2,
+            },
+        ];
+        let result = affine_union_collision_residual_mass_upper_bound(
+            &AffineUnionResidualMassConfig {
+                components: &components,
+                covered_chart_boxes: &[],
+                cube_radius: 4.0,
+                max_cells: 32,
+                max_depth: 8,
+            },
+        );
+        assert_eq!(result, Err(KernelError::DimensionMismatch));
+    }
+
 }
