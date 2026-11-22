@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://luminousdynamics.io/schemas/mobility-downstream-fence-v0.1.json",
-  "title": "Mobility Downstream Command-Path Fence Evidence v0.1",
+  "title": "Mobility Downstream Command-Graph Fence Evidence v0.1",
   "type": "object",
   "additionalProperties": false,
   "required": ["version", "inventory", "transition", "receipts", "native_sink_calls"],
@@ -11,12 +11,19 @@
     "inventory": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["stack_id", "profile_revision", "stack_configuration_commitment", "inventory_commitment", "layers"],
+      "required": ["stack_id", "profile_revision", "stack_configuration_commitment", "inventory_commitment", "entry_layer_id", "terminal_layer_ids", "layers", "edges"],
       "properties": {
         "stack_id": { "$ref": "#/$defs/identifier" },
         "profile_revision": { "$ref": "#/$defs/identifier" },
         "stack_configuration_commitment": { "$ref": "#/$defs/commitment" },
         "inventory_commitment": { "$ref": "#/$defs/commitment" },
+        "entry_layer_id": { "$ref": "#/$defs/identifier" },
+        "terminal_layer_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/identifier" }
+        },
         "layers": {
           "type": "array",
           "minItems": 1,
@@ -32,6 +39,21 @@
               "configuration_commitment": { "$ref": "#/$defs/commitment" },
               "sequence_generation_id": { "$ref": "#/$defs/identifier" },
               "owner_failure_domain_id": { "$ref": "#/$defs/identifier" }
+            }
+          }
+        },
+        "edges": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["edge_id", "from_layer_id", "to_layer_id", "configuration_commitment"],
+            "properties": {
+              "edge_id": { "$ref": "#/$defs/identifier" },
+              "from_layer_id": { "$ref": "#/$defs/identifier" },
+              "to_layer_id": { "$ref": "#/$defs/identifier" },
+              "configuration_commitment": { "$ref": "#/$defs/commitment" }
             }
           }
         }
