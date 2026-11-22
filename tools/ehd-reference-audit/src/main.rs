@@ -2187,6 +2187,17 @@ pub fn audit_discrepancy_d0_contract(root: &Value) -> Vec<String> {
         "D0_REFERENCE_BASIS",
         "D0 must retain four systematic signatures over eight residual components",
     );
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["reference_implementation", "path"])
+            == Some("tools/ehd-reference-audit/src/discrepancy.rs")
+            && text_at(root, &["reference_implementation", "function"])
+                == Some("analyse_d0_case")
+            && at(root, &["reference_implementation", "tests"]).and_then(Value::as_u64)
+                == Some(7),
+        "D0_IMPLEMENTATION_SCOPE",
+        "D0 implementation path, entry point and seven authored tests must remain declared",
+    );
     let signatures = at(root, &["reference_basis", "systematic_signatures"])
         .and_then(Value::as_array);
     if let Some(rows) = signatures {
