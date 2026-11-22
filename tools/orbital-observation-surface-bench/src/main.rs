@@ -1,8 +1,9 @@
-use orbital_observation_surface_bench::evaluate;
+use orbital_observation_surface_bench::{evaluate, observations_only};
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use std::env;
 use std::fs;
+use std::path::Path;
 use std::process::ExitCode;
 
 fn sha256_hex(bytes: &[u8]) -> String {
@@ -13,17 +14,26 @@ fn sha256_hex(bytes: &[u8]) -> String {
 fn main() -> ExitCode {
     let mut arguments = env::args().skip(1);
     let Some(corpus_path) = arguments.next() else {
-        eprintln!("usage: orbital-observation-surface-bench <corpus.json> --source-commit <sha>");
+        eprintln!(
+            "usage: orbital-observation-surface-bench <corpus.json> \
+             --source-commit <sha> --observations-output <path>"
+        );
         return ExitCode::from(2);
     };
 
     let mut source_commit = None;
+    let mut observations_output = None;
     while let Some(argument) = arguments.next() {
-        if argument == "--source-commit" {
-            source_commit = arguments.next();
-            break;
+        match argument.as_str() {
+            "--source-commit" => source_commit = arguments.next(),
+            "--observations-output" => observations_output = arguments.next(),
+            _ => {
+                eprintln!("unknown argument: {argument}");
+                return ExitCode::from(2);
+            }
         }
     }
+
     let Some(source_commit) = source_commit else {
         eprintln!("missing required --source-commit argument");
         return ExitCode::from(2);
@@ -36,6 +46,10 @@ fn main() -> ExitCode {
         eprintln!("source commit must be a lowercase 40-character hexadecimal SHA");
         return ExitCode::from(2);
     }
+    let Some(observations_output) = observations_output else {
+        eprintln!("missing required --observations-output argument");
+        return ExitCode::from(2);
+    };
 
     let raw = match fs::read(&corpus_path) {
         Ok(bytes) => bytes,
@@ -59,10 +73,34 @@ fn main() -> ExitCode {
         }
     };
 
+    let corpus_sha256 = sha256_hex(&raw);
+    let observations = observations_only(&report, &source_commit, &corpus_sha256);
+    let observations_bytes = match serde_json::to_vec_pretty(&observations) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("failed to serialize observed event stream: {error}");
+            return ExitCode::from(1);
+        }
+    };
+    if let Some(parent) = Path::new(&observations_output).parent() {
+        if !parent.as_os_str().is_empty() {
+            if let Err(error) = fs::create_dir_all(parent) {
+                eprintln!("failed to create observation output directory: {error}");
+                return ExitCode::from(1);
+            }
+        }
+    }
+    if let Err(error) = fs::write(&observations_output, &observations_bytes) {
+        eprintln!("failed to write observed event stream: {error}");
+        return ExitCode::from(1);
+    }
+    let observations_sha256 = sha256_hex(&observations_bytes);
+
     let receipt = json!({
         "receipt_schema": "luminous.orbital-observation-surface.receipt.v0.1",
         "source_commit": source_commit,
-        "corpus_sha256": sha256_hex(&raw),
+        "corpus_sha256": corpus_sha256,
+        "observations_sha256": observations_sha256,
         "result": report.result,
         "report": report,
         "physical_reliability_claim_granted": false,
