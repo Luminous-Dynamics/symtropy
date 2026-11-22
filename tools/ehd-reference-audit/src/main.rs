@@ -17,6 +17,7 @@ mod drag_trajectory;
 mod control_volume;
 mod identifiability;
 mod observer_perturbation;
+mod tracer_screening;
 
 const EMBEDDED_ATLAS: &str =
     include_str!("../../../data/research/ehd_reference_atlas_v0_1.json");
@@ -46,6 +47,8 @@ const EMBEDDED_OBSERVER_PERTURBATION: &str =
     include_str!("../../../data/research/ehd_observer_perturbation_v0_1.json");
 const EMBEDDED_LOW_DENSITY_PIV_TRACER: &str =
     include_str!("../../../data/research/ehd_low_density_piv_tracer_envelope_v0_1.json");
+const EMBEDDED_PIV_TRACER_SCREENING: &str =
+    include_str!("../../../data/research/ehd_piv_tracer_screening_v0_1.json");
 
 fn at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
     path.iter().try_fold(value, |node, key| node.get(*key))
@@ -2852,6 +2855,101 @@ pub fn audit_low_density_piv_tracer_contract(root: &Value) -> Vec<String> {
 }
 
 
+
+
+/// Audit the exact-pressure PIV tracer-screening fixture.
+pub fn audit_piv_tracer_screening_contract(root: &Value) -> Vec<String> {
+    let mut findings = Vec::new();
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["schema"]) == Some("luminous.ehd_piv_tracer_screening_kernel")
+            && text_at(root, &["schema_version"]) == Some("0.1.0")
+            && text_at(root, &["benchmark_id"]) == Some("EHD-PIV-TRACER-003")
+            && text_at(root, &["status"])
+                == Some("source_bounded_exact_pressure_screen_authored_rust_tests_execution_pending"),
+        "PIV_TRACER_SCREEN_IDENTITY",
+        "PIV tracer screening fixture identity, version or status changed",
+    );
+    push_if_missing(
+        &mut findings,
+        at(root, &["screen_policy", "exact_pressure_lookup_only"]).and_then(Value::as_bool) == Some(true)
+            && at(root, &["screen_policy", "no_interpolation"]).and_then(Value::as_bool) == Some(true)
+            && at(root, &["screen_policy", "pressure_envelope_atm"])
+                == Some(&serde_json::json!([0.3, 1.0]))
+            && at(root, &["screen_policy", "supported_pressure_points"])
+                == Some(&serde_json::json!([1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.45, 0.4, 0.35, 0.3])),
+        "PIV_TRACER_SCREEN_PRESSURE_POLICY",
+        "exact-pressure lookup, no interpolation, pressure envelope or source pressure points changed",
+    );
+    let source_table = at(root, &["source", "table"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        source_table.is_some_and(|rows| rows.len() == 10
+            && number_at(&rows[0], &["pressure_atm"]) == Some(1.0)
+            && text_at(&rows[0], &["dehs"]) == Some("(64)-128")
+            && text_at(&rows[0], &["vaporized_fog"]) == Some("32")
+            && number_at(&rows[5], &["pressure_atm"]) == Some(0.5)
+            && text_at(&rows[5], &["vaporized_fog"]) == Some("-")
+            && number_at(&rows[9], &["pressure_atm"]) == Some(0.3)
+            && text_at(&rows[9], &["dehs"]) == Some("-")
+            && text_at(&rows[9], &["sio2"]) == Some("128")),
+        "PIV_TRACER_SCREEN_SOURCE_TABLE",
+        "source notation, no-data distinctions or the ten-point table changed",
+    );
+    push_if_missing(
+        &mut findings,
+        at(root, &["screen_policy", "edge_case_notation"]).and_then(Value::as_str)
+            .is_some_and(|value| value.contains("not promoted to whole-field"))
+            && text_at(root, &["screen_policy", "no_data_policy"])
+                .is_some_and(|value| value.contains("distinct"))
+            && text_at(root, &["screen_policy", "observer_policy"])
+                .is_some_and(|value| value.contains("never implies passivity")),
+        "PIV_TRACER_SCREEN_EVIDENCE_POLICY",
+        "edge-case, no-data and observer-passivity semantics must remain separate",
+    );
+    let examples = at(root, &["expected_examples"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        examples.is_some_and(|rows| rows.len() == 8
+            && text_at(&rows[0], &["expected"]) == Some("FullFieldResolutionAvailable")
+            && text_at(&rows[1], &["expected"]) == Some("UnavailableAtPressure")
+            && text_at(&rows[2], &["expected"]) == Some("EdgeCaseOnly")
+            && text_at(&rows[4], &["expected"]) == Some("EdgeCaseOnly")
+            && text_at(&rows[5], &["expected"]) == Some("BoundaryLayerNotResolved")
+            && text_at(&rows[6], &["expected"]) == Some("UnsupportedSourcePressure")
+            && text_at(&rows[7], &["expected"]) == Some("NoSourceData")),
+        "PIV_TRACER_SCREEN_EXPECTED_CASES",
+        "eight exact-pressure/edge-case/boundary-layer examples must remain frozen",
+    );
+    push_if_missing(
+        &mut findings,
+        at(root, &["test_families"]).and_then(Value::as_array)
+            .is_some_and(|tests| tests.len() == 11
+                && tests.iter().any(|value| value.as_str() == Some("pressure_between_source_points_is_not_interpolated"))
+                && tests.iter().any(|value| value.as_str() == Some("edge_case_window_is_not_promoted_to_full_field_resolution"))
+                && tests.iter().any(|value| value.as_str() == Some("optical_feasibility_never_qualifies_electrical_passivity"))
+                && tests.iter().any(|value| value.as_str() == Some("no_data_is_not_converted_to_unavailable_or_zero"))),
+        "PIV_TRACER_SCREEN_TEST_MATRIX",
+        "eleven tracer screen test families and their no-promotion controls must remain declared",
+    );
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["reference_implementation", "path"])
+            == Some("tools/ehd-reference-audit/src/tracer_screening.rs")
+            && text_at(root, &["reference_implementation", "function"])
+                == Some("screen_tracer_candidate")
+            && at(root, &["limitations"]).and_then(Value::as_array).is_some_and(|limits| {
+                limits.iter().any(|value| value.as_str() == Some("interrogation_window_size_is_not_velocity_accuracy"))
+                    && limits.iter().any(|value| value.as_str() == Some("no_electrical_passivity_inference"))
+                    && limits.iter().any(|value| value.as_str() == Some("no_physical_experiment_recommendation"))
+            }),
+        "PIV_TRACER_SCREEN_SCOPE",
+        "kernel entry point and optical-feasibility-only claim ceiling must remain explicit",
+    );
+    findings
+}
+
+
 fn main() {
     let mut args = env::args().skip(1);
     let path = args.next();
@@ -2986,6 +3084,15 @@ fn main() {
             }
         };
     findings.extend(audit_low_density_piv_tracer_contract(&low_density_piv_tracer_contract));
+    let piv_tracer_screening_contract: Value =
+        match serde_json::from_str(EMBEDDED_PIV_TRACER_SCREENING) {
+            Ok(value) => value,
+            Err(error) => {
+                eprintln!("invalid embedded PIV tracer screening JSON: {error}");
+                process::exit(2);
+            }
+        };
+    findings.extend(audit_piv_tracer_screening_contract(&piv_tracer_screening_contract));
     let exchange_kernel_ok = match exchange::reference_self_check() {
         Ok(()) => true,
         Err(error) => {
@@ -3049,6 +3156,13 @@ fn main() {
             false
         }
     };
+    let piv_tracer_screening_ok = match tracer_screening::reference_self_check() {
+        Ok(()) => true,
+        Err(error) => {
+            findings.push(format!("PIV_TRACER_SCREENING_SELF_CHECK: {error}"));
+            false
+        }
+    };
     let observer_perturbation_ok = match observer_perturbation::reference_self_check() {
         Ok(()) => true,
         Err(error) => {
@@ -3106,6 +3220,9 @@ fn main() {
         }
         if observer_perturbation_ok {
             println!("observer-aware diagnostic passivity and persistence self-check: passed");
+        }
+        if piv_tracer_screening_ok {
+            println!("exact-pressure PIV tracer source-feasibility screen self-check: passed");
         }
         println!("scope: source structure and analytic reference checks only; no physical V&V, production ALE, TPE(1/2), nonlinear profile likelihood, continuous design optimization, complete collisional-energy closure or durable exactly-once claim");
     } else {
@@ -3171,6 +3288,22 @@ mod tests {
         record["method"]["independent_velocity_reference"] = serde_json::json!("PIV only");
         assert!(audit_atlas(&value).iter().any(|finding| {
             finding.starts_with("HAMDI_TRACER_METHOD")
+        }));
+    }
+
+    #[test]
+    fn piv_tracer_screening_contract_passes() {
+        let value: Value = serde_json::from_str(EMBEDDED_PIV_TRACER_SCREENING)
+            .expect("embedded PIV tracer screening contract must be valid JSON");
+        assert!(audit_piv_tracer_screening_contract(&value).is_empty());
+    }
+
+    #[test]
+    fn piv_tracer_screening_contract_rejects_pressure_interpolation() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_PIV_TRACER_SCREENING).unwrap();
+        value["screen_policy"]["no_interpolation"] = Value::Bool(false);
+        assert!(audit_piv_tracer_screening_contract(&value).iter().any(|finding| {
+            finding.starts_with("PIV_TRACER_SCREEN_PRESSURE_POLICY")
         }));
     }
 
