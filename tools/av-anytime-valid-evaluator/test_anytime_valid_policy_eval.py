@@ -32,18 +32,21 @@ class AnytimeValidPolicyEvalTests(unittest.TestCase):
         self.assertLessEqual(result["upper"], 0.0)
 
     def test_invalid_values_fail_closed(self):
-        for bad in (1.0001, -1.0001, math.nan, math.inf, True, "0.5", None, 10**10000):
-            with self.subTest(value=repr(bad)[:40]):
+        values = (1.0001, -1.0001, math.nan, math.inf, True, "0.5", None, 10**10000)
+        for index, bad in enumerate(values):
+            with self.subTest(index=index):
                 with self.assertRaises(EvaluationError):
                     evaluate_paired_differences([bad])
 
     def test_invalid_alpha_and_margin_fail_closed(self):
-        for alpha in (0.0, 1.0, -0.1, math.nan, True, "0.05", 10**10000):
-            with self.subTest(alpha=repr(alpha)[:40]):
+        alphas = (0.0, 1.0, -0.1, math.nan, True, "0.05", 10**10000)
+        for index, alpha in enumerate(alphas):
+            with self.subTest(index=index):
                 with self.assertRaises(EvaluationError):
                     evaluate_paired_differences([0.1], alpha=alpha)
-        for margin in (1.01, math.nan, True, "0.0", 10**10000):
-            with self.subTest(margin=repr(margin)[:40]):
+        margins = (1.01, math.nan, True, "0.0", 10**10000)
+        for index, margin in enumerate(margins):
+            with self.subTest(index=index):
                 with self.assertRaises(EvaluationError):
                     evaluate_paired_differences([0.1], margin=margin)
 
@@ -105,7 +108,10 @@ class AnytimeValidPolicyEvalTests(unittest.TestCase):
         }
         result = evaluate_document(document)
         self.assertEqual(result["metric_id"], "task_accuracy")
-        self.assertIn("rows are sampled from one frozen target population of independent source clusters", result["assumptions"])
+        self.assertIn(
+            "rows are sampled from one frozen target population of independent source clusters",
+            result["assumptions"],
+        )
 
 
 if __name__ == "__main__":
