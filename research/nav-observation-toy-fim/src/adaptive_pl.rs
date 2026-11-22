@@ -389,7 +389,7 @@ impl AdaptivePlState {
             derivative_state_mps: next_derivative,
             controller_command_mps: command,
             applied_protection_level_delta_m: applied_delta,
-            gnss_candidate_bound_m,
+            gnss_candidate_bound_m: gnss_candidate_bound,
             protection_level_m: next_pl,
         })
     }
