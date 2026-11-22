@@ -78,7 +78,23 @@
     "kappa2_slope": "130 - 12*pi**2",
     "kappa2_slope_numeric": "11.5647471869276966",
     "sigma_max_slope": "67 - 6*pi**2",
-    "sigma_min_slope": "1/2"
+    "sigma_min_slope": "1/2",
+    "singular_frame_rotation": {
+      "convention": "continuous orientation from identity endpoint basis at lambda=0; raw Euclidean coordinates",
+      "right_singular_vectors": {
+        "minimum": "v_min(lambda)=e_b-(2/15)*(19-2*pi^2)*lambda*e_h+O(lambda^2)",
+        "maximum": "v_max(lambda)=e_h+(2/15)*(19-2*pi^2)*lambda*e_b+O(lambda^2)",
+        "minimum_second_component_slope": "-(2/15)*(19-2*pi^2)",
+        "minimum_second_component_slope_numeric": "0.0985611736238288"
+      },
+      "left_singular_vectors": {
+        "minimum": "u_min(lambda)=e_B-(8/15)*(19-2*pi^2)*lambda*e_H+O(lambda^2)",
+        "maximum": "u_max(lambda)=e_H+(8/15)*(19-2*pi^2)*lambda*e_B+O(lambda^2)",
+        "minimum_second_component_slope": "-(8/15)*(19-2*pi^2)",
+        "minimum_second_component_slope_numeric": "0.3942446944953152"
+      },
+      "note": "These singular-frame slopes depend on the fixed raw Euclidean endpoint coordinates. They are not invariant under row/column rescaling; for metric-aware conditioning, transform the endpoint metrics consistently."
+    }
   },
   "h0_mode_sensitivity": {
     "Hx_at_horizon": "10",
