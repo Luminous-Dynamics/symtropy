@@ -375,6 +375,11 @@
                 "owner_id",
                 "owner_revision",
                 "evidence_id",
+                "status",
+                "scope",
+                "claim_id",
+                "claim_scope_sha256",
+                "observer_quorum",
                 "raw_artifact_id",
                 "raw_artifact_sha256"
               ],
@@ -384,8 +389,13 @@
                     "process_epoch",
                     "persistence",
                     "physical_outcome",
-                    "execution_graph",
-                    "authority"
+                    "mission_resolution",
+                    "controller_queue",
+                    "downstream_execution_graph",
+                    "no_effect_observer_quorum",
+                    "downstream_observer_quorum",
+                    "action_applicability",
+                    "recovery_authority"
                   ]
                 },
                 "owner_id": {
@@ -407,8 +417,254 @@
                 "raw_artifact_sha256": {
                   "type": "string",
                   "pattern": "^[a-fA-F0-9]{64}$"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "current",
+                    "confirmed",
+                    "refuted",
+                    "insufficient_evidence",
+                    "unknown",
+                    "disputed",
+                    "quorum_qualified",
+                    "quorum_not_qualified",
+                    "not_applicable"
+                  ]
+                },
+                "scope": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "logical_effect_id",
+                    "attempt_id",
+                    "subject_boot_epoch",
+                    "subject_controller_epoch"
+                  ],
+                  "properties": {
+                    "logical_effect_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "attempt_id": {
+                      "enum": [
+                        "attempt-1",
+                        "attempt-2"
+                      ]
+                    },
+                    "subject_boot_epoch": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "subject_controller_epoch": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  }
+                },
+                "claim_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "minLength": 1
+                },
+                "claim_scope_sha256": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "pattern": "^[a-fA-F0-9]{64}$"
+                },
+                "observer_quorum": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "fault_model_revision",
+                        "required_independent_members",
+                        "members"
+                      ],
+                      "properties": {
+                        "fault_model_revision": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "required_independent_members": {
+                          "type": "integer",
+                          "minimum": 2,
+                          "maximum": 32
+                        },
+                        "members": {
+                          "type": "array",
+                          "minItems": 1,
+                          "maxItems": 32,
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "observer_id",
+                              "observer_revision",
+                              "observation_id",
+                              "common_cause_domains",
+                              "raw_artifact_id",
+                              "raw_artifact_sha256"
+                            ],
+                            "properties": {
+                              "observer_id": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "observer_revision": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "observation_id": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "common_cause_domains": {
+                                "type": "array",
+                                "minItems": 1,
+                                "uniqueItems": true,
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1
+                                }
+                              },
+                              "raw_artifact_id": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "raw_artifact_sha256": {
+                                "type": "string",
+                                "pattern": "^[a-fA-F0-9]{64}$"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
-              }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "domain": {
+                        "enum": [
+                          "no_effect_observer_quorum",
+                          "downstream_observer_quorum"
+                        ]
+                      },
+                      "status": {
+                        "const": "not_applicable"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "claim_id": {
+                        "type": "null"
+                      },
+                      "claim_scope_sha256": {
+                        "type": "null"
+                      },
+                      "observer_quorum": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "domain": {
+                        "enum": [
+                          "no_effect_observer_quorum",
+                          "downstream_observer_quorum"
+                        ]
+                      },
+                      "status": {
+                        "enum": [
+                          "quorum_qualified",
+                          "quorum_not_qualified",
+                          "unknown",
+                          "insufficient_evidence",
+                          "disputed"
+                        ]
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "claim_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "claim_scope_sha256": {
+                        "type": "string",
+                        "pattern": "^[a-fA-F0-9]{64}$"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "domain": {
+                        "enum": [
+                          "process_epoch",
+                          "persistence",
+                          "physical_outcome",
+                          "mission_resolution",
+                          "controller_queue",
+                          "downstream_execution_graph",
+                          "action_applicability",
+                          "recovery_authority"
+                        ]
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "claim_id": {
+                        "type": "null"
+                      },
+                      "claim_scope_sha256": {
+                        "type": "null"
+                      },
+                      "observer_quorum": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "status": {
+                        "enum": [
+                          "quorum_qualified",
+                          "quorum_not_qualified"
+                        ]
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "observer_quorum": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              ]
             }
           }
         }
