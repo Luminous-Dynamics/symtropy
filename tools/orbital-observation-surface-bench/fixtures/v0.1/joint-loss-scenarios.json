@@ -383,6 +383,113 @@
           }
         }
       ]
+    },
+    {
+      "case_id": "multi-world-strata",
+      "compatible_world_set": {
+        "source_receipt_id": "synthetic-world-set-multi-world-strata",
+        "world_ids_sha256": "a13934bf573d94c78094be5c688b33fb6ddb3701fa868c18b0c05719529d82b0",
+        "world_ids": [
+          "w0",
+          "w1"
+        ]
+      },
+      "loss_scenario_manifest": {
+        "source_manifest_id": "synthetic-loss-manifest-multi-world-strata",
+        "scenarios_sha256": "5be1ae9575b7fae8be3a31dab897327a406d2b2100a604d161cf816b912da47d",
+        "scenarios": [
+          {
+            "scenario_id": "s1",
+            "world_id": "w0",
+            "loss_model_id": "model-low",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "loss-r-s1",
+            "action_losses": {
+              "alpha": {
+                "numerator": 1,
+                "denominator": 10
+              },
+              "beta": {
+                "numerator": 2,
+                "denominator": 10
+              }
+            }
+          },
+          {
+            "scenario_id": "s2",
+            "world_id": "w0",
+            "loss_model_id": "model-high",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "loss-r-s2",
+            "action_losses": {
+              "alpha": {
+                "numerator": 2,
+                "denominator": 10
+              },
+              "beta": {
+                "numerator": 4,
+                "denominator": 10
+              }
+            }
+          },
+          {
+            "scenario_id": "s3",
+            "world_id": "w1",
+            "loss_model_id": "model-low",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "loss-r-s3",
+            "action_losses": {
+              "alpha": {
+                "numerator": 8,
+                "denominator": 10
+              },
+              "beta": {
+                "numerator": 6,
+                "denominator": 10
+              }
+            }
+          },
+          {
+            "scenario_id": "s4",
+            "world_id": "w1",
+            "loss_model_id": "model-high",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "loss-r-s4",
+            "action_losses": {
+              "alpha": {
+                "numerator": 7,
+                "denominator": 10
+              },
+              "beta": {
+                "numerator": 5,
+                "denominator": 10
+              }
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "action_id": "alpha",
+          "admissibility_status": "admissible",
+          "admissibility_receipt_id": "admit-alpha",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 10,
+            "elapsed_millis": 10
+          }
+        },
+        {
+          "action_id": "beta",
+          "admissibility_status": "admissible",
+          "admissibility_receipt_id": "admit-beta",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 10,
+            "elapsed_millis": 10
+          }
+        }
+      ]
     }
   ]
 }
