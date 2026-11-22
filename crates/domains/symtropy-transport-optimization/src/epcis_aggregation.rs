@@ -182,9 +182,7 @@ fn validate_child_epcs(child_epcs: &[String]) -> Result<(), AggregationSemanticE
     Ok(())
 }
 
-fn validate_quantities(
-    quantities: &[QuantityElement],
-) -> Result<(), AggregationSemanticError> {
+fn validate_quantities(quantities: &[QuantityElement]) -> Result<(), AggregationSemanticError> {
     let mut seen = BTreeSet::new();
     for item in quantities {
         if !valid_identifier(&item.object_class_id)
@@ -196,10 +194,7 @@ fn validate_quantities(
             ));
         }
 
-        let key = (
-            item.object_class_id.as_str(),
-            item.unit_of_measure.as_str(),
-        );
+        let key = (item.object_class_id.as_str(), item.unit_of_measure.as_str());
         if !seen.insert(key) {
             return Err(AggregationSemanticError::DuplicateQuantityElement {
                 object_class_id: item.object_class_id.clone(),
@@ -420,7 +415,10 @@ mod tests {
 
         assert!(matches!(
             normalize_aggregation_event(&input).unwrap().effect,
-            AggregationEffect::Observe { parent_id: None, .. }
+            AggregationEffect::Observe {
+                parent_id: None,
+                ..
+            }
         ));
     }
 
