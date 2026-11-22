@@ -17,7 +17,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: orbital-plp-multistat-gof-v0-2-\${{ github.event.pull_request.number || github.ref }}
+  group: orbital-plp-multistat-gof-v0-2-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -25,12 +25,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      BENCHMARK_COMMIT: \${{ github.event.pull_request.head.sha || github.sha }}
+      BENCHMARK_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - name: Checkout exact benchmark head
         uses: actions/checkout@v4
         with:
-          ref: \${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
 
       - name: Install pinned Rust toolchain
@@ -112,7 +112,7 @@ jobs:
       - name: Upload lockfile, suite receipt and calibration reports
         uses: actions/upload-artifact@v4
         with:
-          name: orbital-plp-multistat-gof-v0.2-\${{ github.event.pull_request.head.sha || github.sha }}
+          name: orbital-plp-multistat-gof-v0.2-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
             tools/orbital-reliability-plp-gof-bench/Cargo.lock
             orbital-plp-multistat-gof-receipt.json
