@@ -160,8 +160,10 @@ pub fn weighted_model_probability_interval(
     if scenarios.is_empty() {
         return Err(KernelError::EmptyDimension);
     }
-    let estimates: Vec<ModelProbabilityInterval> =
-        scenarios.iter().map(|scenario| scenario.estimate.clone()).collect();
+    let estimates: Vec<ModelProbabilityInterval> = scenarios
+        .iter()
+        .map(|scenario| scenario.estimate.clone())
+        .collect();
     validate_family(family_revision, &estimates)?;
 
     let mut supplied_weight_sum = 0.0_f64;
