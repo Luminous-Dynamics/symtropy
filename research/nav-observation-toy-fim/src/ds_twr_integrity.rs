@@ -1,10 +1,12 @@
 //! Deterministic double-sided two-way ranging (DS-TWR) range interval.
 //!
 //! This implements the printed MILUV ranging equation over four explicitly
-//! supplied positive duration terms. A typed adapter accepts the authors'
-//! processed CSV representation (unwrapped nanoseconds); it never guesses
-//! raw-tick units or repairs rollover. Original device ticks still require
-//! protocol-versioned, per-radio clock reconstruction before this kernel.
+//! supplied positive duration terms. Typed adapters accept both the authors'
+//! processed CSV representation (unwrapped nanoseconds) and one raw DS-TWR
+//! transaction with separately unwrapped per-radio clocks. The raw adapter
+//! requires an externally justified sub-wrap event-gap bound; longer streams,
+//! possible radio resets or multi-wrap gaps require experiment-level clock
+//! reconstruction before this kernel.
 //!
 //! Input duration errors are hard absolute bounds in seconds. The module
 //! propagates them with positive interval arithmetic; it does not assume
@@ -167,7 +169,9 @@ impl MiluvRawTickAdapterReceipt {
     /// The caller must provide a justified upper bound on the time between
     /// adjacent events in each local clock sequence. This bound must be
     /// strictly less than one uint32 wrap period; otherwise multiple-wrap
-    /// ambiguity cannot be resolved from one transaction alone.
+    /// ambiguity cannot be resolved from one transaction alone. The caller
+    /// must also establish that neither radio reset/rebooted during this
+    /// exchange: a raw decrease alone cannot distinguish reset from rollover.
     ///
     /// The initiator sequence is [tx1, rx2, rx3]. The responder sequence is
     /// [rx1, tx2, tx3]. Each sequence is unwrapped independently. The returned
