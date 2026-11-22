@@ -35,7 +35,7 @@ jobs:
           jq -e '
             .cases as $cases
             | .version == "0.1"
-              and ($cases | length >= 20)
+              and ($cases | length >= 22)
               and ([$cases[].case_id] | length == ([$cases[].case_id] | unique | length))
               and ([$cases[] | select(.expected == "preserved_exact_failure")] | length >= 1)
               and ([$cases[] | select(.expected == "reject" or .expected == "hold")] | length >= 1)
