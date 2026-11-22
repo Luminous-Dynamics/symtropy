@@ -101,14 +101,17 @@
     "implementation": {
       "path": "tools/ehd-piv-conformal-functional-uq/src/functional.rs",
       "function": "propagate_field_functional_uncertainty",
-      "authored_rust_tests": 9
+      "authored_rust_tests": 10
     },
     "dimension_compatibility": {
       "planar_scorer_dimension": 2,
       "spatial_scorer_dimension": 3,
       "field_functional_covariance_dimension": 3,
       "rule": "A planar 2D conformal radius cannot validate an out-of-plane component. The 3D conformal scorer is dimension-compatible with the 3D field functional only when protocol fingerprint, field size and covariance model are identical."
-    }
+    },
+    "validation_tests": [
+      "central_finite_difference_for_all_mass_and_3d_momentum_jacobian_components_on_oblique_face"
+    ]
   },
   "dataset_and_comparator_plan": {
     "image_benchmarks": [
@@ -188,8 +191,8 @@
     "crate": "tools/ehd-piv-conformal-functional-uq",
     "planar_conformal_tests": 10,
     "spatial_conformal_tests": 4,
-    "functional_tests": 9,
-    "total_authored_rust_tests": 23,
+    "functional_tests": 10,
+    "total_authored_rust_tests": 24,
     "rust_execution": "not_run_no_local_rust_toolchain"
   }
 }
