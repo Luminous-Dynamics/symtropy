@@ -39,9 +39,6 @@ jobs:
           toolchain: 1.96.0
           components: rustfmt, clippy
 
-      - name: Generate Cargo lockfile for exact pinned package
-        run: cargo generate-lockfile --manifest-path tools/orbital-reliability-plp-gof-bench/Cargo.toml
-
       - name: Check formatting
         run: cargo fmt --manifest-path tools/orbital-reliability-plp-gof-bench/Cargo.toml -- --check
 
