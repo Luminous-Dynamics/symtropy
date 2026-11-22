@@ -1,0 +1,15 @@
+{
+  "version": "0.1",
+  "cases": [
+    { "case_id": "RVC-001", "class": "positive", "recovery": "fresh_attempt_candidate", "downstream": "all_declared_layers_evidenced", "no_effect_evidence": "confirmed", "downstream_evidence": "confirmed", "identity_join": "match", "expected": "ready_for_owner_native_revalidation", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "RVC-002", "class": "negative", "recovery": "fresh_attempt_candidate", "downstream": "hold", "no_effect_evidence": "confirmed", "downstream_evidence": "confirmed", "identity_join": "match", "expected": "hold", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "RVC-003", "class": "negative", "recovery": "fresh_attempt_candidate", "downstream": "all_declared_layers_evidenced", "no_effect_evidence": "refuted", "downstream_evidence": "confirmed", "identity_join": "match", "expected": "hold", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "RVC-004", "class": "negative", "recovery": "fresh_attempt_candidate", "downstream": "all_declared_layers_evidenced", "no_effect_evidence": "insufficient_evidence", "downstream_evidence": "confirmed", "identity_join": "match", "expected": "hold", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "RVC-005", "class": "negative", "recovery": "fresh_attempt_candidate", "downstream": "all_declared_layers_evidenced", "no_effect_evidence": "confirmed", "downstream_evidence": "confirmed", "identity_join": "mismatch", "expected": "hold", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "RVC-006", "class": "observed_outcome", "recovery": "effect_observed", "downstream": "all_declared_layers_evidenced", "no_effect_evidence": "confirmed", "downstream_evidence": "confirmed", "identity_join": "match", "expected": "physical_effect_already_observed_no_retry", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "RVC-007", "class": "negative", "recovery": "persistence_unresolved", "downstream": "all_declared_layers_evidenced", "no_effect_evidence": "confirmed", "downstream_evidence": "confirmed", "identity_join": "match", "expected": "hold", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "RVC-008", "class": "negative", "recovery": "hold", "downstream": "all_declared_layers_evidenced", "no_effect_evidence": "confirmed", "downstream_evidence": "confirmed", "identity_join": "match", "expected": "hold", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "RVC-009", "class": "negative", "recovery": "fresh_attempt_candidate", "downstream": "all_declared_layers_evidenced", "no_effect_evidence": "confirmed", "downstream_evidence": "refuted", "identity_join": "match", "expected": "hold", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "RVC-010", "class": "negative", "recovery": "fresh_attempt_candidate", "downstream": "all_declared_layers_evidenced", "no_effect_evidence": "confirmed", "downstream_evidence": "insufficient_evidence", "identity_join": "match", "expected": "hold", "native_sink_calls": 0, "authority_capabilities": [] }
+  ]
+}

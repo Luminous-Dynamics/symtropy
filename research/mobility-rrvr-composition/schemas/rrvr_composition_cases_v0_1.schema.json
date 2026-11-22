@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/mobility-rrvr-composition-v0.1.json",
+  "title": "Mobility RRVR Non-Authorizing Composition Cases v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "cases"],
+  "properties": {
+    "version": { "const": "0.1" },
+    "cases": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id", "class", "recovery", "downstream", "no_effect_evidence",
+          "downstream_evidence", "identity_join", "expected", "native_sink_calls",
+          "authority_capabilities"
+        ],
+        "properties": {
+          "case_id": { "type": "string", "pattern": "^RVC-[0-9]{3}$" },
+          "class": { "enum": ["positive", "negative", "observed_outcome"] },
+          "recovery": { "enum": ["fresh_attempt_candidate", "hold", "effect_observed", "persistence_unresolved"] },
+          "downstream": { "enum": ["all_declared_layers_evidenced", "hold"] },
+          "no_effect_evidence": { "enum": ["confirmed", "refuted", "insufficient_evidence"] },
+          "downstream_evidence": { "enum": ["confirmed", "refuted", "insufficient_evidence"] },
+          "identity_join": { "enum": ["match", "mismatch"] },
+          "expected": { "enum": ["ready_for_owner_native_revalidation", "hold", "physical_effect_already_observed_no_retry"] },
+          "native_sink_calls": { "const": 0 },
+          "authority_capabilities": { "const": [] }
+        }
+      }
+    }
+  }
+}
