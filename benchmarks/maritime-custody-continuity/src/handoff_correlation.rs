@@ -9,9 +9,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::{
-    temporal_order::{TimeEvidence, TemporalRelation, compare_time_evidence},
     Classification, CustodyEvent, EvaluationError, EvaluationReport, EventKind, HandoffField,
     evaluate,
+    temporal_order::{TemporalRelation, TimeEvidence, compare_time_evidence},
 };
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -397,18 +397,11 @@ pub fn apply_qualified_handoff_correlations(
             ));
         }
 
-        let release_index = effective_event_index(
-            events,
-            &receipt.release_time.source_event,
-            as_of,
-        )
-        .map_err(QualifiedCorrelationError::Correlation)?;
-        let accept_index = effective_event_index(
-            events,
-            &receipt.accept_time.source_event,
-            as_of,
-        )
-        .map_err(QualifiedCorrelationError::Correlation)?;
+        let release_index =
+            effective_event_index(events, &receipt.release_time.source_event, as_of)
+                .map_err(QualifiedCorrelationError::Correlation)?;
+        let accept_index = effective_event_index(events, &receipt.accept_time.source_event, as_of)
+            .map_err(QualifiedCorrelationError::Correlation)?;
 
         if events[release_index].revision != receipt.release_time.revision {
             return Err(QualifiedCorrelationError::Temporal(
@@ -611,8 +604,7 @@ mod tests {
         let qualified = qualified_receipt(&release, &accept, 100, 110, 2);
 
         let report =
-            evaluate_with_handoff_correlations(&expectations, &events, &[qualified], 200)
-                .unwrap();
+            evaluate_with_handoff_correlations(&expectations, &events, &[qualified], 200).unwrap();
         assert_eq!(report.complete_chains(), 1);
         assert_eq!(report.incomplete_box_ids.len(), 1);
     }
@@ -841,9 +833,13 @@ mod tests {
         }
 
         let correlation = receipt(&release, &accept);
-        let report =
-            evaluate_with_synthetic_handoff_correlations(&expectations, &events, &[correlation], 200)
-                .unwrap();
+        let report = evaluate_with_synthetic_handoff_correlations(
+            &expectations,
+            &events,
+            &[correlation],
+            200,
+        )
+        .unwrap();
 
         assert_eq!(report.complete_chains(), 1);
         assert!(report.complete_box_ids.contains("BOX-0001"));
