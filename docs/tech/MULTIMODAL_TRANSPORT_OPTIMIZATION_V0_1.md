@@ -439,7 +439,7 @@ Never add a containing module and its children into one undifferentiated cargo c
 - root/top-level handling units;
 - leaf handling units.
 
-These are different measures. None is automatically a count of ISO containers, TEU, boxes discharged, shipments, tonnes or cargo delivered. The caller must declare the unit and purpose of an accounting projection. The composition relation itself has zero net physical cargo stock delta.
+These are different measures. None is automatically a count of ISO containers, TEU, boxes discharged, shipments, tonnes or cargo delivered. The caller must declare the unit and purpose of an accounting projection. The report captures the exact module catalogue used to reconstruct the graph, and count projections return an error unless the graph has zero composition failures. The composition relation itself has zero net physical cargo stock delta.
 
 ### Frozen P0 corpus
 
