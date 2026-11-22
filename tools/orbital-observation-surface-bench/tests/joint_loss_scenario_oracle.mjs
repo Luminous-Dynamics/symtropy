@@ -166,6 +166,7 @@ function emptyCase(item, status, issues, excluded) {
   };
 }
 function evaluateCase(item) {
+  const worldIds = [...item.compatible_world_set.world_ids].sort(codePointCompare);
   const admitted = [...item.actions]
     .filter(action => action.admissibility_status === "admissible")
     .sort((a, b) => codePointCompare(a.action_id, b.action_id));
@@ -198,7 +199,7 @@ function evaluateCase(item) {
   }
 
   const minByWorld = new Map(), maxByWorldAction = new Map();
-  for (const worldId of item.compatible_world_set.world_ids) {
+  for (const worldId of worldIds) {
     const worldScenarios = scenarios.filter(scenario => scenario.world_id === worldId);
     for (const action of admitted) {
       let minimum=null, maximum=null;
@@ -233,7 +234,7 @@ function evaluateCase(item) {
       if(compare(row._regret,worstJoint)>0) worstJoint=row._regret;
     }
     const worstJointScenarioIds=perScenario.filter(row=>compare(row._regret,worstJoint)===0).map(row=>row.scenario_id);
-    const rectByWorld=item.compatible_world_set.world_ids.map(worldId=>{
+    const rectByWorld=worldIds.map(worldId=>{
       const upper=maxByWorldAction.get(action.action_id+"\u0000"+worldId);
       const lower=minByWorld.get(worldId);
       return {world_id:worldId,regret:subtract(upper,lower,"rectangular regret")};
@@ -257,6 +258,11 @@ function evaluateCase(item) {
       per_scenario:perScenario.map(({scenario_id,world_id,loss,joint_regret})=>({scenario_id,world_id,loss,joint_regret}))
     };
   });
+  for (const metric of metrics) {
+    if (compare(metric.worst_case_rectangular_regret, metric.worst_case_joint_regret) < 0) {
+      fail("rectangular regret fell below joint regret for " + metric.action_id);
+    }
+  }
   const uniform=metrics.filter(metric=>metric.uniformly_optimal_across_joint_scenarios).map(metric=>metric.action_id);
   const jointFrontier=metrics.filter(candidate=>!metrics.some(other=>other.action_id!==candidate.action_id&&!dominates(other,candidate,false))).map(metric=>metric.action_id);
   const rectangularFrontier=metrics.filter(candidate=>!metrics.some(other=>other.action_id!==candidate.action_id&&!dominates(other,candidate,true))).map(metric=>metric.action_id);
