@@ -1596,6 +1596,246 @@ mod tests {
     }
 
     #[test]
+    fn stop_is_a_required_forecast_alternative_but_has_no_manifest() {
+        let manifest = video_manifest();
+        let manifest_digest = validate_manifest(&manifest).unwrap();
+        let forecast = ActionParameterForecastV1 {
+            episode_id: "episode-1".to_string(),
+            turn_id: 2,
+            transcript_head_sha256: hex_sha256(b"head"),
+            eligible_action_ids: vec![manifest.action_id.clone()],
+            actions: vec![ForecastActionManifestV1 {
+                action_id: manifest.action_id.clone(),
+                manifest,
+                manifest_sha256: manifest_digest,
+            }],
+            evsi_forecasts: evsi_forecasts("crop-video"),
+            selected_action_id: STOP_ACTION_ID_V1.to_string(),
+            selected_manifest_sha256: None,
+        };
+        assert!(validate_forecast(&forecast).is_ok());
+    }
+
+    #[test]
+    fn forecast_missing_stop_or_eligible_action_is_rejected() {
+        let manifest = video_manifest();
+        let manifest_digest = validate_manifest(&manifest).unwrap();
+        let mut forecast = ActionParameterForecastV1 {
+            episode_id: "episode-1".to_string(),
+            turn_id: 2,
+            transcript_head_sha256: hex_sha256(b"head"),
+            eligible_action_ids: vec![manifest.action_id.clone()],
+            actions: vec![ForecastActionManifestV1 {
+                action_id: manifest.action_id.clone(),
+                manifest,
+                manifest_sha256: manifest_digest.clone(),
+            }],
+            evsi_forecasts: evsi_forecasts("crop-video"),
+            selected_action_id: "crop-video".to_string(),
+            selected_manifest_sha256: Some(manifest_digest),
+        };
+        forecast.evsi_forecasts.pop();
+        assert!(validate_forecast(&forecast).is_err());
+    }
+
+    #[test]
+    fn complete_audio_delivery_must_match_requested_sample_range_and_format() {
+        let manifest = audio_manifest();
+        let manifest_digest = validate_manifest(&manifest).unwrap();
+        let forecast = ActionParameterForecastV1 {
+            episode_id: "episode-audio".to_string(),
+            turn_id: 1,
+            transcript_head_sha256: hex_sha256(b"audio-head"),
+            eligible_action_ids: vec![manifest.action_id.clone()],
+            actions: vec![ForecastActionManifestV1 {
+                action_id: manifest.action_id.clone(),
+                manifest: manifest.clone(),
+                manifest_sha256: manifest_digest.clone(),
+            }],
+            evsi_forecasts: evsi_forecasts(&manifest.action_id),
+            selected_action_id: manifest.action_id.clone(),
+            selected_manifest_sha256: Some(manifest_digest.clone()),
+        };
+        let acceptance = RequestAcceptanceV1 {
+            episode_id: "episode-audio".to_string(),
+            turn_id: 1,
+            request_id: "audio-request".to_string(),
+            action_id: manifest.action_id.clone(),
+            parameter_manifest_sha256: manifest_digest.clone(),
+            parent_transcript_head_sha256: hex_sha256(b"audio-head"),
+            accepted_tick: 1,
+            expected_arrival_tick: 2,
+            decision_deadline_tick: 10,
+        };
+        let result = ActionResultV1 {
+            episode_id: "episode-audio".to_string(),
+            turn_id: 1,
+            request_id: "audio-request".to_string(),
+            action_id: manifest.action_id.clone(),
+            parameter_manifest_sha256: manifest_digest,
+            parent_transcript_head_sha256: hex_sha256(b"audio-head"),
+            status: ActionResultStatusV1::Delivered,
+            result_tick: 2,
+            delivered_frames: Vec::new(),
+            delivered_roi: None,
+            delivered_output_resolution: None,
+            delivered_crop_policy_sha256: None,
+            delivered_preprocessing_sha256: None,
+            delivered_audio: Some(DeliveredAudioRangeV1 {
+                start_sample: 0,
+                end_sample: 16_000,
+                sample_rate_hz: 16_000,
+                channels: 1,
+                sample_format: AudioSampleFormatV1::S16Le,
+            }),
+            delivered_feedback: None,
+            actual_resource_digest_sha256: hex_sha256(b"audio-resources"),
+            result_event_sha256: hex_sha256(b"audio-result"),
+        };
+        assert!(validate_action_lifecycle(&forecast, &acceptance, &result).is_ok());
+    }
+
+    #[test]
+    fn actual_video_roi_mismatch_is_rejected() {
+        let manifest = video_manifest();
+        let digest_value = validate_manifest(&manifest).unwrap();
+        let forecast = ActionParameterForecastV1 {
+            episode_id: "episode-1".to_string(),
+            turn_id: 1,
+            transcript_head_sha256: hex_sha256(b"head"),
+            eligible_action_ids: vec![manifest.action_id.clone()],
+            actions: vec![ForecastActionManifestV1 {
+                action_id: manifest.action_id.clone(),
+                manifest: manifest.clone(),
+                manifest_sha256: digest_value.clone(),
+            }],
+            evsi_forecasts: evsi_forecasts(&manifest.action_id),
+            selected_action_id: manifest.action_id.clone(),
+            selected_manifest_sha256: Some(digest_value.clone()),
+        };
+        let acceptance = RequestAcceptanceV1 {
+            episode_id: "episode-1".to_string(),
+            turn_id: 1,
+            request_id: "req-1".to_string(),
+            action_id: manifest.action_id.clone(),
+            parameter_manifest_sha256: digest_value.clone(),
+            parent_transcript_head_sha256: hex_sha256(b"head"),
+            accepted_tick: 1,
+            expected_arrival_tick: 2,
+            decision_deadline_tick: 10,
+        };
+        let result = ActionResultV1 {
+            episode_id: "episode-1".to_string(),
+            turn_id: 1,
+            request_id: "req-1".to_string(),
+            action_id: manifest.action_id,
+            parameter_manifest_sha256: digest_value,
+            parent_transcript_head_sha256: hex_sha256(b"head"),
+            status: ActionResultStatusV1::Delivered,
+            result_tick: 2,
+            delivered_frames: vec![
+                DeliveredFrameV1 {
+                    observation_ref: "frame-0".to_string(),
+                    frame_index: 0,
+                    capture_timestamp_ns: 0,
+                    byte_count: 100,
+                },
+                DeliveredFrameV1 {
+                    observation_ref: "frame-1".to_string(),
+                    frame_index: 1,
+                    capture_timestamp_ns: 500_000_000,
+                    byte_count: 100,
+                },
+            ],
+            delivered_roi: Some(RegionOfInterestV1::Normalized(NormalizedRoiV1 {
+                x: 0.2,
+                y: 0.2,
+                width: 0.5,
+                height: 0.4,
+            })),
+            delivered_output_resolution: Some(OutputResolutionV1 { width: 640, height: 360 }),
+            delivered_crop_policy_sha256: Some(digest("crop-policy")),
+            delivered_preprocessing_sha256: Some(digest("preprocess")),
+            delivered_audio: None,
+            delivered_feedback: None,
+            actual_resource_digest_sha256: hex_sha256(b"resources"),
+            result_event_sha256: hex_sha256(b"result"),
+        };
+        assert!(validate_action_lifecycle(&forecast, &acceptance, &result).is_err());
+    }
+
+    #[test]
+    fn post_deadline_media_delivery_must_be_marked_late() {
+        let manifest = video_manifest();
+        let manifest_digest = validate_manifest(&manifest).unwrap();
+        let forecast = ActionParameterForecastV1 {
+            episode_id: "episode-1".to_string(),
+            turn_id: 1,
+            transcript_head_sha256: hex_sha256(b"head"),
+            eligible_action_ids: vec![manifest.action_id.clone()],
+            actions: vec![ForecastActionManifestV1 {
+                action_id: manifest.action_id.clone(),
+                manifest: manifest.clone(),
+                manifest_sha256: manifest_digest.clone(),
+            }],
+            evsi_forecasts: evsi_forecasts(&manifest.action_id),
+            selected_action_id: manifest.action_id.clone(),
+            selected_manifest_sha256: Some(manifest_digest.clone()),
+        };
+        let acceptance = RequestAcceptanceV1 {
+            episode_id: "episode-1".to_string(),
+            turn_id: 1,
+            request_id: "late-request".to_string(),
+            action_id: manifest.action_id.clone(),
+            parameter_manifest_sha256: manifest_digest.clone(),
+            parent_transcript_head_sha256: hex_sha256(b"head"),
+            accepted_tick: 1,
+            expected_arrival_tick: 2,
+            decision_deadline_tick: 4,
+        };
+        let mut result = ActionResultV1 {
+            episode_id: "episode-1".to_string(),
+            turn_id: 1,
+            request_id: "late-request".to_string(),
+            action_id: manifest.action_id,
+            parameter_manifest_sha256: manifest_digest,
+            parent_transcript_head_sha256: hex_sha256(b"head"),
+            status: ActionResultStatusV1::Delivered,
+            result_tick: 5,
+            delivered_frames: vec![
+                DeliveredFrameV1 {
+                    observation_ref: "frame-0".to_string(),
+                    frame_index: 0,
+                    capture_timestamp_ns: 0,
+                    byte_count: 100,
+                },
+                DeliveredFrameV1 {
+                    observation_ref: "frame-1".to_string(),
+                    frame_index: 1,
+                    capture_timestamp_ns: 500_000_000,
+                    byte_count: 100,
+                },
+            ],
+            delivered_roi: Some(RegionOfInterestV1::Normalized(NormalizedRoiV1 {
+                x: 0.1,
+                y: 0.2,
+                width: 0.5,
+                height: 0.4,
+            })),
+            delivered_output_resolution: Some(OutputResolutionV1 { width: 640, height: 360 }),
+            delivered_crop_policy_sha256: Some(digest("crop-policy")),
+            delivered_preprocessing_sha256: Some(digest("preprocess")),
+            delivered_audio: None,
+            delivered_feedback: None,
+            actual_resource_digest_sha256: hex_sha256(b"resources"),
+            result_event_sha256: hex_sha256(b"late-result"),
+        };
+        assert!(validate_action_lifecycle(&forecast, &acceptance, &result).is_err());
+        result.status = ActionResultStatusV1::Late;
+        assert!(validate_action_lifecycle(&forecast, &acceptance, &result).is_ok());
+    }
+
+    #[test]
     fn feedback_request_is_not_a_sensor_observation() {
         let manifest = feedback_manifest();
         assert!(validate_manifest(&manifest).is_ok());
