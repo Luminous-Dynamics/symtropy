@@ -197,6 +197,7 @@ pub enum EpisodeConformalError {
     InvalidConfiguration,
     MissingCalibrationCohortCommitment,
     MissingScoreDefinitionCommitment,
+    ScoreDefinitionMismatch,
     MissingPredictorCommitment,
     PredictorCommitmentMismatch,
     InvalidEpisodeIdentity,
@@ -230,6 +231,7 @@ impl fmt::Display for EpisodeConformalError {
             Self::InvalidConfiguration => write!(f, "coverage must be finite and in (0, 1), and the minimum episode count must be positive"),
             Self::MissingCalibrationCohortCommitment => write!(f, "calibration cohort SHA-256 commitment is missing"),
             Self::MissingScoreDefinitionCommitment => write!(f, "score-definition SHA-256 commitment is missing"),
+            Self::ScoreDefinitionMismatch => write!(f, "evaluation score definition differs from the definition used for conformal calibration"),
             Self::MissingPredictorCommitment => write!(f, "frozen predictor SHA-256 commitment is missing"),
             Self::PredictorCommitmentMismatch => write!(f, "evaluation predictor differs from the predictor used for conformal calibration"),
             Self::InvalidEpisodeIdentity => write!(f, "episode and independence-group identities must be nonzero"),
@@ -388,6 +390,7 @@ pub fn build_episode_conformal_tube_2d(
     episode_id: u64,
     independence_group_id: u64,
     predicted_positions_m: &[[f64; DIM]],
+    score_definition_sha256: [u8; SHA256_BYTES],
     predictor_sha256: [u8; SHA256_BYTES],
     solution_sha256: [u8; SHA256_BYTES],
     calibration: &EpisodeConformalCalibration2d,
@@ -418,6 +421,12 @@ pub fn build_episode_conformal_tube_2d(
             .position(|position| !position.iter().all(|value| value.is_finite()))
             .unwrap_or(0);
         return Err(EpisodeConformalError::InvalidEvaluationPosition(index));
+    }
+    if score_definition_sha256.iter().all(|byte| *byte == 0) {
+        return Err(EpisodeConformalError::MissingScoreDefinitionCommitment);
+    }
+    if score_definition_sha256 != calibration.score_definition_sha256 {
+        return Err(EpisodeConformalError::ScoreDefinitionMismatch);
     }
     if predictor_sha256.iter().all(|byte| *byte == 0) {
         return Err(EpisodeConformalError::MissingPredictorCommitment);
@@ -612,6 +621,7 @@ mod tests {
                 500,
                 20_500,
                 &[[0.0, 0.0]],
+                [0xB2; SHA256_BYTES],
                 [0xE5; SHA256_BYTES],
                 [0xC3; SHA256_BYTES],
                 &calibration
@@ -623,11 +633,36 @@ mod tests {
                 500,
                 20_500,
                 &[[0.0, 0.0]],
+                [0xB2; SHA256_BYTES],
                 [0; SHA256_BYTES],
                 [0xC3; SHA256_BYTES],
                 &calibration
             ),
             Err(EpisodeConformalError::MissingPredictorCommitment)
+        );
+        assert_eq!(
+            build_episode_conformal_tube_2d(
+                500,
+                20_500,
+                &[[0.0, 0.0]],
+                [0xE6; SHA256_BYTES],
+                [0xD4; SHA256_BYTES],
+                [0xC3; SHA256_BYTES],
+                &calibration
+            ),
+            Err(EpisodeConformalError::ScoreDefinitionMismatch)
+        );
+        assert_eq!(
+            build_episode_conformal_tube_2d(
+                500,
+                20_500,
+                &[[0.0, 0.0]],
+                [0; SHA256_BYTES],
+                [0xD4; SHA256_BYTES],
+                [0xC3; SHA256_BYTES],
+                &calibration
+            ),
+            Err(EpisodeConformalError::MissingScoreDefinitionCommitment)
         );
     }
 
@@ -639,6 +674,7 @@ mod tests {
             500,
             20_500,
             &[[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]],
+            [0xB2; SHA256_BYTES],
             [0xD4; SHA256_BYTES],
             [0xC3; SHA256_BYTES],
             &calibration,
@@ -661,6 +697,7 @@ mod tests {
                 1,
                 20_001,
                 &[[0.0, 0.0]],
+                [0xB2; SHA256_BYTES],
                 [0xD4; SHA256_BYTES],
                 [0xC3; SHA256_BYTES],
                 &calibration
@@ -672,6 +709,7 @@ mod tests {
                 500,
                 10_001,
                 &[[0.0, 0.0]],
+                [0xB2; SHA256_BYTES],
                 [0xD4; SHA256_BYTES],
                 [0xC3; SHA256_BYTES],
                 &calibration
@@ -701,6 +739,7 @@ mod tests {
                 500,
                 20_500,
                 &[[f64::INFINITY, 0.0]],
+                [0xB2; SHA256_BYTES],
                 [0xD4; SHA256_BYTES],
                 [0xC3; SHA256_BYTES],
                 &calibration
