@@ -5,7 +5,8 @@ from pathlib import Path
 
 import action_space_evsi as evaluator
 
-BASE = Path(__file__).parent / "fixtures"
+ROOT = Path(__file__).resolve().parents[2]
+BASE = ROOT / "research" / "av-action-space-evsi-v0" / "fixtures"
 
 
 def load(path):
