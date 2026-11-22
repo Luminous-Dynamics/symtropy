@@ -277,3 +277,52 @@ The route to a distinct state-of-the-art result is the conjunction of:
 - a second source-to-metric backend for 4D Kerr perturbative theories.
 
 A smaller residual alone does not establish superiority. Compare identical equations, couplings, gauge, boundary conditions, resolution and arithmetic; then report per-row residuals, held-out residuals, observable errors, branch coverage, conditioning, wall time and memory. Separately report whether the candidate has only a small residual, a validated enclosure, or a theorem-backed local existence result.
+
+
+## 11. 22 November 2026 literature audit: matched comparators and metric boundaries
+
+### Akribeia is the direct nonlinear 5D EGB comparator
+
+The latest public record is v2 revised 19 November 2026; the paper was accepted by Physical Review D on 12 November 2026 (DOI 10.1103/3kz2-6dvv). The supplementary material gives useful matched details:
+
+- Its 5D EGB demonstration fixes \(r_H=1\), \(\Omega_H=0.33\), and trains a parametric family across \(\alpha\in[0,3]\) in increments of 0.01. It also reproduces earlier 5D EGB data at \(\alpha=2,\Omega_H=0.68\), with a coupling sweep at that spin.
+- The discovery phase is a PINN from random initialization; the refinement phase is pseudo-spectral Gauss--Newton with Chebyshev representation and high-precision residual evaluation.
+- The Myers--Perry GR-limit control is separate: the paper reports a relative \(L^2\) error of \(10^{-85}\) using 300-digit arithmetic. Its Table I separately lists dimension/spin-dependent MP control errors for three random initializations.
+- The \(O(10^{-80})\) total residual after \(N=500\) collocation points is reported for the more involved **7D cubic Lovelock** example, not as the metric for the 5D EGB family. It must not be placed in a single column with the MP relative \(L^2\) profile error or the 5D EGB pointwise equation residual.
+- Akribeia reports a non-monotonic 5D EGB profile at \(\Omega_H=0.68\): the same \((r,f(r))\) can be crossed for multiple coupling values. This motivates the Symtropy branch-identity rule: compare the complete solution vector and continuation tangent, not a single radial profile.
+
+The fair Symtropy target is therefore not simply a smaller nominal residual. It is a matched reproduction of the \((r_H,\Omega_H,\alpha)\) family, plus robust branch identity, equation-row/held-out residuals, independent sensitivity validation, and eventually a validated existence tube. The seed/discovery algorithms should be compared at equal compute budgets and repeated random seeds.
+
+Primary records:
+- [Akribeia arXiv v2](https://arxiv.org/abs/2607.07418v2)
+- [Physical Review D accepted paper, accepted 12 November 2026](https://doi.org/10.1103/3kz2-6dvv)
+
+### Ma--Lü is a direct first-coupling 5D Myers--Perry overlap, but not automatically the same action
+
+Ma and Lü, *Quadratic curvature correction to 5D Myers--Perry metric*, JHEP 05 (2026) 081, arXiv:2512.23797, study \(R+\alpha_R R_{\mu\nu\rho\sigma}R^{\mu\nu\rho\sigma}\) at linear coupling about the general two-spin 5D MP background. They expand in \(\chi_a=a/\sqrt{\mu}\), \(\chi_b=b/\sqrt{\mu}\) through tenth order and compare thermodynamic corrections against Reall--Santos.
+
+This is an unusually valuable independent overlap for Symtropy's \(\lambda a^2\) tangent. The Symtropy reduced action uses \(R+\alpha_{GB}\mathcal L_{GB}/4\). On Ricci-flat MP, the Ricci-squared and scalar-squared pieces in \(\mathcal L_{GB}=Riemann^2-4Ricci^2+R^2\) vanish as background tensors, but the equality of the *linearized source tensors* must still be proved, including the double-derivative terms and conventions. The candidate normalization \(\alpha_R=\alpha_{GB}/4\) is therefore a hypothesis to derive, not a settled conversion.
+
+For equal spins, the background horizon relation gives \(\mu=(r_H^2+a^2)^2/r_H^2\), hence \(\chi=a r_H/(r_H^2+a^2)=\Omega_H r_H\). Under Symtropy's \(\Omega_H=a_S/r_H^2\) convention, the dimensionless slow-spin parameter is \(a_S/r_H=\chi\). The exact map must additionally transform Ma--Lü's cohomogeneity-two coordinates and conformally-flat orbit-space gauge to Symtropy's radial gauge before component comparison.
+
+A dedicated matched-comparison task is open as [#6915](https://github.com/Luminous-Dynamics/symtropy/issues/6915). No equality of the published coefficients is claimed until that audit passes.
+
+Primary records:
+- [Ma--Lü arXiv:2512.23797](https://arxiv.org/abs/2512.23797)
+- [JHEP version of record, 8 May 2026](https://doi.org/10.1007/JHEP05(2026)081)
+
+### Teukolsky reconstruction benchmark: strong method, carefully bounded reported comparison
+
+Li, Hu and Yunes, arXiv:2610.37515 (27 October 2026), provide analytic leading-coupling deformations for six higher-curvature interactions at generic subextremal Kerr spin without mode decomposition. Their mode-free \(\Psi_0\) is compared with a separate mode-sum construction at \(a/M=0.9999\): five polar angles and 200 logarithmically spaced radii, with the mode sum truncated at \(\ell_{\max}=100\), yielding a maximum relative discrepancy below \(1.4\times10^{-22}\). They also report exact agreement with available analytic first-order horizon thermodynamic predictions.
+
+Interpretation: this is a strong matched sampled curvature and thermodynamic validation. It is not a runtime benchmark or a general full-domain error bound. The paper's auxiliary equation can be transformed to a flat-space Poisson operator in prolate coordinates, which is an important reusable mathematical reduction for the proposed 4D backend.
+
+Primary record: [Li--Hu--Yunes, arXiv:2610.37515](https://arxiv.org/abs/2610.37515).
+
+### Hyperbolicity is a separate benchmark axis
+
+Static Lovelock characteristic cones, gauge-fixed strong hyperbolicity, linear stability and EFT validity are different properties. Kovács--Reall (2020) demonstrate a modified-harmonic formulation that is strongly hyperbolic at weak coupling under its hypotheses; this cannot be transferred without checking the exact formulation and background regime. Keep the existing rotating 5D principal-symbol work in [#6334](https://github.com/Luminous-Dynamics/symtropy/issues/6334) independent of the stationary BVP.
+
+### Revised comparison rule
+
+Every public SOTA table must identify, for each numeric result: theory/action, dimension, background/branch, spin and coupling, perturbative order, gauge/normalization, arithmetic, resolution, whether it is a pointwise residual, global norm, profile error, observable error or interval bound, and whether it is independently verified. Values from different metric classes must not be ranked as if they were the same score.
