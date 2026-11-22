@@ -1,0 +1,63 @@
+{
+  "schema_version": "navigation-mission-risk-contract/v0.1",
+  "mission_profile_id": "urbannav-medium-urban-research-only",
+  "claim_status": "research_only",
+  "mission_scope": {
+    "mission_unit": "one complete predeclared route loop under a frozen sensor and service configuration",
+    "operational_domain_ref": "odds/urban-canyon-medium/v0.1",
+    "time_basis_ref": "time-review/pending-urbannav-medium-urban-1",
+    "truth_oracle_scope_ref": "truth-review/pending-span-cpt-inertial-explorer"
+  },
+  "risk_budget": {
+    "scale": "probability_quanta_1e-15",
+    "mission_budget_quanta": 1000000000000,
+    "check_set_sha256": null,
+    "check_set_frozen": false
+  },
+  "checks": [
+    {
+      "check_id": "longitudinal-position-check",
+      "failure_event": "absolute longitudinal truth error exceeds the declared longitudinal protection level at a declared check instant",
+      "allocation_quanta": 500000000000,
+      "bound_evidence": {
+        "status": "unqualified",
+        "method": null,
+        "upper_bound_quanta": null,
+        "confidence_quanta": null,
+        "independent_unit_kind": null,
+        "independent_unit_count": null,
+        "failure_count": null,
+        "independence_basis_ref": null,
+        "operational_domain_ref": null,
+        "method_definition_ref": null,
+        "calibration_split_sha256": null,
+        "bound_result_sha256": null,
+        "truth_oracle_receipt_sha256": null,
+        "assumptions_reviewed": false,
+        "truth_oracle_reviewed": false
+      }
+    },
+    {
+      "check_id": "cross-track-position-check",
+      "failure_event": "absolute cross-track truth error exceeds the declared cross-track protection level at a declared check instant",
+      "allocation_quanta": 500000000000,
+      "bound_evidence": {
+        "status": "unqualified",
+        "method": null,
+        "upper_bound_quanta": null,
+        "confidence_quanta": null,
+        "independent_unit_kind": null,
+        "independent_unit_count": null,
+        "failure_count": null,
+        "independence_basis_ref": null,
+        "operational_domain_ref": null,
+        "method_definition_ref": null,
+        "calibration_split_sha256": null,
+        "bound_result_sha256": null,
+        "truth_oracle_receipt_sha256": null,
+        "assumptions_reviewed": false,
+        "truth_oracle_reviewed": false
+      }
+    }
+  ]
+}
