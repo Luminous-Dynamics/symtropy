@@ -445,6 +445,146 @@ fn validate_config(config: HbrBctrConfig2d) -> Result<(), HbrBctrError> {
     Ok(())
 }
 
+
+/// Compute the exact 2x2 local position Hessian of the HBR-BCTR objective
+/// with all other time positions and structural biases held fixed.
+///
+/// Includes packet robust-loss curvature plus diagonal contributions from
+/// velocity and acceleration smoothness. The result may be indefinite for
+/// nonconvex residuals; the window-fusion layer applies the paper's positive
+/// eigenvalue clipping before computing tr_+.
+pub fn evaluate_hbr_bctr_position_curvature_2d(
+    state: &HbrBctrState2d,
+    observations: &[HbrRangeObservation2d],
+    config: HbrBctrConfig2d,
+    time_index: usize,
+) -> Result<[[f64; 2]; 2], HbrBctrError> {
+    // Reuse the full objective validation so the Hessian sees the same input
+    // contract, anchor/channel grouping and state bounds as the optimizer.
+    let _ = evaluate_hbr_bctr_window_2d(state, observations, config)?;
+    if time_index >= state.positions_m.len() {
+        return Err(HbrBctrError::InvalidConfiguration);
+    }
+
+    let position = state.positions_m[time_index];
+    let mut hessian = [[0.0_f64; 2]; 2];
+
+    for observation in observations
+        .iter()
+        .filter(|observation| observation.time_index == time_index)
+    {
+        let dx = position[0] - observation.anchor_position_m[0];
+        let dy = position[1] - observation.anchor_position_m[1];
+        let distance = dx.hypot(dy);
+        if !distance.is_finite() || distance <= f64::EPSILON {
+            return Err(HbrBctrError::CoincidentPositionAndAnchor(
+                observation.measurement_id,
+            ));
+        }
+        let direction = [dx / distance, dy / distance];
+        let scale = observation.heteroscedastic_scale_m + config.sigma_epsilon_m;
+        let corrected_residual = observation.measured_range_m
+            - distance
+            - state.structural_bias_m[
+                time_index * config.group_count + observation.bias_group_index
+            ]
+            - observation.soft_gate_weight
+                * observation.nonnegative_correction_prior_m;
+        let normalized_residual = corrected_residual / scale;
+        let first_derivative = barron_loss_and_derivative(
+            normalized_residual,
+            observation.robust_loss_shape_alpha,
+        )?
+        .1;
+        let second_derivative = barron_loss_second_derivative(
+            normalized_residual,
+            observation.robust_loss_shape_alpha,
+        )?;
+        let isotropic_term = first_derivative / (distance * scale);
+        let radial_term = second_derivative / (scale * scale);
+        if !isotropic_term.is_finite() || !radial_term.is_finite() {
+            return Err(HbrBctrError::ArithmeticOverflow);
+        }
+
+        for row in 0..2 {
+            for column in 0..2 {
+                let identity = if row == column { 1.0 } else { 0.0 };
+                hessian[row][column] += radial_term * direction[row] * direction[column]
+                    - isotropic_term
+                        * (identity - direction[row] * direction[column]);
+            }
+        }
+    }
+
+    // Diagonal block contribution from all adjacent velocity differences.
+    let velocity_edge_count =
+        usize::from(time_index > 0) + usize::from(time_index + 1 < state.positions_m.len());
+    let velocity_diagonal =
+        2.0 * config.lambda_velocity * velocity_edge_count as f64;
+    hessian[0][0] += velocity_diagonal;
+    hessian[1][1] += velocity_diagonal;
+
+    // Diagonal block contribution from every second-difference factor that
+    // contains this time index. Coefficients in (x_t - 2x_(t-1) + x_(t-2))
+    // are 1, -2, 1 respectively.
+    let time_steps = state.positions_m.len();
+    let mut acceleration_coefficient_square_sum = 0.0_f64;
+    for acceleration_end in 2..time_steps {
+        let coefficient = if acceleration_end == time_index {
+            1.0
+        } else if acceleration_end == time_index + 1 {
+            -2.0
+        } else if acceleration_end == time_index + 2 {
+            1.0
+        } else {
+            0.0
+        };
+        acceleration_coefficient_square_sum += coefficient * coefficient;
+    }
+    let acceleration_diagonal =
+        2.0 * config.lambda_acceleration * acceleration_coefficient_square_sum;
+    hessian[0][0] += acceleration_diagonal;
+    hessian[1][1] += acceleration_diagonal;
+
+    if !hessian.iter().flatten().all(|value| value.is_finite()) {
+        return Err(HbrBctrError::ArithmeticOverflow);
+    }
+    Ok(hessian)
+}
+
+fn barron_loss_second_derivative(
+    normalized_residual: f64,
+    alpha: f64,
+) -> Result<f64, HbrBctrError> {
+    if !normalized_residual.is_finite() || !alpha.is_finite() || alpha >= 2.0 {
+        return Err(HbrBctrError::ArithmeticOverflow);
+    }
+    let square = normalized_residual * normalized_residual;
+    if !square.is_finite() {
+        return Err(HbrBctrError::ArithmeticOverflow);
+    }
+    if alpha.abs() < 1e-8 {
+        let denominator = 1.0 + 0.5 * square;
+        let result = (1.0 - 0.5 * square) / (denominator * denominator);
+        return result
+            .is_finite()
+            .then_some(result)
+            .ok_or(HbrBctrError::ArithmeticOverflow);
+    }
+    let absolute_offset = (alpha - 2.0).abs();
+    let base = 1.0 + square / absolute_offset;
+    if !base.is_finite() || base <= 0.0 {
+        return Err(HbrBctrError::ArithmeticOverflow);
+    }
+    let first = base.powf(alpha / 2.0 - 1.0);
+    let second = square * base.powf(alpha / 2.0 - 2.0);
+    let result = first - second;
+    result
+        .is_finite()
+        .then_some(result)
+        .ok_or(HbrBctrError::ArithmeticOverflow)
+}
+
 /// Apply one paper-ordered alternating HBR-BCTR update:
 /// 1. Evaluate both gradients at (X^k, B^k).
 /// 2. Project the position update X^(k+1) using that evaluation.
@@ -696,6 +836,33 @@ mod tests {
             evaluate_hbr_bctr_window_2d(&minus, &observations, cfg).unwrap().objective;
         let finite_difference = (plus_value - minus_value) / (2.0 * epsilon);
         assert!((finite_difference - result.structural_bias_gradient[1]).abs() < 1e-4);
+    }
+
+    #[test]
+    fn analytic_local_position_curvature_matches_finite_difference_of_gradient() {
+        let current = state();
+        let observations = [
+            observation(1, 0, 1.5),
+            observation(2, 1, 1.6),
+            observation(3, 1, 1.9),
+        ];
+        let cfg = config();
+        let curvature =
+            evaluate_hbr_bctr_position_curvature_2d(&current, &observations, cfg, 1).unwrap();
+        let epsilon = 1e-5;
+        let mut plus = current.clone();
+        let mut minus = current.clone();
+        plus.positions_m[1][0] += epsilon;
+        minus.positions_m[1][0] -= epsilon;
+        let plus_gradient =
+            evaluate_hbr_bctr_window_2d(&plus, &observations, cfg).unwrap().position_gradient[1];
+        let minus_gradient =
+            evaluate_hbr_bctr_window_2d(&minus, &observations, cfg).unwrap().position_gradient[1];
+        let finite_difference_x = (plus_gradient[0] - minus_gradient[0]) / (2.0 * epsilon);
+        let finite_difference_y = (plus_gradient[1] - minus_gradient[1]) / (2.0 * epsilon);
+        assert!((curvature[0][0] - finite_difference_x).abs() < 2e-3);
+        assert!((curvature[1][0] - finite_difference_y).abs() < 2e-3);
+        assert!((curvature[0][1] - curvature[1][0]).abs() < 1e-12);
     }
 
     #[test]
