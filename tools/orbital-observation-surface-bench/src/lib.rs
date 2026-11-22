@@ -1,4 +1,4 @@
-pub mod decision_identifiability;
+pub mod decision_identifiability;\npub mod robust_decision;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
