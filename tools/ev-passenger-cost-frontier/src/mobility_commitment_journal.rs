@@ -94,7 +94,7 @@ pub struct ResourceTerminalEvidence {
     pub evidence: EvidenceEnvelope,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct AppendRequest {
     pub expected_version: u64,
