@@ -405,7 +405,7 @@ mod tests {
     #[test]
     fn allocation_sum_over_mission_budget_is_rejected() {
         let mut fixture = research_fixture();
-        fixture["checks"][1]["allocation_quanta"] = Value::Number(serde_json::Number::from(600_000_000_000_u64));
+        fixture["checks"][1]["allocation_quanta"] = Value::Number(serde_json::Number::from(500_000_000_001_u64));
         let errors = validate_mission_risk_contract(&fixture).unwrap_err();
         assert!(errors.iter().any(|error| error.message.contains("exceeds the mission risk budget")));
     }
@@ -453,6 +453,18 @@ mod tests {
         evidence["failure_count"] = Value::Number(serde_json::Number::from(101_u64));
         let errors = validate_mission_risk_contract(&fixture).unwrap_err();
         assert!(errors.iter().any(|error| error.message.contains("cannot exceed the independent trial count")));
+    }
+
+    #[test]
+    fn empirical_binomial_method_requires_an_observed_failure_count() {
+        let mut fixture = qualified_fixture();
+        fixture["checks"][0]["bound_evidence"]["method"] =
+            Value::String("empirical_clopper_pearson".to_owned());
+        fixture["checks"][0]["bound_evidence"]["failure_count"] = Value::Null;
+        let errors = validate_mission_risk_contract(&fixture).unwrap_err();
+        assert!(errors.iter().any(|error| {
+            error.message.contains("is required for empirical_clopper_pearson")
+        }));
     }
 
     #[test]
