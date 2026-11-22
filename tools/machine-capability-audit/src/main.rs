@@ -177,6 +177,9 @@ struct DependencyMetrics {
     critical_count: usize,
     critical_without_alternate_source_count: usize,
     critical_not_locally_repairable_count: usize,
+    required_closure_count: usize,
+    required_closure_without_alternate_source_count: usize,
+    required_closure_not_locally_repairable_count: usize,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -222,11 +225,49 @@ fn assess_status(
     }
 }
 
+/// Return the complete transitive prerequisite closure rooted at critical
+/// dependencies. Unreferenced inventory entries are deliberately excluded.
+fn required_dependency_closure(dependencies: &[Dependency]) -> Option<Vec<&Dependency>> {
+    let by_id: HashMap<&str, &Dependency> = dependencies
+        .iter()
+        .map(|dependency| (dependency.dependency_id.as_str(), dependency))
+        .collect();
+    if by_id.len() != dependencies.len() {
+        return None;
+    }
+
+    let mut pending: Vec<&str> = dependencies
+        .iter()
+        .filter(|dependency| dependency.criticality == "critical")
+        .map(|dependency| dependency.dependency_id.as_str())
+        .collect();
+    if pending.is_empty() {
+        return None;
+    }
+
+    let mut required_ids = HashSet::new();
+    while let Some(id) = pending.pop() {
+        if !required_ids.insert(id.to_owned()) {
+            continue;
+        }
+        let dependency = by_id.get(id)?;
+        pending.extend(dependency.requires.iter().map(String::as_str));
+    }
+
+    Some(
+        dependencies
+            .iter()
+            .filter(|dependency| required_ids.contains(&dependency.dependency_id))
+            .collect(),
+    )
+}
+
 fn dependency_metrics(dependencies: &[Dependency]) -> DependencyMetrics {
     let critical: Vec<&Dependency> = dependencies
         .iter()
         .filter(|dependency| dependency.criticality == "critical")
         .collect();
+    let required_closure = required_dependency_closure(dependencies).unwrap_or_default();
 
     DependencyMetrics {
         critical_count: critical.len(),
@@ -235,6 +276,15 @@ fn dependency_metrics(dependencies: &[Dependency]) -> DependencyMetrics {
             .filter(|dependency| dependency.alternate_sources == 0)
             .count(),
         critical_not_locally_repairable_count: critical
+            .iter()
+            .filter(|dependency| dependency.local_repair_status == "not_repairable")
+            .count(),
+        required_closure_count: required_closure.len(),
+        required_closure_without_alternate_source_count: required_closure
+            .iter()
+            .filter(|dependency| dependency.alternate_sources == 0)
+            .count(),
+        required_closure_not_locally_repairable_count: required_closure
             .iter()
             .filter(|dependency| dependency.local_repair_status == "not_repairable")
             .count(),
@@ -469,18 +519,24 @@ fn dependency_closure(dependencies: &[Dependency]) -> LocalClosure {
 
     let by_id: HashMap<&str, &Dependency> = dependencies
         .iter()
-        .map(|dep| (dep.dependency_id.as_str(), dep))
+        .map(|dependency| (dependency.dependency_id.as_str(), dependency))
         .collect();
     if by_id.len() != dependencies.len() {
         return LocalClosure::Unknown;
     }
 
-    for dep in dependencies {
-        if dep.requires.iter().any(|required| !by_id.contains_key(required.as_str())) {
+    for dependency in dependencies {
+        if dependency
+            .requires
+            .iter()
+            .any(|required| !by_id.contains_key(required.as_str()))
+        {
             return LocalClosure::Unknown;
         }
     }
 
+    // Validate the full declared graph, including disconnected components, so
+    // cycles and dangling references cannot hide outside today's critical roots.
     fn visit(
         id: &str,
         by_id: &HashMap<&str, &Dependency>,
@@ -493,10 +549,10 @@ fn dependency_closure(dependencies: &[Dependency]) -> LocalClosure {
         if !visiting.insert(id.to_owned()) {
             return false;
         }
-        let Some(dep) = by_id.get(id) else {
+        let Some(dependency) = by_id.get(id) else {
             return false;
         };
-        for next in &dep.requires {
+        for next in &dependency.requires {
             if !visit(next, by_id, visiting, visited) {
                 return false;
             }
@@ -514,52 +570,54 @@ fn dependency_closure(dependencies: &[Dependency]) -> LocalClosure {
         }
     }
 
-    let critical: Vec<&Dependency> = dependencies
-        .iter()
-        .filter(|dep| dep.criticality == "critical")
-        .collect();
-    if critical.is_empty() {
+    let Some(required_closure) = required_dependency_closure(dependencies) else {
         return LocalClosure::Unknown;
-    }
+    };
 
-    if critical.iter().any(|dep| {
+    // Every transitive prerequisite of a critical component contributes to
+    // productive closure, even when that prerequisite is labelled important
+    // or noncritical in the source BOM.
+    if required_closure.iter().any(|dependency| {
         matches!(
-            dep.evidence_status.as_str(),
+            dependency.evidence_status.as_str(),
             "unknown" | "assumed" | "synthetic" | "revoked"
-        ) || dep.sourcing_class == "unknown"
+        ) || dependency.sourcing_class == "unknown"
     }) {
         return LocalClosure::Unknown;
     }
 
-    if critical.iter().any(|dep| {
-        dep.sourcing_class == "local_service_imported_inputs"
-            && dep.local_repair_status == "unknown"
+    if required_closure.iter().any(|dependency| {
+        dependency.sourcing_class == "local_service_imported_inputs"
+            && dependency.local_repair_status == "unknown"
     }) {
         return LocalClosure::Unknown;
     }
 
-    if critical.iter().any(|dep| {
-        dep.sourcing_class == "local_service_imported_inputs"
-            && dep.local_repair_status == "not_repairable"
+    if required_closure.iter().any(|dependency| {
+        dependency.sourcing_class == "local_service_imported_inputs"
+            && dependency.local_repair_status == "not_repairable"
     }) {
         return LocalClosure::ImportDependent;
     }
 
-    if critical
+    if required_closure
         .iter()
-        .all(|dep| dep.sourcing_class == "locally_manufactured")
+        .all(|dependency| dependency.sourcing_class == "locally_manufactured")
     {
         return LocalClosure::LocallyReproducible;
     }
 
-    if critical.iter().any(|dep| {
-        dep.sourcing_class == "imported_stocked"
-            || dep.sourcing_class == "imported_long_lead"
+    if required_closure.iter().any(|dependency| {
+        dependency.sourcing_class == "imported_stocked"
+            || dependency.sourcing_class == "imported_long_lead"
     }) {
         return LocalClosure::ImportDependent;
     }
 
-    if critical.iter().any(|dep| dep.sourcing_class == "local_service_imported_inputs") {
+    if required_closure
+        .iter()
+        .any(|dependency| dependency.sourcing_class == "local_service_imported_inputs")
+    {
         return LocalClosure::LocalServiceOnly;
     }
 
@@ -833,6 +891,10 @@ fn verify_corpus(corpus: &Corpus) -> Result<(), Vec<String>> {
                 > route.dependency_metrics.critical_count
                 || route.dependency_metrics.critical_not_locally_repairable_count
                     > route.dependency_metrics.critical_count
+                || route.dependency_metrics.required_closure_without_alternate_source_count
+                    > route.dependency_metrics.required_closure_count
+                || route.dependency_metrics.required_closure_not_locally_repairable_count
+                    > route.dependency_metrics.required_closure_count
         }) {
             errors.push(format!("{}: invalid dependency risk metrics", case.scenario_id));
         }
