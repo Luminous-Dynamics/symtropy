@@ -389,6 +389,7 @@ Next ==
     \/ FenceDownstreamExecution
     \/ ResolvePersistence
     \/ ObserveOldEffect
+    \/ ObserveUnknownEffect
     \/ ObserveDisputedEffect
     \/ ResolveMission
     \/ IssueRecoveryPermit
@@ -424,8 +425,8 @@ TypeOK ==
         {"definitely_not_committed", "in_flight", "committed", "indeterminate_commit"}
     /\ s.storeRecord \in BOOLEAN
     /\ s.storeCallPending \in BOOLEAN
-    /\ s.effectEvidence \in {"none", "applied", "no_effect", "partial", "disputed"}
-    /\ s.missionResolution \in {"none", "applied", "no_effect", "partial", "disputed"}
+    /\ s.effectEvidence \in {"none", "unknown", "applied", "no_effect", "partial", "disputed"}
+    /\ s.missionResolution \in {"none", "unknown", "applied", "no_effect", "partial", "disputed"}
     /\ s.observerIndependent \in BOOLEAN
     /\ s.queueFenceBootEpoch \in 0..MaxEpoch
     /\ s.downstreamFenceBootEpoch \in 0..MaxEpoch
@@ -459,7 +460,7 @@ NoDuplicatePhysicalEffects ==
     s.appliedEffectCount <= 1
 
 NoRecoveryFromUnknownPartialOrDisputed ==
-    s.effectEvidence \in {"none", "partial", "disputed"} =>
+    s.effectEvidence \in {"none", "unknown", "partial", "disputed"} =>
         s.recoveryPermit = "absent" /\ ~s.recoveryAccepted
 
 NoRecoveryFromApplied ==
