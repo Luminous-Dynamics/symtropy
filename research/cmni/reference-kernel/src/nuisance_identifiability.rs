@@ -118,13 +118,19 @@ pub fn profile_nuisance_fisher_information(
     }
 
     // Remove only antisymmetric floating-point roundoff introduced by the solve.
-    for row in 0..interest_parameter_count {
-        for column in 0..row {
-            let symmetric_value = 0.5 * (profiled[row][column] + profiled[column][row]);
-            profiled[row][column] = symmetric_value;
-            profiled[column][row] = symmetric_value;
-        }
-    }
+    let symmetric_profiled: Vec<Vec<f64>> = profiled
+        .iter()
+        .enumerate()
+        .map(|(row_index, row)| {
+            row.iter()
+                .enumerate()
+                .map(|(column_index, value)| {
+                    0.5 * (value + profiled[column_index][row_index])
+                })
+                .collect()
+        })
+        .collect();
+    profiled = symmetric_profiled;
     if profiled.iter().flatten().any(|value| !value.is_finite()) {
         return Err(ModelError::InvalidCovariance(
             "profiled_fisher_information_nonfinite",

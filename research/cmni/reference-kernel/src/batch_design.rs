@@ -313,9 +313,9 @@ fn cholesky(matrix: &[Vec<f64>], name: &'static str) -> Result<Vec<Vec<f64>>, Mo
         .map(|value| value.abs())
         .fold(0.0_f64, f64::max);
     let symmetry_tolerance = 1.0e-10 * scale.max(f64::MIN_POSITIVE);
-    for row in 0..dimension {
-        for column in 0..row {
-            if (matrix[row][column] - matrix[column][row]).abs() > symmetry_tolerance {
+    for (row_index, row) in matrix.iter().enumerate() {
+        for (column_index, value) in row.iter().enumerate().take(row_index) {
+            if (value - matrix[column_index][row_index]).abs() > symmetry_tolerance {
                 return Err(ModelError::InvalidCovariance(name));
             }
         }

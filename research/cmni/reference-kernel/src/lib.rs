@@ -603,7 +603,7 @@ impl GaussianBeamFootprint {
 /// - n_D is target deuterium number density in cm^-3;
 /// - stopping_kev_cm_per_cm is **-dEcm/dx** in keV_cm/cm (not automatically
 ///   the projectile laboratory-frame stopping power);
-/// - screening_keV is a non-negative effective potential in keV.
+/// - screening_kev is a non-negative effective potential in keV.
 ///
 /// For a D projectile on a stationary D target, Ecm = Elab/2. If a source
 /// provides projectile stopping in lab energy per length, convert it
@@ -618,9 +618,9 @@ pub fn homogeneous_thick_target_yield<FS, FStop, FU>(
     gamow_energy_cm: GamowEnergyKev,
     target_density: TargetDensityPerCm3,
     steps: usize,
-    s_factor_keV_barn: FS,
-    stopping_keV_cm_per_cm: FStop,
-    screening_keV: FU,
+    s_factor_kev_barn: FS,
+    stopping_kev_cm_per_cm: FStop,
+    screening_kev: FU,
 ) -> Result<f64, ModelError>
 where
     FS: Fn(f64) -> f64,
@@ -639,10 +639,10 @@ where
     for i in 0..=steps {
         let t = i as f64 * h;
         let energy_cm = t * t;
-        let s_factor = checked_positive(s_factor_keV_barn(energy_cm), "S_factor_keV_barn")?;
+        let s_factor = checked_positive(s_factor_kev_barn(energy_cm), "S_factor_keV_barn")?;
         let stopping =
-            checked_positive(stopping_keV_cm_per_cm(energy_cm), "stopping_keV_cm_per_cm")?;
-        let screening = checked_nonnegative(screening_keV(energy_cm), "screening_keV")?;
+            checked_positive(stopping_kev_cm_per_cm(energy_cm), "stopping_kev_cm_per_cm")?;
+        let screening = checked_nonnegative(screening_kev(energy_cm), "screening_kev")?;
 
         // This is 2*t*sigma(t^2,Ue), the transformed cross-section integrand.
         let transformed = if t == 0.0 {
@@ -690,15 +690,18 @@ where
 /// S-factor and stopping closures use Ecm in keV; stopping must be -dEcm/dx
 /// in keV_cm/cm. This matches the relative-yield normalization used in the
 /// 2026 paper, with the reference energy explicitly supplied by the caller.
+// Keep unit-bearing scalar inputs and the three physical closures explicit;
+// this is intentionally a high-arity scientific interface rather than an opaque tuple.
+#[allow(clippy::too_many_arguments)]
 pub fn relative_thick_target_yield<FS, FStop, FU>(
     energy_cm: EnergyKev,
     reference_energy_cm: EnergyKev,
     gamow_energy_cm: GamowEnergyKev,
     target_density: TargetDensityPerCm3,
     steps: usize,
-    s_factor_keV_barn: FS,
-    stopping_keV_cm_per_cm: FStop,
-    screening_keV: FU,
+    s_factor_kev_barn: FS,
+    stopping_kev_cm_per_cm: FStop,
+    screening_kev: FU,
 ) -> Result<f64, ModelError>
 where
     FS: Fn(f64) -> f64,
@@ -710,18 +713,18 @@ where
         gamow_energy_cm,
         target_density,
         steps,
-        &s_factor_keV_barn,
-        &stopping_keV_cm_per_cm,
-        &screening_keV,
+        &s_factor_kev_barn,
+        &stopping_kev_cm_per_cm,
+        &screening_kev,
     )?;
     let reference = homogeneous_thick_target_yield(
         reference_energy_cm,
         gamow_energy_cm,
         target_density,
         steps,
-        &s_factor_keV_barn,
-        &stopping_keV_cm_per_cm,
-        &screening_keV,
+        &s_factor_kev_barn,
+        &stopping_kev_cm_per_cm,
+        &screening_kev,
     )?;
     if reference <= 0.0 {
         return Err(ModelError::NonPositiveValue("reference_yield"));
@@ -740,9 +743,9 @@ pub fn weighted_beam_spectrum_yield<FS, FStop, FU>(
     gamow_energy_cm: GamowEnergyKev,
     target_density: TargetDensityPerCm3,
     steps: usize,
-    s_factor_keV_barn: FS,
-    stopping_keV_cm_per_cm: FStop,
-    screening_keV: FU,
+    s_factor_kev_barn: FS,
+    stopping_kev_cm_per_cm: FStop,
+    screening_kev: FU,
 ) -> Result<f64, ModelError>
 where
     FS: Fn(f64) -> f64,
@@ -765,9 +768,9 @@ where
             gamow_energy_cm,
             target_density,
             steps,
-            &s_factor_keV_barn,
-            &stopping_keV_cm_per_cm,
-            &screening_keV,
+            &s_factor_kev_barn,
+            &stopping_kev_cm_per_cm,
+            &screening_kev,
         )?;
         total += weight * component_yield;
         weight_sum += weight;
@@ -794,9 +797,9 @@ pub fn prompt_dissociation_weighted_yield<FS, FStop, FU>(
     gamow_energy_cm: GamowEnergyKev,
     target_density: TargetDensityPerCm3,
     steps: usize,
-    s_factor_keV_barn: FS,
-    stopping_keV_cm_per_cm: FStop,
-    screening_keV: FU,
+    s_factor_kev_barn: FS,
+    stopping_kev_cm_per_cm: FStop,
+    screening_kev: FU,
 ) -> Result<f64, ModelError>
 where
     FS: Fn(f64) -> f64,
@@ -808,9 +811,9 @@ where
         gamow_energy_cm,
         target_density,
         steps,
-        s_factor_keV_barn,
-        stopping_keV_cm_per_cm,
-        screening_keV,
+        s_factor_kev_barn,
+        stopping_kev_cm_per_cm,
+        screening_kev,
     )
 }
 
@@ -822,7 +825,7 @@ pub fn screening_enhancement(
     screening_kev: f64,
 ) -> Result<f64, ModelError> {
     let energy = energy_cm.get();
-    let screening = checked_nonnegative(screening_kev, "screening_keV")?;
+    let screening = checked_nonnegative(screening_kev, "screening_kev")?;
     if screening == 0.0 {
         return Ok(1.0);
     }
@@ -896,8 +899,8 @@ pub fn sigmoid_screening_potential_printed_equation(
     crossover_energy_cm: EnergyKev,
     width_kev: f64,
 ) -> Result<f64, ModelError> {
-    let bulk = checked_nonnegative(bulk_screening_kev, "bulk_screening_keV")?;
-    let surface = checked_nonnegative(surface_screening_kev, "surface_screening_keV")?;
+    let bulk = checked_nonnegative(bulk_screening_kev, "bulk_screening_kev")?;
+    let surface = checked_nonnegative(surface_screening_kev, "surface_screening_kev")?;
     let width = checked_positive(width_kev, "sigmoid_width_keV")?;
     let x = (energy_cm.get() - crossover_energy_cm.get()) / width;
     Ok(bulk + (surface - bulk) * logistic(x)?)
@@ -915,8 +918,8 @@ pub fn sigmoid_screening_potential_prose_direction(
     crossover_energy_cm: EnergyKev,
     width_kev: f64,
 ) -> Result<f64, ModelError> {
-    let bulk = checked_nonnegative(bulk_screening_kev, "bulk_screening_keV")?;
-    let surface = checked_nonnegative(surface_screening_kev, "surface_screening_keV")?;
+    let bulk = checked_nonnegative(bulk_screening_kev, "bulk_screening_kev")?;
+    let surface = checked_nonnegative(surface_screening_kev, "surface_screening_kev")?;
     let width = checked_positive(width_kev, "sigmoid_width_keV")?;
     let x = (crossover_energy_cm.get() - energy_cm.get()) / width;
     Ok(bulk + (surface - bulk) * logistic(x)?)
@@ -1034,9 +1037,8 @@ fn cholesky_lower(covariance: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, ModelError> 
         ));
     }
 
-    for i in 0..n {
-        for j in 0..n {
-            let value = covariance[i][j];
+    for (i, row) in covariance.iter().enumerate() {
+        for (j, value) in row.iter().enumerate() {
             if !value.is_finite() {
                 return Err(ModelError::InvalidCovariance("all entries must be finite"));
             }
@@ -1045,7 +1047,7 @@ fn cholesky_lower(covariance: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, ModelError> 
                 return Err(ModelError::InvalidCovariance("matrix must be symmetric"));
             }
         }
-        if covariance[i][i] <= 0.0 {
+        if row[i] <= 0.0 {
             return Err(ModelError::InvalidCovariance(
                 "diagonal entries must be positive",
             ));
@@ -1056,8 +1058,8 @@ fn cholesky_lower(covariance: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, ModelError> 
     for i in 0..n {
         for j in 0..=i {
             let mut value = covariance[i][j];
-            for k in 0..j {
-                value -= lower[i][k] * lower[j][k];
+            for (k, lower_value) in lower[i].iter().enumerate().take(j) {
+                value -= lower_value * lower[j][k];
             }
             if i == j {
                 if !value.is_finite() || value <= 0.0 {
@@ -1675,7 +1677,7 @@ mod tests {
         );
         assert_eq!(
             result,
-            Err(ModelError::NonPositiveValue("stopping_keV_cm_per_cm"))
+            Err(ModelError::NonPositiveValue("stopping_kev_cm_per_cm"))
         );
     }
 
@@ -1702,6 +1704,6 @@ mod tests {
             |_| 1.0e8,
             |_| -0.1,
         );
-        assert_eq!(result, Err(ModelError::InvalidParameter("screening_keV")));
+        assert_eq!(result, Err(ModelError::InvalidParameter("screening_kev")));
     }
 }

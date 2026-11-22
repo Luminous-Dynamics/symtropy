@@ -42,9 +42,10 @@ pub fn poisson_fisher_information(
             }
         }
     }
-    for left in 0..parameter_count {
-        for right in 0..left {
-            information[left][right] = information[right][left];
+    let upper_information = information.clone();
+    for (left, row) in information.iter_mut().enumerate() {
+        for (right, value) in row.iter_mut().enumerate().take(left) {
+            *value = upper_information[right][left];
         }
     }
     if information.iter().flatten().any(|value| !value.is_finite()) {
@@ -128,9 +129,9 @@ pub fn identifiability_summary(
         .map(|value| value.abs())
         .fold(0.0_f64, f64::max);
     let symmetry_tolerance = 1.0e-10 * matrix_scale.max(f64::MIN_POSITIVE);
-    for row in 0..dimension {
-        for column in 0..row {
-            if (information[row][column] - information[column][row]).abs() > symmetry_tolerance {
+    for (row_index, row) in information.iter().enumerate() {
+        for (column_index, value) in row.iter().enumerate().take(row_index) {
+            if (value - information[column_index][row_index]).abs() > symmetry_tolerance {
                 return Err(ModelError::InvalidCovariance(
                     "fisher_information_must_be_symmetric",
                 ));
@@ -188,12 +189,12 @@ fn symmetric_eigenvalues(matrix: &[Vec<f64>]) -> Result<Vec<f64>, ModelError> {
         let mut largest = 0.0_f64;
         let mut p = 0;
         let mut q = 0;
-        for row in 0..dimension {
-            for column in (row + 1)..dimension {
-                if work[row][column].abs() > largest {
-                    largest = work[row][column].abs();
-                    p = row;
-                    q = column;
+        for (row_index, row_values) in work.iter().enumerate() {
+            for (column_index, value) in row_values.iter().enumerate().skip(row_index + 1) {
+                if value.abs() > largest {
+                    largest = value.abs();
+                    p = row_index;
+                    q = column_index;
                 }
             }
         }
@@ -216,17 +217,25 @@ fn symmetric_eigenvalues(matrix: &[Vec<f64>]) -> Result<Vec<f64>, ModelError> {
         work[q][q] = qq + tangent * off_diagonal;
         work[p][q] = 0.0;
         work[q][p] = 0.0;
-        for index in 0..dimension {
-            if index != p && index != q {
-                let ip = work[index][p];
-                let iq = work[index][q];
-                let new_ip = cosine * ip - sine * iq;
-                let new_iq = sine * ip + cosine * iq;
-                work[index][p] = new_ip;
-                work[p][index] = new_ip;
-                work[index][q] = new_iq;
-                work[q][index] = new_iq;
-            }
+        let rotated_rows: Vec<(usize, f64, f64)> = work
+            .iter()
+            .enumerate()
+            .filter(|(index, _)| *index != p && *index != q)
+            .map(|(index, row)| {
+                let ip = row[p];
+                let iq = row[q];
+                (
+                    index,
+                    cosine * ip - sine * iq,
+                    sine * ip + cosine * iq,
+                )
+            })
+            .collect();
+        for (index, new_ip, new_iq) in rotated_rows {
+            work[index][p] = new_ip;
+            work[p][index] = new_ip;
+            work[index][q] = new_iq;
+            work[q][index] = new_iq;
         }
     }
     if !converged {
