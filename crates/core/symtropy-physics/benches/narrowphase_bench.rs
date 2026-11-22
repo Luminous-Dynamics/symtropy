@@ -7,7 +7,7 @@
 //! closure and aggregate deterministic work counts over a fixed frame window.
 //! They do not claim physical accuracy or contact-recycling performance.
 
-use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
+use criterion::{BatchSize, Criterion, black_box, criterion_group, criterion_main};
 use nalgebra::SVector;
 use symtropy_math::{HalfSpace, HyperBox, Point, Sphere, Transform};
 use symtropy_physics::{
