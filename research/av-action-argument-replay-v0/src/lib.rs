@@ -342,7 +342,7 @@ pub struct RequestAcceptanceV1 {
     /// Episode identity.
     pub episode_id: String,
     /// Candidate turn identity.
-    pub turn_id: u64,
+    pub turn_id: String,
     /// Unique executor request ID.
     pub request_id: String,
     /// Selected catalogue action ID.
@@ -366,7 +366,7 @@ pub struct ActionResultV1 {
     /// Episode identity.
     pub episode_id: String,
     /// Candidate turn identity.
-    pub turn_id: u64,
+    pub turn_id: String,
     /// Unique executor request ID.
     pub request_id: String,
     /// Selected action ID.
@@ -434,7 +434,7 @@ pub struct ActionParameterForecastV1 {
     /// Episode identity.
     pub episode_id: String,
     /// Turn identity.
-    pub turn_id: u64,
+    pub turn_id: String,
     /// Candidate transcript head.
     pub transcript_head_sha256: String,
     /// Complete currently eligible acquisition action IDs, excluding reserved stop.
@@ -474,7 +474,7 @@ pub fn validate_manifest(
 #[derive(Serialize)]
 struct ForecastDigestMaterialV1<'a> {
     episode_id: &'a str,
-    turn_id: u64,
+    turn_id: &'a str,
     transcript_head_sha256: &'a str,
     eligible_action_ids: Vec<String>,
     action_manifests: Vec<(String, String)>,
@@ -619,7 +619,7 @@ pub fn validate_forecast(
     manifest_entries.sort_by(|left, right| left.0.cmp(&right.0));
     let material = ForecastDigestMaterialV1 {
         episode_id: &forecast.episode_id,
-        turn_id: forecast.turn_id,
+        turn_id: &forecast.turn_id,
         transcript_head_sha256: &forecast.transcript_head_sha256,
         eligible_action_ids: eligible_ids,
         action_manifests: manifest_entries,
@@ -1415,7 +1415,7 @@ mod tests {
         let digest = validate_manifest(&manifest).unwrap();
         let forecast = ActionParameterForecastV1 {
             episode_id: "episode-1".to_string(),
-            turn_id: 3,
+            turn_id: "turn-3".to_string(),
             transcript_head_sha256: hex_sha256(b"head"),
             eligible_action_ids: vec![manifest.action_id.clone()],
             actions: vec![ForecastActionManifestV1 {
@@ -1436,7 +1436,7 @@ mod tests {
         let digest = validate_manifest(&manifest).unwrap();
         let forecast = ActionParameterForecastV1 {
             episode_id: "episode-1".to_string(),
-            turn_id: 3,
+            turn_id: "turn-3".to_string(),
             transcript_head_sha256: hex_sha256(b"head"),
             eligible_action_ids: vec![manifest.action_id.clone()],
             actions: vec![ForecastActionManifestV1 {
@@ -1457,7 +1457,7 @@ mod tests {
         let manifest_digest = validate_manifest(&manifest).unwrap();
         let forecast = ActionParameterForecastV1 {
             episode_id: "episode-1".to_string(),
-            turn_id: 4,
+            turn_id: "turn-4".to_string(),
             transcript_head_sha256: hex_sha256(b"head"),
             eligible_action_ids: vec![manifest.action_id.clone()],
             actions: vec![ForecastActionManifestV1 {
@@ -1471,7 +1471,7 @@ mod tests {
         };
         let acceptance = RequestAcceptanceV1 {
             episode_id: "episode-1".to_string(),
-            turn_id: 4,
+            turn_id: "turn-4".to_string(),
             request_id: "request-1".to_string(),
             action_id: "crop-video".to_string(),
             parameter_manifest_sha256: manifest_digest.clone(),
@@ -1482,7 +1482,7 @@ mod tests {
         };
         let result = ActionResultV1 {
             episode_id: "episode-1".to_string(),
-            turn_id: 4,
+            turn_id: "turn-4".to_string(),
             request_id: "request-1".to_string(),
             action_id: "crop-video".to_string(),
             parameter_manifest_sha256: hex_sha256(b"other-manifest"),
@@ -1508,7 +1508,7 @@ mod tests {
         let manifest_digest = validate_manifest(&manifest).unwrap();
         let forecast = ActionParameterForecastV1 {
             episode_id: "episode-1".to_string(),
-            turn_id: 1,
+            turn_id: "turn-1".to_string(),
             transcript_head_sha256: hex_sha256(b"head"),
             eligible_action_ids: vec![manifest.action_id.clone()],
             actions: vec![ForecastActionManifestV1 {
@@ -1522,7 +1522,7 @@ mod tests {
         };
         let acceptance = RequestAcceptanceV1 {
             episode_id: "episode-1".to_string(),
-            turn_id: 1,
+            turn_id: "turn-1".to_string(),
             request_id: "req-1".to_string(),
             action_id: manifest.action_id.clone(),
             parameter_manifest_sha256: manifest_digest.clone(),
@@ -1533,7 +1533,7 @@ mod tests {
         };
         let result = ActionResultV1 {
             episode_id: "episode-1".to_string(),
-            turn_id: 1,
+            turn_id: "turn-1".to_string(),
             request_id: "req-1".to_string(),
             action_id: manifest.action_id.clone(),
             parameter_manifest_sha256: manifest_digest,
@@ -1580,7 +1580,7 @@ mod tests {
         let manifest_digest = validate_manifest(&manifest).unwrap();
         let forecast = ActionParameterForecastV1 {
             episode_id: "episode-1".to_string(),
-            turn_id: 1,
+            turn_id: "turn-1".to_string(),
             transcript_head_sha256: hex_sha256(b"head"),
             eligible_action_ids: vec![manifest.action_id.clone()],
             actions: vec![ForecastActionManifestV1 {
@@ -1607,7 +1607,7 @@ mod tests {
         };
         let acceptance = RequestAcceptanceV1 {
             episode_id: "episode-1".to_string(),
-            turn_id: 1,
+            turn_id: "turn-1".to_string(),
             request_id: "req-1".to_string(),
             action_id: manifest.action_id.clone(),
             parameter_manifest_sha256: manifest_digest.clone(),
@@ -1618,7 +1618,7 @@ mod tests {
         };
         let mut result = ActionResultV1 {
             episode_id: "episode-1".to_string(),
-            turn_id: 1,
+            turn_id: "turn-1".to_string(),
             request_id: "req-1".to_string(),
             action_id: manifest.action_id,
             parameter_manifest_sha256: manifest_digest,
@@ -1667,7 +1667,7 @@ mod tests {
         let manifest_digest = validate_manifest(&manifest).unwrap();
         let forecast = ActionParameterForecastV1 {
             episode_id: "episode-1".to_string(),
-            turn_id: 1,
+            turn_id: "turn-1".to_string(),
             transcript_head_sha256: hex_sha256(b"head"),
             eligible_action_ids: vec![manifest.action_id.clone()],
             actions: vec![ForecastActionManifestV1 {
@@ -1694,7 +1694,7 @@ mod tests {
         };
         let acceptance = RequestAcceptanceV1 {
             episode_id: "episode-1".to_string(),
-            turn_id: 1,
+            turn_id: "turn-1".to_string(),
             request_id: "req-1".to_string(),
             action_id: manifest.action_id.clone(),
             parameter_manifest_sha256: manifest_digest.clone(),
@@ -1705,7 +1705,7 @@ mod tests {
         };
         let result = ActionResultV1 {
             episode_id: "episode-1".to_string(),
-            turn_id: 1,
+            turn_id: "turn-1".to_string(),
             request_id: "req-1".to_string(),
             action_id: manifest.action_id,
             parameter_manifest_sha256: manifest_digest,
@@ -1731,7 +1731,7 @@ mod tests {
         let manifest_digest = validate_manifest(&manifest).unwrap();
         let forecast = ActionParameterForecastV1 {
             episode_id: "episode-1".to_string(),
-            turn_id: 2,
+            turn_id: "turn-2".to_string(),
             transcript_head_sha256: hex_sha256(b"head"),
             eligible_action_ids: vec![manifest.action_id.clone()],
             actions: vec![ForecastActionManifestV1 {
@@ -1752,7 +1752,7 @@ mod tests {
         let manifest_digest = validate_manifest(&manifest).unwrap();
         let mut forecast = ActionParameterForecastV1 {
             episode_id: "episode-1".to_string(),
-            turn_id: 2,
+            turn_id: "turn-2".to_string(),
             transcript_head_sha256: hex_sha256(b"head"),
             eligible_action_ids: vec![manifest.action_id.clone()],
             actions: vec![ForecastActionManifestV1 {
@@ -1774,7 +1774,7 @@ mod tests {
         let manifest_digest = validate_manifest(&manifest).unwrap();
         let forecast = ActionParameterForecastV1 {
             episode_id: "episode-audio".to_string(),
-            turn_id: 1,
+            turn_id: "turn-1".to_string(),
             transcript_head_sha256: hex_sha256(b"audio-head"),
             eligible_action_ids: vec![manifest.action_id.clone()],
             actions: vec![ForecastActionManifestV1 {
@@ -1788,7 +1788,7 @@ mod tests {
         };
         let acceptance = RequestAcceptanceV1 {
             episode_id: "episode-audio".to_string(),
-            turn_id: 1,
+            turn_id: "turn-1".to_string(),
             request_id: "audio-request".to_string(),
             action_id: manifest.action_id.clone(),
             parameter_manifest_sha256: manifest_digest.clone(),
@@ -1799,7 +1799,7 @@ mod tests {
         };
         let result = ActionResultV1 {
             episode_id: "episode-audio".to_string(),
-            turn_id: 1,
+            turn_id: "turn-1".to_string(),
             request_id: "audio-request".to_string(),
             action_id: manifest.action_id.clone(),
             parameter_manifest_sha256: manifest_digest,
@@ -1831,7 +1831,7 @@ mod tests {
         let digest_value = validate_manifest(&manifest).unwrap();
         let forecast = ActionParameterForecastV1 {
             episode_id: "episode-1".to_string(),
-            turn_id: 1,
+            turn_id: "turn-1".to_string(),
             transcript_head_sha256: hex_sha256(b"head"),
             eligible_action_ids: vec![manifest.action_id.clone()],
             actions: vec![ForecastActionManifestV1 {
@@ -1845,7 +1845,7 @@ mod tests {
         };
         let acceptance = RequestAcceptanceV1 {
             episode_id: "episode-1".to_string(),
-            turn_id: 1,
+            turn_id: "turn-1".to_string(),
             request_id: "req-1".to_string(),
             action_id: manifest.action_id.clone(),
             parameter_manifest_sha256: digest_value.clone(),
@@ -1856,7 +1856,7 @@ mod tests {
         };
         let result = ActionResultV1 {
             episode_id: "episode-1".to_string(),
-            turn_id: 1,
+            turn_id: "turn-1".to_string(),
             request_id: "req-1".to_string(),
             action_id: manifest.action_id,
             parameter_manifest_sha256: digest_value,
@@ -1903,7 +1903,7 @@ mod tests {
         let manifest_digest = validate_manifest(&manifest).unwrap();
         let forecast = ActionParameterForecastV1 {
             episode_id: "episode-1".to_string(),
-            turn_id: 1,
+            turn_id: "turn-1".to_string(),
             transcript_head_sha256: hex_sha256(b"head"),
             eligible_action_ids: vec![manifest.action_id.clone()],
             actions: vec![ForecastActionManifestV1 {
@@ -1917,7 +1917,7 @@ mod tests {
         };
         let acceptance = RequestAcceptanceV1 {
             episode_id: "episode-1".to_string(),
-            turn_id: 1,
+            turn_id: "turn-1".to_string(),
             request_id: "late-request".to_string(),
             action_id: manifest.action_id.clone(),
             parameter_manifest_sha256: manifest_digest.clone(),
@@ -1928,7 +1928,7 @@ mod tests {
         };
         let mut result = ActionResultV1 {
             episode_id: "episode-1".to_string(),
-            turn_id: 1,
+            turn_id: "turn-1".to_string(),
             request_id: "late-request".to_string(),
             action_id: manifest.action_id,
             parameter_manifest_sha256: manifest_digest,
@@ -1990,7 +1990,7 @@ mod tests {
         let manifest_digest = validate_manifest(&manifest).unwrap();
         let forecast = ActionParameterForecastV1 {
             episode_id: "episode-tolerance".to_string(),
-            turn_id: 1,
+            turn_id: "turn-1".to_string(),
             transcript_head_sha256: hex_sha256(b"head"),
             eligible_action_ids: vec![manifest.action_id.clone()],
             actions: vec![ForecastActionManifestV1 {
@@ -2004,7 +2004,7 @@ mod tests {
         };
         let acceptance = RequestAcceptanceV1 {
             episode_id: "episode-tolerance".to_string(),
-            turn_id: 1,
+            turn_id: "turn-1".to_string(),
             request_id: "req-tolerance".to_string(),
             action_id: manifest.action_id.clone(),
             parameter_manifest_sha256: manifest_digest.clone(),
@@ -2015,7 +2015,7 @@ mod tests {
         };
         let result = ActionResultV1 {
             episode_id: "episode-tolerance".to_string(),
-            turn_id: 1,
+            turn_id: "turn-1".to_string(),
             request_id: "req-tolerance".to_string(),
             action_id: manifest.action_id,
             parameter_manifest_sha256: manifest_digest,
@@ -2077,7 +2077,7 @@ mod tests {
         let digest_value = validate_manifest(&manifest).unwrap();
         let forecast = ActionParameterForecastV1 {
             episode_id: "episode-1".to_string(),
-            turn_id: 1,
+            turn_id: "turn-1".to_string(),
             transcript_head_sha256: hex_sha256(b"head"),
             eligible_action_ids: vec!["crop-video".to_string(), "listen-audio".to_string()],
             actions: vec![ForecastActionManifestV1 {
