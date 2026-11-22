@@ -162,6 +162,10 @@ pub enum ContactCacheLookupError {
     NonFiniteCachedPoint,
     /// The distance calculation overflowed despite finite point coordinates.
     NonFiniteDistance,
+    /// A cached normal or tangent impulse contains NaN or infinity.
+    NonFiniteCachedImpulse,
+    /// A cached normal impulse is negative (normal impulses are unilateral).
+    NegativeCachedNormalImpulse,
     /// More than one cached point fell inside the matching radius.
     ///
     /// Without stable feature/contact identities, choosing the nearest entry
@@ -255,6 +259,12 @@ impl<const D: usize> ContactCache<D> {
         let mut unique_match = None;
         let mut matching_entries = 0usize;
         for cached in entries {
+            if !cached.normal_impulse.is_finite() || !cached.tangent_impulse.is_finite() {
+                return Err(ContactCacheLookupError::NonFiniteCachedImpulse);
+            }
+            if cached.normal_impulse < 0.0 {
+                return Err(ContactCacheLookupError::NegativeCachedNormalImpulse);
+            }
             if !cached.point.iter().all(|value| value.is_finite()) {
                 return Err(ContactCacheLookupError::NonFiniteCachedPoint);
             }
@@ -459,6 +469,54 @@ mod tests {
         assert!(matches!(
             cache.lookup_checked(BodyHandle(0), BodyHandle(1), &query),
             Err(ContactCacheLookupError::NonFiniteDistance)
+        ));
+    }
+
+    #[test]
+    fn contact_cache_checked_lookup_rejects_non_finite_cached_impulse() {
+        let mut cache = ContactCache::<3>::new();
+        cache.store(
+            BodyHandle(0),
+            BodyHandle(1),
+            SVector::zeros(),
+            f64::NAN,
+            0.0,
+        );
+        assert!(matches!(
+            cache.lookup_checked(BodyHandle(0), BodyHandle(1), &SVector::zeros()),
+            Err(ContactCacheLookupError::NonFiniteCachedImpulse)
+        ));
+    }
+
+    #[test]
+    fn contact_cache_checked_lookup_rejects_non_finite_cached_tangent_impulse() {
+        let mut cache = ContactCache::<3>::new();
+        cache.store(
+            BodyHandle(0),
+            BodyHandle(1),
+            SVector::zeros(),
+            1.0,
+            f64::INFINITY,
+        );
+        assert!(matches!(
+            cache.lookup_checked(BodyHandle(0), BodyHandle(1), &SVector::zeros()),
+            Err(ContactCacheLookupError::NonFiniteCachedImpulse)
+        ));
+    }
+
+    #[test]
+    fn contact_cache_checked_lookup_rejects_negative_normal_impulse() {
+        let mut cache = ContactCache::<3>::new();
+        cache.store(
+            BodyHandle(0),
+            BodyHandle(1),
+            SVector::zeros(),
+            -1.0,
+            0.0,
+        );
+        assert!(matches!(
+            cache.lookup_checked(BodyHandle(0), BodyHandle(1), &SVector::zeros()),
+            Err(ContactCacheLookupError::NegativeCachedNormalImpulse)
         ));
     }
 
