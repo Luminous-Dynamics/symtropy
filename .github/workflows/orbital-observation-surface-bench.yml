@@ -8,6 +8,7 @@ on:
     paths:
       - "tools/orbital-observation-surface-bench/**"
       - "research/orbital/OBSERVATION_SURFACE_IDENTIFIABILITY_BENCHMARK_V0_3.md"
+      - "research/orbital/DECISION_IDENTIFIABILITY_BENCHMARK_V0_1.md"
       - ".github/workflows/orbital-observation-surface-bench.yml"
   push:
     branches:
