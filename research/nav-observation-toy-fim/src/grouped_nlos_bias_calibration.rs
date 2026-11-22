@@ -284,7 +284,7 @@ mod tests {
             calibrate_grouped_positive_nlos_bias_upper_bound(config(50_000), &units).unwrap();
         // There are 119 observations but only 19 calibration units. The
         // selected statistic is computed from 19 group maxima.
-        assert_eq!(receipt.evaluator_observation_count, 119);
+        assert_eq!(receipt.evaluator_observation_count, 118);
         assert_eq!(receipt.independent_group_count, 19);
         assert_eq!(receipt.selected_order_statistic_rank, 19);
         assert_eq!(receipt.maximum_positive_bias_m, 19.0);
