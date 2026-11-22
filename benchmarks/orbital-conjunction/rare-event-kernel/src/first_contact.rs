@@ -14,10 +14,10 @@
 
 use crate::bernstein::{
     Bound, bernstein_hull, evaluate_bernstein, norm_bounds, power_to_bernstein,
-    split_bernstein_half,
+    safe_midpoint, split_bernstein_half,
 };
 use crate::coverage::Interval;
-use crate::{KernelError, safe_midpoint};
+use crate::KernelError;
 
 /// Configuration for chronological first-contact isolation on a polynomial window.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -347,5 +347,207 @@ fn report(
         budget_exhausted,
         earlier_time_proven_clear,
         search_complete_for_first_contact,
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn interval(lower: f64, upper: f64) -> Interval {
+        Interval::new(lower, upper).expect("valid interval")
+    }
+
+    fn config(
+        time_lower_seconds: f64,
+        time_upper_seconds: f64,
+        hard_body_radius: f64,
+        time_width_tolerance_seconds: f64,
+        max_time_intervals: usize,
+        max_depth: usize,
+    ) -> FirstContactIsolationConfig {
+        FirstContactIsolationConfig {
+            time_lower_seconds,
+            time_upper_seconds,
+            hard_body_radius,
+            time_width_tolerance_seconds,
+            max_time_intervals,
+            max_depth,
+        }
+    }
+
+    #[test]
+    fn transverse_crossing_returns_a_bracket_containing_the_analytic_root() {
+        let root = 0.37_f64;
+        let report = isolate_polynomial_first_contact(
+            &[vec![interval(1.0, 1.0), interval(-1.0, -1.0)]],
+            config(0.0, 1.0, 0.63, 0.02, 512, 24),
+        )
+        .expect("valid crossing");
+        assert_eq!(report.disposition, FirstContactDisposition::FirstContactBracket);
+        let (lower, upper) = report
+            .first_contact_time_bounds_seconds
+            .expect("first-contact bracket");
+        assert!(lower <= root && root <= upper);
+        assert!(upper - lower <= 0.02);
+        assert!(report.earlier_time_proven_clear);
+        assert!(report.search_complete_for_first_contact);
+    }
+
+    #[test]
+    fn dependency_heavy_polynomial_is_proven_clear_after_subdivision() {
+        let report = isolate_polynomial_first_contact(
+            &[vec![
+                interval(1.0, 1.0),
+                interval(0.0, 0.0),
+                interval(1.0, 1.0),
+            ]],
+            config(-1.0, 1.0, 0.5, 0.01, 64, 8),
+        )
+        .expect("valid no-contact polynomial");
+        assert_eq!(
+            report.disposition,
+            FirstContactDisposition::DefinitelyNoContact
+        );
+        assert!(report.excluded_time_intervals > 1);
+        assert!(report.search_complete_for_first_contact);
+        assert!(report.earlier_time_proven_clear);
+    }
+
+    #[test]
+    fn enter_exit_event_with_both_root_cell_endpoints_outside_is_found() {
+        // r(t) = (t - 0.5)^2 enters and exits HBR while r(0), r(1) are outside.
+        let report = isolate_polynomial_first_contact(
+            &[vec![
+                interval(0.25, 0.25),
+                interval(-1.0, -1.0),
+                interval(1.0, 1.0),
+            ]],
+            config(0.0, 1.0, 0.1, 0.02, 1024, 24),
+        )
+        .expect("valid enter-exit polynomial");
+        assert_eq!(report.disposition, FirstContactDisposition::FirstContactBracket);
+        let (lower, upper) = report
+            .first_contact_time_bounds_seconds
+            .expect("first entry bracket");
+        let analytic_first_root = 0.5 - 0.1_f64.sqrt();
+        assert!(lower <= analytic_first_root && analytic_first_root <= upper);
+        assert!(upper - lower <= 0.02);
+    }
+
+    #[test]
+    fn a_common_bracket_covers_root_times_for_an_interval_coefficient_family() {
+        // r(t) = 1 - c*t, with c in [1.0, 1.1]. The first HBR crossing
+        // times range from 0.6 down to approximately 0.54545.
+        let report = isolate_polynomial_first_contact(
+            &[vec![interval(1.0, 1.0), interval(-1.1, -1.0)]],
+            config(0.0, 1.0, 0.4, 0.3, 128, 8),
+        )
+        .expect("valid coefficient family");
+        assert_eq!(report.disposition, FirstContactDisposition::FirstContactBracket);
+        let (lower, upper) = report
+            .first_contact_time_bounds_seconds
+            .expect("common first-contact bracket");
+        let earliest_root = 0.6 / 1.1;
+        let latest_root = 0.6;
+        assert!(lower <= earliest_root);
+        assert!(upper >= latest_root);
+        assert!(upper - lower <= 0.3);
+    }
+
+    #[test]
+    fn contact_present_at_horizon_start_has_degenerate_first_hit_bracket() {
+        let report = isolate_polynomial_first_contact(
+            &[vec![interval(0.2, 0.2), interval(0.1, 0.1)]],
+            config(0.0, 1.0, 0.5, 0.01, 32, 8),
+        )
+        .expect("valid start-contact polynomial");
+        assert_eq!(report.disposition, FirstContactDisposition::FirstContactBracket);
+        assert_eq!(report.first_contact_time_bounds_seconds, Some((0.0, 0.0)));
+    }
+
+    #[test]
+    fn exact_tangency_remains_ambiguous() {
+        // r(t) = (t - 0.5)^2 + 0.1 only touches the radius 0.1.
+        let report = isolate_polynomial_first_contact(
+            &[vec![
+                interval(0.35, 0.35),
+                interval(-1.0, -1.0),
+                interval(1.0, 1.0),
+            ]],
+            config(0.0, 1.0, 0.1, 0.001, 2048, 18),
+        )
+        .expect("valid tangency polynomial");
+        assert_eq!(report.disposition, FirstContactDisposition::Ambiguous);
+        assert!(!report.search_complete_for_first_contact);
+    }
+
+    #[test]
+    fn a_boundary_only_root_at_a_subdivision_endpoint_is_not_overclaimed() {
+        let report = isolate_polynomial_first_contact(
+            &[vec![interval(1.0, 1.0), interval(-1.0, -1.0)]],
+            config(0.0, 1.0, 0.5, 0.001, 2048, 14),
+        )
+        .expect("valid exact-boundary polynomial");
+        assert_eq!(report.disposition, FirstContactDisposition::Ambiguous);
+        assert!(report.earlier_time_proven_clear);
+    }
+
+    #[test]
+    fn budget_exhaustion_is_ambiguous_and_counted() {
+        let report = isolate_polynomial_first_contact(
+            &[vec![
+                interval(0.35, 0.35),
+                interval(-1.0, -1.0),
+                interval(1.0, 1.0),
+            ]],
+            config(0.0, 1.0, 0.1, 0.001, 1, 20),
+        )
+        .expect("valid budgeted search");
+        assert_eq!(report.disposition, FirstContactDisposition::Ambiguous);
+        assert!(report.budget_exhausted);
+        assert!(report.remaining_time_intervals > 0);
+    }
+
+    #[test]
+    fn depth_exhaustion_is_ambiguous_without_claiming_budget_exhaustion() {
+        let report = isolate_polynomial_first_contact(
+            &[vec![
+                interval(0.25, 0.25),
+                interval(-1.0, -1.0),
+                interval(1.0, 1.0),
+            ]],
+            config(0.0, 1.0, 0.1, 1.0e-8, 64, 0),
+        )
+        .expect("valid depth-limited search");
+        assert_eq!(report.disposition, FirstContactDisposition::Ambiguous);
+        assert!(!report.budget_exhausted);
+        assert_eq!(report.unresolved_time_intervals, 1);
+    }
+
+    #[test]
+    fn invalid_configuration_fails_closed() {
+        assert_eq!(
+            isolate_polynomial_first_contact(
+                &[],
+                config(0.0, 1.0, 1.0, 0.1, 32, 8)
+            ),
+            Err(KernelError::EmptyDimension)
+        );
+        assert_eq!(
+            isolate_polynomial_first_contact(
+                &[vec![interval(1.0, 1.0)]],
+                config(0.0, 1.0, 1.0, 0.0, 32, 8)
+            ),
+            Err(KernelError::InvalidTimeTolerance)
+        );
+        assert_eq!(
+            isolate_polynomial_first_contact(
+                &[vec![interval(1.0, 1.0)]],
+                config(0.0, 1.0, 1.0, 0.1, 0, 8)
+            ),
+            Err(KernelError::InvalidTrajectoryBudget)
+        );
     }
 }
