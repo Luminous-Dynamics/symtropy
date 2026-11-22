@@ -196,6 +196,60 @@ pub fn student_t_protection_levels(
     Ok(result)
 }
 
+/// Side-by-side audit of the article's printed directional formula and the
+/// conventional covariance projection along the local navigation axes.
+///
+/// The first pair reproduces the paper's equation exactly. The second pair
+/// computes e_i^T P e_i = sum_j lambda_j * v_{j,i}^2 and applies the same
+/// 2D radial Student-t multiplier. It is a separate mathematical comparator,
+/// not a change to the paper baseline and not a claim that the distribution
+/// itself is calibrated.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct DirectionalProjectionAudit {
+    pub paper_longitudinal_pl_m: f64,
+    pub paper_lateral_pl_m: f64,
+    pub covariance_longitudinal_variance_m2: f64,
+    pub covariance_lateral_variance_m2: f64,
+    pub covariance_longitudinal_pl_m: f64,
+    pub covariance_lateral_pl_m: f64,
+}
+
+/// Compare printed directional bounds with actual covariance projections.
+///
+/// All inputs use the same covariance, degrees of freedom and radial-tail
+/// multiplier so that only the directional projection convention differs.
+pub fn audit_directional_projection(
+    covariance: Covariance2,
+    degrees_of_freedom: f64,
+    k_tir_2d: f64,
+) -> Result<DirectionalProjectionAudit, StudentTPlError> {
+    let frame = covariance.eigenframe()?;
+    let paper = student_t_protection_levels(covariance, degrees_of_freedom, k_tir_2d)?;
+    let radial_scale = k_tir_2d * (degrees_of_freedom - 2.0).sqrt();
+    let projected_variance = |axis: usize| {
+        frame.lambda_max * frame.maximum_axis[axis].powi(2)
+            + frame.lambda_min * frame.minimum_axis[axis].powi(2)
+    };
+    let longitudinal_variance = projected_variance(0);
+    let lateral_variance = projected_variance(1);
+    let result = DirectionalProjectionAudit {
+        paper_longitudinal_pl_m: paper.longitudinal_pl_m,
+        paper_lateral_pl_m: paper.lateral_pl_m,
+        covariance_longitudinal_variance_m2: longitudinal_variance,
+        covariance_lateral_variance_m2: lateral_variance,
+        covariance_longitudinal_pl_m: radial_scale * longitudinal_variance.max(0.0).sqrt(),
+        covariance_lateral_pl_m: radial_scale * lateral_variance.max(0.0).sqrt(),
+    };
+    if !result.covariance_longitudinal_variance_m2.is_finite()
+        || !result.covariance_lateral_variance_m2.is_finite()
+        || !result.covariance_longitudinal_pl_m.is_finite()
+        || !result.covariance_lateral_pl_m.is_finite()
+    {
+        return Err(StudentTPlError::NonFiniteOutput);
+    }
+    Ok(result)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -270,6 +324,34 @@ mod tests {
             .collect();
         assert_eq!(results.len(), 8);
         assert!(results.windows(2).all(|w| w[0].overall_pl_m > w[1].overall_pl_m));
+    }
+
+    #[test]
+    fn rotated_covariance_exposes_difference_in_directional_projection_conventions() {
+        // Eigenvalues 2 and 1, rotated by 45 degrees:
+        // P = [[1.5, 0.5], [0.5, 1.5]]. The covariance projection on either
+        // coordinate axis is 1.5, while the paper's printed max(lambda*|v|)
+        // term is max(2/sqrt(2), 1/sqrt(2)) = sqrt(2).
+        let covariance = Covariance2 { xx: 1.5, xy: 0.5, yy: 1.5 };
+        let audit = audit_directional_projection(covariance, 4.0, 2.0).unwrap();
+        assert!((audit.covariance_longitudinal_variance_m2 - 1.5).abs() < 1.0e-12);
+        assert!((audit.covariance_lateral_variance_m2 - 1.5).abs() < 1.0e-12);
+        assert!(audit.paper_longitudinal_pl_m < audit.covariance_longitudinal_pl_m);
+        assert!(audit.paper_lateral_pl_m < audit.covariance_lateral_pl_m);
+        let paper_ratio =
+            audit.paper_longitudinal_pl_m / audit.covariance_longitudinal_pl_m;
+        assert!((paper_ratio - (2.0_f64.sqrt() / 1.5).sqrt()).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn directional_projection_audit_preserves_diagonal_covariance_axes() {
+        let covariance = Covariance2 { xx: 9.0, xy: 0.0, yy: 1.0 };
+        let audit = audit_directional_projection(covariance, 4.0, 2.0).unwrap();
+        let scale = 2.0 * 2.0_f64.sqrt();
+        assert!((audit.covariance_longitudinal_pl_m - scale * 3.0).abs() < 1.0e-12);
+        assert!((audit.covariance_lateral_pl_m - scale).abs() < 1.0e-12);
+        assert!((audit.paper_longitudinal_pl_m - audit.covariance_longitudinal_pl_m).abs() < 1.0e-12);
+        assert!((audit.paper_lateral_pl_m - audit.covariance_lateral_pl_m).abs() < 1.0e-12);
     }
 
     #[test]
