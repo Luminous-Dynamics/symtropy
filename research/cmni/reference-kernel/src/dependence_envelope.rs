@@ -9,10 +9,12 @@
 //!   C = [[sigma_1^2, rho sigma_1 sigma_2],
 //!        [rho sigma_1 sigma_2, sigma_2^2]].
 //!
-//! The returned interval is exact over the declared rho interval. It does not
-//! prove that the real physical dependence lies inside that interval. A full
-//! evidence receipt must qualify that assumption before the envelope supports
-//! a qualified scientific decision.
+//! The extrema are analytically global over the declared rho interval, up to
+//! ordinary f64 arithmetic. This implementation does not use directed rounding
+//! or formal interval arithmetic, so it is not a machine-certified enclosure.
+//! It also does not prove that the real physical dependence lies inside the
+//! input interval. A full evidence receipt must qualify that assumption before
+//! the result supports a qualified scientific decision.
 
 use crate::ModelError;
 
