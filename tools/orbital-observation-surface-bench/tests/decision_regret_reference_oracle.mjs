@@ -25,7 +25,10 @@ function fraction(value, path) {
       BigInt(value.numerator) > MAX_SAFE ||
       BigInt(value.denominator) > MAX_SAFE ||
       value.numerator > value.denominator) fail(path + ": invalid exact unit-interval rational");
-  return { n: BigInt(value.numerator), d: BigInt(value.denominator), original: value };
+  const n = BigInt(value.numerator);
+  const d = BigInt(value.denominator);
+  const divisor = gcd(n, d);
+  return { n: n / divisor, d: d / divisor };
 }
 function compare(a, b) {
   const left = a.n * b.d, right = b.n * a.d;
