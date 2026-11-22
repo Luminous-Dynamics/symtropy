@@ -52,6 +52,9 @@ pub struct HbrWindowPositionEstimate2d {
     pub position_m: [f64; DIM],
     /// Symmetric local objective curvature with respect to this position.
     pub curvature: [[f64; DIM]; DIM],
+    /// Commitments to the converged local solution and local curvature artifact.
+    pub local_solution_sha256: [u8; 32],
+    pub local_curvature_sha256: [u8; 32],
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -59,6 +62,10 @@ pub struct HbrWindowFusionConfig {
     pub epsilon_kappa: f64,
     /// Relative tolerance for the symmetry check on off-diagonal curvature.
     pub symmetry_tolerance: f64,
+    /// Commitment to the canonical overlapping-window plan.
+    pub window_plan_sha256: [u8; 32],
+    /// Commitment to the epsilon, symmetry tolerance and fusion policy.
+    pub fusion_config_sha256: [u8; 32],
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -70,6 +77,8 @@ pub struct HbrWindowContribution2d {
     pub fusion_weight: f64,
     /// Weight divided by the maximum contributor weight for this time.
     pub normalized_fusion_weight: f64,
+    pub local_solution_sha256: [u8; 32],
+    pub local_curvature_sha256: [u8; 32],
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -85,6 +94,8 @@ pub struct HbrWindowFusionReport2d {
     pub expected_window_position_count: usize,
     pub observed_window_position_count: usize,
     pub epsilon_kappa: f64,
+    pub window_plan_sha256: [u8; 32],
+    pub fusion_config_sha256: [u8; 32],
     pub positions: Vec<HbrFusedPosition2d>,
 }
 
@@ -95,6 +106,10 @@ pub enum HbrWindowFusionError {
     InvalidWindowPlan,
     WindowIdentityOverflow,
     InvalidFusionConfiguration,
+    MissingWindowPlanCommitment,
+    MissingFusionConfigCommitment,
+    MissingLocalSolutionCommitment { window_id: u64, time_index: usize },
+    MissingLocalCurvatureCommitment { window_id: u64, time_index: usize },
     MissingEstimate { window_id: u64, time_index: usize },
     DuplicateEstimate { window_id: u64, time_index: usize },
     UnexpectedWindowIdentity(u64),
@@ -116,6 +131,10 @@ impl fmt::Display for HbrWindowFusionError {
             Self::InvalidWindowPlan => write!(f, "window plan identities, bounds or contributor map are inconsistent"),
             Self::WindowIdentityOverflow => write!(f, "window identity overflowed"),
             Self::InvalidFusionConfiguration => write!(f, "fusion epsilon must be finite and positive and symmetry tolerance finite and nonnegative"),
+            Self::MissingWindowPlanCommitment => write!(f, "window-plan SHA-256 commitment must be nonzero"),
+            Self::MissingFusionConfigCommitment => write!(f, "fusion-configuration SHA-256 commitment must be nonzero"),
+            Self::MissingLocalSolutionCommitment { window_id, time_index } => write!(f, "local solution commitment is missing for window {window_id}, time {time_index}"),
+            Self::MissingLocalCurvatureCommitment { window_id, time_index } => write!(f, "local curvature commitment is missing for window {window_id}, time {time_index}"),
             Self::MissingEstimate { window_id, time_index } => write!(f, "window {window_id} is missing its local position estimate at time {time_index}"),
             Self::DuplicateEstimate { window_id, time_index } => write!(f, "window {window_id} has duplicate local position estimates at time {time_index}"),
             Self::UnexpectedWindowIdentity(id) => write!(f, "local estimate references an unknown window: {id}"),
@@ -274,6 +293,12 @@ pub fn fuse_hbr_window_positions_2d(
     {
         return Err(HbrWindowFusionError::InvalidFusionConfiguration);
     }
+    if config.window_plan_sha256.iter().all(|byte| *byte == 0) {
+        return Err(HbrWindowFusionError::MissingWindowPlanCommitment);
+    }
+    if config.fusion_config_sha256.iter().all(|byte| *byte == 0) {
+        return Err(HbrWindowFusionError::MissingFusionConfigCommitment);
+    }
 
     if plan.trajectory_length == 0
         || plan.windows.is_empty()
@@ -346,6 +371,18 @@ pub fn fuse_hbr_window_positions_2d(
                 time_index: estimate.time_index,
             });
         }
+        if estimate.local_solution_sha256.iter().all(|byte| *byte == 0) {
+            return Err(HbrWindowFusionError::MissingLocalSolutionCommitment {
+                window_id: estimate.window_id,
+                time_index: estimate.time_index,
+            });
+        }
+        if estimate.local_curvature_sha256.iter().all(|byte| *byte == 0) {
+            return Err(HbrWindowFusionError::MissingLocalCurvatureCommitment {
+                window_id: estimate.window_id,
+                time_index: estimate.time_index,
+            });
+        }
         let trace = positive_curvature_trace_2x2(
             estimate.curvature,
             config.symmetry_tolerance,
@@ -378,6 +415,8 @@ pub fn fuse_hbr_window_positions_2d(
             positive_curvature_trace: trace,
             fusion_weight,
             normalized_fusion_weight: 0.0,
+            local_solution_sha256: estimate.local_solution_sha256,
+            local_curvature_sha256: estimate.local_curvature_sha256,
         });
     }
 
@@ -451,6 +490,8 @@ pub fn fuse_hbr_window_positions_2d(
         expected_window_position_count: expected_count,
         observed_window_position_count: estimates_by_key.len(),
         epsilon_kappa: config.epsilon_kappa,
+        window_plan_sha256: config.window_plan_sha256,
+        fusion_config_sha256: config.fusion_config_sha256,
         positions,
     })
 }
@@ -479,6 +520,8 @@ mod tests {
             time_index,
             position_m,
             curvature,
+            local_solution_sha256: [0xA1; 32],
+            local_curvature_sha256: [0xB2; 32],
         }
     }
 
@@ -486,6 +529,8 @@ mod tests {
         HbrWindowFusionConfig {
             epsilon_kappa: 1e-6,
             symmetry_tolerance: 1e-12,
+            window_plan_sha256: [0xC3; 32],
+            fusion_config_sha256: [0xD4; 32],
         }
     }
 
@@ -678,6 +723,43 @@ mod tests {
             ),
             Err(HbrWindowFusionError::InvalidPositionEstimate { .. })
         ));
+    }
+
+    #[test]
+    fn fusion_requires_plan_local_solution_and_curvature_commitments() {
+        let window_plan = plan(1, 1, 0);
+        let valid_estimate = estimate(1, 0, [1.0, 2.0], [[1.0, 0.0], [0.0, 1.0]]);
+        let mut invalid_config = fusion_config();
+        invalid_config.window_plan_sha256 = [0; 32];
+        assert_eq!(
+            fuse_hbr_window_positions_2d(&window_plan, &[valid_estimate], invalid_config),
+            Err(HbrWindowFusionError::MissingWindowPlanCommitment)
+        );
+        invalid_config = fusion_config();
+        invalid_config.fusion_config_sha256 = [0; 32];
+        assert_eq!(
+            fuse_hbr_window_positions_2d(&window_plan, &[valid_estimate], invalid_config),
+            Err(HbrWindowFusionError::MissingFusionConfigCommitment)
+        );
+
+        let mut invalid_estimate = valid_estimate;
+        invalid_estimate.local_solution_sha256 = [0; 32];
+        assert_eq!(
+            fuse_hbr_window_positions_2d(&window_plan, &[invalid_estimate], fusion_config()),
+            Err(HbrWindowFusionError::MissingLocalSolutionCommitment {
+                window_id: 1,
+                time_index: 0
+            })
+        );
+        invalid_estimate = valid_estimate;
+        invalid_estimate.local_curvature_sha256 = [0; 32];
+        assert_eq!(
+            fuse_hbr_window_positions_2d(&window_plan, &[invalid_estimate], fusion_config()),
+            Err(HbrWindowFusionError::MissingLocalCurvatureCommitment {
+                window_id: 1,
+                time_index: 0
+            })
+        );
     }
 
     #[test]
