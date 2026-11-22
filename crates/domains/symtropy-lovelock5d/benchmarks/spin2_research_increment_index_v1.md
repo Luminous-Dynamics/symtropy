@@ -186,3 +186,34 @@ The verifier was fetched by public Git blob SHA and executed locally byte-for-by
 This does not invalidate the exact Einstein-limit full-rank result. It narrows interpretation: \(\kappa_2=4\) is the correct value in the published raw coordinates, not an invariant physical conditioning value. Future finite-coupling continuation must record the raw map, freeze declared endpoint metrics before a parameter sweep, and report metric-aware conditioning separately from rank/invertibility.
 
 Claim ceiling: coordinate-covariance identities only; no calculation of the missing \(J_1\), finite-coupling BVP, interval existence theorem, or hyperbolicity result is established by this increment.
+
+
+## Boundary-map normalization and observable-overlap branch controls (22 November 2026)
+
+Two exact/metamorphic controls extend the branch qualification architecture.
+
+### Coordinate-aware boundary-map conditioning
+
+New artifacts:
+- \`spin2_boundary_map_normalization_v1.md\`
+- \`verify_spin2_boundary_map_normalization.py\`
+- \`spin2_boundary_map_normalization_replay_v1.json\`
+
+The exact-rational verifier was fetched and executed from the exact public Git blob. It passed coordinate covariance for the determinant, the first-order transformation law for coupling-dependent endpoint bases, and invariance of generalized singular-value data when domain/range metrics are transformed consistently. It demonstrates raw Euclidean condition numbers 4, 1 and 16 for different endpoint-amplitude normalizations of the same physical \(J_0\).
+
+The consequence is methodological: the published \(\kappa_2=4\) remains correct in its basis, but physical loss of invertibility must be tracked through rank/nullity and conditioning in frozen, declared endpoint metrics. This does not supply the missing finite-coupling \(J_1\).
+
+### Observable self-overlap versus a true fold
+
+New artifacts:
+- \`branch_atlas_projection_overlap_reference.py\`
+- \`branch_atlas_projection_overlap_fixture_v1.json\`
+- \`branch_atlas_projection_overlap_replay_v1.json\`
+
+The exact public verifier blob (Git SHA-1 \`14b3981b1092b93a7bf1c0d54349d21cea471c14\`) was replayed locally. The synthetic branch \(U(\lambda)=(\lambda,\lambda^2)\) has the same scalar observable at \(\lambda=\pm1/2\), while its two full states are different, the original residuals vanish exactly, and the full state Jacobian remains the identity. The distinct \(u^2-\lambda=0\) control exhibits a true simple parameter fold.
+
+This encodes a critical Akribeia-inspired distinction: repeated values of a metric profile component do not establish a fold, bifurcation or disconnected black-hole solution. Those require full-solution Jacobian, tangent and transversality evidence. The target 5D EGB branch has not yet been reproduced or classified.
+
+Related new tasks:
+- #6831 — coordinate-aware boundary-map conditioning from the reduced action.
+- #6833 — distinguish observable crossings from true solution-branch folds.
