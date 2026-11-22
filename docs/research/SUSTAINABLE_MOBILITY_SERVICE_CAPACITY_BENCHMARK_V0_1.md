@@ -371,43 +371,23 @@ These are targets. A passing synthetic evaluator test does not establish any of 
 
 ## 18. Exact-head v0.1 verification and frozen fixture result
 
-Exact-head Actions run [#45066300699](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45066300699) at `f043d97e68f2ae84ef303f2eb09bbf26d97d2c22` passed:
+Exact-head Actions run [#45067111854](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45067111854) at `21946ec215c02cbc0ea3beac2d768857e1a37377` passed:
 - strict schema/fixture JSON parsing;
 - package workspace `cargo fmt --check`;
 - `cargo test`;
-- deterministic report assertions;
+- deterministic report assertions including the steady-state and initial-inventory capacity bounds;
 - report artifact upload.
 
-The base implementation test binaries reported 154 + 16 + 8 + 9 = **187 passed, 0 failed**. Two follow-on source changes add the independent 20-case tick oracle and steady-state/initial-inventory bounds; final exact-head verification for those changes is pending. The service-capacity module now contains 18 focused Rust tests. Clippy is not part of this workflow and remains unverified.
+The test binaries reported 156 + 16 + 8 + 9 = **189 passed, 0 failed**. All 18 tests in the service-capacity module passed. They include the independent second-by-second tick oracle across 20 bounded architecture profiles, the closed-form no-replenishment oracle, pack conservation, site/channel headroom, and finite-horizon inventory drawdown bounds. Clippy is not part of this workflow and remains unverified.
 
 The eight-hour frozen synthetic fixture produced:
 
-| Architecture profile | Effective channels | Completed modeled sorties | Sorties / wall-clock hour |
-| --- | ---: | ---: | ---: |
-| Direct single-pack recharge | 1 | 11 | 1.375 |
-| Dock 4-shaped, 3 spares / 2 channels | 2 | 38 | 4.750 |
-| Same profile, site-limited to 1 channel | 1 | 21 | 2.625 |
-| Two-aircraft shared pool, site-limited to 3 channels | 3 | 58 | 7.250 |
+| Architecture profile | Effective channels | Finite-horizon modeled sorties | Finite rate / h | Steady-state ceiling / h |
+| --- | ---: | ---: | ---: | ---: |
+| Direct single-pack recharge | 1 | 11 | 1.375 | 2.222 |
+| Dock 4-shaped, 3 spares / 2 channels | 2 | 38 | 4.750 | 4.444 |
+| Same profile, site-limited to 1 channel | 1 | 21 | 2.625 | 2.222 |
+| Two-aircraft shared pool, site-limited to 3 channels | 3 | 58 | 7.250 | 6.667 |
 
-These figures are deterministic fixture outputs from the supplied parameters. They are not DJI performance, observed aircraft uptime, delivered customer requests or successful on-time missions. The simulator assumes every sortie completes and has no stochastic demand, weather, permission, maintenance or mission-failure process. The four architecture profiles also differ in aircraft count and mission duration; they are not a normalized leaderboard. A fair comparative claim requires a matched workload and capital/resource budget across all candidates.
+The finite-horizon result can temporarily exceed the steady-state replenishment ceiling because the simulation consumes initial ready packs and ends with a charge backlog / aircraft waiting. The explicit initial-stock allowance bounds that drawdown. The steady-state ceiling is the minimum of the aircraft mission-cycle rate and charging replenishment rate. These are deterministic fixture outputs, not DJI performance, observed aircraft uptime, successful customer deliveries or commercial throughput. The simulator assumes every launched sortie completes and the profiles do not share identical mission lengths/aircraft counts; they are not a normalized leaderboard.
 
-### Steady-state versus finite-horizon throughput
-
-A key anti-overclaim rule is now encoded in the report. The finite simulation can consume charged packs present at time zero; that can temporarily produce more sorties per hour than the long-run charging loop can replenish. The sustainable upper bound is:
-
-[
-C_{steady} = minleft(
-rac{N_{aircraft},3600}{T_{mission}+T_{turnaround}},
-rac{N_{effective,channels},3600}{T_{charge}}
-ight)
-]
-
-The finite-horizon rate is separately bounded by:
-
-[
-C_{finite} le C_{steady} + rac{N_{initial,packs}}{H_{hours}}
-]
-
-The second term is an intentionally conservative inventory drawdown allowance. The report includes the aircraft cycle ceiling, charging replenishment ceiling, their minimum, the initial stock allowance and the observed excess above the steady-state ceiling. A high short-window result is therefore not silently described as sustainable replenishment capacity.
-
-For the Dock 4-shaped synthetic profile with two effective channels and a 1,620-second charge duration, the model's charging-only steady-state ceiling is (2 	imes 3600 / 1620 approx 4.444) sessions/hour. The earlier 38 modeled sorties over eight hours (4.75/hour) consume initial ready inventory and end with charging backlog/wait; that is a finite-horizon stock-drawdown result, not a steady-state Dock 4 mission rate. The manufacturer's 27-minute charge duration and two charging-channel count do not disclose actual flight energy consumption, channel input power, queue distribution or field duty mix, so this is not a vendor throughput estimate.
