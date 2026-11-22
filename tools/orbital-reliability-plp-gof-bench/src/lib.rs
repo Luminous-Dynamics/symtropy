@@ -266,7 +266,10 @@ pub fn estimate_beta_and_statistics(
     let mut sum_log_ratio = 0.0;
     for time in event_times_seconds {
         if *time == 0 || *time >= exposure_end_seconds || *time <= previous {
-            return Err("event times must be strictly increasing inside the fixed observation window".to_owned());
+            return Err(
+                "event times must be strictly increasing inside the fixed observation window"
+                    .to_owned(),
+            );
         }
         let delta = (exposure_end_seconds - *time) as f64;
         sum_log_ratio += (delta / *time as f64).ln_1p();
@@ -369,14 +372,9 @@ fn component_monte_carlo_result(
     tail: TailSummary<'_>,
     replicates: usize,
 ) -> Result<StatisticMonteCarloResult, String> {
-    let (
-        tail_probability_estimate,
-        monte_carlo_standard_error,
-        wilson_95_lower,
-        wilson_95_upper,
-    ) = wilson_interval(tail.selected_exceedances, replicates)?;
-    let one_sided_p =
-        (tail.selected_exceedances as f64 + 1.0) / (replicates as f64 + 1.0);
+    let (tail_probability_estimate, monte_carlo_standard_error, wilson_95_lower, wilson_95_upper) =
+        wilson_interval(tail.selected_exceedances, replicates)?;
+    let one_sided_p = (tail.selected_exceedances as f64 + 1.0) / (replicates as f64 + 1.0);
     let monte_carlo_p_value = (tail.tail_multiplier * one_sided_p).min(1.0);
     Ok(StatisticMonteCarloResult {
         statistic_id: statistic_id.to_owned(),
@@ -646,7 +644,9 @@ fn evaluate_case(case: &GofCase) -> Decision {
             beta_hat: None,
             observed_cvm: None,
             monte_carlo: None,
-            blockers: blocker("familywise_monte_carlo_resolution_or_seed_outside_predeclared_contract"),
+            blockers: blocker(
+                "familywise_monte_carlo_resolution_or_seed_outside_predeclared_contract",
+            ),
         };
     }
     if case.event_times_seconds.len() < MIN_EVENTS {
@@ -922,17 +922,27 @@ mod tests {
         assert_eq!(result.component_results.len(), STATISTIC_COUNT);
         assert!(result.monte_carlo_p_value >= 1.0 / 1000.0);
         assert!(result.monte_carlo_p_value <= 1.0);
-        assert!(result.bonferroni_adjusted_min_p_value >= result.monte_carlo_p_value.min(
-            result.component_results.iter().map(|component| component.monte_carlo_p_value)
-                .fold(1.0_f64, f64::min)
-        ));
+        assert!(
+            result.bonferroni_adjusted_min_p_value
+                >= result.monte_carlo_p_value.min(
+                    result
+                        .component_results
+                        .iter()
+                        .map(|component| component.monte_carlo_p_value)
+                        .fold(1.0_f64, f64::min)
+                )
+        );
         assert!(result.bonferroni_adjusted_min_p_value <= 1.0);
         assert_eq!(
             result.familywise_minimum_p_value,
             (STATISTIC_COUNT as f64 / 1000.0).min(1.0)
         );
         assert_eq!(
-            result.component_results.iter().map(|x| x.statistic_id.as_str()).collect::<Vec<_>>(),
+            result
+                .component_results
+                .iter()
+                .map(|x| x.statistic_id.as_str())
+                .collect::<Vec<_>>(),
             vec![
                 "laplace-two-sided-v1",
                 "greenwood-two-sided-v1",
