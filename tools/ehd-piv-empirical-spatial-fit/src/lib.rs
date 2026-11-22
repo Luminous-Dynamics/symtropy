@@ -821,6 +821,9 @@ impl SpatialFitValidation {
             || !self.maximum_allowed_absolute_correlation_fit_error.is_finite()
             || self.maximum_absolute_correlation_fit_error < 0.0
             || self.maximum_allowed_absolute_correlation_fit_error <= 0.0
+            || self.maximum_allowed_absolute_correlation_fit_error != fit.maximum_validation_correlation_error
+            || self.validation_acquisition_count < MIN_INDEPENDENT_ACQUISITIONS
+            || !valid_sha256(&self.validation_manifest_sha256)
             || self.receipt_id.trim().is_empty()
             || self.fit_config_id != fit.fit_config_id
             || self.fit_protocol_fingerprint != fit.protocol_fingerprint
@@ -938,6 +941,38 @@ mod tests {
         let kernel = report.to_spatial_error_kernel(&fit).unwrap();
         assert_eq!(kernel.calibration_receipt.independent_acquisition_count, 256);
         assert_eq!(kernel.model_id, SUPPORTED_MODEL_ID);
+    }
+
+    #[test]
+    fn qualified_receipt_is_bound_to_the_exact_calibration_fit() {
+        let calibration = synthetic_fields("cal-bound", 256, 0x1234, 2.0);
+        let validation = synthetic_fields("val-bound", 256, 0x9876, 2.0);
+        let fit = fit_spatial_error_kernel(&calibration, &config(), &"a".repeat(64)).unwrap();
+        let report = validate_spatial_error_kernel(
+            &fit, &validation, &"b".repeat(64), "bound-receipt",
+        ).unwrap();
+        let mut substituted = fit.clone();
+        substituted.length_scale_m = 2.5;
+        assert!(matches!(
+            report.to_spatial_error_kernel(&substituted),
+            Err(SpatialFitError::ValidationNotQualified)
+        ));
+    }
+
+    #[test]
+    fn non_symmetric_covariance_cannot_be_exported() {
+        let calibration = synthetic_fields("cal-sym", 256, 0x1234, 2.0);
+        let validation = synthetic_fields("val-sym", 256, 0x9876, 2.0);
+        let fit = fit_spatial_error_kernel(&calibration, &config(), &"a".repeat(64)).unwrap();
+        let report = validate_spatial_error_kernel(
+            &fit, &validation, &"b".repeat(64), "sym-receipt",
+        ).unwrap();
+        let mut invalid = fit.clone();
+        invalid.spatial_component_covariance_m2_s2[0][1] = 0.01;
+        assert!(matches!(
+            report.to_spatial_error_kernel(&invalid),
+            Err(SpatialFitError::NonPositiveSemidefiniteMatrix)
+        ));
     }
 
     #[test]
