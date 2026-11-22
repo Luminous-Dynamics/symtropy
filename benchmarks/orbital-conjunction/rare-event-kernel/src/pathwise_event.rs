@@ -1,0 +1,638 @@
+// Copyright (C) 2026 Luminous Dynamics
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
+//! Deterministic event semantics for joint, pathwise conjunction horizons.
+//!
+//! A single complete trajectory realization is classified once against every
+//! declared encounter window. Window outcomes are combined by logical union;
+//! their marginal probabilities are never added or treated as independent.
+//!
+//! This module does not propagate an orbit, generate trajectory samples,
+//! prove that the windows cover the requested horizon, or estimate a
+//! probability. It is a fail-closed semantic reducer over caller-supplied
+//! window classifications.
+
+use crate::KernelError;
+
+/// One identified close-approach window inside a declared horizon.
+#[derive(Debug, Clone, PartialEq)]
+pub struct EncounterWindow {
+    /// Stable identifier unique within the event definition.
+    pub window_id: String,
+    /// Inclusive start time in seconds relative to the declared epoch.
+    pub start_seconds: f64,
+    /// Inclusive end time in seconds relative to the declared epoch.
+    pub end_seconds: f64,
+}
+
+/// Immutable-in-use definition of a multi-window conjunction event.
+///
+/// Windows may overlap, touch, be nested, or have identical bounds. The
+/// reducer uses their set-union semantics and never assumes independence.
+#[derive(Debug, Clone, PartialEq)]
+pub struct HorizonEventDefinition {
+    event_id: String,
+    revision: String,
+    epoch: String,
+    time_scale: String,
+    reference_frame: String,
+    horizon_start_seconds: f64,
+    horizon_end_seconds: f64,
+    hard_body_radius_m: f64,
+    windows: Vec<EncounterWindow>,
+}
+
+impl HorizonEventDefinition {
+    /// Construct and validate a versioned horizon event definition.
+    ///
+    /// Times are seconds relative to the declared epoch, expressed in the
+    /// declared time scale and reference frame. Window bounds must lie inside
+    /// the horizon. The window list is stored in deterministic chronological
+    /// order.
+    pub fn new(
+        event_id: impl Into<String>,
+        revision: impl Into<String>,
+        epoch: impl Into<String>,
+        time_scale: impl Into<String>,
+        reference_frame: impl Into<String>,
+        horizon_start_seconds: f64,
+        horizon_end_seconds: f64,
+        hard_body_radius_m: f64,
+        mut windows: Vec<EncounterWindow>,
+    ) -> Result<Self, KernelError> {
+        let event_id = event_id.into();
+        let revision = revision.into();
+        let epoch = epoch.into();
+        let time_scale = time_scale.into();
+        let reference_frame = reference_frame.into();
+
+        if event_id.trim().is_empty()
+            || revision.trim().is_empty()
+            || epoch.trim().is_empty()
+            || time_scale.trim().is_empty()
+            || reference_frame.trim().is_empty()
+        {
+            return Err(KernelError::InvalidEventDefinition);
+        }
+        if !horizon_start_seconds.is_finite()
+            || !horizon_end_seconds.is_finite()
+            || horizon_start_seconds > horizon_end_seconds
+        {
+            return Err(KernelError::InvalidEventDefinition);
+        }
+        if !hard_body_radius_m.is_finite() || hard_body_radius_m <= 0.0 {
+            return Err(KernelError::InvalidHardBodyRadius);
+        }
+        if windows.is_empty() {
+            return Err(KernelError::EmptyEncounterWindowSet);
+        }
+
+        for window in &windows {
+            if window.window_id.trim().is_empty()
+                || !window.start_seconds.is_finite()
+                || !window.end_seconds.is_finite()
+                || window.start_seconds > window.end_seconds
+                || window.start_seconds < horizon_start_seconds
+                || window.end_seconds > horizon_end_seconds
+            {
+                return Err(KernelError::InvalidEncounterWindow);
+            }
+        }
+
+        let mut identifiers = windows
+            .iter()
+            .map(|window| window.window_id.as_str())
+            .collect::<Vec<_>>();
+        identifiers.sort_unstable();
+        if identifiers.windows(2).any(|pair| pair[0] == pair[1]) {
+            return Err(KernelError::DuplicateEncounterWindow);
+        }
+
+        windows.sort_by(|left, right| {
+            left.start_seconds
+                .total_cmp(&right.start_seconds)
+                .then_with(|| left.end_seconds.total_cmp(&right.end_seconds))
+                .then_with(|| left.window_id.cmp(&right.window_id))
+        });
+
+        Ok(Self {
+            event_id,
+            revision,
+            epoch,
+            time_scale,
+            reference_frame,
+            horizon_start_seconds,
+            horizon_end_seconds,
+            hard_body_radius_m,
+            windows,
+        })
+    }
+
+    /// Stable event identifier.
+    pub fn event_id(&self) -> &str {
+        &self.event_id
+    }
+
+    /// Immutable event-definition revision.
+    pub fn revision(&self) -> &str {
+        &self.revision
+    }
+
+    /// Epoch to which the relative time coordinates refer.
+    pub fn epoch(&self) -> &str {
+        &self.epoch
+    }
+
+    /// Declared time scale, for example TAI or UTC.
+    pub fn time_scale(&self) -> &str {
+        &self.time_scale
+    }
+
+    /// Declared relative-position reference frame.
+    pub fn reference_frame(&self) -> &str {
+        &self.reference_frame
+    }
+
+    /// Inclusive horizon start in seconds relative to the epoch.
+    pub fn horizon_start_seconds(&self) -> f64 {
+        self.horizon_start_seconds
+    }
+
+    /// Inclusive horizon end in seconds relative to the epoch.
+    pub fn horizon_end_seconds(&self) -> f64 {
+        self.horizon_end_seconds
+    }
+
+    /// Hard-body radius in metres used by the declared event definition.
+    pub fn hard_body_radius_m(&self) -> f64 {
+        self.hard_body_radius_m
+    }
+
+    /// Encounter windows in deterministic chronological order.
+    pub fn windows(&self) -> &[EncounterWindow] {
+        &self.windows
+    }
+
+    /// Reduce one set of window outcomes for one joint trajectory realization.
+    ///
+    /// Exactly one outcome is required for each declared window, and every
+    /// outcome must name the same trajectory-realization identifier. An
+    /// overall contact is definite if any window is definitely contact; an
+    /// overall no-contact result requires every window to be definitely
+    /// outside. All remaining cases are ambiguous.
+    ///
+    /// The first-contact time is reported only if a definite contact is known
+    /// and no earlier-starting ambiguous window could contain an earlier
+    /// contact. This is stricter than selecting the earliest reported contact.
+    pub fn classify_realization(
+        &self,
+        outcomes: &[PathWindowOutcome],
+    ) -> Result<PathwiseHorizonOutcome, KernelError> {
+        if outcomes.len() != self.windows.len() {
+            return Err(KernelError::MissingEncounterWindowOutcome);
+        }
+
+        let realization_id = outcomes
+            .first()
+            .map(|outcome| outcome.realization_id.trim())
+            .filter(|value| !value.is_empty())
+            .ok_or(KernelError::InvalidTrajectoryRealization)?;
+
+        if outcomes
+            .iter()
+            .any(|outcome| outcome.realization_id.trim() != realization_id)
+        {
+            return Err(KernelError::MismatchedTrajectoryRealization);
+        }
+
+        let mut by_window = Vec::with_capacity(outcomes.len());
+        for outcome in outcomes {
+            let index = self
+                .windows
+                .iter()
+                .position(|window| window.window_id == outcome.window_id)
+                .ok_or(KernelError::UnknownEncounterWindow)?;
+            if by_window.iter().any(|(seen, _)| *seen == index) {
+                return Err(KernelError::DuplicateEncounterWindowOutcome);
+            }
+
+            if let PathWindowDisposition::DefinitelyContact {
+                first_contact_time_seconds,
+            } = outcome.disposition
+            {
+                let window = &self.windows[index];
+                if !first_contact_time_seconds.is_finite()
+                    || first_contact_time_seconds < window.start_seconds
+                    || first_contact_time_seconds > window.end_seconds
+                {
+                    return Err(KernelError::InvalidEncounterContactTime);
+                }
+            }
+            by_window.push((index, outcome));
+        }
+
+        if self
+            .windows
+            .iter()
+            .enumerate()
+            .any(|(index, _)| !by_window.iter().any(|(seen, _)| *seen == index))
+        {
+            return Err(KernelError::MissingEncounterWindowOutcome);
+        }
+
+        let mut contact_times = Vec::new();
+        let mut contacting_window_ids = Vec::new();
+        let mut unresolved_window_ids = Vec::new();
+
+        for (index, outcome) in by_window {
+            match outcome.disposition {
+                PathWindowDisposition::DefinitelyNoContact => {}
+                PathWindowDisposition::DefinitelyContact {
+                    first_contact_time_seconds,
+                } => {
+                    contact_times.push(first_contact_time_seconds);
+                    contacting_window_ids.push(self.windows[index].window_id.clone());
+                }
+                PathWindowDisposition::Ambiguous => {
+                    unresolved_window_ids.push(self.windows[index].window_id.clone());
+                }
+            }
+        }
+
+        let disposition = if !contact_times.is_empty() {
+            HorizonContactDisposition::DefinitelyContact
+        } else if unresolved_window_ids.is_empty() {
+            HorizonContactDisposition::DefinitelyNoContact
+        } else {
+            HorizonContactDisposition::Ambiguous
+        };
+
+        let first_contact_time_seconds = if contact_times.is_empty() {
+            None
+        } else {
+            let earliest_contact = contact_times.iter().copied().fold(f64::INFINITY, f64::min);
+            let unresolved_could_be_earlier = unresolved_window_ids.iter().any(|window_id| {
+                self.windows
+                    .iter()
+                    .find(|window| window.window_id == *window_id)
+                    .is_some_and(|window| window.start_seconds < earliest_contact)
+            });
+            (!unresolved_could_be_earlier).then_some(earliest_contact)
+        };
+
+        Ok(PathwiseHorizonOutcome {
+            event_id: self.event_id.clone(),
+            event_revision: self.revision.clone(),
+            realization_id: realization_id.to_owned(),
+            disposition,
+            first_contact_time_seconds,
+            contacting_window_ids,
+            unresolved_window_ids,
+        })
+    }
+}
+
+/// Three-way result supplied by a window-level trajectory evaluator.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum PathWindowDisposition {
+    /// The complete window is proven to contain no hard-body contact.
+    DefinitelyNoContact,
+    /// Contact is established and its earliest contact time is supplied.
+    /// The caller must establish the first-hit semantics for this window.
+    DefinitelyContact {
+        /// First contact time in seconds relative to the event epoch.
+        first_contact_time_seconds: f64,
+    },
+    /// The window evaluator cannot decide within its declared assumptions
+    /// and resource budget.
+    Ambiguous,
+}
+
+/// One window's classification for one complete trajectory realization.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PathWindowOutcome {
+    /// Stable identifier for the joint trajectory realization.
+    pub realization_id: String,
+    /// Identifier of the encounter window being classified.
+    pub window_id: String,
+    /// Three-way window-level event disposition.
+    pub disposition: PathWindowDisposition,
+}
+
+/// Pathwise event result after reducing all declared encounter windows.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PathwiseHorizonOutcome {
+    /// Stable event identifier.
+    pub event_id: String,
+    /// Event-definition revision used for classification.
+    pub event_revision: String,
+    /// Joint trajectory-realization identifier.
+    pub realization_id: String,
+    /// Horizon-level any-contact disposition.
+    pub disposition: HorizonContactDisposition,
+    /// First contact time, only when earlier contact is not unresolved.
+    pub first_contact_time_seconds: Option<f64>,
+    /// Window IDs that definitely contain contact. Overlapping windows may
+    /// both appear here; this is not a count of distinct physical episodes.
+    pub contacting_window_ids: Vec<String>,
+    /// Window IDs whose contact status remains unresolved.
+    pub unresolved_window_ids: Vec<String>,
+}
+
+/// Horizon-level result for the union of all declared encounter-window events.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HorizonContactDisposition {
+    /// At least one window is proven to contain contact.
+    DefinitelyContact,
+    /// Every declared window is proven to contain no contact.
+    DefinitelyNoContact,
+    /// No definite contact exists and at least one window is unresolved.
+    Ambiguous,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn window(id: &str, start: f64, end: f64) -> EncounterWindow {
+        EncounterWindow {
+            window_id: id.to_owned(),
+            start_seconds: start,
+            end_seconds: end,
+        }
+    }
+
+    fn definition(windows: Vec<EncounterWindow>) -> HorizonEventDefinition {
+        HorizonEventDefinition::new(
+            "event-42",
+            "revision-7",
+            "2026-11-22T00:00:00",
+            "TAI",
+            "GCRF",
+            0.0,
+            100.0,
+            5.0,
+            windows,
+        )
+        .expect("valid horizon definition")
+    }
+
+    fn outcome(
+        realization: &str,
+        id: &str,
+        disposition: PathWindowDisposition,
+    ) -> PathWindowOutcome {
+        PathWindowOutcome {
+            realization_id: realization.to_owned(),
+            window_id: id.to_owned(),
+            disposition,
+        }
+    }
+
+    #[test]
+    fn one_joint_contact_is_not_counted_once_per_overlapping_window() {
+        let definition = definition(vec![window("early", 10.0, 30.0), window("late", 20.0, 40.0)]);
+        let result = definition
+            .classify_realization(&[
+                outcome("trajectory-1", "late", PathWindowDisposition::DefinitelyContact {
+                    first_contact_time_seconds: 24.0,
+                }),
+                outcome("trajectory-1", "early", PathWindowDisposition::DefinitelyContact {
+                    first_contact_time_seconds: 24.0,
+                }),
+            ])
+            .expect("complete realization");
+
+        assert_eq!(result.disposition, HorizonContactDisposition::DefinitelyContact);
+        assert_eq!(result.first_contact_time_seconds, Some(24.0));
+        assert_eq!(result.contacting_window_ids.len(), 2);
+    }
+
+    #[test]
+    fn duplicate_bounds_are_allowed_but_union_remains_one_event() {
+        let definition = definition(vec![window("a", 10.0, 20.0), window("b", 10.0, 20.0)]);
+        let result = definition
+            .classify_realization(&[
+                outcome("trajectory-2", "a", PathWindowDisposition::DefinitelyContact {
+                    first_contact_time_seconds: 15.0,
+                }),
+                outcome("trajectory-2", "b", PathWindowDisposition::DefinitelyContact {
+                    first_contact_time_seconds: 15.0,
+                }),
+            ])
+            .expect("complete realization");
+
+        assert_eq!(result.disposition, HorizonContactDisposition::DefinitelyContact);
+        assert_eq!(result.first_contact_time_seconds, Some(15.0));
+    }
+
+    #[test]
+    fn earlier_ambiguous_window_preserves_any_contact_but_hides_first_hit_time() {
+        let definition = definition(vec![window("early", 10.0, 20.0), window("late", 30.0, 40.0)]);
+        let result = definition
+            .classify_realization(&[
+                outcome("trajectory-3", "early", PathWindowDisposition::Ambiguous),
+                outcome("trajectory-3", "late", PathWindowDisposition::DefinitelyContact {
+                    first_contact_time_seconds: 35.0,
+                }),
+            ])
+            .expect("complete realization");
+
+        assert_eq!(result.disposition, HorizonContactDisposition::DefinitelyContact);
+        assert_eq!(result.first_contact_time_seconds, None);
+        assert_eq!(result.unresolved_window_ids, vec!["early"]);
+    }
+
+    #[test]
+    fn later_ambiguous_window_does_not_hide_an_earlier_known_first_hit() {
+        let definition = definition(vec![window("early", 10.0, 20.0), window("late", 30.0, 40.0)]);
+        let result = definition
+            .classify_realization(&[
+                outcome("trajectory-4", "early", PathWindowDisposition::DefinitelyContact {
+                    first_contact_time_seconds: 15.0,
+                }),
+                outcome("trajectory-4", "late", PathWindowDisposition::Ambiguous),
+            ])
+            .expect("complete realization");
+
+        assert_eq!(result.disposition, HorizonContactDisposition::DefinitelyContact);
+        assert_eq!(result.first_contact_time_seconds, Some(15.0));
+    }
+
+    #[test]
+    fn all_windows_must_be_proven_clear_for_horizon_no_contact() {
+        let definition = definition(vec![window("a", 10.0, 20.0), window("b", 30.0, 40.0)]);
+        let result = definition
+            .classify_realization(&[
+                outcome("trajectory-5", "a", PathWindowDisposition::DefinitelyNoContact),
+                outcome("trajectory-5", "b", PathWindowDisposition::DefinitelyNoContact),
+            ])
+            .expect("complete realization");
+
+        assert_eq!(result.disposition, HorizonContactDisposition::DefinitelyNoContact);
+        assert_eq!(result.first_contact_time_seconds, None);
+    }
+
+    #[test]
+    fn unresolved_without_definite_contact_is_ambiguous() {
+        let definition = definition(vec![window("a", 10.0, 20.0), window("b", 30.0, 40.0)]);
+        let result = definition
+            .classify_realization(&[
+                outcome("trajectory-6", "a", PathWindowDisposition::Ambiguous),
+                outcome("trajectory-6", "b", PathWindowDisposition::DefinitelyNoContact),
+            ])
+            .expect("complete realization");
+
+        assert_eq!(result.disposition, HorizonContactDisposition::Ambiguous);
+    }
+
+    #[test]
+    fn windows_are_stored_in_deterministic_chronological_order() {
+        let definition = definition(vec![
+            window("nested", 15.0, 16.0),
+            window("second", 20.0, 30.0),
+            window("first", 10.0, 20.0),
+        ]);
+        let ids = definition.windows().iter().map(|window| window.window_id.as_str()).collect::<Vec<_>>();
+        assert_eq!(ids, vec!["first", "nested", "second"]);
+    }
+
+    #[test]
+    fn missing_duplicate_and_unknown_window_outcomes_are_rejected() {
+        let definition = definition(vec![window("a", 10.0, 20.0), window("b", 30.0, 40.0)]);
+        assert_eq!(
+            definition.classify_realization(&[outcome("trajectory-7", "a", PathWindowDisposition::DefinitelyNoContact)]),
+            Err(KernelError::MissingEncounterWindowOutcome)
+        );
+        assert_eq!(
+            definition.classify_realization(&[
+                outcome("trajectory-7", "a", PathWindowDisposition::DefinitelyNoContact),
+                outcome("trajectory-7", "a", PathWindowDisposition::DefinitelyNoContact),
+            ]),
+            Err(KernelError::DuplicateEncounterWindowOutcome)
+        );
+        assert_eq!(
+            definition.classify_realization(&[
+                outcome("trajectory-7", "a", PathWindowDisposition::DefinitelyNoContact),
+                outcome("trajectory-7", "wrong", PathWindowDisposition::DefinitelyNoContact),
+            ]),
+            Err(KernelError::UnknownEncounterWindow)
+        );
+    }
+
+    #[test]
+    fn mismatched_realization_ids_are_rejected() {
+        let definition = definition(vec![window("a", 10.0, 20.0), window("b", 30.0, 40.0)]);
+        assert_eq!(
+            definition.classify_realization(&[
+                outcome("trajectory-a", "a", PathWindowDisposition::DefinitelyNoContact),
+                outcome("trajectory-b", "b", PathWindowDisposition::DefinitelyNoContact),
+            ]),
+            Err(KernelError::MismatchedTrajectoryRealization)
+        );
+    }
+
+    #[test]
+    fn contact_time_must_lie_inside_its_window() {
+        let definition = definition(vec![window("a", 10.0, 20.0)]);
+        assert_eq!(
+            definition.classify_realization(&[outcome(
+                "trajectory-8",
+                "a",
+                PathWindowDisposition::DefinitelyContact {
+                    first_contact_time_seconds: 21.0,
+                }
+            )]),
+            Err(KernelError::InvalidEncounterContactTime)
+        );
+    }
+
+    #[test]
+    fn invalid_definitions_fail_closed() {
+        assert_eq!(
+            HorizonEventDefinition::new(
+                " ",
+                "revision",
+                "epoch",
+                "TAI",
+                "GCRF",
+                0.0,
+                10.0,
+                1.0,
+                vec![window("a", 1.0, 2.0)],
+            ),
+            Err(KernelError::InvalidEventDefinition)
+        );
+        assert_eq!(
+            HorizonEventDefinition::new(
+                "event",
+                "revision",
+                "epoch",
+                "TAI",
+                "GCRF",
+                10.0,
+                0.0,
+                1.0,
+                vec![window("a", 1.0, 2.0)],
+            ),
+            Err(KernelError::InvalidEventDefinition)
+        );
+        assert_eq!(
+            HorizonEventDefinition::new(
+                "event",
+                "revision",
+                "epoch",
+                "TAI",
+                "GCRF",
+                0.0,
+                10.0,
+                1.0,
+                vec![window("a", 0.0, 2.0), window("a", 2.0, 3.0)],
+            ),
+            Err(KernelError::DuplicateEncounterWindow)
+        );
+        assert_eq!(
+            HorizonEventDefinition::new(
+                "event",
+                "revision",
+                "epoch",
+                "TAI",
+                "GCRF",
+                0.0,
+                10.0,
+                1.0,
+                vec![window("a", 1.0, 11.0)],
+            ),
+            Err(KernelError::InvalidEncounterWindow)
+        );
+        assert_eq!(
+            HorizonEventDefinition::new(
+                "event",
+                "revision",
+                "epoch",
+                "TAI",
+                "GCRF",
+                0.0,
+                10.0,
+                0.0,
+                vec![window("a", 1.0, 2.0)],
+            ),
+            Err(KernelError::InvalidHardBodyRadius)
+        );
+    }
+
+    #[test]
+    fn every_window_is_required_even_after_a_definite_contact() {
+        let definition = definition(vec![window("a", 10.0, 20.0), window("b", 30.0, 40.0)]);
+        assert_eq!(
+            definition.classify_realization(&[outcome(
+                "trajectory-9",
+                "a",
+                PathWindowDisposition::DefinitelyContact {
+                    first_contact_time_seconds: 15.0,
+                }
+            )]),
+            Err(KernelError::MissingEncounterWindowOutcome)
+        );
+    }
+}
