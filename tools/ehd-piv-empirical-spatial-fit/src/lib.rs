@@ -86,6 +86,26 @@ pub struct EmpiricalSpatialFit {
     pub calibration_manifest_sha256: String,
 }
 
+impl EmpiricalSpatialFit {
+    /// Return the independent per-vector nugget N for UQ-005 local covariance.
+    /// The correlated spatial component S is exported separately by the
+    /// qualified SpatialFitValidation adapter.
+    pub fn local_nugget_covariance_for_uq005(
+        &self,
+    ) -> Result<ehd_piv_conformal_functional_uq::functional::Covariance3, SpatialFitError> {
+        validate_fit_record(self)?;
+        let n = self.local_nugget_covariance_m2_s2;
+        Ok(ehd_piv_conformal_functional_uq::functional::Covariance3 {
+            xx: n[0][0],
+            xy: n[0][1],
+            xz: n[0][2],
+            yy: n[1][1],
+            yz: n[1][2],
+            zz: n[2][2],
+        })
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum QualificationStatus {
     Qualified,
@@ -955,6 +975,16 @@ mod tests {
         let kernel = report.to_spatial_error_kernel(&fit).unwrap();
         assert_eq!(kernel.calibration_receipt.independent_acquisition_count, 256);
         assert_eq!(kernel.model_id, SUPPORTED_MODEL_ID);
+    }
+
+    #[test]
+    fn local_nugget_adapter_exports_independent_component_not_total_variance() {
+        let calibration = synthetic_fields("cal-nugget", 256, 0x1234, 2.0);
+        let fit = fit_spatial_error_kernel(&calibration, &config(), &"a".repeat(64)).unwrap();
+        let local = fit.local_nugget_covariance_for_uq005().unwrap();
+        assert!((local.xx - 0.2).abs() < 1.0e-12);
+        assert!((fit.spatial_component_covariance_m2_s2[0][0] - 0.8).abs() < 1.0e-12);
+        assert!((local.xx + fit.spatial_component_covariance_m2_s2[0][0] - 1.0).abs() < 1.0e-12);
     }
 
     #[test]
