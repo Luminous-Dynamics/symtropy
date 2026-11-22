@@ -29,6 +29,10 @@ The minimizer is deterministic for a fixed trace, oracle revision, replay seed a
 
 See [RESEARCH_ALIGNMENT_V0.1.md](RESEARCH_ALIGNMENT_V0.1.md) for the 2026 ROS fuzzing survey, long-horizon embodied manipulation survey, SafeVLA-Bench and the relevant ISO standard scope boundaries. The trace contract is intended to complement task-performance and safety benchmarks by improving recovery-failure replay and diagnosis; it is not a substitute for safety validation or conformity assessment.
 
+## Formal model mapping
+
+See [TLA_TRACE_MAPPING_V0.1.md](TLA_TRACE_MAPPING_V0.1.md) and [model_action_event_mapping_v0_1.tsv](model_action_event_mapping_v0_1.tsv) for the 30-action mapping to the pinned `RestartSafeEffectContinuity.tla` model. Rust conformance tests check the expected action catalogue, and CI checks that every mapped action remains declared in the model and that the mapping count matches the `Next` relation. This is an action/event mapping contract—not a TLC trace importer or proof of semantic equivalence.
+
 ## Run
 
 ```sh
