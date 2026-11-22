@@ -55,11 +55,12 @@
             "type": "object",
             "additionalProperties": false,
             "required": [
-              "action_id", "modality", "description", "cost_units",
+              "action_id", "parameter_manifest_sha256", "modality", "description", "cost_units",
               "arrival_tick", "source_dependency_group", "information_gain_proxy"
             ],
             "properties": {
               "action_id": {"type": "string", "minLength": 1},
+              "parameter_manifest_sha256": {"type": "string", "pattern": "^[0-9a-fA-F]{64}$"},
               "modality": {"enum": ["audio", "video", "other"]},
               "description": {"type": "string", "minLength": 1},
               "cost_units": {"type": "number", "minimum": 0},
@@ -70,6 +71,10 @@
           }
         },
         "selected_action_id": {"type": "string", "minLength": 1},
+        "selected_manifest_sha256": {
+          "type": ["string", "null"],
+          "pattern": "^[0-9a-fA-F]{64}$"
+        },
         "forecasts": {
           "type": "array",
           "minItems": 1,
@@ -109,6 +114,11 @@
         "forecast_digest_sha256": {"type": "string", "pattern": "^[0-9a-fA-F]{64}$"},
         "scorecard_sha256": {"type": "string", "pattern": "^[0-9a-fA-F]{64}$"},
         "selected_action_id": {"type": "string", "minLength": 1},
+        "request_id": {"type": ["string", "null"], "minLength": 1},
+        "parameter_manifest_sha256": {
+          "type": ["string", "null"],
+          "pattern": "^[0-9a-fA-F]{64}$"
+        },
         "selected_action_feasible": {"const": true},
         "missed_best_action": {"type": "boolean"},
         "decision_regret": {"type": "number", "minimum": 0},
@@ -170,6 +180,7 @@
       "required": [
         "turn_id", "turn_index", "parent_transcript_head_sha256",
         "preceding_action_id", "action_result_status", "action_result_digest_sha256",
+        "action_result_request_id", "action_result_parameter_manifest_sha256",
         "new_observation_ids", "external_feedback_events", "workload", "submission", "action_forecast",
         "action_value_receipt", "resource_delta"
       ],
@@ -185,6 +196,11 @@
           "enum": ["INITIAL", "DELIVERED", "FAILED", "TIMEOUT", "MALFORMED"]
         },
         "action_result_digest_sha256": {
+          "type": ["string", "null"],
+          "pattern": "^[0-9a-fA-F]{64}$"
+        },
+        "action_result_request_id": {"type": ["string", "null"], "minLength": 1},
+        "action_result_parameter_manifest_sha256": {
           "type": ["string", "null"],
           "pattern": "^[0-9a-fA-F]{64}$"
         },
