@@ -455,7 +455,7 @@ mod tests {
         let result = plan_active_evidence_acquisition(&satisfied, &[]).unwrap();
         assert_eq!(result.reason, AcquisitionPlanReason::TargetAlreadySatisfied);
         assert_eq!(result.recommended_action_id, None);
-        assert!(result.must_requalify_after_acquisition);
+        assert!(result.authority_transition_not_authorized_by_plan);
     }
 
     #[test]
