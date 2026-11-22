@@ -149,10 +149,7 @@ fn fact_validity(profile: &ClaimProfile, fact: &EvidenceFact) -> FactValidity {
 ///   yields InsufficientEvidence.
 ///
 /// No EvidenceVerdict is an action authority or a physical safety certificate.
-pub fn assess_evidence_claim(
-    profile: &ClaimProfile,
-    facts: &[EvidenceFact],
-) -> EvidenceVerdict {
+pub fn assess_evidence_claim(profile: &ClaimProfile, facts: &[EvidenceFact]) -> EvidenceVerdict {
     if !profile_is_valid(profile) {
         return EvidenceVerdict::InsufficientEvidence;
     }
@@ -454,8 +451,7 @@ mod tests {
         );
 
         let mut profile = profile();
-        profile.required_independent_domains[1] =
-            profile.required_independent_domains[0].clone();
+        profile.required_independent_domains[1] = profile.required_independent_domains[0].clone();
         assert_eq!(
             assess_evidence_claim(&profile, &[]),
             EvidenceVerdict::InsufficientEvidence
