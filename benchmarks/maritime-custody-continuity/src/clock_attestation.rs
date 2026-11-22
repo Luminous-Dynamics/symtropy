@@ -53,6 +53,10 @@ pub struct ArtifactVerifierReceipt {
     pub signer_fingerprint: String,
     pub trust_anchor_id: String,
     pub signature_algorithm: String,
+    pub signature_time_source_id: String,
+    pub signature_time_utc_seconds: i64,
+    pub signer_certificate_not_before_utc_seconds: i64,
+    pub signer_certificate_not_after_utc_seconds: i64,
     pub key_usage: BTreeSet<String>,
     pub signature_status: VerifierStatus,
     pub certificate_chain_status: VerifierStatus,
@@ -87,6 +91,8 @@ pub struct ClockAttestationPolicy {
     pub trust_store_version: String,
     pub trusted_anchor_ids: BTreeSet<String>,
     pub allowed_signature_algorithms: BTreeSet<String>,
+    pub allowed_uncertainty_model_ids: BTreeSet<String>,
+    pub allowed_synchronization_methods: BTreeSet<String>,
     pub required_key_usage: String,
 }
 
@@ -184,7 +190,11 @@ pub enum ClockAttestationReason {
     VerifierPolicyMismatch,
     UntrustedTrustAnchor,
     DisallowedSignatureAlgorithm,
+    SignerCertificateOutsideValidity,
     MissingDocumentSigningKeyUsage,
+    DisallowedUncertaintyModel,
+    DisallowedSynchronizationMethod,
+    InvalidCoverageFactor,
     InvalidSignature,
     InvalidCertificateChain,
     RevokedArtifact,
@@ -424,6 +434,7 @@ fn check_artifact_evidence(
         (&verifier.signer_fingerprint, "signer_fingerprint"),
         (&verifier.trust_anchor_id, "trust_anchor_id"),
         (&verifier.signature_algorithm, "signature_algorithm"),
+        (&verifier.signature_time_source_id, "signature_time_source_id"),
         (&verifier.verifier_id, "verifier_id"),
         (&verifier.verifier_version, "verifier_version"),
         (&verifier.trust_store_id, "trust_store_id"),
@@ -459,6 +470,17 @@ fn check_artifact_evidence(
         .contains(&verifier.signature_algorithm)
     {
         return ArtifactCheck::Rejected(ClockAttestationReason::DisallowedSignatureAlgorithm);
+    }
+    if verifier.signer_certificate_not_before_utc_seconds
+        > verifier.signature_time_utc_seconds
+        || verifier.signature_time_utc_seconds
+            > verifier.signer_certificate_not_after_utc_seconds
+        || verifier.signer_certificate_not_before_utc_seconds
+            > verifier.signer_certificate_not_after_utc_seconds
+    {
+        return ArtifactCheck::Rejected(
+            ClockAttestationReason::SignerCertificateOutsideValidity,
+        );
     }
     if !verifier.key_usage.contains(&policy.required_key_usage) {
         return ArtifactCheck::Rejected(
@@ -595,12 +617,37 @@ pub fn attest_clock_for_event(
             ClockAttestationReason::TerminalReferenceMismatch,
         );
     }
+    if !policy
+        .allowed_uncertainty_model_ids
+        .contains(&calibration.uncertainty_model_id)
+        || calibration.traceability_links.iter().any(|link| {
+            !policy
+                .allowed_uncertainty_model_ids
+                .contains(&link.uncertainty_model_id)
+        })
+    {
+        return ClockAttestationDecision::rejected(
+            ClockAttestationReason::DisallowedUncertaintyModel,
+        );
+    }
+    if !policy
+        .allowed_synchronization_methods
+        .contains(&observation.synchronization_method)
+    {
+        return ClockAttestationDecision::rejected(
+            ClockAttestationReason::DisallowedSynchronizationMethod,
+        );
+    }
 
     if !valid_text(&calibration.result_id)
         || !valid_text(&calibration.reference_standard_id)
         || !valid_text(&calibration.measurand_id)
         || !valid_text(&calibration.time_basis_id)
         || !valid_text(&calibration.coverage_factor_lexeme)
+        || !calibration
+            .coverage_factor_lexeme
+            .parse::<f64>()
+            .is_ok_and(|value| value.is_finite() && value > 0.0)
         || !valid_text(&calibration.uncertainty_model_id)
         || !valid_text(&observation.observation_id)
         || !valid_text(&observation.source_id)
@@ -910,6 +957,10 @@ mod tests {
                 signer_fingerprint: "sha256:signer-fingerprint".to_string(),
                 trust_anchor_id: "ZA-TRUST-ROOT-1".to_string(),
                 signature_algorithm: "ECDSA-P256-SHA256".to_string(),
+                signature_time_source_id: "trusted-timestamp-service-1".to_string(),
+                signature_time_utc_seconds: 850,
+                signer_certificate_not_before_utc_seconds: 700,
+                signer_certificate_not_after_utc_seconds: 1_500,
                 key_usage: BTreeSet::from(["digitalSignature".to_string()]),
                 signature_status: VerifierStatus::Valid,
                 certificate_chain_status: VerifierStatus::Valid,
@@ -937,6 +988,11 @@ mod tests {
             trust_store_version: "2026-11-22".to_string(),
             trusted_anchor_ids: BTreeSet::from(["ZA-TRUST-ROOT-1".to_string()]),
             allowed_signature_algorithms: BTreeSet::from(["ECDSA-P256-SHA256".to_string()]),
+            allowed_uncertainty_model_ids: BTreeSet::from([
+                "conservative-expanded-bound-v1".to_string(),
+                "link-bound-v1".to_string(),
+            ]),
+            allowed_synchronization_methods: BTreeSet::from(["PTP".to_string()]),
             required_key_usage: "digitalSignature".to_string(),
         }
     }
@@ -1227,6 +1283,43 @@ mod tests {
         assert_eq!(
             decision.reason,
             Some(ClockAttestationReason::RevocationEvidenceStale)
+        );
+    }
+
+    #[test]
+    fn signer_certificate_must_be_valid_at_trusted_signing_time() {
+        let mut calibration = calibration_fixture();
+        calibration.artifact_evidence.verifier.signature_time_utc_seconds = 1_600;
+        assert_eq!(
+            evaluate(&calibration, &observation_fixture()).reason,
+            Some(ClockAttestationReason::SignerCertificateOutsideValidity)
+        );
+    }
+
+    #[test]
+    fn uncertainty_and_synchronization_models_are_policy_pinned() {
+        let mut calibration = calibration_fixture();
+        calibration.uncertainty_model_id = "unreviewed-model".to_string();
+        assert_eq!(
+            evaluate(&calibration, &observation_fixture()).reason,
+            Some(ClockAttestationReason::DisallowedUncertaintyModel)
+        );
+
+        let mut observation = observation_fixture();
+        observation.synchronization_method = "UNREVIEWED-NTP".to_string();
+        assert_eq!(
+            evaluate(&calibration_fixture(), &observation).reason,
+            Some(ClockAttestationReason::DisallowedSynchronizationMethod)
+        );
+    }
+
+    #[test]
+    fn invalid_coverage_factor_is_not_accepted() {
+        let mut calibration = calibration_fixture();
+        calibration.coverage_factor_lexeme = "NaN".to_string();
+        assert_eq!(
+            evaluate(&calibration, &observation_fixture()).status,
+            ClockAttestationStatus::Unknown
         );
     }
 
