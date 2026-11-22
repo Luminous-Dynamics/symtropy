@@ -8,7 +8,7 @@
 
 use super::{
     ActionTicket, AuthorityBinding, LiveAuthoritySnapshot, QualifiedMonotonicInstant,
-    ReceiptDisposition, Rejection,
+    ReceiptDisposition, Rejection, QualifiedOutcomeResolution, ResolutionDisposition,
 };
 use std::collections::BTreeSet;
 
@@ -24,6 +24,12 @@ pub enum HistoryOperationKind {
         ticket: ActionTicket,
         now: QualifiedMonotonicInstant,
     },
+    ResolvePendingAction {
+        attempt_key: String,
+        resolution: QualifiedOutcomeResolution,
+        next_snapshot: Option<LiveAuthoritySnapshot>,
+        recovery_permit_digest: Option<String>,
+    },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -35,6 +41,9 @@ pub enum HistoryObservedResult {
         application_sequence: u64,
         binding_commitment: [u8; 32],
         controller_epoch: u64,
+    },
+    PendingActionResolved {
+        disposition: ResolutionDisposition,
     },
 }
 
@@ -88,6 +97,7 @@ pub enum HistoryCheckResult {
 struct SpecState {
     live: LiveAuthoritySnapshot,
     consumed_ticket_ids: BTreeSet<String>,
+    pending_action_attempt: Option<String>,
     next_application_sequence: u64,
 }
 
@@ -96,6 +106,7 @@ impl SpecState {
         Self {
             live: initial_snapshot,
             consumed_ticket_ids: BTreeSet::new(),
+            pending_action_attempt: None,
             next_application_sequence: 1,
         }
     }
@@ -137,6 +148,9 @@ fn expected_ticket_rejection(
     }
     if state.consumed_ticket_ids.contains(&ticket.ticket_id) {
         return Some(Rejection::Replay);
+    }
+    if state.pending_action_attempt.is_some() {
+        return Some(Rejection::PendingActionExists);
     }
     if state.next_application_sequence.checked_add(1).is_none() {
         return Some(Rejection::SequenceExhausted);
@@ -204,9 +218,10 @@ fn apply_observed_operation(
             next_state
                 .consumed_ticket_ids
                 .insert(ticket.ticket_id.clone());
+            next_state.pending_action_attempt = Some(ticket.attempt_key.clone());
             next_state.next_application_sequence += 1;
-            // All three dispositions consume the one-shot ticket. In
-            // particular, an ambiguous native result cannot be retried.
+            // Every native application occupies the single-mutation slot
+            // until an independently qualified M1 outcome is reconciled.
             match disposition {
                 ReceiptDisposition::AcceptedByNativeController
                 | ReceiptDisposition::RejectedNoEffect
@@ -214,6 +229,64 @@ fn apply_observed_operation(
                     Transition::Valid(next_state)
                 }
             }
+        }
+        (
+            HistoryOperationKind::ResolvePendingAction {
+                attempt_key,
+                resolution,
+                next_snapshot,
+                recovery_permit_digest,
+            },
+            HistoryObservedResult::PendingActionResolved { disposition },
+        ) => {
+            if state.pending_action_attempt.as_deref() != Some(attempt_key.as_str()) {
+                return Transition::Invalid;
+            }
+            if *resolution == QualifiedOutcomeResolution::Unknown {
+                if next_snapshot.is_some() || recovery_permit_digest.is_some()
+                    || *disposition != ResolutionDisposition::HoldRetained
+                {
+                    return Transition::Invalid;
+                }
+                return Transition::Valid(state.clone());
+            }
+
+            let next = match next_snapshot {
+                Some(next) => next,
+                None => return Transition::Invalid,
+            };
+            if next.active_attempt_key.trim().is_empty()
+                || next.active_attempt_key == *attempt_key
+                || next.binding == state.live.binding
+                || next.binding.controller_epoch <= state.live.binding.controller_epoch
+                || *disposition != ResolutionDisposition::ClearedForNewAuthoritySnapshot
+            {
+                return Transition::Invalid;
+            }
+            match resolution {
+                QualifiedOutcomeResolution::Satisfied => {
+                    if recovery_permit_digest.is_some() {
+                        return Transition::Invalid;
+                    }
+                }
+                QualifiedOutcomeResolution::NoEffect
+                | QualifiedOutcomeResolution::PartialEffect => {
+                    if recovery_permit_digest
+                        .as_deref()
+                        .map(str::trim)
+                        .filter(|value| !value.is_empty())
+                        .is_none()
+                    {
+                        return Transition::Invalid;
+                    }
+                }
+                QualifiedOutcomeResolution::Unknown => unreachable!("handled above"),
+            }
+
+            let mut next_state = state.clone();
+            next_state.live = next.clone();
+            next_state.pending_action_attempt = None;
+            Transition::Valid(next_state)
         }
         _ => Transition::Invalid,
     }
