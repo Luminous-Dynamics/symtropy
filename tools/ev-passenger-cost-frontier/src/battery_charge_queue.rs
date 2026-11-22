@@ -771,17 +771,6 @@ mod tests {
             report.assignments,
             vec![
                 ChargeAssignment {
-                    job_id: "job-d".to_string(),
-                    pack_id: "pack-d".to_string(),
-                    charger_id: "charger-2".to_string(),
-                    start_slot: 0,
-                    end_slot_exclusive: 3,
-                    wait_slots: 0,
-                    duration_slots: 3,
-                    requested_power_w: 2_500,
-                    declared_grid_input_watt_seconds: 6_750_000,
-                },
-                ChargeAssignment {
                     job_id: "job-a".to_string(),
                     pack_id: "pack-a".to_string(),
                     charger_id: "charger-1".to_string(),
@@ -791,6 +780,17 @@ mod tests {
                     duration_slots: 2,
                     requested_power_w: 3_000,
                     declared_grid_input_watt_seconds: 5_400_000,
+                },
+                ChargeAssignment {
+                    job_id: "job-d".to_string(),
+                    pack_id: "pack-d".to_string(),
+                    charger_id: "charger-2".to_string(),
+                    start_slot: 0,
+                    end_slot_exclusive: 3,
+                    wait_slots: 0,
+                    duration_slots: 3,
+                    requested_power_w: 2_500,
+                    declared_grid_input_watt_seconds: 6_750_000,
                 },
                 ChargeAssignment {
                     job_id: "job-b".to_string(),
