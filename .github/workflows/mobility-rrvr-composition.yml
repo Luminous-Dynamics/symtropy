@@ -9,6 +9,7 @@ on:
       - "research/mobility-restart-reconciliation/**"
       - "research/mobility-downstream-fence/**"
       - "research/mobility-evidence-verdict/**"
+      - "research/mobility-observer-assurance/**"
       - ".github/workflows/mobility-rrvr-composition.yml"
   pull_request:
     paths:
@@ -16,6 +17,7 @@ on:
       - "research/mobility-restart-reconciliation/**"
       - "research/mobility-downstream-fence/**"
       - "research/mobility-evidence-verdict/**"
+      - "research/mobility-observer-assurance/**"
       - ".github/workflows/mobility-rrvr-composition.yml"
   workflow_dispatch:
 
@@ -49,6 +51,17 @@ jobs:
               and ([$cases[] | select(.no_effect_evidence == "insufficient_evidence" and .expected == "hold")] | length >= 1)
               and all($cases[]; .native_sink_calls == 0 and .authority_capabilities == [])
           ' research/mobility-rrvr-composition/fixtures/rrvr_composition_cases_v0_1.json
+          jq empty research/mobility-rrvr-composition/schemas/observer_gate_cases_v0_1.schema.json
+          jq -e '
+            .cases as $cases
+            | .version == "0.1"
+              and ($cases | length >= 6)
+              and ([$cases[].case_id] | length == ([$cases[].case_id] | unique | length))
+              and ([$cases[] | select(.expected == "ready_for_owner_native_revalidation" and .no_effect_observer == "quorum_qualified" and .downstream_observer == "quorum_qualified")] | length >= 1)
+              and ([$cases[] | select(.no_effect_observer == "hold" and .expected == "hold")] | length >= 1)
+              and ([$cases[] | select(.downstream_observer == "hold" and .expected == "hold")] | length >= 1)
+              and all($cases[]; .native_sink_calls == 0 and .authority_capabilities == [])
+          ' research/mobility-rrvr-composition/fixtures/observer_gate_cases_v0_1.json
       - name: Check formatting
         run: cargo fmt --manifest-path research/mobility-rrvr-composition/Cargo.toml -- --check
       - name: Run cross-owner composition tests
