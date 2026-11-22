@@ -43,7 +43,7 @@ Every snapshot requires exactly one record from each of these ten evidence domai
 4. mission resolution;
 5. controller queue;
 6. downstream execution graph;
-7. physical no-effect observer quorum;
+7. physical-outcome observer quorum;
 8. downstream graph-quiescence observer quorum;
 9. action applicability;
 10. recovery authority.
@@ -57,7 +57,7 @@ The two observer claims are separate. When either is qualified, the claim is bou
 - declared common-cause domains for each observer;
 - pairwise disjoint declared common-cause domains.
 
-When both physical no-effect and downstream-quiescence quorums are qualified, their observer IDs, artifacts and declared dependencies must also be disjoint under the same fault-model revision. This is a deliberately conservative *declared fault model* criterion, not a universal proof of statistical independence.
+When both physical-outcome and downstream-quiescence quorums are qualified, their observer IDs, artifacts and declared dependencies must also be disjoint under the same fault-model revision. This is a deliberately conservative *declared fault model* criterion, not a universal proof of statistical independence.
 
 At initialization, both observer claims are `not_applicable`. The TLA variable `observerIndependent=TRUE` is an initial abstraction setting; it does not fabricate an already-observed physical quorum. Once an observed physical outcome is projected, the separate claim-specific observer proofs become mandatory. A disputed observation must project `observerIndependent=FALSE` and a disputed observer status.
 
@@ -65,7 +65,7 @@ At initialization, both observer claims are `not_applicable`. The TLA variable `
 
 - `appliedEffectCount <= 1` is enforced even though the TLA TypeOK type domain permits 0..2; the 2 state is an explicit invariant counterexample.
 - Indeterminate persistence cannot coexist with an issued/consumed recovery permit.
-- An issued permit requires observed NoEffect, mission resolution NoEffect, a resolved persistence outcome, current M1/M2 and both current fences.
+- An issued permit requires independently confirmed NoEffect, mission resolution NoEffect, a resolved persistence outcome, current M1/M2 and both current fences.
 - A fresh ticket is bound to the current boot/controller epoch and a new attempt.
 - After `NativeAcceptRecovery`, the model deliberately clears `downstreamFenceBootEpoch` to allow the recovery command to execute. The projection validates the captured `admittedDownstreamFence` fact, not a stale current-fence value.
 - Current M1/M2 values may be revoked after recovery admission; the captured admission fields remain the evidence of what was true at acceptance time.
@@ -75,6 +75,9 @@ At initialization, both observer claims are `not_applicable`. The TLA variable `
 
 - `fixtures/runtime_projection_init_v0_1.json`: exact initial model state with ten not-yet-observed owner evidence domains.
 - `fixtures/runtime_projection_reservation_acceptance_v0_1.json`: four-state `Init → ReserveAttempt → MarkDispatchStarted → NativeAcceptOld` trace, with all 43 model fields and ten owner evidence domains at each step.
+- `fixtures/runtime_projection_no_effect_recovery_v0_1.json`: 17-state lifecycle covering old-attempt NoEffect, persistence no-commit reconciliation, crash/restart, controller and downstream fencing, physical observation, mission resolution, permit issuance, fresh ticket and one-shot recovery acceptance. The final state deliberately has `downstreamFenceBootEpoch=0` with `admittedDownstreamFence=true`.
+
+The observer evidence in the full recovery fixture contains two separately qualified proof sets with distinct observers, observation IDs, raw artifacts and artifact digests, and disjoint declared common-cause dependencies under the same fault-model revision. This is a synthetic known-answer fixture, not a physical deployment.
 
 These fixtures are synthetic conformance inputs, not observations of a real robot.
 
