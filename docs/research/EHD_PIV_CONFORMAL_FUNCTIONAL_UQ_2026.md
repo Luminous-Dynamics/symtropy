@@ -1,6 +1,6 @@
 # EHD-PIV-UQ-004 — cluster-conformal field coverage and physical-functional uncertainty
 
-**Status:** standalone Rust reference authored; 23 unit tests authored; Rust execution pending; exact-head hosted CI pending.  
+**Status:** standalone Rust reference authored; 24 unit tests authored; Rust execution pending; exact-head hosted CI pending.  
 **Branch:** research/ehd-piv-conformal-functional-uq-v0-1  
 **Parent:** EHD-PIV-UQ-003 covariance calibration
 
@@ -88,7 +88,7 @@ The planar conformal kernel includes 10 tests:
 
 The 3D conformal kernel includes 4 tests for 19-field finite rank, correlated covariance, non-positive-definite covariance and field-size mismatch.
 
-The functional kernel includes 9 tests:
+The functional kernel includes 10 tests, including central finite-difference checks for all mass and three-component momentum Jacobian entries on an oblique face:
 - manufactured mass and momentum Jacobians;
 - shared calibration mode cross-sample covariance;
 - demonstration that shared uncertainty does not average away;
