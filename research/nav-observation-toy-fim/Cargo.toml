@@ -22,3 +22,11 @@ path = "src/bin/adaptive_pl_demo.rs"
 [[bin]]
 name = "student_t_pl_demo"
 path = "src/bin/student_t_pl_demo.rs"
+
+[[bin]]
+name = "pl_trace_metrics_demo"
+path = "src/bin/pl_trace_metrics_demo.rs"
+
+[[bin]]
+name = "integrity_evidence_demo"
+path = "src/bin/integrity_evidence_demo.rs"
