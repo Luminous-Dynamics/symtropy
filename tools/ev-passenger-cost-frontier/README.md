@@ -165,3 +165,30 @@ The synthetic fixture contains four reservations across three resources. A pack 
 Schema: `schemas/battery_resource_occupancy_v0_1.schema.json`; fixture: `fixtures/battery_resource_occupancy_v0_1.json`; CLI: `src/bin/battery_resource_occupancy_screen.rs`.
 
 **Deliberate scope limit:** this is a static exact assignment and evidence gate, not a multi-period charging/rack queue optimizer, mobile battery-service routing model, degradation model, thermal battery model or aircraft dispatch authorizer. Those are the next layers in #6674. Synthetic fixture passes validate accounting/algorithm semantics only and do not establish real battery capability, flight safety or operational release.
+
+
+## MOBILITY-FLEX-ENVELOPE-001 — time-coupled reserve-first flexibility verifier
+
+The `mobility_flexibility_envelope_screen` binary is the first executable child of [MOBILITY-ENERGY-RESILIENCE-001 #6707](https://github.com/Luminous-Dynamics/symtropy/issues/6707), tracked separately in [#6802](https://github.com/Luminous-Dynamics/symtropy/issues/6802).
+
+Run:
+
+```bash
+cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin mobility_flexibility_envelope_screen -- \
+  tools/ev-passenger-cost-frontier/fixtures/mobility_flexibility_envelope_v0_1.json
+```
+
+The verifier consumes time-bound site, pack-allocation, charger-queue, PCC-meter, storage-capability and site-connection evidence. For every reserve scenario, it subtracts resource-specific mission, inventory-buffer, safety/outage and uncertainty energy/power reserves. It tests one proposed discharge profile against:
+- one cumulative residual energy budget across the whole horizon;
+- each slot's residual discharge-power ceiling;
+- the site load plus the charging schedule at the PCC;
+- import limits, export limits and explicit export-permission evidence;
+- unique reserve receipt IDs within each mutually exclusive scenario.
+
+This closes the gap where positive aggregate kWh can conceal a per-slot kW violation, or individually feasible slots can collectively overspend the horizon's energy budget. The same reserve receipt cannot be counted twice inside a scenario. A resource must be bound both to its own exact configuration and to the site's exact configuration. Aircraft propulsion packs are rejected as grid resources; bidirectional storage requires independent-test interface evidence.
+
+The screen is a feasibility verifier, not a schedule optimizer. Its report always sets `dispatch_authority_granted=false` and `export_authority_granted=false`. The frozen fixture uses synthetic data and therefore demonstrates arithmetic and rejection semantics only; it is not a real site capability claim, a metered energy result or permission to discharge/export.
+
+Schema: `schemas/mobility_flexibility_envelope_v0_1.schema.json`; fixture: `fixtures/mobility_flexibility_envelope_v0_1.json`; evaluator: `src/mobility_flexibility_envelope.rs`; CLI: `src/bin/mobility_flexibility_envelope_screen.rs`.
+
+Research dossier: [Mobility-First Grid Flexibility Envelope Benchmark v0.1](../../docs/research/MOBILITY_FLEXIBILITY_ENVELOPE_BENCHMARK_V0_1.md). The v0.1 model does not yet certify post-dispatch recharge/recovery viability, full AC power flow, thermal evolution, degradation, or market deliverability; these are explicit later phases, not implied by a passing synthetic profile.
