@@ -4,6 +4,8 @@
 **Parent:** [authority-linearized mutation #6669](https://github.com/Luminous-Dynamics/symtropy/issues/6669)  
 **Status:** Reference composition only. No production controller, simulator, HIL or physical platform is wired by this crate.
 
+**License:** AGPL-3.0-or-later, reflecting composition with the AGPL-licensed M2 action-evidence owner. The adapter also imports Apache/MIT Symtropy bridge and mutation-boundary owners; this crate is not offered as Apache-only.
+
 ## Core change
 
 This adapter composes three existing owners at one synchronous application seam:
