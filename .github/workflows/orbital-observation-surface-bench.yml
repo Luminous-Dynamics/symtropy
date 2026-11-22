@@ -47,7 +47,8 @@ jobs:
           mkdir -p artifacts
           cargo run --locked --manifest-path tools/orbital-observation-surface-bench/Cargo.toml -- \
             tools/orbital-observation-surface-bench/fixtures/v0.1/observation-surface-cases.json \
-            --source-commit "${GITHUB_SHA}" > artifacts/observation-surface-receipt-v0.1.json
+            --source-commit "${GITHUB_SHA}" \\
+            --observations-output artifacts/observations-v0.1.json > artifacts/observation-surface-receipt-v0.1.json
       - name: Run independent JavaScript oracle
         run: |
           node tools/orbital-observation-surface-bench/tests/reference_oracle.mjs \
@@ -58,11 +59,17 @@ jobs:
           node tools/orbital-observation-surface-bench/tests/validate_schema.mjs \
             tools/orbital-observation-surface-bench/schema/v0.1/observation-surface-receipt.schema.json \
             artifacts/observation-surface-receipt-v0.1.json
-      - name: Compare receipt and oracle
+      - name: Validate exported observation stream against JSON Schema
+        run: |
+          node tools/orbital-observation-surface-bench/tests/validate_schema.mjs \
+            tools/orbital-observation-surface-bench/schema/v0.1/observation-stream.schema.json \
+            artifacts/observations-v0.1.json
+      - name: Compare receipt, oracle and estimator-only stream
         run: |
           node tools/orbital-observation-surface-bench/tests/compare_receipts.mjs \
             artifacts/observation-surface-receipt-v0.1.json \
-            artifacts/observation-surface-oracle-v0.1.json
+            artifacts/observation-surface-oracle-v0.1.json \
+            artifacts/observations-v0.1.json
       - uses: actions/upload-artifact@v4
         with:
           name: orbital-observation-surface-v0.1-${{ github.sha }}
