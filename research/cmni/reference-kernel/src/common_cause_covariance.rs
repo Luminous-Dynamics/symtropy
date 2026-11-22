@@ -368,7 +368,6 @@ mod tests {
                 shared_sources: Vec::new(),
                 lineage_coverage_complete: true,
             inter_source_dependence: InterSourceDependenceQualification::Complete,
-                inter_source_dependence: InterSourceDependenceQualification::Complete,
             },
             ExperimentNoiseModel {
                 experiment_id: "exp-b".to_owned(),
@@ -376,7 +375,6 @@ mod tests {
                 shared_sources: Vec::new(),
                 lineage_coverage_complete: true,
             inter_source_dependence: InterSourceDependenceQualification::Complete,
-                inter_source_dependence: InterSourceDependenceQualification::Complete,
             },
         ])
         .expect("independent portfolio");
@@ -399,7 +397,6 @@ mod tests {
                 shared_sources: vec![shared(2.0)],
                 lineage_coverage_complete: true,
             inter_source_dependence: InterSourceDependenceQualification::Complete,
-                inter_source_dependence: InterSourceDependenceQualification::Complete,
             },
             ExperimentNoiseModel {
                 experiment_id: "exp-b".to_owned(),
@@ -407,7 +404,6 @@ mod tests {
                 shared_sources: vec![shared(3.0)],
                 lineage_coverage_complete: true,
             inter_source_dependence: InterSourceDependenceQualification::Complete,
-                inter_source_dependence: InterSourceDependenceQualification::Complete,
             },
         ])
         .expect("shared calibration portfolio");
@@ -433,7 +429,6 @@ mod tests {
                 ],
                 lineage_coverage_complete: true,
             inter_source_dependence: InterSourceDependenceQualification::Complete,
-                inter_source_dependence: InterSourceDependenceQualification::Complete,
             },
             ExperimentNoiseModel {
                 experiment_id: "exp-b".to_owned(),
@@ -444,7 +439,6 @@ mod tests {
                 ],
                 lineage_coverage_complete: true,
             inter_source_dependence: InterSourceDependenceQualification::Complete,
-                inter_source_dependence: InterSourceDependenceQualification::Complete,
             },
         ])
         .expect("multiple shared sources");
@@ -464,7 +458,6 @@ mod tests {
                 }],
                 lineage_coverage_complete: true,
             inter_source_dependence: InterSourceDependenceQualification::Complete,
-                inter_source_dependence: InterSourceDependenceQualification::Complete,
             },
             ExperimentNoiseModel {
                 experiment_id: "exp-b".to_owned(),
@@ -476,7 +469,6 @@ mod tests {
                 }],
                 lineage_coverage_complete: true,
             inter_source_dependence: InterSourceDependenceQualification::Complete,
-                inter_source_dependence: InterSourceDependenceQualification::Complete,
             },
         ]);
         assert_eq!(
@@ -496,7 +488,6 @@ mod tests {
                 shared_sources: Vec::new(),
                 lineage_coverage_complete: false,
             inter_source_dependence: InterSourceDependenceQualification::Unknown,
-                inter_source_dependence: InterSourceDependenceQualification::Unknown,
             },
             ExperimentNoiseModel {
                 experiment_id: "exp-b".to_owned(),
@@ -504,7 +495,6 @@ mod tests {
                 shared_sources: Vec::new(),
                 lineage_coverage_complete: true,
             inter_source_dependence: InterSourceDependenceQualification::Complete,
-                inter_source_dependence: InterSourceDependenceQualification::Complete,
             },
         ])
         .expect("partial-lineage portfolio");
@@ -565,7 +555,7 @@ mod tests {
             },
         ])
         .expect("conditional covariance with unknown inter-source dependence");
-        assert!(!result.lineage_coverage_complete == false);
+        assert!(result.lineage_coverage_complete);
         assert_eq!(
             result.inter_source_dependence,
             InterSourceDependenceQualification::Unknown
@@ -584,7 +574,6 @@ mod tests {
                 shared_sources: Vec::new(),
                 lineage_coverage_complete: true,
             inter_source_dependence: InterSourceDependenceQualification::Complete,
-                inter_source_dependence: InterSourceDependenceQualification::Complete,
             },
             ExperimentNoiseModel {
                 experiment_id: "same".to_owned(),
@@ -592,7 +581,6 @@ mod tests {
                 shared_sources: Vec::new(),
                 lineage_coverage_complete: true,
             inter_source_dependence: InterSourceDependenceQualification::Complete,
-                inter_source_dependence: InterSourceDependenceQualification::Complete,
             },
         ]);
         assert_eq!(
@@ -667,7 +655,6 @@ mod tests {
                 shared_sources: Vec::new(),
                 lineage_coverage_complete: false,
             inter_source_dependence: InterSourceDependenceQualification::Unknown,
-                inter_source_dependence: InterSourceDependenceQualification::Unknown,
             },
             ExperimentNoiseModel {
                 experiment_id: "B-naive".to_owned(),
@@ -675,7 +662,6 @@ mod tests {
                 shared_sources: Vec::new(),
                 lineage_coverage_complete: false,
             inter_source_dependence: InterSourceDependenceQualification::Unknown,
-                inter_source_dependence: InterSourceDependenceQualification::Unknown,
             },
         ])
         .expect("naive independence negative control");
