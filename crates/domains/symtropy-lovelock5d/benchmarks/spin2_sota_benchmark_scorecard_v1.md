@@ -201,3 +201,13 @@ Protocol:
 The expected asymptotic behaviour for a regular second-order expansion is \(E_{J_1}(\lambda)=O(\lambda)\), but this must be measured; it is not assumed evidence of finite-coupling analyticity. The exact \(J_1\) is a formal derivative at zero, not a finite-\(\lambda\) existence or invertibility certificate.
 
 The result and full derivation are recorded in the public increment index and the dedicated action-row / Green--Lagrange artifacts. The exact-source local replay is not a GitHub Actions/CI pass.
+
+
+### Endpoint singular-frame transport
+
+For the boundary-map sensitivity benchmark, also compare the left/right singular-vector rotations, not only determinant and singular values. With the fixed raw Einstein-limit basis and \(b=19-2\pi^2\), the exact first-order slopes are:
+\[
+v_{\min}'(0)=-(2b/15)e_h,\qquad
+u_{\min}'(0)=-(8b/15)e_H,
+\]
+with the complementary maximum-singular-vector directions rotating oppositely. Numerically the minimum right-frame component slope is \(0.0985611736238288\), and the minimum left-frame component slope is \(0.3942446944953152\). These values are prospective finite-difference regression targets in the frozen raw basis; they are not invariant under endpoint rescaling. When using metric-aware singular vectors, transform both endpoint metrics and track the same continuous orientation convention.
