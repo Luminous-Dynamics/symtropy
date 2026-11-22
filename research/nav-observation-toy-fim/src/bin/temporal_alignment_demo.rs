@@ -1,6 +1,6 @@
 use nav_observation_toy_fim::student_t_pl::StudentTProtectionLevels;
 use nav_observation_toy_fim::temporal_alignment_envelope::{
-    inflate_student_t_protection_levels_by_temporal_bound, temporal_misalignment_envelope,
+    inflate_student_t_protection_levels_by_temporal_bound, maximum_sync_holdover_under_position_budget, temporal_misalignment_envelope,
     MotionEnvelope, TemporalAlignmentBounds,
 };
 
@@ -38,6 +38,29 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             inflated.inflated_overall_pl_m
         );
     }
+    let holdover = maximum_sync_holdover_under_position_budget(
+        TemporalAlignmentBounds {
+            max_abs_offset_s: 0.001,
+            max_abs_clock_drift_ppm: 100.0,
+            elapsed_since_sync_s: 0.0,
+            max_observation_age_s: 0.0,
+        },
+        MotionEnvelope {
+            max_linear_speed_mps: 5.0,
+            max_linear_acceleration_mps2: 0.0,
+            max_angular_rate_radps: 0.0,
+            max_angular_acceleration_radps2: 0.0,
+            sensor_lever_arm_m: 0.0,
+        },
+        0.01,
+        100.0,
+    )?;
+    println!(
+        "sync_holdover_budget_m=0.01 maximum_additional_holdover_s={:.9} budget_satisfied_now={} budget_satisfied_at_search_limit={}",
+        holdover.maximum_additional_holdover_s,
+        holdover.budget_satisfied_now,
+        holdover.budget_satisfied_at_search_limit
+    );
     println!("scope=synthetic_bounded_timing_sensitivity_not_dataset_calibration_or_integrity_probability");
     Ok(())
 }
