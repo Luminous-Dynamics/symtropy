@@ -30,7 +30,8 @@ A qualified report can be converted to the existing `SpatialErrorKernel`. Its `l
 - A resolved negative lobe is rejected; this crate does not yet fit a different positive-definite oscillatory family.
 - The fit uses a fixed ordered grid and complete independent acquisitions. It is not a raw-image PIV processor or a universal correction factor.
 - The reference implementation is O(A*N^2) in acquisition count A and vector count N; production acceleration must preserve the same fit and validation contract.
-- A unique reference ID, protocol fingerprint and manifest digest are assertions/identities, not cryptographic proof of reference independence, exchangeability or raw-data integrity.
+- A unique reference ID, reference-uncertainty assessment ID, protocol fingerprint and manifest digest are assertions/identities, not cryptographic proof of reference independence, exchangeability or raw-data integrity.
+- The fitted residual covariance combines PIV and reference uncertainty unless the external reference assessment establishes a negligible reference contribution or a separately qualified correction has already been applied.
 - No raw experimental PIV cohort has been ingested or processed by this crate. The synthetic tests are manufactured software tests, not laboratory validation.
 
 ## Run
