@@ -469,6 +469,8 @@ def evaluate(
     workload: dict[str, Any],
     truth_document: dict[str, Any],
     submission: dict[str, Any],
+    *,
+    evaluator_observation_catalog: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     _validate_header(workload)
     episode_id = workload["episode_id"]
@@ -494,7 +496,13 @@ def evaluate(
 
     catalog = _validate_observation_catalog(workload)
     cutoff = workload["decision_cutoff_tick"]
-    truth_claim_index = _truth_claims(truth_document, catalog)
+    # Counterfactual variants may remove candidate-visible observations while
+    # evaluator truth must continue to reference the immutable original source
+    # catalog. The optional catalog is supplied only by the counterfactual
+    # harness after it validates that the variant changes only its declared
+    # observation set.
+    truth_catalog = evaluator_observation_catalog or catalog
+    truth_claim_index = _truth_claims(truth_document, truth_catalog)
 
     candidate_claims = submission.get("claims")
     if not isinstance(candidate_claims, list):
