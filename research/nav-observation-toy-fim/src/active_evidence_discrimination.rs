@@ -608,6 +608,102 @@ mod tests {
         );
     }
     #[test]
+    fn generated_fault_set_selects_a_genuinely_discriminating_peer_action() {
+        use crate::uwb_fault_hypothesis_integrity::{
+            UwbFaultDomain3d, UwbFaultDomainClass3d, UwbFaultHypothesisEnumerationConfig3d,
+            enumerate_uwb_fault_hypotheses_3d,
+        };
+        use crate::uwb_hypothesis_discrimination::{
+            UwbHypothesisOutcomeBall, UwbObservationActionModel,
+            evaluate_uwb_hypothesis_discrimination,
+        };
+
+        let domains = vec![
+            UwbFaultDomain3d {
+                dependency_group_id: 10,
+                class: UwbFaultDomainClass3d::Anchor,
+                affected_observation_ids: vec![100, 101],
+            },
+            UwbFaultDomain3d {
+                dependency_group_id: 20,
+                class: UwbFaultDomainClass3d::Clock,
+                affected_observation_ids: vec![102, 103],
+            },
+        ];
+        let inventory = enumerate_uwb_fault_hypotheses_3d(
+            &domains,
+            UwbFaultHypothesisEnumerationConfig3d {
+                maximum_hypothesis_count: 8,
+                maximum_fault_domain_count: 8,
+                maximum_fault_cardinality: 1,
+                maximum_observation_references: 32,
+            },
+        )
+        .unwrap();
+        assert!(inventory.enumeration_complete);
+        assert_eq!(inventory.generated_hypothesis_count, 3);
+        let hypothesis_ids: Vec<_> = inventory
+            .hypotheses
+            .iter()
+            .map(|hypothesis| hypothesis.hypothesis_id)
+            .collect();
+
+        let make_model = |action_id: u64, separated: bool| {
+            let outcomes = inventory
+                .hypotheses
+                .iter()
+                .map(|hypothesis| UwbHypothesisOutcomeBall {
+                    hypothesis_id: hypothesis.hypothesis_id,
+                    normalized_center: vec![
+                        if separated { (hypothesis.hypothesis_id as f64) * 3.0 } else { 0.0 },
+                    ],
+                    normalized_error_radius: 0.25,
+                })
+                .collect();
+            UwbObservationActionModel {
+                action_id,
+                hypothesis_inventory_sha256: [0x11; 32],
+                outcome_model_sha256: [action_id as u8; 32],
+                normalization_sha256: [0x33; 32],
+                outcomes,
+            }
+        };
+        let shared_dependency_report = evaluate_uwb_hypothesis_discrimination(
+            &hypothesis_ids,
+            [0x11; 32],
+            &make_model(1, false),
+        )
+        .unwrap();
+        let independent_peer_report = evaluate_uwb_hypothesis_discrimination(
+            &hypothesis_ids,
+            [0x11; 32],
+            &make_model(2, true),
+        )
+        .unwrap();
+        assert_eq!(shared_dependency_report.distinguishable_pair_count, 0);
+        assert_eq!(independent_peer_report.distinguishable_pair_count, 3);
+
+        // The shared-dependency action has a much better conditional PL
+        // reduction, but its predicted observations cannot distinguish any
+        // surviving fault pair. The genuinely independent peer wins on the
+        // separate discrimination objective; no authority is granted.
+        let candidates = [candidate(1, 1.3, 20, 100), candidate(2, 2.2, 20, 100)];
+        let plan = plan_active_evidence_with_hypothesis_discrimination(
+            &policy(),
+            &candidates,
+            &[shared_dependency_report, independent_peer_report],
+        )
+        .unwrap();
+        assert_eq!(plan.recommended_action_id, Some(2));
+        assert_eq!(plan.pareto_frontier.len(), 2);
+        assert_eq!(
+            plan.reason,
+            ActiveEvidenceDiscriminationReason::BestHypothesisDiscriminationAvailableButTargetNotReached
+        );
+        assert!(!plan.conditional_target_reached);
+        assert!(plan.authority_transition_not_authorized_by_plan);
+    }
+    #[test]
     fn target_already_satisfied_needs_no_measurement_model() {
         let mut satisfied = policy();
         satisfied.current_protection_level_upper_m = 0.5;
