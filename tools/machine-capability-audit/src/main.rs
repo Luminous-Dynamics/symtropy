@@ -732,10 +732,17 @@ fn cost_is_valid(cost: &Cost) -> bool {
         cost.failure_rework_zar,
         cost.warranty_reserve_zar,
     ];
-    categories
+    let categories_are_valid = categories
         .iter()
         .flatten()
-        .all(|value| value.is_finite() && *value >= 0.0)
+        .all(|value| value.is_finite() && *value >= 0.0);
+    let complete_total = categories
+        .into_iter()
+        .collect::<Option<Vec<f64>>>()
+        .map(|values| values.into_iter().sum::<f64>());
+
+    categories_are_valid
+        && complete_total.is_none_or(f64::is_finite)
         && cost.accepted_outputs.is_finite()
         && cost.accepted_outputs > 0.0
 }
@@ -1068,6 +1075,21 @@ mod tests {
             pareto_frontier_route_ids(&routes),
             vec!["cheap-slow".to_owned(), "fast-expensive".to_owned()]
         );
+    }
+
+    #[test]
+    fn overflowing_complete_cost_is_rejected_instead_of_wrapping() {
+        let parsed = corpus();
+        let mut case = parsed
+            .cases
+            .iter()
+            .find(|case| case.scenario_id == "MCC-001")
+            .expect("MCC-001 exists")
+            .clone();
+        case.routes[0].cost.capital_allocation_zar = Some(f64::MAX);
+        case.routes[0].cost.material_zar = Some(f64::MAX);
+
+        assert!(evaluate_case(&case).is_err());
     }
 
     #[test]
