@@ -1,5 +1,7 @@
 # Orbital truss as-built geometry benchmark v0.1
 
+Parent protocol: [#4263](https://github.com/Luminous-Dynamics/symtropy/issues/4263). Executable child scope: [#6810](https://github.com/Luminous-Dynamics/symtropy/issues/6810).
+
 This crate implements the first executable slice beneath Symtropy #4263 / #6810: **bounded 2D as-built geometric conformance**.
 
 It is deliberately not a new truss solver, point-cloud engine, CAD kernel, GD&T engine, NDE/POD model, stiffness estimator or structural acceptance authority.
