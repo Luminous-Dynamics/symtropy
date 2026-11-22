@@ -92,6 +92,9 @@ def apply_mutation(study: dict, mutation: dict) -> None:
     inspector = next((item for item in inspectors if item["inspector_id"] == inspector_id), None)
     if inspector is None:
         raise ValueError(f"missing inspector {inspector_id}")
+    if operation == "set_scope_sha256":
+        study["scope_sha256"] = mutation["value"]
+        return
     if operation == "set_calibration_valid":
         inspector["calibration_valid"] = mutation["value"]
         return
@@ -115,11 +118,13 @@ def apply_mutation(study: dict, mutation: dict) -> None:
         raise ValueError(f"unsupported mutation {operation}")
 
 
-def evaluate(study: dict, scope: dict, criteria: dict) -> tuple[str, list[dict]]:
+def evaluate(study: dict, scope: dict, scope_sha256: str, criteria: dict) -> tuple[str, list[dict]]:
     if not study["study_id"].strip() or study["evidence_class"] != "synthetic":
         return "NOT_EVALUABLE_EVIDENCE_CLASS", []
     if study["scope_ref"] != scope["scope_ref"]:
         return "NOT_EVALUABLE_SCOPE_MISMATCH", []
+    if study["scope_sha256"] != scope_sha256:
+        return "NOT_EVALUABLE_SCOPE_DIGEST_MISMATCH", []
     if len(study["inspectors"]) < criteria["minimum_inspectors"]:
         return "INSUFFICIENT_INSPECTOR_COUNT", []
 
@@ -191,6 +196,9 @@ def verify(corpus_path: Path, rust_path: Path) -> dict:
     assert corpus["claim_ceiling"] == CLAIM_CEILING
     assert rust["schema"] == OUTPUT_SCHEMA
     assert rust["corpus_sha256"] == hashlib.sha256(raw).hexdigest()
+    scope_bytes = json.dumps(corpus["scope"], separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    scope_digest = hashlib.sha256(scope_bytes).hexdigest()
+    assert rust["scope_sha256"] == scope_digest
     assert rust["claim_ceiling"] == CLAIM_CEILING
     assert rust["authority_granted"] is False
     assert rust["physical_pod"] == "NOT_ASSESSED"
@@ -204,7 +212,7 @@ def verify(corpus_path: Path, rust_path: Path) -> dict:
         study = copy.deepcopy(corpus["base_study"])
         for mutation in case["mutations"]:
             apply_mutation(study, mutation)
-        disposition, detail = evaluate(study, corpus["scope"], corpus["criteria"])
+        disposition, detail = evaluate(study, corpus["scope"], scope_digest, corpus["criteria"])
         expected[case["case_id"]] = (disposition, detail, case["expected_disposition"])
 
     actual_results = {row["case_id"]: row for row in rust["results"]}
