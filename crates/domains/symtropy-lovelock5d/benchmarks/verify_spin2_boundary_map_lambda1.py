@@ -140,8 +140,11 @@ def verify(rows_path: Path) -> dict:
 
     # Negative controls: wrong forcing sign, altered horizon value, and
     # contamination of the decaying adjoint with the growing homogeneous mode.
-    assert -CH_h != CH_h
-    assert sp.Integer(1) != 0
+    wrong_sign_CH = -CH_h
+    assert wrong_sign_CH != CH_h
+    mutated_horizon_series = Hser+1
+    zero("accepted horizon sensitivity has zero horizon value",Hser.subs(t,0))
+    assert mutated_horizon_series.subs(t,0) != 0
     y2_bad = y2+y1
     zero("clean decaying adjoint asymptotic",sp.limit(y2/x**2,x,sp.oo))
     zero("contaminated adjoint exposes growing mode",sp.limit(y2_bad/x**2,x,sp.oo)-2)
