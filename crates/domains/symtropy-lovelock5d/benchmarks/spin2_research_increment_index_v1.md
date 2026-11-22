@@ -121,3 +121,30 @@ An exact rational verifier and receipt are committed:
 - `spin2_mp_infinity_resonance_replay_v1.json`
 
 The first verifier attempt caught and corrected a sign mistake in the n=1 determinant; the exact value is (+5). The corrected public fixture and verifier blobs were both replayed locally and passed. This balanced (2)-horizon-data versus (2)-decay-data count motivates a (2\times2) global boundary map, but does not establish its rank, uniqueness or Fredholm index.
+
+
+## Exact Einstein-limit global boundary map (22 November 2026)
+
+The `spin2_einstein_global_boundary_map` increment closes the horizon-to-infinity matching problem at `alpha=0`, `r_H=1), and (O(a^2)).
+
+The independent five-field Euler–Lagrange variation is re-derived, with (g=r^2) imposed only after variation. The exact reduced principal matrix has
+`det M=(r^2-1)/4>0` for every (r>1), and the algebraic (E_f) pivot is `3*r^5/(r^2-1)^2>0). The complete analytic horizon family is given in `spin2_einstein_global_boundary_map_v1.md); substitution verifies all four original even-sector rows exactly.
+
+The global forbidden-mode map is
+[
+(C_B,C_H)^T=operatorname{diag}(1/2,2)(b_1+4,h_0-1)^T,
+]
+where (C_B=lim B_2) and (C_H=lim H_2/r^4). Its determinant is (1), singular values are (1/2,2), and Euclidean condition number is (4). The additional asymptotic growth satisfies (C_F=lim F_2/r^2=-C_H), so it is not an independent third boundary condition. Asymptotic flatness uniquely selects ((b_1,h_0)=(-4,1)), recovering Myers–Perry.
+
+Artifacts:
+- `derive_spin2_einstein_global_boundary_map.py`: action-first exact derivation and all-four-row verification.
+- `spin2_einstein_global_boundary_map_v1.json`: machine-readable exact reduced system, solution family, map and claim ceiling.
+- `verify_spin2_einstein_global_boundary_map.py`: independent exact-rational reduced-system verifier with a wrong-sign (H_2) negative control.
+- `spin2_einstein_global_boundary_map_v1.md`: global completeness and uniqueness argument.
+- `spin2_einstein_global_boundary_map_replay_v1.json`: local replay receipt and exact public Git blob identifiers.
+
+The local derivation and independent verifier passed. The public source/fixture/verifier blob identities are recorded; execution of the exact committed derivation blob and CI remain separate gates. This is not a finite-coupling or full nonlinear uniqueness result.
+
+## Next frontier: first coupling derivative of the global map
+
+The next mathematical increment is the derivative of the boundary map with respect to (lambda=alpha/r_H^2) at (lambda=0). This should reveal whether the diagonal Einstein-limit map deforms smoothly and quantify coupling-induced mixing between the horizon data and forbidden asymptotic amplitudes. The finite-(lambda) horizon residue and interval BVP remain subsequent gates.
