@@ -147,9 +147,9 @@ pub fn rank_designs_under_finite_correlation_scenarios(
         let mut nominal_independence_eig_nats = None;
 
         for scenario in scenarios {
-            let information = scalar_parameter_information(candidate, &scenario.correlation_matrix)?;
-            let posterior_variance =
-                1.0 / (1.0 / candidate.prior_parameter_variance + information);
+            let information =
+                scalar_parameter_information(candidate, &scenario.correlation_matrix)?;
+            let posterior_variance = 1.0 / (1.0 / candidate.prior_parameter_variance + information);
             let eig = 0.5 * (1.0 + candidate.prior_parameter_variance * information).ln();
             if !posterior_variance.is_finite() || !eig.is_finite() {
                 return Err(ModelError::InvalidParameter(
@@ -258,8 +258,7 @@ fn validate_candidate(
     observation_count: usize,
     source_count: usize,
 ) -> Result<(), ModelError> {
-    if !candidate.prior_parameter_variance.is_finite()
-        || candidate.prior_parameter_variance <= 0.0
+    if !candidate.prior_parameter_variance.is_finite() || candidate.prior_parameter_variance <= 0.0
     {
         return Err(ModelError::InvalidParameter(
             "multi_source_prior_parameter_variance_must_be_positive",
@@ -336,10 +335,7 @@ fn nearly_equal(left: f64, right: f64) -> bool {
     (left - right).abs() <= 1.0e-12 * left.abs().max(right.abs()).max(1.0)
 }
 
-fn validate_correlation_matrix(
-    matrix: &[Vec<f64>],
-    source_count: usize,
-) -> Result<(), ModelError> {
+fn validate_correlation_matrix(matrix: &[Vec<f64>], source_count: usize) -> Result<(), ModelError> {
     if matrix.len() != source_count || matrix.iter().any(|row| row.len() != source_count) {
         return Err(ModelError::MismatchedDataLengths);
     }
@@ -437,9 +433,10 @@ fn minimum_symmetric_eigenvalue(matrix: &[Vec<f64>]) -> f64 {
 
 fn is_identity_correlation_matrix(matrix: &[Vec<f64>]) -> bool {
     matrix.iter().enumerate().all(|(row, values)| {
-        values.iter().enumerate().all(|(column, value)| {
-            nearly_equal(*value, if row == column { 1.0 } else { 0.0 })
-        })
+        values
+            .iter()
+            .enumerate()
+            .all(|(column, value)| nearly_equal(*value, if row == column { 1.0 } else { 0.0 }))
     })
 }
 
@@ -608,7 +605,9 @@ mod tests {
         .expect("three-source robust ranking");
 
         assert_eq!(
-            result.nominal_independence_preferred_candidate_id.as_deref(),
+            result
+                .nominal_independence_preferred_candidate_id
+                .as_deref(),
             Some("nominal-winner")
         );
         assert_eq!(result.robust_preferred_candidate_id, "robust-winner");
@@ -645,11 +644,7 @@ mod tests {
             ],
         };
         assert_eq!(
-            rank_designs_under_finite_correlation_scenarios(
-                &candidates(),
-                &[invalid],
-                RECEIPT,
-            ),
+            rank_designs_under_finite_correlation_scenarios(&candidates(), &[invalid], RECEIPT,),
             Err(ModelError::InvalidCovariance(
                 "source_correlation_matrix_must_be_positive_semidefinite"
             ))
@@ -666,12 +661,9 @@ mod tests {
                 vec![1.0, 1.0, 1.0],
             ],
         };
-        let result = rank_designs_under_finite_correlation_scenarios(
-            &candidates(),
-            &[common_mode],
-            RECEIPT,
-        )
-        .expect("singular PSD source correlation");
+        let result =
+            rank_designs_under_finite_correlation_scenarios(&candidates(), &[common_mode], RECEIPT)
+                .expect("singular PSD source correlation");
         assert_eq!(result.nominal_independence_preferred_candidate_id, None);
         assert_eq!(result.ranking_reversed, None);
     }
@@ -699,11 +691,7 @@ mod tests {
             correlation_matrix: vec![vec![1.0, 0.0], vec![0.0, 1.0]],
         };
         assert_eq!(
-            rank_designs_under_finite_correlation_scenarios(
-                &candidates(),
-                &[malformed],
-                RECEIPT,
-            ),
+            rank_designs_under_finite_correlation_scenarios(&candidates(), &[malformed], RECEIPT,),
             Err(ModelError::MismatchedDataLengths)
         );
 
@@ -722,12 +710,9 @@ mod tests {
     #[test]
     fn non_identity_scenario_set_does_not_claim_independence_baseline() {
         let scenarios = vec![three_source_scenarios()[1].clone()];
-        let result = rank_designs_under_finite_correlation_scenarios(
-            &candidates(),
-            &scenarios,
-            RECEIPT,
-        )
-        .expect("non-identity scenario set");
+        let result =
+            rank_designs_under_finite_correlation_scenarios(&candidates(), &scenarios, RECEIPT)
+                .expect("non-identity scenario set");
         assert!(result
             .scores
             .iter()
