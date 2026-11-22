@@ -585,10 +585,10 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
                 raise EvidenceGainError(f"{turn_id}: duplicate external feedback ID {feedback_id}")
             seen_feedback_ids.add(feedback_id)
             source_role = feedback["source_role"]
-            if source_role not in {"user_simulator", "human_user", "operator"}:
+            if not isinstance(source_role, str) or source_role not in {"user_simulator", "human_user", "operator"}:
                 raise EvidenceGainError(f"{context}: unsupported feedback source_role")
             feedback_kind = feedback["feedback_kind"]
-            if feedback_kind not in {"hint", "clarification", "correction", "challenge", "request"}:
+            if not isinstance(feedback_kind, str) or feedback_kind not in {"hint", "clarification", "correction", "challenge", "request"}:
                 raise EvidenceGainError(f"{context}: unsupported feedback_kind")
             delivered_tick = _integer(feedback["delivered_tick"], f"{context}.delivered_tick")
             if delivered_tick <= prior_cutoff or delivered_tick > _integer(
