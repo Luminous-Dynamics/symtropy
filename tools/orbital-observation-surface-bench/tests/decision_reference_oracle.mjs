@@ -156,7 +156,7 @@ function compareProbe(a, b) {
     a.cost.reference_trials - b.cost.reference_trials ||
     a.cost.exposure_micro_units - b.cost.exposure_micro_units ||
     a.cost.elapsed_millis - b.cost.elapsed_millis ||
-    a.probe_id.localeCompare(b.probe_id);
+    (a.probe_id < b.probe_id ? -1 : a.probe_id > b.probe_id ? 1 : 0);
 }
 
 function emptyProbeSelection(status) {
