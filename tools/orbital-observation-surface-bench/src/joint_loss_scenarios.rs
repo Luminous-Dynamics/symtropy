@@ -841,10 +841,10 @@ mod tests {
             .iter()
             .find(|item| item.action_id == "beta")
             .expect("beta metric exists");
-        assert_eq!(alpha.worst_case_joint_regret.numerator, 2);
-        assert_eq!(alpha.worst_case_joint_regret.denominator, 10);
-        assert_eq!(beta.worst_case_joint_regret.numerator, 2);
-        assert_eq!(beta.worst_case_joint_regret.denominator, 10);
+        assert_eq!(alpha.worst_case_joint_regret.numerator, 1);
+        assert_eq!(alpha.worst_case_joint_regret.denominator, 5);
+        assert_eq!(beta.worst_case_joint_regret.numerator, 1);
+        assert_eq!(beta.worst_case_joint_regret.denominator, 5);
         assert_eq!(alpha.worst_rectangular_regret_worlds, vec!["w1"]);
         assert_eq!(beta.worst_rectangular_regret_worlds, vec!["w0"]);
     }
