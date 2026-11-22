@@ -195,8 +195,6 @@ jobs:
               and ($grid.evidence.evidence.valid_from_unix_ms <= ($queue.decision_time_unix_ms + ($grid.slot * $queue.slot_duration_seconds * 1000)))
               and ($grid.evidence.evidence.valid_until_unix_ms >= ($queue.decision_time_unix_ms + (($grid.slot + 1) * $queue.slot_duration_seconds * 1000) - 1))
               and ($grid.evidence.non_charging_site_load_w <= $grid.evidence.import_cap_w)
-              and ($grid.evidence.evidence.valid_from_unix_ms <= ($queue.decision_time_unix_ms + ($grid.slot * $queue.slot_duration_seconds * 1000)))
-              and ($grid.evidence.evidence.valid_until_unix_ms >= ($queue.decision_time_unix_ms + (($grid.slot + 1) * $queue.slot_duration_seconds * 1000) - 1))
             )
             and ($queue.grid_slots | length) == $queue.horizon_slots
           ' tools/ev-passenger-cost-frontier/fixtures/battery_charge_queue_v0_1.json
