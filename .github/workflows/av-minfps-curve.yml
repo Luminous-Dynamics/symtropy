@@ -20,5 +20,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Validate input schema JSON
+        run: python3 -m json.tool schemas/minfps-curve-v1.schema.json > /dev/null
       - name: Run minimum-FPS evaluator tests
         run: python3 -m unittest discover -s tools/av-minfps-curve -p "test_*.py" -v
