@@ -1,4 +1,5 @@
-// Dependency-free validator for the JSON Schema keywords used by this repository.\n// This intentionally is not a general-purpose Draft 2020-12 implementation.\nimport fs from "node:fs";
+// Dependency-free validator for the JSON Schema keywords used by this repository.
+// This intentionally is not a general-purpose Draft 2020-12 implementation.\nimport fs from "node:fs";
 
 function fail(message) {
   throw new Error(message);
