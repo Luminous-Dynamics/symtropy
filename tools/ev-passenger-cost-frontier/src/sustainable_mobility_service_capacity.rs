@@ -508,10 +508,7 @@ mod tests {
         max_single_aircraft_wait_seconds: u64,
     }
 
-    fn tick_reference(
-        scenario: &ServiceArchitecture,
-        horizon_seconds: u64,
-    ) -> TickReference {
+    fn tick_reference(scenario: &ServiceArchitecture, horizon_seconds: u64) -> TickReference {
         fn start_charges(
             now: u64,
             scenario: &ServiceArchitecture,
@@ -532,8 +529,10 @@ mod tests {
 
         let channel_count = usize::from(effective_charging_channels(scenario));
         let mut channel_deadlines = vec![None; channel_count];
-        let mut mission_deadlines =
-            vec![Some(u64::from(scenario.mission_duration_seconds)); usize::from(scenario.aircraft_count)];
+        let mut mission_deadlines = vec![
+            Some(u64::from(scenario.mission_duration_seconds));
+            usize::from(scenario.aircraft_count)
+        ];
         let mut ready_spares = usize::from(scenario.initial_ready_spares);
         let mut charge_queue = 0_usize;
         let mut waiting: VecDeque<(u8, u64)> = VecDeque::new();
@@ -558,8 +557,7 @@ mod tests {
                         max_single_aircraft_wait_seconds =
                             max_single_aircraft_wait_seconds.max(wait);
                         mission_deadlines[usize::from(aircraft_id)] = Some(
-                            now
-                                + u64::from(scenario.operational_turnaround_seconds)
+                            now + u64::from(scenario.operational_turnaround_seconds)
                                 + u64::from(scenario.mission_duration_seconds),
                         );
                     } else {
@@ -585,8 +583,7 @@ mod tests {
                     if ready_spares > 0 {
                         ready_spares -= 1;
                         mission_deadlines[index] = Some(
-                            now
-                                + u64::from(scenario.operational_turnaround_seconds)
+                            now + u64::from(scenario.operational_turnaround_seconds)
                                 + u64::from(scenario.mission_duration_seconds),
                         );
                     } else {
@@ -608,8 +605,7 @@ mod tests {
         for (_, wait_started_at) in &waiting {
             let wait = horizon_seconds - *wait_started_at;
             aircraft_wait_seconds += wait;
-            max_single_aircraft_wait_seconds =
-                max_single_aircraft_wait_seconds.max(wait);
+            max_single_aircraft_wait_seconds = max_single_aircraft_wait_seconds.max(wait);
         }
 
         TickReference {
@@ -619,7 +615,10 @@ mod tests {
             charge_queue_peak,
             charge_queue_at_horizon: charge_queue,
             active_chargers_at_horizon: u8::try_from(
-                channel_deadlines.iter().filter(|deadline| deadline.is_some()).count(),
+                channel_deadlines
+                    .iter()
+                    .filter(|deadline| deadline.is_some())
+                    .count(),
             )
             .unwrap_or(u8::MAX),
             ready_spares_at_horizon: u8::try_from(ready_spares).unwrap_or(u8::MAX),
@@ -830,20 +829,50 @@ mod tests {
                 evaluate_architecture_capacity(&scenario, horizon).expect("event simulation");
             let reference = tick_reference(&scenario, horizon);
             assert_eq!(
-                event_result.completed_sorties,
-                reference.completed_sorties,
+                event_result.completed_sorties, reference.completed_sorties,
                 "completed sorties differ in case {case}"
             );
-            assert_eq!(event_result.charge_starts, reference.charge_starts, "charge starts differ in case {case}");
-            assert_eq!(event_result.charge_completions, reference.charge_completions, "charge completions differ in case {case}");
-            assert_eq!(event_result.charge_queue_peak, reference.charge_queue_peak, "charge queue peak differs in case {case}");
-            assert_eq!(event_result.charge_queue_at_horizon, reference.charge_queue_at_horizon, "charge queue differs in case {case}");
-            assert_eq!(event_result.active_chargers_at_horizon, reference.active_chargers_at_horizon, "active channels differ in case {case}");
-            assert_eq!(event_result.ready_spares_at_horizon, reference.ready_spares_at_horizon, "ready spares differ in case {case}");
-            assert_eq!(event_result.waiting_aircraft_peak, reference.waiting_aircraft_peak, "waiting peak differs in case {case}");
-            assert_eq!(event_result.waiting_aircraft_at_horizon, reference.waiting_aircraft_at_horizon, "waiting aircraft differ in case {case}");
-            assert_eq!(event_result.aircraft_wait_seconds, reference.aircraft_wait_seconds, "waiting seconds differ in case {case}");
-            assert_eq!(event_result.max_single_aircraft_wait_seconds, reference.max_single_aircraft_wait_seconds, "max wait differs in case {case}");
+            assert_eq!(
+                event_result.charge_starts, reference.charge_starts,
+                "charge starts differ in case {case}"
+            );
+            assert_eq!(
+                event_result.charge_completions, reference.charge_completions,
+                "charge completions differ in case {case}"
+            );
+            assert_eq!(
+                event_result.charge_queue_peak, reference.charge_queue_peak,
+                "charge queue peak differs in case {case}"
+            );
+            assert_eq!(
+                event_result.charge_queue_at_horizon, reference.charge_queue_at_horizon,
+                "charge queue differs in case {case}"
+            );
+            assert_eq!(
+                event_result.active_chargers_at_horizon, reference.active_chargers_at_horizon,
+                "active channels differ in case {case}"
+            );
+            assert_eq!(
+                event_result.ready_spares_at_horizon, reference.ready_spares_at_horizon,
+                "ready spares differ in case {case}"
+            );
+            assert_eq!(
+                event_result.waiting_aircraft_peak, reference.waiting_aircraft_peak,
+                "waiting peak differs in case {case}"
+            );
+            assert_eq!(
+                event_result.waiting_aircraft_at_horizon, reference.waiting_aircraft_at_horizon,
+                "waiting aircraft differ in case {case}"
+            );
+            assert_eq!(
+                event_result.aircraft_wait_seconds, reference.aircraft_wait_seconds,
+                "waiting seconds differ in case {case}"
+            );
+            assert_eq!(
+                event_result.max_single_aircraft_wait_seconds,
+                reference.max_single_aircraft_wait_seconds,
+                "max wait differs in case {case}"
+            );
         }
     }
 
