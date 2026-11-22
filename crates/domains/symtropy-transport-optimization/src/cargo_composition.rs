@@ -516,30 +516,40 @@ pub struct CompositionEventBatch {
     pub voided: bool,
 }
 
-fn mutation_touched_modules(mutation: &CompositionMutation) -> BTreeSet<&str> {
-    match mutation {
-        CompositionMutation::Add {
-            parent_module_id,
-            child_module_id,
-        }
-        | CompositionMutation::Delete {
-            parent_module_id,
-            child_module_id,
-        }
-        | CompositionMutation::RetractIfPresent {
-            parent_module_id,
-            child_module_id,
-        } => BTreeSet::from([parent_module_id.as_str(), child_module_id.as_str()]),
-        CompositionMutation::DisaggregateAll { parent_module_id } => {
-            BTreeSet::from([parent_module_id.as_str()])
-        }
-    }
-}
-
-fn batch_touched_modules(batch: &CompositionEventBatch) -> BTreeSet<&str> {
+fn batch_touched_modules(
+    batch: &CompositionEventBatch,
+    active_memberships: &BTreeSet<Membership>,
+) -> BTreeSet<String> {
     let mut touched = BTreeSet::new();
     for mutation in &batch.mutations {
-        touched.extend(mutation_touched_modules(mutation));
+        match mutation {
+            CompositionMutation::Add {
+                parent_module_id,
+                child_module_id,
+            }
+            | CompositionMutation::Delete {
+                parent_module_id,
+                child_module_id,
+            }
+            | CompositionMutation::RetractIfPresent {
+                parent_module_id,
+                child_module_id,
+            } => {
+                touched.insert(parent_module_id.clone());
+                touched.insert(child_module_id.clone());
+            }
+            CompositionMutation::DisaggregateAll { parent_module_id } => {
+                touched.insert(parent_module_id.clone());
+                // DELETE_ALL affects every currently active direct child,
+                // even though the EPCIS source does not enumerate them.
+                touched.extend(
+                    active_memberships
+                        .iter()
+                        .filter(|membership| membership.parent_module_id == *parent_module_id)
+                        .map(|membership| membership.child_module_id.clone()),
+                );
+            }
+        }
     }
     touched
 }
@@ -832,13 +842,13 @@ pub fn evaluate_composition_batches(
     }
 
     for (event_time, time_batch) in actual_by_time {
-        let mut touched: BTreeMap<&str, usize> = BTreeMap::new();
+        let mut touched: BTreeMap<String, usize> = BTreeMap::new();
         for batch in &time_batch {
-            for module_id in batch_touched_modules(batch) {
+            for module_id in batch_touched_modules(batch, &report.active_memberships) {
                 *touched.entry(module_id).or_default() += 1;
             }
         }
-        let ambiguous_modules: BTreeSet<&str> = touched
+        let ambiguous_modules: BTreeSet<String> = touched
             .into_iter()
             .filter_map(|(module_id, count)| (count > 1).then_some(module_id))
             .collect();
@@ -846,10 +856,10 @@ pub fn evaluate_composition_batches(
         let mut ordered_batches = time_batch;
         ordered_batches.sort_by(|left, right| left.source_key.cmp(&right.source_key));
         for batch in ordered_batches {
-            let batch_modules = batch_touched_modules(batch);
-            let conflicts: BTreeSet<&str> = batch_modules
+            let batch_modules = batch_touched_modules(batch, &report.active_memberships);
+            let conflicts: BTreeSet<String> = batch_modules
                 .intersection(&ambiguous_modules)
-                .copied()
+                .cloned()
                 .collect();
             if !conflicts.is_empty() {
                 for module_id in conflicts {
@@ -857,7 +867,7 @@ pub fn evaluate_composition_batches(
                         &mut report,
                         CompositionFailure::AmbiguousEventTime {
                             event_time,
-                            module_id: module_id.to_string(),
+                            module_id,
                         },
                     );
                 }
@@ -1289,6 +1299,54 @@ mod tests {
                     child_module_id: "PALLET".to_string(),
                 }))
         );
+    }
+
+    #[test]
+    fn delete_all_conflicts_with_same_time_event_that_touches_an_existing_child() {
+        let modules = modules(&["CONTAINER", "PALLET", "OTHER"]);
+        let initial = batch(
+            "INITIAL",
+            10,
+            vec![CompositionMutation::Add {
+                parent_module_id: "CONTAINER".to_string(),
+                child_module_id: "PALLET".to_string(),
+            }],
+        );
+        let delete_all = batch(
+            "DELETE-ALL",
+            20,
+            vec![CompositionMutation::DisaggregateAll {
+                parent_module_id: "CONTAINER".to_string(),
+            }],
+        );
+        let transfer = batch(
+            "TRANSFER",
+            20,
+            vec![CompositionMutation::Add {
+                parent_module_id: "OTHER".to_string(),
+                child_module_id: "PALLET".to_string(),
+            }],
+        );
+
+        let report =
+            evaluate_composition_batches(&modules, &[initial, delete_all, transfer], 100).unwrap();
+
+        assert_eq!(report.active_edges(), 1);
+        assert!(report.active_memberships.contains(&Membership {
+            parent_module_id: "CONTAINER".to_string(),
+            child_module_id: "PALLET".to_string(),
+        }));
+        assert!(!report.active_memberships.iter().any(|edge| {
+            edge.parent_module_id == "OTHER" || edge.child_module_id == "PALLET"
+                && edge.parent_module_id == "OTHER"
+        }));
+        assert!(report.failures.contains_key(
+            &CompositionFailure::AmbiguousEventTime {
+                event_time: 20,
+                module_id: "PALLET".to_string(),
+            }
+        ));
+        assert!(!report.is_qualified());
     }
 
     #[test]
