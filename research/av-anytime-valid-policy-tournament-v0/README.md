@@ -1,15 +1,21 @@
 # AV Anytime-Valid Policy Tournament v0
 
 **Parent:** Symtropy #6806  
+**Implementation:** draft PR #6807  
 **Composes:** #6753 all-action EVSI, #6771 Pareto resource frontier, #6497 response-window scoring, #6564 multi-round executor, #6754 blind custody.
 
 ## Objective
 
-Prototype a statistically valid stopping rule for one paired policy comparison. A benchmark operator may inspect the result after every independent source cluster and stop once the candidate is demonstrably superior to a preregistered practical margin, demonstrably not superior, or at the sample cap as inconclusive.
+Implement two related interfaces for one bounded paired-mean comparison:
+
+1. **Offline replay scorer:** analyze an ordered recorded result file and find the earliest valid stopping prefix.
+2. **Streaming driver:** consume NDJSON records one at a time, emit a time-uniform decision after each observation, and stop requesting further input at the first certified boundary or declared maximum.
+
+The streaming path is important: an early-stopping statistic only reduces evaluation cost when the next candidate/episode is not scheduled after the stop signal. Merely reporting a shorter prefix after all candidate runs have finished does not save compute.
 
 ## Method
 
-For paired differences X_i in [-1, 1], with positive values favoring the candidate, the v0 evaluator uses a conservative two-sided Hoeffding confidence sequence.
+For paired differences X_i in [-1, 1], with positive values favoring the candidate policy, the v0 evaluator uses a conservative two-sided Hoeffding confidence sequence.
 
 At look n, each tail receives error budget alpha / (2 n (n+1)). The radius is:
 
@@ -29,18 +35,38 @@ The estimand and target population must be frozen before evaluation. Each consum
 
 NOT_SUPERIOR is not equivalence. Equivalence requires a separate two-sided margin test and is intentionally not implemented in this first tranche.
 
-## Input contract
+## Offline input contract
 
 The JSON input must declare integer schema_version 1 and sampling_unit independent_source_cluster. Each observation has a unique cluster_id and one finite numeric paired_difference in [-1, 1]. For score metrics in [0, 1], this naturally represents candidate score minus reference score.
+
+## Streaming NDJSON protocol
+
+The first line is a start envelope:
+
+    {"type":"start","schema_version":1,"sampling_unit":"independent_source_cluster","alpha":0.05,"superiority_margin":0.03,"max_observations":500,"metric_id":"task_accuracy","candidate_policy_id":"A5","reference_policy_id":"A4"}
+
+Then send exactly one completed paired result per line:
+
+    {"type":"observation","cluster_id":"source-0001","paired_difference":0.12}
+
+The driver emits a JSON `look` record immediately. It emits a terminal `decision` record when:
+- the lower bound clears the superiority margin (`SUPERIOR`);
+- the upper bound is at or below the margin (`NOT_SUPERIOR`);
+- the maximum observation count is reached (`INCONCLUSIVE`);
+- the input ends (`INCONCLUSIVE`).
+
+It then exits without requesting another NDJSON record. A cooperating episode runner must stop scheduling work when it receives a terminal decision. The driver does not own or control the candidate execution process.
+
+Example:
+
+    python3 tools/av-anytime-valid-evaluator/streaming_driver.py --input -
 
 ## Local execution
 
     python3 -m unittest discover -s tools/av-anytime-valid-evaluator -p 'test_*.py' -v
     python3 tools/av-anytime-valid-evaluator/anytime_valid_policy_eval.py --input path/to/input.json
 
-The test suite checks deterministic positive, negative and tie cases, rejects reused source clusters and malformed numeric/schema inputs, and verifies that the output counts only the prefix actually consumed before the stopping look.
-
-The CLI is an **offline replay scorer**: it receives an ordered result file and reports the earliest valid stopping prefix. It does not itself control candidate execution. Real evaluation-compute savings require a streaming driver to supply one independent cluster at a time and honor the stopping state before scheduling the next cluster. A retrospective prefix count must not be reported as measured compute savings.
+The tests check deterministic positive, negative and tie cases, malformed inputs, duplicate source IDs, transcript hash chaining, observation caps, stream exhaustion and—critically—that the streaming iterator is not advanced after a terminal decision.
 
 ## Explicit v0 limits
 
@@ -51,10 +77,11 @@ This is not the complete #6806 implementation. It does not yet provide:
 - equivalence / non-inferiority families beyond the one-sided margin;
 - Pareto-frontier certificates with simultaneous uncertainty on every metric;
 - inference for unbounded latency, p95/p99 tails or unmeasured energy;
-- adaptive sampling designs whose conditional estimand changes during the run.
+- adaptive sampling designs whose conditional estimand changes during the run;
+- orchestration of external model jobs or billing/energy instrumentation.
 
 The input validator requires one row per independent source cluster to prevent accidental pseudo-replication, but does not estimate cluster dependence from repeated clips. The evaluator cannot establish whether the declared sampling population is representative. Those limits must remain visible in every report.
 
 ## Claim boundary
 
-Passing these tests qualifies only the mechanics of this two-arm bounded reference method. It is not a Symthaea model result, an official SPOT/DIVE/ALIVE score, proof of real-world superiority, a measured evaluation-compute saving, or a substitute for the independent custodian specified in #6754.
+Passing these tests qualifies only the mechanics of this two-arm bounded reference method. It is not a Symthaea model result, an official SPOT/DIVE/ALIVE/StreamArena score, proof of real-world superiority, a measured evaluation-compute saving, or a substitute for the independent custodian specified in #6754.
