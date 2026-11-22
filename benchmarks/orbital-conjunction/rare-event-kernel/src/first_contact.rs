@@ -12,12 +12,12 @@
 //! does not construct Taylor remainders, validate nonlinear dynamics, or
 //! formally machine-verify floating-point arithmetic.
 
+use crate::KernelError;
 use crate::bernstein::{
-    Bound, bernstein_hull, evaluate_bernstein, norm_bounds, power_to_bernstein,
-    safe_midpoint, split_bernstein_half,
+    Bound, bernstein_hull, evaluate_bernstein, norm_bounds, power_to_bernstein, safe_midpoint,
+    split_bernstein_half,
 };
 use crate::coverage::Interval;
-use crate::KernelError;
 
 /// Configuration for chronological first-contact isolation on a polynomial window.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -188,10 +188,7 @@ pub fn isolate_polynomial_first_contact(
         if starts_at_horizon && left_distance_upper < config.hard_body_radius {
             return Ok(report(
                 FirstContactDisposition::FirstContactBracket,
-                Some((
-                    config.time_lower_seconds,
-                    config.time_lower_seconds,
-                )),
+                Some((config.time_lower_seconds, config.time_lower_seconds)),
                 visited_time_intervals,
                 excluded_time_intervals,
                 unresolved_time_intervals,
@@ -350,7 +347,6 @@ fn report(
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -385,7 +381,10 @@ mod tests {
             config(0.0, 1.0, 0.63, 0.02, 512, 24),
         )
         .expect("valid crossing");
-        assert_eq!(report.disposition, FirstContactDisposition::FirstContactBracket);
+        assert_eq!(
+            report.disposition,
+            FirstContactDisposition::FirstContactBracket
+        );
         let (lower, upper) = report
             .first_contact_time_bounds_seconds
             .expect("first-contact bracket");
@@ -427,7 +426,10 @@ mod tests {
             config(0.0, 1.0, 0.1, 0.02, 1024, 24),
         )
         .expect("valid enter-exit polynomial");
-        assert_eq!(report.disposition, FirstContactDisposition::FirstContactBracket);
+        assert_eq!(
+            report.disposition,
+            FirstContactDisposition::FirstContactBracket
+        );
         let (lower, upper) = report
             .first_contact_time_bounds_seconds
             .expect("first entry bracket");
@@ -445,7 +447,10 @@ mod tests {
             config(0.0, 1.0, 0.4, 0.3, 128, 8),
         )
         .expect("valid coefficient family");
-        assert_eq!(report.disposition, FirstContactDisposition::FirstContactBracket);
+        assert_eq!(
+            report.disposition,
+            FirstContactDisposition::FirstContactBracket
+        );
         let (lower, upper) = report
             .first_contact_time_bounds_seconds
             .expect("common first-contact bracket");
@@ -463,7 +468,10 @@ mod tests {
             config(0.0, 1.0, 0.5, 0.01, 32, 8),
         )
         .expect("valid start-contact polynomial");
-        assert_eq!(report.disposition, FirstContactDisposition::FirstContactBracket);
+        assert_eq!(
+            report.disposition,
+            FirstContactDisposition::FirstContactBracket
+        );
         assert_eq!(report.first_contact_time_bounds_seconds, Some((0.0, 0.0)));
     }
 
@@ -529,10 +537,7 @@ mod tests {
     #[test]
     fn invalid_configuration_fails_closed() {
         assert_eq!(
-            isolate_polynomial_first_contact(
-                &[],
-                config(0.0, 1.0, 1.0, 0.1, 32, 8)
-            ),
+            isolate_polynomial_first_contact(&[], config(0.0, 1.0, 1.0, 0.1, 32, 8)),
             Err(KernelError::EmptyDimension)
         );
         assert_eq!(
