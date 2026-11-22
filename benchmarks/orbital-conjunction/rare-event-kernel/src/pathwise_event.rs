@@ -475,21 +475,35 @@ mod tests {
 
     #[test]
     fn one_joint_contact_is_not_counted_once_per_overlapping_window() {
-        let definition = definition(vec![window("early", 10.0, 30.0), window("late", 20.0, 40.0)]);
+        let definition = definition(vec![
+            window("early", 10.0, 30.0),
+            window("late", 20.0, 40.0),
+        ]);
         let result = definition
             .classify_realization(&[
-                outcome("trajectory-1", "late", PathWindowDisposition::DefinitelyContact {
-                    first_contact_time_lower_seconds: 24.0,
-                    first_contact_time_upper_seconds: 24.0,
-                }),
-                outcome("trajectory-1", "early", PathWindowDisposition::DefinitelyContact {
-                    first_contact_time_lower_seconds: 24.0,
-                    first_contact_time_upper_seconds: 24.0,
-                }),
+                outcome(
+                    "trajectory-1",
+                    "late",
+                    PathWindowDisposition::DefinitelyContact {
+                        first_contact_time_lower_seconds: 24.0,
+                        first_contact_time_upper_seconds: 24.0,
+                    },
+                ),
+                outcome(
+                    "trajectory-1",
+                    "early",
+                    PathWindowDisposition::DefinitelyContact {
+                        first_contact_time_lower_seconds: 24.0,
+                        first_contact_time_upper_seconds: 24.0,
+                    },
+                ),
             ])
             .expect("complete realization");
 
-        assert_eq!(result.disposition, HorizonContactDisposition::DefinitelyContact);
+        assert_eq!(
+            result.disposition,
+            HorizonContactDisposition::DefinitelyContact
+        );
         assert_eq!(result.first_contact_time_bounds_seconds, Some((24.0, 24.0)));
         assert_eq!(result.contacting_window_ids.len(), 2);
     }
@@ -499,53 +513,84 @@ mod tests {
         let definition = definition(vec![window("a", 10.0, 20.0), window("b", 10.0, 20.0)]);
         let result = definition
             .classify_realization(&[
-                outcome("trajectory-2", "a", PathWindowDisposition::DefinitelyContact {
-                    first_contact_time_lower_seconds: 15.0,
-                    first_contact_time_upper_seconds: 15.0,
-                }),
-                outcome("trajectory-2", "b", PathWindowDisposition::DefinitelyContact {
-                    first_contact_time_lower_seconds: 15.0,
-                    first_contact_time_upper_seconds: 15.0,
-                }),
+                outcome(
+                    "trajectory-2",
+                    "a",
+                    PathWindowDisposition::DefinitelyContact {
+                        first_contact_time_lower_seconds: 15.0,
+                        first_contact_time_upper_seconds: 15.0,
+                    },
+                ),
+                outcome(
+                    "trajectory-2",
+                    "b",
+                    PathWindowDisposition::DefinitelyContact {
+                        first_contact_time_lower_seconds: 15.0,
+                        first_contact_time_upper_seconds: 15.0,
+                    },
+                ),
             ])
             .expect("complete realization");
 
-        assert_eq!(result.disposition, HorizonContactDisposition::DefinitelyContact);
+        assert_eq!(
+            result.disposition,
+            HorizonContactDisposition::DefinitelyContact
+        );
         assert_eq!(result.first_contact_time_bounds_seconds, Some((15.0, 15.0)));
     }
 
     #[test]
     fn earlier_ambiguous_window_preserves_any_contact_but_hides_first_hit_time() {
-        let definition = definition(vec![window("early", 10.0, 20.0), window("late", 30.0, 40.0)]);
+        let definition = definition(vec![
+            window("early", 10.0, 20.0),
+            window("late", 30.0, 40.0),
+        ]);
         let result = definition
             .classify_realization(&[
                 outcome("trajectory-3", "early", PathWindowDisposition::Ambiguous),
-                outcome("trajectory-3", "late", PathWindowDisposition::DefinitelyContact {
-                    first_contact_time_lower_seconds: 35.0,
-                    first_contact_time_upper_seconds: 35.0,
-                }),
+                outcome(
+                    "trajectory-3",
+                    "late",
+                    PathWindowDisposition::DefinitelyContact {
+                        first_contact_time_lower_seconds: 35.0,
+                        first_contact_time_upper_seconds: 35.0,
+                    },
+                ),
             ])
             .expect("complete realization");
 
-        assert_eq!(result.disposition, HorizonContactDisposition::DefinitelyContact);
+        assert_eq!(
+            result.disposition,
+            HorizonContactDisposition::DefinitelyContact
+        );
         assert_eq!(result.first_contact_time_bounds_seconds, None);
         assert_eq!(result.unresolved_window_ids, vec!["early"]);
     }
 
     #[test]
     fn later_ambiguous_window_does_not_hide_an_earlier_known_first_hit() {
-        let definition = definition(vec![window("early", 10.0, 20.0), window("late", 30.0, 40.0)]);
+        let definition = definition(vec![
+            window("early", 10.0, 20.0),
+            window("late", 30.0, 40.0),
+        ]);
         let result = definition
             .classify_realization(&[
-                outcome("trajectory-4", "early", PathWindowDisposition::DefinitelyContact {
-                    first_contact_time_lower_seconds: 15.0,
-                    first_contact_time_upper_seconds: 15.0,
-                }),
+                outcome(
+                    "trajectory-4",
+                    "early",
+                    PathWindowDisposition::DefinitelyContact {
+                        first_contact_time_lower_seconds: 15.0,
+                        first_contact_time_upper_seconds: 15.0,
+                    },
+                ),
                 outcome("trajectory-4", "late", PathWindowDisposition::Ambiguous),
             ])
             .expect("complete realization");
 
-        assert_eq!(result.disposition, HorizonContactDisposition::DefinitelyContact);
+        assert_eq!(
+            result.disposition,
+            HorizonContactDisposition::DefinitelyContact
+        );
         assert_eq!(result.first_contact_time_bounds_seconds, Some((15.0, 15.0)));
     }
 
@@ -554,8 +599,16 @@ mod tests {
         let definition = definition(vec![window("a", 10.0, 20.0), window("b", 30.0, 40.0)]);
         let result = definition
             .classify_realization(&[
-                outcome("trajectory-5", "a", PathWindowDisposition::DefinitelyNoContact),
-                outcome("trajectory-5", "b", PathWindowDisposition::DefinitelyNoContact),
+                outcome(
+                    "trajectory-5",
+                    "a",
+                    PathWindowDisposition::DefinitelyNoContact,
+                ),
+                outcome(
+                    "trajectory-5",
+                    "b",
+                    PathWindowDisposition::DefinitelyNoContact,
+                ),
             ])
             .expect("complete realization");
 
@@ -569,7 +622,11 @@ mod tests {
         let result = definition
             .classify_realization(&[
                 outcome("trajectory-6", "a", PathWindowDisposition::Ambiguous),
-                outcome("trajectory-6", "b", PathWindowDisposition::DefinitelyNoContact),
+                outcome(
+                    "trajectory-6",
+                    "b",
+                    PathWindowDisposition::DefinitelyNoContact,
+                ),
             ])
             .expect("complete realization");
 
@@ -583,7 +640,11 @@ mod tests {
             window("second", 20.0, 30.0),
             window("first", 10.0, 20.0),
         ]);
-        let ids = definition.windows().iter().map(|window| window.window_id.as_str()).collect::<Vec<_>>();
+        let ids = definition
+            .windows()
+            .iter()
+            .map(|window| window.window_id.as_str())
+            .collect::<Vec<_>>();
         assert_eq!(ids, vec!["first", "nested", "second"]);
     }
 
@@ -591,20 +652,40 @@ mod tests {
     fn missing_duplicate_and_unknown_window_outcomes_are_rejected() {
         let definition = definition(vec![window("a", 10.0, 20.0), window("b", 30.0, 40.0)]);
         assert_eq!(
-            definition.classify_realization(&[outcome("trajectory-7", "a", PathWindowDisposition::DefinitelyNoContact)]),
+            definition.classify_realization(&[outcome(
+                "trajectory-7",
+                "a",
+                PathWindowDisposition::DefinitelyNoContact
+            )]),
             Err(KernelError::MissingEncounterWindowOutcome)
         );
         assert_eq!(
             definition.classify_realization(&[
-                outcome("trajectory-7", "a", PathWindowDisposition::DefinitelyNoContact),
-                outcome("trajectory-7", "a", PathWindowDisposition::DefinitelyNoContact),
+                outcome(
+                    "trajectory-7",
+                    "a",
+                    PathWindowDisposition::DefinitelyNoContact,
+                ),
+                outcome(
+                    "trajectory-7",
+                    "a",
+                    PathWindowDisposition::DefinitelyNoContact,
+                ),
             ]),
             Err(KernelError::DuplicateEncounterWindowOutcome)
         );
         assert_eq!(
             definition.classify_realization(&[
-                outcome("trajectory-7", "a", PathWindowDisposition::DefinitelyNoContact),
-                outcome("trajectory-7", "wrong", PathWindowDisposition::DefinitelyNoContact),
+                outcome(
+                    "trajectory-7",
+                    "a",
+                    PathWindowDisposition::DefinitelyNoContact,
+                ),
+                outcome(
+                    "trajectory-7",
+                    "wrong",
+                    PathWindowDisposition::DefinitelyNoContact,
+                ),
             ]),
             Err(KernelError::UnknownEncounterWindow)
         );
@@ -615,8 +696,16 @@ mod tests {
         let definition = definition(vec![window("a", 10.0, 20.0), window("b", 30.0, 40.0)]);
         assert_eq!(
             definition.classify_realization(&[
-                outcome("trajectory-a", "a", PathWindowDisposition::DefinitelyNoContact),
-                outcome("trajectory-b", "b", PathWindowDisposition::DefinitelyNoContact),
+                outcome(
+                    "trajectory-a",
+                    "a",
+                    PathWindowDisposition::DefinitelyNoContact,
+                ),
+                outcome(
+                    "trajectory-b",
+                    "b",
+                    PathWindowDisposition::DefinitelyNoContact,
+                ),
             ]),
             Err(KernelError::MismatchedTrajectoryRealization)
         );
@@ -684,13 +773,9 @@ mod tests {
         for mask in 0_u32..8 {
             let mut outcomes = Vec::new();
             let mut oracle_first_time = None;
-            for (index, (id, contact_time)) in [
-                ("a", 10.5_f64),
-                ("b", 20.5_f64),
-                ("c", 30.5_f64),
-            ]
-            .into_iter()
-            .enumerate()
+            for (index, (id, contact_time)) in [("a", 10.5_f64), ("b", 20.5_f64), ("c", 30.5_f64)]
+                .into_iter()
+                .enumerate()
             {
                 let is_contact = ((mask >> index) & 1) == 1;
                 let disposition = if is_contact {
@@ -857,7 +942,10 @@ mod tests {
                 },
             )])
             .expect("valid partial evaluation");
-        assert_eq!(result.disposition, HorizonContactDisposition::DefinitelyContact);
+        assert_eq!(
+            result.disposition,
+            HorizonContactDisposition::DefinitelyContact
+        );
         assert_eq!(result.first_contact_time_bounds_seconds, None);
     }
 
@@ -866,11 +954,19 @@ mod tests {
         let definition = definition(vec![window("a", 10.0, 30.0), window("b", 20.0, 40.0)]);
         assert_eq!(
             definition.classify_realization(&[
-                outcome("trajectory-12", "a", PathWindowDisposition::DefinitelyContact {
-                    first_contact_time_lower_seconds: 24.0,
-                    first_contact_time_upper_seconds: 24.0,
-                }),
-                outcome("trajectory-12", "b", PathWindowDisposition::DefinitelyNoContact),
+                outcome(
+                    "trajectory-12",
+                    "a",
+                    PathWindowDisposition::DefinitelyContact {
+                        first_contact_time_lower_seconds: 24.0,
+                        first_contact_time_upper_seconds: 24.0,
+                    },
+                ),
+                outcome(
+                    "trajectory-12",
+                    "b",
+                    PathWindowDisposition::DefinitelyNoContact,
+                ),
             ]),
             Err(KernelError::ContradictoryEncounterWindowOutcome)
         );
