@@ -447,7 +447,7 @@ mod tests {
     use super::*;
 
     fn header() -> String {
-        EXPECTED_HEADER_FIELDS.join(",")
+        "tag_id,anchor_id,x_tag,y_tag,z_tag,x_anchor,y_anchor,z_anchor,nlos,range,fp_index,rss,rss_fp,fp_point1,fp_point2,fp_point3,stdev_noise,cir_power,max_noise,rxpacc,channel_number,frame_length,preamble_length,bitrate,prfr,preamble_code,cir".to_owned()
     }
 
     fn row_fields() -> Vec<String> {
