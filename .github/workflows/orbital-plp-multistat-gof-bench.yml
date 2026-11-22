@@ -1,0 +1,144 @@
+name: Orbital Multi-Statistic PLP Goodness-of-Fit Suite v0.2
+
+on:
+  push:
+    branches: ["research/orbital-plp-multistat-gof-v0-2"]
+    paths:
+      - "tools/orbital-reliability-plp-gof-bench/**"
+      - ".github/workflows/orbital-plp-multistat-gof-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/orbital-reliability-plp-gof-bench/**"
+      - ".github/workflows/orbital-plp-multistat-gof-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: orbital-plp-multistat-gof-v0-2-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  multistat-plp-gof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      BENCHMARK_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact benchmark head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/orbital-reliability-plp-gof-bench/Cargo.toml -- --check
+
+      - name: Run Rust unit tests
+        run: cargo test --locked --manifest-path tools/orbital-reliability-plp-gof-bench/Cargo.toml --all-targets
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path tools/orbital-reliability-plp-gof-bench/Cargo.toml --all-targets -- -D warnings
+
+      - name: Replay frozen multi-statistic PLP corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_commit="$(git rev-parse HEAD)"
+          test "$actual_commit" = "$BENCHMARK_COMMIT"
+          cargo run --locked --quiet --manifest-path tools/orbital-reliability-plp-gof-bench/Cargo.toml -- \
+            tools/orbital-reliability-plp-gof-bench/fixtures/v0.2/plp-gof-cases.json \
+            --source-commit "$actual_commit" > orbital-plp-multistat-gof-receipt.json
+          jq -e --arg expected_commit "$BENCHMARK_COMMIT" '
+            .receipt_schema == "luminous.orbital-plp-multistat-gof.receipt.v0.2"
+            and .source_commit == $expected_commit
+            and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
+            and .result == "pass"
+            and .report.evidence_class == "synthetic"
+            and .report.claim_ceiling == "synthetic-conditional-plp-five-statistic-suite-only"
+            and .report.summary.case_count == 24
+            and .report.summary.expected_result_mismatches == 0
+            and .report.summary.fit_acceptances == 0
+            and .report.summary.reliability_claims == 0
+            and .report.summary.physical_qualifications == 0
+            and .report.summary.authority_grants == 0
+            and .report.authority_granted == false
+            and .report.fit_acceptance_granted == false
+            and .report.cases[0].monte_carlo.suite_id == "plp-five-statistic-bonferroni-suite-v0.2"
+            and .report.cases[0].monte_carlo.familywise_minimum_p_value >= .005
+            and (.report.cases[0].monte_carlo.component_results | length) == 5
+            and ([.report.cases[0].monte_carlo.component_results[].statistic_id] ==
+              ["laplace-two-sided-v1", "greenwood-two-sided-v1",
+               "fitted-plp-uniform-order-statistics-cramer-von-mises-v1",
+               "anderson-darling-upper-tail-v1", "kolmogorov-smirnov-upper-tail-v1"])
+          ' orbital-plp-multistat-gof-receipt.json
+
+      - name: Run independent five-statistic JS oracle
+        run: node tools/orbital-reliability-plp-gof-bench/tests/reference_oracle.mjs tools/orbital-reliability-plp-gof-bench/fixtures/v0.2/plp-gof-cases.json
+
+      - name: Run legacy CvM component null smoke
+        run: node tools/orbital-reliability-plp-gof-bench/tests/outer_null_calibration.mjs > orbital-plp-cvm-null-smoke.json
+
+      - name: Run family-wise suite null-calibration smoke
+        run: node tools/orbital-reliability-plp-gof-bench/tests/outer_suite_null_calibration.mjs > orbital-plp-suite-null-smoke.json
+
+      - name: Validate suite calibration receipt boundary
+        run: |
+          jq -e '
+            .schema == "luminous.orbital-plp-outer-suite-null-calibration.v0.2"
+            and .evidence_class == "synthetic"
+            and .study_kind == "deterministic_outer_familywise_null_calibration_smoke_study"
+            and .outer_replicates_per_beta == 250
+            and .inner_conditional_replicates == 999
+            and (.scenarios | length) == 3
+            and (.scenarios | all((.familywise_rejection_rates["0.01"].trials == 250)
+              and (.familywise_rejection_rates["0.05"].trials == 250)
+              and (.familywise_rejection_rates["0.1"].trials == 250)))
+            and .multiplicity_method == "bonferroni"
+            and .calibrated_for_all_sample_sizes_or_alternatives == false
+            and .physical_reliability_claim_granted == false
+            and .qualification_granted == false
+            and .authority_granted == false
+          ' orbital-plp-suite-null-smoke.json
+
+      - name: Run event-count and beta stratified family-wise null smoke
+        run: node tools/orbital-reliability-plp-gof-bench/tests/outer_suite_null_strata_smoke.mjs > orbital-plp-suite-null-strata-smoke.json
+
+      - name: Validate stratified calibration smoke boundary
+        run: |
+          jq -e '
+            .schema == "luminous.orbital-plp-outer-suite-null-strata-smoke.v0.2"
+            and .evidence_class == "synthetic"
+            and .study_kind == "deterministic_outer_familywise_null_strata_smoke"
+            and .cell_count == 12
+            and .outer_replicates_per_cell == 50
+            and .inner_conditional_replicates == 999
+            and (.cells | length) == 12
+            and (.cells | all(.familywise_rejection_rates["0.01"].trials == 50 and .familywise_rejection_rates["0.05"].trials == 50 and .familywise_rejection_rates["0.1"].trials == 50))
+            and .multiplicity_method == "bonferroni"
+            and .calibrated_for_all_sample_sizes_or_alternatives == false
+            and .physical_reliability_claim_granted == false
+            and .qualification_granted == false
+            and .authority_granted == false
+          ' orbital-plp-suite-null-strata-smoke.json
+
+      - name: Upload lockfile, suite receipt and calibration reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbital-plp-multistat-gof-v0.2-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            tools/orbital-reliability-plp-gof-bench/Cargo.lock
+            orbital-plp-multistat-gof-receipt.json
+            orbital-plp-cvm-null-smoke.json
+            orbital-plp-suite-null-smoke.json
+            orbital-plp-suite-null-strata-smoke.json
+          if-no-files-found: error
+          retention-days: 30

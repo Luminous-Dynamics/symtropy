@@ -1,12 +1,17 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
-const CORPUS_SCHEMA: &str = "luminous.orbital-plp-conditional-gof.corpus.v0.1";
-const CLAIM_CEILING: &str = "synthetic-conditional-plp-goodness-of-fit-only";
+mod statistics;
+use statistics::{TestStatisticValues, from_sorted_log_transforms};
+
+const CORPUS_SCHEMA: &str = "luminous.orbital-plp-multistat-gof.corpus.v0.2";
+const CLAIM_CEILING: &str = "synthetic-conditional-plp-five-statistic-suite-only";
 const MODEL_PROFILE: &str = "power_law_process_repairable_minimal_repair";
 const TERMINATION_PROFILE: &str = "administrative_time_terminated_complete_window";
 const PRNG_ID: &str = "splitmix64-top52-open-uniform-exp-normalize-v1";
 const STATISTIC_ID: &str = "fitted-plp-uniform-order-statistics-cramer-von-mises-v1";
+const SUITE_ID: &str = "plp-five-statistic-bonferroni-suite-v0.2";
+const STATISTIC_COUNT: usize = 5;
 const MIN_EVENTS: usize = 5;
 const MAX_EVENTS: usize = 10_000;
 const MIN_REPLICATES: usize = 999;
@@ -64,6 +69,8 @@ pub struct Expected {
     pub observed_cvm: Option<f64>,
     pub tail_exceedances: Option<usize>,
     pub monte_carlo_p_value: Option<f64>,
+    pub component_p_values: Vec<f64>,
+    pub bonferroni_adjusted_min_p_value: Option<f64>,
     pub blockers: Vec<String>,
 }
 
@@ -77,18 +84,38 @@ pub struct Corpus {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct StatisticMonteCarloResult {
+    pub statistic_id: String,
+    pub observed_value: f64,
+    pub tail_method: String,
+    pub tail_exceedances: usize,
+    pub lower_tail_exceedances: Option<usize>,
+    pub upper_tail_exceedances: Option<usize>,
+    pub monte_carlo_p_value: f64,
+    pub bonferroni_adjusted_p_value: f64,
+    pub tail_probability_estimate: f64,
+    pub monte_carlo_standard_error: f64,
+    pub wilson_95_lower: f64,
+    pub wilson_95_upper: f64,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct MonteCarloResult {
     pub prng_id: String,
+    pub suite_id: String,
     pub statistic_id: String,
     pub seed: u64,
     pub replicate_count: usize,
     pub tail_exceedances: usize,
     pub monte_carlo_minimum_p_value: f64,
+    pub familywise_minimum_p_value: f64,
     pub monte_carlo_p_value: f64,
     pub tail_probability_estimate: f64,
     pub monte_carlo_standard_error: f64,
     pub wilson_95_lower: f64,
     pub wilson_95_upper: f64,
+    pub component_results: Vec<StatisticMonteCarloResult>,
+    pub bonferroni_adjusted_min_p_value: f64,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -224,17 +251,16 @@ fn blocker(code: &str) -> Vec<String> {
     vec![code.to_owned()]
 }
 
-pub fn estimate_beta_and_cvm(
+pub fn estimate_beta_and_statistics(
     event_times_seconds: &[u64],
     exposure_end_seconds: u64,
-) -> Result<(f64, f64), String> {
+) -> Result<(f64, TestStatisticValues), String> {
     if exposure_end_seconds == 0 || exposure_end_seconds > MAX_EXPOSURE_SECONDS {
         return Err("exposure endpoint is outside the supported v0.1 range".to_owned());
     }
     if !(MIN_EVENTS..=MAX_EVENTS).contains(&event_times_seconds.len()) {
         return Err("event count is outside the supported v0.1 range".to_owned());
     }
-
     let exposure = exposure_end_seconds as f64;
     let mut previous = 0u64;
     let mut sum_log_ratio = 0.0;
@@ -245,7 +271,8 @@ pub fn estimate_beta_and_cvm(
                     .to_owned(),
             );
         }
-        sum_log_ratio += (exposure / *time as f64).ln();
+        let delta = (exposure_end_seconds - *time) as f64;
+        sum_log_ratio += (delta / *time as f64).ln_1p();
         previous = *time;
     }
     if !sum_log_ratio.is_finite() || sum_log_ratio <= 0.0 {
@@ -258,15 +285,27 @@ pub fn estimate_beta_and_cvm(
         return Err("estimated PLP shape is not finite and positive".to_owned());
     }
 
-    let mut fitted_uniform = Vec::with_capacity(count);
-    for time in event_times_seconds {
-        fitted_uniform.push((*time as f64 / exposure).powf(beta_hat));
-    }
-    let statistic = cramer_von_mises(&fitted_uniform)?;
-    Ok((beta_hat, statistic))
+    let log_transforms: Vec<f64> = event_times_seconds
+        .iter()
+        .map(|time| {
+            let delta = (exposure_end_seconds - *time) as f64;
+            beta_hat * (-(delta / exposure)).ln_1p()
+        })
+        .collect();
+    let statistics = from_sorted_log_transforms(&log_transforms)?;
+    Ok((beta_hat, statistics))
 }
 
-/// One-sample Cramer-von Mises statistic for already sorted fitted transforms.
+pub fn estimate_beta_and_cvm(
+    event_times_seconds: &[u64],
+    exposure_end_seconds: u64,
+) -> Result<(f64, f64), String> {
+    let (beta_hat, statistics) =
+        estimate_beta_and_statistics(event_times_seconds, exposure_end_seconds)?;
+    Ok((beta_hat, statistics.cramer_von_mises))
+}
+
+/// Backwards-compatible one-sample CvM statistic for sorted fitted transforms.
 pub fn cramer_von_mises(sorted_values: &[f64]) -> Result<f64, String> {
     let count = sorted_values.len();
     if count == 0 {
@@ -289,9 +328,12 @@ pub fn cramer_von_mises(sorted_values: &[f64]) -> Result<f64, String> {
     Ok(statistic)
 }
 
-/// Generate one fitted-transform reference sample under the exact conditional
+/// Generate one five-statistic reference sample under the exact conditional
 /// PLP null. Normalized iid Exp(1) values have Dirichlet(1,...,1) proportions.
-fn conditional_reference_cvm(count: usize, rng: &mut SplitMix64) -> Result<f64, String> {
+fn conditional_reference_statistics(
+    count: usize,
+    rng: &mut SplitMix64,
+) -> Result<TestStatisticValues, String> {
     let mut proportions = Vec::with_capacity(count);
     let mut total = 0.0;
     for _ in 0..count {
@@ -302,13 +344,187 @@ fn conditional_reference_cvm(count: usize, rng: &mut SplitMix64) -> Result<f64, 
     if !total.is_finite() || total <= 0.0 {
         return Err("conditional reference normalization failed".to_owned());
     }
-
     proportions.sort_by(|left, right| right.total_cmp(left));
-    let fitted: Vec<f64> = proportions
+    let log_transforms: Vec<f64> = proportions
         .iter()
-        .map(|proportion| (-((count as f64) * proportion / total)).exp())
+        .map(|proportion| -((count as f64) * proportion / total))
         .collect();
-    cramer_von_mises(&fitted)
+    from_sorted_log_transforms(&log_transforms)
+}
+
+/// CvM-only adapter used exclusively by the v0.1 regression tests.
+#[cfg(test)]
+fn conditional_reference_cvm(count: usize, rng: &mut SplitMix64) -> Result<f64, String> {
+    Ok(conditional_reference_statistics(count, rng)?.cramer_von_mises)
+}
+
+#[derive(Debug, Clone, Copy)]
+struct TailSummary<'a> {
+    method: &'a str,
+    selected_exceedances: usize,
+    lower_exceedances: Option<usize>,
+    upper_exceedances: Option<usize>,
+    tail_multiplier: f64,
+}
+
+fn component_monte_carlo_result(
+    statistic_id: &str,
+    observed_value: f64,
+    tail: TailSummary<'_>,
+    replicates: usize,
+) -> Result<StatisticMonteCarloResult, String> {
+    let (tail_probability_estimate, monte_carlo_standard_error, wilson_95_lower, wilson_95_upper) =
+        wilson_interval(tail.selected_exceedances, replicates)?;
+    let one_sided_p = (tail.selected_exceedances as f64 + 1.0) / (replicates as f64 + 1.0);
+    let monte_carlo_p_value = (tail.tail_multiplier * one_sided_p).min(1.0);
+    Ok(StatisticMonteCarloResult {
+        statistic_id: statistic_id.to_owned(),
+        observed_value,
+        tail_method: tail.method.to_owned(),
+        tail_exceedances: tail.selected_exceedances,
+        lower_tail_exceedances: tail.lower_exceedances,
+        upper_tail_exceedances: tail.upper_exceedances,
+        monte_carlo_p_value,
+        bonferroni_adjusted_p_value: (STATISTIC_COUNT as f64 * monte_carlo_p_value).min(1.0),
+        tail_probability_estimate,
+        monte_carlo_standard_error,
+        wilson_95_lower,
+        wilson_95_upper,
+    })
+}
+
+pub fn conditional_gof(
+    event_times_seconds: &[u64],
+    exposure_end_seconds: u64,
+    replicates: usize,
+    seed: u64,
+) -> Result<(f64, f64, MonteCarloResult), String> {
+    if !(MIN_REPLICATES..=MAX_REPLICATES).contains(&replicates) {
+        return Err("Monte Carlo replicate count is outside the supported v0.2 range".to_owned());
+    }
+    if seed > MAX_SAFE_INTEGER {
+        return Err("random seed exceeds the interoperable safe-integer range".to_owned());
+    }
+    if event_times_seconds.len().saturating_mul(replicates) > MAX_TOTAL_DRAWS {
+        return Err("conditional Monte Carlo draw budget is exceeded".to_owned());
+    }
+
+    let (beta_hat, observed) =
+        estimate_beta_and_statistics(event_times_seconds, exposure_end_seconds)?;
+    let count = event_times_seconds.len();
+    let mut rng = SplitMix64::new(seed);
+    let mut laplace_extreme = 0usize;
+    let mut greenwood_lower = 0usize;
+    let mut greenwood_upper = 0usize;
+    let mut cvm_upper = 0usize;
+    let mut ad_upper = 0usize;
+    let mut ks_upper = 0usize;
+
+    for _ in 0..replicates {
+        let simulated = conditional_reference_statistics(count, &mut rng)?;
+        laplace_extreme += usize::from(simulated.laplace.abs() >= observed.laplace.abs());
+        greenwood_lower += usize::from(simulated.greenwood <= observed.greenwood);
+        greenwood_upper += usize::from(simulated.greenwood >= observed.greenwood);
+        cvm_upper += usize::from(simulated.cramer_von_mises >= observed.cramer_von_mises);
+        ad_upper += usize::from(simulated.anderson_darling >= observed.anderson_darling);
+        ks_upper += usize::from(simulated.kolmogorov_smirnov >= observed.kolmogorov_smirnov);
+    }
+
+    let greenwood_selected_tail = greenwood_lower.min(greenwood_upper);
+    let component_results = vec![
+        component_monte_carlo_result(
+            "laplace-two-sided-v1",
+            observed.laplace,
+            TailSummary {
+                method: "absolute_two_sided",
+                selected_exceedances: laplace_extreme,
+                lower_exceedances: None,
+                upper_exceedances: None,
+                tail_multiplier: 1.0,
+            },
+            replicates,
+        )?,
+        component_monte_carlo_result(
+            "greenwood-two-sided-v1",
+            observed.greenwood,
+            TailSummary {
+                method: "doubled_minimum_of_lower_and_upper_tails",
+                selected_exceedances: greenwood_selected_tail,
+                lower_exceedances: Some(greenwood_lower),
+                upper_exceedances: Some(greenwood_upper),
+                tail_multiplier: 2.0,
+            },
+            replicates,
+        )?,
+        component_monte_carlo_result(
+            STATISTIC_ID,
+            observed.cramer_von_mises,
+            TailSummary {
+                method: "upper_tail",
+                selected_exceedances: cvm_upper,
+                lower_exceedances: None,
+                upper_exceedances: Some(cvm_upper),
+                tail_multiplier: 1.0,
+            },
+            replicates,
+        )?,
+        component_monte_carlo_result(
+            "anderson-darling-upper-tail-v1",
+            observed.anderson_darling,
+            TailSummary {
+                method: "upper_tail",
+                selected_exceedances: ad_upper,
+                lower_exceedances: None,
+                upper_exceedances: Some(ad_upper),
+                tail_multiplier: 1.0,
+            },
+            replicates,
+        )?,
+        component_monte_carlo_result(
+            "kolmogorov-smirnov-upper-tail-v1",
+            observed.kolmogorov_smirnov,
+            TailSummary {
+                method: "upper_tail",
+                selected_exceedances: ks_upper,
+                lower_exceedances: None,
+                upper_exceedances: Some(ks_upper),
+                tail_multiplier: 1.0,
+            },
+            replicates,
+        )?,
+    ];
+
+    let cvm_result = component_results
+        .iter()
+        .find(|component| component.statistic_id == STATISTIC_ID)
+        .expect("the predeclared CvM component is present");
+    let (tail_probability_estimate, monte_carlo_standard_error, wilson_95_lower, wilson_95_upper) =
+        wilson_interval(cvm_upper, replicates)?;
+    let bonferroni_adjusted_min_p_value = (STATISTIC_COUNT as f64
+        * component_results
+            .iter()
+            .map(|component| component.monte_carlo_p_value)
+            .fold(1.0_f64, f64::min))
+    .min(1.0);
+
+    let monte_carlo = MonteCarloResult {
+        prng_id: PRNG_ID.to_owned(),
+        suite_id: SUITE_ID.to_owned(),
+        statistic_id: STATISTIC_ID.to_owned(),
+        seed,
+        replicate_count: replicates,
+        tail_exceedances: cvm_upper,
+        monte_carlo_minimum_p_value: 1.0 / (replicates as f64 + 1.0),
+        familywise_minimum_p_value: (STATISTIC_COUNT as f64 / (replicates as f64 + 1.0)).min(1.0),
+        monte_carlo_p_value: cvm_result.monte_carlo_p_value,
+        tail_probability_estimate,
+        monte_carlo_standard_error,
+        wilson_95_lower,
+        wilson_95_upper,
+        component_results,
+        bonferroni_adjusted_min_p_value,
+    };
+    Ok((beta_hat, observed.cramer_von_mises, monte_carlo))
 }
 
 fn wilson_interval(successes: usize, trials: usize) -> Result<(f64, f64, f64, f64), String> {
@@ -329,54 +545,6 @@ fn wilson_interval(successes: usize, trials: usize) -> Result<(f64, f64, f64, f6
         (center - half_width).max(0.0),
         (center + half_width).min(1.0),
     ))
-}
-
-pub fn conditional_gof(
-    event_times_seconds: &[u64],
-    exposure_end_seconds: u64,
-    replicates: usize,
-    seed: u64,
-) -> Result<(f64, f64, MonteCarloResult), String> {
-    if !(MIN_REPLICATES..=MAX_REPLICATES).contains(&replicates) {
-        return Err("Monte Carlo replicate count is outside the supported v0.1 range".to_owned());
-    }
-    if seed > MAX_SAFE_INTEGER {
-        return Err("random seed exceeds the interoperable safe-integer range".to_owned());
-    }
-    if event_times_seconds.len().saturating_mul(replicates) > MAX_TOTAL_DRAWS {
-        return Err("conditional Monte Carlo draw budget is exceeded".to_owned());
-    }
-
-    let (beta_hat, observed_cvm) =
-        estimate_beta_and_cvm(event_times_seconds, exposure_end_seconds)?;
-    let count = event_times_seconds.len();
-    let mut rng = SplitMix64::new(seed);
-    let mut tail_exceedances = 0usize;
-
-    for _ in 0..replicates {
-        let simulated = conditional_reference_cvm(count, &mut rng)?;
-        if simulated >= observed_cvm {
-            tail_exceedances += 1;
-        }
-    }
-
-    let monte_carlo_p_value = (tail_exceedances as f64 + 1.0) / (replicates as f64 + 1.0);
-    let (tail_probability_estimate, monte_carlo_standard_error, wilson_95_lower, wilson_95_upper) =
-        wilson_interval(tail_exceedances, replicates)?;
-    let monte_carlo = MonteCarloResult {
-        prng_id: PRNG_ID.to_owned(),
-        statistic_id: STATISTIC_ID.to_owned(),
-        seed,
-        replicate_count: replicates,
-        tail_exceedances,
-        monte_carlo_minimum_p_value: 1.0 / (replicates as f64 + 1.0),
-        monte_carlo_p_value,
-        tail_probability_estimate,
-        monte_carlo_standard_error,
-        wilson_95_lower,
-        wilson_95_upper,
-    };
-    Ok((beta_hat, observed_cvm, monte_carlo))
 }
 
 fn evaluate_case(case: &GofCase) -> Decision {
@@ -467,7 +635,8 @@ fn evaluate_case(case: &GofCase) -> Decision {
     }
     if case.monte_carlo_replicates < MIN_REPLICATES
         || case.monte_carlo_replicates > MAX_REPLICATES
-        || case.monte_carlo_replicates < (1.0 / case.significance_level).ceil() as usize - 1
+        || case.monte_carlo_replicates
+            < (STATISTIC_COUNT as f64 / case.significance_level).ceil() as usize - 1
         || case.random_seed > MAX_SAFE_INTEGER
     {
         return Decision {
@@ -476,7 +645,9 @@ fn evaluate_case(case: &GofCase) -> Decision {
             beta_hat: None,
             observed_cvm: None,
             monte_carlo: None,
-            blockers: blocker("monte_carlo_resolution_or_seed_outside_predeclared_contract"),
+            blockers: blocker(
+                "familywise_monte_carlo_resolution_or_seed_outside_predeclared_contract",
+            ),
         };
     }
     if case.event_times_seconds.len() < MIN_EVENTS {
@@ -486,7 +657,7 @@ fn evaluate_case(case: &GofCase) -> Decision {
             beta_hat: None,
             observed_cvm: None,
             monte_carlo: None,
-            blockers: blocker("insufficient_event_count_for_v0_1_diagnostic"),
+            blockers: blocker("insufficient_event_count_for_v0_2_diagnostic"),
         };
     }
 
@@ -513,7 +684,7 @@ fn evaluate_case(case: &GofCase) -> Decision {
         case.random_seed,
     ) {
         Ok((beta_hat, observed_cvm, monte_carlo)) => Decision {
-            disposition: if monte_carlo.monte_carlo_p_value <= case.significance_level {
+            disposition: if monte_carlo.bonferroni_adjusted_min_p_value <= case.significance_level {
                 Disposition::FitRejected
             } else {
                 Disposition::FitNotRejectedAtDeclaredLevel
@@ -603,6 +774,33 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
             (None, None) => true,
             _ => false,
         };
+        let actual_component_p_values: Vec<f64> = decision
+            .monte_carlo
+            .as_ref()
+            .map(|result| {
+                result
+                    .component_results
+                    .iter()
+                    .map(|component| component.monte_carlo_p_value)
+                    .collect()
+            })
+            .unwrap_or_default();
+        let component_p_values_match = actual_component_p_values.len()
+            == expected.component_p_values.len()
+            && actual_component_p_values
+                .iter()
+                .zip(&expected.component_p_values)
+                .all(|(actual, expected)| (actual - expected).abs() <= 1.0e-10);
+        let adjusted_p_value_match = decision
+            .monte_carlo
+            .as_ref()
+            .map(|result| result.bonferroni_adjusted_min_p_value)
+            .zip(expected.bonferroni_adjusted_min_p_value)
+            .map(|(actual, expected)| (actual - expected).abs() <= 1.0e-10)
+            .unwrap_or(
+                expected.bonferroni_adjusted_min_p_value.is_none()
+                    && decision.monte_carlo.is_none(),
+            );
         let matched = decision.disposition == expected.disposition
             && decision.event_count == expected.event_count
             && close(decision.beta_hat, expected.beta_hat)
@@ -618,6 +816,8 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
                 .unwrap_or(
                     expected.monte_carlo_p_value.is_none() && decision.monte_carlo.is_none(),
                 )
+            && component_p_values_match
+            && adjusted_p_value_match
             && decision.blockers == expected.blockers;
         summary.expected_result_mismatches += usize::from(!matched);
 
@@ -719,8 +919,52 @@ mod tests {
     fn monte_carlo_p_value_has_plus_one_resolution() {
         let (_, _, result) =
             conditional_gof(&[10, 20, 30, 40, 50, 60], 100, 999, 123).expect("valid GOF");
+        assert_eq!(result.suite_id, SUITE_ID);
+        assert_eq!(result.component_results.len(), STATISTIC_COUNT);
         assert!(result.monte_carlo_p_value >= 1.0 / 1000.0);
         assert!(result.monte_carlo_p_value <= 1.0);
+        assert!(
+            result.bonferroni_adjusted_min_p_value
+                >= result.monte_carlo_p_value.min(
+                    result
+                        .component_results
+                        .iter()
+                        .map(|component| component.monte_carlo_p_value)
+                        .fold(1.0_f64, f64::min)
+                )
+        );
+        assert!(result.bonferroni_adjusted_min_p_value <= 1.0);
+        assert_eq!(
+            result.familywise_minimum_p_value,
+            (STATISTIC_COUNT as f64 / 1000.0).min(1.0)
+        );
+        assert_eq!(
+            result
+                .component_results
+                .iter()
+                .map(|x| x.statistic_id.as_str())
+                .collect::<Vec<_>>(),
+            vec![
+                "laplace-two-sided-v1",
+                "greenwood-two-sided-v1",
+                STATISTIC_ID,
+                "anderson-darling-upper-tail-v1",
+                "kolmogorov-smirnov-upper-tail-v1",
+            ]
+        );
+        let minimum_component_p = result
+            .component_results
+            .iter()
+            .map(|component| component.monte_carlo_p_value)
+            .fold(1.0_f64, f64::min);
+        assert_eq!(
+            result.bonferroni_adjusted_min_p_value,
+            (STATISTIC_COUNT as f64 * minimum_component_p).min(1.0)
+        );
+        assert_eq!(
+            result.familywise_minimum_p_value,
+            (STATISTIC_COUNT as f64 / (result.replicate_count as f64 + 1.0)).min(1.0)
+        );
         assert!(result.wilson_95_lower <= result.tail_probability_estimate);
         assert!(result.tail_probability_estimate <= result.wilson_95_upper);
     }
@@ -728,11 +972,11 @@ mod tests {
     #[test]
     fn frozen_corpus_replays_without_claim_escalation() {
         let corpus: Corpus =
-            serde_json::from_str(include_str!("../fixtures/v0.1/plp-gof-cases.json"))
+            serde_json::from_str(include_str!("../fixtures/v0.2/plp-gof-cases.json"))
                 .expect("frozen PLP GOF corpus parses");
         let report = evaluate(&corpus).expect("frozen PLP GOF corpus evaluates");
         assert_eq!(report.result, "pass");
-        assert_eq!(report.summary.case_count, 23);
+        assert_eq!(report.summary.case_count, 24);
         assert_eq!(report.summary.expected_result_mismatches, 0);
         assert_eq!(report.summary.fit_acceptances, 0);
         assert_eq!(report.summary.reliability_claims, 0);
@@ -750,6 +994,26 @@ mod tests {
                 .iter()
                 .any(|case| { case.disposition == Disposition::FitNotRejectedAtDeclaredLevel })
         );
+        let over_regular = report
+            .cases
+            .iter()
+            .find(|case| case.case_id == "over_regular_spacing_alternative")
+            .expect("over-regular alternative exists");
+        let over_regular_components = &over_regular
+            .monte_carlo
+            .as_ref()
+            .expect("over-regular case is testable")
+            .component_results;
+        assert_eq!(over_regular.disposition, Disposition::FitRejected);
+        assert!(
+            over_regular_components
+                .iter()
+                .find(|component| component.statistic_id == "greenwood-two-sided-v1")
+                .expect("Greenwood component exists")
+                .monte_carlo_p_value
+                < 0.01
+        );
+
         assert!(report.cases.iter().all(|case| {
             !case.fit_acceptance_granted
                 && !case.reliability_claim_granted
@@ -759,7 +1023,7 @@ mod tests {
     }
 
     #[test]
-    fn outer_null_calibration_smoke_covers_declared_alpha_levels() {
+    fn outer_null_cvm_component_smoke_covers_declared_alpha_levels() {
         let mut outer_rng = SplitMix64::new(20_261_122);
         let mut rejected_at_one_percent = 0usize;
         let mut rejected_at_five_percent = 0usize;
@@ -771,8 +1035,9 @@ mod tests {
             let mut reference_rng = SplitMix64::new(outer_rng.next_u64());
             let mut exceedances = 0usize;
             for _ in 0..999 {
-                if conditional_reference_cvm(10, &mut reference_rng)
+                if conditional_reference_statistics(10, &mut reference_rng)
                     .expect("conditional reference sample")
+                    .cramer_von_mises
                     >= observed
                 {
                     exceedances += 1;

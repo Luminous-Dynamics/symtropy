@@ -1,0 +1,509 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/orbital-plp-multistat-gof-receipt-v0.2.json",
+  "title": "Orbital multi-statistic conditional PLP GOF receipt v0.2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "receipt_schema",
+    "source_commit",
+    "fixture_sha256",
+    "result",
+    "report",
+    "fit_acceptance_granted",
+    "reliability_claim_granted",
+    "physical_qualification_granted",
+    "authority_granted"
+  ],
+  "properties": {
+    "receipt_schema": {
+      "const": "luminous.orbital-plp-multistat-gof.receipt.v0.2"
+    },
+    "source_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "fixture_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "result": {
+      "enum": [
+        "pass",
+        "fail"
+      ]
+    },
+    "report": {
+      "$ref": "#/$defs/report"
+    },
+    "fit_acceptance_granted": {
+      "const": false
+    },
+    "reliability_claim_granted": {
+      "const": false
+    },
+    "physical_qualification_granted": {
+      "const": false
+    },
+    "authority_granted": {
+      "const": false
+    }
+  },
+  "$defs": {
+    "mc": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "prng_id",
+        "suite_id",
+        "statistic_id",
+        "seed",
+        "replicate_count",
+        "tail_exceedances",
+        "monte_carlo_minimum_p_value",
+        "monte_carlo_p_value",
+        "tail_probability_estimate",
+        "monte_carlo_standard_error",
+        "wilson_95_lower",
+        "wilson_95_upper",
+        "familywise_minimum_p_value",
+        "component_results"
+      ],
+      "properties": {
+        "prng_id": {
+          "type": "string"
+        },
+        "statistic_id": {
+          "type": "string"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "replicate_count": {
+          "type": "integer",
+          "minimum": 999,
+          "maximum": 100000
+        },
+        "tail_exceedances": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "monte_carlo_minimum_p_value": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "monte_carlo_p_value": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "tail_probability_estimate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "monte_carlo_standard_error": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "wilson_95_lower": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "wilson_95_upper": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "suite_id": {
+          "type": "string"
+        },
+        "familywise_minimum_p_value": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "component_results": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "items": {
+            "$ref": "#/$defs/component"
+          }
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "declared_analysis_bindings",
+        "disposition",
+        "event_count",
+        "beta_hat",
+        "observed_cvm",
+        "monte_carlo",
+        "fit_acceptance_granted",
+        "reliability_claim_granted",
+        "physical_qualification_granted",
+        "authority_granted",
+        "expected_result_matched",
+        "blockers"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "disposition": {
+          "enum": [
+            "fit_rejected",
+            "fit_not_rejected_at_declared_level",
+            "indeterminate",
+            "model_not_supported",
+            "rejected"
+          ]
+        },
+        "event_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "beta_hat": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "observed_cvm": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "monte_carlo": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/mc"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fit_acceptance_granted": {
+          "const": false
+        },
+        "reliability_claim_granted": {
+          "const": false
+        },
+        "physical_qualification_granted": {
+          "const": false
+        },
+        "authority_granted": {
+          "const": false
+        },
+        "expected_result_matched": {
+          "type": "boolean"
+        },
+        "blockers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "declared_analysis_bindings": {
+          "$ref": "#/$defs/bindings"
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_count",
+        "fit_rejected",
+        "fit_not_rejected",
+        "indeterminate",
+        "model_not_supported",
+        "rejected",
+        "expected_result_mismatches",
+        "fit_acceptances",
+        "reliability_claims",
+        "physical_qualifications",
+        "authority_grants"
+      ],
+      "properties": {
+        "case_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fit_rejected": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fit_not_rejected": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "indeterminate": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "model_not_supported": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rejected": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expected_result_mismatches": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fit_acceptances": {
+          "const": 0
+        },
+        "reliability_claims": {
+          "const": 0
+        },
+        "physical_qualifications": {
+          "const": 0
+        },
+        "authority_grants": {
+          "const": 0
+        }
+      }
+    },
+    "report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "result",
+        "evidence_class",
+        "claim_ceiling",
+        "fit_acceptance_granted",
+        "reliability_claim_granted",
+        "physical_qualification_granted",
+        "authority_granted",
+        "summary",
+        "cases"
+      ],
+      "properties": {
+        "result": {
+          "enum": [
+            "pass",
+            "fail"
+          ]
+        },
+        "evidence_class": {
+          "const": "synthetic"
+        },
+        "claim_ceiling": {
+          "const": "synthetic-conditional-plp-five-statistic-suite-only"
+        },
+        "fit_acceptance_granted": {
+          "const": false
+        },
+        "reliability_claim_granted": {
+          "const": false
+        },
+        "physical_qualification_granted": {
+          "const": false
+        },
+        "authority_granted": {
+          "const": false
+        },
+        "summary": {
+          "$ref": "#/$defs/summary"
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/case"
+          }
+        }
+      }
+    },
+    "bindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_profile",
+        "termination_profile",
+        "subject_group_id",
+        "configuration_sha256",
+        "environment_id",
+        "exposure_clock_id",
+        "observation_start_seconds",
+        "exposure_end_seconds",
+        "complete_event_history",
+        "repair_policy",
+        "admissibility_receipt_sha256",
+        "admissibility_source_commit",
+        "capture_receipt_sha256",
+        "capture_source_commit",
+        "analysis_protocol_id",
+        "multiplicity_policy_id",
+        "significance_level",
+        "monte_carlo_replicates",
+        "random_seed"
+      ],
+      "properties": {
+        "model_profile": {
+          "type": "string"
+        },
+        "termination_profile": {
+          "type": "string"
+        },
+        "subject_group_id": {
+          "type": "string"
+        },
+        "configuration_sha256": {
+          "type": "string"
+        },
+        "environment_id": {
+          "type": "string"
+        },
+        "exposure_clock_id": {
+          "type": "string"
+        },
+        "observation_start_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "exposure_end_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "complete_event_history": {
+          "type": "boolean"
+        },
+        "repair_policy": {
+          "type": "string"
+        },
+        "admissibility_receipt_sha256": {
+          "type": "string"
+        },
+        "admissibility_source_commit": {
+          "type": "string"
+        },
+        "capture_receipt_sha256": {
+          "type": "string"
+        },
+        "capture_source_commit": {
+          "type": "string"
+        },
+        "analysis_protocol_id": {
+          "type": "string"
+        },
+        "multiplicity_policy_id": {
+          "type": "string"
+        },
+        "significance_level": {
+          "type": "number"
+        },
+        "monte_carlo_replicates": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "random_seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 18446744073709552000
+        }
+      }
+    },
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "statistic_id",
+        "observed_value",
+        "tail_method",
+        "tail_exceedances",
+        "lower_tail_exceedances",
+        "upper_tail_exceedances",
+        "monte_carlo_p_value",
+        "bonferroni_adjusted_p_value",
+        "tail_probability_estimate",
+        "monte_carlo_standard_error",
+        "wilson_95_lower",
+        "wilson_95_upper"
+      ],
+      "properties": {
+        "statistic_id": {
+          "type": "string"
+        },
+        "observed_value": {
+          "type": "number"
+        },
+        "tail_method": {
+          "type": "string"
+        },
+        "tail_exceedances": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "lower_tail_exceedances": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "upper_tail_exceedances": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "monte_carlo_p_value": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "bonferroni_adjusted_p_value": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "tail_probability_estimate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "monte_carlo_standard_error": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "wilson_95_lower": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "wilson_95_upper": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    }
+  }
+}
