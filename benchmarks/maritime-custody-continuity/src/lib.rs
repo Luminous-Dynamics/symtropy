@@ -1,3 +1,5 @@
+pub mod temporal_order;
+
 use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
