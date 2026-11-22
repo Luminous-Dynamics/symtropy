@@ -693,9 +693,11 @@ mod tests {
             &[vec![100.0, -30.0], vec![0.0, 0.0]],
             0.0,
             &[fully_informative],
-            0.0,
-            1.0,
-            0.0,
+            InformationAcquisitionPolicy {
+                remaining_budget: 0.0,
+                cost_to_utility_rate: 1.0,
+                minimum_net_benefit: 0.0,
+            },
         )
         .expect("perfect information");
         match result {
