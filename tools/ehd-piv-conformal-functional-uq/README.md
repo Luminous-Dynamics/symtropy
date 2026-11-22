@@ -29,7 +29,7 @@ The output is the 4x4 covariance of mass flow and three momentum-flux components
 
 ## 3. Integrated functional conformal calibration
 
-The `functional_conformal` module calibrates the complete four-component vector [mass flow, momentum-x, momentum-y, momentum-z] against independent reference functional evidence. Each lab-session cluster is scored by its maximum 4D Mahalanobis residual. The same exact conformal rank and whole-session exchangeability assumptions apply.
+The `functional_conformal` module includes an adapter from `FieldFunctionalReport` to a calibration observation, preserving [mass, momentum-x, momentum-y, momentum-z] order, reference-minus-prediction residual sign, source run ID and the exact 4×4 covariance. It then calibrates the complete four-component vector [mass flow, momentum-x, momentum-y, momentum-z] against independent reference functional evidence. Each lab-session cluster is scored by its maximum 4D Mahalanobis residual. The same exact conformal rank and whole-session exchangeability assumptions apply.
 
 Covariance scoring first standardizes by component standard deviations to a dimensionless correlation matrix, then uses Cholesky factorization. This is necessary because mass flow (kg/s) and momentum flux (N) have different units. The calibration requires the exact same functional-contract identity, protocol fingerprint, and number of functional observations per session.
 
