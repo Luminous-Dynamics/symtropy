@@ -1,6 +1,6 @@
 use maritime_custody_continuity::{
     evaluate, parse_events_tsv, parse_expectations_tsv,
-    temporal_order::{compare_time_evidence, TimeBoundKind, TimeEvidence, TimeInterval},
+    temporal_order::{TimeBoundKind, TimeEvidence, TimeInterval, compare_time_evidence},
 };
 
 fn main() {
