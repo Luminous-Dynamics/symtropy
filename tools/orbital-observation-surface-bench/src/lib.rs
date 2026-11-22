@@ -84,9 +84,15 @@ pub struct MissCounts {
     pub stochastic: usize,
 }
 
+/// Timestamp-only record that a downstream estimator is allowed to observe.
+/// No latent event ID, miss reason, classifier probability or false-positive label is exposed.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct ObservedEvent {
+    pub time_fraction: f64,
+}
+
 #[derive(Debug, Clone, Serialize)]
-pub struct ChannelReport {
-    pub channel_id: String,
+pub struct ChannelAudit {
     pub latent_event_count: usize,
     pub detected_event_count: usize,
     pub miss_counts: MissCounts,
@@ -96,10 +102,71 @@ pub struct ChannelReport {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct ChannelReport {
+    pub channel_id: String,
+    pub observed_event_stream: Vec<ObservedEvent>,
+    pub audit: ChannelAudit,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct ScenarioReport {
     pub scenario_id: String,
     pub configuration_id: String,
     pub channels: Vec<ChannelReport>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ObservationChannel {
+    pub channel_id: String,
+    pub events: Vec<ObservedEvent>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ObservationScenario {
+    pub scenario_id: String,
+    pub configuration_id: String,
+    pub channels: Vec<ObservationChannel>,
+}
+
+/// Declassified estimator input: observed timestamps only, with source and corpus hashes.
+#[derive(Debug, Clone, Serialize)]
+pub struct ObservationArtifact {
+    pub schema: String,
+    pub evidence_class: String,
+    pub claim_ceiling: String,
+    pub source_commit: String,
+    pub corpus_sha256: String,
+    pub scenarios: Vec<ObservationScenario>,
+}
+
+pub fn observations_only(
+    report: &Report,
+    source_commit: &str,
+    corpus_sha256: &str,
+) -> ObservationArtifact {
+    ObservationArtifact {
+        schema: "luminous.orbital-observation-surface.observations.v0.1".to_owned(),
+        evidence_class: "synthetic".to_owned(),
+        claim_ceiling: "synthetic-observation-stream-only".to_owned(),
+        source_commit: source_commit.to_owned(),
+        corpus_sha256: corpus_sha256.to_owned(),
+        scenarios: report
+            .scenarios
+            .iter()
+            .map(|scenario| ObservationScenario {
+                scenario_id: scenario.scenario_id.clone(),
+                configuration_id: scenario.configuration_id.clone(),
+                channels: scenario
+                    .channels
+                    .iter()
+                    .map(|channel| ObservationChannel {
+                        channel_id: channel.channel_id.clone(),
+                        events: channel.observed_event_stream.clone(),
+                    })
+                    .collect(),
+            })
+            .collect(),
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -295,6 +362,7 @@ fn simulate_channel(scenario: &Scenario, channel: &ChannelConfig) -> Result<Chan
     let mut busy_until = f64::NEG_INFINITY;
     let mut miss_counts = MissCounts::default();
     let mut event_outcomes = Vec::with_capacity(scenario.events.len());
+    let mut observed_event_stream = Vec::with_capacity(scenario.events.len());
     let mut detected_event_count = 0;
 
     for event in &scenario.events {
@@ -326,10 +394,16 @@ fn simulate_channel(scenario: &Scenario, channel: &ChannelConfig) -> Result<Chan
                 }
             };
 
+        let detected = miss_reason.is_none();
+        if detected {
+            observed_event_stream.push(ObservedEvent {
+                time_fraction: event.time_fraction,
+            });
+        }
         event_outcomes.push(EventOutcome {
             event_id: event.event_id.clone(),
             conditional_classifier_probability: probability,
-            detected: miss_reason.is_none(),
+            detected,
             miss_reason,
         });
     }
@@ -342,14 +416,24 @@ fn simulate_channel(scenario: &Scenario, channel: &ChannelConfig) -> Result<Chan
         })
         .collect::<Vec<_>>();
 
+    observed_event_stream.extend(
+        false_positive_times
+            .iter()
+            .map(|time| ObservedEvent { time_fraction: *time }),
+    );
+    observed_event_stream.sort_by(|left, right| left.time_fraction.total_cmp(&right.time_fraction));
+
     Ok(ChannelReport {
         channel_id: channel.channel_id.clone(),
-        latent_event_count: scenario.events.len(),
-        detected_event_count,
-        miss_counts,
-        false_positive_count: false_positive_times.len(),
-        false_positive_times,
-        event_outcomes,
+        observed_event_stream,
+        audit: ChannelAudit {
+            latent_event_count: scenario.events.len(),
+            detected_event_count,
+            miss_counts,
+            false_positive_count: false_positive_times.len(),
+            false_positive_times,
+            event_outcomes,
+        },
     })
 }
 
@@ -390,13 +474,13 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
         for channel in &scenario.channels {
             let result = simulate_channel(scenario, channel)?;
             summary.channel_count += 1;
-            summary.channel_event_opportunity_count += result.latent_event_count;
-            summary.detected_event_count += result.detected_event_count;
-            summary.shared_common_cause_misses += result.miss_counts.shared_common_cause;
-            summary.channel_outage_misses += result.miss_counts.channel_outage;
-            summary.dead_time_misses += result.miss_counts.dead_time;
-            summary.stochastic_misses += result.miss_counts.stochastic;
-            summary.false_positive_count += result.false_positive_count;
+            summary.channel_event_opportunity_count += result.audit.latent_event_count;
+            summary.detected_event_count += result.audit.detected_event_count;
+            summary.shared_common_cause_misses += result.audit.miss_counts.shared_common_cause;
+            summary.channel_outage_misses += result.audit.miss_counts.channel_outage;
+            summary.dead_time_misses += result.audit.miss_counts.dead_time;
+            summary.stochastic_misses += result.audit.miss_counts.stochastic;
+            summary.false_positive_count += result.audit.false_positive_count;
             channels.push(result);
         }
 
@@ -507,10 +591,10 @@ mod tests {
         };
         let report = evaluate(&corpus(scenario)).unwrap();
         for channel in &report.scenarios[0].channels {
-            assert_eq!(channel.detected_event_count, 1);
-            assert_eq!(channel.miss_counts.shared_common_cause, 1);
-            assert!(channel.event_outcomes[1].conditional_classifier_probability > 0.0);
-            assert!(!channel.event_outcomes[1].detected);
+            assert_eq!(channel.audit.detected_event_count, 1);
+            assert_eq!(channel.audit.miss_counts.shared_common_cause, 1);
+            assert!(channel.audit.event_outcomes[1].conditional_classifier_probability > 0.0);
+            assert!(!channel.audit.event_outcomes[1].detected);
         }
     }
 
@@ -530,8 +614,8 @@ mod tests {
         let first = evaluate(&input).unwrap();
         let second = evaluate(&input).unwrap();
         assert_eq!(
-            first.scenarios[0].channels[0].false_positive_times,
-            second.scenarios[0].channels[0].false_positive_times
+            first.scenarios[0].channels[0].audit.false_positive_times,
+            second.scenarios[0].channels[0].audit.false_positive_times
         );
         assert_eq!(
             first.summary.false_positive_count,
@@ -601,8 +685,8 @@ mod tests {
             end: 0.25,
         }];
         let gated = evaluate(&corpus(gated_scenario)).unwrap();
-        let baseline_outcomes = &baseline.scenarios[0].channels[0].event_outcomes;
-        let gated_outcomes = &gated.scenarios[0].channels[0].event_outcomes;
+        let baseline_outcomes = &baseline.scenarios[0].channels[0].audit.event_outcomes;
+        let gated_outcomes = &gated.scenarios[0].channels[0].audit.event_outcomes;
         assert_eq!(
             gated_outcomes[1].miss_reason,
             Some(MissReason::SharedCommonCause)
