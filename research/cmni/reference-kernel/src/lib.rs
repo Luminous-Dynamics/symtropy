@@ -9,6 +9,12 @@
 
 use std::fmt;
 
+mod decision_value;
+pub use decision_value::{
+    recommend_finite_decision_step, DecisionAbstentionReason, FiniteDecisionRecommendation,
+    InformationAcquisitionKind, InformationAcquisitionOption, InformationSourceQualification,
+};
+
 mod design_decision;
 pub use design_decision::{
     certify_maximum_utility, linear_qoi_eig_utility_interval, parameter_eig_utility_interval,
