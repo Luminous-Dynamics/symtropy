@@ -428,7 +428,7 @@ mod tests {
 
     #[test]
     fn receipt_must_reference_the_exact_release_event_key() {
-        let (_, mut events) = fixtures();
+        let (_, events) = fixtures();
         let release = events
             .iter()
             .find(|event| event.source_event_id == "B1-R1")
@@ -480,7 +480,7 @@ mod tests {
 
     #[test]
     fn planned_acceptance_cannot_be_correlated_as_a_physical_handoff() {
-        let (_, mut events) = fixtures();
+        let (_, events) = fixtures();
         let release = events
             .iter()
             .find(|event| event.source_event_id == "B2-R1")
@@ -568,11 +568,13 @@ mod tests {
             .unwrap()
             .clone();
         let correlation = receipt(&release, &accept);
-        let mut conflict = release.clone();
-        conflict.box_id = "BOX-SUBSTITUTED".to_string();
-        conflict.revision = 2;
-        conflict.published_at = 100;
-        events.push(conflict);
+        let mut first_revision = release.clone();
+        first_revision.revision = 2;
+        first_revision.published_at = 100;
+        let mut conflicting_revision = first_revision.clone();
+        conflicting_revision.box_id = "BOX-SUBSTITUTED".to_string();
+        events.push(first_revision);
+        events.push(conflicting_revision);
 
         assert_eq!(
             apply_handoff_correlations(&events, &[correlation], 200),
