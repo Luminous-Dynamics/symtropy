@@ -347,6 +347,27 @@ mod tests {
     }
 
     #[test]
+    fn complementing_probability_and_label_preserves_auc_and_proper_scores() {
+        let original = fixture();
+        let complemented = original.iter().map(|row| PivProbabilityObservation {
+            sample_id: row.sample_id.clone(),
+            region: row.region,
+            reference_invalid: !row.reference_invalid,
+            // PIVPostProcess defines its probability as P(valid); this adapter
+            // converts it to the module's P(invalid) convention.
+            predicted_invalid_probability: 1.0 - row.predicted_invalid_probability,
+        }).collect::<Vec<_>>();
+        let first = evaluate_piv_probability_scores(&original).unwrap();
+        let second = evaluate_piv_probability_scores(&complemented).unwrap();
+        assert_eq!(
+            first.overall.roc_auc_invalid_positive,
+            second.overall.roc_auc_invalid_positive
+        );
+        assert!((first.overall.log_loss_nats - second.overall.log_loss_nats).abs() < 1.0e-12);
+        assert!((first.overall.brier_score - second.overall.brier_score).abs() < 1.0e-12);
+    }
+
+    #[test]
     fn tied_scores_receive_half_credit() {
         let observations = vec![
             observation("a", FlowRegion::Bulk, true, 0.5),
