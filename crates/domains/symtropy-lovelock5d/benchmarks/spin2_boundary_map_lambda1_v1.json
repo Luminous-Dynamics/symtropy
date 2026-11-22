@@ -54,7 +54,7 @@
     "arithmetic": "exact rational, logarithmic, and dilogarithmic symbolic identities",
     "python": "3.13.5",
     "sympy": "1.14.0",
-    "verifier_sha256": "05af6b48c7a484b4e2674223883608747995655243be70ce7f0963af05cd84f0"
+    "verifier_sha256": "685bab7ef5e2d62efea0db51da7b99eacb0d46da377c4b824337866305abe40"
   },
   "schema_version": 1,
   "status": "exact_first_derivative_of_both_homogeneous_boundary_map_columns"
