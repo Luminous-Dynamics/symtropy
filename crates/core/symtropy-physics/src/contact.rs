@@ -488,6 +488,76 @@ mod tests {
     }
 
     #[test]
+    fn strict_pair_effective_mass_matches_realized_contact_point_velocity_change() {
+        let mut a = anisotropic_body_3d();
+        a.handle = BodyHandle(90);
+        a.transform.rotation = symtropy_math::Rotor::<3>::from_plane_angle(
+            &symtropy_math::Bivector::<3>::unit_plane(0, 1),
+            0.37,
+        );
+
+        let mut b = anisotropic_body_3d();
+        b.handle = BodyHandle(91);
+        b.transform.rotation = symtropy_math::Rotor::<3>::from_plane_angle(
+            &symtropy_math::Bivector::<3>::unit_plane(1, 2),
+            -0.29,
+        );
+
+        let lever_a = SVector::from([0.7, -0.2, 0.4]);
+        let lever_b = SVector::from([-0.3, 0.5, 0.8]);
+        let normal = SVector::from([0.2, 0.8, -0.4]).normalize();
+
+        // The Delassus/J M^-1 J^T prediction consists of translational
+        // inverse masses plus the two independently evaluated rotational
+        // contributions. The reference is per unit normal impulse.
+        let predicted = a.inv_mass
+            + b.inv_mass
+            + try_angular_contact_effective_mass(&a, &lever_a, &normal).unwrap()
+            + try_angular_contact_effective_mass(&b, &lever_b, &normal).unwrap();
+
+        let outcome = try_apply_contact_impulse_pair(
+            &mut a,
+            &mut b,
+            &lever_a,
+            &lever_b,
+            &normal,
+        )
+        .expect("admitted anisotropic pair must accept a finite unit impulse");
+
+        // Measure the actual contact-point velocity jump using the same
+        // Rotor-consistent differential that the production pose update uses.
+        let delta_contact_a = outcome.delta_linear_velocity_a
+            + crate::integrator::angular_point_velocity(
+                &outcome.delta_angular_velocity_a,
+                &lever_a,
+            );
+        let delta_contact_b = outcome.delta_linear_velocity_b
+            + crate::integrator::angular_point_velocity(
+                &outcome.delta_angular_velocity_b,
+                &lever_b,
+            );
+        let observed = normal.dot(&(delta_contact_b - delta_contact_a));
+
+        assert!(
+            (observed - predicted).abs() < 2.0e-11,
+            "predicted effective mass={predicted:e}, observed contact velocity jump={observed:e}"
+        );
+        assert!(observed > 0.0);
+
+        // Negative control: the old +B*r point-velocity action must not
+        // satisfy the same known-answer contact-response identity.
+        let wrong_contact_a = outcome.delta_linear_velocity_a
+            + outcome.delta_angular_velocity_a.apply_to_vector(&lever_a);
+        let wrong_contact_b = outcome.delta_linear_velocity_b
+            + outcome.delta_angular_velocity_b.apply_to_vector(&lever_b);
+        let wrong_observed = normal.dot(&(wrong_contact_b - wrong_contact_a));
+        assert!(
+            (wrong_observed - predicted).abs() > 1.0e-4,
+            "the opposite-sign point-velocity action unexpectedly matched"
+        );
+    }
+
+    #[test]
     fn unsupported_second_body_leaves_both_members_unchanged() {
         let mut a = crate::body::RigidBody::<4>::dynamic_sphere(
             BodyHandle(82),
