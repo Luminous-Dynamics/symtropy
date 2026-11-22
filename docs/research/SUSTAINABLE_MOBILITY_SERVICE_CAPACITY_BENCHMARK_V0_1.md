@@ -371,23 +371,22 @@ These are targets. A passing synthetic evaluator test does not establish any of 
 
 ## 18. Exact-head v0.1 verification and frozen fixture result
 
-Exact-head Actions run [#45067111854](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45067111854) at `21946ec215c02cbc0ea3beac2d768857e1a37377` passed:
+Exact-head Actions run [#45067738880](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45067738880) at `c1feaed5e12f72c5f3de55d17512e4e850eacf11` passed:
 - strict schema/fixture JSON parsing;
 - package workspace `cargo fmt --check`;
 - `cargo test`;
-- deterministic report assertions including the steady-state and initial-inventory capacity bounds;
+- deterministic report assertions including steady-state and initial-inventory capacity bounds;
 - report artifact upload.
 
-The test binaries reported 156 + 16 + 8 + 9 = **189 passed, 0 failed**. All 18 tests in the service-capacity module passed. They include the independent second-by-second tick oracle across 20 bounded architecture profiles, the closed-form no-replenishment oracle, pack conservation, site/channel headroom, and finite-horizon inventory drawdown bounds. Clippy is not part of this workflow and remains unverified.
+The test binaries reported 156 + 16 + 8 + 9 = **189 passed, 0 failed**. All 18 tests in the service-capacity module passed. They include an independent second-by-second tick oracle across 20 bounded architecture profiles, a closed-form no-replenishment oracle, pack conservation, site/channel headroom and finite-horizon inventory drawdown bounds. Clippy is not part of this workflow and remains unverified.
 
-The eight-hour frozen synthetic fixture produced:
+The eight-hour fixture now gives every architecture the same synthetic five-minute mission and 45-second turnaround. It varies aircraft count, pack/spare inventory, channel concurrency and site headroom:
 
-| Architecture profile | Aircraft | Effective channels | Initial packs | Finite sorties / 8 h | Finite rate / h | Per-aircraft rate / h | Steady-state ceiling / h |
+| Architecture profile | Aircraft | Effective channels | Initial packs | Finite sorties / 8 h | Finite fleet rate / h | Per-aircraft rate / h | Steady-state ceiling / h |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | Direct single-pack recharge | 1 | 1 | 1 | 15 | 1.875 | 1.875 | 2.222 |
 | Dock 4-shaped, 3 spares / 2 channels | 1 | 2 | 4 | 38 | 4.750 | 4.750 | 4.444 |
 | Same profile, site-limited to 1 channel | 1 | 1 | 4 | 21 | 2.625 | 2.625 | 2.222 |
 | Two-aircraft shared pool, site-limited to 3 channels | 2 | 3 | 8 | 59 | 7.375 | 3.688 | 6.667 |
 
-The finite-horizon result can temporarily exceed the steady-state replenishment ceiling because the simulation consumes initial ready packs and ends with a charge backlog / aircraft waiting. The explicit initial-stock allowance bounds that drawdown. The steady-state ceiling is the minimum of aircraft mission-cycle rate and charge replenishment rate. All profiles now share the same five-minute mission and 45-second turnaround; the two-aircraft fleet still has twice the aircraft and pack inventory, so report both total fleet throughput and per-aircraft throughput. These are deterministic synthetic fixture outputs, not DJI performance, observed uptime, customer deliveries or commercial throughput. Every launched sortie is assumed to complete.
-
+The finite-horizon result can temporarily exceed steady-state replenishment because the simulation consumes initial ready packs and ends with charge backlog/aircraft waiting. An explicit initial-inventory allowance bounds that drawdown. The two-aircraft profile contains twice the aircraft and pack count of the other profiles; report both total fleet and per-aircraft rates, not as a like-for-like single-aircraft ranking. These deterministic synthetic outputs are not DJI performance, field uptime, successful customer deliveries or commercial throughput. The simulator assumes every launched sortie completes.
