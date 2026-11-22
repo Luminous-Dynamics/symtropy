@@ -66,3 +66,21 @@ Vendor-described capabilities and customer stories are not matched independent b
 - CPPI 2025: https://www.worldbank.org/en/topic/transport/publication/container-port-performance-index
 - S&P Global Port Performance: https://www.spglobal.com/marketintelligence/en/solutions/port-performance
 - Li, Xu and Luo (6 July 2026), *Robust Metaheuristics under Uncertainty for Berth Allocation and Quay Crane Assignment: A Review*: https://arxiv.org/abs/2608.19214
+
+## Southern African public visibility comparator: Dues
+
+[Dues' South African port board](https://dues.co.za/ports) and [DGT terminal page](https://dues.co.za/ports/durban-gateway-terminal) are a useful adjacent product comparator. On the 22 November 2026 research snapshot, Dues stated it refreshes its port board about every 30 minutes from terminals' published files and showed for DGT: four vessels working, two at anchor/waiting, 3,361 boxes still to unload and one berthing within 48 hours. Its DGT page also exposes vessel status, berthing plans, export-stack dates, and a 21-day evaluation of its own plan accuracy (including start-of-work and time-at-quay measures).
+
+**Interpretation:** this demonstrates an existing local visibility/aggregation product and should be included in any interface/coverage comparison. It is not an independent source of terminal truth: it says it reads the terminal's published files, and its derived status/forecast metrics are its own product outputs. The displayed state is a time-stamped secondary observation, not an immutable terminal snapshot or independently adjudicated ground truth. The benchmark should compare the same dated terminal files and evaluate each parser against separate adjudicated event/cargo outcomes.
+
+Potential matched comparison:
+- time from terminal publication to public display;
+- source-document revision detection and immutable as-of replay;
+- preservation of raw status fields and source timestamp conflicts;
+- vessel/visit identity resolution and unresolved rate;
+- plan-versus-realized start-of-work error by horizon;
+- stack-window revision / cancellation detection;
+- exact container reconciliation and custody continuity (not currently established by the Dues page);
+- coverage, latency, uncertainty and explicit unknowns.
+
+Do not infer that Dues has or lacks internal capabilities beyond those publicly described. No Dues data feed, contract, API, or ground-truth artifact has been obtained for this benchmark.
