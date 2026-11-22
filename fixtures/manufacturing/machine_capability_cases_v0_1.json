@@ -2363,7 +2363,7 @@
     },
     {
       "scenario_id": "MCC-022",
-      "description": "A locally serviced machine depends transitively on a long-lead imported calibration fixture required by a critical frame subsystem; the route is feasible but the machine is not locally reproducible.",
+      "description": "A locally serviced machine depends on a locally manufactured calibration fixture that itself requires a long-lead imported calibration reference; route is feasible but the machine is not locally reproducible.",
       "part": {
         "part_id": "LUM-P0-ACCESSORY-001",
         "revision": "A",
@@ -2442,6 +2442,17 @@
             },
             {
               "dependency_id": "calibration-fixture",
+              "criticality": "noncritical",
+              "sourcing_class": "locally_manufactured",
+              "alternate_sources": 1,
+              "local_repair_status": "repairable",
+              "evidence_status": "measured",
+              "requires": [
+                "calibration-reference"
+              ]
+            },
+            {
+              "dependency_id": "calibration-reference",
               "criticality": "noncritical",
               "sourcing_class": "imported_long_lead",
               "alternate_sources": 0,
