@@ -519,10 +519,7 @@ pub fn qualify_custody_event_timeline(
             .any(|index| events[*index] != events[first])
         {
             return Err(QualifiedTimelineError::Correlation(
-                CorrelationError::ConflictingEventRevision {
-                    source_key: source_event,
-                    revision: latest_revision,
-                },
+                CorrelationError::ConflictingEventRevision(source_event),
             ));
         }
 
@@ -850,8 +847,8 @@ mod tests {
         let report =
             evaluate_with_paired_handoff_time_evidence(&expectations, &events, &[qualified], 200)
                 .unwrap();
-        assert_eq!(report.custody.complete_chains(), 1);
-        assert_eq!(report.custody.incomplete_box_ids.len(), 1);
+        assert_eq!(report.complete_chains(), 1);
+        assert_eq!(report.incomplete_box_ids.len(), 1);
     }
 
     fn qualified_timeline_bindings(events: &[CustodyEvent], as_of: i64) -> Vec<EventTimeBinding> {
@@ -878,8 +875,8 @@ mod tests {
             evaluate_with_handoff_correlations(&expectations, &events, &time_bindings, &[], 200)
                 .unwrap();
 
-        assert_eq!(report.complete_chains(), 1);
-        assert_eq!(report.incomplete_box_ids.len(), 1);
+        assert_eq!(report.custody.complete_chains(), 1);
+        assert_eq!(report.custody.incomplete_box_ids.len(), 1);
     }
 
     #[test]
@@ -1012,8 +1009,8 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(report.complete_chains(), 1);
-        assert_eq!(report.incomplete_box_ids.len(), 1);
+        assert_eq!(report.custody.complete_chains(), 1);
+        assert_eq!(report.custody.incomplete_box_ids.len(), 1);
     }
 
     #[test]
@@ -1320,7 +1317,7 @@ mod tests {
         let correlation = receipt(&release, &accept);
 
         assert_eq!(
-            evaluate_with_handoff_correlations(&expectations, &events, &[correlation], 200),
+            apply_handoff_correlations(&events, &[correlation], 200),
             Err(CorrelationError::HandoffFieldMismatch(
                 HandoffField::Location
             ))
