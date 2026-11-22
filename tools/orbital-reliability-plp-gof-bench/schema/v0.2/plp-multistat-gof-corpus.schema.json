@@ -12,13 +12,13 @@
   ],
   "properties": {
     "schema": {
-      "const": "luminous.orbital-plp-conditional-gof.corpus.v0.1"
+      "const": "luminous.orbital-plp-multistat-gof.corpus.v0.2"
     },
     "evidence_class": {
       "const": "synthetic"
     },
     "claim_ceiling": {
-      "const": "synthetic-conditional-plp-goodness-of-fit-only"
+      "const": "synthetic-conditional-plp-five-statistic-suite-only"
     },
     "cases": {
       "type": "array",
