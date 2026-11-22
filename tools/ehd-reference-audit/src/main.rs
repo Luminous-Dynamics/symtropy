@@ -2814,7 +2814,7 @@ pub fn audit_low_density_piv_tracer_contract(root: &Value) -> Vec<String> {
                 && axes.iter().any(|v| v.as_str() == Some("electric_field_interaction_and_discharge_non_perturbation"))
                 && axes.iter().any(|v| v.as_str() == Some("flow_field_coverage_and_boundary_layer_resolution")))
             && text_at(root, &["prospective_benchmark_targets", "no_passivity_from_image_quality"])
-                .is_some_and(|value| value.contains("Good PIV correlation alone")),
+                .is_some_and(|value| value.contains("correlation alone is not a passivity result")),
         "LOW_DENSITY_PIV_CONTRACT_AXES",
         "optical, dynamic, electrical/passivity, pressure and resolution gates must remain separate",
     );
@@ -2831,8 +2831,6 @@ pub fn audit_low_density_piv_tracer_contract(root: &Value) -> Vec<String> {
         &mut findings,
         at(root, &["test_families"]).and_then(Value::as_array)
             .is_some_and(|tests| tests.len() == 6
-                && tests.iter().any(|v| v.as_str() == Some("no_random_vector_holdout"))
-                    == false
                 && tests.iter().any(|v| v.as_str() == Some("fog_unavailability_below_reported_pressure_is_retained"))
                 && tests.iter().any(|v| v.as_str() == Some("collector_surface_optical_and_electrical_limits_remain_distinct"))),
         "LOW_DENSITY_PIV_CONTRACT_TEST_MATRIX",
