@@ -456,6 +456,29 @@ struct EffectiveActualEventGroup {
     event_indices: Vec<usize>,
 }
 
+/// One box's fully ordered event-time evidence chain.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct QualifiedBoxTimelineReceipt {
+    pub box_id: String,
+    pub ordered_events: Vec<EventTimeBinding>,
+}
+
+/// A qualified timeline plus the cloned event tape with internal ordinal ticks.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct QualifiedCustodyTimeline {
+    pub ordered_events: Vec<CustodyEvent>,
+    pub box_timelines: Vec<QualifiedBoxTimelineReceipt>,
+}
+
+/// Evidence-carrying result of the whole-chain P1 custody evaluator.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct QualifiedCustodyReport {
+    pub as_of: i64,
+    pub custody: EvaluationReport,
+    pub box_timelines: Vec<QualifiedBoxTimelineReceipt>,
+    pub handoff_correlations: Vec<HandoffCorrelationReceipt>,
+}
+
 /// Reconstruct the complete custody-event timeline from qualified event-time
 /// enclosures. Every effective ACTUAL event requires an exact time binding,
 /// and every pair of actual events for the same box must be strictly ordered.
@@ -465,7 +488,7 @@ pub fn qualify_custody_event_timeline(
     events: &[CustodyEvent],
     time_bindings: &[EventTimeBinding],
     as_of: i64,
-) -> Result<Vec<CustodyEvent>, QualifiedTimelineError> {
+) -> Result<QualifiedCustodyTimeline, QualifiedTimelineError> {
     let mut by_source_key: BTreeMap<SourceEventRef, Vec<usize>> = BTreeMap::new();
     for (index, event) in events.iter().enumerate() {
         if event.published_at <= as_of {
@@ -527,8 +550,10 @@ pub fn qualify_custody_event_timeline(
     }
 
     let mut consumed_bindings = BTreeSet::new();
-    let mut events_by_box: BTreeMap<String, Vec<(SourceEventRef, &TimeEvidence, Vec<usize>)>> =
-        BTreeMap::new();
+    let mut events_by_box: BTreeMap<
+        String,
+        Vec<(SourceEventRef, u32, &TimeEvidence, Vec<usize>)>,
+    > = BTreeMap::new();
 
     for group in &effective_actual_groups {
         let binding = bindings_by_key
@@ -561,6 +586,7 @@ pub fn qualify_custody_event_timeline(
         let box_id = &events[group.event_indices[0]].box_id;
         events_by_box.entry(box_id.clone()).or_default().push((
             group.source_event.clone(),
+            group.revision,
             &binding.evidence,
             group.event_indices.clone(),
         ));
@@ -575,11 +601,12 @@ pub fn qualify_custody_event_timeline(
     }
 
     let mut ordinal_by_index: BTreeMap<usize, i64> = BTreeMap::new();
+    let mut box_timelines = Vec::with_capacity(events_by_box.len());
     for (box_id, mut box_events) in events_by_box {
         for first_index in 0..box_events.len() {
             for second_index in (first_index + 1)..box_events.len() {
-                let (first_ref, first_time, _) = &box_events[first_index];
-                let (second_ref, second_time, _) = &box_events[second_index];
+                let (first_ref, _, first_time, _) = &box_events[first_index];
+                let (second_ref, _, second_time, _) = &box_events[second_index];
                 let relation = compare_time_evidence(first_time, second_time);
                 if !matches!(
                     relation,
@@ -595,21 +622,36 @@ pub fn qualify_custody_event_timeline(
             }
         }
 
-        box_events.sort_by_key(|(_, evidence, _)| evidence.interval().earliest());
-        for (ordinal, (_, _, event_indices)) in box_events.into_iter().enumerate() {
+        box_events.sort_by_key(|(_, _, evidence, _)| evidence.interval().earliest());
+        let mut ordered_time_bindings = Vec::with_capacity(box_events.len());
+        for (ordinal, (source_event, revision, evidence, event_indices)) in
+            box_events.into_iter().enumerate()
+        {
             let ordinal =
                 i64::try_from(ordinal).map_err(|_| QualifiedTimelineError::OrdinalOverflow)?;
+            ordered_time_bindings.push(EventTimeBinding {
+                source_event,
+                revision,
+                evidence: evidence.clone(),
+            });
             for index in event_indices {
                 ordinal_by_index.insert(index, ordinal);
             }
         }
+        box_timelines.push(QualifiedBoxTimelineReceipt {
+            box_id,
+            ordered_events: ordered_time_bindings,
+        });
     }
 
     let mut ordered_events = events.to_vec();
     for (index, ordinal) in ordinal_by_index {
         ordered_events[index].event_time = ordinal;
     }
-    Ok(ordered_events)
+    Ok(QualifiedCustodyTimeline {
+        ordered_events,
+        box_timelines,
+    })
 }
 
 /// General P1 custody evaluation. Every effective ACTUAL event in each
@@ -622,13 +664,19 @@ pub fn evaluate_with_handoff_correlations(
     time_bindings: &[EventTimeBinding],
     receipts: &[HandoffCorrelationReceipt],
     as_of: i64,
-) -> Result<EvaluationReport, QualifiedTimelineError> {
-    let ordered_events = qualify_custody_event_timeline(events, time_bindings, as_of)?;
-    let canonicalized = apply_handoff_correlations(&ordered_events, receipts, as_of)
+) -> Result<QualifiedCustodyReport, QualifiedTimelineError> {
+    let timeline = qualify_custody_event_timeline(events, time_bindings, as_of)?;
+    let canonicalized = apply_handoff_correlations(&timeline.ordered_events, receipts, as_of)
         .map_err(QualifiedTimelineError::Correlation)?;
-    evaluate(expectations, &canonicalized, as_of)
+    let custody = evaluate(expectations, &canonicalized, as_of)
         .map_err(CorrelationError::Evaluation)
-        .map_err(QualifiedTimelineError::Correlation)
+        .map_err(QualifiedTimelineError::Correlation)?;
+    Ok(QualifiedCustodyReport {
+        as_of,
+        custody,
+        box_timelines: timeline.box_timelines,
+        handoff_correlations: receipts.to_vec(),
+    })
 }
 
 /// P0 synthetic evaluator. Event-time ticks are dimensionless fixture values;
@@ -811,8 +859,8 @@ mod tests {
             200,
         )
         .unwrap();
-        assert_eq!(report.complete_chains(), 1);
-        assert_eq!(report.incomplete_box_ids.len(), 1);
+        assert_eq!(report.custody.complete_chains(), 1);
+        assert_eq!(report.custody.incomplete_box_ids.len(), 1);
     }
 
     fn qualified_timeline_bindings(events: &[CustodyEvent], as_of: i64) -> Vec<EventTimeBinding> {
@@ -851,6 +899,43 @@ mod tests {
 
         assert_eq!(report.complete_chains(), 1);
         assert_eq!(report.incomplete_box_ids.len(), 1);
+    }
+
+    #[test]
+    fn qualified_custody_report_retains_exact_ordered_time_evidence() {
+        let (expectations, events) = fixtures();
+        let time_bindings = qualified_timeline_bindings(&events, 200);
+        let receipt = receipt(
+            events.iter().find(|event| event.source_event_id == "B1-R1").unwrap(),
+            events.iter().find(|event| event.source_event_id == "B1-A1").unwrap(),
+        );
+        let report = evaluate_with_handoff_correlations(
+            &expectations,
+            &events,
+            &time_bindings,
+            &[receipt.clone()],
+            200,
+        )
+        .unwrap();
+
+        assert_eq!(report.as_of, 200);
+        assert_eq!(report.custody.complete_chains(), 1);
+        assert_eq!(report.box_timelines.len(), 2);
+        let box_one = report
+            .box_timelines
+            .iter()
+            .find(|timeline| timeline.box_id == "BOX-0001")
+            .unwrap();
+        assert_eq!(box_one.ordered_events.len(), 7);
+        assert_eq!(
+            box_one.ordered_events[0].source_event.source_event_id,
+            "B1-OPEN"
+        );
+        assert_eq!(
+            box_one.ordered_events[6].source_event.source_event_id,
+            "B1-A3"
+        );
+        assert_eq!(report.handoff_correlations, vec![receipt]);
     }
 
     #[test]
