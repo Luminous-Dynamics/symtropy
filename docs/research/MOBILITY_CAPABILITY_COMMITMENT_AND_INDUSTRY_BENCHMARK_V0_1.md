@@ -76,7 +76,7 @@ The evaluator checks:
 - exact resource and site configuration binding;
 - allocation vectors covering the complete horizon, with zero allocation outside their half-open commitment window;
 - unique commitment IDs, idempotency keys and resource allocation entries;
-- terminal release backed by measured or independent-test evidence;
+- unique state-receipt IDs with exact evidence-reference binding, and terminal release backed by measured or independent-test evidence;
 - reservation of firm-offered, accepted, executing and unresolved claims;
 - protected mission, recovery, maintenance and safety-hold intervals;
 - candidate offer expiry before the service window starts and before source evidence expiry;
@@ -99,7 +99,7 @@ ESS-01 per-slot committed power is [500, 500, 2,500, 1,500, 0, 0] W against 3,00
 
 The fixture uses synthetic data. These values validate arithmetic and reservation semantics only. No market, dispatch, ledger-mutation or physical authority is granted.
 
-The module contains 13 focused Rust test definitions, including a 12-case independent resource-capacity reference. These are source-level test definitions until an exact-head Actions run completes.
+The module contains 16 focused Rust test definitions, including a 12-case independent resource-capacity reference. These are source-level test definitions until an exact-head Actions run completes.
 
 ## 4. Current research and industry comparisons
 
