@@ -21,7 +21,7 @@ fn main() -> ExitCode {
     let mut args = env::args().skip(1);
     let Some(fixture_path) = args.next() else {
         eprintln!(
-            "usage: orbital-reliability-plp-gof-bench <corpus.json> --source-commit <40-hex>"
+            "usage: orbital-reliability-plp-gof-bench <v0.2-corpus.json> --source-commit <40-hex>"
         );
         return ExitCode::from(2);
     };
@@ -63,7 +63,7 @@ fn main() -> ExitCode {
     };
 
     let receipt = json!({
-        "receipt_schema": "luminous.orbital-plp-conditional-gof.receipt.v0.1",
+        "receipt_schema": "luminous.orbital-plp-multistat-gof.receipt.v0.2",
         "source_commit": source_commit,
         "fixture_sha256": sha256_hex(&raw),
         "result": report.result,
