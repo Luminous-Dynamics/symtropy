@@ -1156,14 +1156,15 @@
       "product_profiles": [
         "Plasma Module 6.4",
         "CFD Module 6.4",
-        "Electric Discharge Module 6.3"
+        "Electric Discharge Module 6.4"
       ],
       "license": "commercial",
       "documentation_urls": [
         "https://www.comsol.com/plasma-module",
         "https://doc.comsol.com/6.4/doc/com.comsol.help.plasma/plasma_introduction.02.02.html",
         "https://www.comsol.com/cfd-module",
-        "https://doc.comsol.com/6.3/doc/com.comsol.help.edis/edis_introduction.2.2.html"
+        "https://doc.comsol.com/6.4/doc/com.comsol.help.edis/edis_introduction.2.2.html",
+        "https://doc.comsol.com/6.4/doc/com.comsol.help.edis/edis_ug_edis.6.02.html"
       ],
       "capabilities": [
         "0D/1D/2D/3D plasma interfaces (product/version dependent)",
@@ -1180,6 +1181,123 @@
         "Commercial license, module entitlement and reproducible model-file availability must be accounted for in any benchmark."
       ],
       "recommended_role": "commercial reference baseline for matched corona/DBD plus CFD/EHD cases; record exact COMSOL version, modules, interface, mesh and model files. Do not treat a product feature list as independent validation."
+    },
+    {
+      "solver_id": "ANEMONE_3D",
+      "source_url": "https://www.sciencedirect.com/science/article/pii/S0010465525002516",
+      "paper_doi": "10.1016/j.cpc.2025.109749",
+      "program_data_doi": "10.17632/2sxsg2pmyp.1",
+      "language": "C++",
+      "license": "MIT",
+      "dimensionality": "3D",
+      "formulation": "three-component plasma-fluid model for electrons, positive ions and negative ions; method of characteristics and perturbation decomposition into integral subproblems",
+      "declared_outputs": [
+        "corona inception voltage",
+        "energy conversion efficiency"
+      ],
+      "validation_evidence": "prediction results checked against theoretical results from a previous study, as described in the program paper",
+      "capabilities": [
+        "3D atmospheric solid-state electroaerodynamic propulsion model",
+        "electron positive-ion negative-ion plasma-fluid coupling",
+        "corona inception estimation",
+        "energy-conversion-efficiency estimation"
+      ],
+      "important_limits": [
+        "Do not interpret the declared inception-voltage and energy-efficiency outputs as validation of a complete measured neutral-flow, thrust, electrical-power and system-mass boundary.",
+        "The published validation described in the abstract is against prior theoretical results, not evidence of independent force-stand and full-field PIV/LDV validation.",
+        "Reproduction requires a pinned program version, source inputs, geometry and numerical controls from the public program/data package."
+      ],
+      "recommended_role": "3D atmospheric corona plasma-fluid comparator for source-pinned inception and declared efficiency cases; pair with independent neutral-flow, momentum and experimental force/power qualification"
+    },
+    {
+      "solver_id": "PASCHEN_1D",
+      "source_url": "https://github.com/pbis-umich/PASCHEN-1D",
+      "paper_doi": "10.1016/j.cpc.2026.110404",
+      "dataset_doi": "10.17632/723hrsjjt7.1",
+      "current_release": "1.1.0",
+      "release_date": "2026-09-23",
+      "language": "Python",
+      "license": null,
+      "dimensionality": "1D",
+      "formulation": "time-dependent electron and ion drift-diffusion continuity equations coupled to Poisson; finite-volume Kurganov-Tadmor fluxes with slope limiting; adaptive drift-CFL and explicit-diffusion substepping",
+      "circuit_coupling": "external RLC lumped circuits with explicit, implicit or MNA-based coupling",
+      "electrode_emission": [
+        "secondary electron",
+        "Fowler-Nordheim",
+        "Murphy-Good",
+        "Richardson-Dushman",
+        "photoemission",
+        "Vaughan electron-induced secondary emission"
+      ],
+      "electron_kinetics": [
+        "user-defined electron kinetics",
+        "local-field approximation with transport/ionization formulas or swarm-table interpolation"
+      ],
+      "declared_validation_cases": [
+        "nanosecond pulsed dielectric-barrier discharge",
+        "DC breakdown and glow transition",
+        "argon and nitrogen Paschen curves",
+        "picosecond photoemission-induced plasma"
+      ],
+      "capabilities": [
+        "transient 1D discharge",
+        "plasma-circuit coupling",
+        "electrode surface-emission closures",
+        "swarm-table transport inputs",
+        "time/spatial diagnostics"
+      ],
+      "important_limits": [
+        "The current release does not include an electron-energy equation or electron-energy PDE.",
+        "The release describes minimal chemistry with electron-impact ionization and effective electron-ion recombination, and one positive-ion species in its local-field ion kinetics branch.",
+        "One-dimensional breakdown and discharge validation is not validation of 2D/3D EHD geometry, neutral flow, force, thrust or propulsive efficiency."
+      ],
+      "recommended_role": "transient discharge, circuit and electrode-boundary reference for reduced 1D breakdown cases; use only as a discharge subproblem and do not promote it to a full EHD thrust solver"
+    },
+    {
+      "solver_id": "COMSOL_CORONA_SIMPLIFIED_64",
+      "vendor": "COMSOL",
+      "product": "Electric Discharge Module 6.4 — Corona Discharge interface",
+      "source_url": "https://doc.comsol.com/6.4/doc/com.comsol.help.edis/edis_introduction.2.2.html",
+      "license": "commercial",
+      "dimensionality": "stationary corona charge-transport approximation",
+      "formulation": "simplified charge transport combined with electrostatics to approximate charge density and electrostatic field in stationary corona discharge",
+      "capabilities": [
+        "reduced transport-region charge density",
+        "electrostatic-field solution"
+      ],
+      "important_limits": [
+        "The simplified interface does not include the corona ionization layer; it uses an approximate boundary condition.",
+        "Electron dynamics are not solved in this simplified interface.",
+        "Do not compare it to a full drift-diffusion electron/ion discharge model without disclosing the reduced physics."
+      ],
+      "recommended_role": "reduced stationary corona engineering baseline only; use for bounded transport-region and field comparison, not ionization-layer validation"
+    },
+    {
+      "solver_id": "COMSOL_ELECTRIC_DISCHARGE_64",
+      "vendor": "COMSOL",
+      "product": "Electric Discharge Module 6.4 — Electric Discharge interface",
+      "source_url": "https://doc.comsol.com/6.4/doc/com.comsol.help.edis/edis_ug_edis.6.02.html",
+      "license": "commercial",
+      "dimensionality": [
+        "1D",
+        "2D",
+        "3D",
+        "1D-axisymmetric",
+        "2D-axisymmetric"
+      ],
+      "formulation": "drift-diffusion charge transport for electrons, holes, positive ions and negative ions fully coupled to Poisson",
+      "capabilities": [
+        "fully coupled charge transport and electrostatics",
+        "dielectric-interface surface-charge accumulation and relaxation",
+        "stationary, time-dependent and frequency-dependent perturbation studies",
+        "coupling to magnetic-field and flow physics interfaces"
+      ],
+      "important_limits": [
+        "Physics coverage depends on selected species, material models, stabilization, chemistry and module entitlements.",
+        "The interface feature list does not validate a particular EHD device geometry, plasma chemistry, neutral-flow model, momentum exchange, thrust or electrical wall-power boundary.",
+        "A reproducible benchmark must record the exact COMSOL version, licensed modules, interface settings, mesh/time-step and solver tolerances."
+      ],
+      "recommended_role": "full charged-species drift-diffusion/Poisson commercial reference for matched corona/DBD discharge cases; couple and validate neutral flow and thrust separately"
     }
   ],
   "system_integration_references": [
@@ -1434,5 +1552,129 @@
       },
       "claim_boundary": "Source-pinned candidate for reproducing a published/repository-linked atmospheric corona discharge I-V curve. No Merlino2D run has been executed by Luminous; no solver accuracy, thrust prediction, EHD flow coupling or SOTA claim is established."
     }
-  ]
+  ],
+  "solver_comparison_matrix": {
+    "version": "0.1.0",
+    "status": "scope_registry_only_no_solver_execution_or_matched_benchmark_results",
+    "comparator_rule": "compare each solver only on an identical model/observable subset; never infer whole-system superiority from an interface feature list or a solver-specific validation case",
+    "tracks": [
+      {
+        "track_id": "DISCHARGE_STATIC",
+        "question": "Can each model reproduce the same stationary corona onset and transport-region field/current case?",
+        "candidates": [
+          "MERLINO2D",
+          "ANEMONE_3D",
+          "COMSOL_CORONA_SIMPLIFIED_64",
+          "COMSOL_ELECTRIC_DISCHARGE_64"
+        ],
+        "primary_observables": [
+          "corona_inception_voltage",
+          "I_V_curve",
+          "electric_potential",
+          "electric_field",
+          "species_density"
+        ],
+        "match_controls": [
+          "gas composition and pressure",
+          "electrode geometry and boundary conditions",
+          "ionization/reaction coefficients",
+          "species set",
+          "mesh refinement",
+          "solver tolerances"
+        ],
+        "prohibitions": [
+          "Do not compare 2D and 3D runtime as direct accuracy evidence",
+          "Do not treat the simplified Corona interface as full electron/ion ionization-layer physics"
+        ]
+      },
+      {
+        "track_id": "DISCHARGE_TRANSIENT_CIRCUIT",
+        "question": "Can transient breakdown and plasma-circuit exchange be reproduced on the same bounded 1D case?",
+        "candidates": [
+          "PASCHEN_1D",
+          "COMSOL_ELECTRIC_DISCHARGE_64"
+        ],
+        "primary_observables": [
+          "voltage_waveform",
+          "current_waveform",
+          "breakdown_time",
+          "space_charge",
+          "circuit_energy_exchange"
+        ],
+        "match_controls": [
+          "identical 1D geometry",
+          "waveform and external circuit",
+          "species/kinetics and boundary closures",
+          "time-step refinement",
+          "circuit-energy ledger"
+        ],
+        "prohibitions": [
+          "Do not treat PASCHEN-1D as 3D propulsion validation",
+          "Do not infer electron-energy closure where the release has no electron-energy PDE"
+        ]
+      },
+      {
+        "track_id": "NEUTRAL_FLOW_COUPLING",
+        "question": "Can the discharge-coupled neutral flow and momentum exchange reproduce measured velocity and force?",
+        "candidates": [
+          "COMSOL_MULTIPHYSICS",
+          "ANEMONE_3D"
+        ],
+        "primary_observables": [
+          "PIV_LDV_velocity_field",
+          "neutral_mass_flow",
+          "momentum_flux_all_surfaces",
+          "force_balance_thrust",
+          "pressure_traction"
+        ],
+        "match_controls": [
+          "same discharge source term",
+          "same neutral-fluid equations and transport properties",
+          "same inlet/outlet boundaries",
+          "same geometry and PIV plane/volume",
+          "same force/traction boundary"
+        ],
+        "prohibitions": [
+          "Do not infer a complete neutral-flow solver from the ANEMONE declared output list",
+          "Do not call force validated from one outlet-plane velocity alone"
+        ]
+      },
+      {
+        "track_id": "SYSTEM_PERFORMANCE",
+        "question": "Can predictions be reconciled with independent measured thrust, terminal power, wall power and system mass?",
+        "candidates": [
+          "COMSOL_MULTIPHYSICS",
+          "SYMTROPY_RIGID_BODY"
+        ],
+        "primary_observables": [
+          "direct_thrust",
+          "electrode_terminal_real_power",
+          "supply_wall_power",
+          "thrust_to_power",
+          "system_specific_thrust"
+        ],
+        "match_controls": [
+          "synchronous calibrated voltage/current",
+          "force-balance calibration and cable/support blank",
+          "complete control-volume momentum",
+          "included converter/frame/battery mass",
+          "held-out geometry and operating regime"
+        ],
+        "prohibitions": [
+          "SYMTROPY_RIGID_BODY is not a plasma solver",
+          "Do not rank collector-only or electrode-terminal metrics as integrated vehicle metrics"
+        ]
+      }
+    ],
+    "scorecard": [
+      "verification_error_vs_mesh_time_and_tolerance",
+      "validation_error_with_experimental_and_numerical_uncertainty",
+      "charge_mass_momentum_energy_closure",
+      "parameter_and_nuisance_identifiability",
+      "predictive_interval_coverage_and_width",
+      "held_out_geometry_waveform_session_transfer",
+      "runtime_and_peak_memory_at_matched_error",
+      "license_reproducibility_and_artifact_availability"
+    ]
+  }
 }
