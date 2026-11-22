@@ -11,7 +11,7 @@
 //! construction, curvature-weighted window fusion, author-specific stopping
 //! rules or calibration. Those remain separate reproduction tasks.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -21,6 +21,7 @@ pub struct HbrRangeObservation2d {
     /// Stable anchor-channel group index in [0, group_count).
     pub bias_group_index: usize,
     pub anchor_id: u32,
+    pub channel_id: u8,
     pub anchor_position_m: [f64; 2],
     pub measured_range_m: f64,
     pub heteroscedastic_scale_m: f64,
@@ -73,7 +74,10 @@ pub enum HbrBctrError {
     InvalidTimeIndex(u64),
     InvalidBiasGroupIndex(u64),
     InvalidAnchorIdentity(u64),
+    InvalidChannelIdentity(u64),
     InvalidAnchorPosition(u64),
+    InconsistentAnchorSurvey(u32),
+    InconsistentBiasGroupIdentity(usize),
     InvalidRange(u64),
     InvalidQualityParameter(u64),
     CoincidentPositionAndAnchor(u64),
@@ -95,7 +99,10 @@ impl fmt::Display for HbrBctrError {
             Self::InvalidTimeIndex(id) => write!(f, "measurement {id} has a time index outside the trajectory"),
             Self::InvalidBiasGroupIndex(id) => write!(f, "measurement {id} has a bias group index outside the configured group inventory"),
             Self::InvalidAnchorIdentity(id) => write!(f, "measurement {id} has an invalid anchor identity"),
+            Self::InvalidChannelIdentity(id) => write!(f, "measurement {id} has an invalid channel identity"),
             Self::InvalidAnchorPosition(id) => write!(f, "measurement {id} has a non-finite anchor position"),
+            Self::InconsistentAnchorSurvey(id) => write!(f, "anchor {id} has inconsistent surveyed coordinates across observations"),
+            Self::InconsistentBiasGroupIdentity(index) => write!(f, "bias group {index} maps to more than one anchor/channel identity"),
             Self::InvalidRange(id) => write!(f, "measurement {id} has an invalid measured range"),
             Self::InvalidQualityParameter(id) => write!(f, "measurement {id} has invalid frozen HBR quality parameters"),
             Self::CoincidentPositionAndAnchor(id) => write!(f, "measurement {id} position coincides with its anchor; range gradient is undefined"),
@@ -140,6 +147,8 @@ pub fn evaluate_hbr_bctr_window_2d(
     }
 
     let mut measurement_ids = BTreeSet::new();
+    let mut anchor_positions = BTreeMap::<u32, [f64; 2]>::new();
+    let mut bias_group_identities = BTreeMap::<usize, (u32, u8)>::new();
     let mut objective = 0.0_f64;
     let mut position_gradient = vec![[0.0; 2]; time_steps];
     let mut structural_bias_gradient = vec![0.0; expected_bias_count];
@@ -168,10 +177,32 @@ pub fn evaluate_hbr_bctr_window_2d(
                 observation.measurement_id,
             ));
         }
+        if observation.channel_id == 0 {
+            return Err(HbrBctrError::InvalidChannelIdentity(
+                observation.measurement_id,
+            ));
+        }
         if !observation.anchor_position_m.iter().all(|value| value.is_finite()) {
             return Err(HbrBctrError::InvalidAnchorPosition(
                 observation.measurement_id,
             ));
+        }
+        if let Some(previous_position) =
+            anchor_positions.insert(observation.anchor_id, observation.anchor_position_m)
+        {
+            if previous_position != observation.anchor_position_m {
+                return Err(HbrBctrError::InconsistentAnchorSurvey(observation.anchor_id));
+            }
+        }
+        let anchor_channel_identity = (observation.anchor_id, observation.channel_id);
+        if let Some(previous_identity) =
+            bias_group_identities.insert(observation.bias_group_index, anchor_channel_identity)
+        {
+            if previous_identity != anchor_channel_identity {
+                return Err(HbrBctrError::InconsistentBiasGroupIdentity(
+                    observation.bias_group_index,
+                ));
+            }
         }
         if !observation.measured_range_m.is_finite() || observation.measured_range_m < 0.0 {
             return Err(HbrBctrError::InvalidRange(observation.measurement_id));
@@ -451,6 +482,7 @@ mod tests {
             time_index: time,
             bias_group_index: 0,
             anchor_id: 1,
+            channel_id: 5,
             anchor_position_m: [0.0, 0.0],
             measured_range_m: range,
             heteroscedastic_scale_m: 0.1,
@@ -600,6 +632,47 @@ mod tests {
             evaluate_hbr_bctr_window_2d(&current, &[bad_time], config()),
             Err(HbrBctrError::InvalidQualityParameter(3))
         );
+    }
+
+    #[test]
+    fn rejects_inconsistent_anchor_survey_or_bias_group_mapping() {
+        let current = state();
+        let mut second = observation(2, 1, 1.6);
+        second.anchor_position_m = [0.1, 0.0];
+        assert_eq!(
+            evaluate_hbr_bctr_window_2d(
+                &current,
+                &[observation(1, 0, 1.5), second],
+                config()
+            ),
+            Err(HbrBctrError::InconsistentAnchorSurvey(1))
+        );
+
+        let mut different_channel = observation(3, 1, 1.6);
+        different_channel.channel_id = 9;
+        assert_eq!(
+            evaluate_hbr_bctr_window_2d(
+                &current,
+                &[observation(1, 0, 1.5), different_channel],
+                config()
+            ),
+            Err(HbrBctrError::InconsistentBiasGroupIdentity(0))
+        );
+    }
+
+    #[test]
+    fn one_small_projected_step_reduces_the_local_objective() {
+        let current = state();
+        let observations = [
+            observation(1, 0, 1.5),
+            observation(2, 1, 1.6),
+            observation(3, 2, 1.7),
+        ];
+        let cfg = config();
+        let before = evaluate_hbr_bctr_window_2d(&current, &observations, cfg).unwrap();
+        let updated = hbr_bctr_projected_step_2d(&current, &before, cfg).unwrap();
+        let after = evaluate_hbr_bctr_window_2d(&updated, &observations, cfg).unwrap();
+        assert!(after.objective < before.objective);
     }
 
     #[test]
