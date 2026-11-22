@@ -232,6 +232,8 @@ Report by probability band, event geometry, physical regime, and mode:
 - selective coverage, false qualification and abstention rate;
 - sensitivity to covariance, force model, atmosphere, HBR and model discrepancy.
 
+**Probability / dimension sweep:** for analytic and synthetic truth fixtures, freeze strata at nominal event probabilities 1e-3, 1e-5, 1e-7 and 1e-9, and stochastic dimensions 1, 2, 3, 6 and 12. The 12D case represents joint sampling of two full 6D object states; where a validated relative-state Gaussian is formed with cross-covariance handled correctly, a 6D formulation is a distinct, separately identified stratum. Extend to nuisance / physical parameters only as separately declared dimensions, not by silently changing the base problem.
+
 **Aspirational targets — none are claimed as achieved:**
 1. 100% pass on analytic, geometry, frame, unit and time known-answer fixtures within pre-registered tolerances.
 2. Zero false accepts on the finite adversarial corpus for deliberately omitted modes, invalid covariance, off-support proposals, stale model inputs and evaluation leakage.
