@@ -867,7 +867,7 @@ pub fn evaluate_mobility_flexibility(
                 .filter_map(|slot| {
                     resource_dispatch_by_key
                         .get(&(resource.resource_id.clone(), slot))
-                        .map(|item| (*item).clone())
+                        .map(|item| (**item).clone())
                 })
                 .collect();
             let resource_candidate_energy =
@@ -1284,6 +1284,16 @@ mod tests {
         assert_eq!(report.worst_case_residual_energy_budget_wh, 2_000);
         assert_eq!(report.worst_case_energy_margin_wh, 125);
         assert_eq!(report.scenario_results.len(), 2);
+        let worst_case = report
+            .scenario_results
+            .iter()
+            .find(|scenario| scenario.scenario_id == "high-demand-low-renewable")
+            .expect("worst-case reserve scenario");
+        assert_eq!(worst_case.resource_energy_margins[0].resource_id, "ess-01");
+        assert_eq!(worst_case.resource_energy_margins[0].energy_margin_wh, 125);
+        assert_eq!(worst_case.resource_energy_margins[1].resource_id, "ess-02");
+        assert_eq!(worst_case.resource_energy_margins[1].energy_margin_wh, 0);
+        assert_eq!(worst_case.resource_slot_power_margins.len(), 8);
         assert!(report.all_evidence_synthetic);
         assert!(!report.all_evidence_source_grade);
         assert!(!report.dispatch_authority_granted);
