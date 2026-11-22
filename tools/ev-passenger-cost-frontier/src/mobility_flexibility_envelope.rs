@@ -1046,7 +1046,9 @@ mod tests {
                             .expect("each enumerated profile has valid frozen evidence")
                             .candidate_model_feasible;
                         assert_eq!(actual, expected, "profile={profile:?}");
-                        independently_feasible += usize::from(expected);
+                        if expected {
+                            independently_feasible += 1;
+                        }
                         compared += 1;
                     }
                 }
