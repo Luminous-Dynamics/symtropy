@@ -1,25 +1,187 @@
 {
   "version": "0.1",
   "cases": [
-    { "case_id": "DFF-001", "class": "positive", "mutation": "none", "expected": "all_declared_layers_have_current_quiescence_evidence", "native_sink_calls": 0 },
-    { "case_id": "DFF-002", "class": "positive", "mutation": "cancelled_and_drained_with_zero_outstanding", "expected": "all_declared_layers_have_current_quiescence_evidence", "native_sink_calls": 0 },
-    { "case_id": "DFF-003", "class": "negative", "mutation": "missing_layer_receipt", "expected": "hold", "native_sink_calls": 0 },
-    { "case_id": "DFF-004", "class": "negative", "mutation": "duplicate_layer_receipt", "expected": "hold", "native_sink_calls": 0 },
-    { "case_id": "DFF-005", "class": "negative", "mutation": "unexpected_hidden_queue_receipt", "expected": "hold", "native_sink_calls": 0 },
-    { "case_id": "DFF-006", "class": "negative", "mutation": "duplicate_inventory_layer", "expected": "hold", "native_sink_calls": 0 },
-    { "case_id": "DFF-007", "class": "negative", "mutation": "non_contiguous_path_order", "expected": "hold", "native_sink_calls": 0 },
-    { "case_id": "DFF-008", "class": "negative", "mutation": "controller_epoch_not_advanced", "expected": "hold", "native_sink_calls": 0 },
-    { "case_id": "DFF-009", "class": "negative", "mutation": "stale_boot_receipt", "expected": "hold", "native_sink_calls": 0 },
-    { "case_id": "DFF-010", "class": "negative", "mutation": "wrong_logical_effect_or_attempt", "expected": "hold", "native_sink_calls": 0 },
-    { "case_id": "DFF-011", "class": "negative", "mutation": "wrong_layer_or_stack_configuration_commitment", "expected": "hold", "native_sink_calls": 0 },
-    { "case_id": "DFF-012", "class": "negative", "mutation": "inventory_commitment_mismatch", "expected": "hold", "native_sink_calls": 0 },
-    { "case_id": "DFF-013", "class": "negative", "mutation": "sequence_generation_reset", "expected": "hold", "native_sink_calls": 0 },
-    { "case_id": "DFF-014", "class": "negative", "mutation": "not_quiescent_unknown_disputed_or_unsupported", "expected": "hold", "native_sink_calls": 0 },
-    { "case_id": "DFF-015", "class": "negative", "mutation": "outstanding_commands_nonzero", "expected": "hold", "native_sink_calls": 0 },
-    { "case_id": "DFF-016", "class": "negative", "mutation": "accepted_retired_sequence_mismatch", "expected": "hold", "native_sink_calls": 0 },
-    { "case_id": "DFF-017", "class": "negative", "mutation": "issuer_or_verifier_domain_mismatch", "expected": "hold", "native_sink_calls": 0 },
-    { "case_id": "DFF-018", "class": "negative", "mutation": "missing_raw_evidence_commitment", "expected": "hold", "native_sink_calls": 0 },
-    { "case_id": "DFF-019", "class": "negative", "mutation": "empty_or_incomplete_inventory", "expected": "hold", "native_sink_calls": 0 },
-    { "case_id": "DFF-020", "class": "negative", "mutation": "more_than_64_declared_layers", "expected": "hold", "native_sink_calls": 0 }
+    {
+      "case_id": "DFF-001",
+      "class": "positive",
+      "mutation": "none",
+      "expected": "all_declared_layers_have_current_quiescence_evidence",
+      "native_sink_calls": 0
+    },
+    {
+      "case_id": "DFF-002",
+      "class": "positive",
+      "mutation": "cancelled_and_drained_with_zero_outstanding",
+      "expected": "all_declared_layers_have_current_quiescence_evidence",
+      "native_sink_calls": 0
+    },
+    {
+      "case_id": "DFF-003",
+      "class": "negative",
+      "mutation": "missing_layer_receipt",
+      "expected": "hold",
+      "native_sink_calls": 0
+    },
+    {
+      "case_id": "DFF-004",
+      "class": "negative",
+      "mutation": "duplicate_layer_receipt",
+      "expected": "hold",
+      "native_sink_calls": 0
+    },
+    {
+      "case_id": "DFF-005",
+      "class": "negative",
+      "mutation": "unexpected_hidden_queue_receipt",
+      "expected": "hold",
+      "native_sink_calls": 0
+    },
+    {
+      "case_id": "DFF-006",
+      "class": "negative",
+      "mutation": "duplicate_inventory_layer",
+      "expected": "hold",
+      "native_sink_calls": 0
+    },
+    {
+      "case_id": "DFF-007",
+      "class": "negative",
+      "mutation": "non_contiguous_path_order",
+      "expected": "hold",
+      "native_sink_calls": 0
+    },
+    {
+      "case_id": "DFF-008",
+      "class": "negative",
+      "mutation": "controller_epoch_not_advanced",
+      "expected": "hold",
+      "native_sink_calls": 0
+    },
+    {
+      "case_id": "DFF-009",
+      "class": "negative",
+      "mutation": "stale_boot_receipt",
+      "expected": "hold",
+      "native_sink_calls": 0
+    },
+    {
+      "case_id": "DFF-010",
+      "class": "negative",
+      "mutation": "wrong_logical_effect_or_attempt",
+      "expected": "hold",
+      "native_sink_calls": 0
+    },
+    {
+      "case_id": "DFF-011",
+      "class": "negative",
+      "mutation": "wrong_layer_or_stack_configuration_commitment",
+      "expected": "hold",
+      "native_sink_calls": 0
+    },
+    {
+      "case_id": "DFF-012",
+      "class": "negative",
+      "mutation": "inventory_commitment_mismatch",
+      "expected": "hold",
+      "native_sink_calls": 0
+    },
+    {
+      "case_id": "DFF-013",
+      "class": "negative",
+      "mutation": "sequence_generation_reset",
+      "expected": "hold",
+      "native_sink_calls": 0
+    },
+    {
+      "case_id": "DFF-014",
+      "class": "negative",
+      "mutation": "not_quiescent_unknown_disputed_or_unsupported",
+      "expected": "hold",
+      "native_sink_calls": 0
+    },
+    {
+      "case_id": "DFF-015",
+      "class": "negative",
+      "mutation": "outstanding_commands_nonzero",
+      "expected": "hold",
+      "native_sink_calls": 0
+    },
+    {
+      "case_id": "DFF-016",
+      "class": "negative",
+      "mutation": "accepted_retired_sequence_mismatch",
+      "expected": "hold",
+      "native_sink_calls": 0
+    },
+    {
+      "case_id": "DFF-017",
+      "class": "negative",
+      "mutation": "issuer_or_verifier_domain_mismatch",
+      "expected": "hold",
+      "native_sink_calls": 0
+    },
+    {
+      "case_id": "DFF-018",
+      "class": "negative",
+      "mutation": "missing_raw_evidence_commitment",
+      "expected": "hold",
+      "native_sink_calls": 0
+    },
+    {
+      "case_id": "DFF-019",
+      "class": "negative",
+      "mutation": "empty_or_incomplete_inventory",
+      "expected": "hold",
+      "native_sink_calls": 0
+    },
+    {
+      "case_id": "DFF-020",
+      "class": "negative",
+      "mutation": "more_than_64_declared_layers",
+      "expected": "hold",
+      "native_sink_calls": 0
+    },
+    {
+      "case_id": "DFF-021",
+      "class": "positive",
+      "mutation": "fanout_and_multiple_terminal_actuators",
+      "expected": "all_declared_layers_have_current_quiescence_evidence",
+      "native_sink_calls": 0
+    },
+    {
+      "case_id": "DFF-022",
+      "class": "negative",
+      "mutation": "unreachable_command_holding_node",
+      "expected": "hold",
+      "native_sink_calls": 0
+    },
+    {
+      "case_id": "DFF-023",
+      "class": "negative",
+      "mutation": "forwarding_graph_cycle",
+      "expected": "hold",
+      "native_sink_calls": 0
+    },
+    {
+      "case_id": "DFF-024",
+      "class": "negative",
+      "mutation": "terminal_set_mismatch",
+      "expected": "hold",
+      "native_sink_calls": 0
+    },
+    {
+      "case_id": "DFF-025",
+      "class": "negative",
+      "mutation": "duplicate_forwarding_edge_identity",
+      "expected": "hold",
+      "native_sink_calls": 0
+    },
+    {
+      "case_id": "DFF-026",
+      "class": "negative",
+      "mutation": "unknown_forwarding_endpoint",
+      "expected": "hold",
+      "native_sink_calls": 0
+    }
   ]
 }
