@@ -297,7 +297,8 @@
                   "set_blank_false_call",
                   "set_flaw_size_mm",
                   "set_flaw_specimen_id",
-                  "truncate_blank_trials"
+                  "truncate_blank_trials",
+                  "set_scope_sha256"
                 ]
               },
               "inspector_id": {
