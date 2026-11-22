@@ -813,9 +813,24 @@ pub fn evaluate_mobility_flexibility(
 
         let mut residual_energy = 0_u64;
         let mut residual_power_by_slot = vec![0_u32; usize::from(input.horizon_slots)];
+        let mut resource_energy_margins = Vec::new();
+        let mut resource_slot_power_margins = Vec::new();
+        let mut energy_feasible = reserve_feasible;
+        let mut power_feasible = reserve_feasible;
+        let candidate_energy = candidate_energy_wh(
+            &sorted_resource_dispatch,
+            input.slot_duration_seconds,
+        );
+        let Some(candidate_energy) = candidate_energy else {
+            add_error(&mut errors, "candidate_energy_arithmetic_overflow");
+            return Err(errors);
+        };
+
         for resource in &input.storage_resources {
             let Some(reserve) = reserves_by_resource.get(resource.resource_id.as_str()) else {
                 reserve_feasible = false;
+                energy_feasible = false;
+                power_feasible = false;
                 findings.push(format!("resource_reserve_missing:{}", resource.resource_id));
                 continue;
             };
@@ -826,68 +841,126 @@ pub fn evaluate_mobility_flexibility(
                     format!("reserve_energy_overflow:{}", resource.resource_id),
                 );
                 reserve_feasible = false;
+                energy_feasible = false;
                 continue;
             };
-            if reserved_energy > resource.available_energy_lower_bound_wh {
+            let resource_residual_energy = if reserved_energy > resource.available_energy_lower_bound_wh {
                 reserve_feasible = false;
+                energy_feasible = false;
                 findings.push(format!(
                     "energy_reserve_exceeds_available:{}",
                     resource.resource_id
                 ));
+                0
             } else {
-                residual_energy = match residual_energy
-                    .checked_add(resource.available_energy_lower_bound_wh - reserved_energy)
-                {
-                    Some(value) => value,
-                    None => {
-                        add_error(&mut errors, "residual_energy_overflow");
-                        residual_energy
-                    }
-                };
+                resource.available_energy_lower_bound_wh - reserved_energy
+            };
+            residual_energy = match residual_energy.checked_add(resource_residual_energy) {
+                Some(value) => value,
+                None => {
+                    add_error(&mut errors, "residual_energy_overflow");
+                    residual_energy
+                }
+            };
+
+            let resource_profile: Vec<_> = (0..input.horizon_slots)
+                .filter_map(|slot| {
+                    resource_dispatch_by_key
+                        .get(&(resource.resource_id.clone(), slot))
+                        .map(|item| (*item).clone())
+                })
+                .collect();
+            let resource_candidate_energy =
+                candidate_energy_wh(&resource_profile, input.slot_duration_seconds);
+            let Some(resource_candidate_energy) = resource_candidate_energy else {
+                add_error(
+                    &mut errors,
+                    format!("resource_candidate_energy_overflow:{}", resource.resource_id),
+                );
+                energy_feasible = false;
+                continue;
+            };
+            if resource_candidate_energy > resource_residual_energy {
+                energy_feasible = false;
+                findings.push(format!(
+                    "candidate_exceeds_resource_residual_energy:{}",
+                    resource.resource_id
+                ));
             }
+            resource_energy_margins.push(ResourceEnergyMargin {
+                resource_id: resource.resource_id.clone(),
+                residual_energy_budget_wh: resource_residual_energy,
+                candidate_energy_wh: resource_candidate_energy,
+                energy_margin_wh: signed_margin(
+                    resource_residual_energy,
+                    resource_candidate_energy,
+                ),
+            });
 
             for slot in 0..usize::from(input.horizon_slots) {
+                let slot_id = slot as u8;
+                let requested_power = resource_dispatch_by_key
+                    .get(&(resource.resource_id.clone(), slot_id))
+                    .map_or(0, |item| item.requested_discharge_power_w);
                 let Some(reserved_power) = reserve_power_w(reserve, slot) else {
                     add_error(
                         &mut errors,
                         format!("reserve_power_overflow:{}:{slot}", resource.resource_id),
                     );
                     reserve_feasible = false;
+                    power_feasible = false;
                     continue;
                 };
-                if reserved_power > resource.max_discharge_power_lower_bound_w {
+                let residual_power = if reserved_power > resource.max_discharge_power_lower_bound_w {
                     reserve_feasible = false;
+                    power_feasible = false;
                     findings.push(format!(
                         "power_reserve_exceeds_available:{}:{slot}",
                         resource.resource_id
                     ));
-                    continue;
-                }
-                let residual = resource.max_discharge_power_lower_bound_w - reserved_power;
+                    0
+                } else {
+                    resource.max_discharge_power_lower_bound_w - reserved_power
+                };
                 residual_power_by_slot[slot] =
-                    match residual_power_by_slot[slot].checked_add(residual) {
+                    match residual_power_by_slot[slot].checked_add(residual_power) {
                         Some(value) => value,
                         None => {
                             add_error(&mut errors, "residual_power_overflow");
                             residual_power_by_slot[slot]
                         }
                     };
+                if requested_power > residual_power {
+                    power_feasible = false;
+                    findings.push(format!(
+                        "candidate_exceeds_resource_residual_power:{}:{slot_id}",
+                        resource.resource_id
+                    ));
+                }
+                resource_slot_power_margins.push(ResourceSlotPowerMargin {
+                    resource_id: resource.resource_id.clone(),
+                    slot: slot_id,
+                    residual_power_ceiling_w: residual_power,
+                    requested_discharge_power_w: requested_power,
+                    power_margin_w: signed_margin(
+                        u64::from(residual_power),
+                        u64::from(requested_power),
+                    ),
+                });
             }
         }
 
-        let mut energy_feasible = reserve_feasible;
-        let candidate_energy = candidate_energy_wh(&sorted_profile, input.slot_duration_seconds);
-        let Some(candidate_energy) = candidate_energy else {
-            add_error(&mut errors, "candidate_energy_arithmetic_overflow");
-            return Err(errors);
-        };
+        resource_energy_margins.sort_by(|a: &ResourceEnergyMargin, b| a.resource_id.cmp(&b.resource_id));
+        resource_slot_power_margins.sort_by(|a: &ResourceSlotPowerMargin, b| {
+            (&a.resource_id, a.slot).cmp(&(&b.resource_id, b.slot))
+        });
+
         if candidate_energy > residual_energy {
             energy_feasible = false;
             findings.push("candidate_exceeds_horizon_residual_energy".to_owned());
         }
 
-        let mut power_feasible = reserve_feasible;
-        let mut pcc_feasible = true;
+                let mut pcc_feasible = true;
         for slot in 0..usize::from(input.horizon_slots) {
             let slot_id = slot as u8;
             let Some(candidate) = profile_by_slot.get(&slot_id) else {
