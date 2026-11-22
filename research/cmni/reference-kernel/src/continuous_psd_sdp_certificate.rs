@@ -18,11 +18,11 @@
 
 use crate::continuous_dependence_envelope::{
     validate_pairwise_interval_set, validate_witness_within_intervals,
-    PairwiseCorrelationIntervalSet, CorrelationCoefficientBounds,
+    PairwiseCorrelationIntervalSet,
 };
 use crate::multisource_dependence_design::{
-    canonicalize_and_validate_correlation_matrix, minimum_symmetric_eigenvalue,
-    validate_candidate, MultiSourceDependenceDesignCandidate,
+    canonicalize_and_validate_correlation_matrix, minimum_symmetric_eigenvalue, validate_candidate,
+    MultiSourceDependenceDesignCandidate,
 };
 use crate::ModelError;
 
@@ -41,6 +41,9 @@ pub struct CorrelationBoundDualMultipliers {
 #[derive(Debug, Clone, PartialEq)]
 pub struct ContinuousDependenceSdpCertificate {
     pub certificate_id: String,
+    /// External receipt reference that qualifies the source definitions and bounds.
+    /// This string is not authenticated by this numerical verifier.
+    pub dependence_scope_receipt_id: String,
     /// Feasible source correlation matrix R.
     pub primal_correlation_matrix: Vec<Vec<f64>>,
     /// Epigraph variable t for the block LMI.
@@ -72,6 +75,7 @@ pub enum SdpCertificateVerificationStatus {
 #[derive(Debug, Clone, PartialEq)]
 pub struct ContinuousDependenceSdpVerification {
     pub certificate_id: String,
+    pub dependence_scope_receipt_id: String,
     pub primal_information_upper_bound: f64,
     pub raw_dual_information_lower_bound: f64,
     /// max(0, raw dual bound), using non-negativity of Fisher information.
@@ -118,6 +122,11 @@ pub fn verify_continuous_dependence_sdp_certificate(
             "sdp_certificate_id_must_be_nonempty",
         ));
     }
+    if certificate.dependence_scope_receipt_id.trim().is_empty() {
+        return Err(ModelError::InvalidParameter(
+            "sdp_dependence_scope_receipt_must_be_nonempty",
+        ));
+    }
     if !policy.feasibility_tolerance.is_finite() {
         return Err(ModelError::NonFiniteValue("sdp_feasibility_tolerance"));
     }
@@ -128,6 +137,11 @@ pub fn verify_continuous_dependence_sdp_certificate(
     }
     if !certificate.primal_epigraph_t.is_finite() {
         return Err(ModelError::NonFiniteValue("sdp_primal_epigraph_t"));
+    }
+    if certificate.primal_epigraph_t < 0.0 {
+        return Err(ModelError::InvalidParameter(
+            "sdp_primal_epigraph_t_must_be_nonnegative",
+        ));
     }
 
     let observation_count = candidate.observation_sensitivities.len();
@@ -335,8 +349,8 @@ pub fn verify_continuous_dependence_sdp_certificate(
         ));
     }
 
-    let information_lower = dual_objective.max(0.0);
-    let information_upper = primal_objective.max(information_lower);
+    let information_lower = dual_objective.min(primal_objective).max(0.0);
+    let information_upper = primal_objective;
     let prior_variance = candidate.prior_parameter_variance;
     let eig_bounds = [
         0.5 * (1.0 + prior_variance * information_lower).ln(),
@@ -348,6 +362,7 @@ pub fn verify_continuous_dependence_sdp_certificate(
 
     Ok(ContinuousDependenceSdpVerification {
         certificate_id: certificate.certificate_id.clone(),
+        dependence_scope_receipt_id: certificate.dependence_scope_receipt_id.clone(),
         primal_information_upper_bound: primal_objective,
         raw_dual_information_lower_bound: dual_objective,
         nonnegative_dual_information_lower_bound: information_lower,
@@ -532,6 +547,7 @@ mod tests {
     fn exact_certificate() -> ContinuousDependenceSdpCertificate {
         ContinuousDependenceSdpCertificate {
             certificate_id: "analytic-rho-plus-half".to_owned(),
+            dependence_scope_receipt_id: RECEIPT.to_owned(),
             primal_correlation_matrix: vec![vec![1.0, 0.5], vec![0.5, 1.0]],
             primal_epigraph_t: 0.25,
             observation_lmi_dual: vec![vec![0.0625, -0.25], vec![-0.25, 1.0]],
