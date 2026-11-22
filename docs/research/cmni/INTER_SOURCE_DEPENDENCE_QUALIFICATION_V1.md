@@ -162,7 +162,7 @@ Consequently, the derivative numerator is quadratic:
 (n_1d_0-n_0d_1)-2n_0d_2\rho-n_1d_2\rho^2.
 \]
 
-The algorithm solves that quadratic, retains every real stationary point inside the admissible correlation interval, and evaluates those points plus both interval endpoints. This provides the global information extrema over the entire declared interval, not merely a grid approximation. It then maps the information bounds to posterior-variance and exact linear-Gaussian EIG bounds:
+The algorithm solves that quadratic, retains every real stationary point inside the admissible correlation interval, and evaluates those points plus both interval endpoints. This provides the global information extrema over the entire declared interval, not merely a grid approximation. The current Rust implementation uses ordinary f64 arithmetic rather than directed rounding or formal interval arithmetic, so its outputs are analytical-reference bounds, not machine-certified interval enclosures. It then maps the information bounds to posterior-variance and exact linear-Gaussian EIG bounds:
 
 \[
 P_1(\rho)=\left(P_0^{-1}+I(\rho)\right)^{-1},
@@ -204,4 +204,7 @@ The Rust tests check the interior extremum, a fixed-correlation interval (which 
 
 This is an exact mathematical enclosure conditional on the input correlation interval. It does not prove that the true detector/calibration correlation lies inside that interval, and it does not turn a placeholder interval into an independence attestation. The bound itself can support a qualified decision only if its correlation bounds, marginal source variances, Jacobians, and model scope have independently reviewable evidence receipts.
 
+
+
+This calculation also does not authenticate its input dependence interval. The caller must retain an evidence receipt for the correlation bounds, marginal source variances and source Jacobians. Until that receipt is independently checked, the result remains exploratory/unqualified and must not be promoted to a qualified decision interval.
 Scope is intentionally limited to two observations, two shared scalar sources, and one scalar parameter. The next generalization should be a low-dimensional block-correlation uncertainty set with positive-semidefinite constraints and certified outer bounds, before attempting a general high-dimensional covariance-uncertainty solver.
