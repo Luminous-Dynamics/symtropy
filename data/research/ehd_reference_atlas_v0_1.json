@@ -1311,6 +1311,252 @@
         "distinct_from_2026_dehs_incense_cohort": true,
         "notes": "Use as an earlier methodological comparator for particle-following and electrical-interaction qualification; do not transfer exact suitability rankings to other EHD geometries, gases, pressures or field strengths without matched tests."
       }
+    },
+    {
+      "source_id": "NOELLE_2025_LOW_DENSITY_IWT_PIV_TRACERS",
+      "title": "Particle Image Velocimetry for Ion Wind Thruster Measurement in Low Density Atmosphere",
+      "citation": "Noelle, Schubert, Hildebrand and Pfifer, AIAA SciTech Forum 2025, published 2025-01-06, paper 2025-0473",
+      "doi": "10.2514/6.2025-0473",
+      "publication_date": "2025-01-06",
+      "publication_status": "peer_reviewed_aiaa_conference_paper",
+      "cohort": "low_density_air_ion_wind_thruster_piv_tracer_and_collector_optics",
+      "apparatus": {
+        "facility": "vacuum wind tunnel, low-density air",
+        "pressure_range_atm": [
+          1,
+          0.3
+        ],
+        "lowest_tested_pressure_atm": 0.3,
+        "inlet_velocity_m_s": [
+          2.5,
+          5
+        ],
+        "thruster": {
+          "emitter": "two gold-covered tungsten wires",
+          "wire_diameter_um": 120,
+          "vertical_wire_separation_mm": 6,
+          "horizontal_emitter_to_collector_distance_mm": 40,
+          "collector_profile": "NACA0010",
+          "collector_chord_mm": 25,
+          "active_electrical_span_mm": 100
+        },
+        "corona_test_voltage_kv": 8,
+        "corona_polarity": "positive DC output to emitter"
+      },
+      "diagnostic_protocol": {
+        "piv": {
+          "laser_wavelength_nm": 532,
+          "maximum_output_energy_mj": 800,
+          "pulse_duration_ns": [
+            4,
+            10
+          ],
+          "tested_pulse_separation_us": [
+            13,
+            27,
+            54,
+            108,
+            216,
+            432
+          ],
+          "selected_pulse_separation_us": 108,
+          "tested_interrogation_windows_px": [
+            16,
+            32,
+            64,
+            128
+          ],
+          "number_of_images_per_condition": 3,
+          "selection_policy": "best image selected for analysis, not a replicated statistical estimate"
+        },
+        "tracer_screening_conditions": {
+          "wind_velocity_m_s": 5,
+          "pulse_separation_us": 108,
+          "ambient_pressure_range_atm": [
+            1,
+            0.3
+          ],
+          "method": "report the source's achievable interrogation-area size by pressure and tracer; parentheses denote edge-case data where quantitative extraction was possible but not the full flow field"
+        },
+        "low_density_tracer_screening_table": [
+          {
+            "pressure_atm": 1,
+            "dehs": "(64)-128",
+            "fog_machine": "32",
+            "incense_sticks": "(32)-64",
+            "incense_cones": "(32)-64",
+            "sio2": "(32)-64"
+          },
+          {
+            "pressure_atm": 0.9,
+            "dehs": "128",
+            "fog_machine": "32",
+            "incense_sticks": "(32)-64",
+            "incense_cones": "(32)-64",
+            "sio2": "64"
+          },
+          {
+            "pressure_atm": 0.8,
+            "dehs": "128",
+            "fog_machine": "(64)-128",
+            "incense_sticks": "(32)-64",
+            "incense_cones": "64",
+            "sio2": "64"
+          },
+          {
+            "pressure_atm": 0.7,
+            "dehs": "128",
+            "fog_machine": "(128)",
+            "incense_sticks": "64",
+            "incense_cones": "64",
+            "sio2": "64"
+          },
+          {
+            "pressure_atm": 0.6,
+            "dehs": "(128)",
+            "fog_machine": "-",
+            "incense_sticks": "(64)-128",
+            "incense_cones": "64",
+            "sio2": "64"
+          },
+          {
+            "pressure_atm": 0.5,
+            "dehs": "(128)",
+            "fog_machine": "-",
+            "incense_sticks": "(64)-128",
+            "incense_cones": "(64)-128",
+            "sio2": "64"
+          },
+          {
+            "pressure_atm": 0.45,
+            "dehs": "-",
+            "fog_machine": "-",
+            "incense_sticks": "(64)-128",
+            "incense_cones": "128",
+            "sio2": "no data"
+          },
+          {
+            "pressure_atm": 0.4,
+            "dehs": "-",
+            "fog_machine": "-",
+            "incense_sticks": "(64)-128",
+            "incense_cones": "(128)",
+            "sio2": "(64)-128"
+          },
+          {
+            "pressure_atm": 0.35,
+            "dehs": "-",
+            "fog_machine": "-",
+            "incense_sticks": "(64)-128",
+            "incense_cones": "(128)",
+            "sio2": "128"
+          },
+          {
+            "pressure_atm": 0.3,
+            "dehs": "-",
+            "fog_machine": "-",
+            "incense_sticks": "(64)-128",
+            "incense_cones": "(128)",
+            "sio2": "128"
+          }
+        ],
+        "tested_tracers": [
+          {
+            "name": "DEHS",
+            "type": "atomized liquid droplets",
+            "diameter_um_range": [
+              0.08,
+              4
+            ],
+            "typical_diameter_um": [
+              0.2,
+              0.3
+            ],
+            "low_pressure_limitation": "insufficient tracer particle density at lower pressure in this facility; tested seeding remained possible to 0.3 atm but often only at coarse/edge-case interrogation windows"
+          },
+          {
+            "name": "Vaporized fog",
+            "type": "condensation-generated droplets",
+            "fluid": "Smoke Fluid E(xtreme)",
+            "low_pressure_limitation": "fog dissipates during evacuation; smoke emission/particle density becomes inadequate near 0.5 atm"
+          },
+          {
+            "name": "Incense sticks",
+            "type": "combustion smoke",
+            "low_pressure_limitation": "continued burning under evacuation but smoke emission stopped near 0.5 atm; stick and cone behaviour differed"
+          },
+          {
+            "name": "Incense cones",
+            "type": "combustion smoke",
+            "low_pressure_limitation": "cone/stick emission and interrogation-window performance differ; lower-pressure image quality degrades"
+          },
+          {
+            "name": "SiO2",
+            "type": "atomized solid particles",
+            "diameter_um": 1,
+            "density_g_cm3": 2.65,
+            "comparison_tio2_density_g_cm3": 4.23,
+            "reason_for_selection": "lower density and lower polarizability/field interaction than TiO2 in the paper's rationale"
+          }
+        ],
+        "corona_interaction_test": {
+          "voltage_kv": 8,
+          "inlet_velocity_m_s": [
+            2.5,
+            5
+          ],
+          "comparison": "flow fields near emitter with high voltage off versus 8 kV on",
+          "result": "near-identical large-scale maps, with a small downstream velocity increase and an emitter wake feature under some low-inlet/zero-inlet conditions",
+          "caveat": "8 kV was deliberately selected to minimize ion-wind interference with the imposed free stream; it is not a maximum-thrust operating condition"
+        },
+        "collector_surface_test": {
+          "tested_surfaces": [
+            "shiny aluminum tape",
+            "aluminum tape with black paint",
+            "black aluminum tape"
+          ],
+          "reported_best": "black aluminum tape, matte finish and minimal diffuse scattering while retaining aluminum electrical function",
+          "reported_worst": "shiny aluminum tape caused diffuse scattering/overexposure near boundary layer",
+          "caution": "black paint on aluminum increased scattering; electrical effect was only checked at 8 kV and requires further validation at higher excitation"
+        },
+        "unresolved_optical_regions": [
+          "collector shadow obstructed part of the illumination plane",
+          "emitter-holder shadow on upstream side",
+          "32x32 interrogation area still insufficient to resolve the boundary layer",
+          "surface reflections complicated near-wall velocity measurement"
+        ]
+      },
+      "reported_results": {
+        "pressure_range_atm": [
+          1,
+          0.3
+        ],
+        "selected_low_pressure_tracers": [
+          "incense sticks",
+          "atomized SiO2"
+        ],
+        "dehs_density_survival_note": "DEHS particle seeding persisted better during evacuation than vaporized fog in the facility, but particle density was often insufficient for fine interrogation areas",
+        "fog_limit_atm_approx": 0.5,
+        "incense_smoke_limit_atm_approx": 0.5,
+        "sio2_density_g_cm3": 2.65,
+        "tio2_density_g_cm3": 4.23,
+        "corona_on_off_flow_map": "large-scale maps nearly identical near emitter for 8 kV and 2.5/5 m/s inlet; a local emitter wake feature was observed in particular conditions",
+        "best_collector_surface": "black aluminum tape",
+        "quantitative_thrust_result": null
+      },
+      "comparability": {
+        "distinct_from_atmospheric_ambient_air": true,
+        "distinct_from_mars_co2_dbd": true,
+        "distinct_from_true_space_vacuum": true,
+        "direct_thrust_leaderboard_eligible": false,
+        "notes": "This is a low-density air PIV method qualification cohort, not a full propulsion-performance validation. The tested pressure range is 1.0 to 0.3 atm; do not reinterpret as high-altitude flight or Martian CO2 validation. The tracer table reports image-resolution feasibility, not observer passivity in every discharge regime."
+      },
+      "provenance": {
+        "source_url": "https://fis.tu-dresden.de/portal/files/61106621/SciTech2025_PIV_Tracer_Study_IWT_submitted_250dpi.pdf",
+        "institutional_record": "https://fis.tu-dresden.de/portal/en/publications/particle-image-velocimetry-for-ion-wind-thruster-measurement-in-low-density-atmosphere(1f6fb9f4-59a5-466a-9b5e-24091faba50e).html",
+        "evidence_class": "peer_reviewed_aiaa_conference_paper_transcribed_no_raw_piv_vectors_imported",
+        "raw_data_availability": "not established by the accessible paper record; no raw image pairs or vector fields imported"
+      }
     }
   ],
   "solver_profiles": [
