@@ -68,6 +68,12 @@ pub struct ArchitectureCapacityResult {
     pub completed_mission_hours: f64,
     pub completed_cycles_per_hour: f64,
     pub completed_cycles_per_aircraft_hour: f64,
+    pub aircraft_cycle_capacity_upper_bound_per_hour: f64,
+    pub charge_replenishment_capacity_upper_bound_per_hour: f64,
+    pub steady_state_cycle_capacity_upper_bound_per_hour: f64,
+    pub initial_battery_pack_count: u8,
+    pub initial_inventory_capacity_allowance_per_hour: f64,
+    pub finite_horizon_excess_over_steady_state_upper_bound_per_hour: f64,
     pub charge_starts: u64,
     pub charge_completions: u64,
     pub charge_queue_peak: usize,
@@ -382,6 +388,20 @@ pub fn evaluate_architecture_capacity(
     let completed_cycles_per_hour = completed_sorties as f64 / horizon_hours;
     let completed_cycles_per_aircraft_hour =
         completed_sorties as f64 * 3_600.0 / total_aircraft_seconds as f64;
+    let aircraft_cycle_capacity_upper_bound_per_hour = u64::from(scenario.aircraft_count)
+        as f64
+        * 3_600.0
+        / (f64::from(scenario.mission_duration_seconds)
+            + f64::from(scenario.operational_turnaround_seconds));
+    let charge_replenishment_capacity_upper_bound_per_hour =
+        f64::from(channels) * 3_600.0 / f64::from(scenario.charge_duration_seconds);
+    let steady_state_cycle_capacity_upper_bound_per_hour =
+        aircraft_cycle_capacity_upper_bound_per_hour
+            .min(charge_replenishment_capacity_upper_bound_per_hour);
+    let initial_inventory_capacity_allowance_per_hour =
+        f64::from(scenario.battery_pack_count) / horizon_hours;
+    let finite_horizon_excess_over_steady_state_upper_bound_per_hour =
+        (completed_cycles_per_hour - steady_state_cycle_capacity_upper_bound_per_hour).max(0.0);
     let aircraft_wait_share_percent =
         aircraft_wait_seconds as f64 * 100.0 / total_aircraft_seconds as f64;
     let site_fixed_load_energy_wh = scenario.site_fixed_load_w as f64 * horizon_hours;
@@ -404,6 +424,12 @@ pub fn evaluate_architecture_capacity(
         completed_mission_hours,
         completed_cycles_per_hour,
         completed_cycles_per_aircraft_hour,
+        aircraft_cycle_capacity_upper_bound_per_hour,
+        charge_replenishment_capacity_upper_bound_per_hour,
+        steady_state_cycle_capacity_upper_bound_per_hour,
+        initial_battery_pack_count: scenario.battery_pack_count,
+        initial_inventory_capacity_allowance_per_hour,
+        finite_horizon_excess_over_steady_state_upper_bound_per_hour,
         charge_starts,
         charge_completions,
         charge_queue_peak,
@@ -786,6 +812,31 @@ mod tests {
                     / 3_600.0
             );
             assert!(result.effective_charging_channels <= scenario.parallel_charging_channels);
+        }
+    }
+
+    #[test]
+    fn finite_horizon_rate_is_bounded_by_steady_state_plus_initial_inventory() {
+        let input = fixture();
+        for scenario in &input.architectures {
+            let result = evaluate_architecture_capacity(scenario, input.horizon_seconds)
+                .expect("scenario");
+            assert!(
+                result.completed_cycles_per_hour
+                    <= result.steady_state_cycle_capacity_upper_bound_per_hour
+                        + result.initial_inventory_capacity_allowance_per_hour
+                        + 1e-9,
+                "finite-horizon stock drawdown bound failed for {}",
+                scenario.architecture_id
+            );
+            assert!(
+                (result.finite_horizon_excess_over_steady_state_upper_bound_per_hour
+                    - (result.completed_cycles_per_hour
+                        - result.steady_state_cycle_capacity_upper_bound_per_hour)
+                        .max(0.0))
+                    .abs()
+                    < 1e-9
+            );
         }
     }
 
