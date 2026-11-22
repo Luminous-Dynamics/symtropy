@@ -547,8 +547,7 @@ mod tests {
         .unwrap();
         let body_second_moment = *inertia.second_moment();
         body.set_rotational_inertia_operator(inertia);
-        body.transform.rotation =
-            Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 1), 0.61);
+        body.transform.rotation = Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 1), 0.61);
 
         let offset = SVector::<f64, 3>::new(0.4, -0.7, 0.9);
         let impulse = SVector::<f64, 3>::new(-0.3, 0.8, 0.5);
@@ -559,11 +558,9 @@ mod tests {
         // Independent conventional 3D spatial-inertia oracle:
         // I = tr(S) Identity - S, transformed into world coordinates.
         let rotation = body.transform.rotation.to_matrix();
-        let second_moment_world =
-            rotation * body_second_moment * rotation.transpose();
+        let second_moment_world = rotation * body_second_moment * rotation.transpose();
         let physical_inertia_world =
-            SMatrix::<f64, 3, 3>::identity() * second_moment_world.trace()
-                - second_moment_world;
+            SMatrix::<f64, 3, 3>::identity() * second_moment_world.trace() - second_moment_world;
         let physical_torque = offset.cross(&impulse);
         let expected_angular_velocity = physical_inertia_world
             .lu()
