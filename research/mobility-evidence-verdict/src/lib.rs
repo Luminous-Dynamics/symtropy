@@ -443,24 +443,25 @@ mod tests {
 
     #[test]
     fn invalid_profiles_never_confirm() {
-        let mut profile = profile();
-        profile.required_independent_domains.clear();
+        let mut empty_profile = profile();
+        empty_profile.required_independent_domains.clear();
         assert_eq!(
-            assess_evidence_claim(&profile, &[]),
+            assess_evidence_claim(&empty_profile, &[]),
             EvidenceVerdict::InsufficientEvidence
         );
 
-        let mut profile = profile();
-        profile.required_independent_domains[1] = profile.required_independent_domains[0].clone();
+        let mut duplicate_domain_profile = profile();
+        duplicate_domain_profile.required_independent_domains[1] =
+            duplicate_domain_profile.required_independent_domains[0].clone();
         assert_eq!(
-            assess_evidence_claim(&profile, &[]),
+            assess_evidence_claim(&duplicate_domain_profile, &[]),
             EvidenceVerdict::InsufficientEvidence
         );
 
-        let mut profile = profile();
-        profile.scope_commitment = commitment(0);
+        let mut zero_scope_profile = profile();
+        zero_scope_profile.scope_commitment = commitment(0);
         assert_eq!(
-            assess_evidence_claim(&profile, &[]),
+            assess_evidence_claim(&zero_scope_profile, &[]),
             EvidenceVerdict::InsufficientEvidence
         );
     }
