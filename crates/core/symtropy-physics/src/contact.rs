@@ -151,6 +151,22 @@ pub struct CachedImpulse<const D: usize> {
     pub point: SVector<f64, D>,
 }
 
+/// Why a proximity-based warm-start cache lookup could not be admitted.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ContactCacheLookupError {
+    /// The configured matching radius is not finite and strictly positive.
+    InvalidMatchThreshold,
+    /// The requested world-space contact point contains a non-finite value.
+    NonFiniteQueryPoint,
+    /// A cached world-space contact point contains a non-finite value.
+    NonFiniteCachedPoint,
+    /// More than one cached point fell inside the matching radius.
+    ///
+    /// Without stable feature/contact identities, choosing the nearest entry
+    /// would silently guess which previous contact belongs to this one.
+    AmbiguousMatches { matching_entries: usize },
+}
+
 /// Cache of previous-frame impulses for warm-starting the contact solver.
 ///
 /// Uses `BTreeMap` for deterministic iteration order (critical for replay).
@@ -191,30 +207,72 @@ impl<const D: usize> ContactCache<D> {
         });
     }
 
-    /// Look up the cached impulse for a contact point from the previous frame.
+    /// Look up a cached impulse only when the proximity match is unambiguous.
     ///
-    /// Matches by body pair + proximity of contact point.
+    /// The compatibility API deliberately maps invalid or ambiguous matches to
+    /// a cold start. Use lookup_checked when the caller needs the reason a cached
+    /// impulse was not admitted.
     pub fn lookup(
         &self,
         body_a: BodyHandle,
         body_b: BodyHandle,
         point: &SVector<f64, D>,
     ) -> Option<&CachedImpulse<D>> {
+        self.lookup_checked(body_a, body_b, point).ok().flatten()
+    }
+
+    /// Checked warm-start lookup that refuses to guess between nearby contacts.
+    ///
+    /// The cache currently identifies contacts by body pair plus world-space
+    /// proximity, not by persistent collision-feature IDs. Consequently, more
+    /// than one cached entry inside the matching radius is ambiguous even when
+    /// one happens to be slightly closer. The safe fallback is no warm-start;
+    /// stable feature identities belong to a separate cache-schema migration.
+    pub fn lookup_checked(
+        &self,
+        body_a: BodyHandle,
+        body_b: BodyHandle,
+        point: &SVector<f64, D>,
+    ) -> Result<Option<&CachedImpulse<D>>, ContactCacheLookupError> {
+        if !point.iter().all(|value| value.is_finite()) {
+            return Err(ContactCacheLookupError::NonFiniteQueryPoint);
+        }
+        if !self.match_threshold.is_finite() || self.match_threshold <= 0.0 {
+            return Err(ContactCacheLookupError::InvalidMatchThreshold);
+        }
+
         let key = if body_a < body_b {
             (body_a, body_b)
         } else {
             (body_b, body_a)
         };
-        let entries = self.entries.get(&key)?;
-        // Find the closest cached point within threshold
-        entries
-            .iter()
-            .filter(|c| (c.point - point).norm() < self.match_threshold)
-            .min_by(|a, b| {
-                let da = (a.point - point).norm();
-                let db = (b.point - point).norm();
-                da.total_cmp(&db)
-            })
+        let Some(entries) = self.entries.get(&key) else {
+            return Ok(None);
+        };
+
+        let mut unique_match = None;
+        let mut matching_entries = 0usize;
+        for cached in entries {
+            if !cached.point.iter().all(|value| value.is_finite()) {
+                return Err(ContactCacheLookupError::NonFiniteCachedPoint);
+            }
+            let distance = (cached.point - point).norm();
+            if !distance.is_finite() {
+                return Err(ContactCacheLookupError::NonFiniteCachedPoint);
+            }
+            if distance < self.match_threshold {
+                matching_entries += 1;
+                if matching_entries == 1 {
+                    unique_match = Some(cached);
+                }
+            }
+        }
+
+        if matching_entries > 1 {
+            return Err(ContactCacheLookupError::AmbiguousMatches { matching_entries });
+        }
+
+        Ok(unique_match)
     }
 
     /// Clear all cached data (call at the start of each frame before resolving).
@@ -312,6 +370,87 @@ mod tests {
         // Lookup with reversed body order should still find it
         let hit = cache.lookup(BodyHandle(0), BodyHandle(1), &pt);
         assert!(hit.is_some(), "cache should be symmetric on body order");
+    }
+
+    #[test]
+    fn contact_cache_rejects_ambiguous_proximity_warm_start() {
+        let mut cache = ContactCache::<3>::new();
+        cache.store(
+            BodyHandle(0),
+            BodyHandle(1),
+            SVector::from([-0.5, 0.0, 0.0]),
+            2.0,
+            0.0,
+        );
+        cache.store(
+            BodyHandle(0),
+            BodyHandle(1),
+            SVector::from([0.5, 0.0, 0.0]),
+            4.0,
+            0.0,
+        );
+
+        let query = SVector::zeros();
+        assert_eq!(
+            cache.lookup_checked(BodyHandle(0), BodyHandle(1), &query),
+            Err(ContactCacheLookupError::AmbiguousMatches {
+                matching_entries: 2
+            })
+        );
+        assert!(
+            cache.lookup(BodyHandle(0), BodyHandle(1), &query).is_none(),
+            "legacy lookup must fail closed rather than select one cached contact"
+        );
+    }
+
+    #[test]
+    fn contact_cache_checked_lookup_admits_one_unique_match() {
+        let mut cache = ContactCache::<3>::new();
+        let point = SVector::from([1.0, 0.0, 0.0]);
+        cache.store(BodyHandle(0), BodyHandle(1), point, 3.0, 0.25);
+
+        let nearby = SVector::from([1.25, 0.0, 0.0]);
+        let hit = cache
+            .lookup_checked(BodyHandle(0), BodyHandle(1), &nearby)
+            .expect("one nearby cached point is unambiguous")
+            .expect("the unique cached point should be admitted");
+        assert!((hit.normal_impulse - 3.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn contact_cache_checked_lookup_rejects_non_finite_query() {
+        let cache = ContactCache::<3>::new();
+        let query = SVector::from([f64::NAN, 0.0, 0.0]);
+        assert_eq!(
+            cache.lookup_checked(BodyHandle(0), BodyHandle(1), &query),
+            Err(ContactCacheLookupError::NonFiniteQueryPoint)
+        );
+    }
+
+    #[test]
+    fn contact_cache_checked_lookup_rejects_non_finite_cached_point() {
+        let mut cache = ContactCache::<3>::new();
+        cache.store(
+            BodyHandle(0),
+            BodyHandle(1),
+            SVector::from([f64::INFINITY, 0.0, 0.0]),
+            3.0,
+            0.0,
+        );
+        assert_eq!(
+            cache.lookup_checked(BodyHandle(0), BodyHandle(1), &SVector::zeros()),
+            Err(ContactCacheLookupError::NonFiniteCachedPoint)
+        );
+    }
+
+    #[test]
+    fn contact_cache_checked_lookup_rejects_invalid_match_threshold() {
+        let mut cache = ContactCache::<3>::new();
+        cache.match_threshold = f64::NAN;
+        assert_eq!(
+            cache.lookup_checked(BodyHandle(0), BodyHandle(1), &SVector::zeros()),
+            Err(ContactCacheLookupError::InvalidMatchThreshold)
+        );
     }
 
     #[test]
