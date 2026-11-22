@@ -2566,11 +2566,8 @@ mod transformed_halfspace_tests {
     fn deterministic_insertion_invalidates_only_the_static_broadphase_cache() {
         let mut world = PhysicsWorld::<3>::default();
 
-        let static_body = RigidBody::<3>::static_body(
-            BodyHandle(0),
-            Point::origin(),
-            Box::new(Sphere::unit()),
-        );
+        let static_body =
+            RigidBody::<3>::static_body(BodyHandle(0), Point::origin(), Box::new(Sphere::unit()));
         world
             .add_bodies_deterministic(vec![(NetId(1), static_body)])
             .expect("unique static NetId");
@@ -2597,12 +2594,8 @@ mod transformed_halfspace_tests {
             "kinematic bodies are recomputed each query and are not cached as static"
         );
 
-        let dynamic_body = RigidBody::<3>::dynamic_sphere(
-            BodyHandle(0),
-            Point::new([8.0, 0.0, 0.0]),
-            0.5,
-            1.0,
-        );
+        let dynamic_body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::new([8.0, 0.0, 0.0]), 0.5, 1.0);
         world
             .add_bodies_deterministic(vec![(NetId(3), dynamic_body)])
             .expect("unique dynamic NetId");
@@ -2611,5 +2604,4 @@ mod transformed_halfspace_tests {
             "dynamic insertion must not invalidate cached static bounds"
         );
     }
-
 }
