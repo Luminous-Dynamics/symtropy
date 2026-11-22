@@ -1,0 +1,20 @@
+# Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+[package]
+name = "mobility-rrvr-composition"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Non-authorizing composition of restart, downstream fence and evidence-verdict contracts"
+
+[dependencies]
+mobility-restart-reconciliation = { path = "../mobility-restart-reconciliation" }
+mobility-downstream-fence = { path = "../mobility-downstream-fence" }
+mobility-evidence-verdict = { path = "../mobility-evidence-verdict" }
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
