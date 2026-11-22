@@ -1,0 +1,418 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/mobility-rrvr-runtime-projection-v0.1.json",
+  "title": "RRVR Runtime to TLA State Projection v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "header",
+    "snapshots"
+  ],
+  "properties": {
+    "version": {
+      "const": "0.1"
+    },
+    "header": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bundle_id",
+        "system_id",
+        "implementation_revision",
+        "model_revision",
+        "model_source_sha256",
+        "model_config_sha256",
+        "tla_tool_sha256",
+        "fault_profile_revision",
+        "max_epoch",
+        "naive_retry_enabled"
+      ],
+      "properties": {
+        "bundle_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "system_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "implementation_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_source_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "model_config_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "tla_tool_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "fault_profile_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "max_epoch": {
+          "type": "integer",
+          "minimum": 3
+        },
+        "naive_retry_enabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "snapshots": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 512,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "event_id",
+          "logical_sequence",
+          "model_action",
+          "model_arguments",
+          "predecessor_event_ids",
+          "source_clock",
+          "state_s",
+          "owner_evidence"
+        ],
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "logical_sequence": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "model_action": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "model_arguments": {
+            "type": "array"
+          },
+          "predecessor_event_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "source_clock": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "clock_id",
+                  "boot_epoch_id",
+                  "unit",
+                  "value",
+                  "resolution",
+                  "uncertainty"
+                ],
+                "properties": {
+                  "clock_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "boot_epoch_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "unit": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "value": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "resolution": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "uncertainty": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            ]
+          },
+          "state_s": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "processStatus",
+              "bootEpoch",
+              "controllerEpoch",
+              "stage",
+              "reservationCommitted",
+              "oldTicketBootEpoch",
+              "oldTicketControllerEpoch",
+              "oldAccepted",
+              "oldAcceptedBootEpoch",
+              "oldAcceptedControllerEpoch",
+              "commandPending",
+              "commandOwnerAttempt",
+              "oldPhysicalOutcome",
+              "recoveryPhysicalOutcome",
+              "appliedEffectCount",
+              "persistStatus",
+              "storeRecord",
+              "storeCallPending",
+              "effectEvidence",
+              "missionResolution",
+              "observerIndependent",
+              "queueFenceBootEpoch",
+              "downstreamFenceBootEpoch",
+              "recoveryPermit",
+              "permitUseCount",
+              "ticketStatus",
+              "ticketBootEpoch",
+              "ticketControllerEpoch",
+              "ticketAttempt",
+              "m1Current",
+              "m2Current",
+              "ticketBindingValid",
+              "liveBindingValid",
+              "recoveryAccepted",
+              "admittedFreshBoot",
+              "admittedFreshController",
+              "admittedControllerFence",
+              "admittedDownstreamFence",
+              "admittedM1",
+              "admittedM2",
+              "admittedBinding",
+              "naiveReplayCount",
+              "crashCut"
+            ],
+            "properties": {
+              "processStatus": {
+                "type": "string",
+                "minLength": 1
+              },
+              "bootEpoch": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "controllerEpoch": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "stage": {
+                "type": "string",
+                "minLength": 1
+              },
+              "reservationCommitted": {
+                "type": "boolean"
+              },
+              "oldTicketBootEpoch": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "oldTicketControllerEpoch": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "oldAccepted": {
+                "type": "boolean"
+              },
+              "oldAcceptedBootEpoch": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "oldAcceptedControllerEpoch": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "commandPending": {
+                "type": "boolean"
+              },
+              "commandOwnerAttempt": {
+                "type": "string",
+                "minLength": 1
+              },
+              "oldPhysicalOutcome": {
+                "type": "string",
+                "minLength": 1
+              },
+              "recoveryPhysicalOutcome": {
+                "type": "string",
+                "minLength": 1
+              },
+              "appliedEffectCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "persistStatus": {
+                "type": "string",
+                "minLength": 1
+              },
+              "storeRecord": {
+                "type": "boolean"
+              },
+              "storeCallPending": {
+                "type": "boolean"
+              },
+              "effectEvidence": {
+                "type": "string",
+                "minLength": 1
+              },
+              "missionResolution": {
+                "type": "string",
+                "minLength": 1
+              },
+              "observerIndependent": {
+                "type": "boolean"
+              },
+              "queueFenceBootEpoch": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "downstreamFenceBootEpoch": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "recoveryPermit": {
+                "type": "string",
+                "minLength": 1
+              },
+              "permitUseCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "ticketStatus": {
+                "type": "string",
+                "minLength": 1
+              },
+              "ticketBootEpoch": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "ticketControllerEpoch": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "ticketAttempt": {
+                "type": "string",
+                "minLength": 1
+              },
+              "m1Current": {
+                "type": "boolean"
+              },
+              "m2Current": {
+                "type": "boolean"
+              },
+              "ticketBindingValid": {
+                "type": "boolean"
+              },
+              "liveBindingValid": {
+                "type": "boolean"
+              },
+              "recoveryAccepted": {
+                "type": "boolean"
+              },
+              "admittedFreshBoot": {
+                "type": "boolean"
+              },
+              "admittedFreshController": {
+                "type": "boolean"
+              },
+              "admittedControllerFence": {
+                "type": "boolean"
+              },
+              "admittedDownstreamFence": {
+                "type": "boolean"
+              },
+              "admittedM1": {
+                "type": "boolean"
+              },
+              "admittedM2": {
+                "type": "boolean"
+              },
+              "admittedBinding": {
+                "type": "boolean"
+              },
+              "naiveReplayCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "crashCut": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "owner_evidence": {
+            "type": "array",
+            "minItems": 5,
+            "maxItems": 5,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "domain",
+                "owner_id",
+                "owner_revision",
+                "evidence_id",
+                "raw_artifact_id",
+                "raw_artifact_sha256"
+              ],
+              "properties": {
+                "domain": {
+                  "enum": [
+                    "process_epoch",
+                    "persistence",
+                    "physical_outcome",
+                    "execution_graph",
+                    "authority"
+                  ]
+                },
+                "owner_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "owner_revision": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "evidence_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "raw_artifact_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "raw_artifact_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-fA-F0-9]{64}$"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
