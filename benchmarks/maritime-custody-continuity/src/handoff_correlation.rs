@@ -718,6 +718,85 @@ mod tests {
     }
 
     #[test]
+    fn incomparable_time_bases_cannot_qualify_a_handoff() {
+        let (_, events) = fixtures();
+        let release = events
+            .iter()
+            .find(|event| event.source_event_id == "B1-R1")
+            .unwrap()
+            .clone();
+        let accept = events
+            .iter()
+            .find(|event| event.source_event_id == "B1-A1")
+            .unwrap()
+            .clone();
+        let mut qualified = qualified_receipt(&release, &accept, 100, 120, 0);
+        qualified.accept_time.evidence = TimeEvidence::new(
+            qualified.accept_time.evidence.event_id().to_string(),
+            "DEVICE_MONOTONIC_CLOCK_7",
+            qualified.accept_time.evidence.interval(),
+            super::super::temporal_order::TimeBoundKind::EstimateOnly,
+        )
+        .unwrap();
+
+        assert_eq!(
+            apply_qualified_handoff_correlations(&events, &[qualified], 200),
+            Err(QualifiedCorrelationError::Temporal(
+                TemporalCorrelationError::OrderNotProven(TemporalRelation::IncomparableTimeBasis)
+            ))
+        );
+    }
+
+    #[test]
+    fn acceptance_revision_binding_must_match_the_selected_event_revision() {
+        let (_, events) = fixtures();
+        let release = events
+            .iter()
+            .find(|event| event.source_event_id == "B1-R1")
+            .unwrap()
+            .clone();
+        let accept = events
+            .iter()
+            .find(|event| event.source_event_id == "B1-A1")
+            .unwrap()
+            .clone();
+        let mut qualified = qualified_receipt(&release, &accept, 100, 120, 0);
+        qualified.accept_time =
+            qualified_time_binding(&qualified.accept_time.source_event, 2, 120, 0);
+
+        assert_eq!(
+            apply_qualified_handoff_correlations(&events, &[qualified], 200),
+            Err(QualifiedCorrelationError::Temporal(
+                TemporalCorrelationError::AcceptRevisionMismatch
+            ))
+        );
+    }
+
+    #[test]
+    fn release_time_binding_must_match_the_correlation_release_key() {
+        let (_, events) = fixtures();
+        let release = events
+            .iter()
+            .find(|event| event.source_event_id == "B1-R1")
+            .unwrap()
+            .clone();
+        let accept = events
+            .iter()
+            .find(|event| event.source_event_id == "B1-A1")
+            .unwrap()
+            .clone();
+        let mut qualified = qualified_receipt(&release, &accept, 100, 120, 0);
+        qualified.release_time.source_event = SourceEventRef::new("SRC_OTHER", "OTHER-EVENT");
+
+        assert_eq!(
+            apply_qualified_handoff_correlations(&events, &[qualified], 200),
+            Err(QualifiedCorrelationError::Temporal(
+                TemporalCorrelationError::ReleaseTimeBindingMismatch
+            ))
+        );
+    }
+
+    #[test]
     fn time_evidence_cannot_be_replayed_for_another_source_event() {
         let (_, events) = fixtures();
         let release = events
