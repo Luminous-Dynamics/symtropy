@@ -2378,7 +2378,7 @@ pub fn audit_correlated_robust_design_contract(root: &Value) -> Vec<String> {
         &mut findings,
         expected.is_some_and(|value| {
             at(value, &["evaluated_design_count"]).and_then(Value::as_u64) == Some(126)
-                && at(value, &["robust_identifiable_design_count"]).and_then(Value::as_u64) == Some(49)
+                && at(value, &["robust_identifiable_design_count"]).and_then(Value::as_u64) == Some(14)
                 && at(value, &["robust_optimal_candidate_indices"]) == Some(&serde_json::json!([0, 2, 4, 5]))
                 && number_at(value, &["robust_worst_case_minimum_information_eigenvalue"])
                     .is_some_and(|v| (v - 42.546743038933265).abs() < 1.0e-10)
@@ -2393,7 +2393,8 @@ pub fn audit_correlated_robust_design_contract(root: &Value) -> Vec<String> {
     push_if_missing(
         &mut findings,
         at(root, &["test_families"]).and_then(Value::as_array)
-            .is_some_and(|tests| tests.len() == 7
+            .is_some_and(|tests| tests.len() == 8
+                && tests.iter().any(|v| v.as_str() == Some("physical_signal_fully_explained_by_nuisance_is_not_counted_from_roundoff"))
                 && tests.iter().any(|v| v.as_str() == Some("nonsymmetric_covariance_is_rejected_without_silent_symmetrization"))
                 && tests.iter().any(|v| v.as_str() == Some("non_positive_definite_covariance_is_rejected_without_jitter"))
                 && tests.iter().any(|v| v.as_str() == Some("rank_deficient_nuisance_designs_are_not_promoted"))
