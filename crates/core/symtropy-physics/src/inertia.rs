@@ -537,9 +537,11 @@ mod tests {
 
     #[test]
     fn mass_aware_constructors_preserve_and_validate_total_mass() {
-        let ellipsoid =
-            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::<f64, 3>::new(1.0, 0.8, 0.6))
-                .unwrap();
+        let ellipsoid = BivectorInertia::<3>::uniform_solid_ellipsoid(
+            2.0,
+            SVector::<f64, 3>::new(1.0, 0.8, 0.6),
+        )
+        .unwrap();
         assert_eq!(ellipsoid.total_mass(), Some(2.0));
         assert!(ellipsoid.validate_body_mass(2.0, 1e-10).is_ok());
         assert_eq!(
@@ -644,9 +646,11 @@ mod tests {
     fn uniform_ellipsoid_recovers_analytical_three_dimensional_moments() {
         // Unit mass, semi-axes (2, 1, 0.5): S_ii = a_i^2 / 5.
         // Rotation-plane moments are sums of the corresponding S diagonal.
-        let inertia =
-            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::<f64, 3>::new(2.0, 1.0, 0.5))
-                .unwrap();
+        let inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(
+            1.0,
+            SVector::<f64, 3>::new(2.0, 1.0, 0.5),
+        )
+        .unwrap();
 
         let xy = Bivector::<3>::unit_plane(0, 1); // rotation about z
         let xz = Bivector::<3>::unit_plane(0, 2); // rotation about y
@@ -688,9 +692,11 @@ mod tests {
 
     #[test]
     fn rotated_inertia_is_covariant_and_preserves_kinetic_energy() {
-        let body_inertia =
-            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::<f64, 3>::new(2.0, 1.0, 0.5))
-                .unwrap();
+        let body_inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(
+            1.0,
+            SVector::<f64, 3>::new(2.0, 1.0, 0.5),
+        )
+        .unwrap();
         let rotation = Rotor::<3>::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.63);
         let world_inertia = body_inertia.rotated_by(&rotation);
 
@@ -724,9 +730,11 @@ mod tests {
 
     #[test]
     fn gyroscopic_acceleration_is_covariant_between_body_and_world_frames() {
-        let body_inertia =
-            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::<f64, 3>::new(1.5, 0.9, 0.4))
-                .unwrap();
+        let body_inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(
+            2.0,
+            SVector::<f64, 3>::new(1.5, 0.9, 0.4),
+        )
+        .unwrap();
         let rotation = Rotor::<3>::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.71);
         let world_inertia = body_inertia.rotated_by(&rotation);
 
@@ -773,9 +781,11 @@ mod tests {
 
     #[test]
     fn rotational_inverse_effective_mass_uses_asymmetric_plane_inertia() {
-        let inertia =
-            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::<f64, 3>::new(2.0, 1.0, 0.5))
-                .unwrap();
+        let inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(
+            1.0,
+            SVector::<f64, 3>::new(2.0, 1.0, 0.5),
+        )
+        .unwrap();
         let offset = SVector::<f64, 3>::new(1.0, 0.0, 0.0);
         let normal = SVector::<f64, 3>::new(0.0, 1.0, 0.0);
         let value = inertia
