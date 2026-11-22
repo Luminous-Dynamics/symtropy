@@ -24,14 +24,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.96.0
         with:
           components: rustfmt, clippy
-      - name: Format source and export canonical file
-        run: |
-          cargo fmt --manifest-path research/mobility-action-composition/Cargo.toml
-          cargo fmt --manifest-path research/mobility-action-composition/Cargo.toml -- --check
-          echo "COMPOSITION_LIB_B64_BEGIN"
-          base64 -w0 research/mobility-action-composition/src/lib.rs
-          echo
-          echo "COMPOSITION_LIB_B64_END"
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/mobility-action-composition/Cargo.toml -- --check
       - name: Run reference unit tests
         run: cargo test --manifest-path research/mobility-action-composition/Cargo.toml --locked
       - name: Run strict Clippy
