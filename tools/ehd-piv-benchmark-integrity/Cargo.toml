@@ -1,0 +1,10 @@
+[package]
+name = "ehd-piv-benchmark-integrity"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Leakage-resistant dataset split audit for EHD PIV and measurement-UQ benchmarks"
+
+[lib]
+path = "src/lib.rs"
