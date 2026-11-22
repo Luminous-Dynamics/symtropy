@@ -162,7 +162,7 @@ fn valid_epcis_offset(value: &str) -> bool {
 
     let hours = u16::from(bytes[1] - b'0') * 10 + u16::from(bytes[2] - b'0');
     let minutes = u16::from(bytes[4] - b'0') * 10 + u16::from(bytes[5] - b'0');
-    hours < 14 || (hours == 14 && minutes == 0)
+    minutes <= 59 && (hours < 14 || (hours == 14 && minutes == 0))
 }
 
 fn validate_child_epcs(child_epcs: &[String]) -> Result<(), AggregationSemanticError> {
@@ -403,7 +403,7 @@ mod tests {
         let output = normalize_aggregation_event(&input).unwrap();
 
         assert!(matches!(
-            output.effect,
+            &output.effect,
             AggregationEffect::Observe {
                 may_be_incomplete: true,
                 ..
@@ -562,7 +562,7 @@ mod tests {
 
     #[test]
     fn invalid_epcis_offset_is_rejected() {
-        for invalid in ["UTC", "+14:01", "+15:00", "+2:00", "02:00"] {
+        for invalid in ["UTC", "+14:01", "+15:00", "+2:00", "02:00", "+00:99"] {
             let mut input = event(AggregationAction::Delete);
             input.event_time_zone_offset = invalid.to_string();
             assert!(matches!(
