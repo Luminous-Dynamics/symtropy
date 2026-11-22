@@ -47,6 +47,18 @@ pub struct TemporalMisalignmentEnvelope {
     pub total_position_misalignment_bound_m: f64,
 }
 
+/// Student-t protection levels after adding a deterministic temporal-bias bound.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct TemporallyInflatedStudentTProtectionLevels {
+    pub base_overall_pl_m: f64,
+    pub base_longitudinal_pl_m: f64,
+    pub base_lateral_pl_m: f64,
+    pub temporal_position_bias_bound_m: f64,
+    pub inflated_overall_pl_m: f64,
+    pub inflated_longitudinal_pl_m: f64,
+    pub inflated_lateral_pl_m: f64,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TemporalAlignmentError {
     NonFiniteOrNegativeInput,
