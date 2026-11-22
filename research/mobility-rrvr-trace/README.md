@@ -14,11 +14,12 @@ A different failure is not the same counterexample. A passing trace, invalid tra
 
 ## Causal rules
 
-Each event has a stable identity, strictly increasing deterministic serialization sequence and predecessor IDs. The serialization order is not itself a happens-before assertion; explicit predecessor edges carry causal order.
+Each event has a stable identity, strictly increasing deterministic serialization sequence and predecessor IDs. The serialization order is not itself a happens-before assertion; explicit predecessor edges carry causal order. Optional source-clock observations preserve clock ID, boot epoch, unit, value, resolution and uncertainty without comparing incomparable clocks. Per-event raw artifact IDs must resolve to immutable artifact records in the bundle.
 
 - **Removal:** deleting an event also deletes every descendant that depends on it.
 - **Retention:** keeping an event also keeps every causal ancestor it requires.
-- **Witness:** the exact target witness event must remain in every valid candidate.
+- **Witness:** the exact target witness event and normalized witness-state commitment must remain in every valid candidate.
+- **Provenance:** source clock metadata and raw artifact references remain attached to events; the minimizer never infers cross-clock order from their timestamps.
 - **Budget:** replay calls are bounded and counted.
 - **Minimality:** `one_minimal = true` is emitted only after all single-event causal removals have been tested and rejected. If the budget runs out, the report says minimization is incomplete.
 - **Parentage:** the minimized bundle names the original bundle as its parent and preserves the exact failure signature and initial-state commitment.
@@ -52,4 +53,4 @@ Report exact-failure replay rate, event and byte reduction, causal-closure reten
 
 ## Non-claims
 
-The crate does not execute a simulator, parse TLC output, capture ROS events, authenticate artifacts, prove physical causality, call hardware or authorize recovery. The replay oracle receives the complete trace bundle, including initial-state/system/model/fault-profile revisions and raw-artifact commitments. The exact failure signature also binds a normalized witness-state commitment. The replay oracle and artifact owner must be independently qualified. A pass means only that the supplied trace and oracle satisfy this reference contract.
+The crate does not execute a simulator, parse TLC output, capture ROS events, authenticate artifacts, prove physical causality, call hardware or authorize recovery. The replay oracle receives the complete trace bundle, including initial-state/system/model/fault-profile revisions and raw-artifact commitments. The exact failure signature also binds a normalized witness-state commitment. The replay oracle receives the complete bundle (not only an event slice), including system/implementation/model/fault-profile revisions, initial-state commitment, clock metadata and artifact references. The exact failure signature also binds a normalized witness-state commitment. The replay oracle and artifact owner must be independently qualified. A pass means only that the supplied trace and oracle satisfy this reference contract.
