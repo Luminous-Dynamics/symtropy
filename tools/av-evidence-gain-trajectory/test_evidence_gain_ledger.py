@@ -511,6 +511,7 @@ class EvidenceGainLedgerTests(unittest.TestCase):
 
         second = doc["turns"][1]
         second["preceding_action_id"] = "ask-user"
+        second["action_result_parameter_manifest_sha256"] = digest("manifest-ask-user")
         second["action_result_status"] = "DELIVERED"
         second["workload"]["observation_catalog"] = []
         second["new_observation_ids"] = []
@@ -595,6 +596,36 @@ class EvidenceGainLedgerTests(unittest.TestCase):
         }]
         with self.assertRaises(EvidenceGainError):
             evaluate_trajectory(doc)
+
+
+    def test_selected_manifest_digest_must_match_action_catalogue(self):
+        doc = base_trajectory()
+        forecast = doc["turns"][0]["action_forecast"]
+        forecast["action_catalogue"][0]["parameter_manifest_sha256"] = digest("mutated-manifest")
+        doc["turns"][0]["action_value_receipt"]["forecast_digest_sha256"] = canonical_digest(forecast)
+        with self.assertRaises(EvidenceGainError):
+            evaluate_trajectory(doc)
+
+    def test_result_request_and_manifest_must_match_prior_selection(self):
+        doc = base_trajectory()
+        doc["turns"][1]["action_result_request_id"] = "different-request"
+        with self.assertRaises(EvidenceGainError):
+            evaluate_trajectory(doc)
+        doc = base_trajectory()
+        doc["turns"][1]["action_result_parameter_manifest_sha256"] = digest("different-manifest")
+        with self.assertRaises(EvidenceGainError):
+            evaluate_trajectory(doc)
+
+    def test_stop_selection_has_no_request_or_parameter_manifest(self):
+        doc = base_trajectory()
+        stop_forecast = doc["turns"][-1]["action_forecast"]
+        self.assertEqual(stop_forecast["selected_action_id"], STOP_ACTION_ID)
+        self.assertIsNone(stop_forecast["selected_manifest_sha256"])
+        self.assertIsNone(doc["turns"][-1]["action_value_receipt"]["request_id"])
+        self.assertIsNone(doc["turns"][-1]["action_value_receipt"]["parameter_manifest_sha256"])
+        result = evaluate_trajectory(doc)
+        self.assertIsNone(result["turns"][-1]["selected_request_id"])
+        self.assertIsNone(result["turns"][-1]["selected_manifest_sha256"])
 
     def test_replay_is_deterministic(self):
         doc = base_trajectory()
