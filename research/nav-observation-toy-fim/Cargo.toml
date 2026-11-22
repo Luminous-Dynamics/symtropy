@@ -30,3 +30,7 @@ path = "src/bin/sequential_value_demo.rs"
 [[bin]]
 name = "common_cause_sequential_demo"
 path = "src/bin/common_cause_sequential_demo.rs"
+
+[[bin]]
+name = "dependency_graph_demo"
+path = "src/bin/dependency_graph_demo.rs"
