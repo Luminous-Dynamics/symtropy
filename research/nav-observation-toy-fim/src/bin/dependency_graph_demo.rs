@@ -11,7 +11,7 @@ fn action(id:&str,domains:Vec<&str>,kind:&str,model:&FailureDomainModel)->Domain
         safe.push(match(kind,state,power,clock){
             ("power",0,false,_)=>0.05,("power",0,true,_)=>0.90,("power",1,_,_)=>0.95,
             ("clock",0,_,false)=>0.15,("clock",0,_,true)=>0.35,("clock",1,_,false)=>0.85,("clock",1,_,true)=>0.75,
-            ("mixed",0,false,false)=>0.08,("mixed",0,true,_)=>0.88,("mixed",0,false,true)=>0.10,("mixed",1,_,_)=>0.92,_=>0.5
+            ("mixed",0,false,_)=>0.08,("mixed",0,true,_)=>0.88,("mixed",1,_,_)=>0.92,_=>0.5
         });
     }}
     let n=model.joint_state_count();
