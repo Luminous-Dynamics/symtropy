@@ -126,6 +126,7 @@ pub struct CommitmentEvent {
     pub idempotency_key: String,
     pub payload_digest: String,
     pub kind: JournalEventKind,
+    pub resolved_state: Option<CommitmentState>,
     pub resulting_state: CommitmentState,
     pub event_time_unix_ms: u64,
     pub previous_event_digest: Option<String>,
@@ -494,12 +495,7 @@ pub fn replay_journal(
 
         let prior = state.commitments.get(&event.commitment_id);
         let prior_state = prior.map(|item| item.state);
-        let target_state = resulting_state(event.kind, prior_state, event.kind.eq(&JournalEventKind::Reconciled).then_some(event.resulting_state).filter(|_| event.resolved_state_is_present())).or_else(|_| {
-            // Reconciliation carries its explicit target. Other events are
-            // checked against the transition table without trusting the stored
-            // resulting_state field.
-            resulting_state(event.kind, prior_state, None)
-        })?;
+        let target_state = resulting_state(event.kind, prior_state, event.resolved_state)?;
         if target_state != event.resulting_state {
             return Err(format!("journal_resulting_state_mismatch:{}", event.sequence));
         }
@@ -610,12 +606,6 @@ fn event_time_origin(contract: &CommitmentContract, event_time: u64) -> Result<u
         Ok(event_time)
     } else {
         Err("offer_created_after_contract_expiry".to_owned())
-    }
-}
-
-impl CommitmentEvent {
-    fn resolved_state_is_present(&self) -> bool {
-        self.resolved_state.is_some()
     }
 }
 
@@ -746,6 +736,7 @@ pub fn append_event(
         idempotency_key: request.idempotency_key.clone(),
         payload_digest: candidate_payload_digest,
         kind: request.kind,
+        resolved_state: request.resolved_state,
         resulting_state,
         event_time_unix_ms: request.event_time_unix_ms,
         previous_event_digest,
@@ -1140,11 +1131,13 @@ mod tests {
         snapshot = append_event(&snapshot, &request, input.decision_time_unix_ms)
             .expect("first append")
             .snapshot;
-        let error = append_event(&snapshot, &request, input.decision_time_unix_ms)
-            .expect_err("the same command is idempotent only when key lookup succeeds");
-        // The exact same idempotency key is a valid replay, even with a stale
-        // expected version. A changed key demonstrates the stale-writer branch.
-        assert!(error.contains("version_conflict") || error.contains("idempotency"));
+        let mut stale = first_request();
+        stale.event_id = "evt-stale-writer".to_owned();
+        stale.idempotency_key = "idem-stale-writer".to_owned();
+        stale.event_evidence.evidence_reference = stale.event_id.clone();
+        let error = append_event(&snapshot, &stale, input.decision_time_unix_ms)
+            .expect_err("a distinct writer at the old version must lose CAS");
+        assert!(error.starts_with("version_conflict"));
     }
 
     #[test]
