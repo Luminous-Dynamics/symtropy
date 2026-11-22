@@ -11,16 +11,16 @@ These papers solve different tasks and use different hardware, datasets, labels 
 
 | Work | Published result / contribution | What we must compare |
 |---|---|---|
-| ISO/IEC 21134:2026 | International framework for integrated indoor localization/tracking with dead reckoning; master sets, environments, metrics, benchmarking process and conformance | Align accuracy, trajectory and practical-performance reporting before adding integrity claims |
-| Hilti–Trimble SLAM Challenge 2026 / SPARO | Official report: 0.109 m mean RMSE, 99.85% mean trajectory coverage, 25 sequences | Reproduce official trajectory metrics; add evidence-backed support, PL breaches, unsupported NORMAL time and recovery |
-| Zhao et al., IEEE T-RO 2025, “Robust and Scalable Multi-Robot Localization Using Stereo UWB Arrays” | Centimetre-level multi-robot localization; 100 Hz UWB-only update rate reported; distributed relative localization and inter-/intra-node cooperation | Match update rate, node count, packet loss, 3D pairwise geometry, accuracy, network airtime and failure-domain independence |
-| Yang et al., Measurement 2025, “A novel credibility evaluation and mitigation for ranging measurement in UWB localization” | BERT-LSTM/CIR method; reported 80.94% NLOS and 37.9% LOS range-error reductions on its study-specific experiments | Reproduce credibility, correction and discard decisions; report LOS harm, selective risk and interval coverage |
-| Jiang et al., IEEE Communications Letters 2026, “Optimizing UWB CIR Truncation for NLOS Identification on MCU Deployment” | 63-sample CIR subset; 93.68% NLOS recall; quantized STM32 deployment | Reproduce on matched CIR representation/hardware; add false accepts, domain shift, energy and radio-rate cost |
-| Sun and Gao, Measurement Science and Technology 2026, “Probabilistic calibration and dynamic uncertainty evaluation for UWB ranging in NLOS environments” | Physics-informed multi-task NLOS classification, correction and aleatoric/epistemic uncertainty; MAE below 0.12 m reported across its evaluated datasets | Reproduce on held-out experiment/material/anchor groups; compare both error and empirical uncertainty calibration |
-| Lu et al., Measurement 2026, “A decoupled backend optimizer for UWB localization in NLOS environments” | Reusable posterior refinement layer that combines front-end estimates, ranges and anchor geometry, jointly estimating position and residual range errors | Integrate as a baseline behind multiple front ends; add bounded residuals, bias observability, failure cases and evidence provenance |
-| IUCA, IEEE Journal of Selected Areas in Sensors 2026 | Model-agnostic high-dimensional conformal calibration of joint/correlated state uncertainty, including pose ellipses | Reproduce exchangeability assumptions; measure joint coverage, sharpness, conditional/domain-shift failure and mission-level risk |
+| [ISO/IEC 21134:2026](https://www.iso.org/standard/86651.html) | International framework for integrated indoor localization/tracking with dead reckoning; master sets, environments, metrics, benchmarking process and conformance | Align accuracy, trajectory and practical-performance reporting before adding integrity claims |
+| [Hilti–Trimble SLAM Challenge 2026](https://hilti-challenge.com/) / [SPARO result](https://sparolab.github.io/research/hilti_challenge/) | Official report: 0.109 m mean RMSE, 99.85% mean trajectory coverage, 25 sequences | Reproduce official trajectory metrics; add evidence-backed support, PL breaches, unsupported NORMAL time and recovery |
+| [Zhao et al., IEEE T-RO 2025, “Robust and Scalable Multi-Robot Localization Using Stereo UWB Arrays”](https://doi.org/10.1109/TRO.2025.3587854) | Centimetre-level multi-robot localization; 100 Hz UWB-only update rate reported; distributed relative localization and inter-/intra-node cooperation | Match update rate, node count, packet loss, 3D pairwise geometry, accuracy, network airtime and failure-domain independence |
+| [Yang et al., Measurement 2025, “A novel credibility evaluation and mitigation for ranging measurement in UWB localization”](https://doi.org/10.1016/j.measurement.2025.117721) | BERT-LSTM/CIR method; reported 80.94% NLOS and 37.9% LOS range-error reductions on its study-specific experiments | Reproduce credibility, correction and discard decisions; report LOS harm, selective risk and interval coverage |
+| [Jiang et al., IEEE Communications Letters 2026, “Optimizing UWB CIR Truncation for NLOS Identification on MCU Deployment”](https://doi.org/10.1109/LCOMM.2026.3662481) | 63-sample CIR subset; 93.68% NLOS recall; quantized STM32 deployment | Reproduce on matched CIR representation/hardware; add false accepts, domain shift, energy and radio-rate cost |
+| [Sun and Gao, Measurement Science and Technology 2026, “Probabilistic calibration and dynamic uncertainty evaluation for UWB ranging in NLOS environments”](https://doi.org/10.1088/1361-6501/ae7c20) | Physics-informed multi-task NLOS classification, correction and aleatoric/epistemic uncertainty; MAE below 0.12 m reported across its evaluated datasets | Reproduce on held-out experiment/material/anchor groups; compare both error and empirical uncertainty calibration |
+| [Lu et al., Measurement 2026, “A decoupled backend optimizer for UWB localization in NLOS environments”](https://doi.org/10.1016/j.measurement.2026.121494) | Reusable posterior refinement layer that combines front-end estimates, ranges and anchor geometry, jointly estimating position and residual range errors | Integrate as a baseline behind multiple front ends; add bounded residuals, bias observability, failure cases and evidence provenance |
+| [IUCA, IEEE Journal of Selected Areas in Sensors 2026](https://doi.org/10.1109/JSAS.2026.3731931) | Model-agnostic high-dimensional conformal calibration of joint/correlated state uncertainty, including pose ellipses | Reproduce exchangeability assumptions; measure joint coverage, sharpness, conditional/domain-shift failure and mission-level risk |
 | 2026 CIR NLOS survey, Computers & Electrical Engineering 139B | Reviews 80 representative studies; distinguishes handcrafted CIR-feature and raw-CIR sequence methods; highlights label efficiency, domain generalization and physics-guided interpretability | Use as taxonomy and ablation guide; evaluate cross-scenario robustness and deployment feasibility, not just accuracy |
-| IEEE TII 2026 secure indoor ranging review / FiRa Core 4.1 | Overshadowing, early-path injection, relay and clock-related threats; FiRa Core 4.1 expands DS-TWR security certification, responder-specific sub-session keys and 256-bit STS key testing | Separate protocol authentication, physical channel integrity, clock integrity and navigation decision integrity |
+| [IEEE TII 2026 secure indoor ranging review](https://doi.org/10.1109/TII.2026.3680098) / [FiRa Core 4.1](https://www.firaconsortium.org/news/press-releases/2026/10/fira-consortium-launches-core-4-1-specifications-and-enhanced) | Overshadowing, early-path injection, relay and clock-related threats; FiRa Core 4.1 expands DS-TWR security certification, responder-specific sub-session keys and 256-bit STS key testing | Separate protocol authentication, physical channel integrity, clock integrity and navigation decision integrity |
 
 ## 2. Competitive paradigm: a verified front end and an independent posterior
 
@@ -117,7 +117,19 @@ The targets are deliberately split. A model can have excellent NLOS recall but p
 - Keep controller/evaluator separation at field and row-selection levels; the MILUV truth-conditioned row filter remains blocked by [issue #6813](https://github.com/Luminous-Dynamics/symtropy/issues/6813).
 - Do not admit any physical benchmark payload until rights, hashes, schema, calibration lineage and independent truth lineage are checked.
 
-## 7. Current Symtropy work
+## 8. Active evidence acquisition and authority separation
+
+The architecture now includes an active evidence-acquisition workstream ([issue #6853](https://github.com/Luminous-Dynamics/symtropy/issues/6853), [draft PR #6855](https://github.com/Luminous-Dynamics/symtropy/pull/6855)). Its initial deterministic policy uses a Pareto frontier over conditional protection-level reduction, worst-case latency and energy rather than arbitrary scalar weights. An action plan never authorizes NORMAL; success requires a new qualified observation, posterior re-audit and mission-contract evaluation.
+
+The posterior auditor is implemented in [draft PR #6852](https://github.com/Luminous-Dynamics/symtropy/pull/6852), with exact-head CI run #211 passed (95 navigation tests, 12 MILUV ingest tests). The active-action planner in #6855 passed exact-head run #212 (95 navigation tests, 12 MILUV ingest tests). The secure-session evidence gate in [draft PR #6849](https://github.com/Luminous-Dynamics/symtropy/pull/6849) passed exact-head run #209 with the same configured test totals.
+
+## 9. MILUV source-complete acquisition plan
+
+The publisher links the source archive through [Figshare DOI 10.25452/figshare.plus.28386041.v1](https://doi.org/10.25452/figshare.plus.28386041.v1). The [NLM Dataset Catalog record](https://datasetcatalog.nlm.nih.gov/dataset?q=0002392468) lists CC BY 4.0 rights; the paper describes a 173 GB archive with 217 minutes across 36 experiments. The [authors' devkit](https://github.com/decargroup/miluv) loads original per-robot ROS bags under each experiment.
+
+Do not download the entire archive simply to reproduce one range baseline. First inspect publisher metadata and the archive's experiment/file inventory, identify a small experiment whose original robot bags contain UWB raw messages, CIR and passive receptions, verify its licensing/attribution and freeze its exact file hashes. Process the source-complete messages without Vicon-conditioned row filtering; construct evaluator truth separately. The truth-conditioned processed CSV remains blocked by [issue #6813](https://github.com/Luminous-Dynamics/symtropy/issues/6813).
+
+## 10. Current Symtropy work
 
 - [#6793](https://github.com/Luminous-Dynamics/symtropy/pull/6793): interval-valued DS-TWR and positive NLOS bias kernel.
 - [#6813](https://github.com/Luminous-Dynamics/symtropy/issues/6813): truth-conditioned MILUV row-selection leakage.
@@ -127,6 +139,9 @@ The targets are deliberately split. A model can have excellent NLOS recall but p
 - [#6843](https://github.com/Luminous-Dynamics/symtropy/pull/6843): evidence-bounded multi-wrap clock stream reconstruction.
 - [#6844](https://github.com/Luminous-Dynamics/symtropy/issues/6844): adversarial UWB ranging integrity qualification.
 - [#6849](https://github.com/Luminous-Dynamics/symtropy/pull/6849): external-verifier session evidence gate.
+- [#6852](https://github.com/Luminous-Dynamics/symtropy/pull/6852): independent 3D range-set posterior audit.
+- [#6853](https://github.com/Luminous-Dynamics/symtropy/issues/6853): risk-aware active evidence acquisition programme.
+- [#6855](https://github.com/Luminous-Dynamics/symtropy/pull/6855): Pareto active evidence-acquisition planner.
 
 ## 8. Claim boundary
 
