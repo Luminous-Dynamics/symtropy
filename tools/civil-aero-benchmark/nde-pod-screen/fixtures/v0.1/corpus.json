@@ -13727,7 +13727,8 @@
           }
         ]
       }
-    ]
+    ],
+    "scope_sha256": "b47757abe316c68c020d1632004da63250a41bd5e85a8e21101872c62b365bac"
   },
   "cases": [
     {
@@ -13814,6 +13815,16 @@
         }
       ],
       "expected_disposition": "SAMPLE_COUNT_INSUFFICIENT"
+    },
+    {
+      "case_id": "NDE-FIXED-009",
+      "mutations": [
+        {
+          "operation": "set_scope_sha256",
+          "value": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "expected_disposition": "NOT_EVALUABLE_SCOPE_DIGEST_MISMATCH"
     }
   ]
 }
