@@ -154,6 +154,8 @@ Research targets (not achieved results):
 
 Use exact binomial bounds for rare false commits and coverage failures. Choose Monte Carlo replication counts before seeing results; do not interpret zero observed failures as zero risk.
 
+For scale, with zero false physical-trend commits in n independent adversarial episodes, the one-sided 95% exact upper bound is \(1-0.05^{1/n}\). At least **299 independent episodes with zero commits** are needed for this unadjusted bound to fall below 1%. This does not cover multiple separate strata or simultaneous claims; those require preregistered alpha allocation and larger per-stratum samples. For roughly ±1 percentage-point Monte Carlo precision around a true 95% coverage rate, the normal approximation suggests about **1,825 independent replicates per stratum**; final reporting must use exact or otherwise justified intervals, and increase samples where dependence reduces the effective sample size.
+
 ## 8. Active calibration as decision optimization
 
 Do not maximize entropy or global parameter information by default. Let a denote a candidate physical stimulus/configuration and C(a) its cost. Select the next experiment to shrink the uncertainty set where it changes the engineering decision:
