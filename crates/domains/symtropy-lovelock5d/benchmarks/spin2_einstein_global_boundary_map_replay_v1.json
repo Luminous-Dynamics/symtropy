@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "einstein_limit_exact_global_boundary_map_replay_receipt",
+  "status": "passed_local_action_derivation_and_exact_rational_map_replay",
+  "derivation_source_sha256": "7a62a78e344cf024d474a3d226f0762f7b2095e8256ec7b1cc098f04486f8fe0",
+  "fixture_sha256": "47ef7ee77335c5bc99af774046ce8101240907ea97e50fc5fd07914a3bbd69b9",
+  "verifier_sha256": "e7258d2b0b542678bd3a60296f85c9513ec79f40c9d5ef35122e2f6c9177f766",
+  "environment": {
+    "python": "3.13.5",
+    "sympy": "1.14.0"
+  },
+  "local_results": {
+    "action_derivation": "all four original even-sector Euler-Lagrange rows vanish exactly",
+    "exact_map": "J=diag(1/2,2)",
+    "determinant": "1",
+    "singular_values": [
+      "1/2",
+      "2"
+    ],
+    "condition_number": "4",
+    "negative_control": "wrong sign of the r^2 term in the H-mode rejected",
+    "runtime_seconds": 4.6
+  },
+  "claim_boundary": "Local source, fixture and verifier were executed successfully. This is an exact action-derived global map and uniqueness result only for the alpha=0, five-dimensional, O(a^2) perturbative system with stated horizon normalization and asymptotic conditions. Exact execution of the committed Git blobs and CI remain distinct gates; no finite-coupling or full nonlinear result is claimed."
+}
