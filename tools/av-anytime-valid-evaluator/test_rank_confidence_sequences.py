@@ -376,6 +376,7 @@ class RankConfidenceSequenceTests(unittest.TestCase):
     def test_singleton_rank_retirement_uses_exact_rank_sets(self):
         doc = make_retirement_document(rule="RANK_SINGLETON", episode_count=40)
         result = evaluate_document(doc)
+        self.assertTrue(result["retirement_log"])
         for look in result["looks"]:
             for retirement in look["retirement_decisions"]:
                 self.assertEqual(retirement["rule"], "RANK_SINGLETON")
@@ -387,6 +388,7 @@ class RankConfidenceSequenceTests(unittest.TestCase):
     def test_pairwise_resolved_retirement_requires_all_comparisons(self):
         doc = make_retirement_document(rule="PAIRWISE_RESOLVED", episode_count=40)
         result = evaluate_document(doc)
+        self.assertTrue(result["retirement_log"])
         for look in result["looks"]:
             certified = {
                 (row["better"], row["worse"])
