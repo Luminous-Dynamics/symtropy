@@ -1,0 +1,62 @@
+name: orbital-structural-interface-bench
+
+on:
+  push:
+    paths:
+      - "tools/orbital-structural-interface-bench/**"
+      - ".github/workflows/orbital-structural-interface-bench.yml"
+  pull_request:
+    paths:
+      - "tools/orbital-structural-interface-bench/**"
+      - ".github/workflows/orbital-structural-interface-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: orbital-structural-interface-bench-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Format
+        run: cargo fmt --manifest-path tools/orbital-structural-interface-bench/Cargo.toml --check
+      - name: Rust tests and adversarial corpus
+        run: cargo test --locked --manifest-path tools/orbital-structural-interface-bench/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/orbital-structural-interface-bench/Cargo.toml --all-targets -- -D warnings
+      - name: Deterministic CLI and exact fixture binding
+        shell: bash
+        run: |
+          cargo run --quiet --locked --manifest-path tools/orbital-structural-interface-bench/Cargo.toml -- \
+            tools/orbital-structural-interface-bench/fixtures/v0.1/cases.json \
+            --source-commit "$GITHUB_SHA" > /tmp/structural-interface-a.json
+          cargo run --quiet --locked --manifest-path tools/orbital-structural-interface-bench/Cargo.toml -- \
+            tools/orbital-structural-interface-bench/fixtures/v0.1/cases.json \
+            --source-commit "$GITHUB_SHA" > /tmp/structural-interface-b.json
+          cmp /tmp/structural-interface-a.json /tmp/structural-interface-b.json
+          jq -e '
+            .schema == "luminous.orbital-structural-interface.receipt.v0.1" and
+            .case_count == 44 and .matched_cases == 44 and
+            .mismatched_cases == 0 and .authority_granted == false and
+            .claim_ceiling == "synthetic_structural_profile_compatibility_only" and
+            (.input_sha256 | test("^[0-9a-f]{64}$"))
+          ' /tmp/structural-interface-a.json
+      - name: Independent stdlib reference oracle
+        run: |
+          python3 tools/orbital-structural-interface-bench/tests/reference_oracle.py \
+            tools/orbital-structural-interface-bench/fixtures/v0.1/cases.json \
+            "$GITHUB_SHA" > /tmp/structural-interface-oracle.json
+          jq -e '.case_count == 44 and .matched_cases == 44 and .mismatched_cases == 0' \
+            /tmp/structural-interface-oracle.json
