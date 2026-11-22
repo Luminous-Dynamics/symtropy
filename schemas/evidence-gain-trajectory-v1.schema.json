@@ -143,16 +143,25 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "turn_id", "turn_index", "preceding_action_id", "action_result_status",
+        "turn_id", "turn_index", "parent_transcript_head_sha256",
+        "preceding_action_id", "action_result_status", "action_result_digest_sha256",
         "new_observation_ids", "workload", "submission", "action_forecast",
         "action_value_receipt", "resource_delta"
       ],
       "properties": {
         "turn_id": {"type": "string", "minLength": 1},
         "turn_index": {"type": "integer", "minimum": 0},
+        "parent_transcript_head_sha256": {
+          "type": ["string", "null"],
+          "pattern": "^[0-9a-fA-F]{64}$"
+        },
         "preceding_action_id": {"type": "string", "minLength": 1},
         "action_result_status": {
           "enum": ["INITIAL", "DELIVERED", "FAILED", "TIMEOUT", "MALFORMED"]
+        },
+        "action_result_digest_sha256": {
+          "type": ["string", "null"],
+          "pattern": "^[0-9a-fA-F]{64}$"
         },
         "new_observation_ids": {
           "type": "array",
