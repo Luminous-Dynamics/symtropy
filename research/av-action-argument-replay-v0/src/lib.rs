@@ -381,6 +381,14 @@ pub struct ActionResultV1 {
     pub result_tick: u64,
     /// Delivered video frames, when this was a video action.
     pub delivered_frames: Vec<DeliveredFrameV1>,
+    /// Actual region of interest applied by the executor for a video action.
+    pub delivered_roi: Option<RegionOfInterestV1>,
+    /// Actual output resolution applied by the executor for a video action.
+    pub delivered_output_resolution: Option<OutputResolutionV1>,
+    /// Digest of the actual crop policy applied by the executor.
+    pub delivered_crop_policy_sha256: Option<String>,
+    /// Digest of the actual preprocessing transform applied by the executor.
+    pub delivered_preprocessing_sha256: Option<String>,
     /// Delivered audio sample range, when this was an audio action.
     pub delivered_audio: Option<DeliveredAudioRangeV1>,
     /// Delivered feedback, when this was a feedback action.
@@ -1441,7 +1449,7 @@ mod tests {
             eligible_action_ids: vec![manifest.action_id.clone()],
             actions: vec![ForecastActionManifestV1 {
                 action_id: manifest.action_id.clone(),
-                manifest,
+                manifest: manifest.clone(),
                 manifest_sha256: digest,
             }],
             evsi_forecasts: evsi_forecasts(&manifest.action_id),
@@ -1462,7 +1470,7 @@ mod tests {
             eligible_action_ids: vec![manifest.action_id.clone()],
             actions: vec![ForecastActionManifestV1 {
                 action_id: manifest.action_id.clone(),
-                manifest,
+                manifest: manifest.clone(),
                 manifest_sha256: manifest_digest.clone(),
             }],
             evsi_forecasts: evsi_forecasts(&manifest.action_id),
