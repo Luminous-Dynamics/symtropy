@@ -255,7 +255,7 @@ fn dominates(left: &ActionMetric, right: &ActionMetric) -> bool {
         left.cost.elapsed_millis.cmp(&right.cost.elapsed_millis),
     ];
     dimensions.iter().all(|order| *order != Ordering::Greater)
-        && dimensions.iter().any(|order| *order == Ordering::Less)
+        && dimensions.contains(&Ordering::Less)
 }
 
 fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
