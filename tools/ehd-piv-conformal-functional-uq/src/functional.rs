@@ -402,6 +402,75 @@ mod tests {
     }
 
     #[test]
+    fn all_mass_and_momentum_jacobians_match_central_finite_differences() {
+        fn raw_functionals(
+            velocity: [f64; 3],
+            area: [f64; 3],
+            density: f64,
+        ) -> [f64; 4] {
+            let normal_flux = velocity[0] * area[0]
+                + velocity[1] * area[1]
+                + velocity[2] * area[2];
+            [
+                density * normal_flux,
+                density * velocity[0] * normal_flux,
+                density * velocity[1] * normal_flux,
+                density * velocity[2] * normal_flux,
+            ]
+        }
+
+        let velocity = [1.7, -0.4, 0.8];
+        let area = [0.3, 0.6, -0.2];
+        let density = 1.2;
+        let variance = 0.0025;
+        let step = 1.0e-6;
+
+        for velocity_component in 0..3 {
+            let mut diagonal = [0.0; 3];
+            diagonal[velocity_component] = variance;
+            let data = FieldFunctionalInput {
+                run_id: "finite-difference-run".to_owned(),
+                control_surface_id: "oblique-face-v1".to_owned(),
+                sign_convention_id: "outward-area-vector-v1".to_owned(),
+                covariance_multiplier: 1.0,
+                samples: vec![FaceVelocitySample {
+                    velocity_m_s: velocity,
+                    oriented_area_vector_m2: area,
+                    density_kg_m3: density,
+                    local_velocity_covariance_m2_s2: Covariance3 {
+                        xx: diagonal[0], xy: 0.0, xz: 0.0,
+                        yy: diagonal[1], yz: 0.0, zz: diagonal[2],
+                    },
+                }],
+                shared_modes: Vec::new(),
+            };
+            let report = propagate_field_functional_uncertainty(&data).unwrap();
+
+            let mut plus = velocity;
+            let mut minus = velocity;
+            plus[velocity_component] += step;
+            minus[velocity_component] -= step;
+            let plus_values = raw_functionals(plus, area, density);
+            let minus_values = raw_functionals(minus, area, density);
+
+            for functional_index in 0..4 {
+                let finite_difference_derivative =
+                    (plus_values[functional_index] - minus_values[functional_index])
+                        / (2.0 * step);
+                let expected_variance =
+                    finite_difference_derivative * finite_difference_derivative * variance;
+                assert!(
+                    (report.functional_covariance[functional_index][functional_index]
+                        - expected_variance)
+                        .abs()
+                        < 1.0e-9,
+                    "functional {functional_index}, velocity component {velocity_component}"
+                );
+            }
+        }
+    }
+
+    #[test]
     fn shared_velocity_calibration_mode_creates_cross_sample_covariance() {
         let mut data = input(vec![
             sample([2.0, 0.0, 0.0], [1.0, 0.0, 0.0], 0.25),
