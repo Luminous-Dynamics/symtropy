@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 pub mod pod;
 use std::collections::HashSet;
 
-const CORPUS_SCHEMA: &str = "luminous.orbital-observation-identifiability.corpus.v0.1";
+const CORPUS_SCHEMA: &str = "luminous.orbital-observation-identifiability.corpus.v0.2";
 const CLAIM_CEILING: &str = "synthetic-thinned-plp-identifiability-and-pod-bounds-only";
 const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 const MAX_EVENTS: usize = 1_000_000;
@@ -681,7 +681,7 @@ mod tests {
     #[test]
     fn frozen_identifiability_corpus_replays_without_claim_escalation() {
         let corpus: Corpus = serde_json::from_str(include_str!(
-            "../fixtures/v0.1/identifiability-cases.json"
+            "../fixtures/v0.2/identifiability-cases.json"
         ))
         .expect("identifiability corpus parses");
         let report = evaluate(&corpus).expect("identifiability corpus evaluates");
@@ -689,6 +689,8 @@ mod tests {
         assert_eq!(report.summary.analytic_expected_result_mismatches, 0);
         assert_eq!(report.summary.sensitivity_mismatches, 0);
         assert_eq!(report.summary.simulation_inconsistent_count, 0);
+        assert_eq!(report.summary.pod_trend_expected_result_mismatches, 0);
+        assert!(report.summary.pod_trend_case_count >= 7);
         assert!(report.summary.shape_nonidentifiability_cases > 0);
         assert!(report.summary.scale_nonidentifiability_cases > 0);
         assert_eq!(report.summary.physical_reliability_claims, 0);
