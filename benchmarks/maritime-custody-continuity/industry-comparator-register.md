@@ -31,6 +31,15 @@ In particular:
 - The Digital Port Gateway should return staged, purpose-bound admission evidence and no effect authority in the reference profile (#1121).
 - A multi-party release/settlement workflow can partially commit; timeout or compensation cannot erase an external effect (#1293).
 
+## Timestamp semantics and temporal-order baselines
+
+- DCSA Information Model 2.0 separates Event DateTime (when an event occurred or will occur) from Event Created DateTime (when the event entry was created), and carries an event classifier such as Actual. The adapter must preserve both rather than use message creation as physical event time. https://reference.dcsa.org/files/content/standards/guidelines/information-model-2-0/dcsa-information-model-2-0.pdf
+- GS1 EPCIS separates eventTime from recordTime. eventTime is the capture application's assertion of when the event occurred; recordTime is repository bookkeeping and does not describe the real-world event. EPCIS also carries timezone-offset semantics, while its sensor guidance recommends clock synchronization (IEEE 1588/PTP) for distributed observations. This does not itself establish the quality of a particular device's synchronization. https://ref.gs1.org/epcis/ObjectEvent and https://ref.gs1.org/epcis/SensorReport
+- Distributed-systems theory distinguishes a partial happens-before relation from a physical-time total ordering. Lamport's classic treatment is a conceptual baseline: some events are not orderable from available causal information alone. The maritime implementation adds bounded physical-time enclosures and explicit clock-basis identifiers; it should not call overlap simultaneity. https://lamport.azurewebsites.net/pubs/time-clocks.pdf
+- Reuse the existing Symtropy interval/event-order research: [#3410 — partial event order under uncertain near-simultaneous impacts](https://github.com/Luminous-Dynamics/symtropy/issues/3410) and [#4113 / closed draft #4107 — exact-rational interval and event-order reference](https://github.com/Luminous-Dynamics/symtropy/issues/4113). This maritime verifier is not a replacement for their exact-rational arithmetic or hybrid contact/reset semantics.
+
+Keep these times distinct in every real adapter: physical event/observation time, source event-entry/creation time, repository record time, source publication time, local ingestion/receipt time, evidence retrieval time, and decision/as-of time. Do not silently substitute one for another.
+
 ## What could differentiate this work
 
 The research contribution is the explicit composition and testing of:
