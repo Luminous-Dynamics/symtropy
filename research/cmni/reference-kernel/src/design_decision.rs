@@ -11,6 +11,8 @@
 //! Evidence variants are typed declarations, not self-authenticating proofs.
 //! Producers must attach receipts that an independent verifier can resolve.
 
+use crate::batch_design::BatchPortfolioScore;
+use crate::qoi_design::QuantityOfInterestPortfolioScore;
 use crate::ModelError;
 
 /// Epistemic status attached to a utility interval.
@@ -35,6 +37,48 @@ pub enum UtilityBoundEvidence {
     Heuristic,
     /// The underlying model, source lineage, or calculation is unqualified.
     Unqualified,
+}
+
+/// Construct a parameter-EIG interval without dropping batch qualification.
+///
+/// The value is exact under the declared linear-Gaussian model. It is marked
+/// Unqualified when common-cause lineage or inter-source dependence is not
+/// qualified on the source portfolio.
+pub fn parameter_eig_utility_interval(
+    portfolio_id: impl Into<String>,
+    portfolio: &BatchPortfolioScore,
+) -> PortfolioUtilityInterval {
+    PortfolioUtilityInterval {
+        portfolio_id: portfolio_id.into(),
+        lower: portfolio.linear_gaussian_expected_information_gain_nats,
+        upper: portfolio.linear_gaussian_expected_information_gain_nats,
+        evidence: if portfolio.lineage_coverage_complete
+            && portfolio.inter_source_dependence_complete
+        {
+            UtilityBoundEvidence::Exact
+        } else {
+            UtilityBoundEvidence::Unqualified
+        },
+    }
+}
+
+/// Construct a linear-QoI EIG interval while preserving source qualification.
+pub fn linear_qoi_eig_utility_interval(
+    portfolio_id: impl Into<String>,
+    score: &QuantityOfInterestPortfolioScore,
+) -> PortfolioUtilityInterval {
+    PortfolioUtilityInterval {
+        portfolio_id: portfolio_id.into(),
+        lower: score.quantity_score.expected_information_gain_nats,
+        upper: score.quantity_score.expected_information_gain_nats,
+        evidence: if score.portfolio.lineage_coverage_complete
+            && score.portfolio.inter_source_dependence_complete
+        {
+            UtilityBoundEvidence::Exact
+        } else {
+            UtilityBoundEvidence::Unqualified
+        },
+    }
 }
 
 /// A utility interval for one candidate portfolio. Larger is better.
@@ -372,6 +416,69 @@ mod tests {
             Err(ModelError::InvalidParameter(
                 "theorem_utility_bound_receipts_must_be_nonempty"
             ))
+        );
+    }
+
+    fn qualified_batch_score(lineage: bool, dependence: bool) -> BatchPortfolioScore {
+        BatchPortfolioScore {
+            candidate_ids: vec!["candidate-a".to_owned()],
+            total_cost: 1.0,
+            observation_count: 1,
+            posterior_covariance: vec![vec![0.5]],
+            a_optimal_trace_reduction: 0.5,
+            d_optimal_logdet_reduction: 2.0_f64.ln(),
+            linear_gaussian_expected_information_gain_nats: 0.5 * 2.0_f64.ln(),
+            lineage_coverage_complete: lineage,
+            inter_source_dependence_complete: dependence,
+            inter_source_dependence_receipt_ids: if dependence {
+                vec!["receipt:portfolio".to_owned()]
+            } else {
+                Vec::new()
+            },
+            shared_source_ids: vec!["calibration".to_owned()],
+        }
+    }
+
+    #[test]
+    fn parameter_eig_interval_inherits_batch_source_qualification() {
+        let qualified = qualified_batch_score(true, true);
+        let interval = parameter_eig_utility_interval("qualified", &qualified);
+        assert_eq!(interval.evidence, UtilityBoundEvidence::Exact);
+
+        let missing_lineage = qualified_batch_score(false, true);
+        let interval = parameter_eig_utility_interval("missing-lineage", &missing_lineage);
+        assert_eq!(interval.evidence, UtilityBoundEvidence::Unqualified);
+
+        let unknown_dependence = qualified_batch_score(true, false);
+        let interval = parameter_eig_utility_interval("unknown-dependence", &unknown_dependence);
+        assert_eq!(interval.evidence, UtilityBoundEvidence::Unqualified);
+    }
+
+    #[test]
+    fn qoi_eig_interval_does_not_upgrade_unqualified_portfolio() {
+        let score = QuantityOfInterestPortfolioScore {
+            portfolio: qualified_batch_score(true, false),
+            quantity_score: crate::qoi_design::LinearQuantityOfInterestScore {
+                quantity_count: 1,
+                prior_covariance: vec![vec![1.0]],
+                posterior_covariance: vec![vec![0.5]],
+                a_optimal_trace_reduction: 0.5,
+                d_optimal_logdet_reduction: 2.0_f64.ln(),
+                expected_information_gain_nats: 0.5 * 2.0_f64.ln(),
+            },
+        };
+        let interval = linear_qoi_eig_utility_interval("qoi", &score);
+        assert_eq!(interval.evidence, UtilityBoundEvidence::Unqualified);
+        assert_eq!(
+            certify_maximum_utility(&[interval, PortfolioUtilityInterval {
+                portfolio_id: "other".to_owned(),
+                lower: 0.0,
+                upper: 0.0,
+                evidence: UtilityBoundEvidence::Exact,
+            }], 0.0),
+            Ok(DominanceDecision::Unresolved {
+                reason: DominanceUnresolvedReason::UnqualifiedOrHeuristicBounds,
+            })
         );
     }
 
