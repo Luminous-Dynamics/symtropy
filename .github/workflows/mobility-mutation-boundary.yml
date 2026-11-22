@@ -26,8 +26,18 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.96.0
         with:
           components: rustfmt, clippy
-      - name: Check formatting
-        run: cargo fmt --manifest-path research/mobility-mutation-boundary/Cargo.toml -- --check
+      - name: Format source and export canonical files
+        run: |
+          cargo fmt --manifest-path research/mobility-mutation-boundary/Cargo.toml
+          cargo fmt --manifest-path research/mobility-mutation-boundary/Cargo.toml -- --check
+          echo "MUTATION_LIB_B64_BEGIN"
+          base64 -w0 research/mobility-mutation-boundary/src/lib.rs
+          echo
+          echo "MUTATION_LIB_B64_END"
+          echo "MUTATION_HISTORY_B64_BEGIN"
+          base64 -w0 research/mobility-mutation-boundary/src/history.rs
+          echo
+          echo "MUTATION_HISTORY_B64_END"
       - name: Run deterministic reference tests
         run: cargo test --manifest-path research/mobility-mutation-boundary/Cargo.toml --locked
       - name: Run Clippy with warnings denied
