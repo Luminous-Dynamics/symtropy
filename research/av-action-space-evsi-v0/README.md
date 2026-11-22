@@ -53,7 +53,10 @@ No single weighted leaderboard number is produced. Report:
 - gross EVSI MAE and signed bias, including unselected alternatives;
 - net EVSI MAE and signed bias under the published scenario cost weight;
 - forecast interval coverage against evaluator-known expected gross values;
+- mean interval width and the preregistered central-90% Winkler interval score, so vacuously wide intervals cannot obtain perfect coverage for free;
 - pairwise ordering accuracy across non-tied alternatives;
+
+The interval score is evaluated against the finite evaluator-known expected gross-EVSI label. It is a sharpness/coverage diagnostic for the synthetic expected-value target, not a claim of stochastic predictive calibration. Full probabilistic calibration requires repeated paired potential-outcome worlds and held-out seeds.
 - missed-best-action count;
 - selected-action regret and mean regret;
 - oracle-best feasible action selection accuracy.
