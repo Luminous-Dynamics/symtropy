@@ -36,8 +36,7 @@ pub mod trajectory;
 
 pub use pathwise_event::{
     EncounterWindow, HorizonContactDisposition, HorizonEventConfig, HorizonEventDefinition,
-    PathWindowDisposition,
-    PathWindowOutcome, PathwiseHorizonOutcome, WindowInventoryCoverage,
+    PathWindowDisposition, PathWindowOutcome, PathwiseHorizonOutcome, WindowInventoryCoverage,
 };
 pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
