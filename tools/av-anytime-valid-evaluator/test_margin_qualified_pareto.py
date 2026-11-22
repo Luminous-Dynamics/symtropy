@@ -260,6 +260,43 @@ class MarginQualifiedParetoTests(unittest.TestCase):
                 if pair_report["status"] != "INELIGIBLE":
                     self.assertIn(pair_report["status"], {"UNRESOLVED", "CERTIFIED_DOMINATES"})
 
+    def test_margin_qualified_edges_may_form_cycle_and_are_reported(self):
+        policies = ("A", "B", "C")
+        axes = []
+        for metric in ("axis_1", "axis_2", "axis_3"):
+            axes.append({
+                "metric_id": metric,
+                "unit": "normalized utility",
+                "source_direction": "maximize",
+                "score_direction": "higher_is_better",
+                "transform_id": f"{metric}-identity-v1",
+                "transform_digest_sha256": hashlib.sha256(f"{metric}-identity-v1".encode()).hexdigest(),
+                "provenance": "SYNTHETIC",
+                "no_worse_tolerance": 0.1,
+                "material_improvement_margin": 0.1,
+            })
+        scores = {
+            "A": {"axis_1": 0.61, "axis_2": 0.445, "axis_3": 0.445},
+            "B": {"axis_1": 0.50, "axis_2": 0.50, "axis_3": 0.50},
+            "C": {"axis_1": 0.555, "axis_2": 0.39, "axis_3": 0.555},
+        }
+        doc = make_document(
+            policies=policies,
+            axes=axes,
+            scores_by_policy=scores,
+        )
+        last = evaluate_document(doc)["looks"][-1]
+        self.assertIn({"better": "A", "worse": "B"}, last["certified_dominance_edges"])
+        self.assertIn({"better": "B", "worse": "C"}, last["certified_dominance_edges"])
+        self.assertIn({"better": "C", "worse": "A"}, last["certified_dominance_edges"])
+        self.assertTrue(last["dominance_graph_has_cycle"])
+
+    def test_hard_gate_record_rejects_unknown_fields(self):
+        doc = make_document()
+        doc["hard_gates"]["A"]["hidden_label"] = "leak"
+        with self.assertRaises(ParetoEvaluationError):
+            evaluate_document(doc)
+
     def test_order_commitment_and_row_order_are_enforced(self):
         doc = make_document()
         doc["order_commitment_sha256"] = "0" * 64
