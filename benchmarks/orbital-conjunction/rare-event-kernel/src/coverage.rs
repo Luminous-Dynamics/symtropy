@@ -8,8 +8,10 @@
 //! enclosed image. It can prove that a cell cannot intersect a static collision
 //! ball when the norm lower bound is strictly greater than the hard-body radius.
 //!
-//! It does not implement nonlinear orbit propagation, time-dependent first
-//! contact, probability-mass summation, or a complete residual-mass certificate.
+//! The crate's residual module composes these primitives into a budgeted
+//! static-affine residual-mass traversal. This module itself does not implement
+//! nonlinear orbit propagation, time-dependent first contact, or a formally
+//! machine-verified residual-mass certificate.
 
 use crate::KernelError;
 
