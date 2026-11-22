@@ -107,6 +107,30 @@
       "evidence_state": "draft_PR_focused_workflow_passed_on_exact_head_4f3e39010daca8e9d57683712dc958f7560f15ef_repository_wide_qualification_job_separate_failure"
     },
     {
+      "owner": "Luminous-Dynamics/mycelix",
+      "issue": 6531,
+      "contract": "MFG-PROC-001A",
+      "scope": "migration-safe typed references to Symthaea process definitions, capability requirements/profiles and recipes; optional operation/routing/machine bindings",
+      "authority": "distributed_typed_process_reference_registry",
+      "consumed_by": [
+        "Luminous-Dynamics/symtropy#6786",
+        "Luminous-Dynamics/symthaea#12533"
+      ],
+      "evidence_state": "draft_PR_6532_exact_head_74d91bb_pending_or_failing_clippy_recheck_at_last_inspection_refs_to_symthaea_PR_5701_commit_0b3feb49_remain_unresolved"
+    },
+    {
+      "owner": "Luminous-Dynamics/mycelix",
+      "issue": 6533,
+      "contract": "MFG-PROC-001B",
+      "scope": "versioned provider/site/resource offers with process/profile/configuration/evidence refs and distinct capacity/calendar claims",
+      "authority": "distributed_resource_offer_registry",
+      "consumed_by": [
+        "Luminous-Dynamics/symtropy#6786",
+        "Luminous-Dynamics/sol-atlas-leptos#606"
+      ],
+      "evidence_state": "issue_open_design_spec_only_no_resource_offer_implementation"
+    },
+    {
       "owner": "Luminous-Dynamics/sol-atlas-leptos",
       "issue": 569,
       "contract": "CITY-MATERIAL-LOOPS-001",
@@ -352,7 +376,9 @@
     "Future adapters pin owner repository, schema id/version/digest, source revision, subject and receipt identity, raw disposition and revocation/correction state.",
     "Adapters may weaken claims to Unknown/Unavailable but never upgrade claims to qualified or accepted.",
     "Simulation, synthetic fixtures, vendor declarations, mapped sites and machine advertisements are never promoted to physical qualification.",
-    "A work-order completion is not an accepted part; a machine session is not a qualified process; a qualified individual unit is not production yield."
+    "A work-order completion is not an accepted part; a machine session is not a qualified process; a qualified individual unit is not production yield.",
+    "Mycelix MFG-PROC-001A typed references bind exact Symthaea contract crate/type/source commit and BLAKE3 object/process identities; until external owner objects are fetched and verified, the only local state is TypedReferencePresent, not qualified.",
+    "Mycelix MFG-PROC-001B resource offers separate published claims, declared capacity, calendar availability, bookable capacity, reserved capacity and observed output. A published offer never proves resource qualification or schedulability."
   ],
-  "claim_ceiling": "Public owner/path audit only. No private-workspace completeness, schema conformance, physical machine qualification, supplier approval, production capacity, cost savings or local productive closure is established. FPM anomaly/quality outputs and process-run receipts are not product acceptance or qualification receipts."
+  "claim_ceiling": "Public owner/path audit only. Symthaea PR #5701 is still an open draft and its current-main replay #5901 is not qualified; Mycelix PR #6532 references remain unresolved. Mycelix #6533 is a design issue only. No private-workspace completeness, schema conformance, physical machine qualification, supplier approval, resource availability, production capacity, cost savings or local productive closure is established."
 }
