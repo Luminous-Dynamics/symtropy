@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "branch_atlas_projection_overlap_replay",
+  "status": "local_exact_public_blob_replay_passed",
+  "source_path": "crates/domains/symtropy-lovelock5d/benchmarks/branch_atlas_projection_overlap_reference.py",
+  "source_git_blob_sha1": "14b3981b1092b93a7bf1c0d54349d21cea471c14",
+  "source_sha256": "851a379d42d17f396564f6fd42430f9069e61e78437a21dabb6b0c2d11a93ab9",
+  "python": "3.13.5",
+  "command": "python /tmp/branch_atlas_projection_overlap_public.py",
+  "checks": [
+    "two distinct exact full states share a scalar observable value",
+    "both original synthetic-system residual vectors are exactly zero",
+    "the full state Jacobian remains full rank at the observable overlap",
+    "the parameter projection remains regular for the overlap example",
+    "a separate exact simple-fold fixture has the expected singular fixed-parameter derivative and nonzero transversality derivative",
+    "the true fold has two exact roots on one side of the fold"
+  ],
+  "fixture_path": "crates/domains/symtropy-lovelock5d/benchmarks/branch_atlas_projection_overlap_fixture_v1.json",
+  "result": "PASS",
+  "claim_ceiling": "Exact synthetic branch-topology controls only; no Akribeia reproduction, no 5D EGB branch event, and no branch completeness theorem."
+}
