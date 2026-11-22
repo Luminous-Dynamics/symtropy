@@ -25,6 +25,11 @@ P0 implements only instance-level ADD and child-specific DELETE. It does not imp
 
 Unsupported source semantics must remain Unsupported/NeedsProfileWork; they must not be guessed or coerced.
 
+
+## Timestamp convention
+
+P0 `event_time` and `published_at` are integer fixture ticks with no asserted seconds, UTC/TAI meaning, local timezone, precision, or clock-accuracy interpretation. P0 uses them only to construct deterministic synthetic replays and identify exact-tick ambiguity. P1 must carry raw source timestamp lexemes, source field semantics, event time vs publication/record time, timezone/offset, clock identity/profile, calibration window and uncertainty enclosure. Mycelix #437 and Symtropy #1930/#1955 own source semantic/time mapping; this module must not infer a common time basis from equal numeric ticks.
+
 ## Frozen P0 contract
 
 - Input module catalogue: unique, non-empty module IDs with an already-declared CargoModuleFamily.
