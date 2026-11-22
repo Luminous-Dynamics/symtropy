@@ -382,6 +382,7 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
         "runtime_digest_sha256",
         "configuration_digest_sha256",
         "hardware_digest_sha256",
+        "evaluator_source_catalog",
         "truth",
         "turns",
     }
@@ -415,21 +416,30 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(turns, list) or not turns:
         raise EvidenceGainError("turns must be a non-empty array")
 
-    # Construct the evaluator-only full source catalog before scoring any turn.
-    # Future observations may appear in hidden truth annotations, but each
-    # candidate submission is still checked against that turn's delivered
-    # workload catalog only.
-    full_truth_catalog: dict[str, dict[str, Any]] = {}
-    for index, raw_turn in enumerate(turns):
-        if not isinstance(raw_turn, dict) or not isinstance(raw_turn.get("workload"), dict):
-            raise EvidenceGainError(f"turn[{index}]: missing workload object")
-        source_rows = _validate_observation_catalog(raw_turn["workload"])
-        for observation_id, row in source_rows.items():
-            if observation_id in full_truth_catalog and full_truth_catalog[observation_id] != row:
-                raise EvidenceGainError(
-                    f"turn[{index}]: immutable source observation {observation_id} changed"
-                )
-            full_truth_catalog[observation_id] = row
+    # Evaluator-only complete source catalog. It may contain observations
+    # that were never delivered (for example, failed acquisitions) and future
+    # observations. Candidate submissions are still validated against each
+    # turn's candidate-visible catalog only.
+    source_rows = document["evaluator_source_catalog"]
+    max_cutoff = max(
+        _integer(
+            row.get("workload", {}).get("decision_cutoff_tick")
+            if isinstance(row, dict) and isinstance(row.get("workload"), dict)
+            else None,
+            f"turn[{index}].workload.decision_cutoff_tick",
+        )
+        for index, row in enumerate(turns)
+    )
+    source_wrapper = {
+        "benchmark_id": EVIDENCE_BENCHMARK_ID,
+        "schema_version": 1,
+        "episode_id": episode_id,
+        "transcript_head_sha256": hashlib.sha256(
+            f"{trajectory_id}:evaluator-source-catalog".encode("utf-8")
+        ).hexdigest(),
+        "decision_cutoff_tick": max_cutoff,
+        "observation_catalog": source_rows,
+    }
 
     turn_results = []
     seen_turn_ids: set[str] = set()
@@ -511,6 +521,13 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
         if cutoff <= prior_cutoff:
             raise EvidenceGainError(f"{turn_id}: decision cutoffs must strictly increase")
         catalog = _validate_observation_catalog(workload)
+        source_catalog = _validate_observation_catalog(source_wrapper)
+        full_truth_catalog = source_catalog
+        for observation_id, row in catalog.items():
+            if full_truth_catalog.get(observation_id) != row:
+                raise EvidenceGainError(
+                    f"{turn_id}: delivered observation {observation_id} differs from immutable evaluator source catalog"
+                )
         if prior_catalog is None:
             if turn["new_observation_ids"] != []:
                 raise EvidenceGainError("initial turn must not report newly acquired observations")
@@ -548,12 +565,8 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
         if submission.get("transcript_head_sha256") != workload.get("transcript_head_sha256"):
             raise EvidenceGainError(f"{turn_id}: evidence submission is bound to a different transcript head")
 
-        # Truth is evaluated against the immutable full source catalog;
+        # Truth is evaluated against the immutable evaluator source catalog;
         # the candidate remains limited to this turn's delivered catalog.
-        for observation_id, row in catalog.items():
-            if full_truth_catalog.get(observation_id) != row:
-                raise EvidenceGainError(f"{turn_id}: delivered observation differs from full source record")
-
         action_result = _validate_action_forecast(
             turn, workload, policy_id, index
         )
