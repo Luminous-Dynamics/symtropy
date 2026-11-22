@@ -658,7 +658,11 @@ pub fn validate_spatial_error_kernel(
                         predicted_correlation[a][b] = predicted[a][b] / denominator;
                     }
                 }
-                diagonal_correlations[bin_index][a].push(observed_correlation[a][a]);
+            }
+            // One observation per independent acquisition and lag bin. Do
+            // not count the many vector pairs inside a field as independent.
+            for axis in 0..3 {
+                diagonal_correlations[bin_index][axis].push(observed_correlation[axis][axis]);
             }
             observed_by_bin[bin_index].push(observed_correlation);
             predicted_by_bin[bin_index].push(predicted_correlation);
