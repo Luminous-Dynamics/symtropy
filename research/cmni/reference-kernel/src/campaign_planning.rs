@@ -240,9 +240,17 @@ impl CampaignSolver<'_> {
 
         for option_index in remaining_option_indices {
             let option = &self.information_options[*option_index];
-            if option.cost > remaining_budget {
+            let budget_tolerance =
+                1.0e-12 * remaining_budget.abs().max(option.cost.abs()).max(1.0);
+            if option.cost - remaining_budget > budget_tolerance {
                 continue;
             }
+            // Floating-point subtraction can leave a tiny negative residual
+            // when an exact decimal budget is exhausted by its component
+            // costs (e.g. 0.15 - 0.05 - 0.05). Treat that residual as zero,
+            // but never permit an option whose cost exceeds budget beyond
+            // the scale-aware numerical tolerance above.
+            let next_remaining_budget = (remaining_budget - option.cost).max(0.0);
             let mut next_option_indices = Vec::with_capacity(remaining_option_indices.len() - 1);
             next_option_indices.extend(
                 remaining_option_indices
@@ -292,7 +300,7 @@ impl CampaignSolver<'_> {
                 let (continuation, continuation_value) = self.solve(
                     &posterior_probabilities,
                     &next_option_indices,
-                    remaining_budget - option.cost,
+                    next_remaining_budget,
                     remaining_steps - 1,
                 )?;
                 expected_value_after_information += outcome_probability * continuation_value;
