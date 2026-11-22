@@ -1,7 +1,6 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use std::collections::BTreeSet;
 
 //! Loss-aware semantic decoding for EPCIS 2.0.1 AggregationEvent actions.
 //!
@@ -11,6 +10,8 @@ use std::collections::BTreeSet;
 //! childQuantityList stays class-level quantity evidence (not fabricated
 //! instance identities), and DELETE with no child list is an explicit
 //! delete-all operation for the named parent.
+
+use std::collections::BTreeSet;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum AggregationAction {
