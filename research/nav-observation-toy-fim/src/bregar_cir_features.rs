@@ -173,7 +173,9 @@ pub fn extract_bregar_cir_features(
     let pre_first_path_noise_rms =
         (pre_first_path_energy / BREGAR_FP_OFFSET_SAMPLES as f64).sqrt();
 
-    let early_postcursor_end = (first_path_offset + BREGAR_EARLY_POSTCURSOR_SAMPLES)
+    let early_postcursor_end = (first_path_offset
+        + 1
+        + BREGAR_EARLY_POSTCURSOR_SAMPLES)
         .min(BREGAR_CIR_WINDOW_SAMPLES);
     let early_postcursor_energy =
         checked_sum(&energies[first_path_offset + 1..early_postcursor_end])?;
