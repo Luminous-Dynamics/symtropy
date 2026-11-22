@@ -366,3 +366,26 @@ These are targets. A passing synthetic evaluator test does not establish any of 
 - [Liang et al. 2026](https://doi.org/10.1016/j.ejor.2026.10.020): multi-visit, release-date/time-window pickup/delivery and drone resupply.
 - [Tran et al. 2026](https://doi.org/10.1016/j.tre.2026.105082): multi-rendezvous truck-drone resupply.
 - [Liu et al. 2026](https://doi.org/10.1016/j.tre.2026.105114): heterogeneous en-route drone operations.
+
+## 18. Exact-head v0.1 verification and frozen fixture result
+
+Exact-head Actions run [#45066300699](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45066300699) at `f043d97e68f2ae84ef303f2eb09bbf26d97d2c22` passed:
+- strict schema/fixture JSON parsing;
+- package workspace `cargo fmt --check`;
+- `cargo test`;
+- deterministic report assertions;
+- report artifact upload.
+
+The test binaries reported 154 + 16 + 8 + 9 = **187 passed, 0 failed**. The service-capacity module itself contains 16 focused Rust tests. Clippy is not part of this workflow and remains unverified.
+
+The eight-hour frozen synthetic fixture produced:
+
+| Architecture profile | Effective channels | Completed modeled sorties | Sorties / wall-clock hour |
+| --- | ---: | ---: | ---: |
+| Direct single-pack recharge | 1 | 11 | 1.375 |
+| Dock 4-shaped, 3 spares / 2 channels | 2 | 38 | 4.750 |
+| Same profile, site-limited to 1 channel | 1 | 21 | 2.625 |
+| Two-aircraft shared pool, site-limited to 3 channels | 3 | 58 | 7.250 |
+
+These figures are deterministic fixture outputs from the supplied parameters. They are not DJI performance, observed aircraft uptime, delivered customer requests or successful on-time missions. The simulator assumes every sortie completes and has no stochastic demand, weather, permission, maintenance or mission-failure process. The four architecture profiles also differ in aircraft count and mission duration; they are not a normalized leaderboard. A fair comparative claim requires a matched workload and capital/resource budget across all candidates.
+
