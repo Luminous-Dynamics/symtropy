@@ -86,6 +86,10 @@ There are therefore two distinct supported ingestion modes, which must never be 
 - Keep the unwrap algorithm/version, wrap count and any ambiguity in the receipt.
 - Construct (A,B,C,D) only after the clock streams are independently qualified.
 
+A bounded **per-transaction** raw-tick adapter is implemented in [follow-up PR #6815](https://github.com/Luminous-Dynamics/symtropy/pull/6815). It unwraps the initiator sequence [tx1, rx2, rx3] and responder sequence [rx1, tx2, tx3] independently, requires a caller-supplied maximum inter-event gap strictly smaller than one uint32 wrap period, and returns raw/unwrapped events, rollover counts and duration inputs.
+
+This adapter is not a substitute for full experiment-stream clock reconstruction. The caller must justify the sub-wrap gap contract and establish that neither radio reset/rebooted during the exchange; a raw counter decrease alone cannot distinguish a reset from a wrap.
+
 ### Mode B — authors' processed MILUV CSV
 
 - Treat `tx*_raw` and `rx*_raw` as already converted and experiment-unwrapped nanosecond values, subject to confirmation against the exact dataset payload and schema version.
@@ -159,9 +163,9 @@ Do not score a method only on the subset where its preferred sensor happens to b
 
 ## 10. Required implementation and verification sequence
 
-1. The processed/unwrapped-nanosecond mode is implemented in #6815. A raw-device-tick mode still needs experiment-context clock reconstruction; reject ambiguous or mixed representations.
+1. Both processed/unwrapped-nanosecond and bounded per-transaction raw-tick adapters are implemented in #6815. Full experiment-stream continuity, radio reset/boot-epoch detection and any multi-wrap ambiguity still require separate evidence.
 2. Add source-verified constructors for the four duration terms and explicit initiator/responder clock groups.
-3. Add independent rollover tests for each clock, including wrap immediately before each event, both clocks wrapping in one exchange, and long gaps / ambiguous multiwrap cases.
+3. Initial independent per-clock rollover and dual-clock wrap tests are implemented in #6815. Still add stream-level tests for radio resets, long gaps, multiple possible wraps and reconciliation against ROS acquisition time.
 4. Add a known-answer test that compares the Rust equation with the authors' formula using the same (A,B,C,D), speed constant and units.
 5. Explicit propagation speed and named MILUV-reference / vacuum constants are implemented in #6815. Receipt serialization and bounded physical-speed uncertainty remain open.
 6. Add calibration receipt interfaces without allowing the estimator to access evaluator-only truth.
