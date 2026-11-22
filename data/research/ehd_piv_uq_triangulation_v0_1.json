@@ -155,7 +155,7 @@
       "evaluate_piv_probability_scores"
     ],
     "self_check": "reference_self_check",
-    "rust_unit_tests": 24,
+    "rust_unit_tests": 25,
     "probability_module": "tools/ehd-reference-audit/src/piv_classifier_scores.rs"
   },
   "manufactured_examples": {
@@ -216,7 +216,8 @@
     "exact_zero_one_probability_log_loss_clipping",
     "one_class_region_auc_unavailable",
     "missing_region_explicitly_unavailable_without_nan",
-    "reliability_bins_account_for_all_samples"
+    "reliability_bins_account_for_all_samples",
+    "empty_probability_cohort_rejected"
   ],
   "limitations": [
     "summary_level_receipt_only_no_raw_image_processing",
