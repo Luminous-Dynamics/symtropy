@@ -834,7 +834,7 @@ mod tests {
                 );
                 rotated.transform.rotation = global_rotation.compose(&body.transform.rotation);
                 rotated.linear_velocity = global_rotation.rotate_vector(&body.linear_velocity);
-                rotated.angular_velocity = body.angular_velocity.clone();
+                rotated.angular_velocity = body.angular_velocity;
                 rotated.inv_mass = body.inv_mass;
                 rotated.inv_inertia = body.inv_inertia;
                 rotated.friction = body.friction;
@@ -937,10 +937,10 @@ mod tests {
             frame,
         };
         let original_linear_velocity = dynamic_body.linear_velocity;
-        let original_angular_velocity = dynamic_body.angular_velocity.clone();
+        let original_angular_velocity = dynamic_body.angular_velocity;
         let original_rotation = dynamic_body.transform.rotation.clone();
         let reference =
-            assemble_contact_wrench_free_velocity(&[static_body, dynamic_body], &[row.clone()])
+            assemble_contact_wrench_free_velocity(&[static_body, dynamic_body], std::slice::from_ref(&row))
                 .unwrap();
 
         let rotation = Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.41);
@@ -1235,7 +1235,7 @@ mod tests {
             frame,
         };
         let mut bodies = vec![static_body, dynamic_body];
-        let reference = assemble_contact_wrench_delassus(&bodies, &[row.clone()], 1e-12).unwrap();
+        let reference = assemble_contact_wrench_delassus(&bodies, std::slice::from_ref(&row), 1e-12).unwrap();
 
         let rotation = Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.53);
         for body in &mut bodies {
@@ -1441,7 +1441,6 @@ mod tests {
 
     #[test]
     fn delassus_reference_rejects_body_inertia_mass_mismatch() {
-        use nalgebra::SMatrix;
         let mut body_a = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
         body_a.set_rotational_inertia_operator(
             BivectorInertia::<3>::uniform_solid_ellipsoid(
