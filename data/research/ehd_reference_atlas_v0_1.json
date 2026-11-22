@@ -1823,6 +1823,80 @@
         "No executable public code or raw data release is transcribed in this source profile."
       ],
       "recommended_role": "experimental ML baseline for matched airflow prediction; reproduce Gradient Boosting, Random Forest, KNN and SHAP on identical sealed geometry/session holdouts before comparing Luminous models"
+    },
+    {
+      "solver_id": "PIVPOSTPROCESS_2026",
+      "category": "PIV vector-validity postprocessor",
+      "paper_doi": "10.1007/s00348-026-04319-7",
+      "publication": "Experiments in Fluids 67, article 176 (published 2026-10-16)",
+      "code_doi": "10.5281/zenodo.18794853",
+      "method": "XGBoost gradient-boosted decision tree classifier using 43 local/global velocity and gradient features",
+      "training_evaluation": {
+        "source_experiments": 6,
+        "combined_source_vector_points_approx": 203000000,
+        "training_vector_samples": 250000,
+        "testing_vector_samples": 50000,
+        "partition": "all vectors from six source experiments randomly shuffled then stratified by valid/invalid class; not a geometry/session holdout",
+        "test_metrics": {
+          "log_loss": 0.037,
+          "f1": 0.992,
+          "roc_auc": 0.998
+        },
+        "feature_count": 43,
+        "input_dimensions": "two-component U/W vector fields and local/global spatial features"
+      },
+      "external_experiment_evaluation": {
+        "additional_experiments": 6,
+        "reported_mean_f1": 0.99,
+        "individual_dataset_f1_lower_bound": 0.97,
+        "reference_labels": "manual expert post-processing; agreement with analyst is not independent physical truth"
+      },
+      "synthetic_dns_stress": {
+        "source": "JHTDB DNS fields with empirical or Gaussian noise injected",
+        "sample_count": 459,
+        "conditions": 5,
+        "low_noise_case": {
+          "noise_rms_percent_of_clean_flow": 150,
+          "spatial_coverage_percent": 1,
+          "mean_recall": 0.78,
+          "mean_precision": 0.5,
+          "mean_f1": 0.62
+        },
+        "high_noise_case": {
+          "noise_rms_percent_of_clean_flow": 2000,
+          "mean_recall": 0.91,
+          "mean_precision": 0.91,
+          "mean_f1": 0.91
+        },
+        "mhd_dataset_f1": 0.68,
+        "limitation": "synthetic noise injection does not fully reproduce experimental PIV measurement error or EHD diagnostic observer effects"
+      },
+      "reported_runtime": {
+        "average_seconds_per_vector_field": 0.08,
+        "1500_image_pairs_minutes": 2,
+        "manual_filter_runtime_minutes": [
+          30,
+          60
+        ],
+        "speedup_scope": "post-processing runtime only after expert has already selected suitable filter settings; not end-to-end experimental workflow"
+      },
+      "capabilities": [
+        "automated valid/invalid PIV vector classification",
+        "local/global vector-field and gradient feature extraction",
+        "trained on laboratory PIV data",
+        "tests on six additional experimental datasets",
+        "synthetic DNS noise stress tests"
+      ],
+      "important_limits": [
+        "This is a vector outlier classifier, not an a-posteriori per-vector velocity-uncertainty estimator.",
+        "The 0.992 test F1 uses a stratified random split of vectors drawn from six source experiments, not a full unseen-geometry/session split.",
+        "The six additional experimental datasets use expert manual filtering as the reference; agreement with expert labels is not independent velocity truth.",
+        "Subtle synthetic errors near the flow RMS are difficult: the reported 150% RMS, 1% coverage case has mean F1 0.62.",
+        "Performance varies with flow physics; the MHD DNS case reports F1 0.68.",
+        "The implementation uses two-component PIV fields; 3D/tomographic extension is future work.",
+        "No EHD-specific diagnostic perturbation model, full control-volume momentum closure, direct thrust validation or exergy closure is included."
+      ],
+      "recommended_role": "strong published baseline for PIV vector-validity classification; compare on matched sealed geometry/session/tracer/pressure holdouts, then add calibrated vector uncertainty and independent physical cross-validation"
     }
   ],
   "system_integration_references": [
@@ -1867,6 +1941,37 @@
         "leaderboard_eligible_against_bare_thrusters": false,
         "reason": "Integrated system/control demonstration; robot mass, tethered power boundary, support conditions and bare-thruster force/power definitions differ.",
         "allowed_comparison": "same-class integrated microrobot control and payload/trajectory demonstrations under matched support and power conditions"
+      }
+    },
+    {
+      "source_id": "POEPPE_2026_PIV_LPT_IWT_DIAGNOSTICS",
+      "title": "Ionic Thruster Diagnostics By Means Of PIV And LPT",
+      "citation": "Pöppe, Rich and Kriegseis, 22nd International Symposium on the Application of Laser and Imaging Techniques to Fluid Mechanics (LXLASER 2026), Lisbon, 2026-06-29 to 2026-07-02",
+      "institutional_record": "https://publikationen.bibliothek.kit.edu/1000197349",
+      "publication_type": "conference_presentation_abstract",
+      "measurement_methods": [
+        "planar_PIV",
+        "Lagrangian_particle_tracking_Shake_the_Box_4_pulse"
+      ],
+      "tested_configurations": [
+        "wire_to_airfoil",
+        "wire_to_grid"
+      ],
+      "reported_method_contributions": {
+        "piv": "high-resolution near-wall velocity fields over a large area; integral momentum equation used to infer thrust when velocity fluctuations are accounted for",
+        "lpt": "material acceleration along particle trajectories permits a differential Navier-Stokes momentum approach",
+        "cross_validation": "LPT velocity fields reported to agree with PIV velocity fields",
+        "physical_interpretation": "wire-to-grid LPT acceleration fields show channel-like acceleration regions in the drift zone and indicate a major pressure-gradient contribution to thrust generation",
+        "limitations": [
+          "optical access and glare affect the wire-to-airfoil configuration",
+          "conference abstract is not a full raw-data or uncertainty package",
+          "do not treat the reported acceleration pattern as a fully validated volumetric force map"
+        ]
+      },
+      "comparability": {
+        "separate_from_PIVPostProcess": true,
+        "direct_thrust_leaderboard_eligible": false,
+        "notes": "Use as a contemporary EHD-specific multimodal measurement and cross-validation reference. PIV and LPT velocity agreement is not automatically an independent uncertainty estimate if they share tracer/acquisition sources; preserve acquisition and processing provenance."
       }
     }
   ],
@@ -2217,6 +2322,41 @@
           "Do not compare MAE or MSE without the same units, scaling and targets",
           "Do not infer thrust or conservation from airflow regression metrics alone",
           "Do not treat the source-reported unseen operating points as geometry-family holdout without evidence"
+        ]
+      },
+      {
+        "track_id": "PIV_UQ_AND_CROSS_DIAGNOSTIC",
+        "question": "Can the PIV measurement pipeline identify invalid vectors, quantify velocity uncertainty, preserve physical structures and agree with an alternative Lagrangian/force diagnostic on matched EHD conditions?",
+        "candidates": [
+          "PIVPOSTPROCESS_2026",
+          "POEPPE_2026_PIV_LPT_IWT_DIAGNOSTICS"
+        ],
+        "primary_observables": [
+          "per_vector_validity_probability",
+          "per_vector_velocity_uncertainty",
+          "regional_95_percent_interval_coverage",
+          "invalid_vector_false_removal_rate",
+          "PIV_LPT_velocity_residual",
+          "PIV_integral_momentum_thrust",
+          "LPT_material_acceleration_field",
+          "direct_force_balance"
+        ],
+        "match_controls": [
+          "same physical operating condition and coordinate frame",
+          "retain raw images, vector fields, masks and processing versions",
+          "stratify coverage and error by bulk, near-wall, shear-layer and wake regions",
+          "hold out complete geometry, pressure, tracer and experimental sessions",
+          "record whether PIV and LPT share source images, seeding and illumination",
+          "compare against independently calibrated Pitot/hot-wire/load-cell references where applicable",
+          "propagate vector uncertainty through all-surface momentum and material-acceleration reductions"
+        ],
+        "prohibitions": [
+          "Do not treat expert manual vector labels as independent physical velocity truth",
+          "Do not use a random vector-level split as a substitute for unseen geometry/session validation",
+          "Do not equate F1 with calibrated velocity uncertainty",
+          "Do not remove low-confidence vectors without reporting valid-vector false-removal and structure-preservation effects",
+          "Do not infer thrust from an acceleration map without pressure gradient, density, viscous, body-force and uncertainty terms",
+          "Do not claim independent PIV/LPT confirmation when their acquisition errors are shared or unquantified"
         ]
       }
     ],

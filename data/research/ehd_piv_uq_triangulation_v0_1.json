@@ -1,0 +1,280 @@
+{
+  "schema": "luminous.ehd_piv_measurement_qualification",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-PIV-UQ-001",
+  "as_of": "2026-11-22",
+  "status": "manufactured_summary_receipt_kernel_authored_tests_execution_pending",
+  "claim_ceiling": "A summary-level PIV quality and cross-diagnostic comparison reference. It does not process raw PIV images, estimate velocity uncertainty from images, or validate physical EHD thrust. All benchmark thresholds are prospective unless explicitly identified as published comparator results.",
+  "research_baselines": [
+    {
+      "baseline_id": "PIVPOSTPROCESS_2026",
+      "paper_doi": "10.1007/s00348-026-04319-7",
+      "code_doi": "10.5281/zenodo.18794853",
+      "reported_results": {
+        "stratified_random_vector_test": {
+          "f1": 0.992,
+          "roc_auc": 0.998,
+          "log_loss": 0.037,
+          "training_vectors": 250000,
+          "test_vectors": 50000,
+          "source_experiments": 6,
+          "abstract_f1": 0.991,
+          "detailed_section_4_f1": 0.992
+        },
+        "additional_experimental_datasets": {
+          "count": 6,
+          "mean_f1": 0.99,
+          "individual_dataset_f1_lower_bound": 0.97,
+          "reference": "expert manual vector filtering"
+        },
+        "synthetic_noise_stress": {
+          "low_noise_150_percent_flow_rms_1_percent_coverage_f1": 0.62,
+          "high_noise_2000_percent_flow_rms_f1": 0.91
+        },
+        "mhd_dns_f1": 0.68
+      },
+      "caveats": [
+        "The stratified random vector-level test split is not a geometry/session holdout.",
+        "Expert manual labels are a processing reference, not independent physical velocity truth.",
+        "High F1 does not establish calibrated per-vector velocity uncertainty.",
+        "The weak 0.62 subtle-noise and 0.68 MHD cases are important domain-transfer challenges.",
+        "The reported external 6-dataset evaluation is stronger than a random vector split but still requires detailed cohort matching before direct EHD claims.",
+        "The published abstract reports F1 0.991, while detailed Section 4 reports F1 0.992 for the 50,000-vector test set; retain this source-internal discrepancy until independent reproduction."
+      ]
+    },
+    {
+      "baseline_id": "CLASSICAL_PIV_UQ",
+      "methods": [
+        "image_matching_uncertainty",
+        "particle_disparity",
+        "correlation_statistics",
+        "correlation_peak_ratio",
+        "correlation_signal_to_noise"
+      ],
+      "role": "matched uncertainty-estimation comparators; exact algorithms and parameters must be frozen per benchmark",
+      "caveat": "Do not compare only vector validity classification when the task is velocity-uncertainty estimation."
+    },
+    {
+      "baseline_id": "POEPPE_2026_PIV_LPT_STB",
+      "institutional_record": "https://publikationen.bibliothek.kit.edu/1000197349",
+      "publication_type": "LXLASER_2026_conference_presentation_abstract",
+      "role": "EHD-specific cross-check: planar PIV near-wall velocity and integral momentum versus four-pulse Shake-the-Box LPT material acceleration and differential momentum",
+      "caveats": [
+        "The source is a conference abstract, not a raw-data uncertainty package.",
+        "PIV/LPT velocity agreement is not independent if they share images, particles, seeding, illumination or calibration.",
+        "The differential momentum path still requires pressure gradient, density, viscous/body forces and uncertainty."
+      ]
+    }
+  ],
+  "classifier_contract": {
+    "positive_class": "invalid_vector",
+    "confusion_counts": [
+      "invalid_vectors_rejected",
+      "valid_vectors_rejected",
+      "invalid_vectors_retained",
+      "valid_vectors_retained"
+    ],
+    "metrics": [
+      "precision_invalid_class",
+      "recall_invalid_class",
+      "f1_invalid_class",
+      "precision_valid_class",
+      "recall_valid_class",
+      "f1_valid_class",
+      "macro_f1",
+      "balanced_accuracy",
+      "matthews_correlation_coefficient",
+      "false_valid_vector_removal_rate",
+      "valid_vector_retention_rate",
+      "accuracy",
+      "roc_auc_invalid_positive",
+      "log_loss_nats",
+      "brier_score",
+      "expected_calibration_error_descriptive_only",
+      "ten_bin_reliability_curve"
+    ],
+    "prospective_gate": {
+      "minimum_f1": 0.97,
+      "minimum_recall": 0.9,
+      "maximum_false_valid_vector_removal_rate": 0.01
+    },
+    "principle": "report false removal of reference-valid vectors separately; an apparently good F1 must not hide destructive filtering of real near-wall/shear/wake structures",
+    "comparison_reporting": "Report both valid-class and invalid-class precision/recall/F1, macro-F1, balanced accuracy and MCC. Align the published comparator's positive-class convention and confusion matrix before making direct F1 comparisons."
+  },
+  "uncertainty_contract": {
+    "interval_nominal_coverage": 0.95,
+    "acceptable_empirical_coverage_band": [
+      0.9,
+      0.98
+    ],
+    "minimum_samples_per_region": 200,
+    "regions": [
+      "bulk",
+      "near_wall",
+      "shear_layer",
+      "wake"
+    ],
+    "confidence_interval": "Wilson 95 percent binomial interval",
+    "policy": "report each region separately; no pooled-only pass",
+    "required_outputs": [
+      "sample_count",
+      "covered_count",
+      "observed_coverage",
+      "Wilson_lower",
+      "Wilson_upper",
+      "nominal_coverage_inside_Wilson_interval",
+      "region_disposition"
+    ],
+    "principle": "F1/classifier labels do not substitute for calibrated velocity uncertainty"
+  },
+  "cross_diagnostic_contract": {
+    "methods": [
+      "PIV",
+      "LPT_Shake_the_Box"
+    ],
+    "compare": [
+      "velocity_vector_components",
+      "coordinate_frame",
+      "matched_condition",
+      "evidence_identity"
+    ],
+    "residual": "componentwise PIV minus LPT velocity",
+    "uncertainty_policy": "sum absolute componentwise bounds; do not RSS-combine without validated covariance",
+    "dependence_disclosure": [
+      "shared_raw_image_acquisition",
+      "distinct_acquisition_ids_but_error_correlation_unquantified"
+    ],
+    "passivity": "observer perturbation remains NotAssessed until EHD-DPM-001 receipt passes",
+    "force_triangulation": "compare all-surface PIV momentum, LPT material-acceleration/differential momentum and direct load cell only after each estimator's complete physical boundary and uncertainty are qualified"
+  },
+  "reference_implementation": {
+    "path": "tools/ehd-reference-audit/src/piv_qualification.rs",
+    "functions": [
+      "compute_piv_classifier_metrics",
+      "evaluate_piv_classifier",
+      "evaluate_regional_coverage",
+      "qualify_piv_measurement_quality",
+      "compare_piv_lpt_velocity",
+      "evaluate_piv_probability_scores"
+    ],
+    "self_check": "reference_self_check",
+    "rust_unit_tests": 26,
+    "probability_module": "tools/ehd-reference-audit/src/piv_classifier_scores.rs"
+  },
+  "manufactured_examples": {
+    "classifier_confusion_counts": {
+      "invalid_vectors_rejected": 9900,
+      "valid_vectors_rejected": 50,
+      "invalid_vectors_retained": 100,
+      "valid_vectors_retained": 9950
+    },
+    "expected_metrics": {
+      "f1_approx": 0.9925,
+      "recall_invalid_class": 0.99,
+      "false_valid_vector_removal_rate": 0.005,
+      "valid_vector_retention_rate": 0.995,
+      "f1_valid_class": 0.9925187032418954,
+      "macro_f1": 0.9924999531247072,
+      "balanced_accuracy": 0.9924999999999999,
+      "matthews_correlation_coefficient": 0.9850123127308642,
+      "f1_invalid_class": 0.9924812030075189
+    },
+    "regional_coverage": [
+      {
+        "region": "bulk",
+        "sample_count": 1000,
+        "covered_count": 950
+      },
+      {
+        "region": "near_wall",
+        "sample_count": 1000,
+        "covered_count": 945
+      },
+      {
+        "region": "shear_layer",
+        "sample_count": 1000,
+        "covered_count": 952
+      },
+      {
+        "region": "wake",
+        "sample_count": 1000,
+        "covered_count": 948
+      }
+    ],
+    "shared_acquisition_example": "PIV and LPT estimates share acquisition_id; receipt marks the comparison as shared-acquisition algorithm cross-check, not independent cross-validation",
+    "status": "synthetic_summary_counts_and_velocity_vectors_not_experimental_piv_data"
+  },
+  "adversarial_cases": [
+    "high_f1_but_valid_vector_false_removal_above_one_percent",
+    "near_wall_interval_undercoverage_hidden_by_pooled_global_coverage",
+    "missing_spatial_region",
+    "insufficient_vectors_per_region",
+    "covered_count_larger_than_sample_count",
+    "PIV_LPT_coordinate_frame_mismatch",
+    "PIV_LPT_condition_identity_mismatch",
+    "shared_image_acquisition_not_called_independent",
+    "velocity_residual_exceeds_conservative_combined_bounds",
+    "ROC_AUC_tie_handling",
+    "reversed_probability_ranking",
+    "exact_zero_one_probability_log_loss_clipping",
+    "one_class_region_auc_unavailable",
+    "missing_region_explicitly_unavailable_without_nan",
+    "reliability_bins_account_for_all_samples",
+    "empty_probability_cohort_rejected",
+    "valid_invalid_probability_complement_invariance"
+  ],
+  "limitations": [
+    "summary_level_receipt_only_no_raw_image_processing",
+    "confusion_metrics_depend_on_reference_labels",
+    "manual_expert_reference_is_not_physical_truth",
+    "coverage_counts_are_supplied_not_estimated_from_velocity_vectors",
+    "wilson_interval_assumes_binomial_coverage_indicators",
+    "no_spatial_covariance_estimator",
+    "no_vector_uncertainty_algorithm",
+    "no_integral_momentum_or_force_reducer_in_this_module",
+    "no_pressure_gradient_solver",
+    "no_physical_EHD_validation"
+  ],
+  "test_families": [
+    "classifier_metrics_report_f1_and_false_valid_removal_separately",
+    "classifier_gate_rejects_high_false_removal_even_when_f1_is_high",
+    "regional_coverage_is_reported_separately_with_wilson_intervals",
+    "undercovered_near_wall_region_is_not_hidden_by_bulk_coverage",
+    "missing_required_spatial_region_is_rejected",
+    "small_region_sample_count_is_not_promoted_to_calibration",
+    "full_piv_quality_requires_classifier_and_every_region_gate",
+    "piv_lpt_velocity_comparison_uses_conservative_bounds",
+    "shared_acquisition_is_not_reported_as_independent_cross_validation",
+    "mismatched_coordinate_frames_are_rejected",
+    "discrepancy_above_combined_velocity_bounds_is_flagged",
+    "invalid_coverage_counts_are_rejected"
+  ],
+  "probability_score_contract": {
+    "probability_semantics": "predicted probability that a vector is invalid",
+    "metrics": [
+      "tie_aware_roc_auc_with_average_ranks",
+      "binary_log_loss_nats_per_sample",
+      "brier_score",
+      "ten_bin_reliability_data",
+      "expected_calibration_error_descriptive_only"
+    ],
+    "reporting": "overall and independently by bulk, near_wall, shear_layer and wake",
+    "numerical_policy": "clip exact 0/1 probabilities to [1e-15,1-1e-15] for finite log loss; preserve raw probabilities for Brier/reliability",
+    "missing_class_policy": "ROC-AUC is null for a one-class cohort; no fabricated zero",
+    "comparison_policy": "compare probabilities only on the same labels and frozen holdout cohort; report threshold-free probability metrics before thresholded class metrics",
+    "note": "ECE is binning-dependent and is not a proper scoring rule",
+    "external_baseline_convention": {
+      "PIVPostProcess_2026": "paper defines predicted probability as P(valid vector)",
+      "internal_convention": "P(invalid vector)",
+      "conversion": "p_invalid = 1 - p_valid",
+      "invariance": "ROC-AUC, log loss and Brier score remain invariant when labels and probabilities are complemented together"
+    }
+  },
+  "published_comparator_targets": {
+    "PIVPostProcess_2026": {
+      "ROC_AUC": 0.998,
+      "log_loss": 0.037,
+      "scope": "Source-reported target for exact matched cohort and labels only; not a generic result or current Luminous result."
+    }
+  }
+}
