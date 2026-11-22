@@ -18,7 +18,9 @@ use ehd_piv_conformal_functional_uq::spatial_correlation::{
 const MIN_INDEPENDENT_ACQUISITIONS: usize = 20;
 const MATRIX_EPSILON: f64 = 1.0e-12;
 
-type Matrix3 = [[f64; 3]; 3];
+pub type Matrix3 = [[f64; 3]; 3];
+
+const SUPPORTED_MODEL_ID: &str = "wendland_c2_anisotropic_3d";
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ResidualField {
@@ -504,7 +506,9 @@ pub fn fit_spatial_error_kernel(
 
     let maximum_bias = mean_profile.iter().map(|v| vector_norm(*v)).fold(0.0_f64, f64::max);
     Ok(EmpiricalSpatialFit {
-        model_id: "wendland_c2_isotropic_empirical_v0_1".into(),
+        // The isotropic case is represented by equal x/y/z ranges in the
+        // existing UQ-005 anisotropic Wendland-C2 contract.
+        model_id: SUPPORTED_MODEL_ID.into(),
         fit_config_id: config.fit_config_id.clone(),
         protocol_fingerprint: config.protocol_fingerprint.clone(),
         reference_contract_id: config.reference_contract_id.clone(),
@@ -846,7 +850,7 @@ mod tests {
         assert_eq!(report.status, QualificationStatus::Qualified);
         let kernel = report.to_spatial_error_kernel(&fit).unwrap();
         assert_eq!(kernel.calibration_receipt.independent_acquisition_count, 256);
-        assert_eq!(kernel.model_id, "wendland_c2_isotropic_empirical_v0_1");
+        assert_eq!(kernel.model_id, SUPPORTED_MODEL_ID);
     }
 
     #[test]
