@@ -620,6 +620,81 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
         );
     }
 
+    // Noelle et al. 2025: low-density-air IWT PIV tracer/collector cohort.
+    // The table is an image-resolution envelope, not a velocity-accuracy or
+    // thrust-validation table.
+    let noelle = records.and_then(|rows| rows.iter().find(|record| {
+        text_at(record, &["source_id"]) == Some("NOELLE_2025_LOW_DENSITY_IWT_PIV_TRACERS")
+    }));
+    push_if_missing(
+        &mut findings,
+        noelle.is_some(),
+        "NOELLE_LOW_DENSITY_PIV_RECORD",
+        "missing 2025 low-density air IWT PIV tracer cohort",
+    );
+    if let Some(record) = noelle {
+        push_if_missing(
+            &mut findings,
+            text_at(record, &["doi"]) == Some("10.2514/6.2025-0473")
+                && text_at(record, &["cohort"])
+                    == Some("low_density_air_ion_wind_thruster_piv_tracer_and_collector_optics")
+                && at(record, &["apparatus", "pressure_range_atm"])
+                    == Some(&serde_json::json!([1.0, 0.3])),
+            "NOELLE_LOW_DENSITY_PIV_IDENTITY",
+            "Noelle 2025 cohort identity and 1.0–0.3 atm air-pressure envelope changed",
+        );
+        let tracer_table = at(record, &["diagnostic_protocol", "low_density_tracer_screening_table"])
+            .and_then(Value::as_array);
+        push_if_missing(
+            &mut findings,
+            tracer_table.is_some_and(|rows| rows.len() == 10
+                && number_at(&rows[0], &["pressure_atm"]) == Some(1.0)
+                && text_at(&rows[0], &["dehs"]) == Some("(64)-128")
+                && text_at(&rows[0], &["fog_machine"]) == Some("32")
+                && text_at(&rows[0], &["sio2"]) == Some("(32)-64")
+                && number_at(&rows[5], &["pressure_atm"]) == Some(0.5)
+                && text_at(&rows[5], &["fog_machine"]) == Some("-")
+                && number_at(&rows[9], &["pressure_atm"]) == Some(0.3)
+                && text_at(&rows[9], &["dehs"]) == Some("-")
+                && text_at(&rows[9], &["incense_sticks"]) == Some("(64)-128")
+                && text_at(&rows[9], &["sio2"]) == Some("128")),
+            "NOELLE_LOW_DENSITY_PIV_TRACER_MATRIX",
+            "ten-point pressure/tracer interrogation-area table changed",
+        );
+        push_if_missing(
+            &mut findings,
+            number_at(record, &["diagnostic_protocol", "corona_interaction_test", "voltage_kv"]) == Some(8.0)
+                && at(record, &["diagnostic_protocol", "corona_interaction_test", "inlet_velocity_m_s"])
+                    == Some(&serde_json::json!([2.5, 5.0]))
+                && text_at(record, &["diagnostic_protocol", "corona_interaction_test", "caveat"])
+                    .is_some_and(|value| value.contains("minimize ion-wind interference")),
+            "NOELLE_LOW_DENSITY_PIV_CORONA_CONTROL",
+            "8 kV tracer/corona interaction test and low-interference caveat changed",
+        );
+        push_if_missing(
+            &mut findings,
+            text_at(record, &["diagnostic_protocol", "collector_surface_test", "reported_best"])
+                .is_some_and(|value| value.contains("black aluminum tape"))
+                && text_at(record, &["diagnostic_protocol", "collector_surface_test", "reported_worst"])
+                    .is_some_and(|value| value.contains("shiny aluminum tape"))
+                && contains_any(record, &["diagnostic_protocol", "collector_surface_test", "caution"], "8 kV"),
+            "NOELLE_LOW_DENSITY_PIV_COLLECTOR_OPTICS",
+            "collector optical ranking and limited electrical-surface validation changed",
+        );
+        push_if_missing(
+            &mut findings,
+            at(record, &["comparability", "distinct_from_atmospheric_ambient_air"])
+                .and_then(Value::as_bool) == Some(true)
+                && at(record, &["comparability", "distinct_from_mars_co2_dbd"])
+                    .and_then(Value::as_bool) == Some(true)
+                && at(record, &["comparability", "distinct_from_true_space_vacuum"])
+                    .and_then(Value::as_bool) == Some(true)
+                && at(record, &["reported_results", "quantitative_thrust_result"]).is_some_and(Value::is_null),
+            "NOELLE_LOW_DENSITY_PIV_COHORT_BOUNDARY",
+            "low-density air tracer tests must not be promoted to Mars CO2, true vacuum or thrust validation",
+        );
+    }
+
     // Specialist solver scopes are intentionally narrow.
     let solvers = at(root, &["solver_profiles"]).and_then(Value::as_array);
     let merlino = solvers.and_then(|rows| rows.iter().find(|s| text_at(s, &["solver_id"]) == Some("MERLINO2D")));
@@ -3908,6 +3983,48 @@ mod solver_comparator_registry_tests {
             serde_json::json!([]);
         assert!(audit_atlas(&value).iter().any(|finding| {
             finding.starts_with("SOLVER_COMPARATOR_CONTROLS")
+        }));
+    }
+}
+
+
+#[cfg(test)]
+mod low_density_piv_tracer_tests {
+    use super::*;
+
+    fn atlas() -> Value {
+        serde_json::from_str(EMBEDDED_ATLAS).expect("embedded atlas must be valid JSON")
+    }
+
+    #[test]
+    fn low_density_piv_tracer_cohort_passes() {
+        assert!(audit_atlas(&atlas()).is_empty());
+    }
+
+    #[test]
+    fn low_density_piv_tracer_table_rejects_false_fog_availability_at_point_three_atm() {
+        let mut value = atlas();
+        let rows = value["source_records"].as_array_mut().unwrap();
+        let record = rows.iter_mut().find(|row| {
+            row["source_id"] == "NOELLE_2025_LOW_DENSITY_IWT_PIV_TRACERS"
+        }).unwrap();
+        record["diagnostic_protocol"]["low_density_tracer_screening_table"][9]["fog_machine"] =
+            serde_json::json!("32");
+        assert!(audit_atlas(&value).iter().any(|finding| {
+            finding.starts_with("NOELLE_LOW_DENSITY_PIV_TRACER_MATRIX")
+        }));
+    }
+
+    #[test]
+    fn low_density_air_results_cannot_be_relabelled_as_mars_co2_or_vacuum_validation() {
+        let mut value = atlas();
+        let rows = value["source_records"].as_array_mut().unwrap();
+        let record = rows.iter_mut().find(|row| {
+            row["source_id"] == "NOELLE_2025_LOW_DENSITY_IWT_PIV_TRACERS"
+        }).unwrap();
+        record["comparability"]["distinct_from_mars_co2_dbd"] = Value::Bool(false);
+        assert!(audit_atlas(&value).iter().any(|finding| {
+            finding.starts_with("NOELLE_LOW_DENSITY_PIV_COHORT_BOUNDARY")
         }));
     }
 }
