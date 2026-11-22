@@ -1,0 +1,46 @@
+name: machine-capability-audit
+
+on:
+  push:
+    branches:
+      - research/machine-capability-compiler-v0.1
+    paths:
+      - "tools/machine-capability-audit/**"
+      - "schemas/manufacturing/machine_capability_case_v0_1.schema.json"
+      - "fixtures/manufacturing/machine_capability_cases_v0_1.json"
+      - ".github/workflows/machine-capability-audit.yml"
+  pull_request:
+    paths:
+      - "tools/machine-capability-audit/**"
+      - "schemas/manufacturing/machine_capability_case_v0_1.schema.json"
+      - "fixtures/manufacturing/machine_capability_cases_v0_1.json"
+      - ".github/workflows/machine-capability-audit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Apply rustfmt
+        run: cargo fmt --manifest-path tools/machine-capability-audit/Cargo.toml
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/machine-capability-audit/Cargo.toml -- --check
+      - name: Upload formatted Rust source for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine-capability-audit-rustfmt
+          path: tools/machine-capability-audit/src/main.rs
+          if-no-files-found: error
+      - name: Run known-answer and adversarial tests
+        run: cargo test --manifest-path tools/machine-capability-audit/Cargo.toml
+      - name: Run explicit corpus audit
+        run: cargo run --manifest-path tools/machine-capability-audit/Cargo.toml -- fixtures/manufacturing/machine_capability_cases_v0_1.json
+      - name: Run Clippy
+        run: cargo clippy --manifest-path tools/machine-capability-audit/Cargo.toml --all-targets -- -D warnings

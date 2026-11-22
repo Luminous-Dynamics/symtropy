@@ -1,0 +1,385 @@
+{
+  "schema_id": "LUMINOUS-MANUFACTURING-OWNER-CONTRACT-CROSSWALK-0.1",
+  "status": "public_owner_and_source_path_audit_not_runtime_adapter",
+  "checked_date": "2026-11-22",
+  "owner_issue": "Luminous-Dynamics/symtropy#6786",
+  "document_path": "docs/tech/MANUFACTURING_CROSS_REPOSITORY_OWNER_CONTRACT_CROSSWALK_V0_1.md",
+  "integration_pr": "Luminous-Dynamics/symtropy#6790",
+  "no_generic_receipt": true,
+  "contracts": [
+    {
+      "owner": "Luminous-Dynamics/mycelix",
+      "issue": 3084,
+      "contract": "MFG-EVID-001",
+      "scope": "product revision, manufactured unit, lots, substitutions and qualification receipts",
+      "authority": "manufactured_product_unit_and_qualification_evidence",
+      "consumed_by": [
+        "Luminous-Dynamics/symtropy#6603",
+        "Luminous-Dynamics/symtropy#6786"
+      ],
+      "evidence_state": "issue_open"
+    },
+    {
+      "owner": "Luminous-Dynamics/mycelix",
+      "issue": 3085,
+      "contract": "MFG-PROC-001",
+      "scope": "distributed process registry, resource offers, typed routing and MRP",
+      "authority": "distributed_process_resource_routing",
+      "consumed_by": [
+        "Luminous-Dynamics/symtropy#6786"
+      ],
+      "evidence_state": "issue_open_public_main_schema_has_string_machine_type_and_capabilities_fields"
+    },
+    {
+      "owner": "Luminous-Dynamics/mycelix",
+      "issue": 3095,
+      "contract": "CIRC-MFG-001",
+      "scope": "manufacturing, repair, remanufacture and recovery lifecycle lineage",
+      "authority": "manufacturing_lifecycle_provenance",
+      "consumed_by": [
+        "Luminous-Dynamics/symtropy#6735",
+        "Luminous-Dynamics/sol-atlas-leptos#569"
+      ],
+      "evidence_state": "issue_open"
+    },
+    {
+      "owner": "Luminous-Dynamics/mycelix",
+      "issue": 4281,
+      "contract": "FPM-NAMING-001",
+      "scope": "Fabrication Process Monitoring terminology and safe migration",
+      "authority": "FPM_semantics",
+      "consumed_by": [],
+      "evidence_state": "issue_open"
+    },
+    {
+      "owner": "Luminous-Dynamics/mycelix",
+      "issue": 4282,
+      "contract": "FPM-EPISTEMIC-LAYERS-001",
+      "scope": "separate raw observation, anomaly inference, intervention and quality assessment",
+      "authority": "monitoring_epistemic_layer_semantics",
+      "consumed_by": [
+        "Luminous-Dynamics/symthaea#12533"
+      ],
+      "evidence_state": "issue_open"
+    },
+    {
+      "owner": "Luminous-Dynamics/mycelix",
+      "issue": 4283,
+      "contract": "FPM-ENGINE-001",
+      "scope": "deterministic FPM detector, baseline and adversarial monitoring corpus",
+      "authority": "FPM_engine",
+      "consumed_by": [
+        "Luminous-Dynamics/symthaea#12533"
+      ],
+      "evidence_state": "issue_open_implementation_status_described_as_model_and_coordinator_not_complete_detector_engine"
+    },
+    {
+      "owner": "Luminous-Dynamics/mycelix",
+      "issue": 4685,
+      "contract": "MFG-001",
+      "scope": "first-class physical execution evidence for manufacturing node",
+      "authority": "manufacturing_execution_evidence",
+      "consumed_by": [
+        "Luminous-Dynamics/symtropy#6786"
+      ],
+      "evidence_state": "issue_open"
+    },
+    {
+      "owner": "Luminous-Dynamics/mycelix",
+      "issue": 4689,
+      "contract": "MFG-003",
+      "scope": "physical Manufacturing Node 0 reference cell",
+      "authority": "manufacturing_node_physical_cell",
+      "consumed_by": [
+        "Luminous-Dynamics/symtropy#6787"
+      ],
+      "evidence_state": "issue_open_cell_not_yet_built"
+    },
+    {
+      "owner": "Luminous-Dynamics/mycelix",
+      "issue": 5228,
+      "contract": "PROCESS-RUN-RECEIPT-PR-5228",
+      "scope": "strict origin-aware process-run receipt binding source, configuration, input, output and review evidence",
+      "authority": "process_run_receipt",
+      "consumed_by": [
+        "Luminous-Dynamics/symtropy#6786"
+      ],
+      "evidence_state": "draft_PR_focused_workflow_passed_on_exact_head_4f3e39010daca8e9d57683712dc958f7560f15ef_repository_wide_qualification_job_separate_failure"
+    },
+    {
+      "owner": "Luminous-Dynamics/mycelix",
+      "issue": 6531,
+      "contract": "MFG-PROC-001A",
+      "scope": "migration-safe typed references to Symthaea process definitions, capability requirements/profiles and recipes; optional operation/routing/machine bindings",
+      "authority": "distributed_typed_process_reference_registry",
+      "consumed_by": [
+        "Luminous-Dynamics/symtropy#6786",
+        "Luminous-Dynamics/symthaea#12533"
+      ],
+      "evidence_state": "draft_PR_6532_focused_workflow_passed_on_exact_head_3fbd57bfdd7a7e67149fe88355861bb94d0da558; external refs still unresolved pending Symthaea PR_5701 current_main replay #5901 and future exact-object resolver"
+    },
+    {
+      "owner": "Luminous-Dynamics/mycelix",
+      "issue": 6533,
+      "contract": "MFG-PROC-001B",
+      "scope": "versioned provider/site/resource offers with process/profile/configuration/evidence refs and distinct capacity/calendar claims",
+      "authority": "distributed_resource_offer_registry",
+      "consumed_by": [
+        "Luminous-Dynamics/symtropy#6786",
+        "Luminous-Dynamics/sol-atlas-leptos#606"
+      ],
+      "evidence_state": "draft_schema_fixture_PR_6534_stacked_on_MFG_PROC_001A; push_workflow_passed_exact_head_2b8e693153535483e3d3da26e5354e82d97c6f1b; PR_event_rerun_in_progress; schema_fixture_only_not_runtime_or_verified_resource"
+    },
+    {
+      "owner": "Luminous-Dynamics/sol-atlas-leptos",
+      "issue": 569,
+      "contract": "CITY-MATERIAL-LOOPS-001",
+      "scope": "spatial material stocks, qualified secondary supply and production demand",
+      "authority": "spatial_material_loop_projection",
+      "consumed_by": [
+        "Luminous-Dynamics/symtropy#6787"
+      ],
+      "evidence_state": "issue_open"
+    },
+    {
+      "owner": "Luminous-Dynamics/sol-atlas-leptos",
+      "issue": 573,
+      "contract": "CITY-CONSTRUCTION-DELIVERY-001",
+      "scope": "time/work-package delivery feasibility",
+      "authority": "delivery_feasibility_projection",
+      "consumed_by": [
+        "Luminous-Dynamics/symtropy#6787"
+      ],
+      "evidence_state": "synthetic_33_case_evaluator_owner_native_integration_still_separate"
+    },
+    {
+      "owner": "Luminous-Dynamics/sol-atlas-leptos",
+      "issue": 602,
+      "contract": "CITY-PRODUCT-COVERAGE-001",
+      "scope": "city service to physical product family coverage",
+      "authority": "city_product_coverage_projection",
+      "consumed_by": [
+        "Luminous-Dynamics/symtropy#6787"
+      ],
+      "evidence_state": "issue_open"
+    },
+    {
+      "owner": "Luminous-Dynamics/sol-atlas-leptos",
+      "issue": 606,
+      "contract": "CITY-OWNER-RECEIPT-ADAPTER-001",
+      "scope": "read-only exact owner schema and receipt adapter registry",
+      "authority": "cross_repository_projection_adapter",
+      "consumed_by": [
+        "Luminous-Dynamics/symtropy#6786"
+      ],
+      "evidence_state": "issue_open_schema-native_projection_required"
+    },
+    {
+      "owner": "Luminous-Dynamics/sol-atlas-leptos",
+      "issue": 837,
+      "contract": "HOME-APPLIANCE-INTEGRATION-001",
+      "scope": "resident service to appliance/utility interface requirements",
+      "authority": "resident_household_service_requirements",
+      "consumed_by": [
+        "Luminous-Dynamics/symtropy#6603",
+        "Luminous-Dynamics/symtropy#6735"
+      ],
+      "evidence_state": "issue_open"
+    },
+    {
+      "owner": "Luminous-Dynamics/symthaea",
+      "issue": 5686,
+      "contract": "MFG-PROC-000",
+      "scope": "process identity, transformations, capabilities, recipes, process plans and qualification semantics",
+      "authority": "canonical_process_semantics",
+      "consumed_by": [
+        "Luminous-Dynamics/mycelix#3085",
+        "Luminous-Dynamics/symtropy#6786"
+      ],
+      "evidence_state": "owner_issue_open"
+    },
+    {
+      "owner": "Luminous-Dynamics/symthaea",
+      "issue": 5774,
+      "contract": "CIV-BOOT-000",
+      "scope": "evidence-bounded AND/OR productive-capability closure",
+      "authority": "generic_capability_closure",
+      "consumed_by": [
+        "Luminous-Dynamics/symtropy#6786"
+      ],
+      "evidence_state": "issue_open"
+    },
+    {
+      "owner": "Luminous-Dynamics/symthaea",
+      "issue": 5964,
+      "contract": "PROD-EQP-000",
+      "scope": "productive equipment, tooling, workholding, metrology and equipment reproduction",
+      "authority": "productive_equipment_semantics",
+      "consumed_by": [
+        "Luminous-Dynamics/symtropy#6787",
+        "Luminous-Dynamics/mycelix#4689"
+      ],
+      "evidence_state": "issue_open"
+    },
+    {
+      "owner": "Luminous-Dynamics/symthaea",
+      "issue": 7608,
+      "contract": "MFG-VALUE-001",
+      "scope": "matched production-value and conventional-baseline comparisons",
+      "authority": "production_value_benchmark",
+      "consumed_by": [
+        "Luminous-Dynamics/symtropy#6603",
+        "Luminous-Dynamics/symtropy#6787"
+      ],
+      "evidence_state": "issue_open"
+    },
+    {
+      "owner": "Luminous-Dynamics/symthaea",
+      "issue": 7706,
+      "contract": "INTX-FAB-ADAPTER-001",
+      "scope": "governed machine observation, session and live adapter gate",
+      "authority": "fabrication_machine_interaction",
+      "consumed_by": [
+        "Luminous-Dynamics/symthaea#12533"
+      ],
+      "evidence_state": "issue_open_live_octoprint_moonraker_unavailable_in_public_main"
+    },
+    {
+      "owner": "Luminous-Dynamics/symthaea",
+      "issue": 7960,
+      "contract": "FDM_QUALITY_BENCHMARK_PROTOCOL",
+      "scope": "FDM matched quality benchmark protocol",
+      "authority": "FDM_quality_protocol",
+      "consumed_by": [
+        "Luminous-Dynamics/symthaea#12533"
+      ],
+      "evidence_state": "draft_protocol_documentation_only"
+    },
+    {
+      "owner": "Luminous-Dynamics/symthaea",
+      "issue": 7961,
+      "contract": "FDM-BENCH-001",
+      "scope": "deterministic FDM benchmark manifest and evaluator",
+      "authority": "FDM_benchmark_evaluator",
+      "consumed_by": [
+        "Luminous-Dynamics/symthaea#12533"
+      ],
+      "evidence_state": "draft_PR_7971_open_stale_base_compile_status_not_passed"
+    },
+    {
+      "owner": "Luminous-Dynamics/symthaea",
+      "issue": 7998,
+      "contract": "FDM-SPATIAL-001",
+      "scope": "spatially resolved FDM capability and calibration",
+      "authority": "spatial_FDM_capability",
+      "consumed_by": [
+        "Luminous-Dynamics/symthaea#12533"
+      ],
+      "evidence_state": "issue_open"
+    },
+    {
+      "owner": "Luminous-Dynamics/symthaea",
+      "issue": 12531,
+      "contract": "FPM-BASELINE-001",
+      "scope": "prequential process-monitoring baseline contamination prevention",
+      "authority": "monitor_baseline_admission",
+      "consumed_by": [
+        "Luminous-Dynamics/mycelix#4283"
+      ],
+      "evidence_state": "issue_open_or_patch_history_needs_exact_head_review"
+    },
+    {
+      "owner": "Luminous-Dynamics/symthaea",
+      "issue": 12533,
+      "contract": "LD-PRINT-PILOT-001",
+      "scope": "specific LD-Print v0 design, build dossier and staged physical qualification",
+      "authority": "machine_design_and_physical_qualification",
+      "consumed_by": [
+        "Luminous-Dynamics/symtropy#6787"
+      ],
+      "evidence_state": "issue_open_physical_build_not_established"
+    },
+    {
+      "owner": "Luminous-Dynamics/symtropy",
+      "issue": 1805,
+      "contract": "APPLIANCE-QUAL-001",
+      "scope": "first guarded low-voltage DC fan product requirements, control-unit baseline, functional, repair and endurance benchmarks",
+      "authority": "appliance_product_qualification_and_repair_benchmark",
+      "consumed_by": [
+        "Luminous-Dynamics/symtropy#6603",
+        "Luminous-Dynamics/symtropy#6787"
+      ],
+      "evidence_state": "issue_open_no_physical_product_performance_result_claimed"
+    },
+    {
+      "owner": "Luminous-Dynamics/symtropy",
+      "issue": 6603,
+      "contract": "APPLIANCE-MICROFACTORY-001",
+      "scope": "first appliance product cell and fan pilot",
+      "authority": "appliance_product_manufacturing_route",
+      "consumed_by": [
+        "Luminous-Dynamics/sol-atlas-leptos#837"
+      ],
+      "evidence_state": "issue_open"
+    },
+    {
+      "owner": "Luminous-Dynamics/symtropy",
+      "issue": 6735,
+      "contract": "DISTRIBUTED-APPLIANCE-FAB-001",
+      "scope": "part admission and household/neighbourhood production tiers",
+      "authority": "distributed_part_admission",
+      "consumed_by": [
+        "Luminous-Dynamics/sol-atlas-leptos#837"
+      ],
+      "evidence_state": "issue_open"
+    },
+    {
+      "owner": "Luminous-Dynamics/symtropy",
+      "issue": 6786,
+      "contract": "MACHINE-CAPABILITY-COMPILER-001",
+      "scope": "synthetic feasibility reference evaluator and adversarial corpus",
+      "authority": "synthetic_reference_only",
+      "consumed_by": [],
+      "evidence_state": "CI_passed_for_20_synthetic_cases_on_pre_Pareto_head_latest_head_needs_reverification_after_crosswalk_commit"
+    }
+  ],
+  "inspected_public_main_paths": [
+    {
+      "repository": "Luminous-Dynamics/symthaea",
+      "path": "crates/domains/symthaea-fabrication-kernel/src/machine.rs",
+      "observation": "MachineProfile and MachineCapabilities cover toolpath limits and session negotiation, not full process or product qualification."
+    },
+    {
+      "repository": "Luminous-Dynamics/mycelix",
+      "path": "mycelix-workspace/mycelix-manufacturing/zomes/machines/integrity/src/lib.rs",
+      "observation": "MachineEntry.capabilities remains Vec<String>; MachineEntry.machine_type is a MachineType."
+    },
+    {
+      "repository": "Luminous-Dynamics/mycelix",
+      "path": "mycelix-workspace/mycelix-manufacturing/zomes/operations/integrity/src/lib.rs",
+      "observation": "OperationEntry.machine_type and RoutingStepEntry.machine_type remain String."
+    },
+    {
+      "repository": "Luminous-Dynamics/mycelix",
+      "path": "mycelix-workspace/mycelix-manufacturing/zomes/planning/integrity/src/lib.rs",
+      "observation": "MRP run, planned order and material-shortage integrity records."
+    },
+    {
+      "repository": "Luminous-Dynamics/mycelix",
+      "path": "mycelix-workspace/mycelix-manufacturing/zomes/workorders/integrity/src/lib.rs",
+      "observation": "Work order integrity records bind product, quantity, due date, BOM/routing references and lifecycle status."
+    }
+  ],
+  "adapter_rules": [
+    "No universal replacement manufacturing ontology, registry, scheduler, inventory or provenance store is created by this crosswalk.",
+    "MachineCapabilityCompiler case JSON is synthetic-only and is not a canonical owner-native schema.",
+    "Future adapters pin owner repository, schema id/version/digest, source revision, subject and receipt identity, raw disposition and revocation/correction state.",
+    "Adapters may weaken claims to Unknown/Unavailable but never upgrade claims to qualified or accepted.",
+    "Simulation, synthetic fixtures, vendor declarations, mapped sites and machine advertisements are never promoted to physical qualification.",
+    "A work-order completion is not an accepted part; a machine session is not a qualified process; a qualified individual unit is not production yield.",
+    "Mycelix MFG-PROC-001A typed references bind exact Symthaea contract crate/type/source commit and BLAKE3 object/process identities; until external owner objects are fetched and verified, the only local state is TypedReferencePresent, not qualified.",
+    "Mycelix MFG-PROC-001B resource offers separate published claims, declared capacity, calendar availability, bookable capacity, reserved capacity and observed output. A published offer never proves resource qualification or schedulability.",
+    "Mycelix MFG-PROC-001B v0.1 resource offers are provider declarations. They do not prove signer authority, owner-object resolution, resource/site existence, physical capability qualification, current calendar availability, bookable or reserved capacity, execution or accepted output."
+  ],
+  "claim_ceiling": "Public owner/path audit only. Symthaea PR #5701 remains an open draft and its current-main replay #5901 is not qualified; Mycelix PR #6532 typed reference consumer passed its focused exact-head workflow but external process objects remain unresolved. Mycelix PR #6534 resource-offer schema/fixture tranche passed its exact-head push workflow but is stacked/draft and has no runtime, provider verification, resource qualification, calendar verification or booking. No private-workspace completeness, physical machine qualification, supplier approval, resource availability, production capacity, cost savings or local productive closure is established."
+}

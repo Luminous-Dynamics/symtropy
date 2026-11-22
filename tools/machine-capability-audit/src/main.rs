@@ -1,0 +1,1224 @@
+use serde::Deserialize;
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::env;
+use std::fs;
+use std::process::ExitCode;
+
+const EMBEDDED_CORPUS: &str =
+    include_str!("../../../fixtures/manufacturing/machine_capability_cases_v0_1.json");
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Corpus {
+    schema_id: String,
+    status: String,
+    owner_issue: String,
+    schema_path: String,
+    dispositions: Vec<String>,
+    case_count: usize,
+    cases: Vec<Case>,
+    claim_ceiling: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Case {
+    scenario_id: String,
+    description: String,
+    part: Part,
+    routes: Vec<Route>,
+    expected: Expected,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Part {
+    part_id: String,
+    revision: String,
+    risk_class: String,
+    allowed_tiers: Vec<String>,
+    rights_status: String,
+    revision_status: String,
+    process_family: String,
+    required_inspection: Vec<String>,
+    post_repair_verification_required: bool,
+    required_max_temperature_c: f64,
+    deadline_hours: f64,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Route {
+    route_id: String,
+    tier: String,
+    machine_id: String,
+    process_family: String,
+    support_status: String,
+    machine_identity_status: String,
+    machine_safety_status: String,
+    material_status: String,
+    calibration_status: String,
+    operator_status: String,
+    inspection_status: String,
+    post_repair_status: String,
+    machine_envelope_status: String,
+    max_process_temperature_c: f64,
+    inspection_methods: Vec<String>,
+    capacity_units: Capacity,
+    lead_time_hours: f64,
+    dependencies: Vec<Dependency>,
+    cost: Cost,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Capacity {
+    required: f64,
+    available: f64,
+    unit: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Dependency {
+    dependency_id: String,
+    criticality: String,
+    sourcing_class: String,
+    alternate_sources: u32,
+    local_repair_status: String,
+    evidence_status: String,
+    requires: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Cost {
+    capital_allocation_zar: Option<f64>,
+    material_zar: Option<f64>,
+    energy_zar: Option<f64>,
+    labour_zar: Option<f64>,
+    setup_zar: Option<f64>,
+    calibration_zar: Option<f64>,
+    inspection_zar: Option<f64>,
+    finishing_zar: Option<f64>,
+    transport_zar: Option<f64>,
+    maintenance_zar: Option<f64>,
+    failure_rework_zar: Option<f64>,
+    warranty_reserve_zar: Option<f64>,
+    accepted_outputs: f64,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Expected {
+    disposition: String,
+    feasible_route_ids: Vec<String>,
+    route_results: Vec<ExpectedRouteResult>,
+    local_closure_disposition: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ExpectedRouteResult {
+    route_id: String,
+    disposition: String,
+    blockers: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum Disposition {
+    Feasible,
+    Infeasible,
+    Unknown,
+    Unsupported,
+}
+
+impl Disposition {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Self::Feasible => "feasible",
+            Self::Infeasible => "infeasible",
+            Self::Unknown => "unknown",
+            Self::Unsupported => "unsupported",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum LocalClosure {
+    LocallyReproducible,
+    LocalServiceOnly,
+    ImportDependent,
+    Unknown,
+}
+
+impl LocalClosure {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Self::LocallyReproducible => "locally_reproducible",
+            Self::LocalServiceOnly => "local_service_only",
+            Self::ImportDependent => "import_dependent",
+            Self::Unknown => "unknown",
+        }
+    }
+
+    fn preference(&self) -> u8 {
+        match self {
+            Self::LocallyReproducible => 0,
+            Self::LocalServiceOnly => 1,
+            Self::ImportDependent => 2,
+            Self::Unknown => 3,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+struct DependencyMetrics {
+    critical_count: usize,
+    critical_without_alternate_source_count: usize,
+    critical_not_locally_repairable_count: usize,
+    required_closure_count: usize,
+    required_closure_without_alternate_source_count: usize,
+    required_closure_not_locally_repairable_count: usize,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct RouteResult {
+    route_id: String,
+    disposition: Disposition,
+    blockers: Vec<String>,
+    local_closure: LocalClosure,
+    dependency_metrics: DependencyMetrics,
+    cost_per_accepted_output_zar: Option<f64>,
+    lead_time_hours: f64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct CaseResult {
+    disposition: Disposition,
+    feasible_route_ids: Vec<String>,
+    pareto_frontier_route_ids: Vec<String>,
+    route_results: Vec<RouteResult>,
+    best_feasible_route_local_closure: LocalClosure,
+}
+
+struct StatusRule<'a> {
+    good: &'a str,
+    bad: &'a str,
+    unknown: &'a str,
+    bad_code: &'a str,
+    unknown_code: &'a str,
+}
+
+fn assess_status(
+    status: &str,
+    rule: StatusRule<'_>,
+    hard: &mut BTreeSet<String>,
+    uncertain: &mut BTreeSet<String>,
+) {
+    if status == rule.bad {
+        hard.insert(rule.bad_code.to_owned());
+    } else if status == rule.unknown {
+        uncertain.insert(rule.unknown_code.to_owned());
+    } else if status != rule.good {
+        hard.insert(format!("unsupported_status:{status}"));
+    }
+}
+
+/// Return the complete transitive prerequisite closure rooted at critical
+/// dependencies. Unreferenced inventory entries are deliberately excluded.
+fn required_dependency_closure(dependencies: &[Dependency]) -> Option<Vec<&Dependency>> {
+    let by_id: HashMap<&str, &Dependency> = dependencies
+        .iter()
+        .map(|dependency| (dependency.dependency_id.as_str(), dependency))
+        .collect();
+    if by_id.len() != dependencies.len() {
+        return None;
+    }
+
+    let mut pending: Vec<&str> = dependencies
+        .iter()
+        .filter(|dependency| dependency.criticality == "critical")
+        .map(|dependency| dependency.dependency_id.as_str())
+        .collect();
+    if pending.is_empty() {
+        return None;
+    }
+
+    let mut required_ids = HashSet::new();
+    while let Some(id) = pending.pop() {
+        if !required_ids.insert(id.to_owned()) {
+            continue;
+        }
+        let dependency = by_id.get(id)?;
+        pending.extend(dependency.requires.iter().map(String::as_str));
+    }
+
+    Some(
+        dependencies
+            .iter()
+            .filter(|dependency| required_ids.contains(&dependency.dependency_id))
+            .collect(),
+    )
+}
+
+fn dependency_metrics(dependencies: &[Dependency]) -> DependencyMetrics {
+    let critical: Vec<&Dependency> = dependencies
+        .iter()
+        .filter(|dependency| dependency.criticality == "critical")
+        .collect();
+    let required_closure = required_dependency_closure(dependencies).unwrap_or_default();
+
+    DependencyMetrics {
+        critical_count: critical.len(),
+        critical_without_alternate_source_count: critical
+            .iter()
+            .filter(|dependency| dependency.alternate_sources == 0)
+            .count(),
+        critical_not_locally_repairable_count: critical
+            .iter()
+            .filter(|dependency| dependency.local_repair_status == "not_repairable")
+            .count(),
+        required_closure_count: required_closure.len(),
+        required_closure_without_alternate_source_count: required_closure
+            .iter()
+            .filter(|dependency| dependency.alternate_sources == 0)
+            .count(),
+        required_closure_not_locally_repairable_count: required_closure
+            .iter()
+            .filter(|dependency| dependency.local_repair_status == "not_repairable")
+            .count(),
+    }
+}
+
+fn cost_per_accepted_output_zar(cost: &Cost) -> Option<f64> {
+    let categories = [
+        cost.capital_allocation_zar,
+        cost.material_zar,
+        cost.energy_zar,
+        cost.labour_zar,
+        cost.setup_zar,
+        cost.calibration_zar,
+        cost.inspection_zar,
+        cost.finishing_zar,
+        cost.transport_zar,
+        cost.maintenance_zar,
+        cost.failure_rework_zar,
+        cost.warranty_reserve_zar,
+    ];
+    let complete_categories: Vec<f64> = categories.into_iter().collect::<Option<_>>()?;
+    let total_cost_zar: f64 = complete_categories.into_iter().sum();
+
+    Some(total_cost_zar / cost.accepted_outputs)
+}
+
+fn pareto_frontier_route_ids(route_results: &[RouteResult]) -> Vec<String> {
+    let feasible_with_complete_cost: Vec<&RouteResult> = route_results
+        .iter()
+        .filter(|route| {
+            route.disposition == Disposition::Feasible
+                && route.cost_per_accepted_output_zar.is_some()
+        })
+        .collect();
+
+    let mut frontier: Vec<String> = feasible_with_complete_cost
+        .iter()
+        .filter(|candidate| {
+            let candidate_cost = candidate.cost_per_accepted_output_zar
+                .expect("frontier candidates have complete cost");
+            !feasible_with_complete_cost.iter().any(|other| {
+                let other_cost = other.cost_per_accepted_output_zar
+                    .expect("frontier routes have complete cost");
+                let no_worse_on_cost = other_cost <= candidate_cost;
+                let no_worse_on_time = other.lead_time_hours <= candidate.lead_time_hours;
+                let strictly_better_on_one =
+                    other_cost < candidate_cost
+                        || other.lead_time_hours < candidate.lead_time_hours;
+
+                other.route_id != candidate.route_id
+                    && no_worse_on_cost
+                    && no_worse_on_time
+                    && strictly_better_on_one
+            })
+        })
+        .map(|route| route.route_id.clone())
+        .collect();
+
+    frontier.sort();
+    frontier
+}
+
+fn evaluate_route(part: &Part, route: &Route) -> RouteResult {
+    if route.support_status == "unsupported" {
+        return RouteResult {
+            route_id: route.route_id.clone(),
+            disposition: Disposition::Unsupported,
+            blockers: vec!["process_family_unsupported".to_owned()],
+            local_closure: dependency_closure(&route.dependencies),
+            dependency_metrics: dependency_metrics(&route.dependencies),
+            cost_per_accepted_output_zar: cost_per_accepted_output_zar(&route.cost),
+            lead_time_hours: route.lead_time_hours,
+        };
+    }
+    if route.support_status == "unknown" {
+        return RouteResult {
+            route_id: route.route_id.clone(),
+            disposition: Disposition::Unknown,
+            blockers: vec!["process_support_unknown".to_owned()],
+            local_closure: dependency_closure(&route.dependencies),
+            dependency_metrics: dependency_metrics(&route.dependencies),
+            cost_per_accepted_output_zar: cost_per_accepted_output_zar(&route.cost),
+            lead_time_hours: route.lead_time_hours,
+        };
+    }
+    if route.support_status != "supported" {
+        return RouteResult {
+            route_id: route.route_id.clone(),
+            disposition: Disposition::Unsupported,
+            blockers: vec!["process_support_status_unsupported".to_owned()],
+            local_closure: dependency_closure(&route.dependencies),
+            dependency_metrics: dependency_metrics(&route.dependencies),
+            cost_per_accepted_output_zar: cost_per_accepted_output_zar(&route.cost),
+            lead_time_hours: route.lead_time_hours,
+        };
+    }
+
+    let mut hard = BTreeSet::new();
+    let mut uncertain = BTreeSet::new();
+
+    match part.rights_status.as_str() {
+        "verified" => {}
+        "unknown" => { uncertain.insert("rights_unknown".to_owned()); }
+        "revoked" | "not_permitted" => { hard.insert("rights_revoked".to_owned()); }
+        _ => { hard.insert("rights_status_unsupported".to_owned()); }
+    }
+
+    match part.revision_status.as_str() {
+        "exact" => {}
+        "unknown" => { uncertain.insert("product_revision_unknown".to_owned()); }
+        "mismatch" => { hard.insert("product_revision_mismatch".to_owned()); }
+        _ => { hard.insert("product_revision_status_unsupported".to_owned()); }
+    }
+
+    if !part.allowed_tiers.iter().any(|tier| tier == &route.tier) {
+        hard.insert("tier_not_allowed".to_owned());
+    }
+    if part.risk_class == "P3" && (route.tier == "H0" || route.tier == "N1") {
+        hard.insert("p3_forbidden_tier".to_owned());
+    }
+    if part.process_family != route.process_family {
+        hard.insert("process_family_mismatch".to_owned());
+    }
+
+    assess_status(
+        &route.machine_identity_status,
+        StatusRule {
+            good: "verified", bad: "revoked", unknown: "unknown",
+            bad_code: "machine_identity_revoked", unknown_code: "machine_identity_unknown",
+        },
+        &mut hard, &mut uncertain,
+    );
+    assess_status(
+        &route.machine_safety_status,
+        StatusRule {
+            good: "qualified", bad: "unqualified", unknown: "unknown",
+            bad_code: "machine_safety_unqualified", unknown_code: "machine_safety_unknown",
+        },
+        &mut hard, &mut uncertain,
+    );
+    assess_status(
+        &route.material_status,
+        StatusRule {
+            good: "approved", bad: "prohibited", unknown: "unknown",
+            bad_code: "material_prohibited", unknown_code: "material_unknown",
+        },
+        &mut hard, &mut uncertain,
+    );
+    assess_status(
+        &route.calibration_status,
+        StatusRule {
+            good: "current", bad: "expired", unknown: "unknown",
+            bad_code: "calibration_expired", unknown_code: "calibration_unknown",
+        },
+        &mut hard, &mut uncertain,
+    );
+    assess_status(
+        &route.operator_status,
+        StatusRule {
+            good: "qualified", bad: "unqualified", unknown: "unknown",
+            bad_code: "operator_unqualified", unknown_code: "operator_unknown",
+        },
+        &mut hard, &mut uncertain,
+    );
+    assess_status(
+        &route.inspection_status,
+        StatusRule {
+            good: "qualified", bad: "missing", unknown: "unknown",
+            bad_code: "inspection_capability_missing", unknown_code: "inspection_capability_unknown",
+        },
+        &mut hard, &mut uncertain,
+    );
+
+    if part.required_inspection.iter().any(|method| {
+        !route.inspection_methods.iter().any(|available| available == method)
+    }) {
+        hard.insert("inspection_method_missing".to_owned());
+    }
+
+    if part.post_repair_verification_required {
+        match route.post_repair_status.as_str() {
+            "complete" => {}
+            "unknown" => { uncertain.insert("post_repair_verification_unknown".to_owned()); }
+            "missing" | "not_required" => {
+                hard.insert("post_repair_verification_missing".to_owned());
+            }
+            _ => { hard.insert("post_repair_status_unsupported".to_owned()); }
+        }
+    }
+
+    match route.machine_envelope_status.as_str() {
+        "within" => {}
+        "unknown" => { uncertain.insert("machine_envelope_unknown".to_owned()); }
+        "outside" => { hard.insert("machine_envelope_outside".to_owned()); }
+        _ => { hard.insert("machine_envelope_status_unsupported".to_owned()); }
+    }
+
+    if route.capacity_units.available < route.capacity_units.required {
+        hard.insert("capacity_insufficient".to_owned());
+    }
+    if route.lead_time_hours > part.deadline_hours {
+        hard.insert("deadline_missed".to_owned());
+    }
+    if part.required_max_temperature_c > route.max_process_temperature_c {
+        hard.insert("process_temperature_exceeded".to_owned());
+    }
+
+    let (disposition, blockers) = if !hard.is_empty() {
+        (Disposition::Infeasible, hard.into_iter().collect())
+    } else if !uncertain.is_empty() {
+        (Disposition::Unknown, uncertain.into_iter().collect())
+    } else {
+        (Disposition::Feasible, Vec::new())
+    };
+
+    RouteResult {
+        route_id: route.route_id.clone(),
+        disposition,
+        blockers,
+        local_closure: dependency_closure(&route.dependencies),
+        dependency_metrics: dependency_metrics(&route.dependencies),
+        cost_per_accepted_output_zar: cost_per_accepted_output_zar(&route.cost),
+        lead_time_hours: route.lead_time_hours,
+    }
+}
+
+fn dependency_closure(dependencies: &[Dependency]) -> LocalClosure {
+    if dependencies.is_empty() {
+        return LocalClosure::Unknown;
+    }
+
+    let by_id: HashMap<&str, &Dependency> = dependencies
+        .iter()
+        .map(|dependency| (dependency.dependency_id.as_str(), dependency))
+        .collect();
+    if by_id.len() != dependencies.len() {
+        return LocalClosure::Unknown;
+    }
+
+    for dependency in dependencies {
+        if dependency
+            .requires
+            .iter()
+            .any(|required| !by_id.contains_key(required.as_str()))
+        {
+            return LocalClosure::Unknown;
+        }
+    }
+
+    // Validate the full declared graph, including disconnected components, so
+    // cycles and dangling references cannot hide outside today's critical roots.
+    fn visit(
+        id: &str,
+        by_id: &HashMap<&str, &Dependency>,
+        visiting: &mut HashSet<String>,
+        visited: &mut HashSet<String>,
+    ) -> bool {
+        if visited.contains(id) {
+            return true;
+        }
+        if !visiting.insert(id.to_owned()) {
+            return false;
+        }
+        let Some(dependency) = by_id.get(id) else {
+            return false;
+        };
+        for next in &dependency.requires {
+            if !visit(next, by_id, visiting, visited) {
+                return false;
+            }
+        }
+        visiting.remove(id);
+        visited.insert(id.to_owned());
+        true
+    }
+
+    let mut visiting = HashSet::new();
+    let mut visited = HashSet::new();
+    for id in by_id.keys() {
+        if !visit(id, &by_id, &mut visiting, &mut visited) {
+            return LocalClosure::Unknown;
+        }
+    }
+
+    let Some(required_closure) = required_dependency_closure(dependencies) else {
+        return LocalClosure::Unknown;
+    };
+
+    // Every transitive prerequisite of a critical component contributes to
+    // productive closure, even when that prerequisite is labelled important
+    // or noncritical in the source BOM.
+    if required_closure.iter().any(|dependency| {
+        matches!(
+            dependency.evidence_status.as_str(),
+            "unknown" | "assumed" | "synthetic" | "revoked"
+        ) || dependency.sourcing_class == "unknown"
+    }) {
+        return LocalClosure::Unknown;
+    }
+
+    if required_closure.iter().any(|dependency| {
+        dependency.sourcing_class == "local_service_imported_inputs"
+            && dependency.local_repair_status == "unknown"
+    }) {
+        return LocalClosure::Unknown;
+    }
+
+    if required_closure.iter().any(|dependency| {
+        dependency.sourcing_class == "local_service_imported_inputs"
+            && dependency.local_repair_status == "not_repairable"
+    }) {
+        return LocalClosure::ImportDependent;
+    }
+
+    if required_closure
+        .iter()
+        .all(|dependency| dependency.sourcing_class == "locally_manufactured")
+    {
+        return LocalClosure::LocallyReproducible;
+    }
+
+    if required_closure.iter().any(|dependency| {
+        dependency.sourcing_class == "imported_stocked"
+            || dependency.sourcing_class == "imported_long_lead"
+    }) {
+        return LocalClosure::ImportDependent;
+    }
+
+    if required_closure
+        .iter()
+        .any(|dependency| dependency.sourcing_class == "local_service_imported_inputs")
+    {
+        return LocalClosure::LocalServiceOnly;
+    }
+
+    LocalClosure::Unknown
+}
+
+fn is_one_of(value: &str, choices: &[&str]) -> bool {
+    choices.contains(&value)
+}
+
+fn validate_case(case: &Case) -> Result<(), String> {
+    if case.scenario_id.trim().is_empty() || case.description.trim().is_empty() {
+        return Err("empty scenario identity or description".to_owned());
+    }
+    if !is_one_of(&case.part.risk_class, &["P0", "P1", "P2", "P3"])
+        || !is_one_of(&case.part.rights_status, &["verified", "unknown", "revoked", "not_permitted"])
+        || !is_one_of(&case.part.revision_status, &["exact", "unknown", "mismatch"])
+    {
+        return Err("unsupported part risk, rights or revision state".to_owned());
+    }
+    if case.part.deadline_hours < 0.0
+        || case.part.required_max_temperature_c < -273.15
+        || case.part.required_inspection.is_empty()
+        || has_duplicates(&case.part.required_inspection)
+    {
+        return Err("invalid part limits or inspection requirements".to_owned());
+    }
+    if case.part.part_id.trim().is_empty() || case.part.revision.trim().is_empty() {
+        return Err("empty part identity or revision".to_owned());
+    }
+    if case.part.allowed_tiers.is_empty() {
+        return Err("allowed_tiers cannot be empty".to_owned());
+    }
+    if has_duplicates(&case.part.allowed_tiers)
+        || case.part.allowed_tiers.iter().any(|tier| {
+            !is_one_of(tier, &["H0", "N1", "R2", "Q3", "OEM"])
+        })
+    {
+        return Err("duplicate or unsupported allowed_tiers".to_owned());
+    }
+    if case.routes.is_empty() {
+        return Err("route list cannot be empty".to_owned());
+    }
+
+    let mut route_ids = BTreeSet::new();
+    for route in &case.routes {
+        if !route_ids.insert(route.route_id.as_str()) {
+            return Err(format!("duplicate route id: {}", route.route_id));
+        }
+        if route.route_id.trim().is_empty() || route.machine_id.trim().is_empty() {
+            return Err("empty route or machine identity".to_owned());
+        }
+        if !is_one_of(&route.tier, &["H0", "N1", "R2", "Q3", "OEM"])
+            || !is_one_of(&route.support_status, &["supported", "unknown", "unsupported"])
+            || !is_one_of(&route.machine_identity_status, &["verified", "unknown", "revoked"])
+            || !is_one_of(&route.machine_safety_status, &["qualified", "unknown", "unqualified"])
+            || !is_one_of(&route.material_status, &["approved", "unknown", "prohibited"])
+            || !is_one_of(&route.calibration_status, &["current", "unknown", "expired"])
+            || !is_one_of(&route.operator_status, &["qualified", "unknown", "unqualified"])
+            || !is_one_of(&route.inspection_status, &["qualified", "unknown", "missing"])
+            || !is_one_of(&route.post_repair_status, &["complete", "unknown", "missing", "not_required"])
+            || !is_one_of(&route.machine_envelope_status, &["within", "unknown", "outside"])
+        {
+            return Err(format!("unsupported route state in {}", route.route_id));
+        }
+        if route.capacity_units.required <= 0.0
+            || route.capacity_units.available < 0.0
+            || !route.capacity_units.required.is_finite()
+            || !route.capacity_units.available.is_finite()
+            || route.capacity_units.unit.trim().is_empty()
+            || route.lead_time_hours < 0.0
+            || route.max_process_temperature_c < -273.15
+        {
+            return Err(format!("invalid capacity units in {}", route.route_id));
+        }
+        if !route.lead_time_hours.is_finite()
+            || !route.max_process_temperature_c.is_finite()
+            || !case.part.required_max_temperature_c.is_finite()
+            || !case.part.deadline_hours.is_finite()
+        {
+            return Err(format!("non-finite numeric input in {}", route.route_id));
+        }
+        if !cost_is_valid(&route.cost) {
+            return Err(format!("invalid cost inputs in {}", route.route_id));
+        }
+        if has_duplicates(&route.inspection_methods) {
+            return Err(format!("duplicate inspection methods in {}", route.route_id));
+        }
+        let mut dependency_ids = BTreeSet::new();
+        for dep in &route.dependencies {
+            if dep.dependency_id.trim().is_empty()
+                || !dependency_ids.insert(dep.dependency_id.as_str())
+            {
+                return Err(format!("empty or duplicate dependency id in {}", route.route_id));
+            }
+            if !is_one_of(&dep.criticality, &["critical", "important", "noncritical"])
+                || !is_one_of(
+                    &dep.sourcing_class,
+                    &[
+                        "locally_manufactured",
+                        "local_service_imported_inputs",
+                        "imported_stocked",
+                        "imported_long_lead",
+                        "unknown",
+                    ],
+                )
+                || !is_one_of(&dep.local_repair_status, &["repairable", "not_repairable", "unknown"])
+                || !is_one_of(
+                    &dep.evidence_status,
+                    &[
+                        "measured",
+                        "independently_verified",
+                        "vendor_declared",
+                        "assumed",
+                        "synthetic",
+                        "unknown",
+                        "revoked",
+                    ],
+                )
+            {
+                return Err(format!("unsupported dependency state in {}", route.route_id));
+            }
+            if has_duplicates(&dep.requires) {
+                return Err(format!("duplicate dependency edge in {}", route.route_id));
+            }
+        }
+    }
+
+    let expected_ids: BTreeSet<&str> = case.expected.route_results
+        .iter().map(|result| result.route_id.as_str()).collect();
+    if expected_ids.len() != case.expected.route_results.len()
+        || expected_ids != route_ids
+    {
+        return Err("expected route-results do not exactly cover candidate routes".to_owned());
+    }
+
+    if has_duplicates(&case.expected.feasible_route_ids)
+        || !is_one_of(
+            &case.expected.disposition,
+            &["feasible", "infeasible", "unknown", "unsupported"],
+        )
+        || !is_one_of(
+            &case.expected.local_closure_disposition,
+            &["locally_reproducible", "local_service_only", "import_dependent", "unknown"],
+        )
+    {
+        return Err("duplicate feasible routes or unsupported expected disposition".to_owned());
+    }
+
+    Ok(())
+}
+
+fn has_duplicates<T: Eq + std::hash::Hash>(items: &[T]) -> bool {
+    let set: HashSet<&T> = items.iter().collect();
+    set.len() != items.len()
+}
+
+fn cost_is_valid(cost: &Cost) -> bool {
+    let categories = [
+        cost.capital_allocation_zar,
+        cost.material_zar,
+        cost.energy_zar,
+        cost.labour_zar,
+        cost.setup_zar,
+        cost.calibration_zar,
+        cost.inspection_zar,
+        cost.finishing_zar,
+        cost.transport_zar,
+        cost.maintenance_zar,
+        cost.failure_rework_zar,
+        cost.warranty_reserve_zar,
+    ];
+    let categories_are_valid = categories
+        .iter()
+        .flatten()
+        .all(|value| value.is_finite() && *value >= 0.0);
+    let complete_total = categories
+        .into_iter()
+        .collect::<Option<Vec<f64>>>()
+        .map(|values| values.into_iter().sum::<f64>());
+
+    categories_are_valid
+        && complete_total.is_none_or(f64::is_finite)
+        && cost.accepted_outputs.is_finite()
+        && cost.accepted_outputs > 0.0
+}
+
+fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
+    validate_case(case)?;
+    let mut route_results: Vec<RouteResult> = case.routes
+        .iter()
+        .map(|route| evaluate_route(&case.part, route))
+        .collect();
+    route_results.sort_by(|a, b| a.route_id.cmp(&b.route_id));
+
+    let feasible_route_ids: Vec<String> = route_results
+        .iter()
+        .filter(|result| result.disposition == Disposition::Feasible)
+        .map(|result| result.route_id.clone())
+        .collect();
+
+    let disposition = if !feasible_route_ids.is_empty() {
+        Disposition::Feasible
+    } else if route_results.iter().any(|result| result.disposition == Disposition::Unknown) {
+        Disposition::Unknown
+    } else if route_results.iter().any(|result| result.disposition == Disposition::Infeasible) {
+        Disposition::Infeasible
+    } else {
+        Disposition::Unsupported
+    };
+
+    let pareto_frontier_route_ids = pareto_frontier_route_ids(&route_results);
+    let best_feasible_route_local_closure = route_results
+        .iter()
+        .filter(|result| result.disposition == Disposition::Feasible)
+        .map(|result| result.local_closure.clone())
+        .min_by_key(LocalClosure::preference)
+        .unwrap_or(LocalClosure::Unknown);
+
+    Ok(CaseResult {
+        disposition,
+        feasible_route_ids,
+        pareto_frontier_route_ids,
+        route_results,
+        best_feasible_route_local_closure,
+    })
+}
+
+fn verify_corpus(corpus: &Corpus) -> Result<(), Vec<String>> {
+    let mut errors = Vec::new();
+
+    if corpus.case_count != corpus.cases.len() {
+        errors.push(format!(
+            "case_count is {}, but corpus contains {} cases",
+            corpus.case_count,
+            corpus.cases.len()
+        ));
+    }
+    if corpus.schema_id != "MACHINE-CAPABILITY-COMPILER-CASES-0.1" {
+        errors.push("unexpected schema_id".to_owned());
+    }
+    if corpus.cases.is_empty() {
+        errors.push("corpus must not be empty".to_owned());
+    }
+    let permitted_dispositions: BTreeSet<&str> = [
+        "feasible", "infeasible", "unknown", "unsupported",
+    ].into_iter().collect();
+    if corpus.dispositions.iter().any(|value| !permitted_dispositions.contains(value.as_str())) {
+        errors.push("corpus declares an unsupported disposition".to_owned());
+    }
+
+    let mut scenario_ids = BTreeSet::new();
+    for case in &corpus.cases {
+        if !scenario_ids.insert(case.scenario_id.as_str()) {
+            errors.push(format!("duplicate scenario id: {}", case.scenario_id));
+            continue;
+        }
+        let actual = match evaluate_case(case) {
+            Ok(result) => result,
+            Err(error) => {
+                errors.push(format!("{}: {error}", case.scenario_id));
+                continue;
+            }
+        };
+
+        if !corpus.dispositions.iter().any(|value| value == &case.expected.disposition) {
+            errors.push(format!("{}: expected disposition is not declared by corpus", case.scenario_id));
+        }
+        if actual.route_results.iter().any(|route| {
+            route.dependency_metrics.critical_without_alternate_source_count
+                > route.dependency_metrics.critical_count
+                || route.dependency_metrics.critical_not_locally_repairable_count
+                    > route.dependency_metrics.critical_count
+                || route.dependency_metrics.required_closure_without_alternate_source_count
+                    > route.dependency_metrics.required_closure_count
+                || route.dependency_metrics.required_closure_not_locally_repairable_count
+                    > route.dependency_metrics.required_closure_count
+        }) {
+            errors.push(format!("{}: invalid dependency risk metrics", case.scenario_id));
+        }
+        if actual.disposition.as_str() != case.expected.disposition {
+            errors.push(format!(
+                "{}: disposition expected {}, got {}",
+                case.scenario_id, case.expected.disposition, actual.disposition.as_str()
+            ));
+        }
+        if actual.feasible_route_ids != sorted(case.expected.feasible_route_ids.clone()) {
+            errors.push(format!(
+                "{}: feasible routes expected {:?}, got {:?}",
+                case.scenario_id,
+                sorted(case.expected.feasible_route_ids.clone()),
+                actual.feasible_route_ids
+            ));
+        }
+        if actual.best_feasible_route_local_closure.as_str()
+            != case.expected.local_closure_disposition
+        {
+            errors.push(format!(
+                "{}: local closure expected {}, got {}",
+                case.scenario_id,
+                case.expected.local_closure_disposition,
+                actual.best_feasible_route_local_closure.as_str()
+            ));
+        }
+
+        let expected_by_id: BTreeMap<&str, &ExpectedRouteResult> = case.expected.route_results
+            .iter().map(|result| (result.route_id.as_str(), result)).collect();
+        for result in &actual.route_results {
+            let Some(expected) = expected_by_id.get(result.route_id.as_str()) else {
+                errors.push(format!("{}: missing expected route {}", case.scenario_id, result.route_id));
+                continue;
+            };
+            if result.disposition.as_str() != expected.disposition {
+                errors.push(format!(
+                    "{} / {}: disposition expected {}, got {}",
+                    case.scenario_id, result.route_id, expected.disposition, result.disposition.as_str()
+                ));
+            }
+            if result.blockers != sorted(expected.blockers.clone()) {
+                errors.push(format!(
+                    "{} / {}: blockers expected {:?}, got {:?}",
+                    case.scenario_id, result.route_id,
+                    sorted(expected.blockers.clone()), result.blockers
+                ));
+            }
+        }
+    }
+
+    if errors.is_empty() { Ok(()) } else { Err(errors) }
+}
+
+fn sorted(mut values: Vec<String>) -> Vec<String> {
+    values.sort();
+    values
+}
+
+fn parse_corpus(input: &str) -> Result<Corpus, String> {
+    serde_json::from_str(input).map_err(|error| format!("invalid corpus JSON: {error}"))
+}
+
+fn run() -> Result<(), String> {
+    let args: Vec<String> = env::args().skip(1).collect();
+    let corpus_text = if let Some(path) = args.first() {
+        fs::read_to_string(path).map_err(|error| format!("cannot read {path}: {error}"))?
+    } else {
+        EMBEDDED_CORPUS.to_owned()
+    };
+    let corpus = parse_corpus(&corpus_text)?;
+    verify_corpus(&corpus).map_err(|errors| errors.join("\n"))?;
+
+    println!(
+        "machine-capability-audit: {} synthetic known-answer cases passed",
+        corpus.cases.len()
+    );
+    for case in &corpus.cases {
+        let result = evaluate_case(case)?;
+        println!(
+            "case={} disposition={} pareto_frontier={}",
+            case.scenario_id,
+            result.disposition.as_str(),
+            result.pareto_frontier_route_ids.join(",")
+        );
+        for route in &result.route_results {
+            let cost_text = route
+                .cost_per_accepted_output_zar
+                .map(|value| format!("{value:.2}"))
+                .unwrap_or_else(|| "unknown".to_owned());
+            println!(
+                "  route={} disposition={} cost_per_accepted_output_zar={} lead_time_hours={:.2} local_closure={} critical_dependencies={} critical_no_alternate={} critical_not_repairable={} required_dependency_closure={} required_no_alternate={} required_not_repairable={}",
+                route.route_id,
+                route.disposition.as_str(),
+                cost_text,
+                route.lead_time_hours,
+                route.local_closure.as_str(),
+                route.dependency_metrics.critical_count,
+                route.dependency_metrics.critical_without_alternate_source_count,
+                route.dependency_metrics.critical_not_locally_repairable_count,
+                route.dependency_metrics.required_closure_count,
+                route.dependency_metrics.required_closure_without_alternate_source_count,
+                route.dependency_metrics.required_closure_not_locally_repairable_count
+            );
+        }
+    }
+    println!("schema: {}", corpus.schema_path);
+    println!("status: {}", corpus.status);
+    println!("owner: {}", corpus.owner_issue);
+    println!("claim ceiling: {}", corpus.claim_ceiling);
+    Ok(())
+}
+
+fn main() -> ExitCode {
+    match run() {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(error) => {
+            eprintln!("machine-capability-audit: {error}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn corpus() -> Corpus {
+        parse_corpus(EMBEDDED_CORPUS).expect("embedded corpus must parse")
+    }
+
+    #[test]
+    fn all_frozen_known_answers_match() {
+        let parsed = corpus();
+        verify_corpus(&parsed).expect("all known answers should match");
+    }
+
+    #[test]
+    fn irrelevant_route_order_does_not_change_assessment() {
+        let parsed = corpus();
+        let mut case = parsed.cases
+            .iter()
+            .find(|case| case.scenario_id == "MCC-013")
+            .expect("MCC-013 exists")
+            .clone();
+
+        let before = evaluate_case(&case).expect("baseline evaluation");
+        case.routes.reverse();
+        let after = evaluate_case(&case).expect("permuted evaluation");
+        assert_eq!(before, after);
+    }
+
+    #[test]
+    fn revoked_rights_cannot_be_offset_by_low_cost() {
+        let parsed = corpus();
+        let mut case = parsed.cases
+            .iter()
+            .find(|case| case.scenario_id == "MCC-001")
+            .expect("MCC-001 exists")
+            .clone();
+        case.part.rights_status = "revoked".to_owned();
+
+        let result = evaluate_case(&case).expect("mutated case is structurally valid");
+        assert_eq!(result.disposition, Disposition::Infeasible);
+        assert!(!result.feasible_route_ids.contains(&"N1-FDM-01".to_owned()));
+    }
+
+    #[test]
+    fn stale_calibration_is_a_hard_blocker() {
+        let parsed = corpus();
+        let mut case = parsed.cases
+            .iter()
+            .find(|case| case.scenario_id == "MCC-001")
+            .expect("MCC-001 exists")
+            .clone();
+        case.routes[0].calibration_status = "expired".to_owned();
+
+        let result = evaluate_case(&case).expect("mutated case is structurally valid");
+        assert_eq!(result.disposition, Disposition::Infeasible);
+        assert!(result.route_results[0].blockers.contains(&"calibration_expired".to_owned()));
+    }
+
+    #[test]
+    fn cyclic_dependency_never_proves_local_reproducibility() {
+        let parsed = corpus();
+        let case = parsed.cases
+            .iter()
+            .find(|case| case.scenario_id == "MCC-014")
+            .expect("MCC-014 exists");
+        let result = evaluate_case(case).expect("cycle is a valid adversarial fixture");
+        assert_eq!(
+            result.best_feasible_route_local_closure,
+            LocalClosure::Unknown
+        );
+    }
+
+    #[test]
+    fn route_cost_includes_all_cost_categories_per_accepted_output() {
+        let parsed = corpus();
+        let case = parsed
+            .cases
+            .iter()
+            .find(|case| case.scenario_id == "MCC-001")
+            .expect("MCC-001 exists");
+        let route = &case.routes[0];
+        assert_eq!(cost_per_accepted_output_zar(&route.cost), Some(68.0));
+    }
+
+    #[test]
+    fn critical_transitive_import_blocks_local_reproducibility() {
+        let parsed = corpus();
+        let case = parsed
+            .cases
+            .iter()
+            .find(|case| case.scenario_id == "MCC-022")
+            .expect("MCC-022 exists");
+        let result = evaluate_case(case).expect("transitive dependency case evaluates");
+
+        assert_eq!(result.disposition, Disposition::Feasible);
+        assert_eq!(
+            result.best_feasible_route_local_closure,
+            LocalClosure::ImportDependent
+        );
+        let metrics = &result.route_results[0].dependency_metrics;
+        assert_eq!(metrics.critical_count, 2);
+        assert_eq!(metrics.required_closure_count, 4);
+        assert_eq!(metrics.required_closure_without_alternate_source_count, 1);
+        assert_eq!(metrics.required_closure_not_locally_repairable_count, 1);
+    }
+
+    #[test]
+    fn unreferenced_imported_inventory_does_not_change_required_closure() {
+        let parsed = corpus();
+        let mut case = parsed
+            .cases
+            .iter()
+            .find(|case| case.scenario_id == "MCC-001")
+            .expect("MCC-001 exists")
+            .clone();
+        case.routes[0].dependencies.push(Dependency {
+            dependency_id: "unreferenced-spare-stock".to_owned(),
+            criticality: "noncritical".to_owned(),
+            sourcing_class: "imported_long_lead".to_owned(),
+            alternate_sources: 0,
+            local_repair_status: "not_repairable".to_owned(),
+            evidence_status: "vendor_declared".to_owned(),
+            requires: Vec::new(),
+        });
+
+        let result = evaluate_case(&case).expect("unreferenced inventory is valid");
+        assert_eq!(
+            result.best_feasible_route_local_closure,
+            LocalClosure::LocalServiceOnly
+        );
+        let metrics = &result.route_results[0].dependency_metrics;
+        assert_eq!(metrics.critical_count, 2);
+        assert_eq!(metrics.required_closure_count, 2);
+    }
+
+    #[test]
+    fn missing_cost_is_unknown_and_excluded_from_economic_frontier() {
+        let parsed = corpus();
+        let mut case = parsed
+            .cases
+            .iter()
+            .find(|case| case.scenario_id == "MCC-001")
+            .expect("MCC-001 exists")
+            .clone();
+        case.routes[0].cost.transport_zar = None;
+
+        let result = evaluate_case(&case).expect("missing cost must not block physical feasibility");
+        assert_eq!(result.disposition, Disposition::Feasible);
+        assert!(result.feasible_route_ids.contains(&"N1-FDM-01".to_owned()));
+        assert_eq!(result.route_results[0].cost_per_accepted_output_zar, None);
+        assert!(result.pareto_frontier_route_ids.is_empty());
+    }
+
+    #[test]
+    fn pareto_frontier_keeps_cost_time_tradeoffs_and_drops_dominated_routes() {
+        let route = |route_id: &str, cost: f64, lead_time: f64, disposition| RouteResult {
+            route_id: route_id.to_owned(),
+            disposition,
+            blockers: Vec::new(),
+            local_closure: LocalClosure::ImportDependent,
+            dependency_metrics: DependencyMetrics::default(),
+            cost_per_accepted_output_zar: Some(cost),
+            lead_time_hours: lead_time,
+        };
+        let routes = vec![
+            route("cheap-slow", 10.0, 12.0, Disposition::Feasible),
+            route("fast-expensive", 20.0, 3.0, Disposition::Feasible),
+            route("dominated", 25.0, 24.0, Disposition::Feasible),
+            route("infeasible-cheap", 1.0, 1.0, Disposition::Infeasible),
+        ];
+
+        assert_eq!(
+            pareto_frontier_route_ids(&routes),
+            vec!["cheap-slow".to_owned(), "fast-expensive".to_owned()]
+        );
+    }
+
+    #[test]
+    fn overflowing_complete_cost_is_rejected_instead_of_wrapping() {
+        let parsed = corpus();
+        let mut case = parsed
+            .cases
+            .iter()
+            .find(|case| case.scenario_id == "MCC-001")
+            .expect("MCC-001 exists")
+            .clone();
+        case.routes[0].cost.capital_allocation_zar = Some(f64::MAX);
+        case.routes[0].cost.material_zar = Some(f64::MAX);
+
+        assert!(evaluate_case(&case).is_err());
+    }
+
+    #[test]
+    fn missing_or_unknown_evidence_never_becomes_feasible() {
+        let parsed = corpus();
+        for id in ["MCC-002", "MCC-004", "MCC-016"] {
+            let case = parsed.cases.iter().find(|case| case.scenario_id == id).unwrap();
+            let result = evaluate_case(case).expect("fixture should evaluate");
+            assert_eq!(result.disposition, Disposition::Unknown, "{id}");
+            assert!(result.feasible_route_ids.is_empty(), "{id}");
+        }
+    }
+}
