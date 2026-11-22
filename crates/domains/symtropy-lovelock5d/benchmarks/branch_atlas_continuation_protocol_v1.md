@@ -105,3 +105,29 @@ Classify endpoints separately: extremality/zero surface gravity, horizon-series 
 - Akribeia, accepted PRD 12 Nov 2026: https://doi.org/10.1103/3kz2-6dvv.
 
 No folds, disconnected branches or bifurcations in the target EGB family are presumed. No completeness claim is made without an independent completeness argument.
+
+
+## Observable projection overlap is not a branch fold
+
+A published 5D EGB reference family can be non-monotonic in a selected profile observable. A repeated value of \(f(r_*)\), or even a visual crossing in a two-dimensional plot, does not imply that the full BVP solution manifold folds or has multiple roots at a fixed parameter.
+
+A new exact-rational synthetic control freezes this distinction:
+
+\[
+F((u,v),\lambda)=
+\begin{pmatrix}
+u-\lambda\\
+v-\lambda^2
+\end{pmatrix}=0,
+\qquad U(\lambda)=(\lambda,\lambda^2).
+\]
+
+The observable \(O(U)=v\) takes the same value \(1/4\) at \(\lambda=-1/2\) and \(+1/2\), although the full states differ. The fixed-parameter state Jacobian is \(D_UF=I\), with determinant 1, and \(\lambda\) is a regular branch parameter. The correct classification is **observable projection self-overlap**, not a BVP fold.
+
+The distinct exact fold control remains
+\[
+F(u,\lambda)=u^2-\lambda=0,\qquad \lambda=u^2,
+\]
+whose solution curve has \(d\lambda/du=0\) and \(d^2\lambda/du^2=2\) at the origin, with the fixed-parameter derivative \(F_u=0\) and \(F_\lambda=-1\).
+
+The new dependency-free verifier is \`branch_atlas_projection_overlap_reference.py\`. It is an exact synthetic control only; it does not reproduce the Akribeia 5D family or identify a target EGB event. Its purpose is to prevent scalar projections from being promoted to branch-topology claims without the full solution Jacobian and transversality tests.
