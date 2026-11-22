@@ -177,6 +177,41 @@
       },
       "admission_scope": "none",
       "notes": "Candidate only. GitHub repo main commit 95def2b6a42eee6299bbc1a5b880a9f3bfc070d6; README blob feda2d04eb801862539164561a1315ca450eee02. Repository has no LICENSE file and GitHub API license=null. Raw IF files are external Google Drive objects, not pinned in the Git repository; no SHA-256 file inventory is recorded. S2_GT.txt and S3_GT.txt are present in the repository; README describes them as time-tagged post-processed GNSS/INS position, velocity and attitude, but timestamp/clock and oracle independence require review. README still says ray-tracing labels are coming soon and retains an older ground-truth-release sentence despite the present S2/S3 files. S1/S2/S3 are real-source scenarios; S4 is simulated and uses a different IF configuration and must be evaluated separately. Public download availability is not a data licence; obtain author confirmation for research, commercial use and redistribution before admission."
+    },
+    {
+      "dataset_id": "urbannav-hk-medium-urban-1",
+      "name": "UrbanNav-HK-Medium-Urban-1 multisensor urban navigation sequence",
+      "domain": "urban_land",
+      "source_url": "https://github.com/IPNL-POLYU/UrbanNavDataset",
+      "status": "candidate_not_admitted",
+      "snapshot": {
+        "immutable": false,
+        "release_tag": null,
+        "repository_commit": "e53717a40c94803cd479a140433f6d803b1a0876",
+        "file_sha256": []
+      },
+      "rights": {
+        "license_id": "MIT",
+        "status": "explicit",
+        "scope": "dataset_payload",
+        "evidence_url": "https://github.com/IPNL-POLYU/UrbanNavDataset/blob/e53717a40c94803cd479a140433f6d803b1a0876/README.md",
+        "research_use": "permitted",
+        "commercial_use": "permitted",
+        "redistribution": "permitted"
+      },
+      "metadata": {
+        "time_basis_status": "unknown",
+        "spatial_reference_status": "unknown",
+        "calibration_status": "partial",
+        "ground_truth_status": "partial",
+        "split_basis": "route_id",
+        "train_group_ids": [],
+        "test_group_ids": [],
+        "split_sha256": null,
+        "clock_state_truth_status": "unknown"
+      },
+      "admission_scope": "none",
+      "notes": "Rights are explicitly stated by the upstream README: the MIT licence covers the dataset files provided by the README download links (ROS bags, GNSS RINEX, IMU and ground-truth files), including commercial use and redistribution with notices. Snapshot is only the repository commit, not the downloaded dataset payload. Recommended first segment: UrbanNav-HK-Medium-Urban-1 (33.7 GB, 785 s, 3.64 km; GNSS, IMU, LiDAR, stereo camera; SPAN-CPT + IE ground truth; raw RINEX v3.02; ROS TimeReference topic). All download files remain un-hashed, so payload snapshot is not immutable. Upstream README reports a malfunctioning u-blox F9P receiver during a particular interval (upstream issue #11); exclude or explicitly label that interval. The broader repository also contains Deep, Harsh and Tunnel routes; the Harsh route has only partial verified ground truth and must not be assumed fully covered. SPAN-CPT/IE ground truth is 1 Hz, lower than 400 Hz IMU; time alignment, frame/extrinsic calibration and oracle lineage must be qualified for the chosen route. Tokyo data lack LiDAR extrinsic calibration in the README and is not the first target. This record remains candidate_not_admitted pending exact payload hashes, subset split, calibration/time/frame audit, and ground-truth review."
     }
   ]
 }
