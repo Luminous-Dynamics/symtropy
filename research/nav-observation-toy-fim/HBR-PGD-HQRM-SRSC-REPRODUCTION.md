@@ -95,6 +95,27 @@ These modules are only the two upstream precomputation blocks. They do not imple
 
 Those belong in later increments after source and protocol pinning.
 
+The BCTR objective module now also exposes the local 2x2 position Hessian at a selected time index. It differentiates the generalized robust data term through the Euclidean range residual and adds the diagonal block contributions from velocity and acceleration regularizers. The robust-loss second derivative is evaluated analytically, including the logarithmic alpha-to-zero limit. A finite-difference-of-gradient regression test checks the returned Hessian block.
+
+This creates the intended connection from the local BCTR objective to the curvature input used by the window-fusion stage. The curvature remains an objective Hessian, not a calibrated covariance; clipping its negative eigenvalues for tr_+ weighting does not turn it into a statistical uncertainty region.
+
+## Module 4: overlapping windows and curvature-trace fusion
+
+The companion `hbr_window_fusion.rs` implements deterministic half-open windows and the paper's post-optimization weighted trajectory fusion.
+
+The window planner takes a trajectory length, window length and overlap count. It uses stride W - overlap, produces canonical window identities and explicitly permits a shorter final tail window. It emits the exact contributor-window IDs for every global time index. A zero-length trajectory, zero window or overlap greater than/equal to W is rejected.
+
+For each supplied converged local position estimate and symmetric 2x2 curvature matrix, the fusion kernel computes the two eigenvalues and sums their nonnegative parts:
+`kappa = max(lambda_max, 0) + max(lambda_min, 0) + epsilon_kappa`.
+
+It then fuses each time point using the paper's weighted mean, while retaining a per-window contribution receipt with raw positive curvature trace, fusion weight and normalized contribution weight. It requires exactly one local estimate for every planned (window,time) pair. Missing, duplicate, out-of-window and invalid-curvature inputs are rejected.
+
+The kernel does not infer curvature from the objective yet. It consumes the local Hessian/curvature supplied by the optimizer. Positive curvature trace is an algorithmic weighting heuristic, not a posterior covariance, statistical coverage certificate or protection level. The HBR paper claims the trace weight down-weights windows with severe NLOS and long-tailed errors; our extension must falsify that relationship on held-out trajectories rather than assume it as a guarantee.
+
+The fusion input requires exact SHA-256 commitments for the canonical window plan, fusion configuration, local position solution and local curvature artifact. These commitments are preserved in each contribution receipt; the module does not calculate or authenticate the underlying digests.
+
+The paper states W=11 in its parameter table; it describes a fixed overlap ratio but the accessible main-text method does not state its numeric value. The planner therefore takes overlap explicitly. Do not present a guessed overlap ratio as an author reproduction setting.
+
 ## Reproduction protocol to preserve
 
 The paper uses three selected Bregar environments:
