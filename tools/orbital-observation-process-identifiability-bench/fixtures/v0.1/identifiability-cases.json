@@ -1,0 +1,200 @@
+{
+  "schema": "luminous.orbital-observation-identifiability.corpus.v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic-thinned-plp-identifiability-only",
+  "analytic_cases": [
+    {
+      "case_id": "constant_detection_thinning_rescales_scale_only",
+      "physical": {
+        "eta": 2,
+        "beta": 1.2
+      },
+      "capture": {
+        "p0": 0.5,
+        "gamma": 0
+      },
+      "exposure_horizon": 100,
+      "decomposition_gammas": [
+        0,
+        0.2,
+        0.7
+      ],
+      "decomposition_p0": 0.8,
+      "expected_observed": {
+        "eta_observed": 1,
+        "beta_observed": 1.2
+      },
+      "expected_equivalent_physical_betas": [
+        1.2,
+        1,
+        0.5
+      ]
+    },
+    {
+      "case_id": "time_varying_detection_inflates_observed_beta",
+      "physical": {
+        "eta": 1.4,
+        "beta": 0.8
+      },
+      "capture": {
+        "p0": 0.9,
+        "gamma": 0.7
+      },
+      "exposure_horizon": 100,
+      "decomposition_gammas": [
+        0,
+        0.3,
+        0.7,
+        1
+      ],
+      "decomposition_p0": 0.75,
+      "expected_observed": {
+        "eta_observed": 0.026752801861195025,
+        "beta_observed": 1.5
+      },
+      "expected_equivalent_physical_betas": [
+        1.5,
+        1.2,
+        0.8,
+        0.5
+      ]
+    },
+    {
+      "case_id": "detection_trend_masks_improving_physical_process",
+      "physical": {
+        "eta": 2,
+        "beta": 0.5
+      },
+      "capture": {
+        "p0": 0.8,
+        "gamma": 1
+      },
+      "exposure_horizon": 20,
+      "decomposition_gammas": [
+        0,
+        0.5,
+        1,
+        1.2
+      ],
+      "decomposition_p0": 0.7,
+      "expected_observed": {
+        "eta_observed": 0.02666666666666667,
+        "beta_observed": 1.5
+      },
+      "expected_equivalent_physical_betas": [
+        1.5,
+        1,
+        0.5,
+        0.30000000000000004
+      ]
+    },
+    {
+      "case_id": "physical_deterioration_plus_detection_trend",
+      "physical": {
+        "eta": 0.7,
+        "beta": 1.3
+      },
+      "capture": {
+        "p0": 0.85,
+        "gamma": 0.4
+      },
+      "exposure_horizon": 50,
+      "decomposition_gammas": [
+        0,
+        0.2,
+        0.4,
+        0.6,
+        1
+      ],
+      "decomposition_p0": 0.65,
+      "expected_observed": {
+        "eta_observed": 0.09515319928580585,
+        "beta_observed": 1.7000000000000002
+      },
+      "expected_equivalent_physical_betas": [
+        1.7000000000000002,
+        1.5000000000000002,
+        1.3000000000000003,
+        1.1,
+        0.7000000000000002
+      ]
+    }
+  ],
+  "sensitivity_cases": [
+    {
+      "case_id": "independent_pod_trend_bounds_narrow",
+      "beta_observed": 1.5,
+      "gamma_min": 0.2,
+      "gamma_max": 0.6,
+      "expected_beta_min": 0.9,
+      "expected_beta_max": 1.3,
+      "expected_lower_open": false,
+      "expected_identifiable": false
+    },
+    {
+      "case_id": "weak_pod_trend_bounds_leave_open_lower_beta",
+      "beta_observed": 1.5,
+      "gamma_min": 0,
+      "gamma_max": 1.8,
+      "expected_beta_min": 0,
+      "expected_beta_max": 1.5,
+      "expected_lower_open": true,
+      "expected_identifiable": false
+    },
+    {
+      "case_id": "externally_known_pod_trend_identifies_beta",
+      "beta_observed": 1.2,
+      "gamma_min": 0.2,
+      "gamma_max": 0.2,
+      "expected_beta_min": 1,
+      "expected_beta_max": 1,
+      "expected_lower_open": false,
+      "expected_identifiable": true
+    },
+    {
+      "case_id": "upper_detection_trend_exactly_reaches_observed_shape",
+      "beta_observed": 1.5,
+      "gamma_min": 0,
+      "gamma_max": 1.5,
+      "expected_beta_min": 0,
+      "expected_beta_max": 1.5,
+      "expected_lower_open": true,
+      "expected_identifiable": false
+    }
+  ],
+  "simulation_cases": [
+    {
+      "case_id": "time_varying_capture_simulation_beta_0_8_gamma_0_7",
+      "physical_beta": 0.8,
+      "capture_p0": 0.9,
+      "capture_gamma": 0.7,
+      "physical_event_count": 200000,
+      "exposure_horizon": 1,
+      "physical_seed": 123456,
+      "capture_seed": 654321,
+      "maximum_beta_error": 0.04
+    },
+    {
+      "case_id": "constant_capture_simulation_beta_1_2",
+      "physical_beta": 1.2,
+      "capture_p0": 0.7,
+      "capture_gamma": 0,
+      "physical_event_count": 150000,
+      "exposure_horizon": 1,
+      "physical_seed": 234567,
+      "capture_seed": 765432,
+      "maximum_beta_error": 0.04
+    },
+    {
+      "case_id": "physical_improvement_masked_by_detection_beta_0_5_gamma_0_7",
+      "physical_beta": 0.5,
+      "capture_p0": 0.8,
+      "capture_gamma": 0.7,
+      "physical_event_count": 250000,
+      "exposure_horizon": 1,
+      "physical_seed": 345678,
+      "capture_seed": 876543,
+      "maximum_beta_error": 0.05
+    }
+  ]
+}
