@@ -45,6 +45,8 @@ pub enum KernelError {
     MixtureWeightsNotNormalized,
     /// The covariance-floor fraction is negative or non-finite.
     InvalidCovarianceFloorFraction,
+    /// An interval has its lower endpoint greater than its upper endpoint.
+    InvalidInterval,
     /// A nonzero half-space normal has zero projected variance.
     ZeroProjectedVariance,
     /// A mathematically required intermediate exceeds the representable range.
@@ -68,6 +70,7 @@ impl fmt::Display for KernelError {
             Self::InvalidCovarianceFloorFraction => {
                 "covariance-floor fraction must be nonnegative and finite"
             }
+            Self::InvalidInterval => "interval lower endpoint exceeds upper endpoint",
             Self::ZeroProjectedVariance => "half-space projection has zero variance",
             Self::NumericalOverflow => "numerical intermediate is outside the representable range",
             Self::ProposalHasZeroDensity => "proposal density is zero at the evaluation point",
@@ -149,8 +152,7 @@ impl Gaussian {
         for row in 0..dimension {
             let mut residual = point[row] - self.mean[row];
             for column in 0..row {
-                residual -=
-                    self.lower_cholesky[row * dimension + column] * whitened[column];
+                residual -= self.lower_cholesky[row * dimension + column] * whitened[column];
             }
             let diagonal = self.lower_cholesky[row * dimension + row];
             whitened[row] = residual / diagonal;
@@ -161,8 +163,7 @@ impl Gaussian {
             return Err(KernelError::NumericalOverflow);
         }
 
-        let normalizer = dimension as f64 * core::f64::consts::TAU.ln()
-            + self.log_determinant;
+        let normalizer = dimension as f64 * core::f64::consts::TAU.ln() + self.log_determinant;
         let result = -0.5 * (normalizer + quadratic_form);
         if result.is_finite() {
             Ok(result)
@@ -172,16 +173,87 @@ impl Gaussian {
     }
 }
 
-/// Evaluate the probability of a Gaussian half-space event.
+/// Evaluate the log probability of a Gaussian half-space event.
 ///
-/// For X ~ N(mean, covariance), this returns P(normal dot X <= bound). The
-/// event is reduced exactly to a one-dimensional normal projection. The
+/// For X ~ N(mean, covariance), this returns log P(normal dot X <= bound).
+/// The event is reduced exactly to a one-dimensional normal projection. The
 /// covariance must be strictly positive definite and the projected variance
 /// must be positive.
 ///
-/// This is an analytic reference fixture for validating higher-dimensional
-/// integration and importance-sampling implementations.
+/// The log-domain result remains useful when the probability itself underflows
+/// to zero in f64, which is important when validating rare-event calculations.
+pub fn gaussian_half_space_log_probability(
+    mean: &[f64],
+    covariance: &[f64],
+    normal: &[f64],
+    bound: f64,
+) -> Result<f64, KernelError> {
+    let z = gaussian_half_space_standardized_bound(mean, covariance, normal, bound)?;
+    log_standard_normal_cdf(z)
+}
+
+/// Evaluate the probability of a Gaussian half-space event.
+///
+/// This exponentiates the log-probability API. Extremely small probabilities
+/// may underflow to zero; use the log-probability API when the tail magnitude
+/// itself is scientifically relevant.
 pub fn gaussian_half_space_probability(
+    mean: &[f64],
+    covariance: &[f64],
+    normal: &[f64],
+    bound: f64,
+) -> Result<f64, KernelError> {
+    let log_probability =
+        gaussian_half_space_log_probability(mean, covariance, normal, bound)?;
+    let probability = log_probability.exp();
+    if probability.is_finite() && (0.0..=1.0).contains(&probability) {
+        Ok(probability)
+    } else {
+        Err(KernelError::NumericalOverflow)
+    }
+}
+
+/// Return the log probability mass of a standard-normal interval [lower, upper].
+///
+/// The calculation uses the lower tail on the negative side and the survival
+/// tail on the positive side to avoid subtracting two probabilities close to
+/// one. Intervals crossing zero use the error function, which is well
+/// conditioned around the origin.
+pub fn standard_normal_interval_log_probability(
+    lower: f64,
+    upper: f64,
+) -> Result<f64, KernelError> {
+    if lower.is_nan() || upper.is_nan() {
+        return Err(KernelError::NonFiniteValue);
+    }
+    if lower > upper {
+        return Err(KernelError::InvalidInterval);
+    }
+    if lower == upper {
+        return Ok(f64::NEG_INFINITY);
+    }
+
+    if lower >= 0.0 {
+        let log_survival_lower = log_standard_normal_cdf(-lower)?;
+        let log_survival_upper = log_standard_normal_cdf(-upper)?;
+        log_difference_exp(log_survival_lower, log_survival_upper)
+    } else if upper <= 0.0 {
+        let log_cdf_upper = log_standard_normal_cdf(upper)?;
+        let log_cdf_lower = log_standard_normal_cdf(lower)?;
+        log_difference_exp(log_cdf_upper, log_cdf_lower)
+    } else {
+        let mass = 0.5
+            * (libm::erf(upper / core::f64::consts::SQRT_2)
+                - libm::erf(lower / core::f64::consts::SQRT_2));
+        if mass.is_finite() && mass > 0.0 && mass <= 1.0 {
+            Ok(mass.ln())
+        } else {
+            Err(KernelError::NumericalOverflow)
+        }
+    }
+}
+
+fn gaussian_half_space_standardized_bound(
     mean: &[f64],
     covariance: &[f64],
     normal: &[f64],
@@ -197,17 +269,20 @@ pub fn gaussian_half_space_probability(
     if !bound.is_finite() || !all_finite(mean) || !all_finite(normal) {
         return Err(KernelError::NonFiniteValue);
     }
+    if normal.iter().all(|value| *value == 0.0) {
+        return if bound >= 0.0 {
+            Ok(f64::INFINITY)
+        } else {
+            Ok(f64::NEG_INFINITY)
+        };
+    }
 
     // Validate covariance through the same strict Cholesky path used by
     // Gaussian::new. The Cholesky factor also gives a stable projected
     // variance without explicitly multiplying the full covariance matrix.
     let lower = cholesky_lower(covariance, dimension)?;
 
-    let projected_mean: f64 = normal
-        .iter()
-        .zip(mean.iter())
-        .map(|(a, x)| a * x)
-        .sum();
+    let projected_mean: f64 = normal.iter().zip(mean.iter()).map(|(a, x)| a * x).sum();
 
     // If covariance = L L^T, then a^T covariance a = ||L^T a||^2.
     let mut projected_variance = 0.0;
@@ -228,12 +303,80 @@ pub fn gaussian_half_space_probability(
 
     let z = (bound - projected_mean) / projected_variance.sqrt();
     if z.is_nan() {
-        return Err(KernelError::NumericalOverflow);
+        Err(KernelError::NumericalOverflow)
+    } else {
+        Ok(z)
+    }
+}
+
+fn log_standard_normal_cdf(value: f64) -> Result<f64, KernelError> {
+    if value.is_nan() {
+        return Err(KernelError::NonFiniteValue);
+    }
+    if value == f64::INFINITY {
+        return Ok(0.0);
+    }
+    if value == f64::NEG_INFINITY {
+        return Ok(f64::NEG_INFINITY);
+    }
+    if value <= -8.0 {
+        return Ok(log_standard_normal_lower_tail(-value));
+    }
+    if value >= 8.0 {
+        let log_upper_tail = log_standard_normal_lower_tail(value);
+        return Ok((-log_upper_tail.exp()).ln_1p());
     }
 
-    let probability = 0.5 * libm::erfc(-z / core::f64::consts::SQRT_2);
-    if probability.is_finite() && (0.0..=1.0).contains(&probability) {
-        Ok(probability)
+    let probability = 0.5 * libm::erfc(-value / core::f64::consts::SQRT_2);
+    if probability.is_finite() && probability > 0.0 && probability <= 1.0 {
+        Ok(probability.ln())
+    } else {
+        Err(KernelError::NumericalOverflow)
+    }
+}
+
+fn log_standard_normal_lower_tail(value: f64) -> f64 {
+    // Mills-ratio asymptotic expansion:
+    // Phi(-x) = phi(x)/x * (1 - 1/x^2 + 3/x^4 - 15/x^6 + ...).
+    // Truncate at the smallest term to avoid entering the divergent tail.
+    let inverse_square = 1.0 / (value * value);
+    let mut term = 1.0;
+    let mut series = 1.0;
+    let mut previous_magnitude = 1.0;
+
+    for order in 1..=512 {
+        term *= -((2 * order - 1) as f64) * inverse_square;
+        let magnitude = term.abs();
+        if magnitude >= previous_magnitude {
+            break;
+        }
+        series += term;
+        previous_magnitude = magnitude;
+        if magnitude <= f64::EPSILON * series.abs() {
+            break;
+        }
+    }
+
+    -0.5 * value * value
+        - 0.5 * core::f64::consts::TAU.ln()
+        - value.ln()
+        + series.ln()
+}
+
+fn log_difference_exp(log_larger: f64, log_smaller: f64) -> Result<f64, KernelError> {
+    if log_larger.is_nan() || log_smaller.is_nan() || log_smaller > log_larger {
+        return Err(KernelError::NumericalOverflow);
+    }
+    if log_larger == log_smaller {
+        return Ok(f64::NEG_INFINITY);
+    }
+    if log_smaller == f64::NEG_INFINITY {
+        return Ok(log_larger);
+    }
+
+    let result = log_larger + (-(log_smaller - log_larger).exp()).ln_1p();
+    if result.is_finite() {
+        Ok(result)
     } else {
         Err(KernelError::NumericalOverflow)
     }
@@ -486,8 +629,7 @@ fn cholesky_lower(matrix: &[f64], dimension: usize) -> Result<Vec<f64>, KernelEr
                 matrix[row * dimension + column]
             } else {
                 // The prior symmetry check bounds this adjustment to roundoff.
-                0.5 * (matrix[row * dimension + column]
-                    + matrix[column * dimension + row])
+                0.5 * (matrix[row * dimension + column] + matrix[column * dimension + row])
             };
             for inner in 0..column {
                 value -= lower[row * dimension + inner] * lower[column * dimension + inner];
@@ -515,7 +657,10 @@ fn logsumexp(values: &[f64]) -> Result<f64, KernelError> {
     if values.is_empty() {
         return Err(KernelError::EmptyDimension);
     }
-    if values.iter().any(|value| value.is_nan() || *value == f64::INFINITY) {
+    if values
+        .iter()
+        .any(|value| value.is_nan() || *value == f64::INFINITY)
+    {
         return Err(KernelError::NonFiniteValue);
     }
     let maximum = values.iter().copied().fold(f64::NEG_INFINITY, f64::max);
@@ -562,27 +707,70 @@ mod tests {
 
     #[test]
     fn standard_normal_half_space_is_one_half() {
-        let probability =
-            gaussian_half_space_probability(&[0.0], &[1.0], &[1.0], 0.0).unwrap();
+        let probability = gaussian_half_space_probability(&[0.0], &[1.0], &[1.0], 0.0).unwrap();
         assert_close(probability, 0.5, 2.0e-16);
     }
 
     #[test]
+    fn log_half_space_probability_retains_extreme_gaussian_tail() {
+        let log_probability =
+            gaussian_half_space_log_probability(&[40.0], &[1.0], &[1.0], 0.0).unwrap();
+        assert_close(log_probability, -804.6084420137538, 2.0e-12);
+    }
+
+    #[test]
+    fn ordinary_half_space_probability_may_underflow_but_log_api_does_not() {
+        let probability =
+            gaussian_half_space_probability(&[40.0], &[1.0], &[1.0], 0.0).unwrap();
+        assert_eq!(probability, 0.0);
+    }
+
+    #[test]
+    fn zero_normal_has_deterministic_half_space_semantics() {
+        assert_eq!(
+            gaussian_half_space_log_probability(&[4.0], &[1.0], &[0.0], 1.0).unwrap(),
+            0.0
+        );
+        assert_eq!(
+            gaussian_half_space_log_probability(&[4.0], &[1.0], &[0.0], -1.0).unwrap(),
+            f64::NEG_INFINITY
+        );
+    }
+
+    #[test]
+    fn standard_normal_interval_uses_stable_positive_and_negative_tails() {
+        let negative = standard_normal_interval_log_probability(-41.0, -40.0).unwrap();
+        let positive = standard_normal_interval_log_probability(40.0, 41.0).unwrap();
+        assert_close(negative, -804.6084420137538, 2.0e-12);
+        assert_close(positive, -804.6084420137538, 2.0e-12);
+    }
+
+    #[test]
+    fn standard_normal_interval_crossing_zero_is_stable() {
+        let log_mass = standard_normal_interval_log_probability(-1.0e-10, 1.0e-10).unwrap();
+        let expected = (2.0e-10 / core::f64::consts::TAU.sqrt()).ln();
+        assert_close(log_mass, expected, 2.0e-15);
+    }
+
+    #[test]
+    fn standard_normal_interval_rejects_reversed_endpoints() {
+        assert_eq!(
+            standard_normal_interval_log_probability(1.0, -1.0),
+            Err(KernelError::InvalidInterval)
+        );
+    }
+
+    #[test]
     fn correlated_multivariate_half_space_reduces_to_projected_normal() {
-        let probability = gaussian_half_space_probability(
-            &[0.0, 0.0],
-            &[1.0, 0.5, 0.5, 1.0],
-            &[1.0, 1.0],
-            0.0,
-        )
-        .unwrap();
+        let probability =
+            gaussian_half_space_probability(&[0.0, 0.0], &[1.0, 0.5, 0.5, 1.0], &[1.0, 1.0], 0.0)
+                .unwrap();
         assert_close(probability, 0.5, 2.0e-16);
     }
 
     #[test]
     fn shifted_half_space_probability_matches_standard_normal_cdf() {
-        let probability =
-            gaussian_half_space_probability(&[1.0], &[4.0], &[1.0], 1.0).unwrap();
+        let probability = gaussian_half_space_probability(&[1.0], &[4.0], &[1.0], 1.0).unwrap();
         assert_close(probability, 0.5, 2.0e-16);
     }
 
@@ -596,8 +784,8 @@ mod tests {
         ])
         .unwrap();
 
-        let density = 0.25 / core::f64::consts::TAU.sqrt()
-            + 0.75 / (2.0 * core::f64::consts::TAU.sqrt());
+        let density =
+            0.25 / core::f64::consts::TAU.sqrt() + 0.75 / (2.0 * core::f64::consts::TAU.sqrt());
         assert_close(mixture.log_pdf(&[0.0]).unwrap(), density.ln(), 2.0e-15);
     }
 
@@ -616,7 +804,11 @@ mod tests {
     fn importance_weight_is_computed_from_log_density_ratio() {
         let log_weight = log_importance_weight(-3.0, -5.0).unwrap();
         assert_close(log_weight, 2.0, 0.0);
-        assert_close(importance_weight(-3.0, -5.0).unwrap(), 2.0_f64.exp(), 2.0e-15);
+        assert_close(
+            importance_weight(-3.0, -5.0).unwrap(),
+            2.0_f64.exp(),
+            2.0e-15,
+        );
     }
 
     #[test]
@@ -634,24 +826,14 @@ mod tests {
 
     #[test]
     fn strict_half_nominal_covariance_floor_accepts_positive_difference() {
-        validate_covariance_floor(
-            &[0.75, 0.0, 0.0, 0.65],
-            &[1.0, 0.0, 0.0, 1.0],
-            2,
-            0.5,
-        )
-        .unwrap();
+        validate_covariance_floor(&[0.75, 0.0, 0.0, 0.65], &[1.0, 0.0, 0.0, 1.0], 2, 0.5)
+            .unwrap();
     }
 
     #[test]
     fn strict_covariance_floor_rejects_equality() {
         assert_eq!(
-            validate_covariance_floor(
-                &[0.5, 0.0, 0.0, 0.75],
-                &[1.0, 0.0, 0.0, 1.0],
-                2,
-                0.5,
-            ),
+            validate_covariance_floor(&[0.5, 0.0, 0.0, 0.75], &[1.0, 0.0, 0.0, 1.0], 2, 0.5,),
             Err(KernelError::NotPositiveDefinite)
         );
     }
@@ -659,12 +841,7 @@ mod tests {
     #[test]
     fn covariance_floor_rejects_indefinite_difference() {
         assert_eq!(
-            validate_covariance_floor(
-                &[0.75, 0.0, 0.0, 0.4],
-                &[1.0, 0.0, 0.0, 1.0],
-                2,
-                0.5,
-            ),
+            validate_covariance_floor(&[0.75, 0.0, 0.0, 0.4], &[1.0, 0.0, 0.0, 1.0], 2, 0.5,),
             Err(KernelError::NotPositiveDefinite)
         );
     }
