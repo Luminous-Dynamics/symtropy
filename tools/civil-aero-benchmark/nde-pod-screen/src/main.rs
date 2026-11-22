@@ -31,7 +31,7 @@ struct Corpus {
     cases: Vec<CaseSpec>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct Scope {
     scope_ref: String,
@@ -83,6 +83,7 @@ struct Study {
     study_id: String,
     evidence_class: String,
     scope_ref: String,
+    scope_sha256: String,
     inspectors: Vec<Inspector>,
 }
 
@@ -152,6 +153,7 @@ struct Receipt {
     schema: &'static str,
     benchmark_id: String,
     corpus_sha256: String,
+    scope_sha256: String,
     source_commit: String,
     evidence_class: String,
     claim_ceiling: &'static str,
@@ -179,6 +181,12 @@ fn sha256_hex(bytes: &[u8]) -> String {
         write!(&mut value, "{byte:02x}").expect("writing into String cannot fail");
     }
     value
+}
+
+fn scope_sha256(scope: &Scope) -> ScreenResult<String> {
+    let bytes = serde_json::to_vec(scope)
+        .map_err(|error| format!("unable to serialize frozen scope: {error}"))?;
+    Ok(sha256_hex(&bytes))
 }
 
 fn validate_criteria(criteria: &Criteria) -> ScreenResult<()> {
@@ -292,6 +300,18 @@ fn apply_mutation(study: &mut Value, mutation: &Mutation) -> ScreenResult<()> {
             if before == inspectors.len() {
                 return Err(format!("inspector not found: {inspector_id}"));
             }
+            Ok(())
+        }
+        "set_scope_sha256" => {
+            let value = mutation
+                .value
+                .as_ref()
+                .and_then(Value::as_str)
+                .ok_or_else(|| "set_scope_sha256 requires string value".to_owned())?;
+            let object = study
+                .as_object_mut()
+                .ok_or_else(|| "study is not an object".to_owned())?;
+            object.insert("scope_sha256".to_owned(), Value::String(value.to_owned()));
             Ok(())
         }
         "set_calibration_valid" => {
@@ -471,6 +491,7 @@ fn evaluate_study(
     case_id: &str,
     raw_study: Value,
     scope: &Scope,
+    scope_sha256: &str,
     criteria: &Criteria,
     expected: &str,
 ) -> ScreenResult<(CaseResult, Vec<InspectorResult>)> {
@@ -490,6 +511,14 @@ fn evaluate_study(
             case_id,
             "NOT_EVALUABLE_SCOPE_MISMATCH",
             "study scope reference does not match the frozen benchmark scope",
+            expected,
+        ));
+    }
+    if study.scope_sha256 != scope_sha256 {
+        return Ok(result_without_inspectors(
+            case_id,
+            "NOT_EVALUABLE_SCOPE_DIGEST_MISMATCH",
+            "study scope digest does not match the frozen method/procedure/material/defect/environment definition",
             expected,
         ));
     }
@@ -690,6 +719,7 @@ fn run_corpus(bytes: &[u8], source_commit: &str) -> ScreenResult<Receipt> {
     }
     validate_scope(&corpus.scope)?;
     validate_criteria(&corpus.criteria)?;
+    let scope_sha256 = scope_sha256(&corpus.scope)?;
 
     let mut results = Vec::with_capacity(corpus.cases.len());
     let mut details = Vec::with_capacity(corpus.cases.len());
@@ -707,6 +737,7 @@ fn run_corpus(bytes: &[u8], source_commit: &str) -> ScreenResult<Receipt> {
             &case.case_id,
             raw_study,
             &corpus.scope,
+            &scope_sha256,
             &corpus.criteria,
             &case.expected_disposition,
         )?;
@@ -720,6 +751,7 @@ fn run_corpus(bytes: &[u8], source_commit: &str) -> ScreenResult<Receipt> {
         schema: OUTPUT_SCHEMA,
         benchmark_id: corpus.benchmark_id,
         corpus_sha256: sha256_hex(bytes),
+        scope_sha256,
         source_commit: source_commit.to_owned(),
         evidence_class: "synthetic".to_owned(),
         claim_ceiling: CLAIM_CEILING,
@@ -785,8 +817,8 @@ mod tests {
         let bytes = include_bytes!("../fixtures/v0.1/corpus.json");
         let receipt = run_corpus(bytes, "1111111111111111111111111111111111111111")
             .expect("frozen NDE benchmark corpus must evaluate");
-        assert_eq!(receipt.case_count, 8);
-        assert_eq!(receipt.expected_matches, 8);
+        assert_eq!(receipt.case_count, 9);
+        assert_eq!(receipt.expected_matches, 9);
         assert_eq!(receipt.expected_mismatches, 0);
         assert!(!receipt.authority_granted);
         assert_eq!(receipt.physical_pod, "NOT_ASSESSED");
