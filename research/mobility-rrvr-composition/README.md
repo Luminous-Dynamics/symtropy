@@ -28,6 +28,12 @@ Each packet must match the exact claim ID and claim-scope commitment emitted by 
 
 Already-observed Applied outcomes remain no-retry outcomes, including Applied with IndeterminateCommit persistence. Observer quorum results do not authorize or reverse those outcomes.
 
+## Native owner handoff
+
+See [OBSERVER_GATE_NATIVE_HANDOFF_V0.1.md](OBSERVER_GATE_NATIVE_HANDOFF_V0.1.md) for the exact pre-native decision map and race/fault requirements for integration with #6749.
+
+This composition layer does not replace the native application owner. Its `ReadyForOwnerNativeRevalidation` result is not a dispatch capability; the existing owner still authenticates/consumes the permit and revalidates M1/M2, live binding, controller epoch and queue lease at the native callback.
+
 ## Run
 
 ```sh
