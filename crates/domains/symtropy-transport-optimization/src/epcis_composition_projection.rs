@@ -1124,7 +1124,7 @@ mod tests {
             2,
             AggregationAction::Add,
             Some("container-1"),
-            &[],
+            &["pallet-1"],
             Vec::new(),
         );
         second.voided = true;
