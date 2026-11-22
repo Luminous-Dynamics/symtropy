@@ -1,6 +1,8 @@
 use maritime_custody_continuity::{
     evaluate, parse_events_tsv, parse_expectations_tsv,
-    temporal_order::{TimeBoundKind, TimeEvidence, TimeInterval, compare_time_evidence},
+    temporal_order::{
+        ClockBoundProfile, ClockBoundProfileSpec, ClockSyncState, compare_time_evidence,
+    },
 };
 
 fn main() {
@@ -36,27 +38,30 @@ fn main() {
     for (failure, count) in report.failure_counts {
         println!("failure.{failure:?}={count}");
     }
-    let release_time = TimeEvidence::new(
-        "SYNTHETIC_RELEASE",
-        "UTC_NS_PROFILE_V1",
-        TimeInterval::new(100, 110).expect("valid synthetic release interval"),
-        TimeBoundKind::QualifiedEnclosure,
-    )
-    .expect("valid synthetic release time evidence");
-    let accept_time = TimeEvidence::new(
-        "SYNTHETIC_ACCEPT",
-        "UTC_NS_PROFILE_V1",
-        TimeInterval::new(111, 120).expect("valid synthetic acceptance interval"),
-        TimeBoundKind::QualifiedEnclosure,
-    )
-    .expect("valid synthetic acceptance time evidence");
-    let overlapping_time = TimeEvidence::new(
-        "SYNTHETIC_OVERLAP",
-        "UTC_NS_PROFILE_V1",
-        TimeInterval::new(108, 115).expect("valid synthetic overlap interval"),
-        TimeBoundKind::QualifiedEnclosure,
-    )
-    .expect("valid synthetic overlap time evidence");
+    let synthetic_clock = ClockBoundProfile::new(ClockBoundProfileSpec {
+        clock_id: "SYNTHETIC_CLOCK_01".to_string(),
+        profile_id: "SYNTHETIC_CLOCK_PROFILE_V1".to_string(),
+        time_basis_id: "UTC_NS_PROFILE_V1".to_string(),
+        calibration_evidence_id: "SYNTHETIC_CALIBRATION_RECEIPT".to_string(),
+        synchronization_method: "SYNTHETIC_REFERENCE_CLOCK".to_string(),
+        sync_state: ClockSyncState::Locked,
+        calibrated_at: 0,
+        valid_until: 1_000,
+        max_offset_error_ticks: Some(2),
+        max_holdover_drift_ticks: Some(1),
+        max_capture_path_ticks: Some(1),
+        max_rounding_error_ticks: Some(1),
+    })
+    .expect("valid synthetic clock profile");
+    let release_time = synthetic_clock
+        .qualify_event("SYNTHETIC_RELEASE", 105)
+        .expect("qualified synthetic release time");
+    let accept_time = synthetic_clock
+        .qualify_event("SYNTHETIC_ACCEPT", 116)
+        .expect("qualified synthetic acceptance time");
+    let overlapping_time = synthetic_clock
+        .qualify_event("SYNTHETIC_OVERLAP", 113)
+        .expect("qualified synthetic overlapping time");
     println!(
         "synthetic_disjoint_handoff_time_order={:?}",
         compare_time_evidence(&release_time, &accept_time)
