@@ -2,7 +2,7 @@
 
 **Status:** source-code audit complete for the pinned public devkit revisions; dataset payload not admitted; no raw MILUV measurements parsed or scored by this document.
 
-**Parent:** Symtropy DS-TWR interval baseline [PR #6793](https://github.com/Luminous-Dynamics/symtropy/pull/6793), head `7ce8904b1252967e4ee951096fb32ba2d797ceb5).
+**Parent:** Symtropy DS-TWR interval baseline [PR #6793](https://github.com/Luminous-Dynamics/symtropy/pull/6793), head `7ce8904b1252967e4ee951096fb32ba2d797ceb5`.
 
 ## 1. Result
 
