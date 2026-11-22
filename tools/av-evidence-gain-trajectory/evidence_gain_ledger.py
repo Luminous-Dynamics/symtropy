@@ -566,6 +566,7 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
             )
 
         feedback_ids: list[str] = []
+        feedback_summaries: list[dict[str, Any]] = []
         for feedback_index, feedback in enumerate(feedback_rows):
             context = f"{turn_id}.external_feedback_events[{feedback_index}]"
             feedback = _strict_object(
@@ -604,8 +605,16 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
                 f"{context}.parent_transcript_head_sha256",
             ) != prior_head:
                 raise EvidenceGainError(f"{context}: feedback must bind to the parent transcript head")
-            _sha256(feedback["content_sha256"], f"{context}.content_sha256")
+            content_digest = _sha256(feedback["content_sha256"], f"{context}.content_sha256")
             feedback_ids.append(feedback_id)
+            feedback_summaries.append({
+                "feedback_id": feedback_id,
+                "source_role": source_role,
+                "feedback_kind": feedback_kind,
+                "delivered_tick": delivered_tick,
+                "content_sha256": content_digest,
+                "parent_transcript_head_sha256": prior_head,
+            })
             feedback_source_counts[source_role] = feedback_source_counts.get(source_role, 0) + 1
             feedback_kind_counts[feedback_kind] = feedback_kind_counts.get(feedback_kind, 0) + 1
             total_feedback_events += 1
@@ -716,6 +725,7 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
             "parent_transcript_head_sha256": parent_head,
             "action_result_digest_sha256": action_result_digest,
             "external_feedback_event_ids": feedback_ids,
+            "external_feedback_events": feedback_summaries,
             "external_feedback_count": len(feedback_ids),
             "decision_cutoff_tick": cutoff,
             "preceding_action_id": preceding_action,
