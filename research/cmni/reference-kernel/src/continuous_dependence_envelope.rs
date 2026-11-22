@@ -22,11 +22,11 @@
 //! certificate. The tangent relaxation deliberately ignores PSD coupling while
 //! maximizing the tangent's quadratic term, so the lower bound may be loose.
 
+use crate::design_decision::{PortfolioUtilityInterval, UtilityBoundEvidence};
 use crate::multisource_dependence_design::{
     canonicalize_and_validate_correlation_matrix, scalar_parameter_information_and_source_gradient,
     validate_candidate, FiniteCorrelationScenario, MultiSourceDependenceDesignCandidate,
 };
-use crate::design_decision::{PortfolioUtilityInterval, UtilityBoundEvidence};
 use crate::ModelError;
 
 /// Convert a continuous dependence EIG bracket into the shared decision
@@ -163,8 +163,7 @@ pub fn bound_continuous_source_dependence(
         let anchor_quadratic = correlation_quadratic_form(&source_gradient, &correlation);
         let relaxed_quadratic_maximum =
             relaxed_pairwise_quadratic_maximum(&source_gradient, correlation_intervals);
-        let raw_tangent_lower =
-            anchor_information + anchor_quadratic - relaxed_quadratic_maximum;
+        let raw_tangent_lower = anchor_information + anchor_quadratic - relaxed_quadratic_maximum;
 
         let arithmetic_scale = anchor_information
             .abs()
@@ -172,8 +171,7 @@ pub fn bound_continuous_source_dependence(
             .max(relaxed_quadratic_maximum.abs())
             .max(1.0);
         let numerical_safety_margin = 1.0e-12 * arithmetic_scale;
-        let conservative_tangent_lower =
-            (raw_tangent_lower - numerical_safety_margin).max(0.0);
+        let conservative_tangent_lower = (raw_tangent_lower - numerical_safety_margin).max(0.0);
         best_tangent_lower_bound = best_tangent_lower_bound.max(conservative_tangent_lower);
         tangent_anchor_scenario_ids.push(witness.scenario_id.clone());
     }
@@ -190,10 +188,8 @@ pub fn bound_continuous_source_dependence(
     let prior_variance = candidate.prior_parameter_variance;
     let lower_eig = 0.5 * (1.0 + prior_variance * lower_information).ln();
     let upper_eig = 0.5 * (1.0 + prior_variance * upper_information).ln();
-    let lower_posterior_variance =
-        1.0 / (1.0 / prior_variance + upper_information);
-    let upper_posterior_variance =
-        1.0 / (1.0 / prior_variance + lower_information);
+    let lower_posterior_variance = 1.0 / (1.0 / prior_variance + upper_information);
+    let upper_posterior_variance = 1.0 / (1.0 / prior_variance + lower_information);
     if [
         lower_eig,
         upper_eig,
@@ -213,10 +209,7 @@ pub fn bound_continuous_source_dependence(
         dependence_scope_receipt_id: dependence_scope_receipt_id.to_owned(),
         worst_case_parameter_information_bounds: [lower_information, upper_information],
         worst_case_eig_nats_bounds: [lower_eig, upper_eig],
-        worst_case_posterior_variance_bounds: [
-            lower_posterior_variance,
-            upper_posterior_variance,
-        ],
+        worst_case_posterior_variance_bounds: [lower_posterior_variance, upper_posterior_variance],
         tangent_anchor_scenario_ids,
         best_feasible_witness_scenario_id,
         feasible_witness_count: feasible_witnesses.len(),
@@ -246,18 +239,13 @@ fn validate_pairwise_interval_set(
                     "continuous_dependence_pairwise_interval",
                 ));
             }
-            if interval.lower < -1.0
-                || interval.upper > 1.0
-                || interval.lower > interval.upper
-            {
+            if interval.lower < -1.0 || interval.upper > 1.0 || interval.lower > interval.upper {
                 return Err(ModelError::InvalidParameter(
                     "continuous_dependence_pairwise_interval_invalid",
                 ));
             }
             if row == column {
-                if !nearly_equal(interval.lower, 1.0)
-                    || !nearly_equal(interval.upper, 1.0)
-                {
+                if !nearly_equal(interval.lower, 1.0) || !nearly_equal(interval.upper, 1.0) {
                     return Err(ModelError::InvalidParameter(
                         "continuous_dependence_diagonal_bounds_must_be_one",
                     ));
@@ -375,7 +363,10 @@ mod tests {
         let result = bound_continuous_source_dependence(
             &scalar_candidate(),
             &interval_set(-0.5, 0.5),
-            &[witness("worst-correlation", 0.5), witness("best-correlation", -0.5)],
+            &[
+                witness("worst-correlation", 0.5),
+                witness("best-correlation", -0.5),
+            ],
             RECEIPT,
         )
         .expect("continuous scalar correlation envelope");
@@ -383,10 +374,11 @@ mod tests {
         // V = 1 + [1 1] R [1 1]^T = 3 + 2 rho; minimum information is 1/4.
         assert!((result.worst_case_parameter_information_bounds[0] - 0.25).abs() < 1.0e-12);
         assert!((result.worst_case_parameter_information_bounds[1] - 0.25).abs() < 1.0e-12);
-        assert!(
-            (result.worst_case_eig_nats_bounds[0] - 0.5 * 1.25_f64.ln()).abs() < 1.0e-12
+        assert!((result.worst_case_eig_nats_bounds[0] - 0.5 * 1.25_f64.ln()).abs() < 1.0e-12);
+        assert_eq!(
+            result.best_feasible_witness_scenario_id,
+            "worst-correlation"
         );
-        assert_eq!(result.best_feasible_witness_scenario_id, "worst-correlation");
         assert!(!result.formal_interval_arithmetic);
     }
 
@@ -404,7 +396,10 @@ mod tests {
         let result = bound_continuous_source_dependence(
             &candidate,
             &bounds,
-            &[witness("rho-negative", -0.75), witness("rho-positive", 0.75)],
+            &[
+                witness("rho-negative", -0.75),
+                witness("rho-positive", 0.75),
+            ],
             RECEIPT,
         )
         .expect("two-observation continuous envelope");
@@ -418,24 +413,13 @@ mod tests {
             let determinant = v11 * v22 - v12 * v12;
             let h1 = -2.0;
             let h2 = -2.0;
-            let information =
-                (h1 * h1 * v22 - 2.0 * h1 * h2 * v12 + h2 * h2 * v11) / determinant;
+            let information = (h1 * h1 * v22 - 2.0 * h1 * h2 * v12 + h2 * h2 * v11) / determinant;
             dense_minimum = dense_minimum.min(information);
-            assert!(
-                information >= result.worst_case_parameter_information_bounds[0] - 1.0e-10
-            );
-            assert!(
-                information <= result.worst_case_parameter_information_bounds[1] + 1.0e-10
-            );
+            assert!(information >= result.worst_case_parameter_information_bounds[0] - 1.0e-10);
+            assert!(information <= result.worst_case_parameter_information_bounds[1] + 1.0e-10);
         }
-        assert!(
-            result.worst_case_parameter_information_bounds[0]
-                <= dense_minimum + 1.0e-12
-        );
-        assert!(
-            result.worst_case_parameter_information_bounds[1]
-                >= dense_minimum - 1.0e-12
-        );
+        assert!(result.worst_case_parameter_information_bounds[0] <= dense_minimum + 1.0e-12);
+        assert!(result.worst_case_parameter_information_bounds[1] >= dense_minimum - 1.0e-12);
     }
 
     #[test]
@@ -459,19 +443,46 @@ mod tests {
         let bounds = PairwiseCorrelationIntervalSet {
             bounds: vec![
                 vec![
-                    CorrelationCoefficientBounds { lower: 1.0, upper: 1.0 },
-                    CorrelationCoefficientBounds { lower: -0.9, upper: 0.0 },
-                    CorrelationCoefficientBounds { lower: -0.9, upper: 0.0 },
+                    CorrelationCoefficientBounds {
+                        lower: 1.0,
+                        upper: 1.0,
+                    },
+                    CorrelationCoefficientBounds {
+                        lower: -0.9,
+                        upper: 0.0,
+                    },
+                    CorrelationCoefficientBounds {
+                        lower: -0.9,
+                        upper: 0.0,
+                    },
                 ],
                 vec![
-                    CorrelationCoefficientBounds { lower: -0.9, upper: 0.0 },
-                    CorrelationCoefficientBounds { lower: 1.0, upper: 1.0 },
-                    CorrelationCoefficientBounds { lower: -0.9, upper: 0.0 },
+                    CorrelationCoefficientBounds {
+                        lower: -0.9,
+                        upper: 0.0,
+                    },
+                    CorrelationCoefficientBounds {
+                        lower: 1.0,
+                        upper: 1.0,
+                    },
+                    CorrelationCoefficientBounds {
+                        lower: -0.9,
+                        upper: 0.0,
+                    },
                 ],
                 vec![
-                    CorrelationCoefficientBounds { lower: -0.9, upper: 0.0 },
-                    CorrelationCoefficientBounds { lower: -0.9, upper: 0.0 },
-                    CorrelationCoefficientBounds { lower: 1.0, upper: 1.0 },
+                    CorrelationCoefficientBounds {
+                        lower: -0.9,
+                        upper: 0.0,
+                    },
+                    CorrelationCoefficientBounds {
+                        lower: -0.9,
+                        upper: 0.0,
+                    },
+                    CorrelationCoefficientBounds {
+                        lower: 1.0,
+                        upper: 1.0,
+                    },
                 ],
             ],
         };
@@ -529,7 +540,10 @@ mod tests {
         let envelope = bound_continuous_source_dependence(
             &scalar_candidate(),
             &interval_set(-0.5, 0.5),
-            &[witness("worst-correlation", 0.5), witness("best-correlation", -0.5)],
+            &[
+                witness("worst-correlation", 0.5),
+                witness("best-correlation", -0.5),
+            ],
             RECEIPT,
         )
         .expect("continuous envelope");
