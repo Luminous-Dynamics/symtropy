@@ -95,7 +95,6 @@ class RankConfidenceSequenceTests(unittest.TestCase):
         self.assertEqual(last["rank_sets"]["A1"]["ranks"], [2])
         self.assertEqual(last["rank_sets"]["A0"]["ranks"], [3])
         self.assertEqual(last["tiers"]["by_arm"], {"A0": 3, "A1": 2, "A2": 1})
-        self.assertEqual(last["tiers"]["by_arm"], {"A0": 3, "A1": 2, "A2": 1})
         self.assertEqual(last["rank_bounds_from_dominances"]["A2"], {"lower": 1, "upper": 1})
 
     def test_six_arm_equal_score_known_answer(self):
