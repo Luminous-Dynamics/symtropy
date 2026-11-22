@@ -226,3 +226,54 @@ Add the following to the frozen comparator suite:
 6. Boundary-map coordinate metamorphisms: row/column rescaling must alter raw condition numbers but preserve rank, and metric-aware generalized singular values must remain invariant when the metrics are transformed consistently.
 
 All comparison entries remain problem-specific. No Symtropy superiority or finite-coupling existence claim follows from this literature update.
+
+
+## 10. Architecture shift: theory-aware solver portfolio, shared independent qualification
+
+### Akribeia changes the seed-generation benchmark
+
+The current arXiv v2 (19 November 2026) explicitly identifies the main practical obstacle as constructing an initial approximation close enough for Newton-type high-precision solvers to converge. It pairs parameterized PINN discovery with pseudo-spectral Gauss--Newton refinement and reports continuous global neural fields with residuals checked to extreme precision. This means the honest competitor to Akribeia is not a standalone spectral solver; it is a seed-generation and branch-discovery strategy that can robustly find branches in the absence of hand-built perturbative seeds.
+
+Symtropy's opportunity is to exploit exact action reductions, the known \(\lambda=0\) branch and exact sensitivities as one seed family, then combine it with deflation, neural fields or data-driven predictors only as additional discovery proposals. All candidates must pass the same original-equation evaluator, fixed boundary convention, charge normalization and branch-identity contract.
+
+Reference: [Agurto-Sepúlveda et al., arXiv:2607.07418v2](https://arxiv.org/abs/2607.07418v2); accepted PRD DOI [10.1103/3kz2-6dvv](https://doi.org/10.1103/3kz2-6dvv).
+
+### Source-to-metric reconstruction is a second, separate backend
+
+Li, Hu and Yunes (arXiv:2610.37515, 27 October 2026) show a distinct approach for *perturbative four-dimensional Kerr deformations*: solve the sourced stationary Teukolsky equation for a Weyl scalar, then use a universal Newman--Penrose metric-reconstruction hierarchy, source quadratures and charge/gauge completion. The paper's reconstruction has the structure \(h_{ab}^{(1)}=\mathcal R_{ab}[\mathcal P]+\mathcal Q_{ab}[S]+h_{ab}^{\rm comp}\), with a radial curvature potential \(\mathcal P(r,\theta)=\frac16\int_r^\infty (u-r)^3\Psi_0^{(1)}(u,\theta)\,du\). It demonstrates six cubic, quartic and quintic purely metric interactions at generic subextremal spin, including a construction without mode decomposition.
+
+This is not a direct comparison to five-dimensional finite-coupling EGB: it is linear in a small perturbation/coupling around 4D Kerr. Its strategic value is architectural. Symtropy should implement multiple theory-class backends behind common contracts:
+- 5D nonlinear EGB: action-derived cohomogeneity-one BVP, global matching, and pseudo-arclength/deflation.
+- 4D perturbative Kerr EFT: conserved source -> stationary Teukolsky curvature -> universal metric reconstruction -> original linearized-equation verification.
+- Future higher-dimensional/stationary PDE cases: spectral or neural discovery feeding the same independent qualification layer.
+
+The reconstruction backend must independently check source conservation, tetrad conventions, homogeneous charge completion, full original field equations and horizon/asymptotic observables. It must not certify its own metric.
+
+Reference: [Li, Hu & Yunes, arXiv:2610.37515](https://arxiv.org/abs/2610.37515); technical derivation in [the full paper](https://borowiecki.dev/pdf/2610.37515).
+
+### Hyperbolicity is formulation- and regime-dependent
+
+Do not treat “EGB/Lovelock is hyperbolic” as a property established by the existence of a stationary background alone. Papallo--Reall's analysis finds that generalized harmonic gauge is not strongly hyperbolic on a generic weak-field Lovelock background; subsequent modified-harmonic formulations establish strong hyperbolicity in a controlled weak-coupling regime. These results are compatible because hyperbolicity depends on the chosen formulation, gauge and background regime.
+
+Therefore the rotating-EGB principal-symbol programme must:
+1. state the exact gauge-fixed first-order or second-order formulation;
+2. separate gauge, constraint and physical characteristic sectors;
+3. test completeness and uniform diagonalizability of the principal symbol over the declared exterior/covector domain;
+4. bound the smallest eigenvalue/eigenvector condition margin with interval or validated numerics where possible;
+5. compare more than one admissible formulation rather than transfer a theorem from a different gauge;
+6. abstain if the hyperbolicity margin is smaller than background/perturbative truncation uncertainty.
+
+References: [Papallo & Reall, Phys. Rev. D 96, 044019 (2017)](https://doi.org/10.1103/PhysRevD.96.044019); [Kovács & Reall, modified harmonic formulations for Lovelock/Horndeski](https://arxiv.org/abs/1911.00055) (verify exact theorem hypotheses before reuse).
+
+### Updated programme consequence
+
+The route to a distinct state-of-the-art result is the conjunction of:
+- Akribeia-class discovery breadth and finite-coupling nonlinear solutions;
+- action-first equations and exact perturbative sensitivities;
+- normalization-aware global boundary maps and branch topology;
+- independent full-domain residual, tail and inverse bounds;
+- local existence/uniqueness certificates for selected finite-coupling solutions;
+- formulation-specific physical hyperbolicity/EFT validity;
+- a second source-to-metric backend for 4D Kerr perturbative theories.
+
+A smaller residual alone does not establish superiority. Compare identical equations, couplings, gauge, boundary conditions, resolution and arithmetic; then report per-row residuals, held-out residuals, observable errors, branch coverage, conditioning, wall time and memory. Separately report whether the candidate has only a small residual, a validated enclosure, or a theorem-backed local existence result.
