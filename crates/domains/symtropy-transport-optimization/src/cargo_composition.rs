@@ -407,8 +407,14 @@ pub fn evaluate_composition(
     for (event_time, batch) in actual_by_time {
         let mut touched: BTreeMap<&str, usize> = BTreeMap::new();
         for event in &batch {
-            *touched.entry(&event.parent_module_id).or_default() += 1;
-            *touched.entry(&event.child_module_id).or_default() += 1;
+            let event_modules = [
+                event.parent_module_id.as_str(),
+                event.child_module_id.as_str(),
+            ];
+            let unique_modules: BTreeSet<&str> = event_modules.into_iter().collect();
+            for module_id in unique_modules {
+                *touched.entry(module_id).or_default() += 1;
+            }
         }
 
         let ambiguous_modules: BTreeSet<&str> = touched
