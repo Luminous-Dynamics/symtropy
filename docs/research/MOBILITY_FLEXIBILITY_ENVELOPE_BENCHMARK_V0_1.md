@@ -107,7 +107,7 @@ The Rust evaluator at \`tools/ev-passenger-cost-frontier/src/mobility_flexibilit
 - includes an independent arithmetic reference used to compare 625 four-slot candidate power profiles against the implementation;
 - never grants dispatch or export authority.
 
-The 625-profile comparison and 158/467 split are test definitions only until the current PR head executes them.
+The 625-profile comparison and 158/467 split passed in exact-head Actions run [#45026367607](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45026367607), which ran at source-identical commit `93e37f150ac32a8148622a7d061acf39aeb1d3d6`. Cargo test reported 130 passed and 0 failed across its test binaries; schema/fixture parsing, workspace formatting, deterministic report assertions and artifact upload also passed. Clippy is not part of this workflow and remains unverified.
 
 The fixture deliberately uses synthetic evidence. Its two stationary storage descriptors sum to 4,000 Wh and 5,500 W of lower-bound capability. The site trajectory [2,200, 2,500, 2,000, 800] W is explicitly allocated as ess-01 [2,000, 1,700, 1,300, 300] W plus ess-02 [200, 800, 700, 500] W. In the high-demand/low-renewable scenario, ess-01 retains 1,450 Wh after its mission/inventory/safety/uncertainty reserves and consumes 1,325 Wh (125 Wh margin); ess-02 retains 550 Wh and consumes all 550 Wh (0 Wh margin). Total candidate energy is 1,875 Wh, and the site trajectory remains within each asset's own slot-power ceiling. The PCC profile stays net-import-positive, so no export permission is relied upon. The aggregate residual budget is 2,000 Wh, but the decisive proof is the pair of separate resource margins—not the pooled number.
 
