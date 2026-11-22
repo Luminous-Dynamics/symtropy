@@ -433,6 +433,48 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
         );
     }
 
+    // Earlier EHD tracer-selection precedent: retain the Pitot reference and
+    // electrical-current observations as part of tracer suitability, not just
+    // optical particle-following criteria.
+    let hamdi = records.and_then(|rows| rows.iter().find(|record| {
+        text_at(record, &["source_id"]) == Some("HAMDI_2014_PIV_TRACER_SELECTION")
+    }));
+    push_if_missing(
+        &mut findings,
+        hamdi.is_some(),
+        "HAMDI_TRACER_RECORD",
+        "missing 2014 EHD PIV tracer-selection precedent",
+    );
+    if let Some(record) = hamdi {
+        push_if_missing(
+            &mut findings,
+            text_at(record, &["doi"]) == Some("10.1007/s00348-014-1702-z")
+                && text_at(record, &["cohort"])
+                    == Some("ambient_air_corona_needle_ring_piv_tracer_selection"),
+            "HAMDI_TRACER_IDENTITY",
+            "2014 EHD tracer-source identity changed",
+        );
+        push_if_missing(
+            &mut findings,
+            text_at(record, &["method", "independent_velocity_reference"]) == Some("Pitot tube")
+                && contains_any(record, &["method", "dimensionless_selection_criteria"], "electrical mobility ratio")
+                && contains_any(record, &["method", "electrical_diagnostics"], "current evolution during tracer seeding")
+                && at(record, &["method", "selected_suitable_tracers_in_study"])
+                    == Some(&serde_json::json!(["TiO2", "SiO2 microballoons", "incense smoke"])),
+            "HAMDI_TRACER_METHOD",
+            "Pitot-referenced flow, electrical mobility and tracer-current controls must remain explicit",
+        );
+        push_if_missing(
+            &mut findings,
+            at(record, &["reported_results", "quantitative_tracer_velocity_error"]).is_some_and(Value::is_null)
+                && at(record, &["reported_results", "quantitative_current_changes"]).is_some_and(Value::is_null)
+                && at(record, &["comparability", "distinct_from_2026_dehs_incense_cohort"])
+                    .and_then(Value::as_bool) == Some(true),
+            "HAMDI_TRACER_EVIDENCE_BOUNDARY",
+            "untranscribed numerical results must remain unknown and the study distinct from the 2026 cohort",
+        );
+    }
+
     // 2026 PIV seeding cohort: diagnostics are physical interventions, not
     // assumed-passive measurements. Keep the reported source values and
     // raw-data/uncertainty boundaries explicit.
@@ -2844,6 +2886,19 @@ mod tests {
 
     fn has_code(findings: &[String], code: &str) -> bool {
         findings.iter().any(|finding| finding.starts_with(code))
+    }
+
+    #[test]
+    fn hamdi_tracer_precedent_requires_pitot_and_electrical_controls() {
+        let mut value = atlas();
+        let rows = value["source_records"].as_array_mut().unwrap();
+        let record = rows.iter_mut().find(|row| {
+            row["source_id"] == "HAMDI_2014_PIV_TRACER_SELECTION"
+        }).unwrap();
+        record["method"]["independent_velocity_reference"] = serde_json::json!("PIV only");
+        assert!(audit_atlas(&value).iter().any(|finding| {
+            finding.starts_with("HAMDI_TRACER_METHOD")
+        }));
     }
 
     #[test]
