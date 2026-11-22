@@ -1,0 +1,208 @@
+{
+  "schema": "luminous.ehd_discrepancy_d0_corpus",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-D0-001",
+  "as_of": "2026-11-22",
+  "status": "manufactured_d0_residual_attribution_kernel_authored_tests_execution_pending",
+  "claim_ceiling": "This is an eight-component manufactured residual attribution oracle using four mutually orthogonal source signatures, a bounded residual-noise remainder, and externally supplied validation-envelope and conservation-ledger gates. It is not a general EHD discrepancy model, physical calibration, uncertainty estimator, OOD detector, or physical validation.",
+  "observation_boundary": "residual = observed_quantity_at_declared_boundary - pinned_baseline_model_prediction",
+  "source_classes": [
+    "parameter_perturbation",
+    "numerical_bias",
+    "measurement_artifact",
+    "model_form_discrepancy"
+  ],
+  "non_residual_gates": [
+    "measurement_noise_l2_bound",
+    "within_validation_envelope",
+    "conservation_ledgers_pass"
+  ],
+  "reference_basis": {
+    "vector_length": 8,
+    "systematic_signatures": [
+      {
+        "source": "parameter_perturbation",
+        "values": [
+          1,
+          -1,
+          1,
+          -1,
+          1,
+          -1,
+          1,
+          -1
+        ]
+      },
+      {
+        "source": "numerical_bias",
+        "values": [
+          1,
+          1,
+          -1,
+          -1,
+          1,
+          1,
+          -1,
+          -1
+        ]
+      },
+      {
+        "source": "measurement_artifact",
+        "values": [
+          1,
+          -1,
+          -1,
+          1,
+          1,
+          -1,
+          -1,
+          1
+        ]
+      },
+      {
+        "source": "model_form_discrepancy",
+        "values": [
+          1,
+          1,
+          1,
+          1,
+          -1,
+          -1,
+          -1,
+          -1
+        ]
+      }
+    ],
+    "measurement_noise_remainder_signature": [
+      1,
+      -1,
+      1,
+      -1,
+      -1,
+      1,
+      -1,
+      1
+    ],
+    "signature_contract": "all four systematic signatures are nonzero and mutually orthogonal; a correlated pair is not decomposed"
+  },
+  "attribution_policy": {
+    "coefficients": "dot(residual,signature)/dot(signature,signature)",
+    "confounding": "reject_and_abstain",
+    "unexplained_residual": "must_not_exceed_declared_measurement_noise_l2_bound",
+    "active_source_threshold": "caller_declared_nonnegative_amplitude",
+    "conservation_firewall": "physical_ledger_failure_has_priority_over_any_discrepancy_fit",
+    "validation_envelope": "explicit_external_boolean_gate_not_inferred_from_residual"
+  },
+  "reference_implementation": {
+    "path": "tools/ehd-reference-audit/src/discrepancy.rs",
+    "function": "analyse_d0_case",
+    "reference_self_check": "reference_self_check",
+    "tests": 7
+  },
+  "manufactured_cases": [
+    {
+      "case_id": "D0-MIXED-ERRORS",
+      "coefficients": [
+        1.5,
+        -0.75,
+        0.5,
+        2
+      ],
+      "noise_amplitude": 0.05,
+      "noise_l2_bound": 0.15,
+      "within_validation_envelope": true,
+      "conservation_ledgers_pass": true,
+      "expected_disposition": "parameter_or_numerical_error_detected",
+      "expected_active_sources": 4
+    },
+    {
+      "case_id": "D0-NOISE-ONLY",
+      "coefficients": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "noise_amplitude": 0.1,
+      "noise_l2_bound": 0.3,
+      "within_validation_envelope": true,
+      "conservation_ledgers_pass": true,
+      "expected_disposition": "no_systematic_source_detected",
+      "expected_active_sources": 0
+    },
+    {
+      "case_id": "D0-CONFOUNDED-PARAMETER-NUMERICAL",
+      "signature_mutation": "numerical_bias_equals_parameter_perturbation",
+      "expected_disposition": "not_identifiable_abstain"
+    },
+    {
+      "case_id": "D0-DISCREPANCY-LEDGER-FAILURE",
+      "coefficients": [
+        0,
+        0,
+        0,
+        3
+      ],
+      "noise_amplitude": 0,
+      "noise_l2_bound": 0,
+      "within_validation_envelope": true,
+      "conservation_ledgers_pass": false,
+      "expected_disposition": "physical_ledger_failure"
+    },
+    {
+      "case_id": "D0-OUT-OF-ENVELOPE",
+      "coefficients": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "noise_amplitude": 0,
+      "noise_l2_bound": 0,
+      "within_validation_envelope": false,
+      "conservation_ledgers_pass": true,
+      "expected_disposition": "out_of_envelope"
+    },
+    {
+      "case_id": "D0-UNEXPLAINED-RESIDUAL",
+      "coefficients": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "noise_amplitude": 0.2,
+      "noise_l2_bound": 0.1,
+      "within_validation_envelope": true,
+      "conservation_ledgers_pass": true,
+      "expected_disposition": "not_evaluable"
+    }
+  ],
+  "test_families": [
+    "mixed_parameter_numerical_artifact_and_model_errors_are_separated",
+    "measurement_noise_below_bound_is_not_fitted_as_a_systematic_source",
+    "correlated_parameter_and_numerical_signatures_abstain",
+    "discrepancy_fit_never_repairs_failed_conservation_ledger",
+    "out_of_envelope_case_abstains_even_with_small_residual",
+    "unexplained_residual_above_measurement_noise_bound_is_not_evaluable",
+    "negative_noise_bound_is_rejected"
+  ],
+  "conservation_firewall": {
+    "charge_mass_momentum_energy_ledgers_remain_independent_gates": true,
+    "discrepancy_can_override_failed_ledger": false,
+    "ledger_status_source": "independent_ledger_gate_input_not_residual_fit"
+  },
+  "limitations": [
+    "manufactured_hadamard_signatures_only",
+    "eight_residual_components_only",
+    "orthogonal_systematic_signatures_required",
+    "no_correlated_source_decomposition",
+    "no_general_discrepancy_function",
+    "no_physical_parameter_calibration",
+    "no_measurement_covariance_estimator",
+    "no_ood_detector",
+    "no_profile_likelihood",
+    "no_predictive_interval_coverage",
+    "no_physical_ehd_measurements"
+  ]
+}
