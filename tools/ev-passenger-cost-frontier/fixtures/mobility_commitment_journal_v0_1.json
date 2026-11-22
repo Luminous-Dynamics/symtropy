@@ -1,0 +1,129 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "MOBILITY-COMMITMENT-JOURNAL-001",
+  "decision_time_unix_ms": 1800000000000,
+  "initial_snapshot": {
+    "version": 0,
+    "events": []
+  },
+  "commands": [
+    {
+      "expected_version": 0,
+      "event_id": "evt-offer-001",
+      "commitment_id": "lease-001",
+      "idempotency_key": "idem-offer-001",
+      "kind": "offer_created",
+      "resolved_state": null,
+      "event_time_unix_ms": 1799999990000,
+      "event_evidence": {
+        "asset_id": "lease-001",
+        "configuration_digest": "sha256:journal-site-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-commitment-journal-v0.1",
+        "evidence_reference": "evt-offer-001",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999990001,
+        "valid_from_unix_ms": 1799999990000,
+        "valid_until_unix_ms": 1800003599999
+      },
+      "resource_terminal_evidence": [],
+      "contract": {
+        "site_id": "depot-journal-01",
+        "site_configuration_digest": "sha256:journal-site-v01",
+        "slot_duration_seconds": 900,
+        "horizon_slots": 4,
+        "start_slot": 1,
+        "end_slot": 4,
+        "expires_at_unix_ms": 1800000300000,
+        "flexibility_report_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "recovery_report_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "report_valid_until_unix_ms": 1800003599999,
+        "resource_allocations": [
+          {
+            "resource_id": "ess-01",
+            "configuration_digest": "sha256:ess-01-v01",
+            "power_w_by_slot": [
+              0,
+              1000,
+              1000,
+              0
+            ],
+            "energy_wh_by_slot": [
+              0,
+              250,
+              250,
+              0
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "expected_version": 1,
+      "event_id": "evt-accepted-001",
+      "commitment_id": "lease-001",
+      "idempotency_key": "idem-accepted-001",
+      "kind": "accepted",
+      "resolved_state": null,
+      "event_time_unix_ms": 1799999992000,
+      "event_evidence": {
+        "asset_id": "lease-001",
+        "configuration_digest": "sha256:journal-site-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-commitment-journal-v0.1",
+        "evidence_reference": "evt-accepted-001",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999992001,
+        "valid_from_unix_ms": 1799999992000,
+        "valid_until_unix_ms": 1800003599999
+      },
+      "resource_terminal_evidence": [],
+      "contract": null
+    },
+    {
+      "expected_version": 2,
+      "event_id": "evt-executing-001",
+      "commitment_id": "lease-001",
+      "idempotency_key": "idem-executing-001",
+      "kind": "executing",
+      "resolved_state": null,
+      "event_time_unix_ms": 1799999994000,
+      "event_evidence": {
+        "asset_id": "lease-001",
+        "configuration_digest": "sha256:journal-site-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-commitment-journal-v0.1",
+        "evidence_reference": "evt-executing-001",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999994001,
+        "valid_from_unix_ms": 1799999994000,
+        "valid_until_unix_ms": 1800003599999
+      },
+      "resource_terminal_evidence": [],
+      "contract": null
+    },
+    {
+      "expected_version": 3,
+      "event_id": "evt-unresolved-001",
+      "commitment_id": "lease-001",
+      "idempotency_key": "idem-unresolved-001",
+      "kind": "unresolved",
+      "resolved_state": null,
+      "event_time_unix_ms": 1799999996000,
+      "event_evidence": {
+        "asset_id": "lease-001",
+        "configuration_digest": "sha256:journal-site-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-commitment-journal-v0.1",
+        "evidence_reference": "evt-unresolved-001",
+        "evidence_class": "unknown",
+        "observed_at_unix_ms": 1799999996001,
+        "valid_from_unix_ms": 1799999996000,
+        "valid_until_unix_ms": 1800003599999
+      },
+      "resource_terminal_evidence": [],
+      "contract": null
+    }
+  ],
+  "claim_ceiling": "Append-only model-level promise journal with local CAS semantics only; no durable storage, distributed consensus, market settlement, physical dispatch, battery state or actuation authority."
+}
