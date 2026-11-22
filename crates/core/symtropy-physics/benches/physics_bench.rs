@@ -279,6 +279,92 @@ fn bench_validated_bivector_operator_9d(c: &mut Criterion) {
     });
 }
 
+fn bench_fallible_principal_response_3d(c: &mut Criterion) {
+    let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(10), Point::origin(), 0.1, 1.0);
+    body.inertia = SVector::from([2.0, 3.0, 4.0]);
+    body.inv_inertia = SVector::from([0.5, 1.0 / 3.0, 0.25]);
+    body.transform.rotation = symtropy_math::Rotor::<3>::from_plane_angle(
+        &Bivector::<3>::unit_plane(0, 2), 0.37,
+    );
+    let impulse = Bivector::<3>::from_wedge(
+        &SVector::from([0.7, -0.2, 0.4]),
+        &SVector::from([-0.3, 0.8, 0.1]),
+    );
+    c.bench_function("angular_response_fallible_principal_axes_3d", |bench| {
+        bench.iter(|| black_box(body.try_apply_inverse_angular_inertia(&impulse)));
+    });
+    c.bench_function("angular_response_legacy_principal_axes_3d", |bench| {
+        bench.iter(|| black_box(body.apply_inverse_angular_inertia(&impulse)));
+    });
+    c.bench_function("rotational_energy_fallible_principal_axes_3d", |bench| {
+        bench.iter(|| black_box(body.try_rotational_kinetic_energy()));
+    });
+    c.bench_function("rotational_energy_legacy_principal_axes_3d", |bench| {
+        bench.iter(|| black_box(body.rotational_kinetic_energy()));
+    });
+}
+
+fn bench_fallible_full_operator_response_4d(c: &mut Criterion) {
+    let operator = RotationalInertiaOperator::<4>::isotropic(2.0)
+        .expect("4D benchmark inertia fixture must be SPD");
+    let mut body = RigidBody::<4>::dynamic_sphere(BodyHandle(11), Point::origin(), 0.1, 1.0)
+        .with_rotational_inertia_operator(operator);
+    body.angular_velocity.set(0, 1, 0.4);
+    body.angular_velocity.set(2, 3, -0.7);
+    let impulse = Bivector::<4>::from_wedge(
+        &SVector::from([0.7, -0.2, 0.4, 0.1]),
+        &SVector::from([-0.3, 0.8, 0.1, 0.6]),
+    );
+    c.bench_function("angular_response_fallible_full_operator_4d", |bench| {
+        bench.iter(|| black_box(body.try_apply_inverse_angular_inertia(&impulse)));
+    });
+    c.bench_function("rotational_energy_fallible_full_operator_4d", |bench| {
+        bench.iter(|| black_box(body.try_rotational_kinetic_energy()));
+    });
+}
+
+fn bench_strict_vs_legacy_integration_3d(c: &mut Criterion) {
+    let fixture = || {
+        let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(12), Point::origin(), 0.1, 1.0);
+        body.inertia = SVector::from([2.0, 3.0, 4.0]);
+        body.inv_inertia = SVector::from([0.5, 1.0 / 3.0, 0.25]);
+        body.linear_velocity = SVector::from([0.2, -0.1, 0.3]);
+        body.angular_velocity.set(1, 2, 0.3);
+        body.angular_velocity.set(0, 2, -0.2);
+        body.angular_velocity.set(0, 1, 0.1);
+        body.force_accumulator = SVector::from([1.0, 2.0, -0.5]);
+        body.torque_accumulator.set(1, 2, 0.2);
+        body.torque_accumulator.set(0, 2, -0.1);
+        body.torque_accumulator.set(0, 1, 0.3);
+        body.linear_damping = 0.02;
+        body.angular_damping = 0.01;
+        body
+    };
+    let gravity = SVector::from([0.0, -9.81, 0.0]);
+    c.bench_function("integrate_legacy_anisotropic_body_3d", |bench| {
+        bench.iter_batched(
+            fixture,
+            |mut body| {
+                symtropy_physics::integrator::integrate(&mut body, &gravity, 0.001);
+                black_box(body);
+            },
+            criterion::BatchSize::SmallInput,
+        );
+    });
+    c.bench_function("integrate_strict_anisotropic_body_3d", |bench| {
+        bench.iter_batched(
+            fixture,
+            |mut body| {
+                black_box(symtropy_physics::integrator::try_integrate(
+                    &mut body, &gravity, 0.001,
+                ));
+                black_box(body);
+            },
+            criterion::BatchSize::SmallInput,
+        );
+    });
+}
+
 fn bench_anisotropic_contact_world_step(c: &mut Criterion) {
     c.bench_function("anisotropic_contact_world_step_10_bodies_3d", |bench| {
         bench.iter_batched(
@@ -334,6 +420,9 @@ criterion_group!(
     bench_validated_bivector_operator_3d,
     bench_validated_bivector_operator_9d,
     bench_anisotropic_contact_world_step,
+    bench_fallible_principal_response_3d,
+    bench_fallible_full_operator_response_4d,
+    bench_strict_vs_legacy_integration_3d,
     // Physics step at scale
     bench_physics_step_10_bodies,
     bench_physics_step_100_bodies,

@@ -14,12 +14,13 @@
 //! (0,1), (0,2), ..., (D-2,D-1). The current integrator/body/contact paths are
 //! not silently switched to this representation by adding this module.
 
-use nalgebra::DMatrix;
-use nalgebra::SVector;
+use nalgebra::linalg::SymmetricEigen;
+use nalgebra::{DMatrix, SVector};
 use symtropy_math::{Bivector, Rotor};
 
 /// Maximum bivector dimension supported by symtropy-math (D <= 9).
 const MAX_ROTATIONAL_DOF: usize = 36;
+const MATRIX_RELATIVE_TOLERANCE: f64 = 1.0e-12;
 
 /// Number of independent bivector coordinates in so(D).
 pub const fn rotational_dof_count<const D: usize>() -> usize {
@@ -37,7 +38,9 @@ pub enum MassPropertiesError {
     NonFiniteMatrix,
     /// The matrix is not symmetric within the declared relative tolerance.
     NotSymmetric,
-    /// The symmetric matrix is not positive definite.
+    /// A symmetric source matrix has a materially negative eigenvalue.
+    NotPositiveSemidefinite,
+    /// The induced rotational operator is singular or not positive definite.
     NotPositiveDefinite,
     /// A vector does not have the expected bivector-coordinate count.
     VectorSizeMismatch { expected: usize, actual: usize },
@@ -92,7 +95,7 @@ impl<const D: usize> RotationalInertiaOperator<D> {
     /// mass distribution. For physically realizable rigid-body inertia, prefer
     /// [`from_body_second_moment_matrix`], which derives the operator from the
     /// central second-moment tensor.
-    pub fn try_from_row_major(matrix_row_major: Vec<f64>) -> Result<Self, MassPropertiesError> {
+    pub fn try_from_row_major(mut matrix_row_major: Vec<f64>) -> Result<Self, MassPropertiesError> {
         let dof = rotational_dof_count::<D>();
         if D < 2 || dof == 0 {
             return Err(MassPropertiesError::InvalidDimension);
@@ -112,15 +115,27 @@ impl<const D: usize> RotationalInertiaOperator<D> {
 
         let scale = matrix_row_major
             .iter()
-            .fold(1.0_f64, |maximum, value| maximum.max(value.abs()));
-        let tolerance = 1e-12 * scale;
+            .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
+        if scale == 0.0 {
+            return Err(MassPropertiesError::NotPositiveDefinite);
+        }
+        // Symmetry is dimensionless: the admission decision must not change
+        // when the same inertia is expressed at a different magnitude/unit.
         for row in 0..dof {
             for column in 0..row {
-                let a = matrix_row_major[row * dof + column];
-                let b = matrix_row_major[column * dof + row];
-                if (a - b).abs() > tolerance {
+                let lower_index = row * dof + column;
+                let upper_index = column * dof + row;
+                let a = matrix_row_major[lower_index];
+                let b = matrix_row_major[upper_index];
+                if (a / scale - b / scale).abs() > MATRIX_RELATIVE_TOLERANCE {
                     return Err(MassPropertiesError::NotSymmetric);
                 }
+                // Store one symmetric representative after the tolerance
+                // check; do not factor a lower-triangle matrix while retaining
+                // a different upper triangle for apply().
+                let average = a + 0.5 * (b - a);
+                matrix_row_major[lower_index] = average;
+                matrix_row_major[upper_index] = average;
             }
         }
 
@@ -154,11 +169,13 @@ impl<const D: usize> RotationalInertiaOperator<D> {
     /// `I[a,b] = trace(E_a^T * E_b * S)`.
     ///
     /// Consequently, `T_rot = 0.5 * omega^T * I * omega` equals
-    /// `0.5 * integral(||Omega r||^2 dm)`. The input second-moment matrix must
-    /// be finite, symmetric and positive definite. This gives a physically
-    /// realizable inertia operator for a full-dimensional mass distribution;
-    /// degenerate lower-dimensional bodies require a separate semidefinite
-    /// representation and are not accepted by this dynamic-body constructor.
+    /// `0.5 * integral(||Omega r||^2 dm)`. The source second-moment matrix must
+    /// be finite, symmetric and positive semidefinite. It may be singular:
+    /// planar mass distributions can still induce a positive-definite operator
+    /// on all rotation planes (for example, a 3D lamina). The induced bivector
+    /// operator is then checked separately for positive definiteness. A line
+    /// or point distribution that leaves a zero-inertia rotation plane is
+    /// rejected by the dense dynamic-body operator.
     pub fn from_body_second_moment_matrix(
         second_moment_row_major: Vec<f64>,
     ) -> Result<Self, MassPropertiesError> {
@@ -181,23 +198,42 @@ impl<const D: usize> RotationalInertiaOperator<D> {
             return Err(MassPropertiesError::NonFiniteMatrix);
         }
 
-        let scale = second_moment_row_major
+        let source_scale = second_moment_row_major
             .iter()
-            .fold(1.0_f64, |maximum, value| maximum.max(value.abs()));
-        let tolerance = 1e-12 * scale;
+            .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
+        if source_scale == 0.0 {
+            return Err(MassPropertiesError::NotPositiveDefinite);
+        }
+        // As with the resulting operator, symmetry and PSD admission are
+        // scale-normalized. A planar PSD source can still yield an SPD
+        // rotational operator; positive definiteness is checked after mapping.
+        let raw_second_moment = DMatrix::from_row_slice(D, D, &second_moment_row_major);
+        let mut second_moment = DMatrix::zeros(D, D);
         for row in 0..D {
+            second_moment[(row, row)] = raw_second_moment[(row, row)];
             for column in 0..row {
-                let a = second_moment_row_major[row * D + column];
-                let b = second_moment_row_major[column * D + row];
-                if (a - b).abs() > tolerance {
+                let a = raw_second_moment[(row, column)];
+                let b = raw_second_moment[(column, row)];
+                if (a / source_scale - b / source_scale).abs()
+                    > MATRIX_RELATIVE_TOLERANCE
+                {
                     return Err(MassPropertiesError::NotSymmetric);
                 }
+                let average = a + 0.5 * (b - a);
+                second_moment[(row, column)] = average;
+                second_moment[(column, row)] = average;
             }
         }
-
-        let second_moment = DMatrix::from_row_slice(D, D, &second_moment_row_major);
-        if second_moment.clone().cholesky().is_none() {
-            return Err(MassPropertiesError::NotPositiveDefinite);
+        let normalized_second_moment = &second_moment / source_scale;
+        let minimum_source_eigenvalue = SymmetricEigen::new(normalized_second_moment)
+            .eigenvalues
+            .iter()
+            .fold(f64::INFINITY, |minimum, value| minimum.min(*value));
+        if !minimum_source_eigenvalue.is_finite() {
+            return Err(MassPropertiesError::NonFiniteValue);
+        }
+        if minimum_source_eigenvalue < -MATRIX_RELATIVE_TOLERANCE {
+            return Err(MassPropertiesError::NotPositiveSemidefinite);
         }
 
         let dof = rotational_dof_count::<D>();
@@ -761,8 +797,102 @@ mod tests {
         assert!((matrix[6]).abs() < 1e-12);
     }
 
+    fn assert_body_second_moment_matches_independent_plane_trace<const D: usize>() {
+        let mut second_moment = vec![0.0; D * D];
+        for axis in 0..D {
+            second_moment[axis * D + axis] = 2.0 + axis as f64;
+        }
+        for row in 0..D {
+            for column in (row + 1)..D {
+                let value = 0.025 * ((row + 1) * (column + 2)) as f64;
+                second_moment[row * D + column] = value;
+                second_moment[column * D + row] = value;
+            }
+        }
+
+        let second_moment_matrix = DMatrix::from_row_slice(D, D, &second_moment);
+        let planes = (0..D)
+            .flat_map(|i| ((i + 1)..D).map(move |j| (i, j)))
+            .collect::<Vec<_>>();
+        let dof = planes.len();
+        let mut expected = vec![0.0; dof * dof];
+
+        // Independent basis construction from I[a,b] = tr(E_a^T E_b S).
+        for (row, &(i, j)) in planes.iter().enumerate() {
+            let mut basis_row = DMatrix::<f64>::zeros(D, D);
+            basis_row[(i, j)] = 1.0;
+            basis_row[(j, i)] = -1.0;
+            for (column, &(k, l)) in planes.iter().enumerate() {
+                let mut basis_column = DMatrix::<f64>::zeros(D, D);
+                basis_column[(k, l)] = 1.0;
+                basis_column[(l, k)] = -1.0;
+                expected[row * dof + column] =
+                    (basis_row.transpose() * basis_column * &second_moment_matrix).trace();
+            }
+        }
+
+        let operator = RotationalInertiaOperator::<D>::from_body_second_moment_matrix(
+            second_moment,
+        )
+        .unwrap();
+        for (index, (actual, reference)) in operator
+            .as_row_major()
+            .iter()
+            .zip(expected.iter())
+            .enumerate()
+        {
+            assert!(
+                (actual - reference).abs() < 1.0e-12,
+                "D={D}, operator element {index}: actual={actual}, expected={reference}"
+            );
+        }
+
+        let mut omega = Bivector::<D>::zero();
+        let mut coordinates = Vec::with_capacity(dof);
+        for (index, &(i, j)) in planes.iter().enumerate() {
+            let value = 0.17 * (index as f64 + 1.0) - 0.31;
+            omega.set(i, j, value);
+            coordinates.push(value);
+        }
+        let applied = operator.apply_bivector(&omega).unwrap();
+        for (row, &(i, j)) in planes.iter().enumerate() {
+            let expected_value = (0..dof)
+                .map(|column| expected[row * dof + column] * coordinates[column])
+                .sum::<f64>();
+            assert!((applied.get(i, j) - expected_value).abs() < 1.0e-11);
+        }
+    }
+
     #[test]
-    fn body_second_moment_rejects_non_symmetric_or_degenerate_mass_distribution() {
+    fn body_second_moment_operator_matches_independent_dense_plane_trace_in_3d_and_4d() {
+        assert_body_second_moment_matches_independent_plane_trace::<3>();
+        assert_body_second_moment_matches_independent_plane_trace::<4>();
+    }
+
+    #[test]
+    fn dense_operator_symmetry_admission_is_invariant_under_positive_rescaling() {
+        let base = [4.0, 0.5, 0.0, 0.5, 3.0, 0.25, 0.0, 0.25, 2.0];
+        for scale in [1.0e-150, 1.0, 1.0e150] {
+            let matrix = base.iter().map(|value| value * scale).collect::<Vec<_>>();
+            let operator = RotationalInertiaOperator::<3>::try_from_row_major(matrix).unwrap();
+            assert_eq!(operator.dof(), 3);
+        }
+    }
+
+    #[test]
+    fn body_second_moment_psd_admission_is_invariant_under_positive_rescaling() {
+        let base = [2.0, 0.25, 0.0, 0.25, 3.0, 0.0, 0.0, 0.0, 0.0];
+        for scale in [1.0e-150, 1.0, 1.0e150] {
+            let matrix = base.iter().map(|value| value * scale).collect::<Vec<_>>();
+            assert!(
+                RotationalInertiaOperator::<3>::from_body_second_moment_matrix(matrix).is_ok(),
+                "valid planar mass distribution rejected at scale {scale:e}"
+            );
+        }
+    }
+
+    #[test]
+    fn body_second_moment_rejects_non_symmetric_or_indefinite_source() {
         assert_eq!(
             RotationalInertiaOperator::<3>::from_body_second_moment_matrix(vec![
                 1.0, 0.5, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0,
@@ -771,7 +901,36 @@ mod tests {
         );
         assert_eq!(
             RotationalInertiaOperator::<3>::from_body_second_moment_matrix(vec![
-                1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+                -0.1, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0,
+            ]),
+            Err(MassPropertiesError::NotPositiveSemidefinite)
+        );
+    }
+
+    #[test]
+    fn planar_mass_distribution_has_positive_definite_three_dimensional_rotation_operator() {
+        // The source is rank-two PSD (a planar lamina), but each 3D rotation
+        // plane has positive inertia: (0,1)=5, (0,2)=2, (1,2)=3.
+        let inertia = RotationalInertiaOperator::<3>::from_body_second_moment_matrix(vec![
+            2.0, 0.25, 0.0, 0.25, 3.0, 0.0, 0.0, 0.0, 0.0,
+        ])
+        .unwrap();
+        assert_eq!(inertia.dof(), 3);
+        let mut omega = Bivector::<3>::zero();
+        omega.set(0, 1, 0.3);
+        omega.set(0, 2, -0.4);
+        omega.set(1, 2, 0.7);
+        let momentum = inertia.apply_bivector(&omega).unwrap();
+        let recovered = inertia.solve_bivector(&momentum).unwrap();
+        assert!((recovered.add(&omega.scale(-1.0))).norm() < 1.0e-11);
+        assert!(inertia.kinetic_energy_joules(&omega).unwrap() > 0.0);
+    }
+
+    #[test]
+    fn line_mass_distribution_is_rejected_when_a_rotation_plane_has_zero_inertia() {
+        assert_eq!(
+            RotationalInertiaOperator::<3>::from_body_second_moment_matrix(vec![
+                1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
             ]),
             Err(MassPropertiesError::NotPositiveDefinite)
         );

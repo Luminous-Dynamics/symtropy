@@ -34,8 +34,61 @@ pub enum RotationalInertiaModel {
     MeanInertiaApproximation,
     /// Invalid 3D principal moments or reciprocal values; angular response fails closed.
     InvalidPrincipalMoments,
-    /// A validated full bivector inertia operator in body coordinates.
+    /// An algebraically SPD full bivector operator in body coordinates.
+    /// This does not by itself establish geometry/material/COM provenance.
     ValidatedSpatialBivectorOperator,
+}
+
+/// Why an exact rotational-response request could not be evaluated.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum RotationalResponseError {
+    /// A torque, impulse or state used by the requested operation is non-finite.
+    NonFiniteInput,
+    /// The requested integration timestep is not finite and strictly positive.
+    InvalidTimeStep,
+    /// A body damping parameter is negative or non-finite.
+    InvalidDamping,
+    /// The body's mass-property revision no longer matches its current mass.
+    StaleMassProperties,
+    /// The body's 3D principal moments or their reciprocals are invalid.
+    InvalidPrincipalMoments,
+    /// The selected inertia model is approximate or unsupported for exact response.
+    UnsupportedModel { model: RotationalInertiaModel },
+    /// The body's orientation is not a finite proper rotation.
+    InvalidRotation,
+    /// A validated inertia operator rejected an operation.
+    MassProperties(crate::mass_properties::MassPropertiesError),
+    /// A finite input produced a non-finite angular-velocity change.
+    NonFiniteResponse,
+}
+
+/// Typed result of applying an inverse rotational-inertia response.
+///
+/// The model identifies the response algorithm, not physical-source
+/// qualification. An algebraically SPD attached operator does not prove that
+/// it was derived from the current collider, material, density or centre of
+/// mass; that provenance remains a separate admission boundary.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum RotationalResponse<const D: usize> {
+    /// Static and kinematic bodies correctly have no angular response.
+    StaticOrKinematic,
+    /// A dynamic body's angular-velocity change under its admitted model.
+    Applied {
+        delta_angular_velocity: Bivector<D>,
+        model: RotationalInertiaModel,
+    },
+}
+
+/// Typed result of computing angular acceleration from applied torque.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum RotationalAcceleration<const D: usize> {
+    /// Static and kinematic bodies have no angular acceleration response.
+    StaticOrKinematic,
+    /// A dynamic body's angular acceleration under its admitted model.
+    Applied {
+        angular_acceleration: Bivector<D>,
+        model: RotationalInertiaModel,
+    },
 }
 
 /// N-dimensional rigid body.
@@ -359,6 +412,261 @@ impl<const D: usize> RigidBody<D> {
             && self.inertia[1] + self.inertia[2] + tolerance >= self.inertia[0]
     }
 
+    /// Apply an inverse rotational-inertia response without hiding failures.
+    ///
+    /// Unlike the legacy compatibility method, this method rejects the
+    /// higher-dimensional mean-inertia approximation and distinguishes a
+    /// legitimate static/kinematic zero response from an applied zero impulse
+    /// and from an invalid/stale model. It does not independently establish
+    /// geometry/material/COM provenance for the selected inertia model.
+    fn strict_rotational_inertia_model(
+        &self,
+    ) -> Result<RotationalInertiaModel, RotationalResponseError> {
+        if !self.is_dynamic() {
+            return Ok(RotationalInertiaModel::StaticOrKinematic);
+        }
+        if !self.mass.is_finite() || self.mass <= 0.0 {
+            return Err(RotationalResponseError::MassProperties(
+                crate::mass_properties::MassPropertiesError::InvalidMass,
+            ));
+        }
+        if self.mass_properties_mass_bits != Some(self.mass.to_bits())
+            || self.rotational_inertia_operator_invalidated
+            || (self.rotational_inertia_operator.is_some()
+                && self.rotational_inertia_operator_mass_bits != Some(self.mass.to_bits()))
+        {
+            return Err(RotationalResponseError::StaleMassProperties);
+        }
+
+        let model = self.rotational_inertia_model();
+        match model {
+            RotationalInertiaModel::StaticOrKinematic => Ok(model),
+            RotationalInertiaModel::PrincipalAxesWorldSpace3D => {
+                if !self.transform.rotation.is_proper_rotation(1.0e-8) {
+                    return Err(RotationalResponseError::InvalidRotation);
+                }
+                if !self.principal_moments_3d_are_valid() {
+                    return Err(RotationalResponseError::InvalidPrincipalMoments);
+                }
+                Ok(model)
+            }
+            RotationalInertiaModel::ValidatedSpatialBivectorOperator => {
+                let operator = self.rotational_inertia_operator.as_ref().ok_or(
+                    RotationalResponseError::StaleMassProperties,
+                )?;
+                operator
+                    .in_spatial_frame(&self.transform.rotation)
+                    .map_err(Self::map_rotational_response_error)?;
+                Ok(model)
+            }
+            RotationalInertiaModel::MeanInertiaApproximation => {
+                Err(RotationalResponseError::UnsupportedModel { model })
+            }
+            RotationalInertiaModel::InvalidPrincipalMoments => {
+                Err(RotationalResponseError::InvalidPrincipalMoments)
+            }
+        }
+    }
+
+    fn map_rotational_response_error(
+        error: crate::mass_properties::MassPropertiesError,
+    ) -> RotationalResponseError {
+        match error {
+            crate::mass_properties::MassPropertiesError::InvalidRotation => {
+                RotationalResponseError::InvalidRotation
+            }
+            other => RotationalResponseError::MassProperties(other),
+        }
+    }
+
+    /// Apply an inverse rotational-inertia response without hiding failures.
+    ///
+    /// This strict API rejects the higher-dimensional mean-inertia
+    /// approximation and distinguishes a legitimate static/kinematic zero
+    /// response from an applied zero impulse and from an invalid/stale model.
+    /// It does not independently establish geometry/material/COM provenance.
+    pub fn try_apply_inverse_angular_inertia(
+        &self,
+        angular_impulse: &Bivector<D>,
+    ) -> Result<RotationalResponse<D>, RotationalResponseError> {
+        if !angular_impulse.is_finite() {
+            return Err(RotationalResponseError::NonFiniteInput);
+        }
+        let model = self.strict_rotational_inertia_model()?;
+        if model == RotationalInertiaModel::StaticOrKinematic {
+            return Ok(RotationalResponse::StaticOrKinematic);
+        }
+
+        let delta_angular_velocity = match model {
+            RotationalInertiaModel::ValidatedSpatialBivectorOperator => {
+                let operator = self.rotational_inertia_operator.as_ref().ok_or(
+                    RotationalResponseError::StaleMassProperties,
+                )?;
+                let view = operator
+                    .in_spatial_frame(&self.transform.rotation)
+                    .map_err(Self::map_rotational_response_error)?;
+                view.solve_bivector(angular_impulse)
+                    .map_err(Self::map_rotational_response_error)?
+            }
+            RotationalInertiaModel::PrincipalAxesWorldSpace3D => {
+                // Rotor's positive e01 generator maps +X toward +Y; the
+                // associated right-handed axial vector is [e12, -e02, e01].
+                let impulse_world = SVector::<f64, 3>::new(
+                    angular_impulse.get(1, 2),
+                    -angular_impulse.get(0, 2),
+                    angular_impulse.get(0, 1),
+                );
+                let rotation = SMatrix::<f64, 3, 3>::from_fn(|row, col| {
+                    self.transform.rotation.to_matrix()[(row, col)]
+                });
+                let impulse_local = rotation.transpose() * impulse_world;
+                let inverse_principal = SVector::<f64, 3>::new(
+                    self.inv_inertia[0],
+                    self.inv_inertia[1],
+                    self.inv_inertia[2],
+                );
+                let delta_local = inverse_principal.component_mul(&impulse_local);
+                let delta_world = rotation * delta_local;
+                let mut result = Bivector::<D>::zero();
+                result.set(0, 1, delta_world[2]);
+                result.set(0, 2, -delta_world[1]);
+                result.set(1, 2, delta_world[0]);
+                result
+            }
+            _ => unreachable!("strict model admission rejected nonphysical paths"),
+        };
+        if !delta_angular_velocity.is_finite() {
+            return Err(RotationalResponseError::NonFiniteResponse);
+        }
+        Ok(RotationalResponse::Applied {
+            delta_angular_velocity,
+            model,
+        })
+    }
+
+    /// Compute angular acceleration from torque without hiding model failures.
+    ///
+    /// The 3D principal-axis path includes Euler's gyroscopic coupling; the
+    /// full bivector path uses the same spatial operator for inertia and
+    /// gyroscopic response. Approximate mean-inertia models are rejected.
+    pub fn try_angular_acceleration_from_torque(
+        &self,
+        torque_world_bivector: &Bivector<D>,
+    ) -> Result<RotationalAcceleration<D>, RotationalResponseError> {
+        if !torque_world_bivector.is_finite() || !self.angular_velocity.is_finite() {
+            return Err(RotationalResponseError::NonFiniteInput);
+        }
+        let model = self.strict_rotational_inertia_model()?;
+        if model == RotationalInertiaModel::StaticOrKinematic {
+            return Ok(RotationalAcceleration::StaticOrKinematic);
+        }
+
+        let angular_acceleration = match model {
+            RotationalInertiaModel::ValidatedSpatialBivectorOperator => {
+                let operator = self.rotational_inertia_operator.as_ref().ok_or(
+                    RotationalResponseError::StaleMassProperties,
+                )?;
+                let view = operator
+                    .in_spatial_frame(&self.transform.rotation)
+                    .map_err(Self::map_rotational_response_error)?;
+                view.angular_acceleration(&self.angular_velocity, torque_world_bivector)
+                    .map_err(Self::map_rotational_response_error)?
+            }
+            RotationalInertiaModel::PrincipalAxesWorldSpace3D => {
+                let rotation = SMatrix::<f64, 3, 3>::from_fn(|row, col| {
+                    self.transform.rotation.to_matrix()[(row, col)]
+                });
+                let omega_world = SVector::<f64, 3>::new(
+                    self.angular_velocity.get(1, 2),
+                    -self.angular_velocity.get(0, 2),
+                    self.angular_velocity.get(0, 1),
+                );
+                let torque_world = SVector::<f64, 3>::new(
+                    torque_world_bivector.get(1, 2),
+                    -torque_world_bivector.get(0, 2),
+                    torque_world_bivector.get(0, 1),
+                );
+                let omega_local = rotation.transpose() * omega_world;
+                let principal_moments = SVector::<f64, 3>::new(
+                    self.inertia[0], self.inertia[1], self.inertia[2],
+                );
+                let inverse_principal = SVector::<f64, 3>::new(
+                    self.inv_inertia[0], self.inv_inertia[1], self.inv_inertia[2],
+                );
+                let momentum_local = principal_moments.component_mul(&omega_local);
+                let momentum_world = rotation * momentum_local;
+                let gyroscopic = SVector::<f64, 3>::new(
+                    omega_world[1] * momentum_world[2] - omega_world[2] * momentum_world[1],
+                    omega_world[2] * momentum_world[0] - omega_world[0] * momentum_world[2],
+                    omega_world[0] * momentum_world[1] - omega_world[1] * momentum_world[0],
+                );
+                let net_torque_local = rotation.transpose() * (torque_world - gyroscopic);
+                let alpha_local = inverse_principal.component_mul(&net_torque_local);
+                let alpha_world = rotation * alpha_local;
+                let mut result = Bivector::<D>::zero();
+                result.set(0, 1, alpha_world[2]);
+                result.set(0, 2, -alpha_world[1]);
+                result.set(1, 2, alpha_world[0]);
+                result
+            }
+            _ => unreachable!("strict model admission rejected nonphysical paths"),
+        };
+        if !angular_acceleration.is_finite() {
+            return Err(RotationalResponseError::NonFiniteResponse);
+        }
+        Ok(RotationalAcceleration::Applied {
+            angular_acceleration,
+            model,
+        })
+    }
+
+    /// Compute rotational kinetic energy in joules without hiding failures.
+    ///
+    /// This uses the same strict model admission as angular response. Static
+    /// and kinematic bodies have zero rotational kinetic energy; approximate
+    /// mean-inertia models are rejected instead of assigned false precision.
+    pub fn try_rotational_kinetic_energy(
+        &self,
+    ) -> Result<f64, RotationalResponseError> {
+        if !self.angular_velocity.is_finite() {
+            return Err(RotationalResponseError::NonFiniteInput);
+        }
+        let model = self.strict_rotational_inertia_model()?;
+        if model == RotationalInertiaModel::StaticOrKinematic {
+            return Ok(0.0);
+        }
+        let energy = match model {
+            RotationalInertiaModel::ValidatedSpatialBivectorOperator => {
+                let operator = self.rotational_inertia_operator.as_ref().ok_or(
+                    RotationalResponseError::StaleMassProperties,
+                )?;
+                let view = operator
+                    .in_spatial_frame(&self.transform.rotation)
+                    .map_err(Self::map_rotational_response_error)?;
+                view.kinetic_energy_joules(&self.angular_velocity)
+                    .map_err(Self::map_rotational_response_error)?
+            }
+            RotationalInertiaModel::PrincipalAxesWorldSpace3D => {
+                let omega_world = SVector::<f64, 3>::new(
+                    self.angular_velocity.get(1, 2),
+                    -self.angular_velocity.get(0, 2),
+                    self.angular_velocity.get(0, 1),
+                );
+                let rotation = SMatrix::<f64, 3, 3>::from_fn(|row, col| {
+                    self.transform.rotation.to_matrix()[(row, col)]
+                });
+                let omega_local = rotation.transpose() * omega_world;
+                0.5 * (0..3)
+                    .map(|axis| self.inertia[axis] * omega_local[axis] * omega_local[axis])
+                    .sum::<f64>()
+            }
+            _ => unreachable!("strict model admission rejected nonphysical paths"),
+        };
+        if !energy.is_finite() || energy < 0.0 {
+            return Err(RotationalResponseError::NonFiniteResponse);
+        }
+        Ok(energy)
+    }
     /// Apply the inverse rotational inertia operator to a world-space angular
     /// impulse, returning the world-space angular-velocity change.
     ///
@@ -1107,4 +1415,233 @@ mod rotational_inertia_tests {
         let inverse_mean = body.inv_inertia.sum() / 4.0;
         assert!((body.apply_inverse_angular_inertia(&impulse).get(0, 1) - inverse_mean).abs() < 1e-12);
     }
+
+    #[test]
+    fn fallible_response_distinguishes_static_zero_and_unsupported_models() {
+        let impulse = Bivector::<3>::unit_plane(0, 1);
+        let static_body = RigidBody::<3>::static_body(
+            BodyHandle(10),
+            Point::origin(),
+            Box::new(symtropy_math::Sphere::unit()),
+        );
+        assert_eq!(
+            static_body.try_apply_inverse_angular_inertia(&impulse),
+            Ok(RotationalResponse::StaticOrKinematic)
+        );
+
+        let dynamic = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(11), Point::origin(), 0.5, 2.0,
+        );
+        let response = dynamic.try_apply_inverse_angular_inertia(&Bivector::zero()).unwrap();
+        assert!(matches!(
+            response,
+            RotationalResponse::Applied {
+                delta_angular_velocity,
+                model: RotationalInertiaModel::PrincipalAxesWorldSpace3D,
+            } if delta_angular_velocity.norm_squared() == 0.0
+        ));
+
+        let four_d = RigidBody::<4>::dynamic_sphere(
+            BodyHandle(12), Point::origin(), 0.5, 2.0,
+        );
+        assert_eq!(
+            four_d.try_apply_inverse_angular_inertia(&Bivector::<4>::unit_plane(0, 1)),
+            Err(RotationalResponseError::UnsupportedModel {
+                model: RotationalInertiaModel::MeanInertiaApproximation,
+            })
+        );
+    }
+
+    #[test]
+    fn fallible_response_rejects_stale_invalid_and_non_finite_inputs() {
+        let impulse = Bivector::<3>::unit_plane(0, 1);
+        let mut stale = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(13), Point::origin(), 0.5, 2.0,
+        );
+        stale.mass *= 2.0;
+        assert_eq!(
+            stale.try_apply_inverse_angular_inertia(&impulse),
+            Err(RotationalResponseError::StaleMassProperties)
+        );
+
+        let mut invalid = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(14), Point::origin(), 0.5, 2.0,
+        );
+        invalid.inertia[0] = -1.0;
+        assert_eq!(
+            invalid.try_apply_inverse_angular_inertia(&impulse),
+            Err(RotationalResponseError::InvalidPrincipalMoments)
+        );
+
+        let mut non_finite = Bivector::<3>::zero();
+        non_finite.set(0, 1, f64::NAN);
+        let body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(15), Point::origin(), 0.5, 2.0,
+        );
+        assert_eq!(
+            body.try_apply_inverse_angular_inertia(&non_finite),
+            Err(RotationalResponseError::NonFiniteInput)
+        );
+    }
+
+    #[test]
+    fn fallible_principal_response_matches_legacy_3d_response() {
+        let mut body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(17), Point::origin(), 0.5, 2.0,
+        );
+        body.inertia = SVector::from([2.0, 3.0, 4.0]);
+        body.inv_inertia = SVector::from([0.5, 1.0 / 3.0, 0.25]);
+        body.transform.rotation = Rotor::<3>::from_plane_angle(
+            &Bivector::<3>::unit_plane(0, 1), 0.37,
+        );
+        let mut impulse = Bivector::<3>::zero();
+        impulse.set(1, 2, 0.7);
+        impulse.set(0, 2, -0.4);
+        impulse.set(0, 1, 0.2);
+
+        let typed = body.try_apply_inverse_angular_inertia(&impulse).unwrap();
+        let legacy = body.apply_inverse_angular_inertia(&impulse);
+        assert!(matches!(
+            typed,
+            RotationalResponse::Applied {
+                delta_angular_velocity,
+                model: RotationalInertiaModel::PrincipalAxesWorldSpace3D,
+            } if (delta_angular_velocity.add(&legacy.scale(-1.0))).norm() < 1.0e-12
+        ));
+    }
+
+    #[test]
+    fn fallible_response_detects_operator_revision_mismatch() {
+        let operator = RotationalInertiaOperator::<4>::isotropic(2.0).unwrap();
+        let mut body = RigidBody::<4>::dynamic_sphere(
+            BodyHandle(18), Point::origin(), 0.5, 2.0,
+        ).with_rotational_inertia_operator(operator);
+        body.rotational_inertia_operator_mass_bits = Some((body.mass + 1.0).to_bits());
+        assert_eq!(
+            body.try_apply_inverse_angular_inertia(&Bivector::<4>::unit_plane(0, 1)),
+            Err(RotationalResponseError::StaleMassProperties)
+        );
+    }
+    #[test]
+    fn fallible_torque_acceleration_matches_legacy_principal_3d_and_static_result() {
+        let mut body = anisotropic_body();
+        body.transform.rotation = Rotor::<3>::from_plane_angle(
+            &Bivector::<3>::unit_plane(0, 2), 0.29,
+        );
+        body.angular_velocity.set(1, 2, 0.8);
+        body.angular_velocity.set(0, 2, -0.6);
+        body.angular_velocity.set(0, 1, 0.35);
+        let mut torque = Bivector::<3>::zero();
+        torque.set(1, 2, 0.2);
+        torque.set(0, 2, -0.1);
+        torque.set(0, 1, 0.3);
+        let typed = body.try_angular_acceleration_from_torque(&torque).unwrap();
+        let legacy = body.angular_acceleration_from_torque(&torque);
+        assert!(matches!(
+            typed,
+            RotationalAcceleration::Applied {
+                angular_acceleration,
+                model: RotationalInertiaModel::PrincipalAxesWorldSpace3D,
+            } if (angular_acceleration.add(&legacy.scale(-1.0))).norm() < 1.0e-12
+        ));
+
+        let static_body = RigidBody::<3>::static_body(
+            BodyHandle(19), Point::origin(), Box::new(symtropy_math::Sphere::unit()),
+        );
+        assert_eq!(
+            static_body.try_angular_acceleration_from_torque(&torque),
+            Ok(RotationalAcceleration::StaticOrKinematic)
+        );
+    }
+
+    #[test]
+    fn fallible_torque_and_energy_reject_unsupported_or_non_finite_models() {
+        let body = RigidBody::<4>::dynamic_sphere(
+            BodyHandle(20), Point::origin(), 0.5, 2.0,
+        );
+        assert_eq!(
+            body.try_angular_acceleration_from_torque(&Bivector::<4>::zero()),
+            Err(RotationalResponseError::UnsupportedModel {
+                model: RotationalInertiaModel::MeanInertiaApproximation,
+            })
+        );
+        assert_eq!(
+            body.try_rotational_kinetic_energy(),
+            Err(RotationalResponseError::UnsupportedModel {
+                model: RotationalInertiaModel::MeanInertiaApproximation,
+            })
+        );
+
+        let mut nan_torque = Bivector::<3>::zero();
+        nan_torque.set(0, 1, f64::NAN);
+        let body3 = anisotropic_body();
+        assert_eq!(
+            body3.try_angular_acceleration_from_torque(&nan_torque),
+            Err(RotationalResponseError::NonFiniteInput)
+        );
+        let mut invalid_state = anisotropic_body();
+        invalid_state.angular_velocity.set(0, 1, f64::INFINITY);
+        assert_eq!(
+            invalid_state.try_rotational_kinetic_energy(),
+            Err(RotationalResponseError::NonFiniteInput)
+        );
+    }
+
+    #[test]
+    fn fallible_rotational_energy_matches_legacy_for_admitted_3d_and_full_4d_models() {
+        let mut body = anisotropic_body();
+        body.angular_velocity.set(1, 2, 0.8);
+        body.angular_velocity.set(0, 2, -0.6);
+        body.angular_velocity.set(0, 1, 0.35);
+        let typed = body.try_rotational_kinetic_energy().unwrap();
+        assert!((typed - body.rotational_kinetic_energy()).abs() < 1.0e-12);
+
+        let operator = RotationalInertiaOperator::<4>::isotropic(2.0).unwrap();
+        let mut four_d = RigidBody::<4>::dynamic_sphere(
+            BodyHandle(21), Point::origin(), 0.5, 2.0,
+        ).with_rotational_inertia_operator(operator);
+        four_d.angular_velocity.set(0, 1, 0.4);
+        four_d.angular_velocity.set(2, 3, -0.7);
+        let typed_4d = four_d.try_rotational_kinetic_energy().unwrap();
+        assert!((typed_4d - four_d.rotational_kinetic_energy()).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn fallible_torque_acceleration_uses_full_operator_without_scalar_fallback() {
+        let operator = RotationalInertiaOperator::<4>::isotropic(2.0).unwrap();
+        let mut body = RigidBody::<4>::dynamic_sphere(
+            BodyHandle(22), Point::origin(), 0.5, 2.0,
+        ).with_rotational_inertia_operator(operator);
+        body.angular_velocity.set(0, 1, 0.3);
+        body.angular_velocity.set(2, 3, -0.2);
+        let mut torque = Bivector::<4>::zero();
+        torque.set(0, 1, 0.8);
+        torque.set(2, 3, -0.4);
+        let typed = body.try_angular_acceleration_from_torque(&torque).unwrap();
+        let legacy = body.angular_acceleration_from_torque(&torque);
+        assert!(matches!(
+            typed,
+            RotationalAcceleration::Applied {
+                angular_acceleration,
+                model: RotationalInertiaModel::ValidatedSpatialBivectorOperator,
+            } if (angular_acceleration.add(&legacy.scale(-1.0))).norm() < 1.0e-12
+        ));
+    }
+    #[test]
+    fn fallible_response_uses_validated_full_bivector_operator() {
+        let operator = RotationalInertiaOperator::<4>::isotropic(2.0).unwrap();
+        let body = RigidBody::<4>::dynamic_sphere(
+            BodyHandle(16), Point::origin(), 0.5, 2.0,
+        ).with_rotational_inertia_operator(operator);
+        let impulse = Bivector::<4>::unit_plane(0, 1).scale(4.0);
+        let response = body.try_apply_inverse_angular_inertia(&impulse).unwrap();
+        assert!(matches!(
+            response,
+            RotationalResponse::Applied {
+                delta_angular_velocity,
+                model: RotationalInertiaModel::ValidatedSpatialBivectorOperator,
+            } if (delta_angular_velocity.get(0, 1) - 2.0).abs() < 1.0e-12
+        ));
+    }
+
 }
