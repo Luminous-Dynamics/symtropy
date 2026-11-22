@@ -1,22 +1,38 @@
 {
   "schema_version": 1,
   "artifact_kind": "einstein_limit_second_order_frobenius_replay_receipt",
-  "status": "passed_local_exact_development_replay",
-  "development_source_sha256": "1f40a5d4ba03a94c36df1c629575b7fe460921accc18cbbce9d1dcda63a9a33a",
-  "development_source_git_blob_sha1": "2cb2e3d567b3dd204252f4f43a8005693bc819cc",
-  "fixture_sha256": "a5adc1a220ad67622a6c0cef2b32c06ea08f4826d7399b3057e67ca3e83c1274",
-  "environment": {
-    "python": "3.13.5",
-    "sympy": "1.14.0"
+  "status": "passed_exact_committed_fixture_and_verifier_replay",
+  "local_development_source": {
+    "sha256": "1f40a5d4ba03a94c36df1c629575b7fe460921accc18cbbce9d1dcda63a9a33a",
+    "git_blob_sha1": "2cb2e3d567b3dd204252f4f43a8005693bc819cc",
+    "executed_locally": true,
+    "committed_to_repository": false
   },
-  "exact_checks": {
-    "A0_matches_previous_public_indicial_result": true,
-    "A1_matches_previous_local_exact_derivation": true,
-    "A2_and_g2_extracted_exactly": true,
-    "analytic_recurrences_n0_n1_n2": true,
-    "Myers_Perry_recurrences_n0_n1_n2": true,
-    "full_reduced_Myers_Perry_equations_exact": true,
-    "logarithmic_obstruction_nonzero": true
+  "committed_fixture": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/spin2_mp_frobenius_A2_v1.json",
+    "git_blob_sha1": "fdf79016bc6aa0a1c7297e2b2fceaf583deb691c",
+    "sha256": "e489becce1a2f04f723ec69112dfaea248ca4c08b3e1d2b5e50d0aa8c11b7a2a",
+    "exact_bytes_replayed": true
   },
-  "evidence_boundary": "This is a successful local replay of the action-specialized alpha=0 development source and its exact output. The public committed A2 derivation source is not part of the repository in this increment; the small public verifier checks the committed fixture recurrences but does not regenerate the Euler-Lagrange system. No CI, finite-coupling result, interval proof, or hyperbolicity result is claimed."
+  "committed_verifier": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_spin2_mp_frobenius_A2.py",
+    "git_blob_sha1": "8d0ee01bf14f1fa0f613dd9bf4b3cca7c5f7bc32",
+    "sha256": "5bf78d0e91e0b5237f7d825746f5ad82d5d2a764215313e8b3c5a2afd0b055ad",
+    "exact_bytes_replayed": true
+  },
+  "replay": {
+    "result": "passed_exact_rational_recurrence_replay",
+    "environment": {
+      "python": "3.13.5",
+      "sympy": "1.14.0"
+    },
+    "checks": [
+      "analytic n=0,1,2 recurrence",
+      "singular exponent -1 eigenvector",
+      "nonzero logarithmic obstruction P0*A1*u",
+      "regular projector idempotence and rank",
+      "Myers-Perry n=0,1,2 recurrence"
+    ]
+  },
+  "evidence_boundary": "The committed fixture and committed verifier were both replayed from exact Git blob bytes, and the exact recurrence checks passed. The action-specialized derivation source was executed locally and its source hash recorded, but that derivation source was not committed; the public verifier checks the committed recurrence fixture and does not regenerate the Euler-Lagrange equations. CI, finite-coupling residue, interval existence, continuation, and PDE hyperbolicity are not claimed."
 }
