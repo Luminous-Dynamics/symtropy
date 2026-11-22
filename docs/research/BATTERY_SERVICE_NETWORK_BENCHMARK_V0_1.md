@@ -14,9 +14,9 @@ A battery is not just a scalar state-of-charge value attached to an aircraft. It
 The decision unit should be **qualified pack capability at the required place and time**, not nominal pack count or swap count.
 
 A mission requires a complete capability vector:
-- usable energy after operational and contingency reserve;
-- peak power under the expected current/load profile;
-- thermal state and qualified maximum temperature;
+- conservative lower bound on usable energy after operational and contingency reserve;
+- conservative lower bound for peak power under the expected current/load profile;
+- conservative upper bound for thermal state and qualified maximum temperature;
 - exact pack/airframe/interface configuration;
 - pack identity, custody and post-maintenance test evidence;
 - observation time and validity interval;
@@ -50,7 +50,7 @@ It does not schedule time-varying charging, cooling, rack queues, swap bays, mob
 
 ### 3.1 Evidence envelope
 
-Every capability and boolean assertion is wrapped in an evidence envelope:
+Every capability, state and boolean assertion is carried with an evidence envelope:
 
 - `asset_id`: must match the serialized pack ID;
 - `configuration_digest`: must match the pack configuration digest;
@@ -74,6 +74,8 @@ This prevents post-decision information leakage and makes freshness a time-windo
 **Trust limitation:** producer IDs, method IDs and references are declarative strings in v0.1. The code checks their presence and binding but does not verify digital signatures, trusted issuer credentials, clock provenance or external attestation. Those remain with Mycelix identity/trust and the appropriate independent assurance owners. An evidence class label is not proof that a measurement is real.
 
 ### 3.2 Candidate pair hard checks
+
+The operational state value is nested in `PackStateEvidence`; there is no separate mutable state field. Capability inputs are explicitly bounded: usable energy and peak power are conservative lower bounds; temperature is a conservative upper bound. A point estimate cannot be silently interpreted as a qualified limit.
 
 For each mission-pack pair the evaluator checks:
 - matching configuration ID and digest;
@@ -111,7 +113,7 @@ A separate enumeration of the fixture's declared objective found 38 search nodes
 
 The expected mapping is pack-a → mission-1 (300 Wh surplus), pack-b → mission-2 (300 Wh surplus), pack-c → mission-3 (200 Wh surplus), with mission-4 unserved. The workflow asserts the exact mapping, energy margins and 38-node search count.
 
-This independent fixture arithmetic is not evidence that the Rust code compiles or passes its CI tests. At the time of this document update, the exact-head GitHub workflow run has not been observed; do not claim compile, Clippy, rustfmt or Rust tests are green. The current test source contains 23 focused test cases, including an explicit test that the claimed pack state is carried inside its evidence envelope, including future-observation, expired/malformed time-window, wrong-asset/configuration evidence, stale/unknown pack state, energy-reserve, peak-power, thermal, quarantine/post-test, exact-allocation and deterministic replay controls. Their execution is pending exact-head workflow evidence.
+This independent fixture arithmetic is not evidence that the Rust code compiles or passes its CI tests. At the time of this document update, the exact-head GitHub workflow run has not been observed; do not claim compile, Clippy, rustfmt or Rust tests are green. The current test source contains 34 focused test cases. Eleven additional journal controls cover confirmed transition, timeout lock, blocked retry, independent reconciliation, rejection of synthetic reconciliation, duplicate event/idempotency keys, sequence gaps, illegal transitions, replay cut-off and wrong-serial evidence., including an explicit test that the claimed pack state is carried inside its evidence envelope, including future-observation, expired/malformed time-window, wrong-asset/configuration evidence, stale/unknown pack state, energy-reserve, peak-power, thermal, quarantine/post-test, exact-allocation and deterministic replay controls. Their execution is pending exact-head workflow evidence.
 
 ## 4. The next paradigm shift: battery-service capacity as a network option
 
@@ -360,7 +362,19 @@ It takes 2,995 zero-failure attempts to bound failure probability below 10^-3 (9
 
 Physical validation should stratify by distinct dock/mechanism units, pack serial/age/cycle count, temperature/humidity, dust/salt/moisture/contamination, vibration, insertion misalignment, mechanical wear, connector resistance, partial insertion, communication loss/replay, pack mismatch, charger/grid disturbances, emergency stops and operator interventions. Repeated tests on one dock are correlated; use cluster-aware or hierarchical reliability analysis where needed. Publish exact binomial intervals for independent cohorts and separate mechanism reliability from network service availability.
 
-## 11. Next implementation phases
+## 11. Event-sourced state and transaction reconciliation
+
+A first event journal reducer is implemented in the same Rust module and tracked by [PACK-STATE-TRANSACTION-001 #6700](https://github.com/Luminous-Dynamics/symtropy/issues/6700). It consumes an initial evidence-bearing pack state and a time-ordered event stream:
+- confirmed events apply only an allowed transition;
+- timeout/outcome-unknown leaves the last confirmed state unchanged and locks further normal events;
+- reconciliation can clear the lock only with measured or independent-test state evidence;
+- duplicate event IDs/idempotency keys, non-contiguous sequences, non-monotonic or post-cutoff events, illegal transitions and wrong-asset/configuration evidence are rejected.
+
+The journal CLI is `battery_pack_journal_screen`, with strict schema `schemas/battery_pack_state_journal_v0_1.schema.json` and a synthetic fixture demonstrating available → reserved, install timeout → reconciliation to installed. The fixture is synthetic and does not attest that an actual physical operation occurred. Event evidence references are metadata in this prototype, not cryptographically authenticated messages. Mycelix remains custody/trust owner.
+
+The journal is not yet a full resource scheduler: it does not reserve charger/rack/crew/aircraft time intervals, prove custody transfer across actors, or optimize cross-epoch inventory. Those remain later increments.
+
+## 12. Next implementation phases
 
 **v0.2 — exact multi-period charging and inventory**
 - model pack-state transitions, charge curves, cooldown/balancing, parallel charger/rack occupancy and grid caps;
