@@ -945,14 +945,16 @@ mod tests {
             1,
             AggregationAction::Add,
             Some("container-1"),
-            &["pallet-1"],
+            &["pallet-1", "carton-1"],
             vec![quantity("class-carton", Some("12"), None)],
         );
         let report = project_aggregation_events(&[input], 200).unwrap();
-        assert_eq!(report.membership_events.len(), 1);
-        assert_eq!(
-            report.membership_events[0].event.action,
-            MembershipAction::Add
+        assert_eq!(report.membership_events.len(), 2);
+        assert!(
+            report
+                .membership_events
+                .iter()
+                .all(|row| row.event.action == MembershipAction::Add)
         );
         assert_eq!(report.class_quantity_assertions.len(), 1);
         assert_eq!(
@@ -960,7 +962,7 @@ mod tests {
             quantity("class-carton", Some("12"), None)
         );
         let composition = report.evaluate_instance_composition(&modules()).unwrap();
-        assert_eq!(composition.active_memberships.len(), 1);
+        assert_eq!(composition.active_memberships.len(), 2);
     }
 
     #[test]
@@ -1007,8 +1009,26 @@ mod tests {
     }
 
     #[test]
-    fn delete_all_remains_parent_scoped_and_blocks_counts_until_reducer_supports_it() {
-        let input = envelope(
+    fn delete_all_is_parent_scoped_and_clears_only_direct_child_memberships() {
+        let mut add = envelope(
+            "delete-all-add",
+            1,
+            AggregationAction::Add,
+            Some("container-1"),
+            &["pallet-1", "carton-1"],
+            Vec::new(),
+        );
+        add.event_time_ticks = 1_000;
+        add.time_qualification = ProjectionTimeQualification::Qualified {
+            time_basis_id: "UTC(ZA)".to_string(),
+            tick_quantum_id: "SI_NANOSECOND".to_string(),
+            time_evidence_id: canonical_event_time_evidence_id(&source_ref(&add)),
+            time_evidence_sha256: "c".repeat(64),
+            earliest_event_time_ticks: 990,
+            latest_event_time_ticks: 1_005,
+        };
+
+        let mut delete_all = envelope(
             "delete-all-1",
             1,
             AggregationAction::Delete,
@@ -1016,17 +1036,28 @@ mod tests {
             &[],
             Vec::new(),
         );
-        let report = project_aggregation_events(&[input], 200).unwrap();
-        assert_eq!(report.membership_events.len(), 0);
+        delete_all.event_time_ticks = 1_020;
+        delete_all.time_qualification = ProjectionTimeQualification::Qualified {
+            time_basis_id: "UTC(ZA)".to_string(),
+            tick_quantum_id: "SI_NANOSECOND".to_string(),
+            time_evidence_id: canonical_event_time_evidence_id(&source_ref(&delete_all)),
+            time_evidence_sha256: "c".repeat(64),
+            earliest_event_time_ticks: 1_010,
+            latest_event_time_ticks: 1_030,
+        };
+
+        let report = project_aggregation_events(&[add, delete_all], 200).unwrap();
+        assert_eq!(report.membership_events.len(), 2);
         assert_eq!(report.parent_scoped_disaggregations.len(), 1);
         assert_eq!(
             report.parent_scoped_disaggregations[0].parent_id,
             "container-1"
         );
-        assert_eq!(
-            report.evaluate_instance_composition(&modules()),
-            Err(ProjectionEvaluationError::ProjectionNotComplete)
-        );
+        let composition = report.evaluate_instance_composition(&modules()).unwrap();
+        assert!(composition.is_qualified());
+        assert_eq!(composition.active_edges(), 0);
+        assert_eq!(composition.disaggregation_all_events, 1);
+        assert_eq!(composition.disaggregated_membership_edges, 2);
     }
 
     #[test]
@@ -1161,9 +1192,17 @@ mod tests {
             .iter()
             .find(|row| row.provenance.child_epc == "carton-1")
             .unwrap();
-        assert!(tombstone.event.voided);
+        assert!(!tombstone.event.voided);
         assert!(tombstone.provenance.is_revision_tombstone);
         assert_eq!(tombstone.event.revision, 2);
+
+        // The correction tombstone is an applied DELETE, not a discarded void.
+        let composition = report.evaluate_instance_composition(&modules()).unwrap();
+        assert_eq!(composition.active_edges(), 1);
+        assert_eq!(
+            composition.active_memberships.iter().next().unwrap().child_module_id,
+            "pallet-1"
+        );
     }
 
     #[test]
@@ -1189,7 +1228,10 @@ mod tests {
         second.published_at = 20;
         let report = project_aggregation_events(&[first, second], 200).unwrap();
         assert_eq!(report.membership_events.len(), 1);
-        assert!(report.membership_events[0].event.voided);
+        assert!(!report.membership_events[0].event.voided);
+        assert!(report.membership_events[0].provenance.is_revision_tombstone);
+        let composition = report.evaluate_instance_composition(&modules()).unwrap();
+        assert_eq!(composition.active_edges(), 0);
     }
 
     #[test]
