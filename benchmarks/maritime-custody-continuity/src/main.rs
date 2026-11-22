@@ -42,6 +42,7 @@ fn main() {
         clock_id: "SYNTHETIC_CLOCK_01".to_string(),
         profile_id: "SYNTHETIC_CLOCK_PROFILE_V1".to_string(),
         time_basis_id: "UTC_NS_PROFILE_V1".to_string(),
+        tick_quantum_id: "SI_NANOSECOND".to_string(),
         calibration_evidence_id: "SYNTHETIC_CALIBRATION_RECEIPT".to_string(),
         synchronization_method: "SYNTHETIC_REFERENCE_CLOCK".to_string(),
         sync_state: ClockSyncState::Locked,

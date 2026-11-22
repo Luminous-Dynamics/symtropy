@@ -88,7 +88,7 @@ impl TimeEvidence {
         })
     }
 
-    fn from_clock_qualification(
+    pub(crate) fn from_clock_qualification(
         event_id: impl Into<String>,
         time_basis_id: impl Into<String>,
         interval: TimeInterval,
@@ -139,6 +139,8 @@ pub struct ClockBoundProfileSpec {
     pub clock_id: String,
     pub profile_id: String,
     pub time_basis_id: String,
+    /// Exact unit/quantum of every timestamp and uncertainty tick in this profile.
+    pub tick_quantum_id: String,
     pub calibration_evidence_id: String,
     pub synchronization_method: String,
     pub sync_state: ClockSyncState,
@@ -154,6 +156,7 @@ pub struct ClockBoundProfileSpec {
 pub struct ClockQualificationRef {
     pub clock_id: String,
     pub profile_id: String,
+    pub tick_quantum_id: String,
     pub calibration_evidence_id: String,
     pub synchronization_method: String,
     pub sync_state: ClockSyncState,
@@ -167,6 +170,7 @@ pub enum ClockBoundError {
     EmptyClockId,
     EmptyProfileId,
     EmptyTimeBasisId,
+    EmptyTickQuantumId,
     EmptyCalibrationEvidenceId,
     EmptySynchronizationMethod,
     InvalidCalibrationWindow,
@@ -193,6 +197,7 @@ impl ClockBoundProfile {
             (&spec.clock_id, ClockBoundError::EmptyClockId),
             (&spec.profile_id, ClockBoundError::EmptyProfileId),
             (&spec.time_basis_id, ClockBoundError::EmptyTimeBasisId),
+            (&spec.tick_quantum_id, ClockBoundError::EmptyTickQuantumId),
             (
                 &spec.calibration_evidence_id,
                 ClockBoundError::EmptyCalibrationEvidenceId,
@@ -274,6 +279,7 @@ impl ClockBoundProfile {
         let qualification = ClockQualificationRef {
             clock_id: self.spec.clock_id.clone(),
             profile_id: self.spec.profile_id.clone(),
+            tick_quantum_id: self.spec.tick_quantum_id.clone(),
             calibration_evidence_id: self.spec.calibration_evidence_id.clone(),
             synchronization_method: self.spec.synchronization_method.clone(),
             sync_state: self.spec.sync_state,
@@ -319,6 +325,7 @@ pub enum TemporalRelation {
     EstimatedAfter,
     UnresolvedOverlap,
     IncomparableTimeBasis,
+    IncomparableTimeQuantum,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -337,6 +344,20 @@ pub fn compare_time_evidence(first: &TimeEvidence, second: &TimeEvidence) -> Tem
 
     let both_qualified = first.bound_kind == TimeBoundKind::QualifiedEnclosure
         && second.bound_kind == TimeBoundKind::QualifiedEnclosure;
+
+    if both_qualified {
+        let first_quantum = first
+            .clock_qualification
+            .as_ref()
+            .map(|qualification| qualification.tick_quantum_id.as_str());
+        let second_quantum = second
+            .clock_qualification
+            .as_ref()
+            .map(|qualification| qualification.tick_quantum_id.as_str());
+        if first_quantum.is_none() || first_quantum != second_quantum {
+            return TemporalRelation::IncomparableTimeQuantum;
+        }
+    }
 
     if first.interval.latest < second.interval.earliest {
         if both_qualified {
@@ -412,6 +433,7 @@ mod tests {
             clock_id: "SYNTHETIC_CLOCK".to_string(),
             profile_id: "SYNTHETIC_PROFILE_V1".to_string(),
             time_basis_id: "UTC_NS_PROFILE_V1".to_string(),
+            tick_quantum_id: "SI_NANOSECOND".to_string(),
             calibration_evidence_id: "SYNTHETIC_CALIBRATION".to_string(),
             synchronization_method: "SYNTHETIC_REFERENCE".to_string(),
             sync_state: ClockSyncState::Locked,
@@ -447,6 +469,7 @@ mod tests {
             clock_id: "PTP_CLOCK_01".to_string(),
             profile_id: "PTP_PROFILE_V1".to_string(),
             time_basis_id: "UTC_NS_PROFILE_V1".to_string(),
+            tick_quantum_id: "SI_NANOSECOND".to_string(),
             calibration_evidence_id: "CALIBRATION_RECEIPT_01".to_string(),
             synchronization_method: "IEEE_1588_PTP".to_string(),
             sync_state,
@@ -535,6 +558,7 @@ mod tests {
             clock_id: "CLOCK".to_string(),
             profile_id: "PROFILE".to_string(),
             time_basis_id: "UTC_NS".to_string(),
+            tick_quantum_id: "SI_NANOSECOND".to_string(),
             calibration_evidence_id: "CAL".to_string(),
             synchronization_method: "TEST".to_string(),
             sync_state: ClockSyncState::Locked,
@@ -618,6 +642,52 @@ mod tests {
         assert_eq!(
             compare_time_evidence(&qualified("a", 10, 19), &estimated("b", 20, 30)),
             TemporalRelation::EstimatedBefore
+        );
+    }
+
+    #[test]
+    fn qualified_intervals_with_different_tick_quanta_are_not_comparable() {
+        let first = ClockBoundProfile::new(ClockBoundProfileSpec {
+            clock_id: "CLOCK_A".to_string(),
+            profile_id: "PROFILE_A".to_string(),
+            time_basis_id: "UTC_NS".to_string(),
+            tick_quantum_id: "SI_NANOSECOND".to_string(),
+            calibration_evidence_id: "CAL_A".to_string(),
+            synchronization_method: "PTP".to_string(),
+            sync_state: ClockSyncState::Locked,
+            calibrated_at: 0,
+            valid_until: 10_000,
+            max_offset_error_ticks: Some(0),
+            max_holdover_drift_ticks: Some(0),
+            max_capture_path_ticks: Some(0),
+            max_rounding_error_ticks: Some(0),
+        })
+        .unwrap()
+        .qualify_event("event-a", 100)
+        .unwrap();
+
+        let second = ClockBoundProfile::new(ClockBoundProfileSpec {
+            clock_id: "CLOCK_B".to_string(),
+            profile_id: "PROFILE_B".to_string(),
+            time_basis_id: "UTC_NS".to_string(),
+            tick_quantum_id: "TEN_NANOSECONDS".to_string(),
+            calibration_evidence_id: "CAL_B".to_string(),
+            synchronization_method: "PTP".to_string(),
+            sync_state: ClockSyncState::Locked,
+            calibrated_at: 0,
+            valid_until: 10_000,
+            max_offset_error_ticks: Some(0),
+            max_holdover_drift_ticks: Some(0),
+            max_capture_path_ticks: Some(0),
+            max_rounding_error_ticks: Some(0),
+        })
+        .unwrap()
+        .qualify_event("event-b", 200)
+        .unwrap();
+
+        assert_eq!(
+            compare_time_evidence(&first, &second),
+            TemporalRelation::IncomparableTimeQuantum
         );
     }
 
