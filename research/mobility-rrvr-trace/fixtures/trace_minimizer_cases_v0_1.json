@@ -1,0 +1,23 @@
+{
+  "version": "0.1",
+  "cases": [
+    { "case_id": "TRC-001", "class": "positive", "mutation": "same_failure_signature_survives_minimization", "expected": "preserved_exact_failure", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "TRC-002", "class": "positive", "mutation": "irrelevant_events_removed", "expected": "preserved_exact_failure", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "TRC-003", "class": "positive", "mutation": "dependent_descendants_removed_with_prerequisite", "expected": "causal_closure", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "TRC-004", "class": "positive", "mutation": "retained_subset_adds_all_ancestors", "expected": "ancestor_closed", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "TRC-005", "class": "negative", "mutation": "different_failure_signature", "expected": "reject", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "TRC-006", "class": "negative", "mutation": "passing_candidate", "expected": "reject", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "TRC-007", "class": "negative", "mutation": "invalid_candidate_trace", "expected": "reject", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "TRC-008", "class": "negative", "mutation": "baseline_no_longer_reproduces", "expected": "reject", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "TRC-009", "class": "negative", "mutation": "replay_budget_exhausted", "expected": "incomplete_not_one_minimal", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "TRC-010", "class": "negative", "mutation": "missing_or_forward_predecessor", "expected": "hold", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "TRC-011", "class": "negative", "mutation": "missing_witness_or_duplicate_event", "expected": "hold", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "TRC-012", "class": "negative", "mutation": "zero_state_event_or_artifact_commitment", "expected": "hold", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "TRC-013", "class": "negative", "mutation": "duplicate_or_invalid_artifact_identity", "expected": "hold", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "TRC-014", "class": "negative", "mutation": "non_increasing_logical_sequence", "expected": "hold", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "TRC-015", "class": "positive", "mutation": "fixed_seed_oracle_replays_identically", "expected": "deterministic", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "TRC-016", "class": "negative", "mutation": "nondeterministic_oracle", "expected": "nondeterministic", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "TRC-017", "class": "negative", "mutation": "oracle_revision_mismatch", "expected": "reject", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "TRC-018", "class": "negative", "mutation": "event_artifact_and_oracle_budgets_exceeded", "expected": "hold", "native_sink_calls": 0, "authority_capabilities": [] }
+  ]
+}
