@@ -146,8 +146,8 @@ impl DefensiveImportanceConfidenceAccumulator {
         let time = next_count as f64;
         let previous_count_plus_one = self.sample_count as f64 + 1.0;
         let previous_mean = (0.5 + self.sum_observations) / previous_count_plus_one;
-        let previous_variance = (0.25 + self.sum_squared_predictable_residuals)
-            / previous_count_plus_one;
+        let previous_variance =
+            (0.25 + self.sum_squared_predictable_residuals) / previous_count_plus_one;
         let log_alpha_term = 2.0_f64.ln() - self.alpha.ln();
         let denominator = previous_variance * time * (1.0 + time).ln();
         if !previous_mean.is_finite()
@@ -162,7 +162,9 @@ impl DefensiveImportanceConfidenceAccumulator {
         }
 
         // Predictable plug-in empirical-Bernstein step size.
-        let lambda = (2.0 * log_alpha_term / denominator).sqrt().min(self.lambda_cap);
+        let lambda = (2.0 * log_alpha_term / denominator)
+            .sqrt()
+            .min(self.lambda_cap);
         if !lambda.is_finite() || lambda <= 0.0 || lambda >= 1.0 {
             return Err(KernelError::NumericalOverflow);
         }
@@ -178,8 +180,7 @@ impl DefensiveImportanceConfidenceAccumulator {
         let next_squared_residuals =
             self.sum_squared_predictable_residuals + current_residual * current_residual;
         let next_sum_lambda = self.sum_lambda + lambda;
-        let next_sum_lambda_observations =
-            self.sum_lambda_observations + lambda * contribution;
+        let next_sum_lambda_observations = self.sum_lambda_observations + lambda * contribution;
         let next_penalties = self.sum_empirical_bernstein_penalties + penalty;
 
         if !variance_term.is_finite()
@@ -220,10 +221,8 @@ impl DefensiveImportanceConfidenceAccumulator {
         if restricted_mean_lower > restricted_mean_upper {
             return Err(KernelError::EmptyConfidenceSet);
         }
-        let target_probability_lower =
-            (restricted_mean_lower / self.defensive_mass).max(0.0);
-        let target_probability_upper =
-            (restricted_mean_upper / self.defensive_mass).min(1.0);
+        let target_probability_lower = (restricted_mean_lower / self.defensive_mass).max(0.0);
+        let target_probability_upper = (restricted_mean_upper / self.defensive_mass).min(1.0);
         if !target_probability_lower.is_finite()
             || !target_probability_upper.is_finite()
             || target_probability_lower > target_probability_upper
@@ -313,9 +312,7 @@ impl DefensiveImportanceConfidenceAccumulator {
     ///
     /// Before the first observation, the confidence sequence is [0, 1] for
     /// the target event probability.
-    pub fn confidence_sequence(
-        &self,
-    ) -> Result<DefensiveImportanceConfidenceReport, KernelError> {
+    pub fn confidence_sequence(&self) -> Result<DefensiveImportanceConfidenceReport, KernelError> {
         let restricted_mean_lower = self.mean_lower.max(0.0);
         let restricted_mean_upper = self.mean_upper.min(self.defensive_mass);
         if restricted_mean_lower > restricted_mean_upper {
@@ -400,8 +397,9 @@ mod tests {
                 epsilon * target[1] + (1.0 - epsilon) * adapted[1],
             ];
             let mut conditional_mean = 0.0;
-            for (is_event, (target_density, proposal_density)) in
-                event.into_iter().zip(target.into_iter().zip(proposal.into_iter()))
+            for (is_event, (target_density, proposal_density)) in event
+                .into_iter()
+                .zip(target.into_iter().zip(proposal.into_iter()))
             {
                 if is_event {
                     let contribution = epsilon * target_density / proposal_density;
@@ -488,19 +486,14 @@ mod tests {
         let mut rejected_path_probability = 0.0_f64;
 
         for encoded_path in 0_u32..(1_u32 << horizon) {
-            let mut accumulator =
-                DefensiveImportanceConfidenceAccumulator::new(epsilon, alpha)
-                    .expect("valid settings");
+            let mut accumulator = DefensiveImportanceConfidenceAccumulator::new(epsilon, alpha)
+                .expect("valid settings");
             let mut path_probability = 1.0_f64;
             let mut ever_excluded = false;
 
             for time in 0..horizon {
                 let event = ((encoded_path >> time) & 1) == 1;
-                path_probability *= if event {
-                    event_mean
-                } else {
-                    1.0 - event_mean
-                };
+                path_probability *= if event { event_mean } else { 1.0 - event_mean };
                 let observation = if event { 1.0 } else { 0.0 };
                 match accumulator.observe_bounded_contribution(observation) {
                     Ok(report) => {
