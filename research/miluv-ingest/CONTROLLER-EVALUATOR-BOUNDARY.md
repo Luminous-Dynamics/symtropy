@@ -29,3 +29,8 @@ Unclassified columns remain quarantined until a source-level review assigns them
 - Passive-listener receive evidence remains controller-visible while its neighbouring ground-truth range/bias labels remain evaluator-only.
 
 All tests use synthetic CSV snippets. No MILUV payload is downloaded or admitted by this module.
+## Vicon pose fields embedded in UWB range rows
+
+The MILUV Table 7/8 schema explicitly documents `r_iw_a_ifo001/2/3` as the Vicon-frame position of each robot at the ranging transaction and `q_ai_ifo001/2/3` as its Vicon-frame quaternion. These columns appear in `uwb_range.csv` beside the radio exchange. The partition now classifies them as evaluator-only, together with `gt_range`, `bias` and `bias_raw`; they are never controller-visible. A regression test asserts that all of these fields are excluded from `MiluvControllerView` and preserved in `MiluvEvaluatorTruthView.
+
+Reference: Shalaby et al., MILUV, Table 7/8, https://doi.org/10.1177/02783649251405898.
