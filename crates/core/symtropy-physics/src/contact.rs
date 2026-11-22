@@ -391,12 +391,12 @@ mod tests {
         );
 
         let query = SVector::zeros();
-        assert_eq!(
+        assert!(matches!(
             cache.lookup_checked(BodyHandle(0), BodyHandle(1), &query),
             Err(ContactCacheLookupError::AmbiguousMatches {
                 matching_entries: 2
             })
-        );
+        ));
         assert!(
             cache.lookup(BodyHandle(0), BodyHandle(1), &query).is_none(),
             "legacy lookup must fail closed rather than select one cached contact"
@@ -421,10 +421,10 @@ mod tests {
     fn contact_cache_checked_lookup_rejects_non_finite_query() {
         let cache = ContactCache::<3>::new();
         let query = SVector::from([f64::NAN, 0.0, 0.0]);
-        assert_eq!(
+        assert!(matches!(
             cache.lookup_checked(BodyHandle(0), BodyHandle(1), &query),
             Err(ContactCacheLookupError::NonFiniteQueryPoint)
-        );
+        ));
     }
 
     #[test]
@@ -437,20 +437,20 @@ mod tests {
             3.0,
             0.0,
         );
-        assert_eq!(
+        assert!(matches!(
             cache.lookup_checked(BodyHandle(0), BodyHandle(1), &SVector::zeros()),
             Err(ContactCacheLookupError::NonFiniteCachedPoint)
-        );
+        ));
     }
 
     #[test]
     fn contact_cache_checked_lookup_rejects_invalid_match_threshold() {
         let mut cache = ContactCache::<3>::new();
         cache.match_threshold = f64::NAN;
-        assert_eq!(
+        assert!(matches!(
             cache.lookup_checked(BodyHandle(0), BodyHandle(1), &SVector::zeros()),
             Err(ContactCacheLookupError::InvalidMatchThreshold)
-        );
+        ));
     }
 
     #[test]
