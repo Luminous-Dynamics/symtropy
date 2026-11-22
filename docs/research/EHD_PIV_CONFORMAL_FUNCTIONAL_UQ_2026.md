@@ -16,6 +16,8 @@ For acquisition cluster g, define:
 
 `S_g = max_i(s_i), over every vector in the frozen field and all four regions`
 
+This is not the only group-conformal construction. Dunn, Wasserman and Ramdas (2023), *Distribution-Free Prediction Sets for Two-Layer Hierarchical Models*, develop CDF pooling and single/repeated subsampling for a new observation in a new group, with their repeated-subsampling approach recommended when finite-sample guarantees are desired. EHD-PIV-UQ-004 uses a deliberately different estimand: simultaneous coverage of every vector in one complete future acquisition field. It therefore scores each group by its maximum vector nonconformity and applies ordinary split conformal to exchangeable *whole fields*. It should be compared against the hierarchical CDF-pooling and repeated-subsampling methods rather than presented as a replacement for them.
+
 For n exchangeable calibration fields and nominal cluster coverage 1-alpha, the split-conformal rank is:
 
 `k = ceil((n+1)(1-alpha))`
@@ -61,6 +63,7 @@ Noonan (2026), *Effective Sample Size for Conformal Calibration under Shared Anc
 | Pointwise conformal | ordinary split conformal on vector scores | pointwise coverage and mean ellipsoid area |
 | Region-wise conformal | separate calibration by bulk/wall/shear/wake | worst-region coverage and width |
 | Cluster-max conformal | this implementation | ≥95% whole-field coverage on exchangeable future fields |
+| Hierarchical group conformal | Dunn–Wasserman–Ramdas CDF pooling / repeated subsampling | new-group pointwise coverage and set size; compare with field-max estimand separately |
 | Gaussian covariance | UQ-003 Hessian + empirical scaling | joint coverage, NLL and sharpness |
 | Field functional uncertainty | finite-difference / Monte Carlo reference | mass/momentum covariance relative error |
 | EHD force reconciliation | existing control-volume + direct balance | residual within complete combined uncertainty |
