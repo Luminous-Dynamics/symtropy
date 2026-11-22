@@ -37,6 +37,25 @@ ManiGuard reports more than 23,000 evaluation rollouts and finds that 6–21% of
 
 NIST's projects establish a strong measurement-science precedent for declaring metrics and test procedures and validating across virtual and real environments. RRVR should submit itself to that standard of evidence quality.
 
+## 2A. New 2026 ROS fuzzing survey: reproducibility is itself a benchmark dimension
+
+A July 20, 2026 survey analyzed 92 selected works on ROS/ROS-based fuzzing and closely related robotic/CPS testing. It reports that comparison is difficult because studies exercise different ROS layers and define failures differently. It also finds that input modeling, feedback and oracle construction have advanced more clearly than repeatable execution and diagnosable failure analysis.
+
+RRVR should treat this as a direct benchmark-design warning. Every public result should therefore publish:
+
+- exact ROS distribution, middleware, controller, driver and firmware versions;
+- exact command-holding layer inventory and profile revision;
+- deterministic fault schedule/seed plus recorded timing and delivery order;
+- declared reset and residual-state policy;
+- replayable raw events and deterministic verdict inputs;
+- minimized crash/fault schedules and a human-readable counterexample trace;
+- oracle and evaluator version, including expected-refuted and insufficient-evidence controls;
+- a precise failure taxonomy: task violation, stale command, duplicate effect, incomplete observation, invalid authority, persistence ambiguity, downstream quiescence unknown, or evaluator insufficiency.
+
+This moves RRVR beyond merely injecting more faults: it makes every failure reproducible, diagnosable and independently comparable across declared ROS layers. The survey is not an RRVR baseline score; it identifies methodological weaknesses the benchmark should explicitly prevent.
+
+Reference: Mucheng Yang et al., “A Survey of Fuzzing for ROS-Based Robotic Systems,” *Applied Sciences* 16(14), 7250, published 20 July 2026: https://doi.org/10.3390/app16147250.
+
 ## 3. The critical stack-specific observation
 
 ROS 2 hardware lifecycle states are not sufficient evidence of downstream command quiescence. The current rolling `ros2_control` hardware-component documentation says that, in INACTIVE, command interfaces can remain available and be written; whether the hardware component continues using commands or skips them is left to its implementation, with safety-critical interface work noted as a roadmap item.
