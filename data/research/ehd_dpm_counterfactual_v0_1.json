@@ -11,9 +11,15 @@
     "publication_date": "2026-10-06",
     "reported_effects": {
       "condition": "14 kV needle-to-ring ionic fan",
-      "peak_axial_velocity_m_s": {"DEHS": 3.8, "incense_smoke": 5.9},
+      "peak_axial_velocity_m_s": {
+        "DEHS": 3.8,
+        "incense_smoke": 5.9
+      },
       "DEHS_peak_velocity_reduction_percent": 36,
-      "volumetric_flow_l_s": {"DEHS": 0.89, "incense_smoke": 1.07},
+      "volumetric_flow_l_s": {
+        "DEHS": 0.89,
+        "incense_smoke": 1.07
+      },
       "DEHS_flow_underestimate_percent": 17
     },
     "methodological_observation": "The study describes sequential clean-air, DEHS and incense-smoke conditions and reports collector deposition/current evolution, motivating explicit time-order, surface-reset and purge controls.",
@@ -21,8 +27,18 @@
   },
   "design": {
     "sequences": {
-      "ABBA": ["control", "diagnostic", "diagnostic", "control"],
-      "BAAB": ["diagnostic", "control", "control", "diagnostic"]
+      "ABBA": [
+        "control",
+        "diagnostic",
+        "diagnostic",
+        "control"
+      ],
+      "BAAB": [
+        "diagnostic",
+        "control",
+        "control",
+        "diagnostic"
+      ]
     },
     "period_timing": "strictly increasing; control and diagnostic mean times equal within declared tolerance",
     "drift_property": "symmetric timing cancels first-order linear within-block drift; balanced ABBA/BAAB assignment counterbalances a common quadratic component under cohort assumptions",
@@ -63,13 +79,19 @@
     "purge_before_every_period": true,
     "pre_register_effect_tolerance": true,
     "pre_run_power_analysis": true,
-    "repeat_across": ["voltage", "relative_humidity", "tracer_material", "tracer_concentration", "electrode_geometry"]
+    "repeat_across": [
+      "voltage",
+      "relative_humidity",
+      "tracer_material",
+      "tracer_concentration",
+      "electrode_geometry"
+    ]
   },
   "implementation": {
     "crate": "tools/ehd-dpm-counterfactual",
     "path": "tools/ehd-dpm-counterfactual/src/lib.rs",
     "function": "qualify_counterfactual_intervention",
-    "authored_rust_tests": 13,
+    "authored_rust_tests": 14,
     "execution": "not_run_no_local_rust_toolchain"
   },
   "limitations": [
