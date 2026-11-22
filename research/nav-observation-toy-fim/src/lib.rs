@@ -16,3 +16,4 @@ pub mod secure_session_evidence;
 pub mod miluv_clock_stream;
 pub mod uwb_fault_hypothesis_integrity;
 pub mod uwb_hypothesis_discrimination;
+pub mod active_evidence_discrimination;
