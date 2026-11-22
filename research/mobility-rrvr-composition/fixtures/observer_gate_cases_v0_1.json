@@ -1,0 +1,11 @@
+{
+  "version": "0.1",
+  "cases": [
+    { "case_id": "RVO-001", "class": "positive", "base_disposition": "ready", "no_effect_observer": "quorum_qualified", "downstream_observer": "quorum_qualified", "no_effect_scope_match": true, "downstream_scope_match": true, "expected": "ready_for_owner_native_revalidation", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "RVO-002", "class": "negative", "base_disposition": "ready", "no_effect_observer": "hold", "downstream_observer": "quorum_qualified", "no_effect_scope_match": true, "downstream_scope_match": true, "expected": "hold", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "RVO-003", "class": "negative", "base_disposition": "ready", "no_effect_observer": "quorum_qualified", "downstream_observer": "hold", "no_effect_scope_match": true, "downstream_scope_match": true, "expected": "hold", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "RVO-004", "class": "negative", "base_disposition": "ready", "no_effect_observer": "quorum_qualified", "downstream_observer": "quorum_qualified", "no_effect_scope_match": false, "downstream_scope_match": true, "expected": "hold", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "RVO-005", "class": "observed_outcome", "base_disposition": "applied", "no_effect_observer": "hold", "downstream_observer": "hold", "no_effect_scope_match": false, "downstream_scope_match": false, "expected": "physical_effect_already_observed_no_retry", "native_sink_calls": 0, "authority_capabilities": [] },
+    { "case_id": "RVO-006", "class": "observed_outcome", "base_disposition": "applied_persistence_unresolved", "no_effect_observer": "hold", "downstream_observer": "hold", "no_effect_scope_match": false, "downstream_scope_match": false, "expected": "physical_effect_observed_persistence_unresolved_no_retry", "native_sink_calls": 0, "authority_capabilities": [] }
+  ]
+}
