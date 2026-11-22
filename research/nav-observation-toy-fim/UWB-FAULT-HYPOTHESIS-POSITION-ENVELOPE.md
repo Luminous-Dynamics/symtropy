@@ -107,6 +107,22 @@ This is deliberately not turned into one scalar action utility. The existing #68
 
 The action-outcome balls are caller-supplied and must be independently justified. A stale, uncalibrated or misspecified outcome model is not made trustworthy by its digest. No observation action, physical movement or sensor actuation is executed by this module.
 
+## Pareto composition with the active-acquisition planner
+
+A third companion module, `active_evidence_discrimination.rs`, composes the conditional outcome-separation report with the existing resource-bounded active-evidence planner.
+
+It preserves four independent objectives:
+- guaranteed conditional protection-level reduction;
+- worst-case acquisition latency;
+- worst-case energy;
+- number of fault-hypothesis pairs whose conditional outcome sets are guaranteed disjoint.
+
+The module computes a Pareto frontier across those four dimensions. It does not convert metres, time, energy and discrimination coverage into a weighted scalar. If a profile's protection target can be reached conditionally, the deterministic tie-break first prefers more distinguishable hypothesis pairs, then latency and energy. If the target cannot be reached, the plan remains explicitly conditional and does not claim recovery.
+
+Only feasible actions with a complete, inventory-matched discrimination report can participate. The hypothesis-inventory digest and hypothesis/pair counts must agree across action reports. The minimum positive outcome gap is retained as an action-local diagnostic rather than compared across sensors with potentially different feature normalizations.
+
+This remains a planning result, not evidence. The actual acquired observation must independently pass source, time, cryptographic/session, physical and statistical qualification, then trigger a fresh estimator/posterior and hypothesis audit. Until that sequence completes, no hypothesis is removed and navigation authority remains unchanged.
+
 ## Deliberate boundaries and remaining proof obligations
 
 - The caller supplies the hypothesis-specific solutions. This module does not compute leave-one-anchor-out estimators or solve the range equations.
