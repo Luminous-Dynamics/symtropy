@@ -12,6 +12,8 @@ For n exchangeable calibration fields and target coverage 1-alpha, the finite-sa
 
 If k is greater than n, the correct conformal set is unbounded. The code returns no finite radius rather than silently using the largest observed residual. At 95% target coverage, 19 complete calibration fields are the mathematical minimum for a finite split-conformal radius.
 
+This is the whole-field maximum-score construction. Dunn, Wasserman and Ramdas (2023) provide related two-layer hierarchical conformal methods (CDF pooling and repeated subsampling) for new-group prediction; benchmark both because their estimand and efficiency trade-offs differ.
+
 The guarantee is marginal over calibration and future field clusters under exchangeability. The protocol fingerprint and an external attestation ID are required, but the software cannot prove exchangeability. A new geometry, flow family, tracer, session, temporal regime or grid may violate it.
 
 ## 2. Spatially correlated field-functional uncertainty
@@ -23,7 +25,7 @@ For oriented face-area vector dA and velocity u:
 
 Every face sample has a local 3x3 velocity covariance. Cross-location common causes are carried as explicit shared latent modes with one-sigma sensitivities for velocity, density and oriented area. Local errors are treated as independent across samples; common modes induce full cross-sample covariance.
 
-The output is the 4x4 covariance of mass flow and three momentum-flux components, including their cross-covariances.
+The output is the 4x4 covariance of mass flow and three momentum-flux components, including their cross-covariances. The conformal scorer currently works in 2D and the functional reducer in 3D: do not use a 2D conformal multiplier to claim calibrated uncertainty for an out-of-plane component.
 
 ## Run
 
