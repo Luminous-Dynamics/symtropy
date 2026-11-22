@@ -761,6 +761,78 @@ mod tests {
         assert!((matrix[6]).abs() < 1e-12);
     }
 
+    fn assert_body_second_moment_matches_independent_plane_trace<const D: usize>() {
+        let mut second_moment = vec![0.0; D * D];
+        for axis in 0..D {
+            second_moment[axis * D + axis] = 2.0 + axis as f64;
+        }
+        for row in 0..D {
+            for column in (row + 1)..D {
+                let value = 0.025 * ((row + 1) * (column + 2)) as f64;
+                second_moment[row * D + column] = value;
+                second_moment[column * D + row] = value;
+            }
+        }
+
+        let second_moment_matrix = DMatrix::from_row_slice(D, D, &second_moment);
+        let planes = (0..D)
+            .flat_map(|i| ((i + 1)..D).map(move |j| (i, j)))
+            .collect::<Vec<_>>();
+        let dof = planes.len();
+        let mut expected = vec![0.0; dof * dof];
+
+        // Independent basis construction from I[a,b] = tr(E_a^T E_b S).
+        for (row, &(i, j)) in planes.iter().enumerate() {
+            let mut basis_row = DMatrix::<f64>::zeros(D, D);
+            basis_row[(i, j)] = 1.0;
+            basis_row[(j, i)] = -1.0;
+            for (column, &(k, l)) in planes.iter().enumerate() {
+                let mut basis_column = DMatrix::<f64>::zeros(D, D);
+                basis_column[(k, l)] = 1.0;
+                basis_column[(l, k)] = -1.0;
+                expected[row * dof + column] =
+                    (basis_row.transpose() * basis_column * &second_moment_matrix).trace();
+            }
+        }
+
+        let operator = RotationalInertiaOperator::<D>::from_body_second_moment_matrix(
+            second_moment,
+        )
+        .unwrap();
+        for (index, (actual, reference)) in operator
+            .as_row_major()
+            .iter()
+            .zip(expected.iter())
+            .enumerate()
+        {
+            assert!(
+                (actual - reference).abs() < 1.0e-12,
+                "D={D}, operator element {index}: actual={actual}, expected={reference}"
+            );
+        }
+
+        let mut omega = Bivector::<D>::zero();
+        let mut coordinates = Vec::with_capacity(dof);
+        for (index, &(i, j)) in planes.iter().enumerate() {
+            let value = 0.17 * (index as f64 + 1.0) - 0.31;
+            omega.set(i, j, value);
+            coordinates.push(value);
+        }
+        let applied = operator.apply_bivector(&omega).unwrap();
+        for (row, &(i, j)) in planes.iter().enumerate() {
+            let expected_value = (0..dof)
+                .map(|column| expected[row * dof + column] * coordinates[column])
+                .sum::<f64>();
+            assert!((applied.get(i, j) - expected_value).abs() < 1.0e-11);
+        }
+    }
+
+    #[test]
+    fn body_second_moment_operator_matches_independent_dense_plane_trace_in_3d_and_4d() {
+        assert_body_second_moment_matches_independent_plane_trace::<3>();
+        assert_body_second_moment_matches_independent_plane_trace::<4>();
+    }
+
     #[test]
     fn body_second_moment_rejects_non_symmetric_or_degenerate_mass_distribution() {
         assert_eq!(
