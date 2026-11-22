@@ -31,6 +31,7 @@ pub mod coverage;
 pub mod residual;
 pub mod sequential;
 pub mod stats;
+pub mod pathwise_event;
 pub mod trajectory;
 
 pub use residual::{
@@ -39,6 +40,10 @@ pub use residual::{
     affine_collision_residual_mass_upper_bound, affine_union_collision_residual_mass_upper_bound,
 };
 pub use sequential::{BernoulliConfidenceSequence, BernoulliMixtureEProcess};
+pub use pathwise_event::{
+    EncounterWindow, HorizonContactDisposition, HorizonEventDefinition, PathWindowDisposition,
+    PathWindowOutcome, PathwiseHorizonOutcome, WindowInventoryCoverage,
+};
 pub use stats::{WeightedEventAccumulator, WeightedEventSummary};
 pub use trajectory::{
     TrajectoryContactClassification, TrajectoryContactReport, classify_polynomial_contact,
@@ -102,6 +107,28 @@ pub enum KernelError {
     /// The proposal log density is negative infinity, so the importance ratio
     /// is undefined at a point where a weight was requested.
     ProposalHasZeroDensity,
+    /// A horizon event definition has empty or inconsistent identity metadata.
+    InvalidEventDefinition,
+    /// A declared encounter window has invalid bounds or identity.
+    InvalidEncounterWindow,
+    /// An encounter-window identifier is duplicated in one event definition.
+    DuplicateEncounterWindow,
+    /// A horizon event definition contains no encounter windows.
+    EmptyEncounterWindowSet,
+    /// A trajectory-realization identifier is empty.
+    InvalidTrajectoryRealization,
+    /// Window outcomes do not refer to the same joint trajectory realization.
+    MismatchedTrajectoryRealization,
+    /// A window outcome refers to an undeclared window.
+    UnknownEncounterWindow,
+    /// More than one outcome was supplied for a declared encounter window.
+    DuplicateEncounterWindowOutcome,
+    /// One or more declared encounter windows have no supplied outcome.
+    MissingEncounterWindowOutcome,
+    /// A reported contact time lies outside its declared encounter window.
+    InvalidEncounterContactTime,
+    /// Outcomes for overlapping windows contradict the same trajectory.
+    ContradictoryEncounterWindowOutcome,
 }
 
 impl fmt::Display for KernelError {
@@ -137,6 +164,17 @@ impl fmt::Display for KernelError {
             Self::ZeroProjectedVariance => "half-space projection has zero variance",
             Self::NumericalOverflow => "numerical intermediate is outside the representable range",
             Self::ProposalHasZeroDensity => "proposal density is zero at the evaluation point",
+            Self::InvalidEventDefinition => "horizon event definition has invalid identity or bounds",
+            Self::InvalidEncounterWindow => "encounter window has invalid identity or bounds",
+            Self::DuplicateEncounterWindow => "encounter window identifier is duplicated",
+            Self::EmptyEncounterWindowSet => "horizon event definition requires at least one window",
+            Self::InvalidTrajectoryRealization => "trajectory realization identifier must be nonempty",
+            Self::MismatchedTrajectoryRealization => "window outcomes must share one trajectory realization",
+            Self::UnknownEncounterWindow => "outcome refers to an undeclared encounter window",
+            Self::DuplicateEncounterWindowOutcome => "more than one outcome was supplied for a window",
+            Self::MissingEncounterWindowOutcome => "an encounter window outcome is missing",
+            Self::InvalidEncounterContactTime => "reported contact time lies outside its encounter window",
+            Self::ContradictoryEncounterWindowOutcome => "overlapping window outcomes contradict one another",
         };
         f.write_str(message)
     }
