@@ -220,6 +220,68 @@ struct SearchBest {
     selected_pack_indices: Vec<Option<usize>>,
 }
 
+struct AssignmentSearch<'a> {
+    candidates: &'a [Vec<(usize, u32)>],
+    packs: &'a [BatteryPack],
+    nodes: usize,
+    best: Option<SearchBest>,
+}
+
+impl AssignmentSearch<'_> {
+    fn search(
+        &mut self,
+        mission_index: usize,
+        selected: &mut Vec<Option<usize>>,
+        used: &mut BTreeSet<usize>,
+        served: usize,
+        total_energy_margin_wh: u64,
+    ) {
+        self.nodes += 1;
+        if mission_index == self.candidates.len() {
+            let candidate = SearchBest {
+                served,
+                total_energy_margin_wh,
+                selected_pack_indices: selected.clone(),
+            };
+            if self
+                .best
+                .as_ref()
+                .is_none_or(|current| is_better(&candidate, current, self.packs))
+            {
+                self.best = Some(candidate);
+            }
+            return;
+        }
+
+        for candidate_index in 0..self.candidates[mission_index].len() {
+            let (pack_index, energy_margin_wh) =
+                self.candidates[mission_index][candidate_index];
+            if used.insert(pack_index) {
+                selected.push(Some(pack_index));
+                self.search(
+                    mission_index + 1,
+                    selected,
+                    used,
+                    served + 1,
+                    total_energy_margin_wh + u64::from(energy_margin_wh),
+                );
+                selected.pop();
+                used.remove(&pack_index);
+            }
+        }
+
+        selected.push(None);
+        self.search(
+            mission_index + 1,
+            selected,
+            used,
+            served,
+            total_energy_margin_wh,
+        );
+        selected.pop();
+    }
+}
+
 fn add_finding(
     findings: &mut Vec<String>,
     status: &mut EligibilityStatus,
@@ -827,66 +889,6 @@ fn is_better(candidate: &SearchBest, current: &SearchBest, packs: &[BatteryPack]
         < assignment_key(&current.selected_pack_indices, packs)
 }
 
-fn search_assignments(
-    mission_index: usize,
-    candidates: &[Vec<(usize, u32)>],
-    packs: &[BatteryPack],
-    selected: &mut Vec<Option<usize>>,
-    used: &mut BTreeSet<usize>,
-    served: usize,
-    total_margin: u64,
-    nodes: &mut usize,
-    best: &mut Option<SearchBest>,
-) {
-    *nodes += 1;
-    if mission_index == candidates.len() {
-        let candidate = SearchBest {
-            served,
-            total_energy_margin_wh: total_margin,
-            selected_pack_indices: selected.clone(),
-        };
-        if best
-            .as_ref()
-            .is_none_or(|current| is_better(&candidate, current, packs))
-        {
-            *best = Some(candidate);
-        }
-        return;
-    }
-
-    for (pack_index, energy_margin) in &candidates[mission_index] {
-        if used.insert(*pack_index) {
-            selected.push(Some(*pack_index));
-            search_assignments(
-                mission_index + 1,
-                candidates,
-                packs,
-                selected,
-                used,
-                served + 1,
-                total_margin + u64::from(*energy_margin),
-                nodes,
-                best,
-            );
-            selected.pop();
-            used.remove(pack_index);
-        }
-    }
-
-    selected.push(None);
-    search_assignments(
-        mission_index + 1,
-        candidates,
-        packs,
-        selected,
-        used,
-        served,
-        total_margin,
-        nodes,
-        best,
-    );
-    selected.pop();
-}
 
 pub fn evaluate_battery_service_network(
     input: &BatteryServiceNetworkInput,
@@ -964,20 +966,17 @@ pub fn evaluate_battery_service_network(
         candidates.push(mission_candidates);
     }
 
-    let mut search_nodes = 0;
-    let mut best = None;
-    search_assignments(
-        0,
-        &candidates,
-        &packs,
-        &mut Vec::new(),
-        &mut BTreeSet::new(),
-        0,
-        0,
-        &mut search_nodes,
-        &mut best,
-    );
-    let best = best.expect("validated non-empty mission set always has an assignment");
+    let mut search = AssignmentSearch {
+        candidates: &candidates,
+        packs: &packs,
+        nodes: 0,
+        best: None,
+    };
+    search.search(0, &mut Vec::new(), &mut BTreeSet::new(), 0, 0);
+    let search_nodes = search.nodes;
+    let best = search
+        .best
+        .expect("validated non-empty mission set always has an assignment");
 
     let mut assignments = Vec::new();
     let mut unserved_missions = Vec::new();
