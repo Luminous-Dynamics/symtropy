@@ -190,17 +190,16 @@ fn validate_intervals(intervals: &[TimeInterval]) -> Result<(), String> {
             || interval.start >= interval.end
             || (index > 0 && interval.start < previous_end)
         {
-            return Err("outage intervals must be sorted, non-overlapping and inside [0,1]".to_owned());
+            return Err(
+                "outage intervals must be sorted, non-overlapping and inside [0,1]".to_owned(),
+            );
         }
         previous_end = interval.end;
     }
     Ok(())
 }
 
-fn validate_scenario(
-    scenario: &Scenario,
-    used_seeds: &mut HashSet<u64>,
-) -> Result<(), String> {
+fn validate_scenario(scenario: &Scenario, used_seeds: &mut HashSet<u64>) -> Result<(), String> {
     if scenario.scenario_id.trim().is_empty()
         || scenario.configuration_id.trim().is_empty()
         || !scenario.exposure_horizon.is_finite()
@@ -210,7 +209,9 @@ fn validate_scenario(
         || scenario.channels.is_empty()
         || scenario.channels.len() > MAX_CHANNELS
     {
-        return Err("scenario identity, exposure, event count or channel count is invalid".to_owned());
+        return Err(
+            "scenario identity, exposure, event count or channel count is invalid".to_owned(),
+        );
     }
 
     validate_intervals(&scenario.shared_common_cause_outages)?;
@@ -253,7 +254,10 @@ fn validate_scenario(
             || channel.false_positive_rate < 0.0
             || channel.false_positive_rate > MAX_FALSE_POSITIVE_RATE
         {
-            return Err("channel identity, POD coefficients, dead time or false-positive rate is invalid".to_owned());
+            return Err(
+                "channel identity, POD coefficients, dead time or false-positive rate is invalid"
+                    .to_owned(),
+            );
         }
         validate_intervals(&channel.channel_outages)?;
         for seed in [channel.detection_seed, channel.false_positive_seed] {
@@ -287,10 +291,7 @@ fn simulate_false_positives(channel: &ChannelConfig) -> Result<Vec<f64>, String>
     Ok(times)
 }
 
-fn simulate_channel(
-    scenario: &Scenario,
-    channel: &ChannelConfig,
-) -> Result<ChannelReport, String> {
+fn simulate_channel(scenario: &Scenario, channel: &ChannelConfig) -> Result<ChannelReport, String> {
     let mut detection_random = SplitMix64::new(channel.detection_seed);
     let mut busy_until = f64::NEG_INFINITY;
     let mut miss_counts = MissCounts::default();
@@ -303,10 +304,8 @@ fn simulate_channel(
         let draw = detection_random.uniform_open();
         let probability = pod_probability(event, channel);
 
-        let miss_reason = if in_intervals(
-            event.time_fraction,
-            &scenario.shared_common_cause_outages,
-        ) {
+        let miss_reason =
+            if in_intervals(event.time_fraction, &scenario.shared_common_cause_outages) {
             miss_counts.shared_common_cause += 1;
             Some(MissReason::SharedCommonCause)
         } else if in_intervals(event.time_fraction, &channel.channel_outages) {
@@ -487,7 +486,10 @@ mod tests {
         let output = &report.scenarios[0].channels[0];
         assert_eq!(output.detected_event_count, 2);
         assert_eq!(output.miss_counts.dead_time, 1);
-        assert_eq!(output.event_outcomes[1].miss_reason, Some(MissReason::DeadTime));
+        assert_eq!(
+            output.event_outcomes[1].miss_reason,
+            Some(MissReason::DeadTime)
+        );
     }
 
     #[test]
@@ -496,18 +498,12 @@ mod tests {
             scenario_id: "common-cause".to_owned(),
             configuration_id: "cfg-b".to_owned(),
             exposure_horizon: 1.0,
-            events: vec![
-                event("e1", 0.2, 1.0, 0.01),
-                event("e2", 0.3, 1.0, 0.01),
-            ],
+            events: vec![event("e1", 0.2, 1.0, 0.01), event("e2", 0.3, 1.0, 0.01)],
             shared_common_cause_outages: vec![TimeInterval {
                 start: 0.25,
                 end: 0.35,
             }],
-            channels: vec![
-                channel("sensor-a", 21, 0.0),
-                channel("sensor-b", 31, 0.0),
-            ],
+            channels: vec![channel("sensor-a", 21, 0.0), channel("sensor-b", 31, 0.0)],
         };
         let report = evaluate(&corpus(scenario)).unwrap();
         for channel in &report.scenarios[0].channels {
@@ -536,7 +532,10 @@ mod tests {
             first.scenarios[0].channels[0].false_positive_times,
             second.scenarios[0].channels[0].false_positive_times
         );
-        assert_eq!(first.summary.false_positive_count, second.summary.false_positive_count);
+        assert_eq!(
+            first.summary.false_positive_count,
+            second.summary.false_positive_count
+        );
     }
 
     #[test]
@@ -547,10 +546,7 @@ mod tests {
             scenario_id: "miss-trigger".to_owned(),
             configuration_id: "cfg-d".to_owned(),
             exposure_horizon: 1.0,
-            events: vec![
-                event("e1", 0.1, 1.0, 0.01),
-                event("e2", 0.15, 1.0, 0.01),
-            ],
+            events: vec![event("e1", 0.1, 1.0, 0.01), event("e2", 0.15, 1.0, 0.01)],
             shared_common_cause_outages: Vec::new(),
             channels: vec![c],
         };
@@ -566,10 +562,7 @@ mod tests {
             scenario_id: "invalid-order".to_owned(),
             configuration_id: "cfg-e".to_owned(),
             exposure_horizon: 1.0,
-            events: vec![
-                event("e1", 0.2, 1.0, 0.01),
-                event("e2", 0.2, 1.0, 0.01),
-            ],
+            events: vec![event("e1", 0.2, 1.0, 0.01), event("e2", 0.2, 1.0, 0.01)],
             shared_common_cause_outages: Vec::new(),
             channels: vec![channel("sensor", 61, 0.0)],
         };
@@ -612,7 +605,10 @@ mod tests {
         let gated = evaluate(&corpus(gated_scenario)).unwrap();
         let baseline_outcomes = &baseline.scenarios[0].channels[0].event_outcomes;
         let gated_outcomes = &gated.scenarios[0].channels[0].event_outcomes;
-        assert_eq!(gated_outcomes[1].miss_reason, Some(MissReason::SharedCommonCause));
+        assert_eq!(
+            gated_outcomes[1].miss_reason,
+            Some(MissReason::SharedCommonCause)
+        );
         assert_eq!(baseline_outcomes[2].detected, gated_outcomes[2].detected);
     }
 }
