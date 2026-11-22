@@ -53,18 +53,24 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/rrvr-tlc-package"
+          MODEL_DIR="research/mobility-restart-reconciliation/model"
+          MODEL_FILE="RestartSafeEffectContinuity.tla"
+          CFG_FILE="RestartSafeEffectContinuity_NaiveRetry.cfg"
+          TRACE_NAME="rrvr-naive-retry-counterexample.json"
+          TRACE_SOURCE="$GITHUB_WORKSPACE/$MODEL_DIR/$TRACE_NAME"
           TRACE="$RUNNER_TEMP/rrvr-tlc-package/naive-retry-counterexample.json"
-          MODEL="research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla"
-          CFG="research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity_NaiveRetry.cfg"
+          rm -f "$TRACE_SOURCE"
           set +e
-          java -XX:+UseParallelGC -cp "$RUNNER_TEMP/tla/tla2tools.jar" tlc2.TLC \
-            -workers 1 \
-            -seed 42 \
-            -dumpTrace json "$TRACE" \
-            -metadir "$RUNNER_TEMP/tlc-negative" \
-            -config "$CFG" \
-            "$MODEL" \
-            > "$RUNNER_TEMP/tlc-negative.log" 2>&1
+          (
+            cd "$MODEL_DIR"
+            java -XX:+UseParallelGC -cp "$RUNNER_TEMP/tla/tla2tools.jar" tlc2.TLC \
+              -workers 1 \
+              -seed 42 \
+              -dumpTrace json "$TRACE_NAME" \
+              -metadir "$RUNNER_TEMP/tlc-negative" \
+              -config "$CFG_FILE" \
+              "$MODEL_FILE"
+          ) > "$RUNNER_TEMP/tlc-negative.log" 2>&1
           status=$?
           set -e
           if [ "$status" -eq 0 ]; then
@@ -77,7 +83,8 @@ jobs:
             echo "TLC failed for a reason other than the expected duplicate-effect counterexample."
             exit 1
           fi
-          test -s "$TRACE"
+          test -s "$TRACE_SOURCE"
+          cp "$TRACE_SOURCE" "$TRACE"
           jq -e '
             . as $trace
             | ($trace.vars | index("s") != null)
