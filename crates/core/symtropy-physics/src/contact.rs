@@ -64,6 +64,14 @@ pub enum ContactResponseError {
     NonFiniteEffectiveMass,
     /// A positive-definite inertia response produced a negative quadratic value.
     NegativeEffectiveMass { value: f64 },
+    /// Both supplied bodies claim the same stable handle.
+    DuplicateBodyHandle { body: BodyHandle },
+    /// A dynamic body's mass and inverse-mass cache are inconsistent.
+    InvalidMassProperties { body: BodyHandle },
+    /// A body's current state or staged velocity candidate is non-finite.
+    NonFiniteBodyState { body: BodyHandle },
+    /// Rotational response failed for one member of a contact pair.
+    RotationalResponseForBody { body: BodyHandle, source: crate::body::RotationalResponseError },
 }
 
 /// Compute the angular contribution to normal-contact effective mass.
@@ -113,6 +121,150 @@ pub fn try_angular_contact_effective_mass<const D: usize>(
         return Err(ContactResponseError::NegativeEffectiveMass { value: effective_mass });
     }
     Ok(effective_mass)
+}
+/// Result of a successfully committed two-body contact impulse.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ContactImpulsePairOutcome<const D: usize> {
+    pub body_a: BodyHandle,
+    pub body_b: BodyHandle,
+    pub delta_linear_velocity_a: SVector<f64, D>,
+    pub delta_linear_velocity_b: SVector<f64, D>,
+    pub delta_angular_velocity_a: symtropy_math::Bivector<D>,
+    pub delta_angular_velocity_b: symtropy_math::Bivector<D>,
+    pub rotational_response_a: crate::body::RotationalResponse<D>,
+    pub rotational_response_b: crate::body::RotationalResponse<D>,
+}
+
+/// Apply one world-space impulse to a pair with a two-body velocity commit boundary.
+///
+/// `impulse_on_b` is applied to B and its negative to A. Angular impulses
+/// use each body's center-of-mass lever arm and the Rotor-consistent convention.
+/// Both bodies' candidate linear and angular velocities are computed and checked
+/// before either body is mutated. On error, both bodies remain unchanged.
+///
+/// This transaction does not include force/torque accumulators, contact lambdas,
+/// callback side effects, the rest of a manifold, or the whole physics world.
+/// Callers must stage contact solver state separately and commit it only after
+/// this function succeeds.
+pub fn try_apply_contact_impulse_pair<const D: usize>(
+    body_a: &mut crate::body::RigidBody<D>,
+    body_b: &mut crate::body::RigidBody<D>,
+    lever_arm_a: &SVector<f64, D>,
+    lever_arm_b: &SVector<f64, D>,
+    impulse_on_b: &SVector<f64, D>,
+) -> Result<ContactImpulsePairOutcome<D>, ContactResponseError> {
+    if body_a.handle == body_b.handle {
+        return Err(ContactResponseError::DuplicateBodyHandle { body: body_a.handle });
+    }
+    if !lever_arm_a.iter().all(|value| value.is_finite())
+        || !lever_arm_b.iter().all(|value| value.is_finite())
+        || !impulse_on_b.iter().all(|value| value.is_finite())
+    {
+        return Err(ContactResponseError::NonFiniteInput);
+    }
+
+    fn linear_delta<const D: usize>(
+        body: &crate::body::RigidBody<D>,
+        impulse: &SVector<f64, D>,
+    ) -> Result<SVector<f64, D>, ContactResponseError> {
+        if !body.is_dynamic() {
+            return Ok(SVector::zeros());
+        }
+        let reciprocal = body.mass * body.inv_mass;
+        if !body.mass.is_finite()
+            || body.mass <= 0.0
+            || !body.inv_mass.is_finite()
+            || body.inv_mass <= 0.0
+            || !reciprocal.is_finite()
+            || (reciprocal - 1.0).abs() > 1.0e-8
+        {
+            return Err(ContactResponseError::InvalidMassProperties { body: body.handle });
+        }
+        if !body.linear_velocity.iter().all(|value| value.is_finite())
+            || !body.angular_velocity.is_finite()
+        {
+            return Err(ContactResponseError::NonFiniteBodyState { body: body.handle });
+        }
+        let delta = *impulse * body.inv_mass;
+        if !delta.iter().all(|value| value.is_finite()) {
+            return Err(ContactResponseError::NonFiniteBodyState { body: body.handle });
+        }
+        Ok(delta)
+    }
+
+    let delta_linear_velocity_a = linear_delta(body_a, &(-impulse_on_b))?;
+    let delta_linear_velocity_b = linear_delta(body_b, impulse_on_b)?;
+    let angular_impulse_a =
+        crate::integrator::angular_impulse_from_point(lever_arm_a, &(-impulse_on_b));
+    let angular_impulse_b =
+        crate::integrator::angular_impulse_from_point(lever_arm_b, impulse_on_b);
+    let rotational_response_a = body_a
+        .try_apply_inverse_angular_inertia(&angular_impulse_a)
+        .map_err(|source| ContactResponseError::RotationalResponseForBody {
+            body: body_a.handle,
+            source,
+        })?;
+    let rotational_response_b = body_b
+        .try_apply_inverse_angular_inertia(&angular_impulse_b)
+        .map_err(|source| ContactResponseError::RotationalResponseForBody {
+            body: body_b.handle,
+            source,
+        })?;
+
+    let delta_angular_velocity_a = match rotational_response_a {
+        crate::body::RotationalResponse::StaticOrKinematic => {
+            symtropy_math::Bivector::<D>::zero()
+        }
+        crate::body::RotationalResponse::Applied { delta_angular_velocity, .. } => {
+            delta_angular_velocity
+        }
+    };
+    let delta_angular_velocity_b = match rotational_response_b {
+        crate::body::RotationalResponse::StaticOrKinematic => {
+            symtropy_math::Bivector::<D>::zero()
+        }
+        crate::body::RotationalResponse::Applied { delta_angular_velocity, .. } => {
+            delta_angular_velocity
+        }
+    };
+
+    let next_linear_a = body_a.linear_velocity + delta_linear_velocity_a;
+    let next_linear_b = body_b.linear_velocity + delta_linear_velocity_b;
+    let next_angular_a = body_a.angular_velocity.add(&delta_angular_velocity_a);
+    let next_angular_b = body_b.angular_velocity.add(&delta_angular_velocity_b);
+    if body_a.is_dynamic()
+        && (!next_linear_a.iter().all(|value| value.is_finite())
+            || !next_angular_a.is_finite())
+    {
+        return Err(ContactResponseError::NonFiniteBodyState { body: body_a.handle });
+    }
+    if body_b.is_dynamic()
+        && (!next_linear_b.iter().all(|value| value.is_finite())
+            || !next_angular_b.is_finite())
+    {
+        return Err(ContactResponseError::NonFiniteBodyState { body: body_b.handle });
+    }
+
+    // Commit point: both candidate states passed.
+    if body_a.is_dynamic() {
+        body_a.linear_velocity = next_linear_a;
+        body_a.angular_velocity = next_angular_a;
+    }
+    if body_b.is_dynamic() {
+        body_b.linear_velocity = next_linear_b;
+        body_b.angular_velocity = next_angular_b;
+    }
+
+    Ok(ContactImpulsePairOutcome {
+        body_a: body_a.handle,
+        body_b: body_b.handle,
+        delta_linear_velocity_a,
+        delta_linear_velocity_b,
+        delta_angular_velocity_a,
+        delta_angular_velocity_b,
+        rotational_response_a,
+        rotational_response_b,
+    })
 }
 /// Contact information from a collision between two bodies.
 ///
@@ -308,6 +460,239 @@ mod tests {
         body
     }
 
+    #[test]
+    fn contact_pair_impulse_commits_both_anisotropic_bodies_together() {
+        let mut a = anisotropic_body_3d();
+        a.handle = BodyHandle(80);
+        let mut b = anisotropic_body_3d();
+        b.handle = BodyHandle(81);
+        let lever_a = SVector::from([1.0, 0.0, 0.0]);
+        let lever_b = SVector::from([0.0, 0.0, 1.0]);
+        let impulse = SVector::from([0.0, 2.0, 0.0]);
+        let before_a = (a.linear_velocity, a.angular_velocity);
+        let before_b = (b.linear_velocity, b.angular_velocity);
+        let outcome = try_apply_contact_impulse_pair(
+            &mut a, &mut b, &lever_a, &lever_b, &impulse,
+        )
+        .unwrap();
+        assert_eq!(a.linear_velocity, before_a.0 - impulse * a.inv_mass);
+        assert_eq!(b.linear_velocity, before_b.0 + impulse * b.inv_mass);
+        assert_eq!(
+            a.angular_velocity,
+            before_a.1.add(&outcome.delta_angular_velocity_a)
+        );
+        assert_eq!(
+            b.angular_velocity,
+            before_b.1.add(&outcome.delta_angular_velocity_b)
+        );
+    }
+
+    #[test]
+    fn strict_pair_effective_mass_matches_realized_contact_point_velocity_change() {
+        let mut a = anisotropic_body_3d();
+        a.handle = BodyHandle(90);
+        a.transform.rotation = symtropy_math::Rotor::<3>::from_plane_angle(
+            &symtropy_math::Bivector::<3>::unit_plane(0, 1),
+            0.37,
+        );
+
+        let mut b = anisotropic_body_3d();
+        b.handle = BodyHandle(91);
+        b.transform.rotation = symtropy_math::Rotor::<3>::from_plane_angle(
+            &symtropy_math::Bivector::<3>::unit_plane(1, 2),
+            -0.29,
+        );
+
+        let lever_a = SVector::from([0.7, -0.2, 0.4]);
+        let lever_b = SVector::from([-0.3, 0.5, 0.8]);
+        let normal = SVector::from([0.2, 0.8, -0.4]).normalize();
+
+        // The Delassus/J M^-1 J^T prediction consists of translational
+        // inverse masses plus the two independently evaluated rotational
+        // contributions. The reference is per unit normal impulse.
+        let predicted = a.inv_mass
+            + b.inv_mass
+            + try_angular_contact_effective_mass(&a, &lever_a, &normal).unwrap()
+            + try_angular_contact_effective_mass(&b, &lever_b, &normal).unwrap();
+
+        let outcome = try_apply_contact_impulse_pair(
+            &mut a,
+            &mut b,
+            &lever_a,
+            &lever_b,
+            &normal,
+        )
+        .expect("admitted anisotropic pair must accept a finite unit impulse");
+
+        // Measure the actual contact-point velocity jump using the same
+        // Rotor-consistent differential that the production pose update uses.
+        let delta_contact_a = outcome.delta_linear_velocity_a
+            + crate::integrator::angular_point_velocity(
+                &outcome.delta_angular_velocity_a,
+                &lever_a,
+            );
+        let delta_contact_b = outcome.delta_linear_velocity_b
+            + crate::integrator::angular_point_velocity(
+                &outcome.delta_angular_velocity_b,
+                &lever_b,
+            );
+        let observed = normal.dot(&(delta_contact_b - delta_contact_a));
+
+        assert!(
+            (observed - predicted).abs() < 2.0e-11,
+            "predicted effective mass={predicted:e}, observed contact velocity jump={observed:e}"
+        );
+        assert!(observed > 0.0);
+
+        // Negative control: the old +B*r point-velocity action must not
+        // satisfy the same known-answer contact-response identity.
+        let wrong_contact_a = outcome.delta_linear_velocity_a
+            + outcome.delta_angular_velocity_a.apply_to_vector(&lever_a);
+        let wrong_contact_b = outcome.delta_linear_velocity_b
+            + outcome.delta_angular_velocity_b.apply_to_vector(&lever_b);
+        let wrong_observed = normal.dot(&(wrong_contact_b - wrong_contact_a));
+        assert!(
+            (wrong_observed - predicted).abs() > 1.0e-4,
+            "the opposite-sign point-velocity action unexpectedly matched"
+        );
+    }
+
+    #[test]
+    fn unsupported_second_body_leaves_both_members_unchanged() {
+        let mut a = crate::body::RigidBody::<4>::dynamic_sphere(
+            BodyHandle(82),
+            symtropy_math::Point::origin(),
+            0.1,
+            1.0,
+        )
+        .with_rotational_inertia_operator(
+            crate::mass_properties::RotationalInertiaOperator::<4>::isotropic(2.0).unwrap(),
+        );
+        let mut b = crate::body::RigidBody::<4>::dynamic_sphere(
+            BodyHandle(83),
+            symtropy_math::Point::origin(),
+            0.1,
+            1.0,
+        );
+        a.linear_velocity[0] = 0.5;
+        b.linear_velocity[1] = -0.25;
+        a.angular_velocity.set(0, 1, 0.3);
+        b.angular_velocity.set(2, 3, -0.2);
+        let before_a = (a.linear_velocity, a.angular_velocity);
+        let before_b = (b.linear_velocity, b.angular_velocity);
+        let result = try_apply_contact_impulse_pair(
+            &mut a,
+            &mut b,
+            &SVector::from([1.0, 0.0, 0.0, 0.0]),
+            &SVector::from([0.0, 0.0, 1.0, 0.0]),
+            &SVector::from([0.0, 1.0, 0.0, 0.0]),
+        );
+        assert!(matches!(
+            result,
+            Err(ContactResponseError::RotationalResponseForBody {
+                body: BodyHandle(83),
+                source: crate::body::RotationalResponseError::UnsupportedModel { .. },
+            })
+        ));
+        assert_eq!((a.linear_velocity, a.angular_velocity), before_a);
+        assert_eq!((b.linear_velocity, b.angular_velocity), before_b);
+    }
+
+    #[test]
+    fn contact_pair_impulse_rejects_overflow_without_partial_commit() {
+        let mut a = anisotropic_body_3d();
+        a.handle = BodyHandle(84);
+        let mut b = anisotropic_body_3d();
+        b.handle = BodyHandle(85);
+        b.linear_velocity[1] = f64::MAX * 0.75;
+        let before_a = (a.linear_velocity, a.angular_velocity);
+        let before_b = (b.linear_velocity, b.angular_velocity);
+        let result = try_apply_contact_impulse_pair(
+            &mut a,
+            &mut b,
+            &SVector::from([1.0, 0.0, 0.0]),
+            &SVector::from([0.0, 0.0, 1.0]),
+            &SVector::from([0.0, f64::MAX * 0.5, 0.0]),
+        );
+        assert_eq!(
+            result,
+            Err(ContactResponseError::NonFiniteBodyState { body: BodyHandle(85) })
+        );
+        assert_eq!((a.linear_velocity, a.angular_velocity), before_a);
+        assert_eq!((b.linear_velocity, b.angular_velocity), before_b);
+    }
+
+    #[test]
+    fn contact_pair_impulse_rejects_stale_linear_mass_cache_without_mutation() {
+        let mut a = anisotropic_body_3d();
+        a.handle = BodyHandle(86);
+        let mut b = anisotropic_body_3d();
+        b.handle = BodyHandle(87);
+        b.inv_mass *= 2.0;
+        let before_a = (a.linear_velocity, a.angular_velocity);
+        let before_b = (b.linear_velocity, b.angular_velocity);
+        let result = try_apply_contact_impulse_pair(
+            &mut a,
+            &mut b,
+            &SVector::zeros(),
+            &SVector::zeros(),
+            &SVector::from([1.0, 0.0, 0.0]),
+        );
+        assert_eq!(
+            result,
+            Err(ContactResponseError::InvalidMassProperties { body: BodyHandle(87) })
+        );
+        assert_eq!((a.linear_velocity, a.angular_velocity), before_a);
+        assert_eq!((b.linear_velocity, b.angular_velocity), before_b);
+    }
+
+    #[test]
+    fn contact_pair_impulse_is_antisymmetric_under_body_swap() {
+        let mut a = anisotropic_body_3d();
+        a.handle = BodyHandle(88);
+        let mut b = anisotropic_body_3d();
+        b.handle = BodyHandle(89);
+        let mut swapped_a = anisotropic_body_3d();
+        swapped_a.handle = BodyHandle(89);
+        let mut swapped_b = anisotropic_body_3d();
+        swapped_b.handle = BodyHandle(88);
+        let lever_a = SVector::from([0.4, -0.2, 0.1]);
+        let lever_b = SVector::from([-0.1, 0.3, 0.5]);
+        let impulse = SVector::from([0.2, 0.7, -0.4]);
+        try_apply_contact_impulse_pair(
+            &mut a, &mut b, &lever_a, &lever_b, &impulse,
+        )
+        .unwrap();
+        try_apply_contact_impulse_pair(
+            &mut swapped_a, &mut swapped_b, &lever_b, &lever_a, &(-impulse),
+        )
+        .unwrap();
+        assert_eq!(
+            (a.linear_velocity, a.angular_velocity),
+            (swapped_b.linear_velocity, swapped_b.angular_velocity)
+        );
+        assert_eq!(
+            (b.linear_velocity, b.angular_velocity),
+            (swapped_a.linear_velocity, swapped_a.angular_velocity)
+        );
+    }
+
+    #[test]
+    fn contact_pair_impulse_rejects_duplicate_handles_before_mutation() {
+        let mut a = anisotropic_body_3d();
+        let mut b = anisotropic_body_3d();
+        b.handle = a.handle;
+        assert_eq!(
+            try_apply_contact_impulse_pair(
+                &mut a,
+                &mut b,
+                &SVector::zeros(),
+                &SVector::zeros(),
+                &SVector::from([1.0, 0.0, 0.0]),
+            ),
+            Err(ContactResponseError::DuplicateBodyHandle { body: a.handle })
+        );
+    }
     #[test]
     fn strict_contact_effective_mass_matches_analytic_anisotropic_3d_case() {
         // r = +X and n = +Y yield a +Z impulse; Izz = 4, so response = 1/4.

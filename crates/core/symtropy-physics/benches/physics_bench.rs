@@ -5,7 +5,7 @@ use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use nalgebra::SVector;
 use symtropy_math::{Bivector, Capsule, ConvexHull, HyperBox, Point, Sphere};
 use symtropy_physics::body::{BodyHandle, RigidBody};
-use symtropy_physics::contact::try_angular_contact_effective_mass;
+use symtropy_physics::contact::{try_angular_contact_effective_mass, try_apply_contact_impulse_pair};
 use symtropy_physics::mass_properties::RotationalInertiaOperator;
 use symtropy_physics::PhysicsWorld;
 use symtropy_physics::gjk;
@@ -446,6 +446,66 @@ fn bench_contact_angular_effective_mass_strict_vs_legacy(c: &mut Criterion) {
         });
     });
 }
+fn bench_contact_pair_impulse_strict_vs_legacy(c: &mut Criterion) {
+    let fixture = || {
+        let mut a =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(91), Point::origin(), 0.1, 1.0);
+        let mut b =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(92), Point::origin(), 0.1, 1.0);
+        a.inertia = SVector::from([2.0, 3.0, 4.0]);
+        a.inv_inertia = SVector::from([0.5, 1.0 / 3.0, 0.25]);
+        b.inertia = SVector::from([3.0, 4.0, 5.0]);
+        b.inv_inertia = SVector::from([1.0 / 3.0, 0.25, 0.2]);
+        (a, b)
+    };
+    let lever_arm_a = SVector::from([0.7, -0.2, 0.4]);
+    let lever_arm_b = SVector::from([-0.3, 0.1, 0.5]);
+    let impulse = SVector::from([0.2, 1.0, -0.4]);
+
+    c.bench_function("contact_pair_impulse_legacy_3d", |bench| {
+        bench.iter_batched(
+            fixture,
+            |(mut a, mut b)| {
+                symtropy_physics::integrator::apply_impulse(&mut a, &(-impulse));
+                symtropy_physics::integrator::apply_impulse(&mut b, &impulse);
+                let angular_impulse_a =
+                    symtropy_physics::integrator::angular_impulse_from_point(
+                        &lever_arm_a, &(-impulse),
+                    );
+                let angular_impulse_b =
+                    symtropy_physics::integrator::angular_impulse_from_point(
+                        &lever_arm_b, &impulse,
+                    );
+                symtropy_physics::integrator::apply_angular_impulse(
+                    &mut a, &angular_impulse_a,
+                );
+                symtropy_physics::integrator::apply_angular_impulse(
+                    &mut b, &angular_impulse_b,
+                );
+                black_box((
+                    a.linear_velocity, a.angular_velocity,
+                    b.linear_velocity, b.angular_velocity,
+                ));
+            },
+            criterion::BatchSize::SmallInput,
+        );
+    });
+    c.bench_function("contact_pair_impulse_strict_3d", |bench| {
+        bench.iter_batched(
+            fixture,
+            |(mut a, mut b)| {
+                black_box(try_apply_contact_impulse_pair(
+                    &mut a, &mut b, &lever_arm_a, &lever_arm_b, &impulse,
+                ));
+                black_box((
+                    a.linear_velocity, a.angular_velocity,
+                    b.linear_velocity, b.angular_velocity,
+                ));
+            },
+            criterion::BatchSize::SmallInput,
+        );
+    });
+}
 fn bench_anisotropic_contact_world_step(c: &mut Criterion) {
     c.bench_function("anisotropic_contact_world_step_10_bodies_3d", |bench| {
         bench.iter_batched(
@@ -505,6 +565,7 @@ criterion_group!(
     bench_fallible_full_operator_response_4d,
     bench_strict_vs_legacy_integration_3d,
     bench_contact_angular_effective_mass_strict_vs_legacy,
+    bench_contact_pair_impulse_strict_vs_legacy,
     // Physics step at scale
     bench_physics_step_10_bodies,
     bench_world_strict_preflight_10_bodies,

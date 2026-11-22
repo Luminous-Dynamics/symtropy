@@ -41,7 +41,8 @@ pub use body::{
 pub use broadphase::{Aabb, Lbvh, morton_encode, morton_prefix};
 pub use constraint::Constraint;
 pub use contact::{
-    try_angular_contact_effective_mass, CollisionEvent, ContactCache, ContactManifold,
+    try_angular_contact_effective_mass, try_apply_contact_impulse_pair, CollisionEvent,
+    ContactCache, ContactImpulsePairOutcome, ContactManifold,
     ContactResponseError, SensorEvent,
 };
 pub use diagnostics::{InvariantDrift, InvariantSnapshot};
