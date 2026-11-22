@@ -23,7 +23,9 @@ CONSTANTS
     TicketClock,
     TicketBoot,
     TicketIssued,
-    TicketExpires
+    TicketExpires,
+    PermitAttempt,
+    PermitEpoch
 
 ASSUME
     /\ Tickets # {}
@@ -43,6 +45,10 @@ ASSUME
     /\ DOMAIN TicketBoot = Tickets
     /\ DOMAIN TicketIssued = Tickets
     /\ DOMAIN TicketExpires = Tickets
+    /\ DOMAIN PermitAttempt = RecoveryPermits
+    /\ DOMAIN PermitEpoch = RecoveryPermits
+    /\ RANGE PermitAttempt \subseteq Attempts
+    /\ RANGE PermitEpoch \subseteq 0..MaxEpoch
     /\ RANGE TicketBinding \subseteq Bindings
     /\ RANGE TicketAttempt \subseteq Attempts
     /\ RANGE TicketEpoch \subseteq 0..MaxEpoch
@@ -61,6 +67,7 @@ VARIABLES
     nowTicks,
     pendingAttempt,
     consumed,
+    consumedPermits,
     applicationSeq,
     applicationLog,
     resolutionLog
@@ -84,6 +91,7 @@ ResolutionRecord ==
     [ attempt : Attempts,
       kind : {"Satisfied", "NoEffect", "PartialEffect"},
       permit : RecoveryPermits \cup {NoPermit},
+      authorityEpoch : 0..MaxEpoch,
       nextAttempt : Attempts,
       nextBinding : Bindings,
       nextEpoch : 0..MaxEpoch ]
@@ -97,6 +105,7 @@ Init ==
     /\ nowTicks = 0
     /\ pendingAttempt = NoPending
     /\ consumed = {}
+    /\ consumedPermits = {}
     /\ applicationSeq = 1
     /\ applicationLog = << >>
     /\ resolutionLog = << >>
@@ -127,7 +136,7 @@ Apply(t) ==
     /\ applicationSeq' = applicationSeq + 1
     /\ UNCHANGED
           << authorityBinding, activeAttempt, authorityEpoch, clockDomain,
-             bootEpoch, nowTicks, resolutionLog >>
+             bootEpoch, nowTicks, resolutionLog, consumedPermits >>
 
 ReplaceAuthority(nextBinding, nextAttempt, nextClock, nextBoot, nextEpoch) ==
     /\ nextBinding \in Bindings
@@ -150,7 +159,7 @@ Tick ==
     /\ nowTicks' = nowTicks + 1
     /\ UNCHANGED
           << authorityBinding, activeAttempt, authorityEpoch, clockDomain,
-             bootEpoch, pendingAttempt, consumed, applicationSeq,
+             bootEpoch, pendingAttempt, consumed, consumedPermits, applicationSeq,
              applicationLog, resolutionLog >>
 
 ResolveSatisfied(nextBinding, nextAttempt, nextEpoch) ==
@@ -170,11 +179,12 @@ ResolveSatisfied(nextBinding, nextAttempt, nextEpoch) ==
             [ attempt |-> pendingAttempt,
               kind |-> "Satisfied",
               permit |-> NoPermit,
+              authorityEpoch |-> authorityEpoch,
               nextAttempt |-> nextAttempt,
               nextBinding |-> nextBinding,
               nextEpoch |-> nextEpoch ])
     /\ UNCHANGED
-          << clockDomain, bootEpoch, nowTicks, consumed,
+          << clockDomain, bootEpoch, nowTicks, consumed, consumedPermits,
              applicationSeq, applicationLog >>
 
 ResolveNoEffect(nextBinding, nextAttempt, nextEpoch, permit) ==
@@ -186,15 +196,20 @@ ResolveNoEffect(nextBinding, nextAttempt, nextEpoch, permit) ==
     /\ nextEpoch > authorityEpoch
     /\ nextBinding # authorityBinding
     /\ permit \in RecoveryPermits
+    /\ permit \notin consumedPermits
+    /\ PermitAttempt[permit] = pendingAttempt
+    /\ PermitEpoch[permit] = authorityEpoch
     /\ authorityBinding' = nextBinding
     /\ activeAttempt' = nextAttempt
     /\ authorityEpoch' = nextEpoch
     /\ pendingAttempt' = NoPending
+    /\ consumedPermits' = consumedPermits \cup {permit}
     /\ resolutionLog' =
           Append(resolutionLog,
             [ attempt |-> pendingAttempt,
               kind |-> "NoEffect",
               permit |-> permit,
+              authorityEpoch |-> authorityEpoch,
               nextAttempt |-> nextAttempt,
               nextBinding |-> nextBinding,
               nextEpoch |-> nextEpoch ])
@@ -211,15 +226,20 @@ ResolvePartial(nextBinding, nextAttempt, nextEpoch, permit) ==
     /\ nextEpoch > authorityEpoch
     /\ nextBinding # authorityBinding
     /\ permit \in RecoveryPermits
+    /\ permit \notin consumedPermits
+    /\ PermitAttempt[permit] = pendingAttempt
+    /\ PermitEpoch[permit] = authorityEpoch
     /\ authorityBinding' = nextBinding
     /\ activeAttempt' = nextAttempt
     /\ authorityEpoch' = nextEpoch
     /\ pendingAttempt' = NoPending
+    /\ consumedPermits' = consumedPermits \cup {permit}
     /\ resolutionLog' =
           Append(resolutionLog,
             [ attempt |-> pendingAttempt,
               kind |-> "PartialEffect",
               permit |-> permit,
+              authorityEpoch |-> authorityEpoch,
               nextAttempt |-> nextAttempt,
               nextBinding |-> nextBinding,
               nextEpoch |-> nextEpoch ])
@@ -253,6 +273,7 @@ TypeOK ==
     /\ nowTicks \in 0..MaxTick
     /\ pendingAttempt \in Attempts \cup {NoPending}
     /\ consumed \subseteq Tickets
+    /\ consumedPermits \subseteq RecoveryPermits
     /\ applicationSeq \in Nat
     /\ applicationLog \in Seq(ApplicationRecord)
     /\ resolutionLog \in Seq(ResolutionRecord)
@@ -288,5 +309,20 @@ ApplicationSequenceConsistent ==
     /\ applicationSeq = Len(applicationLog) + 1
     /\ \A i \in 1..Len(applicationLog) :
          applicationLog[i].seq = i
+
+ConsumedPermitsMatchResolutionLog ==
+    consumedPermits =
+      {resolutionLog[i].permit : i \in 1..Len(resolutionLog)} \ {NoPermit}
+
+RecoveryPermitLineage ==
+    \A i \in 1..Len(resolutionLog) :
+      LET record == resolutionLog[i]
+      IN
+        IF record.kind = "Satisfied"
+        THEN record.permit = NoPermit
+        ELSE
+          /\ record.permit \in RecoveryPermits
+          /\ PermitAttempt[record.permit] = record.attempt
+          /\ PermitEpoch[record.permit] = record.authorityEpoch
 
 =============================================================================
