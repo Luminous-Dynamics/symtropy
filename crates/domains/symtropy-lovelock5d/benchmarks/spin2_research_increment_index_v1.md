@@ -107,3 +107,17 @@ The committed fixture and verifier were replayed from exact Git blob bytes. This
 The public scorecard and machine-readable reproduction manifest are:
 - `spin2_sota_benchmark_scorecard_v1.md`: separates discovery, refinement, mathematical qualification and PDE hyperbolicity; proposes validated branch yield, qualification conversion, proof latency and claim coverage.
 - `spin2_akribeia_reproduction_manifest_v1.json`: preserves the Akribeia/DiffLearning/refiner pin discrepancy, observed 5D settings and uncompleted reproduction gates.
+
+
+## Einstein-limit infinity resonance classification (22 November 2026)
+
+A further endpoint calculation analyzes the first nontrivial asymptotic recurrence at (x=1/r). The (x^2) resonance operator (-2I-A_{infty,0}) has rank two and nullity two. Its compatibility condition is exact:
+`A_{infty,2} e_B + g_{infty,2}=0`.
+The constant bounded mode therefore does not force a logarithm at this order. The nullspace supplies the two independent (r^{-2}) decay coefficients. After removing the constant normalization mode and the growing (r^4) mode, the bounded asymptotic germ has two free decay coefficients.
+
+An exact rational verifier and receipt are committed:
+- `spin2_mp_infinity_resonance_v1.md/.json`
+- `verify_spin2_mp_infinity_resonance.py`
+- `spin2_mp_infinity_resonance_replay_v1.json`
+
+The first verifier attempt caught and corrected a sign mistake in the n=1 determinant; the exact value is (+5). The corrected public fixture and verifier blobs were both replayed locally and passed. This balanced (2)-horizon-data versus (2)-decay-data count motivates a (2\times2) global boundary map, but does not establish its rank, uniqueness or Fredholm index.
