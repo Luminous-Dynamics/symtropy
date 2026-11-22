@@ -1,0 +1,272 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/orbital-truss/orbital_truss_asbuilt_geometry_v0_1.schema.json",
+  "title": "Orbital Truss As-Built Geometry Benchmark Corpus",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-truss-asbuilt-geometry.corpus.v0.1"
+    },
+    "benchmark_id": {
+      "const": "ORBITAL-TRUSS-ASBUILT-GEOMETRY-001"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic_2d_asbuilt_geometry_conformance_only"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 13,
+      "maxItems": 13,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "vec2": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "case_class",
+        "expected_disposition",
+        "expected_subject_id",
+        "evidence_subject_id",
+        "design_revision",
+        "evidence_design_revision",
+        "source_time_unix_ms",
+        "registration",
+        "instrument",
+        "required_features",
+        "measurements"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "pattern": "^ATG-[0-9]{3}-[A-Z0-9-]+$"
+        },
+        "case_class": {
+          "enum": [
+            "POSITIVE_CONTROL",
+            "NEGATIVE_CONTROL",
+            "METAMORPHIC"
+          ]
+        },
+        "expected_disposition": {
+          "enum": [
+            "ACCEPT",
+            "REJECT",
+            "INDETERMINATE_HUMAN_REVIEW"
+          ]
+        },
+        "expected_subject_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_subject_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "design_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_design_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_time_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "registration": {
+          "$ref": "#/$defs/registration"
+        },
+        "instrument": {
+          "$ref": "#/$defs/instrument"
+        },
+        "required_features": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/feature_requirement"
+          }
+        },
+        "measurements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/feature_measurement"
+          }
+        }
+      }
+    },
+    "registration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_frame_id",
+        "target_frame_id",
+        "basis",
+        "independent_datum_set_id",
+        "control_point_count",
+        "part_geometry_used_for_fit",
+        "rotation",
+        "translation_m",
+        "registration_uncertainty_m"
+      ],
+      "properties": {
+        "source_frame_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_frame_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "basis": {
+          "const": "independent_external_datums"
+        },
+        "independent_datum_set_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "control_point_count": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "part_geometry_used_for_fit": {
+          "type": "boolean"
+        },
+        "rotation": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "translation_m": {
+          "$ref": "#/$defs/vec2"
+        },
+        "registration_uncertainty_m": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "instrument": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "instrument_id",
+        "calibration_id",
+        "calibration_evidence_sha256",
+        "valid_from_unix_ms",
+        "valid_until_unix_ms",
+        "used_at_unix_ms"
+      ],
+      "properties": {
+        "instrument_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_evidence_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "valid_from_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_until_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "used_at_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "feature_requirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "feature_id",
+        "nominal_position_m",
+        "tolerance_m",
+        "critical"
+      ],
+      "properties": {
+        "feature_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nominal_position_m": {
+          "$ref": "#/$defs/vec2"
+        },
+        "tolerance_m": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "critical": {
+          "type": "boolean"
+        }
+      }
+    },
+    "feature_measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "feature_id",
+        "observed_position_source_m",
+        "measurement_uncertainty_m",
+        "observed"
+      ],
+      "properties": {
+        "feature_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observed_position_source_m": {
+          "$ref": "#/$defs/vec2"
+        },
+        "measurement_uncertainty_m": {
+          "type": "number",
+          "minimum": 0
+        },
+        "observed": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}
