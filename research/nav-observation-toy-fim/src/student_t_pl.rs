@@ -42,6 +42,7 @@ pub enum StudentTPlError {
     CovarianceNotPositiveSemidefinite,
     InvalidDegreesOfFreedom,
     InvalidTirMultiplier,
+    InvalidTargetIntegrityRisk,
     NonFiniteOutput,
 }
 
@@ -52,6 +53,7 @@ impl fmt::Display for StudentTPlError {
             Self::CovarianceNotPositiveSemidefinite => write!(f, "covariance matrix must be positive semidefinite"),
             Self::InvalidDegreesOfFreedom => write!(f, "Student-t degrees of freedom must be finite and greater than 2"),
             Self::InvalidTirMultiplier => write!(f, "2D TIR multiplier must be finite and positive"),
+            Self::InvalidTargetIntegrityRisk => write!(f, "target integrity risk must be in (0,1) as a 2D radial tail probability"),
             Self::NonFiniteOutput => write!(f, "Student-t protection-level result is non-finite"),
         }
     }
@@ -108,6 +110,45 @@ impl Covariance2 {
         };
         Ok(frame)
     }
+}
+
+/// Closed-form radial TIR multiplier for a 2D multivariate Student-t whose
+/// supplied matrix is its covariance (not its scale matrix).
+///
+/// For a 2D Student-t with covariance P and nu > 2, the normalized radial
+/// tail is P(r^2 > (nu-2) K^2) = (1 + K^2)^(-nu/2). Solving this for a
+/// requested tail probability TIR gives K = sqrt(TIR^(-2/nu) - 1).
+///
+/// This assumes that the TIR is the total 2D radial tail probability. It is
+/// not a one-dimensional per-axis Gaussian multiplier.
+pub fn student_t_k_tir_2d(
+    degrees_of_freedom: f64,
+    target_integrity_risk: f64,
+) -> Result<f64, StudentTPlError> {
+    if !degrees_of_freedom.is_finite() || degrees_of_freedom <= 2.0 {
+        return Err(StudentTPlError::InvalidDegreesOfFreedom);
+    }
+    if !target_integrity_risk.is_finite()
+        || !(0.0..1.0).contains(&target_integrity_risk)
+    {
+        return Err(StudentTPlError::InvalidTargetIntegrityRisk);
+    }
+    let multiplier = (target_integrity_risk.powf(-2.0 / degrees_of_freedom) - 1.0).sqrt();
+    if !multiplier.is_finite() || multiplier <= 0.0 {
+        return Err(StudentTPlError::NonFiniteOutput);
+    }
+    Ok(multiplier)
+}
+
+/// Convenience function that computes K_TIR from the explicit 2D radial-tail
+/// convention and then evaluates the paper's overall/directional PL equations.
+pub fn student_t_protection_levels_for_tir(
+    covariance: Covariance2,
+    degrees_of_freedom: f64,
+    target_integrity_risk: f64,
+) -> Result<StudentTProtectionLevels, StudentTPlError> {
+    let multiplier = student_t_k_tir_2d(degrees_of_freedom, target_integrity_risk)?;
+    student_t_protection_levels(covariance, degrees_of_freedom, multiplier)
 }
 
 /// Paper's printed directional Student-t PL equation:
@@ -205,6 +246,41 @@ mod tests {
             assert!(result.longitudinal_pl_m.is_finite());
             assert!(result.lateral_pl_m.is_finite());
         }
+    }
+
+    #[test]
+    fn two_dimensional_student_t_tir_multiplier_matches_closed_form_tail() {
+        for dof in [4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 100.0] {
+            let tir = 1.0e-3;
+            let k = student_t_k_tir_2d(dof, tir).unwrap();
+            let reconstructed_tail = (1.0 + k * k).powf(-dof / 2.0);
+            assert!((reconstructed_tail - tir).abs() < 1.0e-12);
+        }
+        assert!(student_t_k_tir_2d(4.0, 1.0e-3).unwrap()
+            > student_t_k_tir_2d(100.0, 1.0e-3).unwrap());
+    }
+
+    #[test]
+    fn convenience_tir_api_reproduces_dof_sweep_without_normal_quantile_substitution() {
+        let covariance = Covariance2 { xx: 9.0, xy: 1.0, yy: 2.0 };
+        let results: Vec<_> = [4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 100.0]
+            .into_iter()
+            .map(|dof| student_t_protection_levels_for_tir(covariance, dof, 1.0e-3).unwrap())
+            .collect();
+        assert_eq!(results.len(), 8);
+        assert!(results.windows(2).all(|w| w[0].overall_pl_m > w[1].overall_pl_m));
+    }
+
+    #[test]
+    fn invalid_target_tir_fails_closed() {
+        assert_eq!(
+            student_t_k_tir_2d(4.0, 0.0),
+            Err(StudentTPlError::InvalidTargetIntegrityRisk)
+        );
+        assert_eq!(
+            student_t_k_tir_2d(4.0, 1.0),
+            Err(StudentTPlError::InvalidTargetIntegrityRisk)
+        );
     }
 
     #[test]
