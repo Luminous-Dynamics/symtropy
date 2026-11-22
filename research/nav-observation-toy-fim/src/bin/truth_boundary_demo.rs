@@ -1,5 +1,5 @@
 use nav_observation_toy_fim::truth_boundary::{
-    controller_propose, score_evaluation, AcquisitionEvent, AcquisitionStatus,
+    controller_propose, controller_decide_after_acquisition, score_evaluation, AcquisitionEvent, AcquisitionStatus,
     CandidateAction, ControllerVisibleInput, EvaluatorTruth, ResourceBudget,
 };
 
@@ -58,8 +58,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         service_state_one: false,
         truth_manifest_commitment: [0xbb; 32],
     };
-    let score_one = score_evaluation(&proposal, &acquisition, &truth_one, 10, 1)?;
-    let score_zero = score_evaluation(&proposal, &acquisition, &truth_zero, 10, 1)?;
+    let controller_decision = controller_decide_after_acquisition(&proposal, &acquisition)?;
+    let score_one = score_evaluation(&controller_decision, &truth_one, 10, 1)?;
+    let score_zero = score_evaluation(&controller_decision, &truth_zero, 10, 1)?;
+    println!("post_acquisition_claim_state_one={}", controller_decision.claim_state_one);
+    println!("decision_confidence_ppm={:?}", controller_decision.decision_confidence_ppm);
 
     println!("proposal_bytes_len={}", proposal_bytes.len());
     println!("proposal_action={}", match proposal.disposition {
