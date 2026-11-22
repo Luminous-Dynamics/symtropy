@@ -5,9 +5,7 @@
 //! linear-Gaussian posterior using the full observation covariance assembled
 //! from independent noise and named shared uncertainty sources.
 
-use crate::common_cause_covariance::{
-    assemble_joint_experiment_covariance, ExperimentNoiseModel, InterSourceDependenceQualification,
-};
+use crate::common_cause_covariance::{assemble_joint_experiment_covariance, ExperimentNoiseModel};
 use crate::ModelError;
 use std::collections::BTreeSet;
 
@@ -598,7 +596,9 @@ fn add(left: &[Vec<f64>], right: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, ModelErro
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::common_cause_covariance::SharedUncertaintyContribution;
+    use crate::common_cause_covariance::{
+        InterSourceDependenceQualification, SharedUncertaintyContribution,
+    };
 
     fn candidate(
         id: &str,
