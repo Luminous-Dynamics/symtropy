@@ -60,7 +60,10 @@ fn run() -> Result<(), String> {
         "snapshot_count": recording.snapshots.len(),
         "claim_note": "Projection validation is not a TLC/Reflow trace-conformance result or a physical-safety claim."
     });
-    println!("{}", serde_json::to_string_pretty(&manifest).expect("manifest serializes"));
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&manifest).expect("manifest serializes")
+    );
     Ok(())
 }
 
