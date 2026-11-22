@@ -49,6 +49,9 @@ pub struct RawScaleHorseshoePosterior {
 /// Global tau is sampled on log scale with either half-normal or half-Cauchy
 /// prior. Local scales are half-Cauchy. All design columns must be frozen and
 /// scaled using training data only.
+// Keep the scientific target's observation, baseline, design, scale and covariance
+// inputs explicit rather than hiding their distinct meanings in an untyped tuple.
+#[allow(clippy::too_many_arguments)]
 pub fn raw_scale_horseshoe_log_posterior(
     observed: &[f64],
     baseline_mean: &[f64],
