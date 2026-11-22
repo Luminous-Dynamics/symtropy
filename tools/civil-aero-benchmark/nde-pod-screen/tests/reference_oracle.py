@@ -8,6 +8,7 @@ import copy
 import hashlib
 import json
 import math
+import struct
 from pathlib import Path
 
 CLAIM_CEILING = "fixed_target_binomial_screening_only"
@@ -196,9 +197,21 @@ def verify(corpus_path: Path, rust_path: Path) -> dict:
     assert corpus["claim_ceiling"] == CLAIM_CEILING
     assert rust["schema"] == OUTPUT_SCHEMA
     assert rust["corpus_sha256"] == hashlib.sha256(raw).hexdigest()
-    typed_scope = dict(corpus["scope"])
-    typed_scope["target_flaw_size_mm"] = float(typed_scope["target_flaw_size_mm"])
-    scope_bytes = json.dumps(typed_scope, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    scope = corpus["scope"]
+    scope_bytes = bytearray()
+    for field in (
+        "scope_ref",
+        "method_id",
+        "procedure_revision",
+        "material_system",
+        "defect_family",
+        "defect_orientation",
+        "environment_id",
+    ):
+        encoded = scope[field].encode("utf-8")
+        scope_bytes.extend(struct.pack(">Q", len(encoded)))
+        scope_bytes.extend(encoded)
+    scope_bytes.extend(struct.pack(">d", float(scope["target_flaw_size_mm"])))
     scope_digest = hashlib.sha256(scope_bytes).hexdigest()
     assert rust["scope_sha256"] == scope_digest
     assert rust["claim_ceiling"] == CLAIM_CEILING
