@@ -263,6 +263,7 @@ pub enum ProjectionError {
     ObserverQuorumMalformed,
     ObserverClaimsShareCommonCause,
     OwnerEvidenceStatusMismatch,
+    OwnerAssertedValueMismatch,
 }
 
 fn nonempty(value: &str) -> bool {
@@ -978,6 +979,54 @@ impl RuntimeProjectionRecording {
             let state_m2 = bool_field(&s.state_s, "m2Current")?;
 
             let state_effect_evidence = str_field(&s.state_s, "effectEvidence")?;
+            let expected_controller_assertion = if state_queue_fence == state_boot {
+                "fenced"
+            } else if state_queue_fence == 0 {
+                "not_fenced"
+            } else {
+                "stale_fence"
+            };
+            let expected_graph_assertion = if state_downstream_fence == state_boot
+                || bool_field(&s.state_s, "admittedDownstreamFence")?
+            {
+                "quiescent"
+            } else if state_downstream_fence == 0 {
+                "not_fenced"
+            } else {
+                "stale_fence"
+            };
+            for evidence in &s.owner_evidence {
+                let expected = match evidence.domain {
+                    OwnerEvidenceDomain::ProcessEpoch => {
+                        str_field(&s.state_s, "processStatus")?
+                    }
+                    OwnerEvidenceDomain::Persistence => state_persist,
+                    OwnerEvidenceDomain::PhysicalOutcome => state_old_outcome,
+                    OwnerEvidenceDomain::MissionResolution => state_mission,
+                    OwnerEvidenceDomain::ControllerQueue => expected_controller_assertion,
+                    OwnerEvidenceDomain::DownstreamExecutionGraph => expected_graph_assertion,
+                    OwnerEvidenceDomain::PhysicalOutcomeObserverQuorum => state_effect_evidence,
+                    OwnerEvidenceDomain::DownstreamObserverQuorum => {
+                        match evidence.status {
+                            OwnerEvidenceStatus::NotApplicable => "not_applicable",
+                            OwnerEvidenceStatus::QuorumQualified => "quiescent",
+                            OwnerEvidenceStatus::QuorumNotQualified => "not_quiescent",
+                            OwnerEvidenceStatus::Unknown
+                            | OwnerEvidenceStatus::InsufficientEvidence => "unknown",
+                            OwnerEvidenceStatus::Disputed => "disputed",
+                            _ => return Err(ProjectionError::OwnerAssertedValueMismatch),
+                        }
+                    }
+                    OwnerEvidenceDomain::ActionApplicability => {
+                        if state_m1 && state_m2 { "current" } else { "revoked" }
+                    }
+                    OwnerEvidenceDomain::RecoveryAuthority => state_permit,
+                };
+                if evidence.asserted_value != expected {
+                    return Err(ProjectionError::OwnerAssertedValueMismatch);
+                }
+            }
+
             let persistence_status =
                 owner_evidence_by_domain(s, OwnerEvidenceDomain::Persistence)?.status;
             match state_persist {
@@ -1422,6 +1471,11 @@ mod tests {
     }
 
     fn set_quorum(evidence: &mut OwnerEvidenceRef, claim_id: &str, label: &str) {
+        evidence.asserted_value = match evidence.domain {
+            OwnerEvidenceDomain::PhysicalOutcomeObserverQuorum => "no_effect".to_owned(),
+            OwnerEvidenceDomain::DownstreamObserverQuorum => "quiescent".to_owned(),
+            _ => evidence.asserted_value.clone(),
+        };
         evidence.status = OwnerEvidenceStatus::QuorumQualified;
         evidence.claim_id = Some(claim_id.to_owned());
         evidence.claim_scope_sha256 = Some(claim_scope_digest(
@@ -1669,11 +1723,13 @@ mod tests {
         let no_effect = claim_scope_digest(
             OwnerEvidenceDomain::PhysicalOutcomeObserverQuorum,
             "effect-1-no-effect",
+            "no_effect",
             &scope,
         );
         let downstream = claim_scope_digest(
             OwnerEvidenceDomain::DownstreamObserverQuorum,
             "effect-1-downstream-quiescence",
+            "quiescent",
             &scope,
         );
         assert_ne!(no_effect, downstream);
@@ -1681,11 +1737,13 @@ mod tests {
             claim_scope_digest(
                 OwnerEvidenceDomain::PhysicalOutcomeObserverQuorum,
                 "effect-1-no-effect",
+                "no_effect",
                 &scope
             ),
             claim_scope_digest(
                 OwnerEvidenceDomain::PhysicalOutcomeObserverQuorum,
                 "effect-2-no-effect",
+                "no_effect",
                 &scope
             )
         );
