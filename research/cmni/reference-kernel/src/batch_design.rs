@@ -6,8 +6,7 @@
 //! from independent noise and named shared uncertainty sources.
 
 use crate::common_cause_covariance::{
-    assemble_joint_experiment_covariance, ExperimentNoiseModel,
-    InterSourceDependenceQualification,
+    assemble_joint_experiment_covariance, ExperimentNoiseModel, InterSourceDependenceQualification,
 };
 use crate::ModelError;
 use std::collections::BTreeSet;
@@ -191,9 +190,9 @@ pub fn enumerate_batch_portfolios(
             skipped_incomplete_lineage_portfolios += 1;
             continue;
         }
-        let inter_source_dependence_complete = selected.iter().all(|candidate| {
-            candidate.noise_model.inter_source_dependence.is_qualified()
-        });
+        let inter_source_dependence_complete = selected
+            .iter()
+            .all(|candidate| candidate.noise_model.inter_source_dependence.is_qualified());
         if require_complete_lineage && !inter_source_dependence_complete {
             skipped_unknown_inter_source_dependence_portfolios += 1;
             continue;
@@ -651,10 +650,9 @@ mod tests {
                     observation_jacobian: vec![source_jacobian],
                 }],
                 lineage_coverage_complete: true,
-                inter_source_dependence:
-                    InterSourceDependenceQualification::joint_blocks_modelled(
-                        "receipt:joint-calibration-fit",
-                    ),
+                inter_source_dependence: InterSourceDependenceQualification::joint_blocks_modelled(
+                    "receipt:joint-calibration-fit",
+                ),
             },
         };
         let joint = enumerate_batch_portfolios(
@@ -714,9 +712,9 @@ mod tests {
         assert!(!split_score.inter_source_dependence_complete);
         assert!((split_score.posterior_covariance[0][0] - 705.0 / 809.0).abs() < 1.0e-12);
 
-        let relative_variance_understatement =
-            (joint_score.posterior_covariance[0][0] - split_score.posterior_covariance[0][0])
-                / joint_score.posterior_covariance[0][0];
+        let relative_variance_understatement = (joint_score.posterior_covariance[0][0]
+            - split_score.posterior_covariance[0][0])
+            / joint_score.posterior_covariance[0][0];
         assert!((relative_variance_understatement - 28536.0 / 719201.0).abs() < 1.0e-12);
         assert!(split_score.posterior_covariance[0][0] < joint_score.posterior_covariance[0][0]);
     }
