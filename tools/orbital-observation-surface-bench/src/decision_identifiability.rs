@@ -23,7 +23,7 @@ pub struct Rational {
 }
 
 impl Rational {
-    fn validate(&self) -> Result<(), String> {
+    pub(crate) fn validate(&self) -> Result<(), String> {
         if self.denominator == 0
             || self.numerator > self.denominator
             || self.numerator > MAX_SAFE_INTEGER
@@ -40,9 +40,47 @@ impl Rational {
         self.numerator == 0
     }
 
-    fn exactly_equals(&self, other: &Self) -> bool {
+    pub(crate) fn exactly_equals(&self, other: &Self) -> bool {
         u128::from(self.numerator) * u128::from(other.denominator)
             == u128::from(other.numerator) * u128::from(self.denominator)
+    }
+
+    pub(crate) fn compare_exact(&self, other: &Self) -> std::cmp::Ordering {
+        (u128::from(self.numerator) * u128::from(other.denominator))
+            .cmp(&(u128::from(other.numerator) * u128::from(self.denominator)))
+    }
+
+    pub(crate) fn checked_sub(&self, other: &Self) -> Result<Self, String> {
+        let common = gcd_u128(u128::from(self.denominator), u128::from(other.denominator));
+        let left_scale = u128::from(other.denominator) / common;
+        let right_scale = u128::from(self.denominator) / common;
+        let left = u128::from(self.numerator)
+            .checked_mul(left_scale)
+            .ok_or_else(|| "exact rational subtraction overflowed u128".to_owned())?;
+        let right = u128::from(other.numerator)
+            .checked_mul(right_scale)
+            .ok_or_else(|| "exact rational subtraction overflowed u128".to_owned())?;
+        if left < right {
+            return Err("exact rational subtraction would be negative".to_owned());
+        }
+        let denominator = u128::from(self.denominator)
+            .checked_mul(left_scale)
+            .ok_or_else(|| "exact rational denominator overflowed u128".to_owned())?;
+        let numerator = left - right;
+        let divisor = gcd_u128(numerator, denominator);
+        let reduced_numerator = numerator / divisor;
+        let reduced_denominator = denominator / divisor;
+        if reduced_numerator > u128::from(MAX_SAFE_INTEGER)
+            || reduced_denominator > u128::from(MAX_SAFE_INTEGER)
+        {
+            return Err("exact rational subtraction exceeds the portable integer envelope".to_owned());
+        }
+        Ok(Self {
+            numerator: u64::try_from(reduced_numerator)
+                .map_err(|_| "exact rational numerator does not fit u64".to_owned())?,
+            denominator: u64::try_from(reduced_denominator)
+                .map_err(|_| "exact rational denominator does not fit u64".to_owned())?,
+        })
     }
 
     fn checked_add(&self, other: &Self) -> Result<Self, String> {
