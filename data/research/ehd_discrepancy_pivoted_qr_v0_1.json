@@ -1,0 +1,235 @@
+{
+  "schema": "luminous.ehd_discrepancy_pivoted_qr",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-D0-QR-001",
+  "as_of": "2026-11-22",
+  "status": "manufactured_pivoted_qr_correlated_signature_kernel_authored_tests_execution_pending",
+  "claim_ceiling": "A manufactured four-source, eight-observable residual attribution reference with correlated signatures and full 8x8 observation covariance. It is not an EHD calibration model, raw measurement dataset, or physical validation.",
+  "observation_model": "r = A beta + epsilon; epsilon covariance = Sigma",
+  "sources": [
+    "parameter_perturbation",
+    "numerical_bias",
+    "measurement_artifact",
+    "model_form_discrepancy"
+  ],
+  "source_columns": [
+    [
+      1.2,
+      -0.8,
+      0.8,
+      -1.2,
+      1.2,
+      -0.8,
+      0.8,
+      -1.2
+    ],
+    [
+      1.15,
+      0.85,
+      -0.85,
+      -1.15,
+      1.15,
+      0.85,
+      -0.85,
+      -1.15
+    ],
+    [
+      1.3,
+      -0.7,
+      -0.7,
+      1.3,
+      0.7,
+      -1.3,
+      -1.3,
+      0.7
+    ],
+    [
+      1.1,
+      0.9,
+      0.9,
+      1.1,
+      -0.9,
+      -1.1,
+      -1.1,
+      -0.9
+    ]
+  ],
+  "signature_construction": "non-orthogonal mixtures of four Hadamard source directions; independent but correlated source signatures",
+  "observation_covariance": {
+    "type": "AR(1)",
+    "rho": 0.25,
+    "matrix": [
+      [
+        1,
+        0.25,
+        0.0625,
+        0.015625,
+        0.00390625,
+        0.0009765625,
+        0.000244140625,
+        0.00006103515625
+      ],
+      [
+        0.25,
+        1,
+        0.25,
+        0.0625,
+        0.015625,
+        0.00390625,
+        0.0009765625,
+        0.000244140625
+      ],
+      [
+        0.0625,
+        0.25,
+        1,
+        0.25,
+        0.0625,
+        0.015625,
+        0.00390625,
+        0.0009765625
+      ],
+      [
+        0.015625,
+        0.0625,
+        0.25,
+        1,
+        0.25,
+        0.0625,
+        0.015625,
+        0.00390625
+      ],
+      [
+        0.00390625,
+        0.015625,
+        0.0625,
+        0.25,
+        1,
+        0.25,
+        0.0625,
+        0.015625
+      ],
+      [
+        0.0009765625,
+        0.00390625,
+        0.015625,
+        0.0625,
+        0.25,
+        1,
+        0.25,
+        0.0625
+      ],
+      [
+        0.000244140625,
+        0.0009765625,
+        0.00390625,
+        0.015625,
+        0.0625,
+        0.25,
+        1,
+        0.25
+      ],
+      [
+        0.00006103515625,
+        0.000244140625,
+        0.0009765625,
+        0.00390625,
+        0.015625,
+        0.0625,
+        0.25,
+        1
+      ]
+    ],
+    "factorization": "Cholesky; forward triangular solves; no explicit inverse or jitter"
+  },
+  "attribution_method": {
+    "algorithm": "column-pivoted modified Gram-Schmidt QR with one re-orthogonalization pass",
+    "coefficient_solve": "upper-triangular back substitution in pivoted order; restore original source order",
+    "rank_policy": "reject rank-deficient signature basis",
+    "conditioning_policy": "reject when max(R_kk)/min(R_kk) exceeds 1e8; this is a diagonal condition proxy, not a spectral condition number",
+    "noise_metric": "L2 norm of covariance-whitened unexplained residual (Mahalanobis metric)"
+  },
+  "reference_implementation": {
+    "path": "tools/ehd-reference-audit/src/discrepancy.rs",
+    "function": "analyse_d0_general_case",
+    "self_check": "d0_general_reference_self_check",
+    "rust_unit_tests": 7
+  },
+  "manufactured_case": {
+    "case_id": "D0-QR-MIXED-CORRELATED",
+    "injected_source_coefficients": [
+      1.5,
+      -0.75,
+      0.5,
+      2
+    ],
+    "measurement_noise_l2_bound": 1e-10,
+    "minimum_detectable_amplitude": 1e-10,
+    "relative_rank_tolerance": 1e-12,
+    "maximum_qr_diagonal_condition_proxy": 100000000,
+    "expected_source_coefficients": [
+      1.5,
+      -0.75,
+      0.5,
+      2
+    ],
+    "expected_qr_diagonal_condition_proxy": 1.5236673968369188,
+    "expected_unexplained_residual_l2": 0,
+    "expected_disposition": "parameter_or_numerical_error_detected"
+  },
+  "adversarial_cases": [
+    {
+      "case_id": "D0-QR-EXACT-CONFOUND",
+      "mutation": "signature_1_equals_signature_0",
+      "expected": "RankDeficientSignatureBasis"
+    },
+    {
+      "case_id": "D0-QR-NEAR-CONFOUND",
+      "mutation": "signature_1_equals_signature_0_plus_1e-9_original_signature_1",
+      "condition_proxy": 1280063814.4772012,
+      "expected": "IllConditionedSignatureBasis"
+    },
+    {
+      "case_id": "D0-QR-NONSYMMETRIC-COV",
+      "mutation": "covariance_0_1_plus_0.1_only",
+      "expected": "AsymmetricCovariance"
+    },
+    {
+      "case_id": "D0-QR-NON-PD-COV",
+      "mutation": "covariance_7_7_equals_zero",
+      "expected": "NonPositiveDefiniteCovariance"
+    },
+    {
+      "case_id": "D0-QR-LEDGER-FAIL",
+      "mutation": "conservation_ledgers_pass_false",
+      "expected": "PhysicalLedgerFailure"
+    },
+    {
+      "case_id": "D0-QR-RESIDUAL-EXCESS",
+      "mutation": "residual_component_7_plus_0.1_noise_bound_1e-4",
+      "expected": "NotEvaluable"
+    }
+  ],
+  "test_families": [
+    "correlated_nonorthogonal_signatures_recover_mixed_source_coefficients",
+    "full_covariance_whitening_uses_correlated_ar1_measurement_model",
+    "exact_source_confounding_is_rejected_as_rank_deficient",
+    "near_confounded_source_basis_abstains_above_condition_proxy_limit",
+    "asymmetric_and_non_positive_definite_covariances_are_rejected",
+    "failed_physical_ledger_cannot_be_repaired_by_correlated_discrepancy_fit",
+    "excessive_unexplained_residual_is_not_evaluable"
+  ],
+  "limitations": [
+    "four_source_signatures_only",
+    "eight_observable_components_only",
+    "manufactured_signature_basis_only",
+    "pivoted_modified_gram_schmidt_qr_not_a_general_large_matrix_solver",
+    "diagonal_r_condition_proxy_not_a_spectral_condition_number",
+    "full_covariance_must_be_symmetric_positive_definite",
+    "noise_bound_is_supplied_not_estimated",
+    "no_profile_likelihood",
+    "no_physical_EHD_calibration",
+    "no_raw_measurement_data",
+    "no_predictive_interval_coverage_or_ood_detector"
+  ]
+}
