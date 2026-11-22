@@ -56,6 +56,8 @@ pub enum LebedevRule {
     /// Six axis, eight cube-corner and twelve edge-midpoint nodes;
     /// algebraic precision 7.
     Points26,
+    /// NASA/CARA 5,810-node rule; algebraic precision 131.
+    Points5810,
 }
 
 impl LebedevRule {
