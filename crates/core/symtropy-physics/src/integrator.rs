@@ -444,7 +444,7 @@ mod tests {
 
         let offset = SVector::from([1.0, 0.0, 0.0]);
         let impulse = SVector::from([0.0, 1.0, 0.0]);
-        let torque_accumulator = Bivector::from_angular_impulse(&offset, &impulse);
+        let torque_accumulator = Bivector::from_wedge(&impulse, &offset);
         body.apply_torque(torque_accumulator);
         integrate(&mut body, &SVector::zeros(), 1e-4);
 
