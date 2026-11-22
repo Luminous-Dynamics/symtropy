@@ -232,7 +232,11 @@ fn is_sha256(value: &str) -> bool {
     hex.len() == 64 && hex.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
-fn slot_start_ms(contract: &CommitmentContract, decision_time_unix_ms: u64, slot: u8) -> Option<u64> {
+fn slot_start_ms(
+    contract: &CommitmentContract,
+    decision_time_unix_ms: u64,
+    slot: u8,
+) -> Option<u64> {
     u64::from(slot)
         .checked_mul(u64::from(contract.slot_duration_seconds))?
         .checked_mul(1_000)?
@@ -290,10 +294,19 @@ fn validate_contract(
             || !resources.insert(allocation.resource_id.as_str())
             || allocation.power_w_by_slot.len() != usize::from(contract.horizon_slots)
             || allocation.energy_wh_by_slot.len() != usize::from(contract.horizon_slots)
-            || allocation.power_w_by_slot.iter().any(|power| *power > MAX_POWER_W)
-            || allocation.energy_wh_by_slot.iter().any(|energy| *energy > MAX_ENERGY_WH)
+            || allocation
+                .power_w_by_slot
+                .iter()
+                .any(|power| *power > MAX_POWER_W)
+            || allocation
+                .energy_wh_by_slot
+                .iter()
+                .any(|energy| *energy > MAX_ENERGY_WH)
             || (!allocation.power_w_by_slot.iter().any(|power| *power > 0)
-                && !allocation.energy_wh_by_slot.iter().any(|energy| *energy > 0))
+                && !allocation
+                    .energy_wh_by_slot
+                    .iter()
+                    .any(|energy| *energy > 0))
         {
             return Err(format!(
                 "contract_resource_allocation_invalid:{}",
@@ -352,10 +365,7 @@ fn validate_evidence(
     }
 }
 
-fn is_expiry_transition(
-    kind: JournalEventKind,
-    resolved_state: Option<CommitmentState>,
-) -> bool {
+fn is_expiry_transition(kind: JournalEventKind, resolved_state: Option<CommitmentState>) -> bool {
     kind == JournalEventKind::Expired
         || (kind == JournalEventKind::Reconciled
             && resolved_state == Some(CommitmentState::Expired))
@@ -387,11 +397,9 @@ fn resulting_state(
         (Kind::OfferCreated, None, None) => Ok(State::FirmOffered),
         (Kind::Accepted, Some(State::FirmOffered), None) => Ok(State::Accepted),
         (Kind::Executing, Some(State::Accepted), None) => Ok(State::Executing),
-        (
-            Kind::Unresolved,
-            Some(State::FirmOffered | State::Accepted | State::Executing),
-            None,
-        ) => Ok(State::Unresolved),
+        (Kind::Unresolved, Some(State::FirmOffered | State::Accepted | State::Executing), None) => {
+            Ok(State::Unresolved)
+        }
         (Kind::Settled, Some(State::Executing), None) => Ok(State::Settled),
         (Kind::Rejected, Some(State::FirmOffered), None) => Ok(State::Rejected),
         (Kind::Expired, Some(State::FirmOffered), None) => Ok(State::Expired),
@@ -424,7 +432,12 @@ fn validate_resource_terminal_evidence(
     }
     let expected: BTreeMap<_, _> = resources
         .iter()
-        .map(|resource| (resource.resource_id.as_str(), resource.configuration_digest.as_str()))
+        .map(|resource| {
+            (
+                resource.resource_id.as_str(),
+                resource.configuration_digest.as_str(),
+            )
+        })
         .collect();
     let mut seen = BTreeSet::new();
     for item in evidence {
@@ -447,7 +460,10 @@ fn validate_resource_terminal_evidence(
                 false,
             )
         {
-            return Err(format!("terminal_resource_evidence_invalid:{}", item.resource_id));
+            return Err(format!(
+                "terminal_resource_evidence_invalid:{}",
+                item.resource_id
+            ));
         }
     }
     Ok(())
@@ -484,12 +500,17 @@ pub fn replay_journal(
             || event.commitment_id.trim().is_empty()
             || event.idempotency_key.trim().is_empty()
             || !event_ids.insert(event.event_id.as_str())
-            || state.idempotency_receipts.contains_key(&event.idempotency_key)
+            || state
+                .idempotency_receipts
+                .contains_key(&event.idempotency_key)
             || event.event_time_unix_ms < previous_event_time
             || event.event_time_unix_ms > decision_cutoff_unix_ms
             || !is_sha256(&event.payload_digest)
         {
-            return Err(format!("journal_event_order_identity_or_link_invalid:{}", event.sequence));
+            return Err(format!(
+                "journal_event_order_identity_or_link_invalid:{}",
+                event.sequence
+            ));
         }
 
         let event_digest = digest_event(event)?;
@@ -501,7 +522,10 @@ pub fn replay_journal(
         let prior_state = prior.map(|item| item.state);
         let target_state = resulting_state(event.kind, prior_state, event.resolved_state)?;
         if target_state != event.resulting_state {
-            return Err(format!("journal_resulting_state_mismatch:{}", event.sequence));
+            return Err(format!(
+                "journal_resulting_state_mismatch:{}",
+                event.sequence
+            ));
         }
 
         let contract = if event.kind == JournalEventKind::OfferCreated {
@@ -512,7 +536,10 @@ pub fn replay_journal(
                 .contract
                 .as_ref()
                 .ok_or_else(|| "offer_created_contract_missing".to_owned())?;
-            validate_contract(contract, event_time_origin(contract, event.event_time_unix_ms)?)?;
+            validate_contract(
+                contract,
+                event_time_origin(contract, event.event_time_unix_ms)?,
+            )?;
             let payload_digest = digest_contract(contract)?;
             if payload_digest != event.payload_digest {
                 return Err("offer_created_payload_digest_mismatch".to_owned());
@@ -563,16 +590,15 @@ pub fn replay_journal(
                 decision_cutoff_unix_ms,
             )?;
         } else if !event.resource_terminal_evidence.is_empty() {
-            return Err(format!("unexpected_resource_terminal_evidence:{}", event.sequence));
+            return Err(format!(
+                "unexpected_resource_terminal_evidence:{}",
+                event.sequence
+            ));
         }
 
-        if event.kind == JournalEventKind::Reconciled
-            && event.resolved_state.is_none()
-        {
+        if event.kind == JournalEventKind::Reconciled && event.resolved_state.is_none() {
             return Err("reconciliation_target_missing".to_owned());
-        } else if event.kind != JournalEventKind::Reconciled
-            && event.resolved_state.is_some()
-        {
+        } else if event.kind != JournalEventKind::Reconciled && event.resolved_state.is_some() {
             return Err("reconciliation_target_on_non_reconciliation_event".to_owned());
         }
 
@@ -586,7 +612,9 @@ pub fn replay_journal(
             version_after: event.sequence,
             idempotent_replay: false,
         };
-        state.idempotency_receipts.insert(event.idempotency_key.clone(), receipt);
+        state
+            .idempotency_receipts
+            .insert(event.idempotency_key.clone(), receipt);
         state.commitments.insert(
             event.commitment_id.clone(),
             ReplayedCommitment {
@@ -632,7 +660,10 @@ pub fn append_event(
             .contract
             .as_ref()
             .ok_or_else(|| "offer_created_contract_missing".to_owned())?;
-        validate_contract(contract, event_time_origin(contract, request.event_time_unix_ms)?)?;
+        validate_contract(
+            contract,
+            event_time_origin(contract, request.event_time_unix_ms)?,
+        )?;
         digest_contract(contract)?
     } else {
         if request.contract.is_some() {
@@ -674,7 +705,11 @@ pub fn append_event(
     if snapshot.events.len() >= MAX_EVENTS {
         return Err("journal_event_limit_reached".to_owned());
     }
-    if snapshot.events.iter().any(|event| event.event_id == request.event_id) {
+    if snapshot
+        .events
+        .iter()
+        .any(|event| event.event_id == request.event_id)
+    {
         return Err("duplicate_event_id".to_owned());
     }
 
@@ -727,7 +762,10 @@ pub fn append_event(
         return Err("unexpected_resource_terminal_evidence".to_owned());
     }
 
-    let previous_event_digest = snapshot.events.last().map(|event| event.event_digest.clone());
+    let previous_event_digest = snapshot
+        .events
+        .last()
+        .map(|event| event.event_digest.clone());
     let sequence = snapshot
         .version
         .checked_add(1)
@@ -853,7 +891,10 @@ pub fn evaluate_journal_scenario(
         }
     }
 
-    let last_event_digest = snapshot.events.last().map(|event| event.event_digest.clone());
+    let last_event_digest = snapshot
+        .events
+        .last()
+        .map(|event| event.event_digest.clone());
     let replay_digest = sha256_hex(
         &serde_json::to_vec(&snapshot)
             .map_err(|error| format!("snapshot_serialization_failed:{error}"))?,
@@ -885,8 +926,10 @@ mod tests {
     use std::thread;
 
     fn scenario() -> JournalScenario {
-        serde_json::from_str(include_str!("../fixtures/mobility_commitment_journal_v0_1.json"))
-            .expect("frozen journal scenario must parse")
+        serde_json::from_str(include_str!(
+            "../fixtures/mobility_commitment_journal_v0_1.json"
+        ))
+        .expect("frozen journal scenario must parse")
     }
 
     fn first_request() -> AppendRequest {
@@ -1017,12 +1060,17 @@ mod tests {
             j2.append(&r2, cutoff)
         });
         barrier.wait();
-        let results = [t1.join().expect("writer one"), t2.join().expect("writer two")];
+        let results = [
+            t1.join().expect("writer one"),
+            t2.join().expect("writer two"),
+        ];
         assert_eq!(results.iter().filter(|result| result.is_ok()).count(), 1);
         assert_eq!(
             results
                 .iter()
-                .filter(|result| result.as_ref().is_err_and(|error| error.starts_with("version_conflict")))
+                .filter(|result| result
+                    .as_ref()
+                    .is_err_and(|error| error.starts_with("version_conflict")))
                 .count(),
             1
         );
@@ -1094,7 +1142,11 @@ mod tests {
             .append(&request, input.decision_time_unix_ms)
             .expect("first append");
         let mut changed = request;
-        changed.contract.as_mut().expect("contract").resource_allocations[0]
+        changed
+            .contract
+            .as_mut()
+            .expect("contract")
+            .resource_allocations[0]
             .energy_wh_by_slot[1] += 1;
         let result = journal.append(&changed, input.decision_time_unix_ms);
         assert_eq!(
@@ -1146,7 +1198,10 @@ mod tests {
             .expect("independent reconciliation");
         let replay = replay_journal(&result.snapshot, input.decision_time_unix_ms)
             .expect("replay after reconciliation");
-        assert_eq!(replay.commitments["lease-001"].state, CommitmentState::Settled);
+        assert_eq!(
+            replay.commitments["lease-001"].state,
+            CommitmentState::Settled
+        );
         assert_eq!(result.snapshot.version, 5);
     }
 
@@ -1198,8 +1253,8 @@ mod tests {
         let input = scenario();
         let mut snapshot = append_all();
         snapshot.events[1].previous_event_digest = Some("sha256:".to_owned() + &"0".repeat(64));
-        let error = replay_journal(&snapshot, input.decision_time_unix_ms)
-            .expect_err("broken event link");
+        let error =
+            replay_journal(&snapshot, input.decision_time_unix_ms).expect_err("broken event link");
         assert!(error.starts_with("journal_event_order_identity_or_link_invalid"));
     }
 
