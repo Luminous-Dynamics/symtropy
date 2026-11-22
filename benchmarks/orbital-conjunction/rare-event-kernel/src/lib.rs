@@ -26,8 +26,10 @@ use core::fmt;
 
 /// Outward-rounded affine geometry used by the independent coverage research.
 pub mod coverage;
+pub mod sequential;
 pub mod stats;
 
+pub use sequential::{BernoulliConfidenceSequence, BernoulliMixtureEProcess};
 pub use stats::{WeightedEventAccumulator, WeightedEventSummary};
 
 pub use coverage::{
@@ -64,6 +66,10 @@ pub enum KernelError {
     InvalidHardBodyRadius,
     /// A streaming sample or event-contribution counter would overflow.
     CounterOverflow,
+    /// A probability is non-finite or outside the closed interval [0, 1].
+    InvalidProbability,
+    /// A sequential error probability is not strictly between zero and one.
+    InvalidAlpha,
     /// A nonzero half-space normal has zero projected variance.
     ZeroProjectedVariance,
     /// A mathematically required intermediate exceeds the representable range.
@@ -91,6 +97,8 @@ impl fmt::Display for KernelError {
             Self::InvalidRadius => "radius must be strictly positive and finite",
             Self::InvalidHardBodyRadius => "hard-body radius must be nonnegative and finite",
             Self::CounterOverflow => "streaming observation counter overflowed",
+            Self::InvalidProbability => "probability must be finite and lie in [0, 1]",
+            Self::InvalidAlpha => "alpha must be finite and lie strictly between 0 and 1",
             Self::ZeroProjectedVariance => "half-space projection has zero variance",
             Self::NumericalOverflow => "numerical intermediate is outside the representable range",
             Self::ProposalHasZeroDensity => "proposal density is zero at the evaluation point",
