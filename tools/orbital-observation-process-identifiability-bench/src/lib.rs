@@ -1,4 +1,6 @@
 use serde::{Deserialize, Serialize};
+
+pub mod pod;
 use std::collections::HashSet;
 
 const CORPUS_SCHEMA: &str = "luminous.orbital-observation-identifiability.corpus.v0.1";
