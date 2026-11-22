@@ -30,7 +30,7 @@ impl Rational {
             || self.denominator > MAX_SAFE_INTEGER
         {
             return Err(
-                "probability fractions must be in [0,1] with safe nonzero denominators".to_owned(),
+                "rational values must be in [0,1] with safe nonzero denominators".to_owned(),
             );
         }
         Ok(())
