@@ -4,25 +4,40 @@
   "status": "passed_exact_committed_fixture_and_verifier_replay",
   "local_source_sha256": "527def539b76a8cf7b11b0df39b7902228310242ca6550418d7f470ae6d556f2",
   "local_infinity_jet_output_sha256": "20f8ec05e3581db9279129cd76c531b8f8104fc55a67b22fc2d2c3fb6771b56c",
+  "committed_fixture": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/spin2_mp_infinity_resonance_v1.json",
+    "git_blob_sha1": "b7529228820103189bf60207727866fb365ddfac",
+    "exact_bytes_replayed": true,
+    "sha256": "83833d44af5b510d7bf63bbd1176f0ff1797e3f0825e572399149e03d537bca9"
+  },
+  "committed_verifier": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_spin2_mp_infinity_resonance.py",
+    "git_blob_sha1": "cc66de5612eab5427368aa150e997478a99d2094",
+    "exact_bytes_replayed": true,
+    "sha256": "22678bed391925a603413caab9ca8f4b445418168c7d6cb6980ed78c236a6daf"
+  },
   "environment": {
     "python": "3.13.5",
     "sympy": "1.14.0"
   },
-  "exact_committed_replay": {
-    "fixture_blob_sha": "c855d38634a3536e0e9afab5c4f0009792850c20",
-    "verifier_blob_sha": "a7c4995fcf1218e63fb2c0f371b862385312e217",
-    "result": "pending_execution_after_sign_correction"
+  "result": {
+    "status": "passed_exact_rational_infinity_resonance_replay",
+    "n1_matrix_determinant": "+5",
+    "n2_matrix_rank": 2,
+    "n2_matrix_nullity": 2,
+    "bounded_n2_resonance_compatible": true,
+    "two_independent_r_minus_2_modes": true
   },
   "checks": {
     "A0_A1_A2_infinity_coefficients_exact": true,
     "g0_g1_g2_infinity_source_coefficients_exact": true,
     "n0_constant_mode_compatible": true,
     "n1_matrix_invertible": true,
-    "n1_determinant": "+5",
+    "n1_determinant_corrected_plus_five": true,
     "n2_matrix_rank2_nullity2": true,
     "n2_resonance_compatibility_exact": true,
     "two_decaying_eigenmodes_independent": true,
-    "exact_myers_perry_full_log_radius_evolution_checked": true
+    "exact_myers_perry_full_log_radius_evolution_checked_locally": true
   },
-  "evidence_boundary": "The previously committed fixture/verifier exposed a sign error in the reported n=1 determinant (the exact value is +5, not -5). The fixture, verifier, prose, and receipt are being corrected; do not rely on the previous replay claim until the corrected exact Git blobs are run. No global boundary-map rank or finite-coupling result is claimed."
+  "evidence_boundary": "The committed fixture and verifier were fetched by exact Git blob and replayed locally. The verifier corrected and confirmed det(-I-A_infinity,0)=+5. The action-specialized local source was run to derive the x jets and checked against exact Myers-Perry log-radius evolution; the public source's exact-byte replay remains pending. No global boundary-map rank or finite-coupling result is claimed."
 }
