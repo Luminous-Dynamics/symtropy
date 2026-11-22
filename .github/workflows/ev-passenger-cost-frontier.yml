@@ -136,7 +136,7 @@ jobs:
                   | (($pack | keys | sort) == $pack_required)
                   and (
                     [
-                      $pack.state_evidence,
+                      $pack.state_evidence.evidence,
                       $pack.identity_verification.evidence,
                       $pack.custody_resolution.evidence,
                       $pack.post_test.evidence,
