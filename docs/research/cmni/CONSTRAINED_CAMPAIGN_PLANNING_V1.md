@@ -85,3 +85,8 @@ This is a small finite-state exact oracle. It is not yet:
 Next: add explicit campaign resources (time, apparatus, sample inventory), source-evidence state transitions, a branch-specific joint likelihood interface for history-dependent dependence, and approximate planners benchmarked against this oracle.
 
 Do not claim superiority over the ICML 2026 online-planning method until a matched reproduction and held-out comparison exists.
+
+
+### Cross-check against the one-step EVSI implementation
+
+The depth-one scenario-tree regression now invokes the public `recommend_finite_decision_step` function from the parent finite decision module using the same prior, utilities, single-option likelihood, cost conversion, and budget. It asserts that the one-step campaign value matches that independently implemented finite EVSI net benefit to (10^{-12}). This makes the myopic baseline an executable cross-module parity check rather than only a shared hard-coded expected value.
