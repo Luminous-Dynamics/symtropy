@@ -36,7 +36,7 @@ jobs:
             and ([.cases[] | select(.effect == "unknown" and .expected == "hold")] | length >= 1)
             and ([.cases[] | select(.effect == "partial" and .expected == "hold")] | length >= 1)
             and ([.cases[] | select(.effect == "disputed" and .expected == "hold")] | length >= 1)
-            and all(.cases[]; .native_sink_calls == 0)
+            and (.cases | all(.[]; .native_sink_calls == 0))
           ' research/mobility-restart-reconciliation/conformance_cases_v0_1.json
       - name: Check formatting
         run: cargo fmt --manifest-path research/mobility-restart-reconciliation/Cargo.toml -- --check
