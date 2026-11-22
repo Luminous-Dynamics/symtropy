@@ -426,7 +426,7 @@ mod tests {
                 covered_chart_boxes: &[chart],
                 cube_radius: 4.0,
                 max_cells: 4096,
-                max_depth: 24,
+                max_depth: 12,
             },
         )
         .expect("valid disconnected event union");
