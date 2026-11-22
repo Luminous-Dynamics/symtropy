@@ -9,3 +9,4 @@ pub mod integrity_evidence;
 pub mod mission_risk_budget;
 pub mod temporal_alignment_envelope;
 pub mod ds_twr_integrity;
+pub mod secure_session_evidence;
