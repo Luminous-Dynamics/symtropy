@@ -41,8 +41,12 @@ jobs:
             | .version == "0.1"
               and ($cases | length >= 8)
               and ([$cases[].case_id] | length == ([$cases[].case_id] | unique | length))
-              and ([$cases[] | select(.expected == "ready_for_owner_native_revalidation")] | length >= 1)
+              and ([$cases[] | select(.expected == "ready_for_owner_native_revalidation" and .no_effect_evidence == "confirmed" and .downstream_evidence == "confirmed")] | length >= 1)
               and ([$cases[] | select(.expected == "hold")] | length >= 1)
+              and ([$cases[] | select(.downstream_evidence == "refuted" and .expected == "hold")] | length >= 1)
+              and ([$cases[] | select(.downstream_evidence == "insufficient_evidence" and .expected == "hold")] | length >= 1)
+              and ([$cases[] | select(.no_effect_evidence == "refuted" and .expected == "hold")] | length >= 1)
+              and ([$cases[] | select(.no_effect_evidence == "insufficient_evidence" and .expected == "hold")] | length >= 1)
               and all($cases[]; .native_sink_calls == 0 and .authority_capabilities == [])
           ' research/mobility-rrvr-composition/fixtures/rrvr_composition_cases_v0_1.json
       - name: Check formatting
