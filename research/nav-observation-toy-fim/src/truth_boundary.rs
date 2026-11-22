@@ -522,6 +522,31 @@ mod tests {
     }
 
     #[test]
+    fn failed_acquisition_uses_prior_decision_without_fabricating_confidence() {
+        let proposal = controller_propose(&input()).unwrap();
+        let event = event_for(&proposal, AcquisitionStatus::Failed);
+        let decision = controller_decide_after_acquisition(&proposal, &event).unwrap();
+        assert_eq!(decision.claim_state_one, proposal.claim_state_one);
+        assert_eq!(decision.decision_confidence_ppm, None);
+        assert_eq!(decision.proposal_bytes, proposal.canonical_bytes());
+    }
+
+    #[test]
+    fn invalid_acquisition_probability_fails_before_evaluator_scoring() {
+        let proposal = controller_propose(&input()).unwrap();
+        let event = event_for(
+            &proposal,
+            AcquisitionStatus::Succeeded {
+                outcome_state_one_ppm: 1_000_001,
+            },
+        );
+        assert_eq!(
+            controller_decide_after_acquisition(&proposal, &event),
+            Err(BoundaryError::InvalidBelief)
+        );
+    }
+
+    #[test]
     fn abstention_cannot_be_followed_by_an_acquisition_event() {
         let mut public = input();
         public.candidates.clear();
