@@ -528,15 +528,15 @@ fn prove_box_interval_total_order(
     let mut prefix_max: Option<(i64, SourceEventRef)> = None;
     for (event, _, evidence, _) in box_events.iter() {
         let earliest = evidence.interval().earliest();
-        if let Some((latest, previous_event)) = &prefix_max {
-            if *latest >= earliest {
-                return Err(QualifiedTimelineError::OrderNotProven {
-                    box_id: box_id.to_string(),
-                    first_event: previous_event.clone(),
-                    second_event: event.clone(),
-                    relation: TemporalRelation::UnresolvedOverlap,
-                });
-            }
+        if let Some((latest, previous_event)) = &prefix_max
+            && *latest >= earliest
+        {
+            return Err(QualifiedTimelineError::OrderNotProven {
+                box_id: box_id.to_string(),
+                first_event: previous_event.clone(),
+                second_event: event.clone(),
+                relation: TemporalRelation::UnresolvedOverlap,
+            });
         }
 
         let latest = evidence.interval().latest();
@@ -998,7 +998,7 @@ mod tests {
                     if optimized.is_ok() {
                         for pair in box_events.windows(2) {
                             assert_eq!(
-                                compare_time_evidence(&pair[0].2, &pair[1].2),
+                                compare_time_evidence(pair[0].2, pair[1].2),
                                 TemporalRelation::ProvenBefore
                             );
                         }
