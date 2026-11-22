@@ -90,12 +90,13 @@ def apply_mutation(study: dict, mutation: dict) -> None:
             raise ValueError(f"missing inspector {inspector_id}")
         return
 
-    inspector = next((item for item in inspectors if item["inspector_id"] == inspector_id), None)
-    if inspector is None:
-        raise ValueError(f"missing inspector {inspector_id}")
     if operation == "set_scope_sha256":
         study["scope_sha256"] = mutation["value"]
         return
+
+    inspector = next((item for item in inspectors if item["inspector_id"] == inspector_id), None)
+    if inspector is None:
+        raise ValueError(f"missing inspector {inspector_id}")
     if operation == "set_calibration_valid":
         inspector["calibration_valid"] = mutation["value"]
         return
