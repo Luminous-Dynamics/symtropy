@@ -13,6 +13,7 @@ description = "Non-authorizing composition of restart, downstream fence and evid
 mobility-restart-reconciliation = { path = "../mobility-restart-reconciliation" }
 mobility-downstream-fence = { path = "../mobility-downstream-fence" }
 mobility-evidence-verdict = { path = "../mobility-evidence-verdict" }
+mobility-observer-assurance = { path = "../mobility-observer-assurance" }
 
 [lib]
 path = "src/lib.rs"
