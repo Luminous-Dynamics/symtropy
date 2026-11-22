@@ -166,3 +166,30 @@ The two columns of \(J_1\) are obtained by applying the fixed, declared forbidde
 7. Include wrong-sign forcing, swapped horizon-data normalization, and an altered asymptotic growing-mode projector as negative controls.
 
 **Claim ceiling:** the offset derivative is fixed by existing exact results. Neither column of \(J_1\), the determinant derivative, nor finite-coupling invertibility is established by this section.
+
+
+### First-order interpretation of the unknown matrix derivative
+
+Write
+\[
+J_1=\begin{pmatrix}a&b\\c&d\end{pmatrix},
+\qquad
+J(\lambda)=
+\begin{pmatrix}1/2&0\\0&2\end{pmatrix}
++\lambda J_1+O(\lambda^2).
+\]
+Then the matrix derivative has three useful exact consequences:
+\[
+\boxed{\det J(\lambda)=1+\lambda(2a+d/2)+O(\lambda^2),}
+\]
+\[
+\boxed{\sigma_{\min}(J(\lambda))=1/2+\lambda a+O(\lambda^2),\quad
+\sigma_{\max}(J(\lambda))=2+\lambda d+O(\lambda^2),}
+\]
+and, while the singular-value ordering remains unchanged,
+\[
+\boxed{\kappa_2(J(\lambda))=4+\lambda(2d-8a)+O(\lambda^2).}
+\]
+The off-diagonal entries \(b,c\) describe first-order mixing of the two endpoint directions; they do not enter the first derivatives of the singular values or determinant because the Einstein-limit singular values are distinct and the base map is diagonal. They must nevertheless be retained: mode mixing can be physically and numerically important, and it enters higher-order conditioning.
+
+Consequently, report the full four-entry \(J_1\), not only its determinant slope or condition-number slope. The two scalar slopes are useful independent algebraic checks on the extracted matrix, not substitutes for it.
