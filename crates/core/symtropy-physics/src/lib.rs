@@ -36,7 +36,7 @@ pub use articulation::{ArticulatedChain, ChainBuilder, LinkSpec};
 pub use body::{BodyHandle, BodyType, NetId, RigidBody};
 pub use broadphase::{Aabb, Lbvh, morton_encode, morton_prefix};
 pub use constraint::Constraint;
-pub use contact::{CollisionEvent, ContactCache, ContactManifold, SensorEvent};
+pub use contact::{CollisionEvent, ContactCache, ContactCacheLookupError, ContactManifold, SensorEvent};
 pub use diagnostics::{InvariantDrift, InvariantSnapshot};
 pub use epa::EpaResult;
 pub use integrator::nan_zeroed_count;
