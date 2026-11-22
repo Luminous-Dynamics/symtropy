@@ -35,6 +35,8 @@ cargo clippy --locked --manifest-path benchmarks/orbital-conjunction/rare-event-
 
 The package has its own Cargo workspace and does not require the full Symtropy/Bevy workspace.
 
+The current authored test corpus contains 56 unit tests across the analytic probability, affine coverage, and weighted-statistics modules. Only a completed exact-head workflow establishes that a particular revision passed them.
+
 ## Important limitations
 
 - The covariance floor helper checks only the matrix inequality. It does not prove all assumptions of the constrained-mixture finite-variance theorem.
