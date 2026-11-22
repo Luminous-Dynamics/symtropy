@@ -1,8 +1,3 @@
-pub mod tlc_json;
-pub use tlc_json::{
-    import_tlc_json_trace, trace_bundle_to_json_value, TlcImportContext, TlcImportError,
-};
-
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
@@ -16,6 +11,11 @@ pub use tlc_json::{
 //! This crate validates and minimizes supplied event schedules. It does not
 //! execute ROS, a simulator, hardware, a TLA+ model or a native sink. The replay
 //! oracle remains an independently versioned owner-supplied implementation.
+
+pub mod tlc_json;
+pub use tlc_json::{
+    import_tlc_json_trace, trace_bundle_to_json_value, TlcImportContext, TlcImportError,
+};
 
 use std::collections::BTreeSet;
 
