@@ -39,6 +39,9 @@ jobs:
           toolchain: 1.96.0
           components: rustfmt, clippy
 
+      - name: Generate Cargo lockfile for exact pinned package
+        run: cargo generate-lockfile --manifest-path tools/orbital-reliability-plp-gof-bench/Cargo.toml
+
       - name: Check formatting
         run: cargo fmt --manifest-path tools/orbital-reliability-plp-gof-bench/Cargo.toml -- --check
 
@@ -96,11 +99,12 @@ jobs:
             and .authority_granted == false
           ' orbital-plp-outer-null-calibration.json
 
-      - name: Upload reproducible conditional GOF and calibration receipts
+      - name: Upload generated lockfile and conditional GOF receipts
         uses: actions/upload-artifact@v4
         with:
           name: orbital-plp-conditional-gof-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
+            tools/orbital-reliability-plp-gof-bench/Cargo.lock
             orbital-plp-conditional-gof-receipt.json
             orbital-plp-outer-null-calibration.json
           if-no-files-found: error
