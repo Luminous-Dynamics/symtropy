@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "5d_einstein_limit_spin2_exact_global_boundary_map",
+  "status": "exact_global_horizon_to_infinity_map_derived",
+  "conventions": {
+    "dimension": 5,
+    "alpha": "0",
+    "r_H": "1",
+    "spin_order": "O(a^2)",
+    "gauge_order": "vary b,f,g,h,w independently; then impose g=r^2",
+    "horizon_normalization": "Bhat2(1)=0",
+    "free_data": [
+      "b1=Bhat2'(1)",
+      "h0=Hhat2(1)"
+    ]
+  },
+  "reduced_operator": {
+    "principal_matrix": [
+      [
+        "3*r**3/4",
+        "-1/(4*r)"
+      ],
+      [
+        "-1/(4*r)",
+        "(2*r**2-1)**2/(12*r**5)"
+      ]
+    ],
+    "determinant": "(r - 1)*(r + 1)/4",
+    "algebraic_Ef_pivot": "3*r**5/((r - 1)**2*(r + 1)**2)",
+    "lower_order_matrix": [
+      [
+        "0",
+        "9*r**2/4",
+        "-2/r**3",
+        "5/(4*r**2)"
+      ],
+      [
+        "0",
+        "-3/(4*r**2)",
+        "(-8*r**4 - 4*r**2 + 2)/(3*r**7)",
+        "(-4*r**4 + 12*r**2 - 5)/(12*r**6)"
+      ]
+    ],
+    "source": [
+      "-12/r**5",
+      "(16*r**2 + 12)/(3*r**9)"
+    ]
+  },
+  "exact_global_solution": {
+    "Bhat2": "(1 - 1/r**2)*(b1/2 + 2) - 1/r**2 + r**(-6)",
+    "Fhat2": "-(r - 1)*(r + 1)*(2*h0*r**4 - h0*r**2 - 2*r**4 + r**2 + 1)/r**4",
+    "Hhat2": "(h0 - 1)*(2*r**4 - r**2) + r**(-2)",
+    "horizon_data": {
+      "B2_1": "0",
+      "B2_prime_1": "b1",
+      "F2_1": "0",
+      "F2_prime_1": "-2*h0",
+      "H2_1": "h0",
+      "H2_prime_1": "6*h0-8"
+    },
+    "homogeneous_basis": [
+      {
+        "Bhat2": "(1-r^(-2))/2",
+        "Fhat2": "0",
+        "Hhat2": "0",
+        "infinity_image": [
+          "1/2",
+          "0"
+        ]
+      },
+      {
+        "Bhat2": "0",
+        "Fhat2": "-2*r^2+3-r^(-2)",
+        "Hhat2": "2*r^4-r^2",
+        "infinity_image": [
+          "0",
+          "2"
+        ]
+      }
+    ]
+  },
+  "global_boundary_map": {
+    "outputs": [
+      "C_B=lim Bhat2",
+      "C_H=lim Hhat2/r^4"
+    ],
+    "map": [
+      "C_B=(b1+4)/2",
+      "C_H=2*(h0-1)"
+    ],
+    "additional_asymptotic_consistency": {
+      "C_F2": "lim Fhat2/r^2 = -2*(h0-1)",
+      "C_F2_plus_C_H": "0"
+    },
+    "jacobian": [
+      [
+        "1/2",
+        "0"
+      ],
+      [
+        "0",
+        "2"
+      ]
+    ],
+    "determinant": "1",
+    "singular_values": [
+      "1/2",
+      "2"
+    ],
+    "euclidean_condition_number": "4",
+    "inverse": [
+      "b1=2*C_B-4",
+      "h0=C_H/2+1"
+    ],
+    "asymptotically_flat_parameters": {
+      "b1": "-4",
+      "h0": "1"
+    },
+    "unique_asymptotically_flat_profiles": {
+      "Bhat2": "-r^(-2)+r^(-6)",
+      "Fhat2": "-r^(-2)+r^(-4)",
+      "Hhat2": "r^(-2)"
+    }
+  },
+  "checks": {
+    "all_four_original_even_rows_exact_zero": true,
+    "both_homogeneous_modes_exact_zero": true,
+    "principal_determinant_exact": true,
+    "principal_matrix_positive_determinant_for_r_gt_1": true,
+    "Ef_algebraic_pivot_positive_for_r_gt_1": true,
+    "horizon_compatibility_exact": true,
+    "F2_H2_growing_modes_consistent": true,
+    "global_boundary_map_exact": true,
+    "global_map_full_rank": true,
+    "global_map_determinant_one": true,
+    "global_map_condition_number_four": true,
+    "asymptotically_flat_solution_unique_in_horizon_regular_family": true,
+    "Myers_Perry_known_answer_recovered": true
+  },
+  "derivation": {
+    "source_sha256": "7a62a78e344cf024d474a3d226f0762f7b2095e8256ec7b1cc098f04486f8fe0",
+    "sympy_version": "1.14.0",
+    "arithmetic": "exact symbolic algebra"
+  },
+  "claim_ceiling": "Exact global map and unique asymptotically flat analytic-horizon solution for the 5D alpha=0 O(a^2) action-derived perturbative system with Bhat2(1)=0. This does not prove finite-coupling EGB uniqueness, full nonlinear uniqueness, interval existence, a finite-coupling validated branch, or PDE hyperbolicity."
+}
