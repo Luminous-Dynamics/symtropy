@@ -417,45 +417,62 @@ def evaluate_document(document: dict[str, Any]) -> dict[str, Any]:
                 math.ceil((media_duration_ms / 1000.0) * rates[index] - 1e-12),
             )
             frame_manifest = run["frame_manifest"]
-            if len(frame_manifest) != expected_frames:
+            if len(frame_manifest) > expected_frames:
                 raise MinFpsEvaluationError(
-                    f"{seed_id}@{rates[index]:g}fps: frame count does not match media duration and nominal FPS"
-                )
-            if frame_manifest[0]["timestamp_ms"] > sampling_tolerance_ms:
-                raise MinFpsEvaluationError(
-                    f"{seed_id}@{rates[index]:g}fps: fixed-rate sampling must begin at the declared zero-time phase"
-                )
-            if frame_manifest[-1]["timestamp_ms"] > media_duration_ms:
-                raise MinFpsEvaluationError(
-                    f"{seed_id}@{rates[index]:g}fps: frame timestamp exceeds media duration"
+                    f"{seed_id}@{rates[index]:g}fps: delivered frame count exceeds the nominal schedule"
                 )
             expected_period = 1000.0 / rates[index]
-            for earlier, later in zip(frame_manifest, frame_manifest[1:]):
-                delta = later["timestamp_ms"] - earlier["timestamp_ms"]
-                if abs(delta - expected_period) > sampling_tolerance_ms:
+            for frame in frame_manifest:
+                schedule_index = round(frame["timestamp_ms"] / expected_period)
+                scheduled_timestamp = schedule_index * expected_period
+                if abs(frame["timestamp_ms"] - scheduled_timestamp) > sampling_tolerance_ms:
                     raise MinFpsEvaluationError(
-                        f"{seed_id}@{rates[index]:g}fps: frame spacing does not match the declared fixed rate"
+                        f"{seed_id}@{rates[index]:g}fps: frame timestamp is outside the fixed-rate schedule"
                     )
+                if frame["timestamp_ms"] > media_duration_ms:
+                    raise MinFpsEvaluationError(
+                        f"{seed_id}@{rates[index]:g}fps: frame timestamp exceeds media duration"
+                    )
+            if run["run_status"] == "COMPLETED":
+                if len(frame_manifest) != expected_frames:
+                    raise MinFpsEvaluationError(
+                        f"{seed_id}@{rates[index]:g}fps: completed run omitted scheduled frames"
+                    )
+                if frame_manifest[0]["timestamp_ms"] > sampling_tolerance_ms:
+                    raise MinFpsEvaluationError(
+                        f"{seed_id}@{rates[index]:g}fps: fixed-rate sampling must begin at the declared zero-time phase"
+                    )
+                for earlier, later in zip(frame_manifest, frame_manifest[1:]):
+                    delta = later["timestamp_ms"] - earlier["timestamp_ms"]
+                    if abs(delta - expected_period) > sampling_tolerance_ms:
+                        raise MinFpsEvaluationError(
+                            f"{seed_id}@{rates[index]:g}fps: frame spacing does not match the declared fixed rate"
+                        )
 
-        # Each seed has its own nested sampling manifest. Lower-rate frames
-        # must appear at exactly the same timestamps in all higher-rate runs.
-        for index in range(len(parsed) - 1):
-            lower = {
-                frame["frame_id"]: frame["timestamp_ms"]
-                for frame in parsed[index]["frame_manifest"]
-            }
-            higher = {
-                frame["frame_id"]: frame["timestamp_ms"]
-                for frame in parsed[index + 1]["frame_manifest"]
-            }
-            if not set(lower).issubset(higher):
-                raise MinFpsEvaluationError(
-                    f"{seed_id}: frame set at {rates[index]:g} FPS is not nested in {rates[index+1]:g} FPS"
-                )
-            if any(lower[frame_id] != higher[frame_id] for frame_id in lower):
-                raise MinFpsEvaluationError(
-                    f"{seed_id}: a shared frame ID has different timestamps across FPS conditions"
-                )
+        # Compare only completed sampling manifests: failed attempts may have
+        # partial delivery, which remains in the outcome denominator.
+        completed_indices = [
+            index for index, run in enumerate(parsed)
+            if run["run_status"] == "COMPLETED"
+        ]
+        for left_position, left_index in enumerate(completed_indices):
+            for right_index in completed_indices[left_position + 1:]:
+                lower = {
+                    frame["frame_id"]: frame["timestamp_ms"]
+                    for frame in parsed[left_index]["frame_manifest"]
+                }
+                higher = {
+                    frame["frame_id"]: frame["timestamp_ms"]
+                    for frame in parsed[right_index]["frame_manifest"]
+                }
+                if not set(lower).issubset(higher):
+                    raise MinFpsEvaluationError(
+                        f"{seed_id}: frame set at {rates[left_index]:g} FPS is not nested in {rates[right_index]:g} FPS"
+                    )
+                if any(lower[frame_id] != higher[frame_id] for frame_id in lower):
+                    raise MinFpsEvaluationError(
+                        f"{seed_id}: a shared frame ID has different timestamps across FPS conditions"
+                    )
 
     if len(seed_ids) < min_seed_count:
         raise MinFpsEvaluationError("seed count is below the preregistered minimum_seed_count")
