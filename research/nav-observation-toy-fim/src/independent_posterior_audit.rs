@@ -289,7 +289,7 @@ pub fn audit_independent_posterior_3d(
     // matrix, regardless of how many rows it contains. This avoids inflating
     // geometric support by duplicating observations from one declared cause.
     let mut geometry_matrix = [[0.0_f64; DIM]; DIM];
-    for (_, (group_matrix, count)) in &group_matrices {
+    for (group_matrix, count) in group_matrices.values() {
         if *count == 0 {
             return Err(IndependentPosteriorAuditError::ArithmeticOverflow);
         }
@@ -300,9 +300,9 @@ pub fn audit_independent_posterior_3d(
         }
     }
     let group_scale = dependency_group_count as f64;
-    for row in 0..DIM {
-        for column in 0..DIM {
-            geometry_matrix[row][column] /= group_scale;
+    for row in &mut geometry_matrix {
+        for value in row {
+            *value /= group_scale;
         }
     }
 
@@ -389,7 +389,7 @@ fn symmetric_eigenvalues_3x3(
         let cosine = 1.0 / (1.0 + tangent * tangent).sqrt();
         let sine = tangent * cosine;
 
-        for index in 0..DIM {
+        for index in [0, 1, 2] {
             if index != p && index != q {
                 let aip = matrix[index][p];
                 let aiq = matrix[index][q];
@@ -429,7 +429,7 @@ mod tests {
     }
 
     fn constraints_at_origin() -> Vec<RangeSetConstraint3d> {
-        let anchors = [
+        let anchors: [(u32, u64, [f64; 3]); 4] = [
             (1, 1, [10.0, 0.0, 0.0]),
             (2, 2, [0.0, 10.0, 0.0]),
             (3, 3, [0.0, 0.0, 10.0]),
