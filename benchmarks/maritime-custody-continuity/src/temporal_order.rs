@@ -175,6 +175,7 @@ pub enum ClockBoundError {
     ErrorBudgetOverflow,
     CalibrationOutsideValidityWindow,
     IntervalOverflow,
+    InvalidTimeEvidence(TemporalOrderError),
 }
 
 /// A clock profile with a mandatory, conservative error budget. The
