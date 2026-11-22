@@ -1049,7 +1049,9 @@ impl RuntimeProjectionRecording {
 
             let graph_status =
                 owner_evidence_by_domain(s, OwnerEvidenceDomain::DownstreamExecutionGraph)?.status;
-            let expected_graph_status = if state_downstream_fence == state_boot {
+            let expected_graph_status = if state_downstream_fence == state_boot
+                || bool_field(&s.state_s, "admittedDownstreamFence")?
+            {
                 OwnerEvidenceStatus::Confirmed
             } else if state_downstream_fence == 0 {
                 OwnerEvidenceStatus::NotApplicable
