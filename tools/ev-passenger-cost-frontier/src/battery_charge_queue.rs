@@ -133,6 +133,15 @@ struct ExactChargeSearch<'a> {
     best: Option<SearchBest>,
 }
 
+struct ChargeSearchState {
+    selected: Vec<Option<CandidatePlacement>>,
+    charger_busy: Vec<Vec<bool>>,
+    grid_used_w: Vec<u32>,
+    served: usize,
+    total_wait_slots: u64,
+    makespan_slot: u8,
+}
+
 fn add_error(errors: &mut Vec<String>, message: impl Into<String>) {
     errors.push(message.into());
 }
@@ -186,23 +195,15 @@ fn slot_time_ms(
 }
 
 impl ExactChargeSearch<'_> {
-    fn search(
-        &mut self,
-        job_index: usize,
-        selected: &mut Vec<Option<CandidatePlacement>>,
-        charger_busy: &mut [Vec<bool>],
-        grid_used_w: &mut [u32],
-        served: usize,
-        total_wait_slots: u64,
-        makespan_slot: u8,
-    ) {
+    fn search(&mut self, state: &mut ChargeSearchState) {
         self.nodes += 1;
+        let job_index = state.selected.len();
         if job_index == self.candidates.len() {
             let candidate = SearchBest {
-                served,
-                total_wait_slots,
-                makespan_slot,
-                selected: selected.clone(),
+                served: state.served,
+                total_wait_slots: state.total_wait_slots,
+                makespan_slot: state.makespan_slot,
+                selected: state.selected.clone(),
             };
             if self
                 .best
@@ -221,48 +222,54 @@ impl ExactChargeSearch<'_> {
             let end = usize::from(placement.end_slot_exclusive);
             let power = placement.requested_power_w;
 
-            let charger_free = (start..end).all(|slot| !charger_busy[charger_index][slot]);
-            let grid_feasible = (start..end).all(|slot| {
-                grid_used_w[slot]
-                    .checked_add(power)
-                    .is_some_and(|total| total <= self.slot_power_headroom_w[slot])
-            });
+            let charger_free = state.charger_busy[charger_index][start..end]
+                .iter()
+                .all(|occupied| !occupied);
+            let grid_feasible = state.grid_used_w[start..end]
+                .iter()
+                .zip(&self.slot_power_headroom_w[start..end])
+                .all(|(&used_power, &headroom)| {
+                    used_power
+                        .checked_add(power)
+                        .is_some_and(|total| total <= headroom)
+                });
             if !charger_free || !grid_feasible {
                 continue;
             }
 
-            for slot in start..end {
-                charger_busy[charger_index][slot] = true;
-                grid_used_w[slot] += power;
+            for (occupied, used_power) in state.charger_busy[charger_index][start..end]
+                .iter_mut()
+                .zip(state.grid_used_w[start..end].iter_mut())
+            {
+                *occupied = true;
+                *used_power += power;
             }
-            selected.push(Some(placement.clone()));
-            self.search(
-                job_index + 1,
-                selected,
-                charger_busy,
-                grid_used_w,
-                served + 1,
-                total_wait_slots + u64::from(placement.wait_slots),
-                makespan_slot.max(placement.end_slot_exclusive),
-            );
-            selected.pop();
-            for slot in start..end {
-                charger_busy[charger_index][slot] = false;
-                grid_used_w[slot] -= power;
+
+            let previous_makespan = state.makespan_slot;
+            state.selected.push(Some(placement.clone()));
+            state.served += 1;
+            state.total_wait_slots += u64::from(placement.wait_slots);
+            state.makespan_slot = state
+                .makespan_slot
+                .max(placement.end_slot_exclusive);
+            self.search(state);
+            state.makespan_slot = previous_makespan;
+            state.total_wait_slots -= u64::from(placement.wait_slots);
+            state.served -= 1;
+            state.selected.pop();
+
+            for (occupied, used_power) in state.charger_busy[charger_index][start..end]
+                .iter_mut()
+                .zip(state.grid_used_w[start..end].iter_mut())
+            {
+                *occupied = false;
+                *used_power -= power;
             }
         }
 
-        selected.push(None);
-        self.search(
-            job_index + 1,
-            selected,
-            charger_busy,
-            grid_used_w,
-            served,
-            total_wait_slots,
-            makespan_slot,
-        );
-        selected.pop();
+        state.selected.push(None);
+        self.search(state);
+        state.selected.pop();
     }
 
     fn is_better(&self, candidate: &SearchBest, current: &SearchBest) -> bool {
@@ -482,7 +489,9 @@ pub fn evaluate_battery_charge_queue(
             }
             had_compatible_charger = true;
             for start in job.release_slot..job.deadline_slot_exclusive {
-                let end = start + job.duration_slots;
+                let Some(end) = start.checked_add(job.duration_slots) else {
+                    continue;
+                };
                 if end > job.deadline_slot_exclusive || end > input.horizon_slots {
                     continue;
                 }
@@ -538,17 +547,15 @@ pub fn evaluate_battery_charge_queue(
         nodes: 0,
         best: None,
     };
-    let mut charger_busy = vec![vec![false; usize::from(input.horizon_slots)]; chargers.len()];
-    let mut grid_used_w = vec![0_u32; usize::from(input.horizon_slots)];
-    search.search(
-        0,
-        &mut Vec::new(),
-        &mut charger_busy,
-        &mut grid_used_w,
-        0,
-        0,
-        0,
-    );
+    let mut search_state = ChargeSearchState {
+        selected: Vec::new(),
+        charger_busy: vec![vec![false; usize::from(input.horizon_slots)]; chargers.len()],
+        grid_used_w: vec![0_u32; usize::from(input.horizon_slots)],
+        served: 0,
+        total_wait_slots: 0,
+        makespan_slot: 0,
+    };
+    search.search(&mut search_state);
     let search_nodes = search.nodes;
     let best = search
         .best
@@ -686,7 +693,7 @@ mod tests {
                 config_digest,
                 &format!("{id}-availability"),
                 DECISION_TIME_MS - 1_000,
-                DECISION_TIME_MS + 100_000,
+                DECISION_TIME_MS + 10_000_000,
             ),
         }
     }
@@ -739,7 +746,7 @@ mod tests {
             jobs: vec![
                 cooling_job("job-a", "pack-a", "cfg-a", 0, 4, 2, 3_000),
                 cooling_job("job-b", "pack-b", "cfg-a", 0, 4, 2, 3_500),
-                cooling_job("job-c", "pack-c", "cfg-b", 1, 6, 3, 3_000),
+                cooling_job("job-c", "pack-c", "cfg-b", 1, 3, 3, 3_000),
                 cooling_job("job-d", "pack-d", "cfg-a", 0, 3, 3, 2_500),
             ],
             chargers: vec![
