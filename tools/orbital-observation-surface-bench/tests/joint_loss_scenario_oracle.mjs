@@ -104,6 +104,13 @@ function validate(corpus) {
       }
     }
 
+    if (!Array.isArray(manifest.expected_scenario_ids) ||
+        manifest.expected_scenario_ids.length < 1 ||
+        manifest.expected_scenario_ids.length > 4096) fail(path + ": invalid planned scenario inventory");
+    for (const id of manifest.expected_scenario_ids) validateId(id,path + ".expected_scenario_ids");
+    const expectedIds = [...manifest.expected_scenario_ids].sort(codePointCompare);
+    if (new Set(expectedIds).size !== expectedIds.length) fail(path + ": duplicate planned scenario ID");
+    if (manifest.expected_scenario_ids_sha256 !== sha256(JSON.stringify(expectedIds))) fail(path + ": planned scenario ID digest mismatch");
     const scenarioIds = new Set(), coveredWorlds = new Set();
     for (const [scenarioIndex, scenario] of manifest.scenarios.entries()) {
       const scenarioPath = path + ".scenarios[" + scenarioIndex + "]";
@@ -120,6 +127,7 @@ function validate(corpus) {
       if (JSON.stringify(keys) !== JSON.stringify([...actionIds].sort(codePointCompare))) fail(scenarioPath + ": loss map must cover exactly the declared actions");
       for (const actionId of actionIds) fraction(scenario.action_losses[actionId], scenarioPath + ".action_losses." + actionId);
     }
+    if (JSON.stringify([...scenarioIds].sort(codePointCompare)) !== JSON.stringify(expectedIds)) fail(path + ": observed scenarios do not match planned scenario inventory");
     if (coveredWorlds.size !== worldSet.world_ids.length) fail(path + ": manifest omits a compatible world");
     const canonicalScenarios = canonical([...manifest.scenarios].sort((a, b) => codePointCompare(a.scenario_id, b.scenario_id)));
     if (manifest.scenarios_sha256 !== sha256(canonicalScenarios)) fail(path + ": loss scenario manifest digest mismatch");
