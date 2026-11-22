@@ -1,0 +1,68 @@
+{
+  "schema_version": "nav-urbannav-baseline-plan/v0.1",
+  "dataset_candidate": "urbannav-hk-medium-urban-1",
+  "upstream_repository_commit": "e53717a40c94803cd479a140433f6d803b1a0876",
+  "status": "protocol_only_no_baselines_reproduced",
+  "route_splits": {
+    "grouping_unit": ["complete_loop", "route_session", "physical_fault_event"],
+    "random_epoch_split": false,
+    "development_route": null,
+    "validation_route": null,
+    "test_route": null,
+    "known_fault_exclusions": [
+      {
+        "fault": "u-blox F9P malfunction interval",
+        "source": "UrbanNav upstream README and issue #11",
+        "exact_start_end": null,
+        "status": "interval_not_yet_qualified"
+      }
+    ]
+  },
+  "baselines": [
+    {
+      "id": "maharmeh-2026-adaptive-pid-protection-level",
+      "doi": "10.3390/s26165140",
+      "status": "literature_only",
+      "full_method_available": true,
+      "reproduction_status": "not_started",
+      "required_outputs": ["pointwise_stanford_exceedance", "breach_events", "false_safe_exposure_seconds", "time_above_alert", "pl_smoothness"],
+      "paper_sensitivity": ["full_pid", "non_integral_pid", "smax_10", "smax_12", "smax_14"]
+    },
+    {
+      "id": "luo-2026-adaptive-temporal-kalman-solution-separation",
+      "doi": "10.1109/TIM.2026.3670522",
+      "status": "abstract_only_full_method_required",
+      "full_method_available": false,
+      "reproduction_status": "blocked_pending_full_method",
+      "required_outputs": ["horizontal_error", "vertical_error", "hpl", "vpl", "detection_probability", "false_alarm", "fde"]
+    },
+    {
+      "id": "liu-2026-resilient-glvio-loop-fusion",
+      "doi": "10.1016/j.isprsjprs.2026.05.035",
+      "status": "paper_available_code_match_and_license_unverified",
+      "code_repository": "https://github.com/TK72/FAST-LIVOSAM",
+      "code_commit": "9aa51993cdf30bebd6d24d538bdba75f11b9ab3e",
+      "reproduction_status": "blocked_pending_exact_urbannav_config_and_license",
+      "required_outputs": ["pose_error", "trajectory_drift", "map_quality", "degeneracy_detection", "runtime", "gpu_memory"]
+    },
+    {
+      "id": "fang-2026-doppler-rate-spoof-detection",
+      "doi": "10.1007/s42401-026-00509-7",
+      "status": "paper_available",
+      "reproduction_status": "not_started",
+      "required_outputs": ["detection_probability_by_scenario", "false_alarm_rate", "detection_delay", "multipath_false_alarms"]
+    }
+  ],
+  "data_gate": {
+    "payload_downloaded": false,
+    "file_sha256_manifest_present": false,
+    "time_frame_calibration_audit_complete": false,
+    "ground_truth_lineage_review_complete": false,
+    "dataset_admitted": false
+  },
+  "claims": {
+    "sota_claim_allowed": false,
+    "physical_integrity_claim_allowed": false,
+    "paper_reproduction_claim_allowed": false
+  }
+}
