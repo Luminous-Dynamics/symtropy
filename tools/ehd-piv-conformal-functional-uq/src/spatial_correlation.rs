@@ -440,6 +440,53 @@ mod tests {
     }
 
     #[test]
+    fn invalid_length_scale_and_nonfinite_fit_threshold_are_rejected() {
+        let input = base(vec![face()]);
+        let c = Covariance3 { xx: 0.01, xy: 0.0, xz: 0.0, yy: 0.0, yz: 0.0, zz: 0.0 };
+        let mut invalid_scale = kernel(c);
+        invalid_scale.length_scales_m[1] = 0.0;
+        assert!(matches!(
+            propagate_spatially_correlated_functional_uncertainty(&input, &[[0.0; 3]], &invalid_scale),
+            Err(SpatialFunctionalError::InvalidLengthScale { axis: 1 })
+        ));
+
+        let mut invalid_diagnostic = kernel(c);
+        invalid_diagnostic.calibration_receipt.maximum_allowed_absolute_correlation_fit_error = f64::NAN;
+        assert!(matches!(
+            propagate_spatially_correlated_functional_uncertainty(&input, &[[0.0; 3]], &invalid_diagnostic),
+            Err(SpatialFunctionalError::InvalidCalibrationDiagnostics)
+        ));
+    }
+
+    #[test]
+    fn spatial_covariance_output_is_symmetric() {
+        let mut a = face();
+        a.velocity_m_s = [1.0, 0.5, 0.0];
+        a.oriented_area_vector_m2 = [1.0, 0.2, 0.0];
+        let mut b = face();
+        b.velocity_m_s = [0.8, -0.1, 0.3];
+        b.oriented_area_vector_m2 = [0.5, 0.8, 0.1];
+        let input = base(vec![a, b]);
+        let c = Covariance3 {
+            xx: 0.02, xy: 0.003, xz: 0.001,
+            yy: 0.015, yz: 0.002, zz: 0.01,
+        };
+        let result = propagate_spatially_correlated_functional_uncertainty(
+            &input,
+            &[[0.0; 3], [0.25, 0.15, 0.0]],
+            &kernel(c),
+        ).unwrap();
+        for i in 0..4 {
+            for j in 0..4 {
+                assert!(
+                    (result.total_functional_covariance[i][j]
+                        - result.total_functional_covariance[j][i]).abs() < 1.0e-12
+                );
+            }
+        }
+    }
+
+    #[test]
     fn non_psd_kernel_component_covariance_is_rejected() {
         let input = base(vec![face()]);
         let c = Covariance3 { xx: 1.0, xy: 0.9, xz: 0.9, yy: 1.0, yz: -0.9, zz: 1.0 };
