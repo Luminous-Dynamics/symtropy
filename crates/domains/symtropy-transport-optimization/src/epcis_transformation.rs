@@ -260,7 +260,7 @@ pub fn normalize_transformation_event(
     let has_inputs = !event.input_epcs.is_empty() || !event.input_quantity_list.is_empty();
     let has_outputs = !event.output_epcs.is_empty() || !event.output_quantity_list.is_empty();
 
-    match event.transformation_id {
+    match event.transformation_id.as_ref() {
         None => {
             if !has_inputs {
                 return Err(TransformationSemanticError::MissingInputs);
