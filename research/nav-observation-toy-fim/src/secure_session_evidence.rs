@@ -440,6 +440,7 @@ mod tests {
         let mut validator = SessionEvidenceValidator::new();
         let mut event = evidence(1, 3, 4);
         event.sts_mode = StsMode::Provisioned;
+        event.verification.sts_mode = StsMode::Provisioned;
         let grant = validator.validate(policy(), event, 150).unwrap();
         assert_eq!(grant.sts_mode, StsMode::Provisioned);
     }
