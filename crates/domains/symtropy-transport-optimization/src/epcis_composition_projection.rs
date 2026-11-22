@@ -148,8 +148,8 @@ pub enum AggregationProjectionError {
     },
     TimelineOrderNotProven {
         module_id: String,
-        previous_event: ProjectionSourceRef,
-        current_event: ProjectionSourceRef,
+        previous_event: Box<ProjectionSourceRef>,
+        current_event: Box<ProjectionSourceRef>,
     },
 }
 
@@ -390,8 +390,8 @@ fn verify_strict_module_timeline(
             {
                 return Err(AggregationProjectionError::TimelineOrderNotProven {
                     module_id,
-                    previous_event: previous_source.clone(),
-                    current_event: source,
+                    previous_event: Box::new(previous_source.clone()),
+                    current_event: Box::new(source),
                 });
             }
             let replace = prefix_max
