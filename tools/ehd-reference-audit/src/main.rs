@@ -2214,16 +2214,35 @@ pub fn audit_discrepancy_d0_contract(root: &Value) -> Vec<String> {
         let orthogonal = vectors.as_ref().is_some_and(|basis| {
             basis.iter().enumerate().all(|(i, left)| {
                 basis.iter().enumerate().all(|(j, right)| {
-                    i == j || left.iter().zip(right).map(|(a, b)| a * b).sum::<f64>().abs() < 1.0e-12
+                    i == j
+                        || left.iter().zip(right).map(|(a, b)| a * b).sum::<f64>().abs() < 1.0e-12
                 })
             })
         });
+        let frozen_signatures_match = rows.len() == 4
+            && rows[0]["source"] == "parameter_perturbation"
+            && rows[0]["values"] == serde_json::json!([1, -1, 1, -1, 1, -1, 1, -1])
+            && rows[1]["source"] == "numerical_bias"
+            && rows[1]["values"] == serde_json::json!([1, 1, -1, -1, 1, 1, -1, -1])
+            && rows[2]["source"] == "measurement_artifact"
+            && rows[2]["values"] == serde_json::json!([1, -1, -1, 1, 1, -1, -1, 1])
+            && rows[3]["source"] == "model_form_discrepancy"
+            && rows[3]["values"] == serde_json::json!([1, 1, 1, 1, -1, -1, -1, -1]);
         push_if_missing(
             &mut findings,
             orthogonal,
             "D0_SIGNATURE_ORTHOGONALITY",
             "frozen systematic signatures must remain pairwise orthogonal",
         );
+        push_if_missing(
+            &mut findings,
+            frozen_signatures_match
+                && at(root, &["reference_basis", "measurement_noise_remainder_signature"])
+                    == Some(&serde_json::json!([1, -1, 1, -1, -1, 1, -1, 1])),
+            "D0_SIGNATURE_VALUES",
+            "source and noise signature vectors must retain their frozen manufactured values",
+        );
+
     }
     push_if_missing(
         &mut findings,
