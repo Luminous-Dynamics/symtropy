@@ -443,8 +443,7 @@ mod tests {
             .map(|item| item.regime_id.clone())
             .collect::<Vec<_>>();
         ids.sort();
-        let support_receipt_id =
-            support.as_ref().map(|_| "support-bound-receipt".to_owned());
+        let support_receipt_id = support.as_ref().map(|_| "support-bound-receipt".to_owned());
         CalibrationCorpus {
             schema: CORPUS_SCHEMA.to_owned(),
             evidence_class: "synthetic".to_owned(),
