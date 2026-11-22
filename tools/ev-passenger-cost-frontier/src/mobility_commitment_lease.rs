@@ -529,9 +529,11 @@ pub fn evaluate_mobility_commitment_lease(
             );
         }
 
+        let offer_start_time = slot_start_ms(input, commitment.start_slot);
         if commitment.state == CommitmentState::FirmOffered
             && (commitment.expires_at_unix_ms <= input.decision_time_unix_ms
-                || commitment.expires_at_unix_ms > input.report_valid_until_unix_ms)
+                || commitment.expires_at_unix_ms > input.report_valid_until_unix_ms
+                || offer_start_time.is_none_or(|start| commitment.expires_at_unix_ms > start))
         {
             add_error(
                 &mut errors,
@@ -615,17 +617,54 @@ pub fn evaluate_mobility_commitment_lease(
         if window.resource_id.trim().is_empty() {
             add_error(&mut errors, "protected_window_resource_empty");
         }
-        if candidate.resource_allocations.iter().any(|allocation| {
+        let candidate_conflicts = candidate.resource_allocations.iter().any(|allocation| {
             allocation.resource_id == window.resource_id
                 && (window.start_slot..window.end_slot).any(|slot| {
-                    allocation.power_w_by_slot[usize::from(slot)] > 0
-                        || allocation.energy_wh_by_slot[usize::from(slot)] > 0
+                    allocation
+                        .power_w_by_slot
+                        .get(usize::from(slot))
+                        .copied()
+                        .unwrap_or(0)
+                        > 0
+                        || allocation
+                            .energy_wh_by_slot
+                            .get(usize::from(slot))
+                            .copied()
+                            .unwrap_or(0)
+                            > 0
                 })
-        }) {
+        });
+        let existing_conflicts = sorted_existing.iter().any(|commitment| {
+            commitment.state.reserves_capability()
+                && commitment.resource_allocations.iter().any(|allocation| {
+                    allocation.resource_id == window.resource_id
+                        && (window.start_slot..window.end_slot).any(|slot| {
+                            allocation
+                                .power_w_by_slot
+                                .get(usize::from(slot))
+                                .copied()
+                                .unwrap_or(0)
+                                > 0
+                                || allocation
+                                    .energy_wh_by_slot
+                                    .get(usize::from(slot))
+                                    .copied()
+                                    .unwrap_or(0)
+                                    > 0
+                        })
+                })
+        });
+        if candidate_conflicts || existing_conflicts {
             protected_window_conflicts.insert(format!(
                 "{}:{}:{:?}",
                 window.window_id, window.resource_id, window.claim_kind
             ));
+            if existing_conflicts {
+                add_error(
+                    &mut errors,
+                    format!("existing_commitment_overlaps_protected_window:{}", window.window_id),
+                );
+            }
         }
     }
 
