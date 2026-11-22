@@ -758,7 +758,47 @@ mod tests {
         let report = evaluate_battery_charge_queue(&base_input()).unwrap();
         assert_eq!(report.completed_job_count, 3);
         assert_eq!(report.unserved_job_ids, vec!["job-c".to_string()]);
+        assert_eq!(report.search_nodes, 54);
         assert_eq!(report.assignments.len(), 3);
+        assert_eq!(
+            report.assignments,
+            vec![
+                ChargeAssignment {
+                    job_id: "job-d".to_string(),
+                    pack_id: "pack-d".to_string(),
+                    charger_id: "charger-2".to_string(),
+                    start_slot: 0,
+                    end_slot_exclusive: 3,
+                    wait_slots: 0,
+                    duration_slots: 3,
+                    requested_power_w: 2_500,
+                    declared_grid_input_watt_seconds: 6_750_000,
+                },
+                ChargeAssignment {
+                    job_id: "job-a".to_string(),
+                    pack_id: "pack-a".to_string(),
+                    charger_id: "charger-1".to_string(),
+                    start_slot: 0,
+                    end_slot_exclusive: 2,
+                    wait_slots: 0,
+                    duration_slots: 2,
+                    requested_power_w: 3_000,
+                    declared_grid_input_watt_seconds: 5_400_000,
+                },
+                ChargeAssignment {
+                    job_id: "job-b".to_string(),
+                    pack_id: "pack-b".to_string(),
+                    charger_id: "charger-1".to_string(),
+                    start_slot: 2,
+                    end_slot_exclusive: 4,
+                    wait_slots: 2,
+                    duration_slots: 2,
+                    requested_power_w: 3_500,
+                    declared_grid_input_watt_seconds: 6_300_000,
+                },
+            ]
+        );
+        assert_eq!(report.total_declared_grid_input_watt_seconds, 18_450_000);
         assert!(!report.charge_authority_granted);
         assert!(!report.return_to_service_authority_granted);
     }
@@ -807,6 +847,7 @@ mod tests {
     fn unsupported_configuration_is_not_scheduled() {
         let mut input = base_input();
         input.jobs[0].pack_configuration_digest = "unsupported-config".to_string();
+        input.jobs[0].pack_state.evidence.configuration_digest = "unsupported-config".to_string();
         let report = evaluate_battery_charge_queue(&input).unwrap();
         assert!(report.findings.iter().any(|finding| finding == "no_compatible_charger:job-a"));
     }
