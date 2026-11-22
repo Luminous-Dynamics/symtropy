@@ -3029,4 +3029,15 @@ mod identifiability_contract_tests {
             finding.starts_with("IDENTIFIABILITY_PARAMETER_CONTRACT")
         }));
     }
+
+
+    #[test]
+    fn identifiability_contract_requires_distinct_d_and_e_optimal_selections() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_IDENTIFIABILITY).unwrap();
+        value["reference_implementation"]["design_tournament"]["expected_e_optimal"]
+            ["candidate_indices"] = serde_json::json!([0, 2, 3]);
+        assert!(audit_identifiability_contract(&value).iter().any(|finding| {
+            finding.starts_with("IDENTIFIABILITY_DESIGN_TOURNAMENT")
+        }));
+    }
 }
