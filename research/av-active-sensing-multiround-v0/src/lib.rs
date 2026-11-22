@@ -454,12 +454,12 @@ impl ActiveSensingExecutorV1 {
                 .get(&action.action_id)
                 .ok_or_else(|| ExecutorError::new("missing action fixture"))?;
             validate_fixture(action, fixture)?;
-            if let Some(reference) = &fixture.observation_ref {
-                if !fixture_observation_refs.insert(reference.clone()) {
-                    return Err(ExecutorError::new(
-                        "action fixtures reuse an initial or another action observation identity",
-                    ));
-                }
+            if let Some(reference) = &fixture.observation_ref
+                && !fixture_observation_refs.insert(reference.clone())
+            {
+                return Err(ExecutorError::new(
+                    "action fixtures reuse an initial or another action observation identity",
+                ));
             }
         }
 
