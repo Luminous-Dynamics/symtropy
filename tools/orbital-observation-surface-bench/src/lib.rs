@@ -23,7 +23,6 @@ pub struct Corpus {
 pub struct Scenario {
     pub scenario_id: String,
     pub configuration_id: String,
-    pub exposure_horizon: f64,
     pub events: Vec<PhysicalEvent>,
     pub shared_common_cause_outages: Vec<TimeInterval>,
     pub channels: Vec<ChannelConfig>,
@@ -202,8 +201,6 @@ fn validate_intervals(intervals: &[TimeInterval]) -> Result<(), String> {
 fn validate_scenario(scenario: &Scenario, used_seeds: &mut HashSet<u64>) -> Result<(), String> {
     if scenario.scenario_id.trim().is_empty()
         || scenario.configuration_id.trim().is_empty()
-        || !scenario.exposure_horizon.is_finite()
-        || scenario.exposure_horizon <= 0.0
         || scenario.events.is_empty()
         || scenario.events.len() > MAX_EVENTS
         || scenario.channels.is_empty()
@@ -473,7 +470,6 @@ mod tests {
         let scenario = Scenario {
             scenario_id: "dead-time".to_owned(),
             configuration_id: "cfg-a".to_owned(),
-            exposure_horizon: 1.0,
             events: vec![
                 event("e1", 0.1, 1.0, 0.01),
                 event("e2", 0.15, 1.0, 0.01),
