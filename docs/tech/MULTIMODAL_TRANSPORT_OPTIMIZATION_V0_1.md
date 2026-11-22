@@ -404,3 +404,56 @@ Next steps:
 7. compare Pareto and sensitivity outputs against held-out operator/official measurements before discussing a specific cost-saving winner.
 
 Learned predictions, real-time dispatch and investment MILPs stay out of scope until the base flow/accounting invariants and evidence adapters qualify.
+
+
+## v0.1 physical cargo composition graph — 22 November 2026
+
+The new `cargo_composition` module adds a narrow composition-relation verifier on top of the existing `CargoModuleProfile` and `CargoModuleInstance` identity/compatibility contracts. It does not create a second profile registry or cargo custody implementation.
+
+### Identity-preserving aggregation
+
+Represent physical containment as parent/child edges:
+
+`container → pallet → carton`
+
+A child retains its own module ID while grouped with a parent. `ADD` creates one explicit parent-child association; `DELETE` removes that exact association. This follows the semantics of GS1 EPCIS `AggregationEvent`, in which a contained child keeps its identity and can later be disaggregated. It is not an EPCIS adapter or conformance claim. Source-profile translation and loss reports remain with Mycelix #437.
+
+### Distinguish aggregation from transformation
+
+Aggregation is reversible association: objects remain the same objects. Transformation/repacking/consumption is a different material-process relation in which inputs may be partly or wholly consumed and outputs created. Do not model a transformation as a container aggregation or silently preserve the same object ID when the physical object changed. v0.1 supports only ADD/DELETE composition edges; transformation, yield, waste, conversion and manifest-content changes remain separately scoped.
+
+### Fail-closed graph invariants
+
+- A module cannot contain itself.
+- The active graph is acyclic.
+- One child has at most one active physical parent at a time in this profile.
+- Duplicate ADD, unmatched DELETE, second parent, identity substitution and unknown module IDs remain explicit failures.
+- Same-time events that touch the same module remain temporally ambiguous; source-event ID order is not used as a tie-break.
+- Event source keys and revisions are replay-safe; future-published events remain invisible at the chosen as-of cutoff; latest visible voids suppress prior assertions.
+- Composition changes only parent/child membership. It does not change custody, location, seal, contents digest, cargo inventory, title or delivery.
+
+### Explicit counting projections
+
+Never add a containing module and its children into one undifferentiated cargo count. The report exposes separate projections:
+- all distinct module identities;
+- root/top-level handling units;
+- leaf handling units.
+
+These are different measures. None is automatically a count of ISO containers, TEU, boxes discharged, shipments, tonnes or cargo delivered. The caller must declare the unit and purpose of an accounting projection. The composition relation itself has zero net physical cargo stock delta.
+
+### Frozen P0 corpus
+
+The synthetic test set covers nested container/pallet/carton membership, exact disaggregation, competing parents, unmatched deletion, self-containment, cycles, same-time ambiguous parent/child transitions, independent same-time operations, planned/future rows, revisions/voids, exact replay, conflicting revision, unknown modules and separate top-level/leaf projections.
+
+The module consumes IDs already declared in the parent cargo-module contract. It does not validate whether a real warehouse/terminal physically packed a particular carton into a pallet or container; that requires an admitted packing manifest and independent source evidence. It does not authenticate the evidence ID or operator authority.
+
+### Standards and industry comparison
+
+- GS1 EPCIS 2.0.1 defines an `AggregationEvent` for physical parent/child aggregation and disaggregation. See [GS1 AggregationEvent](https://ref.gs1.org/epcis/AggregationEvent).
+- GS1 EPCIS `TransformationEvent` is distinct: it describes input objects being partially or fully consumed and output objects produced. See [GS1 TransformationEvent](https://ref.gs1.org/epcis/TransformationEvent).
+- The EPCIS implementation guideline explains that children retain identity while aggregated and may later be disaggregated: [GS1 EPCIS Implementation Guideline](https://www.gs1.org/docs/epc/EPCIS_Guideline.pdf).
+- Reuse Mycelix #437's versioned, loss-aware EPCIS/DCSA/UN/CEFACT mapping rather than claiming a proprietary standard.
+
+### Claim boundary
+
+P0 proves only the synthetic relation reducer and its finite invariants. It is not a physical inventory book, custody ledger, signed source-chain, packing verification, product traceability proof, customs record, title registry or proof of delivery. Source adapters, real manifests and independently adjudicated packing/strip records are P1/P2 work.
