@@ -760,6 +760,131 @@ mod tests {
         }
     }
 
+    #[test]
+    fn applied_effect_count_two_is_rejected_by_the_safety_invariant() {
+        let mut state = model_init_state();
+        state["appliedEffectCount"] = json!(2);
+        assert_eq!(
+            validate_state(&state, 4),
+            Err(ProjectionError::DuplicatePhysicalEffectObserved)
+        );
+    }
+
+    #[test]
+    fn initial_observer_independence_is_not_mistaken_for_an_observed_quorum() {
+        let record = recording();
+        assert_eq!(record.validate(), Ok(()));
+        assert!(bool_field(&record.snapshots[0].state_s, "observerIndependent").unwrap());
+        assert_eq!(
+            record.snapshots[0].owner_evidence[6].status,
+            OwnerEvidenceStatus::NotApplicable
+        );
+        assert_eq!(
+            record.snapshots[0].owner_evidence[7].status,
+            OwnerEvidenceStatus::NotApplicable
+        );
+    }
+
+    #[test]
+    fn observer_quorum_is_qualified_only_under_declared_pairwise_disjoint_fault_domains() {
+        let proof = observer_proof("isolated");
+        assert_eq!(observer_quorum_is_qualified(&proof), Ok(true));
+
+        let mut common_cause = observer_proof("shared");
+        common_cause.members[1].common_cause_domains[0] =
+            common_cause.members[0].common_cause_domains[0].clone();
+        assert_eq!(observer_quorum_is_qualified(&common_cause), Ok(false));
+
+        let mut insufficient = observer_proof("insufficient");
+        insufficient.members.pop();
+        assert_eq!(observer_quorum_is_qualified(&insufficient), Ok(false));
+    }
+
+    #[test]
+    fn no_effect_and_downstream_quiescence_claims_have_distinct_scope_commitments() {
+        let mut record = recording();
+        let scope = record.snapshots[0].owner_evidence[6].scope.clone();
+        let no_effect = claim_scope_digest(
+            OwnerEvidenceDomain::NoEffectObserverQuorum,
+            "effect-1-no-effect",
+            &scope,
+        );
+        let downstream = claim_scope_digest(
+            OwnerEvidenceDomain::DownstreamObserverQuorum,
+            "effect-1-downstream-quiescence",
+            &scope,
+        );
+        assert_ne!(no_effect, downstream);
+        assert_ne!(
+            claim_scope_digest(OwnerEvidenceDomain::NoEffectObserverQuorum, "effect-1-no-effect", &scope),
+            claim_scope_digest(
+                OwnerEvidenceDomain::NoEffectObserverQuorum,
+                "effect-2-no-effect",
+                &scope
+            )
+        );
+    }
+
+    #[test]
+    fn owner_evidence_cannot_be_replayed_across_physical_attempts() {
+        let mut record = recording();
+        record.snapshots[0].owner_evidence[2].scope.attempt_id = "attempt-2".to_owned();
+        assert_eq!(
+            record.validate(),
+            Err(ProjectionError::EvidenceScopeMismatch)
+        );
+    }
+
+    #[test]
+    fn qualified_claim_rejects_a_tampered_scope_commitment() {
+        let mut record = recording();
+        let evidence = &mut record.snapshots[0].owner_evidence[6];
+        let claim = "old-attempt-no-effect";
+        set_quorum(evidence, claim, "no-effect");
+        evidence.claim_scope_sha256 = Some(sha('f'));
+        assert_eq!(
+            record.validate(),
+            Err(ProjectionError::InvalidOwnerEvidence)
+        );
+    }
+
+    #[test]
+    fn recovery_acceptance_uses_captured_downstream_fence_not_current_fence_epoch() {
+        let mut state = model_init_state();
+        state["processStatus"] = json!("running");
+        state["bootEpoch"] = json!(2);
+        state["controllerEpoch"] = json!(2);
+        state["stage"] = json!("accepted");
+        state["reservationCommitted"] = json!(true);
+        state["oldAccepted"] = json!(true);
+        state["oldAcceptedBootEpoch"] = json!(1);
+        state["oldAcceptedControllerEpoch"] = json!(1);
+        state["commandPending"] = json!(true);
+        state["commandOwnerAttempt"] = json!("attempt-2");
+        state["oldPhysicalOutcome"] = json!("no_effect");
+        state["effectEvidence"] = json!("no_effect");
+        state["missionResolution"] = json!("no_effect");
+        state["queueFenceBootEpoch"] = json!(2);
+        // NativeAcceptRecovery deliberately clears this field after admission.
+        state["downstreamFenceBootEpoch"] = json!(0);
+        state["recoveryPermit"] = json!("consumed");
+        state["permitUseCount"] = json!(1);
+        state["ticketStatus"] = json!("consumed");
+        state["ticketBootEpoch"] = json!(2);
+        state["ticketControllerEpoch"] = json!(2);
+        state["ticketAttempt"] = json!("attempt-2");
+        state["recoveryAccepted"] = json!(true);
+        state["admittedFreshBoot"] = json!(true);
+        state["admittedFreshController"] = json!(true);
+        state["admittedControllerFence"] = json!(true);
+        state["admittedDownstreamFence"] = json!(true);
+        state["admittedM1"] = json!(true);
+        state["admittedM2"] = json!(true);
+        state["admittedBinding"] = json!(true);
+        state["crashCut"] = json!("permit_consumed_before_effect");
+        assert_eq!(validate_state(&state, 4), Ok(()));
+    }
+
     #[test] fn emits_exact_model_init_as_reflow_trace_line(){
         assert_eq!(STATE_FIELDS.len(), MODEL_STATE_FIELD_COUNT);
         let r=recording();let line=r.to_tla_trace_ndjson().unwrap();let v:Value=serde_json::from_str(line.trim()).unwrap();
