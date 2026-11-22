@@ -272,6 +272,7 @@ pub struct DecisionSummary {
     pub evidence_indeterminate_cases: usize,
     pub resolving_probe_selected_cases: usize,
     pub no_admissible_probe_cases: usize,
+    pub no_resolving_admissible_probe_cases: usize,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -472,14 +473,19 @@ fn select_probe(
         });
     };
 
-    let status = if best.worst_case_decision_class_count == 1 {
-        "selected_resolving_probe"
-    } else {
-        "selected_best_available_non_resolving_probe"
-    };
+    if best.worst_case_decision_class_count > 1 {
+        return Ok(ProbeSelection {
+            status: "no_resolving_admissible_probe".to_owned(),
+            selected_probe_id: None,
+            selected_worst_case_decision_class_count: None,
+            admissible_probe_count: ranked.len(),
+            excluded_probe_ids,
+            ranked_admissible_probes: ranked,
+        });
+    }
 
     Ok(ProbeSelection {
-        status: status.to_owned(),
+        status: "selected_resolving_probe".to_owned(),
         selected_probe_id: Some(best.probe_id.clone()),
         selected_worst_case_decision_class_count: Some(best.worst_case_decision_class_count),
         admissible_probe_count: ranked.len(),
@@ -593,6 +599,7 @@ pub fn evaluate(corpus: &DecisionCorpus) -> Result<DecisionEvaluation, String> {
         evidence_indeterminate_cases: 0,
         resolving_probe_selected_cases: 0,
         no_admissible_probe_cases: 0,
+        no_resolving_admissible_probe_cases: 0,
     };
     for case in &cases {
         match case.disposition.as_str() {
@@ -610,6 +617,9 @@ pub fn evaluate(corpus: &DecisionCorpus) -> Result<DecisionEvaluation, String> {
         match case.probe_selection.status.as_str() {
             "selected_resolving_probe" => summary.resolving_probe_selected_cases += 1,
             "no_admissible_probe" => summary.no_admissible_probe_cases += 1,
+            "no_resolving_admissible_probe" => {
+                summary.no_resolving_admissible_probe_cases += 1;
+            }
             _ => {}
         }
     }
@@ -675,6 +685,34 @@ mod tests {
             case.probe_selection.selected_probe_id.as_deref(),
             Some("independent-reference-probe")
         );
+    }
+
+    #[test]
+    fn overlapping_probe_support_is_ranked_but_never_selected() {
+        let evaluation = evaluate(&corpus()).expect("corpus must evaluate");
+        let case = result(&evaluation, "permitted-probe-does-not-resolve");
+        assert_eq!(case.disposition, "DECISION_NOT_IDENTIFIED");
+        assert_eq!(
+            case.probe_selection.status,
+            "no_resolving_admissible_probe"
+        );
+        assert_eq!(case.probe_selection.selected_probe_id, None);
+        assert_eq!(
+            case.probe_selection.selected_worst_case_decision_class_count,
+            None
+        );
+        assert_eq!(case.probe_selection.admissible_probe_count, 1);
+        assert_eq!(
+            case.probe_selection.ranked_admissible_probes[0].probe_id,
+            "same-outcome-reference"
+        );
+        assert_eq!(
+            result(&evaluation, "action-realization-confounding")
+                .probe_selection
+                .selected_probe_id,
+            None
+        );
+        assert_eq!(evaluation.summary.no_resolving_admissible_probe_cases, 2);
     }
 
     #[test]
