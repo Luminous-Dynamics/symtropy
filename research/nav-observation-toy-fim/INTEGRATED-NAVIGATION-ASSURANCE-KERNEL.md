@@ -26,11 +26,18 @@ Original UWB events
     |       - STS mode, key epoch, nonce, freshness
     |       - session and radio boot epochs
     |
+    +--> Raw CIR feature extraction (Bregar v2 contract)
+    |       - complex magnitude / RXPACC normalization
+    |       - integer FP_INDEX with preserved fractional metadata
+    |       - five-sample pre-offset, 152-sample window
+    |       - explicit sample period and deterministic energy/delay features
+    |
     +--> DS-TWR / measurement integrity
     |       - event-to-duration mapping
     |       - clock/timestamp interval
     |       - antenna and power calibration
-    |       - positive NLOS bias only when justified
+    |       - CIR-informed NLOS/bias model only after held-out calibration
+    |       - positive NLOS bias only when independently justified
     |
     +--> Front-end estimator
     |       - EKF / factor graph / VIO / cooperative UWB
@@ -68,6 +75,10 @@ Still unqualified for real MILUV:
 `secure_session_evidence` checks an external cryptographic verifier receipt for peer identity, radio boot epochs, protocol profile, STS mode, session validity, key epoch, sequence and nonce, then enforces replay and monotonicity rules.
 
 It does not implement STS, AES, key derivation or packet parsing. Its replay state is in-memory; production needs durable monotonic state or hardware epoch. Cryptographic acceptance does not establish LOS, correct calibration or true distance.
+
+### Raw CIR feature extraction
+
+The Bregar v2.0 feature kernel is added in follow-on [PR #6864](https://github.com/Luminous-Dynamics/symtropy/pull/6864). It implements the publisher-aligned complex-magnitude / RXPACC normalization, integer FP_INDEX truncation, five-sample pre-offset and 152-sample window, while preserving fractional FP_INDEX and requiring explicit sample spacing. It is deterministic feature extraction, not a trained classifier or calibrated NLOS correction. The kernel accepts no NLOS label, measured range or evaluator position. The v2.0 archive remains candidate_not_admitted pending file-level hashes, raw CSV parser validation, sample-time semantics and calibration/label lineage.
 
 ### Independent posterior audit
 
