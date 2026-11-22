@@ -21,3 +21,4 @@ pub mod hbr_quality_mapping;
 pub mod hbr_residual_gate;
 pub mod hbr_bctr_objective;
 pub mod hbr_window_fusion;
+pub mod episode_conformal_tube;
