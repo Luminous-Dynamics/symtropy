@@ -17,7 +17,7 @@
   ],
   "properties": {
     "receipt_schema": {
-      "const": "luminous.orbital-plp-conditional-gof.receipt.v0.1"
+      "const": "luminous.orbital-plp-multistat-gof.receipt.v0.2"
     },
     "source_commit": {
       "type": "string",
@@ -67,8 +67,7 @@
         "wilson_95_lower",
         "wilson_95_upper",
         "familywise_minimum_p_value",
-        "component_results",
-        "familywise_minimum_p_value"
+        "component_results"
       ],
       "properties": {
         "prng_id": {
@@ -310,7 +309,7 @@
           "const": "synthetic"
         },
         "claim_ceiling": {
-          "const": "synthetic-conditional-plp-goodness-of-fit-only"
+          "const": "synthetic-conditional-plp-five-statistic-suite-only"
         },
         "fit_acceptance_granted": {
           "const": false
