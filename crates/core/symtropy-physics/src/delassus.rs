@@ -123,9 +123,7 @@ pub fn assemble_contact_wrench_free_velocity<const D: usize>(
 
         for coordinate in contact_wrench_basis(&row.frame) {
             let value = match coordinate {
-                ContactWrenchBasis::Linear(direction) => {
-                    direction.dot(&relative_point_velocity)
-                }
+                ContactWrenchBasis::Linear(direction) => direction.dot(&relative_point_velocity),
                 ContactWrenchBasis::Angular(direction) => {
                     bivector_inner_product(&direction, &relative_physical_angular_velocity)
                 }
@@ -431,8 +429,8 @@ pub fn assemble_contact_wrench_delassus<const D: usize>(
                         )
                         .map_err(DelassusAssemblyError::RotationalInertia)?;
                         relative_linear_response += point_response * relative_sign;
-                        relative_angular_response = relative_angular_response
-                            .add(&angular_response.scale(relative_sign));
+                        relative_angular_response =
+                            relative_angular_response.add(&angular_response.scale(relative_sign));
                     }
 
                     matrix[(global_i, global_j)] = match basis_i {
@@ -874,8 +872,7 @@ mod tests {
         // Rotor::from_bivector integrates exp(-B), so positive physical
         // angular velocity is stored as the negative generator.
         dynamic_body.angular_velocity = Bivector::<3>::unit_plane(0, 1).scale(-0.5);
-        let frame =
-            ContactFrame::<3>::new(SVector::new(1.0, 0.0, 0.0), 1e-12).unwrap();
+        let frame = ContactFrame::<3>::new(SVector::new(1.0, 0.0, 0.0), 1e-12).unwrap();
         let row = ContactWrenchRow {
             body_a: BodyHandle(0),
             body_b: BodyHandle(1),
@@ -883,11 +880,8 @@ mod tests {
             offset_b: SVector::zeros(),
             frame,
         };
-        let free_velocity = assemble_contact_wrench_free_velocity(
-            &[static_body, dynamic_body],
-            &[row],
-        )
-        .unwrap();
+        let free_velocity =
+            assemble_contact_wrench_free_velocity(&[static_body, dynamic_body], &[row]).unwrap();
 
         assert_eq!(free_velocity.len(), 6);
         assert!((free_velocity[0] - 1.0).abs() < 1e-12);
@@ -921,8 +915,7 @@ mod tests {
             angular.set(1, 2, -0.4);
             angular
         };
-        let frame =
-            ContactFrame::<3>::new(SVector::new(0.3, 0.4, 0.5), 1e-12).unwrap();
+        let frame = ContactFrame::<3>::new(SVector::new(0.3, 0.4, 0.5), 1e-12).unwrap();
         let row = ContactWrenchRow {
             body_a: BodyHandle(0),
             body_b: BodyHandle(1),
@@ -930,20 +923,15 @@ mod tests {
             offset_b: SVector::new(0.2, -0.1, 0.3),
             frame,
         };
-        let reference = assemble_contact_wrench_free_velocity(
-            &[static_body, dynamic_body],
-            &[row.clone()],
-        )
-        .unwrap();
+        let reference =
+            assemble_contact_wrench_free_velocity(&[static_body, dynamic_body], &[row.clone()])
+                .unwrap();
 
-        let rotation =
-            Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.41);
+        let rotation = Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.41);
         let rotated_static = RigidBody::<3>::new(
             BodyHandle(0),
             BodyType::Static,
-            Transform::from_translation(Point::new(
-                rotation.rotate_vector(&SVector::zeros()),
-            )),
+            Transform::from_translation(Point::new(rotation.rotate_vector(&SVector::zeros()))),
             Box::new(Sphere::new(Point::origin(), 0.5)),
             0.0,
             SVector::zeros(),
@@ -992,14 +980,10 @@ mod tests {
         let mut dynamic_body =
             RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
         dynamic_body.set_rotational_inertia_operator(
-            BivectorInertia::<3>::uniform_solid_ellipsoid(
-                2.0,
-                SVector::new(1.0, 0.8, 0.6),
-            )
-            .unwrap(),
+            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.0, 0.8, 0.6))
+                .unwrap(),
         );
-        let frame =
-            ContactFrame::<3>::new(SVector::new(1.0, 0.0, 0.0), 1e-12).unwrap();
+        let frame = ContactFrame::<3>::new(SVector::new(1.0, 0.0, 0.0), 1e-12).unwrap();
         let row = ContactWrenchRow {
             body_a: BodyHandle(0),
             body_b: BodyHandle(1),
@@ -1034,13 +1018,12 @@ mod tests {
         let mut dynamic_body =
             RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
         dynamic_body.set_rotational_inertia_operator(
-            BivectorInertia::<3>::from_second_moment(
-                SMatrix::<f64, 3, 3>::from_diagonal(&SVector::new(1.0, 0.0, 0.0)),
-            )
+            BivectorInertia::<3>::from_second_moment(SMatrix::<f64, 3, 3>::from_diagonal(
+                &SVector::new(1.0, 0.0, 0.0),
+            ))
             .unwrap(),
         );
-        let frame =
-            ContactFrame::<3>::new(SVector::new(1.0, 0.0, 0.0), 1e-12).unwrap();
+        let frame = ContactFrame::<3>::new(SVector::new(1.0, 0.0, 0.0), 1e-12).unwrap();
         let row = ContactWrenchRow {
             body_a: BodyHandle(0),
             body_b: BodyHandle(1),
@@ -1129,17 +1112,14 @@ mod tests {
         );
         let mut dynamic_body =
             RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
-        dynamic_body.try_set_rotational_inertia_operator(
-            BivectorInertia::<3>::uniform_solid_ellipsoid(
-                1.0,
-                SVector::new(1.0, 0.8, 0.6),
+        dynamic_body
+            .try_set_rotational_inertia_operator(
+                BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::new(1.0, 0.8, 0.6))
+                    .unwrap(),
             )
-            .unwrap(),
-        )
-        .unwrap();
+            .unwrap();
         let bodies = vec![static_body, dynamic_body];
-        let frame =
-            ContactFrame::<3>::new(SVector::new(1.0, 0.0, 0.0), 1e-12).unwrap();
+        let frame = ContactFrame::<3>::new(SVector::new(1.0, 0.0, 0.0), 1e-12).unwrap();
         let row = ContactWrenchRow {
             body_a: BodyHandle(0),
             body_b: BodyHandle(1),
@@ -1161,10 +1141,8 @@ mod tests {
             normal: tangent,
             ..frictionless_normal.clone()
         };
-        let normal_metric =
-            assemble_delassus(&bodies, &[frictionless_normal], 1e-12).unwrap();
-        let tangent_metric =
-            assemble_delassus(&bodies, &[frictionless_tangent], 1e-12).unwrap();
+        let normal_metric = assemble_delassus(&bodies, &[frictionless_normal], 1e-12).unwrap();
+        let tangent_metric = assemble_delassus(&bodies, &[frictionless_tangent], 1e-12).unwrap();
         assert!(
             (matrix[(0, 0)] - normal_metric[(0, 0)]).abs() < 1e-10,
             "normal diagonal differs from frictionless reference"
@@ -1181,8 +1159,7 @@ mod tests {
             "contact-wrench metric is not symmetric"
         );
         let eigenvalues =
-            nalgebra::linalg::SymmetricEigen::new((&matrix + matrix.transpose()) * 0.5)
-                .eigenvalues;
+            nalgebra::linalg::SymmetricEigen::new((&matrix + matrix.transpose()) * 0.5).eigenvalues;
         let minimum_eigenvalue = eigenvalues
             .iter()
             .fold(f64::INFINITY, |minimum, value| minimum.min(*value));
@@ -1218,15 +1195,11 @@ mod tests {
             RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
         dynamic_body
             .try_set_rotational_inertia_operator(
-                BivectorInertia::<3>::uniform_solid_ellipsoid(
-                    1.0,
-                    SVector::new(1.0, 0.8, 0.6),
-                )
-                .unwrap(),
+                BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::new(1.0, 0.8, 0.6))
+                    .unwrap(),
             )
             .unwrap();
-        let frame =
-            ContactFrame::<3>::new(SVector::new(1.0, 0.0, 0.0), 1e-12).unwrap();
+        let frame = ContactFrame::<3>::new(SVector::new(1.0, 0.0, 0.0), 1e-12).unwrap();
         let row = ContactWrenchRow {
             body_a: BodyHandle(0),
             body_b: BodyHandle(1),
@@ -1235,14 +1208,11 @@ mod tests {
             frame,
         };
         let mut bodies = vec![static_body, dynamic_body];
-        let reference = assemble_contact_wrench_delassus(&bodies, &[row.clone()], 1e-12)
-            .unwrap();
+        let reference = assemble_contact_wrench_delassus(&bodies, &[row.clone()], 1e-12).unwrap();
 
-        let rotation =
-            Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.53);
+        let rotation = Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.53);
         for body in &mut bodies {
-            body.transform.translation.0 =
-                rotation.rotate_vector(&body.transform.translation.0);
+            body.transform.translation.0 = rotation.rotate_vector(&body.transform.translation.0);
             body.transform.rotation = rotation.compose(&body.transform.rotation);
         }
         let rotated_row = ContactWrenchRow {
@@ -1252,12 +1222,7 @@ mod tests {
             offset_b: rotation.rotate_vector(&row.offset_b),
             frame: row.frame.rotated_by(&rotation),
         };
-        let rotated = assemble_contact_wrench_delassus(
-            &bodies,
-            &[rotated_row],
-            1e-12,
-        )
-        .unwrap();
+        let rotated = assemble_contact_wrench_delassus(&bodies, &[rotated_row], 1e-12).unwrap();
         assert!(
             (&rotated - reference).norm() < 1e-10,
             "global rotation changed contact-wrench metric by {}",
