@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "spin2_green_projection_independent_quadrature_replay",
+  "status": "exact_public_source_blob_replayed_locally",
+  "source": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_spin2_green_projection_quadrature.py",
+    "git_blob_sha1": "1c87297c407ed288ef521b685985ba9352370b07",
+    "sha256": "3d1d30e290c3bffa410075fbce84659081be2e3073225c24490f584fc297d88c",
+    "local_source_sha256": "3d1d30e290c3bffa410075fbce84659081be2e3073225c24490f584fc297d88c",
+    "exact_bytes_match": true
+  },
+  "result_fixture": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/spin2_green_projection_quadrature_v1.json",
+    "git_blob_sha1": "5540b2df4237cb17f792d354d0a02f601a42dbc5"
+  },
+  "execution": {
+    "python": "3.13.5",
+    "mpmath": "1.3.0",
+    "command": "python3 verify_spin2_green_projection_quadrature.py --dps 40 60 80",
+    "precision_runs": [40, 60, 80],
+    "maximum_reported_C_H_absolute_discrepancy": "1.4390429e-46",
+    "maximum_reported_C_B_absolute_discrepancy": "4.7968096e-47"
+  },
+  "independence": {
+    "imports_SymPy": false,
+    "reads_action_row_fixture": false,
+    "imports_symbolic_Green_verifier": false,
+    "method": "mpmath tanh-sinh quadrature with s=1-t^2 endpoint regularization"
+  },
+  "result": {
+    "C_H": "67-6*pi^2",
+    "C_B": "19-2*pi^2",
+    "status": "PASS"
+  },
+  "claim_ceiling": "Independent numerical quadrature of the Green endpoint integral and the B-amplitude reconstruction only. Discrepancies are numerical, not rigorous interval enclosures. No action-row replay, finite-lambda BVP, interval-invertibility proof, or existence theorem is claimed."
+}
