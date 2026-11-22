@@ -526,7 +526,7 @@ mod tests {
     fn probability_of_acquisition_at_depth(plan: &CampaignPlanNode, depth: usize) -> f64 {
         match plan {
             CampaignPlanNode::Stop { .. } => 0.0,
-            CampaignPlanNode::Acquire { outcomes, .. } if depth == 1 => 1.0,
+            CampaignPlanNode::Acquire { .. } if depth == 1 => 1.0,
             CampaignPlanNode::Acquire { outcomes, .. } => outcomes
                 .iter()
                 .map(|branch| {
