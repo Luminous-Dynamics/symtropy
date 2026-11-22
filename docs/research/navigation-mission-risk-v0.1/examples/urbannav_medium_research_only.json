@@ -11,7 +11,7 @@
   "risk_budget": {
     "scale": "probability_quanta_1e-15",
     "mission_budget_quanta": 1000000000000,
-    "check_set_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "check_set_sha256": null,
     "check_set_frozen": false
   },
   "checks": [
