@@ -155,7 +155,11 @@ pub struct ClockUseObservation {
     pub firmware_id: String,
     pub time_basis_id: String,
     pub event_time_ticks: i64,
+    /// Time at which the in-service state and error components were observed.
+    pub observation_time_ticks: i64,
+    pub maximum_observation_age_ticks: Option<u64>,
     pub last_sync_ticks: i64,
+    pub synchronization_method: String,
     pub sync_state: ClockSyncState,
     /// Maximum age permitted after the last successful comparison while locked.
     pub maximum_sync_age_ticks: Option<u64>,
@@ -199,6 +203,9 @@ pub enum ClockAttestationReason {
     ClockAlarmed,
     ClockSyncStateUnknown,
     SyncEvidenceAfterEvent,
+    ClockObservationAfterEvent,
+    ClockObservationTooOld,
+    UncertaintyIntervalOutsideValidity,
     LockedClockSyncTooOld,
     HoldoverLimitExceeded,
 }
@@ -229,6 +236,10 @@ pub struct QualifiedClockCalibrationReceipt {
     pub time_basis_id: String,
     pub terminal_reference_id: String,
     pub event_time_ticks: i64,
+    pub observation_time_ticks: i64,
+    pub synchronization_method: String,
+    pub applicable_from_ticks: i64,
+    pub applicable_until_ticks: i64,
     pub measured_offset_ticks: i64,
     pub uncertainty_contributions: Vec<UncertaintyContribution>,
     pub maximum_total_error_ticks: u64,
@@ -488,6 +499,7 @@ pub fn attest_clock_for_event(
         || !valid_text(&calibration.uncertainty_model_id)
         || !valid_text(&observation.observation_id)
         || !valid_text(&observation.source_event_id)
+        || !valid_text(&observation.synchronization_method)
     {
         return ClockAttestationDecision::unknown(
             ClockAttestationReason::MissingRequiredField("measurement provenance"),
@@ -495,6 +507,30 @@ pub fn attest_clock_for_event(
     }
 
     let event_time = observation.event_time_ticks;
+    if observation.observation_time_ticks > event_time {
+        return ClockAttestationDecision::rejected(
+            ClockAttestationReason::ClockObservationAfterEvent,
+        );
+    }
+    let observation_age = match event_time.checked_sub(observation.observation_time_ticks) {
+        Some(age) => age,
+        None => {
+            return ClockAttestationDecision::rejected(
+                ClockAttestationReason::ClockObservationAfterEvent,
+            );
+        }
+    };
+    let Some(maximum_observation_age) = observation.maximum_observation_age_ticks else {
+        return ClockAttestationDecision::unknown(
+            ClockAttestationReason::MissingUncertaintyBound("maximum observation age"),
+        );
+    };
+    if observation_age > i64::try_from(maximum_observation_age).unwrap_or(i64::MAX) {
+        return ClockAttestationDecision::unknown(
+            ClockAttestationReason::ClockObservationTooOld,
+        );
+    }
+
     if calibration.calibrated_at_ticks > event_time
         || calibration.valid_from_ticks > event_time
         || calibration.valid_until_ticks < event_time
@@ -677,6 +713,31 @@ pub fn attest_clock_for_event(
         return ClockAttestationDecision::rejected(ClockAttestationReason::UncertaintyOverflow);
     };
 
+    // A proof-grade enclosure must fit entirely inside every calibration and
+    // traceability validity interval, not merely have its centre inside.
+    let Ok(radius) = i64::try_from(maximum_total_error_ticks) else {
+        return ClockAttestationDecision::rejected(ClockAttestationReason::UncertaintyOverflow);
+    };
+    let Some(earliest) = event_time.checked_sub(radius) else {
+        return ClockAttestationDecision::rejected(ClockAttestationReason::UncertaintyOverflow);
+    };
+    let Some(latest) = event_time.checked_add(radius) else {
+        return ClockAttestationDecision::rejected(ClockAttestationReason::UncertaintyOverflow);
+    };
+    let applicable_from_ticks = calibration.traceability_links.iter().fold(
+        calibration.valid_from_ticks,
+        |current, link| current.max(link.valid_from_ticks),
+    );
+    let applicable_until_ticks = calibration.traceability_links.iter().fold(
+        calibration.valid_until_ticks,
+        |current, link| current.min(link.valid_until_ticks),
+    );
+    if earliest < applicable_from_ticks || latest > applicable_until_ticks {
+        return ClockAttestationDecision::rejected(
+            ClockAttestationReason::UncertaintyIntervalOutsideValidity,
+        );
+    }
+
     let artifact_digests = match verify_all_artifacts(
         calibration,
         observation,
@@ -699,6 +760,10 @@ pub fn attest_clock_for_event(
         time_basis_id: calibration.time_basis_id.clone(),
         terminal_reference_id: calibration.terminal_reference_id.clone(),
         event_time_ticks: event_time,
+        observation_time_ticks: observation.observation_time_ticks,
+        synchronization_method: observation.synchronization_method.clone(),
+        applicable_from_ticks,
+        applicable_until_ticks,
         measured_offset_ticks: calibration.measured_offset_ticks,
         uncertainty_contributions: contributions,
         maximum_total_error_ticks,
@@ -838,7 +903,10 @@ mod tests {
             firmware_id: "firmware-7.4.2".to_string(),
             time_basis_id: "UTC(ZA)".to_string(),
             event_time_ticks: 1_000,
+            observation_time_ticks: 995,
+            maximum_observation_age_ticks: Some(10),
             last_sync_ticks: 990,
+            synchronization_method: "PTP".to_string(),
             sync_state: ClockSyncState::Locked,
             maximum_sync_age_ticks: Some(30),
             maximum_holdover_duration_ticks: None,
@@ -872,6 +940,10 @@ mod tests {
         assert_eq!(receipt.calibration_artifact_digests.len(), 4);
         assert_eq!(receipt.source_event_id, "urn:uuid:custody-event-1000");
         assert_eq!(receipt.source_event_revision, 4);
+        assert_eq!(receipt.observation_time_ticks, 995);
+        assert_eq!(receipt.synchronization_method, "PTP");
+        assert_eq!(receipt.applicable_from_ticks, 800);
+        assert_eq!(receipt.applicable_until_ticks, 1_500);
         assert_eq!(receipt.terminal_reference_id, "UTC(ZA)");
     }
 
