@@ -392,7 +392,7 @@
                     "mission_resolution",
                     "controller_queue",
                     "downstream_execution_graph",
-                    "no_effect_observer_quorum",
+                    "physical_outcome_observer_quorum",
                     "downstream_observer_quorum",
                     "action_applicability",
                     "recovery_authority"
@@ -558,7 +558,7 @@
                     "properties": {
                       "domain": {
                         "enum": [
-                          "no_effect_observer_quorum",
+                          "physical_outcome_observer_quorum",
                           "downstream_observer_quorum"
                         ]
                       },
@@ -586,7 +586,7 @@
                     "properties": {
                       "domain": {
                         "enum": [
-                          "no_effect_observer_quorum",
+                          "physical_outcome_observer_quorum",
                           "downstream_observer_quorum"
                         ]
                       },
