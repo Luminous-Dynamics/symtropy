@@ -673,6 +673,7 @@ mod tests {
                         property_id: target_failure().property_id,
                         violation_class: target_failure().violation_class,
                         witness_event_id: apply.event_id.clone(),
+                        witness_state_commitment: target_failure().witness_state_commitment,
                     })
                 }
                 _ => ReplayOutcome::Pass,
