@@ -337,6 +337,7 @@ try {
     item.actions.reverse();
     item.compatible_world_set.world_ids.reverse();
     item.loss_scenario_manifest.scenarios.reverse();
+    item.loss_scenario_manifest.expected_scenario_ids.reverse();
   }
   assert.deepStrictEqual(evaluate(reversed),output,"result changed under case/action/scenario/world ordering");
   process.stdout.write(JSON.stringify(output,null,2)+"\n");
