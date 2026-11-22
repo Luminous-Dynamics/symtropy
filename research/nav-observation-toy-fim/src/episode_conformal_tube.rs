@@ -596,7 +596,7 @@ mod tests {
             20_500,
             &[[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]],
             [0xD4; SHA256_BYTES],
-                [0xC3; SHA256_BYTES],
+            [0xC3; SHA256_BYTES],
             &calibration,
         )
         .unwrap();
