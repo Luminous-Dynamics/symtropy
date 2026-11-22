@@ -551,6 +551,147 @@ mod tests {
     }
 
     #[test]
+    fn independent_coordinate_frame_reparameterization_preserves_the_pose() {
+        fn next_unit(state: &mut u64) -> f64 {
+            *state = state
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1);
+            ((*state >> 11) as f64) / ((1_u64 << 53) as f64)
+        }
+
+        fn rotate(point: [f64; 2], angle: f64) -> [f64; 2] {
+            let (cosine, sine) = (angle.cos(), angle.sin());
+            [
+                cosine * point[0] - sine * point[1],
+                sine * point[0] + cosine * point[1],
+            ]
+        }
+
+        fn transform(point: [f64; 2], angle: f64, offset: [f64; 2]) -> [f64; 2] {
+            let rotated = rotate(point, angle);
+            [rotated[0] + offset[0], rotated[1] + offset[1]]
+        }
+
+        let source_points = [
+            [-2.0, -1.0],
+            [3.0, -1.0],
+            [-2.0, 4.0],
+        ];
+        let check_points = [
+            [1.0, 2.0],
+            [2.5, 3.5],
+        ];
+        let mut state = 0x4f52_4249_5441_4c31_u64;
+
+        for sample in 0..128 {
+            let physical_angle = next_unit(&mut state) * std::f64::consts::TAU
+                - std::f64::consts::PI;
+            let physical_translation = [
+                next_unit(&mut state) * 200.0 - 100.0,
+                next_unit(&mut state) * 200.0 - 100.0,
+            ];
+            let source_frame_angle = next_unit(&mut state) * std::f64::consts::TAU
+                - std::f64::consts::PI;
+            let source_frame_offset = [
+                next_unit(&mut state) * 200.0 - 100.0,
+                next_unit(&mut state) * 200.0 - 100.0,
+            ];
+            let target_frame_angle = next_unit(&mut state) * std::f64::consts::TAU
+                - std::f64::consts::PI;
+            let target_frame_offset = [
+                next_unit(&mut state) * 200.0 - 100.0,
+                next_unit(&mut state) * 200.0 - 100.0,
+            ];
+
+            let mut make_pair = |point_id: String, source: [f64; 2]| {
+                let physical_target =
+                    transform(source, physical_angle, physical_translation);
+                PointPair {
+                    point_id,
+                    source_position_m: transform(
+                        source,
+                        source_frame_angle,
+                        source_frame_offset,
+                    ),
+                    target_position_m: transform(
+                        physical_target,
+                        target_frame_angle,
+                        target_frame_offset,
+                    ),
+                    source_error_bound_m: 1.0e-7,
+                    target_error_bound_m: 1.0e-7,
+                }
+            };
+
+            let controls = source_points
+                .iter()
+                .enumerate()
+                .map(|(index, point)| make_pair(format!("CTRL-{index}"), *point))
+                .collect();
+            let checks = check_points
+                .iter()
+                .enumerate()
+                .map(|(index, point)| make_pair(format!("CHECK-{index}"), *point))
+                .collect();
+
+            let case = Case {
+                case_id: format!("FRAME-REPARAM-{sample:03}"),
+                expected_disposition: Disposition::Qualified,
+                datum_origin: "independent_external_reference_network".to_owned(),
+                article_geometry_used: false,
+                source_frame_id: format!("SOURCE-FRAME-{sample:03}"),
+                target_frame_id: format!("TARGET-FRAME-{sample:03}"),
+                datum_set_id: format!("DATUM-SET-{sample:03}"),
+                minimum_span_m: 1.0,
+                minimum_triangle_area_m2: 1.0,
+                maximum_control_residual_m: 1.0e-6,
+                maximum_check_residual_m: 1.0e-6,
+                registration_error_bound_m: 1.0e-7,
+                controls,
+                check_points: checks,
+            };
+
+            let result = evaluate_case(&case).expect("generated frame case must evaluate");
+            assert_eq!(result.disposition, Disposition::Qualified, "sample {sample}");
+            assert!(
+                result.control_residuals.iter().all(|item| item.within_bound),
+                "control residual failed for sample {sample}"
+            );
+            assert!(
+                result.check_residuals.iter().all(|item| item.within_bound),
+                "withheld check failed for sample {sample}"
+            );
+
+            let expected_angle =
+                target_frame_angle + physical_angle - source_frame_angle;
+            let angle_error = (result.rotation_radians.unwrap() - expected_angle
+                + std::f64::consts::PI)
+                .rem_euclid(std::f64::consts::TAU)
+                - std::f64::consts::PI;
+            assert!(angle_error.abs() < 1.0e-10, "pose angle failed for sample {sample}");
+
+            let expected_rotated_translation = rotate(physical_translation, target_frame_angle);
+            let expected_rotated_source_offset =
+                rotate(source_frame_offset, expected_angle);
+            let expected_translation = [
+                expected_rotated_translation[0] + target_frame_offset[0]
+                    - expected_rotated_source_offset[0],
+                expected_rotated_translation[1] + target_frame_offset[1]
+                    - expected_rotated_source_offset[1],
+            ];
+            let actual_translation = result.translation_m.unwrap();
+            assert!(
+                (actual_translation[0] - expected_translation[0]).abs() < 1.0e-8,
+                "pose x translation failed for sample {sample}"
+            );
+            assert!(
+                (actual_translation[1] - expected_translation[1]).abs() < 1.0e-8,
+                "pose y translation failed for sample {sample}"
+            );
+        }
+    }
+
+    #[test]
     fn outliers_and_nonrigid_correspondence_reject_registration() {
         let report = receipt();
         for case_id in [
