@@ -1092,7 +1092,6 @@ const LEBEDEV_5810_ORBITS: &[(u8, f64, f64, f64)] = &[
     ),
 ];
 
-
 fn lebedev_sphere_rule_5810() -> Result<LebedevSphereRule, KernelError> {
     let mut nodes = Vec::with_capacity(5810);
     for &(orbit_type, a, b, normalized_weight) in LEBEDEV_5810_ORBITS {
