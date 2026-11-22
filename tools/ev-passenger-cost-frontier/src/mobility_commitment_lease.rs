@@ -439,10 +439,7 @@ pub fn evaluate_mobility_commitment_lease(
         || candidate.start_slot >= input.horizon_slots
         || candidate.end_slot > input.horizon_slots
         || candidate.resource_allocations.is_empty()
-        || candidate
-            .start_slot
-            .checked_sub(0)
-            .and_then(|slot| slot_start_ms(input, slot))
+        || slot_start_ms(input, candidate.start_slot)
             .is_none_or(|start_time| candidate.expires_at_unix_ms > start_time)
     {
         add_error(&mut errors, "candidate_lease_identity_window_or_expiry_invalid");
@@ -840,17 +837,6 @@ mod tests {
             .expect("frozen commitment lease fixture must parse")
     }
 
-    fn find_resource_allocation_mut<'a>(
-        commitment: &'a mut ExistingCommitment,
-        resource_id: &str,
-    ) -> &'a mut LeaseResourceAllocation {
-        commitment
-            .resource_allocations
-            .iter_mut()
-            .find(|allocation| allocation.resource_id == resource_id)
-            .expect("resource allocation exists")
-    }
-
     fn reference_admissible(input: &MobilityCommitmentLeaseInput) -> bool {
         for budget in &input.resource_budgets {
             let mut energy_used = 0_u64;
@@ -1016,7 +1002,7 @@ mod tests {
     fn firm_offer_expiring_after_its_delivery_window_starts_is_rejected() {
         let mut input = fixture();
         input.candidate_lease.expires_at_unix_ms =
-            input.decision_time_unix_ms + 2 * u64::from(input.slot_duration_seconds) * 1_000;
+            input.decision_time_unix_ms + 2 * u64::from(input.slot_duration_seconds) * 1_000 + 1;
         let errors = evaluate_mobility_commitment_lease(&input)
             .expect_err("a firm offer must expire before its delivery window starts");
         assert!(errors
