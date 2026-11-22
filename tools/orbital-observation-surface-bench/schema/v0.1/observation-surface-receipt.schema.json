@@ -1,0 +1,291 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/orbital-observation-surface-receipt-v0.1.json",
+  "title": "Orbital observation-surface benchmark receipt v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "receipt_schema",
+    "source_commit",
+    "corpus_sha256",
+    "result",
+    "report",
+    "physical_reliability_claim_granted",
+    "qualification_granted",
+    "authority_granted"
+  ],
+  "properties": {
+    "receipt_schema": {
+      "const": "luminous.orbital-observation-surface.receipt.v0.1"
+    },
+    "source_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "corpus_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "result": {
+      "const": "pass"
+    },
+    "physical_reliability_claim_granted": {
+      "const": false
+    },
+    "qualification_granted": {
+      "const": false
+    },
+    "authority_granted": {
+      "const": false
+    },
+    "report": {
+      "$ref": "#/$defs/report"
+    }
+  },
+  "$defs": {
+    "miss_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "shared_common_cause",
+        "channel_outage",
+        "dead_time",
+        "stochastic"
+      ],
+      "properties": {
+        "shared_common_cause": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "channel_outage": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "dead_time": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stochastic": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "pod_probability",
+        "detected",
+        "miss_reason"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string"
+        },
+        "pod_probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "detected": {
+          "type": "boolean"
+        },
+        "miss_reason": {
+          "anyOf": [
+            {
+              "enum": [
+                "shared_common_cause",
+                "channel_outage",
+                "dead_time",
+                "stochastic_miss"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "channel_report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "channel_id",
+        "latent_event_count",
+        "detected_event_count",
+        "miss_counts",
+        "false_positive_count",
+        "false_positive_times",
+        "event_outcomes"
+      ],
+      "properties": {
+        "channel_id": {
+          "type": "string"
+        },
+        "latent_event_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "detected_event_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "miss_counts": {
+          "$ref": "#/$defs/miss_counts"
+        },
+        "false_positive_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "false_positive_times": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "event_outcomes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/outcome"
+          }
+        }
+      }
+    },
+    "scenario_report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "configuration_id",
+        "channels"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string"
+        },
+        "configuration_id": {
+          "type": "string"
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/channel_report"
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_count",
+        "channel_count",
+        "channel_event_opportunity_count",
+        "detected_event_count",
+        "shared_common_cause_misses",
+        "channel_outage_misses",
+        "dead_time_misses",
+        "stochastic_misses",
+        "false_positive_count",
+        "physical_reliability_claims",
+        "qualification_claims",
+        "authority_grants"
+      ],
+      "properties": {
+        "scenario_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "channel_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "channel_event_opportunity_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "detected_event_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "shared_common_cause_misses": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "channel_outage_misses": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "dead_time_misses": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stochastic_misses": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "false_positive_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "physical_reliability_claims": {
+          "const": 0
+        },
+        "qualification_claims": {
+          "const": 0
+        },
+        "authority_grants": {
+          "const": 0
+        }
+      }
+    },
+    "report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "result",
+        "evidence_class",
+        "claim_ceiling",
+        "summary",
+        "scenarios",
+        "physical_reliability_claim_granted",
+        "qualification_granted",
+        "authority_granted"
+      ],
+      "properties": {
+        "result": {
+          "const": "pass"
+        },
+        "evidence_class": {
+          "const": "synthetic"
+        },
+        "claim_ceiling": {
+          "const": "stateful-marked-observation-simulation-only"
+        },
+        "summary": {
+          "$ref": "#/$defs/summary"
+        },
+        "scenarios": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/scenario_report"
+          }
+        },
+        "physical_reliability_claim_granted": {
+          "const": false
+        },
+        "qualification_granted": {
+          "const": false
+        },
+        "authority_granted": {
+          "const": false
+        }
+      }
+    }
+  }
+}
