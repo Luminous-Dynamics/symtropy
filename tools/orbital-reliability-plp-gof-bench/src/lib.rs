@@ -766,8 +766,8 @@ mod tests {
         let mut rejected_at_ten_percent = 0usize;
 
         for _ in 0..250 {
-            let observed = conditional_reference_cvm(10, &mut outer_rng)
-                .expect("null outer sample");
+            let observed =
+                conditional_reference_cvm(10, &mut outer_rng).expect("null outer sample");
             let mut reference_rng = SplitMix64::new(outer_rng.next_u64());
             let mut exceedances = 0usize;
             for _ in 0..999 {
