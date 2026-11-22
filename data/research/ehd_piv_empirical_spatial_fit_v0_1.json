@@ -41,7 +41,8 @@
     "S": "correlated_spatial_component_covariance",
     "N": "per_vector_local_nugget_covariance",
     "psd_required_for_both_components": true,
-    "mean_residual_profile": "estimated on calibration cohort, reported separately, not silently subtracted from engineering outputs"
+    "mean_residual_profile": "estimated on calibration cohort, reported separately, not silently subtracted from engineering outputs",
+    "uq005_model_id": "wendland_c2_anisotropic_3d_with_equal_axis_ranges_for_isotropic_fit"
   },
   "fit_procedure": {
     "cluster_weighting": "equal_weight_per_complete_acquisition",
@@ -71,7 +72,9 @@
     "local_velocity_covariance_each_face_sample": "N",
     "double_counting_rule": "do_not_supply_C0_as_local_covariance_when_S_is_added_by_spatial_cross_location_propagation",
     "protocol_fingerprint_must_match": true,
-    "fit_report_binding": "fit_config_id_protocol_reference_assessment_calibration_manifest_selected_range_and_spatial_covariance_must_match_exactly"
+    "fit_report_binding": "fit_config_id_protocol_reference_assessment_calibration_manifest_selected_range_and_spatial_covariance_must_match_exactly",
+    "local_nugget_adapter": "local_nugget_covariance_for_uq005() returns N; validation receipt exports S",
+    "receipt_binding": "exact_fit_config_reference_assessment_protocol_calibration_manifest_range_and_spatial_covariance"
   },
   "prospective_benchmarks": [
     {
