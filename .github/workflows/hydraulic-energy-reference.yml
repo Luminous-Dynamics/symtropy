@@ -1,0 +1,46 @@
+name: Hydraulic energy reference
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/domains/symtropy-hydraulic-energy/**"
+      - ".github/workflows/hydraulic-energy-reference.yml"
+  push:
+    branches:
+      - research/hydro-conduit-reference-v0.1
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/domains/symtropy-hydraulic-energy/**"
+      - ".github/workflows/hydraulic-energy-reference.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hydraulic-reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Format check
+        run: cargo fmt --manifest-path crates/domains/symtropy-hydraulic-energy/Cargo.toml -- --check
+
+      - name: Unit and adversarial tests
+        run: cargo test --locked -p symtropy-hydraulic-energy
+
+      - name: Clippy
+        run: cargo clippy --locked -p symtropy-hydraulic-energy --all-targets -- -D warnings

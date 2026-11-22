@@ -1,0 +1,11 @@
+[package]
+name = "symtropy-hydraulic-energy"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Analytical hydraulic-to-electric energy ledger with protected water-service constraints"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]

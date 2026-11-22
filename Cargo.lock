@@ -9140,6 +9140,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-hydraulic-energy"
+version = "0.1.0"
+
+[[package]]
 name = "symtropy-iris"
 version = "0.1.0"
 dependencies = [
