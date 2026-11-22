@@ -71,8 +71,7 @@ pub fn assess_pre_native_with_observers(
     let downstream_observer = assess_observer_assurance(downstream_observers);
 
     let no_effect_observer_claim_matches = no_effect_observers.claim_id == base.no_effect_claim_id
-        && no_effect_observers.claim_scope_commitment.0
-            == base.no_effect_claim_scope_commitment.0;
+        && no_effect_observers.claim_scope_commitment.0 == base.no_effect_claim_scope_commitment.0;
     let downstream_observer_claim_matches = downstream_observers.claim_id
         == base.downstream_claim_id
         && downstream_observers.claim_scope_commitment.0
