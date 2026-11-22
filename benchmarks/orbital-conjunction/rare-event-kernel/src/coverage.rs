@@ -179,6 +179,9 @@ impl CoverageMassUpperBound {
         if !probability_upper.is_finite() || !(0.0..=1.0).contains(&probability_upper) {
             return Err(KernelError::InvalidProbability);
         }
+        if probability_upper == 0.0 {
+            return Ok(());
+        }
         let sum = self.total_upper + probability_upper;
         self.total_upper = if !sum.is_finite() || sum >= 1.0 {
             1.0
