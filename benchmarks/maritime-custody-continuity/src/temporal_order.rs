@@ -133,10 +133,7 @@ pub struct EventPairOrder {
     pub relation: TemporalRelation,
 }
 
-pub fn compare_time_evidence(
-    first: &TimeEvidence,
-    second: &TimeEvidence,
-) -> TemporalRelation {
+pub fn compare_time_evidence(first: &TimeEvidence, second: &TimeEvidence) -> TemporalRelation {
     if first.time_basis_id != second.time_basis_id {
         return TemporalRelation::IncomparableTimeBasis;
     }
@@ -185,9 +182,7 @@ pub fn build_partial_order(
             return Err(TemporalOrderError::UntrimmedTimeBasisId);
         }
         if by_id.insert(&event.event_id, event).is_some() {
-            return Err(TemporalOrderError::DuplicateEventId(
-                event.event_id.clone(),
-            ));
+            return Err(TemporalOrderError::DuplicateEventId(event.event_id.clone()));
         }
     }
 
@@ -358,14 +353,9 @@ mod tests {
 
     #[test]
     fn positive_common_time_scale_preserves_relation() {
-        let original = compare_time_evidence(
-            &qualified("a", 10, 19),
-            &qualified("b", 20, 30),
-        );
-        let scaled = compare_time_evidence(
-            &qualified("a", 1_000, 1_900),
-            &qualified("b", 2_000, 3_000),
-        );
+        let original = compare_time_evidence(&qualified("a", 10, 19), &qualified("b", 20, 30));
+        let scaled =
+            compare_time_evidence(&qualified("a", 1_000, 1_900), &qualified("b", 2_000, 3_000));
 
         assert_eq!(original, TemporalRelation::ProvenBefore);
         assert_eq!(scaled, original);
@@ -387,14 +377,8 @@ mod tests {
 
     #[test]
     fn widening_an_enclosure_cannot_upgrade_an_unresolved_pair() {
-        let narrow = compare_time_evidence(
-            &qualified("a", 10, 14),
-            &qualified("b", 16, 20),
-        );
-        let widened = compare_time_evidence(
-            &qualified("a", 10, 16),
-            &qualified("b", 16, 20),
-        );
+        let narrow = compare_time_evidence(&qualified("a", 10, 14), &qualified("b", 16, 20));
+        let widened = compare_time_evidence(&qualified("a", 10, 16), &qualified("b", 16, 20));
         assert_eq!(narrow, TemporalRelation::ProvenBefore);
         assert_eq!(widened, TemporalRelation::UnresolvedOverlap);
     }
