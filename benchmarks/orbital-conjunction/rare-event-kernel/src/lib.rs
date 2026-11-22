@@ -29,6 +29,7 @@ use core::fmt;
 /// Outward-rounded affine geometry used by the independent coverage research.
 pub mod bernstein;
 pub mod coverage;
+pub mod first_contact;
 pub mod residual;
 pub mod sequential;
 pub mod stats;
@@ -139,7 +140,9 @@ impl fmt::Display for KernelError {
                 "trajectory polynomial must contain at least one coefficient per axis"
             }
             Self::InvalidTrajectoryBudget => "trajectory time-interval budget must be nonzero",
-            Self::InvalidTimeTolerance => "first-contact time-width tolerance must be positive and finite",
+            Self::InvalidTimeTolerance => {
+                "first-contact time-width tolerance must be positive and finite"
+            }
             Self::CounterOverflow => "streaming observation counter overflowed",
             Self::InvalidProbability => "probability must be finite and lie in [0, 1]",
             Self::InvalidAlpha => "alpha must be finite and lie strictly between 0 and 1",
