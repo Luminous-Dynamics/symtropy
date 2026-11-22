@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "einstein_limit_second_order_frobenius_replay_receipt",
+  "status": "passed_local_exact_development_replay",
+  "development_source_sha256": "1f40a5d4ba03a94c36df1c629575b7fe460921accc18cbbce9d1dcda63a9a33a",
+  "development_source_git_blob_sha1": "2cb2e3d567b3dd204252f4f43a8005693bc819cc",
+  "fixture_sha256": "a5adc1a220ad67622a6c0cef2b32c06ea08f4826d7399b3057e67ca3e83c1274",
+  "environment": {
+    "python": "3.13.5",
+    "sympy": "1.14.0"
+  },
+  "exact_checks": {
+    "A0_matches_previous_public_indicial_result": true,
+    "A1_matches_previous_local_exact_derivation": true,
+    "A2_and_g2_extracted_exactly": true,
+    "analytic_recurrences_n0_n1_n2": true,
+    "Myers_Perry_recurrences_n0_n1_n2": true,
+    "full_reduced_Myers_Perry_equations_exact": true,
+    "logarithmic_obstruction_nonzero": true
+  },
+  "evidence_boundary": "This is a successful local replay of the action-specialized alpha=0 development source and its exact output. The public committed A2 derivation source is not part of the repository in this increment; the small public verifier checks the committed fixture recurrences but does not regenerate the Euler-Lagrange system. No CI, finite-coupling result, interval proof, or hyperbolicity result is claimed."
+}
