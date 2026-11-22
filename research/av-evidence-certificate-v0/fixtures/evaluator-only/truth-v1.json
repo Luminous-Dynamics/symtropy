@@ -1,0 +1,50 @@
+{
+  "benchmark_id": "av-evidence-certificate-v0",
+  "schema_version": 1,
+  "episode_id": "episode-001",
+  "claims": [
+    {
+      "claim_id": "claim-door",
+      "answerable": true,
+      "acceptable_answer_values": [
+        "door_opens"
+      ],
+      "minimal_sufficient_evidence_sets": [
+        [
+          "obs-video-01"
+        ]
+      ],
+      "supporting_spans": [
+        {
+          "observation_ref": "obs-video-01",
+          "start_ms": 100,
+          "end_ms": 300
+        }
+      ],
+      "supporting_boxes": [
+        {
+          "observation_ref": "obs-video-01",
+          "start_ms": 100,
+          "end_ms": 300,
+          "frame_id": "frame-12",
+          "bbox_xyxy": [
+            0.1,
+            0.1,
+            0.5,
+            0.5
+          ]
+        }
+      ],
+      "temporal_iou_threshold": 0.3,
+      "spatial_iou_threshold": 0.3
+    },
+    {
+      "claim_id": "claim-unknown",
+      "answerable": false,
+      "acceptable_answer_values": [],
+      "minimal_sufficient_evidence_sets": [],
+      "supporting_spans": [],
+      "supporting_boxes": []
+    }
+  ]
+}
