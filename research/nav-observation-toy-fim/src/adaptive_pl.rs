@@ -12,6 +12,19 @@ use std::fmt;
 
 const EPSILON: f64 = 1.0e-12;
 
+/// Conditional anti-windup policy.
+///
+/// PaperConditional reproduces Equation (33) exactly: when the previous
+/// integral state is inside the limit (or the error unwinds it), accept one
+/// full discrete increment. This can overshoot the nominal threshold by one
+/// time-step increment. HardClamped is a conservative implementation variant
+/// that additionally clamps the new integral state to the threshold.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum IntegralAntiWindup {
+    PaperConditional,
+    HardClamped,
+}
+
 /// Published controller parameters plus explicit TIR inflation constant.
 ///
 /// k_tir is deliberately caller-supplied. The paper states that it is derived
@@ -32,6 +45,7 @@ pub struct AdaptivePlConfig {
     pub decay_modifier: f64,
     pub derivative_cutoff_hz: f64,
     pub integral_limit_fraction: f64,
+    pub integral_anti_windup: IntegralAntiWindup,
     pub entropy_kp_scale: f64,
     pub entropy_ki_scale: f64,
     pub entropy_kd_scale: f64,
@@ -55,6 +69,7 @@ impl AdaptivePlConfig {
             decay_modifier: 0.15,
             derivative_cutoff_hz: 5.0,
             integral_limit_fraction: 0.3,
+            integral_anti_windup: IntegralAntiWindup::PaperConditional,
             entropy_kp_scale: 2.0,
             entropy_ki_scale: 0.8,
             entropy_kd_scale: 0.5,
@@ -330,11 +345,16 @@ impl AdaptivePlState {
             config.integral_limit_fraction * config.max_protection_level_m;
         let should_integrate = self.integral_state_m_s.abs() < integral_limit
             || tracking_error * self.integral_state_m_s < 0.0;
-        let next_integral = if should_integrate {
-            (self.integral_state_m_s + tracking_error * dt)
-                .clamp(-integral_limit, integral_limit)
+        let candidate_integral = if should_integrate {
+            self.integral_state_m_s + tracking_error * dt
         } else {
-            self.integral_state_m_s.clamp(-integral_limit, integral_limit)
+            self.integral_state_m_s
+        };
+        let next_integral = match config.integral_anti_windup {
+            IntegralAntiWindup::PaperConditional => candidate_integral,
+            IntegralAntiWindup::HardClamped => {
+                candidate_integral.clamp(-integral_limit, integral_limit)
+            }
         };
 
         // Eqs. (34)-(35): low-pass filtered derivative.
@@ -554,7 +574,7 @@ mod tests {
     }
 
     #[test]
-    fn integral_anti_windup_does_not_accumulate_without_bound() {
+    fn paper_conditional_anti_windup_stops_after_one_discrete_threshold_crossing() {
         let mut cfg = config();
         cfg.base_imu_drift_mps = 0.0;
         cfg.drift_weight = 0.0;
@@ -562,12 +582,57 @@ mod tests {
         cfg.kp_base = 0.0;
         cfg.kd_base = 0.0;
         cfg.ki_base = 0.05;
+        cfg.integral_anti_windup = IntegralAntiWindup::PaperConditional;
         let mut state = AdaptivePlState::new(cfg, 10.0, 0.0).unwrap();
+        let mut sample = input(0.0);
+        sample.delta_time_s = 0.1;
         for _ in 0..1000 {
-            state.step(cfg, input(0.0)).unwrap();
+            state.step(cfg, sample).unwrap();
         }
-        assert!(state.integral_state_m_s().abs()
-            <= cfg.integral_limit_fraction * cfg.max_protection_level_m + 1.0e-9);
+        let limit = cfg.integral_limit_fraction * cfg.max_protection_level_m;
+        assert!((state.integral_state_m_s() - limit).abs() < 1.0e-9);
+    }
+
+    #[test]
+    fn paper_conditional_rule_can_overshoot_by_one_increment_but_does_not_wind_up() {
+        let mut cfg = config();
+        cfg.base_imu_drift_mps = 0.0;
+        cfg.drift_weight = 0.0;
+        cfg.geometric_weight_mps = 0.0;
+        cfg.kp_base = 0.0;
+        cfg.kd_base = 0.0;
+        cfg.ki_base = 0.05;
+        cfg.integral_anti_windup = IntegralAntiWindup::PaperConditional;
+        let mut state = AdaptivePlState::new(cfg, 10.0, 0.0).unwrap();
+        let mut sample = input(0.0);
+        sample.delta_time_s = 0.4;
+        let first = state.step(cfg, sample).unwrap();
+        let limit = cfg.integral_limit_fraction * cfg.max_protection_level_m;
+        assert!(first.integral_state_m_s > limit);
+        for _ in 0..100 {
+            state.step(cfg, sample).unwrap();
+        }
+        assert!((state.integral_state_m_s() - first.integral_state_m_s).abs() < 1.0e-9);
+    }
+
+    #[test]
+    fn hard_clamped_anti_windup_never_exceeds_integral_limit() {
+        let mut cfg = config();
+        cfg.base_imu_drift_mps = 0.0;
+        cfg.drift_weight = 0.0;
+        cfg.geometric_weight_mps = 0.0;
+        cfg.kp_base = 0.0;
+        cfg.kd_base = 0.0;
+        cfg.ki_base = 0.05;
+        cfg.integral_anti_windup = IntegralAntiWindup::HardClamped;
+        let mut state = AdaptivePlState::new(cfg, 10.0, 0.0).unwrap();
+        let mut sample = input(0.0);
+        sample.delta_time_s = 0.4;
+        for _ in 0..100 {
+            state.step(cfg, sample).unwrap();
+        }
+        let limit = cfg.integral_limit_fraction * cfg.max_protection_level_m;
+        assert!(state.integral_state_m_s().abs() <= limit + 1.0e-9);
     }
 
     #[test]
