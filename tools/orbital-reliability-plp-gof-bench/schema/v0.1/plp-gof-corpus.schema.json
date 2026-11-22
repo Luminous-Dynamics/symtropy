@@ -160,8 +160,6 @@
         "observed_cvm",
         "tail_exceedances",
         "monte_carlo_p_value",
-        "component_p_values",
-        "bonferroni_adjusted_min_p_value",
         "blockers"
       ],
       "properties": {
@@ -213,24 +211,6 @@
           "items": {
             "type": "string"
           }
-        },
-        "component_p_values": {
-          "type": "array",
-          "minItems": 0,
-          "maxItems": 5,
-          "items": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1
-          }
-        },
-        "bonferroni_adjusted_min_p_value": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "minimum": 0,
-          "maximum": 1
         }
       }
     }
