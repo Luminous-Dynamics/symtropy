@@ -18,7 +18,9 @@
 //! - a structural check for a strict covariance floor
 //!   Sigma_component > alpha * Sigma_nominal;
 //! - a budgeted affine-cell traversal that accounts for possible event mass
-//!   outside caller-declared geometric chart boxes.
+//!   outside caller-declared geometric chart boxes;
+//! - fail-closed composition of admitted and residual event mass under a
+//!   caller-declared disjoint/exhaustive partition.
 //!
 //! These primitives do not establish event-mode completeness, finite-budget
 //! confidence-interval coverage, physical-model adequacy, or the assumptions
@@ -28,11 +30,17 @@ use core::fmt;
 
 /// Outward-rounded affine geometry used by the independent coverage research.
 pub mod coverage;
+pub mod event_mass_composition;
 pub mod residual;
 pub mod sequential;
 pub mod stats;
 pub mod trajectory;
 
+pub use event_mass_composition::{
+    AdmittedEventMassEvidence, ComposedEventMassEnvelope, EventMassCompositionBasis,
+    EventMassPartitionDeclaration, EventModelIdentity, PartitionClaim, ResidualEventMassEvidence,
+    ResidualMassCoverage, compose_admitted_and_residual_event_mass,
+};
 pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
     AffineResidualMassReport, AffineUnionResidualMassConfig,
@@ -102,6 +110,24 @@ pub enum KernelError {
     /// The proposal log density is negative infinity, so the importance ratio
     /// is undefined at a point where a weight was requested.
     ProposalHasZeroDensity,
+    /// An evidence identifier is blank or two supposedly independent artifacts reuse an ID.
+    InvalidEvidenceIdentifier,
+    /// An evidence SHA-256 digest is not canonical 64-character lowercase hexadecimal.
+    InvalidEvidenceDigest,
+    /// Event, revision, model or target-distribution identities disagree.
+    EvidenceIdentityMismatch,
+    /// Partition digests or admitted/residual region assignments disagree.
+    PartitionIdentityMismatch,
+    /// The partition is not declared disjoint and exhaustive by the caller.
+    InvalidPartitionDeclaration,
+    /// The admitted and residual region identifiers are identical.
+    IdenticalEvidenceRegions,
+    /// The residual event-mass certificate does not cover its complete region.
+    ResidualEvidenceIncomplete,
+    /// The residual event-mass computation exhausted its budget.
+    ResidualEvidenceBudgetExhausted,
+    /// A probability interval has a lower endpoint above its upper endpoint.
+    InvalidProbabilityInterval,
 }
 
 impl fmt::Display for KernelError {
@@ -137,6 +163,25 @@ impl fmt::Display for KernelError {
             Self::ZeroProjectedVariance => "half-space projection has zero variance",
             Self::NumericalOverflow => "numerical intermediate is outside the representable range",
             Self::ProposalHasZeroDensity => "proposal density is zero at the evaluation point",
+            Self::InvalidEvidenceIdentifier => "evidence identifiers must be nonempty and distinct",
+            Self::InvalidEvidenceDigest => {
+                "evidence digest must be 64 lowercase hexadecimal characters"
+            }
+            Self::EvidenceIdentityMismatch => {
+                "event, model or target-distribution evidence identities do not match"
+            }
+            Self::PartitionIdentityMismatch => {
+                "partition digest or region assignment does not match"
+            }
+            Self::InvalidPartitionDeclaration => {
+                "partition is not declared disjoint and exhaustive"
+            }
+            Self::IdenticalEvidenceRegions => "admitted and residual regions must be distinct",
+            Self::ResidualEvidenceIncomplete => "residual event-mass evidence is incomplete",
+            Self::ResidualEvidenceBudgetExhausted => "residual event-mass budget was exhausted",
+            Self::InvalidProbabilityInterval => {
+                "probability interval lower endpoint exceeds upper endpoint"
+            }
         };
         f.write_str(message)
     }
