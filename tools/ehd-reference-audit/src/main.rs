@@ -332,6 +332,74 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
         );
     }
 
+    // Jiang et al. 2026 is a recent same-study, voltage-matched electrode
+    // configuration comparison. Keep absolute thrust separate from T/P and
+    // preserve the authors' explicit thrust-to-power trade-off.
+    let jiang = records.and_then(|rows| rows.iter().find(|r| {
+        text_at(r, &["source_id"]) == Some("JIANG_2026_SUB_UNIT_ELECTRODE")
+    }));
+    push_if_missing(
+        &mut findings,
+        jiang.is_some(),
+        "JIANG_RECORD",
+        "missing 2026 sub-unit electrode experimental cohort",
+    );
+    if let Some(record) = jiang {
+        push_if_missing(
+            &mut findings,
+            text_at(record, &["doi"]) == Some("10.1038/s41598-026-78941-0")
+                && text_at(record, &["published_date"]) == Some("2026-11-07")
+                && text_at(record, &["cohort"])
+                    == Some("ambient_air_corona_sub_unit_electrode_configuration"),
+            "JIANG_SOURCE_IDENTITY",
+            "Jiang 2026 DOI, publication date or cohort identity changed",
+        );
+        push_if_missing(
+            &mut findings,
+            number_at(record, &["reported_results", "applied_voltage_kv"]) == Some(22.0)
+                && number_at(record, &["reported_results", "conventional", "thrust_mn"]) == Some(50.23)
+                && number_at(record, &["reported_results", "sub_unit", "thrust_mn"]) == Some(64.09)
+                && number_at(record, &["reported_results", "sub_unit_plus", "thrust_mn"]) == Some(68.70)
+                && number_at(record, &["reported_results", "sub_unit", "relative_gain_percent_vs_conventional"]) == Some(27.59)
+                && number_at(record, &["reported_results", "sub_unit_plus", "relative_gain_percent_vs_conventional"]) == Some(36.77)
+                && number_at(record, &["reported_results", "sub_unit_plus", "relative_gain_percent_vs_sub_unit"]) == Some(7.19),
+            "JIANG_SOURCE_VALUES",
+            "same-study 22 kV thrust values or relative changes changed; re-audit primary source",
+        );
+        push_if_missing(
+            &mut findings,
+            text_at(record, &["measurement", "thrust_method"])
+                .is_some_and(|method| method.contains("apparent-weight difference"))
+                && at(record, &["measurement", "repeated_measurements_per_condition"])
+                    .and_then(Value::as_u64) == Some(10)
+                && number_at(record, &["measurement", "ambient_temperature_c"]) == Some(21.0)
+                && number_at(record, &["measurement", "relative_humidity_percent"]) == Some(22.8),
+            "JIANG_MEASUREMENT_BOUNDARY",
+            "balance method, repeat count or ambient-condition transcription changed",
+        );
+        push_if_missing(
+            &mut findings,
+            at(record, &["reported_results", "absolute_current_a"]).is_some_and(Value::is_null)
+                && at(record, &["reported_results", "absolute_real_power_w"]).is_some_and(Value::is_null)
+                && at(record, &["reported_results", "absolute_thrust_to_power"]).is_some_and(Value::is_null)
+                && at(record, &["comparability", "thrust_to_power_leaderboard_eligible"])
+                    .and_then(Value::as_bool) == Some(false),
+            "JIANG_POWER_BOUNDARY",
+            "unreported current, power and T/P values must remain unknown and excluded from ranking",
+        );
+        push_if_missing(
+            &mut findings,
+            at(record, &["comparability", "absolute_thrust_leaderboard_eligible"])
+                .and_then(Value::as_bool) == Some(false)
+                && at(record, &["comparability", "system_thrust_to_weight_leaderboard_eligible"])
+                    .and_then(Value::as_bool) == Some(false)
+                && at(record, &["reported_results", "thrust_to_power_tradeoff_reported_by_authors"])
+                    .and_then(Value::as_bool) == Some(true),
+            "JIANG_COMPARABILITY_BOUNDARY",
+            "same-study thrust comparison must not be promoted to cross-study or efficiency leaderboard",
+        );
+    }
+
     // Specialist solver scopes are intentionally narrow.
     let solvers = at(root, &["solver_profiles"]).and_then(Value::as_array);
     let merlino = solvers.and_then(|rows| rows.iter().find(|s| text_at(s, &["solver_id"]) == Some("MERLINO2D")));
@@ -3075,6 +3143,48 @@ mod identifiability_contract_tests {
             ["candidate_indices"] = serde_json::json!([0, 2, 3]);
         assert!(audit_identifiability_contract(&value).iter().any(|finding| {
             finding.starts_with("IDENTIFIABILITY_DESIGN_TOURNAMENT")
+        }));
+    }
+}
+
+
+#[cfg(test)]
+mod jiang_2026_atlas_tests {
+    use super::*;
+
+    fn atlas() -> Value {
+        serde_json::from_str(EMBEDDED_ATLAS).expect("embedded reference atlas must be valid JSON")
+    }
+
+    #[test]
+    fn jiang_sub_unit_source_record_passes() {
+        assert!(audit_atlas(&atlas()).is_empty());
+    }
+
+    #[test]
+    fn jiang_missing_power_values_must_remain_unknown() {
+        let mut value = atlas();
+        let records = value["source_records"].as_array_mut().unwrap();
+        let record = records.iter_mut().find(|row| {
+            row["source_id"] == "JIANG_2026_SUB_UNIT_ELECTRODE"
+        }).unwrap();
+        record["reported_results"]["absolute_real_power_w"] = serde_json::json!(100.0);
+        assert!(audit_atlas(&value).iter().any(|finding| {
+            finding.starts_with("JIANG_POWER_BOUNDARY")
+        }));
+    }
+
+    #[test]
+    fn jiang_peak_absolute_thrust_cannot_be_promoted_to_efficiency_winner() {
+        let mut value = atlas();
+        let records = value["source_records"].as_array_mut().unwrap();
+        let record = records.iter_mut().find(|row| {
+            row["source_id"] == "JIANG_2026_SUB_UNIT_ELECTRODE"
+        }).unwrap();
+        record["comparability"]["thrust_to_power_leaderboard_eligible"] =
+            Value::Bool(true);
+        assert!(audit_atlas(&value).iter().any(|finding| {
+            finding.starts_with("JIANG_POWER_BOUNDARY")
         }));
     }
 }
