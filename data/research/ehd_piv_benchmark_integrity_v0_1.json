@@ -1,0 +1,96 @@
+{
+  "schema": "luminous.ehd_piv_benchmark_integrity",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-PIV-BENCH-001",
+  "as_of": "2026-11-22",
+  "status": "metadata_only_split_auditor_authored_tests_execution_pending",
+  "claim_ceiling": "A declared split and raw sequence hash integrity audit. It does not process images, prove statistical independence, or create PIV benchmark scores.",
+  "datasets": [
+    {
+      "id": "FFS_S_PIV_V1",
+      "doi": "10.5281/zenodo.21732072",
+      "sequences": 12466,
+      "frame_dimensions_px": [256, 256],
+      "frames_per_sequence": 5,
+      "flow_scenarios": 9,
+      "archive_size_gb": 29.4,
+      "official_test_archive_size_gb": 2.9,
+      "known_ground_truth_displacement": true,
+      "role": "primary synthetic displacement-estimation holdout"
+    },
+    {
+      "id": "PIVTOOLS_TURBULENT_CHANNEL",
+      "paper_doi": "10.1016/j.softx.2026.102967",
+      "dataset_doi": "10.5258/SOTON/D3981",
+      "role": "end-to-end planar/stereo/ensemble processing comparator with DNS statistics and reproducibility scripts"
+    }
+  ],
+  "required_metadata": [
+    "sample_id",
+    "source_dataset_id",
+    "split",
+    "flow_family_id",
+    "geometry_id",
+    "acquisition_id",
+    "session_id",
+    "camera_calibration_batch_id",
+    "tracer_id",
+    "pressure_regime_id",
+    "raw_sequence_sha256"
+  ],
+  "holdout_dimensions": [
+    "flow_family",
+    "geometry",
+    "acquisition",
+    "session",
+    "camera_calibration_batch",
+    "tracer",
+    "pressure_regime"
+  ],
+  "integrity_gates": {
+    "all_splits_non_empty": true,
+    "sample_ids_unique": true,
+    "raw_sequence_hashes_unique": true,
+    "declared_holdout_dimensions_disjoint_across_all_splits": true,
+    "dimension_values_required": true,
+    "source_dataset_identity_consistent": true
+  },
+  "benchmark_lanes": [
+    {
+      "id": "WITHIN_COHORT_SANITY",
+      "holdout_dimensions": ["raw_sequence_sha256"],
+      "claim": "within-cohort algorithm sanity only"
+    },
+    {
+      "id": "NEW_SESSION",
+      "holdout_dimensions": ["session", "acquisition", "camera_calibration_batch"]
+    },
+    {
+      "id": "NEW_GEOMETRY",
+      "holdout_dimensions": ["geometry", "acquisition"]
+    },
+    {
+      "id": "NEW_FLOW_FAMILY",
+      "holdout_dimensions": ["flow_family", "geometry"]
+    },
+    {
+      "id": "NEW_TRACER_PRESSURE",
+      "holdout_dimensions": ["tracer", "pressure_regime", "session"]
+    }
+  ],
+  "implementation": {
+    "crate": "tools/ehd-piv-benchmark-integrity",
+    "path": "tools/ehd-piv-benchmark-integrity/src/lib.rs",
+    "function": "audit_split_integrity",
+    "authored_rust_tests": 10,
+    "execution": "not_run_no_local_rust_toolchain"
+  },
+  "limitations": [
+    "metadata_only",
+    "raw_hashes_supplied_by_curation_pipeline",
+    "no_image_quality_or_piv_processing",
+    "no_proof_of_statistical_independence",
+    "no_claim_that_all_holdout_dimensions_are_required_in_every_lane",
+    "no_empirical_or_EHD_results"
+  ]
+}
