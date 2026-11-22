@@ -14,8 +14,8 @@
 //! (0,1), (0,2), ..., (D-2,D-1). The current integrator/body/contact paths are
 //! not silently switched to this representation by adding this module.
 
-use nalgebra::DMatrix;
-use nalgebra::SVector;
+use nalgebra::linalg::SymmetricEigen;
+use nalgebra::{DMatrix, SVector};
 use symtropy_math::{Bivector, Rotor};
 
 /// Maximum bivector dimension supported by symtropy-math (D <= 9).
@@ -37,7 +37,9 @@ pub enum MassPropertiesError {
     NonFiniteMatrix,
     /// The matrix is not symmetric within the declared relative tolerance.
     NotSymmetric,
-    /// The symmetric matrix is not positive definite.
+    /// A symmetric source matrix has a materially negative eigenvalue.
+    NotPositiveSemidefinite,
+    /// The induced rotational operator is singular or not positive definite.
     NotPositiveDefinite,
     /// A vector does not have the expected bivector-coordinate count.
     VectorSizeMismatch { expected: usize, actual: usize },
@@ -154,11 +156,13 @@ impl<const D: usize> RotationalInertiaOperator<D> {
     /// `I[a,b] = trace(E_a^T * E_b * S)`.
     ///
     /// Consequently, `T_rot = 0.5 * omega^T * I * omega` equals
-    /// `0.5 * integral(||Omega r||^2 dm)`. The input second-moment matrix must
-    /// be finite, symmetric and positive definite. This gives a physically
-    /// realizable inertia operator for a full-dimensional mass distribution;
-    /// degenerate lower-dimensional bodies require a separate semidefinite
-    /// representation and are not accepted by this dynamic-body constructor.
+    /// `0.5 * integral(||Omega r||^2 dm)`. The source second-moment matrix must
+    /// be finite, symmetric and positive semidefinite. It may be singular:
+    /// planar mass distributions can still induce a positive-definite operator
+    /// on all rotation planes (for example, a 3D lamina). The induced bivector
+    /// operator is then checked separately for positive definiteness. A line
+    /// or point distribution that leaves a zero-inertia rotation plane is
+    /// rejected by the dense dynamic-body operator.
     pub fn from_body_second_moment_matrix(
         second_moment_row_major: Vec<f64>,
     ) -> Result<Self, MassPropertiesError> {
@@ -195,9 +199,24 @@ impl<const D: usize> RotationalInertiaOperator<D> {
             }
         }
 
-        let second_moment = DMatrix::from_row_slice(D, D, &second_moment_row_major);
-        if second_moment.clone().cholesky().is_none() {
-            return Err(MassPropertiesError::NotPositiveDefinite);
+        let raw_second_moment = DMatrix::from_row_slice(D, D, &second_moment_row_major);
+        let second_moment = DMatrix::from_fn(D, D, |row, column| {
+            0.5 * raw_second_moment[(row, column)]
+                + 0.5 * raw_second_moment[(column, row)]
+        });
+        let source_scale = second_moment
+            .iter()
+            .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
+        let source_tolerance = 1.0e-12 * source_scale.max(f64::MIN_POSITIVE);
+        let minimum_source_eigenvalue = SymmetricEigen::new(second_moment.clone())
+            .eigenvalues
+            .iter()
+            .fold(f64::INFINITY, |minimum, value| minimum.min(*value));
+        if !minimum_source_eigenvalue.is_finite() {
+            return Err(MassPropertiesError::NonFiniteValue);
+        }
+        if minimum_source_eigenvalue < -source_tolerance {
+            return Err(MassPropertiesError::NotPositiveSemidefinite);
         }
 
         let dof = rotational_dof_count::<D>();
@@ -834,7 +853,7 @@ mod tests {
     }
 
     #[test]
-    fn body_second_moment_rejects_non_symmetric_or_degenerate_mass_distribution() {
+    fn body_second_moment_rejects_non_symmetric_or_indefinite_source() {
         assert_eq!(
             RotationalInertiaOperator::<3>::from_body_second_moment_matrix(vec![
                 1.0, 0.5, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0,
@@ -843,7 +862,36 @@ mod tests {
         );
         assert_eq!(
             RotationalInertiaOperator::<3>::from_body_second_moment_matrix(vec![
-                1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+                -0.1, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0,
+            ]),
+            Err(MassPropertiesError::NotPositiveSemidefinite)
+        );
+    }
+
+    #[test]
+    fn planar_mass_distribution_has_positive_definite_three_dimensional_rotation_operator() {
+        // The source is rank-two PSD (a planar lamina), but each 3D rotation
+        // plane has positive inertia: (0,1)=5, (0,2)=2, (1,2)=3.
+        let inertia = RotationalInertiaOperator::<3>::from_body_second_moment_matrix(vec![
+            2.0, 0.25, 0.0, 0.25, 3.0, 0.0, 0.0, 0.0, 0.0,
+        ])
+        .unwrap();
+        assert_eq!(inertia.dof(), 3);
+        let mut omega = Bivector::<3>::zero();
+        omega.set(0, 1, 0.3);
+        omega.set(0, 2, -0.4);
+        omega.set(1, 2, 0.7);
+        let momentum = inertia.apply_bivector(&omega).unwrap();
+        let recovered = inertia.solve_bivector(&momentum).unwrap();
+        assert!((recovered.add(&omega.scale(-1.0))).norm() < 1.0e-11);
+        assert!(inertia.kinetic_energy_joules(&omega).unwrap() > 0.0);
+    }
+
+    #[test]
+    fn line_mass_distribution_is_rejected_when_a_rotation_plane_has_zero_inertia() {
+        assert_eq!(
+            RotationalInertiaOperator::<3>::from_body_second_moment_matrix(vec![
+                1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
             ]),
             Err(MassPropertiesError::NotPositiveDefinite)
         );
