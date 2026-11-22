@@ -144,6 +144,7 @@ function simulateChannel(scenario, channel) {
     dead_time: 0,
     stochastic: 0
   };
+  const observedEventStream = [];
   const eventOutcomes = scenario.events.map(event => {
     // Always consume one draw per latent event: outage edits do not shift
     // the later Bernoulli stream.
@@ -171,10 +172,12 @@ function simulateChannel(scenario, channel) {
       }
     }
 
+    const detected = missReason === null;
+    if (detected) observedEventStream.push({ time_fraction: event.time_fraction });
     return {
       event_id: event.event_id,
       conditional_classifier_probability: probability,
-      detected: missReason === null,
+      detected,
       miss_reason: missReason
     };
   });
@@ -182,15 +185,20 @@ function simulateChannel(scenario, channel) {
   const falsePositiveTimes = simulateFalsePositives(channel).filter(time =>
     !inIntervals(time, scenario.shared_common_cause_outages)
     && !inIntervals(time, channel.channel_outages));
+  observedEventStream.push(...falsePositiveTimes.map(time => ({ time_fraction: time })));
+  observedEventStream.sort((left, right) => left.time_fraction - right.time_fraction);
 
   return {
     channel_id: channel.channel_id,
-    latent_event_count: scenario.events.length,
-    detected_event_count: detectedEventCount,
-    miss_counts: missCounts,
-    false_positive_count: falsePositiveTimes.length,
-    false_positive_times: falsePositiveTimes,
-    event_outcomes: eventOutcomes
+    observed_event_stream: observedEventStream,
+    audit: {
+      latent_event_count: scenario.events.length,
+      detected_event_count: detectedEventCount,
+      miss_counts: missCounts,
+      false_positive_count: falsePositiveTimes.length,
+      false_positive_times: falsePositiveTimes,
+      event_outcomes: eventOutcomes
+    }
   };
 }
 
@@ -215,13 +223,13 @@ function evaluate(corpus) {
     const channels = scenario.channels.map(channel => {
       const result = simulateChannel(scenario, channel);
       summary.channel_count += 1;
-      summary.channel_event_opportunity_count += result.latent_event_count;
-      summary.detected_event_count += result.detected_event_count;
-      summary.shared_common_cause_misses += result.miss_counts.shared_common_cause;
-      summary.channel_outage_misses += result.miss_counts.channel_outage;
-      summary.dead_time_misses += result.miss_counts.dead_time;
-      summary.stochastic_misses += result.miss_counts.stochastic;
-      summary.false_positive_count += result.false_positive_count;
+      summary.channel_event_opportunity_count += result.audit.latent_event_count;
+      summary.detected_event_count += result.audit.detected_event_count;
+      summary.shared_common_cause_misses += result.audit.miss_counts.shared_common_cause;
+      summary.channel_outage_misses += result.audit.miss_counts.channel_outage;
+      summary.dead_time_misses += result.audit.miss_counts.dead_time;
+      summary.stochastic_misses += result.audit.miss_counts.stochastic;
+      summary.false_positive_count += result.audit.false_positive_count;
       return result;
     });
     summary.scenario_count += 1;
@@ -232,12 +240,26 @@ function evaluate(corpus) {
     };
   });
 
+  const observations = {
+    schema: "luminous.orbital-observation-surface.observations.v0.1",
+    evidence_class: "synthetic",
+    claim_ceiling: "synthetic-observation-stream-only",
+    scenarios: scenarios.map(scenario => ({
+      scenario_id: scenario.scenario_id,
+      configuration_id: scenario.configuration_id,
+      channels: scenario.channels.map(channel => ({
+        channel_id: channel.channel_id,
+        events: channel.observed_event_stream
+      }))
+    }))
+  };
   return {
     result: "pass",
     evidence_class: "synthetic",
     claim_ceiling: CLAIM,
     summary,
     scenarios,
+    observations,
     physical_reliability_claim_granted: false,
     qualification_granted: false,
     authority_granted: false
