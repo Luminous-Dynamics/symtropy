@@ -59,37 +59,61 @@ pub struct AffineResidualMassReport {
     pub residual_event_mass_upper_bound: f64,
 }
 
-/// Bound possible collision-event mass outside caller-declared chart boxes.
+/// One affine collision component in a disconnected event union.
+#[derive(Debug, Clone, Copy)]
+pub struct AffineCollisionComponent<'a> {
+    /// Offset of this component's affine relative-position map.
+    pub offset: &'a [f64],
+    /// Row-major matrix mapping standard-normal coordinates to relative position.
+    pub matrix: &'a [f64],
+    /// Closed hard-body radius for this event component.
+    pub hard_body_radius: f64,
+}
+
+/// Configuration for residual-mass exploration of a union of affine collision events.
+#[derive(Debug, Clone, Copy)]
+pub struct AffineUnionResidualMassConfig<'a> {
+    /// Nonempty set of event components. The event is the union of all components.
+    pub components: &'a [AffineCollisionComponent<'a>],
+    /// Closed boxes assigned to independently discovered geometric charts.
+    /// A cell is chart-covered only when wholly contained in one box.
+    pub covered_chart_boxes: &'a [CoverageCell],
+    /// Radius of the finite standard-normal search cube [-radius, radius]^d.
+    pub cube_radius: f64,
+    /// Maximum number of cells the traversal may classify.
+    pub max_cells: usize,
+    /// Maximum subdivision depth from the root cube.
+    pub max_depth: usize,
+}
+
+/// Bound event mass outside chart boxes for a union of static affine collision balls.
 ///
-/// The search uses X(z) = offset + matrix*z for z ~ N(0, I), with the event
-/// ||X(z)|| <= hard_body_radius. The finite search domain is the entire cube
-/// [-cube_radius, cube_radius]^d; the complement is covered by a separate
-/// Gaussian union/Chernoff upper bound.
+/// Each component defines X_k(z) = offset_k + matrix_k*z for z ~ N(0, I),
+/// with event ||X_k(z)|| <= HBR_k. The total event is the union over k.
+/// A cell is event-free only when every component's affine interval test proves
+/// it disjoint from its collision ball. This prevents a discovered chart for
+/// one mode from suppressing a separate, undiscovered event component.
 ///
-/// Each cell is handled in this order:
-/// 1. discard it from the residual ledger if it is wholly inside a chart box;
-/// 2. discard it if affine interval geometry proves it event-free;
-/// 3. otherwise subdivide until max_depth / max_cells, retaining any cell
-///    that cannot be further explored in the unresolved-mass ledger.
+/// The finite domain is the full cube [-cube_radius,cube_radius]^d. Its
+/// complement contributes a separate Gaussian union/Chernoff tail bound.
+/// Unresolved cell mass plus that tail forms the returned combined upper bound.
 ///
-/// The returned residual bound is conditional on the supplied affine map,
-/// standard-normal nominal distribution, collision radius, and chart boxes.
-/// A chart-covered region is not thereby proven to have accurate proposal
-/// density or unbiased estimation; that is a separate qualification gate.
-/// The current interval and probability arithmetic is numerical conservative
-/// bookkeeping, not a formally machine-verified enclosure.
-pub fn affine_collision_residual_mass_upper_bound(
-    config: &AffineResidualMassConfig<'_>,
+/// The result is conditional on the supplied static affine models and
+/// caller-declared chart boxes; it does not validate proposal support/density
+/// inside charts, nonlinear trajectory events, or machine-verified arithmetic.
+pub fn affine_union_collision_residual_mass_upper_bound(
+    config: &AffineUnionResidualMassConfig<'_>,
 ) -> Result<AffineResidualMassReport, KernelError> {
-    let dimension = config.offset.len();
+    let first = config
+        .components
+        .first()
+        .ok_or(KernelError::EmptyEventUnion)?;
+    let dimension = first.offset.len();
     if dimension == 0 {
         return Err(KernelError::EmptyDimension);
     }
     if !config.cube_radius.is_finite() || config.cube_radius <= 0.0 {
         return Err(KernelError::InvalidRadius);
-    }
-    if !config.hard_body_radius.is_finite() || config.hard_body_radius < 0.0 {
-        return Err(KernelError::InvalidHardBodyRadius);
     }
     if config.max_cells == 0 {
         return Err(KernelError::InvalidCoverageBudget);
@@ -99,10 +123,23 @@ pub fn affine_collision_residual_mass_upper_bound(
     let root_upper = vec![config.cube_radius; dimension];
     let root = CoverageCell::new(root_lower, root_upper)?;
 
-    // Validate the affine map and all chart boxes before producing a report.
-    // Any malformed input aborts the certificate rather than being counted as
-    // a geometric exclusion.
-    crate::affine_box_image_bounds(config.offset, config.matrix, root.lower(), root.upper())?;
+    // Validate every component before producing a report. No malformed
+    // component is silently dropped from the event union.
+    for component in config.components {
+        if component.offset.len() != dimension {
+            return Err(KernelError::DimensionMismatch);
+        }
+        if !component.hard_body_radius.is_finite() || component.hard_body_radius < 0.0 {
+            return Err(KernelError::InvalidHardBodyRadius);
+        }
+        crate::affine_box_image_bounds(
+            component.offset,
+            component.matrix,
+            root.lower(),
+            root.upper(),
+        )?;
+    }
+
     for chart in config.covered_chart_boxes {
         if chart.lower().len() != dimension || chart.upper().len() != dimension {
             return Err(KernelError::DimensionMismatch);
@@ -139,15 +176,18 @@ pub fn affine_collision_residual_mass_upper_bound(
             // The pending stack is a disjoint partition of the remaining
             // portion of the root cube. Retain every pending cell.
             budget_exhausted = true;
-            unresolved_cells += 1;
+            unresolved_cells = unresolved_cells
+                .checked_add(1 + stack.len())
+                .ok_or(KernelError::CounterOverflow)?;
             ledger.add_unresolved_cell(&cell)?;
             for pending in stack.drain(..) {
-                unresolved_cells += 1;
                 ledger.add_unresolved_cell(&pending)?;
             }
             break;
         }
-        visited_cells += 1;
+        visited_cells = visited_cells
+            .checked_add(1)
+            .ok_or(KernelError::CounterOverflow)?;
 
         let fully_chart_covered = config.covered_chart_boxes.iter().any(|chart| {
             cell.lower()
@@ -163,19 +203,28 @@ pub fn affine_collision_residual_mass_upper_bound(
             continue;
         }
 
-        if affine_cell_excludes_collision_ball(
-            config.offset,
-            config.matrix,
-            cell.lower(),
-            cell.upper(),
-            config.hard_body_radius,
-        )? {
+        let mut excluded_from_union = true;
+        for component in config.components {
+            if !affine_cell_excludes_collision_ball(
+                component.offset,
+                component.matrix,
+                cell.lower(),
+                cell.upper(),
+                component.hard_body_radius,
+            )? {
+                excluded_from_union = false;
+                break;
+            }
+        }
+        if excluded_from_union {
             event_free_cells += 1;
             continue;
         }
 
         if cell.path().len() >= config.max_depth {
-            unresolved_cells += 1;
+            unresolved_cells = unresolved_cells
+                .checked_add(1)
+                .ok_or(KernelError::CounterOverflow)?;
             ledger.add_unresolved_cell(&cell)?;
             continue;
         }
@@ -187,7 +236,9 @@ pub fn affine_collision_residual_mass_upper_bound(
                 stack.push(left);
             }
             None => {
-                unresolved_cells += 1;
+                unresolved_cells = unresolved_cells
+                    .checked_add(1)
+                    .ok_or(KernelError::CounterOverflow)?;
                 ledger.add_unresolved_cell(&cell)?;
             }
         }
@@ -200,6 +251,24 @@ pub fn affine_collision_residual_mass_upper_bound(
         unresolved_cells,
         budget_exhausted,
         residual_event_mass_upper_bound: ledger.upper_bound(),
+    })
+}
+
+/// Backward-compatible single-component wrapper around the event-union verifier.
+pub fn affine_collision_residual_mass_upper_bound(
+    config: &AffineResidualMassConfig<'_>,
+) -> Result<AffineResidualMassReport, KernelError> {
+    let components = [AffineCollisionComponent {
+        offset: config.offset,
+        matrix: config.matrix,
+        hard_body_radius: config.hard_body_radius,
+    }];
+    affine_union_collision_residual_mass_upper_bound(&AffineUnionResidualMassConfig {
+        components: &components,
+        covered_chart_boxes: config.covered_chart_boxes,
+        cube_radius: config.cube_radius,
+        max_cells: config.max_cells,
+        max_depth: config.max_depth,
     })
 }
 
