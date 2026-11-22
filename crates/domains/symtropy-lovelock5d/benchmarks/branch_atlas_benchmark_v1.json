@@ -65,6 +65,22 @@
         2
       ],
       "expected": "identify and deduplicate known roots; report search budget and failures"
+    },
+    {
+      "id": "OBSERVABLE-PROJECTION-OVERLAP-001",
+      "equation": "F((u,v),lambda)=(u-lambda,v-lambda^2)=0",
+      "branch_parameterization": "U(lambda)=(lambda,lambda^2)",
+      "observable": "O(U)=v=lambda^2",
+      "event": {
+        "lambda_values": [
+          "-1/2",
+          "1/2"
+        ],
+        "same_observable": "1/4",
+        "full_states_distinct": true
+      },
+      "expected": "classify as observable projection self-overlap, not a BVP fold; det(D_U F)=1 and d lambda/ds=1",
+      "verifier": "branch_atlas_projection_overlap_reference.py"
     }
   ],
   "black_hole_case": {
@@ -90,7 +106,8 @@
     "gauge copy counted as a distinct physical branch",
     "deflated root passes transformed equation but fails original residual",
     "small singular value alone declared a bifurcation",
-    "numerical corrector termination misreported as a physical branch endpoint"
+    "numerical corrector termination misreported as a physical branch endpoint",
+    "observable projection self-overlap misclassified as a fixed-parameter BVP fold"
   ],
   "claim_ceiling": "Analytic controls and protocol only. No target-family fold, disconnected branch, branch completeness, black-hole solution or physical admissibility result is claimed."
 }
