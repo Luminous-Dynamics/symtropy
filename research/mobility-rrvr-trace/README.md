@@ -25,6 +25,10 @@ Each event has a stable identity, strictly increasing logical sequence and prede
 
 The minimizer is deterministic for a fixed trace, oracle revision, replay seed and call budget. `check_replay_determinism` separately checks repeated oracle verdicts.
 
+## Research alignment
+
+See [RESEARCH_ALIGNMENT_V0.1.md](RESEARCH_ALIGNMENT_V0.1.md) for the 2026 ROS fuzzing survey, long-horizon embodied manipulation survey, SafeVLA-Bench and the relevant ISO standard scope boundaries. The trace contract is intended to complement task-performance and safety benchmarks by improving recovery-failure replay and diagnosis; it is not a substitute for safety validation or conformity assessment.
+
 ## Run
 
 ```sh
