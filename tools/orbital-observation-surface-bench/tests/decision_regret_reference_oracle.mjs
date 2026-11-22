@@ -46,7 +46,7 @@ function asJson(value) {
   return { numerator: Number(value.n), denominator: Number(value.d) };
 }
 function worldDigest(ids) {
-  const bytes = JSON.stringify([...ids].sort());
+  const bytes = JSON.stringify([...ids].sort(codePointCompare));
   return createHash("sha256").update(bytes, "utf8").digest("hex");
 }
 function validate(corpus) {
@@ -79,8 +79,8 @@ function validate(corpus) {
       for (const key of ["reference_trials", "exposure_micro_units", "elapsed_millis"]) {
         if (!Number.isSafeInteger(action.cost?.[key]) || action.cost[key] < 0 || BigInt(action.cost[key]) > MAX_SAFE) fail(actionPath + ": invalid action cost " + key);
       }
-      const keys = Object.keys(action.world_losses ?? {}).sort();
-      if (JSON.stringify(keys) !== JSON.stringify([...set.world_ids].sort())) fail(actionPath + ": loss map must cover exactly the compatible worlds");
+      const keys = Object.keys(action.world_losses ?? {}).sort(codePointCompare);
+      if (JSON.stringify(keys) !== JSON.stringify([...set.world_ids].sort(codePointCompare))) fail(actionPath + ": loss map must cover exactly the compatible worlds");
       for (const worldId of set.world_ids) fraction(action.world_losses[worldId], actionPath + ".world_losses." + worldId);
     }
   }
@@ -102,7 +102,7 @@ function dominates(left, right) {
   return dimensions.every(value => value <= 0) && dimensions.some(value => value < 0);
 }
 function evaluateCase(item) {
-  const worldIds = [...item.compatible_world_set.world_ids].sort();
+  const worldIds = [...item.compatible_world_set.world_ids].sort(codePointCompare);
   const actions = [...item.actions].sort((a, b) => codePointCompare(a.action_id, b.action_id));
   const admitted = actions.filter(action => action.admissibility_status === "admissible");
   const excluded = actions.filter(action => action.admissibility_status !== "admissible")
