@@ -77,6 +77,8 @@ An exclusive resource claim binds a stable resource ID and a half-open time inte
 
 ### Shared capacity and hyperedges
 
+Each resource is represented consistently by one claim kind in this v0.1 profile. Mixing an exclusive claim and a cumulative-capacity claim for the same resource ID is rejected because their semantics cannot be silently reconciled.
+
 Capacity claims bind resource ID, unit profile, capacity profile, time basis, demand and total qualified capacity. The checker sweeps interval start/end events and computes peak concurrent demand.
 
 For half-open intervals, end events are processed before start events at an equal tick. This avoids treating adjacent intervals as overlapping.
