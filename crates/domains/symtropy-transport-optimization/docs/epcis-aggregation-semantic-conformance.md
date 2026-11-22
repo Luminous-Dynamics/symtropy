@@ -25,7 +25,7 @@ An empty DELETE is not an empty event. EPCIS defines it as the disaggregation of
 
 EPCIS childEPCs names instance-level child identities. These may be mapped to existing canonical physical module identities only by the upstream, source-qualified lineage layer.
 
-EPCIS childQuantityList names class-level quantities. For example, a quantity of 12.50 EA of a given class is not twelve known physical child IDs, and it must not be expanded into fabricated pallet/carton identities. The reference module retains the decimal lexeme exactly and keeps class quantities in a distinct typed field.
+EPCIS childQuantityList names class-level quantities, not physical instance identities. QuantityElement has three valid information states: an omitted quantity and omitted UOM represent an unknown/unspecified amount; a positive integer quantity with no UOM represents a count; and a positive quantity with a UOM represents a physical measure. For example, 12 cartons is a count without a UOM, while 12.50 kilograms uses a physical-measure UOM such as KGM. The standard requires a supplied UOM to be a 2- or 3-character UN/CEFACT Common Code for length, area, volume or mass. The reference layer preserves the original xsd:double lexeme and optional UOM separately; it never expands class quantities into fabricated pallet/carton identities.
 
 The class-level quantity path must remain outside AllModuleIdentities, RootHandlingUnits, and LeafHandlingUnits until a separate, explicit measurement mapping establishes the unit, denominator, identity granularity and admissible aggregation rules. It must never be added to instance counts by default.
 
@@ -50,14 +50,14 @@ Source-event revision selection, publication cutoffs, error declarations, voidin
 The Rust reference function normalize_aggregation_event:
 
 1. Rejects blank or padded source identities, source profiles, instance child IDs and parent IDs rather than trimming them into a new identity.
-2. Rejects duplicate instance children and duplicate (object class, UOM) quantity keys rather than silently deduplicating.
-3. Preserves positive decimal quantity strings exactly; it does not use floating-point values.
+2. Rejects duplicate instance child identities rather than silently deduplicating them.
+3. Preserves QuantityElement optionality: unknown quantity (no quantity and no UOM), positive integer counts (quantity without UOM), and positive physical measures (quantity with UOM). It validates positivity/finite xsd:double values, count integrality and the 2/3-character UOM lexical shape, while retaining the original quantity lexeme. Repeated class/UOM elements are preserved as supplied; this layer does not combine or deduplicate quantities.
 4. Rejects empty ADD/OBSERVE child lists and requires a parent for ADD/DELETE.
 5. Distinguishes OBSERVE, subset DELETE and DELETE_ALL as separate enum variants.
 6. Preserves eventTime, eventTimeZoneOffset and recordTime separately.
 7. Performs no composition graph mutation and invents no physical module identities.
 
-The unit-of-measure field is required to be a non-empty, unpadded identifier. Semantic membership in a particular UN/CEFACT or GS1 code-list release is not asserted here; that requires a separately pinned code-list profile. This prevents a syntactically plausible code from being misrepresented as independently verified.
+The UOM lexical shape is checked as a 2- or 3-character uppercase alphanumeric code. Membership in the permitted UN/CEFACT Recommendation 20 entries, including the required physical quantity categories and non-deprecated status, is not authenticated here; that requires a pinned vocabulary release and exact code-list validation. A syntactically plausible UOM is therefore not represented as standards-valid merely because it passes this layer.
 
 ## Falsification suite
 
@@ -74,8 +74,10 @@ The tests cover:
 - empty ADD / OBSERVE rejection;
 - missing-parent rejection for ADD / DELETE;
 - duplicate instance child rejection;
-- exact-decimal preservation and non-positive / malformed quantity rejection;
-- duplicate class/UOM key rejection;
+- exact source-lexeme preservation for xsd:double quantities;
+- unknown quantities, integer counts without UOM and measured quantities with UOM;
+- rejection of non-positive/non-finite values, fractional counts without UOM and malformed UOM lexemes;
+- preservation of repeated class/UOM entries without aggregation;
 - separate eventTime and recordTime retention;
 - invalid timezone-offset rejection;
 - no repair of padded identifiers.
@@ -106,4 +108,4 @@ The next integration should feed only instance-level ADD and subset DELETE into 
 
 ## Exact-head qualification
 
-The follow-on draft PR adds a path-scoped GitHub Actions qualification workflow for this crate. The intended exact-head gates are workspace formatting, locked offline tests for the transport-optimization crate and strict Clippy across its targets. An absent workflow result is not a pass; the PR remains draft until the check is visible for the exact head SHA.
+The follow-on draft PR adds a path-scoped GitHub Actions qualification workflow for this crate. The intended exact-head gates are workspace formatting, locked tests for the transport-optimization crate and strict Clippy across its targets. The crate test uses the online dependency resolver because workspace resolution requires dependencies such as Bevy that may not be cached on a fresh runner. An absent workflow result is not a pass; the PR remains draft until the check is visible for the exact head SHA.
