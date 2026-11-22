@@ -548,7 +548,7 @@ mod tests {
         ResourceBudget {
             energy_units: 2,
             latency_ticks: 2,
-            bandwidth_units: 1,
+            bandwidth_units: 2,
         }
     }
 
