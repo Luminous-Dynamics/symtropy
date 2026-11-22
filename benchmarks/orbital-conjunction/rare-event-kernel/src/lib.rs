@@ -34,7 +34,6 @@ pub mod sequential;
 pub mod stats;
 pub mod trajectory;
 
-
 pub use model_envelope::{
     ModelFamilyEnvelopeReport, ModelProbabilityInterval, ModelSetCoverage,
     WeightedModelAverageReport, WeightedModelScenario, finite_model_family_envelope,
@@ -154,7 +153,7 @@ impl fmt::Display for KernelError {
             Self::InvalidModelRevision => "model revision identifier must be nonempty",
             Self::DuplicateModelIdentifier => {
                 "model identifier must be unique within a model family"
-            },
+            }
         };
         f.write_str(message)
     }
