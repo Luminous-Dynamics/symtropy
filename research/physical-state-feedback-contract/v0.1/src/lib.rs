@@ -165,8 +165,7 @@ fn validate_symmetric_psd3(matrix: &[[f64; 3]; 3], path: &str) -> Result<(), Val
             if (normalized[i][j] - normalized[j][i]).abs() > MATRIX_RELATIVE_TOLERANCE {
                 return Err(ValidationError::new(path, "matrix must be symmetric"));
             }
-            let minor =
-                normalized[i][i] * normalized[j][j] - normalized[i][j] * normalized[j][i];
+            let minor = normalized[i][i] * normalized[j][j] - normalized[i][j] * normalized[j][i];
             if minor < -MATRIX_RELATIVE_TOLERANCE {
                 return Err(ValidationError::new(
                     path,
@@ -1773,7 +1772,6 @@ mod tests {
         assert!(validate_physical_inertia3(&triangle_violation, "inertia").is_err());
     }
 
-
     #[test]
     fn covariance_psd_validation_is_invariant_under_positive_rescaling() {
         let positive_semidefinite = [[2.0, 1.0, 0.0], [1.0, 2.0, 0.0], [0.0, 0.0, 1.0]];
@@ -1804,9 +1802,8 @@ mod tests {
         let invalid_triangle = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 3.0]];
 
         for scale in [1.0e-150, 1.0, 1.0e150] {
-            let scaled_valid = std::array::from_fn(|row| {
-                std::array::from_fn(|column| valid[row][column] * scale)
-            });
+            let scaled_valid =
+                std::array::from_fn(|row| std::array::from_fn(|column| valid[row][column] * scale));
             let scaled_invalid = std::array::from_fn(|row| {
                 std::array::from_fn(|column| invalid_triangle[row][column] * scale)
             });
