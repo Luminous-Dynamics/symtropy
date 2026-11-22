@@ -381,11 +381,24 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
             &mut findings,
             at(record, &["reported_results", "absolute_current_a"]).is_some_and(Value::is_null)
                 && at(record, &["reported_results", "absolute_real_power_w"]).is_some_and(Value::is_null)
-                && at(record, &["reported_results", "absolute_thrust_to_power"]).is_some_and(Value::is_null)
+                && at(record, &["reported_results", "absolute_thrust_to_power", "value"]).is_some_and(Value::is_null)
                 && at(record, &["comparability", "thrust_to_power_leaderboard_eligible"])
                     .and_then(Value::as_bool) == Some(false),
             "JIANG_POWER_BOUNDARY",
-            "unreported current, power and T/P values must remain unknown and excluded from ranking",
+            "exact current, real-power and thrust-to-power values must remain unclaimed and excluded from ranking",
+        );
+        push_if_missing(
+            &mut findings,
+            text_at(record, &["reported_results", "figure9_22kv", "evidence_class"])
+                == Some("approximate_visual_digitization_from_source_figure_not_tabulated_exact_values")
+                && number_at(record, &["reported_results", "figure9_22kv", "thrust_to_power_n_kw", "conventional_approx"]) == Some(3.0)
+                && number_at(record, &["reported_results", "figure9_22kv", "thrust_to_power_n_kw", "sub_unit_plus_approx"]) == Some(2.4)
+                && number_at(record, &["reported_results", "figure9_22kv", "current_ma", "conventional_approx"]) == Some(0.77)
+                && number_at(record, &["reported_results", "figure9_22kv", "current_ma", "sub_unit_plus_approx"]) == Some(1.34)
+                && text_at(record, &["measurement", "uncertainty_details"])
+                    .is_some_and(|note| note.contains("95% confidence intervals")),
+            "JIANG_FIGURE9_BOUNDARY",
+            "approximate Fig. 9 values must remain labelled as graph estimates, separate from exact data and with CI caveat",
         );
         push_if_missing(
             &mut findings,
@@ -3185,6 +3198,20 @@ mod jiang_2026_atlas_tests {
             Value::Bool(true);
         assert!(audit_atlas(&value).iter().any(|finding| {
             finding.starts_with("JIANG_POWER_BOUNDARY")
+        }));
+    }
+
+    #[test]
+    fn jiang_figure9_values_must_remain_approximate_and_separate() {
+        let mut value = atlas();
+        let records = value["source_records"].as_array_mut().unwrap();
+        let record = records.iter_mut().find(|row| {
+            row["source_id"] == "JIANG_2026_SUB_UNIT_ELECTRODE"
+        }).unwrap();
+        record["reported_results"]["figure9_22kv"]["evidence_class"] =
+            serde_json::json!("raw_exact_measurement");
+        assert!(audit_atlas(&value).iter().any(|finding| {
+            finding.starts_with("JIANG_FIGURE9_BOUNDARY")
         }));
     }
 }
