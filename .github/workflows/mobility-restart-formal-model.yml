@@ -91,7 +91,7 @@ jobs:
             | ($trace.vars | index("s") != null)
               and ($trace.counterexample.state | type == "array" and length >= 2)
               and ($trace.counterexample.action | type == "array" and length == ($trace.counterexample.state | length - 1))
-              and ($trace.counterexample.action[-1][1].name == "NaiveRetry")
+              and ($trace.counterexample.action[-1][1].name == "Next")
           ' "$TRACE"
           echo "Expected negative-control counterexample observed and exported as TLC JSON."
 
@@ -107,10 +107,10 @@ jobs:
             "$TRACE" "$MODEL" "$CFG" "$RUNNER_TEMP/tla/tla2tools.jar" "$BUNDLE" \
             "rrvr-tlc-naive-retry-$GITHUB_SHA" \
             "symtropy-restart-recovery-formal-model" "$GITHUB_SHA" \
-            "NoDuplicatePhysicalEffects" "naive_retry_duplicate_physical_effect" "42"
+            "NoDuplicatePhysicalEffects" "no_duplicate_physical_effects_violated_in_naive_retry_control" "42"
           jq -e --slurpfile raw "$TRACE" '
             .header.target_failure.property_id == "NoDuplicatePhysicalEffects"
-            and .events[-1].kind == "naive_retry_attempted"
+            and .events[-1].kind == "tla_next_transition"
             and .events[-1].event_id == .header.target_failure.witness_event_id
             and (.events | length == ($raw[0].counterexample.action | length))
             and (.artifacts | length == 4)
