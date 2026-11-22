@@ -56,11 +56,17 @@ impl Bound {
         if !value.is_finite() {
             return Err(KernelError::NonFiniteValue);
         }
-        Ok(Self { lower: value, upper: value })
+        Ok(Self {
+            lower: value,
+            upper: value,
+        })
     }
 
     fn from_interval(value: Interval) -> Self {
-        Self { lower: value.lower(), upper: value.upper() }
+        Self {
+            lower: value.lower(),
+            upper: value.upper(),
+        }
     }
 
     fn add(self, other: Self) -> Result<Self, KernelError> {
@@ -105,10 +111,7 @@ impl Bound {
         if denominator.lower <= 0.0 {
             return Err(KernelError::NumericalOverflow);
         }
-        let reciprocal = Self::outward(
-            1.0 / denominator.upper,
-            1.0 / denominator.lower,
-        )?;
+        let reciprocal = Self::outward(1.0 / denominator.upper, 1.0 / denominator.lower)?;
         self.multiply(reciprocal)
     }
 
@@ -125,7 +128,10 @@ impl Bound {
         if !widened_lower.is_finite() || !widened_upper.is_finite() {
             return Err(KernelError::NumericalOverflow);
         }
-        Ok(Self { lower: widened_lower, upper: widened_upper })
+        Ok(Self {
+            lower: widened_lower,
+            upper: widened_upper,
+        })
     }
 }
 
@@ -223,11 +229,7 @@ pub fn enclose_polynomial_minimum_distance(
         // The interval evaluation encloses every represented coefficient
         // choice at that same time.
         let midpoint = safe_midpoint(cell.lower, cell.upper)?;
-        for (unit_time, absolute_time) in [
-            (0.0, cell.lower),
-            (0.5, midpoint),
-            (1.0, cell.upper),
-        ] {
+        for (unit_time, absolute_time) in [(0.0, cell.lower), (0.5, midpoint), (1.0, cell.upper)] {
             let mut point_coordinates = Vec::with_capacity(cell.coordinates.len());
             for axis in &cell.coordinates {
                 point_coordinates.push(evaluate_bernstein(axis, unit_time)?);
@@ -246,8 +248,7 @@ pub fn enclose_polynomial_minimum_distance(
         let (cell_distance_lower, _) = norm_bounds(&coordinate_ranges)?;
 
         if cell_distance_lower > hard_body_radius {
-            minimum_distance_lower_bound =
-                minimum_distance_lower_bound.min(cell_distance_lower);
+            minimum_distance_lower_bound = minimum_distance_lower_bound.min(cell_distance_lower);
             excluded_time_intervals = excluded_time_intervals
                 .checked_add(1)
                 .ok_or(KernelError::CounterOverflow)?;
@@ -255,8 +256,7 @@ pub fn enclose_polynomial_minimum_distance(
         }
 
         if cell.depth >= max_depth {
-            minimum_distance_lower_bound =
-                minimum_distance_lower_bound.min(cell_distance_lower);
+            minimum_distance_lower_bound = minimum_distance_lower_bound.min(cell_distance_lower);
             unresolved_time_intervals = unresolved_time_intervals
                 .checked_add(1)
                 .ok_or(KernelError::CounterOverflow)?;
@@ -264,8 +264,7 @@ pub fn enclose_polynomial_minimum_distance(
         }
 
         if midpoint <= cell.lower || midpoint >= cell.upper {
-            minimum_distance_lower_bound =
-                minimum_distance_lower_bound.min(cell_distance_lower);
+            minimum_distance_lower_bound = minimum_distance_lower_bound.min(cell_distance_lower);
             unresolved_time_intervals = unresolved_time_intervals
                 .checked_add(1)
                 .ok_or(KernelError::CounterOverflow)?;
@@ -396,7 +395,9 @@ fn binomial_bound(n: usize, k: usize) -> Result<Bound, KernelError> {
         if numerator as usize != numerator_integer || denominator as usize != step {
             return Err(KernelError::NumericalOverflow);
         }
-        result = result.scale(numerator)?.divide_positive_scalar(denominator)?;
+        result = result
+            .scale(numerator)?
+            .divide_positive_scalar(denominator)?;
     }
     Ok(result)
 }
@@ -430,7 +431,10 @@ fn evaluate_bernstein(coefficients: &[Bound], unit_time: f64) -> Result<Bound, K
         return Ok(coefficients[0]);
     }
     if unit_time == 1.0 {
-        return coefficients.last().copied().ok_or(KernelError::InvalidPolynomial);
+        return coefficients
+            .last()
+            .copied()
+            .ok_or(KernelError::InvalidPolynomial);
     }
     let weight = Bound::point(unit_time)?;
     let complement = Bound::point(1.0 - unit_time)?;
@@ -445,9 +449,7 @@ fn evaluate_bernstein(coefficients: &[Bound], unit_time: f64) -> Result<Bound, K
     Ok(work[0])
 }
 
-fn split_bernstein_half(
-    coefficients: &[Bound],
-) -> Result<(Vec<Bound>, Vec<Bound>), KernelError> {
+fn split_bernstein_half(coefficients: &[Bound]) -> Result<(Vec<Bound>, Vec<Bound>), KernelError> {
     if coefficients.is_empty() {
         return Err(KernelError::InvalidPolynomial);
     }
@@ -548,7 +550,11 @@ mod tests {
     #[test]
     fn bernstein_subdivision_proves_dependency_heavy_no_contact() {
         let report = enclose_polynomial_minimum_distance(
-            &[vec![interval(1.0, 1.0), interval(0.0, 0.0), interval(1.0, 1.0)]],
+            &[vec![
+                interval(1.0, 1.0),
+                interval(0.0, 0.0),
+                interval(1.0, 1.0),
+            ]],
             -1.0,
             1.0,
             0.5,
@@ -556,7 +562,10 @@ mod tests {
             8,
         )
         .expect("valid polynomial");
-        assert_eq!(report.classification, TrajectoryContactClassification::DefinitelyNoContact);
+        assert_eq!(
+            report.classification,
+            TrajectoryContactClassification::DefinitelyNoContact
+        );
         assert!(report.minimum_distance_lower_bound > 0.5);
         assert!(report.partition_complete);
         assert_eq!(report.unresolved_time_intervals, 0);
@@ -566,7 +575,11 @@ mod tests {
     #[test]
     fn bernstein_common_midpoint_witness_proves_interior_contact() {
         let report = enclose_polynomial_minimum_distance(
-            &[vec![interval(0.0, 0.0), interval(0.0, 0.0), interval(1.0, 1.0)]],
+            &[vec![
+                interval(0.0, 0.0),
+                interval(0.0, 0.0),
+                interval(1.0, 1.0),
+            ]],
             -1.0,
             1.0,
             0.25,
@@ -574,7 +587,10 @@ mod tests {
             8,
         )
         .expect("valid polynomial");
-        assert_eq!(report.classification, TrajectoryContactClassification::DefinitelyContact);
+        assert_eq!(
+            report.classification,
+            TrajectoryContactClassification::DefinitelyContact
+        );
         assert!(report.minimum_distance_upper_bound < 0.25);
         assert_eq!(report.upper_bound_witness_time, 0.0);
     }
@@ -582,7 +598,11 @@ mod tests {
     #[test]
     fn exact_tangency_remains_ambiguous() {
         let report = enclose_polynomial_minimum_distance(
-            &[vec![interval(1.0, 1.0), interval(0.0, 0.0), interval(1.0, 1.0)]],
+            &[vec![
+                interval(1.0, 1.0),
+                interval(0.0, 0.0),
+                interval(1.0, 1.0),
+            ]],
             -1.0,
             1.0,
             1.0,
@@ -590,7 +610,10 @@ mod tests {
             8,
         )
         .expect("valid polynomial");
-        assert_eq!(report.classification, TrajectoryContactClassification::Ambiguous);
+        assert_eq!(
+            report.classification,
+            TrajectoryContactClassification::Ambiguous
+        );
     }
 
     #[test]
@@ -604,22 +627,22 @@ mod tests {
             4,
         )
         .expect("valid polynomial");
-        assert_eq!(report.classification, TrajectoryContactClassification::DefinitelyContact);
+        assert_eq!(
+            report.classification,
+            TrajectoryContactClassification::DefinitelyContact
+        );
         assert_eq!(report.upper_bound_witness_time, 0.0);
     }
 
     #[test]
     fn coefficient_uncertainty_is_included_in_contact_witness() {
-        let report = enclose_polynomial_minimum_distance(
-            &[vec![interval(0.1, 0.2)]],
-            -3.0,
-            7.0,
-            0.3,
-            16,
-            4,
-        )
-        .expect("valid interval coefficient");
-        assert_eq!(report.classification, TrajectoryContactClassification::DefinitelyContact);
+        let report =
+            enclose_polynomial_minimum_distance(&[vec![interval(0.1, 0.2)]], -3.0, 7.0, 0.3, 16, 4)
+                .expect("valid interval coefficient");
+        assert_eq!(
+            report.classification,
+            TrajectoryContactClassification::DefinitelyContact
+        );
     }
 
     #[test]
@@ -637,13 +660,20 @@ mod tests {
             4,
         )
         .expect("valid vector polynomial");
-        assert_eq!(report.classification, TrajectoryContactClassification::DefinitelyNoContact);
+        assert_eq!(
+            report.classification,
+            TrajectoryContactClassification::DefinitelyNoContact
+        );
     }
 
     #[test]
     fn negative_shifted_time_window_is_supported() {
         let report = enclose_polynomial_minimum_distance(
-            &[vec![interval(1.0, 1.0), interval(0.0, 0.0), interval(1.0, 1.0)]],
+            &[vec![
+                interval(1.0, 1.0),
+                interval(0.0, 0.0),
+                interval(1.0, 1.0),
+            ]],
             -3.0,
             -1.0,
             0.5,
@@ -651,13 +681,20 @@ mod tests {
             8,
         )
         .expect("valid shifted window");
-        assert_eq!(report.classification, TrajectoryContactClassification::DefinitelyNoContact);
+        assert_eq!(
+            report.classification,
+            TrajectoryContactClassification::DefinitelyNoContact
+        );
     }
 
     #[test]
     fn budget_exhaustion_cannot_become_no_contact() {
         let report = enclose_polynomial_minimum_distance(
-            &[vec![interval(1.0, 1.0), interval(0.0, 0.0), interval(1.0, 1.0)]],
+            &[vec![
+                interval(1.0, 1.0),
+                interval(0.0, 0.0),
+                interval(1.0, 1.0),
+            ]],
             -1.0,
             1.0,
             0.5,
@@ -665,7 +702,10 @@ mod tests {
             8,
         )
         .expect("valid polynomial");
-        assert_eq!(report.classification, TrajectoryContactClassification::Ambiguous);
+        assert_eq!(
+            report.classification,
+            TrajectoryContactClassification::Ambiguous
+        );
         assert!(report.budget_exhausted);
         assert!(!report.partition_complete);
         assert_eq!(report.minimum_distance_lower_bound, 0.0);
@@ -673,16 +713,13 @@ mod tests {
 
     #[test]
     fn point_window_is_supported() {
-        let report = enclose_polynomial_minimum_distance(
-            &[vec![interval(0.25, 0.25)]],
-            2.0,
-            2.0,
-            0.5,
-            4,
-            0,
-        )
-        .expect("valid point window");
-        assert_eq!(report.classification, TrajectoryContactClassification::DefinitelyContact);
+        let report =
+            enclose_polynomial_minimum_distance(&[vec![interval(0.25, 0.25)]], 2.0, 2.0, 0.5, 4, 0)
+                .expect("valid point window");
+        assert_eq!(
+            report.classification,
+            TrajectoryContactClassification::DefinitelyContact
+        );
     }
 
     #[test]
