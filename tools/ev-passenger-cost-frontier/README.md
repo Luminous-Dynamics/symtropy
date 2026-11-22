@@ -281,3 +281,18 @@ and finishes at ledger version 4. It deliberately leaves `lease-001` unresolved 
 The module currently contains 14 focused Rust test definitions covering concurrency, idempotency, payload conflict, unresolved retention, terminal evidence, invalid transition, stale writer, digest mutation, previous-link mutation and event reordering. SHA-256 here provides an integrity-linked event chain; it does not authenticate producers or prove durable storage. Exact-head Actions run [#45042240520](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45042240520) passed schema/fixture parsing, workspace formatting, Cargo tests, deterministic report assertions and artifact upload (171 tests passed, 0 failed across test binaries). Clippy is not included and remains unverified.
 
 Source: `src/mobility_commitment_journal.rs`; CLI: `src/bin/mobility_commitment_journal_screen.rs`; strict schema: `schemas/mobility_commitment_journal_v0_1.schema.json`; fixture: `fixtures/mobility_commitment_journal_v0_1.json`.
+
+
+## SUSTAINABLE-MOBILITY-SERVICE-CAPACITY-001 — cross-architecture operating benchmark
+
+The benchmark dossier is `docs/research/SUSTAINABLE_MOBILITY_SERVICE_CAPACITY_BENCHMARK_V0_1.md`. It extends the existing industry baseline [#6226](https://github.com/Luminous-Dynamics/symtropy/issues/6226) and matched-instance tournament [#6247](https://github.com/Luminous-Dynamics/symtropy/issues/6247), rather than creating duplicate ownership.
+
+The central rule is to report six independent service denominators: mechanical swap success, landing-to-launch turnaround, charge restoration, qualified resource availability, successful on-time missions and independently metered grid service.
+
+The same assurance sequence is now applied to all optimizer proposals:
+- [#6803](https://github.com/Luminous-Dynamics/symtropy/pull/6803): per-resource offer-window flexibility;
+- [#6809](https://github.com/Luminous-Dynamics/symtropy/pull/6809): chronological recovery and repeated-shock viability;
+- [#6829](https://github.com/Luminous-Dynamics/symtropy/pull/6829): unique cross-domain capability leases;
+- [#6837](https://github.com/Luminous-Dynamics/symtropy/pull/6837): compare-and-swap promise journal and idempotent replay.
+
+DJI Dock 4's published <25 s swap and <45 s landing-to-takeoff turnaround are distinct from its 27 min 15–95% charging-time specification at 25°C. A fast mechanism is not evidence of sustainable fleet throughput. See the dossier for the matched workload, metric boundaries, SOTA tournament, hard gates and target ladder.
