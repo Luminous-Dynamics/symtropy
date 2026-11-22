@@ -121,7 +121,7 @@ Report separate dimensions:
 
 Do not produce a single self-sufficiency scalar. Do not allow a cyclic dependency graph to prove its own closure. The generic AND/OR closure theorem remains with Symthaea CIV-BOOT #5774/#5781; this project supplies a bounded machine-subject evaluator and evidence fixtures, not a competing general theorem.
 
-**Adversarial reference:** MCC-022 has a locally serviced printer whose critical frame depends on a noncritical-labelled calibration fixture that is imported, long-lead and not locally repairable. The overall route can still be feasible, but the machine is classified `import_dependent`. A separate test confirms that an unreferenced imported spare does not affect the required closure.
+**Adversarial reference:** MCC-022 has a locally serviced printer whose critical frame requires a locally manufactured calibration fixture; that fixture in turn requires a noncritical-labelled imported long-lead calibration reference. The overall route can still be feasible, but the machine is classified `import_dependent`. A separate test confirms that an unreferenced imported spare does not affect the required closure. The CLI exposes direct-critical counts and transitive required-closure counts separately.
 
 ## 6. Whole-route economics
 
