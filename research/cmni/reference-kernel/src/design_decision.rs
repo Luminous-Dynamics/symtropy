@@ -470,12 +470,18 @@ mod tests {
         let interval = linear_qoi_eig_utility_interval("qoi", &score);
         assert_eq!(interval.evidence, UtilityBoundEvidence::Unqualified);
         assert_eq!(
-            certify_maximum_utility(&[interval, PortfolioUtilityInterval {
-                portfolio_id: "other".to_owned(),
-                lower: 0.0,
-                upper: 0.0,
-                evidence: UtilityBoundEvidence::Exact,
-            }], 0.0),
+            certify_maximum_utility(
+                &[
+                    interval,
+                    PortfolioUtilityInterval {
+                        portfolio_id: "other".to_owned(),
+                        lower: 0.0,
+                        upper: 0.0,
+                        evidence: UtilityBoundEvidence::Exact,
+                    }
+                ],
+                0.0
+            ),
             Ok(DominanceDecision::Unresolved {
                 reason: DominanceUnresolvedReason::UnqualifiedOrHeuristicBounds,
             })
