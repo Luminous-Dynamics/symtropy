@@ -1255,16 +1255,7 @@ mod tests {
                 for p2 in levels {
                     for p3 in levels {
                         let profile = [p0, p1, p2, p3];
-                        input.candidate_dispatch = profile
-                            .into_iter()
-                            .enumerate()
-                            .map(
-                                |(slot, requested_discharge_power_w)| CandidateDispatchSlot {
-                                    slot: slot as u8,
-                                    requested_discharge_power_w,
-                                },
-                            )
-                            .collect();
+                        set_test_profile(&mut input, profile);
 
                         let expected = independent_reference_feasible(&input);
                         let actual = evaluate_mobility_flexibility(&input)
@@ -1280,7 +1271,7 @@ mod tests {
             }
         }
         assert_eq!(compared, 625);
-        assert_eq!(independently_feasible, 253);
+        assert_eq!(independently_feasible, 158);
     }
 
     #[test]
@@ -1300,25 +1291,54 @@ mod tests {
     }
 
     #[test]
-    fn aggregate_energy_cannot_hide_one_slot_power_violation() {
+    fn aggregate_site_power_cannot_hide_resource_power_overcommit() {
         let mut input = fixture();
-        input.candidate_dispatch[1].requested_discharge_power_w = 5_000;
+        input.candidate_dispatch[0].requested_discharge_power_w = 2_300;
+        input.resource_dispatch
+            .iter_mut()
+            .find(|item| item.resource_id == "ess-01" && item.slot == 0)
+            .expect("ess-01 slot 0")
+            .requested_discharge_power_w = 2_300;
+        input.resource_dispatch
+            .iter_mut()
+            .find(|item| item.resource_id == "ess-02" && item.slot == 0)
+            .expect("ess-02 slot 0")
+            .requested_discharge_power_w = 0;
         let report = evaluate_mobility_flexibility(&input).expect("valid input");
         assert!(!report.candidate_model_feasible);
         assert!(
-            report
-                .findings
-                .iter()
-                .any(|item| item == "candidate_exceeds_residual_power:1")
+            report.findings.iter().any(|item| {
+                item == "candidate_exceeds_resource_residual_power:ess-01:0"
+            })
+        );
+    }
+
+    #[test]
+    fn aggregate_energy_cannot_hide_one_resource_energy_overdraw() {
+        let mut input = fixture();
+        input.resource_dispatch
+            .iter_mut()
+            .find(|item| item.resource_id == "ess-02" && item.slot == 0)
+            .expect("ess-02 slot 0")
+            .requested_discharge_power_w = 600;
+        input.resource_dispatch
+            .iter_mut()
+            .find(|item| item.resource_id == "ess-01" && item.slot == 0)
+            .expect("ess-01 slot 0")
+            .requested_discharge_power_w = 1_600;
+        let report = evaluate_mobility_flexibility(&input).expect("valid input");
+        assert!(!report.candidate_model_feasible);
+        assert!(
+            report.findings.iter().any(|item| {
+                item == "candidate_exceeds_resource_residual_energy:ess-02"
+            })
         );
     }
 
     #[test]
     fn per_slot_power_cannot_hide_horizon_energy_overdraw() {
         let mut input = fixture();
-        for item in &mut input.candidate_dispatch {
-            item.requested_discharge_power_w = 3_000;
-        }
+        set_test_profile(&mut input, [3_000; 4]);
         let report = evaluate_mobility_flexibility(&input).expect("valid input");
         assert!(!report.candidate_model_feasible);
         assert!(
@@ -1344,6 +1364,16 @@ mod tests {
     fn no_export_is_inferred_from_a_positive_energy_residual() {
         let mut input = fixture();
         input.candidate_dispatch[0].requested_discharge_power_w = 4_500;
+        input.resource_dispatch
+            .iter_mut()
+            .find(|item| item.resource_id == "ess-01" && item.slot == 0)
+            .expect("ess-01 slot 0")
+            .requested_discharge_power_w = 2_500;
+        input.resource_dispatch
+            .iter_mut()
+            .find(|item| item.resource_id == "ess-02" && item.slot == 0)
+            .expect("ess-02 slot 0")
+            .requested_discharge_power_w = 2_000;
         let report = evaluate_mobility_flexibility(&input).expect("valid input");
         assert!(!report.candidate_model_feasible);
         assert!(
@@ -1358,6 +1388,16 @@ mod tests {
     fn synthetic_export_permission_cannot_authorize_export() {
         let mut input = fixture();
         input.candidate_dispatch[0].requested_discharge_power_w = 4_100;
+        input.resource_dispatch
+            .iter_mut()
+            .find(|item| item.resource_id == "ess-01" && item.slot == 0)
+            .expect("ess-01 slot 0")
+            .requested_discharge_power_w = 2_200;
+        input.resource_dispatch
+            .iter_mut()
+            .find(|item| item.resource_id == "ess-02" && item.slot == 0)
+            .expect("ess-02 slot 0")
+            .requested_discharge_power_w = 1_900;
         input.export_permission = Some(crate::battery_service_network::BooleanEvidence {
             evidence: input.site_evidence.clone(),
             value: Some(true),
@@ -1450,6 +1490,14 @@ mod tests {
     }
 
     #[test]
+    fn site_profile_must_equal_sum_of_resource_dispatch() {
+        let mut input = fixture();
+        input.candidate_dispatch[0].requested_discharge_power_w += 1;
+        let result = evaluate_mobility_flexibility(&input);
+        assert!(result.is_err());
+    }
+
+    #[test]
     fn input_order_permutation_preserves_canonical_report() {
         let input = fixture();
         let mut permuted = fixture();
@@ -1457,6 +1505,7 @@ mod tests {
         permuted.reserve_scenarios.reverse();
         permuted.pcc_slots.reverse();
         permuted.candidate_dispatch.reverse();
+        permuted.resource_dispatch.reverse();
         let a = evaluate_mobility_flexibility(&input).expect("first input");
         let b = evaluate_mobility_flexibility(&permuted).expect("permuted input");
         assert_eq!(
