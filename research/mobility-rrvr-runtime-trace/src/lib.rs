@@ -1464,21 +1464,24 @@ mod tests {
 
     #[test]
     fn deserializes_and_validates_the_full_no_effect_recovery_lifecycle() {
-        let fixture =
-            include_str!("../fixtures/runtime_projection_no_effect_recovery_v0_1.json");
+        let fixture = include_str!("../fixtures/runtime_projection_no_effect_recovery_v0_1.json");
         let recording: RuntimeProjectionRecording =
             serde_json::from_str(fixture).expect("recovery fixture deserializes");
         assert_eq!(recording.snapshots.len(), 17);
         assert_eq!(recording.validate(), Ok(()));
         let final_snapshot = recording.snapshots.last().expect("final recovery state");
-        assert_eq!(final_snapshot.model_action.as_deref(), Some("NativeAcceptRecovery"));
+        assert_eq!(
+            final_snapshot.model_action.as_deref(),
+            Some("NativeAcceptRecovery")
+        );
         assert_eq!(final_snapshot.state_s["recoveryPermit"], "consumed");
         assert_eq!(final_snapshot.state_s["permitUseCount"], 1);
         assert_eq!(final_snapshot.state_s["downstreamFenceBootEpoch"], 0);
         assert_eq!(final_snapshot.state_s["admittedDownstreamFence"], true);
         assert_eq!(final_snapshot.state_s["commandOwnerAttempt"], "attempt-2");
         assert_eq!(
-            final_snapshot.owner_evidence
+            final_snapshot
+                .owner_evidence
                 .iter()
                 .find(|item| item.domain == OwnerEvidenceDomain::PhysicalOutcomeObserverQuorum)
                 .expect("physical quorum")
@@ -1486,7 +1489,8 @@ mod tests {
             OwnerEvidenceStatus::QuorumQualified
         );
         assert_eq!(
-            final_snapshot.owner_evidence
+            final_snapshot
+                .owner_evidence
                 .iter()
                 .find(|item| item.domain == OwnerEvidenceDomain::DownstreamObserverQuorum)
                 .expect("downstream quorum")
@@ -1605,8 +1609,7 @@ mod tests {
         assert!(!observer_proofs_are_independent(&no_effect, &graph));
 
         graph = observer_proof("graph-observers");
-        graph.members[0].raw_artifact_sha256 =
-            no_effect.members[0].raw_artifact_sha256.clone();
+        graph.members[0].raw_artifact_sha256 = no_effect.members[0].raw_artifact_sha256.clone();
         assert!(!observer_proofs_are_independent(&no_effect, &graph));
     }
 
