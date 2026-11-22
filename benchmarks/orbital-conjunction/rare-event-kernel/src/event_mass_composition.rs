@@ -49,6 +49,8 @@ pub enum PartitionClaim {
 /// but does not independently verify the geometric or measure-theoretic claim.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EventMassPartitionDeclaration {
+    /// Event/model identity for the domain being partitioned.
+    pub identity: EventModelIdentity,
     /// Stable identifier for this partition declaration.
     pub declaration_id: String,
     /// SHA-256 digest of the partition definition and region membership.
@@ -174,6 +176,10 @@ pub fn compose_admitted_and_residual_event_mass(
         return Err(KernelError::EvidenceIdentityMismatch);
     }
 
+    validate_identity(&partition.identity)?;
+    if partition.identity != admitted.identity {
+        return Err(KernelError::EvidenceIdentityMismatch);
+    }
     validate_identifier(&partition.declaration_id)?;
     validate_digest(&partition.partition_sha256)?;
     validate_digest(&partition.declaration_sha256)?;
@@ -266,7 +272,11 @@ fn validate_identifier(value: &str) -> Result<(), KernelError> {
 }
 
 fn validate_digest(value: &str) -> Result<(), KernelError> {
-    if value.len() != 64 || !value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+    if value.len() != 64
+        || !value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
         Err(KernelError::InvalidEvidenceDigest)
     } else {
         Ok(())
@@ -347,6 +357,7 @@ mod tests {
 
     fn partition() -> EventMassPartitionDeclaration {
         EventMassPartitionDeclaration {
+            identity: identity(),
             declaration_id: "partition-r9".to_owned(),
             partition_sha256: HASH_C.to_owned(),
             admitted_region_id: "admitted-union".to_owned(),
@@ -409,6 +420,16 @@ mod tests {
         residual.identity.target_distribution_sha256 = HASH_D.to_owned();
         assert_eq!(
             compose_admitted_and_residual_event_mass(&admitted(), &residual, &partition()),
+            Err(KernelError::EvidenceIdentityMismatch)
+        );
+    }
+
+    #[test]
+    fn partition_event_model_identity_mismatch_is_rejected() {
+        let mut partition = partition();
+        partition.identity.model_revision = "different-force-model".to_owned();
+        assert_eq!(
+            compose_admitted_and_residual_event_mass(&admitted(), &residual(), &partition),
             Err(KernelError::EvidenceIdentityMismatch)
         );
     }
