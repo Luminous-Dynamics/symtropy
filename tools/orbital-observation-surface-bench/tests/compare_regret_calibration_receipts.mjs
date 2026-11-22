@@ -15,8 +15,8 @@ try{
   if(receipt.physical_qualification_granted!==false||receipt.authority_granted!==false) fail("calibration receipt attempted to grant qualification or authority");
   if(receipt.calibration_split_id==="split-multi-regime" &&
      (receipt.global_status!=="WORST_REGIME_EMPIRICAL_THRESHOLD"||
-      receipt.worst_regime_threshold?.numerator!==8||
-      receipt.worst_regime_threshold?.denominator!==10||
+      receipt.worst_regime_threshold?.numerator!==4||
+      receipt.worst_regime_threshold?.denominator!==5||
       receipt.worst_regime_ids.join(",")!=="dry")) fail("multi-regime worst-threshold control failed");
   if(receipt.calibration_split_id==="split-small-no-support" &&
      (receipt.global_status!=="NO_FINITE_NONTRIVIAL_THRESHOLD"||
