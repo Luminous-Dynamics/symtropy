@@ -49,9 +49,13 @@ pub struct FlexStorageResource {
 pub struct ResourceReserve {
     pub resource_id: String,
     pub mission_reserve_receipt_id: String,
+    pub mission_reserve_evidence: EvidenceEnvelope,
     pub inventory_buffer_receipt_id: String,
+    pub inventory_buffer_evidence: EvidenceEnvelope,
     pub safety_outage_reserve_receipt_id: String,
+    pub safety_outage_reserve_evidence: EvidenceEnvelope,
     pub uncertainty_reserve_receipt_id: String,
+    pub uncertainty_reserve_evidence: EvidenceEnvelope,
     pub mission_energy_reserve_wh: u64,
     pub inventory_buffer_energy_wh: u64,
     pub safety_outage_reserve_energy_wh: u64,
@@ -78,6 +82,8 @@ pub struct PccSlot {
     pub scheduled_mobility_charging_load_w: u32,
     pub import_limit_w: u32,
     pub export_limit_w: u32,
+    pub base_load_evidence: EvidenceEnvelope,
+    pub scheduled_charging_load_evidence: EvidenceEnvelope,
     pub evidence: EvidenceEnvelope,
 }
 
@@ -478,17 +484,43 @@ pub fn evaluate_mobility_flexibility(
                 end,
             )
         );
+        let slot_evidence_valid = matches!(
+            (interval_start, interval_end),
+            (Some(start), Some(end)) if evidence_covers(
+                &pcc.base_load_evidence,
+                &input.site_id,
+                &input.site_configuration_digest,
+                input.decision_time_unix_ms,
+                start,
+                end,
+            ) && evidence_covers(
+                &pcc.scheduled_charging_load_evidence,
+                &input.site_id,
+                &input.site_configuration_digest,
+                input.decision_time_unix_ms,
+                start,
+                end,
+            )
+        );
+        let load_receipts_match = pcc.base_load_evidence.evidence_reference
+            == input.site_meter_evidence.evidence_reference
+            && pcc.scheduled_charging_load_evidence.evidence_reference
+                == input.charging_queue_evidence.evidence_reference;
         if pcc.slot != index as u8
             || pcc.import_limit_w > MAX_POWER_W
             || pcc.export_limit_w > MAX_POWER_W
             || pcc.base_site_load_w > MAX_POWER_W
             || pcc.scheduled_mobility_charging_load_w > MAX_POWER_W
             || !pcc_evidence_valid
+            || !slot_evidence_valid
+            || !load_receipts_match
             || pcc_by_slot.insert(pcc.slot, pcc).is_some()
         {
             add_error(&mut errors, format!("pcc_slot_or_evidence_invalid:{}", pcc.slot));
         }
         push_evidence_class(&pcc.evidence, &mut all_source_grade, &mut all_synthetic);
+        push_evidence_class(&pcc.base_load_evidence, &mut all_source_grade, &mut all_synthetic);
+        push_evidence_class(&pcc.scheduled_charging_load_evidence, &mut all_source_grade, &mut all_synthetic);
     }
 
     let mut sorted_profile = input.candidate_dispatch.clone();
@@ -566,6 +598,33 @@ pub fn evaluate_mobility_flexibility(
                         format!("reserve_receipt_id_empty_or_reused:{}", scenario.scenario_id),
                     );
                 }
+            }
+
+            let Some(resource) = resource_map.get(reserve.resource_id.as_str()) else {
+                continue;
+            };
+            for (label, receipt_id, evidence) in [
+                ("mission", &reserve.mission_reserve_receipt_id, &reserve.mission_reserve_evidence),
+                ("inventory", &reserve.inventory_buffer_receipt_id, &reserve.inventory_buffer_evidence),
+                ("safety_outage", &reserve.safety_outage_reserve_receipt_id, &reserve.safety_outage_reserve_evidence),
+                ("uncertainty", &reserve.uncertainty_reserve_receipt_id, &reserve.uncertainty_reserve_evidence),
+            ] {
+                if evidence.evidence_reference != *receipt_id
+                    || !evidence_covers(
+                        evidence,
+                        &resource.resource_id,
+                        &resource.configuration_digest,
+                        input.decision_time_unix_ms,
+                        input.decision_time_unix_ms,
+                        horizon_end,
+                    )
+                {
+                    add_error(
+                        &mut errors,
+                        format!("reserve_bucket_evidence_not_bound:{label}:{}", reserve.resource_id),
+                    );
+                }
+                push_evidence_class(evidence, &mut all_source_grade, &mut all_synthetic);
             }
 
             let correct_len = usize::from(input.horizon_slots);
