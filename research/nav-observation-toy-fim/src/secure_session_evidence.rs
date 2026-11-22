@@ -131,6 +131,7 @@ pub enum SessionEvidenceError {
     VerificationReceiptStale,
     WeakStsMode,
     KeyEpochRollback,
+    RadioBootEpochRollback,
     MeasurementSequenceReplay,
     NonceReplay,
     VerificationReceiptReplay,
@@ -159,6 +160,7 @@ impl fmt::Display for SessionEvidenceError {
             Self::VerificationReceiptStale => write!(f, "cryptographic verification receipt exceeds its freshness horizon"),
             Self::WeakStsMode => write!(f, "static STS mode is not accepted by this secure-ranging policy"),
             Self::KeyEpochRollback => write!(f, "key epoch moved backwards for this peer pair"),
+            Self::RadioBootEpochRollback => write!(f, "radio boot epoch moved backwards for this peer pair"),
             Self::MeasurementSequenceReplay => write!(f, "measurement sequence is not strictly increasing within the session"),
             Self::NonceReplay => write!(f, "ranging nonce has already been accepted"),
             Self::VerificationReceiptReplay => write!(f, "cryptographic verification receipt has already been accepted"),
@@ -184,6 +186,7 @@ struct SessionStream {
 #[derive(Default)]
 pub struct SessionEvidenceValidator {
     latest_key_epoch_by_peer_pair: HashMap<PeerPair, u64>,
+    latest_boot_epochs_by_peer_pair: HashMap<PeerPair, (u64, u64)>,
     latest_sequence_by_session_stream: HashMap<SessionStream, u64>,
     seen_nonces: HashSet<[u8; 16]>,
     seen_receipt_digests: HashSet<[u8; 32]>,
@@ -307,6 +310,16 @@ impl SessionEvidenceValidator {
             return Err(SessionEvidenceError::KeyEpochRollback);
         }
         if self
+            .latest_boot_epochs_by_peer_pair
+            .get(&peers)
+            .is_some_and(|(initiator, responder)| {
+                evidence.initiator_boot_epoch < *initiator
+                    || evidence.responder_boot_epoch < *responder
+            })
+        {
+            return Err(SessionEvidenceError::RadioBootEpochRollback);
+        }
+        if self
             .latest_sequence_by_session_stream
             .get(&stream)
             .is_some_and(|latest| evidence.measurement_sequence <= *latest)
@@ -328,6 +341,13 @@ impl SessionEvidenceValidator {
             .entry(peers)
             .and_modify(|latest| *latest = (*latest).max(evidence.key_epoch))
             .or_insert(evidence.key_epoch);
+        self.latest_boot_epochs_by_peer_pair
+            .entry(peers)
+            .and_modify(|latest| {
+                latest.0 = latest.0.max(evidence.initiator_boot_epoch);
+                latest.1 = latest.1.max(evidence.responder_boot_epoch);
+            })
+            .or_insert((evidence.initiator_boot_epoch, evidence.responder_boot_epoch));
         self.latest_sequence_by_session_stream
             .insert(stream, evidence.measurement_sequence);
         self.seen_nonces.insert(evidence.nonce);
@@ -606,6 +626,30 @@ mod tests {
         assert_eq!(
             validator.validate(policy(), rollback, 150),
             Err(SessionEvidenceError::KeyEpochRollback)
+        );
+    }
+
+
+    #[test]
+    fn rejects_radio_boot_epoch_rollback_but_accepts_forward_reboot_epoch() {
+        let mut validator = SessionEvidenceValidator::new();
+        validator.validate(policy(), evidence(1, 3, 4), 150).unwrap();
+
+        let mut forward = evidence(2, 4, 5);
+        forward.initiator_boot_epoch = 6;
+        forward.verification.initiator_boot_epoch = 6;
+        forward.key_epoch = 4;
+        forward.verification.key_epoch = 4;
+        validator.validate(policy(), forward, 150).unwrap();
+
+        let mut rollback = evidence(3, 5, 6);
+        rollback.responder_boot_epoch = 7;
+        rollback.verification.responder_boot_epoch = 7;
+        rollback.key_epoch = 5;
+        rollback.verification.key_epoch = 5;
+        assert_eq!(
+            validator.validate(policy(), rollback, 150),
+            Err(SessionEvidenceError::RadioBootEpochRollback)
         );
     }
 
