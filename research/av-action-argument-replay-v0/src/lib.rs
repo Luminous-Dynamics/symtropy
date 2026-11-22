@@ -261,6 +261,8 @@ pub struct ActionParameterManifestV1 {
     /// Requested interval in the source clock. Feedback requests use the interval
     /// during which the response is expected, not a sensor capture interval.
     pub requested_interval: SourceIntervalV1,
+    /// Permitted capture timestamp deviation from the requested schedule.
+    pub timestamp_tolerance_ns: u64,
     /// Typed action parameters.
     pub parameters: ActionParametersV1,
 }
@@ -291,6 +293,8 @@ pub struct DeliveredAudioRangeV1 {
     pub sample_rate_hz: u32,
     /// Delivered channel count.
     pub channels: u16,
+    /// Delivered PCM format.
+    pub sample_format: AudioSampleFormatV1,
 }
 
 /// Feedback event delivered by a feedback-request action.
@@ -347,6 +351,8 @@ pub struct RequestAcceptanceV1 {
     pub accepted_tick: u64,
     /// Expected arrival tick.
     pub expected_arrival_tick: u64,
+    /// Decision deadline for this episode.
+    pub decision_deadline_tick: u64,
 }
 
 /// Action result receipt. The manifest digest must be unchanged from forecast and acceptance.
@@ -367,6 +373,8 @@ pub struct ActionResultV1 {
     pub parent_transcript_head_sha256: String,
     /// Actual result status.
     pub status: ActionResultStatusV1,
+    /// Logical tick when the executor emitted this result.
+    pub result_tick: u64,
     /// Delivered video frames, when this was a video action.
     pub delivered_frames: Vec<DeliveredFrameV1>,
     /// Delivered audio sample range, when this was an audio action.
@@ -603,6 +611,11 @@ pub fn validate_action_lifecycle(
             "expected arrival tick precedes request acceptance",
         ));
     }
+    if acceptance.expected_arrival_tick > acceptance.decision_deadline_tick {
+        return Err(ActionArgumentError::new(
+            "selected action is predicted to arrive after the decision deadline",
+        ));
+    }
 
     if result.episode_id != acceptance.episode_id
         || result.turn_id != acceptance.turn_id
@@ -619,6 +632,23 @@ pub fn validate_action_lifecycle(
     validate_digest(&result.parent_transcript_head_sha256, "result parent transcript head")?;
     validate_digest(&result.actual_resource_digest_sha256, "actual resource digest")?;
     validate_digest(&result.result_event_sha256, "result event digest")?;
+    if result.result_tick < acceptance.expected_arrival_tick {
+        return Err(ActionArgumentError::new("action result arrived before its expected arrival tick"));
+    }
+    if result.status == ActionResultStatusV1::Late
+        && result.result_tick <= acceptance.decision_deadline_tick
+    {
+        return Err(ActionArgumentError::new("late result tick is not after the decision deadline"));
+    }
+    if matches!(
+        result.status,
+        ActionResultStatusV1::Delivered | ActionResultStatusV1::Partial
+    ) && result.result_tick > acceptance.decision_deadline_tick
+    {
+        return Err(ActionArgumentError::new(
+            "post-deadline delivery must be marked late and cannot be decision-eligible",
+        ));
+    }
     validate_result_payload(&manifest.manifest, result, acceptance.expected_arrival_tick)?;
     Ok(())
 }
@@ -798,6 +828,25 @@ fn validate_result_payload(
                 ));
             }
             let schedule = sampling_timestamps(&parameters.sampling)?;
+            if !result.delivered_frames.is_empty() {
+                if result.delivered_roi != parameters.roi
+                    || result.delivered_output_resolution != Some(parameters.output_resolution)
+                    || result.delivered_crop_policy_sha256.as_deref() != Some(parameters.crop_policy_sha256.as_str())
+                    || result.delivered_preprocessing_sha256.as_deref() != Some(parameters.preprocessing_sha256.as_str())
+                {
+                    return Err(ActionArgumentError::new(
+                        "actual video ROI/resolution/crop/preprocessing differs from requested manifest",
+                    ));
+                }
+            } else if result.delivered_roi.is_some()
+                || result.delivered_output_resolution.is_some()
+                || result.delivered_crop_policy_sha256.is_some()
+                || result.delivered_preprocessing_sha256.is_some()
+            {
+                return Err(ActionArgumentError::new(
+                    "video transform receipt cannot exist without delivered frames",
+                ));
+            }
             let mut refs = BTreeSet::new();
             let mut indices = BTreeSet::new();
             let mut timestamps = BTreeSet::new();
@@ -807,8 +856,11 @@ fn validate_result_payload(
                     || !refs.insert(frame.observation_ref.clone())
                     || !indices.insert(frame.frame_index)
                     || !timestamps.insert(frame.capture_timestamp_ns)
-                    || !schedule.contains(&frame.capture_timestamp_ns)
-                    || schedule.get(frame.frame_index as usize) != Some(&frame.capture_timestamp_ns)
+                    || frame.capture_timestamp_ns < manifest.requested_interval.start_ns
+                    || frame.capture_timestamp_ns >= manifest.requested_interval.end_ns
+                    || schedule
+                        .get(frame.frame_index as usize)
+                        .is_none_or(|expected| abs_diff(*expected, frame.capture_timestamp_ns) > manifest.timestamp_tolerance_ns)
                 {
                     return Err(ActionArgumentError::new(
                         "delivered frame identity/index/time is not a unique member of the request schedule",
@@ -843,7 +895,13 @@ fn validate_result_payload(
             }
         }
         ActionParametersV1::AudioWindow(parameters) => {
-            if !result.delivered_frames.is_empty() || result.delivered_feedback.is_some() {
+            if !result.delivered_frames.is_empty()
+                || result.delivered_roi.is_some()
+                || result.delivered_output_resolution.is_some()
+                || result.delivered_crop_policy_sha256.is_some()
+                || result.delivered_preprocessing_sha256.is_some()
+                || result.delivered_feedback.is_some()
+            {
                 return Err(ActionArgumentError::new(
                     "audio action result cannot carry video frames or external feedback",
                 ));
@@ -851,6 +909,7 @@ fn validate_result_payload(
             if let Some(delivered) = result.delivered_audio {
                 if delivered.sample_rate_hz != parameters.sample_rate_hz
                     || delivered.channels != parameters.channels
+                    || delivered.sample_format != parameters.sample_format
                     || delivered.start_sample < parameters.start_sample
                     || delivered.end_sample > parameters.end_sample
                     || delivered.end_sample <= delivered.start_sample
@@ -885,7 +944,13 @@ fn validate_result_payload(
             }
         }
         ActionParametersV1::FeedbackRequest(parameters) => {
-            if !result.delivered_frames.is_empty() || result.delivered_audio.is_some() {
+            if !result.delivered_frames.is_empty()
+                || result.delivered_roi.is_some()
+                || result.delivered_output_resolution.is_some()
+                || result.delivered_crop_policy_sha256.is_some()
+                || result.delivered_preprocessing_sha256.is_some()
+                || result.delivered_audio.is_some()
+            {
                 return Err(ActionArgumentError::new(
                     "feedback request cannot produce a sensor observation payload",
                 ));
@@ -895,6 +960,7 @@ fn validate_result_payload(
                     || feedback.feedback_kind != parameters.feedback_kind
                     || feedback.delivered_tick < parameters.expected_delivery_tick
                     || feedback.delivered_tick < expected_arrival_tick
+                    || feedback.delivered_tick != result.result_tick
                 {
                     return Err(ActionArgumentError::new(
                         "delivered feedback does not match the requested source/type/arrival",
@@ -910,12 +976,25 @@ fn validate_result_payload(
         }
     }
 
+    if result.status == ActionResultStatusV1::Late
+        && result.delivered_frames.is_empty()
+        && result.delivered_audio.is_none()
+        && result.delivered_feedback.is_none()
+    {
+        return Err(ActionArgumentError::new("late result must retain the late payload receipt"));
+    }
     if matches!(
         result.status,
         ActionResultStatusV1::Failed
             | ActionResultStatusV1::Unavailable
             | ActionResultStatusV1::Cancelled
-    ) && (result.delivered_audio.is_some() || result.delivered_feedback.is_some())
+    ) && (result.delivered_audio.is_some()
+        || result.delivered_feedback.is_some()
+        || !result.delivered_frames.is_empty()
+        || result.delivered_roi.is_some()
+        || result.delivered_output_resolution.is_some()
+        || result.delivered_crop_policy_sha256.is_some()
+        || result.delivered_preprocessing_sha256.is_some())
     {
         return Err(ActionArgumentError::new(
             "failed/unavailable/cancelled action cannot deliver a payload",
@@ -982,6 +1061,7 @@ mod tests {
                 start_ns: 0,
                 end_ns: 1_000_000_000,
             },
+            timestamp_tolerance_ns: 0,
             parameters: ActionParametersV1::VideoCrop(VideoCropParametersV1 {
                 sampling: VideoSamplingV1::FixedRate {
                     fps_numerator: 2,
@@ -1020,6 +1100,7 @@ mod tests {
                 start_ns: 0,
                 end_ns: 1_000_000_000,
             },
+            timestamp_tolerance_ns: 0,
             parameters: ActionParametersV1::AudioWindow(AudioWindowParametersV1 {
                 start_sample: 0,
                 end_sample: 16_000,
@@ -1047,6 +1128,7 @@ mod tests {
                 start_ns: 10,
                 end_ns: 20,
             },
+            timestamp_tolerance_ns: 0,
             parameters: ActionParametersV1::FeedbackRequest(FeedbackRequestParametersV1 {
                 source_role: FeedbackSourceRoleV1::UserSimulator,
                 feedback_kind: FeedbackKindV1::Hint,
@@ -1272,6 +1354,7 @@ mod tests {
             parent_transcript_head_sha256: hex_sha256(b"head"),
             accepted_tick: 10,
             expected_arrival_tick: 12,
+            decision_deadline_tick: 20,
         };
         let result = ActionResultV1 {
             episode_id: "episode-1".to_string(),
@@ -1281,7 +1364,21 @@ mod tests {
             parameter_manifest_sha256: hex_sha256(b"other-manifest"),
             parent_transcript_head_sha256: hex_sha256(b"head"),
             status: ActionResultStatusV1::Failed,
+            result_tick: 2,
             delivered_frames: Vec::new(),
+            delivered_roi: None,
+            delivered_output_resolution: None,
+            delivered_crop_policy_sha256: None,
+            delivered_preprocessing_sha256: None,
+            delivered_roi: Some(RegionOfInterestV1::Normalized(NormalizedRoiV1 {
+                x: 0.1,
+                y: 0.2,
+                width: 0.5,
+                height: 0.4,
+            })),
+            delivered_output_resolution: Some(OutputResolutionV1 { width: 640, height: 360 }),
+            delivered_crop_policy_sha256: Some(digest("crop-policy")),
+            delivered_preprocessing_sha256: Some(digest("preprocess")),
             delivered_audio: None,
             delivered_feedback: None,
             actual_resource_digest_sha256: hex_sha256(b"resources"),
@@ -1317,6 +1414,7 @@ mod tests {
             parent_transcript_head_sha256: hex_sha256(b"head"),
             accepted_tick: 1,
             expected_arrival_tick: 2,
+            decision_deadline_tick: 10,
         };
         let result = ActionResultV1 {
             episode_id: "episode-1".to_string(),
@@ -1326,6 +1424,7 @@ mod tests {
             parameter_manifest_sha256: manifest_digest,
             parent_transcript_head_sha256: hex_sha256(b"head"),
             status: ActionResultStatusV1::Delivered,
+            result_tick: 2,
             delivered_frames: vec![
                 DeliveredFrameV1 {
                     observation_ref: "frame-0".to_string(),
@@ -1340,6 +1439,15 @@ mod tests {
                     byte_count: 100,
                 },
             ],
+            delivered_roi: Some(RegionOfInterestV1::Normalized(NormalizedRoiV1 {
+                x: 0.1,
+                y: 0.2,
+                width: 0.5,
+                height: 0.4,
+            })),
+            delivered_output_resolution: Some(OutputResolutionV1 { width: 640, height: 360 }),
+            delivered_crop_policy_sha256: Some(digest("crop-policy")),
+            delivered_preprocessing_sha256: Some(digest("preprocess")),
             delivered_audio: None,
             delivered_feedback: None,
             actual_resource_digest_sha256: hex_sha256(b"resources"),
@@ -1388,6 +1496,7 @@ mod tests {
             parent_transcript_head_sha256: hex_sha256(b"head"),
             accepted_tick: 1,
             expected_arrival_tick: 2,
+            decision_deadline_tick: 10,
         };
         let mut result = ActionResultV1 {
             episode_id: "episode-1".to_string(),
@@ -1397,6 +1506,7 @@ mod tests {
             parameter_manifest_sha256: manifest_digest,
             parent_transcript_head_sha256: hex_sha256(b"head"),
             status: ActionResultStatusV1::Delivered,
+            result_tick: 2,
             delivered_frames: vec![
                 DeliveredFrameV1 {
                     observation_ref: "frame-0".to_string(),
@@ -1411,6 +1521,15 @@ mod tests {
                     byte_count: 100,
                 },
             ],
+            delivered_roi: Some(RegionOfInterestV1::Normalized(NormalizedRoiV1 {
+                x: 0.1,
+                y: 0.2,
+                width: 0.5,
+                height: 0.4,
+            })),
+            delivered_output_resolution: Some(OutputResolutionV1 { width: 640, height: 360 }),
+            delivered_crop_policy_sha256: Some(digest("crop-policy")),
+            delivered_preprocessing_sha256: Some(digest("preprocess")),
             delivered_audio: None,
             delivered_feedback: None,
             actual_resource_digest_sha256: hex_sha256(b"resources"),
@@ -1461,6 +1580,7 @@ mod tests {
             parent_transcript_head_sha256: hex_sha256(b"head"),
             accepted_tick: 1,
             expected_arrival_tick: 2,
+            decision_deadline_tick: 10,
         };
         let result = ActionResultV1 {
             episode_id: "episode-1".to_string(),
@@ -1470,7 +1590,21 @@ mod tests {
             parameter_manifest_sha256: manifest_digest,
             parent_transcript_head_sha256: hex_sha256(b"head"),
             status: ActionResultStatusV1::Failed,
+            result_tick: 2,
             delivered_frames: Vec::new(),
+            delivered_roi: None,
+            delivered_output_resolution: None,
+            delivered_crop_policy_sha256: None,
+            delivered_preprocessing_sha256: None,
+            delivered_roi: Some(RegionOfInterestV1::Normalized(NormalizedRoiV1 {
+                x: 0.1,
+                y: 0.2,
+                width: 0.5,
+                height: 0.4,
+            })),
+            delivered_output_resolution: Some(OutputResolutionV1 { width: 640, height: 360 }),
+            delivered_crop_policy_sha256: Some(digest("crop-policy")),
+            delivered_preprocessing_sha256: Some(digest("preprocess")),
             delivered_audio: None,
             delivered_feedback: None,
             actual_resource_digest_sha256: hex_sha256(b"resources"),
