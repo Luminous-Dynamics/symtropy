@@ -1055,6 +1055,23 @@ mod tests {
         }
     }
 
+    fn evsi_forecasts(action_id: &str) -> Vec<ActionEvsiForecastV1> {
+        vec![
+            ActionEvsiForecastV1 {
+                action_id: action_id.to_string(),
+                estimated_gross_evsi: 0.4,
+                lower_gross_evsi: 0.2,
+                upper_gross_evsi: 0.6,
+            },
+            ActionEvsiForecastV1 {
+                action_id: STOP_ACTION_ID_V1.to_string(),
+                estimated_gross_evsi: 0.0,
+                lower_gross_evsi: 0.0,
+                upper_gross_evsi: 0.0,
+            },
+        ]
+    }
+
     #[test]
     fn same_manifest_replays_same_digest() {
         let manifest = video_manifest();
@@ -1200,6 +1217,7 @@ mod tests {
                 manifest: manifest.clone(),
                 manifest_sha256: digest.clone(),
             }],
+            evsi_forecasts: evsi_forecasts(&manifest.action_id),
             selected_action_id: manifest.action_id.clone(),
             selected_manifest_sha256: Some(digest),
         };
@@ -1220,6 +1238,7 @@ mod tests {
                 manifest,
                 manifest_sha256: digest,
             }],
+            evsi_forecasts: evsi_forecasts(&manifest.action_id),
             selected_action_id: "crop-video".to_string(),
             selected_manifest_sha256: Some(hex_sha256(b"mutated")),
         };
@@ -1240,6 +1259,7 @@ mod tests {
                 manifest,
                 manifest_sha256: manifest_digest.clone(),
             }],
+            evsi_forecasts: evsi_forecasts(&manifest.action_id),
             selected_action_id: "crop-video".to_string(),
             selected_manifest_sha256: Some(manifest_digest.clone()),
         };
@@ -1284,6 +1304,7 @@ mod tests {
                 manifest: manifest.clone(),
                 manifest_sha256: manifest_digest.clone(),
             }],
+            evsi_forecasts: evsi_forecasts(&manifest.action_id),
             selected_action_id: manifest.action_id.clone(),
             selected_manifest_sha256: Some(manifest_digest.clone()),
         };
