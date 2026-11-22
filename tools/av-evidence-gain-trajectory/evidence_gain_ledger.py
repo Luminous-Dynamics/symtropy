@@ -169,6 +169,7 @@ def _validate_action_forecast(
         turn["action_forecast"],
         {
             "episode_id",
+            "turn_id",
             "transcript_head_sha256",
             "forecast_tick",
             "deadline_tick",
@@ -181,8 +182,10 @@ def _validate_action_forecast(
     )
     turn_id = turn["turn_id"]
     head = _sha256(workload.get("transcript_head_sha256"), f"{turn_id}.workload.transcript_head_sha256")
-    if forecast["episode_id"] != turn_id:
-        raise EvidenceGainError(f"{turn_id}: action forecast episode_id must equal the turn ID")
+    if forecast["episode_id"] != workload.get("episode_id"):
+        raise EvidenceGainError(f"{turn_id}: action forecast episode_id mismatch")
+    if forecast["turn_id"] != turn_id:
+        raise EvidenceGainError(f"{turn_id}: action forecast turn_id mismatch")
     if _sha256(forecast["transcript_head_sha256"], f"{turn_id}.forecast.transcript_head_sha256") != head:
         raise EvidenceGainError(f"{turn_id}: forecast is not bound to the current transcript head")
 
@@ -258,6 +261,7 @@ def _validate_action_forecast(
         {
             "benchmark_id",
             "episode_id",
+            "turn_id",
             "policy_id",
             "run_id",
             "transcript_head_sha256",
@@ -273,7 +277,11 @@ def _validate_action_forecast(
     )
     if receipt["benchmark_id"] != EVSI_BENCHMARK_ID:
         raise EvidenceGainError(f"{turn_id}: linked action-value receipt benchmark mismatch")
-    if receipt["episode_id"] != turn_id or receipt["policy_id"] != policy_id:
+    if (
+        receipt["episode_id"] != workload.get("episode_id")
+        or receipt["turn_id"] != turn_id
+        or receipt["policy_id"] != policy_id
+    ):
         raise EvidenceGainError(f"{turn_id}: linked action-value receipt identity mismatch")
     _nonempty(receipt["run_id"], f"{turn_id}.action_value_receipt.run_id")
     if _sha256(receipt["transcript_head_sha256"], f"{turn_id}.receipt.transcript_head_sha256") != head:
@@ -440,6 +448,7 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
         "decision_cutoff_tick": max_cutoff,
         "observation_catalog": source_rows,
     }
+    full_truth_catalog = _validate_observation_catalog(source_wrapper)
 
     turn_results = []
     seen_turn_ids: set[str] = set()
@@ -521,8 +530,6 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
         if cutoff <= prior_cutoff:
             raise EvidenceGainError(f"{turn_id}: decision cutoffs must strictly increase")
         catalog = _validate_observation_catalog(workload)
-        source_catalog = _validate_observation_catalog(source_wrapper)
-        full_truth_catalog = source_catalog
         for observation_id, row in catalog.items():
             if full_truth_catalog.get(observation_id) != row:
                 raise EvidenceGainError(
