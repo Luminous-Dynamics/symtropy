@@ -27,12 +27,14 @@
 use core::fmt;
 
 /// Outward-rounded affine geometry used by the independent coverage research.
+pub mod bernstein;
 pub mod coverage;
 pub mod residual;
 pub mod sequential;
 pub mod stats;
 pub mod trajectory;
 
+pub use bernstein::{BernsteinTrajectoryReport, enclose_polynomial_minimum_distance};
 pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
     AffineResidualMassReport, AffineUnionResidualMassConfig,
