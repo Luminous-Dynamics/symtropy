@@ -469,14 +469,14 @@ mod tests {
 
     #[test]
     fn exact_tangency_remains_ambiguous() {
-        // r(t) = (t - 0.5)^2 + 0.1 only touches the radius 0.1.
+        // r(t) = (t - 0.5)^2 + 0.125 only touches the binary-exact radius 0.125.
         let report = isolate_polynomial_first_contact(
             &[vec![
-                interval(0.35, 0.35),
+                interval(0.375, 0.375),
                 interval(-1.0, -1.0),
                 interval(1.0, 1.0),
             ]],
-            config(0.0, 1.0, 0.1, 0.001, 2048, 18),
+            config(0.0, 1.0, 0.125, 0.001, 2048, 18),
         )
         .expect("valid tangency polynomial");
         assert_eq!(report.disposition, FirstContactDisposition::Ambiguous);
