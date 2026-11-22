@@ -1,4 +1,7 @@
-use maritime_custody_continuity::{evaluate, parse_events_tsv, parse_expectations_tsv};
+use maritime_custody_continuity::{
+    evaluate, parse_events_tsv, parse_expectations_tsv,
+    temporal_order::{compare_time_evidence, TimeBoundKind, TimeEvidence, TimeInterval},
+};
 
 fn main() {
     let expectations = parse_expectations_tsv(include_str!("../data/expectations.tsv"))
@@ -33,5 +36,35 @@ fn main() {
     for (failure, count) in report.failure_counts {
         println!("failure.{failure:?}={count}");
     }
+    let release_time = TimeEvidence::new(
+        "SYNTHETIC_RELEASE",
+        "UTC_NS_PROFILE_V1",
+        TimeInterval::new(100, 110).expect("valid synthetic release interval"),
+        TimeBoundKind::QualifiedEnclosure,
+    )
+    .expect("valid synthetic release time evidence");
+    let accept_time = TimeEvidence::new(
+        "SYNTHETIC_ACCEPT",
+        "UTC_NS_PROFILE_V1",
+        TimeInterval::new(111, 120).expect("valid synthetic acceptance interval"),
+        TimeBoundKind::QualifiedEnclosure,
+    )
+    .expect("valid synthetic acceptance time evidence");
+    let overlapping_time = TimeEvidence::new(
+        "SYNTHETIC_OVERLAP",
+        "UTC_NS_PROFILE_V1",
+        TimeInterval::new(108, 115).expect("valid synthetic overlap interval"),
+        TimeBoundKind::QualifiedEnclosure,
+    )
+    .expect("valid synthetic overlap time evidence");
+    println!(
+        "synthetic_disjoint_handoff_time_order={:?}",
+        compare_time_evidence(&release_time, &accept_time)
+    );
+    println!(
+        "synthetic_overlapping_handoff_time_order={:?}",
+        compare_time_evidence(&release_time, &overlapping_time)
+    );
+    println!("Time-order examples are a standalone P1 primitive, not a real custody decision.");
     println!("No real cargo custody, handoff, or delivery is inferred.");
 }
