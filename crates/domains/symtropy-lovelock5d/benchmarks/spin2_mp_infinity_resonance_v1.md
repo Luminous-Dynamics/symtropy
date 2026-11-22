@@ -34,7 +34,7 @@ For \(V=\sum_{n\ge0}v_nx^n\),
 (-nI-A_0)v_n=\sum_{k=1}^nA_kv_{n-k}+g_n.
 \]
 
-A bounded branch begins with the constant eigenmode \(v_0=c e_B\), \(e_B=(1,0,0,0)^T\). At \(n=1\), \(-I-A_0\) is invertible (determinant \(-5\)) and the right-hand side vanishes, so \(v_1=0\).
+A bounded branch begins with the constant eigenmode \(v_0=c e_B\), \(e_B=(1,0,0,0)^T\). At \(n=1\), \(-I-A_0\) is invertible (determinant \(+5\)) and the right-hand side vanishes, so \(v_1=0\).
 
 At \(n=2\), \(-2I-A_0\) is singular, with rank and nullity both two. This is the first resonance with the two decaying \(r^{-2}\) modes. However,
 \[
