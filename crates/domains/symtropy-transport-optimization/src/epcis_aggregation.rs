@@ -467,6 +467,41 @@ mod tests {
     }
 
     #[test]
+    fn observe_with_class_quantity_only_remains_non_mutating() {
+        let mut input = event(AggregationAction::Observe);
+        input.parent_id = None;
+        input.child_quantity_list = vec![quantity("class-a", "4.25", "KGM")];
+
+        let output = normalize_aggregation_event(&input).unwrap();
+        assert!(!output.effect.changes_membership());
+        assert!(matches!(
+            output.effect,
+            AggregationEffect::Observe {
+                parent_id: None,
+                observed_child_epcs,
+                observed_child_quantities,
+                may_be_incomplete: true,
+            } if observed_child_epcs.is_empty()
+                && observed_child_quantities == vec![quantity("class-a", "4.25", "KGM")]
+        ));
+    }
+
+    #[test]
+    fn delete_with_class_quantity_is_subset_delete_not_delete_all() {
+        let mut input = event(AggregationAction::Delete);
+        input.child_quantity_list = vec![quantity("class-a", "4.25", "KGM")];
+
+        assert_eq!(
+            normalize_aggregation_event(&input).unwrap().effect,
+            AggregationEffect::Delete {
+                parent_id: "urn:epc:id:sscc:123".to_string(),
+                child_epcs: Vec::new(),
+                child_quantity_list: vec![quantity("class-a", "4.25", "KGM")],
+            }
+        );
+    }
+
+    #[test]
     fn empty_add_is_rejected() {
         assert_eq!(
             normalize_aggregation_event(&event(AggregationAction::Add)),
