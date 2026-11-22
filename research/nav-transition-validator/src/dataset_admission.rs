@@ -496,10 +496,10 @@ mod tests {
         let summary =
             validate_dataset_admission(&schema(), &manifest, "research_noncommercial")
                 .unwrap();
-        assert_eq!(summary.record_count, 5);
-        assert_eq!(summary.candidate_count, 5);
+        assert_eq!(summary.record_count, 6);
+        assert_eq!(summary.candidate_count, 6);
         assert_eq!(summary.admitted_count, 0);
-        assert_eq!(summary.partial_ground_truth_count, 2);
+        assert_eq!(summary.partial_ground_truth_count, 3);
     }
 
     #[test]
