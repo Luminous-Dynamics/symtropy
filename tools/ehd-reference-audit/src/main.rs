@@ -2180,9 +2180,10 @@ pub fn audit_exergy_contract(root: &Value) -> Vec<String> {
     push_if_missing(
         &mut findings,
         at(root, &["test_families"]).and_then(Value::as_array)
-            .is_some_and(|tests| tests.len() == 9
+            .is_some_and(|tests| tests.len() == 10
                 && tests.iter().any(|item| item.as_str() == Some("flow_exergy_is_zero_at_dead_state"))
                 && tests.iter().any(|item| item.as_str() == Some("sub_dead_state_pressure_flow_exergy_remains_signed"))
+                && tests.iter().any(|item| item.as_str() == Some("negative_work_input_is_rejected_with_boundary_field_identity"))
                 && tests.iter().any(|item| item.as_str() == Some("materially_negative_exergy_destruction_is_rejected"))
                 && tests.iter().any(|item| item.as_str() == Some("tiny_negative_residual_is_retained_and_marked_as_roundoff"))
                 && tests.iter().any(|item| item.as_str() == Some("offline_reference_self_check"))),
