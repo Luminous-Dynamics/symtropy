@@ -9,6 +9,7 @@ This crate is a research kernel, not an operational collision-probability produc
 - Strict positive-definite covariance validation using a Cholesky factor.
 - Multivariate Gaussian log density without explicit matrix inversion.
 - Gaussian half-space probability and log-probability, reduced to a one-dimensional normal CDF.
+- Analytic tail-probability sweep from 1e-3 to 1e-9 across dimensions 1, 2, 3, 6 and 12.
 - Stable log-domain standard-normal interval mass, including extreme positive and negative tails.
 - Log mass for axis-aligned boxes under independent standard-normal coordinates.
 - A Gaussian cube-tail union-bound primitive for probability bookkeeping.
