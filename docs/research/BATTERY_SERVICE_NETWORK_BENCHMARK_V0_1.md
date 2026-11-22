@@ -61,8 +61,9 @@ Every capability and boolean assertion is wrapped in an evidence envelope:
 - `valid_from_unix_ms` and `valid_until_unix_ms`.
 
 The input includes a frozen `dispatch_time_unix_ms`. The evaluator checks:
-1. all evidence bindings match the exact pack and configuration;
-2. evidence window is complete and internally ordered;
+1. the pack state value itself (available/quarantined/etc.) is nested inside its evidence-bearing state record;
+2. all evidence bindings match the exact pack and configuration;
+3. evidence window is complete and internally ordered;
 3. evidence was observed no later than the dispatch decision time;
 4. dispatch time falls inside the evidence validity interval;
 5. unknown, missing, expired or incomplete evidence is indeterminate;
@@ -76,7 +77,7 @@ This prevents post-decision information leakage and makes freshness a time-windo
 
 For each mission-pack pair the evaluator checks:
 - matching configuration ID and digest;
-- pack state is available;
+- evidence-bearing pack state is available (the value cannot be changed independently of its evidence record);
 - fresh identity verification and resolved custody;
 - fresh passed post-maintenance test;
 - usable energy ≥ mission energy including reserve;
@@ -110,7 +111,7 @@ A separate enumeration of the fixture's declared objective found 38 search nodes
 
 The expected mapping is pack-a → mission-1 (300 Wh surplus), pack-b → mission-2 (300 Wh surplus), pack-c → mission-3 (200 Wh surplus), with mission-4 unserved. The workflow asserts the exact mapping, energy margins and 38-node search count.
 
-This independent fixture arithmetic is not evidence that the Rust code compiles or passes its CI tests. At the time of this document update, the exact-head GitHub workflow run has not been observed; do not claim compile, Clippy, rustfmt or Rust tests are green. The current test source contains 22 focused test cases, including future-observation, expired/malformed time-window, wrong-asset/configuration evidence, stale/unknown pack state, energy-reserve, peak-power, thermal, quarantine/post-test, exact-allocation and deterministic replay controls. Their execution is pending exact-head workflow evidence.
+This independent fixture arithmetic is not evidence that the Rust code compiles or passes its CI tests. At the time of this document update, the exact-head GitHub workflow run has not been observed; do not claim compile, Clippy, rustfmt or Rust tests are green. The current test source contains 23 focused test cases, including an explicit test that the claimed pack state is carried inside its evidence envelope, including future-observation, expired/malformed time-window, wrong-asset/configuration evidence, stale/unknown pack state, energy-reserve, peak-power, thermal, quarantine/post-test, exact-allocation and deterministic replay controls. Their execution is pending exact-head workflow evidence.
 
 ## 4. The next paradigm shift: battery-service capacity as a network option
 
