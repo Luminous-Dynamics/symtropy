@@ -289,3 +289,13 @@ Opened [#6891 BH-4D-KERR-SOURCE-RECONSTRUCTION-001](https://github.com/Luminous-
 \]
 
 This is separate from nonlinear 5D equal-spin EGB and only applies at the stated leading order around Kerr. The new task freezes conservation, tetrad, reflection, horizon/asymptotic charge completion and no-mode-decomposition controls. It is a portfolio expansion, not evidence that the 5D task is complete.
+
+
+## Current SOTA audit: Akribeia, Ma--Lü and source reconstruction (22 November 2026)
+
+The SOTA landscape and scorecard now record the exact metric classes separately:
+- Akribeia 5D EGB family: \(r_H=1,\Omega_H=0.33,\alpha\in[0,3]\) at 0.01 steps, with a separate \((\alpha,\Omega_H)=(2,0.68)\) comparison. Its random-initialized PINN plus pseudo-spectral Gauss--Newton method is a direct nonlinear EGB comparator. The \(10^{-85}\) MP relative \(L^2\) profile error and \(10^{-80}\) 7D cubic-Lovelock refined residual are distinct controls, not the same 5D EGB metric.
+- Ma--Lü 5D MP quadratic-curvature correction: linear coupling, two-spin series through tenth order, thermodynamic cross-check. Issue #6915 audits the candidate Riemann-squared / Gauss--Bonnet mapping, action coefficient, equal-spin limit and gauge before comparing coefficients.
+- Li--Hu--Yunes 4D Kerr source reconstruction: six interactions at leading coupling, no mode decomposition, sampled \(\Psi_0\) relative discrepancy below \(1.4\times10^{-22}\) at \(a/M=0.9999\) (five angles, 200 radii, reference \(\ell_{\max}=100\)); separate exact thermodynamic checks. This is not a full-domain error or runtime bound.
+
+The programme now scores discovery, branch coverage, matched equations and boundary conditions, equation rows, held-out error, observables, physical qualification and validated existence separately. No cross-category residual ranking is allowed.
