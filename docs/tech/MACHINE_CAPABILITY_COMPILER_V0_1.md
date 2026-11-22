@@ -118,7 +118,9 @@ Rank only routes that pass every hard requirement. The current v0.1 evaluator ca
 
 `C_accepted = (capital allocation + material + energy + labour + setup + calibration + inspection + finishing + transport + maintenance + failed attempts + rework + warranty reserve) / accepted outputs`
 
-The Pareto frontier retains feasible routes for which no other feasible route is both no more expensive and no slower, with at least one strict improvement. A low-cost route that is slower may remain alongside a faster but more expensive route. Infeasible, unknown and unsupported routes are excluded from the frontier regardless of cost.
+Every cost category is required in the input, but an unmeasured category is represented as JSON null, never as zero. Physical route feasibility is assessed independently of economic completeness: a route can remain feasible while its cost is unknown. In that case the evaluator returns no cost-per-accepted-output value and excludes the route from the economic Pareto frontier until the missing category is evidenced. This prevents an incomplete route from appearing artificially cheap.
+
+The Pareto frontier retains economically evaluable feasible routes for which no other such route is both no more expensive and no slower, with at least one strict improvement. A low-cost route that is slower may remain alongside a faster but more expensive route. Infeasible, unknown and unsupported routes are excluded from the frontier regardless of cost.
 
 Also report:
 - request-to-part P50/P90;
