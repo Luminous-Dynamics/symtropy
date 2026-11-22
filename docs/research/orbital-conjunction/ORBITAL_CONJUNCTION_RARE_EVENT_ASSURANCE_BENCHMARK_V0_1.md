@@ -181,6 +181,36 @@ Suggested dispositions:
 
 The high-fidelity evaluator should be independently testable from the proposal fitter. A later process/capability boundary should prevent evaluator truth, hidden test outcomes, or future observations from leaking into adaptation.
 
+### NASA CARA's existing multistep cascade is a required policy-level baseline
+
+Do not treat the proposal portfolio itself as the novel contribution. NASA CARA already publishes a multistep algorithm that begins with 2D-Pc, performs data-quality and 2D-Pc usage-violation analysis, and escalates conditionally to 2D-Nc and 3D-Nc. Its extended wrapper can add SDMC. CARA presentations also describe an internal BFMC high-fidelity Monte Carlo tier; BFMC source is not publicly released.
+
+The public usage-violation analysis explicitly considers:
+- non-positive-definite covariance issues and their remediation;
+- conjunctions that are temporally extended;
+- collision-rate peaks offset from TCA;
+- likely inaccuracy of the conjunction-plane approximation;
+- convergence / quadrature limitations for more advanced methods;
+- very low relative velocity and blended encounter interactions.
+
+This is a mature industry design pattern: use cheaper methods by default and escalate only when declared usage conditions indicate that the assumptions may be violated. We must reproduce the full multistep policy, not only compare isolated algorithms.
+
+**What we add beyond that baseline:**
+1. An independent residual event-mass bound outside discovered rare-event modes / geometric charts.
+2. Frozen-proposal, independent evaluation with log-weight / second-moment and repeated-run coverage evidence.
+3. Explicit uncertainty decomposition for covariance realism, cross-covariance, force-model uncertainty and epistemic model discrepancy.
+4. A pathwise first-contact target across the complete assessment window, separate from TCA Pc and CARA Nc.
+5. A qualification disposition that can abstain when event support, model adequacy or statistical evidence remains insufficient.
+6. A cost / risk escalation policy that can compare expected computation savings against false-safe probability and missed-mode exposure.
+
+The benchmark should compare:
+- CARA 2D-Pc alone;
+- CARA's full PcMultiStep cascade (2D-Pc → usage violation / proxy correction → 2D-Nc → 3D-Nc);
+- PcMultiStepWithSDMC where reproducible under the public release and rights permit;
+- an independent high-fidelity reference. Internal BFMC can only be a comparator if independently accessible; it must not be assumed available from the public repository.
+
+Use CARA's published usage-violation thresholds as pinned baseline configuration, then perform a separate sensitivity study. Do not tune CARA thresholds on the held-out evaluation set. Report escalation confusion matrices against independent reference, per-tier estimate bias / interval coverage, false-safe escalation misses, unnecessary escalations, total cost, and claim-coverage/abstention.
+
 ## 6. Industry baseline and fair comparison
 
 NASA CARA's public toolset is the mandatory first external comparator, not a straw-man Monte Carlo baseline:
