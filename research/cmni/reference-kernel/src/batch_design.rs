@@ -41,7 +41,8 @@ pub struct BatchPortfolioScore {
     pub linear_gaussian_expected_information_gain_nats: f64,
     /// False means unknown common causes may still be absent from the covariance.
     pub lineage_coverage_complete: bool,
-    pub inter_source_dependence: InterSourceDependenceQualification,
+    pub inter_source_dependence_complete: bool,
+    pub inter_source_dependence_receipt_ids: Vec<String>,
     pub shared_source_ids: Vec<String>,
 }
 
@@ -191,8 +192,7 @@ pub fn enumerate_batch_portfolios(
             continue;
         }
         let inter_source_dependence_complete = selected.iter().all(|candidate| {
-            candidate.noise_model.inter_source_dependence
-                == InterSourceDependenceQualification::Complete
+            candidate.noise_model.inter_source_dependence.is_qualified()
         });
         if require_complete_lineage && !inter_source_dependence_complete {
             skipped_unknown_inter_source_dependence_portfolios += 1;
@@ -240,7 +240,8 @@ pub fn enumerate_batch_portfolios(
             d_optimal_logdet_reduction,
             linear_gaussian_expected_information_gain_nats,
             lineage_coverage_complete: joint.lineage_coverage_complete,
-            inter_source_dependence: joint.inter_source_dependence,
+            inter_source_dependence_complete: joint.inter_source_dependence_complete,
+            inter_source_dependence_receipt_ids: joint.inter_source_dependence_receipt_ids,
             shared_source_ids: joint.shared_source_ids,
         });
     }
@@ -623,7 +624,9 @@ mod tests {
                 independent_observation_covariance: vec![vec![independent_variance]],
                 shared_sources,
                 lineage_coverage_complete: lineage_complete,
-                inter_source_dependence: InterSourceDependenceQualification::Complete,
+                inter_source_dependence: InterSourceDependenceQualification::joint_blocks_modelled(
+                    "fixture:joint-source-model-v1",
+                ),
             },
         }
     }
