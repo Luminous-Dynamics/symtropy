@@ -37,21 +37,34 @@ pub struct ChargeJob {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
+pub struct ChargerCapabilityEvidence {
+    pub evidence: EvidenceEnvelope,
+    pub max_power_w: u32,
+    pub supported_pack_configuration_digests: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct ChargerChannel {
     pub charger_id: String,
     pub configuration_digest: String,
-    pub max_power_w: u32,
-    pub supported_pack_configuration_digests: Vec<String>,
+    pub capability: ChargerCapabilityEvidence,
     pub availability_evidence: EvidenceEnvelope,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct GridCapacityEvidence {
+    pub evidence: EvidenceEnvelope,
+    pub import_cap_w: u32,
+    pub non_charging_site_load_w: u32,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct GridSlot {
     pub slot: u8,
-    pub import_cap_w: u32,
-    pub non_charging_site_load_w: u32,
-    pub evidence: EvidenceEnvelope,
+    pub evidence: GridCapacityEvidence,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -359,18 +372,31 @@ pub fn evaluate_battery_charge_queue(
     for charger in &input.chargers {
         if charger.charger_id.trim().is_empty()
             || charger.configuration_digest.trim().is_empty()
-            || charger.max_power_w == 0
-            || charger.max_power_w > MAX_CHARGING_POWER_W
-            || charger.supported_pack_configuration_digests.is_empty()
+            || charger.capability.max_power_w == 0
+            || charger.capability.max_power_w > MAX_CHARGING_POWER_W
+            || charger.capability.supported_pack_configuration_digests.is_empty()
             || !charger_ids.insert(charger.charger_id.as_str())
         {
             add_error(&mut errors, "charger_identity_or_capability_invalid");
         }
         let mut supported = BTreeSet::new();
-        for digest in &charger.supported_pack_configuration_digests {
+        for digest in &charger.capability.supported_pack_configuration_digests {
             if digest.trim().is_empty() || !supported.insert(digest.as_str()) {
                 add_error(&mut errors, "charger_supported_configuration_empty_or_duplicate");
             }
+        }
+        if !evidence_covers_interval(
+            &charger.capability.evidence,
+            &charger.charger_id,
+            &charger.configuration_digest,
+            input.decision_time_unix_ms,
+            input.decision_time_unix_ms,
+            horizon_end_unix_ms,
+        ) {
+            add_error(
+                &mut errors,
+                format!("charger_capability_evidence_not_admissible:{}", charger.charger_id),
+            );
         }
         if !evidence_covers_interval(
             &charger.availability_evidence,
@@ -414,7 +440,7 @@ pub fn evaluate_battery_charge_queue(
     sorted_grid_slots.sort_by_key(|slot| slot.slot);
     for (index, grid_slot) in sorted_grid_slots.iter().enumerate() {
         if usize::from(grid_slot.slot) != index
-            || grid_slot.import_cap_w < grid_slot.non_charging_site_load_w
+            || grid_slot.evidence.import_cap_w < grid_slot.evidence.non_charging_site_load_w
         {
             add_error(&mut errors, format!("grid_slot_identity_or_capacity_invalid:{}", grid_slot.slot));
             continue;
@@ -436,7 +462,7 @@ pub fn evaluate_battery_charge_queue(
             continue;
         };
         if !evidence_covers_interval(
-            &grid_slot.evidence,
+            &grid_slot.evidence.evidence,
             &input.site_id,
             &input.site_configuration_digest,
             input.decision_time_unix_ms,
@@ -465,7 +491,7 @@ pub fn evaluate_battery_charge_queue(
 
     let mut slot_power_headroom_w = Vec::with_capacity(sorted_grid_slots.len());
     for grid_slot in &sorted_grid_slots {
-        slot_power_headroom_w.push(grid_slot.import_cap_w - grid_slot.non_charging_site_load_w);
+        slot_power_headroom_w.push(grid_slot.evidence.import_cap_w - grid_slot.evidence.non_charging_site_load_w);
     }
 
     let mut findings = Vec::new();
@@ -479,8 +505,9 @@ pub fn evaluate_battery_charge_queue(
             continue;
         }
         for (charger_index, charger) in chargers.iter().enumerate() {
-            if charger.max_power_w < job.requested_power_w
+            if charger.capability.max_power_w < job.requested_power_w
                 || !charger
+                    .capability
                     .supported_pack_configuration_digests
                     .iter()
                     .any(|digest| digest == &job.pack_configuration_digest)
@@ -595,8 +622,8 @@ pub fn evaluate_battery_charge_queue(
         return Err(vec!["declared_grid_input_energy_overflow".to_string()]);
     };
     let all_fixture_evidence_synthetic = input.site_evidence.evidence_class == EvidenceClass::Synthetic
-        && input.chargers.iter().all(|charger| charger.availability_evidence.evidence_class == EvidenceClass::Synthetic)
-        && input.grid_slots.iter().all(|slot| slot.evidence.evidence_class == EvidenceClass::Synthetic)
+        && input.chargers.iter().all(|charger| charger.capability.evidence.evidence_class == EvidenceClass::Synthetic && charger.availability_evidence.evidence_class == EvidenceClass::Synthetic)
+        && input.grid_slots.iter().all(|slot| slot.evidence.evidence.evidence_class == EvidenceClass::Synthetic)
         && input.jobs.iter().all(|job| job.pack_state.evidence.evidence_class == EvidenceClass::Synthetic);
 
     Ok(BatteryChargeQueueReport {
@@ -686,8 +713,17 @@ mod tests {
         ChargerChannel {
             charger_id: id.to_string(),
             configuration_digest: config_digest.to_string(),
-            max_power_w,
-            supported_pack_configuration_digests: supported.into_iter().map(str::to_string).collect(),
+            capability: ChargerCapabilityEvidence {
+                evidence: evidence(
+                    id,
+                    config_digest,
+                    &format!("{id}-capability"),
+                    DECISION_TIME_MS - 1_000,
+                    DECISION_TIME_MS + 10_000_000,
+                ),
+                max_power_w,
+                supported_pack_configuration_digests: supported.into_iter().map(str::to_string).collect(),
+            },
             availability_evidence: evidence(
                 id,
                 config_digest,
@@ -711,15 +747,17 @@ mod tests {
         let end = start + u64::from(slot_duration_seconds) * 1_000;
         GridSlot {
             slot,
-            import_cap_w,
-            non_charging_site_load_w: base_load_w,
-            evidence: evidence(
-                site_id,
-                site_digest,
-                &format!("grid-slot-{slot}"),
-                DECISION_TIME_MS - 1_000,
-                end,
-            ),
+            evidence: GridCapacityEvidence {
+                evidence: evidence(
+                    site_id,
+                    site_digest,
+                    &format!("grid-slot-{slot}"),
+                    DECISION_TIME_MS - 1_000,
+                    end,
+                ),
+                import_cap_w,
+                non_charging_site_load_w: base_load_w,
+            },
         }
     }
 
@@ -843,8 +881,8 @@ mod tests {
     fn grid_cap_is_enforced_in_every_slot() {
         let mut input = base_input();
         for slot in &mut input.grid_slots {
-            slot.import_cap_w = 4_000;
-            slot.non_charging_site_load_w = 1_000;
+            slot.evidence.import_cap_w = 4_000;
+            slot.evidence.non_charging_site_load_w = 1_000;
         }
         let report = evaluate_battery_charge_queue(&input).unwrap();
         assert!(report.assignments.len() < 3);
