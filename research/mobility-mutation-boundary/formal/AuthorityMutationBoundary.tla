@@ -3,6 +3,9 @@ EXTENDS Naturals, FiniteSets, Sequences
 
 CONSTANTS
     Tickets,
+    T1,
+    T2,
+    T3,
     Bindings,
     Attempts,
     ClockDomains,
@@ -45,44 +48,44 @@ CONSTANTS
 
 TicketBinding ==
     [t \in Tickets |->
-        CASE t = t1 -> TicketBinding1
-          [] t = t2 -> TicketBinding2
+        CASE t = T1 -> TicketBinding1
+          [] t = T2 -> TicketBinding2
           [] OTHER -> TicketBinding3]
 
 TicketAttempt ==
     [t \in Tickets |->
-        CASE t = t1 -> TicketAttempt1
-          [] t = t2 -> TicketAttempt2
+        CASE t = T1 -> TicketAttempt1
+          [] t = T2 -> TicketAttempt2
           [] OTHER -> TicketAttempt3]
 
 TicketEpoch ==
     [t \in Tickets |->
-        CASE t = t1 -> TicketEpoch1
-          [] t = t2 -> TicketEpoch2
+        CASE t = T1 -> TicketEpoch1
+          [] t = T2 -> TicketEpoch2
           [] OTHER -> TicketEpoch3]
 
 TicketClock ==
     [t \in Tickets |->
-        CASE t = t1 -> TicketClock1
-          [] t = t2 -> TicketClock2
+        CASE t = T1 -> TicketClock1
+          [] t = T2 -> TicketClock2
           [] OTHER -> TicketClock3]
 
 TicketBoot ==
     [t \in Tickets |->
-        CASE t = t1 -> TicketBoot1
-          [] t = t2 -> TicketBoot2
+        CASE t = T1 -> TicketBoot1
+          [] t = T2 -> TicketBoot2
           [] OTHER -> TicketBoot3]
 
 TicketIssued ==
     [t \in Tickets |->
-        CASE t = t1 -> TicketIssued1
-          [] t = t2 -> TicketIssued2
+        CASE t = T1 -> TicketIssued1
+          [] t = T2 -> TicketIssued2
           [] OTHER -> TicketIssued3]
 
 TicketExpires ==
     [t \in Tickets |->
-        CASE t = t1 -> TicketExpires1
-          [] t = t2 -> TicketExpires2
+        CASE t = T1 -> TicketExpires1
+          [] t = T2 -> TicketExpires2
           [] OTHER -> TicketExpires3]
 
 PermitAttempt ==
