@@ -77,7 +77,7 @@ The Version 6 record includes:
 - responder statistics at one-second granularity (~330K records);
 - poller statistics at one-second granularity (~330K records);
 - 40-agent JSON example;
-- 148,260 standardized evaluation scenarios in a 3.6 GB ZIP;
+- 148,260 unique deployment scenario configurations in a 3.6 GB ZIP. Each configuration is evaluated with two initializations (origin/random) and two ranging-sample modes (one/ten samples), yielding 593,040 evaluation cases overall;
 - parser code, release-generation script and official scorer;
 - a 25.5 GB LAS point cloud and optional viewer/documentation.
 
