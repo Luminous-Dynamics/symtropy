@@ -3410,3 +3410,61 @@ mod solver_comparator_registry_tests {
         }));
     }
 }
+
+
+#[cfg(test)]
+mod solver_comparator_registry_tests {
+    use super::*;
+
+    fn atlas() -> Value {
+        serde_json::from_str(EMBEDDED_ATLAS).expect("embedded reference atlas must be valid JSON")
+    }
+
+    #[test]
+    fn solver_scope_registry_passes() {
+        assert!(audit_atlas(&atlas()).is_empty());
+    }
+
+    #[test]
+    fn anemone_validation_is_not_promoted_to_independent_experiment() {
+        let mut value = atlas();
+        let rows = value["solver_profiles"].as_array_mut().unwrap();
+        let profile = rows.iter_mut().find(|row| row["solver_id"] == "ANEMONE_3D").unwrap();
+        profile["validation_evidence"] = serde_json::json!("independent experimental force-stand and PIV");
+        assert!(audit_atlas(&value).iter().any(|finding| {
+            finding.starts_with("ANEMONE_SCOPE")
+        }));
+    }
+
+    #[test]
+    fn paschen_one_d_must_disclose_missing_electron_energy_equation() {
+        let mut value = atlas();
+        let rows = value["solver_profiles"].as_array_mut().unwrap();
+        let profile = rows.iter_mut().find(|row| row["solver_id"] == "PASCHEN_1D").unwrap();
+        profile["important_limits"] = serde_json::json!([]);
+        assert!(audit_atlas(&value).iter().any(|finding| {
+            finding.starts_with("PASCHEN_1D_SCOPE")
+        }));
+    }
+
+    #[test]
+    fn simplified_and_full_comsol_interfaces_remain_distinct() {
+        let mut value = atlas();
+        let rows = value["solver_profiles"].as_array_mut().unwrap();
+        let profile = rows.iter_mut().find(|row| row["solver_id"] == "COMSOL_CORONA_SIMPLIFIED_64").unwrap();
+        profile["important_limits"] = serde_json::json!([]);
+        assert!(audit_atlas(&value).iter().any(|finding| {
+            finding.starts_with("COMSOL_SIMPLIFIED_CORONA_SCOPE")
+        }));
+    }
+
+    #[test]
+    fn comparator_matrix_requires_matched_controls_for_every_track() {
+        let mut value = atlas();
+        value["solver_comparison_matrix"]["tracks"][0]["match_controls"] =
+            serde_json::json!([]);
+        assert!(audit_atlas(&value).iter().any(|finding| {
+            finding.starts_with("SOLVER_COMPARATOR_CONTROLS")
+        }));
+    }
+}
