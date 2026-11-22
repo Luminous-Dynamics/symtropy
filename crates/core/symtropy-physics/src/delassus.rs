@@ -936,6 +936,9 @@ mod tests {
             offset_b: SVector::<f64, 3>::new(0.2, -0.1, 0.3),
             frame,
         };
+        let original_linear_velocity = dynamic_body.linear_velocity;
+        let original_angular_velocity = dynamic_body.angular_velocity.clone();
+        let original_rotation = dynamic_body.transform.rotation.clone();
         let reference =
             assemble_contact_wrench_free_velocity(&[static_body, dynamic_body], &[row.clone()])
                 .unwrap();
@@ -953,13 +956,13 @@ mod tests {
         );
         let mut rotated_dynamic =
             RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
-        rotated_dynamic.linear_velocity = rotation.rotate_vector(&dynamic_body.linear_velocity);
+        rotated_dynamic.linear_velocity = rotation.rotate_vector(&original_linear_velocity);
         rotated_dynamic.angular_velocity = Bivector::from_matrix(
             &(rotation.to_matrix()
-                * dynamic_body.angular_velocity.to_matrix()
+                * original_angular_velocity.to_matrix()
                 * rotation.to_matrix().transpose()),
         );
-        rotated_dynamic.transform.rotation = rotation.compose(&dynamic_body.transform.rotation);
+        rotated_dynamic.transform.rotation = rotation.compose(&original_rotation);
         let rotated_row = ContactWrenchRow {
             body_a: row.body_a,
             body_b: row.body_b,
@@ -972,10 +975,10 @@ mod tests {
             &[rotated_row],
         )
         .unwrap();
+        let covariance_error = (&rotated - &reference).norm();
         assert!(
-            (&rotated - reference).norm() < 1e-10,
-            "global rotation changed free wrench velocity by {}",
-            (&rotated - reference).norm()
+            covariance_error < 1e-10,
+            "global rotation changed free wrench velocity by {covariance_error}"
         );
     }
 
@@ -1022,6 +1025,7 @@ mod tests {
     #[test]
     fn contact_wrench_delassus_propagates_singular_rolling_or_torsional_plane() {
         use crate::body::BodyType;
+        use nalgebra::SMatrix;
         use symtropy_math::{Sphere, Transform};
 
         let static_body = RigidBody::<3>::new(
