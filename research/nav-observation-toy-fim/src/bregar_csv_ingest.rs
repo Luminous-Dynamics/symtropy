@@ -514,7 +514,7 @@ mod tests {
     fn row_record(cir_count: usize) -> String {
         let mut fields = row_fields();
         fields.extend((0..cir_count).map(|index| {
-            if index == 0 { "(1.5+2.25j)".to_owned() } else { "0.0+0.0j".to_owned() }
+            if index == 100 { "(1.5+2.25j)".to_owned() } else { "0.0+0.0j".to_owned() }
         }));
         fields
             .into_iter()
