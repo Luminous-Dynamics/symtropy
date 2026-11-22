@@ -1152,27 +1152,27 @@ pub mod impact_enclosure {
 
         #[test]
         fn rejects_invalid_model_parameters_and_digests() {
-            let mut model = model();
-            model.initial_height_m = Rational::zero();
-            let claim_value = claim(&model, "impact", r(3, 4), r(5, 4));
+            let mut invalid_height_model = model();
+            invalid_height_model.initial_height_m = Rational::zero();
+            let claim_value = claim(&invalid_height_model, "impact", r(3, 4), r(5, 4));
             assert_eq!(
-                verify_constant_gravity_impact_enclosure(&model, &claim_value),
+                verify_constant_gravity_impact_enclosure(&invalid_height_model, &claim_value),
                 Err(ImpactEnclosureError::InvalidInitialHeight)
             );
 
-            let mut model = model();
-            model.gravity_m_per_time_squared = Rational::zero();
-            let claim_value = claim(&model, "impact", r(3, 4), r(5, 4));
+            let mut invalid_gravity_model = model();
+            invalid_gravity_model.gravity_m_per_time_squared = Rational::zero();
+            let claim_value = claim(&invalid_gravity_model, "impact", r(3, 4), r(5, 4));
             assert_eq!(
-                verify_constant_gravity_impact_enclosure(&model, &claim_value),
+                verify_constant_gravity_impact_enclosure(&invalid_gravity_model, &claim_value),
                 Err(ImpactEnclosureError::InvalidGravity)
             );
 
-            let mut model = model();
-            model.identity.guard_sha256 = "not-a-digest".to_owned();
-            let claim_value = claim(&model, "impact", r(3, 4), r(5, 4));
+            let mut invalid_digest_model = model();
+            invalid_digest_model.identity.guard_sha256 = "not-a-digest".to_owned();
+            let claim_value = claim(&invalid_digest_model, "impact", r(3, 4), r(5, 4));
             assert_eq!(
-                verify_constant_gravity_impact_enclosure(&model, &claim_value),
+                verify_constant_gravity_impact_enclosure(&invalid_digest_model, &claim_value),
                 Err(ImpactEnclosureError::InvalidSha256("guard_sha256"))
             );
         }
