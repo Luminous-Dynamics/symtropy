@@ -456,7 +456,7 @@ mod tests {
                     sample(10, 1_000_000_000, 70_000_000, raw_start),
                     sample(11, 1_150_000_000, 70_000_000, raw_end),
                 ],
-                config(250_000_000),
+                config(300_000_000),
             ),
             Err(MiluvClockStreamError::AmbiguousClockAdvance)
         );
