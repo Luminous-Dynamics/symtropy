@@ -89,6 +89,28 @@
         "observed_at_unix_ms": 1799999940000,
         "valid_from_unix_ms": 1799999940000,
         "valid_until_unix_ms": 1800003599999
+      },
+      "availability_evidence": {
+        "asset_id": "ess-01",
+        "configuration_digest": "sha256:ess-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-known-answer-v0.1",
+        "evidence_reference": "synthetic://ess-01/availability",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800003599999
+      },
+      "site_connection_evidence": {
+        "asset_id": "depot-01",
+        "configuration_digest": "sha256:site-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-known-answer-v0.1",
+        "evidence_reference": "synthetic://ess-01/site-connection",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800003599999
       }
     },
     {
@@ -125,6 +147,28 @@
         "producer_id": "fixture-generator",
         "method_id": "synthetic-known-answer-v0.1",
         "evidence_reference": "synthetic://ess-02/interface",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800003599999
+      },
+      "availability_evidence": {
+        "asset_id": "ess-02",
+        "configuration_digest": "sha256:ess-02-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-known-answer-v0.1",
+        "evidence_reference": "synthetic://ess-02/availability",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800003599999
+      },
+      "site_connection_evidence": {
+        "asset_id": "depot-01",
+        "configuration_digest": "sha256:site-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-known-answer-v0.1",
+        "evidence_reference": "synthetic://ess-02/site-connection",
         "evidence_class": "synthetic",
         "observed_at_unix_ms": 1799999940000,
         "valid_from_unix_ms": 1799999940000,
@@ -176,7 +220,11 @@
             50,
             50,
             50
-          ]
+          ],
+          "mission_reserve_receipt_id": "baseline-weather-ess-01-mission",
+          "inventory_buffer_receipt_id": "baseline-weather-ess-01-inventory",
+          "safety_outage_reserve_receipt_id": "baseline-weather-ess-01-safety",
+          "uncertainty_reserve_receipt_id": "baseline-weather-ess-01-uncertainty"
         },
         {
           "resource_id": "ess-02",
@@ -207,7 +255,11 @@
             50,
             50,
             50
-          ]
+          ],
+          "mission_reserve_receipt_id": "baseline-weather-ess-02-mission",
+          "inventory_buffer_receipt_id": "baseline-weather-ess-02-inventory",
+          "safety_outage_reserve_receipt_id": "baseline-weather-ess-02-safety",
+          "uncertainty_reserve_receipt_id": "baseline-weather-ess-02-uncertainty"
         }
       ]
     },
@@ -254,7 +306,11 @@
             100,
             100,
             100
-          ]
+          ],
+          "mission_reserve_receipt_id": "high-demand-low-renewable-ess-01-mission",
+          "inventory_buffer_receipt_id": "high-demand-low-renewable-ess-01-inventory",
+          "safety_outage_reserve_receipt_id": "high-demand-low-renewable-ess-01-safety",
+          "uncertainty_reserve_receipt_id": "high-demand-low-renewable-ess-01-uncertainty"
         },
         {
           "resource_id": "ess-02",
@@ -285,7 +341,11 @@
             100,
             100,
             100
-          ]
+          ],
+          "mission_reserve_receipt_id": "high-demand-low-renewable-ess-02-mission",
+          "inventory_buffer_receipt_id": "high-demand-low-renewable-ess-02-inventory",
+          "safety_outage_reserve_receipt_id": "high-demand-low-renewable-ess-02-safety",
+          "uncertainty_reserve_receipt_id": "high-demand-low-renewable-ess-02-uncertainty"
         }
       ]
     }
