@@ -692,13 +692,11 @@ mod tests {
         let evaluation = evaluate(&corpus()).expect("corpus must evaluate");
         let case = result(&evaluation, "permitted-probe-does-not-resolve");
         assert_eq!(case.disposition, "DECISION_NOT_IDENTIFIED");
-        assert_eq!(
-            case.probe_selection.status,
-            "no_resolving_admissible_probe"
-        );
+        assert_eq!(case.probe_selection.status, "no_resolving_admissible_probe");
         assert_eq!(case.probe_selection.selected_probe_id, None);
         assert_eq!(
-            case.probe_selection.selected_worst_case_decision_class_count,
+            case.probe_selection
+                .selected_worst_case_decision_class_count,
             None
         );
         assert_eq!(case.probe_selection.admissible_probe_count, 1);
