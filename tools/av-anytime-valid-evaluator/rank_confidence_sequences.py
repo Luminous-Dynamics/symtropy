@@ -425,10 +425,17 @@ def evaluate_document(document: dict[str, Any]) -> dict[str, Any]:
         )
         if not report["shortcut_is_subset_of_exact"]:
             raise RankEvaluationError("shortcut certified a dominance absent from exact enumeration")
+        pair_log_wealth_report = {
+            f"{arms[left]}>{arms[right]}": pair_log_wealths[pair_index[(left, right)]]
+            for left in range(model_count)
+            for right in range(model_count)
+            if left != right
+        }
         looks.append({
             "look": t,
             "episode_id": item["episode_id"],
             "score_vector": {arm: float(scores[arm]) for arm in arms},
+            "pair_log_wealths": pair_log_wealth_report,
             **report,
             "transcript_chain_sha256": transcript_chain.hex(),
         })
