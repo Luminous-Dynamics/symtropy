@@ -168,7 +168,12 @@ pub fn lebedev_sphere_rule(rule: LebedevRule) -> Result<LebedevSphereRule, Kerne
 
     if matches!(rule, LebedevRule::Points14 | LebedevRule::Points26) {
         let coordinate = 1.0 / 3.0_f64.sqrt();
-        let weight = 4.0 * PI * (3.0 / 40.0);
+        let normalized_weight = if rule == LebedevRule::Points14 {
+            3.0 / 40.0
+        } else {
+            9.0 / 280.0
+        };
+        let weight = 4.0 * PI * normalized_weight;
         for sx in [-1.0, 1.0] {
             for sy in [-1.0, 1.0] {
                 for sz in [-1.0, 1.0] {
