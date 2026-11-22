@@ -33,7 +33,7 @@ pub const STATE_FIELDS: [&str; 43] = [
 pub const MODEL_STATE_FIELD_COUNT: usize = 43;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd)]
-#[serde(rename_all = "snake_case", deny_unknown_fields)]
+#[serde(rename_all = "snake_case")]
 pub enum OwnerEvidenceDomain {
     ProcessEpoch,
     Persistence,
@@ -65,7 +65,7 @@ impl OwnerEvidenceDomain {
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
-#[serde(rename_all = "snake_case", deny_unknown_fields)]
+#[serde(rename_all = "snake_case")]
 pub enum OwnerEvidenceStatus {
     Current,
     Confirmed,
@@ -814,6 +814,25 @@ mod tests {
                 model_arguments:vec![],predecessor_event_ids:vec![],source_clock:None,
                 state_s:model_init_state(),owner_evidence:owners()}]
         }
+    }
+
+    #[test]
+    fn state_field_catalogue_is_the_exact_pinned_tla_init_record() {
+        const EXPECTED: [&str; 43] = [
+            "processStatus", "bootEpoch", "controllerEpoch", "stage", "reservationCommitted",
+            "oldTicketBootEpoch", "oldTicketControllerEpoch", "oldAccepted", "oldAcceptedBootEpoch",
+            "oldAcceptedControllerEpoch", "commandPending", "commandOwnerAttempt",
+            "oldPhysicalOutcome", "recoveryPhysicalOutcome", "appliedEffectCount", "persistStatus",
+            "storeRecord", "storeCallPending", "effectEvidence", "missionResolution",
+            "observerIndependent", "queueFenceBootEpoch", "downstreamFenceBootEpoch", "recoveryPermit",
+            "permitUseCount", "ticketStatus", "ticketBootEpoch", "ticketControllerEpoch",
+            "ticketAttempt", "m1Current", "m2Current", "ticketBindingValid", "liveBindingValid",
+            "recoveryAccepted", "admittedFreshBoot", "admittedFreshController",
+            "admittedControllerFence", "admittedDownstreamFence", "admittedM1", "admittedM2",
+            "admittedBinding", "naiveReplayCount", "crashCut",
+        ];
+        assert_eq!(STATE_FIELDS, EXPECTED);
+        assert_eq!(STATE_FIELDS.len(), MODEL_STATE_FIELD_COUNT);
     }
 
     #[test]
