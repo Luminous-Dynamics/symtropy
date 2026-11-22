@@ -207,9 +207,9 @@ def _validate_rate_run(
     if manifest_digest != expected_digest:
         raise MinFpsEvaluationError(f"{context}: frame_manifest digest mismatch")
     resource = _validate_resource(row["resource"], f"{context}.resource")
-    if resource["frames_delivered"] is not None and resource["frames_delivered"] != len(frames):
+    if resource["frames_delivered"] is None or resource["frames_delivered"] != len(frames):
         raise MinFpsEvaluationError(
-            f"{context}: frames_delivered must equal the manifest count when measured/reported"
+            f"{context}: frames_delivered must equal the frame manifest count"
         )
 
     if status == "COMPLETED":
@@ -370,6 +370,14 @@ def evaluate_document(document: dict[str, Any]) -> dict[str, Any]:
     sampler_digest = _digest(document.get("sampler_digest_sha256"), "sampler_digest_sha256")
 
     rates = _validate_rate_grid(document.get("fps_grid"))
+    media_duration_ms = document.get("media_duration_ms")
+    if not _finite_number(media_duration_ms) or float(media_duration_ms) <= 0.0:
+        raise MinFpsEvaluationError("media_duration_ms must be finite and positive")
+    media_duration_ms = float(media_duration_ms)
+    sampling_tolerance_ms = document.get("sampling_tolerance_ms")
+    if not _finite_number(sampling_tolerance_ms) or float(sampling_tolerance_ms) <= 0.0:
+        raise MinFpsEvaluationError("sampling_tolerance_ms must be finite and positive")
+    sampling_tolerance_ms = float(sampling_tolerance_ms)
     min_fraction = document.get("minimum_success_fraction", 1.0)
     min_seed_count = document.get("minimum_seed_count", 1)
     if not _finite_number(min_fraction) or not 0.0 < float(min_fraction) <= 1.0:
@@ -401,14 +409,52 @@ def evaluate_document(document: dict[str, Any]) -> dict[str, Any]:
         ]
         parsed_seed_rows[seed_id] = parsed
 
-        # Each seed has its own nested sampling manifest. The exact delivered
-        # frame set at a lower rate must be contained in the next higher rate.
+        # Validate the delivered temporal density against the declared fixed
+        # FPS schedule, then check nesting and timestamp identity.
+        for index, run in enumerate(parsed):
+            expected_frames = max(
+                1,
+                math.ceil((media_duration_ms / 1000.0) * rates[index] - 1e-12),
+            )
+            frame_manifest = run["frame_manifest"]
+            if len(frame_manifest) != expected_frames:
+                raise MinFpsEvaluationError(
+                    f"{seed_id}@{rates[index]:g}fps: frame count does not match media duration and nominal FPS"
+                )
+            if frame_manifest[0]["timestamp_ms"] > sampling_tolerance_ms:
+                raise MinFpsEvaluationError(
+                    f"{seed_id}@{rates[index]:g}fps: fixed-rate sampling must begin at the declared zero-time phase"
+                )
+            if frame_manifest[-1]["timestamp_ms"] > media_duration_ms:
+                raise MinFpsEvaluationError(
+                    f"{seed_id}@{rates[index]:g}fps: frame timestamp exceeds media duration"
+                )
+            expected_period = 1000.0 / rates[index]
+            for earlier, later in zip(frame_manifest, frame_manifest[1:]):
+                delta = later["timestamp_ms"] - earlier["timestamp_ms"]
+                if abs(delta - expected_period) > sampling_tolerance_ms:
+                    raise MinFpsEvaluationError(
+                        f"{seed_id}@{rates[index]:g}fps: frame spacing does not match the declared fixed rate"
+                    )
+
+        # Each seed has its own nested sampling manifest. Lower-rate frames
+        # must appear at exactly the same timestamps in all higher-rate runs.
         for index in range(len(parsed) - 1):
-            lower = {frame["frame_id"] for frame in parsed[index]["frame_manifest"]}
-            higher = {frame["frame_id"] for frame in parsed[index + 1]["frame_manifest"]}
-            if not lower.issubset(higher):
+            lower = {
+                frame["frame_id"]: frame["timestamp_ms"]
+                for frame in parsed[index]["frame_manifest"]
+            }
+            higher = {
+                frame["frame_id"]: frame["timestamp_ms"]
+                for frame in parsed[index + 1]["frame_manifest"]
+            }
+            if not set(lower).issubset(higher):
                 raise MinFpsEvaluationError(
                     f"{seed_id}: frame set at {rates[index]:g} FPS is not nested in {rates[index+1]:g} FPS"
+                )
+            if any(lower[frame_id] != higher[frame_id] for frame_id in lower):
+                raise MinFpsEvaluationError(
+                    f"{seed_id}: a shared frame ID has different timestamps across FPS conditions"
                 )
 
     if len(seed_ids) < min_seed_count:
@@ -432,6 +478,8 @@ def evaluate_document(document: dict[str, Any]) -> dict[str, Any]:
         "sampler_id": sampler_id,
         "sampler_digest_sha256": sampler_digest,
         "fps_grid": rates,
+        "media_duration_ms": media_duration_ms,
+        "sampling_tolerance_ms": sampling_tolerance_ms,
         "seed_ids": seed_ids,
         "minimum_success_fraction": min_fraction,
         "minimum_seed_count": min_seed_count,
