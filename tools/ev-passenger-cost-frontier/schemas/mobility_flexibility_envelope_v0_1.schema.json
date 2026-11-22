@@ -242,7 +242,11 @@
         "mission_power_reserve_w_by_slot",
         "inventory_buffer_power_w_by_slot",
         "safety_outage_power_reserve_w_by_slot",
-        "uncertainty_power_allowance_w_by_slot"
+        "uncertainty_power_allowance_w_by_slot",
+        "mission_reserve_evidence",
+        "inventory_buffer_evidence",
+        "safety_outage_reserve_evidence",
+        "uncertainty_reserve_evidence"
       ],
       "properties": {
         "resource_id": {
