@@ -18,6 +18,7 @@ This crate is a research kernel, not an operational collision-probability produc
 - Deterministic longest-axis cell subdivision with stable child split paths.
 - Dense-grid adversarial tests checking sampled affine images remain inside the interval enclosure and sampled norms remain above the reported lower bound.
 - Streaming log-domain weighted event sums, contribution ESS, plug-in relative standard error, and a clearly labelled normal-approximation interval diagnostic.
+- A beta(1,1)-mixture Bernoulli e-process and inverted time-uniform confidence sequence for independent bounded event indicators, with an exhaustive short-horizon optional-stopping coverage test.
 - Full normalized Gaussian-mixture log density using log-sum-exp.
 - Log importance weights and one-draw weighted event indicators.
 - Strict Loewner covariance-floor validation, including the strictness test needed for a half-nominal covariance lower bound.
@@ -35,7 +36,7 @@ cargo clippy --locked --manifest-path benchmarks/orbital-conjunction/rare-event-
 
 The package has its own Cargo workspace and does not require the full Symtropy/Bevy workspace.
 
-The current authored test corpus contains 56 unit tests across the analytic probability, affine coverage, and weighted-statistics modules. Only a completed exact-head workflow establishes that a particular revision passed them.
+The current authored test corpus contains 66 unit tests across the analytic probability, affine coverage, weighted-statistics, and Bernoulli sequential-inference modules. Only a completed exact-head workflow establishes that a particular revision passed them.
 
 ## Important limitations
 
