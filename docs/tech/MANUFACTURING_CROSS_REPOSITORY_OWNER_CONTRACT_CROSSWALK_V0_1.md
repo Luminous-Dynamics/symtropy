@@ -24,6 +24,8 @@ The layers are deliberately non-equivalent. A declared capability is not qualifi
 | FDM quality and spatial measurement | Symthaea #7960/#7961/#7998 | Benchmark protocol/evaluator, artifact and observation binding, spatial build-volume capability | Machine design authority, live control, automatic quality compensation |
 | Matched production-value benchmark | Symthaea MFG-VALUE-001 #7608 | Fair conventional-vs-candidate production outcome comparison, metrics/ablations/guardrails | Generic process registry or physical safety authority |
 | Governed printer observation/session/execution boundary | Symthaea INTX-FAB-ADAPTER-001 #7706 and fabrication kernel | MachineProfile, negotiated capabilities/session, validated G-code, timed session, operator and execution guard path | Live OctoPrint/Moonraker transport where backends remain unavailable; no automatic physical control |
+| FPM process monitoring and anomaly evidence | Symthaea FPM baseline correction #12531; Mycelix FPM #4281/#4282/#4283 | Observation, detector inference, proposed/actual intervention and quality-assessment layers | Detector score is not proof of a physical defect; no-alarm is not proof of an accepted part |
+| Execution / process-run evidence | Mycelix MFG-001 #4685 and strict process-run receipt PR #5228 | Run identity, source/build/config/input/report digests and evidence-origin distinction | A structurally valid run receipt is not calibrated measurement, product acceptance or qualification |
 | Productive machine tools, tooling, workholding and capability renewal | Symthaea PROD-EQP-000 #5964 and CIV-BOOT #5774/#5781/#5782 | Equipment specialization and general AND/OR closure / multi-generation capability-envelope semantics | A machine's local reproducibility without source, tooling and metrology evidence |
 | Distributed process registry, machine/resource offers, routings and MRP | Mycelix MFG-PROC-001 #3085 | Owner-native process references, resource offers, typed routing, work-order planning and scheduling | Process physics, machine safety, hardware execution authority or proof that an offer is qualified |
 | Product revision, manufactured unit, component/lot links and qualification receipt | Mycelix MFG-EVID-001 #3084 | Immutable design/BOM revision, unit identity, material lots/substitutions, calibration and qualification evidence references, repair/replacement lineage | Independent test correctness merely because a receipt exists |
@@ -56,6 +58,13 @@ Its `MachineProfile` binds:
 Its `MachineCapabilities` binds a machine identity and those advertised limits. `MachineSession` / `TimedMachineSession` bind a nonce, capability snapshot, sequence and time window. This is a valuable execution/toolpath authority boundary, but it is not a complete manufacturing process profile: it does not alone describe process transformation physics, polymer batch identity/conditioning, operator/site competence, emissions control, independent metrology, product hazard classification or final product qualification.
 
 The live printer transport audit in Symthaea #7706 says OctoPrint and Moonraker clients currently return BackendUnavailable. No live production transport should be assumed from the existence of a client type or a validated G-code artifact.
+
+### Monitoring and execution evidence are separate from acceptance
+
+- Symthaea #12531 owns the prequential FPM baseline-contamination correction: an anomalous observation is retained but must not update the baseline used to judge itself.
+- Mycelix #4281 standardizes Fabrication Process Monitoring terminology; #4282 separates observation, inference, intervention and quality assessment; #4283 describes a deterministic FPM engine and adversarial trace corpus.
+- Mycelix #4685 owns the first-class execution-evidence layer for the manufacturing node; draft PR #5228 defines a strict origin-aware ProcessRunReceipt.
+- Mycelix #3084 remains the manufactured-product/unit and qualification-receipt owner. A run receipt, sensor observation, detector output or monitoring report is not a product qualification or an accepted part.
 
 ### Mycelix public main shows the exact type-resolution work #3085 owns
 
@@ -107,7 +116,7 @@ The integrated system must keep at least these states distinct:
 - **Maintainable / repairable / reproducible:** the associated maintenance, source, skill, tooling, calibration and next-generation evidence exists.
 - **Spatially projected:** Sol-Atlas can display the owner-native capability/evidence without upgrading its claim.
 
-A state transition requires its own evidence. Do not infer a downstream state from an upstream one.
+A state transition requires its own evidence. Do not infer a downstream state from an upstream one. A sensor observation is not a detector finding; a detector finding is not an executed intervention; an intervention is not a quality assessment; a process-run receipt is not an accepted manufactured unit.
 
 ## 5. Benchmarks and industry comparison
 
