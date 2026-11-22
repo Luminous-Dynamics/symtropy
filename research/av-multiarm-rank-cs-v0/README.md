@@ -37,14 +37,15 @@ The pair wealth is the mean over the lambda grid. The finite-cohort offset b[t] 
 
 For each weak order W (ties allowed), the contradiction wealth is the average pair wealth over the ordered hypotheses that W says are true. A weak order is permanently eliminated when its running maximum reaches 1/alpha.
 
-The exact enumerator reports:
-- surviving weak orders;
-- certified pairwise dominances;
-- exact simultaneous rank sets;
-- top-k membership status;
-- unresolved pair comparisons.
+The exact enumerator reports at every look:
+- surviving weak-order count;
+- certified pairwise dominances and unresolved pairs;
+- exact simultaneous rank sets and dominance-derived rank bounds;
+- top-k membership;
+- longest-chain dominance tiers;
+- each ordered pair's log betting wealth for independent replay.
 
-It also implements the paper's polynomial shortcut in log space and checks that its certified relations are a subset of the exact enumerator's results.
+It also implements the paper's polynomial shortcut in log space and checks that its certified relations are a subset of the exact enumerator's results. Exact weak-order enumeration is capped at eight arms to avoid unbounded combinatorial expansion; six arms have 4,683 possible weak orders.
 
 ## Running
 
@@ -69,7 +70,7 @@ Missing/failed runs cannot silently vanish. The upstream benchmark adapter must 
 - One bounded [0,1], higher-is-better scalar metric only.
 - No familywise allocation across metrics/strata/policy families.
 - No Pareto-frontier inference across multiple axes; compose #6771 and use simultaneous axis-wise evidence.
-- The evaluator replays a complete score matrix and emits every look; it does not yet orchestrate model jobs or retire arms live.
+- The current API replays a complete score matrix and emits every look; it does not yet orchestrate model jobs or retire arms live. The paper permits optional model retirement based on prior looks; that is a planned next integration.
 - It cannot prove the custodian's randomization process, data rights or seed secrecy.
 - It does not support data-adaptive outer episode selection.
 
