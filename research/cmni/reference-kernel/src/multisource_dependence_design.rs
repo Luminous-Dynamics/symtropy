@@ -485,12 +485,27 @@ fn is_identity_correlation_matrix(matrix: &[Vec<f64>]) -> bool {
     })
 }
 
-fn scalar_parameter_information(
+pub(crate) fn scalar_parameter_information(
     candidate: &MultiSourceDependenceDesignCandidate,
     correlation: &[Vec<f64>],
 ) -> Result<f64, ModelError> {
+    scalar_parameter_information_and_source_gradient(candidate, correlation)
+        .map(|(information, _)| information)
+}
+
+/// Return (h^T V^{-1} h) and its source-coordinate vector
+/// (b = D_\sigma J^T V^{-1} h), used by convex tangent lower bounds.
+pub(crate) fn scalar_parameter_information_and_source_gradient(
+    candidate: &MultiSourceDependenceDesignCandidate,
+    correlation: &[Vec<f64>],
+) -> Result<(f64, Vec<f64>), ModelError> {
     let observation_count = candidate.observation_sensitivities.len();
     let source_count = candidate.source_standard_deviations.len();
+    if correlation.len() != source_count
+        || correlation.iter().any(|row| row.len() != source_count)
+    {
+        return Err(ModelError::MismatchedDataLengths);
+    }
     let mut covariance = vec![vec![0.0; observation_count]; observation_count];
 
     for row in 0..observation_count {
@@ -526,7 +541,27 @@ fn scalar_parameter_information(
             "multi_source_parameter_information_invalid",
         ));
     }
-    Ok(information.max(0.0))
+
+    let source_gradient_coordinates: Vec<f64> = (0..source_count)
+        .map(|source_index| {
+            candidate.source_standard_deviations[source_index]
+                * (0..observation_count)
+                    .map(|observation_index| {
+                        candidate.source_jacobians[observation_index][source_index]
+                            * solved[observation_index]
+                    })
+                    .sum::<f64>()
+        })
+        .collect();
+    if source_gradient_coordinates
+        .iter()
+        .any(|value| !value.is_finite())
+    {
+        return Err(ModelError::NonFiniteValue(
+            "multi_source_information_source_gradient",
+        ));
+    }
+    Ok((information.max(0.0), source_gradient_coordinates))
 }
 
 #[allow(clippy::needless_range_loop)]
