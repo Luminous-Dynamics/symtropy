@@ -1,0 +1,26 @@
+name: AV evidence gain trajectory ledger
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/av-evidence-gain-trajectory.yml"
+      - "tools/av-evidence-gain-trajectory/**"
+      - "schemas/evidence-gain-trajectory-v1.schema.json"
+      - "research/av-evidence-gain-trajectory-v0/**"
+
+permissions:
+  contents: read
+
+jobs:
+  exact-head:
+    name: Exact-head evidence gain trajectory contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate trajectory schema
+        run: python3 -m json.tool schemas/evidence-gain-trajectory-v1.schema.json > /dev/null
+      - name: Run evidence gain trajectory tests
+        run: python3 -m unittest discover -s tools/av-evidence-gain-trajectory -p "test_*.py" -v
