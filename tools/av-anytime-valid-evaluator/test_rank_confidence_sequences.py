@@ -307,7 +307,7 @@ class RankConfidenceSequenceTests(unittest.TestCase):
             )
 
     def test_pairwise_wealth_freezes_after_either_model_retires(self):
-        doc = make_retirement_document(rule="TOP_K_RESOLVED", top_k=3)
+        doc = make_retirement_document(rule="TOP_K_RESOLVED", top_k=1)
         result = evaluate_document(doc)
         retirement_look = next(
             (index for index, look in enumerate(result["looks"]) if look["retired_this_look"]),
@@ -335,7 +335,7 @@ class RankConfidenceSequenceTests(unittest.TestCase):
                     )
 
     def test_retired_models_cannot_be_reintroduced(self):
-        doc = make_retirement_document(rule="TOP_K_RESOLVED", top_k=3)
+        doc = make_retirement_document(rule="TOP_K_RESOLVED", top_k=1)
         result = evaluate_document(doc)
         retirement_look = next(
             (index for index, look in enumerate(result["looks"]) if look["retired_this_look"]),
@@ -351,7 +351,7 @@ class RankConfidenceSequenceTests(unittest.TestCase):
             evaluate_document(doc)
 
     def test_score_vector_must_match_active_set_exactly(self):
-        doc = make_retirement_document(rule="TOP_K_RESOLVED", top_k=3)
+        doc = make_retirement_document(rule="TOP_K_RESOLVED", top_k=1)
         result = evaluate_document(doc)
         if result["episodes_processed"] < 2:
             self.skipTest("only one item was evaluated")
@@ -401,11 +401,11 @@ class RankConfidenceSequenceTests(unittest.TestCase):
                         self.assertTrue((arm, other) in certified or (other, arm) in certified)
 
     def test_invalid_retirement_policy_and_top_k_fail_closed(self):
-        doc = make_retirement_document(rule="TOP_K_RESOLVED", top_k=3)
+        doc = make_retirement_document(rule="TOP_K_RESOLVED", top_k=1)
         doc["retirement_rule"] = []
         with self.assertRaises(RankEvaluationError):
             evaluate_document(doc)
-        doc = make_retirement_document(rule="TOP_K_RESOLVED", top_k=3)
+        doc = make_retirement_document(rule="TOP_K_RESOLVED", top_k=1)
         doc["retirement_top_k"] = True
         with self.assertRaises(RankEvaluationError):
             evaluate_document(doc)
