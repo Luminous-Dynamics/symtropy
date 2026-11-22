@@ -147,6 +147,19 @@ pub enum ReplayOutcome {
     Failure(FailureSignature),
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ReplayDeterminism {
+    Deterministic {
+        runs: usize,
+        outcome: ReplayOutcome,
+    },
+    Nondeterministic {
+        runs: usize,
+        first: ReplayOutcome,
+        differing: ReplayOutcome,
+    },
+}
+
 /// Oracle implementations must be deterministic for a fixed revision, seed,
 /// environment and event sequence. Replay is observational only: the oracle
 /// must not call a native actuator sink or perform a physical action.
@@ -154,6 +167,43 @@ pub trait ReplayOracle {
     fn revision(&self) -> &str;
 
     fn replay(&self, seed: u64, events: &[TraceEvent]) -> ReplayOutcome;
+}
+
+/// Re-run the exact bundle repeatedly to test replay determinism before
+/// publishing a benchmark result. This checks equality of returned verdicts;
+/// it does not prove deterministic physical or simulator execution in general.
+pub fn check_replay_determinism<O: ReplayOracle>(
+    bundle: &TraceBundle,
+    oracle: &O,
+    repetitions: usize,
+) -> Result<ReplayDeterminism, MinimizationError> {
+    if let TraceValidation::Hold(reason) = validate_trace_bundle(bundle) {
+        return Err(MinimizationError::InvalidBundle(reason));
+    }
+    if oracle.revision() != bundle.header.oracle_revision {
+        return Err(MinimizationError::OracleRevisionMismatch);
+    }
+    if repetitions == 0 {
+        return Err(MinimizationError::InvalidBundle(
+            TraceHoldReason::ReplayBudgetTooSmall,
+        ));
+    }
+
+    let first = oracle.replay(bundle.header.replay_seed, &bundle.events);
+    for run in 2..=repetitions {
+        let next = oracle.replay(bundle.header.replay_seed, &bundle.events);
+        if next != first {
+            return Ok(ReplayDeterminism::Nondeterministic {
+                runs: run,
+                first,
+                differing: next,
+            });
+        }
+    }
+    Ok(ReplayDeterminism::Deterministic {
+        runs: repetitions,
+        outcome: first,
+    })
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -591,22 +641,6 @@ mod tests {
         }
     }
 
-    struct DifferentFailureOracle;
-
-    impl ReplayOracle for DifferentFailureOracle {
-        fn revision(&self) -> &str {
-            "different-failure-oracle-v1"
-        }
-
-        fn replay(&self, _seed: u64, _events: &[TraceEvent]) -> ReplayOutcome {
-            ReplayOutcome::Failure(FailureSignature {
-                property_id: "DifferentProperty".to_owned(),
-                violation_class: "different_violation".to_owned(),
-                witness_event_id: "late-old-apply".to_owned(),
-            })
-        }
-    }
-
     struct WrongSignatureSameRevisionOracle;
 
     impl ReplayOracle for WrongSignatureSameRevisionOracle {
@@ -853,6 +887,54 @@ mod tests {
         );
         assert_eq!(result.bundle.header.target_failure, original.header.target_failure);
         assert_eq!(result.bundle.header.initial_state_commitment, original.header.initial_state_commitment);
+    }
+
+    struct AlternatingOracle {
+        calls: std::sync::atomic::AtomicUsize,
+    }
+
+    impl ReplayOracle for AlternatingOracle {
+        fn revision(&self) -> &str {
+            "alternating-oracle-v1"
+        }
+
+        fn replay(&self, _seed: u64, _events: &[TraceEvent]) -> ReplayOutcome {
+            let call = self.calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            if call % 2 == 0 {
+                ReplayOutcome::Pass
+            } else {
+                ReplayOutcome::InvalidTrace
+            }
+        }
+    }
+
+    #[test]
+    fn deterministic_replay_check_detects_a_nondeterministic_oracle() {
+        let mut input = bundle();
+        input.header.oracle_revision = "alternating-oracle-v1".to_owned();
+        let oracle = AlternatingOracle {
+            calls: std::sync::atomic::AtomicUsize::new(0),
+        };
+        assert_eq!(
+            check_replay_determinism(&input, &oracle, 5),
+            Ok(ReplayDeterminism::Nondeterministic {
+                runs: 2,
+                first: ReplayOutcome::Pass,
+                differing: ReplayOutcome::InvalidTrace
+            })
+        );
+    }
+
+    #[test]
+    fn deterministic_replay_check_confirms_fixed_oracle_verdicts() {
+        let input = bundle();
+        assert_eq!(
+            check_replay_determinism(&input, &LateExecutionOracle, 3),
+            Ok(ReplayDeterminism::Deterministic {
+                runs: 3,
+                outcome: ReplayOutcome::Failure(target_failure())
+            })
+        );
     }
 
     #[test]
