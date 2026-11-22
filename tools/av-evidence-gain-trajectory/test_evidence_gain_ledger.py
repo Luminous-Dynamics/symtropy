@@ -115,6 +115,7 @@ def action_forecast(turn_id, tick, head, selected, *, include_alarm=True):
         catalogue = [
             {
                 "action_id": "listen-alarm",
+                "parameter_manifest_sha256": digest("manifest-listen-alarm"),
                 "modality": "audio",
                 "description": "Acquire short alarm audio",
                 "cost_units": 0.1,
@@ -147,6 +148,7 @@ def action_forecast(turn_id, tick, head, selected, *, include_alarm=True):
         "budget_cost_units": 1.0,
         "action_catalogue": catalogue,
         "selected_action_id": selected,
+        "selected_manifest_sha256": None if selected == STOP_ACTION_ID else digest(f"manifest-{selected}"),
         "forecasts": forecasts,
     }
 
@@ -164,6 +166,8 @@ def turn(turn_id, index, previous_action, status, new_ids, work, sub, forecast, 
         "forecast_digest_sha256": canonical_digest(forecast),
         "scorecard_sha256": digest(f"evsi-scorecard-{turn_id}"),
         "selected_action_id": forecast["selected_action_id"],
+        "request_id": None if forecast["selected_action_id"] == STOP_ACTION_ID else f"request-{turn_id}",
+        "parameter_manifest_sha256": forecast["selected_manifest_sha256"],
         "selected_action_feasible": True,
         "missed_best_action": False,
         "decision_regret": 0.0,
@@ -176,6 +180,8 @@ def turn(turn_id, index, previous_action, status, new_ids, work, sub, forecast, 
         "preceding_action_id": previous_action,
         "action_result_status": status,
         "action_result_digest_sha256": None if status == "INITIAL" else digest(f"action-result-{turn_id}"),
+        "action_result_request_id": None if status == "INITIAL" else f"request-turn-{index-1}",
+        "action_result_parameter_manifest_sha256": None if status == "INITIAL" else digest(f"manifest-{previous_action}"),
         "new_observation_ids": list(new_ids),
         "external_feedback_events": [],
         "workload": work,
@@ -482,6 +488,7 @@ class EvidenceGainLedgerTests(unittest.TestCase):
         forecast = first["action_forecast"]
         action_row = {
             "action_id": "ask-user",
+            "parameter_manifest_sha256": digest("manifest-ask-user"),
             "modality": "other",
             "description": "Request user-simulator clarification",
             "cost_units": 0.05,
@@ -497,7 +504,9 @@ class EvidenceGainLedgerTests(unittest.TestCase):
             "upper_gross_evsi": 0.3,
         })
         forecast["selected_action_id"] = "ask-user"
+        forecast["selected_manifest_sha256"] = digest("manifest-ask-user")
         first["action_value_receipt"]["selected_action_id"] = "ask-user"
+        first["action_value_receipt"]["parameter_manifest_sha256"] = digest("manifest-ask-user")
         first["action_value_receipt"]["forecast_digest_sha256"] = canonical_digest(forecast)
 
         second = doc["turns"][1]
