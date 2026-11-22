@@ -160,6 +160,8 @@ pub enum ContactCacheLookupError {
     NonFiniteQueryPoint,
     /// A cached world-space contact point contains a non-finite value.
     NonFiniteCachedPoint,
+    /// The distance calculation overflowed despite finite point coordinates.
+    NonFiniteDistance,
     /// More than one cached point fell inside the matching radius.
     ///
     /// Without stable feature/contact identities, choosing the nearest entry
@@ -258,7 +260,7 @@ impl<const D: usize> ContactCache<D> {
             }
             let distance = (cached.point - point).norm();
             if !distance.is_finite() {
-                return Err(ContactCacheLookupError::NonFiniteCachedPoint);
+                return Err(ContactCacheLookupError::NonFiniteDistance);
             }
             if distance < self.match_threshold {
                 matching_entries += 1;
@@ -440,6 +442,23 @@ mod tests {
         assert!(matches!(
             cache.lookup_checked(BodyHandle(0), BodyHandle(1), &SVector::zeros()),
             Err(ContactCacheLookupError::NonFiniteCachedPoint)
+        ));
+    }
+
+    #[test]
+    fn contact_cache_checked_lookup_rejects_distance_overflow() {
+        let mut cache = ContactCache::<3>::new();
+        cache.store(
+            BodyHandle(0),
+            BodyHandle(1),
+            SVector::from([f64::MAX, 0.0, 0.0]),
+            3.0,
+            0.0,
+        );
+        let query = SVector::from([-f64::MAX, 0.0, 0.0]);
+        assert!(matches!(
+            cache.lookup_checked(BodyHandle(0), BodyHandle(1), &query),
+            Err(ContactCacheLookupError::NonFiniteDistance)
         ));
     }
 
