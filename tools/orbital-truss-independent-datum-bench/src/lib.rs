@@ -603,7 +603,7 @@ mod tests {
                 next_unit(&mut state) * 200.0 - 100.0,
             ];
 
-            let mut make_pair = |point_id: String, source: [f64; 2]| {
+            let make_pair = |point_id: String, source: [f64; 2]| {
                 let physical_target =
                     transform(source, physical_angle, physical_translation);
                 PointPair {
