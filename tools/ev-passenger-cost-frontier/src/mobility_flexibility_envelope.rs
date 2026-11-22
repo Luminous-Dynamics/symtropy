@@ -865,8 +865,28 @@ mod tests {
     }
 
     #[test]
-    fn input_order_permutation_preserves_canonical_report() {
+    fn duplicate_reserve_receipt_id_is_rejected_within_a_scenario() {
         let mut input = fixture();
+        let duplicate = input.reserve_scenarios[0].resource_reserves[0]
+            .inventory_buffer_receipt_id
+            .clone();
+        input.reserve_scenarios[0].resource_reserves[1].inventory_buffer_receipt_id = duplicate;
+        let result = evaluate_mobility_flexibility(&input);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn storage_must_be_bound_to_the_same_site_configuration() {
+        let mut input = fixture();
+        input.storage_resources[0].site_connection_evidence.configuration_digest =
+            "sha256:other-site-config".to_owned();
+        let result = evaluate_mobility_flexibility(&input);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn input_order_permutation_preserves_canonical_report() {
+        let input = fixture();
         let mut permuted = fixture();
         permuted.storage_resources.reverse();
         permuted.reserve_scenarios.reverse();
@@ -878,7 +898,5 @@ mod tests {
             serde_json::to_string(&a).expect("serialize first"),
             serde_json::to_string(&b).expect("serialize second")
         );
-        // Keep the mutation explicit to make it easy to add a non-canonical field later.
-        input.site_id.push_str("");
     }
 }
