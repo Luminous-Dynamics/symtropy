@@ -495,9 +495,14 @@ fn prove_box_interval_total_order(
     box_id: &str,
     box_events: &mut Vec<BoxEventTime<'_>>,
 ) -> Result<(), QualifiedTimelineError> {
-    let Some((first_event, _, first_evidence, _)) = box_events.first() else {
+    if box_events.is_empty() {
         return Ok(());
-    };
+    }
+
+    // Stabilize the witness pair before checking basis comparability so
+    // diagnostics are independent of source input / ingestion order.
+    box_events.sort_by(|left, right| left.0.cmp(&right.0));
+    let (first_event, _, first_evidence, _) = &box_events[0];
     let first_basis = first_evidence.time_basis_id();
 
     for (event, _, evidence, _) in box_events.iter().skip(1) {
