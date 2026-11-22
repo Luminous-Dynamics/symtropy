@@ -10,8 +10,8 @@
 //! value or action source location.
 
 use super::{
-    Commitment, FailureSignature, TLA_ACTION_EVENT_MAPPING, TraceArtifact, TraceBundle,
-    TraceEvent, TraceEventKind, TraceHeader, TraceValidation, validate_trace_bundle,
+    Commitment, FailureSignature, TLA_ACTION_EVENT_MAPPING, TraceArtifact, TraceBundle, TraceEvent,
+    TraceEventKind, TraceHeader, TraceValidation, validate_trace_bundle,
 };
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
@@ -95,10 +95,7 @@ fn text_field<'a>(value: &'a Value, key: &'static str) -> Result<&'a str, TlcImp
         .ok_or(TlcImportError::InvalidField(key))
 }
 
-fn state_frame(
-    value: &Value,
-    expected_index: usize,
-) -> Result<(), TlcImportError> {
+fn state_frame(value: &Value, expected_index: usize) -> Result<(), TlcImportError> {
     let pair = value
         .as_array()
         .filter(|items| items.len() == 2)
@@ -113,12 +110,20 @@ fn state_frame(
         .as_object()
         .ok_or(TlcImportError::StateValueMustBeObject(expected_index))?;
     if !state_value.contains_key("s") {
-        return Err(TlcImportError::StateVariableMissingFromFrame(expected_index));
+        return Err(TlcImportError::StateVariableMissingFromFrame(
+            expected_index,
+        ));
     }
     Ok(())
 }
 
 fn action_event_kind(action_name: &str) -> Option<TraceEventKind> {
+    // TLC exports the outer disjunction name Next for this model rather
+    // than the selected inner action (for example, NaiveRetry). Preserve that
+    // fact explicitly; do not guess the disjunct from the source location.
+    if action_name == "Next" {
+        return Some(TraceEventKind::TlaNextTransition);
+    }
     TLA_ACTION_EVENT_MAPPING
         .iter()
         .find(|mapping| mapping.action_name == action_name)
@@ -166,8 +171,7 @@ pub fn import_tlc_json_trace(
         return Err(TlcImportError::InvalidContext);
     }
 
-    let root: Value =
-        serde_json::from_slice(raw_json).map_err(|_| TlcImportError::InvalidJson)?;
+    let root: Value = serde_json::from_slice(raw_json).map_err(|_| TlcImportError::InvalidJson)?;
     let vars = required(&root, "vars")?
         .as_array()
         .ok_or(TlcImportError::InvalidField("vars"))?;
@@ -175,8 +179,8 @@ pub fn import_tlc_json_trace(
         return Err(TlcImportError::MissingStateVariable);
     }
 
-    let counterexample = required(&root, "counterexample")
-        .map_err(|_| TlcImportError::MissingCounterexample)?;
+    let counterexample =
+        required(&root, "counterexample").map_err(|_| TlcImportError::MissingCounterexample)?;
     let state_values = required(counterexample, "state")?
         .as_array()
         .ok_or(TlcImportError::InvalidField("counterexample.state"))?;
@@ -210,18 +214,12 @@ pub fn import_tlc_json_trace(
     length_prefixed(&mut config_hasher, &model_digest);
     length_prefixed(&mut config_hasher, &config_digest);
     length_prefixed(&mut config_hasher, &tool_digest);
-    length_prefixed(
-        &mut config_hasher,
-        context.model_revision_label.as_bytes(),
-    );
+    length_prefixed(&mut config_hasher, context.model_revision_label.as_bytes());
     length_prefixed(
         &mut config_hasher,
         context.fault_profile_revision_label.as_bytes(),
     );
-    length_prefixed(
-        &mut config_hasher,
-        context.oracle_revision_label.as_bytes(),
-    );
+    length_prefixed(&mut config_hasher, context.oracle_revision_label.as_bytes());
     let configuration_commitment: Commitment = config_hasher.finalize().into();
 
     let initial_state_commitment = sha256(&canonical_json(&state_values[0])?);
@@ -368,6 +366,7 @@ fn event_kind_name(kind: TraceEventKind) -> &'static str {
         TraceEventKind::ObserverSampleCaptured => "observer_sample_captured",
         TraceEventKind::TelemetryCaptured => "telemetry_captured",
         TraceEventKind::TraceFlushed => "trace_flushed",
+        TraceEventKind::TlaNextTransition => "tla_next_transition",
         TraceEventKind::Other => "other",
     }
 }
@@ -513,6 +512,24 @@ mod tests {
         assert_eq!(bundle.artifacts[0].raw_artifact_commitment, sha256(&bytes));
         assert_eq!(bundle.artifacts.len(), 4);
         assert_eq!(validate_trace_bundle(&bundle), TraceValidation::Valid);
+    }
+
+    #[test]
+    fn imports_outer_tla_next_wrapper_without_guessing_inner_disjunct() {
+        let bytes = tlc_trace(&["Next"]);
+        let bundle = import_tlc_json_trace(
+            &bytes,
+            &context(b"model source", b"model config", b"TLC jar bytes"),
+        )
+        .expect("TLC Next wrapper import");
+
+        assert_eq!(bundle.events.len(), 1);
+        assert_eq!(bundle.events[0].kind, TraceEventKind::TlaNextTransition);
+        assert_eq!(bundle.events[0].event_id, "tlc-action-001-Next");
+        assert_eq!(
+            bundle.header.target_failure.witness_event_id,
+            "tlc-action-001-Next"
+        );
     }
 
     #[test]
