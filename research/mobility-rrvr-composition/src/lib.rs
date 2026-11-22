@@ -50,6 +50,9 @@ pub enum CompositionDisposition {
     /// An independent Applied outcome has already been observed. This
     /// composition layer does not assess a second attempt.
     PhysicalEffectAlreadyObservedNoRetry,
+    /// The physical effect is independently observed, but local persistence
+    /// remains unresolved; preserve both facts and never assess a retry.
+    PhysicalEffectObservedPersistenceUnresolvedNoRetry,
     /// All three owner contracts agree for this exact old attempt. The
     /// ordinary native authority/permit/queue boundary must still revalidate
     /// and consume all required owner state atomically.
@@ -87,14 +90,6 @@ pub struct CompositionInput<'a> {
     pub expected_scope_commitment: EvidenceCommitment,
 }
 
-fn recovery_is_observed(decision: RecoveryDecision) -> bool {
-    matches!(
-        decision,
-        RecoveryDecision::EffectPredicateObserved
-            | RecoveryDecision::EffectPredicateObservedPersistenceUnresolved
-    )
-}
-
 fn cross_owner_identity_matches(
     recovery: &RestartRecoveryEvidence,
     downstream: &DownstreamFencePacket,
@@ -125,10 +120,13 @@ pub fn assess_pre_native(input: &CompositionInput<'_>) -> CompositionAssessment 
     let cross_owner_identity_matches =
         cross_owner_identity_matches(input.recovery, input.downstream);
 
-    let disposition = if recovery_is_observed(recovery) {
-        CompositionDisposition::PhysicalEffectAlreadyObservedNoRetry
-    } else {
-        match recovery {
+    let disposition = match recovery {
+            RecoveryDecision::EffectPredicateObserved => {
+                CompositionDisposition::PhysicalEffectAlreadyObservedNoRetry
+            }
+            RecoveryDecision::EffectPredicateObservedPersistenceUnresolved => {
+                CompositionDisposition::PhysicalEffectObservedPersistenceUnresolvedNoRetry
+            }
             RecoveryDecision::Hold(_) => {
                 CompositionDisposition::Hold(CompositionHold::RecoveryAssessmentHeld)
             }
@@ -169,8 +167,7 @@ pub fn assess_pre_native(input: &CompositionInput<'_>) -> CompositionAssessment 
                     CompositionDisposition::ReadyForOwnerNativeRevalidation
                 }
             }
-        }
-    };
+        };
 
     CompositionAssessment {
         recovery,
@@ -594,6 +591,31 @@ mod tests {
         assert_eq!(
             result.disposition,
             CompositionDisposition::PhysicalEffectAlreadyObservedNoRetry
+        );
+    }
+
+    #[test]
+    fn applied_effect_with_indeterminate_persistence_preserves_both_facts() {
+        let mut recovery = recovery_packet();
+        recovery.persistence =
+            mobility_restart_reconciliation::PersistenceVerdict::IndeterminateCommit;
+        recovery.effect_evidence.as_mut().expect("effect evidence").outcome =
+            mobility_restart_reconciliation::EffectOutcome::Applied;
+        recovery.mission_resolution.as_mut().expect("M1 resolution").resolution =
+            mobility_restart_reconciliation::MissionResolution::EffectPredicateSatisfied;
+        recovery.recovery_permit = None;
+        recovery.next_ticket = None;
+        let downstream = downstream_packet();
+        let profile = claim_profile();
+        let facts = facts(&profile);
+        let result = assess_pre_native(&input(&recovery, &downstream, &profile, &facts));
+        assert_eq!(
+            result.recovery,
+            RecoveryDecision::EffectPredicateObservedPersistenceUnresolved
+        );
+        assert_eq!(
+            result.disposition,
+            CompositionDisposition::PhysicalEffectObservedPersistenceUnresolvedNoRetry
         );
     }
 
