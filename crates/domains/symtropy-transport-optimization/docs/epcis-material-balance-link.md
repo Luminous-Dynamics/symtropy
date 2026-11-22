@@ -8,6 +8,8 @@ Related independent owners:
 - EPCIS TransformationEvent semantic work: https://github.com/Luminous-Dynamics/symtropy/pull/6778
 - EPCIS composition transactions and parent-scoped DELETE_ALL: https://github.com/Luminous-Dynamics/symtropy/pull/6857
 
+The composition transaction reducer treats each exact EPCIS source event revision atomically. Its DELETE_ALL conflict footprint includes the parent and every currently active direct child, so a same-tick independent transfer of an affected child is ambiguous rather than lexically ordered around the disaggregation. Nested child contents remain unchanged.
+
 ## Ownership boundary
 
 This adapter does not calculate material balance, yield, process conversion, residue, mass loss, water/energy conservation, uncertainty propagation or recovered-material grade. Those calculations and their physical/process boundaries belong to their canonical owner and its independent oracles.
