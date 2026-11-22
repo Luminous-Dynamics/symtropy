@@ -34,3 +34,7 @@ path = "src/bin/common_cause_sequential_demo.rs"
 [[bin]]
 name = "dependency_graph_demo"
 path = "src/bin/dependency_graph_demo.rs"
+
+[[bin]]
+name = "temporal_voi_demo"
+path = "src/bin/temporal_voi_demo.rs"
