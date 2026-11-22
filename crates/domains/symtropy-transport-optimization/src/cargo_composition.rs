@@ -980,6 +980,45 @@ mod tests {
     }
 
     #[test]
+    fn unordered_child_lists_and_event_delivery_permutations_replay_identically() {
+        let modules = modules(&["CONTAINER", "PALLET_A", "PALLET_B", "CARTON"]);
+        let first = batch(
+            "ADD-MANY",
+            10,
+            vec![
+                CompositionMutation::Add {
+                    parent_module_id: "CONTAINER".to_string(),
+                    child_module_id: "PALLET_A".to_string(),
+                },
+                CompositionMutation::Add {
+                    parent_module_id: "CONTAINER".to_string(),
+                    child_module_id: "PALLET_B".to_string(),
+                },
+            ],
+        );
+        let second = batch(
+            "ADD-NESTED",
+            20,
+            vec![CompositionMutation::Add {
+                parent_module_id: "PALLET_A".to_string(),
+                child_module_id: "CARTON".to_string(),
+            }],
+        );
+
+        let forward =
+            evaluate_composition_batches(&modules, &[first.clone(), second.clone()], 100).unwrap();
+
+        let mut reversed_children = first.clone();
+        reversed_children.mutations.reverse();
+        let reverse =
+            evaluate_composition_batches(&modules, &[second, reversed_children], 100).unwrap();
+
+        assert_eq!(forward, reverse);
+        assert!(forward.is_qualified());
+        assert_eq!(forward.active_edges(), 3);
+    }
+
+    #[test]
     fn delete_all_removes_only_direct_children_and_preserves_nested_contents() {
         let modules = modules(&["CONTAINER", "PALLET", "CARTON", "OTHER"]);
         let events = vec![
