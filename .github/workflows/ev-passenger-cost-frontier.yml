@@ -5,6 +5,8 @@ on:
       - "tools/ev-passenger-cost-frontier/**"
       - "docs/research/EV_PASSENGER_COST_FEASIBILITY_V0_1.md"
       - "docs/research/EV_LOCALIZATION_AND_LIFETIME_BENCHMARKS_V0_1.md"
+      - "docs/research/EV_CARRIER_LIFECYCLE_AND_SERVICEABILITY_V0_1.md"
+      - "docs/research/BATTERY_SERVICE_NETWORK_BENCHMARK_V0_1.md"
       - ".github/workflows/ev-passenger-cost-frontier.yml"
   push:
     branches: [main]
@@ -12,6 +14,8 @@ on:
       - "tools/ev-passenger-cost-frontier/**"
       - "docs/research/EV_PASSENGER_COST_FEASIBILITY_V0_1.md"
       - "docs/research/EV_LOCALIZATION_AND_LIFETIME_BENCHMARKS_V0_1.md"
+      - "docs/research/EV_CARRIER_LIFECYCLE_AND_SERVICEABILITY_V0_1.md"
+      - "docs/research/BATTERY_SERVICE_NETWORK_BENCHMARK_V0_1.md"
       - ".github/workflows/ev-passenger-cost-frontier.yml"
   workflow_dispatch:
 
