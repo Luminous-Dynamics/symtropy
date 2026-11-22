@@ -465,15 +465,15 @@ mod tests {
         let summary =
             validate_dataset_admission(&schema(), &candidates(), "research_noncommercial")
                 .unwrap();
-        assert_eq!(summary.record_count, 5);
-        assert_eq!(summary.candidate_count, 5);
+        assert_eq!(summary.record_count, 6);
+        assert_eq!(summary.candidate_count, 6);
         assert_eq!(summary.admitted_count, 0);
         assert_eq!(summary.quarantined_count, 0);
         assert!(summary.unknown_time_count >= 3);
         assert!(summary.unknown_frame_count >= 3);
-        assert_eq!(summary.partial_ground_truth_count, 2);
+        assert_eq!(summary.partial_ground_truth_count, 3);
         assert_eq!(summary.clock_state_truth_not_provided_count, 1);
-        assert_eq!(summary.clock_state_truth_unknown_count, 4);
+        assert_eq!(summary.clock_state_truth_unknown_count, 5);
     }
 
     #[test]
@@ -496,10 +496,42 @@ mod tests {
         let summary =
             validate_dataset_admission(&schema(), &manifest, "research_noncommercial")
                 .unwrap();
-        assert_eq!(summary.record_count, 5);
-        assert_eq!(summary.candidate_count, 5);
+        assert_eq!(summary.record_count, 6);
+        assert_eq!(summary.candidate_count, 6);
         assert_eq!(summary.admitted_count, 0);
-        assert_eq!(summary.partial_ground_truth_count, 2);
+        assert_eq!(summary.partial_ground_truth_count, 3);
+    }
+
+    #[test]
+    fn urbannav_rights_are_explicit_but_payload_snapshot_is_not_admitted() {
+        let manifest = candidates();
+        let record = manifest["datasets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|item| item["dataset_id"] == "urbannav-hk-medium-urban-1")
+            .unwrap();
+        assert_eq!(record["status"], "candidate_not_admitted");
+        assert_eq!(record["admission_scope"], "none");
+        assert_eq!(record["rights"]["license_id"], "MIT");
+        assert_eq!(record["rights"]["status"], "explicit");
+        assert_eq!(record["rights"]["scope"], "dataset_payload");
+        assert_eq!(record["rights"]["research_use"], "permitted");
+        assert_eq!(record["rights"]["commercial_use"], "permitted");
+        assert_eq!(record["rights"]["redistribution"], "permitted");
+        assert_eq!(record["snapshot"]["immutable"], false);
+        assert_eq!(record["snapshot"]["repository_commit"], "e53717a40c94803cd479a140433f6d803b1a0876");
+        assert_eq!(record["snapshot"]["file_sha256"].as_array().unwrap().len(), 0);
+
+        let summary = validate_dataset_admission(
+            &schema(),
+            &manifest,
+            "research_noncommercial",
+        )
+        .unwrap();
+        assert_eq!(summary.record_count, 6);
+        assert_eq!(summary.admitted_count, 0);
+        assert_eq!(summary.candidate_count, 6);
     }
 
     #[test]
@@ -509,7 +541,7 @@ mod tests {
         let summary =
             validate_dataset_admission(&schema(), &manifest, "research_noncommercial").unwrap();
         assert_eq!(summary.admitted_count, 1);
-        assert_eq!(summary.candidate_count, 4);
+        assert_eq!(summary.candidate_count, 5);
     }
 
     #[test]
