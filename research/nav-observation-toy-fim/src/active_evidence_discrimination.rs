@@ -274,7 +274,7 @@ pub fn plan_active_evidence_with_hypothesis_discrimination(
         .collect();
 
     let (reason, selected) = if !target_reaching.is_empty() {
-        let selected = target_reaching
+        let selected = *target_reaching
             .into_iter()
             .min_by(|left, right| {
                 right
@@ -298,7 +298,7 @@ pub fn plan_active_evidence_with_hypothesis_discrimination(
             selected,
         )
     } else {
-        let selected = pareto_frontier
+        let selected = *pareto_frontier
             .iter()
             .max_by(|left, right| {
                 left.distinguishable_hypothesis_pair_count
