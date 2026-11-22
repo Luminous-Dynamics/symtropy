@@ -64,7 +64,7 @@ pub struct PackStateEvidence {
 #[serde(deny_unknown_fields)]
 pub struct MetricEvidence {
     pub evidence: EvidenceEnvelope,
-    pub value: Option<u32>,
+    pub conservative_lower_bound: Option<u32>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -78,7 +78,7 @@ pub struct BooleanEvidence {
 #[serde(deny_unknown_fields)]
 pub struct ThermalEvidence {
     pub evidence: EvidenceEnvelope,
-    pub pack_temperature_c: Option<i16>,
+    pub conservative_upper_bound_c: Option<i16>,
     pub qualified_max_temperature_c: Option<i16>,
 }
 
@@ -429,7 +429,7 @@ fn evaluate_pair(
     );
 
     let energy_margin_wh = if energy_evidence_admissible {
-        match pack.usable_energy.value {
+        match pack.usable_energy.conservative_lower_bound {
             Some(value) if value >= mission.required_energy_with_reserve_wh => {
                 Some(value - mission.required_energy_with_reserve_wh)
             }
@@ -457,7 +457,7 @@ fn evaluate_pair(
     };
 
     if power_evidence_admissible {
-        match pack.peak_power.value {
+        match pack.peak_power.conservative_lower_bound {
             Some(value) if value >= mission.required_peak_power_w => {}
             Some(_) => add_finding(
                 &mut findings,
@@ -476,7 +476,7 @@ fn evaluate_pair(
 
     if thermal_evidence_admissible {
         match (
-            pack.thermal.pack_temperature_c,
+            pack.thermal.conservative_upper_bound_c,
             pack.thermal.qualified_max_temperature_c,
         ) {
             (Some(current), Some(qualified_max))
@@ -788,7 +788,7 @@ mod tests {
     ) -> MetricEvidence {
         MetricEvidence {
             evidence: evidence(asset_id, configuration_digest, suffix),
-            value,
+            conservative_lower_bound: value,
         }
     }
 
@@ -826,7 +826,7 @@ mod tests {
             peak_power: metric(id, &configuration_digest, "peak-power", peak_power_w),
             thermal: ThermalEvidence {
                 evidence: evidence(id, &configuration_digest, "thermal"),
-                pack_temperature_c: Some(25),
+                conservative_upper_bound_c: Some(25),
                 qualified_max_temperature_c: Some(60),
             },
         }
@@ -966,7 +966,7 @@ mod tests {
     #[test]
     fn thermal_limit_exceeded_is_blocked() {
         let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
-        battery.thermal.pack_temperature_c = Some(51);
+        battery.thermal.conservative_upper_bound_c = Some(51);
         assert_eq!(
             pair_status(&battery, &mission("m1", "uav-a", 1_000, 1_000)),
             EligibilityStatus::Blocked
