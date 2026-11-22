@@ -95,6 +95,7 @@ pub enum CorrelationError {
     ReferencedBoxMismatch,
     LocalHandoffIdMismatch(SourceEventRef),
     HandoffFieldMismatch(HandoffField),
+    HandoffTimeNotIncreasing,
     DuplicateReleaseMapping(SourceEventRef),
     DuplicateAcceptanceMapping(SourceEventRef),
     Evaluation(EvaluationError),
@@ -268,6 +269,9 @@ pub fn apply_handoff_correlations(
                 receipt.accept_event.clone(),
             ));
         }
+        if release.event_time >= accept.event_time {
+            return Err(CorrelationError::HandoffTimeNotIncreasing);
+        }
         if release.box_id != accept.box_id || release.box_id != receipt.canonical_box_id {
             return Err(CorrelationError::ReferencedBoxMismatch);
         }
@@ -434,16 +438,30 @@ pub fn apply_qualified_handoff_correlations(
         .map_err(QualifiedCorrelationError::Correlation)
 }
 
-/// Reconcile source-local handoff IDs only through exact correlation receipts,
-/// then run the existing fail-closed custody evaluator.
-pub fn evaluate_with_handoff_correlations(
-    expectations: &[super::CustodyExpectation],
+/// P0 synthetic evaluator. Event-time ticks are dimensionless fixture values;
+/// this path is not a proof-grade cross-source chronology qualification.
+pub fn evaluate_with_synthetic_handoff_correlations(
+    expectations: &[crate::CustodyExpectation],
     events: &[CustodyEvent],
     receipts: &[HandoffCorrelationReceipt],
     as_of: i64,
 ) -> Result<EvaluationReport, CorrelationError> {
     let canonicalized = apply_handoff_correlations(events, receipts, as_of)?;
     evaluate(expectations, &canonicalized, as_of).map_err(CorrelationError::Evaluation)
+}
+
+/// P1 evaluator. Each exact release/acceptance event pair must carry
+/// proof-grade interval evidence establishing strict release-before-acceptance.
+pub fn evaluate_with_handoff_correlations(
+    expectations: &[crate::CustodyExpectation],
+    events: &[CustodyEvent],
+    receipts: &[QualifiedHandoffCorrelationReceipt],
+    as_of: i64,
+) -> Result<EvaluationReport, QualifiedCorrelationError> {
+    let canonicalized = apply_qualified_handoff_correlations(events, receipts, as_of)?;
+    evaluate(expectations, &canonicalized, as_of)
+        .map_err(CorrelationError::Evaluation)
+        .map_err(QualifiedCorrelationError::Correlation)
 }
 
 #[cfg(test)]
@@ -575,6 +593,28 @@ mod tests {
         assert!(canonicalized.iter().any(|event| {
             event.source_event_id == "B1-A1" && event.handoff_id == "CANON-HANDOFF-001"
         }));
+    }
+
+    #[test]
+    fn proof_grade_evaluator_counts_only_after_time_and_correlation_qualification() {
+        let (expectations, events) = fixtures();
+        let release = events
+            .iter()
+            .find(|event| event.source_event_id == "B1-R1")
+            .unwrap()
+            .clone();
+        let accept = events
+            .iter()
+            .find(|event| event.source_event_id == "B1-A1")
+            .unwrap()
+            .clone();
+        let qualified = qualified_receipt(&release, &accept, 100, 110, 2);
+
+        let report =
+            evaluate_with_handoff_correlations(&expectations, &events, &[qualified], 200)
+                .unwrap();
+        assert_eq!(report.complete_chains(), 1);
+        assert_eq!(report.incomplete_box_ids.len(), 1);
     }
 
     #[test]
@@ -723,7 +763,7 @@ mod tests {
 
         let correlation = receipt(&release, &accept);
         let report =
-            evaluate_with_handoff_correlations(&expectations, &events, &[correlation], 200)
+            evaluate_with_synthetic_handoff_correlations(&expectations, &events, &[correlation], 200)
                 .unwrap();
 
         assert_eq!(report.complete_chains(), 1);
@@ -746,6 +786,33 @@ mod tests {
                 .failure_counts
                 .get(&ChainFailure::HandoffFieldMismatch(HandoffField::HandoffId)),
             Some(&1)
+        );
+    }
+
+    #[test]
+    fn synthetic_correlation_rejects_non_increasing_source_event_times() {
+        let (_, events) = fixtures();
+        let release = events
+            .iter()
+            .find(|event| event.source_event_id == "B1-R1")
+            .unwrap()
+            .clone();
+        let accept = events
+            .iter()
+            .find(|event| event.source_event_id == "B1-A1")
+            .unwrap()
+            .clone();
+        let correlation = receipt(&release, &accept);
+        let mut reversed = events.clone();
+        for event in &mut reversed {
+            if event.source_event_id == "B1-A1" {
+                event.event_time = 20;
+            }
+        }
+
+        assert_eq!(
+            apply_handoff_correlations(&reversed, &[correlation], 200),
+            Err(CorrelationError::HandoffTimeNotIncreasing)
         );
     }
 
