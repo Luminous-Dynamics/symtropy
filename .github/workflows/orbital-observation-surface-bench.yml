@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - research/orbital-pod-trend-bounds-v0-2
+      - research/orbital-observation-surface-identifiability-v0-3
     paths:
       - "tools/orbital-observation-surface-bench/**"
       - "research/orbital/OBSERVATION_SURFACE_IDENTIFIABILITY_BENCHMARK_V0_3.md"
@@ -11,6 +12,7 @@ on:
   push:
     branches:
       - research/orbital-observation-surface-identifiability-v0-3
+      - research/orbital-decision-identifiability-v0-1
 
 permissions:
   contents: read
@@ -70,6 +72,31 @@ jobs:
             artifacts/observation-surface-receipt-v0.1.json \
             artifacts/observation-surface-oracle-v0.1.json \
             artifacts/observations-v0.1.json
+      - name: Validate decision-identifiability corpus
+        run: |
+          node tools/orbital-observation-surface-bench/tests/validate_schema.mjs \
+            tools/orbital-observation-surface-bench/schema/v0.1/decision-identifiability-corpus.schema.json \
+            tools/orbital-observation-surface-bench/fixtures/v0.1/decision-identifiability-cases.json
+      - name: Generate exact finite-world decision receipt
+        run: |
+          cargo run --locked --manifest-path tools/orbital-observation-surface-bench/Cargo.toml --bin decision-identifiability -- \
+            tools/orbital-observation-surface-bench/fixtures/v0.1/decision-identifiability-cases.json \
+            --source-commit "${GITHUB_SHA}" > artifacts/decision-identifiability-receipt-v0.1.json
+      - name: Run independent JavaScript decision oracle
+        run: |
+          node tools/orbital-observation-surface-bench/tests/decision_reference_oracle.mjs \
+            tools/orbital-observation-surface-bench/fixtures/v0.1/decision-identifiability-cases.json \
+            > artifacts/decision-identifiability-oracle-v0.1.json
+      - name: Validate decision receipt
+        run: |
+          node tools/orbital-observation-surface-bench/tests/validate_schema.mjs \
+            tools/orbital-observation-surface-bench/schema/v0.1/decision-identifiability-receipt.schema.json \
+            artifacts/decision-identifiability-receipt-v0.1.json
+      - name: Compare Rust decision receipt with independent oracle
+        run: |
+          node tools/orbital-observation-surface-bench/tests/compare_decision_receipts.mjs \
+            artifacts/decision-identifiability-receipt-v0.1.json \
+            artifacts/decision-identifiability-oracle-v0.1.json
       - uses: actions/upload-artifact@v4
         with:
           name: orbital-observation-surface-v0.1-${{ github.sha }}
