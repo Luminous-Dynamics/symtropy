@@ -90,6 +90,27 @@ These are finite-route empirical Stanford-diagram point fractions, as defined in
 
 **Do not treat 0.0% exceedance on one route as proof that the true integrity risk is zero.** Report the sample count, duration, distinct degradation events, cluster interval and maximum contiguous breach.
 
+
+## 3A. Direct baseline inside the PID paper: Al Hage heavy-tailed Student-t PL
+
+The PID paper's Section 5.1 directly benchmarks against Al Hage, Xu, Bonnifait and Ibanez-Guzman, “Localization integrity for intelligent vehicles through fault detection and position error characterization”, IEEE Transactions on Intelligent Transportation Systems 23 (2020), 2978–2990, DOI 10.1109/TITS.2020.2983681.
+
+The 2026 paper reports this comparator as a 2D multivariate Student-t protection level derived from the positional covariance matrix P_g, with offline-tuned degrees of freedom dof ∈ {4,5,6,7,8,9,10,100}. Its overall PL is:
+
+PL = K_TIR(dof) · sqrt((dof−2) · max eig(P_g))
+
+For directional axis i (vehicle along-track or cross-track), its printed formula is:
+
+PL_i = K_TIR(dof) · sqrt((dof−2) · max(λ1 |V1,i|, λ2 |V2,i|))
+
+where λ1, λ2 and V1,V2 are the eigenvalues/eigenvectors of P_g and K_TIR(dof) comes from the 2D multivariate Student-t CDF for the target TIR.
+
+The equation-level Rust implementation is being added in [PR #6737](https://github.com/Luminous-Dynamics/symtropy/pull/6737), with covariance/eigenframe validation and an explicit caller-supplied 2D K_TIR multiplier. It does not yet compute the exact CDF multiplier or fit the dof; those require the precise distributional convention and separate offline training data. Do not replace it with a 1D Normal quantile.
+
+Reference:
+- https://doi.org/10.1109/TITS.2020.2983681
+- https://www.mdpi.com/1424-8220/26/16/5140 (Section 5.1)
+
 ## 4. Primary baseline B: adaptive temporal Kalman filter plus solution separation
 
 **Luo, Sun and Fu**, “ATM: Adaptive Temporal Kalman Filter-Based Solution Separation Method for Positioning and Integrity Monitoring”, IEEE Transactions on Instrumentation and Measurement 75 (2026), DOI 10.1109/TIM.2026.3670522.
