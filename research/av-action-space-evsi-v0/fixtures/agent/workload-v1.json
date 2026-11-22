@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-action-space-evsi-v0",
+  "episodes": [
+    {
+      "episode_id": "evsi-001-high-eig-zero-value",
+      "transcript_head_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "current_tick": 10,
+      "deadline_tick": 18,
+      "cost_weight": 1.0,
+      "budget_cost_units": 2.0,
+      "action_catalogue": [
+        {"action_id":"zoom-detail","modality":"video","description":"Acquire a high-detail view of an already-resolved static label","cost_units":1.0,"arrival_tick":12,"source_dependency_group":"camera-root-1","information_gain_proxy":1.5},
+        {"action_id":"relisten-same-source","modality":"audio","description":"Acquire a repeat view from the already-observed source","cost_units":0.5,"arrival_tick":11,"source_dependency_group":"audio-root-1","information_gain_proxy":1.2}
+      ]
+    },
+    {
+      "episode_id": "evsi-002-low-eig-high-value",
+      "transcript_head_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "current_tick": 20,
+      "deadline_tick": 30,
+      "cost_weight": 1.0,
+      "budget_cost_units": 1.0,
+      "action_catalogue": [
+        {"action_id":"listen-short-alarm-cue","modality":"audio","description":"Acquire a short non-speech acoustic cue that resolves the task decision","cost_units":0.25,"arrival_tick":22,"source_dependency_group":"audio-root-new","information_gain_proxy":0.05},
+        {"action_id":"zoom-busy-dashboard","modality":"video","description":"Acquire a visually complex but decision-irrelevant dashboard view","cost_units":0.5,"arrival_tick":23,"source_dependency_group":"camera-root-new","information_gain_proxy":1.8}
+      ]
+    },
+    {
+      "episode_id": "evsi-003-correlated-versus-late",
+      "transcript_head_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "current_tick": 40,
+      "deadline_tick": 45,
+      "cost_weight": 1.0,
+      "budget_cost_units": 1.0,
+      "action_catalogue": [
+        {"action_id":"repeat-correlated-microphone","modality":"audio","description":"Repeat an observation from a source dependency already represented in the history","cost_units":0.2,"arrival_tick":42,"source_dependency_group":"existing-root","information_gain_proxy":0.7},
+        {"action_id":"independent-visual-check","modality":"video","description":"Acquire an independent visual check, but it arrives after the response deadline","cost_units":0.4,"arrival_tick":48,"source_dependency_group":"independent-camera-root","information_gain_proxy":0.9}
+      ]
+    }
+  ]
+}
