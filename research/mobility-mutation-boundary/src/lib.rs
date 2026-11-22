@@ -658,14 +658,6 @@ mod tests {
         assert_eq!(result, Err(Rejection::NotYetValid));
         assert_eq!(calls.load(Ordering::SeqCst), 0);
     }
-}
-
-
-mod history;
-pub use history::{
-    check_history, HistoryCheckResult, HistoryObservedResult, HistoryOperation,
-    HistoryOperationKind, IncompleteReason, OperationHistory, DEFAULT_SEARCH_BUDGET,
-    MAX_HISTORY_OPERATIONS,
     #[test]
     fn pending_physical_outcome_blocks_a_second_native_mutation() {
         let boundary = ApplicationBoundary::new(live("attempt-1", 7, 3));
@@ -860,4 +852,12 @@ pub use history::{
         );
     }
 
+}
+
+
+mod history;
+pub use history::{
+    check_history, HistoryCheckResult, HistoryObservedResult, HistoryOperation,
+    HistoryOperationKind, IncompleteReason, OperationHistory, DEFAULT_SEARCH_BUDGET,
+    MAX_HISTORY_OPERATIONS,
 };
