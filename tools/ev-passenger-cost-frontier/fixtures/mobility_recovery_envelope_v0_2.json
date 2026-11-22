@@ -425,7 +425,18 @@
             true,
             true,
             true
-          ]
+          ],
+          "evidence": {
+            "asset_id": "channel-a",
+            "configuration_digest": "sha256:channel-a-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-recovery-v0.2",
+            "evidence_reference": "synthetic://channel-a/scenario-availability/single-event-recovery",
+            "evidence_class": "synthetic",
+            "observed_at_unix_ms": 1799999940000,
+            "valid_from_unix_ms": 1799999940000,
+            "valid_until_unix_ms": 1800007199999
+          }
         },
         {
           "channel_id": "channel-b",
@@ -438,7 +449,18 @@
             true,
             true,
             true
-          ]
+          ],
+          "evidence": {
+            "asset_id": "channel-b",
+            "configuration_digest": "sha256:channel-b-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-recovery-v0.2",
+            "evidence_reference": "synthetic://channel-b/scenario-availability/single-event-recovery",
+            "evidence_class": "synthetic",
+            "observed_at_unix_ms": 1799999940000,
+            "valid_from_unix_ms": 1799999940000,
+            "valid_until_unix_ms": 1800007199999
+          }
         }
       ]
     },
@@ -621,7 +643,18 @@
             true,
             true,
             true
-          ]
+          ],
+          "evidence": {
+            "asset_id": "channel-a",
+            "configuration_digest": "sha256:channel-a-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-recovery-v0.2",
+            "evidence_reference": "synthetic://channel-a/scenario-availability/second-shock-before-recovery",
+            "evidence_class": "synthetic",
+            "observed_at_unix_ms": 1799999940000,
+            "valid_from_unix_ms": 1799999940000,
+            "valid_until_unix_ms": 1800007199999
+          }
         },
         {
           "channel_id": "channel-b",
@@ -634,7 +667,18 @@
             true,
             true,
             true
-          ]
+          ],
+          "evidence": {
+            "asset_id": "channel-b",
+            "configuration_digest": "sha256:channel-b-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-recovery-v0.2",
+            "evidence_reference": "synthetic://channel-b/scenario-availability/second-shock-before-recovery",
+            "evidence_class": "synthetic",
+            "observed_at_unix_ms": 1799999940000,
+            "valid_from_unix_ms": 1799999940000,
+            "valid_until_unix_ms": 1800007199999
+          }
         }
       ]
     }
