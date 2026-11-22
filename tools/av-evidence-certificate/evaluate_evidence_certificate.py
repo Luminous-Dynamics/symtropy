@@ -443,7 +443,7 @@ def _score_claim(
         )
     )
     unsupported_claim = not abstained and (
-        not truth["answerable"] or not evidence_sufficient
+        not answer_correct or not evidence_sufficient
     )
     return {
         "claim_id": claim_id,
