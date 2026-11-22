@@ -47,7 +47,7 @@ The 20-cluster criterion is an initial evidence floor, not a universal sample-si
 
 ## Relation to the PIVPostProcess baseline
 
-PIVPostProcess reports F1 0.992, ROC-AUC 0.998 and log loss 0.037 on a 50,000-vector stratified test sample, plus mean F1 0.990 on six additional experimental datasets. The paper describes pooling approximately 203 million vectors from twelve source datasets and randomly shuffling/stratifying at vector level. Its external labels use expert manual vector filtering. This is a strong classifier result, but does not itself establish full-geometry/session-held-out transfer, independent physical truth, or calibrated 2-D velocity covariance.
+PIVPostProcess is a strong classifier comparator, not a displacement-UQ or end-to-end PIV solver comparator. The 2026 paper reports test F1 0.992, ROC-AUC 0.998 and log loss 0.037 on a 50,000-vector stratified test sample, and separately reports mean F1 0.990 across six additional experimental datasets. Its methods describe combining approximately 203 million vectors from twelve selected datasets, random shuffling and stratified vector-level sampling for the 250,000/50,000 train/test subsets. That point-level split is not equivalent to a pre-registered holdout of complete raw-image sessions, geometries, calibration batches and flow families. The six additional experimental datasets are stronger external-transfer evidence and should be preserved as a separate comparator cohort rather than ignored. The study's labels are expert manual filtering; that is a valuable annotation reference, not independent velocity truth. The classifier does not emit a calibrated full 2-D predictive covariance.
 
 We therefore keep four scoreboards separate:
 1. vector classifier quality against frozen expert labels;
@@ -59,9 +59,13 @@ We therefore keep four scoreboards separate:
 
 A useful public raw-image starting point is the Five-Frame-Sequence Synthetic PIV dataset (Zenodo DOI 10.5281/zenodo.21732072). The record describes 12,466 five-frame 256×256 synthetic sequences with known displacement fields, nine flow scenarios, and changes in particle properties, sensor noise, laser-sheet thickness, out-of-plane motion, visibility and illumination. Its separate test archive is a natural frozen evaluation cohort; test scenarios must remain untouched during tuning.
 
-A second high-value comparator is the PIVtools turbulent-channel validation cohort. The public dataset card describes 4,000 synthetic 2048×2048 image pairs at Reτ≈1000, noisy imaging (SNR≈8), planar and ±45° stereo geometry, and DNS-derived ground-truth statistics. Taylor, Lawson and Ganapathisubramani's 2026 PIVtools paper reports end-to-end planar/stereo/ensemble pipelines, with instantaneous and ensemble mean-profile accuracy to different near-wall y+ limits. This is an end-to-end pipeline comparator, not a direct uncertainty-calibration win.
+A second high-value comparator is the 2026 PIVtools platform and its turbulent-channel validation cohort. The public dataset card describes 4,000 noisy 2048×2048 synthetic image pairs at Reτ≈1000, SNR≈8, planar and ±45° stereo geometries, and DNS-derived ground-truth statistics including mean velocity, Reynolds stresses and 95% confidence intervals. It provides a matched end-to-end planar, stereo and ensemble PIV processing benchmark, rather than a covariance-calibration ground truth by itself. The PIVtools paper describes a unified GUI/CLI, image preprocessing, calibration, ensemble correlation with direct Reynolds-stress extraction, hybrid Python/C + Dask processing, and 77% parallel efficiency on 128 cores. Its earlier public preprint reports a 10.5× speedup over leading commercial software on a 20-core 4 MP four-pass workstation benchmark, and mean-profile recovery to y+≈1 using ensemble correlation under the specified sparse/noisy setup. Treat these as source-reported performance figures to reproduce under matched hardware, settings and dataset versions—not portable universal speed claims. The dataset card is CC-BY-4.0; the software repository is GPL-3.0-or-later, so use it as an isolated external comparator and do not vendor its code into this Rust crate.
 
-The PIVPostProcess paper's own experimental data are available from the authors on request; its software is public in Zenodo. The exact code/data license and access terms must be checked before redistributing or incorporating any comparator code.
+Classical uncertainty comparators must also be included in the same image cohorts: correlation-statistics uncertainty (Wieneke, 2015), image-matching uncertainty (Sciacchitano, Wieneke & Scarano, 2013), and particle-disparity / peak-ratio methods. These answer a different question from PIVPostProcess's binary valid/invalid classification. They must be scored on displacement/velocity error and covariance calibration, not ranked by F1. The PIVPostProcess experimental source data are available from the authors on request; its code is publicly available via Zenodo. Confirm the code's license and the raw-data access terms before redistribution.
+
+## Verification, validation and uncertainty framework
+
+The programme should align its evidence structure with established CFD V&V practice, while extending it to the measurement pipeline itself. ASME V&V 20 (2009, reaffirmed 2021) frames validation as quantifying accuracy inferred from comparisons between solution and data for specified variables at specified validation points, explicitly considering uncertainty in both solution and experimental data. NISTIR 8298 separates sources of CFD inaccuracy including physical modelling, discretization, iterative convergence/roundoff and programming/user error, and discusses numerical, input-parameter and experimental-result uncertainty. The EHD programme should therefore preserve at least four non-interchangeable terms: numerical/solver error, physical-model discrepancy, input/calibration uncertainty, and measurement/diagnostic uncertainty. The covariance kernel here addresses only one part of the measurement layer; it must not be promoted into a complete V&V procedure.
 
 ## Benchmark execution sequence
 
@@ -88,8 +92,34 @@ The PIVPostProcess paper's own experimental data are available from the authors 
 - Gaussian NLL and ellipse area are exposed together so coverage inflation is visible;
 - empty cohorts are rejected.
 
+## Competitive benchmark scorecard
+
+The comparison must be lane-specific. Do not combine one classifier score, one solver residual and one hardware runtime into a single leaderboard.
+
+| Lane | Required comparators | Primary scorecard |
+|---|---|---|
+| Vector validity | PIVPostProcess, normalized median / universal outlier detection, adaptive Gaussian window | per-region precision/recall/F1, false-valid removal, valid retention, coherent-structure preservation |
+| Displacement uncertainty | correlation statistics, image matching, particle disparity, peak ratio / SNR | displacement RMSE and bias against known truth, interval coverage/width, calibration curves |
+| Full PIV processing | PIVtools, OpenPIV/PIVlab or other reproducible matched pipelines | same-image velocity/statistics error, near-wall reach, Reynolds-stress error, runtime, memory and energy |
+| Covariance calibration | each method that emits covariance or predictive intervals | marginal + joint ellipse coverage, proper Gaussian score, Mahalanobis statistics, sharpness, session-cluster generalization |
+| EHD physical functionals | all-surface PIV momentum, LPT/STB differential momentum, direct force balance | mass/charge/energy/momentum boundary completeness and reconciliation within predeclared combined uncertainty |
+
+Prospective gates should be set before evaluation. The first campaign should retain the existing vector-cleaning targets (invalid F1 ≥0.97, recall ≥0.90 and false removal of reference-valid vectors ≤1% in each relevant region), then add: nominal 95% joint ellipse coverage in the 90–98% band for each region; at least 200 reference vectors and 20 truly independent high-level acquisition/dependence clusters per region; mean squared Mahalanobis distance near its 2-D Gaussian expectation of 2; and lower Gaussian negative log likelihood than matched covariance baselines without inflating ellipse area. The 20-cluster / 200-vector floors are screening thresholds only; a pre-registered power analysis must determine the final sample plan. For end-to-end flow functionals, separately target <5% bias in predeclared integrated outputs (for example mass flux or mean-profile regions) only where a traceable reference exists; boundary-layer and wake performance must be reported separately. No numerical target can replace a complete control-volume force balance.
+
+For speed, report image pairs/s, valid vectors/s, wall-clock time, peak memory and energy per processed megapixel on the same workstation, image cohort, preprocessing, pass schedule, vector spacing and output quality. PIVtools' 10.5× commercial comparison and 77% efficiency on 128 cores are useful reference points, but the benchmark must reproduce them with matched settings before claiming a competitive result.
+
 ## Claim boundary and remaining work
 
 The current code tests evaluator mathematics on manufactured data. It does not generate correlation planes, estimate Hessians, calibrate image-processing methods, process raw image files, establish empirical coverage, or validate any EHD device. It does not infer independence from arbitrary IDs; the caller owns the scientific grouping decision.
 
-Pending: local cargo fmt/test/Clippy, exact-head hosted CI, external review, ingestion of the public image cohorts, matched baseline runs, raw image-level provenance, and independent laboratory measurements.
+Pending: local cargo fmt/test/Clippy, exact-head hosted CI, external review, frozen dataset manifests and hashes, matched baseline runs, raw image-level provenance, pre-registered cluster/split plan, empirical covariance calibration against known or independent reference truth, and independent laboratory measurements.
+
+## References and comparator records
+
+- Ghazi Nezami, A., Johnson, B.A. & Vantassel, J.P. (2026). PIVPostProcess. *Experiments in Fluids* 67, 176. DOI: 10.1007/s00348-026-04319-7; software DOI: 10.5281/zenodo.18794853.
+- Wieneke, B. (2015). PIV uncertainty quantification from correlation statistics. *Measurement Science and Technology* 26, 074002. DOI: 10.1088/0957-0233/26/7/074002.
+- Sciacchitano, A., Wieneke, B. & Scarano, F. (2013). PIV uncertainty quantification by image matching. *Measurement Science and Technology* 24, 045302. DOI: 10.1088/0957-0233/24/4/045302.
+- Taylor, M.T., Lawson, J.M. & Ganapathisubramani, B. (2026). PIVtools: A comprehensive open source software for particle image velocimetry. *SoftwareX* 35, 102967. DOI: 10.1016/j.softx.2026.102967; validation dataset DOI: 10.5258/SOTON/D3981.
+- Five-Frame-Sequence Synthetic PIV dataset. Zenodo DOI: 10.5281/zenodo.21732072.
+- ASME V&V 20-2009 (R2021), Standard for Verification and Validation in Computational Fluid Dynamics and Heat Transfer.
+- Yeo, D. (2020). NISTIR 8298, A Summary of Industrial Verification, Validation, and Uncertainty Quantification Procedures in Computational Fluid Dynamics. DOI: 10.6028/NIST.IR.8298.
