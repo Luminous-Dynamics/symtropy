@@ -25,6 +25,8 @@ def resource_delta(
     *,
     frames=0,
     video_bytes=0,
+    audio_samples=0,
+    audio_bytes=0,
     tool_calls=0,
     energy=None,
     energy_provenance="NOT_MEASURED",
@@ -34,8 +36,8 @@ def resource_delta(
     return {
         "new_frames": frames,
         "video_bytes": video_bytes,
-        "audio_samples": 0,
-        "audio_bytes": 0,
+        "audio_samples": audio_samples,
+        "audio_bytes": audio_bytes,
         "input_tokens": 10,
         "output_tokens": 5,
         "model_calls": 1,
@@ -217,7 +219,7 @@ def base_trajectory(*, extra_observation=False, second_turn_status="DELIVERED"):
         after_workload,
         submission("head-1", refs=["obs-alarm"]),
         second_forecast,
-        resource_delta(frames=1, video_bytes=100, tool_calls=1),
+        resource_delta(audio_samples=1600, audio_bytes=3200, tool_calls=1),
     )
     return {
         "benchmark_id": "av-evidence-gain-trajectory-v0",
