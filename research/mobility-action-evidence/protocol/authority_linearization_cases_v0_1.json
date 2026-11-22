@@ -1,0 +1,346 @@
+{
+  "schema_version": "cdaab-authority-linearization-cases/0.1",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/6669",
+  "status": "public_conformance_fixtures",
+  "controller_visible": true,
+  "evaluator_truth_embedded": true,
+  "confirmatory_evaluation_requires_separate_hidden_schedule_set": true,
+  "claim_ceiling": "Synthetic software contract fixtures only; no simulator, HIL, physical, safety or operational evidence.",
+  "cases": [
+    {
+      "case_id": "AL01-valid-stable",
+      "family": "positive_control",
+      "schedule": [
+        "issue_ticket",
+        "enqueue",
+        "apply"
+      ],
+      "mutations": [],
+      "expected_disposition": "Applied",
+      "expected_native_sink_calls": 1
+    },
+    {
+      "case_id": "AL02-revoked-before-enqueue",
+      "family": "authority_revocation",
+      "schedule": [
+        "issue_ticket",
+        "preflight_passes",
+        "revoke_authority",
+        "enqueue",
+        "apply"
+      ],
+      "mutations": [
+        "authority_binding"
+      ],
+      "expected_disposition": "RejectedAuthorityStale",
+      "expected_native_sink_calls": 0
+    },
+    {
+      "case_id": "AL03-revoked-after-enqueue",
+      "family": "authority_revocation",
+      "schedule": [
+        "issue_ticket",
+        "enqueue",
+        "revoke_authority",
+        "apply"
+      ],
+      "mutations": [
+        "authority_binding"
+      ],
+      "expected_disposition": "RejectedAuthorityStale",
+      "expected_native_sink_calls": 0
+    },
+    {
+      "case_id": "AL04-revocation-wins-race",
+      "family": "linearization_race",
+      "schedule": [
+        "issue_ticket",
+        "enqueue",
+        "linearize_revoke",
+        "linearize_apply"
+      ],
+      "mutations": [
+        "authority_epoch"
+      ],
+      "expected_disposition": "RejectedAuthorityStale",
+      "expected_native_sink_calls": 0
+    },
+    {
+      "case_id": "AL05-application-wins-race",
+      "family": "linearization_race",
+      "schedule": [
+        "issue_ticket",
+        "enqueue",
+        "linearize_apply",
+        "linearize_revoke"
+      ],
+      "mutations": [
+        "authority_epoch_after_application"
+      ],
+      "expected_disposition": "AppliedBeforeRevocation",
+      "expected_native_sink_calls": 1
+    },
+    {
+      "case_id": "AL06-platform-config-change",
+      "family": "configuration_invalidation",
+      "schedule": [
+        "issue_ticket",
+        "enqueue",
+        "change_platform_configuration",
+        "apply"
+      ],
+      "mutations": [
+        "platform_configuration_digest"
+      ],
+      "expected_disposition": "RejectedBindingMismatch",
+      "expected_native_sink_calls": 0
+    },
+    {
+      "case_id": "AL07-odd-revision-change",
+      "family": "operation_context_invalidation",
+      "schedule": [
+        "issue_ticket",
+        "enqueue",
+        "change_odd_revision",
+        "apply"
+      ],
+      "mutations": [
+        "odd_revision"
+      ],
+      "expected_disposition": "RejectedBindingMismatch",
+      "expected_native_sink_calls": 0
+    },
+    {
+      "case_id": "AL08-mode-revision-change",
+      "family": "operation_context_invalidation",
+      "schedule": [
+        "issue_ticket",
+        "enqueue",
+        "change_mode_revision",
+        "apply"
+      ],
+      "mutations": [
+        "mode_revision"
+      ],
+      "expected_disposition": "RejectedBindingMismatch",
+      "expected_native_sink_calls": 0
+    },
+    {
+      "case_id": "AL09-mission-attempt-change",
+      "family": "mission_invalidation",
+      "schedule": [
+        "issue_ticket",
+        "enqueue",
+        "advance_active_attempt",
+        "apply"
+      ],
+      "mutations": [
+        "m1_action_attempt"
+      ],
+      "expected_disposition": "RejectedStaleAttempt",
+      "expected_native_sink_calls": 0
+    },
+    {
+      "case_id": "AL10-authority-epoch-change",
+      "family": "authority_revocation",
+      "schedule": [
+        "issue_ticket",
+        "enqueue",
+        "advance_authority_epoch",
+        "apply"
+      ],
+      "mutations": [
+        "authority_epoch"
+      ],
+      "expected_disposition": "RejectedAuthorityStale",
+      "expected_native_sink_calls": 0
+    },
+    {
+      "case_id": "AL11-source-boot-change",
+      "family": "clock_invalidation",
+      "schedule": [
+        "issue_ticket",
+        "enqueue",
+        "restart_source_clock",
+        "apply"
+      ],
+      "mutations": [
+        "source_clock_boot_epoch"
+      ],
+      "expected_disposition": "RejectedBindingMismatch",
+      "expected_native_sink_calls": 0
+    },
+    {
+      "case_id": "AL12-correlation-commitment-change",
+      "family": "clock_invalidation",
+      "schedule": [
+        "issue_ticket",
+        "enqueue",
+        "replace_time_correlation",
+        "apply"
+      ],
+      "mutations": [
+        "time_correlation_commitment"
+      ],
+      "expected_disposition": "RejectedBindingMismatch",
+      "expected_native_sink_calls": 0
+    },
+    {
+      "case_id": "AL13-navigation-sequence-stale",
+      "family": "navigation_invalidation",
+      "schedule": [
+        "issue_ticket",
+        "enqueue",
+        "advance_navigation_source",
+        "apply"
+      ],
+      "mutations": [
+        "navigation_source_sequence"
+      ],
+      "expected_disposition": "RejectedBindingMismatch",
+      "expected_native_sink_calls": 0
+    },
+    {
+      "case_id": "AL14-exclusive-expiry-boundary",
+      "family": "lease_expiry",
+      "schedule": [
+        "issue_ticket",
+        "enqueue",
+        "set_now_to_expiry",
+        "apply"
+      ],
+      "mutations": [
+        "now_ticks_equals_expires_at"
+      ],
+      "expected_disposition": "RejectedExpired",
+      "expected_native_sink_calls": 0
+    },
+    {
+      "case_id": "AL15-expired-while-queued",
+      "family": "lease_expiry",
+      "schedule": [
+        "issue_ticket",
+        "enqueue",
+        "advance_now_beyond_expiry",
+        "apply"
+      ],
+      "mutations": [
+        "now_ticks_after_expires_at"
+      ],
+      "expected_disposition": "RejectedExpired",
+      "expected_native_sink_calls": 0
+    },
+    {
+      "case_id": "AL16-controller-restart",
+      "family": "controller_generation",
+      "schedule": [
+        "issue_ticket",
+        "enqueue",
+        "restart_controller",
+        "apply_old_queue_entry"
+      ],
+      "mutations": [
+        "controller_epoch"
+      ],
+      "expected_disposition": "RejectedAuthorityStale",
+      "expected_native_sink_calls": 0
+    },
+    {
+      "case_id": "AL17-ticket-replay",
+      "family": "one_shot_replay",
+      "schedule": [
+        "issue_ticket",
+        "apply",
+        "replay_same_ticket"
+      ],
+      "mutations": [
+        "ticket_reuse"
+      ],
+      "expected_disposition": "AppliedThenRejectedReplay",
+      "expected_native_sink_calls": 1
+    },
+    {
+      "case_id": "AL18-concurrent-duplicate",
+      "family": "one_shot_replay",
+      "schedule": [
+        "issue_ticket",
+        "submit_same_ticket_concurrently"
+      ],
+      "mutations": [
+        "concurrent_duplicate"
+      ],
+      "expected_disposition": "ExactlyOneAppliedOneRejectedReplay",
+      "expected_native_sink_calls": 1
+    },
+    {
+      "case_id": "AL19-request-id-content-conflict",
+      "family": "identity_conflict",
+      "schedule": [
+        "issue_ticket",
+        "apply_request_id",
+        "reuse_request_id_with_other_binding"
+      ],
+      "mutations": [
+        "ticket_digest"
+      ],
+      "expected_disposition": "RejectedConflict",
+      "expected_native_sink_calls": 1
+    },
+    {
+      "case_id": "AL20-delayed-previous-attempt-receipt",
+      "family": "receipt_lineage",
+      "schedule": [
+        "issue_attempt_1",
+        "complete_attempt_1",
+        "issue_attempt_2",
+        "deliver_attempt_1_receipt"
+      ],
+      "mutations": [
+        "m1_action_attempt"
+      ],
+      "expected_disposition": "RejectedStaleReceipt",
+      "expected_native_sink_calls": 0
+    },
+    {
+      "case_id": "AL21-queue-capacity",
+      "family": "backpressure",
+      "schedule": [
+        "fill_bounded_queue",
+        "enqueue_one_more"
+      ],
+      "mutations": [
+        "queue_capacity"
+      ],
+      "expected_disposition": "RejectedBackpressure",
+      "expected_native_sink_calls": 0
+    },
+    {
+      "case_id": "AL22-ambiguous-native-result",
+      "family": "unknown_effect",
+      "schedule": [
+        "issue_ticket",
+        "native_sink_may_apply",
+        "lose_native_reply",
+        "attempt_replay"
+      ],
+      "mutations": [
+        "native_reply_lost"
+      ],
+      "expected_disposition": "UnknownThenRejectedReplay",
+      "expected_native_sink_calls": 1
+    },
+    {
+      "case_id": "AL23-second-unfenced-queue",
+      "family": "bypass_detection",
+      "schedule": [
+        "apply_through_guarded_sink",
+        "forward_to_unfenced_queue"
+      ],
+      "mutations": [
+        "downstream_queue_bypass"
+      ],
+      "expected_disposition": "ConformanceFailure",
+      "expected_native_sink_calls": 0
+    }
+  ]
+}

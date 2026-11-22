@@ -1,10 +1,8 @@
 # Mobility action evidence contract v0.1
 
 **Tracking:** [MOBILITY-ACTION-EVIDENCE-001 #6503](https://github.com/Luminous-Dynamics/symtropy/issues/6503)  
-**Parent reference:** [MISSION-SUPERVISOR-001 #6498](https://github.com/Luminous-Dynamics/symtropy/issues/6498), [M1 reference PR #6499](https://github.com/Luminous-Dynamics/symtropy/pull/6499)  
+**Parent reference:** [MISSION-SUPERVISOR-001 #6498](https://github.com/Luminous-Dynamics/symtropy/issues/6498) / [M1 reference PR #6499](https://github.com/Luminous-Dynamics/symtropy/pull/6499)  
 **Status:** isolated Rust contract and deterministic unit tests; software research only.
-
-## Purpose
 
 This crate defines the narrow M2 hand-off between mission-level action proposals and a live mobility-platform context. It checks whether a previously proposed action is still applicable at commit time, and separately validates an independently observed physical outcome.
 
@@ -12,107 +10,88 @@ It does **not** issue actuator commands, authenticate identities, calculate cryp
 
 ## Paradigm: configuration-bound, expiring action commitments
 
-A mission action is not a timeless command. Its applicability is conditional on:
+A mission action is not a timeless command. Its applicability is conditional on exact platform identity/configuration, mission generation and active attempt, ODD/mode revisions, authority epoch/scope, monotonic clock/boot epoch, navigation profile/service/frame/source/freshness, and explicitly qualified source time.
 
-- exact platform identity and physical configuration commitment;
-- mission identity and generation;
-- exact M1 subgoal ID, active action ID, monotonic attempt number and expected M1 predicate ID;
-- operational design domain and mode revisions;
-- authority identity, epoch, scope and revocation state;
-- monotonic clock and boot epoch;
-- navigation profile, service level, frame, freshness and sequence;
-- source-acquisition time that is explicitly qualified into the live comparison clock.
+Navigation freshness is **not** computed by comparing an arbitrary provider timestamp or local receipt tick with the platform clock. The upstream Mycelix time/correlation owner must supply a qualified mapping into the exact live clock/boot epoch. Unknown, unqualified or missing source time fails closed; receipt time remains distinct.
 
-Navigation freshness is **not** computed by comparing an arbitrary provider timestamp or local receipt tick with the platform clock. The upstream Mycelix time/correlation owner must supply a qualified time mapping into the exact live clock/boot epoch. Cross-clock mappings require a correlation commitment. Unknown, unqualified or missing source time fails closed; receipt time remains a distinct fact and cannot silently stand in for source-acquisition time.
-
-The caller must re-evaluate the ticket against a newly acquired live context immediately before dispatch. A ticket is rejected at its expiry boundary (now >= expires_at), on boot/clock discontinuity, or when any bound configuration, ODD, mode, authority or mission generation changes.
+The caller must re-evaluate the ticket against a newly acquired live context immediately before dispatch. A ticket is rejected at its exclusive expiry boundary (now greater than or equal to expires_at), on boot/clock discontinuity, or when any bound configuration, ODD, mode, authority or mission generation changes.
 
 The contract returns **applicability**, not permission to actuate. A domain-specific, independently qualified runtime-assurance layer and local interlocks remain mandatory.
 
 ## Separate physical effect from transport
 
-A transport acknowledgement is not physical completion. The physical-outcome validator requires a receipt bound to:
+A transport acknowledgement is not physical completion. The physical-outcome validator requires evidence bound to the exact ticket/action attempt, platform configuration, expected effect predicate, observer identity and declared failure domains, source sequence/time, frame, calibration and freshness.
 
-- an externally computed ticket commitment and caller-computed canonical outcome content digest;
-- exact M1 mission/subgoal/action/attempt/predicate identity inherited from the bound ticket;
-- exact platform configuration and expected effect predicate;
-- independent observer role and source identity distinct from the executing controller;
-- monotonic source sequence and same clock/boot epoch;
-- an explicit freshness-policy clock/boot identity matching the ticket and outcome receipt;
-- observation frame, calibration and freshness;
-- a declared outcome (Satisfied, NoEffect, PartialEffect or Unknown).
+Observer independence is a ticket-bound policy commitment. M2 checks exact declared observer dependency paths and disjointness from executor failure domains, but cannot prove that the inventory is complete or truthful. Upstream platform/trust owners must authenticate those claims.
 
-Observer independence is now a ticket-bound policy commitment. The action ticket itself carries the exact expected observer dependency path and policy digest. The outcome policy declares the executor's failure-domain path and must repeat the exact observer path from the ticket. The receipt's observer path must exactly equal that policy path; it must not omit or add dependencies. Empty/duplicate/mismatched paths, policy-version mismatch, ticket/policy path disagreement, or any shared domain between observer and executor cause rejection. Different source IDs or an `IndependentSensor` label alone are not enough. The policy digest and dependency inventory must be authenticated by upstream platform/trust owners; this crate checks structural consistency and set separation but cannot prove that the inventory is complete or truthful.
-
-The result is one of:
-
-- **Accepted:** the expected effect has independent, matching evidence;
-- **RecoveryRequired:** an independent observer establishes no effect;
-- **ReconciliationRequired:** partial/unknown outcomes remain unresolved.
+Outcomes remain distinct:
+- **Accepted:** matching evidence establishes the expected effect.
+- **RecoveryRequired:** an independent observer establishes no effect.
+- **ReconciliationRequired:** partial/unknown effects remain unresolved.
 
 No branch automatically retries an action. Recovery requires the M1 supervisor's separately approved recovery path.
 
 ## Ownership and integration
 
 This crate references, but does not reimplement, the existing owners:
-
-- Mycelix Mobility Commons #3709: platform/configuration lifecycle;
-- Mycelix Position #416/#435/#458 and navigation claim v2 PR #6412: frame, qualified time and navigation service;
-- Mycelix #5899/#5904: provenance and common-mode dependencies;
-- Symthaea #3779/#10012/#10747/#11185: domain runtime assurance and authority boundaries;
-- Symtropy #3893: maritime ODD/mode applicability;
+- Mycelix Mobility Commons #3709: platform/configuration lifecycle.
+- Mycelix Position #416/#435/#458 and navigation claim v2 PR #6412: frame, qualified time and navigation service.
+- Mycelix #5899/#5904: provenance and common-mode dependencies.
+- Mycelix AGENT-009 #803: durable effect attempt and persistence/provider outcome classification.
+- Mycelix AGENT-010 #830: independent offline reconstruction of bounded authority and effect evidence; its report is not runtime authority.
+- Symthaea #3779/#10012/#10747/#11185: domain runtime assurance and authority boundaries.
+- Symtropy #3893: maritime ODD/mode applicability.
 - Symtropy #6498/#6499: mission/subgoal state machine.
 
 The M1 mission supervisor remains the owner of subgoal transitions, ambiguity holds, reconciliation and approved recovery. This crate does not duplicate its mission state machine.
 
-The action ticket now carries the exact M1 subgoal ID, action ID, attempt and expected predicate ID, and the live context must match the active M1 ticket at dispatch. The observer receipt also carries its caller-computed canonical content digest so it can be projected into M1's receipt envelope without substituting the ticket commitment for the observation digest. A future adapter must not cast `observed_at_ticks` to M1's `observed_at_ms`: it must obtain a qualified unit/basis conversion from Mycelix Position #435, and preserve unknown/unqualified source time rather than fabricating a timestamp.
-
-- [CDAAB research, industry comparisons and targets v0.2](CDAAB_RESEARCH_AND_TARGETS_v0.2.md): assurance-overlay benchmark protocol, matched baselines, evaluator integrity, non-compensatory metrics, L0–L5 evidence levels and target ledger.
 ## Benchmark protocol artefacts
 
-`BENCHMARK_PROTOCOL_v0.1.md` defines the L0–L5 CDAAB assurance ladder, matched baselines, non-compensatory metrics, statistical rules, version-pinned external comparators and claim ceiling.
+BENCHMARK_PROTOCOL_v0.1.md defines the L0–L5 CDAAB assurance ladder, matched baselines, non-compensatory metrics, statistical rules, version-pinned external comparators and claim ceiling.
 
-The `protocol/` directory provides machine-readable v0.1 schemas:
+CDAAB_RESEARCH_AND_TARGETS_v0.2.md compares external baselines and research targets. It does not claim Symtropy has run robot episodes or achieved any proposed target.
 
-- `action_ticket.schema.json`: the M2 ticket binds the exact expected observer dependency path and policy digest.
-- `scenario_manifest.schema.json`: controller-visible scenario inputs and budgets only. It explicitly excludes evaluator truth, hidden fault identities and expected outcomes.
-- `evaluation_plan.schema.json`: candidate/baseline build identities, frozen manifest/evaluator digests, sampling plan, cluster dimensions, metrics and mandatory early-stop rules.
-- `run_receipt.schema.json`: exact source/artifact/runtime/evaluator/scenario digests, per-episode event/evaluator receipt digests, raw numerator/denominator counts, exclusions and run status.
+CDAAB_RESEARCH_AND_TARGETS_v0.3.md adds the authority-linearizability benchmark definition, updated external comparisons, matched assurance ablations and explicit research targets.
 
-The evaluator's private truth set must be held separately from the controller-visible manifest. A JSON Schema syntax pass is not a semantic benchmark validation; the independent evaluator must additionally enforce numerator ≤ denominator, nonzero denominators for reported rates, valid cluster analysis, and that an incomplete/aborted/invalidated run cannot be labelled a pass. No hidden evaluator labels or private test answers are checked into the public controller-facing corpus.
+The protocol directory includes:
+- action_ticket.schema.json: action ticket and expected observer dependency path.
+- scenario_manifest.schema.json: controller-visible scenario inputs and budgets, without evaluator truth.
+- evaluation_plan.schema.json: preregistered builds, evaluator, sampling plan, cluster dimensions and metrics.
+- run_receipt.schema.json: source/artifact/runtime/evaluator/scenario digests and per-episode receipts.
+- authority_linearization_cases_v0_1.json and authority_linearization_cases.schema.json: 23 public positive/negative race fixtures for the native mutation boundary.
 
-The Rust module `protocol_semantics` now implements the contract-level cross-field checks for a typed run receipt against a preregistered `ExpectedRunBinding`: frozen plan/manifest/evaluator/build/runtime/scenario identities; independent evaluator identity and receipt digest; unique executed/excluded episode IDs; exact membership and scenario matching against the preregistered episode manifest for both executions and exclusions; transparent exclusion reasons whose machine-readable reason codes were preregistered; exact planned-episode ID/scenario accounting; unique metrics; nonzero denominators; numerator ≤ denominator; and all executed episodes complete before the run can be marked Complete. It is a validator for already parsed data, not a JSON parser or cryptographic authenticator. Cluster-aware confidence intervals and evaluator-truth isolation remain evaluator responsibilities.
+The evaluator's private truth set must be held separately from the controller-visible manifest. JSON Schema syntax validation is not complete semantic validation; the independent evaluator must also enforce complete planned-case accounting, numerator no greater than denominator, nonzero denominators, cluster-aware inference, and that incomplete/aborted/invalidated runs cannot be labelled a pass.
 
 ## Active assurance: observation is a control action
 
-`src/active_assurance.rs` implements a deterministic observation selector. It requires the candidate to target the same predicate, carries calibration/risk-model/time-correlation/independence commitments, rejects observer/executor common-cause overlap, and enforces residual-risk, latency, energy and cost ceilings as separate hard constraints. It returns the non-dominated Pareto frontier rather than a weighted aggregate. Budget-infeasible candidates are returned with their failed gates; dominated candidates are separately identified. If no candidate satisfies all gates, the result is Hold.
+src/active_assurance.rs implements a deterministic observation selector. It requires the candidate to target the same predicate, carries calibration/risk-model/time-correlation/independence commitments, rejects observer/executor common-cause overlap, and enforces residual-risk, latency, energy and cost ceilings as separate hard constraints. It returns the non-dominated Pareto frontier rather than a weighted aggregate. If no candidate satisfies all gates, the result is Hold.
 
 The selector accepts caller-supplied conservative risk forecasts; it does not compute, calibrate or authenticate them, execute a sensor query, or change mission state. A domain owner must validate the forecast model and source qualification before treating a returned frontier as decision evidence.
 
-## Tests
+## New work: authority-linearized mutation
 
-The unit-test corpus contains positive controls and table-driven negative controls for:
+The next integration issue is [MOBILITY-MUTATION-BOUNDARY-001 #6669](https://github.com/Luminous-Dynamics/symtropy/issues/6669). It addresses the remaining time-of-check/time-of-use gap between M2's pre-dispatch applicability check and a native controller's eventual application of a queued command.
 
-- valid admission;
-- configuration and mission-generation mismatch;
-- ODD/mode revision changes;
-- authority revocation, epoch and scope mismatch;
-- expiry and clock/boot discontinuity;
-- navigation profile, integrity, frame, freshness and sequence downgrade;
-- active M1 subgoal, action, attempt and expected-predicate mismatch;
-- unknown/unqualified/missing navigation source time, mismatched comparison clock and absent cross-clock correlation;
-- acknowledgement versus independent physical effect;
-- self-report and executor-as-observer rejection;
-- missing/duplicate/mismatched observer dependency paths, ticket-bound policy revision mismatch, and common-cause overlap with executor dependencies;
-- wrong ticket, configuration, predicate, calibration and frame;
-- stale, future-dated, low-confidence and out-of-order outcome evidence;
-- outcome freshness evaluated under a mismatched clock or boot epoch;
-- no-effect, partial-effect and unknown-outcome disposition;
-- active-assurance predicate mismatch, missing qualification commitment, common-cause observer overlap, budget failure, Pareto dominance and deterministic frontier ordering.
+The proposed shift is from **validated-before-queue** to **authority-linearized mutation**: the native application boundary must atomically compare the full current M1/M2/platform binding, check the controller generation and qualified monotonic lease, consume the exact action attempt once, and invoke the native sink. A wrapper mutex is not enough if a process, driver or second queue can bypass it.
 
-Two independent integration-test files compare the action/effect validators and active-assurance Pareto selection against separately expressed reference oracles. The active-assurance oracle exercises multiple risk/latency/energy/cost matrices and the no-feasible-candidate hold path.
+The design, dependency-free reference boundary, history checker and formal finite-state model are under:
+- AUTHORITY_MUTATION_BOUNDARY_V0.1.md
+- the sibling mobility-mutation-boundary directory
+- HISTORY_CHECKER_AND_TLA_MODEL_V0.1.md: operation-history linearizability checking, explicit PASS/FAIL/INCOMPLETE semantics, and a bounded TLA+/TLC protocol model.
 
-## Run
+The current reference now also models the M1 single-unresolved-mutation rule. Every native application occupies the pending slot until an independently qualified outcome is reconciled. Unknown retains the hold; NoEffect and PartialEffect require a typed recovery-permit reference bound to the failed attempt, authority epoch and approved plan digest. Recovery-permit IDs are consumed once.
+
+The reference model validates the shape and scope of the permit reference but does not authenticate it. M1 remains the authoritative permit issuer and allowlist owner.
+- AUTHORITY_MUTATION_BOUNDARY_V0.1.md
+- the sibling mobility-mutation-boundary directory.
+
+A separate follow-on [MOBILITY-VERIFIED-ACTION-COMPOSITION-001 #6698](https://github.com/Luminous-Dynamics/symtropy/issues/6698) investigates opt-in concurrent action sets. It reuses the existing resource/temporal reservation, space-time occupancy and motion-envelope owners (#3644/#5009/#5233/#5401), while retaining the single-unresolved-mutation default until a composition certificate proves non-interference.
+
+Mycelix integration is proposed through AGENT-009 #803 for durable effect classification and AGENT-010 #830 for independent offline receipt reconstruction. The verifier report must never be deserialized into a live action capability.
+
+The reference model is intentionally an in-process software conformance artifact. It does not authenticate binding commitments, fence external processes or hardware, survive restart, establish physical effect or provide safety-rated control.
+
+## Validation commands
 
 ```sh
 cargo fmt --manifest-path research/mobility-action-evidence/Cargo.toml -- --check
@@ -120,8 +99,6 @@ cargo test --manifest-path research/mobility-action-evidence/Cargo.toml --locked
 cargo clippy --manifest-path research/mobility-action-evidence/Cargo.toml --all-targets --locked -- -D warnings
 ```
 
-The crate is deliberately isolated from the main Symtropy workspace. The targeted workflow, not a broad workspace build that excludes this crate, is the relevant Rust validation path.
-
 ## Claim ceiling
 
-Passing these tests demonstrates only the deterministic behavior of this software contract for its declared inputs. It does not demonstrate sensor truth, cryptographic authentication, actual source independence, physical effect accuracy, real-time deadlines, vehicle safety, simulator fidelity, regulatory compliance or authorization to operate a road vehicle, vessel or aircraft.
+Passing M2 tests demonstrates only deterministic behavior of this software contract for declared inputs. It does not demonstrate sensor truth, cryptographic authentication, actual source independence, physical effect accuracy, real-time deadlines, vehicle safety, simulator fidelity, regulatory compliance or authorization to operate a road vehicle, vessel or aircraft.
