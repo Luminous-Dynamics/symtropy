@@ -137,7 +137,17 @@ A 2026 heterogeneous dual-robot SAT/geometric-validation TAMP study reports up t
 
 Reference: https://www.sciencedirect.com/science/article/abs/pii/S0921889026004446
 
-## 7. Proposed path to exceed the field
+## 7. Standards and deployment applicability (22 November 2026)
+
+The adapter is an assurance/evidence composition, not a safety controller or conformity-assessment tool. Standards apply according to the actual robot type, integration and market; use the relevant domain owner and a qualified safety professional to establish scope.
+
+- **Industrial robot and robot-cell integration:** ISO 10218-1:2025 (Edition 3) covers industrial robots as partly completed machinery; ISO 10218-2:2025 addresses industrial robot applications and robot cells, including integration, commissioning, operation, maintenance and decommissioning. The revised 2025 series includes updated mode and functional-safety requirements and incorporates collaborative-robot safety content formerly in ISO/TS 15066. References: https://www.iso.org/standard/73933.html and https://www.iso.org/standard/73934.html
+- **Driverless industrial trucks / AMRs:** ISO 3691-4:2023 remains the published Edition 2, but ISO/DIS 3691-4 Edition 3 is under development (enquiry voting closed 10 September 2026 and the draft is in the approval phase). This matters to indoor mobile robot deployments: the standard describes safety requirements and verification for driverless industrial trucks and their systems. References: https://www.iso.org/standard/83545.html and https://www.iso.org/standard/88615.html
+- **Service robots:** ISO 13482 Edition 2 is in final publication steps and will replace ISO 13482:2014. It applies to service robots in personal and professional/commercial contexts, with physical human-robot contact and functional safety in scope; it is not the industrial-robot or medical-robot standard. References: https://www.iso.org/standard/83498.html and https://www.iso.org/standard/53820.html
+
+For future evidence campaigns, add a domain-specific standard-to-test crosswalk: each in-scope requirement maps to a hazard/control owner, an application-boundary or physical-effect test, an evaluator oracle, evidence artifact and independent reviewer. The current adapter's sink-call tests cover only one software boundary. They do not establish risk reduction, protective-stop performance, safeguarding, safe human interaction, PL/SIL, system integration conformity, or compliance with any of these standards.
+
+## 8. Proposed path to exceed the field
 
 1. Reproduce the four application arms with exact same action traces and evaluator truth.
 2. Add evaluator-held mutation testing for every ticket-bound field and both clock domains.
@@ -149,6 +159,6 @@ Reference: https://www.sciencedirect.com/science/article/abs/pii/S09218890260044
 
 The competitive hypothesis is **assurance-preserving work conservation**: reject every stale/unauthorised mutation, retain holds whenever effects are unresolved, and reduce only the unnecessary work blocked by incomplete serial assumptions. It is not a claim that this adapter already outperforms a task-policy leaderboard or has physical-safety qualification.
 
-## 8. Claim ceiling
+## 9. Claim ceiling
 
 This benchmark plan can validate the deterministic composition over supplied owners and a mock/native callback. It cannot authenticate the authority provider, prove the provider's dependency inventory complete, fence bypassing processes, persist replay state across restart, prove driver/firmware behavior, establish physical outcomes, or imply HIL, physical safety, certification or regulatory approval.
