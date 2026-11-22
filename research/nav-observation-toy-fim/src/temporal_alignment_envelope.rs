@@ -161,8 +161,22 @@ pub fn inflate_student_t_protection_levels_by_temporal_bound(
     base: StudentTProtectionLevels,
     temporal: TemporalMisalignmentEnvelope,
 ) -> Result<TemporallyInflatedStudentTProtectionLevels, TemporalAlignmentError> {
-    let base_values = [base.overall_pl_m, base.longitudinal_pl_m, base.lateral_pl_m];
-    if !base_values.iter().all(|value| value.is_finite() && *value >= 0.0) {
+    let base_values = [
+        base.overall_pl_m,
+        base.longitudinal_pl_m,
+        base.lateral_pl_m,
+        base.maximum_eigenvalue,
+        base.degrees_of_freedom,
+        base.k_tir_2d,
+    ];
+    if !base_values.iter().all(|value| value.is_finite())
+        || base.overall_pl_m < 0.0
+        || base.longitudinal_pl_m < 0.0
+        || base.lateral_pl_m < 0.0
+        || base.maximum_eigenvalue < 0.0
+        || base.degrees_of_freedom <= 2.0
+        || base.k_tir_2d <= 0.0
+    {
         return Err(TemporalAlignmentError::InvalidBaseProtectionLevel);
     }
     let bias = temporal.total_position_misalignment_bound_m;
