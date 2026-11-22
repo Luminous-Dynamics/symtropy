@@ -12,6 +12,12 @@ That assumption fails for some EHD diagnostics. The 2026 needle-to-ring fan stud
 
 This is not a normal calibration offset. The diagnostic intervention changes the physical process. A flow field acquired with DEHS is not necessarily an unbiased observation of the unseeded EHD flow.
 
+## Research lineage
+
+The observer-effect benchmark builds on the earlier EHD-specific tracer-selection study by Hamdi, Havet, Rouaud and Tarlet (2014), *Comparison of different tracers for PIV measurements in EHD airflow*, DOI 10.1007/s00348-014-1702-z. That study compared PIV velocity profiles against a Pitot-tube reference and also monitored current–voltage behaviour and current evolution during seeding. It considered Stokes number, Archimedes number and electrical mobility ratio, and identified TiO2, SiO2 microballoons and incense smoke as suitable tracers within the investigated set.
+
+The 2014 work establishes that tracer suitability in EHD is not just a Stokes-number question. The 2026 study sharpens the issue by showing a large, persistent state-change mechanism for DEHS in its needle-to-ring configuration. These studies are not numerically pooled: their geometries, tracer conditions and source data differ.
+
 ## What the new reference qualifies
 
 The Rust reference compares three phases under a matched operating-condition identity:
