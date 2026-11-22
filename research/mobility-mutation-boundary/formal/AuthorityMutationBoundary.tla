@@ -233,6 +233,7 @@ ResolvePartial(nextBinding, nextAttempt, nextEpoch, permit) ==
     /\ permit \notin consumedPermits
     /\ PermitAttempt[permit] = pendingAttempt
     /\ PermitEpoch[permit] = authorityEpoch
+    /\ PermitPlanBinding[permit] = nextBinding
     /\ authorityBinding' = nextBinding
     /\ activeAttempt' = nextAttempt
     /\ authorityEpoch' = nextEpoch
