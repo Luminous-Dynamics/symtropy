@@ -16,7 +16,7 @@ This crate is a research kernel, not an operational collision-probability produc
 - Outward-rounded interval enclosures for affine images of finite axis-aligned cells.
 - A conservative norm lower bound and static collision-ball cell-exclusion predicate.
 - Deterministic longest-axis cell subdivision with stable child split paths.
-- Conservative standard-normal cell-mass upper bound from the global density ceiling (1/2)^d times cell volume.
+- Conservative standard-normal cell-mass upper bound using a cell-local density ceiling that tightens with distance from the nominal Gaussian mean.
 - A Gaussian Chernoff / union-bound estimate for mass outside the finite whitened cube, plus a residual-mass ledger for unresolved cells.
 - A budgeted affine-cell traversal that separately classifies cells wholly inside caller-declared chart boxes, cells proven event-free, and unresolved cells outside chart coverage.
 - Dense-grid adversarial tests checking sampled affine images remain inside the interval enclosure and sampled norms remain above the reported lower bound.
@@ -39,7 +39,7 @@ cargo clippy --locked --manifest-path benchmarks/orbital-conjunction/rare-event-
 
 The package has its own Cargo workspace and does not require the full Symtropy/Bevy workspace.
 
-The current authored test corpus contains 86 unit tests across the analytic probability, affine coverage / residual-mass, weighted-statistics, and Bernoulli sequential-inference modules. Only a completed exact-head workflow establishes that a particular revision passed them.
+The current authored test corpus contains 87 unit tests across the analytic probability, affine coverage / residual-mass, weighted-statistics, and Bernoulli sequential-inference modules. Only a completed exact-head workflow establishes that a particular revision passed them.
 
 ## Important limitations
 
