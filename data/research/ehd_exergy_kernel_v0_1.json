@@ -59,7 +59,8 @@
     "irreversible_balance_reports_exergy_destruction_and_entropy_generation",
     "materially_negative_exergy_destruction_is_rejected",
     "tiny_negative_residual_is_retained_and_marked_as_roundoff",
-    "offline_reference_self_check"
+    "offline_reference_self_check",
+    "negative_work_input_is_rejected_with_boundary_field_identity"
   ],
   "limitations": [
     "neutral_ideal_gas_only",
