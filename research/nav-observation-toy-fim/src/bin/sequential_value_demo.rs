@@ -44,7 +44,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         candidate("c-high-one-step-value", two, 0.70, 0.04, 0.8),
     ];
     let belief = BinaryBelief::new(0.9)?;
-    let budget = ResourceBudget { energy_units: 2, latency_ticks: 2, bandwidth_units: 1 };
+    let budget = ResourceBudget { energy_units: 2, latency_ticks: 2, bandwidth_units: 2 };
     let loss = DecisionLoss::zero_one();
 
     let exact = exact_horizon_two_plan(&candidates, belief, budget, loss)?
