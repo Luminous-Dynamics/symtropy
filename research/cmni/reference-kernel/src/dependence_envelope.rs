@@ -339,6 +339,58 @@ mod tests {
     }
 
     #[test]
+    fn exact_envelope_contains_independently_assembled_dense_grid() {
+        let problem = interior_extremum_problem();
+        let envelope =
+            bound_two_source_dependence(&problem).expect("bounded dependence envelope");
+        let [sigma1, sigma2] = problem.source_standard_deviations;
+        let [[j11, j12], [j21, j22]] = problem.source_jacobians;
+        let [h1, h2] = problem.observation_sensitivities;
+        let [rho_min, rho_max] = problem.correlation_bounds;
+
+        for step in 0..=10_000 {
+            let rho = rho_min + (rho_max - rho_min) * step as f64 / 10_000.0;
+            let source_covariance = [
+                [sigma1 * sigma1, rho * sigma1 * sigma2],
+                [rho * sigma1 * sigma2, sigma2 * sigma2],
+            ];
+            let jacobians = [[j11, j12], [j21, j22]];
+            let mut covariance = [[0.0; 2]; 2];
+            for row in 0..2 {
+                for column in 0..2 {
+                    covariance[row][column] = if row == column {
+                        problem.independent_observation_noise_variances[row]
+                    } else {
+                        0.0
+                    };
+                    for source_row in 0..2 {
+                        for source_column in 0..2 {
+                            covariance[row][column] += jacobians[row][source_row]
+                                * source_covariance[source_row][source_column]
+                                * jacobians[column][source_column];
+                        }
+                    }
+                }
+            }
+            let determinant =
+                covariance[0][0] * covariance[1][1] - covariance[0][1] * covariance[1][0];
+            let numerator = h1 * h1 * covariance[1][1]
+                - h1 * h2 * covariance[0][1]
+                - h2 * h1 * covariance[1][0]
+                + h2 * h2 * covariance[0][0];
+            let information = numerator / determinant;
+            assert!(
+                information >= envelope.parameter_information_bounds[0] - 1.0e-10,
+                "information {information} below envelope at rho={rho}"
+            );
+            assert!(
+                information <= envelope.parameter_information_bounds[1] + 1.0e-10,
+                "information {information} above envelope at rho={rho}"
+            );
+        }
+    }
+
+    #[test]
     fn malformed_dependence_intervals_and_nonpositive_noise_fail_closed() {
         let mut problem = interior_extremum_problem();
         problem.correlation_bounds = [-1.1, 0.5];
