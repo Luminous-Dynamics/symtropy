@@ -1,6 +1,6 @@
 # EHD-PIV-UQ-001 — spatially resolved PIV quality, uncertainty coverage and PIV/LPT reconciliation
 
-**Status:** summary-level Rust reference and tests authored; Rust execution and exact-head CI pending  
+**Status:** summary-level Rust reference and 24 authored unit tests across classifier, probability-score and diagnostic-comparison modules; Rust execution and exact-head CI pending  
 **Published classifier comparator:** PIVPostProcess, *Experiments in Fluids* (2026), DOI 10.1007/s00348-026-04319-7; code DOI 10.5281/zenodo.18794853. The implementation now reports both class polarities and macro metrics so score comparisons cannot silently depend on positive-class choice.  
 **EHD multimodal comparator:** Pöppe, Rich & Kriegseis, LXLASER 2026, KIT institutional record 1000197349
 
@@ -27,6 +27,18 @@ The internal confusion-count convention treats an invalid vector as the positive
 For fair comparison, the evaluator now reports both invalid-class and valid-class precision/recall/F1, macro-F1, balanced accuracy, Matthews correlation coefficient (MCC), false valid-vector removal and valid retention. A published single F1 score must not be compared directly until its positive-class convention and underlying confusion matrix are aligned. Prospective gates are invalid-class F1 ≥ 0.97, invalid-vector recall ≥ 0.90 and false valid-vector removal ≤ 1%. Those are targets, not results.
 
 A vector cleaner that improves F1 by removing a coherent near-wall shear layer may be scientifically worse. The false-removal rate is therefore explicit.
+
+## 1b. Probability scores: compare more than one threshold
+
+The PIVPostProcess paper reports ROC-AUC 0.998 and log loss 0.037 in addition to F1. Confusion-count metrics alone cannot reproduce either statistic because they discard the predicted probabilities and ranking. The new `piv_classifier_scores.rs` module evaluates the supplied probability that each vector is invalid and reports:
+
+- tie-aware ROC-AUC using average ranks;
+- binary log loss in nats/sample, clipping exact 0/1 probabilities at 1e-15 only to keep finite scores;
+- Brier score as a strictly proper probability score;
+- ten-bin reliability data and expected calibration error (ECE) as descriptive calibration diagnostics;
+- overall and per-region reports for bulk, near-wall, shear layer and wake.
+
+The benchmark must compare probabilities on exactly the same vector labels and holdout cohort. Report ROC-AUC and proper scores before selecting a threshold; then report both class-specific F1, macro-F1, balanced accuracy, MCC, false-valid removal and retention. ECE is binning-dependent and must never replace log loss or Brier score. A one-class region has undefined ROC-AUC, which remains explicitly unavailable rather than being coerced to zero.
 
 ## 2. Velocity uncertainty: calibrate by physical region
 
@@ -65,6 +77,7 @@ Freeze the source data, masks, hyperparameters and annotation reference. Add ful
 
 For every method report:
 - valid-class and invalid-class precision/recall/F1, macro-F1, balanced accuracy and MCC on the same manually annotated vector labels;
+- tie-aware ROC-AUC, log loss, Brier score and reliability diagrams on the same probability labels and frozen test cohort;
 - false valid-vector removal and retention;
 - spatially resolved interval coverage, width and proper score where full distributions are available;
 - vector-field completeness and masked area by region;
