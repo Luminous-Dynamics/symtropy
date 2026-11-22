@@ -63,7 +63,7 @@ The cross-owner evidence must bind:
 - effect evidence for the exact logical effect and exact old attempt;
 - observer profile and separately declared observer/effect failure domains;
 - matching M1 resolution for that exact old attempt;
-- when the prior attempt is authoritatively NoEffect, a one-shot recovery permit bound to the failed attempt, logical effect, new attempt, prior authority epoch and next binding commitment;
+- when the prior attempt is authoritatively NoEffect, an owner-issued recovery-permit reference bound to the failed attempt, logical effect, new attempt, prior authority epoch and next binding commitment. The M1/authority owner must authenticate and consume it exactly once at the real native application boundary, including across restart; this reference contract only checks binding consistency and does not enforce one-shot use;
 - a new ticket bound to the current boot/controller epoch, with current M1 authority, M2 applicability, and equal non-zero ticket/live commitments.
 
 ### Decision semantics
@@ -71,17 +71,18 @@ The cross-owner evidence must bind:
 | Exact old-attempt evidence | Decision | What it does not mean |
 |---|---|---|
 | Missing or Unknown effect | Hold / reconcile only | No retry, no inferred no-effect |
-| Applied + matching M1 effect-predicate resolution | Effect predicate observed | Not task success, not permission for another effect |
-| NoEffect + matching M1 NoEffect resolution + recovery permit + fresh ticket + new epochs + current owner claims | Fresh-attempt candidate | Not a dispatch capability; native gate must revalidate |
+| Applied + matching M1 effect-predicate resolution + Committed/DefinitelyNotCommitted | Effect predicate observed | Not task success, not permission for another effect |
+| Applied + matching M1 effect-predicate resolution + IndeterminateCommit | Effect predicate observed; persistence unresolved | The physical observation is preserved, but no fresh attempt is assessed |
+| NoEffect + matching M1 resolution + permit + fresh ticket + new epochs + current owners + resolved persistence | Fresh-attempt candidate | Not a dispatch capability; native gate must revalidate and consume permit |
+| NoEffect + IndeterminateCommit persistence | Hold | Local durable attempt must be reconciled before any retry assessment |
 | Partial | Component quarantine / hold | No blind replay or whole-task rollback |
 | Disputed / contradictory | Integrity hold | No automatic repair or winner selection |
-| Any effect with IndeterminateCommit persistence | Hold | Do not bypass uncertain local durable state |
 
-The bounded Rust API returns only Hold, EffectPredicateObserved or FreshAttemptCandidate. In particular, it has no native-sink function. FreshAttemptCandidate is a precondition assessment, not authorization. The normal application adapter must revalidate M1/M2 and the native queue fence at the real application seam.
+The bounded Rust API returns Hold, EffectPredicateObserved, EffectPredicateObservedPersistenceUnresolved or FreshAttemptCandidate. In particular, it has no native-sink function. EffectPredicateObservedPersistenceUnresolved preserves the independently supported physical fact while making local persistence uncertainty visible; it is not permission to release another mutation. FreshAttemptCandidate is a precondition assessment, not authorization. The normal application adapter must revalidate M1/M2, consume the owner-issued recovery permit exactly once, and recheck the native queue fence at the real application seam.
 
 ### Why local commit classification is a separate axis
 
-Mycelix's shared commit vocabulary remains Committed, DefinitelyNotCommitted and IndeterminateCommit. This package does not reproduce its store transaction classifier or re-read procedure. It uses that verdict only as an orthogonal condition: IndeterminateCommit blocks; Committed and DefinitelyNotCommitted do not resolve the physical effect. The independent observer/effect owner must still classify the exact action attempt.
+Mycelix's shared commit vocabulary remains Committed, DefinitelyNotCommitted and IndeterminateCommit. This package does not reproduce its store transaction classifier or re-read procedure. The verdict is an orthogonal axis: IndeterminateCommit blocks a NoEffect fresh-attempt assessment, but it does not erase an independently supported Applied observation. That combination returns EffectPredicateObservedPersistenceUnresolved and still grants no new-action permission. Committed and DefinitelyNotCommitted do not resolve physical effect. The independent observer/effect owner must still classify the exact action attempt.
 
 ### Composition, not duplication
 
