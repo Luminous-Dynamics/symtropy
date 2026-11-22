@@ -28,6 +28,7 @@ The differentiator is not a lower Monte Carlo count on an easy Gaussian case. It
 | Wang, Katsevich & Tong, [Geometry-Informed Importance Sampling for Rare Events](https://arxiv.org/abs/2610.27442), 2026 | Uses local event-boundary geometry near an instanton and adds a component for event mass missed by the local approximation | Local regularity and one-sidedness assumptions do not automatically cover mode unions, switching minimizers, or arbitrary nonsmooth trajectory events |
 | Chakroborty, Dhulipala & Shields, [Covariance-Free Bifidelity Control Variates](https://doi.org/10.1137/24M1658498), 2025 | Gives a bifidelity importance-sampling comparator that avoids directly estimating a high/low estimator covariance | Its random-ratio finite-sample behavior must be reproduced and measured; covariance-free does not mean variance-free or automatically unbiased |
 | Sztamfater-Garcia et al., [An approximate model for computation of in-orbit collision probabilities using importance sampling](https://doi.org/10.1016/j.asr.2024.12.074), 2025 | A directly relevant orbital conjunction importance-sampling comparator, using a surrogate / full-dynamics correction strategy in LEO and GEO cases | Its reported cases do not establish performance on every trajectory geometry, multimodal uncertainty model, or operational collision-risk workflow |
+| Sant, Ketzner & Elgohary, [Monte Carlo Conjunction Analysis Using Importance Sampling and Taylor Polynomial Expansion](https://www.space-flight.org/docs/2025_summer/2025_ASC_Program_Full_2025-08-09.pdf), AAS 25-807, 2025 | Taylor-polynomial surrogate dynamics with generalized dual numbers and cross-entropy importance sampling; conference abstract reports 53 real NASA CARA cases | Full paper, exact expansion/remainder strategy and case access must be audited; published conference claims are not independently reproduced |
 | Ketzner & Elgohary, [Monte Carlo Orbital Conjunction Analysis Using the Cross-Entropy Method](https://doi.org/10.2514/1.G009204), 2026 | Direct orbital-domain cross-entropy importance sampling with Gaussian and GMM proposals; the paper reports short-/long-duration and repeating-encounter studies | Published speedups and accuracy must be independently reproduced under matched event definitions, full cost accounting, frozen evaluation and independent coverage tests |
 
 **New competitive baseline:** Ketzner & Elgohary (2026) makes CE-trained Gaussian/GMM importance sampling a required orbital comparator, not an optional generic baseline. Their abstract reports orders-of-magnitude faster convergence and hours-to-seconds runtimes in the studied cases. We must obtain the full paper / supplements, reproduce the proposal-training and evaluation design, account for all training trajectories, and independently challenge mode coverage before making any speed claim.
@@ -261,7 +262,9 @@ NASA CARA's public toolset is the mandatory first external comparator, not a str
 - EphemerisPc on CCSDS OEM data, including encounter segments and Nc, PcMin, PcMax;
 - covariance-realism assessment.
 
-The 2025 orbital importance-sampling paper is another mandatory direct comparator. The 2026 Ketzner–Elgohary CE-Monte-Carlo method is also a **mandatory direct orbital comparator**: Gaussian and GMM proposal families, cross-entropy adaptation, full-dynamics evaluation, short/long-duration cases and repeating conjunctions must be reproduced or independently reconstructed from the paper. If source code or exact scenarios are not publicly accessible, state that the baseline is an independent reconstruction rather than an exact reproduction. Separate CE training evaluations from frozen-proposal evaluation and compare all high-fidelity calls, not just the final sample count. Generic rare-event methods (FORM/SORM, subset simulation, defensive IS) remain useful additional baselines on synthetic truth fixtures.
+The 2025 Sztamfater-Garcia surrogate/full-dynamics IS paper and the 2025 AAS 25-807 Taylor-surrogate + CE-IS paper are mandatory direct orbital comparators. The latter reports a 53-case CARA evaluation and Taylor models built with generalized dual numbers; its exact expansion and remainder strategy must be audited. Reproduction is tracked in [#6799 — ORBITAL-TAYLOR-CE-REPRODUCTION-001](https://github.com/Luminous-Dynamics/symtropy/issues/6799).
+
+The 2026 Ketzner–Elgohary CE-Monte-Carlo method is another **mandatory direct orbital comparator**: Gaussian and GMM proposal families, cross-entropy adaptation, full-dynamics evaluation, short/long-duration cases and repeating conjunctions must be reproduced or independently reconstructed from the paper. If source code or exact scenarios are not publicly accessible, state that the baseline is an independent reconstruction rather than an exact reproduction. Separate CE training evaluations from frozen-proposal evaluation and compare all high-fidelity calls, not just the final sample count. Generic rare-event methods (FORM/SORM, subset simulation, defensive IS) remain useful additional baselines on synthetic truth fixtures.
 
 The August 2026 NASA Handbook should be used as the current published operational-method reference. It continues to frame Pc as the foundational likelihood quantity and describes 3D-Pc as expected to be recommended after final NASA validation; confirm the current released CARA code and validation status before assigning any formal industry ranking.
 
@@ -313,6 +316,16 @@ Pin every used file individually by upstream commit and cryptographic digest. In
 
 For synthetic truth, use analytic fixtures first and independent high-budget Monte Carlo / quadrature where appropriate. Real conjunction data do not provide observed collision outcomes at the rare probabilities being estimated; agreement with another Pc calculation is not real-world frequency calibration.
 
+### Public TLE/GP screening corpora — event replay, not Pc ground truth
+
+Two potentially useful data sources have different evidentiary roles:
+
+- **CelesTrak SOCRATES / SOCRATES Plus.** CelesTrak states that it screens active payloads against public GP/TLE catalogues three times daily, using STK/CAT and SGP4 in STK 12.2, over a seven-day horizon and a 5 km TCA threshold. Its output includes minimum range and a conservative maximum-probability quantity. This is a useful source for screening and event-identity stress tests, but its TLE-based maximum probability is not an operational CDM-based Pc reference.
+- **Mendeley `conjunctions_data`, DOI 10.17632/yfcn6b52yz.1.** The dataset description reports 10,960 LEO conjunctions from 2022, with TLEs, TLE-to-TCA propagation spans, miss distance and relative velocity, and declares CC BY 4.0. It can support kinematic reconstruction and SGP4 regression fixtures, not covariance/Pc calibration.
+- **Hugging Face `juliensimon/satellite-conjunctions`.** Its dataset card describes a daily historical derivative from SOCRATES and reports over one million deduplicated near misses. Its `max_probability` is explicitly a screening upper bound, not operational Pc. The card requires agreeing to access conditions and declares CelesTrak usage terms; provenance and permission for any derivative use/redistribution remain under review.
+
+Admission is tracked in [#6800 — ORBITAL-PUBLIC-CORPUS-ADMISSION-001](https://github.com/Luminous-Dynamics/symtropy/issues/6800). Until each snapshot has byte-level hashes, provenance, licence terms and transformation history pinned, none is an admitted benchmark asset. These corpora may score screening capture, event identity, TLE age, late/stale data handling, and trajectory replay only. They may not score Pc calibration or real collision frequency in the absence of observed collision outcomes.
+
 ## 8. Benchmark ladder
 
 | Tier | Corpus | Main question |
@@ -323,6 +336,7 @@ For synthetic truth, use analytic fixtures first and independent high-budget Mon
 | B3 — trajectory events | Full-window first contact, multiple minima, risk peak away from TCA, merged encounter segments, full ephemeris, high-fidelity relative propagation | Does the estimator handle the actual time-dependent event? |
 | B4 — model / multi-fidelity | Low/high fidelity ablations, residual correction, CVIS finite-sample study, covariance misspecification, heavy-tailed / mixture truth, alternative force models | Is the qualified estimate robust to modelling choices and efficient at matched fidelity? |
 | B5 — evidence timeline / decision | Ordered CDM histories, late/missing/duplicate products, covariance and model revisions, time-to-TCA, consequence / policy inputs | Does the system preserve event identity, explain evidence revisions, and support accountable decisions without claiming calibration from unlabeled outcomes? |
+| B6 — public screening replay | Rights-cleared TLE/GP snapshots, event-key histories, TLE epoch ages, SGP4 regression and failed-propagation controls | Can we replay candidate screening and data-quality histories without treating conservative screening fields as operational Pc? |
 
 Data splits must be by complete conjunction / physical encounter and, where relevant, by satellite, event family or model regime. Adjacent or overlapping arcs from one event cannot be split across train and test and then counted as independent evidence.
 
@@ -385,7 +399,8 @@ These are benchmark gates, not product guarantees. In particular, 95% confidence
 **P0 — benchmark contract:** this charter, source inventory, ownership and claim ceiling.  
 **P1 — analytic Rust kernel:** Gaussian tails / half-spaces, covariance validation, stable log densities, normalized mixture density, weighted indicator and deterministic known answers. Keep it dependency-light and independent of Bevy.  
 **P2 — frozen proposal contract:** defensive mixture, full-density evaluation, sample provenance and negative controls.  
-**P3 — industry reproduction:** reproduce the full CARA escalation policy and the 2025 surrogate-corrected orbital IS baseline; separately reproduce / reconstruct the 2026 Ketzner–Elgohary CE-Gaussian/GMM baseline, accounting for every training and evaluation trajectory.  
+**P3 — industry reproduction:** reproduce the full CARA escalation policy and the 2025 surrogate-corrected orbital IS baseline; separately reproduce / reconstruct the 2025 AAS Taylor-surrogate/CE-IS method and the 2026 Ketzner–Elgohary CE-Gaussian/GMM baseline, accounting for every training and evaluation trajectory.
+**P3a — public corpus admission:** rights/provenance audit and frozen TLE/GP screening and replay fixtures; no operational Pc accuracy scoring.  
 **P4 — independent coverage and sequential evidence:** budgeted residual-mass traversal, adversarial omitted-mode fixtures, frozen evaluation streams and valid confidence sequences.  
 **P5 — proposal portfolio:** implement constrained GMM / CFI, geometry-informed charts, and CVIS replication as separately testable candidates.  
 **P6 — trajectory and timeline evidence:** consume upstream trajectory products, implement pathwise first-contact fixtures and replay ordered CDM histories.  
@@ -399,7 +414,11 @@ The first executable code slice should be P1. It can be developed and validated 
 - Wang, Katsevich & Tong (2026), [Geometry-Informed Importance Sampling for Rare Events](https://arxiv.org/abs/2610.27442).
 - Chakroborty, Dhulipala & Shields (2025), [Covariance-Free Bifidelity Control Variates for Rare Event Simulation](https://doi.org/10.1137/24M1658498).
 - Sztamfater-Garcia et al. (2025), [An approximate model for computation of in-orbit collision probabilities using importance sampling](https://doi.org/10.1016/j.asr.2024.12.074).
+- Sant, Ketzner & Elgohary (2025), [AAS 25-807: Monte Carlo Conjunction Analysis Using Importance Sampling and Taylor Polynomial Expansion](https://www.space-flight.org/docs/2025_summer/2025_ASC_Program_Full_2025-08-09.pdf).
 - Ketzner & Elgohary (2026), [Monte Carlo Orbital Conjunction Analysis Using the Cross-Entropy Method](https://doi.org/10.2514/1.G009204).
+- CelesTrak, [SOCRATES Plus methodology](https://celestrak.org/SOCRATES/).
+- Campiti (2023), [conjunctions_data, Mendeley Data](https://doi.org/10.17632/yfcn6b52yz.1).
+- Simon (2026), [Satellite Conjunctions / SOCRATES Near-Misses](https://huggingface.co/datasets/juliensimon/satellite-conjunctions).
 - NASA (August 2026), [Spacecraft Conjunction Assessment and Collision Avoidance Best Practices Handbook, Volume 1](https://www.nasa.gov/wp-content/uploads/2026/08/ca-handbook-volume1-nasa-sp-20205011318-rev2-vol1.pdf).
 - Elkantassi et al. (2025), [Statistical Inference on the Miss Distance Compared to Collision Probability for Conjunction Analysis](https://ntrs.nasa.gov/citations/20250002148).
 - NASA, [CARA Analysis Tools](https://github.com/nasa/CARA_Analysis_Tools).
