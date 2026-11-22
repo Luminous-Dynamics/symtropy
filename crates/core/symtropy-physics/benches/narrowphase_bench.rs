@@ -10,9 +10,7 @@
 use criterion::{BatchSize, Criterion, black_box, criterion_group, criterion_main};
 use nalgebra::SVector;
 use symtropy_math::{HalfSpace, HyperBox, Point, Sphere, Transform};
-use symtropy_physics::{
-    BodyHandle, BodyType, NarrowphaseStats, PhysicsWorld, RigidBody,
-};
+use symtropy_physics::{BodyHandle, BodyType, NarrowphaseStats, PhysicsWorld, RigidBody};
 
 const DT: f64 = 1.0 / 60.0;
 const FRAMES_PER_SAMPLE: usize = 32;
@@ -142,13 +140,16 @@ fn bench_analytic_box_plane_narrowphase(c: &mut Criterion) {
 }
 
 fn bench_gjk_rejected_aabb_candidates(c: &mut Criterion) {
-    c.bench_function("narrowphase_gjk_rejected_aabb_candidates_32x32_steps", |bench| {
-        bench.iter_batched(
-            || separated_sphere_aabb_candidates(32),
-            |world| black_box(run_window(world)),
-            BatchSize::SmallInput,
-        );
-    });
+    c.bench_function(
+        "narrowphase_gjk_rejected_aabb_candidates_32x32_steps",
+        |bench| {
+            bench.iter_batched(
+                || separated_sphere_aabb_candidates(32),
+                |world| black_box(run_window(world)),
+                BatchSize::SmallInput,
+            );
+        },
+    );
 }
 
 criterion_group!(
