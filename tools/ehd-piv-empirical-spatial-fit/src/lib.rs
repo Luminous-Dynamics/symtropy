@@ -42,6 +42,10 @@ pub struct FitConfig {
     pub fit_config_id: String,
     pub protocol_fingerprint: String,
     pub reference_contract_id: String,
+    /// External evidence identity for the reference instrument/model's own
+    /// uncertainty assessment. The fitter does not infer or remove reference
+    /// uncertainty from the measured-minus-reference residuals.
+    pub reference_uncertainty_assessment_id: String,
     /// Predeclared isotropic range candidates in metres, strictly increasing.
     /// This list must be frozen before inspecting the validation cohort.
     pub length_scale_candidates_m: Vec<f64>,
@@ -59,6 +63,7 @@ pub struct EmpiricalSpatialFit {
     pub fit_config_id: String,
     pub protocol_fingerprint: String,
     pub reference_contract_id: String,
+    pub reference_uncertainty_assessment_id: String,
     pub coordinates_m: Vec<[f64; 3]>,
     pub length_scale_candidates_m: Vec<f64>,
     pub maximum_validation_correlation_error: f64,
@@ -93,6 +98,7 @@ pub struct SpatialFitValidation {
     pub fit_config_id: String,
     pub fit_protocol_fingerprint: String,
     pub reference_contract_id: String,
+    pub reference_uncertainty_assessment_id: String,
     pub calibration_manifest_sha256: String,
     pub fitted_length_scale_m: f64,
     pub fitted_spatial_component_covariance_m2_s2: Matrix3,
@@ -249,6 +255,7 @@ fn validate_fit_record(fit: &EmpiricalSpatialFit) -> Result<(), SpatialFitError>
         || fit.fit_config_id.trim().is_empty()
         || fit.protocol_fingerprint.trim().is_empty()
         || fit.reference_contract_id.trim().is_empty()
+        || fit.reference_uncertainty_assessment_id.trim().is_empty()
         || fit.calibration_acquisition_count < MIN_INDEPENDENT_ACQUISITIONS
         || fit.calibration_acquisition_ids.len() != fit.calibration_acquisition_count
         || fit.calibration_reference_evidence_ids.len() != fit.calibration_acquisition_count
@@ -452,6 +459,9 @@ fn validate_config(config: &FitConfig) -> Result<(), SpatialFitError> {
     if config.reference_contract_id.trim().is_empty() {
         return Err(SpatialFitError::EmptyIdentity { field: "reference_contract_id" });
     }
+    if config.reference_uncertainty_assessment_id.trim().is_empty() {
+        return Err(SpatialFitError::EmptyIdentity { field: "reference_uncertainty_assessment_id" });
+    }
     let candidates = &config.length_scale_candidates_m;
     if candidates.len() < 3
         || !candidates.iter().all(|v| v.is_finite() && *v > 0.0)
@@ -580,6 +590,7 @@ pub fn fit_spatial_error_kernel(
         fit_config_id: config.fit_config_id.clone(),
         protocol_fingerprint: config.protocol_fingerprint.clone(),
         reference_contract_id: config.reference_contract_id.clone(),
+        reference_uncertainty_assessment_id: config.reference_uncertainty_assessment_id.clone(),
         coordinates_m: coordinates.clone(),
         length_scale_candidates_m: config.length_scale_candidates_m.clone(),
         maximum_validation_correlation_error: config.maximum_validation_correlation_error,
@@ -789,6 +800,7 @@ pub fn validate_spatial_error_kernel(
         fit_config_id: fit.fit_config_id.clone(),
         fit_protocol_fingerprint: fit.protocol_fingerprint.clone(),
         reference_contract_id: fit.reference_contract_id.clone(),
+        reference_uncertainty_assessment_id: fit.reference_uncertainty_assessment_id.clone(),
         calibration_manifest_sha256: fit.calibration_manifest_sha256.clone(),
         fitted_length_scale_m: fit.length_scale_m,
         fitted_spatial_component_covariance_m2_s2: fit.spatial_component_covariance_m2_s2,
@@ -828,6 +840,7 @@ impl SpatialFitValidation {
             || self.fit_config_id != fit.fit_config_id
             || self.fit_protocol_fingerprint != fit.protocol_fingerprint
             || self.reference_contract_id != fit.reference_contract_id
+            || self.reference_uncertainty_assessment_id != fit.reference_uncertainty_assessment_id
             || self.calibration_manifest_sha256 != fit.calibration_manifest_sha256
             || self.fitted_length_scale_m != fit.length_scale_m
             || self.fitted_spatial_component_covariance_m2_s2 != fit.spatial_component_covariance_m2_s2
@@ -921,6 +934,7 @@ mod tests {
             fit_config_id: "frozen-fit-config-v1".into(),
             protocol_fingerprint: "piv-grid-32-overlap-75-v1".into(),
             reference_contract_id: "independent-reference-contract-v1".into(),
+            reference_uncertainty_assessment_id: "reference-uncertainty-assessment-001".into(),
             length_scale_candidates_m: vec![1.0, 1.5, 2.0, 2.5, 3.0, 4.0],
             maximum_validation_correlation_error: 0.10,
             negative_lobe_z_threshold: 1.96,
