@@ -414,7 +414,11 @@ The synthetic fixture uses four pack jobs, two charger channels and six 15-minut
 
 The 8,000 W import cap less 1,000 W non-charging load gives 7,000 W/slot charging headroom. Expected search count is 54 and total declared grid input is 18,450,000 watt-seconds. The workflow asserts the exact assignment, interval boundaries, power, energy-accounting values and no-authority flags.
 
-The new `battery_charge_queue_screen` CLI, strict JSON schema and fixture are integrated into the EV Passenger Cost Frontier workflow. This exact scheduler does not yet model variable charge curves, efficiency, battery thermal evolution, degradation, charger faults, demand charges or stochastic grid uncertainty. It does not energize a pack or release it to service; the event journal #6700 remains the state transition/reconciliation owner.
+Charger max power and compatibility digests are carried inside a distinct time-bound capability evidence envelope; charger availability has a separate horizon-valid envelope. Grid import caps and non-charging site loads are nested inside a site-bound evidence record for each full slot. The prototype validates identities, configuration digests and time windows but does not cryptographically authenticate these evidence payloads or verify them against an independent meter.
+
+The new `battery_charge_queue_screen` CLI, strict JSON schema and fixture are integrated into the EV Passenger Cost Frontier workflow. The combined battery service, journal, occupancy and charger queue sources contain **51 Rust test definitions** (42 in the battery service module and 9 in the charger queue module). This is a source inventory only; current exact-head compile, format and test status remains pending GitHub Actions verification.
+
+This exact scheduler does not yet model variable charge curves, efficiency, battery thermal evolution, degradation, charger faults, demand charges or stochastic grid uncertainty. It does not energize a pack or release it to service; the event journal #6700 remains the state transition/reconciliation owner.
 
 ## 14. Next implementation phases
 
