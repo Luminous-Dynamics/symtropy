@@ -289,6 +289,9 @@ impl HorizonEventDefinition {
             return Err(KernelError::MissingEncounterWindowOutcome);
         }
 
+        // Canonicalize output order independently of caller submission order.
+        by_window.sort_by_key(|(index, _)| *index);
+
         let mut contact_time_bounds = Vec::new();
         let mut contacting_window_ids = Vec::new();
         let mut unresolved_window_ids = Vec::new();
@@ -638,6 +641,52 @@ mod tests {
             .expect("complete realization");
 
         assert_eq!(result.disposition, HorizonContactDisposition::Ambiguous);
+    }
+
+    #[test]
+    fn outcome_submission_order_does_not_change_canonical_report_order() {
+        let definition = definition(vec![
+            window("later", 30.0, 40.0),
+            window("earlier", 10.0, 20.0),
+            window("middle", 20.0, 30.0),
+        ]);
+        let early = outcome(
+            "trajectory-order",
+            "earlier",
+            PathWindowDisposition::DefinitelyContact {
+                first_contact_time_lower_seconds: 15.0,
+                first_contact_time_upper_seconds: 15.0,
+            },
+        );
+        let middle = outcome(
+            "trajectory-order",
+            "middle",
+            PathWindowDisposition::Ambiguous,
+        );
+        let late = outcome(
+            "trajectory-order",
+            "later",
+            PathWindowDisposition::DefinitelyContact {
+                first_contact_time_lower_seconds: 35.0,
+                first_contact_time_upper_seconds: 35.0,
+            },
+        );
+
+        let forward = definition
+            .classify_realization(&[late.clone(), middle.clone(), early.clone()])
+            .expect("complete forward ordering");
+        let reverse = definition
+            .classify_realization(&[early, middle, late])
+            .expect("complete reverse ordering");
+        assert_eq!(forward, reverse);
+        assert_eq!(
+            forward.contacting_window_ids,
+            vec!["earlier".to_owned(), "later".to_owned()]
+        );
+        assert_eq!(
+            forward.unresolved_window_ids,
+            vec!["middle".to_owned()]
+        );
     }
 
     #[test]
