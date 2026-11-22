@@ -204,5 +204,19 @@
     "no_integral_momentum_or_force_reducer_in_this_module",
     "no_pressure_gradient_solver",
     "no_physical_EHD_validation"
+  ],
+  "test_families": [
+    "classifier_metrics_report_f1_and_false_valid_removal_separately",
+    "classifier_gate_rejects_high_false_removal_even_when_f1_is_high",
+    "regional_coverage_is_reported_separately_with_wilson_intervals",
+    "undercovered_near_wall_region_is_not_hidden_by_bulk_coverage",
+    "missing_required_spatial_region_is_rejected",
+    "small_region_sample_count_is_not_promoted_to_calibration",
+    "full_piv_quality_requires_classifier_and_every_region_gate",
+    "piv_lpt_velocity_comparison_uses_conservative_bounds",
+    "shared_acquisition_is_not_reported_as_independent_cross_validation",
+    "mismatched_coordinate_frames_are_rejected",
+    "discrepancy_above_combined_velocity_bounds_is_flagged",
+    "invalid_coverage_counts_are_rejected"
   ]
 }
