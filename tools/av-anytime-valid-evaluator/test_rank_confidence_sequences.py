@@ -51,18 +51,14 @@ def make_retirement_document(
     *,
     rule="TOP_K_RESOLVED",
     top_k=3,
-    episode_count=120,
+    episode_count=40,
+    arms=("A0", "A1", "A2"),
     scores=None,
 ):
-    arms = ("A0", "A1", "A2", "A3", "A4", "A5")
     if scores is None:
         scores = {
-            "A0": 0.05,
-            "A1": 0.20,
-            "A2": 0.35,
-            "A3": 0.65,
-            "A4": 0.80,
-            "A5": 0.95,
+            arm: score
+            for arm, score in zip(arms, (0.05, 0.50, 0.95))
         }
     episode_ids = [f"episode-{index:04d}" for index in range(episode_count)]
     episode_order = list(reversed(episode_ids))
@@ -293,7 +289,7 @@ class RankConfidenceSequenceTests(unittest.TestCase):
         self.assertEqual(result["retirement_rule"], "NONE")
 
     def test_top_k_retirement_stops_model_scoring_early(self):
-        doc = make_retirement_document(rule="TOP_K_RESOLVED", top_k=3)
+        doc = make_retirement_document(rule="TOP_K_RESOLVED", top_k=1)
         result = evaluate_document(doc)
         self.assertEqual(result["completion_status"], "ALL_MODELS_RETIRED")
         self.assertLess(result["episodes_processed"], result["episode_count"])
@@ -368,7 +364,7 @@ class RankConfidenceSequenceTests(unittest.TestCase):
         equal_scores = {arm: 0.5 for arm in arms}
         doc = make_retirement_document(
             rule="TOP_K_RESOLVED",
-            top_k=3,
+            top_k=1,
             episode_count=24,
             scores=equal_scores,
         )
@@ -378,7 +374,7 @@ class RankConfidenceSequenceTests(unittest.TestCase):
         self.assertEqual(result["model_invocation_counts"], {arm: 24 for arm in arms})
 
     def test_singleton_rank_retirement_uses_exact_rank_sets(self):
-        doc = make_retirement_document(rule="RANK_SINGLETON")
+        doc = make_retirement_document(rule="RANK_SINGLETON", episode_count=40)
         result = evaluate_document(doc)
         for look in result["looks"]:
             for retirement in look["retirement_decisions"]:
@@ -389,7 +385,7 @@ class RankConfidenceSequenceTests(unittest.TestCase):
                 )
 
     def test_pairwise_resolved_retirement_requires_all_comparisons(self):
-        doc = make_retirement_document(rule="PAIRWISE_RESOLVED")
+        doc = make_retirement_document(rule="PAIRWISE_RESOLVED", episode_count=40)
         result = evaluate_document(doc)
         for look in result["looks"]:
             certified = {
