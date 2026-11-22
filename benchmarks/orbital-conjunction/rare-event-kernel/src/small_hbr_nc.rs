@@ -178,6 +178,9 @@ mod tests {
             * (-25.0_f64 / 2.0).exp();
         assert!((report.probability - direct).abs() <= direct * 1.0e-12);
         assert!((report.log_probability - direct.ln()).abs() <= 1.0e-12);
+        // Independent high-precision reference value for the fixed inputs.
+        assert!((report.probability - 1.397_494_939_529_503e-14).abs() <= 2.0e-27);
+        assert!((report.log_probability - (-31.901_509_996_964_09)).abs() <= 2.0e-14);
         assert!(!report.probability_underflowed);
         assert_eq!(report.formula, "Hall-Baars-Casali-2023-Eq13-small-HBR");
     }
