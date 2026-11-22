@@ -1048,7 +1048,7 @@ mod tests {
         let evidence = decision.to_time_evidence().unwrap();
         assert_eq!(
             evidence.event_id(),
-            "5:WMS_A:31:urn:uuid:custody-event-1000:4"
+            "5:WMS_A:27:urn:uuid:custody-event-1000:4"
         );
         assert_eq!(evidence.time_basis_id(), "UTC(ZA)");
         assert_eq!(evidence.interval().earliest(), 976);
