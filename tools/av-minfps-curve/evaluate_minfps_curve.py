@@ -134,8 +134,10 @@ def _validate_resource(row: Any, context: str) -> dict[str, Any]:
             raise MinFpsEvaluationError(
                 f"{context}: NOT_MEASURED energy must be null, not an assumed value"
             )
-        if provenance == "ESTIMATED" and not isinstance(method, str):
-            raise MinFpsEvaluationError(f"{context}: ESTIMATED energy requires a method label")
+        if provenance == "NOT_MEASURED" and method is not None:
+            raise MinFpsEvaluationError(f"{context}: NOT_MEASURED energy must not claim a measurement method")
+        if provenance == "ESTIMATED" and (not isinstance(method, str) or not method):
+            raise MinFpsEvaluationError(f"{context}: ESTIMATED energy requires a non-empty method label")
         if evidence_digest is not None:
             raise MinFpsEvaluationError(
                 f"{context}: evidence digest is reserved for independently evidenced measured energy"
@@ -364,8 +366,13 @@ def evaluate_document(document: dict[str, Any]) -> dict[str, Any]:
     episode_id = _nonempty(document.get("episode_id"), "episode_id")
     source_cluster_id = _nonempty(document.get("source_cluster_id"), "source_cluster_id")
     policy_id = _nonempty(document.get("policy_id"), "policy_id")
+    workload_digest = _digest(document.get("workload_digest_sha256"), "workload_digest_sha256")
     model_digest = _digest(document.get("model_digest_sha256"), "model_digest_sha256")
     runtime_digest = _digest(document.get("runtime_digest_sha256"), "runtime_digest_sha256")
+    configuration_digest = _digest(
+        document.get("configuration_digest_sha256"), "configuration_digest_sha256"
+    )
+    hardware_digest = _digest(document.get("hardware_digest_sha256"), "hardware_digest_sha256")
     sampler_id = _nonempty(document.get("sampler_id"), "sampler_id")
     sampler_digest = _digest(document.get("sampler_digest_sha256"), "sampler_digest_sha256")
     sampling_design = document.get("sampling_design")
@@ -498,8 +505,11 @@ def evaluate_document(document: dict[str, Any]) -> dict[str, Any]:
         "episode_id": episode_id,
         "source_cluster_id": source_cluster_id,
         "policy_id": policy_id,
+        "workload_digest_sha256": workload_digest,
         "model_digest_sha256": model_digest,
         "runtime_digest_sha256": runtime_digest,
+        "configuration_digest_sha256": configuration_digest,
+        "hardware_digest_sha256": hardware_digest,
         "sampler_id": sampler_id,
         "sampler_digest_sha256": sampler_digest,
         "sampling_design": sampling_design,
