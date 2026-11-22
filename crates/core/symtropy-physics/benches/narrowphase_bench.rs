@@ -71,7 +71,7 @@ fn separated_sphere_aabb_candidates(pair_count: usize) -> PhysicsWorld<3> {
             BodyHandle(index * 2),
             BodyType::Dynamic,
             Transform::from_translation(Point::new([x, 0.0, 0.0])),
-            Box::new(Sphere::<3>::unit()),
+            Box::new(Sphere::<3>::new(Point::origin(), 0.5)),
             1.0,
             SVector::from_element(1.0),
         ));
@@ -79,7 +79,7 @@ fn separated_sphere_aabb_candidates(pair_count: usize) -> PhysicsWorld<3> {
             BodyHandle(index * 2 + 1),
             BodyType::Dynamic,
             Transform::from_translation(Point::new([x + 0.8, 0.8, 0.0])),
-            Box::new(Sphere::<3>::unit()),
+            Box::new(Sphere::<3>::new(Point::origin(), 0.5)),
             1.0,
             SVector::from_element(1.0),
         ));
