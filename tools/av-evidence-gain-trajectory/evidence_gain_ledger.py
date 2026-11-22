@@ -549,6 +549,8 @@ def evaluate_trajectory(document: dict[str, Any]) -> dict[str, Any]:
                 "preceding_action_id",
                 "action_result_status",
                 "action_result_digest_sha256",
+                "action_result_request_id",
+                "action_result_parameter_manifest_sha256",
                 "new_observation_ids",
                 "external_feedback_events",
                 "workload",
