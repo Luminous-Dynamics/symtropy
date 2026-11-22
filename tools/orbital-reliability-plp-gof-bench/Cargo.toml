@@ -1,10 +1,10 @@
 [package]
 name = "orbital-reliability-plp-gof-bench"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 rust-version = "1.96"
 license = "AGPL-3.0-or-later"
-description = "Conditional Monte Carlo goodness-of-fit diagnostic for complete-window PLP histories"
+description = "Five-statistic family-wise conditional goodness-of-fit suite for complete-window PLP histories"
 
 [dependencies]
 serde = { version = "=1.0.228", features = ["derive"] }
