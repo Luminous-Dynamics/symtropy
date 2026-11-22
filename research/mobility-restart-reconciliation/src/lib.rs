@@ -76,6 +76,13 @@ pub struct MissionResolutionRef {
     pub resolution: MissionResolution,
 }
 
+/// Opaque owner-issued recovery-permit reference.
+///
+/// The authority owner remains responsible for authenticating this reference
+/// and enforcing consume-once semantics at the real native application
+/// boundary, including across process/controller restart. This contract only
+/// checks identity and binding consistency; it neither consumes the permit nor
+/// proves that its use is durable or single-use.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RecoveryPermitRef {
     pub permit_id: String,
@@ -148,7 +155,11 @@ pub enum HoldReason {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RecoveryDecision {
     Hold(HoldReason),
+    /// The exact effect predicate is observed; local persistence is resolved.
     EffectPredicateObserved,
+    /// The exact effect predicate is observed, but local persistence remains
+    /// indeterminate. This never permits a fresh attempt.
+    EffectPredicateObservedPersistenceUnresolved,
     FreshAttemptCandidate,
 }
 
@@ -168,7 +179,9 @@ fn hold(reason: HoldReason) -> RecoveryDecision {
 ///
 /// The local persistence verdict and physical-effect observation are separate
 /// inputs. Committed and DefinitelyNotCommitted are deliberately not mapped to
-/// Applied or NoEffect. IndeterminateCommit always keeps the gate closed.
+/// Applied or NoEffect. An independently observed Applied outcome is preserved
+/// even when local persistence is indeterminate, but that combination never
+/// yields a fresh-attempt candidate.
 pub fn assess_restart_recovery(evidence: &RestartRecoveryEvidence) -> RecoveryDecision {
     if !nonempty(&evidence.logical_effect_id)
         || !nonempty(&evidence.prior_attempt_id)
@@ -195,10 +208,6 @@ pub fn assess_restart_recovery(evidence: &RestartRecoveryEvidence) -> RecoveryDe
         || queue_fence.to_controller_epoch != evidence.current_controller_epoch
     {
         return hold(HoldReason::QueueFenceMismatch);
-    }
-
-    if evidence.persistence == PersistenceVerdict::IndeterminateCommit {
-        return hold(HoldReason::IndeterminatePersistence);
     }
 
     let Some(effect) = evidence.effect_evidence.as_ref() else {
@@ -251,13 +260,24 @@ pub fn assess_restart_recovery(evidence: &RestartRecoveryEvidence) -> RecoveryDe
             if evidence.recovery_permit.is_some() || evidence.next_ticket.is_some() {
                 return hold(HoldReason::UnexpectedRecoveryContext);
             }
-            RecoveryDecision::EffectPredicateObserved
+            if evidence.persistence == PersistenceVerdict::IndeterminateCommit {
+                RecoveryDecision::EffectPredicateObservedPersistenceUnresolved
+            } else {
+                RecoveryDecision::EffectPredicateObserved
+            }
         }
         EffectOutcome::NoEffect => assess_no_effect_recovery(evidence),
     }
 }
 
 fn assess_no_effect_recovery(evidence: &RestartRecoveryEvidence) -> RecoveryDecision {
+    // An unresolved local attempt record cannot be bypassed by an independent
+    // NoEffect observation. Preserve the observation, but keep retry assessment
+    // closed until the durable owner has reconciled its own state.
+    if evidence.persistence == PersistenceVerdict::IndeterminateCommit {
+        return hold(HoldReason::IndeterminatePersistence);
+    }
+
     let Some(permit) = evidence.recovery_permit.as_ref() else {
         return hold(HoldReason::RecoveryPermitMissing);
     };
@@ -421,7 +441,7 @@ mod tests {
     }
 
     #[test]
-    fn indeterminate_persistence_blocks_even_with_applied_observation() {
+    fn applied_observation_survives_indeterminate_local_persistence_without_retry_permission() {
         let mut evidence = base_evidence();
         evidence.persistence = PersistenceVerdict::IndeterminateCommit;
         set_effect(
@@ -431,6 +451,16 @@ mod tests {
         );
         evidence.recovery_permit = None;
         evidence.next_ticket = None;
+        assert_eq!(
+            assess_restart_recovery(&evidence),
+            RecoveryDecision::EffectPredicateObservedPersistenceUnresolved
+        );
+    }
+
+    #[test]
+    fn indeterminate_persistence_still_blocks_no_effect_retry_assessment() {
+        let mut evidence = base_evidence();
+        evidence.persistence = PersistenceVerdict::IndeterminateCommit;
         assert_hold(&evidence, HoldReason::IndeterminatePersistence);
     }
 
