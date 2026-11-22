@@ -458,8 +458,10 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
             &mut findings,
             number_at(record, &["apparatus", "fan_diameter_mm"]) == Some(22.0)
                 && number_at(record, &["apparatus", "inter_electrode_distance_mm"]) == Some(11.0)
-                && number_at(record, &["apparatus", "applied_voltage_range_kv", 0]) == Some(4.0)
-                && number_at(record, &["apparatus", "applied_voltage_range_kv", 1]) == Some(14.0)
+                && at(record, &["apparatus", "applied_voltage_range_kv"]).and_then(Value::as_array)
+                    .is_some_and(|values| values.len() == 2
+                        && values[0].as_f64() == Some(4.0)
+                        && values[1].as_f64() == Some(14.0))
                 && at(record, &["apparatus", "relative_humidity_levels_percent"])
                     == Some(&serde_json::json!([36, 50, 80])),
             "OBSERVER_PERTURBATION_OPERATING_ENVELOPE",
