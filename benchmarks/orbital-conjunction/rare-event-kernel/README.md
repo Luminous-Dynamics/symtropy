@@ -21,6 +21,7 @@ This crate is a research kernel, not an operational collision-probability produc
 - A budgeted affine-cell traversal that separately classifies cells wholly inside caller-declared chart boxes, cells proven event-free, and unresolved cells outside chart coverage.
 - A disconnected-event-union verifier with component-specific chart assignments. A cell is accounted only when each event component is either covered by its own chart or proven event-free; one chart cannot suppress another mode, even when their input-space regions overlap.
 - An interval-polynomial time-window classifier that proves no-contact / guaranteed-contact only by enclosing the entire relevant time interval, and otherwise returns an explicit ambiguous disposition.
+- A pathwise horizon-event reducer that combines all encounter-window results from one joint trajectory realization into one any-contact disposition, preserves interval-valued first-contact semantics, rejects contradictory overlap results, canonicalizes outcome order, and requires an explicit complete/incomplete window-inventory declaration. It never sums per-window probabilities or assumes encounter independence.
 - Dense-grid adversarial tests checking sampled affine images remain inside the interval enclosure and sampled norms remain above the reported lower bound.
 - Streaming log-domain weighted event sums, contribution ESS, plug-in relative standard error, and a clearly labelled normal-approximation interval diagnostic.
 - A beta(1,1)-mixture Bernoulli e-process and inverted time-uniform confidence sequence for independent bounded event indicators, with an exhaustive short-horizon optional-stopping coverage test.
@@ -41,7 +42,7 @@ cargo clippy --locked --manifest-path benchmarks/orbital-conjunction/rare-event-
 
 The package has its own Cargo workspace and does not require the full Symtropy/Bevy workspace.
 
-The current authored test corpus contains 98 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, and 10 in `trajectory.rs`. across the analytic probability, affine coverage / residual-mass, weighted-statistics, and Bernoulli sequential-inference modules. Only a completed exact-head workflow establishes that a particular revision passed them.
+The current authored test corpus contains 117 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, and 19 in `pathwise_event.rs`. Only a completed exact-head workflow establishes that a particular revision passed them.
 
 ## Important limitations
 
@@ -52,6 +53,7 @@ The current authored test corpus contains 98 authored `#[test]` cases: 30 in `li
 - The affine-cell module widens basic IEEE-754 operations by one adjacent representable value and fails closed on overflow. Its grid tests are useful negative controls, not a formal proof of the arithmetic implementation. It covers finite affine maps only; it is not a validated nonlinear ODE enclosure.
 - The residual traversal bounds possible event mass only outside component-specific caller-declared chart boxes under a fixed standard-normal nominal model and static affine collision-ball event union, with chart-to-component assignments. A chart-covered region is not thereby proven to have accurate proposal density, correct likelihood weights, or complete event support.
 - The polynomial trajectory classifier accepts coefficient intervals supplied by the caller. It does not construct or validate a Taylor remainder, establish the coefficient enclosures, solve nonlinear dynamics, or formally machine-verify its interval arithmetic. It is a fail-closed local component; ambiguous cases require high-fidelity evaluation.
+- The pathwise horizon reducer combines supplied per-window classifications for one joint trajectory realization. It cannot prove that the declared window inventory is complete; a complete-inventory status is a caller assertion. An incomplete inventory can prove that any-contact occurred when a declared window is definitely positive, but cannot prove horizon-wide no-contact or report an earliest horizon contact-time enclosure. The first-contact output is an interval supplied by a caller that must establish the earliest root inside each window; the reducer does not perform root isolation.
 - The Gaussian cell-mass bound is intentionally loose and the cube-tail bound uses a Chernoff polynomial lower bound. The traversal is preliminary numerical conservative bookkeeping, not a formally machine-verified certificate or a proof of the physical model.
 - The cell splitter uses a deterministic longest-axis rule. Shared closed faces are covered by both children; they have zero measure only for a nondegenerate continuous Gaussian and still remain relevant to geometric tangency tests.
 - The weighted indicator primitive does not construct confidence intervals or establish finite-sample coverage.
