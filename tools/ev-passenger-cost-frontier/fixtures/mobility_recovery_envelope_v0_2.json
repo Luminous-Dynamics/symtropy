@@ -1,0 +1,1087 @@
+{
+  "schema_version": "0.2.0",
+  "benchmark_id": "MOBILITY-RESERVE-RECOVERY-001",
+  "site_id": "depot-recovery-01",
+  "site_configuration_digest": "sha256:depot-recovery-01-config-v01",
+  "decision_time_unix_ms": 1800000000000,
+  "slot_duration_seconds": 900,
+  "horizon_slots": 8,
+  "flexibility_report_reference": "sha256:synthetic-flexibility-v0.1-report",
+  "site_evidence": {
+    "asset_id": "depot-recovery-01",
+    "configuration_digest": "sha256:depot-recovery-01-config-v01",
+    "producer_id": "fixture-generator",
+    "method_id": "synthetic-recovery-v0.2",
+    "evidence_reference": "synthetic://site/report-v0.2",
+    "evidence_class": "synthetic",
+    "observed_at_unix_ms": 1799999940000,
+    "valid_from_unix_ms": 1799999940000,
+    "valid_until_unix_ms": 1800007199999
+  },
+  "allocation_evidence": {
+    "asset_id": "depot-recovery-01",
+    "configuration_digest": "sha256:depot-recovery-01-config-v01",
+    "producer_id": "fixture-generator",
+    "method_id": "synthetic-recovery-v0.2",
+    "evidence_reference": "synthetic://allocation/report-v0.2",
+    "evidence_class": "synthetic",
+    "observed_at_unix_ms": 1799999940000,
+    "valid_from_unix_ms": 1799999940000,
+    "valid_until_unix_ms": 1800007199999
+  },
+  "charging_queue_evidence": {
+    "asset_id": "depot-recovery-01",
+    "configuration_digest": "sha256:depot-recovery-01-config-v01",
+    "producer_id": "fixture-generator",
+    "method_id": "synthetic-recovery-v0.2",
+    "evidence_reference": "synthetic://charging-queue/report-v0.2",
+    "evidence_class": "synthetic",
+    "observed_at_unix_ms": 1799999940000,
+    "valid_from_unix_ms": 1799999940000,
+    "valid_until_unix_ms": 1800007199999
+  },
+  "site_meter_evidence": {
+    "asset_id": "depot-recovery-01",
+    "configuration_digest": "sha256:depot-recovery-01-config-v01",
+    "producer_id": "fixture-generator",
+    "method_id": "synthetic-recovery-v0.2",
+    "evidence_reference": "synthetic://site-meter/report-v0.2",
+    "evidence_class": "synthetic",
+    "observed_at_unix_ms": 1799999940000,
+    "valid_from_unix_ms": 1799999940000,
+    "valid_until_unix_ms": 1800007199999
+  },
+  "resources": [
+    {
+      "resource_id": "ess-01",
+      "configuration_digest": "sha256:ess-01-v01",
+      "initial_energy_lower_bound_wh": 1000,
+      "energy_capacity_lower_bound_wh": 2000,
+      "max_charge_input_power_lower_bound_w": 1500,
+      "max_discharge_output_power_lower_bound_w": 1000,
+      "charge_efficiency_lower_bound_permille": 900,
+      "discharge_efficiency_lower_bound_permille": 900,
+      "initial_energy_evidence": {
+        "asset_id": "ess-01",
+        "configuration_digest": "sha256:ess-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://ess-01/initial-energy",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      },
+      "capacity_evidence": {
+        "asset_id": "ess-01",
+        "configuration_digest": "sha256:ess-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://ess-01/capacity",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      },
+      "charge_power_evidence": {
+        "asset_id": "ess-01",
+        "configuration_digest": "sha256:ess-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://ess-01/charge-power",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      },
+      "discharge_power_evidence": {
+        "asset_id": "ess-01",
+        "configuration_digest": "sha256:ess-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://ess-01/discharge-power",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      },
+      "efficiency_evidence": {
+        "asset_id": "ess-01",
+        "configuration_digest": "sha256:ess-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://ess-01/efficiency",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      },
+      "site_connection_evidence": {
+        "asset_id": "depot-recovery-01",
+        "configuration_digest": "sha256:depot-recovery-01-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://ess-01/site-connection",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      }
+    },
+    {
+      "resource_id": "ess-02",
+      "configuration_digest": "sha256:ess-02-v01",
+      "initial_energy_lower_bound_wh": 800,
+      "energy_capacity_lower_bound_wh": 1500,
+      "max_charge_input_power_lower_bound_w": 1000,
+      "max_discharge_output_power_lower_bound_w": 800,
+      "charge_efficiency_lower_bound_permille": 900,
+      "discharge_efficiency_lower_bound_permille": 900,
+      "initial_energy_evidence": {
+        "asset_id": "ess-02",
+        "configuration_digest": "sha256:ess-02-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://ess-02/initial-energy",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      },
+      "capacity_evidence": {
+        "asset_id": "ess-02",
+        "configuration_digest": "sha256:ess-02-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://ess-02/capacity",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      },
+      "charge_power_evidence": {
+        "asset_id": "ess-02",
+        "configuration_digest": "sha256:ess-02-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://ess-02/charge-power",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      },
+      "discharge_power_evidence": {
+        "asset_id": "ess-02",
+        "configuration_digest": "sha256:ess-02-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://ess-02/discharge-power",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      },
+      "efficiency_evidence": {
+        "asset_id": "ess-02",
+        "configuration_digest": "sha256:ess-02-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://ess-02/efficiency",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      },
+      "site_connection_evidence": {
+        "asset_id": "depot-recovery-01",
+        "configuration_digest": "sha256:depot-recovery-01-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://ess-02/site-connection",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      }
+    }
+  ],
+  "charger_channels": [
+    {
+      "channel_id": "channel-a",
+      "configuration_digest": "sha256:channel-a-v01",
+      "max_input_power_lower_bound_w": 1500,
+      "compatible_resource_ids": [
+        "ess-01"
+      ],
+      "evidence": {
+        "asset_id": "channel-a",
+        "configuration_digest": "sha256:channel-a-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://channel-a/qualification",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      }
+    },
+    {
+      "channel_id": "channel-b",
+      "configuration_digest": "sha256:channel-b-v01",
+      "max_input_power_lower_bound_w": 1000,
+      "compatible_resource_ids": [
+        "ess-02"
+      ],
+      "evidence": {
+        "asset_id": "channel-b",
+        "configuration_digest": "sha256:channel-b-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://channel-b/qualification",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      }
+    }
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "single-event-recovery",
+      "evidence": {
+        "asset_id": "depot-recovery-01",
+        "configuration_digest": "sha256:depot-recovery-01-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://site/report-v0.2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      },
+      "resource_obligations": [
+        {
+          "resource_id": "ess-01",
+          "evidence": {
+            "asset_id": "ess-01",
+            "configuration_digest": "sha256:ess-01-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-recovery-v0.2",
+            "evidence_reference": "synthetic://ess-01/scenario-obligation",
+            "evidence_class": "synthetic",
+            "observed_at_unix_ms": 1799999940000,
+            "valid_from_unix_ms": 1799999940000,
+            "valid_until_unix_ms": 1800007199999
+          },
+          "mission_reserve_floor_wh_by_slot": [
+            400,
+            400,
+            400,
+            400,
+            400,
+            400,
+            400,
+            400
+          ],
+          "inventory_reserve_floor_wh_by_slot": [
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100
+          ],
+          "safety_outage_reserve_floor_wh_by_slot": [
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100
+          ],
+          "uncertainty_reserve_floor_wh_by_slot": [
+            50,
+            50,
+            50,
+            50,
+            50,
+            50,
+            50,
+            50
+          ],
+          "mission_energy_withdrawal_wh_by_slot": [
+            50,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "disturbance_energy_withdrawal_wh_by_slot": [
+            0,
+            50,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "recovery_target_energy_wh": 1100,
+          "recovery_deadline_slot": 5
+        },
+        {
+          "resource_id": "ess-02",
+          "evidence": {
+            "asset_id": "ess-02",
+            "configuration_digest": "sha256:ess-02-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-recovery-v0.2",
+            "evidence_reference": "synthetic://ess-02/scenario-obligation",
+            "evidence_class": "synthetic",
+            "observed_at_unix_ms": 1799999940000,
+            "valid_from_unix_ms": 1799999940000,
+            "valid_until_unix_ms": 1800007199999
+          },
+          "mission_reserve_floor_wh_by_slot": [
+            300,
+            300,
+            300,
+            300,
+            300,
+            300,
+            300,
+            300
+          ],
+          "inventory_reserve_floor_wh_by_slot": [
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100
+          ],
+          "safety_outage_reserve_floor_wh_by_slot": [
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100
+          ],
+          "uncertainty_reserve_floor_wh_by_slot": [
+            50,
+            50,
+            50,
+            50,
+            50,
+            50,
+            50,
+            50
+          ],
+          "mission_energy_withdrawal_wh_by_slot": [
+            20,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "disturbance_energy_withdrawal_wh_by_slot": [
+            0,
+            30,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "recovery_target_energy_wh": 950,
+          "recovery_deadline_slot": 5
+        }
+      ],
+      "channel_availability": [
+        {
+          "channel_id": "channel-a",
+          "available_by_slot": [
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true
+          ]
+        },
+        {
+          "channel_id": "channel-b",
+          "available_by_slot": [
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true
+          ]
+        }
+      ]
+    },
+    {
+      "scenario_id": "second-shock-before-recovery",
+      "evidence": {
+        "asset_id": "depot-recovery-01",
+        "configuration_digest": "sha256:depot-recovery-01-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://site/report-v0.2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      },
+      "resource_obligations": [
+        {
+          "resource_id": "ess-01",
+          "evidence": {
+            "asset_id": "ess-01",
+            "configuration_digest": "sha256:ess-01-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-recovery-v0.2",
+            "evidence_reference": "synthetic://ess-01/scenario-obligation",
+            "evidence_class": "synthetic",
+            "observed_at_unix_ms": 1799999940000,
+            "valid_from_unix_ms": 1799999940000,
+            "valid_until_unix_ms": 1800007199999
+          },
+          "mission_reserve_floor_wh_by_slot": [
+            400,
+            400,
+            400,
+            400,
+            400,
+            400,
+            400,
+            400
+          ],
+          "inventory_reserve_floor_wh_by_slot": [
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100
+          ],
+          "safety_outage_reserve_floor_wh_by_slot": [
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100
+          ],
+          "uncertainty_reserve_floor_wh_by_slot": [
+            50,
+            50,
+            50,
+            50,
+            50,
+            50,
+            50,
+            50
+          ],
+          "mission_energy_withdrawal_wh_by_slot": [
+            50,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "disturbance_energy_withdrawal_wh_by_slot": [
+            0,
+            50,
+            0,
+            0,
+            200,
+            0,
+            0,
+            0
+          ],
+          "recovery_target_energy_wh": 1100,
+          "recovery_deadline_slot": 5
+        },
+        {
+          "resource_id": "ess-02",
+          "evidence": {
+            "asset_id": "ess-02",
+            "configuration_digest": "sha256:ess-02-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-recovery-v0.2",
+            "evidence_reference": "synthetic://ess-02/scenario-obligation",
+            "evidence_class": "synthetic",
+            "observed_at_unix_ms": 1799999940000,
+            "valid_from_unix_ms": 1799999940000,
+            "valid_until_unix_ms": 1800007199999
+          },
+          "mission_reserve_floor_wh_by_slot": [
+            300,
+            300,
+            300,
+            300,
+            300,
+            300,
+            300,
+            300
+          ],
+          "inventory_reserve_floor_wh_by_slot": [
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100
+          ],
+          "safety_outage_reserve_floor_wh_by_slot": [
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100
+          ],
+          "uncertainty_reserve_floor_wh_by_slot": [
+            50,
+            50,
+            50,
+            50,
+            50,
+            50,
+            50,
+            50
+          ],
+          "mission_energy_withdrawal_wh_by_slot": [
+            20,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "disturbance_energy_withdrawal_wh_by_slot": [
+            0,
+            30,
+            0,
+            0,
+            150,
+            0,
+            0,
+            0
+          ],
+          "recovery_target_energy_wh": 950,
+          "recovery_deadline_slot": 5
+        }
+      ],
+      "channel_availability": [
+        {
+          "channel_id": "channel-a",
+          "available_by_slot": [
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true
+          ]
+        },
+        {
+          "channel_id": "channel-b",
+          "available_by_slot": [
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true
+          ]
+        }
+      ]
+    }
+  ],
+  "pcc_slots": [
+    {
+      "slot": 0,
+      "base_site_load_w": 1500,
+      "scheduled_mobility_charging_load_w": 1000,
+      "import_limit_w": 6500,
+      "base_load_evidence": {
+        "asset_id": "depot-recovery-01",
+        "configuration_digest": "sha256:depot-recovery-01-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://site-meter/report-v0.2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      },
+      "scheduled_charging_load_evidence": {
+        "asset_id": "depot-recovery-01",
+        "configuration_digest": "sha256:depot-recovery-01-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://charging-queue/report-v0.2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      },
+      "evidence": {
+        "asset_id": "depot-recovery-01",
+        "configuration_digest": "sha256:depot-recovery-01-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://site/report-v0.2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      }
+    },
+    {
+      "slot": 1,
+      "base_site_load_w": 1500,
+      "scheduled_mobility_charging_load_w": 1000,
+      "import_limit_w": 6500,
+      "base_load_evidence": {
+        "asset_id": "depot-recovery-01",
+        "configuration_digest": "sha256:depot-recovery-01-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://site-meter/report-v0.2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      },
+      "scheduled_charging_load_evidence": {
+        "asset_id": "depot-recovery-01",
+        "configuration_digest": "sha256:depot-recovery-01-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://charging-queue/report-v0.2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      },
+      "evidence": {
+        "asset_id": "depot-recovery-01",
+        "configuration_digest": "sha256:depot-recovery-01-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://site/report-v0.2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      }
+    },
+    {
+      "slot": 2,
+      "base_site_load_w": 1500,
+      "scheduled_mobility_charging_load_w": 1000,
+      "import_limit_w": 6500,
+      "base_load_evidence": {
+        "asset_id": "depot-recovery-01",
+        "configuration_digest": "sha256:depot-recovery-01-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://site-meter/report-v0.2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      },
+      "scheduled_charging_load_evidence": {
+        "asset_id": "depot-recovery-01",
+        "configuration_digest": "sha256:depot-recovery-01-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://charging-queue/report-v0.2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      },
+      "evidence": {
+        "asset_id": "depot-recovery-01",
+        "configuration_digest": "sha256:depot-recovery-01-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://site/report-v0.2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      }
+    },
+    {
+      "slot": 3,
+      "base_site_load_w": 1500,
+      "scheduled_mobility_charging_load_w": 1000,
+      "import_limit_w": 6500,
+      "base_load_evidence": {
+        "asset_id": "depot-recovery-01",
+        "configuration_digest": "sha256:depot-recovery-01-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://site-meter/report-v0.2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      },
+      "scheduled_charging_load_evidence": {
+        "asset_id": "depot-recovery-01",
+        "configuration_digest": "sha256:depot-recovery-01-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://charging-queue/report-v0.2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      },
+      "evidence": {
+        "asset_id": "depot-recovery-01",
+        "configuration_digest": "sha256:depot-recovery-01-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://site/report-v0.2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      }
+    },
+    {
+      "slot": 4,
+      "base_site_load_w": 1500,
+      "scheduled_mobility_charging_load_w": 1000,
+      "import_limit_w": 6500,
+      "base_load_evidence": {
+        "asset_id": "depot-recovery-01",
+        "configuration_digest": "sha256:depot-recovery-01-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://site-meter/report-v0.2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      },
+      "scheduled_charging_load_evidence": {
+        "asset_id": "depot-recovery-01",
+        "configuration_digest": "sha256:depot-recovery-01-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://charging-queue/report-v0.2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      },
+      "evidence": {
+        "asset_id": "depot-recovery-01",
+        "configuration_digest": "sha256:depot-recovery-01-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://site/report-v0.2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      }
+    },
+    {
+      "slot": 5,
+      "base_site_load_w": 1500,
+      "scheduled_mobility_charging_load_w": 1000,
+      "import_limit_w": 6500,
+      "base_load_evidence": {
+        "asset_id": "depot-recovery-01",
+        "configuration_digest": "sha256:depot-recovery-01-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://site-meter/report-v0.2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      },
+      "scheduled_charging_load_evidence": {
+        "asset_id": "depot-recovery-01",
+        "configuration_digest": "sha256:depot-recovery-01-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://charging-queue/report-v0.2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      },
+      "evidence": {
+        "asset_id": "depot-recovery-01",
+        "configuration_digest": "sha256:depot-recovery-01-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://site/report-v0.2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      }
+    },
+    {
+      "slot": 6,
+      "base_site_load_w": 1500,
+      "scheduled_mobility_charging_load_w": 1000,
+      "import_limit_w": 6500,
+      "base_load_evidence": {
+        "asset_id": "depot-recovery-01",
+        "configuration_digest": "sha256:depot-recovery-01-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://site-meter/report-v0.2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      },
+      "scheduled_charging_load_evidence": {
+        "asset_id": "depot-recovery-01",
+        "configuration_digest": "sha256:depot-recovery-01-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://charging-queue/report-v0.2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      },
+      "evidence": {
+        "asset_id": "depot-recovery-01",
+        "configuration_digest": "sha256:depot-recovery-01-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://site/report-v0.2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      }
+    },
+    {
+      "slot": 7,
+      "base_site_load_w": 1500,
+      "scheduled_mobility_charging_load_w": 1000,
+      "import_limit_w": 6500,
+      "base_load_evidence": {
+        "asset_id": "depot-recovery-01",
+        "configuration_digest": "sha256:depot-recovery-01-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://site-meter/report-v0.2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      },
+      "scheduled_charging_load_evidence": {
+        "asset_id": "depot-recovery-01",
+        "configuration_digest": "sha256:depot-recovery-01-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://charging-queue/report-v0.2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      },
+      "evidence": {
+        "asset_id": "depot-recovery-01",
+        "configuration_digest": "sha256:depot-recovery-01-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-recovery-v0.2",
+        "evidence_reference": "synthetic://site/report-v0.2",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800007199999
+      }
+    }
+  ],
+  "recovery_schedule": [
+    {
+      "resource_id": "ess-01",
+      "slot": 0,
+      "recovery_charge_input_power_w": 0,
+      "grid_discharge_output_power_w": 400,
+      "charger_channel_id": null,
+      "queue_evidence_reference": "synthetic://charging-queue/report-v0.2"
+    },
+    {
+      "resource_id": "ess-01",
+      "slot": 1,
+      "recovery_charge_input_power_w": 0,
+      "grid_discharge_output_power_w": 400,
+      "charger_channel_id": null,
+      "queue_evidence_reference": "synthetic://charging-queue/report-v0.2"
+    },
+    {
+      "resource_id": "ess-01",
+      "slot": 2,
+      "recovery_charge_input_power_w": 1000,
+      "grid_discharge_output_power_w": 0,
+      "charger_channel_id": "channel-a",
+      "queue_evidence_reference": "synthetic://charging-queue/report-v0.2"
+    },
+    {
+      "resource_id": "ess-01",
+      "slot": 3,
+      "recovery_charge_input_power_w": 1000,
+      "grid_discharge_output_power_w": 0,
+      "charger_channel_id": "channel-a",
+      "queue_evidence_reference": "synthetic://charging-queue/report-v0.2"
+    },
+    {
+      "resource_id": "ess-01",
+      "slot": 4,
+      "recovery_charge_input_power_w": 0,
+      "grid_discharge_output_power_w": 0,
+      "charger_channel_id": null,
+      "queue_evidence_reference": "synthetic://charging-queue/report-v0.2"
+    },
+    {
+      "resource_id": "ess-01",
+      "slot": 5,
+      "recovery_charge_input_power_w": 1000,
+      "grid_discharge_output_power_w": 0,
+      "charger_channel_id": "channel-a",
+      "queue_evidence_reference": "synthetic://charging-queue/report-v0.2"
+    },
+    {
+      "resource_id": "ess-01",
+      "slot": 6,
+      "recovery_charge_input_power_w": 0,
+      "grid_discharge_output_power_w": 0,
+      "charger_channel_id": null,
+      "queue_evidence_reference": "synthetic://charging-queue/report-v0.2"
+    },
+    {
+      "resource_id": "ess-01",
+      "slot": 7,
+      "recovery_charge_input_power_w": 0,
+      "grid_discharge_output_power_w": 0,
+      "charger_channel_id": null,
+      "queue_evidence_reference": "synthetic://charging-queue/report-v0.2"
+    },
+    {
+      "resource_id": "ess-02",
+      "slot": 0,
+      "recovery_charge_input_power_w": 0,
+      "grid_discharge_output_power_w": 200,
+      "charger_channel_id": null,
+      "queue_evidence_reference": "synthetic://charging-queue/report-v0.2"
+    },
+    {
+      "resource_id": "ess-02",
+      "slot": 1,
+      "recovery_charge_input_power_w": 0,
+      "grid_discharge_output_power_w": 200,
+      "charger_channel_id": null,
+      "queue_evidence_reference": "synthetic://charging-queue/report-v0.2"
+    },
+    {
+      "resource_id": "ess-02",
+      "slot": 2,
+      "recovery_charge_input_power_w": 800,
+      "grid_discharge_output_power_w": 0,
+      "charger_channel_id": "channel-b",
+      "queue_evidence_reference": "synthetic://charging-queue/report-v0.2"
+    },
+    {
+      "resource_id": "ess-02",
+      "slot": 3,
+      "recovery_charge_input_power_w": 800,
+      "grid_discharge_output_power_w": 0,
+      "charger_channel_id": "channel-b",
+      "queue_evidence_reference": "synthetic://charging-queue/report-v0.2"
+    },
+    {
+      "resource_id": "ess-02",
+      "slot": 4,
+      "recovery_charge_input_power_w": 0,
+      "grid_discharge_output_power_w": 0,
+      "charger_channel_id": null,
+      "queue_evidence_reference": "synthetic://charging-queue/report-v0.2"
+    },
+    {
+      "resource_id": "ess-02",
+      "slot": 5,
+      "recovery_charge_input_power_w": 500,
+      "grid_discharge_output_power_w": 0,
+      "charger_channel_id": "channel-b",
+      "queue_evidence_reference": "synthetic://charging-queue/report-v0.2"
+    },
+    {
+      "resource_id": "ess-02",
+      "slot": 6,
+      "recovery_charge_input_power_w": 0,
+      "grid_discharge_output_power_w": 0,
+      "charger_channel_id": null,
+      "queue_evidence_reference": "synthetic://charging-queue/report-v0.2"
+    },
+    {
+      "resource_id": "ess-02",
+      "slot": 7,
+      "recovery_charge_input_power_w": 0,
+      "grid_discharge_output_power_w": 0,
+      "charger_channel_id": null,
+      "queue_evidence_reference": "synthetic://charging-queue/report-v0.2"
+    }
+  ],
+  "claim_ceiling": "Finite-scenario model-level state-recovery verification only; no battery safety qualification, charging command, grid dispatch permission, flight authorization, return-to-service authority or commercial performance claim."
+}
