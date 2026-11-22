@@ -127,6 +127,8 @@ BeginEffectRecordCommit ==
     /\ s.persistStatus = "definitely_not_committed"
     /\ ~s.storeCallPending
     /\ ~s.storeRecord
+    /\ s.recoveryPermit = "absent"
+    /\ ~s.recoveryAccepted
     /\ s' = [s EXCEPT
                 !.persistStatus = "in_flight",
                 !.storeCallPending = TRUE]
@@ -270,6 +272,7 @@ IssueRecoveryPermit ==
     /\ s.effectEvidence = "no_effect"
     /\ s.missionResolution = "no_effect"
     /\ s.persistStatus \in {"committed", "definitely_not_committed"}
+    /\ ~s.storeCallPending
     /\ s.m1Current
     /\ s.m2Current
     /\ s.recoveryPermit = "absent"
