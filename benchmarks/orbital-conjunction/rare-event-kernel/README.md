@@ -38,7 +38,7 @@ cargo clippy --locked --manifest-path benchmarks/orbital-conjunction/rare-event-
 
 The package has its own Cargo workspace and does not require the full Symtropy/Bevy workspace.
 
-The current authored test corpus contains 66 unit tests across the analytic probability, affine coverage, weighted-statistics, and Bernoulli sequential-inference modules. Only a completed exact-head workflow establishes that a particular revision passed them.
+The current authored test corpus contains 74 unit tests across the analytic probability, affine coverage / residual-mass, weighted-statistics, and Bernoulli sequential-inference modules. Only a completed exact-head workflow establishes that a particular revision passed them.
 
 ## Important limitations
 
