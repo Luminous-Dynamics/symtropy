@@ -254,11 +254,11 @@ fn evidence_current_at(
 }
 
 fn allocation_has_usage(allocation: &LeaseResourceAllocation) -> bool {
-    allocation
-        .power_w_by_slot
-        .iter()
-        .any(|power| *power > 0)
-        || allocation.energy_wh_by_slot.iter().any(|energy| *energy > 0)
+    allocation.power_w_by_slot.iter().any(|power| *power > 0)
+        || allocation
+            .energy_wh_by_slot
+            .iter()
+            .any(|energy| *energy > 0)
 }
 
 fn validate_allocation(
@@ -273,7 +273,10 @@ fn validate_allocation(
     let Some(budget) = budget_map.get(allocation.resource_id.as_str()) else {
         add_error(
             errors,
-            format!("allocation_resource_unknown:{commitment_id}:{}", allocation.resource_id),
+            format!(
+                "allocation_resource_unknown:{commitment_id}:{}",
+                allocation.resource_id
+            ),
         );
         return;
     };
@@ -287,17 +290,26 @@ fn validate_allocation(
     {
         add_error(
             errors,
-            format!("allocation_identity_or_horizon_invalid:{commitment_id}:{}", allocation.resource_id),
+            format!(
+                "allocation_identity_or_horizon_invalid:{commitment_id}:{}",
+                allocation.resource_id
+            ),
         );
         return;
     }
 
     let Some(interval_start) = slot_start_ms(input, start_slot) else {
-        add_error(errors, format!("allocation_start_time_overflow:{commitment_id}"));
+        add_error(
+            errors,
+            format!("allocation_start_time_overflow:{commitment_id}"),
+        );
         return;
     };
     let Some(interval_end) = slot_end_exclusive_ms(input, end_slot - 1) else {
-        add_error(errors, format!("allocation_end_time_overflow:{commitment_id}"));
+        add_error(
+            errors,
+            format!("allocation_end_time_overflow:{commitment_id}"),
+        );
         return;
     };
     if !evidence_covers(
@@ -310,7 +322,10 @@ fn validate_allocation(
     ) {
         add_error(
             errors,
-            format!("allocation_evidence_not_admissible:{commitment_id}:{}", allocation.resource_id),
+            format!(
+                "allocation_evidence_not_admissible:{commitment_id}:{}",
+                allocation.resource_id
+            ),
         );
     }
 
@@ -324,7 +339,10 @@ fn validate_allocation(
         {
             add_error(
                 errors,
-                format!("allocation_slot_value_or_window_invalid:{commitment_id}:{}:{slot}", allocation.resource_id),
+                format!(
+                    "allocation_slot_value_or_window_invalid:{commitment_id}:{}:{slot}",
+                    allocation.resource_id
+                ),
             );
         }
     }
@@ -362,7 +380,10 @@ pub fn evaluate_mobility_commitment_lease(
 
     let horizon_end = slot_end_exclusive_ms(input, input.horizon_slots.saturating_sub(1));
     if horizon_end.is_none_or(|end| input.report_valid_until_unix_ms < end.saturating_sub(1)) {
-        add_error(&mut errors, "upstream_report_validity_does_not_cover_full_horizon");
+        add_error(
+            &mut errors,
+            "upstream_report_validity_does_not_cover_full_horizon",
+        );
     }
 
     if !evidence_covers(
@@ -374,7 +395,10 @@ pub fn evaluate_mobility_commitment_lease(
         input.report_valid_until_unix_ms,
     ) || input.flexibility_report_evidence.evidence_reference != input.flexibility_report_digest
     {
-        add_error(&mut errors, "flexibility_report_evidence_not_bound_to_digest");
+        add_error(
+            &mut errors,
+            "flexibility_report_evidence_not_bound_to_digest",
+        );
     }
     if !evidence_covers(
         &input.recovery_report_evidence,
@@ -398,11 +422,16 @@ pub fn evaluate_mobility_commitment_lease(
                 .safe_grid_power_budget_w_by_slot
                 .iter()
                 .any(|power| *power > MAX_POWER_W)
-            || budget_map.insert(budget.resource_id.as_str(), budget).is_some()
+            || budget_map
+                .insert(budget.resource_id.as_str(), budget)
+                .is_some()
         {
             add_error(
                 &mut errors,
-                format!("resource_budget_identity_or_horizon_invalid:{}", budget.resource_id),
+                format!(
+                    "resource_budget_identity_or_horizon_invalid:{}",
+                    budget.resource_id
+                ),
             );
             continue;
         }
@@ -430,7 +459,10 @@ pub fn evaluate_mobility_commitment_lease(
         ) {
             add_error(
                 &mut errors,
-                format!("resource_site_connection_evidence_invalid:{}", budget.resource_id),
+                format!(
+                    "resource_site_connection_evidence_invalid:{}",
+                    budget.resource_id
+                ),
             );
         }
     }
@@ -448,7 +480,10 @@ pub fn evaluate_mobility_commitment_lease(
         || slot_start_ms(input, candidate.start_slot)
             .is_none_or(|start_time| candidate.expires_at_unix_ms > start_time)
     {
-        add_error(&mut errors, "candidate_lease_identity_window_or_expiry_invalid");
+        add_error(
+            &mut errors,
+            "candidate_lease_identity_window_or_expiry_invalid",
+        );
     }
 
     let mut commitment_ids = BTreeSet::new();
@@ -466,7 +501,10 @@ pub fn evaluate_mobility_commitment_lease(
         if !candidate_resource_ids.insert(allocation.resource_id.as_str()) {
             add_error(
                 &mut errors,
-                format!("candidate_resource_allocation_duplicate:{}", allocation.resource_id),
+                format!(
+                    "candidate_resource_allocation_duplicate:{}",
+                    allocation.resource_id
+                ),
             );
         }
         validate_allocation(
@@ -493,7 +531,10 @@ pub fn evaluate_mobility_commitment_lease(
         {
             add_error(
                 &mut errors,
-                format!("existing_commitment_identity_or_idempotency_reused:{}", commitment.commitment_id),
+                format!(
+                    "existing_commitment_identity_or_idempotency_reused:{}",
+                    commitment.commitment_id
+                ),
             );
             continue;
         }
@@ -504,7 +545,10 @@ pub fn evaluate_mobility_commitment_lease(
         {
             add_error(
                 &mut errors,
-                format!("existing_commitment_window_invalid:{}", commitment.commitment_id),
+                format!(
+                    "existing_commitment_window_invalid:{}",
+                    commitment.commitment_id
+                ),
             );
             continue;
         }
@@ -515,7 +559,10 @@ pub fn evaluate_mobility_commitment_lease(
         {
             add_error(
                 &mut errors,
-                format!("commitment_state_receipt_empty_reused_or_mismatched:{}", commitment.commitment_id),
+                format!(
+                    "commitment_state_receipt_empty_reused_or_mismatched:{}",
+                    commitment.commitment_id
+                ),
             );
         }
 
@@ -527,7 +574,10 @@ pub fn evaluate_mobility_commitment_lease(
         ) {
             add_error(
                 &mut errors,
-                format!("commitment_state_evidence_invalid:{}", commitment.commitment_id),
+                format!(
+                    "commitment_state_evidence_invalid:{}",
+                    commitment.commitment_id
+                ),
             );
         }
 
@@ -539,7 +589,10 @@ pub fn evaluate_mobility_commitment_lease(
         {
             add_error(
                 &mut errors,
-                format!("terminal_commitment_release_requires_source_grade_evidence:{}", commitment.commitment_id),
+                format!(
+                    "terminal_commitment_release_requires_source_grade_evidence:{}",
+                    commitment.commitment_id
+                ),
             );
         }
 
@@ -560,7 +613,10 @@ pub fn evaluate_mobility_commitment_lease(
             if !resource_ids.insert(allocation.resource_id.as_str()) {
                 add_error(
                     &mut errors,
-                    format!("existing_commitment_resource_duplicate:{}:{}", commitment.commitment_id, allocation.resource_id),
+                    format!(
+                        "existing_commitment_resource_duplicate:{}:{}",
+                        commitment.commitment_id, allocation.resource_id
+                    ),
                 );
             }
             validate_allocation(
@@ -602,16 +658,25 @@ pub fn evaluate_mobility_commitment_lease(
         {
             add_error(
                 &mut errors,
-                format!("protected_window_identity_or_interval_invalid:{}", window.window_id),
+                format!(
+                    "protected_window_identity_or_interval_invalid:{}",
+                    window.window_id
+                ),
             );
             continue;
         }
         let Some(start) = slot_start_ms(input, window.start_slot) else {
-            add_error(&mut errors, format!("protected_window_start_time_overflow:{}", window.window_id));
+            add_error(
+                &mut errors,
+                format!("protected_window_start_time_overflow:{}", window.window_id),
+            );
             continue;
         };
         let Some(end) = slot_end_exclusive_ms(input, window.end_slot - 1) else {
-            add_error(&mut errors, format!("protected_window_end_time_overflow:{}", window.window_id));
+            add_error(
+                &mut errors,
+                format!("protected_window_end_time_overflow:{}", window.window_id),
+            );
             continue;
         };
         if !evidence_covers(
@@ -676,7 +741,10 @@ pub fn evaluate_mobility_commitment_lease(
             if existing_conflicts {
                 add_error(
                     &mut errors,
-                    format!("existing_commitment_overlaps_protected_window:{}", window.window_id),
+                    format!(
+                        "existing_commitment_overlaps_protected_window:{}",
+                        window.window_id
+                    ),
                 );
             }
         }
@@ -698,8 +766,8 @@ pub fn evaluate_mobility_commitment_lease(
                 });
             for slot in 0..usize::from(input.horizon_slots) {
                 let energy_value = allocation.energy_wh_by_slot.get(slot).copied().unwrap_or(0);
-            let power_value = allocation.power_w_by_slot.get(slot).copied().unwrap_or(0);
-            energy[slot] = match energy[slot].checked_add(energy_value) {
+                let power_value = allocation.power_w_by_slot.get(slot).copied().unwrap_or(0);
+                energy[slot] = match energy[slot].checked_add(energy_value) {
                     Some(value) => value,
                     None => {
                         add_error(&mut errors, "active_commitment_energy_overflow");
@@ -747,7 +815,10 @@ pub fn evaluate_mobility_commitment_lease(
     }
 
     if !protected_window_conflicts.is_empty() {
-        add_error(&mut errors, "candidate_overlaps_protected_mobility_or_maintenance_window");
+        add_error(
+            &mut errors,
+            "candidate_overlaps_protected_mobility_or_maintenance_window",
+        );
     }
 
     let mut resource_margins = Vec::new();
@@ -805,7 +876,10 @@ pub fn evaluate_mobility_commitment_lease(
             safe_grid_energy_budget_wh: budget.safe_grid_energy_budget_wh,
             committed_energy_wh: energy_used,
             remaining_energy_wh: energy_margin,
-            committed_power_w_by_slot: power.iter().map(|value| u32::try_from(*value).unwrap_or(u32::MAX)).collect(),
+            committed_power_w_by_slot: power
+                .iter()
+                .map(|value| u32::try_from(*value).unwrap_or(u32::MAX))
+                .collect(),
             remaining_power_w_by_slot: power_margins,
         });
     }
@@ -833,7 +907,8 @@ pub fn evaluate_mobility_commitment_lease(
         protected_window_conflicts: protected_window_conflicts.into_iter().collect(),
         findings: vec![
             "candidate_is_model_admissible_but_not_written_to_any_ledger".to_owned(),
-            "terminal_states_release_capacity_only_with_measured_or_independent_test_evidence".to_owned(),
+            "terminal_states_release_capacity_only_with_measured_or_independent_test_evidence"
+                .to_owned(),
             "unresolved_commitments_continue_to_reserve_resource_capacity".to_owned(),
         ],
         ledger_mutation_performed: false,
@@ -850,8 +925,10 @@ mod tests {
     use super::*;
 
     fn fixture() -> MobilityCommitmentLeaseInput {
-        serde_json::from_str(include_str!("../fixtures/mobility_commitment_lease_v0_1.json"))
-            .expect("frozen commitment lease fixture must parse")
+        serde_json::from_str(include_str!(
+            "../fixtures/mobility_commitment_lease_v0_1.json"
+        ))
+        .expect("frozen commitment lease fixture must parse")
     }
 
     fn reference_admissible(input: &MobilityCommitmentLeaseInput) -> bool {
@@ -894,19 +971,24 @@ mod tests {
         }
 
         !input.protected_windows.iter().any(|window| {
-            input.candidate_lease.resource_allocations.iter().any(|allocation| {
-                allocation.resource_id == window.resource_id
-                    && (window.start_slot..window.end_slot).any(|slot| {
-                        allocation.power_w_by_slot[usize::from(slot)] > 0
-                            || allocation.energy_wh_by_slot[usize::from(slot)] > 0
-                    })
-            })
+            input
+                .candidate_lease
+                .resource_allocations
+                .iter()
+                .any(|allocation| {
+                    allocation.resource_id == window.resource_id
+                        && (window.start_slot..window.end_slot).any(|slot| {
+                            allocation.power_w_by_slot[usize::from(slot)] > 0
+                                || allocation.energy_wh_by_slot[usize::from(slot)] > 0
+                        })
+                })
         })
     }
 
     #[test]
     fn known_answer_admits_back_to_back_lease_without_mutation_or_authority() {
-        let report = evaluate_mobility_commitment_lease(&fixture()).expect("known answer is admissible");
+        let report =
+            evaluate_mobility_commitment_lease(&fixture()).expect("known answer is admissible");
         assert!(report.candidate_model_admissible);
         assert_eq!(report.active_commitment_count, 2);
         assert_eq!(report.terminal_commitment_count, 1);
@@ -922,36 +1004,47 @@ mod tests {
             .expect("ess-01 margin");
         assert_eq!(ess_01.committed_energy_wh, 1_100);
         assert_eq!(ess_01.remaining_energy_wh, 400);
-        assert_eq!(ess_01.committed_power_w_by_slot, vec![500, 500, 2_500, 1_500, 0, 0]);
+        assert_eq!(
+            ess_01.committed_power_w_by_slot,
+            vec![500, 500, 2_500, 1_500, 0, 0]
+        );
     }
 
     #[test]
     fn unresolved_commitment_still_consumes_power_and_energy() {
         let mut input = fixture();
-        input.candidate_lease.resource_allocations.push(LeaseResourceAllocation {
-            resource_id: "ess-02".to_owned(),
-            configuration_digest: "sha256:ess-02-v01".to_owned(),
-            power_w_by_slot: vec![0, 0, 1_600, 0, 0, 0],
-            energy_wh_by_slot: vec![0, 0, 100, 0, 0, 0],
-            allocation_evidence: input.existing_commitments[1].resource_allocations[0]
-                .allocation_evidence
-                .clone(),
-        });
+        input
+            .candidate_lease
+            .resource_allocations
+            .push(LeaseResourceAllocation {
+                resource_id: "ess-02".to_owned(),
+                configuration_digest: "sha256:ess-02-v01".to_owned(),
+                power_w_by_slot: vec![0, 0, 1_600, 0, 0, 0],
+                energy_wh_by_slot: vec![0, 0, 100, 0, 0, 0],
+                allocation_evidence: input.existing_commitments[1].resource_allocations[0]
+                    .allocation_evidence
+                    .clone(),
+            });
         let errors = evaluate_mobility_commitment_lease(&input)
             .expect_err("unresolved lease plus candidate exceeds ess-02 slot power");
-        assert!(errors.iter().any(|error| error == "resource_capability_overcommitted:ess-02"));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error == "resource_capability_overcommitted:ess-02")
+        );
     }
 
     #[test]
     fn cumulative_energy_is_checked_per_resource_not_pooled() {
         let mut input = fixture();
-        input
-            .candidate_lease
-            .resource_allocations[0]
-            .energy_wh_by_slot[2] = 1_200;
+        input.candidate_lease.resource_allocations[0].energy_wh_by_slot[2] = 1_200;
         let errors = evaluate_mobility_commitment_lease(&input)
             .expect_err("ess-01 energy is overcommitted despite ess-02 slack");
-        assert!(errors.iter().any(|error| error == "resource_capability_overcommitted:ess-01"));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error == "resource_capability_overcommitted:ess-01")
+        );
     }
 
     #[test]
@@ -960,22 +1053,29 @@ mod tests {
         input.candidate_lease.resource_allocations[0].power_w_by_slot[2] = 2_600;
         let errors = evaluate_mobility_commitment_lease(&input)
             .expect_err("existing plus candidate power exceeds 3 kW");
-        assert!(errors.iter().any(|error| error == "resource_capability_overcommitted:ess-01"));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error == "resource_capability_overcommitted:ess-01")
+        );
     }
 
     #[test]
     fn mission_protected_window_blocks_candidate_even_when_budget_remains() {
         let mut input = fixture();
         input.candidate_lease.end_slot = 6;
-        input.candidate_lease.resource_allocations.push(LeaseResourceAllocation {
-            resource_id: "ess-02".to_owned(),
-            configuration_digest: "sha256:ess-02-v01".to_owned(),
-            power_w_by_slot: vec![0, 0, 0, 0, 500, 500],
-            energy_wh_by_slot: vec![0, 0, 0, 0, 50, 50],
-            allocation_evidence: input.existing_commitments[1].resource_allocations[0]
-                .allocation_evidence
-                .clone(),
-        });
+        input
+            .candidate_lease
+            .resource_allocations
+            .push(LeaseResourceAllocation {
+                resource_id: "ess-02".to_owned(),
+                configuration_digest: "sha256:ess-02-v01".to_owned(),
+                power_w_by_slot: vec![0, 0, 0, 0, 500, 500],
+                energy_wh_by_slot: vec![0, 0, 0, 0, 50, 50],
+                allocation_evidence: input.existing_commitments[1].resource_allocations[0]
+                    .allocation_evidence
+                    .clone(),
+            });
         let errors = evaluate_mobility_commitment_lease(&input)
             .expect_err("mission-protected interval cannot be promised to grid service");
         assert!(errors
@@ -1021,8 +1121,9 @@ mod tests {
     #[test]
     fn state_evidence_must_reference_its_exact_receipt() {
         let mut input = fixture();
-        input.existing_commitments[2].state_evidence.evidence_reference =
-            "synthetic://some-other-settlement".to_owned();
+        input.existing_commitments[2]
+            .state_evidence
+            .evidence_reference = "synthetic://some-other-settlement".to_owned();
         let errors = evaluate_mobility_commitment_lease(&input)
             .expect_err("settlement evidence cannot be detached from the lease receipt");
         assert!(errors.iter().any(|error| {
@@ -1037,9 +1138,11 @@ mod tests {
             input.decision_time_unix_ms + u64::from(input.slot_duration_seconds) * 1_000;
         let errors = evaluate_mobility_commitment_lease(&input)
             .expect_err("a report that expires mid-horizon cannot back a later slot");
-        assert!(errors.iter().any(|error| {
-            error == "upstream_report_validity_does_not_cover_full_horizon"
-        }));
+        assert!(
+            errors
+                .iter()
+                .any(|error| { error == "upstream_report_validity_does_not_cover_full_horizon" })
+        );
     }
 
     #[test]
@@ -1048,7 +1151,11 @@ mod tests {
         input.recovery_report_digest = "not-a-digest".to_owned();
         let errors = evaluate_mobility_commitment_lease(&input)
             .expect_err("source report digest must be canonical sha256 notation");
-        assert!(errors.iter().any(|error| error == "unsupported_identity_digest_or_horizon"));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error == "unsupported_identity_digest_or_horizon")
+        );
     }
 
     #[test]
@@ -1058,9 +1165,11 @@ mod tests {
             input.decision_time_unix_ms + 2 * u64::from(input.slot_duration_seconds) * 1_000 + 1;
         let errors = evaluate_mobility_commitment_lease(&input)
             .expect_err("a firm offer must expire before its delivery window starts");
-        assert!(errors
-            .iter()
-            .any(|error| error == "candidate_lease_identity_window_or_expiry_invalid"));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error == "candidate_lease_identity_window_or_expiry_invalid")
+        );
     }
 
     #[test]
