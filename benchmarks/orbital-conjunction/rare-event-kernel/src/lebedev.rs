@@ -397,6 +397,187 @@ pub fn integrate_sphere_samples(
     })
 }
 
+/// Tolerances and contribution requirements for the low-order refinement ladder.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct AdaptiveSphereQuadratureConfig {
+    /// Absolute difference tolerance between successive rule estimates.
+    pub absolute_tolerance: f64,
+    /// Relative difference tolerance, scaled by the finer estimate.
+    pub relative_tolerance: f64,
+    /// Per-rule material-contribution diagnostic configuration.
+    pub diagnostics: SphereQuadratureDiagnosticsConfig,
+}
+
+/// Result of comparing successive nested low-order Lebedev estimates.
+///
+/// The reported difference is an empirical refinement indicator, not a
+/// mathematically rigorous upper bound on quadrature error.
+#[derive(Debug, Clone, PartialEq)]
+pub struct AdaptiveSphereQuadratureReport {
+    /// Final and finest rule actually evaluated.
+    pub final_report: SphereQuadratureReport,
+    /// Reports from the 6-, 14- and, when needed, 26-point evaluations.
+    pub evaluations: Vec<SphereQuadratureReport>,
+    /// Absolute difference between the final two rule estimates.
+    pub successive_absolute_difference: f64,
+    /// Relative difference, scaled by the absolute finer estimate.
+    pub successive_relative_difference: f64,
+    /// Whether the final successive difference met the requested tolerance.
+    pub numerical_convergence_achieved: bool,
+    /// Whether the final rule met its significant-node requirement.
+    pub adequacy_satisfied: bool,
+    /// True only when both numerical convergence and contribution adequacy passed.
+    pub qualified: bool,
+}
+
+/// Integrate one deterministic nonnegative function over nested 6/14/26-point rules.
+///
+/// The same function is evaluated at each rule's nodes. The 6-point estimate is
+/// compared with the 14-point estimate; if the requested tolerance or the
+/// significant-node criterion is not met, the 26-point rule is evaluated and
+/// compared with the 14-point estimate.
+///
+/// The function must be deterministic for a fixed node. The API cannot prevent
+/// callers from using interior mutability, so the caller remains responsible
+/// for honoring this requirement.
+///
+/// The qualified flag is only a low-order numerical-refinement and node-support
+/// diagnostic. It is not a rigorous quadrature error bound, a complete Lebedev
+/// convergence study, or a physical-model qualification.
+pub fn integrate_sphere_adaptive<F>(
+    integrand: F,
+    config: AdaptiveSphereQuadratureConfig,
+) -> Result<AdaptiveSphereQuadratureReport, KernelError>
+where
+    F: Fn(f64, f64, f64) -> f64,
+{
+    if !config.absolute_tolerance.is_finite()
+        || !config.relative_tolerance.is_finite()
+        || config.absolute_tolerance < 0.0
+        || config.relative_tolerance < 0.0
+        || (config.absolute_tolerance == 0.0 && config.relative_tolerance == 0.0)
+    {
+        return Err(KernelError::InvalidSphereQuadratureTolerance);
+    }
+
+    let mut evaluations = Vec::with_capacity(3);
+    let coarse = evaluate_sphere_rule(
+        LebedevRule::Points6,
+        &integrand,
+        config.diagnostics,
+    )?;
+    let medium = evaluate_sphere_rule(
+        LebedevRule::Points14,
+        &integrand,
+        config.diagnostics,
+    )?;
+    let (first_absolute, first_relative) =
+        estimate_refinement_difference(coarse.integral, medium.integral)?;
+    let first_converged = refinement_tolerance_met(
+        first_absolute,
+        medium.integral,
+        config.absolute_tolerance,
+        config.relative_tolerance,
+    );
+    let medium_adequate = medium.adequacy_satisfied;
+
+    evaluations.push(coarse);
+    evaluations.push(medium.clone());
+
+    if first_converged && medium_adequate {
+        return Ok(build_adaptive_report(
+            medium,
+            evaluations,
+            first_absolute,
+            first_relative,
+            true,
+        ));
+    }
+
+    let fine = evaluate_sphere_rule(
+        LebedevRule::Points26,
+        &integrand,
+        config.diagnostics,
+    )?;
+    let (fine_absolute, fine_relative) =
+        estimate_refinement_difference(medium.integral, fine.integral)?;
+    let fine_converged = refinement_tolerance_met(
+        fine_absolute,
+        fine.integral,
+        config.absolute_tolerance,
+        config.relative_tolerance,
+    );
+    evaluations.push(fine.clone());
+
+    Ok(build_adaptive_report(
+        fine,
+        evaluations,
+        fine_absolute,
+        fine_relative,
+        fine_converged,
+    ))
+}
+
+fn evaluate_sphere_rule<F>(
+    selected: LebedevRule,
+    integrand: &F,
+    diagnostics: SphereQuadratureDiagnosticsConfig,
+) -> Result<SphereQuadratureReport, KernelError>
+where
+    F: Fn(f64, f64, f64) -> f64,
+{
+    let rule = lebedev_sphere_rule(selected)?;
+    let values = rule
+        .nodes()
+        .iter()
+        .map(|node| integrand(node.x, node.y, node.z))
+        .collect::<Vec<_>>();
+    integrate_sphere_samples(&rule, &values, diagnostics)
+}
+
+fn estimate_refinement_difference(
+    coarse: f64,
+    fine: f64,
+) -> Result<(f64, f64), KernelError> {
+    let absolute = (fine - coarse).abs();
+    if !absolute.is_finite() || !fine.is_finite() {
+        return Err(KernelError::NumericalOverflow);
+    }
+    let relative = absolute / fine.abs().max(f64::MIN_POSITIVE);
+    if !relative.is_finite() {
+        return Err(KernelError::NumericalOverflow);
+    }
+    Ok((absolute, relative))
+}
+
+fn refinement_tolerance_met(
+    absolute_difference: f64,
+    fine_estimate: f64,
+    absolute_tolerance: f64,
+    relative_tolerance: f64,
+) -> bool {
+    absolute_difference <= absolute_tolerance + relative_tolerance * fine_estimate.abs()
+}
+
+fn build_adaptive_report(
+    final_report: SphereQuadratureReport,
+    evaluations: Vec<SphereQuadratureReport>,
+    successive_absolute_difference: f64,
+    successive_relative_difference: f64,
+    numerical_convergence_achieved: bool,
+) -> AdaptiveSphereQuadratureReport {
+    let adequacy_satisfied = final_report.adequacy_satisfied;
+    AdaptiveSphereQuadratureReport {
+        final_report,
+        evaluations,
+        successive_absolute_difference,
+        successive_relative_difference,
+        numerical_convergence_achieved,
+        adequacy_satisfied,
+        qualified: numerical_convergence_achieved && adequacy_satisfied,
+    }
+}
+
 fn compensated_sum(values: impl IntoIterator<Item = f64>) -> f64 {
     // Neumaier compensated summation for positive terms with varied magnitudes.
     let mut sum = 0.0;
@@ -610,6 +791,79 @@ mod tests {
                 }
             ),
             Err(KernelError::InvalidSphereQuadratureThreshold)
+        );
+    }
+
+    #[test]
+    fn adaptive_refinement_stops_at_fourteen_for_a_low_degree_integrand() {
+        let result = integrate_sphere_adaptive(
+            |x, _y, _z| 1.0 + 0.2 * x * x,
+            AdaptiveSphereQuadratureConfig {
+                absolute_tolerance: 1.0e-12,
+                relative_tolerance: 1.0e-12,
+                diagnostics: SphereQuadratureDiagnosticsConfig::default(),
+            },
+        )
+        .expect("smooth low-degree integrand");
+        assert_eq!(result.evaluations.len(), 2);
+        assert_eq!(result.final_report.rule, LebedevRule::Points14);
+        assert!(result.numerical_convergence_achieved);
+        assert!(result.adequacy_satisfied);
+        assert!(result.qualified);
+    }
+
+    #[test]
+    fn adaptive_refinement_uses_twenty_six_points_when_six_and_fourteen_disagree() {
+        let result = integrate_sphere_adaptive(
+            |x, y, z| (4.0 * x + 2.0 * y - z).exp(),
+            AdaptiveSphereQuadratureConfig {
+                absolute_tolerance: 1.0e-14,
+                relative_tolerance: 1.0e-14,
+                diagnostics: SphereQuadratureDiagnosticsConfig::default(),
+            },
+        )
+        .expect("positive smooth integrand");
+        assert_eq!(result.evaluations.len(), 3);
+        assert_eq!(result.final_report.rule, LebedevRule::Points26);
+        assert!(result.successive_absolute_difference.is_finite());
+    }
+
+    #[test]
+    fn adaptive_qualification_separates_node_support_from_estimate_stability() {
+        let result = integrate_sphere_adaptive(
+            |x, y, z| {
+                if x > 0.999 && y.abs() < 1.0e-12 && z.abs() < 1.0e-12 {
+                    1.0
+                } else {
+                    1.0e-8
+                }
+            },
+            AdaptiveSphereQuadratureConfig {
+                absolute_tolerance: 1.0,
+                relative_tolerance: 1.0,
+                diagnostics: SphereQuadratureDiagnosticsConfig {
+                    relative_contribution_threshold: 1.0e-3,
+                    minimum_significant_nodes: 3,
+                },
+            },
+        )
+        .expect("low-support integrand");
+        assert!(!result.adequacy_satisfied);
+        assert!(!result.qualified);
+    }
+
+    #[test]
+    fn adaptive_refinement_rejects_invalid_tolerances() {
+        assert_eq!(
+            integrate_sphere_adaptive(
+                |_, _, _| 1.0,
+                AdaptiveSphereQuadratureConfig {
+                    absolute_tolerance: 0.0,
+                    relative_tolerance: 0.0,
+                    diagnostics: SphereQuadratureDiagnosticsConfig::default(),
+                },
+            ),
+            Err(KernelError::InvalidSphereQuadratureTolerance)
         );
     }
 
