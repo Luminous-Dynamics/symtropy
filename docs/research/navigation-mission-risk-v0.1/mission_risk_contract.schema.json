@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/navigation-mission-risk-contract-v0.1.json",
+  "title": "Navigation mission-level integrity risk contract v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "mission_profile_id", "claim_status", "mission_scope", "risk_budget", "checks"],
+  "properties": {
+    "schema_version": { "const": "navigation-mission-risk-contract/v0.1" },
+    "mission_profile_id": { "type": "string", "minLength": 1 },
+    "claim_status": { "enum": ["research_only", "candidate", "qualified"] },
+    "mission_scope": {
+      "type": "object", "additionalProperties": false,
+      "required": ["mission_unit", "operational_domain_ref", "time_basis_ref", "truth_oracle_scope_ref"],
+      "properties": {
+        "mission_unit": { "type": "string", "minLength": 1 },
+        "operational_domain_ref": { "type": "string", "minLength": 1 },
+        "time_basis_ref": { "type": "string", "minLength": 1 },
+        "truth_oracle_scope_ref": { "type": "string", "minLength": 1 }
+      }
+    },
+    "risk_budget": {
+      "type": "object", "additionalProperties": false,
+      "required": ["scale", "mission_budget_quanta", "check_set_sha256", "check_set_frozen"],
+      "properties": {
+        "scale": { "const": "probability_quanta_1e-15" },
+        "mission_budget_quanta": { "type": "integer", "minimum": 1, "maximum": 999999999999999 },
+        "check_set_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+        "check_set_frozen": { "type": "boolean" }
+      }
+    },
+    "checks": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/check" } }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-fA-F]{64}$" },
+    "check": {
+      "type": "object", "additionalProperties": false,
+      "required": ["check_id", "failure_event", "allocation_quanta", "bound_evidence"],
+      "properties": {
+        "check_id": { "type": "string", "minLength": 1 },
+        "failure_event": { "type": "string", "minLength": 1 },
+        "allocation_quanta": { "type": "integer", "minimum": 1, "maximum": 999999999999999 },
+        "bound_evidence": { "$ref": "#/$defs/boundEvidence" }
+      }
+    },
+    "boundEvidence": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "status", "method", "upper_bound_quanta", "confidence_quanta",
+        "independent_unit_kind", "independent_unit_count", "failure_count",
+        "independence_basis_ref", "operational_domain_ref", "method_definition_ref",
+        "calibration_split_sha256", "bound_result_sha256", "truth_oracle_receipt_sha256",
+        "assumptions_reviewed", "truth_oracle_reviewed"
+      ],
+      "properties": {
+        "status": { "enum": ["unqualified", "qualified"] },
+        "method": {
+          "type": ["string", "null"],
+          "enum": ["student_t_radial", "empirical_clopper_pearson", "analytical_bound", "reachable_set_bound", "other", null]
+        },
+        "upper_bound_quanta": { "type": ["integer", "null"], "minimum": 0, "maximum": 999999999999999 },
+        "confidence_quanta": { "type": ["integer", "null"], "minimum": 1, "maximum": 999999999999999 },
+        "independent_unit_kind": { "type": ["string", "null"], "enum": ["mission", "route_session", "fault_injection_trial", "other", null] },
+        "independent_unit_count": { "type": ["integer", "null"], "minimum": 1 },
+        "failure_count": { "type": ["integer", "null"], "minimum": 0 },
+        "independence_basis_ref": { "type": ["string", "null"] },
+        "operational_domain_ref": { "type": ["string", "null"] },
+        "method_definition_ref": { "type": ["string", "null"] },
+        "calibration_split_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+        "bound_result_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+        "truth_oracle_receipt_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+        "assumptions_reviewed": { "type": "boolean" },
+        "truth_oracle_reviewed": { "type": "boolean" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "qualified" } }, "required": ["status"] },
+          "then": {
+            "properties": {
+              "method": { "type": "string", "minLength": 1 },
+              "upper_bound_quanta": { "type": "integer", "minimum": 0 },
+              "confidence_quanta": { "type": "integer", "minimum": 1 },
+              "independent_unit_kind": { "type": "string", "minLength": 1 },
+              "independent_unit_count": { "type": "integer", "minimum": 1 },
+              "independence_basis_ref": { "type": "string", "minLength": 1 },
+              "operational_domain_ref": { "type": "string", "minLength": 1 },
+              "method_definition_ref": { "type": "string", "minLength": 1 },
+              "calibration_split_sha256": { "$ref": "#/$defs/sha256" },
+              "bound_result_sha256": { "$ref": "#/$defs/sha256" },
+              "truth_oracle_receipt_sha256": { "$ref": "#/$defs/sha256" },
+              "assumptions_reviewed": { "const": true },
+              "truth_oracle_reviewed": { "const": true }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "method": { "const": "empirical_clopper_pearson" }, "status": { "const": "qualified" } }, "required": ["method", "status"] },
+          "then": { "properties": { "failure_count": { "type": "integer", "minimum": 0 } } }
+        },
+        {
+          "if": { "properties": { "status": { "const": "unqualified" } }, "required": ["status"] },
+          "then": {
+            "properties": {
+              "method": { "type": "null" },
+              "upper_bound_quanta": { "type": "null" },
+              "confidence_quanta": { "type": "null" },
+              "independent_unit_kind": { "type": "null" },
+              "independent_unit_count": { "type": "null" },
+              "failure_count": { "type": "null" },
+              "independence_basis_ref": { "type": "null" },
+              "operational_domain_ref": { "type": "null" },
+              "method_definition_ref": { "type": "null" },
+              "calibration_split_sha256": { "type": "null" },
+              "bound_result_sha256": { "type": "null" },
+              "truth_oracle_receipt_sha256": { "type": "null" },
+              "assumptions_reviewed": { "const": false },
+              "truth_oracle_reviewed": { "const": false }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
