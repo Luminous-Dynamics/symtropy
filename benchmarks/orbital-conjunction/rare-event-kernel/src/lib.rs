@@ -196,8 +196,9 @@ pub fn gaussian_half_space_probability(
     }
 
     // Validate covariance through the same strict Cholesky path used by
-    // Gaussian::new. The factor is not needed for this scalar projection.
-    let _ = cholesky_lower(covariance, dimension)?;
+    // Gaussian::new. The Cholesky factor also gives a stable projected
+    // variance without explicitly multiplying the full covariance matrix.
+    let lower = cholesky_lower(covariance, dimension)?;
 
     let projected_mean: f64 = normal
         .iter()
@@ -205,13 +206,14 @@ pub fn gaussian_half_space_probability(
         .map(|(a, x)| a * x)
         .sum();
 
+    // If covariance = L L^T, then a^T covariance a = ||L^T a||^2.
     let mut projected_variance = 0.0;
-    for row in 0..dimension {
-        for column in 0..dimension {
-            projected_variance += normal[row]
-                * covariance[row * dimension + column]
-                * normal[column];
+    for column in 0..dimension {
+        let mut projected = 0.0;
+        for row in column..dimension {
+            projected += lower[row * dimension + column] * normal[row];
         }
+        projected_variance += projected * projected;
     }
 
     if !projected_mean.is_finite() || !projected_variance.is_finite() {
@@ -266,9 +268,9 @@ impl GaussianComponent {
 
 /// A normalized finite mixture of multivariate Gaussian distributions.
 ///
-/// The constructor requires weights to sum to one within 1e-12. It does not
-/// silently renormalize them, so the stored density is exactly the mixture
-/// specified by the caller, up to floating-point arithmetic.
+/// The constructor requires weights to sum to one within 1e-12. It normalizes
+/// only the residual floating-point roundoff in that accepted range; materially
+/// unnormalized input is rejected.
 #[derive(Debug, Clone, PartialEq)]
 pub struct GaussianMixture {
     components: Vec<GaussianComponent>,
@@ -277,7 +279,7 @@ pub struct GaussianMixture {
 
 impl GaussianMixture {
     /// Construct a normalized Gaussian mixture.
-    pub fn new(components: Vec<GaussianComponent>) -> Result<Self, KernelError> {
+    pub fn new(mut components: Vec<GaussianComponent>) -> Result<Self, KernelError> {
         if components.is_empty() {
             return Err(KernelError::EmptyDimension);
         }
@@ -292,6 +294,9 @@ impl GaussianMixture {
         let weight_sum: f64 = components.iter().map(|component| component.weight).sum();
         if !weight_sum.is_finite() || (weight_sum - 1.0).abs() > 1.0e-12 {
             return Err(KernelError::MixtureWeightsNotNormalized);
+        }
+        for component in &mut components {
+            component.weight /= weight_sum;
         }
 
         Ok(Self {
@@ -474,7 +479,13 @@ fn cholesky_lower(matrix: &[f64], dimension: usize) -> Result<Vec<f64>, KernelEr
     let mut lower = vec![0.0; expected_length];
     for row in 0..dimension {
         for column in 0..=row {
-            let mut value = matrix[row * dimension + column];
+            let mut value = if row == column {
+                matrix[row * dimension + column]
+            } else {
+                // The prior symmetry check bounds this adjustment to roundoff.
+                0.5 * (matrix[row * dimension + column]
+                    + matrix[column * dimension + row])
+            };
             for inner in 0..column {
                 value -= lower[row * dimension + inner] * lower[column * dimension + inner];
             }
