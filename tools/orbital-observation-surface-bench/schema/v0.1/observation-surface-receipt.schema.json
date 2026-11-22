@@ -76,7 +76,7 @@
       "additionalProperties": false,
       "required": [
         "event_id",
-        "pod_probability",
+        "conditional_classifier_probability",
         "detected",
         "miss_reason"
       ],
