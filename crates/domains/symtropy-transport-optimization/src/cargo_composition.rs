@@ -609,13 +609,9 @@ fn validate_batch_shape(batch: &CompositionEventBatch) -> Option<CompositionFail
             | CompositionMutation::RetractIfPresent {
                 parent_module_id,
                 child_module_id,
-            } => {
-                [parent_module_id.as_str(), child_module_id.as_str()]
-                    .into_iter()
-                    .any(|identity| {
-                        identity.trim().is_empty() || identity.trim() != identity
-                    })
-            }
+            } => [parent_module_id.as_str(), child_module_id.as_str()]
+                .into_iter()
+                .any(|identity| identity.trim().is_empty() || identity.trim() != identity),
             CompositionMutation::DisaggregateAll { parent_module_id } => {
                 parent_module_id.trim().is_empty() || parent_module_id.trim() != parent_module_id
             }
