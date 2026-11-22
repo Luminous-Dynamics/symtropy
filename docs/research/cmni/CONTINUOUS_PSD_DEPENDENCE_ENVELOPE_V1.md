@@ -150,3 +150,10 @@ Proposed acceptance targets:
 - publish the bound gap, solver gap, runtime, source count, observation count and conditioning diagnostics separately.
 
 No physical nuclear-data validation or SOTA superiority is established by this synthetic numerical work.
+
+
+## 7. Qualification bridge to experiment selection
+
+The public adapter `continuous_dependence_eig_utility_interval` converts the continuous worst-case EIG bracket into the common interval-dominance input type. It deliberately assigns `UtilityBoundEvidence::Heuristic`, because the current implementation uses f64 arithmetic and has no directed-rounding proof.
+
+This means the interval can be used for exploration and prioritization, but `certify_maximum_utility` returns an unresolved decision rather than a certified winner. The interval-dominance gate will only accept exact, theorem-qualified, or simultaneous familywise anytime-valid evidence. A mathematically motivated bound is not automatically a numerically certified interval.
