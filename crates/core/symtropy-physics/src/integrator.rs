@@ -304,6 +304,29 @@ pub fn try_apply_angular_impulse<const D: usize>(
     }
 }
 
+/// Apply a physical contact impulse at a world-space offset from the
+/// body's center of mass, translating it to the legacy stored-sign
+/// BivectorInertia convention in one place.
+///
+/// Callers supply the physical impulse direction and offset. The existing
+/// BivectorInertia momentum map stores L = -H_phys and
+/// try_apply_angular_impulse subtracts its inverse response, so this adapter
+/// constructs the legacy impulse-first wedge J ∧ r internally. Do not
+/// duplicate that sign conversion in contact, warm-start or joint code.
+pub fn try_apply_contact_angular_impulse<const D: usize>(
+    body: &mut RigidBody<D>,
+    offset: &SVector<f64, D>,
+    physical_impulse: &SVector<f64, D>,
+) -> Result<(), crate::inertia::RotationalInertiaError> {
+    if !offset.iter().all(|value| value.is_finite())
+        || !physical_impulse.iter().all(|value| value.is_finite())
+    {
+        return Err(crate::inertia::RotationalInertiaError::NonFinite);
+    }
+    let stored_sign_impulse = Bivector::from_wedge(physical_impulse, offset);
+    try_apply_angular_impulse(body, &stored_sign_impulse)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -490,9 +513,8 @@ mod tests {
         let before = body.angular_velocity;
 
         let impulse = direction * impulse_magnitude;
-        let angular_impulse = Bivector::from_wedge(&impulse, &offset);
-        try_apply_angular_impulse(&mut body, &angular_impulse)
-            .expect("validated anisotropic angular impulse must apply");
+        try_apply_contact_angular_impulse(&mut body, &offset, &impulse)
+            .expect("validated anisotropic contact impulse must apply");
         let angular_state_delta = body.angular_velocity.add(&before.scale(-1.0));
         let point_velocity_delta = angular_point_velocity(&angular_state_delta, &offset);
         let measured_inverse_mass = direction.dot(&point_velocity_delta) / impulse_magnitude;
@@ -508,10 +530,8 @@ mod tests {
         let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 1.0);
         let offset = SVector::from([1.0, 0.0, 0.0]);
         let impulse = SVector::from([0.0, 1.0, 0.0]);
-        let torque = Bivector::from_wedge(&impulse, &offset);
-
-        try_apply_angular_impulse(&mut body, &torque)
-            .expect("valid legacy isotropic angular impulse must apply");
+        try_apply_contact_angular_impulse(&mut body, &offset, &impulse)
+            .expect("valid physical contact impulse must apply");
         let rotational_delta_velocity = angular_point_velocity(&body.angular_velocity, &offset);
         let inverse_inertia = body.inv_inertia.sum() / 3.0;
         let expected =
@@ -521,6 +541,34 @@ mod tests {
             (rotational_delta_velocity - expected).norm() < 1e-12,
             "rotational_delta_velocity={rotational_delta_velocity:?}, expected={expected:?}"
         );
+    }
+
+    #[test]
+    fn contact_angular_impulse_rejects_non_finite_inputs_without_mutation() {
+        let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 1.0);
+        let before = body.angular_velocity;
+
+        let non_finite_offset = SVector::new(f64::NAN, 0.0, 0.0);
+        assert_eq!(
+            try_apply_contact_angular_impulse(
+                &mut body,
+                &non_finite_offset,
+                &SVector::new(0.0, 1.0, 0.0),
+            ),
+            Err(crate::inertia::RotationalInertiaError::NonFinite)
+        );
+        assert_eq!(body.angular_velocity, before);
+
+        let non_finite_impulse = SVector::new(0.0, f64::INFINITY, 0.0);
+        assert_eq!(
+            try_apply_contact_angular_impulse(
+                &mut body,
+                &SVector::new(1.0, 0.0, 0.0),
+                &non_finite_impulse,
+            ),
+            Err(crate::inertia::RotationalInertiaError::NonFinite)
+        );
+        assert_eq!(body.angular_velocity, before);
     }
 
     #[test]
