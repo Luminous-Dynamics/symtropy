@@ -196,7 +196,9 @@ def verify(corpus_path: Path, rust_path: Path) -> dict:
     assert corpus["claim_ceiling"] == CLAIM_CEILING
     assert rust["schema"] == OUTPUT_SCHEMA
     assert rust["corpus_sha256"] == hashlib.sha256(raw).hexdigest()
-    scope_bytes = json.dumps(corpus["scope"], separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    typed_scope = dict(corpus["scope"])
+    typed_scope["target_flaw_size_mm"] = float(typed_scope["target_flaw_size_mm"])
+    scope_bytes = json.dumps(typed_scope, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
     scope_digest = hashlib.sha256(scope_bytes).hexdigest()
     assert rust["scope_sha256"] == scope_digest
     assert rust["claim_ceiling"] == CLAIM_CEILING
