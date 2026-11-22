@@ -228,13 +228,16 @@ impl HorizonEventDefinition {
             }
 
             if let PathWindowDisposition::DefinitelyContact {
-                first_contact_time_seconds,
+                first_contact_time_lower_seconds,
+                first_contact_time_upper_seconds,
             } = outcome.disposition
             {
                 let window = &self.windows[index];
-                if !first_contact_time_seconds.is_finite()
-                    || first_contact_time_seconds < window.start_seconds
-                    || first_contact_time_seconds > window.end_seconds
+                if !first_contact_time_lower_seconds.is_finite()
+                    || !first_contact_time_upper_seconds.is_finite()
+                    || first_contact_time_lower_seconds > first_contact_time_upper_seconds
+                    || first_contact_time_lower_seconds < window.start_seconds
+                    || first_contact_time_upper_seconds > window.end_seconds
                 {
                     return Err(KernelError::InvalidEncounterContactTime);
                 }
@@ -247,7 +250,8 @@ impl HorizonEventDefinition {
         // contact lies inside another window.
         for (index, outcome) in &by_window {
             if let PathWindowDisposition::DefinitelyContact {
-                first_contact_time_seconds,
+                first_contact_time_lower_seconds,
+                first_contact_time_upper_seconds,
             } = outcome.disposition
             {
                 for (other_index, other_outcome) in &by_window {
@@ -255,17 +259,18 @@ impl HorizonEventDefinition {
                         continue;
                     }
                     let other_window = &self.windows[*other_index];
-                    let time_is_inside_other = first_contact_time_seconds
+                    let bracket_is_inside_other = first_contact_time_lower_seconds
                         >= other_window.start_seconds
-                        && first_contact_time_seconds <= other_window.end_seconds;
-                    if time_is_inside_other {
+                        && first_contact_time_upper_seconds <= other_window.end_seconds;
+                    if bracket_is_inside_other {
                         match other_outcome.disposition {
                             PathWindowDisposition::DefinitelyNoContact => {
                                 return Err(KernelError::ContradictoryEncounterWindowOutcome);
                             }
                             PathWindowDisposition::DefinitelyContact {
-                                first_contact_time_seconds: other_first,
-                            } if other_first > first_contact_time_seconds => {
+                                first_contact_time_lower_seconds: other_first_lower,
+                                ..
+                            } if other_first_lower > first_contact_time_upper_seconds => {
                                 return Err(KernelError::ContradictoryEncounterWindowOutcome);
                             }
                             _ => {}
@@ -284,7 +289,7 @@ impl HorizonEventDefinition {
             return Err(KernelError::MissingEncounterWindowOutcome);
         }
 
-        let mut contact_times = Vec::new();
+        let mut contact_time_bounds = Vec::new();
         let mut contacting_window_ids = Vec::new();
         let mut unresolved_window_ids = Vec::new();
 
@@ -292,9 +297,13 @@ impl HorizonEventDefinition {
             match outcome.disposition {
                 PathWindowDisposition::DefinitelyNoContact => {}
                 PathWindowDisposition::DefinitelyContact {
-                    first_contact_time_seconds,
+                    first_contact_time_lower_seconds,
+                    first_contact_time_upper_seconds,
                 } => {
-                    contact_times.push(first_contact_time_seconds);
+                    contact_time_bounds.push((
+                        first_contact_time_lower_seconds,
+                        first_contact_time_upper_seconds,
+                    ));
                     contacting_window_ids.push(self.windows[index].window_id.clone());
                 }
                 PathWindowDisposition::Ambiguous => {
@@ -303,7 +312,7 @@ impl HorizonEventDefinition {
             }
         }
 
-        let disposition = if !contact_times.is_empty() {
+        let disposition = if !contact_time_bounds.is_empty() {
             HorizonContactDisposition::DefinitelyContact
         } else if unresolved_window_ids.is_empty()
             && self.window_inventory_coverage == WindowInventoryCoverage::DeclaredComplete
@@ -313,19 +322,26 @@ impl HorizonEventDefinition {
             HorizonContactDisposition::Ambiguous
         };
 
-        let first_contact_time_seconds = if contact_times.is_empty() {
+        let first_contact_time_bounds_seconds = if contact_time_bounds.is_empty() {
             None
         } else {
-            let earliest_contact = contact_times.iter().copied().fold(f64::INFINITY, f64::min);
+            let earliest_lower = contact_time_bounds
+                .iter()
+                .map(|(lower, _)| *lower)
+                .fold(f64::INFINITY, f64::min);
+            let earliest_upper = contact_time_bounds
+                .iter()
+                .map(|(_, upper)| *upper)
+                .fold(f64::INFINITY, f64::min);
             let unresolved_could_be_earlier = self.window_inventory_coverage
                 != WindowInventoryCoverage::DeclaredComplete
                 || unresolved_window_ids.iter().any(|window_id| {
-                self.windows
-                    .iter()
-                    .find(|window| window.window_id == *window_id)
-                    .is_some_and(|window| window.start_seconds < earliest_contact)
-            });
-            (!unresolved_could_be_earlier).then_some(earliest_contact)
+                    self.windows
+                        .iter()
+                        .find(|window| window.window_id == *window_id)
+                        .is_some_and(|window| window.start_seconds < earliest_upper)
+                });
+            (!unresolved_could_be_earlier).then_some((earliest_lower, earliest_upper))
         };
 
         Ok(PathwiseHorizonOutcome {
@@ -333,7 +349,7 @@ impl HorizonEventDefinition {
             event_revision: self.revision.clone(),
             realization_id: realization_id.to_owned(),
             disposition,
-            first_contact_time_seconds,
+            first_contact_time_bounds_seconds,
             contacting_window_ids,
             unresolved_window_ids,
             window_inventory_coverage: self.window_inventory_coverage,
@@ -362,8 +378,10 @@ pub enum PathWindowDisposition {
     /// Contact is established and its earliest contact time is supplied.
     /// The caller must establish the first-hit semantics for this window.
     DefinitelyContact {
-        /// First contact time in seconds relative to the event epoch.
-        first_contact_time_seconds: f64,
+        /// Inclusive lower bound on the first contact time in seconds.
+        first_contact_time_lower_seconds: f64,
+        /// Inclusive upper bound on the first contact time in seconds.
+        first_contact_time_upper_seconds: f64,
     },
     /// The window evaluator cannot decide within its declared assumptions
     /// and resource budget.
@@ -392,8 +410,9 @@ pub struct PathwiseHorizonOutcome {
     pub realization_id: String,
     /// Horizon-level any-contact disposition.
     pub disposition: HorizonContactDisposition,
-    /// First contact time, only when earlier contact is not unresolved.
-    pub first_contact_time_seconds: Option<f64>,
+    /// Enclosure of the earliest horizon contact time, only when the window
+    /// inventory is declared complete and earlier contact is not unresolved.
+    pub first_contact_time_bounds_seconds: Option<(f64, f64)>,
     /// Window IDs that definitely contain contact. Overlapping windows may
     /// both appear here; this is not a count of distinct physical episodes.
     pub contacting_window_ids: Vec<String>,
@@ -460,7 +479,8 @@ mod tests {
         let result = definition
             .classify_realization(&[
                 outcome("trajectory-1", "late", PathWindowDisposition::DefinitelyContact {
-                    first_contact_time_seconds: 24.0,
+                    first_contact_time_lower_seconds: 24.0,
+                    first_contact_time_upper_seconds: 24.0,
                 }),
                 outcome("trajectory-1", "early", PathWindowDisposition::DefinitelyContact {
                     first_contact_time_seconds: 24.0,
@@ -469,7 +489,7 @@ mod tests {
             .expect("complete realization");
 
         assert_eq!(result.disposition, HorizonContactDisposition::DefinitelyContact);
-        assert_eq!(result.first_contact_time_seconds, Some(24.0));
+        assert_eq!(result.first_contact_time_bounds_seconds, Some((24.0, 24.0)));
         assert_eq!(result.contacting_window_ids.len(), 2);
     }
 
@@ -479,7 +499,8 @@ mod tests {
         let result = definition
             .classify_realization(&[
                 outcome("trajectory-2", "a", PathWindowDisposition::DefinitelyContact {
-                    first_contact_time_seconds: 15.0,
+                    first_contact_time_lower_seconds: 15.0,
+                    first_contact_time_upper_seconds: 15.0,
                 }),
                 outcome("trajectory-2", "b", PathWindowDisposition::DefinitelyContact {
                     first_contact_time_seconds: 15.0,
@@ -488,7 +509,7 @@ mod tests {
             .expect("complete realization");
 
         assert_eq!(result.disposition, HorizonContactDisposition::DefinitelyContact);
-        assert_eq!(result.first_contact_time_seconds, Some(15.0));
+        assert_eq!(result.first_contact_time_bounds_seconds, Some((15.0, 15.0)));
     }
 
     #[test]
@@ -498,13 +519,14 @@ mod tests {
             .classify_realization(&[
                 outcome("trajectory-3", "early", PathWindowDisposition::Ambiguous),
                 outcome("trajectory-3", "late", PathWindowDisposition::DefinitelyContact {
-                    first_contact_time_seconds: 35.0,
+                    first_contact_time_lower_seconds: 35.0,
+                    first_contact_time_upper_seconds: 35.0,
                 }),
             ])
             .expect("complete realization");
 
         assert_eq!(result.disposition, HorizonContactDisposition::DefinitelyContact);
-        assert_eq!(result.first_contact_time_seconds, None);
+        assert_eq!(result.first_contact_time_bounds_seconds, None);
         assert_eq!(result.unresolved_window_ids, vec!["early"]);
     }
 
@@ -605,7 +627,8 @@ mod tests {
                 "trajectory-8",
                 "a",
                 PathWindowDisposition::DefinitelyContact {
-                    first_contact_time_seconds: 21.0,
+                    first_contact_time_lower_seconds: 21.0,
+                    first_contact_time_upper_seconds: 21.0,
                 }
             )]),
             Err(KernelError::InvalidEncounterContactTime)
