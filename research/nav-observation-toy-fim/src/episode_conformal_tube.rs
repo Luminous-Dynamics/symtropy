@@ -469,6 +469,22 @@ mod tests {
     }
 
     #[test]
+    fn ninety_nine_point_nine_percent_rank_boundary_is_exact() {
+        let insufficient = episodes(998);
+        assert_eq!(
+            calibrate_episode_conformal_radius_2d(&insufficient, config(0.999, 998)),
+            Err(EpisodeConformalError::InsufficientFiniteSampleRank {
+                needed_rank: 999,
+                available: 998
+            })
+        );
+        let sufficient = episodes(999);
+        let report =
+            calibrate_episode_conformal_radius_2d(&sufficient, config(0.999, 999)).unwrap();
+        assert_eq!(report.selected_order_statistic_rank(), 999);
+    }
+
+    #[test]
     fn calibration_is_permutation_invariant() {
         let data = episodes(19);
         let first = calibrate_episode_conformal_radius_2d(&data, config(0.95, 19)).unwrap();
