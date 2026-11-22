@@ -25,6 +25,35 @@ pub struct EncounterWindow {
     pub end_seconds: f64,
 }
 
+/// Validated-input configuration for a multi-window conjunction event.
+///
+/// This value groups source identity, time frame, horizon geometry, and the
+/// caller-declared window inventory status so the definition constructor has a
+/// stable, serializable input boundary.
+#[derive(Debug, Clone, PartialEq)]
+pub struct HorizonEventConfig {
+    /// Stable conjunction/event identifier.
+    pub event_id: String,
+    /// Immutable revision of the event-definition inputs.
+    pub revision: String,
+    /// Epoch to which relative time coordinates refer.
+    pub epoch: String,
+    /// Declared time scale, for example TAI or UTC.
+    pub time_scale: String,
+    /// Declared reference frame for relative-position trajectories.
+    pub reference_frame: String,
+    /// Inclusive horizon start in seconds relative to the epoch.
+    pub horizon_start_seconds: f64,
+    /// Inclusive horizon end in seconds relative to the epoch.
+    pub horizon_end_seconds: f64,
+    /// Hard-body radius in metres.
+    pub hard_body_radius_m: f64,
+    /// Caller-declared completeness of the encounter-window inventory.
+    pub window_inventory_coverage: WindowInventoryCoverage,
+    /// All admitted encounter windows; constructor canonicalizes their order.
+    pub windows: Vec<EncounterWindow>,
+}
+
 /// Immutable-in-use definition of a multi-window conjunction event.
 ///
 /// Windows may overlap, touch, be nested, or have identical bounds. The
@@ -50,23 +79,19 @@ impl HorizonEventDefinition {
     /// declared time scale and reference frame. Window bounds must lie inside
     /// the horizon. The window list is stored in deterministic chronological
     /// order.
-    pub fn new(
-        event_id: impl Into<String>,
-        revision: impl Into<String>,
-        epoch: impl Into<String>,
-        time_scale: impl Into<String>,
-        reference_frame: impl Into<String>,
-        horizon_start_seconds: f64,
-        horizon_end_seconds: f64,
-        hard_body_radius_m: f64,
-        window_inventory_coverage: WindowInventoryCoverage,
-        mut windows: Vec<EncounterWindow>,
-    ) -> Result<Self, KernelError> {
-        let event_id = event_id.into();
-        let revision = revision.into();
-        let epoch = epoch.into();
-        let time_scale = time_scale.into();
-        let reference_frame = reference_frame.into();
+    pub fn new(config: HorizonEventConfig) -> Result<Self, KernelError> {
+        let HorizonEventConfig {
+            event_id,
+            revision,
+            epoch,
+            time_scale,
+            reference_frame,
+            horizon_start_seconds,
+            horizon_end_seconds,
+            hard_body_radius_m,
+            window_inventory_coverage,
+            mut windows,
+        } = config;
 
         if event_id.trim().is_empty()
             || revision.trim().is_empty()
@@ -452,19 +477,33 @@ mod tests {
         }
     }
 
+    fn event_config(
+        event_id: &str,
+        revision: &str,
+        coverage: WindowInventoryCoverage,
+        windows: Vec<EncounterWindow>,
+    ) -> HorizonEventConfig {
+        HorizonEventConfig {
+            event_id: event_id.to_owned(),
+            revision: revision.to_owned(),
+            epoch: "2026-11-22T00:00:00".to_owned(),
+            time_scale: "TAI".to_owned(),
+            reference_frame: "GCRF".to_owned(),
+            horizon_start_seconds: 0.0,
+            horizon_end_seconds: 100.0,
+            hard_body_radius_m: 5.0,
+            window_inventory_coverage: coverage,
+            windows,
+        }
+    }
+
     fn definition(windows: Vec<EncounterWindow>) -> HorizonEventDefinition {
-        HorizonEventDefinition::new(
+        HorizonEventDefinition::new(event_config(
             "event-42",
             "revision-7",
-            "2026-11-22T00:00:00",
-            "TAI",
-            "GCRF",
-            0.0,
-            100.0,
-            5.0,
             WindowInventoryCoverage::DeclaredComplete,
             windows,
-        )
+        ))
         .expect("valid horizon definition")
     }
 
@@ -868,96 +907,69 @@ mod tests {
     #[test]
     fn invalid_definitions_fail_closed() {
         assert_eq!(
-            HorizonEventDefinition::new(
+            HorizonEventDefinition::new(event_config(
                 " ",
                 "revision",
-                "epoch",
-                "TAI",
-                "GCRF",
-                0.0,
-                10.0,
-                1.0,
                 WindowInventoryCoverage::DeclaredComplete,
                 vec![window("a", 1.0, 2.0)],
-            ),
+            )),
             Err(KernelError::InvalidEventDefinition)
         );
+
+        let mut reversed_horizon = event_config(
+            "event",
+            "revision",
+            WindowInventoryCoverage::DeclaredComplete,
+            vec![window("a", 1.0, 2.0)],
+        );
+        reversed_horizon.horizon_start_seconds = 10.0;
+        reversed_horizon.horizon_end_seconds = 0.0;
         assert_eq!(
-            HorizonEventDefinition::new(
-                "event",
-                "revision",
-                "epoch",
-                "TAI",
-                "GCRF",
-                10.0,
-                0.0,
-                1.0,
-                WindowInventoryCoverage::DeclaredComplete,
-                vec![window("a", 1.0, 2.0)],
-            ),
+            HorizonEventDefinition::new(reversed_horizon),
             Err(KernelError::InvalidEventDefinition)
         );
+
         assert_eq!(
-            HorizonEventDefinition::new(
+            HorizonEventDefinition::new(event_config(
                 "event",
                 "revision",
-                "epoch",
-                "TAI",
-                "GCRF",
-                0.0,
-                10.0,
-                1.0,
                 WindowInventoryCoverage::DeclaredComplete,
                 vec![window("a", 0.0, 2.0), window("a", 2.0, 3.0)],
-            ),
+            )),
             Err(KernelError::DuplicateEncounterWindow)
         );
+
         assert_eq!(
-            HorizonEventDefinition::new(
+            HorizonEventDefinition::new(event_config(
                 "event",
                 "revision",
-                "epoch",
-                "TAI",
-                "GCRF",
-                0.0,
-                10.0,
-                1.0,
                 WindowInventoryCoverage::DeclaredComplete,
-                vec![window("a", 1.0, 11.0)],
-            ),
+                vec![window("a", 1.0, 101.0)],
+            )),
             Err(KernelError::InvalidEncounterWindow)
         );
+
+        let mut invalid_radius = event_config(
+            "event",
+            "revision",
+            WindowInventoryCoverage::DeclaredComplete,
+            vec![window("a", 1.0, 2.0)],
+        );
+        invalid_radius.hard_body_radius_m = 0.0;
         assert_eq!(
-            HorizonEventDefinition::new(
-                "event",
-                "revision",
-                "epoch",
-                "TAI",
-                "GCRF",
-                0.0,
-                10.0,
-                0.0,
-                WindowInventoryCoverage::DeclaredComplete,
-                vec![window("a", 1.0, 2.0)],
-            ),
+            HorizonEventDefinition::new(invalid_radius),
             Err(KernelError::InvalidHardBodyRadius)
         );
     }
 
     #[test]
     fn incomplete_window_inventory_cannot_prove_horizon_no_contact() {
-        let definition = HorizonEventDefinition::new(
+        let definition = HorizonEventDefinition::new(event_config(
             "event-42",
             "revision-8",
-            "epoch",
-            "TAI",
-            "GCRF",
-            0.0,
-            100.0,
-            5.0,
             WindowInventoryCoverage::KnownIncomplete,
             vec![window("a", 10.0, 20.0)],
-        )
+        ))
         .expect("valid partial definition");
         let result = definition
             .classify_realization(&[outcome(
@@ -975,18 +987,12 @@ mod tests {
 
     #[test]
     fn incomplete_inventory_with_a_proven_contact_proves_any_contact_but_not_first_time() {
-        let definition = HorizonEventDefinition::new(
+        let definition = HorizonEventDefinition::new(event_config(
             "event-42",
             "revision-9",
-            "epoch",
-            "TAI",
-            "GCRF",
-            0.0,
-            100.0,
-            5.0,
             WindowInventoryCoverage::KnownIncomplete,
             vec![window("a", 10.0, 20.0)],
-        )
+        ))
         .expect("valid partial definition");
         let result = definition
             .classify_realization(&[outcome(
