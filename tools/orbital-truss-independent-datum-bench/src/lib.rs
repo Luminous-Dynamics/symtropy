@@ -572,47 +572,35 @@ mod tests {
             [rotated[0] + offset[0], rotated[1] + offset[1]]
         }
 
-        let source_points = [
-            [-2.0, -1.0],
-            [3.0, -1.0],
-            [-2.0, 4.0],
-        ];
-        let check_points = [
-            [1.0, 2.0],
-            [2.5, 3.5],
-        ];
+        let source_points = [[-2.0, -1.0], [3.0, -1.0], [-2.0, 4.0]];
+        let check_points = [[1.0, 2.0], [2.5, 3.5]];
         let mut state = 0x4f52_4249_5441_4c31_u64;
 
         for sample in 0..128 {
-            let physical_angle = next_unit(&mut state) * std::f64::consts::TAU
-                - std::f64::consts::PI;
+            let physical_angle =
+                next_unit(&mut state) * std::f64::consts::TAU - std::f64::consts::PI;
             let physical_translation = [
                 next_unit(&mut state) * 200.0 - 100.0,
                 next_unit(&mut state) * 200.0 - 100.0,
             ];
-            let source_frame_angle = next_unit(&mut state) * std::f64::consts::TAU
-                - std::f64::consts::PI;
+            let source_frame_angle =
+                next_unit(&mut state) * std::f64::consts::TAU - std::f64::consts::PI;
             let source_frame_offset = [
                 next_unit(&mut state) * 200.0 - 100.0,
                 next_unit(&mut state) * 200.0 - 100.0,
             ];
-            let target_frame_angle = next_unit(&mut state) * std::f64::consts::TAU
-                - std::f64::consts::PI;
+            let target_frame_angle =
+                next_unit(&mut state) * std::f64::consts::TAU - std::f64::consts::PI;
             let target_frame_offset = [
                 next_unit(&mut state) * 200.0 - 100.0,
                 next_unit(&mut state) * 200.0 - 100.0,
             ];
 
             let make_pair = |point_id: String, source: [f64; 2]| {
-                let physical_target =
-                    transform(source, physical_angle, physical_translation);
+                let physical_target = transform(source, physical_angle, physical_translation);
                 PointPair {
                     point_id,
-                    source_position_m: transform(
-                        source,
-                        source_frame_angle,
-                        source_frame_offset,
-                    ),
+                    source_position_m: transform(source, source_frame_angle, source_frame_offset),
                     target_position_m: transform(
                         physical_target,
                         target_frame_angle,
@@ -652,9 +640,16 @@ mod tests {
             };
 
             let result = evaluate_case(&case).expect("generated frame case must evaluate");
-            assert_eq!(result.disposition, Disposition::Qualified, "sample {sample}");
+            assert_eq!(
+                result.disposition,
+                Disposition::Qualified,
+                "sample {sample}"
+            );
             assert!(
-                result.control_residuals.iter().all(|item| item.within_bound),
+                result
+                    .control_residuals
+                    .iter()
+                    .all(|item| item.within_bound),
                 "control residual failed for sample {sample}"
             );
             assert!(
@@ -662,17 +657,18 @@ mod tests {
                 "withheld check failed for sample {sample}"
             );
 
-            let expected_angle =
-                target_frame_angle + physical_angle - source_frame_angle;
+            let expected_angle = target_frame_angle + physical_angle - source_frame_angle;
             let angle_error = (result.rotation_radians.unwrap() - expected_angle
                 + std::f64::consts::PI)
                 .rem_euclid(std::f64::consts::TAU)
                 - std::f64::consts::PI;
-            assert!(angle_error.abs() < 1.0e-10, "pose angle failed for sample {sample}");
+            assert!(
+                angle_error.abs() < 1.0e-10,
+                "pose angle failed for sample {sample}"
+            );
 
             let expected_rotated_translation = rotate(physical_translation, target_frame_angle);
-            let expected_rotated_source_offset =
-                rotate(source_frame_offset, expected_angle);
+            let expected_rotated_source_offset = rotate(source_frame_offset, expected_angle);
             let expected_translation = [
                 expected_rotated_translation[0] + target_frame_offset[0]
                     - expected_rotated_source_offset[0],
