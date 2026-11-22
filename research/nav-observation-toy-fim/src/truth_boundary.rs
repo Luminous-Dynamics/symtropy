@@ -171,8 +171,8 @@ pub fn controller_propose(
     let p_one = input.belief_state_one_ppm as u128;
     let p_zero = 1_000_000_u128 - p_one;
     let claim_state_one =
-        p_one * input.false_degraded_loss_micros as u128
-            <= p_zero * input.false_safe_loss_micros as u128;
+        p_zero * input.false_safe_loss_micros as u128
+            <= p_one * input.false_degraded_loss_micros as u128;
 
     let mut feasible: Vec<&CandidateAction> = input
         .candidates
@@ -221,7 +221,7 @@ pub fn controller_propose(
 }
 
 /// Acquisition result is a post-proposal event, never an input to proposal.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AcquisitionStatus {
     Succeeded { outcome_state_one_ppm: u32 },
     Failed,
@@ -411,7 +411,7 @@ mod tests {
         assert_eq!(
             proposal.disposition,
             ProposalDisposition::Acquire {
-                action_id: "camera-reobserve".to_owned()
+                action_id: "uwb-reobserve".to_owned()
             }
         );
         assert_eq!(proposal.expected_decision_value_micros, 120);
