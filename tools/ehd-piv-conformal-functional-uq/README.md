@@ -35,6 +35,8 @@ cargo clippy --manifest-path Cargo.toml --all-targets -- -D warnings
 cargo fmt --manifest-path Cargo.toml -- --check
 ```
 
+An authored finite-difference test checks every mass/momentum Jacobian component on a non-axis-aligned face against central numerical derivatives.
+
 ## Claim boundary
 
 No raw PIV images, correlation planes, LPT trajectories, pressure/viscous traction, control-volume storage or force-balance readings are ingested. Density and surface-area uncertainty are included only when supplied as shared modes. Cross-location error dependence not represented by a mode is omitted. This is a first-order uncertainty-propagation reference, not an experimental certification.
