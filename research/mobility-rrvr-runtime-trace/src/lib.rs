@@ -668,7 +668,7 @@ fn hex(bytes:&[u8])->String {
 mod tests {
     use super::*;
 
-    fn sha(c:char)->String { std::iter::repeat(c).take(64).collect() }
+    fn sha(c: char) -> String { std::iter::repeat_n(c, 64).collect() }
 
     fn observer_proof(label: &str) -> ObserverQuorumProof {
         ObserverQuorumProof {
@@ -802,7 +802,7 @@ mod tests {
 
     #[test]
     fn no_effect_and_downstream_quiescence_claims_have_distinct_scope_commitments() {
-        let mut record = recording();
+        let record = recording();
         let scope = record.snapshots[0].owner_evidence[6].scope.clone();
         let no_effect = claim_scope_digest(
             OwnerEvidenceDomain::NoEffectObserverQuorum,
@@ -925,18 +925,31 @@ mod tests {
         let mut r=recording();r.snapshots[0].state_s["downstreamFenceBootEpoch"]=json!(1);
         assert_eq!(r.validate(),Err(ProjectionError::DownstreamFenceInvariant));
     }
-    #[test] fn recovery_acceptance_requires_exact_no_effect_and_all_current_admissions(){
-        let mut r=recording();let s=&mut r.snapshots[0].state_s;
-        s["recoveryAccepted"]=json!(true);s["recoveryPermit"]=json!("consumed");s["permitUseCount"]=json!(1);
-        s["ticketStatus"]=json!("consumed");s["effectEvidence"]=json!("no_effect");
-        s["oldPhysicalOutcome"]=json!("no_effect");s["missionResolution"]=json!("no_effect");
-        s["persistStatus"]=json!("committed");s["storeRecord"]=json!(true);
-        s["ticketAttempt"]=json!("attempt-2");s["queueFenceBootEpoch"]=json!(1);s["downstreamFenceBootEpoch"]=json!(1);
-        s["admittedFreshBoot"]=json!(true);s["admittedFreshController"]=json!(true);
-        s["admittedControllerFence"]=json!(true);s["admittedDownstreamFence"]=json!(true);
-        s["admittedM1"]=json!(true);s["admittedM2"]=json!(true);s["admittedBinding"]=json!(true);
-        assert_eq!(r.validate(),Ok(()));s["m2Current"]=json!(false);
-        assert_eq!(r.validate(),Err(ProjectionError::RecoveryAdmissionInvariant));
+    #[test]
+    fn recovery_acceptance_uses_captured_admission_facts_not_current_revocation_flags() {
+        let mut state=model_init_state();
+        state["processStatus"]=json!("running");state["bootEpoch"]=json!(2);state["controllerEpoch"]=json!(2);
+        state["stage"]=json!("accepted");state["reservationCommitted"]=json!(true);
+        state["oldAccepted"]=json!(true);state["oldAcceptedBootEpoch"]=json!(1);state["oldAcceptedControllerEpoch"]=json!(1);
+        state["commandPending"]=json!(true);state["commandOwnerAttempt"]=json!("attempt-2");
+        state["oldPhysicalOutcome"]=json!("no_effect");state["effectEvidence"]=json!("no_effect");
+        state["missionResolution"]=json!("no_effect");state["queueFenceBootEpoch"]=json!(2);
+        state["downstreamFenceBootEpoch"]=json!(0);
+        state["recoveryAccepted"]=json!(true);state["recoveryPermit"]=json!("consumed");state["permitUseCount"]=json!(1);
+        state["ticketStatus"]=json!("consumed");state["ticketAttempt"]=json!("attempt-2");
+        state["ticketBootEpoch"]=json!(2);state["ticketControllerEpoch"]=json!(2);
+        state["admittedFreshBoot"]=json!(true);state["admittedFreshController"]=json!(true);
+        state["admittedControllerFence"]=json!(true);state["admittedDownstreamFence"]=json!(true);
+        state["admittedM1"]=json!(true);state["admittedM2"]=json!(true);state["admittedBinding"]=json!(true);
+        state["crashCut"]=json!("permit_consumed_before_effect");
+        assert_eq!(validate_state(&state,4),Ok(()));
+
+        // Revocation after admission is not retroactive. A corrupted admission
+        // receipt, however, must fail closed.
+        state["m2Current"]=json!(false);
+        assert_eq!(validate_state(&state,4),Ok(()));
+        state["admittedM2"]=json!(false);
+        assert_eq!(validate_state(&state,4),Err(ProjectionError::RecoveryAdmissionInvariant));
     }
     #[test] fn initial_state_is_not_an_optimistic_placeholder(){
         let mut r=recording();r.snapshots[0].state_s["observerIndependent"]=json!(false);
