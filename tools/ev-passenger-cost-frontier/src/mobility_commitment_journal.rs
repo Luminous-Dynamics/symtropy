@@ -986,6 +986,7 @@ mod tests {
     #[test]
     fn two_writers_at_same_version_have_exactly_one_winner() {
         let input = scenario();
+        let cutoff = input.decision_time_unix_ms;
         let first = first_request();
         let mut second = first.clone();
         second.event_id = "evt-competitor".to_owned();
@@ -1002,12 +1003,11 @@ mod tests {
         let r1 = first.clone();
         let t1 = thread::spawn(move || {
             b1.wait();
-            j1.append(&r1, input.decision_time_unix_ms)
+            j1.append(&r1, cutoff)
         });
         let j2 = Arc::clone(&journal);
         let b2 = Arc::clone(&barrier);
         let r2 = second;
-        let cutoff = input.decision_time_unix_ms;
         let t2 = thread::spawn(move || {
             b2.wait();
             j2.append(&r2, cutoff)
