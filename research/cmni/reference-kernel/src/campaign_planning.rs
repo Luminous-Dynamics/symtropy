@@ -508,6 +508,35 @@ mod tests {
         }
     }
 
+    fn expected_acquisition_count(plan: &CampaignPlanNode) -> f64 {
+        match plan {
+            CampaignPlanNode::Stop { .. } => 0.0,
+            CampaignPlanNode::Acquire { outcomes, .. } => {
+                1.0 + outcomes
+                    .iter()
+                    .map(|branch| {
+                        branch.outcome_probability
+                            * expected_acquisition_count(&branch.continuation)
+                    })
+                    .sum::<f64>()
+            }
+        }
+    }
+
+    fn probability_of_acquisition_at_depth(plan: &CampaignPlanNode, depth: usize) -> f64 {
+        match plan {
+            CampaignPlanNode::Stop { .. } => 0.0,
+            CampaignPlanNode::Acquire { outcomes, .. } if depth == 1 => 1.0,
+            CampaignPlanNode::Acquire { outcomes, .. } => outcomes
+                .iter()
+                .map(|branch| {
+                    branch.outcome_probability
+                        * probability_of_acquisition_at_depth(&branch.continuation, depth - 1)
+                })
+                .sum(),
+        }
+    }
+
     #[test]
     fn exact_tree_lookahead_finds_conditional_information_value_missed_by_one_step() {
         let options = vec![
@@ -568,6 +597,59 @@ mod tests {
         assert_eq!(count_acquisitions_on_longest_path(&one_step.root), 1);
         assert_eq!(count_acquisitions_on_longest_path(&three_step.root), 3);
         assert!(three_step.nodes_expanded > one_step.nodes_expanded);
+    }
+
+    #[test]
+    fn expanded_common_cause_state_prevents_false_independent_remeasurement() {
+        // State order: physical A/calibration-good, physical B/calibration-good,
+        // physical A/calibration-bad, physical B/calibration-bad.
+        // Repeated observations are independent only after conditioning on
+        // this expanded state, because both share the same latent calibration.
+        let expanded_actions = vec![
+            "choose-a".to_owned(),
+            "choose-b".to_owned(),
+        ];
+        let expanded_utilities = vec![
+            vec![1.0, -1.0, 1.0, -1.0],
+            vec![-1.0, 1.0, -1.0, 1.0],
+        ];
+        let shared_likelihoods = vec![
+            vec![0.99, 0.01],
+            vec![0.01, 0.99],
+            vec![0.01, 0.99],
+            vec![0.99, 0.01],
+        ];
+        let options: Vec<InformationAcquisitionOption> = (1..=3)
+            .map(|index| InformationAcquisitionOption {
+                option_id: format!("same-calibration-test-{index}"),
+                kind: InformationAcquisitionKind::LowFidelitySimulation,
+                cost: 0.002,
+                outcome_likelihoods: shared_likelihoods.clone(),
+                source_qualification: InformationSourceQualification::Qualified {
+                    receipt_id: RECEIPT.to_owned(),
+                },
+            })
+            .collect();
+        let mut policy = config(3);
+        policy.remaining_budget = 0.006;
+        let plan = plan_finite_evidence_campaign(
+            &expanded_actions,
+            &[0.35, 0.35, 0.15, 0.15],
+            &expanded_utilities,
+            0.0,
+            &options,
+            &policy,
+        )
+        .expect("shared-calibration campaign");
+
+        assert!((plan.expected_net_utility - 0.395_722).abs() < 1.0e-9);
+        assert_eq!(count_acquisitions_on_longest_path(&plan.root), 3);
+        assert!(
+            (expected_acquisition_count(&plan.root) - 2.0198).abs() < 1.0e-9
+        );
+        assert!(
+            (probability_of_acquisition_at_depth(&plan.root, 3) - 0.0198).abs() < 1.0e-9
+        );
     }
 
     #[test]
