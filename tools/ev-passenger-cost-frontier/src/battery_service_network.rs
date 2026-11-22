@@ -55,6 +55,13 @@ pub struct EvidenceEnvelope {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
+pub struct PackStateEvidence {
+    pub evidence: EvidenceEnvelope,
+    pub value: PackState,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct MetricEvidence {
     pub evidence: EvidenceEnvelope,
     pub value: Option<u32>,
@@ -81,8 +88,7 @@ pub struct BatteryPack {
     pub pack_id: String,
     pub configuration_id: String,
     pub configuration_digest: String,
-    pub state: PackState,
-    pub state_evidence: EvidenceEnvelope,
+    pub state_evidence: PackStateEvidence,
     pub identity_verification: BooleanEvidence,
     pub custody_resolution: BooleanEvidence,
     pub post_test: BooleanEvidence,
@@ -337,7 +343,7 @@ fn evaluate_pair(
     let mut status = EligibilityStatus::Eligible;
 
     let _state_evidence_admissible = evidence_is_admissible(
-        &pack.state_evidence,
+        &pack.state_evidence.evidence,
         pack,
         dispatch_time_unix_ms,
         &mut findings,
@@ -345,7 +351,7 @@ fn evaluate_pair(
         "pack_state",
     );
 
-    match pack.state {
+    match pack.state_evidence.value {
         PackState::Available => {}
         PackState::Unknown => add_finding(
             &mut findings,
@@ -740,7 +746,7 @@ pub fn evaluate_battery_service_network(
         pair_evaluations,
         status: status.to_string(),
         all_pack_evidence_synthetic: packs.iter().all(|pack| {
-            pack.state_evidence.evidence_class == EvidenceClass::Synthetic
+            pack.state_evidence.evidence.evidence_class == EvidenceClass::Synthetic
                 && pack.identity_verification.evidence.evidence_class == EvidenceClass::Synthetic
                 && pack.custody_resolution.evidence.evidence_class == EvidenceClass::Synthetic
                 && pack.post_test.evidence.evidence_class == EvidenceClass::Synthetic
@@ -809,8 +815,10 @@ mod tests {
             pack_id: id.to_string(),
             configuration_id: configuration_id.to_string(),
             configuration_digest: configuration_digest.clone(),
-            state: PackState::Available,
-            state_evidence: evidence(id, &configuration_digest, "state"),
+            state_evidence: PackStateEvidence {
+                evidence: evidence(id, &configuration_digest, "state"),
+                value: PackState::Available,
+            },
             identity_verification: boolean(id, &configuration_digest, "identity", Some(true)),
             custody_resolution: boolean(id, &configuration_digest, "custody", Some(true)),
             post_test: boolean(id, &configuration_digest, "post-test", Some(true)),
@@ -904,7 +912,7 @@ mod tests {
     #[test]
     fn expired_pack_state_evidence_is_indeterminate() {
         let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
-        battery.state_evidence.valid_until_unix_ms = Some(DISPATCH_TIME_MS - 1);
+        battery.state_evidence.evidence.valid_until_unix_ms = Some(DISPATCH_TIME_MS - 1);
         assert_eq!(
             pair_status(&battery, &mission("m1", "uav-a", 1_000, 1_000)),
             EligibilityStatus::Indeterminate
@@ -914,7 +922,7 @@ mod tests {
     #[test]
     fn state_evidence_from_another_pack_is_blocked() {
         let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
-        battery.state_evidence.asset_id = "different-pack".to_string();
+        battery.state_evidence.evidence.asset_id = "different-pack".to_string();
         assert_eq!(
             pair_status(&battery, &mission("m1", "uav-a", 1_000, 1_000)),
             EligibilityStatus::Blocked
@@ -922,9 +930,24 @@ mod tests {
     }
 
     #[test]
+    fn state_claim_is_carried_inside_its_evidence_envelope() {
+        let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
+        battery.state_evidence.value = PackState::Quarantined;
+        let evaluation = evaluate_pair(
+            &mission("m1", "uav-a", 1_000, 1_000),
+            &battery,
+            DISPATCH_TIME_MS,
+        );
+        assert_eq!(evaluation.status, EligibilityStatus::Blocked);
+        assert!(evaluation
+            .findings
+            .contains(&"pack_not_available_for_dispatch_epoch".to_string()));
+    }
+
+    #[test]
     fn unknown_pack_state_is_indeterminate() {
         let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
-        battery.state = PackState::Unknown;
+        battery.state_evidence.value = PackState::Unknown;
         assert_eq!(
             pair_status(&battery, &mission("m1", "uav-a", 1_000, 1_000)),
             EligibilityStatus::Indeterminate
@@ -1001,7 +1024,7 @@ mod tests {
     #[test]
     fn quarantined_pack_is_never_allocated() {
         let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
-        battery.state = PackState::Quarantined;
+        battery.state_evidence.value = PackState::Quarantined;
         assert_eq!(
             pair_status(&battery, &mission("m1", "uav-a", 1_000, 1_000)),
             EligibilityStatus::Blocked
