@@ -14,9 +14,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::cargo_composition::{
-    CompositionError, CompositionEvent, CompositionProjectionError, CompositionReport,
-    EventClassification, MembershipAction, ModuleCountBasis, ModuleIdentity, SourceEventKey,
-    evaluate_composition,
+    CompositionError, CompositionEvent, CompositionEventBatch, CompositionMutation,
+    CompositionProjectionError, CompositionReport, EventClassification, MembershipAction,
+    ModuleCountBasis, ModuleIdentity, SourceEventKey, evaluate_composition_batches,
 };
 use crate::epcis_aggregation::{AggregationEffect, NormalizedAggregationEvent, QuantityElement};
 
@@ -98,6 +98,9 @@ pub struct ParentScopedDisaggregation {
     pub event_time_ticks: i64,
     pub published_at: i64,
     pub classification: EventClassification,
+    pub source_profile_id: String,
+    pub source_profile_version: String,
+    pub location_id: String,
     pub source_payload_sha256: String,
     pub time_qualification: ProjectionTimeQualification,
 }
@@ -181,14 +184,16 @@ pub enum ProjectionEvaluationError {
 }
 
 impl AggregationCompositionProjectionReport {
-    /// Counts are withheld while any selected source event is quarantined or
-    /// any DELETE_ALL remains unconsumed by the current composition reducer.
+    /// Counts are withheld only while a selected source event is quarantined.
+    /// Observations and class quantities remain separate ledgers; parent-scoped
+    /// DELETE_ALL is consumed by the atomic transaction reducer below.
     pub fn is_complete_for_instance_projection(&self) -> bool {
-        self.quarantined.is_empty() && self.parent_scoped_disaggregations.is_empty()
+        self.quarantined.is_empty()
     }
 
-    /// Replay only the instance-level events supported by cargo composition.
-    /// This does not consume class quantities, OBSERVE or DELETE_ALL.
+    /// Replay one atomic transaction per exact originating EPCIS source event.
+    /// Multiple child EPCs from one source event are not treated as independent
+    /// simultaneous events. DELETE_ALL remains parent-scoped and non-cascading.
     pub fn evaluate_instance_composition(
         &self,
         modules: &[ModuleIdentity],
@@ -196,12 +201,58 @@ impl AggregationCompositionProjectionReport {
         if !self.is_complete_for_instance_projection() {
             return Err(ProjectionEvaluationError::ProjectionNotComplete);
         }
-        let events: Vec<CompositionEvent> = self
-            .membership_events
-            .iter()
-            .map(|projected| projected.event.clone())
-            .collect();
-        evaluate_composition(modules, &events, self.as_of)
+
+        let mut batches: BTreeMap<ProjectionSourceRef, CompositionEventBatch> = BTreeMap::new();
+        for projected in &self.membership_events {
+            let source = projected.provenance.source.clone();
+            let event = &projected.event;
+            let batch = batches.entry(source.clone()).or_insert_with(|| CompositionEventBatch {
+                source_key: SourceEventKey::new(&source.source_id, &source.source_event_id),
+                revision: source.revision,
+                published_at: event.published_at,
+                event_time: event.event_time,
+                mutations: Vec::new(),
+                classification: event.classification,
+                source_profile_id: event.source_profile_id.clone(),
+                source_profile_version: event.source_profile_version.clone(),
+                location_id: event.location_id.clone(),
+                evidence_id: event.evidence_id.clone(),
+                voided: false,
+            });
+            batch.mutations.push(match event.action {
+                MembershipAction::Add => CompositionMutation::Add {
+                    parent_module_id: event.parent_module_id.clone(),
+                    child_module_id: event.child_module_id.clone(),
+                },
+                MembershipAction::Delete => CompositionMutation::Delete {
+                    parent_module_id: event.parent_module_id.clone(),
+                    child_module_id: event.child_module_id.clone(),
+                },
+            });
+        }
+
+        for disaggregation in &self.parent_scoped_disaggregations {
+            let source = disaggregation.source.clone();
+            let batch = batches.entry(source.clone()).or_insert_with(|| CompositionEventBatch {
+                source_key: SourceEventKey::new(&source.source_id, &source.source_event_id),
+                revision: source.revision,
+                published_at: disaggregation.published_at,
+                event_time: disaggregation.event_time_ticks,
+                mutations: Vec::new(),
+                classification: disaggregation.classification,
+                source_profile_id: disaggregation.source_profile_id.clone(),
+                source_profile_version: disaggregation.source_profile_version.clone(),
+                location_id: disaggregation.location_id.clone(),
+                evidence_id: disaggregation.source_payload_sha256.clone(),
+                voided: false,
+            });
+            batch.mutations.push(CompositionMutation::DisaggregateAll {
+                parent_module_id: disaggregation.parent_id.clone(),
+            });
+        }
+
+        let batches: Vec<CompositionEventBatch> = batches.into_values().collect();
+        evaluate_composition_batches(modules, &batches, self.as_of)
             .map_err(ProjectionEvaluationError::Composition)
     }
 
@@ -461,7 +512,10 @@ fn composition_event(
             source_profile_version: envelope.event.source_profile_version.clone(),
             location_id: envelope.location_id.clone(),
             evidence_id: envelope.source_payload_sha256.clone(),
-            voided,
+            // A revision tombstone is a live child-specific DELETE mutation,
+            // not a voided projection row. The source revision itself may be
+            // voided, but the compensating graph action must still be replayed.
+            voided: false,
         },
         provenance: MembershipProjectionProvenance {
             source,
@@ -774,6 +828,9 @@ pub fn project_aggregation_events(
                         event_time_ticks: envelope.event_time_ticks,
                         published_at: envelope.published_at,
                         classification: envelope.classification,
+                        source_profile_id: envelope.event.source_profile_id.clone(),
+                        source_profile_version: envelope.event.source_profile_version.clone(),
+                        location_id: envelope.location_id.clone(),
                         source_payload_sha256: envelope.source_payload_sha256.clone(),
                         time_qualification: envelope.time_qualification.clone(),
                     });
