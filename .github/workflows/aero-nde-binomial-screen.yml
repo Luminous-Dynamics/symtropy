@@ -25,8 +25,8 @@ jobs:
         run: |
           actual_subject_sha="$(git rev-parse HEAD)"
           test "$actual_subject_sha" = "$EXPECTED_SUBJECT_SHA"
-          printf 'subject_commit=%s\\n' "$actual_subject_sha"
-          printf 'event_commit=%s\\n' "$GITHUB_SHA"
+          printf 'subject_commit=%s\n' "$actual_subject_sha"
+          printf 'event_commit=%s\n' "$GITHUB_SHA"
 
       - name: Install Rust toolchain with rustfmt and Clippy
         uses: dtolnay/rust-toolchain@stable
@@ -57,17 +57,13 @@ jobs:
         env:
           SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
-          cargo run --locked --quiet --manifest-path tools/civil-aero-benchmark/nde-pod-screen/Cargo.toml -- \\
-            tools/civil-aero-benchmark/nde-pod-screen/fixtures/v0.1/corpus.json "$SOURCE_COMMIT" > nde-screen-rust-result.json
-          cargo run --locked --quiet --manifest-path tools/civil-aero-benchmark/nde-pod-screen/Cargo.toml -- \\
-            tools/civil-aero-benchmark/nde-pod-screen/fixtures/v0.1/corpus.json "$SOURCE_COMMIT" > nde-screen-rust-result-repeat.json
+          cargo run --locked --quiet --manifest-path tools/civil-aero-benchmark/nde-pod-screen/Cargo.toml -- tools/civil-aero-benchmark/nde-pod-screen/fixtures/v0.1/corpus.json "$SOURCE_COMMIT" > nde-screen-rust-result.json
+          cargo run --locked --quiet --manifest-path tools/civil-aero-benchmark/nde-pod-screen/Cargo.toml -- tools/civil-aero-benchmark/nde-pod-screen/fixtures/v0.1/corpus.json "$SOURCE_COMMIT" > nde-screen-rust-result-repeat.json
           cmp nde-screen-rust-result.json nde-screen-rust-result-repeat.json
 
       - name: Independently recompute with Python
         run: |
-          python3 tools/civil-aero-benchmark/nde-pod-screen/tests/reference_oracle.py \\
-            --corpus tools/civil-aero-benchmark/nde-pod-screen/fixtures/v0.1/corpus.json \\
-            --rust-output nde-screen-rust-result.json > nde-screen-python-audit.json
+          python3 tools/civil-aero-benchmark/nde-pod-screen/tests/reference_oracle.py --corpus tools/civil-aero-benchmark/nde-pod-screen/fixtures/v0.1/corpus.json --rust-output nde-screen-rust-result.json > nde-screen-python-audit.json
 
       - name: Create source and result digest receipts
         run: |
