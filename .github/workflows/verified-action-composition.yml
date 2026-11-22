@@ -1,0 +1,48 @@
+name: Verified Action Composition Reference
+
+on:
+  push:
+    branches:
+      - research/verified-action-composition-v0-1
+    paths:
+      - "research/mobility-action-composition/**"
+      - ".github/workflows/verified-action-composition.yml"
+  pull_request:
+    paths:
+      - "research/mobility-action-composition/**"
+      - ".github/workflows/verified-action-composition.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reference:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/mobility-action-composition/Cargo.toml -- --check
+      - name: Run reference unit tests
+        run: cargo test --manifest-path research/mobility-action-composition/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/mobility-action-composition/Cargo.toml --all-targets --locked -- -D warnings
+      - name: Check public fixture syntax and invariants
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          manifest = json.loads(Path("research/mobility-action-composition/action_composition_cases_v0_1.json").read_text())
+          schema = json.loads(Path("research/mobility-action-composition/action_composition_cases.schema.json").read_text())
+          assert schema["$schema"] == "https://json-schema.org/draft/2020-12/schema"
+          cases = manifest["cases"]
+          ids = [case["case_id"] for case in cases]
+          assert len(cases) >= 12
+          assert len(ids) == len(set(ids))
+          assert any(case["expected"] == "Eligible" for case in cases)
+          assert any(case["expected"] != "Eligible" for case in cases)
+          print(f"Validated JSON syntax and {len(cases)} unique composition cases.")
+          PY

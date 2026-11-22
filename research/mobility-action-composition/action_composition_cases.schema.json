@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/verified-action-composition-v0-1/research/mobility-action-composition/action_composition_cases.schema.json",
+  "title": "Verified action composition public conformance cases",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "tracking_issue",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "verified-action-composition-cases/0.1"
+    },
+    "tracking_issue": {
+      "type": "string",
+      "format": "uri"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "family",
+          "action_count",
+          "mutation",
+          "owner_results",
+          "shared_context",
+          "resource_load",
+          "expected"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^AC[0-9]{2}-[a-z0-9-]+$"
+          },
+          "family": {
+            "type": "string",
+            "minLength": 1
+          },
+          "action_count": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 32
+          },
+          "mutation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "owner_results": {
+            "enum": [
+              "all_clear_complete",
+              "missing",
+              "unknown",
+              "conflict",
+              "extraneous"
+            ]
+          },
+          "shared_context": {
+            "enum": [
+              "same",
+              "mixed"
+            ]
+          },
+          "resource_load": {
+            "enum": [
+              "within_capacity",
+              "over_capacity",
+              "uncomparable"
+            ]
+          },
+          "expected": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}
