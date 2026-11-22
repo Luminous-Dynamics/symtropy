@@ -35,7 +35,8 @@ pub mod stats;
 pub mod trajectory;
 
 pub use pathwise_event::{
-    EncounterWindow, HorizonContactDisposition, HorizonEventDefinition, PathWindowDisposition,
+    EncounterWindow, HorizonContactDisposition, HorizonEventConfig, HorizonEventDefinition,
+    PathWindowDisposition,
     PathWindowOutcome, PathwiseHorizonOutcome, WindowInventoryCoverage,
 };
 pub use residual::{
