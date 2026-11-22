@@ -15,6 +15,7 @@ This crate is a research kernel, not an operational collision-probability produc
 - Outward-rounded interval enclosures for affine images of finite axis-aligned cells.
 - A conservative norm lower bound and static collision-ball cell-exclusion predicate.
 - Dense-grid adversarial tests checking sampled affine images remain inside the interval enclosure and sampled norms remain above the reported lower bound.
+- Streaming log-domain weighted event sums, contribution ESS, plug-in relative standard error, and a clearly labelled normal-approximation interval diagnostic.
 - Full normalized Gaussian-mixture log density using log-sum-exp.
 - Log importance weights and one-draw weighted event indicators.
 - Strict Loewner covariance-floor validation, including the strictness test needed for a half-nominal covariance lower bound.
