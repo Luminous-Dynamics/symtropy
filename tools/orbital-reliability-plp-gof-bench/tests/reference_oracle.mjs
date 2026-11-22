@@ -179,7 +179,7 @@ function evaluateCase(c) {
       monte_carlo_p_value: result.monte_carlo_p_value, blockers: []
     };
   } catch (error) {
-    return blocked("rejected", "event_history_or_exposure_window_invalid");
+    return blocked("rejected", eventCount, "event_history_or_exposure_window_invalid");
   }
 }
 
