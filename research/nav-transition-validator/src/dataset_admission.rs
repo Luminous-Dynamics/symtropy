@@ -586,6 +586,27 @@ mod tests {
         assert!(errors.iter().any(|error| error.message.contains("does not explicitly permit requested use")));
     }
     #[test]
+    fn miluv_candidate_records_cc_by_rights_and_raw_radio_data_without_admitting_payload() {
+        let manifest = candidates();
+        let record = manifest["datasets"].as_array().unwrap().iter()
+            .find(|item| item["dataset_id"] == "miluv-figshare-v1").unwrap();
+        assert_eq!(record["status"], "candidate_not_admitted");
+        assert_eq!(record["admission_scope"], "none");
+        assert_eq!(record["rights"]["license_id"], "CC-BY-4.0");
+        assert_eq!(record["rights"]["scope"], "dataset_payload");
+        assert_eq!(record["rights"]["commercial_use"], "permitted");
+        assert_eq!(record["rights"]["redistribution"], "permitted");
+        assert_eq!(record["snapshot"]["release_tag"], "v1");
+        assert_eq!(record["snapshot"]["immutable"], false);
+        assert_eq!(record["snapshot"]["file_sha256"].as_array().unwrap().len(), 0);
+        assert!(record["notes"].as_str().unwrap().contains("passive-listener"));
+        assert!(record["notes"].as_str().unwrap().contains("clock-skew"));
+        let research = validate_dataset_admission(&schema(), &manifest, "research_noncommercial").unwrap();
+        let commercial = validate_dataset_admission(&schema(), &manifest, "commercial").unwrap();
+        assert_eq!(research.admitted_count, 0);
+        assert_eq!(commercial.admitted_count, 0);
+    }
+    #[test]
     fn complete_cc_by_payload_can_be_admitted_for_declared_use() {
         let mut manifest = candidates();
         admit_first_dataset(&mut manifest);
