@@ -8,8 +8,8 @@
 
 Navigation cannot treat an authenticated-looking numeric range as trustworthy without binding it to:
 
-- the initiator and responder identities;
-- the protocol profile and STS mode;
+- the initiator and responder identities and their externally established radio boot epochs;
+- the protocol profile, STS mode and exact session validity window;
 - the session and responder-specific sub-session;
 - the key epoch;
 - the unique measurement sequence and nonce;
@@ -38,7 +38,7 @@ The Rust research gate does not verify signatures, AES, STS waveforms, certifica
 - Session ID and nonzero responder sub-session ID.
 - Nonzero key epoch and strictly increasing measurement sequence.
 - Non-static STS mode (Dynamic and Provisioned accepted; Static rejected).
-- Matching verifier receipt binding for profile, time domain, identities, session, sub-session, key epoch, sequence and nonce.
+- Matching verifier receipt binding for profile, time domain, identities, both radio boot epochs, session, sub-session, key epoch, STS mode, validity window, sequence and nonce.
 - Nonzero transcript and verification receipt digests.
 - Session not-before / expiry checks and maximum validity lifetime.
 - Verification receipt freshness and same monotonic time domain.
