@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/orbital-decision-regret-frontier-receipt-v0.1.json",
+  "title": "Finite compatible-world decision loss and regret receipt v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["receipt_schema", "source_commit", "corpus_sha256", "result", "evidence_class", "claim_ceiling", "summary", "cases", "physical_qualification_granted", "authority_granted"],
+  "properties": {
+    "receipt_schema": {"const": "luminous.orbital-decision-regret-frontier.receipt.v0.1"},
+    "source_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "corpus_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "result": {"const": "pass"},
+    "evidence_class": {"const": "synthetic"},
+    "claim_ceiling": {"const": "finite-compatible-world-loss-and-regret-algebra-only"},
+    "summary": {"$ref": "#/$defs/summary"},
+    "cases": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/case_result"}},
+    "physical_qualification_granted": {"const": false},
+    "authority_granted": {"const": false}
+  },
+  "$defs": {
+    "rational": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["numerator", "denominator"],
+      "properties": {
+        "numerator": {"type": "integer", "minimum": 0, "maximum": 9007199254740991},
+        "denominator": {"type": "integer", "minimum": 1, "maximum": 9007199254740991}
+      }
+    },
+    "cost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reference_trials", "exposure_micro_units", "elapsed_millis"],
+      "properties": {
+        "reference_trials": {"type": "integer", "minimum": 0, "maximum": 9007199254740991},
+        "exposure_micro_units": {"type": "integer", "minimum": 0, "maximum": 9007199254740991},
+        "elapsed_millis": {"type": "integer", "minimum": 0, "maximum": 9007199254740991}
+      }
+    },
+    "excluded_action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action_id", "admissibility_status"],
+      "properties": {
+        "action_id": {"type": "string", "minLength": 1},
+        "admissibility_status": {"enum": ["inadmissible", "indeterminate"]}
+      }
+    },
+    "world_loss": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["world_id", "loss", "regret"],
+      "properties": {
+        "world_id": {"type": "string", "minLength": 1},
+        "loss": {"$ref": "#/$defs/rational"},
+        "regret": {"$ref": "#/$defs/rational"}
+      }
+    },
+    "action_metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action_id", "admissibility_receipt_id", "worst_case_loss", "worst_case_regret", "worst_loss_world_ids", "worst_regret_world_ids", "uniformly_optimal", "cost", "per_world"],
+      "properties": {
+        "action_id": {"type": "string", "minLength": 1},
+        "admissibility_receipt_id": {"type": "string", "minLength": 1},
+        "worst_case_loss": {"$ref": "#/$defs/rational"},
+        "worst_case_regret": {"$ref": "#/$defs/rational"},
+        "worst_loss_world_ids": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "worst_regret_world_ids": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "uniformly_optimal": {"type": "boolean"},
+        "cost": {"$ref": "#/$defs/cost"},
+        "per_world": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/world_loss"}}
+      }
+    },
+    "case_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["case_id", "status", "compatible_world_set_receipt_id", "compatible_world_ids_sha256", "compatible_world_count", "uniformly_optimal_action_ids", "minimax_loss_action_ids", "minimax_regret_action_ids", "joint_pareto_frontier_action_ids", "excluded_actions", "action_metrics"],
+      "properties": {
+        "case_id": {"type": "string", "minLength": 1},
+        "status": {"enum": ["NO_ADMISSIBLE_ACTION", "UNIFORM_OPTIMUM_EXISTS", "NO_UNIFORM_OPTIMUM_ROBUST_FRONTIER"]},
+        "compatible_world_set_receipt_id": {"type": "string", "minLength": 1},
+        "compatible_world_ids_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "compatible_world_count": {"type": "integer", "minimum": 1, "maximum": 64},
+        "uniformly_optimal_action_ids": {"type": "array", "items": {"type": "string"}},
+        "minimax_loss_action_ids": {"type": "array", "items": {"type": "string"}},
+        "minimax_regret_action_ids": {"type": "array", "items": {"type": "string"}},
+        "joint_pareto_frontier_action_ids": {"type": "array", "items": {"type": "string"}},
+        "excluded_actions": {"type": "array", "items": {"$ref": "#/$defs/excluded_action"}},
+        "action_metrics": {"type": "array", "items": {"$ref": "#/$defs/action_metric"}}
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["case_count", "no_admissible_action_cases", "uniform_optimum_cases", "no_uniform_optimum_cases", "admissible_action_count", "excluded_action_count", "frontier_action_count"],
+      "properties": {
+        "case_count": {"type": "integer", "minimum": 0},
+        "no_admissible_action_cases": {"type": "integer", "minimum": 0},
+        "uniform_optimum_cases": {"type": "integer", "minimum": 0},
+        "no_uniform_optimum_cases": {"type": "integer", "minimum": 0},
+        "admissible_action_count": {"type": "integer", "minimum": 0},
+        "excluded_action_count": {"type": "integer", "minimum": 0},
+        "frontier_action_count": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}
