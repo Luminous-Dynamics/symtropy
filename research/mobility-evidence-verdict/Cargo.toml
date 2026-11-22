@@ -1,0 +1,15 @@
+# Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+[package]
+name = "mobility-evidence-verdict"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Three-valued independent evidence verdict contract for mobility recovery claims"
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
