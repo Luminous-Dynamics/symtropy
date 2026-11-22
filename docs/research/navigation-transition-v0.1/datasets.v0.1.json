@@ -142,6 +142,41 @@
       },
       "admission_scope": "none",
       "notes": "Candidate real-world multi-platform RGB/LiDAR/thermal/IMU dataset with cave, tunnel and adverse-visibility conditions. No dataset payload rights are asserted here; obtain exact license and sequence-specific ground-truth/calibration details before admission."
+    },
+    {
+      "dataset_id": "hk-urbanspoof-2026",
+      "name": "HK-UrbanSpoof: urban GPS L1 synchronous spoofing and GNSS/INS reference dataset",
+      "domain": "urban_land",
+      "source_url": "https://github.com/Fangjingxiaotao/HK-UrbanSpoof",
+      "status": "candidate_not_admitted",
+      "snapshot": {
+        "immutable": false,
+        "release_tag": null,
+        "repository_commit": "95def2b6a42eee6299bbc1a5b880a9f3bfc070d6",
+        "file_sha256": []
+      },
+      "rights": {
+        "license_id": "UNKNOWN",
+        "status": "unknown",
+        "scope": "unknown",
+        "evidence_url": "https://github.com/Fangjingxiaotao/HK-UrbanSpoof",
+        "research_use": "unknown",
+        "commercial_use": "unknown",
+        "redistribution": "unknown"
+      },
+      "metadata": {
+        "time_basis_status": "unknown",
+        "spatial_reference_status": "unknown",
+        "calibration_status": "partial",
+        "ground_truth_status": "partial",
+        "split_basis": "experiment_id",
+        "train_group_ids": [],
+        "test_group_ids": [],
+        "split_sha256": null,
+        "clock_state_truth_status": "unknown"
+      },
+      "admission_scope": "none",
+      "notes": "Candidate only. GitHub repo main commit 95def2b6a42eee6299bbc1a5b880a9f3bfc070d6; README blob feda2d04eb801862539164561a1315ca450eee02. Repository has no LICENSE file and GitHub API license=null. Raw IF files are external Google Drive objects, not pinned in the Git repository; no SHA-256 file inventory is recorded. S2_GT.txt and S3_GT.txt are present in the repository; README describes them as time-tagged post-processed GNSS/INS position, velocity and attitude, but timestamp/clock and oracle independence require review. README still says ray-tracing labels are coming soon and retains an older ground-truth-release sentence despite the present S2/S3 files. S1/S2/S3 are real-source scenarios; S4 is simulated and uses a different IF configuration and must be evaluated separately. Public download availability is not a data licence; obtain author confirmation for research, commercial use and redistribution before admission."
     }
   ]
 }
