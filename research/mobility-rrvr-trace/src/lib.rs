@@ -14,7 +14,7 @@
 
 pub mod tlc_json;
 pub use tlc_json::{
-    import_tlc_json_trace, trace_bundle_to_json_value, TlcImportContext, TlcImportError,
+    TlcImportContext, TlcImportError, import_tlc_json_trace, trace_bundle_to_json_value,
 };
 
 use std::collections::BTreeSet;
@@ -66,6 +66,7 @@ pub enum TraceEventKind {
     ObserverSampleCaptured,
     TelemetryCaptured,
     TraceFlushed,
+    TlaNextTransition,
     Other,
 }
 
