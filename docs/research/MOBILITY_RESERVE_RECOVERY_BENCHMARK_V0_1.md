@@ -5,7 +5,7 @@
 **Predecessor assurance gate:** [#6802 / PR #6803](https://github.com/Luminous-Dynamics/symtropy/pull/6803)  
 **Branch:** \`research/mobility-reserve-recovery-v0-2\`  
 **Cut-off:** 22 November 2026  
-**Status:** research and executable contract design; no recovery evaluator is claimed yet.
+**Status:** source-level v0.2 evaluator, strict schema, synthetic repeated-shock fixture, CLI and workflow integration committed; Rust formatting/compile/test execution remains pending on this branch.
 
 ## 1. The question v0.1 does not answer
 
@@ -81,6 +81,21 @@ R^{safety}_{r,s,d_m+1}
 \]
 
 The minimum reserve-restoration deadline is an explicit input. “Grid event ended”, “charger session started” or “aircraft is available” is not equivalent to reserve restoration.
+
+## 2A. Current executable prototype and frozen known answer
+
+The initial implementation lives in `tools/ev-passenger-cost-frontier/src/mobility_recovery_envelope.rs`. It is intentionally bounded to at most four resources, four scenarios and sixteen slots. Its current fixture uses two resources and eight 15-minute slots, with two chargers/channels and two demand/weather scenarios.
+
+The recurrence applies withdrawals (mission, disturbance and grid delivery) before crediting that slot's planned recovery charge. Charge energy is rounded down and discharge cost is rounded up using checked integer arithmetic. The initial stored-energy state must already satisfy the starting reserve floor; charging in slot zero cannot backfill an initial reserve breach. The end-of-slot state is then checked against the per-slot reserve floor and the energy capacity. A resource that underflows or exceeds capacity is marked infeasible even if later slots would restore it.
+
+In the harder `second-shock-before-recovery` fixture, the independently enumerated state traces for slots 0–5 are:
+
+| Resource | Energy after slots 0–5 (Wh) | Slot-5 target | Final margin |
+| --- | --- | ---: | ---: |
+| ess-01 | 838, 676, 901, 1,126, 926, 1,151 | 1,100 Wh | +51 Wh |
+| ess-02 | 724, 638, 818, 998, 848, 960 | 950 Wh | +10 Wh |
+
+The PCC import trajectory is [1,900, 1,900, 4,300, 4,300, 2,500, 4,000, 2,500, 2,500] W, below the synthetic 6,500 W limit. These are static arithmetic checks against a synthetic fixture, not a Rust execution result or a field guarantee. The branch includes 11 focused Rust test definitions and an existing workflow invocation; the workflow must pass at the exact PR head before formatting, compilation or tests can be claimed.
 
 ## 3. Coupled constraints
 
