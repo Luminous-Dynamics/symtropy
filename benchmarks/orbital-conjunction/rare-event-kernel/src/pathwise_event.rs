@@ -359,12 +359,15 @@ impl HorizonEventDefinition {
 
 /// Completeness declaration for the encounter-window inventory.
 ///
-/// DeclaredComplete is an input assertion that every relevant encounter window
-/// in the horizon has been enumerated. The reducer checks internal consistency
-/// but does not prove this assertion.
+/// DeclaredComplete is an input assertion that the supplied windows, together
+/// with independently excluded complementary portions of the horizon, account
+/// for the entire horizon event. Merely enumerating local close-approach windows
+/// is not sufficient to make this declaration. The reducer checks internal
+/// consistency but does not prove the assertion or verify complement coverage.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WindowInventoryCoverage {
-    /// Caller declares that all relevant encounter windows are present.
+    /// Caller declares that windows and separately excluded complement cover
+    /// every possible contact time in the complete horizon.
     DeclaredComplete,
     /// Caller knows that one or more relevant windows may be absent.
     KnownIncomplete,
@@ -427,7 +430,8 @@ pub struct PathwiseHorizonOutcome {
 pub enum HorizonContactDisposition {
     /// At least one window is proven to contain contact.
     DefinitelyContact,
-    /// Every declared window is proven to contain no contact.
+    /// Every declared window is proven to contain no contact, and the caller
+    /// has declared that the full horizon is accounted for.
     DefinitelyNoContact,
     /// No definite contact exists and at least one window is unresolved.
     Ambiguous,
