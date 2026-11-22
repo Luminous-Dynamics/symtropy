@@ -206,50 +206,56 @@ impl AggregationCompositionProjectionReport {
         for projected in &self.membership_events {
             let source = projected.provenance.source.clone();
             let event = &projected.event;
-            let batch = batches.entry(source.clone()).or_insert_with(|| CompositionEventBatch {
-                source_key: SourceEventKey::new(&source.source_id, &source.source_event_id),
-                revision: source.revision,
-                published_at: event.published_at,
-                event_time: event.event_time,
-                mutations: Vec::new(),
-                classification: event.classification,
-                source_profile_id: event.source_profile_id.clone(),
-                source_profile_version: event.source_profile_version.clone(),
-                location_id: event.location_id.clone(),
-                evidence_id: event.evidence_id.clone(),
-                voided: false,
-            });
-            batch.mutations.push(match (event.action, projected.provenance.is_revision_tombstone) {
-                (MembershipAction::Add, _) => CompositionMutation::Add {
-                    parent_module_id: event.parent_module_id.clone(),
-                    child_module_id: event.child_module_id.clone(),
+            let batch = batches
+                .entry(source.clone())
+                .or_insert_with(|| CompositionEventBatch {
+                    source_key: SourceEventKey::new(&source.source_id, &source.source_event_id),
+                    revision: source.revision,
+                    published_at: event.published_at,
+                    event_time: event.event_time,
+                    mutations: Vec::new(),
+                    classification: event.classification,
+                    source_profile_id: event.source_profile_id.clone(),
+                    source_profile_version: event.source_profile_version.clone(),
+                    location_id: event.location_id.clone(),
+                    evidence_id: event.evidence_id.clone(),
+                    voided: false,
+                });
+            batch.mutations.push(
+                match (event.action, projected.provenance.is_revision_tombstone) {
+                    (MembershipAction::Add, _) => CompositionMutation::Add {
+                        parent_module_id: event.parent_module_id.clone(),
+                        child_module_id: event.child_module_id.clone(),
+                    },
+                    (MembershipAction::Delete, true) => CompositionMutation::RetractIfPresent {
+                        parent_module_id: event.parent_module_id.clone(),
+                        child_module_id: event.child_module_id.clone(),
+                    },
+                    (MembershipAction::Delete, false) => CompositionMutation::Delete {
+                        parent_module_id: event.parent_module_id.clone(),
+                        child_module_id: event.child_module_id.clone(),
+                    },
                 },
-                (MembershipAction::Delete, true) => CompositionMutation::RetractIfPresent {
-                    parent_module_id: event.parent_module_id.clone(),
-                    child_module_id: event.child_module_id.clone(),
-                },
-                (MembershipAction::Delete, false) => CompositionMutation::Delete {
-                    parent_module_id: event.parent_module_id.clone(),
-                    child_module_id: event.child_module_id.clone(),
-                },
-            });
+            );
         }
 
         for disaggregation in &self.parent_scoped_disaggregations {
             let source = disaggregation.source.clone();
-            let batch = batches.entry(source.clone()).or_insert_with(|| CompositionEventBatch {
-                source_key: SourceEventKey::new(&source.source_id, &source.source_event_id),
-                revision: source.revision,
-                published_at: disaggregation.published_at,
-                event_time: disaggregation.event_time_ticks,
-                mutations: Vec::new(),
-                classification: disaggregation.classification,
-                source_profile_id: disaggregation.source_profile_id.clone(),
-                source_profile_version: disaggregation.source_profile_version.clone(),
-                location_id: disaggregation.location_id.clone(),
-                evidence_id: disaggregation.source_payload_sha256.clone(),
-                voided: false,
-            });
+            let batch = batches
+                .entry(source.clone())
+                .or_insert_with(|| CompositionEventBatch {
+                    source_key: SourceEventKey::new(&source.source_id, &source.source_event_id),
+                    revision: source.revision,
+                    published_at: disaggregation.published_at,
+                    event_time: disaggregation.event_time_ticks,
+                    mutations: Vec::new(),
+                    classification: disaggregation.classification,
+                    source_profile_id: disaggregation.source_profile_id.clone(),
+                    source_profile_version: disaggregation.source_profile_version.clone(),
+                    location_id: disaggregation.location_id.clone(),
+                    evidence_id: disaggregation.source_payload_sha256.clone(),
+                    voided: false,
+                });
             batch.mutations.push(CompositionMutation::DisaggregateAll {
                 parent_module_id: disaggregation.parent_id.clone(),
             });
@@ -1204,7 +1210,12 @@ mod tests {
         let composition = report.evaluate_instance_composition(&modules()).unwrap();
         assert_eq!(composition.active_edges(), 1);
         assert_eq!(
-            composition.active_memberships.iter().next().unwrap().child_module_id,
+            composition
+                .active_memberships
+                .iter()
+                .next()
+                .unwrap()
+                .child_module_id,
             "pallet-1"
         );
     }
