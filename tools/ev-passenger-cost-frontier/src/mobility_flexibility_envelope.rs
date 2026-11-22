@@ -1005,6 +1005,8 @@ pub fn evaluate_mobility_flexibility(
             residual_energy_budget_wh: residual_energy,
             candidate_energy_wh: candidate_energy,
             energy_margin_wh: signed_margin(residual_energy, candidate_energy),
+            resource_energy_margins,
+            resource_slot_power_margins,
             residual_power_by_slot_w: residual_power_by_slot,
             reserve_feasible,
             energy_feasible,
@@ -1021,7 +1023,7 @@ pub fn evaluate_mobility_flexibility(
         return Err(errors);
     }
 
-    let candidate_energy = candidate_energy_wh(&sorted_profile, input.slot_duration_seconds)
+    let candidate_energy = candidate_energy_wh(&sorted_resource_dispatch, input.slot_duration_seconds)
         .ok_or_else(|| vec!["candidate_energy_arithmetic_overflow".to_owned()])?;
     let worst_case_energy_budget = scenario_results
         .iter()
