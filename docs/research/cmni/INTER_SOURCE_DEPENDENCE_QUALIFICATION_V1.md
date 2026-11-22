@@ -94,3 +94,35 @@ Metrics should include false independence rate, portfolio rank reversals, uncert
 - Separate reporting of source-lineage completeness and inter-source dependence qualification.
 
 The typed implementation is a research increment, not a complete provenance graph or demonstrated physical independence model.
+
+
+## 8. Quantitative cross-source misspecification negative control
+
+The new fixture `research/cmni/fixtures/inter-source-correlation-undercoverage-v1.json` isolates a failure that source labels alone cannot detect.
+
+Two scalar observations share a two-dimensional calibration latent variable with covariance
+
+\[
+C_u=\\begin{bmatrix}4&3\\\\3&9\\end{bmatrix},
+\qquad \\operatorname{Corr}(u_1,u_2)=0.5.
+\]
+
+Their source Jacobians are (J_A=[1,0.5]) and (J_B=[0.25,1]), with unit independent observation-noise variance and a unit-variance scalar prior. The correct joint-block representation gives
+
+\[
+R_{\\mathrm{joint}}=
+\\begin{bmatrix}10.25&8.875\\\\8.875&11.75\\end{bmatrix}.
+\]
+
+The deliberately incorrect split-independent representation keeps the same marginal source variances but drops their cross-covariance:
+
+\[
+R_{\\mathrm{split}}=
+\\begin{bmatrix}7.25&5.5\\\\5.5&10.25\\end{bmatrix}.
+\]
+
+With (H=[1,1]), exact Gaussian conditioning gives posterior variances (2667/2939\\approx0.907452) under the joint model and (705/809\\approx0.871446) under the split model. The split model understates posterior variance by exactly (28536/719201\\approx3.97\\%) relative to the correctly specified posterior.
+
+This is a deliberately constructed arithmetic negative control, not a claim about actual detector correlations. It gives the benchmark a direct quantitative failure signal: an implementation that treats the split components as independent should reproduce the wrong covariance and the overconfident posterior, and therefore fail the oracle.
+
+The next implementation step is to wire this fixture into a fixture-driven Rust regression, so the covariance assembler and its downstream posterior/design scorer are checked against the same external machine-readable expected values. Keep this distinct from verifying that an actual independence attestation is scientifically justified.
