@@ -587,7 +587,7 @@ mod tests {
     }
 
     #[test]
-    fn quantity_decimal_is_exact_and_must_be_positive() {
+    fn quantity_lexeme_is_preserved_and_must_be_positive() {
         for invalid in ["0", "0.000", "-1", "NaN", "INF", "1e309", " 2 ", "."] {
             let mut input = event(AggregationAction::Add);
             input.child_quantity_list = vec![quantity("class-a", invalid, "EA")];
@@ -604,6 +604,57 @@ mod tests {
             output.effect,
             AggregationEffect::Add { child_quantity_list, .. }
                 if child_quantity_list[0].quantity_lexeme.as_deref() == Some("0.1250")
+        ));
+    }
+
+    #[test]
+    fn quantity_list_preserves_unknown_counts_and_physical_measures() {
+        let mut input = event(AggregationAction::Add);
+        input.child_quantity_list = vec![
+            unknown_quantity("class-unknown"),
+            count_quantity("class-count", "9007199254740993"),
+            quantity("class-weight", "0.1250", "KGM"),
+        ];
+
+        let output = normalize_aggregation_event(&input).unwrap();
+        assert!(matches!(
+            output.effect,
+            AggregationEffect::Add { child_quantity_list, .. }
+                if child_quantity_list == vec![
+                    unknown_quantity("class-unknown"),
+                    count_quantity("class-count", "9007199254740993"),
+                    quantity("class-weight", "0.1250", "KGM"),
+                ]
+        ));
+    }
+
+    #[test]
+    fn count_quantity_without_uom_must_be_a_positive_integer() {
+        for invalid in ["0", "-1", "1.5", "1e-1", "NaN", "INF"] {
+            let mut input = event(AggregationAction::Add);
+            input.child_quantity_list = vec![count_quantity("class-count", invalid)];
+            assert!(matches!(
+                normalize_aggregation_event(&input),
+                Err(AggregationSemanticError::InvalidQuantityElement(_))
+            ));
+        }
+
+        let mut input = event(AggregationAction::Add);
+        input.child_quantity_list = vec![count_quantity("class-count", "100e-2")];
+        assert!(normalize_aggregation_event(&input).is_ok());
+    }
+
+    #[test]
+    fn physical_measure_requires_quantity_and_two_or_three_character_uom() {
+        let mut missing_quantity = event(AggregationAction::Add);
+        missing_quantity.child_quantity_list = vec![QuantityElement {
+            object_class_id: "class-a".to_string(),
+            quantity_lexeme: None,
+            unit_of_measure: Some("KGM".to_string()),
+        }];
+        assert!(matches!(
+            normalize_aggregation_event(&missing_quantity),
+            Err(AggregationSemanticError::InvalidQuantityElement(_))
         ));
     }
 
