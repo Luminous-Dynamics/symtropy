@@ -44,6 +44,8 @@ const EMBEDDED_IDENTIFIABILITY: &str =
     include_str!("../../../data/research/ehd_experiment_identifiability_kernel_v0_1.json");
 const EMBEDDED_DISCREPANCY_D0: &str =
     include_str!("../../../data/research/ehd_discrepancy_d0_corpus_v0_1.json");
+const EMBEDDED_DISCREPANCY_PIVOTED_QR: &str =
+    include_str!("../../../data/research/ehd_discrepancy_pivoted_qr_v0_1.json");
 
 fn at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
     path.iter().try_fold(value, |node, key| node.get(*key))
@@ -2310,6 +2312,121 @@ pub fn audit_discrepancy_d0_contract(root: &Value) -> Vec<String> {
 }
 
 
+
+
+/// Audit the D0 pivoted-QR correlated-source attribution fixture.
+pub fn audit_discrepancy_pivoted_qr_contract(root: &Value) -> Vec<String> {
+    let mut findings = Vec::new();
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["schema"]) == Some("luminous.ehd_discrepancy_pivoted_qr")
+            && text_at(root, &["schema_version"]) == Some("0.1.0")
+            && text_at(root, &["benchmark_id"]) == Some("EHD-D0-QR-001")
+            && text_at(root, &["status"])
+                == Some("manufactured_pivoted_qr_correlated_signature_kernel_authored_tests_execution_pending"),
+        "D0_QR_IDENTITY",
+        "D0 pivoted-QR fixture identity, version or execution status changed",
+    );
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["attribution_method", "algorithm"])
+            == Some("column-pivoted modified Gram-Schmidt QR with one re-orthogonalization pass")
+            && text_at(root, &["attribution_method", "rank_policy"])
+                == Some("reject rank-deficient signature basis")
+            && text_at(root, &["observation_covariance", "factorization"])
+                .is_some_and(|value| value.contains("Cholesky"))
+            && text_at(root, &["attribution_method", "conditioning_policy"])
+                .is_some_and(|value| value.contains("not a spectral condition number")),
+        "D0_QR_METHOD",
+        "pivoted QR, rank rejection and stated method boundary changed",
+    );
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["reference_implementation", "path"])
+            == Some("tools/ehd-reference-audit/src/discrepancy.rs")
+            && text_at(root, &["reference_implementation", "function"])
+                == Some("analyse_d0_general_case")
+            && at(root, &["reference_implementation", "rust_unit_tests"])
+                .and_then(Value::as_u64) == Some(7),
+        "D0_QR_IMPLEMENTATION_SCOPE",
+        "pivoted-QR implementation path, public entry point and seven Rust tests must remain declared",
+    );
+    let signatures = at(root, &["source_columns"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        signatures.is_some_and(|rows| rows.len() == 4
+            && rows.iter().all(|row| row.as_array().is_some_and(|values| values.len() == 8))
+            && rows[0] == serde_json::json!([1.2, -0.8, 0.8, -1.2, 1.2, -0.8, 0.8, -1.2])
+            && rows[1] == serde_json::json!([1.15, 0.85, -0.85, -1.15, 1.15, 0.85, -0.85, -1.15])),
+        "D0_QR_SIGNATURES",
+        "four non-orthogonal manufactured signature columns must remain frozen",
+    );
+    let covariance = at(root, &["observation_covariance"]);
+    push_if_missing(
+        &mut findings,
+        text_at(covariance.unwrap_or(&Value::Null), &["type"]) == Some("AR(1)")
+            && number_at(covariance.unwrap_or(&Value::Null), &["rho"]) == Some(0.25)
+            && at(covariance.unwrap_or(&Value::Null), &["matrix"]).and_then(Value::as_array)
+                .is_some_and(|matrix| matrix.len() == 8
+                    && matrix[0].as_array().is_some_and(|row| row.len() == 8
+                        && row[0].as_f64() == Some(1.0)
+                        && row[1].as_f64() == Some(0.25)
+                        && row[7].as_f64().is_some_and(|v| (v - 0.25_f64.powi(7)).abs() < 1.0e-18))),
+        "D0_QR_COVARIANCE",
+        "full 8x8 AR(1) covariance and correlation coefficient changed",
+    );
+    let expected = at(root, &["manufactured_case"]);
+    push_if_missing(
+        &mut findings,
+        expected.is_some_and(|value| {
+            at(value, &["expected_source_coefficients"]) == Some(&serde_json::json!([1.5, -0.75, 0.5, 2.0]))
+                && number_at(value, &["expected_qr_diagonal_condition_proxy"])
+                    .is_some_and(|v| (v - 1.5236673968369188).abs() < 1.0e-10)
+                && number_at(value, &["maximum_qr_diagonal_condition_proxy"]) == Some(1.0e8)
+        }),
+        "D0_QR_EXPECTED_RESULT",
+        "manufactured coefficients or QR condition proxy changed",
+    );
+    let cases = at(root, &["adversarial_cases"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        cases.is_some_and(|rows| rows.len() == 6
+            && text_at(&rows[0], &["expected"]) == Some("RankDeficientSignatureBasis")
+            && text_at(&rows[1], &["expected"]) == Some("IllConditionedSignatureBasis")
+            && text_at(&rows[2], &["expected"]) == Some("AsymmetricCovariance")
+            && text_at(&rows[3], &["expected"]) == Some("NonPositiveDefiniteCovariance")
+            && text_at(&rows[4], &["expected"]) == Some("PhysicalLedgerFailure")
+            && text_at(&rows[5], &["expected"]) == Some("NotEvaluable")),
+        "D0_QR_ADVERSARIAL_CASES",
+        "exact/near confounding, invalid covariance, ledger failure and unexplained-residual controls required",
+    );
+    push_if_missing(
+        &mut findings,
+        at(root, &["test_families"]).and_then(Value::as_array)
+            .is_some_and(|tests| tests.len() == 7
+                && tests.iter().any(|v| v.as_str() == Some("correlated_nonorthogonal_signatures_recover_mixed_source_coefficients"))
+                && tests.iter().any(|v| v.as_str() == Some("near_confounded_source_basis_abstains_above_condition_proxy_limit"))
+                && tests.iter().any(|v| v.as_str() == Some("failed_physical_ledger_cannot_be_repaired_by_correlated_discrepancy_fit"))),
+        "D0_QR_TEST_MATRIX",
+        "all seven pivoted-QR manufactured and adversarial Rust test families must remain declared",
+    );
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["claim_ceiling"]).is_some_and(|v| {
+            v.contains("not an EHD calibration model")
+                && v.contains("not a physical validation")
+        }) && at(root, &["limitations"]).and_then(Value::as_array).is_some_and(|rows| {
+            rows.iter().any(|v| v.as_str() == Some("diagonal_r_condition_proxy_not_a_spectral_condition_number"))
+                && rows.iter().any(|v| v.as_str() == Some("no_physical_EHD_calibration"))
+                && rows.iter().any(|v| v.as_str() == Some("no_raw_measurement_data"))
+        }),
+        "D0_QR_CLAIM_BOUNDARY",
+        "manufactured-only, condition-proxy and no-physical-calibration limitations must remain explicit",
+    );
+    findings
+}
+
+
 fn main() {
     let mut args = env::args().skip(1);
     let path = args.next();
@@ -2434,6 +2551,15 @@ fn main() {
         }
     };
     findings.extend(audit_discrepancy_d0_contract(&discrepancy_d0_contract));
+    let discrepancy_pivoted_qr_contract: Value =
+        match serde_json::from_str(EMBEDDED_DISCREPANCY_PIVOTED_QR) {
+            Ok(value) => value,
+            Err(error) => {
+                eprintln!("invalid embedded D0 pivoted-QR JSON: {error}");
+                process::exit(2);
+            }
+        };
+    findings.extend(audit_discrepancy_pivoted_qr_contract(&discrepancy_pivoted_qr_contract));
     let exchange_kernel_ok = match exchange::reference_self_check() {
         Ok(()) => true,
         Err(error) => {
@@ -2497,6 +2623,13 @@ fn main() {
             false
         }
     };
+    let discrepancy_pivoted_qr_ok = match discrepancy::d0_general_reference_self_check() {
+        Ok(()) => true,
+        Err(error) => {
+            findings.push(format!("D0_PIVOTED_QR_SELF_CHECK: {error}"));
+            false
+        }
+    };
     let discrepancy_d0_ok = match discrepancy::reference_self_check() {
         Ok(()) => true,
         Err(error) => {
@@ -2554,6 +2687,9 @@ fn main() {
         }
         if discrepancy_d0_ok {
             println!("D0 manufactured error-source separation and conservation-firewall self-check: passed");
+        }
+        if discrepancy_pivoted_qr_ok {
+            println!("D0 pivoted-QR correlated-source attribution self-check: passed");
         }
         println!("scope: source structure and analytic reference checks only; no physical V&V, production ALE, TPE(1/2), nonlinear profile likelihood, continuous design optimization, complete collisional-energy closure or durable exactly-once claim");
     } else {
@@ -3197,6 +3333,22 @@ mod control_volume_contract_tests {
 #[cfg(test)]
 mod identifiability_contract_tests {
     use super::*;
+
+    #[test]
+    fn discrepancy_pivoted_qr_contract_passes() {
+        let value: Value = serde_json::from_str(EMBEDDED_DISCREPANCY_PIVOTED_QR)
+            .expect("embedded D0 pivoted-QR contract must be valid JSON");
+        assert!(audit_discrepancy_pivoted_qr_contract(&value).is_empty());
+    }
+
+    #[test]
+    fn discrepancy_pivoted_qr_contract_rejects_removed_rank_guard() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_DISCREPANCY_PIVOTED_QR).unwrap();
+        value["attribution_method"]["rank_policy"] = serde_json::json!("accept rank-deficient basis");
+        assert!(audit_discrepancy_pivoted_qr_contract(&value).iter().any(|finding| {
+            finding.starts_with("D0_QR_METHOD")
+        }));
+    }
 
     #[test]
     fn discrepancy_d0_contract_passes() {
