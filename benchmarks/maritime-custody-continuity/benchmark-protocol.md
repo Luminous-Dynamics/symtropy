@@ -34,6 +34,23 @@ Mutate one property at a time: current custodian, handoff ID, source/destination
 
 This v0.1 finite oracle is a semantic correctness baseline, not an optimization-performance comparison. Future P1 must replay permissioned traces against a simple reference state machine and independently adjudicated handoff labels. P2 should add instrumented controlled transfers. P3 may compare custody reconstruction systems on completeness, precision, false-complete rate, latency, resource cost and uncertainty under delayed, duplicated, corrected and missing events.
 
+
+## P1 integration: temporal proof is a custody-transition precondition
+
+The API split is explicit:
+- `evaluate_with_synthetic_handoff_correlations` is P0-only and accepts dimensionless event-time ticks from the frozen fixtures.
+- `evaluate_with_handoff_correlations` is the proof-grade P1 path and accepts `QualifiedHandoffCorrelationReceipt` values.
+
+For every correlated handoff, the receipt must bind an `EventTimeBinding` to the exact release/acceptance source event key and selected revision. The temporal evidence ID itself is a length-prefixed encoding of source ID, event ID and revision, preventing an evidence object from being replayed against a different event key. The evaluator checks:
+1. the event refs match the correlation receipt exactly;
+2. the bound revisions are the latest visible effective revisions at the selected as-of cutoff;
+3. each temporal-evidence ID matches the corresponding event-key/revision tuple;
+4. the interval relation is exactly `ProvenBefore`.
+
+EstimatedBefore/After, UnresolvedOverlap, IncomparableTimeBasis and ProvenAfter all refuse the handoff. This means the general custody-evaluation entry point cannot silently treat a timestamp heuristic or exact source-local ID match as proof of release-before-acceptance.
+
+The clock profile is still a caller-supplied claim. Calibration artifacts, source issuer, clock synchronization trace, timestamp semantics and source permissions must be independently validated by the upstream adapters/authority owners. Passing this technical gate does not authenticate them.
+
 ## Claim ceiling
 
 Passing P0 establishes only the specified synthetic custody contract. It does not establish real-world identity, receipt authenticity, legal title, issuer authority, source permission, seal integrity, physical truth, delivery performance, or suitability for operational reliance.
