@@ -143,6 +143,6 @@ Do not download the entire archive simply to reproduce one range baseline. First
 - [#6853](https://github.com/Luminous-Dynamics/symtropy/issues/6853): risk-aware active evidence acquisition programme.
 - [#6855](https://github.com/Luminous-Dynamics/symtropy/pull/6855): Pareto active evidence-acquisition planner.
 
-## 8. Claim boundary
+## 11. Claim boundary
 
 This document is a literature review and reproduction plan. Published numbers are study-specific and are not directly comparable. No new physical benchmark result, reproduced SOTA result, cryptographic certification or navigation safety guarantee is claimed.
