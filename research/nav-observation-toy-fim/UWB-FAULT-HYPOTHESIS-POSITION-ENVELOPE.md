@@ -44,6 +44,22 @@ Each non-nominal hypothesis records stable dependency-group IDs, affected observ
 
 The digest fields are commitments supplied by the caller. This kernel checks that they are present and preserves them; it does not hash source data, authenticate the source, or prove that different group IDs are physically independent.
 
+## Deterministic hypothesis enumeration
+
+The module now also accepts a pre-reviewed list of fault domains and generates a bounded hypothesis descriptor set in canonical order:
+
+1. exactly one nominal hypothesis;
+2. every single-domain hypothesis;
+3. combinations of two or more dependency groups through the configured maximum fault cardinality.
+
+A domain has a nonzero stable group ID, an explicit fault-domain class and a nonempty set of affected observation IDs. The generator validates duplicate/zero identities, bounds the input-domain and observation-reference counts, sorts domain IDs, and unions affected observation IDs for each combination. A measurement that belongs to more than one declared dependency domain is included once in that combination's affected-observation set.
+
+The maximum hypothesis count includes the nominal case. If the budget would omit a hypothesis within the declared cardinality scope, the result explicitly sets enumeration_complete=false; it does not present the generated prefix as complete. The theoretical combination count is included when it fits the integer representation. An overflowed theoretical count is represented as unknown, never wrapped.
+
+The generated descriptors are not solved positions. The next stage must independently compute or conservatively bound one position set for each descriptor, preserving the same hypothesis ID and dependency scope. Only that complete, fully bounded set may be converted into the inventory accepted by the outer-envelope evaluator.
+
+The generator is exhaustive only within the caller-declared fault-domain inventory and maximum cardinality. It does not discover omitted physical causes, establish independence between group IDs, or justify the fault inventory itself.
+
 ## Fail-closed semantics
 
 A protection radius is emitted only when:
