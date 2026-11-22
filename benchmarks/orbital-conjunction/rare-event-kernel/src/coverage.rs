@@ -400,8 +400,7 @@ mod tests {
     #[test]
     fn negative_affine_coefficients_are_enclosed() {
         assert!(
-            affine_cell_excludes_collision_ball(&[0.0], &[-1.0], &[2.0], &[3.0], 1.0,)
-                .unwrap()
+            affine_cell_excludes_collision_ball(&[0.0], &[-1.0], &[2.0], &[3.0], 1.0,).unwrap()
         );
     }
 
