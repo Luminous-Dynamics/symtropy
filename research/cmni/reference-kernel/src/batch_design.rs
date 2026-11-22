@@ -636,6 +636,92 @@ mod tests {
     }
 
     #[test]
+    fn cross_source_correlation_negative_control_exposes_posterior_undercoverage() {
+        let joint_candidate = |id: &str, source_jacobian: Vec<f64>| BatchDesignCandidate {
+            candidate_id: id.to_owned(),
+            cost: 1.0,
+            feasible: true,
+            design_jacobian: vec![vec![1.0]],
+            noise_model: ExperimentNoiseModel {
+                experiment_id: id.to_owned(),
+                independent_observation_covariance: vec![vec![1.0]],
+                shared_sources: vec![SharedUncertaintyContribution {
+                    source_id: "joint-calibration-fit".to_owned(),
+                    source_covariance: vec![vec![4.0, 3.0], vec![3.0, 9.0]],
+                    observation_jacobian: vec![source_jacobian],
+                }],
+                lineage_coverage_complete: true,
+                inter_source_dependence:
+                    InterSourceDependenceQualification::joint_blocks_modelled(
+                        "receipt:joint-calibration-fit",
+                    ),
+            },
+        };
+        let joint = enumerate_batch_portfolios(
+            &[
+                joint_candidate("A-joint", vec![1.0, 0.5]),
+                joint_candidate("B-joint", vec![0.25, 1.0]),
+            ],
+            &[vec![1.0]],
+            2,
+            2.0,
+            true,
+        )
+        .expect("joint calibration source portfolio");
+        let joint_score = &joint.portfolios[0];
+        assert!(joint_score.inter_source_dependence_complete);
+        assert!((joint_score.posterior_covariance[0][0] - 2667.0 / 2939.0).abs() < 1.0e-12);
+
+        // Negative control: preserve both marginal source variances but split
+        // correlated components into separate IDs with unknown dependence.
+        let split_candidate = |id: &str, first: f64, second: f64| BatchDesignCandidate {
+            candidate_id: id.to_owned(),
+            cost: 1.0,
+            feasible: true,
+            design_jacobian: vec![vec![1.0]],
+            noise_model: ExperimentNoiseModel {
+                experiment_id: id.to_owned(),
+                independent_observation_covariance: vec![vec![1.0]],
+                shared_sources: vec![
+                    SharedUncertaintyContribution {
+                        source_id: "calibration-component-1".to_owned(),
+                        source_covariance: vec![vec![4.0]],
+                        observation_jacobian: vec![vec![first]],
+                    },
+                    SharedUncertaintyContribution {
+                        source_id: "calibration-component-2".to_owned(),
+                        source_covariance: vec![vec![9.0]],
+                        observation_jacobian: vec![vec![second]],
+                    },
+                ],
+                lineage_coverage_complete: true,
+                inter_source_dependence: InterSourceDependenceQualification::Unknown,
+            },
+        };
+        let split = enumerate_batch_portfolios(
+            &[
+                split_candidate("A-split", 1.0, 0.5),
+                split_candidate("B-split", 0.25, 1.0),
+            ],
+            &[vec![1.0]],
+            2,
+            2.0,
+            false,
+        )
+        .expect("unqualified split-source negative control");
+        let split_score = &split.portfolios[0];
+        assert!(split_score.lineage_coverage_complete);
+        assert!(!split_score.inter_source_dependence_complete);
+        assert!((split_score.posterior_covariance[0][0] - 705.0 / 809.0).abs() < 1.0e-12);
+
+        let relative_variance_understatement =
+            (joint_score.posterior_covariance[0][0] - split_score.posterior_covariance[0][0])
+                / joint_score.posterior_covariance[0][0];
+        assert!((relative_variance_understatement - 28536.0 / 719201.0).abs() < 1.0e-12);
+        assert!(split_score.posterior_covariance[0][0] < joint_score.posterior_covariance[0][0]);
+    }
+
+    #[test]
     fn exhaustive_oracle_ranks_complementary_measurement_above_shared_pair() {
         let candidates = vec![
             candidate("A", [1.0, 0.0], 0.1, true, 9.0, true),
