@@ -88,7 +88,7 @@ impl TimeEvidence {
         })
     }
 
-    fn from_clock_qualification(
+    pub(crate) fn from_clock_qualification(
         event_id: impl Into<String>,
         time_basis_id: impl Into<String>,
         interval: TimeInterval,
