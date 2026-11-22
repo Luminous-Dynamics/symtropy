@@ -15,6 +15,7 @@
 
 pub const CONTRACT_VERSION: &str = "0.1";
 pub const MAX_COMMAND_HOLDING_LAYERS: usize = 64;
+pub const MAX_FORWARDING_EDGES: usize = 256;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Commitment(pub [u8; 32]);
@@ -29,7 +30,7 @@ impl Commitment {
 pub struct CommandHoldingLayer {
     /// Stable identifier from the platform's frozen command-path inventory.
     pub layer_id: String,
-    /// Zero-based order from native acceptance toward physical execution.
+    /// Stable zero-based inventory ordering. Graph ordering is defined by edges.
     pub path_index: u16,
     /// Vendor/platform-specific layer kind; deliberately not a closed enum.
     pub kind: String,
@@ -42,14 +43,32 @@ pub struct CommandHoldingLayer {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CommandPathEdge {
+    /// Stable identity of a declared non-queueing forwarding connection.
+    /// Any connection that can retain executable commands must instead be
+    /// represented as its own CommandHoldingLayer node.
+    pub edge_id: String,
+    pub from_layer_id: String,
+    pub to_layer_id: String,
+    pub configuration_commitment: Commitment,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QueuePathInventory {
     pub stack_id: String,
     pub profile_revision: String,
     pub stack_configuration_commitment: Commitment,
-    /// Commitment over the complete declared path inventory, computed and
-    /// authenticated by its owner outside this reference checker.
+    /// Commitment over nodes, edges, entry/terminal declarations and profile.
+    /// Computed/authenticated by its owner outside this reference checker.
     pub inventory_commitment: Commitment,
+    /// Single declared ingress for this command graph.
+    pub entry_layer_id: String,
+    /// Exact graph sinks. Fan-out and multiple actuator branches are supported.
+    pub terminal_layer_ids: Vec<String>,
     pub layers: Vec<CommandHoldingLayer>,
+    /// Non-buffering forwarding links. Any retaining/buffering component must
+    /// appear as a node and receive its own quiescence receipt.
+    pub edges: Vec<CommandPathEdge>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -130,6 +149,17 @@ pub enum HoldReason {
     DuplicatePathIndex,
     NonContiguousPath,
     LayerProfileIncomplete,
+    TooManyForwardingEdges,
+    MissingEntryLayer,
+    EmptyTerminalSet,
+    DuplicateTerminalLayer,
+    InvalidForwardingEdge,
+    DuplicateForwardingEdgeId,
+    UnknownForwardingEndpoint,
+    UnexpectedRootLayer,
+    UnreachableLayer,
+    TerminalInventoryMismatch,
+    ForwardingGraphCycle,
     BootEpochUnchanged,
     ControllerEpochNotAdvanced,
     ReceiptCountMismatch,
@@ -223,6 +253,147 @@ fn valid_inventory(inventory: &QueuePathInventory) -> Result<(), HoldReason> {
         .any(|(expected, actual)| usize::from(*actual) != expected)
     {
         return Err(HoldReason::NonContiguousPath);
+    }
+
+    if inventory.edges.len() > MAX_FORWARDING_EDGES {
+        return Err(HoldReason::TooManyForwardingEdges);
+    }
+    if !nonempty(&inventory.entry_layer_id) {
+        return Err(HoldReason::MissingEntryLayer);
+    }
+    let Some(entry_index) = inventory
+        .layers
+        .iter()
+        .position(|layer| layer.layer_id == inventory.entry_layer_id)
+    else {
+        return Err(HoldReason::MissingEntryLayer);
+    };
+    if inventory.terminal_layer_ids.is_empty() {
+        return Err(HoldReason::EmptyTerminalSet);
+    }
+    for (index, terminal_id) in inventory.terminal_layer_ids.iter().enumerate() {
+        if !nonempty(terminal_id)
+            || !inventory.layers.iter().any(|layer| layer.layer_id == *terminal_id)
+        {
+            return Err(HoldReason::TerminalInventoryMismatch);
+        }
+        if inventory.terminal_layer_ids[..index]
+            .iter()
+            .any(|prior| prior == terminal_id)
+        {
+            return Err(HoldReason::DuplicateTerminalLayer);
+        }
+    }
+
+    let mut indegree = vec![0_usize; inventory.layers.len()];
+    let mut outdegree = vec![0_usize; inventory.layers.len()];
+    for (index, edge) in inventory.edges.iter().enumerate() {
+        if !nonempty(&edge.edge_id)
+            || !nonempty(&edge.from_layer_id)
+            || !nonempty(&edge.to_layer_id)
+            || !edge.configuration_commitment.is_nonzero()
+            || edge.from_layer_id == edge.to_layer_id
+        {
+            return Err(HoldReason::InvalidForwardingEdge);
+        }
+        if inventory.edges[..index]
+            .iter()
+            .any(|prior| prior.edge_id == edge.edge_id)
+        {
+            return Err(HoldReason::DuplicateForwardingEdgeId);
+        }
+        let Some(from_index) = inventory
+            .layers
+            .iter()
+            .position(|layer| layer.layer_id == edge.from_layer_id)
+        else {
+            return Err(HoldReason::UnknownForwardingEndpoint);
+        };
+        let Some(to_index) = inventory
+            .layers
+            .iter()
+            .position(|layer| layer.layer_id == edge.to_layer_id)
+        else {
+            return Err(HoldReason::UnknownForwardingEndpoint);
+        };
+        indegree[to_index] += 1;
+        outdegree[from_index] += 1;
+    }
+
+    let roots: Vec<usize> = indegree
+        .iter()
+        .enumerate()
+        .filter_map(|(index, degree)| (*degree == 0).then_some(index))
+        .collect();
+    if roots.len() != 1 || roots[0] != entry_index {
+        return Err(HoldReason::UnexpectedRootLayer);
+    }
+
+    let mut actual_terminals: Vec<String> = inventory
+        .layers
+        .iter()
+        .enumerate()
+        .filter_map(|(index, layer)| (outdegree[index] == 0).then_some(layer.layer_id.clone()))
+        .collect();
+    let mut declared_terminals = inventory.terminal_layer_ids.clone();
+    actual_terminals.sort();
+    declared_terminals.sort();
+    if actual_terminals != declared_terminals {
+        return Err(HoldReason::TerminalInventoryMismatch);
+    }
+
+    // All declared command-holding nodes must be reachable from the single
+    // entry point. Directed edges permit fan-out/fan-in.
+    let mut reachable = vec![false; inventory.layers.len()];
+    let mut frontier = vec![entry_index];
+    while let Some(current) = frontier.pop() {
+        if reachable[current] {
+            continue;
+        }
+        reachable[current] = true;
+        let current_id = &inventory.layers[current].layer_id;
+        for edge in inventory
+            .edges
+            .iter()
+            .filter(|edge| edge.from_layer_id == *current_id)
+        {
+            let next = inventory
+                .layers
+                .iter()
+                .position(|layer| layer.layer_id == edge.to_layer_id)
+                .expect("edge endpoints were checked above");
+            frontier.push(next);
+        }
+    }
+    if reachable.iter().any(|seen| !seen) {
+        return Err(HoldReason::UnreachableLayer);
+    }
+
+    // Kahn's algorithm detects any directed cycle.
+    let mut remaining_indegree = indegree;
+    let mut ready = roots;
+    let mut processed = 0_usize;
+    while let Some(current) = ready.pop() {
+        processed += 1;
+        let current_id = &inventory.layers[current].layer_id;
+        for edge in inventory
+            .edges
+            .iter()
+            .filter(|edge| edge.from_layer_id == *current_id)
+        {
+            let next = inventory
+                .layers
+                .iter()
+                .position(|layer| layer.layer_id == edge.to_layer_id)
+                .expect("edge endpoints were checked above");
+            remaining_indegree[next] -= 1;
+            if remaining_indegree[next] == 0 {
+                ready.push(next);
+            }
+        }
+    }
+    if processed != inventory.layers.len() {
+        return Err(HoldReason::ForwardingGraphCycle);
     }
 
     Ok(())
@@ -364,6 +535,15 @@ mod tests {
         }
     }
 
+    fn edge(id: &str, from: &str, to: &str) -> CommandPathEdge {
+        CommandPathEdge {
+            edge_id: id.to_owned(),
+            from_layer_id: from.to_owned(),
+            to_layer_id: to.to_owned(),
+            configuration_commitment: commitment(10),
+        }
+    }
+
     fn receipt(
         layer: &CommandHoldingLayer,
         disposition: QueueDisposition,
@@ -408,7 +588,13 @@ mod tests {
                 profile_revision: "profile-v0.1".to_owned(),
                 stack_configuration_commitment: commitment(9),
                 inventory_commitment: commitment(8),
+                entry_layer_id: "controller-queue".to_owned(),
+                terminal_layer_ids: vec!["firmware-queue".to_owned()],
                 layers,
+                edges: vec![
+                    edge("edge-controller-driver", "controller-queue", "driver-queue"),
+                    edge("edge-driver-firmware", "driver-queue", "firmware-queue"),
+                ],
             },
             transition: RestartTransition {
                 logical_effect_id: "logical-effect-1".to_owned(),
@@ -437,6 +623,91 @@ mod tests {
                 qualified_layers: 3
             }
         );
+    }
+
+    #[test]
+    fn fanout_with_multiple_terminal_actuators_is_supported() {
+        let layers = vec![
+            layer("controller", 0, "controller-domain"),
+            layer("left-driver", 1, "left-driver-domain"),
+            layer("right-driver", 2, "right-driver-domain"),
+            layer("left-actuator", 3, "left-actuator-domain"),
+            layer("right-actuator", 4, "right-actuator-domain"),
+        ];
+        let receipts = layers
+            .iter()
+            .map(|item| receipt(item, QueueDisposition::Quiescent))
+            .collect();
+        let input = DownstreamFencePacket {
+            inventory: QueuePathInventory {
+                stack_id: "dual-arm-stack".to_owned(),
+                profile_revision: "profile-v0.1".to_owned(),
+                stack_configuration_commitment: commitment(9),
+                inventory_commitment: commitment(8),
+                entry_layer_id: "controller".to_owned(),
+                terminal_layer_ids: vec![
+                    "left-actuator".to_owned(),
+                    "right-actuator".to_owned(),
+                ],
+                layers,
+                edges: vec![
+                    edge("controller-left", "controller", "left-driver"),
+                    edge("controller-right", "controller", "right-driver"),
+                    edge("left-actuator-link", "left-driver", "left-actuator"),
+                    edge("right-actuator-link", "right-driver", "right-actuator"),
+                ],
+            },
+            transition: packet().transition,
+            receipts,
+        };
+        assert_eq!(
+            assess_downstream_quiescence(&input),
+            FenceDecision::AllDeclaredLayersHaveCurrentQuiescenceEvidence {
+                qualified_layers: 5
+            }
+        );
+    }
+
+    #[test]
+    fn unreachable_declared_command_layer_holds() {
+        let mut input = packet();
+        input.inventory.layers.push(layer("hidden-queue", 3, "hidden-domain"));
+        input.receipts.push(receipt(
+            input.inventory.layers.last().expect("inserted layer"),
+            QueueDisposition::Quiescent,
+        ));
+        assert_hold(&input, HoldReason::UnreachableLayer);
+    }
+
+    #[test]
+    fn terminal_declaration_must_match_all_graph_sinks() {
+        let mut input = packet();
+        input.inventory.terminal_layer_ids.clear();
+        assert_hold(&input, HoldReason::EmptyTerminalSet);
+
+        let mut input = packet();
+        input.inventory.terminal_layer_ids = vec!["driver-queue".to_owned()];
+        assert_hold(&input, HoldReason::TerminalInventoryMismatch);
+    }
+
+    #[test]
+    fn cycles_and_unknown_forwarding_endpoints_hold() {
+        let mut input = packet();
+        input.inventory.edges[1] =
+            edge("edge-cycle", "firmware-queue", "controller-queue");
+        assert_hold(&input, HoldReason::ForwardingGraphCycle);
+
+        let mut input = packet();
+        input.inventory.edges[0] =
+            edge("unknown-endpoint", "controller-queue", "not-in-inventory");
+        assert_hold(&input, HoldReason::UnknownForwardingEndpoint);
+    }
+
+    #[test]
+    fn duplicate_forwarding_edge_ids_hold() {
+        let mut input = packet();
+        input.inventory.edges[1].edge_id = input.inventory.edges[0].edge_id.clone();
+        assert_hold(&input, HoldReason::DuplicateForwardingEdgeId);
     }
 
     #[test]
