@@ -3,7 +3,7 @@
   "J1": [["1/2","19 - 2*pi**2"],["0","67 - 6*pi**2"]],
   "J1_numeric": [["0.500000000000000000","-0.739208802178717238"],["0","7.78237359346384829"]],
   "action_row_fixture": "spin2_boundary_map_lambda1_action_rows_v1.json",
-  "action_row_fixture_sha256": "db4f76452f8b4e96f820e8fcb8528e51a23151d28775290b4a7484dc36a5c592",
+  "action_row_fixture_sha256": "9fbb6be1c2705469215ceb47ee263ad1891be8fcf9c709f0b751d6608f292d61",
   "affine_offset_derivative": ["-53/9","28/3"],
   "artifact_kind": "5d_egb_spin2_global_boundary_map_lambda1",
   "b1_mode_sensitivity": {"B21":"1/2-3/(4*x)+1/(4*x^3)","H21":"0","boundary_image":["1/2","0"]},
