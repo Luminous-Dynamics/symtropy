@@ -832,6 +832,46 @@ pub mod impact_enclosure {
         }
     }
 
+    /// Certified relation between two independently verified event-time
+    /// enclosures. Touching endpoints and all overlaps remain unresolved;
+    /// interval overlap is not evidence of simultaneity.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub enum CertifiedEventOrder {
+        ProvenBefore,
+        ProvenAfter,
+        UnresolvedOverlap,
+    }
+
+    /// Compare only proof-grade impact enclosures. A strict gap between the
+    /// closed intervals proves order; touching or overlapping intervals do
+    /// not imply simultaneity and cannot be arbitrarily total-ordered.
+    pub fn compare_verified_event_time_order(
+        left: &VerifiedImpactEventEnclosure,
+        right: &VerifiedImpactEventEnclosure,
+    ) -> Result<CertifiedEventOrder, ImpactEnclosureError> {
+        if left.time_basis_id != right.time_basis_id {
+            return Err(ImpactEnclosureError::IdentityMismatch("time_basis_id"));
+        }
+
+        if left
+            .event_time
+            .upper()
+            .checked_cmp(right.event_time.lower())?
+            == Ordering::Less
+        {
+            return Ok(CertifiedEventOrder::ProvenBefore);
+        }
+        if right
+            .event_time
+            .upper()
+            .checked_cmp(left.event_time.lower())?
+            == Ordering::Less
+        {
+            return Ok(CertifiedEventOrder::ProvenAfter);
+        }
+        Ok(CertifiedEventOrder::UnresolvedOverlap)
+    }
+
     fn validate_non_empty(value: &str, field: &'static str) -> Result<(), ImpactEnclosureError> {
         if value.trim().is_empty() {
             return Err(ImpactEnclosureError::EmptyIdentity(field));
@@ -1130,6 +1170,124 @@ pub mod impact_enclosure {
             );
             assert_eq!(seconds.derivative_upper_bound(), &r(-3, 2));
             assert_eq!(milliseconds.derivative_upper_bound(), &r(-3, 2000));
+        }
+
+        #[test]
+        fn verified_event_order_requires_strict_interval_separation() {
+            let first_model = model();
+            let first = verify_constant_gravity_impact_enclosure(
+                &first_model,
+                &claim(&first_model, "first", r(3, 4), r(5, 4)),
+            )
+            .unwrap();
+
+            let mut second_model = model();
+            second_model.initial_height_m = Rational::integer(4);
+            second_model.identity.guard_sha256 = "c".repeat(64);
+            let second = verify_constant_gravity_impact_enclosure(
+                &second_model,
+                &claim(&second_model, "second", r(7, 4), r(9, 4)),
+            )
+            .unwrap();
+
+            assert_eq!(
+                compare_verified_event_time_order(&first, &second),
+                Ok(CertifiedEventOrder::ProvenBefore)
+            );
+            assert_eq!(
+                compare_verified_event_time_order(&second, &first),
+                Ok(CertifiedEventOrder::ProvenAfter)
+            );
+        }
+
+        #[test]
+        fn touching_verified_event_windows_remain_unresolved() {
+            let first_model = model();
+            let first = verify_constant_gravity_impact_enclosure(
+                &first_model,
+                &claim(&first_model, "first", r(3, 4), r(5, 4)),
+            )
+            .unwrap();
+
+            let mut second_model = model();
+            second_model.initial_height_m = r(25, 16);
+            second_model.identity.guard_sha256 = "c".repeat(64);
+            let second = verify_constant_gravity_impact_enclosure(
+                &second_model,
+                &claim(&second_model, "second", r(5, 4), r(3, 2)),
+            )
+            .unwrap();
+
+            assert_eq!(
+                compare_verified_event_time_order(&first, &second),
+                Ok(CertifiedEventOrder::UnresolvedOverlap)
+            );
+        }
+
+        #[test]
+        fn overlapping_and_nested_verified_event_windows_remain_unresolved() {
+            let first_model = model();
+            let first = verify_constant_gravity_impact_enclosure(
+                &first_model,
+                &claim(&first_model, "first", r(3, 4), r(5, 4)),
+            )
+            .unwrap();
+
+            let mut overlap_model = model();
+            overlap_model.initial_height_m = r(81, 64);
+            overlap_model.identity.guard_sha256 = "c".repeat(64);
+            let overlapping = verify_constant_gravity_impact_enclosure(
+                &overlap_model,
+                &claim(&overlap_model, "overlap", r(1, 1), r(3, 2)),
+            )
+            .unwrap();
+            assert_eq!(
+                compare_verified_event_time_order(&first, &overlapping),
+                Ok(CertifiedEventOrder::UnresolvedOverlap)
+            );
+
+            let mut nested_model = model();
+            nested_model.identity.guard_sha256 = "d".repeat(64);
+            let nested = verify_constant_gravity_impact_enclosure(
+                &nested_model,
+                &claim(&nested_model, "nested", r(7, 8), r(9, 8)),
+            )
+            .unwrap();
+            assert_eq!(
+                compare_verified_event_time_order(&first, &nested),
+                Ok(CertifiedEventOrder::UnresolvedOverlap)
+            );
+        }
+
+        #[test]
+        fn verified_event_order_rejects_incompatible_time_bases() {
+            let first_model = model();
+            let first = verify_constant_gravity_impact_enclosure(
+                &first_model,
+                &claim(&first_model, "first", r(3, 4), r(5, 4)),
+            )
+            .unwrap();
+
+            let mut second_model = model();
+            second_model.identity.time_basis_id = "milliseconds-si-v1".to_owned();
+            second_model.gravity_m_per_time_squared = r(1, 500_000);
+            second_model.initial_height_m = Rational::integer(4);
+            second_model.identity.guard_sha256 = "c".repeat(64);
+            let second = verify_constant_gravity_impact_enclosure(
+                &second_model,
+                &claim(
+                    &second_model,
+                    "second",
+                    Rational::integer(1750),
+                    Rational::integer(2250),
+                ),
+            )
+            .unwrap();
+
+            assert_eq!(
+                compare_verified_event_time_order(&first, &second),
+                Err(ImpactEnclosureError::IdentityMismatch("time_basis_id"))
+            );
         }
 
         #[test]
