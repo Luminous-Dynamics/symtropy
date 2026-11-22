@@ -58,3 +58,18 @@ The fixtures contain 11 rows: 10 visible at tick 200 and one future-published ro
 ## Claim ceiling
 
 This verifies a synthetic state-machine and event-revision contract only. Evidence IDs are opaque; the verifier does not dereference receipts, authenticate issuers, validate authority or source rights, prove sensor truth, inspect seals, prove legal custody, or verify real physical movement. It does not authorize cargo release, dispatch, booking, payment, TOS mutation or operational decisions. Real event time must retain provider timezone, clock source, precision, publication/observation time and semantic mapping before cross-source ordering.
+
+## Exact cross-source handoff correlation receipts
+
+When two systems use different local handoff identifiers, the verifier does not fuzzy-match them. The optional handoff-correlation API requires a receipt that binds:
+- exact release source ID + event ID;
+- exact acceptance source ID + event ID;
+- canonical box ID already resolved by the lineage layer;
+- both source-local handoff IDs;
+- canonical handoff ID;
+- transferring/receiving parties, location, transport leg, quantity and unit;
+- versioned mapping profile and an opaque evidence reference.
+
+The verifier checks that the referenced records are the latest visible, non-void, actual release/acceptance events; that the local handoff IDs match the receipt; and that every bound physical field agrees. Correlation is one-to-one for each release and acceptance event. It then evaluates a cloned event tape using the canonical handoff ID; original source events are never mutated.
+
+The evidence reference is opaque and is not authenticated. The receipt proves only that an explicit, exact correlation decision was supplied and that its declared fields match the cited synthetic events. It does not prove that the issuer was authorized or that the physical transfer happened.
