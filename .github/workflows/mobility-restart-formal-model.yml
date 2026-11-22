@@ -85,6 +85,7 @@ jobs:
           fi
           test -s "$TRACE_SOURCE"
           cp "$TRACE_SOURCE" "$TRACE"
+          jq '{vars, state_count: (.counterexample.state | length), action_count: (.counterexample.action | length), action_metadata: [.counterexample.action[]?[1]]}' "$TRACE"
           jq -e '
             . as $trace
             | ($trace.vars | index("s") != null)
