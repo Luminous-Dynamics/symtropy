@@ -104,7 +104,7 @@ The unit tests cover:
 - pending action blocking a second mutation;
 - unknown outcome retaining the hold;
 - no-effect recovery requiring a correctly scoped permit;
-- permit attempt/epoch mismatch, next-binding substitution and permit replay rejection;
+- permit attempt/epoch mismatch, exact next-binding commitment mismatch and permit replay rejection;
 - missing response and incomplete recorder;
 - search-budget exhaustion;
 - incorrect application sequence receipts.
