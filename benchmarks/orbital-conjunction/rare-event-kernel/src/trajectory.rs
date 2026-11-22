@@ -206,9 +206,7 @@ fn evaluate_interval_polynomial(
     coefficients: &[Interval],
     time: Interval,
 ) -> Result<Interval, KernelError> {
-    let mut value = *coefficients
-        .last()
-        .ok_or(KernelError::InvalidPolynomial)?;
+    let mut value = *coefficients.last().ok_or(KernelError::InvalidPolynomial)?;
     for coefficient in coefficients[..coefficients.len() - 1].iter().rev() {
         value = interval_add(interval_multiply(value, time)?, *coefficient)?;
     }
@@ -320,15 +318,9 @@ mod tests {
 
     #[test]
     fn constant_trajectory_outside_window_is_definitely_no_contact() {
-        let result = classify_polynomial_contact(
-            &[vec![interval(2.0, 2.0)]],
-            -10.0,
-            10.0,
-            1.0,
-            64,
-            12,
-        )
-        .expect("valid polynomial");
+        let result =
+            classify_polynomial_contact(&[vec![interval(2.0, 2.0)]], -10.0, 10.0, 1.0, 64, 12)
+                .expect("valid polynomial");
         assert_eq!(
             result.classification,
             TrajectoryContactClassification::DefinitelyNoContact
@@ -339,15 +331,9 @@ mod tests {
 
     #[test]
     fn constant_trajectory_inside_window_is_definitely_contact() {
-        let result = classify_polynomial_contact(
-            &[vec![interval(0.5, 0.5)]],
-            -2.0,
-            2.0,
-            1.0,
-            64,
-            12,
-        )
-        .expect("valid polynomial");
+        let result =
+            classify_polynomial_contact(&[vec![interval(0.5, 0.5)]], -2.0, 2.0, 1.0, 64, 12)
+                .expect("valid polynomial");
         assert_eq!(
             result.classification,
             TrajectoryContactClassification::DefinitelyContact
@@ -394,15 +380,9 @@ mod tests {
 
     #[test]
     fn coefficient_uncertainty_can_still_prove_contact() {
-        let result = classify_polynomial_contact(
-            &[vec![interval(0.1, 0.2)]],
-            -1.0,
-            1.0,
-            0.3,
-            32,
-            4,
-        )
-        .expect("valid interval coefficient");
+        let result =
+            classify_polynomial_contact(&[vec![interval(0.1, 0.2)]], -1.0, 1.0, 0.3, 32, 4)
+                .expect("valid interval coefficient");
         assert_eq!(
             result.classification,
             TrajectoryContactClassification::DefinitelyContact
@@ -412,10 +392,7 @@ mod tests {
     #[test]
     fn multi_axis_euclidean_norm_is_used() {
         let result = classify_polynomial_contact(
-            &[
-                vec![interval(0.8, 0.8)],
-                vec![interval(0.8, 0.8)],
-            ],
+            &[vec![interval(0.8, 0.8)], vec![interval(0.8, 0.8)]],
             -1.0,
             1.0,
             1.0,
@@ -450,15 +427,8 @@ mod tests {
 
     #[test]
     fn a_point_window_is_supported() {
-        let result = classify_polynomial_contact(
-            &[vec![interval(0.5, 0.5)]],
-            1.0,
-            1.0,
-            1.0,
-            8,
-            0,
-        )
-        .expect("valid point window");
+        let result = classify_polynomial_contact(&[vec![interval(0.5, 0.5)]], 1.0, 1.0, 1.0, 8, 0)
+            .expect("valid point window");
         assert_eq!(
             result.classification,
             TrajectoryContactClassification::DefinitelyContact
@@ -480,14 +450,7 @@ mod tests {
             Err(KernelError::InvalidInterval)
         );
         assert_eq!(
-            classify_polynomial_contact(
-                &[vec![interval(1.0, 1.0)]],
-                0.0,
-                1.0,
-                f64::NAN,
-                8,
-                4
-            ),
+            classify_polynomial_contact(&[vec![interval(1.0, 1.0)]], 0.0, 1.0, f64::NAN, 8, 4),
             Err(KernelError::InvalidHardBodyRadius)
         );
         assert_eq!(
@@ -499,14 +462,7 @@ mod tests {
     #[test]
     fn arithmetic_overflow_fails_closed() {
         assert_eq!(
-            classify_polynomial_contact(
-                &[vec![interval(f64::MAX, f64::MAX)]],
-                0.0,
-                1.0,
-                1.0,
-                8,
-                4
-            ),
+            classify_polynomial_contact(&[vec![interval(f64::MAX, f64::MAX)]], 0.0, 1.0, 1.0, 8, 4),
             Err(KernelError::NumericalOverflow)
         );
     }
