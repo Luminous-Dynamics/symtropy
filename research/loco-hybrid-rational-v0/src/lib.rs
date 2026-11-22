@@ -733,6 +733,8 @@ pub mod impact_enclosure {
         pub model_build_sha256: String,
         pub guard_sha256: String,
         pub time_basis_id: String,
+        /// Digest of the shared time origin / epoch definition, not just units.
+        pub time_origin_sha256: String,
     }
 
     /// Exact constant-gravity point-impact model.
@@ -754,6 +756,7 @@ pub mod impact_enclosure {
         pub model_build_sha256: String,
         pub guard_sha256: String,
         pub time_basis_id: String,
+        pub time_origin_sha256: String,
         pub event_time: RationalInterval,
     }
 
@@ -787,6 +790,7 @@ pub mod impact_enclosure {
         model_build_sha256: String,
         guard_sha256: String,
         time_basis_id: String,
+        time_origin_sha256: String,
         event_time: RationalInterval,
         lower_guard_value_m: Rational,
         upper_guard_value_m: Rational,
@@ -808,6 +812,10 @@ pub mod impact_enclosure {
 
         pub fn time_basis_id(&self) -> &str {
             &self.time_basis_id
+        }
+
+        pub fn time_origin_sha256(&self) -> &str {
+            &self.time_origin_sha256
         }
 
         pub fn event_time(&self) -> &RationalInterval {
@@ -851,6 +859,9 @@ pub mod impact_enclosure {
     ) -> Result<CertifiedEventOrder, ImpactEnclosureError> {
         if left.time_basis_id != right.time_basis_id {
             return Err(ImpactEnclosureError::IdentityMismatch("time_basis_id"));
+        }
+        if left.time_origin_sha256 != right.time_origin_sha256 {
+            return Err(ImpactEnclosureError::IdentityMismatch("time_origin_sha256"));
         }
 
         if left
@@ -933,6 +944,8 @@ pub mod impact_enclosure {
         validate_sha256(&model.identity.guard_sha256, "guard_sha256")?;
         validate_sha256(&claim.model_build_sha256, "claim.model_build_sha256")?;
         validate_sha256(&claim.guard_sha256, "claim.guard_sha256")?;
+        validate_sha256(&model.identity.time_origin_sha256, "time_origin_sha256")?;
+        validate_sha256(&claim.time_origin_sha256, "claim.time_origin_sha256")?;
 
         if claim.model_build_sha256 != model.identity.model_build_sha256 {
             return Err(ImpactEnclosureError::IdentityMismatch("model_build_sha256"));
@@ -942,6 +955,9 @@ pub mod impact_enclosure {
         }
         if claim.time_basis_id != model.identity.time_basis_id {
             return Err(ImpactEnclosureError::IdentityMismatch("time_basis_id"));
+        }
+        if claim.time_origin_sha256 != model.identity.time_origin_sha256 {
+            return Err(ImpactEnclosureError::IdentityMismatch("time_origin_sha256"));
         }
 
         let zero = Rational::zero();
@@ -984,6 +1000,7 @@ pub mod impact_enclosure {
             model_build_sha256: claim.model_build_sha256.clone(),
             guard_sha256: claim.guard_sha256.clone(),
             time_basis_id: claim.time_basis_id.clone(),
+            time_origin_sha256: claim.time_origin_sha256.clone(),
             event_time: claim.event_time.clone(),
             lower_guard_value_m: lower_guard,
             upper_guard_value_m: upper_guard,
@@ -1005,6 +1022,7 @@ pub mod impact_enclosure {
                     model_build_sha256: "a".repeat(64),
                     guard_sha256: "b".repeat(64),
                     time_basis_id: "seconds-si-v1".to_owned(),
+                    time_origin_sha256: "f".repeat(64),
                 },
                 initial_height_m: Rational::integer(1),
                 initial_velocity_m_per_time: Rational::zero(),
@@ -1023,6 +1041,7 @@ pub mod impact_enclosure {
                 model_build_sha256: model.identity.model_build_sha256.clone(),
                 guard_sha256: model.identity.guard_sha256.clone(),
                 time_basis_id: model.identity.time_basis_id.clone(),
+                time_origin_sha256: model.identity.time_origin_sha256.clone(),
                 event_time: RationalInterval::new(lower, upper).unwrap(),
             }
         }
@@ -1256,6 +1275,31 @@ pub mod impact_enclosure {
             assert_eq!(
                 compare_verified_event_time_order(&first, &nested),
                 Ok(CertifiedEventOrder::UnresolvedOverlap)
+            );
+        }
+
+        #[test]
+        fn verified_event_order_rejects_unrelated_clock_origins() {
+            let first_model = model();
+            let first = verify_constant_gravity_impact_enclosure(
+                &first_model,
+                &claim(&first_model, "first", r(3, 4), r(5, 4)),
+            )
+            .unwrap();
+
+            let mut second_model = model();
+            second_model.initial_height_m = Rational::integer(4);
+            second_model.identity.guard_sha256 = "c".repeat(64);
+            second_model.identity.time_origin_sha256 = "e".repeat(64);
+            let second = verify_constant_gravity_impact_enclosure(
+                &second_model,
+                &claim(&second_model, "second", r(7, 4), r(9, 4)),
+            )
+            .unwrap();
+
+            assert_eq!(
+                compare_verified_event_time_order(&first, &second),
+                Err(ImpactEnclosureError::IdentityMismatch("time_origin_sha256"))
             );
         }
 
