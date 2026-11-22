@@ -9,6 +9,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::{
+    temporal_order::{TimeEvidence, TemporalRelation, compare_time_evidence},
     Classification, CustodyEvent, EvaluationError, EvaluationReport, EventKind, HandoffField,
     evaluate,
 };
@@ -47,6 +48,38 @@ pub struct HandoffCorrelationReceipt {
     pub mapping_profile_id: String,
     pub mapping_profile_version: String,
     pub evidence_id: String,
+}
+
+/// Event-time evidence bound to one exact source event revision.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EventTimeBinding {
+    pub source_event: SourceEventRef,
+    pub revision: u32,
+    pub evidence: TimeEvidence,
+}
+
+/// A handoff correlation with release/acceptance time proof attached.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct QualifiedHandoffCorrelationReceipt {
+    pub correlation: HandoffCorrelationReceipt,
+    pub release_time: EventTimeBinding,
+    pub accept_time: EventTimeBinding,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum TemporalCorrelationError {
+    ReleaseTimeBindingMismatch,
+    AcceptTimeBindingMismatch,
+    ReleaseRevisionMismatch,
+    AcceptRevisionMismatch,
+    EventTimeEvidenceIdMismatch,
+    OrderNotProven(TemporalRelation),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum QualifiedCorrelationError {
+    Correlation(CorrelationError),
+    Temporal(TemporalCorrelationError),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -296,6 +329,111 @@ pub fn apply_handoff_correlations(
     Ok(canonicalized)
 }
 
+/// Stable, length-prefixed event key for binding temporal evidence to a
+/// source event revision without delimiter ambiguity.
+pub fn event_time_evidence_id(source_event: &SourceEventRef, revision: u32) -> String {
+    format!(
+        "{}:{}:{}:{}:{}",
+        source_event.source_id.len(),
+        source_event.source_id,
+        source_event.source_event_id.len(),
+        source_event.source_event_id,
+        revision
+    )
+}
+
+/// Require proof-grade strict ordering for the exact release/acceptance
+/// revisions before applying the base correlation receipt.
+///
+/// Estimated, overlapping, touching and incomparable time evidence all
+/// refuse the correlation. The referenced clock calibration remains an
+/// upstream claim carried by TimeEvidence; this function does not authenticate
+/// or independently audit it.
+pub fn apply_qualified_handoff_correlations(
+    events: &[CustodyEvent],
+    receipts: &[QualifiedHandoffCorrelationReceipt],
+    as_of: i64,
+) -> Result<Vec<CustodyEvent>, QualifiedCorrelationError> {
+    let mut plain_receipts = Vec::with_capacity(receipts.len());
+
+    for receipt in receipts {
+        if receipt.release_time.source_event != receipt.correlation.release_event {
+            return Err(QualifiedCorrelationError::Temporal(
+                TemporalCorrelationError::ReleaseTimeBindingMismatch,
+            ));
+        }
+        if receipt.accept_time.source_event != receipt.correlation.accept_event {
+            return Err(QualifiedCorrelationError::Temporal(
+                TemporalCorrelationError::AcceptTimeBindingMismatch,
+            ));
+        }
+        if receipt.release_time.revision == 0 {
+            return Err(QualifiedCorrelationError::Temporal(
+                TemporalCorrelationError::ReleaseRevisionMismatch,
+            ));
+        }
+        if receipt.accept_time.revision == 0 {
+            return Err(QualifiedCorrelationError::Temporal(
+                TemporalCorrelationError::AcceptRevisionMismatch,
+            ));
+        }
+        if receipt.release_time.evidence.event_id()
+            != event_time_evidence_id(
+                &receipt.release_time.source_event,
+                receipt.release_time.revision,
+            )
+            || receipt.accept_time.evidence.event_id()
+                != event_time_evidence_id(
+                    &receipt.accept_time.source_event,
+                    receipt.accept_time.revision,
+                )
+        {
+            return Err(QualifiedCorrelationError::Temporal(
+                TemporalCorrelationError::EventTimeEvidenceIdMismatch,
+            ));
+        }
+
+        let release_index = effective_event_index(
+            events,
+            &receipt.release_time.source_event,
+            as_of,
+        )
+        .map_err(QualifiedCorrelationError::Correlation)?;
+        let accept_index = effective_event_index(
+            events,
+            &receipt.accept_time.source_event,
+            as_of,
+        )
+        .map_err(QualifiedCorrelationError::Correlation)?;
+
+        if events[release_index].revision != receipt.release_time.revision {
+            return Err(QualifiedCorrelationError::Temporal(
+                TemporalCorrelationError::ReleaseRevisionMismatch,
+            ));
+        }
+        if events[accept_index].revision != receipt.accept_time.revision {
+            return Err(QualifiedCorrelationError::Temporal(
+                TemporalCorrelationError::AcceptRevisionMismatch,
+            ));
+        }
+
+        let relation = compare_time_evidence(
+            &receipt.release_time.evidence,
+            &receipt.accept_time.evidence,
+        );
+        if relation != TemporalRelation::ProvenBefore {
+            return Err(QualifiedCorrelationError::Temporal(
+                TemporalCorrelationError::OrderNotProven(relation),
+            ));
+        }
+
+        plain_receipts.push(receipt.correlation.clone());
+    }
+
+    apply_handoff_correlations(events, &plain_receipts, as_of)
+        .map_err(QualifiedCorrelationError::Correlation)
+}
+
 /// Reconcile source-local handoff IDs only through exact correlation receipts,
 /// then run the existing fail-closed custody evaluator.
 pub fn evaluate_with_handoff_correlations(
@@ -347,6 +485,220 @@ mod tests {
             mapping_profile_version: "1.0".to_string(),
             evidence_id: "OPAQUE-CORRELATION-EVIDENCE".to_string(),
         }
+    }
+
+    fn qualified_time_binding(
+        event_ref: &SourceEventRef,
+        revision: u32,
+        timestamp: i64,
+        error_ticks: u64,
+    ) -> EventTimeBinding {
+        let profile = super::super::temporal_order::ClockBoundProfile::new(
+            super::super::temporal_order::ClockBoundProfileSpec {
+                clock_id: format!("CLOCK-{}", event_ref.source_id),
+                profile_id: "CLOCK_PROFILE_V1".to_string(),
+                time_basis_id: "UTC_NS_TEST_V1".to_string(),
+                calibration_evidence_id: "CALIBRATION-OPAQUE".to_string(),
+                synchronization_method: "SYNTHETIC_REFERENCE".to_string(),
+                sync_state: super::super::temporal_order::ClockSyncState::Locked,
+                calibrated_at: -10_000,
+                valid_until: 10_000,
+                max_offset_error_ticks: Some(error_ticks),
+                max_holdover_drift_ticks: Some(0),
+                max_capture_path_ticks: Some(0),
+                max_rounding_error_ticks: Some(0),
+            },
+        )
+        .unwrap();
+        let evidence_id = event_time_evidence_id(event_ref, revision);
+        EventTimeBinding {
+            source_event: event_ref.clone(),
+            revision,
+            evidence: profile.qualify_event(evidence_id, timestamp).unwrap(),
+        }
+    }
+
+    fn qualified_receipt(
+        release: &CustodyEvent,
+        accept: &CustodyEvent,
+        release_time: i64,
+        accept_time: i64,
+        error_ticks: u64,
+    ) -> QualifiedHandoffCorrelationReceipt {
+        let base = receipt(release, accept);
+        let release_ref = base.release_event.clone();
+        let accept_ref = base.accept_event.clone();
+        QualifiedHandoffCorrelationReceipt {
+            correlation: base,
+            release_time: qualified_time_binding(
+                &release_ref,
+                release.revision,
+                release_time,
+                error_ticks,
+            ),
+            accept_time: qualified_time_binding(
+                &accept_ref,
+                accept.revision,
+                accept_time,
+                error_ticks,
+            ),
+        }
+    }
+
+    #[test]
+    fn qualified_correlation_requires_proven_release_before_acceptance() {
+        let (_, mut source_events) = fixtures();
+        let release = source_events
+            .iter()
+            .find(|event| event.source_event_id == "B1-R1")
+            .unwrap()
+            .clone();
+        let mut accept = source_events
+            .iter()
+            .find(|event| event.source_event_id == "B1-A1")
+            .unwrap()
+            .clone();
+        accept.handoff_id = "FEEDER-LOCAL-77".to_string();
+        for event in &mut source_events {
+            if event.source_event_id == "B1-A1" {
+                event.handoff_id = "FEEDER-LOCAL-77".to_string();
+            }
+        }
+
+        let qualified = qualified_receipt(&release, &accept, 100, 110, 2);
+        let canonicalized =
+            apply_qualified_handoff_correlations(&source_events, &[qualified], 200).unwrap();
+
+        assert!(canonicalized.iter().any(|event| {
+            event.source_event_id == "B1-R1" && event.handoff_id == "CANON-HANDOFF-001"
+        }));
+        assert!(canonicalized.iter().any(|event| {
+            event.source_event_id == "B1-A1" && event.handoff_id == "CANON-HANDOFF-001"
+        }));
+    }
+
+    #[test]
+    fn overlapping_or_touching_intervals_cannot_qualify_a_handoff() {
+        let (_, events) = fixtures();
+        let release = events
+            .iter()
+            .find(|event| event.source_event_id == "B1-R1")
+            .unwrap()
+            .clone();
+        let accept = events
+            .iter()
+            .find(|event| event.source_event_id == "B1-A1")
+            .unwrap()
+            .clone();
+        let qualified = qualified_receipt(&release, &accept, 100, 110, 5);
+
+        assert_eq!(
+            apply_qualified_handoff_correlations(&events, &[qualified], 200),
+            Err(QualifiedCorrelationError::Temporal(
+                TemporalCorrelationError::OrderNotProven(TemporalRelation::UnresolvedOverlap)
+            ))
+        );
+    }
+
+    #[test]
+    fn reversed_time_enclosures_cannot_qualify_a_handoff() {
+        let (_, events) = fixtures();
+        let release = events
+            .iter()
+            .find(|event| event.source_event_id == "B1-R1")
+            .unwrap()
+            .clone();
+        let accept = events
+            .iter()
+            .find(|event| event.source_event_id == "B1-A1")
+            .unwrap()
+            .clone();
+        let qualified = qualified_receipt(&release, &accept, 120, 100, 2);
+
+        assert_eq!(
+            apply_qualified_handoff_correlations(&events, &[qualified], 200),
+            Err(QualifiedCorrelationError::Temporal(
+                TemporalCorrelationError::OrderNotProven(TemporalRelation::ProvenAfter)
+            ))
+        );
+    }
+
+    #[test]
+    fn estimate_only_clock_bounds_do_not_establish_handoff_order() {
+        let (_, events) = fixtures();
+        let release = events
+            .iter()
+            .find(|event| event.source_event_id == "B1-R1")
+            .unwrap()
+            .clone();
+        let accept = events
+            .iter()
+            .find(|event| event.source_event_id == "B1-A1")
+            .unwrap()
+            .clone();
+        let mut qualified = qualified_receipt(&release, &accept, 100, 120, 0);
+        qualified.release_time.evidence = TimeEvidence::new(
+            qualified.release_time.evidence.event_id().to_string(),
+            qualified.release_time.evidence.time_basis_id().to_string(),
+            qualified.release_time.evidence.interval(),
+            super::super::temporal_order::TimeBoundKind::EstimateOnly,
+        )
+        .unwrap();
+
+        assert_eq!(
+            apply_qualified_handoff_correlations(&events, &[qualified], 200),
+            Err(QualifiedCorrelationError::Temporal(
+                TemporalCorrelationError::OrderNotProven(TemporalRelation::EstimatedBefore)
+            ))
+        );
+    }
+
+    #[test]
+    fn temporal_binding_must_match_exact_source_event_revision() {
+        let (_, events) = fixtures();
+        let release = events
+            .iter()
+            .find(|event| event.source_event_id == "B1-R1")
+            .unwrap()
+            .clone();
+        let accept = events
+            .iter()
+            .find(|event| event.source_event_id == "B1-A1")
+            .unwrap()
+            .clone();
+        let mut qualified = qualified_receipt(&release, &accept, 100, 120, 0);
+        qualified.release_time.revision = 2;
+
+        assert_eq!(
+            apply_qualified_handoff_correlations(&events, &[qualified], 200),
+            Err(QualifiedCorrelationError::Temporal(
+                TemporalCorrelationError::ReleaseRevisionMismatch
+            ))
+        );
+    }
+
+    #[test]
+    fn time_evidence_cannot_be_replayed_for_another_source_event() {
+        let (_, events) = fixtures();
+        let release = events
+            .iter()
+            .find(|event| event.source_event_id == "B1-R1")
+            .unwrap()
+            .clone();
+        let accept = events
+            .iter()
+            .find(|event| event.source_event_id == "B1-A1")
+            .unwrap()
+            .clone();
+        let mut qualified = qualified_receipt(&release, &accept, 100, 120, 0);
+        qualified.accept_time.evidence = qualified.release_time.evidence.clone();
+
+        assert_eq!(
+            apply_qualified_handoff_correlations(&events, &[qualified], 200),
+            Err(QualifiedCorrelationError::Temporal(
+                TemporalCorrelationError::EventTimeEvidenceIdMismatch
+            ))
+        );
     }
 
     #[test]
