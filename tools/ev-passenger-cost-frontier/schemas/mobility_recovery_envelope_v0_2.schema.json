@@ -159,24 +159,15 @@
           ]
         },
         "observed_at_unix_ms": {
-          "type": [
-            "integer",
-            "null"
-          ],
+          "type": "integer",
           "minimum": 0
         },
         "valid_from_unix_ms": {
-          "type": [
-            "integer",
-            "null"
-          ],
+          "type": "integer",
           "minimum": 0
         },
         "valid_until_unix_ms": {
-          "type": [
-            "integer",
-            "null"
-          ],
+          "type": "integer",
           "minimum": 0
         }
       }
