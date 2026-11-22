@@ -126,3 +126,82 @@ With (H=[1,1]), exact Gaussian conditioning gives posterior variances (2667/2939
 This is a deliberately constructed arithmetic negative control, not a claim about actual detector correlations. It gives the benchmark a direct quantitative failure signal: an implementation that treats the split components as independent should reproduce the wrong covariance and the overconfident posterior, and therefore fail the oracle.
 
 The next implementation step is to wire this fixture into a fixture-driven Rust regression, so the covariance assembler and its downstream posterior/design scorer are checked against the same external machine-readable expected values. Keep this distinct from verifying that an actual independence attestation is scientifically justified.
+
+
+## 9. Bounded partial identification when cross-source dependence is unknown
+
+The strict qualification path remains correct: distinct source identifiers do not imply independence, and an unknown dependence must not be silently replaced by zero. However, strict abstention alone discards useful information when the marginal variances and source sensitivities are known and a defensible interval for the cross-correlation is available.
+
+The new research module research/cmni/reference-kernel/src/dependence_envelope.rs adds an exact small-case envelope for:
+- one scalar Gaussian parameter with known prior variance;
+- two scalar observations with strictly positive independent observation-noise variances;
+- two shared scalar uncertainty sources with known marginal standard deviations;
+- known source Jacobians for both observations;
+- an evidence-backed closed interval for the unknown source correlation rho.
+
+For the stacked observation covariance
+
+\[
+R(\rho)=
+\begin{bmatrix}
+a_0+a_1\rho & c_0+c_1\rho\\
+c_0+c_1\rho & b_0+b_1\rho
+\end{bmatrix},
+\]
+
+the scalar parameter information is
+
+\[
+I(\rho)=H^T R(\rho)^{-1}H
+=\frac{n_0+n_1\rho}{d_0+d_1\rho+d_2\rho^2}.
+\]
+
+Consequently, the derivative numerator is quadratic:
+
+\[
+(n_1d_0-n_0d_1)-2n_0d_2\rho-n_1d_2\rho^2.
+\]
+
+The algorithm solves that quadratic, retains every real stationary point inside the admissible correlation interval, and evaluates those points plus both interval endpoints. This provides the global information extrema over the entire declared interval, not merely a grid approximation. It then maps the information bounds to posterior-variance and exact linear-Gaussian EIG bounds:
+
+\[
+P_1(\rho)=\left(P_0^{-1}+I(\rho)\right)^{-1},
+\qquad
+\operatorname{EIG}(\rho)=\tfrac12\log(1+P_0I(\rho)).
+\]
+
+### Exact interior-extremum fixture
+
+The machine-readable fixture research/cmni/fixtures/interior-source-correlation-extremum-v1.json uses:
+- P0=1;
+- H=[2,1];
+- independent observation noise variances [1,1];
+- source standard deviations [1,1];
+- source Jacobians J=[[1,1],[1,-1]];
+- admissible correlation rho in [-0.75,0.75].
+
+The resulting observation covariance is diagonal:
+
+\[
+R(\rho)=
+\begin{bmatrix}
+3+2\rho&0\\
+0&3-2\rho
+\end{bmatrix}
+\]
+
+and the information function is
+
+\[
+I(\rho)=\frac{15-6\rho}{9-4\rho^2}.
+\]
+
+The global information minimum is 1.5 at the interior point rho=0.5; the global maximum is 26/9 at the lower endpoint -0.75. The exact posterior variance envelope is [9/35,0.4], and the exact EIG interval is [0.5 log(2.5), 0.5 log(35/9)] nats.
+
+The Rust tests check the interior extremum, a fixed-correlation interval (which collapses to one value), the full PSD-compatible interval [-1,1], invalid bounds/noise, zero source variance, and an independent dense-grid covariance assembly against the analytical envelope.
+
+### Qualification boundary
+
+This is an exact mathematical enclosure conditional on the input correlation interval. It does not prove that the true detector/calibration correlation lies inside that interval, and it does not turn a placeholder interval into an independence attestation. The bound itself can support a qualified decision only if its correlation bounds, marginal source variances, Jacobians, and model scope have independently reviewable evidence receipts.
+
+Scope is intentionally limited to two observations, two shared scalar sources, and one scalar parameter. The next generalization should be a low-dimensional block-correlation uncertainty set with positive-semidefinite constraints and certified outer bounds, before attempting a general high-dimensional covariance-uncertainty solver.
