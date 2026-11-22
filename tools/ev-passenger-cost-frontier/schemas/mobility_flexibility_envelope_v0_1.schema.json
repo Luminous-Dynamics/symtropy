@@ -320,6 +320,18 @@
         "uncertainty_reserve_receipt_id": {
           "type": "string",
           "minLength": 1
+        },
+        "mission_reserve_evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "inventory_buffer_evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "safety_outage_reserve_evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "uncertainty_reserve_evidence": {
+          "$ref": "#/$defs/evidence"
         }
       }
     },
@@ -358,6 +370,8 @@
         "scheduled_mobility_charging_load_w",
         "import_limit_w",
         "export_limit_w",
+        "base_load_evidence",
+        "scheduled_charging_load_evidence",
         "evidence"
       ],
       "properties": {
@@ -387,6 +401,12 @@
           "maximum": 100000000
         },
         "evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "base_load_evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "scheduled_charging_load_evidence": {
           "$ref": "#/$defs/evidence"
         }
       }
