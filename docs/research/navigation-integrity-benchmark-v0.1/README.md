@@ -415,3 +415,13 @@ Before comparative scoring:
 6. publish parameter receipts, raw logs, exclusions, seeds and input digests.
 
 No baseline in this charter is currently reproduced by Symtropy. No SOTA superiority claim is permitted until a matched paper-faithful reproduction and statistically supported held-out-domain improvement exist.
+
+
+### 13.6 Direct covariance baseline used by the PID paper
+
+The adaptive-PID article's own Section 5.1 compares it against Al Hage et al. (2020), a heavy-tailed multivariate Student-t protection-level method (IEEE T-ITS 23, 2978–2990, DOI 10.1109/TITS.2020.2983681). The 2026 paper reports degrees-of-freedom sweeps {4,5,6,7,8,9,10,100} and derives overall/directional PLs from the 2D positional covariance eigenstructure and a 2D multivariate Student-t TIR multiplier.
+
+The equation-level Rust implementation is in [PR #6737](https://github.com/Luminous-Dynamics/symtropy/pull/6737). It consumes a caller-supplied K_TIR(dof); exact 2D CDF computation / coverage convention and offline dof selection remain separate qualification steps. This is the direct statistical baseline to run beside the PID controller, not a generic Gaussian covariance bound.
+
+- https://doi.org/10.1109/TITS.2020.2983681
+- https://www.mdpi.com/1424-8220/26/16/5140 (Section 5.1)
