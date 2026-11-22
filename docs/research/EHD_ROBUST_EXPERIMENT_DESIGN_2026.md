@@ -106,7 +106,7 @@ The next sequence should preserve distinct physical, nuisance, discrepancy and m
 Reference pointers:
 - NISTIR 8298: https://doi.org/10.6028/NIST.IR.8298
 - ASME V&V 20-2009 (R2021): https://www.asme.org/codes-standards/find-codes-standards/standard-for-verification-and-validation-in-computational-fluid-dynamics-and-heat-transfer
-- ASME VVUQ 20.1-2024: https://www.asme.org/codes-standards/find-codes-standards/vvuq-20-1-multivariate-metric-for-validation
+- ASME VVUQ 20.1-2024: https://www.asme.org/codes-standards/find-codes-standards/vvuq201-vvuq-20-1-multivariate-metric-for-validation
 - preCICE documentation: https://precice.org/configuration-transport
 - Practical identifiability and model-discrimination design (Liu, Maini & Baker, 2026): https://doi.org/10.1016/j.mbs.2026.109710
 
