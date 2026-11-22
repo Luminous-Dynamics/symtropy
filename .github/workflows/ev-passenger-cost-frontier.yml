@@ -138,6 +138,8 @@ jobs:
           jq empty tools/ev-passenger-cost-frontier/fixtures/mobility_flexibility_envelope_v0_1.json
           jq empty tools/ev-passenger-cost-frontier/schemas/mobility_recovery_envelope_v0_2.schema.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/mobility_recovery_envelope_v0_2.json
+          jq empty tools/ev-passenger-cost-frontier/schemas/mobility_commitment_lease_v0_1.schema.json
+          jq empty tools/ev-passenger-cost-frontier/fixtures/mobility_commitment_lease_v0_1.json
           jq -e --slurpfile schema tools/ev-passenger-cost-frontier/schemas/battery_charge_queue_v0_1.schema.json '
             . as $queue
             | ($schema[0].required | sort) as $root_required
@@ -450,6 +452,24 @@ jobs:
             and ([.scenario_results[] | select(.scenario_id == "second-shock-before-recovery") | .site_import_power_by_slot_w[]] == [1900,1900,4300,4300,2500,4000,2500,2500])
           ' mobility-recovery-envelope-report.json
           cat mobility-recovery-envelope-report.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin mobility_commitment_lease_screen -- \
+            tools/ev-passenger-cost-frontier/fixtures/mobility_commitment_lease_v0_1.json \
+            > mobility-commitment-lease-report.json
+          jq -e '
+            .benchmark_id == "MOBILITY-COMMITMENT-LEASE-001"
+            and .candidate_model_admissible == true
+            and .active_commitment_count == 2
+            and .terminal_commitment_count == 1
+            and ([.resource_margins[] | select(.resource_id == "ess-01") | .committed_energy_wh, .remaining_energy_wh] == [1100,400])
+            and ([.resource_margins[] | select(.resource_id == "ess-01") | .committed_power_w_by_slot[]] == [500,500,2500,1500,0,0])
+            and ([.resource_margins[] | select(.resource_id == "ess-02") | .committed_energy_wh, .remaining_energy_wh] == [300,600])
+            and (.protected_window_conflicts | length) == 0
+            and .ledger_mutation_performed == false
+            and .market_authority_granted == false
+            and .dispatch_authority_granted == false
+            and .physical_mutation_authority_granted == false
+          ' mobility-commitment-lease-report.json
+          cat mobility-commitment-lease-report.json
           sha256sum \
             tools/ev-passenger-cost-frontier/schemas/ev_passenger_cost_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/ev_passenger_cost_v0_1.json \
@@ -477,6 +497,12 @@ jobs:
             tools/ev-passenger-cost-frontier/schemas/mobility_recovery_envelope_v0_2.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/mobility_recovery_envelope_v0_2.json \
             docs/research/MOBILITY_RESERVE_RECOVERY_BENCHMARK_V0_1.md \
+            tools/ev-passenger-cost-frontier/src/mobility_commitment_lease.rs \
+            tools/ev-passenger-cost-frontier/src/bin/mobility_commitment_lease_screen.rs \
+            tools/ev-passenger-cost-frontier/schemas/mobility_commitment_lease_v0_1.schema.json \
+            tools/ev-passenger-cost-frontier/fixtures/mobility_commitment_lease_v0_1.json \
+            docs/research/MOBILITY_CAPABILITY_COMMITMENT_AND_INDUSTRY_BENCHMARK_V0_1.md \
+            mobility-commitment-lease-report.json \
             mobility-recovery-envelope-report.json \
             mobility-flexibility-envelope-report.json \
             tools/ev-passenger-cost-frontier/src/bin/ev_carrier_module_factory_screen.rs \
@@ -513,6 +539,10 @@ jobs:
             battery-charge-queue-report.json
             mobility-flexibility-envelope-report.json
             mobility-recovery-envelope-report.json
+            mobility-commitment-lease-report.json
+            tools/ev-passenger-cost-frontier/fixtures/mobility_commitment_lease_v0_1.json
+            tools/ev-passenger-cost-frontier/schemas/mobility_commitment_lease_v0_1.schema.json
+            docs/research/MOBILITY_CAPABILITY_COMMITMENT_AND_INDUSTRY_BENCHMARK_V0_1.md
             tools/ev-passenger-cost-frontier/fixtures/mobility_recovery_envelope_v0_2.json
             tools/ev-passenger-cost-frontier/schemas/mobility_recovery_envelope_v0_2.schema.json
             docs/research/MOBILITY_RESERVE_RECOVERY_BENCHMARK_V0_1.md

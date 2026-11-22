@@ -1,0 +1,329 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "MOBILITY-COMMITMENT-LEASE-001",
+  "site_id": "depot-commitment-01",
+  "site_configuration_digest": "sha256:commitment-site-v01",
+  "decision_time_unix_ms": 1800000000000,
+  "slot_duration_seconds": 900,
+  "horizon_slots": 6,
+  "flexibility_report_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "recovery_report_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "report_valid_until_unix_ms": 1800005399999,
+  "flexibility_report_evidence": {
+    "asset_id": "depot-commitment-01",
+    "configuration_digest": "sha256:commitment-site-v01",
+    "producer_id": "fixture-generator",
+    "method_id": "synthetic-commitment-lease-v0.1",
+    "evidence_reference": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "evidence_class": "synthetic",
+    "observed_at_unix_ms": 1799999940000,
+    "valid_from_unix_ms": 1799999940000,
+    "valid_until_unix_ms": 1800005399999
+  },
+  "recovery_report_evidence": {
+    "asset_id": "depot-commitment-01",
+    "configuration_digest": "sha256:commitment-site-v01",
+    "producer_id": "fixture-generator",
+    "method_id": "synthetic-commitment-lease-v0.1",
+    "evidence_reference": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "evidence_class": "synthetic",
+    "observed_at_unix_ms": 1799999940000,
+    "valid_from_unix_ms": 1799999940000,
+    "valid_until_unix_ms": 1800005399999
+  },
+  "resource_budgets": [
+    {
+      "resource_id": "ess-01",
+      "configuration_digest": "sha256:ess-01-v01",
+      "safe_grid_energy_budget_wh": 1500,
+      "safe_grid_power_budget_w_by_slot": [
+        3000,
+        3000,
+        3000,
+        3000,
+        3000,
+        3000
+      ],
+      "budget_evidence": {
+        "asset_id": "ess-01",
+        "configuration_digest": "sha256:ess-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-commitment-lease-v0.1",
+        "evidence_reference": "synthetic://ess-01/flex-and-recovery-budget",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800005399999
+      },
+      "site_connection_evidence": {
+        "asset_id": "depot-commitment-01",
+        "configuration_digest": "sha256:commitment-site-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-commitment-lease-v0.1",
+        "evidence_reference": "synthetic://ess-01/site-connection",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800005399999
+      }
+    },
+    {
+      "resource_id": "ess-02",
+      "configuration_digest": "sha256:ess-02-v01",
+      "safe_grid_energy_budget_wh": 900,
+      "safe_grid_power_budget_w_by_slot": [
+        2000,
+        2000,
+        2000,
+        2000,
+        2000,
+        2000
+      ],
+      "budget_evidence": {
+        "asset_id": "ess-02",
+        "configuration_digest": "sha256:ess-02-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-commitment-lease-v0.1",
+        "evidence_reference": "synthetic://ess-02/flex-and-recovery-budget",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800005399999
+      },
+      "site_connection_evidence": {
+        "asset_id": "depot-commitment-01",
+        "configuration_digest": "sha256:commitment-site-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-commitment-lease-v0.1",
+        "evidence_reference": "synthetic://ess-02/site-connection",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800005399999
+      }
+    }
+  ],
+  "protected_windows": [
+    {
+      "window_id": "mission-ess-02-01",
+      "resource_id": "ess-02",
+      "claim_kind": "mission",
+      "start_slot": 4,
+      "end_slot": 6,
+      "claim_reference": "synthetic://mission/next-flight-01",
+      "evidence": {
+        "asset_id": "ess-02",
+        "configuration_digest": "sha256:ess-02-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-commitment-lease-v0.1",
+        "evidence_reference": "synthetic://mission/protected-window",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800005399999
+      }
+    }
+  ],
+  "existing_commitments": [
+    {
+      "commitment_id": "grid-lease-existing-01",
+      "idempotency_key": "idem-existing-01",
+      "state": "accepted",
+      "start_slot": 0,
+      "end_slot": 2,
+      "expires_at_unix_ms": 1800000300000,
+      "state_evidence": {
+        "asset_id": "depot-commitment-01",
+        "configuration_digest": "sha256:commitment-site-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-commitment-lease-v0.1",
+        "evidence_reference": "synthetic://lease/existing-01/accepted",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800005399999
+      },
+      "resource_allocations": [
+        {
+          "resource_id": "ess-01",
+          "configuration_digest": "sha256:ess-01-v01",
+          "power_w_by_slot": [
+            500,
+            500,
+            0,
+            0,
+            0,
+            0
+          ],
+          "energy_wh_by_slot": [
+            200,
+            200,
+            0,
+            0,
+            0,
+            0
+          ],
+          "allocation_evidence": {
+            "asset_id": "ess-01",
+            "configuration_digest": "sha256:ess-01-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-commitment-lease-v0.1",
+            "evidence_reference": "synthetic://lease/existing-01/ess-01",
+            "evidence_class": "synthetic",
+            "observed_at_unix_ms": 1799999940000,
+            "valid_from_unix_ms": 1799999940000,
+            "valid_until_unix_ms": 1800005399999
+          }
+        }
+      ],
+      "state_receipt_id": "synthetic://lease/existing-01/accepted"
+    },
+    {
+      "commitment_id": "grid-lease-uncertain-02",
+      "idempotency_key": "idem-uncertain-02",
+      "state": "unresolved",
+      "start_slot": 1,
+      "end_slot": 3,
+      "expires_at_unix_ms": 1799999940000,
+      "state_evidence": {
+        "asset_id": "depot-commitment-01",
+        "configuration_digest": "sha256:commitment-site-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-commitment-lease-v0.1",
+        "evidence_reference": "synthetic://lease/uncertain-02/timeout",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800005399999
+      },
+      "resource_allocations": [
+        {
+          "resource_id": "ess-02",
+          "configuration_digest": "sha256:ess-02-v01",
+          "power_w_by_slot": [
+            0,
+            500,
+            500,
+            0,
+            0,
+            0
+          ],
+          "energy_wh_by_slot": [
+            0,
+            150,
+            150,
+            0,
+            0,
+            0
+          ],
+          "allocation_evidence": {
+            "asset_id": "ess-02",
+            "configuration_digest": "sha256:ess-02-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-commitment-lease-v0.1",
+            "evidence_reference": "synthetic://lease/uncertain-02/ess-02",
+            "evidence_class": "synthetic",
+            "observed_at_unix_ms": 1799999940000,
+            "valid_from_unix_ms": 1799999940000,
+            "valid_until_unix_ms": 1800005399999
+          }
+        }
+      ],
+      "state_receipt_id": "synthetic://lease/uncertain-02/timeout"
+    },
+    {
+      "commitment_id": "grid-lease-settled-03",
+      "idempotency_key": "idem-settled-03",
+      "state": "settled",
+      "start_slot": 0,
+      "end_slot": 1,
+      "expires_at_unix_ms": 1800000060000,
+      "state_evidence": {
+        "asset_id": "depot-commitment-01",
+        "configuration_digest": "sha256:commitment-site-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-commitment-lease-v0.1",
+        "evidence_reference": "synthetic://lease/settled-03/terminal-proof",
+        "evidence_class": "independent_test",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800005399999
+      },
+      "resource_allocations": [
+        {
+          "resource_id": "ess-01",
+          "configuration_digest": "sha256:ess-01-v01",
+          "power_w_by_slot": [
+            1000,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "energy_wh_by_slot": [
+            100,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "allocation_evidence": {
+            "asset_id": "ess-01",
+            "configuration_digest": "sha256:ess-01-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-commitment-lease-v0.1",
+            "evidence_reference": "synthetic://lease/settled-03/ess-01",
+            "evidence_class": "synthetic",
+            "observed_at_unix_ms": 1799999940000,
+            "valid_from_unix_ms": 1799999940000,
+            "valid_until_unix_ms": 1800005399999
+          }
+        }
+      ],
+      "state_receipt_id": "synthetic://lease/settled-03/terminal-proof"
+    }
+  ],
+  "candidate_lease": {
+    "commitment_id": "grid-lease-candidate-04",
+    "idempotency_key": "idem-candidate-04",
+    "start_slot": 2,
+    "end_slot": 4,
+    "expires_at_unix_ms": 1800000300000,
+    "resource_allocations": [
+      {
+        "resource_id": "ess-01",
+        "configuration_digest": "sha256:ess-01-v01",
+        "power_w_by_slot": [
+          0,
+          0,
+          2500,
+          1500,
+          0,
+          0
+        ],
+        "energy_wh_by_slot": [
+          0,
+          0,
+          450,
+          250,
+          0,
+          0
+        ],
+        "allocation_evidence": {
+          "asset_id": "ess-01",
+          "configuration_digest": "sha256:ess-01-v01",
+          "producer_id": "fixture-generator",
+          "method_id": "synthetic-commitment-lease-v0.1",
+          "evidence_reference": "synthetic://lease/candidate-04/ess-01",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1799999940000,
+          "valid_from_unix_ms": 1799999940000,
+          "valid_until_unix_ms": 1800005399999
+        }
+      }
+    ]
+  },
+  "claim_ceiling": "Deterministic model-level commitment admission only; no market, dispatch, physical mutation, flight, custody or settlement authority."
+}

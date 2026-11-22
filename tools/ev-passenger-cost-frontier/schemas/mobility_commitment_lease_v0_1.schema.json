@@ -1,0 +1,416 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/tools/ev-passenger-cost-frontier/schemas/mobility_commitment_lease_v0_1.schema.json",
+  "title": "Mobility Cross-Domain Commitment Lease v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "site_id",
+    "site_configuration_digest",
+    "decision_time_unix_ms",
+    "slot_duration_seconds",
+    "horizon_slots",
+    "flexibility_report_digest",
+    "recovery_report_digest",
+    "report_valid_until_unix_ms",
+    "flexibility_report_evidence",
+    "recovery_report_evidence",
+    "resource_budgets",
+    "protected_windows",
+    "existing_commitments",
+    "candidate_lease",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "MOBILITY-COMMITMENT-LEASE-001"
+    },
+    "site_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "site_configuration_digest": {
+      "type": "string",
+      "minLength": 1
+    },
+    "decision_time_unix_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "slot_duration_seconds": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 86400
+    },
+    "horizon_slots": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16
+    },
+    "flexibility_report_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-fA-F]{64}$"
+    },
+    "recovery_report_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-fA-F]{64}$"
+    },
+    "report_valid_until_unix_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "flexibility_report_evidence": {
+      "$ref": "#/$defs/evidence"
+    },
+    "recovery_report_evidence": {
+      "$ref": "#/$defs/evidence"
+    },
+    "resource_budgets": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "items": {
+        "$ref": "#/$defs/resourceBudget"
+      }
+    },
+    "protected_windows": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/protectedWindow"
+      }
+    },
+    "existing_commitments": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/existingCommitment"
+      }
+    },
+    "candidate_lease": {
+      "$ref": "#/$defs/candidateLease"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "configuration_digest",
+        "producer_id",
+        "method_id",
+        "evidence_reference",
+        "evidence_class",
+        "observed_at_unix_ms",
+        "valid_from_unix_ms",
+        "valid_until_unix_ms"
+      ],
+      "properties": {
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "producer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_class": {
+          "enum": [
+            "synthetic",
+            "measured",
+            "independent_test",
+            "unknown"
+          ]
+        },
+        "observed_at_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "valid_from_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "valid_until_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "resourceBudget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resource_id",
+        "configuration_digest",
+        "safe_grid_energy_budget_wh",
+        "safe_grid_power_budget_w_by_slot",
+        "budget_evidence",
+        "site_connection_evidence"
+      ],
+      "properties": {
+        "resource_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "safe_grid_energy_budget_wh": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000000
+        },
+        "safe_grid_power_budget_w_by_slot": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100000000
+          }
+        },
+        "budget_evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "site_connection_evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "protectedWindow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "window_id",
+        "resource_id",
+        "claim_kind",
+        "start_slot",
+        "end_slot",
+        "claim_reference",
+        "evidence"
+      ],
+      "properties": {
+        "window_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resource_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "claim_kind": {
+          "enum": [
+            "mission",
+            "recovery",
+            "maintenance",
+            "safety_hold"
+          ]
+        },
+        "start_slot": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 15
+        },
+        "end_slot": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "claim_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "allocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resource_id",
+        "configuration_digest",
+        "power_w_by_slot",
+        "energy_wh_by_slot",
+        "allocation_evidence"
+      ],
+      "properties": {
+        "resource_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "power_w_by_slot": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100000000
+          }
+        },
+        "energy_wh_by_slot": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000000000
+          }
+        },
+        "allocation_evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "existingCommitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "commitment_id",
+        "idempotency_key",
+        "state",
+        "state_receipt_id",
+        "start_slot",
+        "end_slot",
+        "expires_at_unix_ms",
+        "state_evidence",
+        "resource_allocations"
+      ],
+      "properties": {
+        "commitment_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "state": {
+          "enum": [
+            "firm_offered",
+            "accepted",
+            "executing",
+            "unresolved",
+            "rejected",
+            "expired",
+            "cancelled",
+            "settled"
+          ]
+        },
+        "start_slot": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 15
+        },
+        "end_slot": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "expires_at_unix_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "state_evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "resource_allocations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/allocation"
+          }
+        },
+        "state_receipt_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "candidateLease": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "commitment_id",
+        "idempotency_key",
+        "start_slot",
+        "end_slot",
+        "expires_at_unix_ms",
+        "resource_allocations"
+      ],
+      "properties": {
+        "commitment_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start_slot": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 15
+        },
+        "end_slot": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "expires_at_unix_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "resource_allocations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/allocation"
+          }
+        }
+      }
+    }
+  }
+}
