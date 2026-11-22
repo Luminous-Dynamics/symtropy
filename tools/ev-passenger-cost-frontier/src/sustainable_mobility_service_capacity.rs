@@ -388,8 +388,7 @@ pub fn evaluate_architecture_capacity(
     let completed_cycles_per_hour = completed_sorties as f64 / horizon_hours;
     let completed_cycles_per_aircraft_hour =
         completed_sorties as f64 * 3_600.0 / total_aircraft_seconds as f64;
-    let aircraft_cycle_capacity_upper_bound_per_hour = u64::from(scenario.aircraft_count)
-        as f64
+    let aircraft_cycle_capacity_upper_bound_per_hour = u64::from(scenario.aircraft_count) as f64
         * 3_600.0
         / (f64::from(scenario.mission_duration_seconds)
             + f64::from(scenario.operational_turnaround_seconds));
@@ -819,8 +818,8 @@ mod tests {
     fn finite_horizon_rate_is_bounded_by_steady_state_plus_initial_inventory() {
         let input = fixture();
         for scenario in &input.architectures {
-            let result = evaluate_architecture_capacity(scenario, input.horizon_seconds)
-                .expect("scenario");
+            let result =
+                evaluate_architecture_capacity(scenario, input.horizon_seconds).expect("scenario");
             assert!(
                 result.completed_cycles_per_hour
                     <= result.steady_state_cycle_capacity_upper_bound_per_hour
@@ -834,7 +833,7 @@ mod tests {
                     - (result.completed_cycles_per_hour
                         - result.steady_state_cycle_capacity_upper_bound_per_hour)
                         .max(0.0))
-                    .abs()
+                .abs()
                     < 1e-9
             );
         }
