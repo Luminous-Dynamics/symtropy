@@ -15,13 +15,17 @@ The existing inspection-observability contract handles exact scope, coverage, ca
 - exact method/procedure/material/defect/orientation/environment/scope binding;
 - equipment and calibration identity checks, unique specimen IDs, per-inspector sample minima and deterministic SHA-256 receipt.
 
-The frozen synthetic configuration uses 10 inspectors, at least 29 target-flaw trials and 69 blank trials per inspector, a 0.90 detection lower-bound threshold at 95% one-sided confidence, and a 0.01 false-call upper-bound threshold at 50% one-sided confidence. These are explicit benchmark settings, not universal NDE requirements. With zero misses in 29 trials, the exact one-sided lower bound is approximately 0.901855; with zero false calls in 69 blanks, the exact one-sided upper bound is approximately 0.009995. One miss or one false call breaks the corresponding fixture gate.
+The frozen synthetic configuration uses 10 inspectors, at least 60 target-flaw trials and 200 blank trials per inspector, a 0.90 detection lower-bound threshold at 95% one-sided confidence, and a 0.01 false-call upper-bound threshold at 50% one-sided confidence. These are explicit benchmark settings, not universal NDE requirements. In the fixture, each inspector has 59 detections in 60 target-flaw trials and one false call in 200 blank trials. The exact one-sided lower detection bound is approximately 0.923360; the exact one-sided upper false-call bound is approximately 0.008378. Adding one more miss or one more false call causes the corresponding gate to fail.
 
 ## Important statistical and standards boundary
 
 This is **not** a POD curve, an `a90/95` analysis, a hit/miss regression, an ASTM E2862-23 implementation, or a MIL-HDBK-1823A-compliant study. It evaluates one fixed target size only; it does not interpolate or extrapolate across flaw sizes, fit a POD curve, model censoring, estimate inspector random effects, account for correlated trials, or verify random specimen selection and population representativeness. The binomial confidence bounds are conditional on independent Bernoulli trials within the declared scope; the software cannot authenticate that assumption.
 
-ASTM E2862-23 is an active hit/miss POD statistical practice, but it specifies a broader analysis and validation scope; this tool must not be represented as equivalent to it: https://store.astm.org/e2862-23.html. NASA-STD-5009C provides NDE requirements in its defined NASA fracture-control context and calls for a standard POD study with at least 10 inspectors representative of the intended population, individual inspector analyses, and review/approval; its context is not a universal rule for every aircraft or NDE programme: https://standards.nasa.gov/standard/NASA/NASA-STD-5009. MIL-HDBK-1823A is guidance for NDE system reliability assessment, not itself a requirement: https://quicksearch.dla.mil/qsDocDetails.aspx?ident_number=206122.
+ASTM E2862-23 is an active hit/miss POD statistical practice. Its scope is broader: the known discontinuity sizes are predictor variables, and an appropriate regression/model relationship is fitted, validated and interpreted for the defined examination parameters. The practice explicitly excludes data analyzed using the Point Estimate Method (PEM), also called the "29 out of 29" method. This tool is not E2862 and must not be presented as equivalent: https://store.astm.org/e2862-23.html.
+
+NASA-STD-5009C establishes NDE requirements in its defined NASA fracture-control context. Its standard-NDE POD study provisions refer to at least 10 inspectors representative of a specific population, individual inspector analysis, false-call reporting and review/approval. This benchmark's 10-inspector minimum is a research guardrail inspired by that context; ten synthetic records are not a representative inspector population, and this software does not demonstrate NASA-STD-5009C compliance: https://standards.nasa.gov/standard/NASA/NASA-STD-5009.
+
+MIL-HDBK-1823A is guidance for NDE system reliability assessment, not itself a requirement: https://quicksearch.dla.mil/qsDocDetails.aspx?ident_number=206122.
 
 Accordingly, every receipt hard-codes:
 - `physical_pod = NOT_ASSESSED`
@@ -35,16 +39,16 @@ The corpus is synthetic and can only verify software behavior. Replace it with p
 
 ## Frozen scenarios
 
-1. All ten synthetic inspectors meet both exact fixed-target bounds.
-2. One missed target flaw breaks the detection lower-bound gate.
-3. One false call breaks the false-call upper-bound gate.
+1. Ten synthetic inspectors meet both exact fixed-target bounds with one miss and one false call each.
+2. A second missed target flaw for one inspector breaks the detection lower-bound gate.
+3. A second false call for one inspector breaks the false-call upper-bound gate.
 4. Nine inspectors fail the predeclared inspector-count minimum.
 5. A trial uses a different flaw size and is rejected as out of scope.
 6. An inspector has invalid calibration and the study is not evaluable.
 7. A duplicate specimen identity is rejected.
 8. One inspector has too few blank trials and the study is not evaluable.
 
-The independent Python oracle recomputes the exact binomial tails and per-inspector bounds from the same frozen bytes; CI compares numerical outputs and dispositions to the Rust implementation. This is independent implementation agreement, not independent experimental evidence.
+The independent Python oracle recomputes exact binomial tails and per-inspector bounds from the same frozen bytes; CI compares numerical outputs and dispositions to the Rust implementation. This is independent implementation agreement, not independent experimental evidence.
 
 ## Run
 
