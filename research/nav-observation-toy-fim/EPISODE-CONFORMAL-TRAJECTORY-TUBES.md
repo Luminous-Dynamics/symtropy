@@ -47,7 +47,7 @@ The guarantee does **not** imply:
 - statistical independence merely because episode identifiers differ;
 - authenticity of caller-supplied SHA-256 commitments.
 
-The module accepts source-manifest, cohort, score-definition and solution commitments as inputs. It checks that they are nonzero and preserves them. The evaluation tube builder requires the exact predictor digest used during calibration; a model or preprocessing change therefore rejects stale calibration. It does not calculate or authenticate the bytes behind those digests, determine whether ground truth is independent, or prove the cohort's exchangeability.
+The module accepts source-manifest, cohort, score-definition, frozen-predictor and solution commitments as inputs. It checks that they are nonzero and preserves them. The evaluation tube builder requires exact matches for both the score-definition digest and frozen-predictor digest used during calibration; a changed scoring convention, model or preprocessing version therefore rejects stale calibration. It does not calculate or authenticate the bytes behind those digests, determine whether ground truth is independent, or prove the cohort's exchangeability.
 
 ## Required evaluation protocol
 
@@ -163,7 +163,7 @@ Implemented in `episode_conformal_tube.rs`:
 - finite-sample order-statistic calibration;
 - fail-closed rank and input validation;
 - source/cohort/score/frozen-predictor/solution commitments retained in the report;
-- evaluation rejected when the predictor digest differs from the frozen calibration predictor;
+- evaluation rejected when either the score-definition or predictor digest differs from frozen calibration;
 - calibration/evaluation episode and group disjointness checks;
 - constant-radius complete-trajectory tube;
 - tests for rank boundaries, packet-count non-inflation, permutation invariance, monotonicity, duplicate groups, whole-trajectory containment and invalid data.
