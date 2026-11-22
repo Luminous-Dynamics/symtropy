@@ -919,7 +919,6 @@ pub fn evaluate_mobility_commitment_lease(
     })
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
