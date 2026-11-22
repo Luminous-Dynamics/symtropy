@@ -207,7 +207,7 @@ fn slot_time_ms(
     decision_time_unix_ms.checked_add(offset_ms)
 }
 
-impl ExactChargeSearch<'_> {
+impl<'a> ExactChargeSearch<'a> {
     fn search(&mut self, state: &mut ChargeSearchState) {
         self.nodes += 1;
         let job_index = state.selected.len();
@@ -603,14 +603,20 @@ pub fn evaluate_battery_charge_queue(
                 requested_power_w: placement.requested_power_w,
                 declared_grid_input_watt_seconds: placement.declared_grid_input_watt_seconds,
             }),
-            None => unserved_job_ids.push(jobs[job_index].job_id.clone()),
+            None => {
+                unserved_job_ids.push(jobs[job_index].job_id.clone());
+                if !candidates[job_index].is_empty() {
+                    findings.push(format!("not_selected_due_to_resource_conflict:{}", jobs[job_index].job_id));
+                }
+            }
         }
     }
-    assignments.sort_by(|left, right| {
-        left.start_slot
-            .cmp(&right.start_slot)
-            .then_with(|| left.charger_id.cmp(&right.charger_id))
-            .then_with(|| left.job_id.cmp(&right.job_id))
+    assignments.sort_by_key(|assignment| {
+        (
+            assignment.start_slot,
+            assignment.charger_id.as_str(),
+            assignment.job_id.as_str(),
+        )
     });
 
     let Some(total_declared_grid_input_watt_seconds) = assignments
