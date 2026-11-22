@@ -618,16 +618,13 @@ pub fn validate_spatial_error_kernel(
     let mut diagonal_correlations: Vec<[Vec<f64>; 3]> = (0..=max_bin)
         .map(|_| std::array::from_fn(|_| Vec::new()))
         .collect();
-    let mut validation_mean_profile = vec![[0.0; 3]; coordinates.len()];
+    let validation_mean_profile = mean_residual_profile(validation_fields, coordinates.len());
 
     for field in validation_fields {
-        for (index, residual) in field.residuals_m_s.iter().enumerate() {
-            for axis in 0..3 {
-                validation_mean_profile[index][axis] += residual[axis] / validation_fields.len() as f64;
-            }
-        }
-
-        let residuals = centered_residuals(field, &fit.calibration_mean_bias_profile_m_s);
+        // Estimate the held-out mean profile only to separate its covariance
+        // from a systematic shift. The shift itself is retained below as a
+        // separate validation diagnostic and never applied as a correction.
+        let residuals = centered_residuals(field, &validation_mean_profile);
         let mut c0 = zero_matrix();
         for residual in &residuals {
             add_scaled(&mut c0, symmetric_outer(*residual, *residual), 1.0 / residuals.len() as f64);
