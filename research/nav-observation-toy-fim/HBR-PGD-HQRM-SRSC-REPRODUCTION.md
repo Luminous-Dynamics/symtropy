@@ -57,11 +57,35 @@ The raw MAD is used as stated in the paper; no 1.4826 Gaussian-consistency scali
 
 The gate is precomputed and frozen before the main trajectory/bias optimization. It is not an optimizable state. Each result carries source-observation-manifest and quality-mapping commitments. Groups are returned in canonical identity order.
 
+## Module 3: HBR-BCTR objective, gradient and projected step
+
+The companion `hbr_bctr_objective.rs` implements the local 2D objective and analytic gradients for the paper's trajectory state X and anchor-channel structural bias B.
+
+For each packet:
+
+`e = z - ||x_t - s_a|| - b_tac - m_tac * delta_hat_tacp`
+
+`u = e / (sigma_tacp + epsilon)`
+
+The data term is the generalized adaptive robust loss `rho_alpha(u)`. The current reference supports alpha below 2, including the logarithmic alpha=0 limit. It returns the loss and derivative needed for analytic position and bias gradients.
+
+The remaining terms are:
+- velocity smoothness: `lambda_v * sum ||x_t - x_(t-1)||^2`;
+- acceleration smoothness: `lambda_a * sum ||x_t - 2*x_(t-1) + x_(t-2)||^2`;
+- bias amplitude: `lambda_b * sum b_tac^2`;
+- bias temporal drift: `lambda_b * eta * sum (b_tac - b_(t-1),ac)^2`.
+
+The objective evaluator returns total cost and analytic gradients for the 2D position and flattened (time, anchor-channel group) bias states. A separate projected step applies caller-supplied position/bias step sizes, constrains positions to a declared spatial box and clamps structural bias to [0, b_max].
+
+Finite-difference tests compare analytic position and bias gradients against objective perturbations. Other tests exercise the alpha=0 and near-zero robust-loss limits, projection bounds, invalid states and arithmetic overflow.
+
+This is **not yet the full HBR-PGD reproduction**. It does not create overlapping windows, choose window overlap, implement the paper's curvature/trace-based fusion, derive the initial geometric trajectory, reconstruct the complete feature and split protocol, or implement the authors' exact stopping/line-search details. The objective and gradient are a numerical reference to build and compare; no RMSE, runtime or physical performance result is claimed.
+
 ## What is not yet implemented
 
 These modules are only the two upstream precomputation blocks. They do not implement:
-- the full generalized adaptive robust loss and its exact gradient;
-- HBR-BCTR trajectory/bias objective or projected-gradient solver;
+- overlapping-window construction and curvature-weighted fusion;
+- the complete paper-faithful optimization/termination pipeline beyond the current local-window objective, analytic gradients and projected step;
 - overlapping-window information-weighted fusion;
 - author-specific missing/invalid row policy;
 - exact paper feature selection, calibration weights, logistic slopes, gate parameters or train/test partition;
