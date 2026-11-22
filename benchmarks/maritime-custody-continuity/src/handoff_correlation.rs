@@ -554,8 +554,6 @@ fn prove_box_interval_total_order(
     Ok(())
 }
 
-type BoxEventTime<'a> = (SourceEventRef, u32, &'a TimeEvidence, Vec<usize>);
-
 /// Reconstruct the complete custody-event timeline from qualified event-time
 /// enclosures. Every effective ACTUAL event requires an exact time binding,
 /// and every pair of actual events for the same box must be strictly ordered.
