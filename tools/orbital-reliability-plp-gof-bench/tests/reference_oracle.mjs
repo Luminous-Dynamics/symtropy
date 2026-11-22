@@ -238,9 +238,9 @@ function main() {
     return;
   }
   const corpus = JSON.parse(fs.readFileSync(file, "utf8"));
-  if (corpus.schema !== "luminous.orbital-plp-conditional-gof.corpus.v0.1"
+  if (corpus.schema !== "luminous.orbital-plp-multistat-gof.corpus.v0.2"
       || corpus.evidence_class !== "synthetic"
-      || corpus.claim_ceiling !== "synthetic-conditional-plp-goodness-of-fit-only"
+      || corpus.claim_ceiling !== "synthetic-conditional-plp-five-statistic-suite-only"
       || !Array.isArray(corpus.cases) || corpus.cases.length === 0) {
     process.stderr.write("unsupported PLP GOF corpus contract\n");
     process.exitCode = 2;
