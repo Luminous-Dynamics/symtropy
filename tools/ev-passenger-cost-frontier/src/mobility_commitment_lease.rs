@@ -277,7 +277,9 @@ fn validate_allocation(
         return;
     };
 
-    if allocation.configuration_digest != budget.configuration_digest
+    if start_slot >= end_slot
+        || end_slot > input.horizon_slots
+        || allocation.configuration_digest != budget.configuration_digest
         || allocation.power_w_by_slot.len() != usize::from(input.horizon_slots)
         || allocation.energy_wh_by_slot.len() != usize::from(input.horizon_slots)
         || !allocation_has_usage(allocation)
@@ -434,7 +436,14 @@ pub fn evaluate_mobility_commitment_lease(
         || candidate.end_slot > input.horizon_slots
         || candidate.expires_at_unix_ms <= input.decision_time_unix_ms
         || candidate.expires_at_unix_ms > input.report_valid_until_unix_ms
+        || candidate.start_slot >= input.horizon_slots
+        || candidate.end_slot > input.horizon_slots
         || candidate.resource_allocations.is_empty()
+        || candidate
+            .start_slot
+            .checked_sub(0)
+            .and_then(|slot| slot_start_ms(input, slot))
+            .is_none_or(|start_time| candidate.expires_at_unix_ms > start_time)
     {
         add_error(&mut errors, "candidate_lease_identity_window_or_expiry_invalid");
     }
@@ -469,7 +478,6 @@ pub fn evaluate_mobility_commitment_lease(
 
     let mut active_commitment_count = 0_usize;
     let mut terminal_commitment_count = 0_usize;
-    let mut active_allocations: BTreeMap<String, Vec<LeaseResourceAllocation>> = BTreeMap::new();
 
     let mut sorted_existing = input.existing_commitments.clone();
     sorted_existing.sort_by(|a, b| a.commitment_id.cmp(&b.commitment_id));
@@ -552,10 +560,6 @@ pub fn evaluate_mobility_commitment_lease(
 
         if commitment.state.reserves_capability() {
             active_commitment_count += 1;
-            active_allocations.insert(
-                commitment.commitment_id.clone(),
-                commitment.resource_allocations.clone(),
-            );
         } else if commitment.state.is_terminal() {
             terminal_commitment_count += 1;
         }
@@ -625,17 +629,6 @@ pub fn evaluate_mobility_commitment_lease(
         }
     }
 
-    for (commitment_id, allocations) in active_allocations {
-        for allocation in allocations {
-            let entry = active_allocations_for_resource(
-                &mut active_aggregates,
-                &allocation.resource_id,
-                usize::from(input.horizon_slots),
-            );
-            let _ = (commitment_id, entry);
-        }
-    }
-
     let mut active_aggregates: BTreeMap<String, (Vec<u64>, Vec<u64>)> = BTreeMap::new();
     for commitment in &sorted_existing {
         if !commitment.state.reserves_capability() {
@@ -651,14 +644,16 @@ pub fn evaluate_mobility_commitment_lease(
                     )
                 });
             for slot in 0..usize::from(input.horizon_slots) {
-                energy[slot] = match energy[slot].checked_add(allocation.energy_wh_by_slot[slot]) {
+                let energy_value = allocation.energy_wh_by_slot.get(slot).copied().unwrap_or(0);
+            let power_value = allocation.power_w_by_slot.get(slot).copied().unwrap_or(0);
+            energy[slot] = match energy[slot].checked_add(energy_value) {
                     Some(value) => value,
                     None => {
                         add_error(&mut errors, "active_commitment_energy_overflow");
                         energy[slot]
                     }
                 };
-                power[slot] = match power[slot].checked_add(u64::from(allocation.power_w_by_slot[slot])) {
+                power[slot] = match power[slot].checked_add(u64::from(power_value)) {
                     Some(value) => value,
                     None => {
                         add_error(&mut errors, "active_commitment_power_overflow");
@@ -679,14 +674,16 @@ pub fn evaluate_mobility_commitment_lease(
                 )
             });
         for slot in 0..usize::from(input.horizon_slots) {
-            energy[slot] = match energy[slot].checked_add(allocation.energy_wh_by_slot[slot]) {
+            let energy_value = allocation.energy_wh_by_slot.get(slot).copied().unwrap_or(0);
+            let power_value = allocation.power_w_by_slot.get(slot).copied().unwrap_or(0);
+            energy[slot] = match energy[slot].checked_add(energy_value) {
                 Some(value) => value,
                 None => {
                     add_error(&mut errors, "candidate_commitment_energy_overflow");
                     energy[slot]
                 }
             };
-            power[slot] = match power[slot].checked_add(u64::from(allocation.power_w_by_slot[slot])) {
+            power[slot] = match power[slot].checked_add(u64::from(power_value)) {
                 Some(value) => value,
                 None => {
                     add_error(&mut errors, "candidate_commitment_power_overflow");
@@ -722,7 +719,13 @@ pub fn evaluate_mobility_commitment_lease(
                     energy_used
                 }
             };
-            let limit = u64::from(budget.safe_grid_power_budget_w_by_slot[slot]);
+            let limit = u64::from(
+                budget
+                    .safe_grid_power_budget_w_by_slot
+                    .get(slot)
+                    .copied()
+                    .unwrap_or(0),
+            );
             if power[slot] > limit {
                 power_feasible = false;
             }
