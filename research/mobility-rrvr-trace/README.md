@@ -30,6 +30,12 @@ The minimizer is deterministic for a fixed trace, oracle revision, replay seed a
 
 A concrete synthetic [late old-command-after-fence trace bundle](fixtures/late_old_command_after_fence_trace_v0_1.json) demonstrates event clocks from separate controller, driver and host clock domains plus a raw witness artifact. CI checks that the target witness, downstream-fence predecessor and artifact reference remain present. See [RESEARCH_ALIGNMENT_V0.1.md](RESEARCH_ALIGNMENT_V0.1.md) for the 2026 ROS fuzzing survey, long-horizon embodied manipulation survey, SafeVLA-Bench and the relevant ISO standard scope boundaries. The trace contract is intended to complement task-performance and safety benchmarks by improving recovery-failure replay and diagnosis; it is not a substitute for safety validation or conformity assessment.
 
+## TLC JSON importer
+
+See [TLC_JSON_IMPORT_V0.1.md](TLC_JSON_IMPORT_V0.1.md) for the native TLC JSON format, strict transition validation, opaque preservation of nested TLA values, artifact commitments, importer CLI, and the important distinction between importing a sequential state trace and model-aware action-schedule minimization.
+
+The importer command is exposed as `tlc_trace_import`; it consumes the raw JSON, exact model/config/JAR bytes and emits a schema-shaped RRVR TraceBundle.
+
 ## Formal model mapping
 
 See [TLA_TRACE_MAPPING_V0.1.md](TLA_TRACE_MAPPING_V0.1.md) and [model_action_event_mapping_v0_1.tsv](model_action_event_mapping_v0_1.tsv) for the 30-action mapping to the pinned `RestartSafeEffectContinuity.tla` model. Rust conformance tests check the expected action catalogue, and CI checks that every mapped action remains declared in the model and that the mapping count matches the `Next` relation. This is an action/event mapping contract—not a TLC trace importer or proof of semantic equivalence.
