@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/nav-generalization-split-v0.1.json",
+  "title": "Navigation generalization split manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "fold_id", "protocol", "holdout_axis", "held_out_value", "records"],
+  "properties": {
+    "schema_version": { "const": "nav-generalization-split/v0.1" },
+    "fold_id": { "type": "string", "minLength": 1 },
+    "protocol": {
+      "enum": [
+        "grouped_in_domain",
+        "leave_one_dataset_out",
+        "leave_one_environment_out",
+        "leave_one_device_out",
+        "leave_one_firmware_out",
+        "leave_one_event_class_out",
+        "leave_one_failure_domain_out"
+      ]
+    },
+    "holdout_axis": {
+      "enum": [
+        "none",
+        "dataset_id",
+        "environment_id",
+        "device_id",
+        "firmware_id",
+        "event_class",
+        "source_failure_domain_id"
+      ]
+    },
+    "held_out_value": { "type": ["string", "null"] },
+    "records": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "record_id", "dataset_id", "sequence_group_id", "event_id",
+          "environment_id", "device_id", "firmware_id", "event_class",
+          "failure_domain_ids", "split"
+        ],
+        "properties": {
+          "record_id": { "type": "string", "minLength": 1 },
+          "dataset_id": { "type": "string", "minLength": 1 },
+          "sequence_group_id": { "type": "string", "minLength": 1 },
+          "event_id": { "type": "string", "minLength": 1 },
+          "environment_id": { "type": "string", "minLength": 1 },
+          "device_id": { "type": "string", "minLength": 1 },
+          "firmware_id": { "type": "string", "minLength": 1 },
+          "event_class": { "type": "string", "minLength": 1 },
+          "failure_domain_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "split": { "enum": ["train", "validation", "test"] }
+        }
+      }
+    }
+  }
+}
