@@ -1,0 +1,312 @@
+{
+  "benchmark_id": "av-evidence-certificate-v0",
+  "schema_version": 1,
+  "baseline": {
+    "workload": {
+      "benchmark_id": "av-evidence-certificate-v0",
+      "schema_version": 1,
+      "episode_id": "episode-cf-01",
+      "transcript_head_sha256": "5736714ec9a3e9b3a1703c8bfe3012337e7e61012c4ef01d77cfec8cb14b1d91",
+      "decision_cutoff_tick": 10,
+      "observation_catalog": [
+        {
+          "observation_id": "obs-video",
+          "modality": "video",
+          "available_tick": 5,
+          "capture_complete_tick": 5,
+          "capture_start_ms": 0,
+          "capture_end_ms": 1000,
+          "clock_domain_id": "camera-clock",
+          "clock_generation": 1,
+          "artifact_sha256": "6577935a84d2ebcbcad67cb682b791cca304ab10a0b7bf0c46b241baa2d73d24"
+        },
+        {
+          "observation_id": "obs-audio-irrelevant",
+          "modality": "audio",
+          "available_tick": 6,
+          "capture_complete_tick": 6,
+          "capture_start_ms": 0,
+          "capture_end_ms": 1000,
+          "clock_domain_id": "microphone-clock",
+          "clock_generation": 1,
+          "artifact_sha256": "7875b7de341b05205cfbae5aed77879704c415e6e41d8d27aa58f272d0f9cc1a"
+        }
+      ]
+    },
+    "truth": {
+      "benchmark_id": "av-evidence-certificate-v0",
+      "schema_version": 1,
+      "episode_id": "episode-cf-01",
+      "claims": [
+        {
+          "claim_id": "door",
+          "answerable": true,
+          "acceptable_answer_values": [
+            "door_opens"
+          ],
+          "minimal_sufficient_evidence_sets": [
+            [
+              "obs-video"
+            ]
+          ],
+          "supporting_spans": [
+            {
+              "observation_ref": "obs-video",
+              "start_ms": 100,
+              "end_ms": 300
+            }
+          ],
+          "supporting_boxes": [
+            {
+              "observation_ref": "obs-video",
+              "start_ms": 100,
+              "end_ms": 300,
+              "frame_id": "frame-door",
+              "bbox_xyxy": [
+                0.1,
+                0.1,
+                0.5,
+                0.5
+              ]
+            }
+          ],
+          "temporal_iou_threshold": 0.3,
+          "spatial_iou_threshold": 0.3
+        },
+        {
+          "claim_id": "unknown",
+          "answerable": false,
+          "acceptable_answer_values": [],
+          "minimal_sufficient_evidence_sets": [],
+          "supporting_spans": [],
+          "supporting_boxes": []
+        }
+      ]
+    },
+    "submission": {
+      "benchmark_id": "av-evidence-certificate-v0",
+      "schema_version": 1,
+      "episode_id": "episode-cf-01",
+      "transcript_head_sha256": "5736714ec9a3e9b3a1703c8bfe3012337e7e61012c4ef01d77cfec8cb14b1d91",
+      "claims": [
+        {
+          "claim_id": "door",
+          "answer_value": "door_opens",
+          "abstained": false,
+          "evidence": [
+            {
+              "observation_ref": "obs-video",
+              "start_ms": 120,
+              "end_ms": 280,
+              "frame_id": "frame-door",
+              "bbox_xyxy": [
+                0.1,
+                0.1,
+                0.5,
+                0.5
+              ]
+            }
+          ]
+        },
+        {
+          "claim_id": "unknown",
+          "answer_value": null,
+          "abstained": true,
+          "evidence": []
+        }
+      ]
+    }
+  },
+  "variants": [
+    {
+      "variant_id": "remove-irrelevant-audio",
+      "intervention": "REMOVE_IRRELEVANT",
+      "claim_id": "door",
+      "removed_observation_ids": [
+        "obs-audio-irrelevant"
+      ],
+      "workload": {
+        "benchmark_id": "av-evidence-certificate-v0",
+        "schema_version": 1,
+        "episode_id": "episode-cf-01",
+        "transcript_head_sha256": "754556f5ea07b546ee831a7396202b24b4368437953ce64704ce5a7db3a83a6e",
+        "decision_cutoff_tick": 10,
+        "observation_catalog": [
+          {
+            "observation_id": "obs-video",
+            "modality": "video",
+            "available_tick": 5,
+            "capture_complete_tick": 5,
+            "capture_start_ms": 0,
+            "capture_end_ms": 1000,
+            "clock_domain_id": "camera-clock",
+            "clock_generation": 1,
+            "artifact_sha256": "6577935a84d2ebcbcad67cb682b791cca304ab10a0b7bf0c46b241baa2d73d24"
+          }
+        ]
+      },
+      "submission": {
+        "benchmark_id": "av-evidence-certificate-v0",
+        "schema_version": 1,
+        "episode_id": "episode-cf-01",
+        "transcript_head_sha256": "754556f5ea07b546ee831a7396202b24b4368437953ce64704ce5a7db3a83a6e",
+        "claims": [
+          {
+            "claim_id": "door",
+            "answer_value": "door_opens",
+            "abstained": false,
+            "evidence": [
+              {
+                "observation_ref": "obs-video",
+                "start_ms": 120,
+                "end_ms": 280,
+                "frame_id": "frame-door",
+                "bbox_xyxy": [
+                  0.1,
+                  0.1,
+                  0.5,
+                  0.5
+                ]
+              }
+            ]
+          },
+          {
+            "claim_id": "unknown",
+            "answer_value": null,
+            "abstained": true,
+            "evidence": []
+          }
+        ]
+      }
+    },
+    {
+      "variant_id": "remove-all-sufficient-video",
+      "intervention": "REMOVE_ALL_SUFFICIENT",
+      "claim_id": "door",
+      "removed_observation_ids": [
+        "obs-video"
+      ],
+      "workload": {
+        "benchmark_id": "av-evidence-certificate-v0",
+        "schema_version": 1,
+        "episode_id": "episode-cf-01",
+        "transcript_head_sha256": "a9414a2e365736ac1b74e9f98cf373be42303fe62468e74084aa29562705ae2a",
+        "decision_cutoff_tick": 10,
+        "observation_catalog": [
+          {
+            "observation_id": "obs-audio-irrelevant",
+            "modality": "audio",
+            "available_tick": 6,
+            "capture_complete_tick": 6,
+            "capture_start_ms": 0,
+            "capture_end_ms": 1000,
+            "clock_domain_id": "microphone-clock",
+            "clock_generation": 1,
+            "artifact_sha256": "7875b7de341b05205cfbae5aed77879704c415e6e41d8d27aa58f272d0f9cc1a"
+          }
+        ]
+      },
+      "submission": {
+        "benchmark_id": "av-evidence-certificate-v0",
+        "schema_version": 1,
+        "episode_id": "episode-cf-01",
+        "transcript_head_sha256": "a9414a2e365736ac1b74e9f98cf373be42303fe62468e74084aa29562705ae2a",
+        "claims": [
+          {
+            "claim_id": "door",
+            "answer_value": null,
+            "abstained": true,
+            "evidence": []
+          },
+          {
+            "claim_id": "unknown",
+            "answer_value": null,
+            "abstained": true,
+            "evidence": []
+          }
+        ]
+      }
+    },
+    {
+      "variant_id": "add-irrelevant-distractor",
+      "intervention": "ADD_IRRELEVANT",
+      "claim_id": "door",
+      "removed_observation_ids": [],
+      "workload": {
+        "benchmark_id": "av-evidence-certificate-v0",
+        "schema_version": 1,
+        "episode_id": "episode-cf-01",
+        "transcript_head_sha256": "5895d25a77aec35a2a2d03f44bdb5997206b3fc895b88b1744754432e275164d",
+        "decision_cutoff_tick": 10,
+        "observation_catalog": [
+          {
+            "observation_id": "obs-video",
+            "modality": "video",
+            "available_tick": 5,
+            "capture_complete_tick": 5,
+            "capture_start_ms": 0,
+            "capture_end_ms": 1000,
+            "clock_domain_id": "camera-clock",
+            "clock_generation": 1,
+            "artifact_sha256": "6577935a84d2ebcbcad67cb682b791cca304ab10a0b7bf0c46b241baa2d73d24"
+          },
+          {
+            "observation_id": "obs-audio-irrelevant",
+            "modality": "audio",
+            "available_tick": 6,
+            "capture_complete_tick": 6,
+            "capture_start_ms": 0,
+            "capture_end_ms": 1000,
+            "clock_domain_id": "microphone-clock",
+            "clock_generation": 1,
+            "artifact_sha256": "7875b7de341b05205cfbae5aed77879704c415e6e41d8d27aa58f272d0f9cc1a"
+          },
+          {
+            "observation_id": "obs-distractor",
+            "modality": "video",
+            "available_tick": 7,
+            "capture_complete_tick": 7,
+            "capture_start_ms": 500,
+            "capture_end_ms": 700,
+            "clock_domain_id": "camera-clock",
+            "clock_generation": 1,
+            "artifact_sha256": "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+          }
+        ]
+      },
+      "submission": {
+        "benchmark_id": "av-evidence-certificate-v0",
+        "schema_version": 1,
+        "episode_id": "episode-cf-01",
+        "transcript_head_sha256": "5895d25a77aec35a2a2d03f44bdb5997206b3fc895b88b1744754432e275164d",
+        "claims": [
+          {
+            "claim_id": "door",
+            "answer_value": "door_opens",
+            "abstained": false,
+            "evidence": [
+              {
+                "observation_ref": "obs-video",
+                "start_ms": 120,
+                "end_ms": 280,
+                "frame_id": "frame-door",
+                "bbox_xyxy": [
+                  0.1,
+                  0.1,
+                  0.5,
+                  0.5
+                ]
+              }
+            ]
+          },
+          {
+            "claim_id": "unknown",
+            "answer_value": null,
+            "abstained": true,
+            "evidence": []
+          }
+        ]
+      }
+    }
+  ]
+}
