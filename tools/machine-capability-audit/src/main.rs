@@ -84,6 +84,8 @@ struct Dependency {
     dependency_id: String,
     criticality: String,
     sourcing_class: String,
+    /// Declared alternative-source count only; it does not identify suppliers
+    /// or establish independence from common-cause failure domains.
     alternate_sources: u32,
     local_repair_status: String,
     evidence_status: String,
@@ -986,7 +988,7 @@ fn run() -> Result<(), String> {
                 .map(|value| format!("{value:.2}"))
                 .unwrap_or_else(|| "unknown".to_owned());
             println!(
-                "  route={} disposition={} cost_per_accepted_output_zar={} lead_time_hours={:.2} local_closure={} critical_dependencies={} critical_no_alternate={} critical_not_repairable={} required_dependency_closure={} required_no_alternate={} required_not_repairable={}",
+                "  route={} disposition={} cost_per_accepted_output_zar={} lead_time_hours={:.2} local_closure={} critical_dependencies={} critical_no_declared_alternate={} critical_not_repairable={} required_dependency_closure={} required_no_declared_alternate={} required_not_repairable={}",
                 route.route_id,
                 route.disposition.as_str(),
                 cost_text,
@@ -1152,6 +1154,37 @@ mod tests {
         let metrics = &result.route_results[0].dependency_metrics;
         assert_eq!(metrics.critical_count, 2);
         assert_eq!(metrics.required_closure_count, 2);
+    }
+
+    #[test]
+    fn declared_alternate_source_counts_do_not_prove_resilience_or_change_closure() {
+        let parsed = corpus();
+        let mut case = parsed
+            .cases
+            .iter()
+            .find(|case| case.scenario_id == "MCC-001")
+            .expect("MCC-001 exists")
+            .clone();
+        let before = evaluate_case(&case).expect("baseline case evaluates");
+        for dependency in &mut case.routes[0].dependencies {
+            dependency.alternate_sources = 99;
+        }
+        let after = evaluate_case(&case).expect("count-mutated case evaluates");
+        assert_eq!(
+            before.route_results[0].local_closure,
+            after.route_results[0].local_closure
+        );
+        assert_eq!(
+            before.best_feasible_route_local_closure,
+            after.best_feasible_route_local_closure
+        );
+        // Counts remain declared metadata, not an independence/fault-tolerance result.
+        assert_eq!(
+            after.route_results[0]
+                .dependency_metrics
+                .critical_without_alternate_source_count,
+            0
+        );
     }
 
     #[test]
