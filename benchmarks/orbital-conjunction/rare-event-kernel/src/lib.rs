@@ -268,6 +268,12 @@ fn gaussian_half_space_standardized_bound(
     if !bound.is_finite() || !all_finite(mean) || !all_finite(normal) {
         return Err(KernelError::NonFiniteValue);
     }
+
+    // Validate covariance through the same strict Cholesky path used by
+    // Gaussian::new. The Cholesky factor also gives a stable projected
+    // variance without explicitly multiplying the full covariance matrix.
+    let lower = cholesky_lower(covariance, dimension)?;
+
     if normal.iter().all(|value| *value == 0.0) {
         return if bound >= 0.0 {
             Ok(f64::INFINITY)
@@ -275,11 +281,6 @@ fn gaussian_half_space_standardized_bound(
             Ok(f64::NEG_INFINITY)
         };
     }
-
-    // Validate covariance through the same strict Cholesky path used by
-    // Gaussian::new. The Cholesky factor also gives a stable projected
-    // variance without explicitly multiplying the full covariance matrix.
-    let lower = cholesky_lower(covariance, dimension)?;
 
     let projected_mean: f64 = normal.iter().zip(mean.iter()).map(|(a, x)| a * x).sum();
 
@@ -712,6 +713,28 @@ mod tests {
         let log_probability =
             gaussian_half_space_log_probability(&[40.0], &[1.0], &[1.0], 0.0).unwrap();
         assert_close(log_probability, -804.6084420137538, 2.0e-12);
+    }
+
+    #[test]
+    fn log_half_space_probability_matches_ten_sigma_reference() {
+        let log_probability =
+            gaussian_half_space_log_probability(&[10.0], &[1.0], &[1.0], 0.0).unwrap();
+        assert_close(log_probability, -53.23128515051247, 2.0e-13);
+    }
+
+    #[test]
+    fn log_half_space_probability_remains_finite_at_one_hundred_sigma() {
+        let log_probability =
+            gaussian_half_space_log_probability(&[100.0], &[1.0], &[1.0], 0.0).unwrap();
+        assert_close(log_probability, -5005.524208694205, 2.0e-10);
+    }
+
+    #[test]
+    fn zero_normal_does_not_bypass_covariance_validation() {
+        assert_eq!(
+            gaussian_half_space_log_probability(&[0.0], &[-1.0], &[0.0], 1.0),
+            Err(KernelError::NotPositiveDefinite)
+        );
     }
 
     #[test]
