@@ -108,6 +108,7 @@ pub struct MonteCarloResult {
     pub replicate_count: usize,
     pub tail_exceedances: usize,
     pub monte_carlo_minimum_p_value: f64,
+    pub familywise_minimum_p_value: f64,
     pub monte_carlo_p_value: f64,
     pub tail_probability_estimate: f64,
     pub monte_carlo_standard_error: f64,
@@ -495,6 +496,7 @@ pub fn conditional_gof(
         replicate_count: replicates,
         tail_exceedances: cvm_upper,
         monte_carlo_minimum_p_value: 1.0 / (replicates as f64 + 1.0),
+        familywise_minimum_p_value: (STATISTIC_COUNT as f64 / (replicates as f64 + 1.0)).min(1.0),
         monte_carlo_p_value: cvm_result.monte_carlo_p_value,
         tail_probability_estimate,
         monte_carlo_standard_error,
@@ -524,54 +526,6 @@ fn wilson_interval(successes: usize, trials: usize) -> Result<(f64, f64, f64, f6
         (center - half_width).max(0.0),
         (center + half_width).min(1.0),
     ))
-}
-
-pub fn conditional_gof(
-    event_times_seconds: &[u64],
-    exposure_end_seconds: u64,
-    replicates: usize,
-    seed: u64,
-) -> Result<(f64, f64, MonteCarloResult), String> {
-    if !(MIN_REPLICATES..=MAX_REPLICATES).contains(&replicates) {
-        return Err("Monte Carlo replicate count is outside the supported v0.1 range".to_owned());
-    }
-    if seed > MAX_SAFE_INTEGER {
-        return Err("random seed exceeds the interoperable safe-integer range".to_owned());
-    }
-    if event_times_seconds.len().saturating_mul(replicates) > MAX_TOTAL_DRAWS {
-        return Err("conditional Monte Carlo draw budget is exceeded".to_owned());
-    }
-
-    let (beta_hat, observed_cvm) =
-        estimate_beta_and_cvm(event_times_seconds, exposure_end_seconds)?;
-    let count = event_times_seconds.len();
-    let mut rng = SplitMix64::new(seed);
-    let mut tail_exceedances = 0usize;
-
-    for _ in 0..replicates {
-        let simulated = conditional_reference_cvm(count, &mut rng)?;
-        if simulated >= observed_cvm {
-            tail_exceedances += 1;
-        }
-    }
-
-    let monte_carlo_p_value = (tail_exceedances as f64 + 1.0) / (replicates as f64 + 1.0);
-    let (tail_probability_estimate, monte_carlo_standard_error, wilson_95_lower, wilson_95_upper) =
-        wilson_interval(tail_exceedances, replicates)?;
-    let monte_carlo = MonteCarloResult {
-        prng_id: PRNG_ID.to_owned(),
-        statistic_id: STATISTIC_ID.to_owned(),
-        seed,
-        replicate_count: replicates,
-        tail_exceedances,
-        monte_carlo_minimum_p_value: 1.0 / (replicates as f64 + 1.0),
-        monte_carlo_p_value,
-        tail_probability_estimate,
-        monte_carlo_standard_error,
-        wilson_95_lower,
-        wilson_95_upper,
-    };
-    Ok((beta_hat, observed_cvm, monte_carlo))
 }
 
 fn evaluate_case(case: &GofCase) -> Decision {
@@ -662,7 +616,8 @@ fn evaluate_case(case: &GofCase) -> Decision {
     }
     if case.monte_carlo_replicates < MIN_REPLICATES
         || case.monte_carlo_replicates > MAX_REPLICATES
-        || case.monte_carlo_replicates < (1.0 / case.significance_level).ceil() as usize - 1
+        || case.monte_carlo_replicates
+            < (STATISTIC_COUNT as f64 / case.significance_level).ceil() as usize - 1
         || case.random_seed > MAX_SAFE_INTEGER
     {
         return Decision {
@@ -671,7 +626,7 @@ fn evaluate_case(case: &GofCase) -> Decision {
             beta_hat: None,
             observed_cvm: None,
             monte_carlo: None,
-            blockers: blocker("monte_carlo_resolution_or_seed_outside_predeclared_contract"),
+            blockers: blocker("familywise_monte_carlo_resolution_or_seed_outside_predeclared_contract"),
         };
     }
     if case.event_times_seconds.len() < MIN_EVENTS {
@@ -681,7 +636,7 @@ fn evaluate_case(case: &GofCase) -> Decision {
             beta_hat: None,
             observed_cvm: None,
             monte_carlo: None,
-            blockers: blocker("insufficient_event_count_for_v0_1_diagnostic"),
+            blockers: blocker("insufficient_event_count_for_v0_2_diagnostic"),
         };
     }
 
@@ -943,8 +898,19 @@ mod tests {
     fn monte_carlo_p_value_has_plus_one_resolution() {
         let (_, _, result) =
             conditional_gof(&[10, 20, 30, 40, 50, 60], 100, 999, 123).expect("valid GOF");
+        assert_eq!(result.suite_id, SUITE_ID);
+        assert_eq!(result.component_results.len(), STATISTIC_COUNT);
         assert!(result.monte_carlo_p_value >= 1.0 / 1000.0);
         assert!(result.monte_carlo_p_value <= 1.0);
+        assert!(result.bonferroni_adjusted_min_p_value >= result.monte_carlo_p_value.min(
+            result.component_results.iter().map(|component| component.monte_carlo_p_value)
+                .fold(1.0_f64, f64::min)
+        ));
+        assert!(result.bonferroni_adjusted_min_p_value <= 1.0);
+        assert_eq!(
+            result.familywise_minimum_p_value,
+            (STATISTIC_COUNT as f64 / 1000.0).min(1.0)
+        );
         assert!(result.wilson_95_lower <= result.tail_probability_estimate);
         assert!(result.tail_probability_estimate <= result.wilson_95_upper);
     }
@@ -956,7 +922,7 @@ mod tests {
                 .expect("frozen PLP GOF corpus parses");
         let report = evaluate(&corpus).expect("frozen PLP GOF corpus evaluates");
         assert_eq!(report.result, "pass");
-        assert_eq!(report.summary.case_count, 23);
+        assert_eq!(report.summary.case_count, 24);
         assert_eq!(report.summary.expected_result_mismatches, 0);
         assert_eq!(report.summary.fit_acceptances, 0);
         assert_eq!(report.summary.reliability_claims, 0);
@@ -974,6 +940,26 @@ mod tests {
                 .iter()
                 .any(|case| { case.disposition == Disposition::FitNotRejectedAtDeclaredLevel })
         );
+        let over_regular = report
+            .cases
+            .iter()
+            .find(|case| case.case_id == "over_regular_spacing_alternative")
+            .expect("over-regular alternative exists");
+        let over_regular_components = &over_regular
+            .monte_carlo
+            .as_ref()
+            .expect("over-regular case is testable")
+            .component_results;
+        assert_eq!(over_regular.disposition, Disposition::FitRejected);
+        assert!(
+            over_regular_components
+                .iter()
+                .find(|component| component.statistic_id == "greenwood-two-sided-v1")
+                .expect("Greenwood component exists")
+                .monte_carlo_p_value
+                < 0.01
+        );
+
         assert!(report.cases.iter().all(|case| {
             !case.fit_acceptance_granted
                 && !case.reliability_claim_granted
