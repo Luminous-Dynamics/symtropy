@@ -764,11 +764,7 @@ mod tests {
     #[test]
     fn incremental_includes_static_kinematic_pairs() {
         let bodies = vec![
-            RigidBody::<3>::static_body(
-                BodyHandle(0),
-                Point::origin(),
-                Box::new(Sphere::unit()),
-            ),
+            RigidBody::<3>::static_body(BodyHandle(0), Point::origin(), Box::new(Sphere::unit())),
             RigidBody::<3>::new(
                 BodyHandle(1),
                 BodyType::Kinematic,
@@ -847,12 +843,7 @@ mod tests {
                 0.0,
                 SVector::zeros(),
             ),
-            RigidBody::<3>::dynamic_sphere(
-                BodyHandle(2),
-                Point::new([10.0, 0.0, 0.0]),
-                1.0,
-                1.0,
-            ),
+            RigidBody::<3>::dynamic_sphere(BodyHandle(2), Point::new([10.0, 0.0, 0.0]), 1.0, 1.0),
         ];
         let mut static_bp = StaticBroadphase::new();
         static_bp.rebuild(&bodies);
@@ -862,8 +853,7 @@ mod tests {
             "the initial kinematic pose is separated"
         );
 
-        bodies[1].transform =
-            Transform::from_translation(Point::new([8.5, 0.0, 0.0]));
+        bodies[1].transform = Transform::from_translation(Point::new([8.5, 0.0, 0.0]));
         let incremental = find_pairs_incremental(&bodies, &static_bp);
         assert_eq!(
             incremental,
@@ -871,6 +861,5 @@ mod tests {
         );
         assert_eq!(incremental, find_pairs(&bodies));
     }
-
 
 }
