@@ -46,7 +46,7 @@ The current selector uses this lexicographic order:
 5. Minimize elapsed milliseconds.
 6. Use the probe ID as a deterministic final tie-break.
 
-This is a research ranking over synthetic, predeclared admissibility labels. The implementation does not verify a receipt signature, assess physical hazard, or authorize an experiment. A real probe must be governed by the upstream safety, metrology and campaign owners. When no admitted probe resolves the decision classes, ambiguity remains.
+This is a research ranking over synthetic, predeclared admissibility labels. The implementation does not verify a receipt signature, assess physical hazard, or authorize an experiment. A real probe must be governed by the upstream safety, metrology and campaign owners. **A probe is selected only if every possible public outcome leaves at most one decision class.** If every admissible probe has at least one outcome compatible with opposite decision classes, no probe is selected; the candidates remain visible in the ranked diagnostics and the result is `no_resolving_admissible_probe`. This is immediate one-observation partition semantics, not a claim that a stochastic probe has no sequential information. Overlapping-support evidence accumulation belongs to the finite-sample sequential follow-on [#6887](https://github.com/Luminous-Dynamics/symtropy/issues/6887).
 
 The selector currently does not use expected information gain. That is intentional: generic entropy reduction is not allowed to overrule safety/admissibility or worst-case decision separation. A later tournament should compare this policy against entropy gain, random calibration, uniform grids, maximin discrimination, and oracle-only upper bounds.
 
