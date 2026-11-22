@@ -1,0 +1,82 @@
+name: Orbital Truss As-Built Geometry Benchmark
+
+on:
+  pull_request:
+    paths:
+      - "tools/orbital-truss-asbuilt-geometry-bench/**"
+      - "docs/research/orbital-truss/fixtures/asbuilt-geometry-v0_1.json"
+      - "docs/research/orbital-truss/orbital_truss_asbuilt_geometry_v0_1.schema.json"
+      - ".github/workflows/orbital-truss-asbuilt-geometry.yml"
+  push:
+    branches:
+      - "research/orbital-truss-asbuilt-geometry-v0-1"
+    paths:
+      - "tools/orbital-truss-asbuilt-geometry-bench/**"
+      - "docs/research/orbital-truss/fixtures/asbuilt-geometry-v0_1.json"
+      - "docs/research/orbital-truss/orbital_truss_asbuilt_geometry_v0_1.schema.json"
+      - ".github/workflows/orbital-truss-asbuilt-geometry.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: As-built geometry contract and independent oracle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.1
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate frozen JSON inputs
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          fixture = json.loads(Path("docs/research/orbital-truss/fixtures/asbuilt-geometry-v0_1.json").read_text())
+          schema = json.loads(Path("docs/research/orbital-truss/orbital_truss_asbuilt_geometry_v0_1.schema.json").read_text())
+          assert fixture["benchmark_id"] == "ORBITAL-TRUSS-ASBUILT-GEOMETRY-001"
+          assert len(fixture["cases"]) == 13
+          assert len({case["case_id"] for case in fixture["cases"]}) == 13
+          assert schema["properties"]["cases"]["minItems"] == 13
+          assert schema["properties"]["cases"]["maxItems"] == 13
+          assert all(case["case_class"] in {"POSITIVE_CONTROL", "NEGATIVE_CONTROL", "METAMORPHIC"} for case in fixture["cases"])
+          print("fixture/schema structure: 13 unique cases")
+          PY
+      - name: Format
+        run: cargo fmt --manifest-path tools/orbital-truss-asbuilt-geometry-bench/Cargo.toml -- --check
+      - name: Rust tests
+        run: cargo test --locked --manifest-path tools/orbital-truss-asbuilt-geometry-bench/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/orbital-truss-asbuilt-geometry-bench/Cargo.toml --all-targets -- -D warnings
+      - name: Deterministic receipt replay
+        run: |
+          cargo run --quiet --locked --manifest-path tools/orbital-truss-asbuilt-geometry-bench/Cargo.toml -- \
+            docs/research/orbital-truss/fixtures/asbuilt-geometry-v0_1.json "$GITHUB_SHA" > /tmp/asbuilt-a.json
+          cargo run --quiet --locked --manifest-path tools/orbital-truss-asbuilt-geometry-bench/Cargo.toml -- \
+            docs/research/orbital-truss/fixtures/asbuilt-geometry-v0_1.json "$GITHUB_SHA" > /tmp/asbuilt-b.json
+          cmp /tmp/asbuilt-a.json /tmp/asbuilt-b.json
+          jq -e '
+            .schema == "luminous.orbital-truss-asbuilt-geometry.receipt.v0.1" and
+            .case_count == 13 and .oracle_matches == 13 and .oracle_mismatches == 0 and
+            .authority_granted == false and
+            .structural_acceptance_authorized == false and
+            .flight_authorized == false and
+            .physical_validation == "NOT_ASSESSED" and
+            ([.cases[] | select(.disposition == "ACCEPT")] | length == 2) and
+            ([.cases[] | select(.disposition == "REJECT")] | length == 3) and
+            ([.cases[] | select(.disposition == "INDETERMINATE_HUMAN_REVIEW")] | length == 8)
+          ' /tmp/asbuilt-a.json
+      - name: Independent standard-library oracle
+        run: |
+          python3 tools/orbital-truss-asbuilt-geometry-bench/tests/asbuilt_geometry_reference_oracle.py \
+            docs/research/orbital-truss/fixtures/asbuilt-geometry-v0_1.json > /tmp/asbuilt-oracle.json
+          jq -e '
+            .case_count == 13 and .oracle_matches == 13 and .oracle_mismatches == 0 and
+            ([.cases[] | select(.disposition == "ACCEPT")] | length == 2) and
+            ([.cases[] | select(.disposition == "REJECT")] | length == 3) and
+            ([.cases[] | select(.disposition == "INDETERMINATE_HUMAN_REVIEW")] | length == 8)
+          ' /tmp/asbuilt-oracle.json
