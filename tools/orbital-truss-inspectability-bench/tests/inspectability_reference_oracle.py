@@ -12,6 +12,7 @@ BENCHMARK_ID = "ORBITAL-TRUSS-INSPECTABILITY-001"
 CLAIM_CEILING = "synthetic_2d_geometric_observability_only"
 EPS = 1.0e-9
 UNIT_EPS = 1.0e-6
+MAX_POSE_PERTURBATIONS = 256
 
 
 def sub(a, b):
@@ -55,8 +56,13 @@ def intersects(a, b, c, d):
 
 
 def validate_case(case):
-    if not case.get("case_id") or not case.get("features") or not case.get("views"):
-        raise ValueError("CASE_ID_OR_REQUIRED_COLLECTION_INVALID")
+    if (
+        not case.get("case_id")
+        or not case.get("coordinate_frame_id", "").strip()
+        or not case.get("features")
+        or not case.get("views")
+    ):
+        raise ValueError("CASE_ID_FRAME_OR_REQUIRED_COLLECTION_INVALID")
     feature_ids = set()
     for feature in case["features"]:
         normal_length = norm(feature["outward_normal"])
@@ -89,6 +95,7 @@ def validate_case(case):
             or not math.isfinite(view["max_incidence_deg"])
             or not 0.0 <= view["max_incidence_deg"] <= 180.0
             or not view["pose_perturbations"]
+            or len(view["pose_perturbations"]) > MAX_POSE_PERTURBATIONS
         ):
             raise ValueError("VIEW_CONTRACT_INVALID")
         view_ids.add(view["view_id"])
@@ -205,6 +212,7 @@ def evaluate_case(case):
     disposition = "INFEASIBLE" if nominal_gap else ("INDETERMINATE" if robust_gap else "FEASIBLE")
     return {
         "case_id": case["case_id"],
+        "coordinate_frame_id": case["coordinate_frame_id"],
         "disposition": disposition,
         "reason_codes": case_reasons,
         "features": feature_results,
@@ -222,7 +230,7 @@ def main():
         or corpus.get("benchmark_id") != BENCHMARK_ID
         or corpus.get("evidence_class") != "synthetic"
         or corpus.get("claim_ceiling") != CLAIM_CEILING
-        or not corpus.get("cases")
+        or len(corpus.get("cases", [])) != 12
     ):
         raise SystemExit("CORPUS_IDENTITY_OR_CLAIM_CEILING_INVALID")
     ids = [case["case_id"] for case in corpus["cases"]]

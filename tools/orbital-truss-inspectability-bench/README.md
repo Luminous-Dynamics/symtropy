@@ -4,7 +4,7 @@
 **Evidence class:** synthetic  
 **Claim ceiling:** synthetic 2D geometric observability only
 
-This crate evaluates whether declared 2D point features have geometrically admissible inspection viewpoints under a frozen, explicit set of constraints. It is a first executable slice of Symtropy issue #6845, not a structural or NDE qualification system.
+This crate evaluates whether declared 2D point features have geometrically admissible inspection viewpoints under a frozen, explicit set of constraints. Each case names one common `coordinate_frame_id`; every feature point, view origin, occluder endpoint, and pose-translation perturbation is expressed in that right-handed planar frame. Coordinates and translations are metres, headings and heading perturbations are radians measured counter-clockwise from +X, and feature normals are unit outward vectors. The frame ID binds the assumption but does not establish registration to an external or physical datum. It is a first executable slice of Symtropy issue #6845, not a structural or NDE qualification system.
 
 ## What v0.1 evaluates
 
@@ -17,7 +17,7 @@ For each feature/view pair:
 - nominal visibility and visibility under every declared finite sensor-pose perturbation;
 - declared failure-domain diversity, counted by distinct failure_domain_id values.
 
-A view is **robustly visible** only when it passes nominally and under every listed perturbation. A feature is **robustly covered** only when the required number of distinct declared failure-domain labels remain robustly visible.
+A view is **robustly visible** only when it passes nominally and under every listed perturbation. This means only the finite enumerated perturbation set (1–256 samples), not every point in a continuous uncertainty region or a probability distribution. A feature is **robustly covered** only when the required number of distinct declared failure-domain labels remain robustly visible.
 
 Occluder endpoint contact is conservatively treated as blocked. The evaluator does not silently infer an unlisted view, access path, sensor capability, defect type, or measurement result.
 
@@ -99,3 +99,8 @@ v0.1 does **not** establish:
 - NASA metric equivalence, ISO/JCGM conformity, certification, flight readiness or release authority.
 
 The fixture is synthetic, not a physical trial. Receipts set authority_granted=false, structural_acceptance_authorized=false, flight_authorized=false and physical_validation=NOT_ASSESSED.
+
+
+## Frozen v0.1 input bounds
+
+The corpus contains exactly 12 uniquely identified cases. Each case must supply a non-empty coordinate-frame identifier. Each view must supply 1–256 finite pose perturbations. Runtime validation enforces these bounds independently of the schema and CI preflight.

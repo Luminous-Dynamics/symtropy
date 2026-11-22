@@ -8,6 +8,7 @@ pub const BENCHMARK_ID: &str = "ORBITAL-TRUSS-INSPECTABILITY-001";
 pub const CLAIM_CEILING: &str = "synthetic_2d_geometric_observability_only";
 const EPS: f64 = 1.0e-9;
 const UNIT_EPS: f64 = 1.0e-6;
+const MAX_POSE_PERTURBATIONS: usize = 256;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -48,6 +49,7 @@ pub struct Corpus {
 #[serde(deny_unknown_fields)]
 pub struct Case {
     pub case_id: String,
+    pub coordinate_frame_id: String,
     pub case_class: CaseClass,
     pub expected_disposition: Disposition,
     pub features: Vec<Feature>,
@@ -120,6 +122,7 @@ pub struct FeatureResult {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct CaseResult {
     pub case_id: String,
+    pub coordinate_frame_id: String,
     pub disposition: Disposition,
     pub reason_codes: Vec<String>,
     pub features: Vec<FeatureResult>,
@@ -198,8 +201,12 @@ fn segments_intersect(a: [f64; 2], b: [f64; 2], c: [f64; 2], d: [f64; 2]) -> boo
 }
 
 fn validate_case(case: &Case) -> Result<(), String> {
-    if case.case_id.trim().is_empty() || case.features.is_empty() || case.views.is_empty() {
-        return Err("CASE_ID_OR_REQUIRED_COLLECTION_INVALID".to_owned());
+    if case.case_id.trim().is_empty()
+        || case.coordinate_frame_id.trim().is_empty()
+        || case.features.is_empty()
+        || case.views.is_empty()
+    {
+        return Err("CASE_ID_FRAME_OR_REQUIRED_COLLECTION_INVALID".to_owned());
     }
 
     let mut feature_ids = BTreeSet::new();
@@ -234,6 +241,7 @@ fn validate_case(case: &Case) -> Result<(), String> {
             || !view.max_incidence_deg.is_finite()
             || !(0.0..=180.0).contains(&view.max_incidence_deg)
             || view.pose_perturbations.is_empty()
+            || view.pose_perturbations.len() > MAX_POSE_PERTURBATIONS
         {
             return Err("VIEW_CONTRACT_INVALID".to_owned());
         }
@@ -433,6 +441,7 @@ pub fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
 
     Ok(CaseResult {
         case_id: case.case_id.clone(),
+        coordinate_frame_id: case.coordinate_frame_id.clone(),
         disposition,
         reason_codes: case_reasons,
         features: feature_results,
@@ -458,7 +467,7 @@ pub fn audit_corpus(bytes: &[u8], source_commit: &str) -> Result<Receipt, String
         || corpus.benchmark_id != BENCHMARK_ID
         || corpus.evidence_class != "synthetic"
         || corpus.claim_ceiling != CLAIM_CEILING
-        || corpus.cases.is_empty()
+        || corpus.cases.len() != 12
     {
         return Err("CORPUS_IDENTITY_OR_CLAIM_CEILING_INVALID".to_owned());
     }
@@ -622,6 +631,39 @@ mod tests {
         assert_eq!(
             evaluate_case(&corpus.cases[0]),
             Err("FEATURE_CONTRACT_INVALID".to_owned())
+        );
+    }
+
+    #[test]
+    fn blank_coordinate_frame_is_rejected() {
+        let mut corpus: Corpus = serde_json::from_str(FIXTURE).unwrap();
+        corpus.cases[0].coordinate_frame_id.clear();
+        assert_eq!(
+            evaluate_case(&corpus.cases[0]),
+            Err("CASE_ID_FRAME_OR_REQUIRED_COLLECTION_INVALID".to_owned())
+        );
+    }
+
+    #[test]
+    fn excessive_pose_perturbations_are_rejected() {
+        let mut corpus: Corpus = serde_json::from_str(FIXTURE).unwrap();
+        let perturbation = corpus.cases[0].views[0].pose_perturbations[0].clone();
+        corpus.cases[0].views[0].pose_perturbations =
+            vec![perturbation; MAX_POSE_PERTURBATIONS + 1];
+        assert_eq!(
+            evaluate_case(&corpus.cases[0]),
+            Err("VIEW_CONTRACT_INVALID".to_owned())
+        );
+    }
+
+    #[test]
+    fn non_frozen_case_count_is_rejected() {
+        let mut corpus: Corpus = serde_json::from_str(FIXTURE).unwrap();
+        corpus.cases.pop();
+        let bytes = serde_json::to_vec(&corpus).unwrap();
+        assert_eq!(
+            audit_corpus(&bytes, &"a".repeat(40)),
+            Err("CORPUS_IDENTITY_OR_CLAIM_CEILING_INVALID".to_owned())
         );
     }
 

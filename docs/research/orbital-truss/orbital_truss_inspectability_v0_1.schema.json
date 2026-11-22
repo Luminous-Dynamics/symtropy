@@ -176,6 +176,7 @@
       "additionalProperties": false,
       "required": [
         "case_id",
+        "coordinate_frame_id",
         "case_class",
         "expected_disposition",
         "features",
@@ -220,6 +221,10 @@
           "items": {
             "$ref": "#/$defs/Occluder"
           }
+        },
+        "coordinate_frame_id": {
+          "type": "string",
+          "minLength": 1
         }
       }
     }

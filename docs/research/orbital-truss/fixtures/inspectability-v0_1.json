@@ -55,7 +55,8 @@
           ]
         }
       ],
-      "occluders": []
+      "occluders": [],
+      "coordinate_frame_id": "ORBITAL-TRUSS-SYNTHETIC-XY"
     },
     {
       "case_id": "OTI-002-TWO-DECLARED-DOMAINS",
@@ -119,7 +120,8 @@
           ]
         }
       ],
-      "occluders": []
+      "occluders": [],
+      "coordinate_frame_id": "ORBITAL-TRUSS-SYNTHETIC-XY"
     },
     {
       "case_id": "OTI-003-OCCLUDED",
@@ -174,7 +176,8 @@
             1
           ]
         }
-      ]
+      ],
+      "coordinate_frame_id": "ORBITAL-TRUSS-SYNTHETIC-XY"
     },
     {
       "case_id": "OTI-004-OUTSIDE-FOV",
@@ -217,7 +220,8 @@
           ]
         }
       ],
-      "occluders": []
+      "occluders": [],
+      "coordinate_frame_id": "ORBITAL-TRUSS-SYNTHETIC-XY"
     },
     {
       "case_id": "OTI-005-TOO-FAR",
@@ -260,7 +264,8 @@
           ]
         }
       ],
-      "occluders": []
+      "occluders": [],
+      "coordinate_frame_id": "ORBITAL-TRUSS-SYNTHETIC-XY"
     },
     {
       "case_id": "OTI-006-INCIDENCE-LIMIT",
@@ -303,7 +308,8 @@
           ]
         }
       ],
-      "occluders": []
+      "occluders": [],
+      "coordinate_frame_id": "ORBITAL-TRUSS-SYNTHETIC-XY"
     },
     {
       "case_id": "OTI-007-POSE-FRAGILITY",
@@ -351,7 +357,8 @@
           ]
         }
       ],
-      "occluders": []
+      "occluders": [],
+      "coordinate_frame_id": "ORBITAL-TRUSS-SYNTHETIC-XY"
     },
     {
       "case_id": "OTI-008-DUPLICATE-FAILURE-DOMAIN",
@@ -415,7 +422,8 @@
           ]
         }
       ],
-      "occluders": []
+      "occluders": [],
+      "coordinate_frame_id": "ORBITAL-TRUSS-SYNTHETIC-XY"
     },
     {
       "case_id": "OTI-009-PARTIAL-FEATURE-COVERAGE",
@@ -470,7 +478,8 @@
           ]
         }
       ],
-      "occluders": []
+      "occluders": [],
+      "coordinate_frame_id": "ORBITAL-TRUSS-SYNTHETIC-XY"
     },
     {
       "case_id": "OTI-010-OCCLUDER-ENDPOINT-TOUCH",
@@ -525,7 +534,8 @@
             1
           ]
         }
-      ]
+      ],
+      "coordinate_frame_id": "ORBITAL-TRUSS-SYNTHETIC-XY"
     },
     {
       "case_id": "OTI-011-MULTI-FEATURE-REDUNDANT",
@@ -601,7 +611,8 @@
           ]
         }
       ],
-      "occluders": []
+      "occluders": [],
+      "coordinate_frame_id": "ORBITAL-TRUSS-SYNTHETIC-XY"
     },
     {
       "case_id": "OTI-012-TOO-CLOSE",
@@ -644,7 +655,8 @@
           ]
         }
       ],
-      "occluders": []
+      "occluders": [],
+      "coordinate_frame_id": "ORBITAL-TRUSS-SYNTHETIC-XY"
     }
   ]
 }

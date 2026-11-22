@@ -43,10 +43,15 @@ jobs:
           assert fixture["claim_ceiling"] == "synthetic_2d_geometric_observability_only"
           assert len(fixture["cases"]) == 12
           assert len({case["case_id"] for case in fixture["cases"]}) == 12
+          assert all(case["coordinate_frame_id"] == "ORBITAL-TRUSS-SYNTHETIC-XY" for case in fixture["cases"])
+          assert "coordinate_frame_id" in schema["$defs"]["Case"]["required"]
           assert schema["properties"]["cases"]["minItems"] == 12
           assert schema["properties"]["cases"]["maxItems"] == 12
           assert all(case["views"] and case["features"] for case in fixture["cases"])
-          assert all(all(view["pose_perturbations"] for view in case["views"]) for case in fixture["cases"])
+          assert all(
+              all(1 <= len(view["pose_perturbations"]) <= 256 for view in case["views"])
+              for case in fixture["cases"]
+          )
           print("frozen corpus/schema structure: 12 unique cases")
           PY
       - name: Format
