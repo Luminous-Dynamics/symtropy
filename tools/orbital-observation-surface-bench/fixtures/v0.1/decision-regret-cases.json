@@ -1,0 +1,230 @@
+{
+  "schema": "luminous.orbital-decision-regret-frontier.corpus.v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "finite-compatible-world-loss-and-regret-algebra-only",
+  "cases": [
+    {
+      "case_id": "uniform-optimum-across-worlds",
+      "compatible_world_set": {
+        "source_receipt_id": "synthetic-compatible-world-set-uniform",
+        "world_ids_sha256": "b75cf288934c1a4e264e6981ba5ed00ff8a2b6171cdcfee3dabfb9573fca5f38",
+        "world_ids": [
+          "world-a",
+          "world-b"
+        ]
+      },
+      "actions": [
+        {
+          "action_id": "conservative",
+          "admissibility_status": "admissible",
+          "admissibility_receipt_id": "synthetic-admission-conservative",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 10,
+            "elapsed_millis": 10
+          },
+          "world_losses": {
+            "world-a": {
+              "numerator": 2,
+              "denominator": 20
+            },
+            "world-b": {
+              "numerator": 1,
+              "denominator": 10
+            }
+          }
+        },
+        {
+          "action_id": "aggressive",
+          "admissibility_status": "admissible",
+          "admissibility_receipt_id": "synthetic-admission-aggressive",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 20,
+            "elapsed_millis": 10
+          },
+          "world_losses": {
+            "world-a": {
+              "numerator": 2,
+              "denominator": 10
+            },
+            "world-b": {
+              "numerator": 2,
+              "denominator": 10
+            }
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "loss-regret-disagreement",
+      "compatible_world_set": {
+        "source_receipt_id": "synthetic-compatible-world-set-tradeoff",
+        "world_ids_sha256": "16a86251f4288b1bceeeca1f84e99080db4bac1261162b38a4e964a428df49a6",
+        "world_ids": [
+          "w-left",
+          "w-right"
+        ]
+      },
+      "actions": [
+        {
+          "action_id": "aggressive",
+          "admissibility_status": "admissible",
+          "admissibility_receipt_id": "synthetic-admission-aggressive-tradeoff",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 1,
+            "elapsed_millis": 10
+          },
+          "world_losses": {
+            "w-left": {
+              "numerator": 0,
+              "denominator": 1
+            },
+            "w-right": {
+              "numerator": 4,
+              "denominator": 5
+            }
+          }
+        },
+        {
+          "action_id": "balanced",
+          "admissibility_status": "admissible",
+          "admissibility_receipt_id": "synthetic-admission-balanced-tradeoff",
+          "cost": {
+            "reference_trials": 2,
+            "exposure_micro_units": 100,
+            "elapsed_millis": 20
+          },
+          "world_losses": {
+            "w-left": {
+              "numerator": 9,
+              "denominator": 20
+            },
+            "w-right": {
+              "numerator": 9,
+              "denominator": 20
+            }
+          }
+        },
+        {
+          "action_id": "wasteful",
+          "admissibility_status": "admissible",
+          "admissibility_receipt_id": "synthetic-admission-wasteful-tradeoff",
+          "cost": {
+            "reference_trials": 8,
+            "exposure_micro_units": 800,
+            "elapsed_millis": 80
+          },
+          "world_losses": {
+            "w-left": {
+              "numerator": 3,
+              "denominator": 5
+            },
+            "w-right": {
+              "numerator": 11,
+              "denominator": 20
+            }
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "inadmissible-perfect-action",
+      "compatible_world_set": {
+        "source_receipt_id": "synthetic-compatible-world-set-safety",
+        "world_ids_sha256": "b75cf288934c1a4e264e6981ba5ed00ff8a2b6171cdcfee3dabfb9573fca5f38",
+        "world_ids": [
+          "world-a",
+          "world-b"
+        ]
+      },
+      "actions": [
+        {
+          "action_id": "unsafe-perfect",
+          "admissibility_status": "inadmissible",
+          "admissibility_receipt_id": "synthetic-denial-unsafe-perfect",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 0,
+            "elapsed_millis": 1
+          },
+          "world_losses": {
+            "world-a": {
+              "numerator": 0,
+              "denominator": 1
+            },
+            "world-b": {
+              "numerator": 0,
+              "denominator": 1
+            }
+          }
+        },
+        {
+          "action_id": "admissible-action",
+          "admissibility_status": "admissible",
+          "admissibility_receipt_id": "synthetic-admission-allowed",
+          "cost": {
+            "reference_trials": 2,
+            "exposure_micro_units": 30,
+            "elapsed_millis": 20
+          },
+          "world_losses": {
+            "world-a": {
+              "numerator": 1,
+              "denominator": 4
+            },
+            "world-b": {
+              "numerator": 1,
+              "denominator": 4
+            }
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "all-actions-excluded",
+      "compatible_world_set": {
+        "source_receipt_id": "synthetic-compatible-world-set-no-action",
+        "world_ids_sha256": "22b0b89084b6cb8eea5365a47db9827b1d1f0b0694d6c93771f79a6c5f711f81",
+        "world_ids": [
+          "single-world"
+        ]
+      },
+      "actions": [
+        {
+          "action_id": "not-permitted-a",
+          "admissibility_status": "inadmissible",
+          "admissibility_receipt_id": null,
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 1,
+            "elapsed_millis": 10
+          },
+          "world_losses": {
+            "single-world": {
+              "numerator": 1,
+              "denominator": 2
+            }
+          }
+        },
+        {
+          "action_id": "unknown-admissibility-b",
+          "admissibility_status": "indeterminate",
+          "admissibility_receipt_id": null,
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 1,
+            "elapsed_millis": 10
+          },
+          "world_losses": {
+            "single-world": {
+              "numerator": 1,
+              "denominator": 4
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
