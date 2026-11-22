@@ -769,6 +769,7 @@ pub mod impact_enclosure {
         EmptyIdentity(&'static str),
         InvalidSha256(&'static str),
         IdentityMismatch(&'static str),
+        SameEventCompared,
         InvalidInitialHeight,
         InvalidGravity,
         NegativeTime,
@@ -865,6 +866,9 @@ pub mod impact_enclosure {
         left: &VerifiedImpactEventEnclosure,
         right: &VerifiedImpactEventEnclosure,
     ) -> Result<CertifiedEventOrder, ImpactEnclosureError> {
+        if left.event_id == right.event_id {
+            return Err(ImpactEnclosureError::SameEventCompared);
+        }
         if left.time_basis_id != right.time_basis_id {
             return Err(ImpactEnclosureError::IdentityMismatch("time_basis_id"));
         }
@@ -1294,6 +1298,30 @@ pub mod impact_enclosure {
             assert_eq!(
                 compare_verified_event_time_order(&first, &nested),
                 Ok(CertifiedEventOrder::UnresolvedOverlap)
+            );
+        }
+
+        #[test]
+        fn verified_event_order_rejects_the_same_event_identity() {
+            let first_model = model();
+            let first = verify_constant_gravity_impact_enclosure(
+                &first_model,
+                &claim(&first_model, "impact-event", r(3, 4), r(5, 4)),
+            )
+            .unwrap();
+
+            let mut second_model = model();
+            second_model.initial_height_m = Rational::integer(4);
+            second_model.identity.guard_sha256 = "c".repeat(64);
+            let repeated_id = verify_constant_gravity_impact_enclosure(
+                &second_model,
+                &claim(&second_model, "impact-event", r(7, 4), r(9, 4)),
+            )
+            .unwrap();
+
+            assert_eq!(
+                compare_verified_event_time_order(&first, &repeated_id),
+                Err(ImpactEnclosureError::SameEventCompared)
             );
         }
 
