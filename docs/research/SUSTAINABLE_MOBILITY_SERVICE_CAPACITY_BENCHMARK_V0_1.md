@@ -279,7 +279,7 @@ The fixture is an eight-hour synthetic comparison with four architectures:
 3. the same profile with site headroom admitting only one 500 W modeled charger channel;
 4. a two-aircraft shared pool with six ready spares, four nominal channels and three channels admitted by the synthetic site headroom.
 
-The short mission durations, 500 W per-channel input proxy, site fixed loads and shared-pool compatibility are explicit synthetic stress assumptions. They are not vendor specifications. The manufacturer's 2 kW maximum Dock 4 AC input is not a per-channel charger rating; the simulation does not infer internal channel power or conversion efficiency from it.
+All four profiles use the same synthetic five-minute mission duration and 45-second turnaround. Aircraft count (one versus two), pack/spare inventory, charge channels and site headroom are the varied capacity factors. The 500 W per-channel input proxy, site fixed loads and shared-pool compatibility are synthetic assumptions, not vendor specifications. The manufacturer's 2 kW maximum Dock 4 AC input is not a per-channel charger rating; the simulation does not infer internal channel power or conversion efficiency from it.
 
 Output separates:
 - completed modeled sorties and cycles per hour;
@@ -382,12 +382,12 @@ The test binaries reported 156 + 16 + 8 + 9 = **189 passed, 0 failed**. All 18 t
 
 The eight-hour frozen synthetic fixture produced:
 
-| Architecture profile | Effective channels | Finite-horizon modeled sorties | Finite rate / h | Steady-state ceiling / h |
-| --- | ---: | ---: | ---: | ---: |
-| Direct single-pack recharge | 1 | 11 | 1.375 | 2.222 |
-| Dock 4-shaped, 3 spares / 2 channels | 2 | 38 | 4.750 | 4.444 |
-| Same profile, site-limited to 1 channel | 1 | 21 | 2.625 | 2.222 |
-| Two-aircraft shared pool, site-limited to 3 channels | 3 | 58 | 7.250 | 6.667 |
+| Architecture profile | Aircraft | Effective channels | Initial packs | Finite sorties / 8 h | Finite rate / h | Per-aircraft rate / h | Steady-state ceiling / h |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Direct single-pack recharge | 1 | 1 | 1 | 15 | 1.875 | 1.875 | 2.222 |
+| Dock 4-shaped, 3 spares / 2 channels | 1 | 2 | 4 | 38 | 4.750 | 4.750 | 4.444 |
+| Same profile, site-limited to 1 channel | 1 | 1 | 4 | 21 | 2.625 | 2.625 | 2.222 |
+| Two-aircraft shared pool, site-limited to 3 channels | 2 | 3 | 8 | 59 | 7.375 | 3.688 | 6.667 |
 
-The finite-horizon result can temporarily exceed the steady-state replenishment ceiling because the simulation consumes initial ready packs and ends with a charge backlog / aircraft waiting. The explicit initial-stock allowance bounds that drawdown. The steady-state ceiling is the minimum of the aircraft mission-cycle rate and charging replenishment rate. These are deterministic fixture outputs, not DJI performance, observed aircraft uptime, successful customer deliveries or commercial throughput. The simulator assumes every launched sortie completes and the profiles do not share identical mission lengths/aircraft counts; they are not a normalized leaderboard.
+The finite-horizon result can temporarily exceed the steady-state replenishment ceiling because the simulation consumes initial ready packs and ends with a charge backlog / aircraft waiting. The explicit initial-stock allowance bounds that drawdown. The steady-state ceiling is the minimum of aircraft mission-cycle rate and charge replenishment rate. All profiles now share the same five-minute mission and 45-second turnaround; the two-aircraft fleet still has twice the aircraft and pack inventory, so report both total fleet throughput and per-aircraft throughput. These are deterministic synthetic fixture outputs, not DJI performance, observed uptime, customer deliveries or commercial throughput. Every launched sortie is assumed to complete.
 
