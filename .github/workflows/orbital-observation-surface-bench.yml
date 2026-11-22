@@ -47,7 +47,7 @@ jobs:
       - name: Generate source-pinned synthetic receipt
         run: |
           mkdir -p artifacts
-          cargo run --locked --manifest-path tools/orbital-observation-surface-bench/Cargo.toml -- \
+          cargo run --locked --manifest-path tools/orbital-observation-surface-bench/Cargo.toml --bin orbital-observation-surface-bench -- \
             tools/orbital-observation-surface-bench/fixtures/v0.1/observation-surface-cases.json \
             --source-commit "${GITHUB_SHA}" \
             --observations-output artifacts/observations-v0.1.json > artifacts/observation-surface-receipt-v0.1.json
