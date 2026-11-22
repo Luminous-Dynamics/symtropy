@@ -369,7 +369,10 @@ fn verify_strict_module_timeline(
 ) -> Result<(), AggregationProjectionError> {
     let mut by_module: BTreeMap<String, Vec<(i64, i64, ProjectionSourceRef)>> = BTreeMap::new();
     for envelope in envelopes {
-        if envelope.voided || envelope.classification != EventClassification::Actual {
+        if envelope.voided
+            || envelope.classification != EventClassification::Actual
+            || chronology_domain(envelope).is_err()
+        {
             continue;
         }
         let Some((earliest, latest)) = event_time_interval(envelope) else {
