@@ -16,6 +16,8 @@
 //! comparable proxies only when every edge uses the same documented risk model.
 
 pub mod cargo_composition;
+pub mod epcis_aggregation;
+pub mod epcis_transformation;
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fmt;
