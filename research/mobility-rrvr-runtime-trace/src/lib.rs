@@ -324,7 +324,11 @@ fn observer_quorum_is_qualified(proof: &ObserverQuorumProof) -> Result<bool, Pro
     }
 
     let mut observer_ids = BTreeSet::new();
+    let mut observation_ids = BTreeSet::new();
+    let mut artifact_ids = BTreeSet::new();
+    let mut artifact_hashes = BTreeSet::new();
     let mut seen_domains = BTreeSet::new();
+    let mut pairwise_independent = true;
     for member in &proof.members {
         if !nonempty(&member.observer_id)
             || !nonempty(&member.observer_revision)
@@ -332,37 +336,33 @@ fn observer_quorum_is_qualified(proof: &ObserverQuorumProof) -> Result<bool, Pro
             || !nonempty(&member.raw_artifact_id)
             || !valid_sha256(&member.raw_artifact_sha256)
             || member.common_cause_domains.is_empty()
-            || member
-                .common_cause_domains
-                .iter()
-                .any(|domain| !nonempty(domain))
+            || member.common_cause_domains.iter().any(|domain| !nonempty(domain))
             || !observer_ids.insert(member.observer_id.as_str())
+            || !observation_ids.insert(member.observation_id.as_str())
+            || !artifact_ids.insert(member.raw_artifact_id.as_str())
+            || !artifact_hashes.insert(member.raw_artifact_sha256.as_str())
         {
             return Err(ProjectionError::ObserverQuorumMalformed);
         }
-    }
-
-    // Independence is qualified only against the declared, versioned fault
-    // model: no two counted observers may share a declared common-cause domain.
-    let mut pairwise_independent = true;
-    for member in &proof.members {
         for domain in &member.common_cause_domains {
             if !seen_domains.insert(domain.as_str()) {
                 pairwise_independent = false;
             }
         }
     }
+
+    // This is independence only under the declared, versioned fault model.
     Ok(pairwise_independent && proof.members.len() >= proof.required_independent_members)
 }
 
 fn observer_proofs_are_independent(
-    no_effect: &ObserverQuorumProof,
+    physical_outcome: &ObserverQuorumProof,
     downstream: &ObserverQuorumProof,
 ) -> bool {
-    if no_effect.fault_model_revision != downstream.fault_model_revision {
+    if physical_outcome.fault_model_revision != downstream.fault_model_revision {
         return false;
     }
-    let physical_outcome_observers: BTreeSet<&str> = no_effect
+    let physical_observers: BTreeSet<&str> = physical_outcome
         .members
         .iter()
         .map(|member| member.observer_id.as_str())
@@ -372,11 +372,11 @@ fn observer_proofs_are_independent(
         .iter()
         .map(|member| member.observer_id.as_str())
         .collect();
-    if !physical_outcome_observers.is_disjoint(&downstream_observers) {
+    if !physical_observers.is_disjoint(&downstream_observers) {
         return false;
     }
 
-    let physical_outcome_dependencies: BTreeSet<&str> = no_effect
+    let physical_dependencies: BTreeSet<&str> = physical_outcome
         .members
         .iter()
         .flat_map(|member| member.common_cause_domains.iter().map(String::as_str))
@@ -386,11 +386,11 @@ fn observer_proofs_are_independent(
         .iter()
         .flat_map(|member| member.common_cause_domains.iter().map(String::as_str))
         .collect();
-    if !physical_outcome_dependencies.is_disjoint(&downstream_dependencies) {
+    if !physical_dependencies.is_disjoint(&downstream_dependencies) {
         return false;
     }
 
-    let physical_outcome_artifacts: BTreeSet<&str> = no_effect
+    let physical_artifacts: BTreeSet<&str> = physical_outcome
         .members
         .iter()
         .map(|member| member.raw_artifact_id.as_str())
@@ -400,7 +400,29 @@ fn observer_proofs_are_independent(
         .iter()
         .map(|member| member.raw_artifact_id.as_str())
         .collect();
-    physical_outcome_artifacts.is_disjoint(&downstream_artifacts)
+    let physical_hashes: BTreeSet<&str> = physical_outcome
+        .members
+        .iter()
+        .map(|member| member.raw_artifact_sha256.as_str())
+        .collect();
+    let downstream_hashes: BTreeSet<&str> = downstream
+        .members
+        .iter()
+        .map(|member| member.raw_artifact_sha256.as_str())
+        .collect();
+    let physical_observations: BTreeSet<&str> = physical_outcome
+        .members
+        .iter()
+        .map(|member| member.observation_id.as_str())
+        .collect();
+    let downstream_observations: BTreeSet<&str> = downstream
+        .members
+        .iter()
+        .map(|member| member.observation_id.as_str())
+        .collect();
+    physical_artifacts.is_disjoint(&downstream_artifacts)
+        && physical_hashes.is_disjoint(&downstream_hashes)
+        && physical_observations.is_disjoint(&downstream_observations)
 }
 
 pub fn model_init_state() -> Value {
@@ -1544,6 +1566,30 @@ mod tests {
         graph = observer_proof("graph-observers");
         graph.fault_model_revision = "different-fault-model".to_owned();
         assert!(!observer_proofs_are_independent(&no_effect, &graph));
+    }
+
+    #[test]
+    fn observer_proof_rejects_reused_observation_artifacts_and_content_digests() {
+        let mut proof = observer_proof("duplicate-observation");
+        proof.members[1].observation_id = proof.members[0].observation_id.clone();
+        assert_eq!(
+            observer_quorum_is_qualified(&proof),
+            Err(ProjectionError::ObserverQuorumMalformed)
+        );
+
+        let mut proof = observer_proof("duplicate-artifact");
+        proof.members[1].raw_artifact_id = proof.members[0].raw_artifact_id.clone();
+        assert_eq!(
+            observer_quorum_is_qualified(&proof),
+            Err(ProjectionError::ObserverQuorumMalformed)
+        );
+
+        let mut proof = observer_proof("duplicate-digest");
+        proof.members[1].raw_artifact_sha256 = proof.members[0].raw_artifact_sha256.clone();
+        assert_eq!(
+            observer_quorum_is_qualified(&proof),
+            Err(ProjectionError::ObserverQuorumMalformed)
+        );
     }
 
     #[test]
