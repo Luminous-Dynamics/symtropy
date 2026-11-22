@@ -91,8 +91,7 @@ impl BernoulliMixtureEProcess {
             .checked_add(2)
             .ok_or(KernelError::CounterOverflow)?;
 
-        let increment = (predictive_numerator as f64).ln()
-            - (predictive_denominator as f64).ln();
+        let increment = (predictive_numerator as f64).ln() - (predictive_denominator as f64).ln();
         let next_log_mixture_likelihood = self.log_mixture_likelihood + increment;
         if !next_log_mixture_likelihood.is_finite() {
             return Err(KernelError::NumericalOverflow);
@@ -223,12 +222,7 @@ impl BernoulliMixtureEProcess {
             next_up(excluded).min(1.0)
         };
 
-        if !lower.is_finite()
-            || !upper.is_finite()
-            || lower < 0.0
-            || upper > 1.0
-            || lower > upper
-        {
+        if !lower.is_finite() || !upper.is_finite() || lower < 0.0 || upper > 1.0 || lower > upper {
             return Err(KernelError::NumericalOverflow);
         }
 
@@ -326,7 +320,9 @@ mod tests {
     #[test]
     fn confidence_sequence_contains_the_empirical_mean() {
         let mut process = BernoulliMixtureEProcess::new();
-        for event in [true, false, true, false, true, false, false, true, false, false] {
+        for event in [
+            true, false, true, false, true, false, false, true, false, false,
+        ] {
             process.observe(event).unwrap();
         }
         let sequence = process.confidence_sequence(0.05).unwrap();
@@ -370,9 +366,18 @@ mod tests {
     #[test]
     fn invalid_alpha_and_probability_are_rejected() {
         let process = BernoulliMixtureEProcess::new();
-        assert_eq!(process.confidence_sequence(0.0), Err(KernelError::InvalidAlpha));
-        assert_eq!(process.confidence_sequence(1.0), Err(KernelError::InvalidAlpha));
-        assert_eq!(process.log_e_value(f64::NAN), Err(KernelError::InvalidProbability));
+        assert_eq!(
+            process.confidence_sequence(0.0),
+            Err(KernelError::InvalidAlpha)
+        );
+        assert_eq!(
+            process.confidence_sequence(1.0),
+            Err(KernelError::InvalidAlpha)
+        );
+        assert_eq!(
+            process.log_e_value(f64::NAN),
+            Err(KernelError::InvalidProbability)
+        );
     }
 
     #[test]
