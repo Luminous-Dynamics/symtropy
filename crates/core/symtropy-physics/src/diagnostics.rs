@@ -217,9 +217,9 @@ impl<const D: usize> PhysicsWorld<D> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::body::{BodyHandle, RigidBody};
+    use crate::body::{BodyHandle, BodyType, RigidBody};
     use nalgebra::SVector;
-    use symtropy_math::{HalfSpace, Point};
+    use symtropy_math::{HalfSpace, HyperBox, Point, Transform};
 
     #[test]
     fn snapshot_reports_mass_center_and_momentum() {
@@ -286,6 +286,37 @@ mod tests {
         assert_eq!(stats.epa_calls, 0);
         assert_eq!(stats.contact_manifolds, 1);
         assert!(stats.contact_points > 0);
+    }
+
+    #[test]
+    fn narrowphase_stats_count_box_sat_without_gjk_or_epa() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.add_body(RigidBody::<3>::new(
+            BodyHandle(0),
+            BodyType::Dynamic,
+            Transform::identity(),
+            Box::new(HyperBox::<3>::cube(0.5)),
+            1.0,
+            SVector::from_element(1.0),
+        ));
+        world.add_body(RigidBody::<3>::new(
+            BodyHandle(1),
+            BodyType::Dynamic,
+            Transform::from_translation(Point::new([0.8, 0.0, 0.0])),
+            Box::new(HyperBox::<3>::cube(0.5)),
+            1.0,
+            SVector::from_element(1.0),
+        ));
+
+        world.step(1.0 / 60.0);
+
+        let stats = world.narrowphase_stats();
+        assert_eq!(stats.candidate_pairs, 1);
+        assert_eq!(stats.box_sat_checks, 1);
+        assert_eq!(stats.box_sat_hits, 1);
+        assert_eq!(stats.gjk_calls, 0);
+        assert_eq!(stats.epa_calls, 0);
+        assert_eq!(stats.contact_manifolds, 1);
     }
 
     #[test]
