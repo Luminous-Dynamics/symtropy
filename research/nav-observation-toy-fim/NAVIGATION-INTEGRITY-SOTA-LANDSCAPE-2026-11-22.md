@@ -146,7 +146,9 @@ Do not download the entire archive simply to reproduce one range baseline. First
 - [#6853](https://github.com/Luminous-Dynamics/symtropy/issues/6853): risk-aware active evidence acquisition programme.
 - [#6855](https://github.com/Luminous-Dynamics/symtropy/pull/6855): Pareto active evidence-acquisition planner (run #212 passed).
 - [#6858](https://github.com/Luminous-Dynamics/symtropy/pull/6858): integrated clock, secure-session, posterior and active-acquisition research kernels (combined run #213 passed).
-- [#6864](https://github.com/Luminous-Dynamics/symtropy/pull/6864): publisher-aligned Bregar CIR normalization/window and deterministic feature kernel (run #220 passed: 137 navigation, 12 ingest, 31 validator tests).
+- [#6864](https://github.com/Luminous-Dynamics/symtropy/pull/6864): publisher-aligned Bregar CIR normalization/window and deterministic feature kernel (exact-head run #221 passed: 137 navigation, 12 ingest, 31 validator tests).
+- [#6868](https://github.com/Luminous-Dynamics/symtropy/pull/6868): bounded Bregar CSV row parser with controller/evaluator field partition and raw-CIR connection; exact-head CI pending after parser hardening.
+- [#6869](https://github.com/Luminous-Dynamics/symtropy/pull/6869): grouped finite-sample positive NLOS-bias calibration; exact-head CI pending.
 - [#6779](https://github.com/Luminous-Dynamics/symtropy/pull/6779): candidate dataset registry and controller/evaluator boundary; now includes Bregar UWB v2.0 as an unadmitted raw-CIR candidate.
 
 ## 11. Claim boundary
