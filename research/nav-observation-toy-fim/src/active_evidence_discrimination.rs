@@ -629,7 +629,7 @@ mod tests {
         assert!(!plan.conditional_target_reached);
         assert_eq!(
             plan.reason,
-            AcquisitionPlanReason::BestReductionAvailableButTargetNotReached
+            ActiveEvidenceDiscriminationReason::BestReductionAvailableButTargetNotReached
         );
     }
 
