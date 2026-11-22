@@ -14,7 +14,7 @@ The Rust module implements the published one-axis controller from explicit preco
 6. PID velocity command;
 7. full-speed expansion and damped contraction, clamped to a noise-derived floor and absolute PL ceiling.
 
-The paper's numerical configuration is provided by `AdaptivePlConfig::paper_2026(k_tir)`. The K_TIR multiplier is caller-supplied rather than guessed because the selected use-profile/distributional conversion must be explicitly reproduced.
+The paper's numerical configuration is provided by `AdaptivePlConfig::paper_2026(k_tir)`. The caller can obtain the 2D radial Student-t multiplier with `student_t_k_tir_2d(dof, tir)` from the adjacent covariance baseline module, but should do so only after confirming the paper's exact TIR coverage convention. The controller harness keeps K_TIR explicit to avoid silently imposing a distributional interpretation.
 
 ## Explicit boundary
 
