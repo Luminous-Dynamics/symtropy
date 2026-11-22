@@ -155,7 +155,7 @@
     "v0": "c*(1,0,0,0)",
     "n0_compatibility": "A0*v0+g0=0",
     "n1_matrix": "-I-A0",
-    "n1_determinant": "-5",
+    "n1_determinant": "5",
     "n1_rhs": "A1*v0+g1=0",
     "v1": [
       "0",
