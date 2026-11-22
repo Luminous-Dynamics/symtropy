@@ -286,7 +286,7 @@
     {
       "dataset_id": "twr-cloud-bern-v6",
       "name": "TWR-CLOUD-Bern cooperative UWB ranging and localization dataset (Zenodo Version 6)",
-      "domain": "indoor_cooperative",
+      "domain": "indoor",
       "source_url": "https://doi.org/10.5281/zenodo.23434390",
       "status": "candidate_not_admitted",
       "snapshot": {
@@ -305,26 +305,26 @@
         "redistribution": "unknown"
       },
       "metadata": {
-        "time_basis_status": "partial",
-        "spatial_reference_status": "partial",
+        "time_basis_status": "unqualified",
+        "spatial_reference_status": "unqualified",
         "calibration_status": "partial",
         "ground_truth_status": "partial",
-        "split_basis": "scan_id",
+        "split_basis": "session_id",
         "train_group_ids": [
-          "1",
-          "2",
-          "3",
-          "4",
-          "5",
-          "6",
-          "7",
-          "8",
-          "9",
-          "10",
-          "11"
+          "scan_1",
+          "scan_2",
+          "scan_3",
+          "scan_4",
+          "scan_5",
+          "scan_6",
+          "scan_7",
+          "scan_8",
+          "scan_9",
+          "scan_10",
+          "scan_11"
         ],
         "test_group_ids": [
-          "12"
+          "scan_12"
         ],
         "split_sha256": null,
         "clock_state_truth_status": "not_provided"
