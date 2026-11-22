@@ -18,7 +18,8 @@
 //! - a structural check for a strict covariance floor
 //!   Sigma_component > alpha * Sigma_nominal;
 //! - a budgeted affine-cell traversal that accounts for possible event mass
-//!   outside caller-declared geometric chart boxes.
+//!   outside caller-declared geometric chart boxes;
+//! - pointwise NASA-style 3D-Nc rate evaluation and log-domain Lebedev sphere integration.
 //!
 //! These primitives do not establish event-mode completeness, finite-budget
 //! confidence-interval coverage, physical-model adequacy, or the assumptions
@@ -30,12 +31,16 @@ use core::fmt;
 pub mod coverage;
 pub mod lebedev;
 pub mod ncdot_pointwise;
+pub mod ncdot_sphere;
 pub mod residual;
 pub mod sequential;
 pub mod stats;
 pub mod trajectory;
 
 pub use ncdot_pointwise::{NcdotPointwiseInputs, NcdotPointwiseReport, evaluate_ncdot_pointwise};
+pub use ncdot_sphere::{
+    NcdotSphereIntegrationConfig, NcdotSphereIntegrationReport, integrate_ncdot_sphere,
+};
 pub use lebedev::{
     AdaptiveSphereQuadratureConfig, AdaptiveSphereQuadratureReport, LebedevRule, LebedevSphereRule,
     SphereQuadratureDiagnosticsConfig, SphereQuadratureNode, SphereQuadratureReport,
