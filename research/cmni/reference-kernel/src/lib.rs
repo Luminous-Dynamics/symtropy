@@ -9,6 +9,12 @@
 
 use std::fmt;
 
+mod campaign_planning;
+pub use campaign_planning::{
+    plan_finite_evidence_campaign, CampaignOutcomeBranch, CampaignPlanNode,
+    EvidenceCampaignConfig, EvidenceCampaignPlan,
+};
+
 mod decision_value;
 pub use decision_value::{
     recommend_finite_decision_step, DecisionAbstentionReason, FiniteDecisionRecommendation,
