@@ -15,9 +15,25 @@ use crate::functional::{
 };
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct SpatialKernelCalibrationReceipt {
+    pub receipt_id: String,
+    pub protocol_fingerprint: String,
+    /// Number of independent acquisitions used to estimate spatial error
+    /// correlation for this processing configuration.
+    pub independent_acquisition_count: usize,
+    pub maximum_absolute_correlation_fit_error: f64,
+    pub maximum_allowed_absolute_correlation_fit_error: f64,
+    /// The current nonnegative Wendland family cannot represent a negative
+    /// correlation lobe. A different kernel is required when one is resolved.
+    pub negative_correlation_lobe_detected: bool,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct SpatialErrorKernel {
     pub model_id: String,
-    pub parameter_calibration_receipt_id: String,
+    /// Must match the fingerprint in the calibration receipt exactly.
+    pub protocol_fingerprint: String,
+    pub calibration_receipt: SpatialKernelCalibrationReceipt,
     pub length_scales_m: [f64; 3],
     pub component_covariance_m2_s2: Covariance3,
 }
@@ -27,6 +43,9 @@ pub struct SpatialFieldFunctionalReport {
     pub base_report: FieldFunctionalReport,
     pub kernel_model_id: String,
     pub parameter_calibration_receipt_id: String,
+    pub calibration_protocol_fingerprint: String,
+    pub calibration_acquisition_count: usize,
+    pub maximum_absolute_correlation_fit_error: f64,
     pub correlated_sample_pair_count: usize,
     pub spatial_covariance_contribution: [[f64; 4]; 4],
     pub total_functional_covariance: [[f64; 4]; 4],
@@ -40,6 +59,11 @@ pub enum SpatialFunctionalError {
     NonFiniteCoordinate { sample_index: usize },
     EmptyKernelIdentity { field: &'static str },
     UnsupportedKernel { model_id: String },
+    KernelProtocolMismatch,
+    InsufficientCalibrationAcquisitions { actual: usize },
+    InvalidCalibrationDiagnostics,
+    CorrelationFitErrorExceedsLimit { actual: f64, maximum: f64 },
+    NegativeCorrelationLobeRequiresDifferentModel,
     InvalidLengthScale { axis: usize },
     NonFiniteKernelCovariance,
     KernelCovarianceNotPositiveSemidefinite,
@@ -55,6 +79,11 @@ impl fmt::Display for SpatialFunctionalError {
             Self::NonFiniteCoordinate { sample_index } => write!(f, "non-finite coordinate at sample {sample_index}"),
             Self::EmptyKernelIdentity { field } => write!(f, "kernel {field} must be non-empty"),
             Self::UnsupportedKernel { model_id } => write!(f, "unsupported kernel {model_id}"),
+            Self::KernelProtocolMismatch => write!(f, "spatial kernel protocol differs from its calibration receipt"),
+            Self::InsufficientCalibrationAcquisitions { actual } => write!(f, "spatial kernel has only {actual} independent calibration acquisitions; at least 20 are required by this reference gate"),
+            Self::InvalidCalibrationDiagnostics => write!(f, "spatial kernel calibration diagnostics are invalid"),
+            Self::CorrelationFitErrorExceedsLimit { actual, maximum } => write!(f, "spatial kernel correlation fit error {actual} exceeds maximum {maximum}"),
+            Self::NegativeCorrelationLobeRequiresDifferentModel => write!(f, "observed negative spatial correlation lobe is not represented by the current Wendland model"),
             Self::InvalidLengthScale { axis } => write!(f, "invalid length scale on axis {axis}"),
             Self::NonFiniteKernelCovariance => write!(f, "kernel covariance is non-finite"),
             Self::KernelCovarianceNotPositiveSemidefinite => write!(f, "kernel component covariance is not positive semidefinite"),
@@ -132,8 +161,35 @@ pub fn propagate_spatially_correlated_functional_uncertainty(
     if kernel.model_id.trim().is_empty() {
         return Err(SpatialFunctionalError::EmptyKernelIdentity { field: "model_id" });
     }
-    if kernel.parameter_calibration_receipt_id.trim().is_empty() {
-        return Err(SpatialFunctionalError::EmptyKernelIdentity { field: "parameter_calibration_receipt_id" });
+    if kernel.protocol_fingerprint.trim().is_empty()
+        || kernel.calibration_receipt.receipt_id.trim().is_empty()
+        || kernel.calibration_receipt.protocol_fingerprint.trim().is_empty()
+    {
+        return Err(SpatialFunctionalError::EmptyKernelIdentity { field: "calibration_receipt_or_protocol_fingerprint" });
+    }
+    if kernel.protocol_fingerprint != kernel.calibration_receipt.protocol_fingerprint {
+        return Err(SpatialFunctionalError::KernelProtocolMismatch);
+    }
+    if kernel.calibration_receipt.independent_acquisition_count < 20 {
+        return Err(SpatialFunctionalError::InsufficientCalibrationAcquisitions {
+            actual: kernel.calibration_receipt.independent_acquisition_count,
+        });
+    }
+    let fit_error = kernel.calibration_receipt.maximum_absolute_correlation_fit_error;
+    let maximum_fit_error = kernel.calibration_receipt.maximum_allowed_absolute_correlation_fit_error;
+    if !fit_error.is_finite() || !maximum_fit_error.is_finite()
+        || fit_error < 0.0 || maximum_fit_error <= 0.0
+    {
+        return Err(SpatialFunctionalError::InvalidCalibrationDiagnostics);
+    }
+    if fit_error > maximum_fit_error {
+        return Err(SpatialFunctionalError::CorrelationFitErrorExceedsLimit {
+            actual: fit_error,
+            maximum: maximum_fit_error,
+        });
+    }
+    if kernel.calibration_receipt.negative_correlation_lobe_detected {
+        return Err(SpatialFunctionalError::NegativeCorrelationLobeRequiresDifferentModel);
     }
     if kernel.model_id != "wendland_c2_anisotropic_3d" {
         return Err(SpatialFunctionalError::UnsupportedKernel { model_id: kernel.model_id.clone() });
@@ -210,7 +266,10 @@ pub fn propagate_spatially_correlated_functional_uncertainty(
     Ok(SpatialFieldFunctionalReport {
         base_report,
         kernel_model_id: kernel.model_id.clone(),
-        parameter_calibration_receipt_id: kernel.parameter_calibration_receipt_id.clone(),
+        parameter_calibration_receipt_id: kernel.calibration_receipt.receipt_id.clone(),
+        calibration_protocol_fingerprint: kernel.protocol_fingerprint.clone(),
+        calibration_acquisition_count: kernel.calibration_receipt.independent_acquisition_count,
+        maximum_absolute_correlation_fit_error: kernel.calibration_receipt.maximum_absolute_correlation_fit_error,
         correlated_sample_pair_count: pair_count,
         spatial_covariance_contribution: contribution,
         total_functional_covariance: total,
@@ -248,7 +307,15 @@ mod tests {
     fn kernel(c: Covariance3) -> SpatialErrorKernel {
         SpatialErrorKernel {
             model_id: "wendland_c2_anisotropic_3d".into(),
-            parameter_calibration_receipt_id: "fit-receipt-001".into(),
+            protocol_fingerprint: "piv-processing-32x32-75overlap-v1".into(),
+            calibration_receipt: SpatialKernelCalibrationReceipt {
+                receipt_id: "fit-receipt-001".into(),
+                protocol_fingerprint: "piv-processing-32x32-75overlap-v1".into(),
+                independent_acquisition_count: 24,
+                maximum_absolute_correlation_fit_error: 0.02,
+                maximum_allowed_absolute_correlation_fit_error: 0.05,
+                negative_correlation_lobe_detected: false,
+            },
             length_scales_m: [1.0; 3],
             component_covariance_m2_s2: c,
         }
@@ -322,7 +389,7 @@ mod tests {
         let input = base(vec![face()]);
         let c = Covariance3 { xx: 0.01, xy: 0.0, xz: 0.0, yy: 0.0, yz: 0.0, zz: 0.0 };
         let mut bad = kernel(c);
-        bad.parameter_calibration_receipt_id.clear();
+        bad.calibration_receipt.receipt_id.clear();
         assert!(matches!(
             propagate_spatially_correlated_functional_uncertainty(&input, &[[0.0; 3]], &bad),
             Err(SpatialFunctionalError::EmptyKernelIdentity { .. })
@@ -330,6 +397,45 @@ mod tests {
         assert!(matches!(
             propagate_spatially_correlated_functional_uncertainty(&input, &[[f64::NAN, 0.0, 0.0]], &kernel(c)),
             Err(SpatialFunctionalError::NonFiniteCoordinate { .. })
+        ));
+    }
+
+    #[test]
+    fn low_acquisition_count_poor_fit_and_negative_lobe_are_rejected() {
+        let input = base(vec![face()]);
+        let c = Covariance3 { xx: 0.01, xy: 0.0, xz: 0.0, yy: 0.0, yz: 0.0, zz: 0.0 };
+
+        let mut too_few = kernel(c);
+        too_few.calibration_receipt.independent_acquisition_count = 19;
+        assert!(matches!(
+            propagate_spatially_correlated_functional_uncertainty(&input, &[[0.0; 3]], &too_few),
+            Err(SpatialFunctionalError::InsufficientCalibrationAcquisitions { actual: 19 })
+        ));
+
+        let mut poor_fit = kernel(c);
+        poor_fit.calibration_receipt.maximum_absolute_correlation_fit_error = 0.08;
+        assert!(matches!(
+            propagate_spatially_correlated_functional_uncertainty(&input, &[[0.0; 3]], &poor_fit),
+            Err(SpatialFunctionalError::CorrelationFitErrorExceedsLimit { .. })
+        ));
+
+        let mut negative_lobe = kernel(c);
+        negative_lobe.calibration_receipt.negative_correlation_lobe_detected = true;
+        assert!(matches!(
+            propagate_spatially_correlated_functional_uncertainty(&input, &[[0.0; 3]], &negative_lobe),
+            Err(SpatialFunctionalError::NegativeCorrelationLobeRequiresDifferentModel)
+        ));
+    }
+
+    #[test]
+    fn target_protocol_must_match_spatial_kernel_calibration_protocol() {
+        let input = base(vec![face()]);
+        let c = Covariance3 { xx: 0.01, xy: 0.0, xz: 0.0, yy: 0.0, yz: 0.0, zz: 0.0 };
+        let mut k = kernel(c);
+        k.protocol_fingerprint = "different-grid-v2".into();
+        assert!(matches!(
+            propagate_spatially_correlated_functional_uncertainty(&input, &[[0.0; 3]], &k),
+            Err(SpatialFunctionalError::KernelProtocolMismatch)
         ));
     }
 
