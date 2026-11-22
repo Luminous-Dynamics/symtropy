@@ -323,6 +323,7 @@ impl ApplicationBoundary {
                     || permit.failed_attempt_key != attempt_key
                     || permit.authority_epoch != state.live.binding.controller_epoch
                     || permit.plan_digest == [0; 32]
+                    || permit.plan_digest != next.binding.commitment
                 {
                     return Err(Rejection::RecoveryPermitMismatch);
                 }
@@ -745,7 +746,7 @@ pub use history::{
         let permit = RecoveryPermitReference {
             permit_id: "permit-2".to_owned(),
             failed_attempt_key: "attempt-1".to_owned(),
-            plan_digest: [9; 32],
+            plan_digest: [8; 32],
             authority_epoch: 3,
         };
         let with_permit = boundary.resolve_pending_action(
@@ -845,7 +846,7 @@ pub use history::{
         let reused_identity = RecoveryPermitReference {
             permit_id: "permit-reuse".to_owned(),
             failed_attempt_key: "attempt-2".to_owned(),
-            plan_digest: [10; 32],
+            plan_digest: [9; 32],
             authority_epoch: 4,
         };
         assert_eq!(
