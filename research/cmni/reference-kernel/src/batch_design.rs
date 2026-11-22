@@ -197,12 +197,14 @@ pub fn enumerate_batch_portfolios(
             return Err(ModelError::MismatchedDataLengths);
         }
 
-        let (posterior_covariance, prior_logdet, posterior_logdet) =
+        let (posterior_covariance, prior_logdet, posterior_precision_logdet) =
             gaussian_linear_posterior(prior_covariance, &joint.covariance, &design_jacobian)?;
         let prior_trace = trace(prior_covariance)?;
         let posterior_trace = trace(&posterior_covariance)?;
         let a_optimal_trace_reduction = prior_trace - posterior_trace;
-        let d_optimal_logdet_reduction = prior_logdet - posterior_logdet;
+        // logdet(P_prior) - logdet(P_posterior) equals
+        // logdet(P_prior) + logdet(P_posterior_precision).
+        let d_optimal_logdet_reduction = prior_logdet + posterior_precision_logdet;
         let linear_gaussian_expected_information_gain_nats = 0.5 * d_optimal_logdet_reduction;
         if !a_optimal_trace_reduction.is_finite()
             || !d_optimal_logdet_reduction.is_finite()
@@ -695,6 +697,34 @@ mod tests {
             Err(ModelError::InvalidParameter(
                 "no_feasible_greedy_batch_portfolio"
             ))
+        );
+    }
+
+    #[test]
+    fn nonunit_prior_covariance_has_correct_d_optimal_sign_and_scale() {
+        let candidates = vec![
+            candidate("observe-x", [1.0, 0.0], 1.0, false, 0.0, true),
+        ];
+        let result = enumerate_batch_portfolios(
+            &candidates,
+            &[vec![2.0, 0.0], vec![0.0, 3.0]],
+            1,
+            1.0,
+            true,
+        )
+        .expect("non-unit prior portfolio");
+        let score = &result.portfolios[0];
+        let expected_x_variance = 2.0 / 3.0;
+        let expected_y_variance = 3.0;
+        let expected_d_optimal = 3.0_f64.ln();
+        assert!((score.posterior_covariance[0][0] - expected_x_variance).abs() < 1.0e-12);
+        assert!((score.posterior_covariance[1][1] - expected_y_variance).abs() < 1.0e-12);
+        assert!((score.d_optimal_logdet_reduction - expected_d_optimal).abs() < 1.0e-12);
+        assert!(
+            (score.linear_gaussian_expected_information_gain_nats
+                - 0.5 * expected_d_optimal)
+                .abs()
+                < 1.0e-12
         );
     }
 

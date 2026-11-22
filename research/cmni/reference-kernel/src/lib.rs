@@ -1620,14 +1620,14 @@ mod tests {
         let low = EnergyKev::new(0.01).expect("low energy");
         let high = EnergyKev::new(6.0).expect("high energy");
 
-        let printed_low = sigmoid_screening_potential_printed_equation(low, bulk, surface, e0, 0.5)
+        let printed_low = sigmoid_screening_potential_printed_equation(low, bulk, surface, e0, 0.1)
             .expect("printed low");
         let printed_high =
-            sigmoid_screening_potential_printed_equation(high, bulk, surface, e0, 0.5)
+            sigmoid_screening_potential_printed_equation(high, bulk, surface, e0, 0.1)
                 .expect("printed high");
-        let prose_low = sigmoid_screening_potential_prose_direction(low, bulk, surface, e0, 0.5)
+        let prose_low = sigmoid_screening_potential_prose_direction(low, bulk, surface, e0, 0.1)
             .expect("prose low");
-        let prose_high = sigmoid_screening_potential_prose_direction(high, bulk, surface, e0, 0.5)
+        let prose_high = sigmoid_screening_potential_prose_direction(high, bulk, surface, e0, 0.1)
             .expect("prose high");
 
         assert!(printed_low < printed_high);
