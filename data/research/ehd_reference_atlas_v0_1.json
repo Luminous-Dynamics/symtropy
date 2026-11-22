@@ -1255,6 +1255,62 @@
         "ml_training_target_eligible": false,
         "notes": "The DEHS/incense difference is a diagnostic-induced physical state change in this needle-to-ring fan. Treat as a metrology-intervention challenge and separate tracer cohorts; do not reinterpret the 36% and 17% differences as an instrument calibration correction or as a universal correction factor."
       }
+    },
+    {
+      "source_id": "HAMDI_2014_PIV_TRACER_SELECTION",
+      "title": "Comparison of different tracers for PIV measurements in EHD airflow",
+      "citation": "Hamdi, Havet, Rouaud and Tarlet, Experiments in Fluids 55, article 1702 (published 2014-03-23)",
+      "doi": "10.1007/s00348-014-1702-z",
+      "published_date": "2014-03-23",
+      "cohort": "ambient_air_corona_needle_ring_piv_tracer_selection",
+      "method": {
+        "objective": "select PIV tracers for EHD airflow while accounting for particle response and electrical interaction",
+        "dimensionless_selection_criteria": [
+          "Stokes number",
+          "Archimedes number",
+          "electrical mobility ratio"
+        ],
+        "geometry": "needle/ring ionic wind",
+        "independent_velocity_reference": "Pitot tube",
+        "electrical_diagnostics": [
+          "current-voltage curves",
+          "current evolution during tracer seeding"
+        ],
+        "tracers_evaluated": [
+          "oil smoke",
+          "cigarette smoke",
+          "titanium dioxide TiO2",
+          "silicon dioxide SiO2 microballoons",
+          "incense smoke",
+          "Expancel microspheres"
+        ],
+        "selected_suitable_tracers_in_study": [
+          "TiO2",
+          "SiO2 microballoons",
+          "incense smoke"
+        ]
+      },
+      "evidence_boundary": {
+        "primary_source": "https://doi.org/10.1007/s00348-014-1702-z",
+        "data_available_in_atlas": false,
+        "raw_data_boundary": "subscription article preview/abstract used for source-atlas scope; raw images, vector fields and per-tracer current traces not transcribed",
+        "measurement_interpretation": "Pitot-referenced PIV comparison and electrical response were jointly considered, rather than optical particle-following criteria alone"
+      },
+      "reported_results": {
+        "quantitative_tracer_velocity_error": null,
+        "quantitative_current_changes": null,
+        "selected_tracers": [
+          "TiO2",
+          "SiO2 microballoons",
+          "incense smoke"
+        ],
+        "evidence_class": "peer_reviewed_method_comparison_abstract_transcribed_no_numeric_raw_data"
+      },
+      "comparability": {
+        "same_study_tracer_selection_only": true,
+        "distinct_from_2026_dehs_incense_cohort": true,
+        "notes": "Use as an earlier methodological comparator for particle-following and electrical-interaction qualification; do not transfer exact suitability rankings to other EHD geometries, gases, pressures or field strengths without matched tests."
+      }
     }
   ],
   "solver_profiles": [
