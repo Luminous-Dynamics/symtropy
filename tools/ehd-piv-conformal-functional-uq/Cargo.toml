@@ -1,0 +1,10 @@
+[package]
+name = "ehd-piv-conformal-functional-uq"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Cluster-conformal field coverage and spatially correlated PIV functional uncertainty"
+
+[lib]
+path = "src/lib.rs"
