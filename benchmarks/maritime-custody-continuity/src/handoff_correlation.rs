@@ -9,7 +9,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::{
-    CustodyEvent, Classification, EvaluationError, EvaluationReport, EventKind, HandoffField,
+    Classification, CustodyEvent, EvaluationError, EvaluationReport, EventKind, HandoffField,
     evaluate,
 };
 
