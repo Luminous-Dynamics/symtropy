@@ -188,9 +188,15 @@ fn validate_anchor(anchor: &BinaryPodAnchor) -> Result<(), String> {
         || anchor.covariate_stratum_id.trim().is_empty()
         || anchor.sampling_unit.trim().is_empty()
         || anchor.configuration_sha256.len() != 64
-        || !anchor.configuration_sha256.bytes().all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+        || !anchor
+            .configuration_sha256
+            .bytes()
+            .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
         || anchor.reference_evidence_sha256.len() != 64
-        || !anchor.reference_evidence_sha256.bytes().all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+        || !anchor
+            .reference_evidence_sha256
+            .bytes()
+            .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
     {
         return Err("POD anchor scope, count or evidence digest is invalid".to_owned());
     }
@@ -227,9 +233,7 @@ pub fn analyze_pod_trend(case: &PodTrendCase) -> Result<PodTrendResult, String> 
     let anchor_alpha_allocation = case.familywise_alpha / 2.0;
     let tail_alpha = anchor_alpha_allocation / 2.0;
 
-    if validate_anchor(&case.early_anchor).is_err()
-        || validate_anchor(&case.late_anchor).is_err()
-    {
+    if validate_anchor(&case.early_anchor).is_err() || validate_anchor(&case.late_anchor).is_err() {
         return Ok(indeterminate(
             case,
             "POD anchor evidence, counts or configuration digest invalid",
@@ -256,9 +260,7 @@ pub fn analyze_pod_trend(case: &PodTrendCase) -> Result<PodTrendResult, String> 
             anchor_alpha_allocation,
         ));
     }
-    if case.late_anchor.normalized_time_fraction
-        <= case.early_anchor.normalized_time_fraction
-    {
+    if case.late_anchor.normalized_time_fraction <= case.early_anchor.normalized_time_fraction {
         return Ok(indeterminate(
             case,
             "POD anchor times are not strictly increasing",
@@ -266,16 +268,10 @@ pub fn analyze_pod_trend(case: &PodTrendCase) -> Result<PodTrendResult, String> 
         ));
     }
 
-    let (early_lower, early_upper) = clopper_pearson_interval(
-        case.early_anchor.hits,
-        case.early_anchor.trials,
-        tail_alpha,
-    )?;
-    let (late_lower, late_upper) = clopper_pearson_interval(
-        case.late_anchor.hits,
-        case.late_anchor.trials,
-        tail_alpha,
-    )?;
+    let (early_lower, early_upper) =
+        clopper_pearson_interval(case.early_anchor.hits, case.early_anchor.trials, tail_alpha)?;
+    let (late_lower, late_upper) =
+        clopper_pearson_interval(case.late_anchor.hits, case.late_anchor.trials, tail_alpha)?;
     let confidence_level = 1.0 - anchor_alpha_allocation;
     let early_pod = PodProbabilityInterval {
         point_estimate: case.early_anchor.hits as f64 / case.early_anchor.trials as f64,
@@ -311,9 +307,7 @@ pub fn analyze_pod_trend(case: &PodTrendCase) -> Result<PodTrendResult, String> 
         (late_lower, case.late_anchor.normalized_time_fraction),
     ]
     .into_iter()
-    .filter_map(|(lower, time)| {
-        (lower > 0.0 && time < 1.0).then_some(lower.ln() / time.ln())
-    })
+    .filter_map(|(lower, time)| (lower > 0.0 && time < 1.0).then_some(lower.ln() / time.ln()))
     .collect::<Vec<_>>();
     let p0_gamma_cap = p0_gamma_caps.into_iter().reduce(f64::min);
 
@@ -358,9 +352,9 @@ pub fn analyze_pod_trend(case: &PodTrendCase) -> Result<PodTrendResult, String> 
         Some(upper) => {
             let expected_match = case.expected_status == PodTrendStatus::Bounded
                 && (gamma_min - case.expected_gamma_min).abs() <= 1.0e-8
-                && case.expected_gamma_max.is_some_and(|expected| {
-                    (upper - expected).abs() <= 1.0e-8
-                });
+                && case
+                    .expected_gamma_max
+                    .is_some_and(|expected| (upper - expected).abs() <= 1.0e-8);
             Ok(PodTrendResult {
                 case_id: case.case_id.clone(),
                 status: PodTrendStatus::Bounded,
@@ -460,7 +454,10 @@ mod tests {
             expected_gamma_min: 0.0,
             expected_gamma_max: None,
         };
-        assert_eq!(analyze_pod_trend(&case).unwrap().status, PodTrendStatus::Indeterminate);
+        assert_eq!(
+            analyze_pod_trend(&case).unwrap().status,
+            PodTrendStatus::Indeterminate
+        );
     }
 
     #[test]
@@ -476,7 +473,10 @@ mod tests {
             expected_gamma_min: 0.0,
             expected_gamma_max: None,
         };
-        assert_eq!(analyze_pod_trend(&case).unwrap().status, PodTrendStatus::Indeterminate);
+        assert_eq!(
+            analyze_pod_trend(&case).unwrap().status,
+            PodTrendStatus::Indeterminate
+        );
     }
 
     #[test]
