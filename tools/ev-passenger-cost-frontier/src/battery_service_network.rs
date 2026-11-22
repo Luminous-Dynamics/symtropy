@@ -659,6 +659,7 @@ pub fn replay_pack_state_journal(
     }
 
     let mut current_state = input.initial_state.value;
+    let mut current_state_evidence = input.initial_state.evidence.clone();
     let mut current_sequence = 0_u64;
     let mut last_event_time = initial_observation_time.unwrap_or_default();
     let mut reconciliation_required = current_state == PackState::Unknown;
@@ -723,6 +724,7 @@ pub fn replay_pack_state_journal(
                     break;
                 }
                 current_state = event.proposed_to_state;
+                current_state_evidence = event.evidence.clone();
             }
             PackTransitionDisposition::Timeout | PackTransitionDisposition::OutcomeUnknown => {
                 if reconciliation_required {
@@ -750,6 +752,7 @@ pub fn replay_pack_state_journal(
                     break;
                 }
                 current_state = event.proposed_to_state;
+                current_state_evidence = event.evidence.clone();
                 reconciliation_required = false;
                 last_uncertain_event_id = None;
                 findings.push(format!("physical_state_reconciled:{}", event.event_id));
@@ -765,6 +768,24 @@ pub fn replay_pack_state_journal(
         errors.sort();
         errors.dedup();
         return Err(errors);
+    }
+
+    if !reconciliation_required {
+        let latest_evidence_covers_cutoff = matches!(
+            (
+                current_state_evidence.observed_at_unix_ms,
+                current_state_evidence.valid_from_unix_ms,
+                current_state_evidence.valid_until_unix_ms,
+            ),
+            (Some(observed_at), Some(valid_from), Some(valid_until))
+                if observed_at <= input.replay_cutoff_unix_ms
+                    && valid_from <= input.replay_cutoff_unix_ms
+                    && input.replay_cutoff_unix_ms <= valid_until
+        );
+        if !latest_evidence_covers_cutoff {
+            reconciliation_required = true;
+            findings.push("last_confirmed_pack_state_evidence_expired_at_replay_cutoff".to_string());
+        }
     }
 
     Ok(PackStateJournalReport {
@@ -1448,6 +1469,18 @@ mod tests {
             disposition,
             evidence: event_evidence,
         }
+    }
+
+    #[test]
+    fn expired_last_state_evidence_requires_reconciliation_at_cutoff() {
+        let mut journal = journal_input();
+        journal.replay_cutoff_unix_ms = DISPATCH_TIME_MS + 20_000;
+        let report = replay_pack_state_journal(&journal).unwrap();
+        assert_eq!(report.final_state, PackState::Available);
+        assert!(report.reconciliation_required);
+        assert!(report.findings.iter().any(|finding| {
+            finding == "last_confirmed_pack_state_evidence_expired_at_replay_cutoff"
+        }));
     }
 
     #[test]
