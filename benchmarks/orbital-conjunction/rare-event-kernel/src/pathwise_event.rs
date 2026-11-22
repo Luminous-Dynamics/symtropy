@@ -192,9 +192,9 @@ impl HorizonEventDefinition {
     /// overall no-contact result requires every window to be definitely
     /// outside. All remaining cases are ambiguous.
     ///
-    /// The first-contact time is reported only if a definite contact is known
-    /// and no earlier-starting ambiguous window could contain an earlier
-    /// contact. This is stricter than selecting the earliest reported contact.
+    /// A first-contact time enclosure is reported only if a definite contact
+    /// is known, the inventory is complete, and no earlier unresolved window
+    /// could contain an earlier contact.
     pub fn classify_realization(
         &self,
         outcomes: &[PathWindowOutcome],
@@ -616,6 +616,41 @@ mod tests {
                 outcome("trajectory-b", "b", PathWindowDisposition::DefinitelyNoContact),
             ]),
             Err(KernelError::MismatchedTrajectoryRealization)
+        );
+    }
+
+    #[test]
+    fn first_contact_time_is_preserved_as_a_certified_bracket() {
+        let definition = definition(vec![window("a", 10.0, 30.0)]);
+        let result = definition
+            .classify_realization(&[outcome(
+                "trajectory-bracket",
+                "a",
+                PathWindowDisposition::DefinitelyContact {
+                    first_contact_time_lower_seconds: 18.25,
+                    first_contact_time_upper_seconds: 18.5,
+                },
+            )])
+            .expect("valid first-contact bracket");
+        assert_eq!(
+            result.first_contact_time_bounds_seconds,
+            Some((18.25, 18.5))
+        );
+    }
+
+    #[test]
+    fn reversed_first_contact_bracket_is_rejected() {
+        let definition = definition(vec![window("a", 10.0, 30.0)]);
+        assert_eq!(
+            definition.classify_realization(&[outcome(
+                "trajectory-bracket-invalid",
+                "a",
+                PathWindowDisposition::DefinitelyContact {
+                    first_contact_time_lower_seconds: 19.0,
+                    first_contact_time_upper_seconds: 18.0,
+                },
+            )]),
+            Err(KernelError::InvalidEncounterContactTime)
         );
     }
 
