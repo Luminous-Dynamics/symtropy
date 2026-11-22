@@ -7,28 +7,60 @@ use std::env;
 use std::fs;
 use std::process::ExitCode;
 
+fn read_json(path: &str) -> Result<Value, String> {
+    let contents = fs::read_to_string(path)
+        .map_err(|error| format!("{path}: unable to read file: {error}"))?;
+    serde_json::from_str(&contents)
+        .map_err(|error| format!("{path}: invalid JSON: {error}"))
+}
+
 fn main() -> ExitCode {
     let args = env::args().collect::<Vec<_>>();
-    if args.len() != 2 {
-        eprintln!("Usage: {} <split-manifest.json>", args.first().map(String::as_str).unwrap_or("nav-generalization-validate"));
+    if args.len() != 3 {
+        eprintln!(
+            "Usage: {} <schema.json> <split-manifest.json>",
+            args.first().map(String::as_str).unwrap_or("nav-generalization-validate")
+        );
         return ExitCode::from(2);
     }
 
-    let path = &args[1];
-    let contents = match fs::read_to_string(path) {
-        Ok(contents) => contents,
-        Err(error) => {
-            eprintln!("{path}: unable to read manifest: {error}");
-            return ExitCode::from(2);
-        }
-    };
-    let manifest: Value = match serde_json::from_str(&contents) {
+    let schema = match read_json(&args[1]) {
         Ok(value) => value,
         Err(error) => {
-            eprintln!("{path}: invalid JSON: {error}");
+            eprintln!("{error}");
             return ExitCode::from(2);
         }
     };
+    let manifest = match read_json(&args[2]) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("{error}");
+            return ExitCode::from(2);
+        }
+    };
+
+    let validator = match jsonschema::draft202012::options()
+        .should_validate_formats(true)
+        .build(&schema)
+    {
+        Ok(validator) => validator,
+        Err(error) => {
+            eprintln!("invalid Draft 2020-12 schema: {error}");
+            return ExitCode::from(2);
+        }
+    };
+    let schema_errors: Vec<String> = validator
+        .iter_errors(&manifest)
+        .map(|error| error.to_string())
+        .collect();
+    if !schema_errors.is_empty() {
+        eprintln!("GENERALIZATION_SCHEMA_FAIL errors={}", schema_errors.len());
+        for error in schema_errors {
+            eprintln!("- {error}");
+        }
+        return ExitCode::FAILURE;
+    }
+    println!("GENERALIZATION_SCHEMA_DRAFT_2020_12_PASS");
 
     match validate_split_manifest(&manifest) {
         Ok(summary) => {
