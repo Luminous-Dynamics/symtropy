@@ -1097,7 +1097,6 @@ fn is_better(candidate: &SearchBest, current: &SearchBest, packs: &[BatteryPack]
         < assignment_key(&current.selected_pack_indices, packs)
 }
 
-
 pub fn evaluate_battery_service_network(
     input: &BatteryServiceNetworkInput,
 ) -> Result<BatteryServiceNetworkReport, Vec<String>> {
