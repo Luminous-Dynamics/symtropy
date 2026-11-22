@@ -15,7 +15,7 @@ At look n, each tail receives error budget alpha / (2 n (n+1)). The radius is:
 
     r_n = sqrt(2 log(2 n (n+1) / alpha) / n)
 
-The interval is the sample mean plus/minus r_n, clipped to the known [-1, 1] range. Since the tail allocations sum to alpha over all looks, the union-bound construction is time-uniform under the stated bounded sampling assumptions.
+The interval is the sample mean plus/minus r_n, clipped to the known [-1, 1] range. Since the tail allocations sum to alpha over all looks, the union-bound construction is time-uniform under the stated bounded independent-cluster assumptions.
 
 Decision states:
 - SUPERIOR: lower bound > preregistered superiority margin.
@@ -33,7 +33,9 @@ The JSON input must declare schema_version 1 and sampling_unit independent_sourc
     python3 -m unittest discover -s tools/av-anytime-valid-evaluator -p 'test_*.py' -v
     python3 tools/av-anytime-valid-evaluator/anytime_valid_policy_eval.py --input path/to/input.json
 
-The test suite checks deterministic positive, negative and tie cases, rejects reused source clusters and validates the result envelope.
+The test suite checks deterministic positive, negative and tie cases, rejects reused source clusters and invalid numeric inputs, and verifies that the output counts only the prefix actually consumed before the stopping look.
+
+The CLI is an **offline replay scorer**: it receives an ordered result file and reports the earliest valid stopping prefix. It does not itself control candidate execution. Real evaluation-compute savings require a streaming driver to supply one independent cluster at a time and honor the stopping state before scheduling the next cluster. A retrospective prefix count must not be reported as measured compute savings.
 
 ## Explicit v0 limits
 
@@ -50,4 +52,4 @@ The input validator requires one row per independent source cluster to prevent a
 
 ## Claim boundary
 
-Passing these tests qualifies only the mechanics of this two-arm bounded reference method. It is not a Symthaea model result, an official SPOT/DIVE/ALIVE score, proof of real-world superiority, or a substitute for the independent custodian specified in #6754.
+Passing these tests qualifies only the mechanics of this two-arm bounded reference method. It is not a Symthaea model result, an official SPOT/DIVE/ALIVE score, proof of real-world superiority, a measured evaluation-compute saving, or a substitute for the independent custodian specified in #6754.
