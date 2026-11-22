@@ -400,6 +400,22 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
             "JIANG_FIGURE9_BOUNDARY",
             "approximate Fig. 9 values must remain labelled as graph estimates, separate from exact data and with CI caveat",
         );
+        let figure10 = at(record, &["reported_results", "figure10_22kv_sub_unit_plus_sweep", "configurations"])
+            .and_then(Value::as_array);
+        push_if_missing(
+            &mut findings,
+            figure10.is_some_and(|rows| rows.len() == 4
+                && number_at(&rows[0], &["sub_unit_plus_width_mm"]) == Some(50.0)
+                && number_at(&rows[0], &["distance_mm"]) == Some(10.0)
+                && number_at(&rows[0], &["thrust_mn"]) == Some(68.70)
+                && number_at(&rows[1], &["thrust_mn"]) == Some(67.08)
+                && number_at(&rows[2], &["thrust_mn"]) == Some(63.23)
+                && number_at(&rows[3], &["thrust_mn"]) == Some(61.63))
+                && text_at(record, &["reported_results", "figure10_22kv_sub_unit_plus_sweep", "uncertainty_representation"])
+                    .is_some_and(|note| note.contains("95% confidence intervals")),
+            "JIANG_FIGURE10_SWEEP",
+            "sub-unit-plus geometry sweep values and confidence-interval provenance changed",
+        );
         push_if_missing(
             &mut findings,
             at(record, &["comparability", "absolute_thrust_leaderboard_eligible"])
@@ -3212,6 +3228,20 @@ mod jiang_2026_atlas_tests {
             serde_json::json!("raw_exact_measurement");
         assert!(audit_atlas(&value).iter().any(|finding| {
             finding.starts_with("JIANG_FIGURE9_BOUNDARY")
+        }));
+    }
+
+    #[test]
+    fn jiang_geometry_sweep_requires_all_four_transcribed_points() {
+        let mut value = atlas();
+        let records = value["source_records"].as_array_mut().unwrap();
+        let record = records.iter_mut().find(|row| {
+            row["source_id"] == "JIANG_2026_SUB_UNIT_ELECTRODE"
+        }).unwrap();
+        record["reported_results"]["figure10_22kv_sub_unit_plus_sweep"]["configurations"][0]["thrust_mn"] =
+            serde_json::json!(70.0);
+        assert!(audit_atlas(&value).iter().any(|finding| {
+            finding.starts_with("JIANG_FIGURE10_SWEEP")
         }));
     }
 }
