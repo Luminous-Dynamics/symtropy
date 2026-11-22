@@ -1,0 +1,89 @@
+name: Anisotropic Reference Qualification
+
+on:
+  push:
+    branches: [ 'main' ]
+    paths:
+      - '.github/workflows/anisotropic-reference.yml'
+      - 'crates/core/symtropy-math/Cargo.toml'
+      - 'crates/core/symtropy-math/src/bivector.rs'
+      - 'crates/core/symtropy-physics/Cargo.toml'
+      - 'crates/core/symtropy-physics/src/angular_dynamics.rs'
+      - 'crates/core/symtropy-physics/src/bivector_inertia.rs'
+      - 'crates/core/symtropy-physics/src/compound_inertia_3d.rs'
+      - 'crates/core/symtropy-physics/src/mass_properties_3d.rs'
+      - 'crates/core/symtropy-physics/tests/angular_convention_reference.rs'
+      - 'crates/core/symtropy-physics/examples/anisotropic_reference_campaign.rs'
+      - 'crates/core/symtropy-physics/*_VALIDATION.md'
+      - 'crates/core/symtropy-physics/README.md'
+      - 'Cargo.lock'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: anisotropic-reference-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: D=2..9 reference (${{ runner.os }})
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Test expanded-storage math primitives
+        run: cargo test --locked -p symtropy-math --lib --features nd-bivector-9
+
+      - name: Test N-dimensional reference with expanded bivector storage
+        run: cargo test --locked -p symtropy-physics --lib --features nd-bivector-9
+
+      - name: Test CSV scale-normalization contract
+        run: cargo test --locked -p symtropy-physics --example anisotropic_reference_campaign --features nd-bivector-9
+
+      - name: Run deterministic anisotropic mechanics campaign
+        env:
+          SYMTROPY_SOURCE_SHA: ${{ github.sha }}
+        run: cargo run --locked --release -p symtropy-physics --example anisotropic_reference_campaign --features nd-bivector-9 > anisotropic-reference.csv
+
+      - name: Write execution manifest
+        if: always()
+        env:
+          SYMTROPY_SOURCE_SHA: ${{ github.sha }}
+        run: |
+          {
+            printf 'source_sha=%s\n' "$SYMTROPY_SOURCE_SHA"
+            printf 'workflow_run_id=%s\n' "$GITHUB_RUN_ID"
+            printf 'workflow_run_attempt=%s\n' "$GITHUB_RUN_ATTEMPT"
+            printf 'rustc='
+            rustc --version --verbose
+            printf 'cargo='
+            cargo --version
+            printf 'host='
+            uname -a
+            if command -v lscpu >/dev/null 2>&1; then lscpu; fi
+            printf 'command=cargo run --locked --release -p symtropy-physics --example anisotropic_reference_campaign --features nd-bivector-9\n'
+          } > anisotropic-reference-manifest.txt
+
+      - name: Upload reference CSV and execution manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: anisotropic-reference-${{ github.sha }}
+          path: |
+            anisotropic-reference.csv
+            anisotropic-reference-manifest.txt
+          if-no-files-found: warn

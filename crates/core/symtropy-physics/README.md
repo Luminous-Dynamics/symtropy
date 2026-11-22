@@ -76,6 +76,36 @@ for the transformed-geometry contract, limitations, and external campaign. Publi
 research claims should follow that protocol and explicitly distinguish proven,
 experimental, and planned capabilities.
 
+## Checked 3D anisotropic reference (not production stepping)
+
+The crate now exposes an independent 3D angular-momentum and mass-property reference for validating the future anisotropic production migration:
+
+- `PrincipalInertia3` and `angular_dynamics`: body-frame principal moments, explicit world angular momentum, Rotor-consistent bivector/axial-vector mapping, point velocity, checked angular impulse and a momentum-based reference step.
+- `MassProperties3`: checked uniform-density solid sphere, cuboid, and capsule principal moments, including representability checks on derived inertia.
+- `CompoundMassProperties3`: deterministic, stable-ID-ordered full 3×3 inertia composition using rotated child tensors and the parallel-axis theorem, with symmetry and positive-definiteness validation.
+
+**Important boundary:** these APIs are reference/evidence code. `RigidBody<3>` and `PhysicsWorld<3>` still use the legacy scalar-mean rotational approximation in the production integrator/contact path. The reference does not make production contact response anisotropic, and the existing `merge_toolhead()` remains a compatibility approximation.
+
+See [`ASYMMETRIC_TOP_VALIDATION.md`](ASYMMETRIC_TOP_VALIDATION.md), [`MASS_PROPERTIES_3D_VALIDATION.md`](MASS_PROPERTIES_3D_VALIDATION.md), and [`COMPOUND_INERTIA_3D_VALIDATION.md`](COMPOUND_INERTIA_3D_VALIDATION.md) for equations, deterministic gates, negative controls, and promotion criteria.
+
+
+### N-dimensional bivector inertia reference
+
+`BivectorInertia<D>` is an independent reference for full rotational inertia on `Lambda^2(R^D)`, based on the centered second-moment matrix and `I(B) = B*S + S*B`. Default builds retain compact D<=4 storage; `--features nd-bivector-9` opts into the expanded D<=9 (36-plane) research representation. It provides a plane-wise inverse using the principal eigensystem of `S`, and includes Rotor-consistent gyroscopic and rotational contact-effective-mass operations. Forward/inverse, energy, torque, and contact response include mass-rescaling and global-frame covariance controls; an off-centre impulse test ties point velocity, effective mass and rotational energy together; point-mass assembly is canonical under input reordering and uses scale-safe weighted outer products for huge offsets/tiny masses; compound and point-cloud paths reject overflowing/underflowing mass terms; and a body-frame contact query avoids rebuilding the world-frame eigensystem; and the D=9 fixture round-trips all 36 independent rotation planes.
+
+The reference uses the same convention as the production sign audit: `Rotor::from_bivector(B) = exp(-B)`, physical point velocity `-B*r`, and offset-first angular impulse `r wedge j`. It has tests for cross-plane coupling, world/body covariance, contact effective-mass covariance, torque balance and all 36 rotation planes at D=9.
+
+**Boundary:** it is not connected to production `RigidBody` or `PhysicsWorld`; it does not make the live contact solver anisotropic. See [`BIVECTOR_INERTIA_ND_VALIDATION.md`](BIVECTOR_INERTIA_ND_VALIDATION.md) for the exact equations, admissibility rules, tests, and promotion boundary.
+
+Run the deterministic CSV campaign with:
+
+```bash
+cargo run --release --example anisotropic_reference_campaign -p symtropy-physics --features nd-bivector-9
+```
+
+It checks analytic top dynamics, timestep refinement, an independent RK4 Euler-top attitude and angular-velocity trajectory, contact/energy identities, D=2/3/4/9 inversion, mass scaling, body-frame/world-frame contact equivalence, point-cloud determinism and scale-safe mass-property construction. It is a reference qualification campaign, not a production PhysicsWorld throughput benchmark.
+
+
 ## PhysicsCallback — Custom Force Modulation
 
 ```rust

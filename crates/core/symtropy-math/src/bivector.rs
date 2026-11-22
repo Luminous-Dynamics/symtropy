@@ -3,9 +3,11 @@
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 use nalgebra::{SMatrix, SVector};
 
-/// Maximum supported dimension for bivectors.
-/// D=4 → 6, D=5 → 10, D=6 → 15, D=7 → 21, D=8 → 28, D=9 → 36.
-/// Supports up to 9D physics for dimensional sweep experiments.
+/// Default storage retains six components (D<=4) on the production hot path.
+/// Research builds may opt into 36 components (D<=9) with `nd-bivector-9`.
+#[cfg(not(feature = "nd-bivector-9"))]
+const MAX_BIVECTOR_COMPONENTS: usize = 6;
+#[cfg(feature = "nd-bivector-9")]
 const MAX_BIVECTOR_COMPONENTS: usize = 36;
 
 /// A bivector in D-dimensional space (grade-2 element of the geometric algebra).
@@ -13,8 +15,8 @@ const MAX_BIVECTOR_COMPONENTS: usize = 36;
 /// Bivectors represent oriented planes. In 3D they are dual to pseudovectors.
 /// In ND they properly represent rotations: a rotation happens IN a plane.
 ///
-/// **Stack-allocated**: uses `[f64; 6]` fixed array (max for D=4).
-/// Zero heap allocation — safe for physics hot loops at 60+ Hz.
+/// **Stack-allocated**: default `[f64; 6]` (D<=4); `nd-bivector-9` opts into
+/// `[f64; 36]` research storage (D<=9). Zero heap allocation in both modes.
 ///
 /// Component ordering: lexicographic (i,j) with i < j.
 /// For D=4: [e01, e02, e03, e12, e13, e23].
@@ -23,15 +25,22 @@ pub struct Bivector<const D: usize> {
     components: [f64; MAX_BIVECTOR_COMPONENTS],
 }
 
-// Compile-time assertion: D must be ≤ 9 (36 bivector components max)
-const fn _assert_d_le_9<const D: usize>() {
+// Const-evaluated storage guard. D=5..9 requires the explicit research feature.
+const fn _assert_dimension_supported<const D: usize>() {
     assert!(
         D * (D - 1) / 2 <= MAX_BIVECTOR_COMPONENTS,
-        "Bivector supports D <= 9 (max 36 components)"
+        "Bivector dimension exceeds enabled storage; enable nd-bivector-9 for D<=9"
     );
 }
 
 impl<const D: usize> Bivector<D> {
+    /// Maximum dimension supported by the currently enabled storage feature.
+    pub const MAX_SUPPORTED_DIMENSION: usize = if cfg!(feature = "nd-bivector-9") {
+        9
+    } else {
+        4
+    };
+
     /// Number of independent components: D*(D-1)/2.
     pub const fn num_components() -> usize {
         D * (D - 1) / 2
@@ -40,7 +49,7 @@ impl<const D: usize> Bivector<D> {
     /// Zero bivector.
     #[inline]
     pub fn zero() -> Self {
-        _assert_d_le_9::<D>();
+        _assert_dimension_supported::<D>();
         Self {
             components: [0.0; MAX_BIVECTOR_COMPONENTS],
         }
@@ -157,8 +166,13 @@ impl<const D: usize> Bivector<D> {
         result
     }
 
-    /// Apply this bivector (as angular velocity) to a vector.
-    /// Returns B · v (antisymmetric matrix × vector).
+    /// Apply the antisymmetric matrix represented by this bivector to a vector.
+    ///
+    /// Returns B * v. This is an algebraic matrix action, not automatically the
+    /// physical velocity of a material point under Symtropy's Rotor convention:
+    /// Rotor::from_bivector(B) advances by exp(-B), so physical point velocity
+    /// for the corresponding stored angular rate is -B * r. Use the physics
+    /// integrator's angular_point_velocity helper for that kinematic quantity.
     #[inline]
     pub fn apply_to_vector(&self, v: &SVector<f64, D>) -> SVector<f64, D> {
         self.to_matrix() * v
@@ -167,20 +181,16 @@ impl<const D: usize> Bivector<D> {
     /// Wedge product `a ∧ b`: the bivector representing the oriented plane
     /// spanned by `a` and `b`. Component `(i, j) = a_i*b_j - a_j*b_i`.
     ///
-    /// This is the dimension-agnostic replacement for the 3D cross product
-    /// used to compute torque/angular-impulse from a force/impulse applied
-    /// at an offset from the center of mass.
+    /// This is the dimension-agnostic exterior product. Its argument order
+    /// is purely algebraic: `a ∧ b = -(b ∧ a)`.
     ///
-    /// **Ordering matters** and is chosen to be consistent with
-    /// [`Self::apply_to_vector`]: given an impulse `j` applied at an offset
-    /// `r` from a body's center of mass, the correct torque bivector is
-    /// `Bivector::from_wedge(&j, &r)` (impulse first, offset second) — NOT
-    /// `from_wedge(&r, &j)`. With this ordering,
-    /// `(inv_inertia * Bivector::from_wedge(&j, &r)).apply_to_vector(&r)`
-    /// reproduces the standard `(inv_inertia * (r × j)) × r` lever-arm
-    /// identity from 3D rigid body dynamics (verified in
-    /// `wedge_matches_3d_lever_arm_identity` below); the reversed argument
-    /// order produces the negated (physically wrong) sign.
+    /// For a physical impulse `j` applied at world offset `r`, the stored
+    /// angular-impulse convention paired with `Rotor::from_bivector`'s
+    /// `exp(-B)` update is `r ∧ j` (offset first, impulse second). The
+    /// corresponding physical point-velocity change is `-B * r`. Prefer
+    /// `integrator::angular_impulse_from_point` and
+    /// `integrator::angular_point_velocity` in physics code so torque and
+    /// kinematic sign conventions remain paired.
     #[inline]
     pub fn from_wedge(a: &SVector<f64, D>, b: &SVector<f64, D>) -> Self {
         let mut bv = Self::zero();
@@ -214,6 +224,25 @@ impl<const D: usize> PartialEq for Bivector<D> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn storage_capacity_is_explicit_and_feature_gated() {
+        let expected_components = if cfg!(feature = "nd-bivector-9") {
+            36
+        } else {
+            6
+        };
+        let expected_dimension = if cfg!(feature = "nd-bivector-9") {
+            9
+        } else {
+            4
+        };
+        assert_eq!(Bivector::<3>::MAX_SUPPORTED_DIMENSION, expected_dimension);
+        assert_eq!(
+            std::mem::size_of::<Bivector<3>>(),
+            expected_components * std::mem::size_of::<f64>()
+        );
+    }
 
     #[test]
     fn num_components() {
@@ -324,43 +353,33 @@ mod tests {
         assert!(bv.norm() < 1e-14, "parallel vectors should wedge to zero");
     }
 
-    /// Verifies that `Bivector::from_wedge(&j, &r)` combined with
-    /// `apply_to_vector` reproduces the standard 3D lever-arm identity
-    /// `(inv_i * (r × j)) × r`, which for a unit-inertia body reduces to
-    /// `j * |r|^2 - r * (r·j)` (BAC-CAB expansion). This is the physical
-    /// contract the contact solver's angular-impulse code depends on: torque
-    /// bivector must be built as `from_wedge(&impulse, &r)`, NOT
-    /// `from_wedge(&r, &impulse)`.
+    /// Under the Rotor exp(-B) convention, physical angular impulse is
+    /// represented by r ∧ j and the corresponding point-velocity change is
+    /// -B*r. This must reproduce the standard 3D lever-arm response
+    /// j*|r|^2 - r*(r·j).
     #[test]
-    fn wedge_matches_3d_lever_arm_identity() {
+    fn wedge_matches_3d_lever_arm_identity_under_rotor_sign_convention() {
         let r = SVector::from([1.0, 0.0, 0.0]);
         let j = SVector::from([0.0, 1.0, 0.0]); // impulse along +Y, offset along +X
 
-        let torque = Bivector::<3>::from_wedge(&j, &r);
-        let delta_v_rot = torque.apply_to_vector(&r); // unit inverse-inertia
+        let torque = Bivector::<3>::from_wedge(&r, &j);
+        let delta_v_rot = -torque.apply_to_vector(&r); // unit inverse-inertia
 
-        // Expected: j * |r|^2 - r * (r·j) = (0,1,0)*1 - (1,0,0)*0 = (0,1,0)
         let expected = j * r.norm_squared() - r * r.dot(&j);
         assert!(
             (delta_v_rot - expected).norm() < 1e-14,
             "delta_v_rot = {delta_v_rot:?}, expected = {expected:?}"
         );
 
-        // The normal-direction (n = j here) component must be POSITIVE —
-        // this is the "effective mass" contribution used by the contact
-        // solver and must never be negative (would imply energy injection
-        // if flipped when combined with the solver's sign convention).
-        let n = j.normalize();
         assert!(
-            delta_v_rot.dot(&n) > 0.0,
-            "lever-arm contribution should be positive for this convention"
+            delta_v_rot.dot(&j.normalize()) > 0.0,
+            "lever-arm contribution must separate the bodies along the impulse direction"
         );
 
-        // Reversed argument order must give the negated (wrong) result.
-        let reversed = Bivector::<3>::from_wedge(&r, &j).apply_to_vector(&r);
+        let reversed = -Bivector::<3>::from_wedge(&j, &r).apply_to_vector(&r);
         assert!(
             (reversed + expected).norm() < 1e-14,
-            "reversed wedge order should negate the result"
+            "reversed wedge order must negate the physical response"
         );
     }
 }

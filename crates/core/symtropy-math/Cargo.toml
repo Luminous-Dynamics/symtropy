@@ -13,6 +13,11 @@ readme = "README.md"
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
+[features]
+# Opt in to the larger 36-component research representation for D=5..9.
+# Default production builds retain the compact six-component D<=4 storage.
+nd-bivector-9 = []
+
 [dependencies]
 nalgebra = { version = "0.34", features = ["serde-serialize"] }
 serde = { version = "1.0", features = ["derive"] }
