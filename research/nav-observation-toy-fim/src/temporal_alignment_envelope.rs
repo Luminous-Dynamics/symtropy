@@ -59,11 +59,23 @@ pub struct TemporallyInflatedStudentTProtectionLevels {
     pub inflated_lateral_pl_m: f64,
 }
 
+/// Bounded synchronization-holdover decision under a position-bias budget.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct SynchronizationHoldoverDecision {
+    /// Maximum additional time before synchronization must be refreshed, seconds.
+    pub maximum_additional_holdover_s: f64,
+    /// The timing-derived position budget is satisfied at the current instant.
+    pub budget_satisfied_now: bool,
+    /// The declared maximum search horizon is still inside the position budget.
+    pub budget_satisfied_at_search_limit: bool,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TemporalAlignmentError {
     NonFiniteOrNegativeInput,
     ClockDriftBoundTooLarge,
     InvalidBaseProtectionLevel,
+    InvalidPositionBudget,
     NonFiniteOutput,
 }
 
@@ -73,6 +85,7 @@ impl fmt::Display for TemporalAlignmentError {
             Self::NonFiniteOrNegativeInput => write!(f, "temporal and motion bounds must be finite and nonnegative"),
             Self::ClockDriftBoundTooLarge => write!(f, "relative clock drift bound must not exceed 1,000,000 ppm"),
             Self::InvalidBaseProtectionLevel => write!(f, "base Student-t protection levels must be finite and nonnegative"),
+            Self::InvalidPositionBudget => write!(f, "position budget and maximum holdover horizon must be finite and positive"),
             Self::NonFiniteOutput => write!(f, "temporal misalignment envelope overflowed or became non-finite"),
         }
     }
@@ -162,6 +175,69 @@ pub fn temporal_misalignment_envelope(
 }
 
 
+
+/// Find the maximum additional synchronization holdover before the temporal
+/// position-bias envelope exceeds a declared budget.
+///
+/// The search is monotonic because elapsed clock drift can only increase the
+/// total temporal bound under the declared nonnegative inputs. The function
+/// returns the maximum horizon within `max_search_horizon_s`; if the budget is
+/// already exceeded it returns zero. If the envelope remains below budget for
+/// the whole horizon, the result is capped at that declared search limit.
+///
+/// This is a scheduling aid, not a clock synchronizer or a guarantee that a
+/// later synchronization will succeed. The clock/motion/age bounds must be
+/// qualified independently and re-evaluated after resets or ODD changes.
+pub fn maximum_sync_holdover_under_position_budget(
+    clock_at_decision: TemporalAlignmentBounds,
+    motion: MotionEnvelope,
+    max_position_bias_budget_m: f64,
+    max_search_horizon_s: f64,
+) -> Result<SynchronizationHoldoverDecision, TemporalAlignmentError> {
+    if !max_position_bias_budget_m.is_finite()
+        || max_position_bias_budget_m <= 0.0
+        || !max_search_horizon_s.is_finite()
+        || max_search_horizon_s <= 0.0
+    {
+        return Err(TemporalAlignmentError::InvalidPositionBudget);
+    }
+    let at_elapsed = |additional_s: f64| {
+        let mut clock = clock_at_decision;
+        clock.elapsed_since_sync_s += additional_s;
+        temporal_misalignment_envelope(clock, motion)
+    };
+    let now = at_elapsed(0.0)?;
+    if now.total_position_misalignment_bound_m > max_position_bias_budget_m {
+        return Ok(SynchronizationHoldoverDecision {
+            maximum_additional_holdover_s: 0.0,
+            budget_satisfied_now: false,
+            budget_satisfied_at_search_limit: false,
+        });
+    }
+    let at_limit = at_elapsed(max_search_horizon_s)?;
+    if at_limit.total_position_misalignment_bound_m <= max_position_bias_budget_m {
+        return Ok(SynchronizationHoldoverDecision {
+            maximum_additional_holdover_s: max_search_horizon_s,
+            budget_satisfied_now: true,
+            budget_satisfied_at_search_limit: true,
+        });
+    }
+    let mut low = 0.0_f64;
+    let mut high = max_search_horizon_s;
+    for _ in 0..80 {
+        let midpoint = low + (high - low) * 0.5;
+        if at_elapsed(midpoint)?.total_position_misalignment_bound_m <= max_position_bias_budget_m {
+            low = midpoint;
+        } else {
+            high = midpoint;
+        }
+    }
+    Ok(SynchronizationHoldoverDecision {
+        maximum_additional_holdover_s: low,
+        budget_satisfied_now: true,
+        budget_satisfied_at_search_limit: false,
+    })
+}
 /// Add a deterministic temporal misregistration bound to an existing Student-t PL.
 ///
 /// For any direction, the absolute projection of the position-bias vector is
@@ -281,6 +357,60 @@ mod tests {
         assert!(stale_observation.total_position_misalignment_bound_m > fast_sync.total_position_misalignment_bound_m);
     }
 
+    #[test]
+    fn sync_holdover_solver_finds_budget_crossing_under_clock_drift() {
+        let decision = maximum_sync_holdover_under_position_budget(
+            clock(0.001, 100.0, 0.0, 0.0),
+            motion(5.0, 0.0, 0.0, 0.0, 0.0),
+            0.01,
+            100.0,
+        ).unwrap();
+        assert!(decision.budget_satisfied_now);
+        assert!(!decision.budget_satisfied_at_search_limit);
+        assert!(decision.maximum_additional_holdover_s > 0.0);
+        assert!(decision.maximum_additional_holdover_s < 20.0);
+        let at_boundary = temporal_misalignment_envelope(
+            clock(0.001, 100.0, decision.maximum_additional_holdover_s, 0.0),
+            motion(5.0, 0.0, 0.0, 0.0, 0.0),
+        ).unwrap();
+        assert!(at_boundary.total_position_misalignment_bound_m <= 0.01 + 1.0e-9);
+    }
+
+    #[test]
+    fn sync_holdover_returns_zero_when_budget_is_already_exceeded() {
+        let decision = maximum_sync_holdover_under_position_budget(
+            clock(0.1, 100.0, 10.0, 0.1),
+            motion(10.0, 1.0, 1.0, 1.0, 1.0),
+            0.01,
+            100.0,
+        ).unwrap();
+        assert_eq!(decision.maximum_additional_holdover_s, 0.0);
+        assert!(!decision.budget_satisfied_now);
+    }
+
+    #[test]
+    fn sync_holdover_caps_at_search_limit_when_clock_drift_is_zero() {
+        let decision = maximum_sync_holdover_under_position_budget(
+            clock(0.001, 0.0, 10.0, 0.0),
+            motion(1.0, 0.0, 0.0, 0.0, 0.0),
+            0.01,
+            250.0,
+        ).unwrap();
+        assert_eq!(decision.maximum_additional_holdover_s, 250.0);
+        assert!(decision.budget_satisfied_at_search_limit);
+    }
+
+    #[test]
+    fn invalid_sync_budget_or_search_horizon_fails_closed() {
+        assert_eq!(
+            maximum_sync_holdover_under_position_budget(clock(0.0, 0.0, 0.0, 0.0), motion(0.0, 0.0, 0.0, 0.0, 0.0), 0.0, 10.0),
+            Err(TemporalAlignmentError::InvalidPositionBudget)
+        );
+        assert_eq!(
+            maximum_sync_holdover_under_position_budget(clock(0.0, 0.0, 0.0, 0.0), motion(0.0, 0.0, 0.0, 0.0, 0.0), 0.1, f64::NAN),
+            Err(TemporalAlignmentError::InvalidPositionBudget)
+        );
+    }
     #[test]
     fn temporal_bias_is_added_to_statistical_pl_without_independence_assumption() {
         let temporal = temporal_misalignment_envelope(
