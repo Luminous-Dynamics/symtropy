@@ -832,20 +832,14 @@ pub mod impact_enclosure {
         }
     }
 
-    fn validate_non_empty(
-        value: &str,
-        field: &'static str,
-    ) -> Result<(), ImpactEnclosureError> {
+    fn validate_non_empty(value: &str, field: &'static str) -> Result<(), ImpactEnclosureError> {
         if value.trim().is_empty() {
             return Err(ImpactEnclosureError::EmptyIdentity(field));
         }
         Ok(())
     }
 
-    fn validate_sha256(
-        value: &str,
-        field: &'static str,
-    ) -> Result<(), ImpactEnclosureError> {
+    fn validate_sha256(value: &str, field: &'static str) -> Result<(), ImpactEnclosureError> {
         if value.len() != 64 || !value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
             return Err(ImpactEnclosureError::InvalidSha256(field));
         }
@@ -857,8 +851,9 @@ pub mod impact_enclosure {
         time: &Rational,
     ) -> Result<Rational, HybridMathError> {
         let time_squared = time.checked_mul(time)?;
-        let gravity_time_squared =
-            model.gravity_m_per_time_squared.checked_mul(&time_squared)?;
+        let gravity_time_squared = model
+            .gravity_m_per_time_squared
+            .checked_mul(&time_squared)?;
         let gravity_term = gravity_time_squared.checked_div(&Rational::integer(2))?;
         let velocity_term = model.initial_velocity_m_per_time.checked_mul(time)?;
         model
