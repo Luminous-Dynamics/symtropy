@@ -707,5 +707,47 @@
     }
   ],
   "export_permission": null,
-  "claim_ceiling": "Deterministic model-level reserve-envelope verification only; no grid export permission, electrical dispatch authority, battery safety qualification, flight authorization, return-to-service authority or commercial performance claim."
+  "claim_ceiling": "Deterministic model-level reserve-envelope verification only; no grid export permission, electrical dispatch authority, battery safety qualification, flight authorization, return-to-service authority or commercial performance claim.",
+  "resource_dispatch": [
+    {
+      "resource_id": "ess-01",
+      "slot": 0,
+      "requested_discharge_power_w": 2000
+    },
+    {
+      "resource_id": "ess-01",
+      "slot": 1,
+      "requested_discharge_power_w": 1700
+    },
+    {
+      "resource_id": "ess-01",
+      "slot": 2,
+      "requested_discharge_power_w": 1300
+    },
+    {
+      "resource_id": "ess-01",
+      "slot": 3,
+      "requested_discharge_power_w": 300
+    },
+    {
+      "resource_id": "ess-02",
+      "slot": 0,
+      "requested_discharge_power_w": 200
+    },
+    {
+      "resource_id": "ess-02",
+      "slot": 1,
+      "requested_discharge_power_w": 800
+    },
+    {
+      "resource_id": "ess-02",
+      "slot": 2,
+      "requested_discharge_power_w": 700
+    },
+    {
+      "resource_id": "ess-02",
+      "slot": 3,
+      "requested_discharge_power_w": 500
+    }
+  ]
 }
