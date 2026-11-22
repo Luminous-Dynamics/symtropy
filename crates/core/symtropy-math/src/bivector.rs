@@ -364,9 +364,18 @@ mod tests {
         use crate::rotor::Rotor;
 
         let cases = [
-            (SVector::from([0.0, 1.0, 0.0]), SVector::from([0.0, 0.0, 1.0])),
-            (SVector::from([0.0, 0.0, 1.0]), SVector::from([1.0, 0.0, 0.0])),
-            (SVector::from([1.0, 0.0, 0.0]), SVector::from([0.0, 1.0, 0.0])),
+            (
+                SVector::from([0.0, 1.0, 0.0]),
+                SVector::from([0.0, 0.0, 1.0]),
+            ),
+            (
+                SVector::from([0.0, 0.0, 1.0]),
+                SVector::from([1.0, 0.0, 0.0]),
+            ),
+            (
+                SVector::from([1.0, 0.0, 0.0]),
+                SVector::from([0.0, 1.0, 0.0]),
+            ),
         ];
 
         for (offset, impulse) in cases {
