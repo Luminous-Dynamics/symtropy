@@ -58,6 +58,9 @@ pub struct EmpiricalSpatialFit {
     pub protocol_fingerprint: String,
     pub reference_contract_id: String,
     pub coordinates_m: Vec<[f64; 3]>,
+    pub length_scale_candidates_m: Vec<f64>,
+    pub maximum_validation_correlation_error: f64,
+    pub negative_lobe_z_threshold: f64,
     pub length_scale_m: f64,
     /// Correlated stationary component S, in (m/s)^2.
     pub spatial_component_covariance_m2_s2: Matrix3,
@@ -506,6 +509,9 @@ pub fn fit_spatial_error_kernel(
         protocol_fingerprint: config.protocol_fingerprint.clone(),
         reference_contract_id: config.reference_contract_id.clone(),
         coordinates_m: coordinates.clone(),
+        length_scale_candidates_m: config.length_scale_candidates_m.clone(),
+        maximum_validation_correlation_error: config.maximum_validation_correlation_error,
+        negative_lobe_z_threshold: config.negative_lobe_z_threshold,
         length_scale_m: best.length_scale_m,
         spatial_component_covariance_m2_s2: best.spatial_covariance,
         local_nugget_covariance_m2_s2: best.nugget_covariance,
@@ -559,8 +565,6 @@ pub fn validate_spatial_error_kernel(
     validation_fields: &[ResidualField],
     validation_manifest_sha256: &str,
     receipt_id: &str,
-    maximum_allowed_correlation_error: f64,
-    negative_lobe_z_threshold: f64,
 ) -> Result<SpatialFitValidation, SpatialFitError> {
     if receipt_id.trim().is_empty() {
         return Err(SpatialFitError::EmptyIdentity { field: "receipt_id" });
@@ -568,10 +572,11 @@ pub fn validate_spatial_error_kernel(
     if !valid_sha256(validation_manifest_sha256) {
         return Err(SpatialFitError::InvalidManifestDigest);
     }
-    if !maximum_allowed_correlation_error.is_finite()
-        || maximum_allowed_correlation_error <= 0.0
-        || !negative_lobe_z_threshold.is_finite()
-        || negative_lobe_z_threshold < 1.96
+    if !fit.maximum_validation_correlation_error.is_finite()
+        || fit.maximum_validation_correlation_error <= 0.0
+        || !fit.negative_lobe_z_threshold.is_finite()
+        || fit.negative_lobe_z_threshold < 1.96
+        || fit.length_scale_candidates_m.len() < 3
     {
         return Err(SpatialFitError::InvalidFitConfiguration);
     }
@@ -680,7 +685,7 @@ pub fn validate_spatial_error_kernel(
                 maximum_error = maximum_error.max((observed_mean - predicted_mean).abs());
             }
             if let Some((mean, standard_error)) = sample_mean_and_se(&diagonal_correlations[bin_index][a]) {
-                if mean < -negative_lobe_z_threshold * standard_error {
+                if mean < -fit.negative_lobe_z_threshold * standard_error {
                     negative_lobe = true;
                 }
             }
@@ -700,7 +705,7 @@ pub fn validate_spatial_error_kernel(
 
     let status = if negative_lobe {
         QualificationStatus::RejectedNegativeCorrelationLobe
-    } else if maximum_error > maximum_allowed_correlation_error {
+    } else if maximum_error > fit.maximum_validation_correlation_error {
         QualificationStatus::RejectedHeldOutCorrelationFit
     } else {
         QualificationStatus::Qualified
@@ -712,7 +717,7 @@ pub fn validate_spatial_error_kernel(
         validation_manifest_sha256: validation_manifest_sha256.to_ascii_lowercase(),
         receipt_id: receipt_id.to_owned(),
         maximum_absolute_correlation_fit_error: maximum_error,
-        maximum_allowed_absolute_correlation_fit_error: maximum_allowed_correlation_error,
+        maximum_allowed_absolute_correlation_fit_error: fit.maximum_validation_correlation_error,
         negative_correlation_lobe_detected: negative_lobe,
         maximum_validation_mean_bias_shift_m_s: maximum_bias_shift,
         lag_bin_width_m: spacing,
@@ -833,7 +838,7 @@ mod tests {
         assert!(fit.spatial_component_covariance_m2_s2[0][0] > 0.0);
         assert!(fit.local_nugget_covariance_m2_s2[0][0] >= 0.0);
         let report = validate_spatial_error_kernel(
-            &fit, &validation, &"b".repeat(64), "heldout-receipt-001", 0.10, 1.96,
+            &fit, &validation, &"b".repeat(64), "heldout-receipt-001",
         ).unwrap();
         assert_eq!(report.status, QualificationStatus::Qualified);
         let kernel = report.to_spatial_error_kernel(&fit).unwrap();
@@ -856,7 +861,7 @@ mod tests {
         let fit = fit_spatial_error_kernel(&calibration, &config(), &"a".repeat(64)).unwrap();
         let validation = calibration.clone();
         assert!(matches!(
-            validate_spatial_error_kernel(&fit, &validation, &"b".repeat(64), "r", 0.1, 1.96),
+            validate_spatial_error_kernel(&fit, &validation, &"b".repeat(64), "r"),
             Err(SpatialFitError::CalibrationValidationOverlap)
         ));
     }
@@ -881,7 +886,7 @@ mod tests {
             field.residuals_m_s = vec![[sign, 0.0, 0.0], [-sign, 0.0, 0.0], [sign, 0.0, 0.0]];
         }
         let report = validate_spatial_error_kernel(
-            &fit, &validation, &"b".repeat(64), "negative-lobe-receipt", 0.10, 1.96,
+            &fit, &validation, &"b".repeat(64), "negative-lobe-receipt",
         ).unwrap();
         assert!(report.negative_correlation_lobe_detected);
         assert_eq!(report.status, QualificationStatus::RejectedNegativeCorrelationLobe);
@@ -936,7 +941,7 @@ mod tests {
             field.residuals_m_s[0][0] += 2.0;
         }
         let report = validate_spatial_error_kernel(
-            &fit, &validation, &"b".repeat(64), "shifted-receipt", 0.10, 1.96,
+            &fit, &validation, &"b".repeat(64), "shifted-receipt",
         ).unwrap();
         assert!(report.maximum_validation_mean_bias_shift_m_s > 1.0);
         // Bias is reported separately; correlation covariance does not absorb it.
