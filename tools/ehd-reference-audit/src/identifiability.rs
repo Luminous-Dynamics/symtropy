@@ -44,6 +44,12 @@ pub enum IdentifiabilityError {
     InvalidObservationBudget,
     SearchSpaceLimitExceeded { limit: usize },
     NoIdentifiableDesign,
+    EmptyRobustScenarioSet,
+    EmptyRobustScenarioId { scenario: usize },
+    DuplicateRobustScenarioId { scenario: usize },
+    RobustScenarioCandidateCountMismatch { scenario: usize },
+    ZeroNuisanceInformation { scenario: usize },
+    NoRobustIdentifiableDesign,
 }
 
 impl fmt::Display for IdentifiabilityError {
@@ -62,6 +68,12 @@ impl fmt::Display for IdentifiabilityError {
             Self::InvalidObservationBudget => write!(f, "design tournament observation budget must be between 1 and 32"),
             Self::SearchSpaceLimitExceeded { limit } => write!(f, "design tournament search exceeded its evaluation limit of {limit}"),
             Self::NoIdentifiableDesign => write!(f, "no full-rank design exists within the candidate set and observation budget"),
+            Self::EmptyRobustScenarioSet => write!(f, "robust design requires at least one declared scenario"),
+            Self::EmptyRobustScenarioId { scenario } => write!(f, "robust design scenario {scenario} has an empty identity"),
+            Self::DuplicateRobustScenarioId { scenario } => write!(f, "robust design scenario {scenario} duplicates an earlier identity"),
+            Self::RobustScenarioCandidateCountMismatch { scenario } => write!(f, "robust design scenario {scenario} has a different candidate count"),
+            Self::ZeroNuisanceInformation { scenario } => write!(f, "robust design scenario {scenario} has no information for the declared nuisance channel"),
+            Self::NoRobustIdentifiableDesign => write!(f, "no allocation remains identifiable in every declared robust scenario"),
         }
     }
 }
@@ -695,3 +707,480 @@ mod tests {
         );
     }
 
+
+
+/// One candidate measurement condition with two physical sensitivities and
+/// one explicitly modelled nuisance sensitivity. This remains a manufactured
+/// design row until a source-pinned EHD observation model supplies the values.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct NuisanceCandidateCondition {
+    pub physical_sensitivity: [f64; 2],
+    pub nuisance_sensitivity: f64,
+    pub observation_variance: f64,
+}
+
+/// A frozen scenario for the nuisance-adjusted robust design tournament.
+/// Each scenario must describe the same candidate-condition identities/order.
+#[derive(Clone, Debug, PartialEq)]
+pub struct RobustDesignScenario {
+    pub scenario_id: String,
+    pub candidates: Vec<NuisanceCandidateCondition>,
+}
+
+/// Per-scenario information after profiling the declared scalar nuisance
+/// parameter from the weighted linear observation model.
+#[derive(Clone, Debug, PartialEq)]
+pub struct NuisanceAdjustedScenarioScore {
+    pub scenario_id: String,
+    pub effective_information_matrix: [[f64; 2]; 2],
+    pub singular_values: [f64; 2],
+    pub minimum_information_eigenvalue: f64,
+    pub numerical_rank: usize,
+    pub condition_number: Option<f64>,
+}
+
+/// A candidate allocation and its worst-case score over all frozen scenarios.
+#[derive(Clone, Debug, PartialEq)]
+pub struct RobustDesignScore {
+    pub candidate_indices: Vec<usize>,
+    pub worst_case_minimum_information_eigenvalue: f64,
+    pub scenario_scores: Vec<NuisanceAdjustedScenarioScore>,
+}
+
+/// Result of a matched-budget nuisance-adjusted maximin tournament.
+#[derive(Clone, Debug, PartialEq)]
+pub struct RobustDesignTournament {
+    pub observation_budget: usize,
+    pub evaluated_design_count: usize,
+    /// Allocations full-rank after nuisance projection in every scenario.
+    pub robust_identifiable_design_count: usize,
+    pub robust_optimal: RobustDesignScore,
+}
+
+fn validate_robust_scenarios(
+    scenarios: &[RobustDesignScenario],
+) -> Result<usize, IdentifiabilityError> {
+    let first = scenarios.first().ok_or(IdentifiabilityError::EmptyRobustScenarioSet)?;
+    if first.scenario_id.trim().is_empty() {
+        return Err(IdentifiabilityError::EmptyRobustScenarioId { scenario: 0 });
+    }
+    if first.candidates.is_empty() {
+        return Err(IdentifiabilityError::InvalidCandidateCount);
+    }
+    let candidate_count = first.candidates.len();
+    for (scenario_index, scenario) in scenarios.iter().enumerate() {
+        if scenario.scenario_id.trim().is_empty() {
+            return Err(IdentifiabilityError::EmptyRobustScenarioId { scenario: scenario_index });
+        }
+        if scenarios[..scenario_index]
+            .iter()
+            .any(|previous| previous.scenario_id == scenario.scenario_id)
+        {
+            return Err(IdentifiabilityError::DuplicateRobustScenarioId { scenario: scenario_index });
+        }
+        if scenario.candidates.len() != candidate_count {
+            return Err(IdentifiabilityError::RobustScenarioCandidateCountMismatch {
+                scenario: scenario_index,
+            });
+        }
+        for (candidate_index, candidate) in scenario.candidates.iter().enumerate() {
+            for column in 0..2 {
+                if !candidate.physical_sensitivity[column].is_finite() {
+                    return Err(IdentifiabilityError::NonFiniteDesign {
+                        row: candidate_index,
+                        column,
+                    });
+                }
+            }
+            if !candidate.nuisance_sensitivity.is_finite() {
+                return Err(IdentifiabilityError::NonFiniteDerivedValue);
+            }
+            if !candidate.observation_variance.is_finite()
+                || candidate.observation_variance <= 0.0
+            {
+                return Err(IdentifiabilityError::InvalidVariance { row: candidate_index });
+            }
+        }
+    }
+    Ok(candidate_count)
+}
+
+/// Form the physical Fisher information after profiling one scalar nuisance
+/// response. For whitened design columns X and nuisance vector q, this computes
+/// the Schur complement X'X - X'q(q'q)^-1q'X. It does not treat nuisance
+/// sensitivity as extra physical information.
+pub fn nuisance_adjusted_scenario_score(
+    candidate_indices: &[usize],
+    scenario: &RobustDesignScenario,
+    parameter_scales: [f64; 2],
+    relative_rank_tolerance: f64,
+) -> Result<NuisanceAdjustedScenarioScore, IdentifiabilityError> {
+    if candidate_indices.is_empty() {
+        return Err(IdentifiabilityError::EmptyDesign);
+    }
+    if !relative_rank_tolerance.is_finite()
+        || relative_rank_tolerance <= 0.0
+        || relative_rank_tolerance >= 1.0
+    {
+        return Err(IdentifiabilityError::InvalidRankTolerance);
+    }
+    for (parameter, scale) in parameter_scales.iter().enumerate() {
+        if !scale.is_finite() || *scale <= 0.0 {
+            return Err(IdentifiabilityError::InvalidParameterScale { parameter });
+        }
+    }
+
+    let mut nuisance_norm_squared = 0.0_f64;
+    let mut nuisance_dot_physical = [0.0_f64; 2];
+    let mut whitened_physical = Vec::with_capacity(candidate_indices.len());
+    let mut whitened_nuisance = Vec::with_capacity(candidate_indices.len());
+
+    for (row, candidate_index) in candidate_indices.iter().copied().enumerate() {
+        let candidate = scenario
+            .candidates
+            .get(candidate_index)
+            .ok_or(IdentifiabilityError::LengthMismatch)?;
+        if !candidate.observation_variance.is_finite()
+            || candidate.observation_variance <= 0.0
+        {
+            return Err(IdentifiabilityError::InvalidVariance { row });
+        }
+        if !candidate.nuisance_sensitivity.is_finite()
+            || !candidate.physical_sensitivity.iter().all(|value| value.is_finite())
+        {
+            return Err(IdentifiabilityError::NonFiniteDerivedValue);
+        }
+        let inverse_sigma = 1.0 / candidate.observation_variance.sqrt();
+        let nuisance = candidate.nuisance_sensitivity * inverse_sigma;
+        let physical = [
+            candidate.physical_sensitivity[0] * parameter_scales[0] * inverse_sigma,
+            candidate.physical_sensitivity[1] * parameter_scales[1] * inverse_sigma,
+        ];
+        if !nuisance.is_finite() || !physical.iter().all(|value| value.is_finite()) {
+            return Err(IdentifiabilityError::NonFiniteDerivedValue);
+        }
+        nuisance_norm_squared = nuisance.mul_add(nuisance, nuisance_norm_squared);
+        for column in 0..2 {
+            nuisance_dot_physical[column] =
+                nuisance.mul_add(physical[column], nuisance_dot_physical[column]);
+        }
+        whitened_nuisance.push(nuisance);
+        whitened_physical.push(physical);
+    }
+
+    if !nuisance_norm_squared.is_finite() || nuisance_norm_squared <= 0.0 {
+        return Err(IdentifiabilityError::ZeroNuisanceInformation { scenario: 0 });
+    }
+    let projection_coefficients = [
+        nuisance_dot_physical[0] / nuisance_norm_squared,
+        nuisance_dot_physical[1] / nuisance_norm_squared,
+    ];
+
+    let mut residual_columns = [
+        Vec::with_capacity(candidate_indices.len()),
+        Vec::with_capacity(candidate_indices.len()),
+    ];
+    let mut g00 = 0.0_f64;
+    let mut g01 = 0.0_f64;
+    let mut g11 = 0.0_f64;
+    for row in 0..candidate_indices.len() {
+        let residual = [
+            whitened_physical[row][0]
+                - whitened_nuisance[row] * projection_coefficients[0],
+            whitened_physical[row][1]
+                - whitened_nuisance[row] * projection_coefficients[1],
+        ];
+        if !residual.iter().all(|value| value.is_finite()) {
+            return Err(IdentifiabilityError::NonFiniteDerivedValue);
+        }
+        residual_columns[0].push(residual[0]);
+        residual_columns[1].push(residual[1]);
+        g00 = residual[0].mul_add(residual[0], g00);
+        g01 = residual[0].mul_add(residual[1], g01);
+        g11 = residual[1].mul_add(residual[1], g11);
+    }
+    if ![g00, g01, g11].iter().all(|value| value.is_finite()) {
+        return Err(IdentifiabilityError::NonFiniteDerivedValue);
+    }
+
+    // One-sided Jacobi rotation on the nuisance-projected columns retains the
+    // small singular direction without relying on cancellation-prone det(F).
+    let tau = if g01 == 0.0 { 0.0 } else { (g11 - g00) / (2.0 * g01) };
+    let tangent = if g01 == 0.0 {
+        0.0
+    } else {
+        let sign = if tau.is_sign_negative() { -1.0 } else { 1.0 };
+        sign / (tau.abs() + tau.hypot(1.0))
+    };
+    let cosine = 1.0 / tangent.hypot(1.0);
+    let sine = tangent * cosine;
+    let mut rotated_norm_0 = 0.0_f64;
+    let mut rotated_norm_1 = 0.0_f64;
+    for row in 0..candidate_indices.len() {
+        let rotated_0 = cosine.mul_add(
+            residual_columns[0][row],
+            -sine * residual_columns[1][row],
+        );
+        let rotated_1 = sine.mul_add(
+            residual_columns[0][row],
+            cosine * residual_columns[1][row],
+        );
+        rotated_norm_0 = rotated_0.mul_add(rotated_0, rotated_norm_0);
+        rotated_norm_1 = rotated_1.mul_add(rotated_1, rotated_norm_1);
+    }
+    if !rotated_norm_0.is_finite() || !rotated_norm_1.is_finite() {
+        return Err(IdentifiabilityError::NonFiniteDerivedValue);
+    }
+    let lambda_max = rotated_norm_0.max(rotated_norm_1);
+    let lambda_min = rotated_norm_0.min(rotated_norm_1);
+    let singular_values = [lambda_max.sqrt(), lambda_min.sqrt()];
+    let rank_threshold = relative_rank_tolerance * singular_values[0];
+    let numerical_rank = singular_values
+        .iter()
+        .filter(|value| **value > rank_threshold)
+        .count();
+    let condition_number = if singular_values[1] > 0.0 {
+        Some(singular_values[0] / singular_values[1])
+    } else {
+        None
+    };
+    Ok(NuisanceAdjustedScenarioScore {
+        scenario_id: scenario.scenario_id.clone(),
+        effective_information_matrix: [[g00, g01], [g01, g11]],
+        singular_values,
+        minimum_information_eigenvalue: lambda_min,
+        numerical_rank,
+        condition_number,
+    })
+}
+
+/// Exhaustively select a fixed-budget allocation maximizing the minimum
+/// nuisance-adjusted weakest-direction information over every frozen scenario.
+/// Allocations rank-deficient in any scenario are excluded rather than rescued
+/// by averaging, nominal weighting or unmodelled regularization.
+pub fn select_robust_nuisance_adjusted_design(
+    scenarios: &[RobustDesignScenario],
+    observation_budget: usize,
+    parameter_scales: [f64; 2],
+    relative_rank_tolerance: f64,
+    max_evaluations: usize,
+) -> Result<RobustDesignTournament, IdentifiabilityError> {
+    let candidate_count = validate_robust_scenarios(scenarios)?;
+    if observation_budget == 0 || observation_budget > MAX_DISCRETE_OBSERVATION_BUDGET {
+        return Err(IdentifiabilityError::InvalidObservationBudget);
+    }
+    if max_evaluations == 0 {
+        return Err(IdentifiabilityError::SearchSpaceLimitExceeded { limit: 0 });
+    }
+    let mut designs = Vec::new();
+    enumerate_designs(
+        candidate_count,
+        0,
+        observation_budget,
+        &mut Vec::with_capacity(observation_budget),
+        &mut designs,
+        max_evaluations,
+    )?;
+
+    let mut robust_optimal: Option<RobustDesignScore> = None;
+    let mut robust_identifiable_design_count = 0usize;
+    for candidate_indices in &designs {
+        let mut scenario_scores = Vec::with_capacity(scenarios.len());
+        let mut worst_case = f64::INFINITY;
+        let mut identifiable_in_all_scenarios = true;
+        for scenario in scenarios {
+            let score = nuisance_adjusted_scenario_score(
+                candidate_indices,
+                scenario,
+                parameter_scales,
+                relative_rank_tolerance,
+            )?;
+            if score.numerical_rank != 2 {
+                identifiable_in_all_scenarios = false;
+                break;
+            }
+            worst_case = worst_case.min(score.minimum_information_eigenvalue);
+            scenario_scores.push(score);
+        }
+        if !identifiable_in_all_scenarios {
+            continue;
+        }
+        robust_identifiable_design_count += 1;
+        let score = RobustDesignScore {
+            candidate_indices: candidate_indices.clone(),
+            worst_case_minimum_information_eigenvalue: worst_case,
+            scenario_scores,
+        };
+        let replace = robust_optimal.as_ref().is_none_or(|incumbent| {
+            score
+                .worst_case_minimum_information_eigenvalue
+                .total_cmp(&incumbent.worst_case_minimum_information_eigenvalue)
+                .is_gt()
+                || (score
+                    .worst_case_minimum_information_eigenvalue
+                    .total_cmp(&incumbent.worst_case_minimum_information_eigenvalue)
+                    .is_eq()
+                    && score.candidate_indices < incumbent.candidate_indices)
+        });
+        if replace {
+            robust_optimal = Some(score);
+        }
+    }
+
+    Ok(RobustDesignTournament {
+        observation_budget,
+        evaluated_design_count: designs.len(),
+        robust_identifiable_design_count,
+        robust_optimal: robust_optimal.ok_or(IdentifiabilityError::NoRobustIdentifiableDesign)?,
+    })
+}
+
+/// Two explicitly manufactured scenarios using the D/E tournament's four
+/// abstract physical sensitivity rows. Scenario 2 increases only candidate 2's
+/// observation variance eightfold. The shared nuisance channel is a unit
+/// offset response; no row represents a real EHD operating condition.
+pub fn robust_tournament_reference_scenarios() -> Vec<RobustDesignScenario> {
+    let physical = [
+        [-3.0, -3.0],
+        [-3.0, -2.0],
+        [-3.0, -1.0],
+        [-2.0, 0.0],
+    ];
+    let nominal = physical
+        .iter()
+        .map(|sensitivity| NuisanceCandidateCondition {
+            physical_sensitivity: *sensitivity,
+            nuisance_sensitivity: 1.0,
+            observation_variance: 1.0,
+        })
+        .collect();
+    let elevated_noise = physical
+        .iter()
+        .enumerate()
+        .map(|(index, sensitivity)| NuisanceCandidateCondition {
+            physical_sensitivity: *sensitivity,
+            nuisance_sensitivity: 1.0,
+            observation_variance: if index == 2 { 8.0 } else { 1.0 },
+        })
+        .collect();
+    vec![
+        RobustDesignScenario {
+            scenario_id: "nominal_unit_noise".to_owned(),
+            candidates: nominal,
+        },
+        RobustDesignScenario {
+            scenario_id: "candidate_2_eightfold_variance".to_owned(),
+            candidates: elevated_noise,
+        },
+    ]
+}
+
+pub fn robust_tournament_reference_self_check() -> Result<(), IdentifiabilityError> {
+    let scenarios = robust_tournament_reference_scenarios();
+    let result = select_robust_nuisance_adjusted_design(
+        &scenarios,
+        3,
+        [1.0, 1.0],
+        1.0e-12,
+        100,
+    )?;
+    if result.evaluated_design_count != 20
+        || result.robust_identifiable_design_count != 3
+        || result.robust_optimal.candidate_indices != [0, 1, 3]
+        || (result.robust_optimal.worst_case_minimum_information_eigenvalue
+            - 0.06325010803111508)
+            .abs()
+            > 1.0e-10
+        || result.robust_optimal.scenario_scores.len() != 2
+        || result.robust_optimal.scenario_scores.iter().any(|score| {
+            score.numerical_rank != 2
+                || (score.minimum_information_eigenvalue - 0.06325010803111508).abs()
+                    > 1.0e-10
+        })
+    {
+        return Err(IdentifiabilityError::NonFiniteDerivedValue);
+    }
+    let nominal_e_design = nuisance_adjusted_scenario_score(
+        &[0, 3, 3],
+        &scenarios[0],
+        [1.0, 1.0],
+        1.0e-12,
+    )?;
+    if nominal_e_design.numerical_rank == 2 {
+        return Err(IdentifiabilityError::NonFiniteDerivedValue);
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod robust_design_tests {
+    use super::*;
+
+    #[test]
+    fn nuisance_adjusted_maximin_changes_selection_under_declared_noise_envelope() {
+        let result = select_robust_nuisance_adjusted_design(
+            &robust_tournament_reference_scenarios(),
+            3,
+            [1.0, 1.0],
+            1.0e-12,
+            100,
+        ).unwrap();
+        assert_eq!(result.evaluated_design_count, 20);
+        assert_eq!(result.robust_identifiable_design_count, 3);
+        assert_eq!(result.robust_optimal.candidate_indices, [0, 1, 3]);
+        assert!((result.robust_optimal.worst_case_minimum_information_eigenvalue
+            - 0.06325010803111508).abs() < 1.0e-10);
+    }
+
+    #[test]
+    fn offset_confounded_allocation_is_not_treated_as_physically_identifiable() {
+        let scenarios = robust_tournament_reference_scenarios();
+        let score = nuisance_adjusted_scenario_score(&[0, 3, 3], &scenarios[0], [1.0, 1.0], 1.0e-12)
+            .unwrap();
+        assert_eq!(score.numerical_rank, 1);
+        assert!(score.condition_number.is_none());
+    }
+
+    #[test]
+    fn no_robustly_identifiable_allocation_fails_closed() {
+        let scenario = RobustDesignScenario {
+            scenario_id: "all_physical_responses_identical".to_owned(),
+            candidates: vec![
+                NuisanceCandidateCondition {
+                    physical_sensitivity: [2.0, 1.0],
+                    nuisance_sensitivity: 1.0,
+                    observation_variance: 1.0,
+                };
+                4
+            ],
+        };
+        assert_eq!(
+            select_robust_nuisance_adjusted_design(
+                &[scenario], 3, [1.0, 1.0], 1.0e-12, 100
+            ).unwrap_err(),
+            IdentifiabilityError::NoRobustIdentifiableDesign
+        );
+    }
+
+    #[test]
+    fn duplicate_scenario_identity_is_rejected() {
+        let mut scenarios = robust_tournament_reference_scenarios();
+        scenarios[1].scenario_id = scenarios[0].scenario_id.clone();
+        assert!(matches!(
+            select_robust_nuisance_adjusted_design(&scenarios, 3, [1.0, 1.0], 1.0e-12, 100),
+            Err(IdentifiabilityError::DuplicateRobustScenarioId { scenario: 1 })
+        ));
+    }
+
+    #[test]
+    fn nuisance_information_absence_is_rejected() {
+        let mut scenarios = robust_tournament_reference_scenarios();
+        for candidate in &mut scenarios[0].candidates {
+            candidate.nuisance_sensitivity = 0.0;
+        }
+        assert!(matches!(
+            nuisance_adjusted_scenario_score(&[0, 1, 3], &scenarios[0], [1.0, 1.0], 1.0e-12),
+            Err(IdentifiabilityError::ZeroNuisanceInformation { scenario: 0 })
+        ));
+    }
+}
