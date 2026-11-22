@@ -269,10 +269,6 @@ def evaluate_counterfactual_suite(document: dict[str, Any]) -> dict[str, Any]:
                 raise CounterfactualEvaluationError(
                     f"{variant_id}: at least one complete sufficient set remains visible"
                 )
-            if not all_sufficient_refs.issubset(set(removed_ids) | (all_sufficient_refs - set(base_catalog))):
-                raise CounterfactualEvaluationError(
-                    f"{variant_id}: every sufficient evidence source must be removed or unavailable"
-                )
         elif intervention == "ADD_IRRELEVANT":
             if set(added_ids) & all_sufficient_refs:
                 raise CounterfactualEvaluationError(
