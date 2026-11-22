@@ -118,6 +118,8 @@ This is a bounded exhaustive scheduler for up to four jobs, three charger channe
 
 The objective is lexicographic: maximize completed jobs, minimize total waiting slots, minimize makespan, then deterministic identifiers.
 
+The charger maximum power and supported pack-configuration digests are nested inside a separate time-bound capability evidence record; charger availability is also evidenced across the horizon. Each grid slot carries its import cap and non-charging site load inside an evidence envelope bound to the exact site/configuration and covering the whole slot. Pack cooling-state evidence is checked at the candidate start time. These values are still declarative inputs in this prototype; cryptographic payload authentication and independent metering are not implemented.
+
 Charger capability (maximum power and exact supported pack configuration digests) and each grid slot's import cap/base load are nested inside their own evidence-bearing records, bound to exact charger/site identity and configuration. Charger/site evidence covers the whole scheduling horizon; each grid evidence record covers its full slot. Pack cooling-state evidence must remain valid at the proposed charge start. It reports declared grid input in watt-seconds (= requested charger input power × duration seconds). This is not pack-terminal energy: charging efficiency, charge curves, battery degradation and thermal evolution are not modeled.
 
 The synthetic fixture has four jobs, two charger channels and six 15-minute slots. Its exact known answer schedules:
