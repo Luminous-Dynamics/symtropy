@@ -434,7 +434,10 @@ mod tests {
         assert!(report.chart_covered_cells > 0);
         assert!(report.event_free_cells > 0);
         assert!(report.unresolved_cells > 0);
-        assert!(report.residual_event_mass_upper_bound > 0.0);
+        let hidden_mode_mass = crate::standard_normal_interval_log_probability(2.8, 3.2)
+            .expect("analytic hidden-mode probability")
+            .exp();
+        assert!(report.residual_event_mass_upper_bound >= hidden_mode_mass);
     }
 
     #[test]
