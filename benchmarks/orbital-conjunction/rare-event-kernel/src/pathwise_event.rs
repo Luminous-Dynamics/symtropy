@@ -39,6 +39,7 @@ pub struct HorizonEventDefinition {
     horizon_start_seconds: f64,
     horizon_end_seconds: f64,
     hard_body_radius_m: f64,
+    window_inventory_coverage: WindowInventoryCoverage,
     windows: Vec<EncounterWindow>,
 }
 
@@ -58,6 +59,7 @@ impl HorizonEventDefinition {
         horizon_start_seconds: f64,
         horizon_end_seconds: f64,
         hard_body_radius_m: f64,
+        window_inventory_coverage: WindowInventoryCoverage,
         mut windows: Vec<EncounterWindow>,
     ) -> Result<Self, KernelError> {
         let event_id = event_id.into();
@@ -124,6 +126,7 @@ impl HorizonEventDefinition {
             horizon_start_seconds,
             horizon_end_seconds,
             hard_body_radius_m,
+            window_inventory_coverage,
             windows,
         })
     }
@@ -166,6 +169,14 @@ impl HorizonEventDefinition {
     /// Hard-body radius in metres used by the declared event definition.
     pub fn hard_body_radius_m(&self) -> f64 {
         self.hard_body_radius_m
+    }
+
+    /// Whether the declared window inventory claims complete horizon coverage.
+    ///
+    /// Completeness is a caller declaration; this deterministic reducer cannot
+    /// independently discover omitted encounter windows.
+    pub fn window_inventory_coverage(&self) -> WindowInventoryCoverage {
+        self.window_inventory_coverage
     }
 
     /// Encounter windows in deterministic chronological order.
@@ -231,6 +242,39 @@ impl HorizonEventDefinition {
             by_window.push((index, outcome));
         }
 
+        // Overlapping windows describe the same physical trajectory. Their
+        // definite outcomes must therefore agree wherever a known first
+        // contact lies inside another window.
+        for (index, outcome) in &by_window {
+            if let PathWindowDisposition::DefinitelyContact {
+                first_contact_time_seconds,
+            } = outcome.disposition
+            {
+                for (other_index, other_outcome) in &by_window {
+                    if index == other_index {
+                        continue;
+                    }
+                    let other_window = &self.windows[*other_index];
+                    let time_is_inside_other = first_contact_time_seconds
+                        >= other_window.start_seconds
+                        && first_contact_time_seconds <= other_window.end_seconds;
+                    if time_is_inside_other {
+                        match other_outcome.disposition {
+                            PathWindowDisposition::DefinitelyNoContact => {
+                                return Err(KernelError::ContradictoryEncounterWindowOutcome);
+                            }
+                            PathWindowDisposition::DefinitelyContact {
+                                first_contact_time_seconds: other_first,
+                            } if other_first > first_contact_time_seconds => {
+                                return Err(KernelError::ContradictoryEncounterWindowOutcome);
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
+        }
+
         if self
             .windows
             .iter()
@@ -261,7 +305,9 @@ impl HorizonEventDefinition {
 
         let disposition = if !contact_times.is_empty() {
             HorizonContactDisposition::DefinitelyContact
-        } else if unresolved_window_ids.is_empty() {
+        } else if unresolved_window_ids.is_empty()
+            && self.window_inventory_coverage == WindowInventoryCoverage::DeclaredComplete
+        {
             HorizonContactDisposition::DefinitelyNoContact
         } else {
             HorizonContactDisposition::Ambiguous
@@ -271,7 +317,9 @@ impl HorizonEventDefinition {
             None
         } else {
             let earliest_contact = contact_times.iter().copied().fold(f64::INFINITY, f64::min);
-            let unresolved_could_be_earlier = unresolved_window_ids.iter().any(|window_id| {
+            let unresolved_could_be_earlier = self.window_inventory_coverage
+                != WindowInventoryCoverage::DeclaredComplete
+                || unresolved_window_ids.iter().any(|window_id| {
                 self.windows
                     .iter()
                     .find(|window| window.window_id == *window_id)
@@ -288,8 +336,22 @@ impl HorizonEventDefinition {
             first_contact_time_seconds,
             contacting_window_ids,
             unresolved_window_ids,
+            window_inventory_coverage: self.window_inventory_coverage,
         })
     }
+}
+
+/// Completeness declaration for the encounter-window inventory.
+///
+/// DeclaredComplete is an input assertion that every relevant encounter window
+/// in the horizon has been enumerated. The reducer checks internal consistency
+/// but does not prove this assertion.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WindowInventoryCoverage {
+    /// Caller declares that all relevant encounter windows are present.
+    DeclaredComplete,
+    /// Caller knows that one or more relevant windows may be absent.
+    KnownIncomplete,
 }
 
 /// Three-way result supplied by a window-level trajectory evaluator.
@@ -337,6 +399,8 @@ pub struct PathwiseHorizonOutcome {
     pub contacting_window_ids: Vec<String>,
     /// Window IDs whose contact status remains unresolved.
     pub unresolved_window_ids: Vec<String>,
+    /// Caller-declared completeness of the encounter-window inventory.
+    pub window_inventory_coverage: WindowInventoryCoverage,
 }
 
 /// Horizon-level result for the union of all declared encounter-window events.
@@ -372,6 +436,7 @@ mod tests {
             0.0,
             100.0,
             5.0,
+            WindowInventoryCoverage::DeclaredComplete,
             windows,
         )
         .expect("valid horizon definition")
@@ -559,6 +624,7 @@ mod tests {
                 0.0,
                 10.0,
                 1.0,
+                WindowInventoryCoverage::DeclaredComplete,
                 vec![window("a", 1.0, 2.0)],
             ),
             Err(KernelError::InvalidEventDefinition)
@@ -573,6 +639,7 @@ mod tests {
                 10.0,
                 0.0,
                 1.0,
+                WindowInventoryCoverage::DeclaredComplete,
                 vec![window("a", 1.0, 2.0)],
             ),
             Err(KernelError::InvalidEventDefinition)
@@ -587,6 +654,7 @@ mod tests {
                 0.0,
                 10.0,
                 1.0,
+                WindowInventoryCoverage::DeclaredComplete,
                 vec![window("a", 0.0, 2.0), window("a", 2.0, 3.0)],
             ),
             Err(KernelError::DuplicateEncounterWindow)
@@ -601,6 +669,7 @@ mod tests {
                 0.0,
                 10.0,
                 1.0,
+                WindowInventoryCoverage::DeclaredComplete,
                 vec![window("a", 1.0, 11.0)],
             ),
             Err(KernelError::InvalidEncounterWindow)
@@ -615,9 +684,81 @@ mod tests {
                 0.0,
                 10.0,
                 0.0,
+                WindowInventoryCoverage::DeclaredComplete,
                 vec![window("a", 1.0, 2.0)],
             ),
             Err(KernelError::InvalidHardBodyRadius)
+        );
+    }
+
+    #[test]
+    fn incomplete_window_inventory_cannot_prove_horizon_no_contact() {
+        let definition = HorizonEventDefinition::new(
+            "event-42",
+            "revision-8",
+            "epoch",
+            "TAI",
+            "GCRF",
+            0.0,
+            100.0,
+            5.0,
+            WindowInventoryCoverage::KnownIncomplete,
+            vec![window("a", 10.0, 20.0)],
+        )
+        .expect("valid partial definition");
+        let result = definition
+            .classify_realization(&[outcome(
+                "trajectory-10",
+                "a",
+                PathWindowDisposition::DefinitelyNoContact,
+            )])
+            .expect("valid partial evaluation");
+        assert_eq!(result.disposition, HorizonContactDisposition::Ambiguous);
+        assert_eq!(
+            result.window_inventory_coverage,
+            WindowInventoryCoverage::KnownIncomplete
+        );
+    }
+
+    #[test]
+    fn incomplete_inventory_with_a_proven_contact_proves_any_contact_but_not_first_time() {
+        let definition = HorizonEventDefinition::new(
+            "event-42",
+            "revision-9",
+            "epoch",
+            "TAI",
+            "GCRF",
+            0.0,
+            100.0,
+            5.0,
+            WindowInventoryCoverage::KnownIncomplete,
+            vec![window("a", 10.0, 20.0)],
+        )
+        .expect("valid partial definition");
+        let result = definition
+            .classify_realization(&[outcome(
+                "trajectory-11",
+                "a",
+                PathWindowDisposition::DefinitelyContact {
+                    first_contact_time_seconds: 15.0,
+                },
+            )])
+            .expect("valid partial evaluation");
+        assert_eq!(result.disposition, HorizonContactDisposition::DefinitelyContact);
+        assert_eq!(result.first_contact_time_seconds, None);
+    }
+
+    #[test]
+    fn contradictory_outcomes_for_overlapping_windows_are_rejected() {
+        let definition = definition(vec![window("a", 10.0, 30.0), window("b", 20.0, 40.0)]);
+        assert_eq!(
+            definition.classify_realization(&[
+                outcome("trajectory-12", "a", PathWindowDisposition::DefinitelyContact {
+                    first_contact_time_seconds: 24.0,
+                }),
+                outcome("trajectory-12", "b", PathWindowDisposition::DefinitelyNoContact),
+            ]),
+            Err(KernelError::ContradictoryEncounterWindowOutcome)
         );
     }
 
