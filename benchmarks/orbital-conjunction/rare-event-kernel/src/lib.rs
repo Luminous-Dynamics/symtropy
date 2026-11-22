@@ -28,6 +28,7 @@ use core::fmt;
 
 /// Outward-rounded affine geometry used by the independent coverage research.
 pub mod coverage;
+pub mod model_envelope;
 pub mod residual;
 pub mod sequential;
 pub mod stats;
@@ -37,6 +38,11 @@ pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
     AffineResidualMassReport, AffineUnionResidualMassConfig,
     affine_collision_residual_mass_upper_bound, affine_union_collision_residual_mass_upper_bound,
+};
+pub use model_envelope::{
+    ModelFamilyEnvelopeReport, ModelProbabilityInterval, ModelSetCoverage,
+    WeightedModelAverageReport, WeightedModelScenario, finite_model_family_envelope,
+    weighted_model_probability_interval,
 };
 pub use sequential::{BernoulliConfidenceSequence, BernoulliMixtureEProcess};
 pub use stats::{WeightedEventAccumulator, WeightedEventSummary};
@@ -102,6 +108,12 @@ pub enum KernelError {
     /// The proposal log density is negative infinity, so the importance ratio
     /// is undefined at a point where a weight was requested.
     ProposalHasZeroDensity,
+    /// A model identifier is empty or whitespace-only.
+    InvalidModelIdentifier,
+    /// A model-family or model-revision identifier is empty or whitespace-only.
+    InvalidModelRevision,
+    /// A model identifier appears more than once in a finite model family.
+    DuplicateModelIdentifier,
 }
 
 impl fmt::Display for KernelError {
@@ -137,6 +149,9 @@ impl fmt::Display for KernelError {
             Self::ZeroProjectedVariance => "half-space projection has zero variance",
             Self::NumericalOverflow => "numerical intermediate is outside the representable range",
             Self::ProposalHasZeroDensity => "proposal density is zero at the evaluation point",
+            Self::InvalidModelIdentifier => "model identifier must be nonempty",
+            Self::InvalidModelRevision => "model revision identifier must be nonempty",
+            Self::DuplicateModelIdentifier => "model identifier must be unique within a model family",
         };
         f.write_str(message)
     }
