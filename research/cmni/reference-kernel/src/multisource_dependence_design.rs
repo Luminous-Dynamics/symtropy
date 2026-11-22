@@ -394,7 +394,7 @@ pub(crate) fn canonicalize_and_validate_correlation_matrix(
 /// matrices. A residual check prevents accepting a partially diagonalized
 /// matrix as PSD when the iteration budget is exhausted.
 #[allow(clippy::needless_range_loop)]
-fn minimum_symmetric_eigenvalue(matrix: &[Vec<f64>]) -> Result<f64, ModelError> {
+pub(crate) fn minimum_symmetric_eigenvalue(matrix: &[Vec<f64>]) -> Result<f64, ModelError> {
     let dimension = matrix.len();
     if dimension == 0 {
         return Err(ModelError::MismatchedDataLengths);
