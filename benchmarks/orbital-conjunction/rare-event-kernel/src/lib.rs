@@ -26,6 +26,9 @@ use core::fmt;
 
 /// Outward-rounded affine geometry used by the independent coverage research.
 pub mod coverage;
+pub mod stats;
+
+pub use stats::{WeightedEventAccumulator, WeightedEventSummary};
 
 pub use coverage::{
     Interval,
@@ -61,6 +64,8 @@ pub enum KernelError {
     InvalidRadius,
     /// A hard-body collision radius is negative or non-finite.
     InvalidHardBodyRadius,
+    /// A streaming sample or event-contribution counter would overflow.
+    CounterOverflow,
     /// A nonzero half-space normal has zero projected variance.
     ZeroProjectedVariance,
     /// A mathematically required intermediate exceeds the representable range.
@@ -87,6 +92,7 @@ impl fmt::Display for KernelError {
             Self::InvalidInterval => "interval lower endpoint exceeds upper endpoint",
             Self::InvalidRadius => "radius must be strictly positive and finite",
             Self::InvalidHardBodyRadius => "hard-body radius must be nonnegative and finite",
+            Self::CounterOverflow => "streaming observation counter overflowed",
             Self::ZeroProjectedVariance => "half-space projection has zero variance",
             Self::NumericalOverflow => "numerical intermediate is outside the representable range",
             Self::ProposalHasZeroDensity => "proposal density is zero at the evaluation point",
