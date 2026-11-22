@@ -163,10 +163,11 @@
       "recall_invalid_class": 0.99,
       "false_valid_vector_removal_rate": 0.005,
       "valid_vector_retention_rate": 0.995,
-      "f1_valid_class": 0.9949999999999999,
-      "macro_f1": 0.9937,
-      "balanced_accuracy": 0.9949999999999999,
-      "matthews_correlation_coefficient": "computed_by_reference_implementation"
+      "f1_valid_class": 0.9925187032418954,
+      "macro_f1": 0.9924999531247072,
+      "balanced_accuracy": 0.9924999999999999,
+      "matthews_correlation_coefficient": 0.9850123127308642,
+      "f1_invalid_class": 0.9924812030075189
     },
     "regional_coverage": [
       {
