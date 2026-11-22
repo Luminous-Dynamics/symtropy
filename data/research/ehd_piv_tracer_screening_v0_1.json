@@ -1,0 +1,256 @@
+{
+  "schema": "luminous.ehd_piv_tracer_screening_kernel",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-PIV-TRACER-003",
+  "as_of": "2026-11-22",
+  "status": "source_bounded_exact_pressure_screen_authored_rust_tests_execution_pending",
+  "claim_ceiling": "A deterministic lookup over one published low-density-air PIV tracer feasibility table. It is not a tracer transport model, passivity qualification, velocity error predictor, EHD calibration, or experiment authorization.",
+  "source": {
+    "source_id": "NOELLE_2025_LOW_DENSITY_IWT_PIV_TRACERS",
+    "doi": "10.2514/6.2025-0473",
+    "unit": "interrogation window pixels",
+    "notation": {
+      "n": "whole-field extraction available at n x n pixel interrogation window",
+      "(n)-m": "edge-case extraction at n x n; whole-field extraction at m x m",
+      "(n)": "edge-case-only extraction; no whole-field result",
+      "-": "unavailable",
+      "no data": "not reported"
+    },
+    "tested_pressures_atm": [
+      1,
+      0.9,
+      0.8,
+      0.7,
+      0.6,
+      0.5,
+      0.45,
+      0.4,
+      0.35,
+      0.3
+    ],
+    "table": [
+      {
+        "pressure_atm": 1,
+        "dehs": "(64)-128",
+        "vaporized_fog": "32",
+        "incense_sticks": "(32)-64",
+        "incense_cones": "(32)-64",
+        "sio2": "(32)-64"
+      },
+      {
+        "pressure_atm": 0.9,
+        "dehs": "128",
+        "vaporized_fog": "32",
+        "incense_sticks": "(32)-64",
+        "incense_cones": "(32)-64",
+        "sio2": "64"
+      },
+      {
+        "pressure_atm": 0.8,
+        "dehs": "128",
+        "vaporized_fog": "(64)-128",
+        "incense_sticks": "(32)-64",
+        "incense_cones": "64",
+        "sio2": "64"
+      },
+      {
+        "pressure_atm": 0.7,
+        "dehs": "128",
+        "vaporized_fog": "(128)",
+        "incense_sticks": "64",
+        "incense_cones": "64",
+        "sio2": "64"
+      },
+      {
+        "pressure_atm": 0.6,
+        "dehs": "(128)",
+        "vaporized_fog": "-",
+        "incense_sticks": "(64)-128",
+        "incense_cones": "64",
+        "sio2": "64"
+      },
+      {
+        "pressure_atm": 0.5,
+        "dehs": "(128)",
+        "vaporized_fog": "-",
+        "incense_sticks": "(64)-128",
+        "incense_cones": "(64)-128",
+        "sio2": "64"
+      },
+      {
+        "pressure_atm": 0.45,
+        "dehs": "-",
+        "vaporized_fog": "-",
+        "incense_sticks": "(64)-128",
+        "incense_cones": "128",
+        "sio2": "no data"
+      },
+      {
+        "pressure_atm": 0.4,
+        "dehs": "-",
+        "vaporized_fog": "-",
+        "incense_sticks": "(64)-128",
+        "incense_cones": "(128)",
+        "sio2": "(64)-128"
+      },
+      {
+        "pressure_atm": 0.35,
+        "dehs": "-",
+        "vaporized_fog": "-",
+        "incense_sticks": "(64)-128",
+        "incense_cones": "(128)",
+        "sio2": "128"
+      },
+      {
+        "pressure_atm": 0.3,
+        "dehs": "-",
+        "vaporized_fog": "-",
+        "incense_sticks": "(64)-128",
+        "incense_cones": "(128)",
+        "sio2": "128"
+      }
+    ],
+    "sampling_caveat": "three images per condition; best image selected; this is not a replicated uncertainty study"
+  },
+  "screen_policy": {
+    "exact_pressure_lookup_only": true,
+    "pressure_match_tolerance_atm": 1e-9,
+    "no_interpolation": true,
+    "pressure_envelope_atm": [
+      0.3,
+      1
+    ],
+    "supported_pressure_points": [
+      1,
+      0.9,
+      0.8,
+      0.7,
+      0.6,
+      0.5,
+      0.45,
+      0.4,
+      0.35,
+      0.3
+    ],
+    "maximum_interrogation_window_px": "user-supplied upper acceptable pixel width; smaller window means finer spatial resolution",
+    "dispositions": [
+      "FullFieldResolutionAvailable",
+      "EdgeCaseOnly",
+      "InsufficientResolution",
+      "UnavailableAtPressure",
+      "NoSourceData",
+      "UnsupportedSourcePressure",
+      "OutOfEnvelope",
+      "BoundaryLayerNotResolved"
+    ],
+    "edge_case_notation": "parenthesized source window is not promoted to whole-field availability",
+    "no_data_policy": "NoSourceData remains distinct from UnavailableAtPressure",
+    "boundary_layer_policy": "BoundaryLayerNotResolved when requested; paper says even 32x32 px was insufficient for its boundary layer",
+    "observer_policy": "every screen report requires separate EHD-DPM-001 observer-perturbation receipt; optical feasibility never implies passivity",
+    "qualification_ceiling": "source-table resolution eligibility only, not velocity accuracy or physical passivity"
+  },
+  "reference_implementation": {
+    "path": "tools/ehd-reference-audit/src/tracer_screening.rs",
+    "function": "screen_tracer_candidate",
+    "self_check": "reference_self_check",
+    "rust_unit_tests": 11
+  },
+  "expected_examples": [
+    {
+      "pressure_atm": 0.3,
+      "tracer": "Sio2",
+      "max_window_px": 128,
+      "require_full_field": true,
+      "require_boundary_layer_detail": false,
+      "expected": "FullFieldResolutionAvailable",
+      "eligible": true
+    },
+    {
+      "pressure_atm": 0.5,
+      "tracer": "VaporizedFog",
+      "max_window_px": 128,
+      "require_full_field": true,
+      "require_boundary_layer_detail": false,
+      "expected": "UnavailableAtPressure",
+      "eligible": false
+    },
+    {
+      "pressure_atm": 0.3,
+      "tracer": "IncenseSticks",
+      "max_window_px": 64,
+      "require_full_field": true,
+      "require_boundary_layer_detail": false,
+      "expected": "EdgeCaseOnly",
+      "eligible": false
+    },
+    {
+      "pressure_atm": 0.3,
+      "tracer": "Dehs",
+      "max_window_px": 128,
+      "require_full_field": true,
+      "require_boundary_layer_detail": false,
+      "expected": "UnavailableAtPressure",
+      "eligible": false
+    },
+    {
+      "pressure_atm": 0.8,
+      "tracer": "VaporizedFog",
+      "max_window_px": 64,
+      "require_full_field": false,
+      "require_boundary_layer_detail": false,
+      "expected": "EdgeCaseOnly",
+      "eligible": true
+    },
+    {
+      "pressure_atm": 0.9,
+      "tracer": "IncenseSticks",
+      "max_window_px": 64,
+      "require_full_field": true,
+      "require_boundary_layer_detail": true,
+      "expected": "BoundaryLayerNotResolved",
+      "eligible": false
+    },
+    {
+      "pressure_atm": 0.33,
+      "tracer": "Sio2",
+      "max_window_px": 128,
+      "require_full_field": true,
+      "require_boundary_layer_detail": false,
+      "expected": "UnsupportedSourcePressure",
+      "eligible": false
+    },
+    {
+      "pressure_atm": 0.45,
+      "tracer": "Sio2",
+      "max_window_px": 128,
+      "require_full_field": true,
+      "require_boundary_layer_detail": false,
+      "expected": "NoSourceData",
+      "eligible": false
+    }
+  ],
+  "test_families": [
+    "silica_has_source_reported_full_field_feasibility_at_point_three_atm",
+    "fog_is_unavailable_at_point_five_atm_in_the_source_table",
+    "incense_sticks_at_point_three_atm_are_edge_case_only_for_sixty_four_px",
+    "dehs_is_unavailable_at_point_three_atm_in_the_source_table",
+    "edge_case_window_is_not_promoted_to_full_field_resolution",
+    "boundary_layer_request_abstains_even_when_velocity_field_is_source_feasible",
+    "pressure_between_source_points_is_not_interpolated",
+    "no_data_is_not_converted_to_unavailable_or_zero",
+    "optical_feasibility_never_qualifies_electrical_passivity",
+    "pressure_outside_source_envelope_is_not_evaluated",
+    "invalid_input_is_rejected"
+  ],
+  "limitations": [
+    "single_source_pressure_tracer_table_only",
+    "interrogation_window_size_is_not_velocity_accuracy",
+    "three_images_per_condition_best_image_selection",
+    "no_particle_tracking_or_tracer_dynamics_model",
+    "no_electrical_passivity_inference",
+    "no_boundary_layer_resolution_claim",
+    "no_pressure_interpolation",
+    "no_physical_experiment_recommendation",
+    "no_raw_piv_image_or_vector_reproduction"
+  ]
+}
