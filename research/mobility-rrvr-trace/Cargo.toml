@@ -1,0 +1,15 @@
+# Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+[package]
+name = "mobility-rrvr-trace"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Deterministic replay and causality-preserving minimization of RRVR fault traces"
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]

@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/mobility-rrvr-trace-bundle-v0.1.json",
+  "title": "Mobility RRVR Replayable Fault Trace Bundle v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["header", "events", "artifacts"],
+  "properties": {
+    "header": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bundle_id", "format_version", "system_id", "implementation_revision",
+        "model_revision", "fault_profile_revision", "oracle_revision", "replay_seed",
+        "initial_state_commitment", "target_failure"
+      ],
+      "properties": {
+        "bundle_id": { "$ref": "#/$defs/identifier" },
+        "parent_bundle_id": { "type": ["string", "null"], "maxLength": 256 },
+        "format_version": { "const": "0.1" },
+        "system_id": { "$ref": "#/$defs/identifier" },
+        "implementation_revision": { "$ref": "#/$defs/identifier" },
+        "model_revision": { "$ref": "#/$defs/identifier" },
+        "fault_profile_revision": { "$ref": "#/$defs/identifier" },
+        "oracle_revision": { "$ref": "#/$defs/identifier" },
+        "replay_seed": { "type": "integer", "minimum": 0 },
+        "initial_state_commitment": { "$ref": "#/$defs/commitment" },
+        "target_failure": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["property_id", "violation_class", "witness_event_id", "witness_state_commitment"],
+          "properties": {
+            "property_id": { "$ref": "#/$defs/identifier" },
+            "violation_class": { "$ref": "#/$defs/identifier" },
+            "witness_event_id": { "$ref": "#/$defs/identifier" },
+            "witness_state_commitment": { "$ref": "#/$defs/commitment" },
+            "witness_state_commitment": { "$ref": "#/$defs/commitment" }
+          }
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "event_id", "logical_sequence", "kind", "actor_id", "predecessor_event_ids",
+          "clock_observation", "raw_artifact_ids", "input_commitment", "configuration_commitment"
+        ],
+        "properties": {
+          "event_id": { "$ref": "#/$defs/identifier" },
+          "logical_sequence": { "type": "integer", "minimum": 1 },
+          "kind": {
+            "enum": [
+              "process_started", "attempt_reserved", "dispatch_started", "native_accepted",
+              "command_queued", "process_crashed", "process_restarted",
+              "controller_queue_fenced", "downstream_graph_fenced", "old_command_applied",
+              "old_command_no_effect", "old_command_partial", "persistence_commit_started",
+              "persistence_commit_observed", "persistence_commit_confirmed",
+              "persistence_no_commit_confirmed", "persistence_commit_aborted", "persistence_resolved",
+              "physical_effect_observed", "physical_no_effect_observed", "physical_partial_observed",
+              "physical_outcome_unknown", "physical_outcome_disputed", "mission_resolution_recorded",
+              "recovery_permit_issued", "fresh_ticket_created", "native_recovery_accepted",
+              "recovery_command_applied", "recovery_command_no_effect", "recovery_command_partial",
+              "m1_authority_revoked", "m2_applicability_revoked", "live_binding_invalidated",
+              "naive_retry_attempted", "observer_common_cause_injected",
+              "observer_sample_captured", "telemetry_captured", "trace_flushed", "other"
+            ]
+          },
+          "actor_id": { "$ref": "#/$defs/identifier" },
+          "predecessor_event_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": { "$ref": "#/$defs/identifier" }
+          },
+          "clock_observation": {
+            "oneOf": [
+              { "type": "null" },
+              { "$ref": "#/$defs/clock_observation" }
+            ]
+          },
+          "raw_artifact_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": { "$ref": "#/$defs/identifier" }
+          },
+          "input_commitment": { "$ref": "#/$defs/commitment" },
+          "configuration_commitment": { "$ref": "#/$defs/commitment" }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["artifact_id", "media_type", "raw_artifact_commitment"],
+        "properties": {
+          "artifact_id": { "$ref": "#/$defs/identifier" },
+          "media_type": { "$ref": "#/$defs/identifier" },
+          "raw_artifact_commitment": { "$ref": "#/$defs/commitment" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "clock_observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["clock_id", "boot_epoch_id", "unit", "time_value", "resolution", "uncertainty"],
+      "properties": {
+        "clock_id": { "$ref": "#/$defs/identifier" },
+        "boot_epoch_id": { "$ref": "#/$defs/identifier" },
+        "unit": { "$ref": "#/$defs/identifier" },
+        "time_value": { "type": "integer", "minimum": 0 },
+        "resolution": { "type": "integer", "minimum": 1 },
+        "uncertainty": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "identifier": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "\\S" },
+    "commitment": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" }
+  }
+}

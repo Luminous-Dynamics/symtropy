@@ -1,0 +1,79 @@
+name: Mobility RRVR Trace Contract
+
+on:
+  push:
+    branches:
+      - research/mobility-rrvr-trace-minimizer-v0-1
+    paths:
+      - "research/mobility-rrvr-trace/**"
+      - "research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla"
+      - ".github/workflows/mobility-rrvr-trace.yml"
+  pull_request:
+    paths:
+      - "research/mobility-rrvr-trace/**"
+      - "research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla"
+      - ".github/workflows/mobility-rrvr-trace.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rrvr-trace:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Validate trace schema and conformance corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq empty research/mobility-rrvr-trace/schemas/trace_bundle_v0_1.schema.json
+          jq empty research/mobility-rrvr-trace/fixtures/trace_minimizer_cases_v0_1.json
+          jq empty research/mobility-rrvr-trace/fixtures/late_old_command_after_fence_trace_v0_1.json
+          jq -e '
+            . as $trace
+            | ($trace.header.format_version == "0.1")
+              and ($trace.events | any(.event_id == $trace.header.target_failure.witness_event_id and .kind == "old_command_applied"))
+              and ($trace.events | any(.event_id == "late-old-apply" and (.predecessor_event_ids | index("downstream-fence") != null) and (.raw_artifact_ids | index("raw-event-stream") != null)))
+              and ($trace.events | map(.clock_observation.clock_id? // empty) | unique | length >= 2)
+              and ($trace.artifacts | any(.artifact_id == "raw-event-stream"))
+          ' research/mobility-rrvr-trace/fixtures/late_old_command_after_fence_trace_v0_1.json
+          jq -e '
+            .cases as $cases
+            | .version == "0.1"
+              and ($cases | length >= 22)
+              and ([$cases[].case_id] | length == ([$cases[].case_id] | unique | length))
+              and ([$cases[] | select(.expected == "preserved_exact_failure")] | length >= 1)
+              and ([$cases[] | select(.expected == "reject" or .expected == "hold")] | length >= 1)
+              and ([$cases[] | select(.expected == "nondeterministic")] | length >= 1)
+              and all($cases[]; .native_sink_calls == 0 and .authority_capabilities == [])
+          ' research/mobility-rrvr-trace/fixtures/trace_minimizer_cases_v0_1.json
+      - name: Check pinned TLA action-to-event coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          MODEL="research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla"
+          MAP="research/mobility-rrvr-trace/model_action_event_mapping_v0_1.tsv"
+          map_count=$(grep -Ev '^(#|$)' "$MAP" | wc -l | tr -d ' ')
+          next_action_count=$(awk '
+            /^Next ==/ { in_next=1; next }
+            /^Spec ==/ { in_next=0 }
+            in_next && index($0, "\\/") > 0 { count++ }
+            END { print count + 0 }
+          ' "$MODEL")
+          test "$map_count" -eq "$next_action_count"
+          while IFS='|' read -r action event_kind; do
+            [[ -z "$action" ]] && continue
+            [[ "$action" =~ ^# ]] && continue
+            grep -Fq "$action ==" "$MODEL"
+            grep -Fq "$event_kind," research/mobility-rrvr-trace/src/lib.rs
+          done < "$MAP"
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/mobility-rrvr-trace/Cargo.toml -- --check
+      - name: Run trace minimization tests
+        run: cargo test --manifest-path research/mobility-rrvr-trace/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/mobility-rrvr-trace/Cargo.toml --all-targets --locked -- -D warnings
