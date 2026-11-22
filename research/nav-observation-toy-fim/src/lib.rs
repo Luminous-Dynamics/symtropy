@@ -7,3 +7,4 @@ pub mod student_t_pl;
 pub mod pl_trace_metrics;
 pub mod integrity_evidence;
 pub mod mission_risk_budget;
+pub mod temporal_alignment_envelope;
