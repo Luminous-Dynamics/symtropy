@@ -8,6 +8,7 @@
 //! JSONL trace plus a separate provenance sidecar. Missing fields are rejected;
 //! no owner fact is filled with an optimistic default.
 
+use serde::Deserialize;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
@@ -31,7 +32,8 @@ pub const STATE_FIELDS: [&str; 43] = [
 
 pub const MODEL_STATE_FIELD_COUNT: usize = 43;
 
-#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd)]
+#[serde(rename_all = "snake_case", deny_unknown_fields)]
 pub enum OwnerEvidenceDomain {
     ProcessEpoch,
     Persistence,
@@ -62,7 +64,8 @@ impl OwnerEvidenceDomain {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+#[serde(rename_all = "snake_case", deny_unknown_fields)]
 pub enum OwnerEvidenceStatus {
     Current,
     Confirmed,
@@ -91,7 +94,8 @@ impl OwnerEvidenceStatus {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct EvidenceScope {
     /// Stable identity of the logical physical operation, independent of retries.
     pub logical_effect_id: String,
@@ -102,7 +106,8 @@ pub struct EvidenceScope {
     pub subject_controller_epoch: u64,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct ObserverMemberEvidence {
     pub observer_id: String,
     pub observer_revision: String,
@@ -114,14 +119,16 @@ pub struct ObserverMemberEvidence {
     pub raw_artifact_sha256: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct ObserverQuorumProof {
     pub fault_model_revision: String,
     pub required_independent_members: usize,
     pub members: Vec<ObserverMemberEvidence>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct OwnerEvidenceRef {
     pub domain: OwnerEvidenceDomain,
     pub owner_id: String,
@@ -138,7 +145,8 @@ pub struct OwnerEvidenceRef {
     pub raw_artifact_sha256: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct SourceClock {
     pub clock_id: String,
     pub boot_epoch_id: String,
@@ -148,7 +156,8 @@ pub struct SourceClock {
     pub uncertainty: u64,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct RuntimeSnapshot {
     pub event_id: String,
     pub logical_sequence: u64,
@@ -161,7 +170,8 @@ pub struct RuntimeSnapshot {
     pub owner_evidence: Vec<OwnerEvidenceRef>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct ProjectionHeader {
     pub bundle_id: String,
     pub system_id: String,
@@ -175,8 +185,10 @@ pub struct ProjectionHeader {
     pub naive_retry_enabled: bool,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct RuntimeProjectionRecording {
+    pub version: String,
     pub header: ProjectionHeader,
     pub snapshots: Vec<RuntimeSnapshot>,
 }
@@ -475,7 +487,8 @@ fn known_action(action: &str) -> bool {
 impl RuntimeProjectionRecording {
     pub fn validate(&self) -> Result<(), ProjectionError> {
         let h=&self.header;
-        if [&h.bundle_id,&h.system_id,&h.implementation_revision,&h.model_revision,&h.fault_profile_revision]
+        if self.version != CONTRACT_VERSION
+            || [&h.bundle_id,&h.system_id,&h.implementation_revision,&h.model_revision,&h.fault_profile_revision]
             .iter().any(|v| !nonempty(v))
             || !valid_sha(&h.model_source_sha256) || !valid_sha(&h.model_config_sha256)
             || !valid_sha(&h.tla_tool_sha256) || h.max_epoch < 3
@@ -689,7 +702,7 @@ impl RuntimeProjectionRecording {
             })
         }).collect();
         Ok(json!({
-            "version":CONTRACT_VERSION,"bundle_id":self.header.bundle_id,"system_id":self.header.system_id,
+            "version":self.version,"bundle_id":self.header.bundle_id,"system_id":self.header.system_id,
             "implementation_revision":self.header.implementation_revision,"model_revision":self.header.model_revision,
             "model_source_sha256":self.header.model_source_sha256,"model_config_sha256":self.header.model_config_sha256,
             "tla_tool_sha256":self.header.tla_tool_sha256,"fault_profile_revision":self.header.fault_profile_revision,
@@ -792,6 +805,7 @@ mod tests {
 
     fn recording()->RuntimeProjectionRecording{
         RuntimeProjectionRecording{
+            version:CONTRACT_VERSION.to_owned(),
             header:ProjectionHeader{bundle_id:"runtime-proj-001".into(),system_id:"synthetic-robot".into(),
                 implementation_revision:"symtropy-test".into(),model_revision:"RestartSafeEffectContinuity@pinned".into(),
                 model_source_sha256:sha('a'),model_config_sha256:sha('b'),tla_tool_sha256:sha('c'),
