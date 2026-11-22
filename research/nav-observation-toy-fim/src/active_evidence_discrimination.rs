@@ -531,6 +531,32 @@ mod tests {
     }
 
     #[test]
+    fn rejects_duplicate_pair_records_and_inconsistent_gap_summaries() {
+        let candidates = [candidate(1, 0.8, 40, 200)];
+
+        let mut duplicate_pair = full_report(1, 3);
+        duplicate_pair.pair_separations[1] = duplicate_pair.pair_separations[0].clone();
+        assert_eq!(
+            plan_active_evidence_with_hypothesis_discrimination(
+                &policy(),
+                &candidates,
+                &[duplicate_pair]
+            ),
+            Err(ActiveEvidenceDiscriminationError::InvalidDiscriminationReport(1))
+        );
+
+        let mut incorrect_summary = full_report(1, 2);
+        incorrect_summary.maximum_pair_gap += 1.0;
+        assert_eq!(
+            plan_active_evidence_with_hypothesis_discrimination(
+                &policy(),
+                &candidates,
+                &[incorrect_summary]
+            ),
+            Err(ActiveEvidenceDiscriminationError::InvalidDiscriminationReport(1))
+        );
+    }
+    #[test]
     fn target_already_satisfied_needs_no_measurement_model() {
         let mut satisfied = policy();
         satisfied.current_protection_level_upper_m = 0.5;
