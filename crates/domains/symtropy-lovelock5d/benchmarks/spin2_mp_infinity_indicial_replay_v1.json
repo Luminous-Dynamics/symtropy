@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "einstein_limit_infinity_indicial_replay_receipt",
+  "status": "passed_local_exact_rational_fixture_replay",
+  "local_action_specialized_source_sha256": "527def539b76a8cf7b11b0df39b7902228310242ca6550418d7f470ae6d556f2",
+  "local_output_sha256": "0adce50d77d98cddad7ebd89f685ccb6835eee89a25a6bb1073e06be2e91d76f",
+  "environment": {
+    "python": "3.13.5",
+    "sympy": "1.14.0"
+  },
+  "checks": {
+    "log_radius_matrix_limit_exact": true,
+    "source_limit_zero": true,
+    "indicial_polynomial_exact": true,
+    "eigenvector_basis_det_minus_12": true,
+    "diagonalization_exact": true,
+    "repeated_minus_2_semisimple": true
+  },
+  "evidence_boundary": "The source-specialized local reduction produced the asymptotic matrix. The committed verifier checks exact rational linear algebra over the fixture; it does not rerun the action-level derivation. The committed derivation source has been updated to calculate this limit, but exact-byte replay of that public source remains pending. No finite-coupling spectrum, boundary-map rank, BVP, interval theorem, or hyperbolicity result is claimed."
+}
