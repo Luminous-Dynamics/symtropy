@@ -16,6 +16,7 @@ mod drag_dissipation;
 mod drag_trajectory;
 mod control_volume;
 mod identifiability;
+mod discrepancy;
 
 const EMBEDDED_ATLAS: &str =
     include_str!("../../../data/research/ehd_reference_atlas_v0_1.json");
@@ -41,6 +42,8 @@ const EMBEDDED_CONTROL_VOLUME: &str =
     include_str!("../../../data/research/ehd_control_volume_v0_1.json");
 const EMBEDDED_IDENTIFIABILITY: &str =
     include_str!("../../../data/research/ehd_experiment_identifiability_kernel_v0_1.json");
+const EMBEDDED_DISCREPANCY_D0: &str =
+    include_str!("../../../data/research/ehd_discrepancy_d0_corpus_v0_1.json");
 
 fn at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
     path.iter().try_fold(value, |node, key| node.get(*key))
@@ -2161,6 +2164,122 @@ pub fn audit_identifiability_contract(root: &Value) -> Vec<String> {
 }
 
 
+
+
+/// Audit the frozen D0 manufactured error-source separation corpus.
+pub fn audit_discrepancy_d0_contract(root: &Value) -> Vec<String> {
+    let mut findings = Vec::new();
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["schema"]) == Some("luminous.ehd_discrepancy_d0_corpus")
+            && text_at(root, &["schema_version"]) == Some("0.1.0")
+            && text_at(root, &["benchmark_id"]) == Some("EHD-D0-001")
+            && text_at(root, &["status"])
+                == Some("manufactured_d0_residual_attribution_kernel_authored_tests_execution_pending"),
+        "D0_IDENTITY",
+        "D0 error-source corpus identity, version or execution status changed",
+    );
+    push_if_missing(
+        &mut findings,
+        at(root, &["reference_basis", "vector_length"]).and_then(Value::as_u64) == Some(8)
+            && at(root, &["reference_basis", "systematic_signatures"]).and_then(Value::as_array)
+                .is_some_and(|rows| rows.len() == 4),
+        "D0_REFERENCE_BASIS",
+        "D0 must retain four systematic signatures over eight residual components",
+    );
+    let signatures = at(root, &["reference_basis", "systematic_signatures"])
+        .and_then(Value::as_array);
+    if let Some(rows) = signatures {
+        let vectors: Option<Vec<Vec<f64>>> = rows
+            .iter()
+            .map(|row| {
+                let values = at(row, &["values"])?.as_array()?;
+                if values.len() != 8 {
+                    return None;
+                }
+                values.iter().map(Value::as_f64).collect()
+            })
+            .collect();
+        let orthogonal = vectors.as_ref().is_some_and(|basis| {
+            basis.iter().enumerate().all(|(i, left)| {
+                basis.iter().enumerate().all(|(j, right)| {
+                    i == j || left.iter().zip(right).map(|(a, b)| a * b).sum::<f64>().abs() < 1.0e-12
+                })
+            })
+        });
+        push_if_missing(
+            &mut findings,
+            orthogonal,
+            "D0_SIGNATURE_ORTHOGONALITY",
+            "frozen systematic signatures must remain pairwise orthogonal",
+        );
+    }
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["attribution_policy", "confounding"]) == Some("reject_and_abstain")
+            && text_at(root, &["attribution_policy", "conservation_firewall"])
+                == Some("physical_ledger_failure_has_priority_over_any_discrepancy_fit")
+            && text_at(root, &["attribution_policy", "validation_envelope"])
+                == Some("explicit_external_boolean_gate_not_inferred_from_residual"),
+        "D0_ATTRIBUTION_POLICY",
+        "confounding, independent-ledger and external-envelope policies changed",
+    );
+    let cases = at(root, &["manufactured_cases"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        cases.is_some_and(|rows| rows.len() == 6
+            && text_at(&rows[0], &["case_id"]) == Some("D0-MIXED-ERRORS")
+            && text_at(&rows[0], &["expected_disposition"])
+                == Some("parameter_or_numerical_error_detected")
+            && text_at(&rows[1], &["expected_disposition"])
+                == Some("no_systematic_source_detected")
+            && text_at(&rows[2], &["expected_disposition"]) == Some("not_identifiable_abstain")
+            && text_at(&rows[3], &["expected_disposition"]) == Some("physical_ledger_failure")
+            && text_at(&rows[4], &["expected_disposition"]) == Some("out_of_envelope")
+            && text_at(&rows[5], &["expected_disposition"]) == Some("not_evaluable")),
+        "D0_MANUFACTURED_CASES",
+        "mixed, noise-only, confounded, ledger-failure, OOD and unexplained-residual cases are required",
+    );
+    push_if_missing(
+        &mut findings,
+        at(root, &["conservation_firewall", "charge_mass_momentum_energy_ledgers_remain_independent_gates"])
+            .and_then(Value::as_bool) == Some(true)
+            && at(root, &["conservation_firewall", "discrepancy_can_override_failed_ledger"])
+                .and_then(Value::as_bool) == Some(false),
+        "D0_CONSERVATION_FIREWALL",
+        "discrepancy may never promote a failed independent physical ledger",
+    );
+    push_if_missing(
+        &mut findings,
+        at(root, &["test_families"]).and_then(Value::as_array)
+            .is_some_and(|tests| tests.len() == 7
+                && tests.iter().any(|item| item.as_str() == Some("mixed_parameter_numerical_artifact_and_model_errors_are_separated"))
+                && tests.iter().any(|item| item.as_str() == Some("correlated_parameter_and_numerical_signatures_abstain"))
+                && tests.iter().any(|item| item.as_str() == Some("discrepancy_fit_never_repairs_failed_conservation_ledger"))
+                && tests.iter().any(|item| item.as_str() == Some("out_of_envelope_case_abstains_even_with_small_residual"))
+                && tests.iter().any(|item| item.as_str() == Some("unexplained_residual_above_measurement_noise_bound_is_not_evaluable"))),
+        "D0_TEST_MATRIX",
+        "all seven D0 manufactured and adversarial Rust test families must remain declared",
+    );
+    let limits = at(root, &["limitations"]).and_then(Value::as_array);
+    push_if_missing(
+        &mut findings,
+        limits.is_some_and(|rows| {
+            rows.iter().any(|item| item.as_str() == Some("manufactured_hadamard_signatures_only"))
+                && rows.iter().any(|item| item.as_str() == Some("orthogonal_systematic_signatures_required"))
+                && rows.iter().any(|item| item.as_str() == Some("no_general_discrepancy_function"))
+                && rows.iter().any(|item| item.as_str() == Some("no_physical_ehd_measurements"))
+        }) && text_at(root, &["claim_ceiling"]).is_some_and(|claim| {
+            claim.contains("not a general EHD discrepancy model")
+                && claim.contains("not a physical validation")
+        }),
+        "D0_CLAIM_BOUNDARY",
+        "manufactured-only basis and no physical calibration/validation claim must remain explicit",
+    );
+    findings
+}
+
+
 fn main() {
     let mut args = env::args().skip(1);
     let path = args.next();
@@ -2277,6 +2396,14 @@ fn main() {
         }
     };
     findings.extend(audit_identifiability_contract(&identifiability_contract));
+    let discrepancy_d0_contract: Value = match serde_json::from_str(EMBEDDED_DISCREPANCY_D0) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("invalid embedded D0 discrepancy corpus JSON: {error}");
+            process::exit(2);
+        }
+    };
+    findings.extend(audit_discrepancy_d0_contract(&discrepancy_d0_contract));
     let exchange_kernel_ok = match exchange::reference_self_check() {
         Ok(()) => true,
         Err(error) => {
@@ -2340,6 +2467,13 @@ fn main() {
             false
         }
     };
+    let discrepancy_d0_ok = match discrepancy::reference_self_check() {
+        Ok(()) => true,
+        Err(error) => {
+            findings.push(format!("D0_DISCREPANCY_SELF_CHECK: {error}"));
+            false
+        }
+    };
     let design_tournament_ok = match identifiability::tournament_reference_self_check() {
         Ok(()) => true,
         Err(error) => {
@@ -2387,6 +2521,9 @@ fn main() {
         }
         if design_tournament_ok {
             println!("matched-budget D/E discrete experiment-design tournament self-check: passed");
+        }
+        if discrepancy_d0_ok {
+            println!("D0 manufactured error-source separation and conservation-firewall self-check: passed");
         }
         println!("scope: source structure and analytic reference checks only; no physical V&V, production ALE, TPE(1/2), nonlinear profile likelihood, continuous design optimization, complete collisional-energy closure or durable exactly-once claim");
     } else {
@@ -3030,6 +3167,23 @@ mod control_volume_contract_tests {
 #[cfg(test)]
 mod identifiability_contract_tests {
     use super::*;
+
+    #[test]
+    fn discrepancy_d0_contract_passes() {
+        let value: Value = serde_json::from_str(EMBEDDED_DISCREPANCY_D0)
+            .expect("embedded D0 discrepancy corpus must be valid JSON");
+        assert!(audit_discrepancy_d0_contract(&value).is_empty());
+    }
+
+    #[test]
+    fn discrepancy_d0_contract_rejects_conservation_laundering() {
+        let mut value: Value = serde_json::from_str(EMBEDDED_DISCREPANCY_D0).unwrap();
+        value["conservation_firewall"]["discrepancy_can_override_failed_ledger"] =
+            Value::Bool(true);
+        assert!(audit_discrepancy_d0_contract(&value).iter().any(|finding| {
+            finding.starts_with("D0_CONSERVATION_FIREWALL")
+        }));
+    }
 
     #[test]
     fn identifiability_contract_passes() {
