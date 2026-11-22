@@ -2333,10 +2333,23 @@ pub fn audit_discrepancy_pivoted_qr_contract(root: &Value) -> Vec<String> {
             == Some("column-pivoted modified Gram-Schmidt QR with one re-orthogonalization pass")
             && text_at(root, &["attribution_method", "rank_policy"])
                 == Some("reject rank-deficient signature basis")
-            && text_at(root, &["attribution_method", "factorization"])
-                .is_none(),
+            && text_at(root, &["observation_covariance", "factorization"])
+                .is_some_and(|value| value.contains("Cholesky"))
+            && text_at(root, &["attribution_method", "conditioning_policy"])
+                .is_some_and(|value| value.contains("not a spectral condition number")),
         "D0_QR_METHOD",
         "pivoted QR, rank rejection and stated method boundary changed",
+    );
+    push_if_missing(
+        &mut findings,
+        text_at(root, &["reference_implementation", "path"])
+            == Some("tools/ehd-reference-audit/src/discrepancy.rs")
+            && text_at(root, &["reference_implementation", "function"])
+                == Some("analyse_d0_general_case")
+            && at(root, &["reference_implementation", "rust_unit_tests"])
+                .and_then(Value::as_u64) == Some(7),
+        "D0_QR_IMPLEMENTATION_SCOPE",
+        "pivoted-QR implementation path, public entry point and seven Rust tests must remain declared",
     );
     let signatures = at(root, &["source_columns"]).and_then(Value::as_array);
     push_if_missing(
