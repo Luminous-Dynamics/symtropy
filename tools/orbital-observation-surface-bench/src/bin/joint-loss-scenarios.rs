@@ -74,7 +74,10 @@ fn main() -> ExitCode {
         "authority_granted":evaluation.authority_granted
     });
     match serde_json::to_string_pretty(&receipt) {
-        Ok(output) => { println!("{output}"); ExitCode::SUCCESS }
+        Ok(output) => {
+            println!("{output}");
+            ExitCode::SUCCESS
+        }
         Err(error) => {
             eprintln!("failed to serialize joint-loss receipt: {error}");
             ExitCode::from(1)
