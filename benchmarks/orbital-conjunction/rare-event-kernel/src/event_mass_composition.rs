@@ -436,7 +436,7 @@ mod tests {
             HASH_C.to_owned(),
             "residual-complement".to_owned(),
             "affine-union-run-53".to_owned(),
-            "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg".to_owned(),
+            "1111111111111111111111111111111111111111111111111111111111111111".to_owned(),
             &report,
         )
         .expect("conservative affine union report");
@@ -452,7 +452,7 @@ mod tests {
             HASH_C.to_owned(),
             "residual-complement".to_owned(),
             "affine-union-run-54".to_owned(),
-            "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh".to_owned(),
+            "2222222222222222222222222222222222222222222222222222222222222222".to_owned(),
             &report,
         )
         .expect("budget-exhausted report is still recorded");
@@ -468,7 +468,7 @@ mod tests {
                 HASH_C.to_owned(),
                 "residual-complement".to_owned(),
                 "affine-run-invalid".to_owned(),
-                "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg".to_owned(),
+                "1111111111111111111111111111111111111111111111111111111111111111".to_owned(),
                 &invalid_mass,
             ),
             Err(KernelError::InvalidProbability)
@@ -481,7 +481,7 @@ mod tests {
                 "bad-partition-digest".to_owned(),
                 "residual-complement".to_owned(),
                 "affine-run-invalid".to_owned(),
-                "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg".to_owned(),
+                "1111111111111111111111111111111111111111111111111111111111111111".to_owned(),
                 &valid,
             ),
             Err(KernelError::InvalidEvidenceDigest)
