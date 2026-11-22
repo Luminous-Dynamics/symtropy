@@ -492,10 +492,13 @@ pub fn step_rk4(
 
 /// Sign-invariant geodesic distance between unit quaternions, in radians.
 pub fn orientation_error_radians(a: Quaternion, b: Quaternion) -> f64 {
-    let ac = a.components();
-    let bc = b.components();
-    let product = ac[0] * bc[0] + ac[1] * bc[1] + ac[2] * bc[2] + ac[3] * bc[3];
-    2.0 * product.abs().clamp(0.0, 1.0).acos()
+    let relative = a.conjugate().multiply(b);
+    let vector_norm = (relative.x * relative.x
+        + relative.y * relative.y
+        + relative.z * relative.z)
+        .sqrt();
+    // atan2 is better conditioned than acos(dot) for very small rotations.
+    2.0 * vector_norm.atan2(relative.w.abs())
 }
 
 /// Largest orthogonality residual among the three rotated basis axes.
