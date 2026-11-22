@@ -154,14 +154,18 @@ pub fn affine_union_collision_residual_mass_upper_bound(
         )?;
     }
 
-    for chart in config.covered_chart_boxes {
-        if chart.lower().len() != dimension || chart.upper().len() != dimension {
+    for chart in config.covered_charts {
+        if chart.component_index >= config.components.len() {
+            return Err(KernelError::InvalidChartComponentIndex);
+        }
+        if chart.bounds.lower().len() != dimension || chart.bounds.upper().len() != dimension {
             return Err(KernelError::DimensionMismatch);
         }
         if chart
+            .bounds
             .lower()
             .iter()
-            .zip(chart.upper())
+            .zip(chart.bounds.upper())
             .zip(root.lower().iter().zip(root.upper()))
             .any(
                 |((chart_lower, chart_upper), (domain_lower, domain_upper))| {
@@ -203,35 +207,44 @@ pub fn affine_union_collision_residual_mass_upper_bound(
             .checked_add(1)
             .ok_or(KernelError::CounterOverflow)?;
 
-        let fully_chart_covered = config.covered_chart_boxes.iter().any(|chart| {
-            cell.lower()
-                .iter()
-                .zip(cell.upper())
-                .zip(chart.lower().iter().zip(chart.upper()))
-                .all(|((cell_lower, cell_upper), (chart_lower, chart_upper))| {
-                    cell_lower >= chart_lower && cell_upper <= chart_upper
-                })
-        });
-        if fully_chart_covered {
-            chart_covered_cells += 1;
-            continue;
-        }
+        let mut component_accounted = true;
+        let mut at_least_one_charted = false;
+        for (component_index, component) in config.components.iter().enumerate() {
+            let covered_by_component_chart = config.covered_charts.iter().any(|chart| {
+                chart.component_index == component_index
+                    && cell
+                        .lower()
+                        .iter()
+                        .zip(cell.upper())
+                        .zip(chart.bounds.lower().iter().zip(chart.bounds.upper()))
+                        .all(|((cell_lower, cell_upper), (chart_lower, chart_upper))| {
+                            cell_lower >= chart_lower && cell_upper <= chart_upper
+                        })
+            });
+            if covered_by_component_chart {
+                at_least_one_charted = true;
+                continue;
+            }
 
-        let mut excluded_from_union = true;
-        for component in config.components {
-            if !affine_cell_excludes_collision_ball(
+            let component_event_free = affine_cell_excludes_collision_ball(
                 component.offset,
                 component.matrix,
                 cell.lower(),
                 cell.upper(),
                 component.hard_body_radius,
-            )? {
-                excluded_from_union = false;
+            )?;
+            if !component_event_free {
+                component_accounted = false;
                 break;
             }
         }
-        if excluded_from_union {
-            event_free_cells += 1;
+
+        if component_accounted {
+            if at_least_one_charted {
+                chart_covered_cells += 1;
+            } else {
+                event_free_cells += 1;
+            }
             continue;
         }
 
