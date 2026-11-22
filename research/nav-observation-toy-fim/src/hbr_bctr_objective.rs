@@ -60,6 +60,17 @@ pub struct HbrBctrEvaluation2d {
     pub packet_residual_count: usize,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct HbrBctrAlternatingStepReport2d {
+    /// State after the projected X update, before the B update.
+    pub state_after_position: HbrBctrState2d,
+    /// State after the projected B update evaluated at state_after_position.
+    pub state_after_bias: HbrBctrState2d,
+    pub objective_before: f64,
+    pub objective_after_position: f64,
+    pub objective_after_bias: f64,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum HbrBctrError {
     InvalidConfiguration,
@@ -349,7 +360,10 @@ pub fn evaluate_hbr_bctr_window_2d(
     })
 }
 
-/// One projected gradient step using the two paper-defined step sizes.
+/// Convenience simultaneous projection of a precomputed position and
+/// bias gradient. This is not the paper's alternating X-then-B iteration.
+/// Use hbr_bctr_alternating_projected_step_2d for paper-ordered updates.
+////
 /// Position states are projected into a declared rectangular spatial domain;
 /// structural biases are projected into [0, maximum_structural_bias_m].
 pub fn hbr_bctr_projected_step_2d(
@@ -427,6 +441,113 @@ fn validate_config(config: HbrBctrConfig2d) -> Result<(), HbrBctrError> {
         || config.bias_step_size <= 0.0
     {
         return Err(HbrBctrError::InvalidConfiguration);
+    }
+    Ok(())
+}
+
+/// Apply one paper-ordered alternating HBR-BCTR update:
+/// 1. Evaluate both gradients at (X^k, B^k).
+/// 2. Project the position update X^(k+1) using that evaluation.
+/// 3. Re-evaluate the full objective at (X^(k+1), B^k).
+/// 4. Project the bias update B^(k+1) using the fresh bias gradient.
+/// 5. Re-evaluate the objective at (X^(k+1), B^(k+1)).
+///
+/// This preserves the update order in the paper's equations (21)–(22).
+/// It is a single PGD iteration only: convergence/stopping, line search,
+/// overlapping windows and information-weighted fusion remain caller-owned.
+pub fn hbr_bctr_alternating_projected_step_2d(
+    state: &HbrBctrState2d,
+    observations: &[HbrRangeObservation2d],
+    config: HbrBctrConfig2d,
+) -> Result<HbrBctrAlternatingStepReport2d, HbrBctrError> {
+    let before = evaluate_hbr_bctr_window_2d(state, observations, config)?;
+    let state_after_position =
+        project_hbr_bctr_position_state_2d(state, &before, config)?;
+    let after_position =
+        evaluate_hbr_bctr_window_2d(&state_after_position, observations, config)?;
+    let state_after_bias =
+        project_hbr_bctr_bias_state_2d(&state_after_position, &after_position, config)?;
+    let after_bias =
+        evaluate_hbr_bctr_window_2d(&state_after_bias, observations, config)?;
+
+    Ok(HbrBctrAlternatingStepReport2d {
+        state_after_position,
+        state_after_bias,
+        objective_before: before.objective,
+        objective_after_position: after_position.objective,
+        objective_after_bias: after_bias.objective,
+    })
+}
+
+fn project_hbr_bctr_position_state_2d(
+    state: &HbrBctrState2d,
+    evaluation: &HbrBctrEvaluation2d,
+    config: HbrBctrConfig2d,
+) -> Result<HbrBctrState2d, HbrBctrError> {
+    validate_projected_step_inputs(state, evaluation, config)?;
+    let positions_m = state
+        .positions_m
+        .iter()
+        .zip(&evaluation.position_gradient)
+        .map(|(position, gradient)| {
+            [
+                (position[0] - config.position_step_size * gradient[0])
+                    .clamp(config.position_min_m[0], config.position_max_m[0]),
+                (position[1] - config.position_step_size * gradient[1])
+                    .clamp(config.position_min_m[1], config.position_max_m[1]),
+            ]
+        })
+        .collect::<Vec<_>>();
+    if !positions_m.iter().flatten().all(|value| value.is_finite()) {
+        return Err(HbrBctrError::ArithmeticOverflow);
+    }
+    Ok(HbrBctrState2d {
+        positions_m,
+        structural_bias_m: state.structural_bias_m.clone(),
+    })
+}
+
+fn project_hbr_bctr_bias_state_2d(
+    state: &HbrBctrState2d,
+    evaluation: &HbrBctrEvaluation2d,
+    config: HbrBctrConfig2d,
+) -> Result<HbrBctrState2d, HbrBctrError> {
+    validate_projected_step_inputs(state, evaluation, config)?;
+    let structural_bias_m = state
+        .structural_bias_m
+        .iter()
+        .zip(&evaluation.structural_bias_gradient)
+        .map(|(bias, gradient)| {
+            (bias - config.bias_step_size * gradient)
+                .clamp(0.0, config.maximum_structural_bias_m)
+        })
+        .collect::<Vec<_>>();
+    if !structural_bias_m.iter().all(|value| value.is_finite()) {
+        return Err(HbrBctrError::ArithmeticOverflow);
+    }
+    Ok(HbrBctrState2d {
+        positions_m: state.positions_m.clone(),
+        structural_bias_m,
+    })
+}
+
+fn validate_projected_step_inputs(
+    state: &HbrBctrState2d,
+    evaluation: &HbrBctrEvaluation2d,
+    config: HbrBctrConfig2d,
+) -> Result<(), HbrBctrError> {
+    validate_config(config)?;
+    if evaluation.position_gradient.len() != state.positions_m.len() {
+        return Err(HbrBctrError::PositionStateCountMismatch);
+    }
+    if evaluation.structural_bias_gradient.len() != state.structural_bias_m.len() {
+        return Err(HbrBctrError::BiasStateCountMismatch);
+    }
+    if !evaluation.objective.is_finite()
+        || !evaluation.position_gradient.iter().flatten().all(|value| value.is_finite())
+        || !evaluation.structural_bias_gradient.iter().all(|value| value.is_finite())
+    {
+        return Err(HbrBctrError::ArithmeticOverflow);
     }
     Ok(())
 }
@@ -745,6 +866,49 @@ mod tests {
             evaluate_hbr_bctr_window_2d(&current, &[bad], cfg),
             Err(HbrBctrError::InvalidConfiguration)
         );
+    }
+
+    #[test]
+    fn alternating_step_recomputes_bias_gradient_after_position_update() {
+        let current = state();
+        let observations = [
+            observation(1, 0, 1.5),
+            observation(2, 1, 1.6),
+            observation(3, 2, 1.7),
+        ];
+        let cfg = config();
+
+        let before = evaluate_hbr_bctr_window_2d(&current, &observations, cfg).unwrap();
+        let expected_position =
+            project_hbr_bctr_position_state_2d(&current, &before, cfg).unwrap();
+        let expected_after_position =
+            evaluate_hbr_bctr_window_2d(&expected_position, &observations, cfg).unwrap();
+        let expected_bias =
+            project_hbr_bctr_bias_state_2d(&expected_position, &expected_after_position, cfg)
+                .unwrap();
+
+        let report =
+            hbr_bctr_alternating_projected_step_2d(&current, &observations, cfg).unwrap();
+        assert_eq!(report.state_after_position, expected_position);
+        assert_eq!(report.state_after_bias, expected_bias);
+        assert_eq!(report.objective_before, before.objective);
+        assert_eq!(report.objective_after_position, expected_after_position.objective);
+        assert!(report.state_after_bias.positions_m == report.state_after_position.positions_m);
+    }
+
+    #[test]
+    fn alternating_projected_iteration_decreases_objective_for_small_step() {
+        let mut cfg = config();
+        cfg.position_step_size = 1e-6;
+        cfg.bias_step_size = 1e-6;
+        let report = hbr_bctr_alternating_projected_step_2d(
+            &state(),
+            &[observation(1, 0, 1.5), observation(2, 1, 1.6), observation(3, 2, 1.7)],
+            cfg,
+        )
+        .unwrap();
+        assert!(report.objective_after_position <= report.objective_before);
+        assert!(report.objective_after_bias <= report.objective_after_position);
     }
 
     #[test]
