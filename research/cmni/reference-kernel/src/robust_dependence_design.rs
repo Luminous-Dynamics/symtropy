@@ -184,7 +184,7 @@ pub fn rank_two_source_dependence_designs(
         ranking_reversed = Some(reversed);
     }
 
-    scores.sort_by(|left, right| left.robust_rank.cmp(&right.robust_rank));
+    scores.sort_by_key(|score| score.robust_rank);
     let robust_preferred_candidate_id = scores[0].candidate_id.clone();
 
     Ok(DependenceRobustDesignRanking {
