@@ -149,6 +149,8 @@ pub struct TraceabilityLink {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ClockUseObservation {
     pub observation_id: String,
+    /// Exact source-event namespace for the event whose timestamp is qualified.
+    pub source_id: String,
     /// Exact source-event revision whose timestamp is being qualified.
     pub source_event_id: String,
     pub source_event_revision: u32,
@@ -229,6 +231,7 @@ pub struct UncertaintyContribution {
 pub struct QualifiedClockCalibrationReceipt {
     result_id: String,
     observation_id: String,
+    source_id: String,
     source_event_id: String,
     source_event_revision: u32,
     clock_id: String,
@@ -259,6 +262,7 @@ pub struct QualifiedClockCalibrationReceipt {
 impl QualifiedClockCalibrationReceipt {
     pub fn result_id(&self) -> &str { &self.result_id }
     pub fn observation_id(&self) -> &str { &self.observation_id }
+    pub fn source_id(&self) -> &str { &self.source_id }
     pub fn source_event_id(&self) -> &str { &self.source_event_id }
     pub fn source_event_revision(&self) -> u32 { self.source_event_revision }
     pub fn clock_id(&self) -> &str { &self.clock_id }
@@ -337,8 +341,8 @@ impl ClockAttestationDecision {
             .ok_or(ClockEvidenceConversionError::MissingCalibrationDigest)?;
         let event_id = format!(
             "{}:{}:{}:{}:{}",
-            receipt.source_id_len(),
-            receipt.source_id(),
+            receipt.source_id.len(),
+            receipt.source_id,
             receipt.source_event_id.len(),
             receipt.source_event_id,
             receipt.source_event_revision
@@ -599,6 +603,7 @@ pub fn attest_clock_for_event(
         || !valid_text(&calibration.coverage_factor_lexeme)
         || !valid_text(&calibration.uncertainty_model_id)
         || !valid_text(&observation.observation_id)
+        || !valid_text(&observation.source_id)
         || !valid_text(&observation.source_event_id)
         || !valid_text(&observation.synchronization_method)
     {
@@ -852,6 +857,7 @@ pub fn attest_clock_for_event(
     ClockAttestationDecision::accepted(QualifiedClockCalibrationReceipt {
         result_id: calibration.result_id.clone(),
         observation_id: observation.observation_id.clone(),
+        source_id: observation.source_id.clone(),
         source_event_id: observation.source_event_id.clone(),
         source_event_revision: observation.source_event_revision,
         clock_id: calibration.clock_id.clone(),
@@ -998,6 +1004,7 @@ mod tests {
     fn observation_fixture() -> ClockUseObservation {
         ClockUseObservation {
             observation_id: "clock-use-1000".to_string(),
+            source_id: "WMS_A".to_string(),
             source_event_id: "urn:uuid:custody-event-1000".to_string(),
             source_event_revision: 4,
             clock_id: "PTP-GM-01".to_string(),
@@ -1038,15 +1045,16 @@ mod tests {
         let decision = evaluate(&calibration_fixture(), &observation_fixture());
         assert_eq!(decision.status, ClockAttestationStatus::AcceptedForDeclaredScope);
         let receipt = decision.receipt.unwrap();
-        assert_eq!(receipt.maximum_total_error_ticks, 24);
-        assert_eq!(receipt.calibration_artifact_digests.len(), 4);
-        assert_eq!(receipt.source_event_id, "urn:uuid:custody-event-1000");
-        assert_eq!(receipt.source_event_revision, 4);
-        assert_eq!(receipt.observation_time_ticks, 995);
-        assert_eq!(receipt.synchronization_method, "PTP");
-        assert_eq!(receipt.applicable_from_ticks, 800);
-        assert_eq!(receipt.applicable_until_ticks, 1_500);
-        assert_eq!(receipt.terminal_reference_id, "UTC(ZA)");
+        assert_eq!(receipt.maximum_total_error_ticks(), 24);
+        assert_eq!(receipt.calibration_artifact_digests().len(), 4);
+        assert_eq!(receipt.source_id(), "WMS_A");
+        assert_eq!(receipt.source_event_id(), "urn:uuid:custody-event-1000");
+        assert_eq!(receipt.source_event_revision(), 4);
+        assert_eq!(receipt.observation_time_ticks(), 995);
+        assert_eq!(receipt.synchronization_method(), "PTP");
+        assert_eq!(receipt.applicable_from_ticks(), 800);
+        assert_eq!(receipt.applicable_until_ticks(), 1_500);
+        assert_eq!(receipt.terminal_reference_id(), "UTC(ZA)");
     }
 
     #[test]
@@ -1054,7 +1062,7 @@ mod tests {
         let decision = evaluate(&calibration_fixture(), &observation_fixture());
         let receipt = decision.receipt.unwrap();
         let ids: Vec<&str> = receipt
-            .uncertainty_contributions
+            .uncertainty_contributions()
             .iter()
             .map(|item| item.component_id.as_str())
             .collect();
@@ -1080,7 +1088,7 @@ mod tests {
         }
         let decision = evaluate(&calibration, &observation_fixture());
         assert_eq!(decision.status, ClockAttestationStatus::AcceptedForDeclaredScope);
-        assert_eq!(decision.receipt.unwrap().maximum_total_error_ticks, 9);
+        assert_eq!(decision.receipt.unwrap().maximum_total_error_ticks(), 9);
     }
 
     #[test]
