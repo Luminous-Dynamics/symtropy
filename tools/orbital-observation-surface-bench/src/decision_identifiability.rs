@@ -724,6 +724,36 @@ mod tests {
     }
 
     #[test]
+    fn world_probe_and_outcome_order_does_not_change_canonical_result() {
+        let mut input = corpus();
+        let before = evaluate(&input).expect("original corpus must evaluate");
+        let case_id = "constant-thinning-opposite-decisions";
+        let target = input
+            .cases
+            .iter_mut()
+            .find(|case| case.case_id == case_id)
+            .expect("permutation case must exist");
+        target.worlds.reverse();
+        target.probes.reverse();
+        target.evidence.observation_law.outcomes.reverse();
+        for world in &mut target.worlds {
+            world.observation_law.outcomes.reverse();
+        }
+        for probe in &mut target.probes {
+            for law in probe.world_outcome_laws.values_mut() {
+                law.outcomes.reverse();
+            }
+        }
+
+        let after = evaluate(&input).expect("permuted corpus must evaluate");
+        let before_value = serde_json::to_value(result(&before, case_id))
+            .expect("original case result must serialize");
+        let after_value = serde_json::to_value(result(&after, case_id))
+            .expect("permuted case result must serialize");
+        assert_eq!(before_value, after_value);
+    }
+
+    #[test]
     fn malformed_probability_law_is_rejected() {
         let mut invalid = corpus();
         invalid.cases[0].evidence.observation_law.outcomes[0].probability =
