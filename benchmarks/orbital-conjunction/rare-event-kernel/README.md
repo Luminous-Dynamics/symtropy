@@ -2,7 +2,7 @@
 
 An isolated, dependency-light Rust package for mathematical primitives used by the orbital conjunction rare-event assurance programme.
 
-This crate is a research kernel, not an operational collision-probability product. It deliberately does not implement orbit propagation, random sampling, candidate event-mode discovery, proposal fitting, confidence sequences for importance-sampling weights, or flight operations. It includes only a Bernoulli-specific time-uniform confidence sequence.
+This crate is a research kernel, not an operational collision-probability product. It deliberately does not implement orbit propagation, random sampling, candidate event-mode discovery, proposal fitting, general confidence sequences for unbounded importance weights, or flight operations. Its new weighted confidence sequence is limited to bounded contributions generated under a fixed defensive target-mixture mass and predictable proposals.
 
 ## Current primitives
 
@@ -24,6 +24,7 @@ This crate is a research kernel, not an operational collision-probability produc
 - Dense-grid adversarial tests checking sampled affine images remain inside the interval enclosure and sampled norms remain above the reported lower bound.
 - Streaming log-domain weighted event sums, contribution ESS, plug-in relative standard error, and a clearly labelled normal-approximation interval diagnostic.
 - A beta(1,1)-mixture Bernoulli e-process and inverted time-uniform confidence sequence for independent bounded event indicators, with an exhaustive short-horizon optional-stopping coverage test.
+- A predictable plug-in empirical-Bernstein confidence sequence for defensively bounded importance contributions, with the target Pc interval obtained by scaling the bounded mean interval by the fixed defensive mass; the proposal must retain the target distribution as a defensive mixture component at every draw.
 - Full normalized Gaussian-mixture log density using log-sum-exp.
 - Log importance weights and one-draw weighted event indicators.
 - Strict Loewner covariance-floor validation, including the strictness test needed for a half-nominal covariance lower bound.
@@ -41,7 +42,7 @@ cargo clippy --locked --manifest-path benchmarks/orbital-conjunction/rare-event-
 
 The package has its own Cargo workspace and does not require the full Symtropy/Bevy workspace.
 
-The current authored test corpus contains 98 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, and 10 in `trajectory.rs`. across the analytic probability, affine coverage / residual-mass, weighted-statistics, and Bernoulli sequential-inference modules. Only a completed exact-head workflow establishes that a particular revision passed them.
+The current authored test corpus contains 106 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, and 8 in `defensive_is.rs`. Only a completed exact-head workflow establishes that a particular revision passed them.
 
 ## Important limitations
 
@@ -54,5 +55,6 @@ The current authored test corpus contains 98 authored `#[test]` cases: 30 in `li
 - The polynomial trajectory classifier accepts coefficient intervals supplied by the caller. It does not construct or validate a Taylor remainder, establish the coefficient enclosures, solve nonlinear dynamics, or formally machine-verify its interval arithmetic. It is a fail-closed local component; ambiguous cases require high-fidelity evaluation.
 - The Gaussian cell-mass bound is intentionally loose and the cube-tail bound uses a Chernoff polynomial lower bound. The traversal is preliminary numerical conservative bookkeeping, not a formally machine-verified certificate or a proof of the physical model.
 - The cell splitter uses a deterministic longest-axis rule. Shared closed faces are covered by both children; they have zero measure only for a nondegenerate continuous Gaussian and still remain relevant to geometric tangency tests.
-- The weighted indicator primitive does not construct confidence intervals or establish finite-sample coverage.
+- The weighted-event summary remains a plug-in diagnostic and does not itself construct confidence intervals or establish finite-sample coverage.
+- The defensive importance-sampling confidence sequence is valid only for bounded contributions `epsilon * event * p(x) / q_t(x)` with fixed defensive mass, the complete mixture density, and proposals chosen predictably before each draw. It does not cover arbitrary unbounded importance weights, non-predictable adaptation, Markov-dependent draws without an additional theorem, or physical/model uncertainty. Floating-point operations are not formally machine-verified.
 - The proposal density must be the complete mixture density, including all defensive components.
