@@ -144,7 +144,42 @@ Also report:
 
 Do not compare an OEM quoted part price against a local print's filament cost. Missing cost components remain unknown, not zero. The current corpus uses synthetic cost inputs; no route price ranking is a measured procurement recommendation.
 
-## 7. Owner boundaries
+## 7. External standards and benchmark position
+
+The compiler is an evidence/decision layer. It should interoperate with industrial equipment and digital-thread standards rather than replace them.
+
+### Industry and SOTA comparison
+
+- **NIST AM-Bench** is a strong reference for controlled additive-manufacturing measurements and blind model challenges. Its 2025 programme covers eight metals-AM measurement/challenge sets and one polymer vat-photopolymerization set; its 2022 polymer programme included material extrusion of polycarbonate. NIST describes a higher-TRL industrial-component focus for AM-Bench 2028. This compiler is not a substitute for AM-Bench and must not claim to outperform its metal-process physics challenges. The complementary Luminous target is independently reproducible desktop MEX geometry/capability, route-feasibility, repairability and cost per conforming output. See [NIST AM-Bench](https://www.nist.gov/ambench).
+- **ISO 23247-1:2021** gives the manufacturing digital-twin framework; **ISO 23247-5:2026** addresses the digital thread; **ISO 23247-6:2026** addresses federated/integrated/unified digital-twin composition. The compiler should consume and produce versioned owner-native references at these boundaries, not create one universal twin. See [Part 1](https://www.iso.org/standard/75066.html), [Part 5](https://www.iso.org/standard/87425.html), and [Part 6](https://www.iso.org/standard/87426.html).
+- **MTConnect / OPC UA** already provide manufacturing equipment information-model interoperability. The compiler must not invent another telemetry or control protocol. It consumes signed/attested owner-specific observation and profile references through adapters; observation interfaces do not themselves authorize actuation. See [MTConnect documentation](https://mtconnect.squarespace.com/documentation) and the [OPC Foundation MTConnect collaboration](https://opcfoundation.org/markets-collaboration/mtconnect/).
+
+### Compose benchmark owners; do not duplicate them
+
+| Benchmark / evidence question | Owner | Compiler relationship |
+|---|---|---|
+| FDM dimensional/feature quality and held-out geometric measurement | Symthaea #7960/#7961 | Consume the exact artifact, machine/process profile, metrology and feature-level outcome |
+| Spatial build-volume and location-dependent capability | Symthaea #7998 | Treat capability as position/orientation/configuration-specific; never collapse into one printer-wide accuracy scalar |
+| Production-value and fair conventional comparison | Symthaea MFG-VALUE-001 #7608 | Use cost per conforming part, first-pass yield, critical quality guardrails, uncertainty and paired campaign/lot comparisons |
+| Canonical process/recipe/capability semantics | Symthaea MFG-PROC-000 #5686 | Consume canonical process definitions; do not redefine them in this compiler |
+| Typed process references and resource offers | Mycelix #6531/#6533 | Consume exact owner references and offer states only after schema/version and external-object resolution |
+| Route feasibility / dependency closure / Pareto analysis | Symtropy #6786 | This reference compiler implementation; it remains synthetic until independent review and physical evidence |
+
+### Benchmark ladder and target metrics
+
+Do not chase one aggregate "smart factory" number. Report the dimensions independently:
+
+1. **Semantic and evidence conformance:** every known-answer synthetic case has the expected disposition; every malformed, stale, revoked, rights-invalid or missing hard prerequisite remains blocked/unknown; every exact input produces a deterministic replay receipt.
+2. **Route feasibility:** 0 false-feasible decisions in frozen rights/revision/safety/material/calibration/operator/inspection negative controls. Count false-unknown and false-infeasible separately.
+3. **Geometry and quality:** report feature-level dimensional error by position/orientation, uncertainty and instrument profile; no aggregate average may hide a local out-of-tolerance feature.
+4. **Production economics:** use MFG-VALUE #7608 matched workloads and strongest conventional baselines; primary candidate objective is fully burdened cost per conforming, serviceable part. Its proposed Stage-2 target is at least 10% improvement at matched hard quality-escape risk, with a paired lot/campaign-level 95% interval excluding zero improvement and no guardrail regression. This is a target, not a present result.
+5. **Repair and recovery:** time-to-diagnose, time-to-restore, first-time repair success, required tooling/skills, repeat failure and post-repair qualification.
+6. **Productive closure:** count transitive critical dependencies that are independently serviceable, repairable and reproducible; expose single-source critical dependencies and replacement-generation needs. Do not call a machine locally reproducible merely because its frame can be fabricated.
+7. **Federated capacity:** keep declared offer, owner-object resolution, qualified capability, calendar availability, bookable capacity, reservation and executed output as separate measured states.
+
+Use preregistered policies, frozen holdouts, exact input/output digests and independent evaluators. Do not allow a gain in speed, machine utilization or nominal output to compensate for quality/safety failure. Compare the baseline and candidate on identical work, machine configuration, staffing, material lot, inspection method, time horizon and cost accounting. If sample size or independent lot count is insufficient, report Inconclusive/NotEvaluable.
+
+## 8. Owner boundaries
 
 - Symtropy #6786: deterministic reference assessment, synthetic corpus, route diagnostics and benchmark receipts.
 - Symthaea CIV-BOOT #5774/#5781: generic productive capability closure semantics.
@@ -155,14 +190,14 @@ Do not compare an OEM quoted part price against a local print's filament cost. M
 
 This specification must adapt to owner-native contracts instead of creating duplicate authorities.
 
-## 8. Frozen v0.1 synthetic corpus
+## 9. Frozen v0.1 synthetic corpus
 
 The corpus is deliberately synthetic. It contains admissible, infeasible and unknown routes, OR alternatives, capacity contention, local/import distinction, cyclic dependency attempts and missing post-repair checks. Its expected outputs are reference labels for independent review, not physical evidence.
 
 The schema is `schemas/manufacturing/machine_capability_case_v0_1.schema.json`.
 The fixtures are `fixtures/manufacturing/machine_capability_cases_v0_1.json`.
 
-## 9. Implementation sequence
+## 10. Implementation sequence
 
 1. Validate the schema and freeze reviewed known answers.
 2. Implement a small isolated Rust reference evaluator with strict enum/unit validation and deterministic normalized outputs.
@@ -171,6 +206,6 @@ The fixtures are `fixtures/manufacturing/machine_capability_cases_v0_1.json`.
 5. Add a result receipt binding exact evaluator commit, schema, corpus and inputs.
 6. Only after synthetic tests pass, connect one exact P0 part and one real N1 capability using measured evidence.
 
-## 10. Claim ceiling
+## 11. Claim ceiling
 
 A passing synthetic evaluator establishes only that the implementation agrees with the reviewed synthetic contract. It does not qualify a printer, part, material, operator, facility, repair or production route. It does not establish lower cost, shorter restoration time, local manufacture or safety. Those require physical measurements, rights confirmation, competent review and current supplier/qualification evidence.
