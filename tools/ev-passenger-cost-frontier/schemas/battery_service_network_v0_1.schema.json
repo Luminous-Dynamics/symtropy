@@ -132,7 +132,6 @@
       "required": [
         "pack_id",
         "configuration_id",
-        "state",
         "usable_energy",
         "peak_power",
         "thermal",
@@ -150,9 +149,6 @@
         "configuration_id": {
           "type": "string",
           "minLength": 1
-        },
-        "state": {
-          "$ref": "#/$defs/packState"
         },
         "usable_energy": {
           "$ref": "#/$defs/metric"
@@ -177,7 +173,7 @@
           "minLength": 1
         },
         "state_evidence": {
-          "$ref": "#/$defs/evidenceEnvelope"
+          "$ref": "#/$defs/packStateEvidence"
         }
       }
     },
@@ -305,6 +301,22 @@
             "null"
           ],
           "minimum": 1
+        }
+      }
+    },
+    "packStateEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence",
+        "value"
+      ],
+      "properties": {
+        "evidence": {
+          "$ref": "#/$defs/evidenceEnvelope"
+        },
+        "value": {
+          "$ref": "#/$defs/packState"
         }
       }
     }
