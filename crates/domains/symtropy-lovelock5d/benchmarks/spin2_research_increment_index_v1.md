@@ -217,3 +217,34 @@ This encodes a critical Akribeia-inspired distinction: repeated values of a metr
 Related new tasks:
 - #6831 — coordinate-aware boundary-map conditioning from the reduced action.
 - #6833 — distinguish observable crossings from true solution-branch folds.
+
+
+## Complete first coupling derivative of both boundary-map columns (22 November 2026)
+
+The first coupling derivative of the entire \(2\times2\) horizon-to-infinity forbidden-mode map is now derived, rather than only the tangent of the asymptotically flat physical root.
+
+In the fixed Einstein-limit horizon and asymptotic coordinates,
+\[
+\boxed{
+J_1=
+\begin{pmatrix}
+1/2&19-2\pi^2\\
+0&67-6\pi^2
+\end{pmatrix}.
+}
+\]
+Numerically the second column is \((-0.739208802178717238,\;7.78237359346384829)^T\). The exact derivative of the affine map offset remains \((-53/9,28/3)^T\), independently fixed by the physical branch tangent. The determinant slope is \(69/2-3\pi^2\).
+
+The derivation varies all five radial fields before imposing \(g=r^2\), extracts the four original even-sector \(O(\lambda a^2)\) rows, reconstructs \(F_{21}\) through the positive algebraic \(E_f\) pivot, and reduces the other two evolution rows. The \(b_1\) homogeneous sensitivity is elementary. The \(h_0\) sensitivity reduces to a scalar self-adjoint ODE; a normalized Green--Lagrange projection evaluates its growing amplitude through a log/dilogarithm primitive, with no asymptotic numerical fit.
+
+New public artifacts:
+- \`extract_spin2_boundary_map_lambda1_rows.py\`: exact action-row extractor.
+- \`spin2_boundary_map_lambda1_action_rows_v1.json\`: all four original coefficient rows and the \(E_f\) reconstruction.
+- \`verify_spin2_boundary_map_lambda1.py\`: independent endpoint projection/verifier.
+- \`spin2_boundary_map_lambda1_v1.json\`: exact and numerical \(J_1\), determinant and conditioning slopes.
+- \`spin2_boundary_map_lambda1_derivation_v1.md\`: derivation and claim ceiling.
+- \`spin2_boundary_map_lambda1_replay_v1.json\`: source blob hashes, replay environment, fixtures and evidence boundaries.
+
+The two source Git blob SHA-1 values match the exact locally executed source bytes. The scripts ran locally using Python 3.13.5 / SymPy 1.14.0. The coefficient-row fixture is committed in normalized JSON formatting; the published row expressions are the same expressions emitted by the extractor. This is a local exact-source replay, not a CI pass.
+
+This closes the first derivative of both columns at \(\lambda=0\). The next gates are finite-difference convergence against independently corrected small-positive-\(\lambda\) BVPs, finite-coupling invertibility under frozen endpoint metrics, a finite-coupling BVP, and interval-qualified continuation. No finite-coupling existence or hyperbolicity claim is made.
