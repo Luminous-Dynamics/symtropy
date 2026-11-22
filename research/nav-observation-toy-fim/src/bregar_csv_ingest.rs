@@ -628,7 +628,7 @@ mod tests {
         let parsed = parse_bregar_csv_data_row(
             "environment0/ch1_A1.csv",
             42,
-            &row_record(200),
+            &row_record(300),
         )
         .unwrap();
         let observation = parsed.controller.to_cir_observation(77, 0.015);
