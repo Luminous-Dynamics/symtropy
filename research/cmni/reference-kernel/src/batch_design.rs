@@ -303,8 +303,7 @@ pub fn select_greedy_batch_portfolio(
                 Some((best_index, _, best_gain)) => {
                     marginal_gain > *best_gain
                         || (marginal_gain == *best_gain
-                            && candidate.candidate_id
-                                < candidates[*best_index].candidate_id)
+                            && candidate.candidate_id < candidates[*best_index].candidate_id)
                 }
             };
             if replace_best {
