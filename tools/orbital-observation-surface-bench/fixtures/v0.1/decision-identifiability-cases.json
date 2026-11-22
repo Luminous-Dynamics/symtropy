@@ -1,0 +1,1230 @@
+{
+  "schema": "luminous.orbital-decision-identifiability.corpus.v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "exact-finite-world-decision-set-algebra-only",
+  "cases": [
+    {
+      "case_id": "constant-thinning-same-decision",
+      "evidence": {
+        "scope_id": "scope-constant-thinning-same-decision",
+        "configuration_id": "configuration-constant-thinning-same-decision",
+        "admissibility_status": "admissible",
+        "admissibility_receipt_id": "synthetic-observation-admission-constant-thinning-same-decision",
+        "observation_law": {
+          "outcomes": [
+            {
+              "outcome": "captured",
+              "probability": {
+                "numerator": 1,
+                "denominator": 2
+              }
+            },
+            {
+              "outcome": "not_captured",
+              "probability": {
+                "numerator": 1,
+                "denominator": 2
+              }
+            }
+          ]
+        }
+      },
+      "worlds": [
+        {
+          "world_id": "physical-rate-8-capture-1-4",
+          "parameter_signature": {
+            "physical_rate": "8",
+            "capture_probability": "1/4"
+          },
+          "observation_law": {
+            "outcomes": [
+              {
+                "outcome": "captured",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 2
+                }
+              },
+              {
+                "outcome": "not_captured",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 2
+                }
+              }
+            ]
+          },
+          "decision_class": "WITHIN_DOMAIN_LIMIT"
+        },
+        {
+          "world_id": "physical-rate-4-capture-1-2",
+          "parameter_signature": {
+            "physical_rate": "4",
+            "capture_probability": "1/2"
+          },
+          "observation_law": {
+            "outcomes": [
+              {
+                "outcome": "captured",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 2
+                }
+              },
+              {
+                "outcome": "not_captured",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 2
+                }
+              }
+            ]
+          },
+          "decision_class": "WITHIN_DOMAIN_LIMIT"
+        }
+      ],
+      "probes": []
+    },
+    {
+      "case_id": "constant-thinning-opposite-decisions",
+      "evidence": {
+        "scope_id": "scope-constant-thinning-opposite-decisions",
+        "configuration_id": "configuration-constant-thinning-opposite-decisions",
+        "admissibility_status": "admissible",
+        "admissibility_receipt_id": "synthetic-observation-admission-constant-thinning-opposite-decisions",
+        "observation_law": {
+          "outcomes": [
+            {
+              "outcome": "captured",
+              "probability": {
+                "numerator": 1,
+                "denominator": 2
+              }
+            },
+            {
+              "outcome": "not_captured",
+              "probability": {
+                "numerator": 1,
+                "denominator": 2
+              }
+            }
+          ]
+        }
+      },
+      "worlds": [
+        {
+          "world_id": "high-physical-rate",
+          "parameter_signature": {
+            "physical_rate": "8",
+            "capture_probability": "1/4"
+          },
+          "observation_law": {
+            "outcomes": [
+              {
+                "outcome": "captured",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 2
+                }
+              },
+              {
+                "outcome": "not_captured",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 2
+                }
+              }
+            ]
+          },
+          "decision_class": "HOLD"
+        },
+        {
+          "world_id": "lower-physical-rate",
+          "parameter_signature": {
+            "physical_rate": "4",
+            "capture_probability": "1/2"
+          },
+          "observation_law": {
+            "outcomes": [
+              {
+                "outcome": "captured",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 2
+                }
+              },
+              {
+                "outcome": "not_captured",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 2
+                }
+              }
+            ]
+          },
+          "decision_class": "PROCEED"
+        }
+      ],
+      "probes": [
+        {
+          "probe_id": "unsafe-but-discriminating",
+          "admissibility_status": "inadmissible",
+          "admissibility_receipt_id": "synthetic-negative-admissibility-receipt",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 1,
+            "elapsed_millis": 10
+          },
+          "world_outcome_laws": {
+            "high-physical-rate": {
+              "outcomes": [
+                {
+                  "outcome": "high",
+                  "probability": {
+                    "numerator": 1,
+                    "denominator": 1
+                  }
+                }
+              ]
+            },
+            "lower-physical-rate": {
+              "outcomes": [
+                {
+                  "outcome": "low",
+                  "probability": {
+                    "numerator": 1,
+                    "denominator": 1
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "probe_id": "cheap-nonresolving-probe",
+          "admissibility_status": "admissible",
+          "admissibility_receipt_id": "synthetic-admissibility-receipt-cheap",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 1,
+            "elapsed_millis": 10
+          },
+          "world_outcome_laws": {
+            "high-physical-rate": {
+              "outcomes": [
+                {
+                  "outcome": "captured",
+                  "probability": {
+                    "numerator": 1,
+                    "denominator": 2
+                  }
+                },
+                {
+                  "outcome": "not_captured",
+                  "probability": {
+                    "numerator": 1,
+                    "denominator": 2
+                  }
+                }
+              ]
+            },
+            "lower-physical-rate": {
+              "outcomes": [
+                {
+                  "outcome": "captured",
+                  "probability": {
+                    "numerator": 1,
+                    "denominator": 2
+                  }
+                },
+                {
+                  "outcome": "not_captured",
+                  "probability": {
+                    "numerator": 1,
+                    "denominator": 2
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "probe_id": "independent-reference-probe",
+          "admissibility_status": "admissible",
+          "admissibility_receipt_id": "synthetic-admissibility-receipt-reference",
+          "cost": {
+            "reference_trials": 3,
+            "exposure_micro_units": 500,
+            "elapsed_millis": 900
+          },
+          "world_outcome_laws": {
+            "high-physical-rate": {
+              "outcomes": [
+                {
+                  "outcome": "reference-high",
+                  "probability": {
+                    "numerator": 1,
+                    "denominator": 1
+                  }
+                }
+              ]
+            },
+            "lower-physical-rate": {
+              "outcomes": [
+                {
+                  "outcome": "reference-low",
+                  "probability": {
+                    "numerator": 1,
+                    "denominator": 1
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "multi-sensor-common-cause-alias",
+      "evidence": {
+        "scope_id": "scope-multi-sensor-common-cause-alias",
+        "configuration_id": "configuration-multi-sensor-common-cause-alias",
+        "admissibility_status": "admissible",
+        "admissibility_receipt_id": "synthetic-observation-admission-multi-sensor-common-cause-alias",
+        "observation_law": {
+          "outcomes": [
+            {
+              "outcome": "both_detect",
+              "probability": {
+                "numerator": 1,
+                "denominator": 4
+              }
+            },
+            {
+              "outcome": "both_miss",
+              "probability": {
+                "numerator": 1,
+                "denominator": 4
+              }
+            },
+            {
+              "outcome": "channel_a_only",
+              "probability": {
+                "numerator": 1,
+                "denominator": 4
+              }
+            },
+            {
+              "outcome": "channel_b_only",
+              "probability": {
+                "numerator": 1,
+                "denominator": 4
+              }
+            }
+          ]
+        }
+      },
+      "worlds": [
+        {
+          "world_id": "shared-power-clock-loss",
+          "parameter_signature": {
+            "failure_model": "shared-power-clock",
+            "channel_a": "high",
+            "channel_b": "high"
+          },
+          "observation_law": {
+            "outcomes": [
+              {
+                "outcome": "both_detect",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 4
+                }
+              },
+              {
+                "outcome": "both_miss",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 4
+                }
+              },
+              {
+                "outcome": "channel_a_only",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 4
+                }
+              },
+              {
+                "outcome": "channel_b_only",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 4
+                }
+              }
+            ]
+          },
+          "decision_class": "HOLD"
+        },
+        {
+          "world_id": "independent-low-capture",
+          "parameter_signature": {
+            "failure_model": "independent",
+            "channel_a": "low",
+            "channel_b": "low"
+          },
+          "observation_law": {
+            "outcomes": [
+              {
+                "outcome": "both_detect",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 4
+                }
+              },
+              {
+                "outcome": "both_miss",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 4
+                }
+              },
+              {
+                "outcome": "channel_a_only",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 4
+                }
+              },
+              {
+                "outcome": "channel_b_only",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 4
+                }
+              }
+            ]
+          },
+          "decision_class": "PROCEED"
+        }
+      ],
+      "probes": []
+    },
+    {
+      "case_id": "mark-dependent-detection-alias",
+      "evidence": {
+        "scope_id": "scope-mark-dependent-detection-alias",
+        "configuration_id": "configuration-mark-dependent-detection-alias",
+        "admissibility_status": "admissible",
+        "admissibility_receipt_id": "synthetic-observation-admission-mark-dependent-detection-alias",
+        "observation_law": {
+          "outcomes": [
+            {
+              "outcome": "negative",
+              "probability": {
+                "numerator": 3,
+                "denominator": 4
+              }
+            },
+            {
+              "outcome": "positive",
+              "probability": {
+                "numerator": 1,
+                "denominator": 4
+              }
+            }
+          ]
+        }
+      },
+      "worlds": [
+        {
+          "world_id": "large-events-poor-detection",
+          "parameter_signature": {
+            "event_amplitude": "high",
+            "pod_surface": "decreasing"
+          },
+          "observation_law": {
+            "outcomes": [
+              {
+                "outcome": "negative",
+                "probability": {
+                  "numerator": 3,
+                  "denominator": 4
+                }
+              },
+              {
+                "outcome": "positive",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 4
+                }
+              }
+            ]
+          },
+          "decision_class": "HOLD"
+        },
+        {
+          "world_id": "small-events-good-detection",
+          "parameter_signature": {
+            "event_amplitude": "low",
+            "pod_surface": "increasing"
+          },
+          "observation_law": {
+            "outcomes": [
+              {
+                "outcome": "negative",
+                "probability": {
+                  "numerator": 3,
+                  "denominator": 4
+                }
+              },
+              {
+                "outcome": "positive",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 4
+                }
+              }
+            ]
+          },
+          "decision_class": "PROCEED"
+        }
+      ],
+      "probes": []
+    },
+    {
+      "case_id": "dead-time-rate-alias",
+      "evidence": {
+        "scope_id": "scope-dead-time-rate-alias",
+        "configuration_id": "configuration-dead-time-rate-alias",
+        "admissibility_status": "admissible",
+        "admissibility_receipt_id": "synthetic-observation-admission-dead-time-rate-alias",
+        "observation_law": {
+          "outcomes": [
+            {
+              "outcome": "captured",
+              "probability": {
+                "numerator": 1,
+                "denominator": 2
+              }
+            },
+            {
+              "outcome": "not_captured",
+              "probability": {
+                "numerator": 1,
+                "denominator": 2
+              }
+            }
+          ]
+        }
+      },
+      "worlds": [
+        {
+          "world_id": "high-rate-long-dead-time",
+          "parameter_signature": {
+            "latent_rate": "high",
+            "dead_time": "long"
+          },
+          "observation_law": {
+            "outcomes": [
+              {
+                "outcome": "captured",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 2
+                }
+              },
+              {
+                "outcome": "not_captured",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 2
+                }
+              }
+            ]
+          },
+          "decision_class": "HOLD"
+        },
+        {
+          "world_id": "low-rate-short-dead-time",
+          "parameter_signature": {
+            "latent_rate": "low",
+            "dead_time": "short"
+          },
+          "observation_law": {
+            "outcomes": [
+              {
+                "outcome": "captured",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 2
+                }
+              },
+              {
+                "outcome": "not_captured",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 2
+                }
+              }
+            ]
+          },
+          "decision_class": "PROCEED"
+        }
+      ],
+      "probes": []
+    },
+    {
+      "case_id": "false-positive-compensation",
+      "evidence": {
+        "scope_id": "scope-false-positive-compensation",
+        "configuration_id": "configuration-false-positive-compensation",
+        "admissibility_status": "admissible",
+        "admissibility_receipt_id": "synthetic-observation-admission-false-positive-compensation",
+        "observation_law": {
+          "outcomes": [
+            {
+              "outcome": "negative",
+              "probability": {
+                "numerator": 3,
+                "denominator": 4
+              }
+            },
+            {
+              "outcome": "positive",
+              "probability": {
+                "numerator": 1,
+                "denominator": 4
+              }
+            }
+          ]
+        }
+      },
+      "worlds": [
+        {
+          "world_id": "misses-plus-false-positives",
+          "parameter_signature": {
+            "miss_rate": "high",
+            "false_positive_rate": "high"
+          },
+          "observation_law": {
+            "outcomes": [
+              {
+                "outcome": "negative",
+                "probability": {
+                  "numerator": 3,
+                  "denominator": 4
+                }
+              },
+              {
+                "outcome": "positive",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 4
+                }
+              }
+            ]
+          },
+          "decision_class": "HOLD"
+        },
+        {
+          "world_id": "low-misses-low-false-positives",
+          "parameter_signature": {
+            "miss_rate": "low",
+            "false_positive_rate": "low"
+          },
+          "observation_law": {
+            "outcomes": [
+              {
+                "outcome": "negative",
+                "probability": {
+                  "numerator": 3,
+                  "denominator": 4
+                }
+              },
+              {
+                "outcome": "positive",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 4
+                }
+              }
+            ]
+          },
+          "decision_class": "PROCEED"
+        }
+      ],
+      "probes": []
+    },
+    {
+      "case_id": "permitted-probe-does-not-resolve",
+      "evidence": {
+        "scope_id": "scope-permitted-probe-does-not-resolve",
+        "configuration_id": "configuration-permitted-probe-does-not-resolve",
+        "admissibility_status": "admissible",
+        "admissibility_receipt_id": "synthetic-observation-admission-permitted-probe-does-not-resolve",
+        "observation_law": {
+          "outcomes": [
+            {
+              "outcome": "captured",
+              "probability": {
+                "numerator": 1,
+                "denominator": 2
+              }
+            },
+            {
+              "outcome": "not_captured",
+              "probability": {
+                "numerator": 1,
+                "denominator": 2
+              }
+            }
+          ]
+        }
+      },
+      "worlds": [
+        {
+          "world_id": "mechanism-a",
+          "parameter_signature": {
+            "mechanism": "a"
+          },
+          "observation_law": {
+            "outcomes": [
+              {
+                "outcome": "captured",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 2
+                }
+              },
+              {
+                "outcome": "not_captured",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 2
+                }
+              }
+            ]
+          },
+          "decision_class": "HOLD"
+        },
+        {
+          "world_id": "mechanism-b",
+          "parameter_signature": {
+            "mechanism": "b"
+          },
+          "observation_law": {
+            "outcomes": [
+              {
+                "outcome": "captured",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 2
+                }
+              },
+              {
+                "outcome": "not_captured",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 2
+                }
+              }
+            ]
+          },
+          "decision_class": "PROCEED"
+        }
+      ],
+      "probes": [
+        {
+          "probe_id": "same-outcome-reference",
+          "admissibility_status": "admissible",
+          "admissibility_receipt_id": "synthetic-admissibility-receipt-same",
+          "cost": {
+            "reference_trials": 2,
+            "exposure_micro_units": 200,
+            "elapsed_millis": 500
+          },
+          "world_outcome_laws": {
+            "mechanism-a": {
+              "outcomes": [
+                {
+                  "outcome": "captured",
+                  "probability": {
+                    "numerator": 1,
+                    "denominator": 2
+                  }
+                },
+                {
+                  "outcome": "not_captured",
+                  "probability": {
+                    "numerator": 1,
+                    "denominator": 2
+                  }
+                }
+              ]
+            },
+            "mechanism-b": {
+              "outcomes": [
+                {
+                  "outcome": "captured",
+                  "probability": {
+                    "numerator": 1,
+                    "denominator": 2
+                  }
+                },
+                {
+                  "outcome": "not_captured",
+                  "probability": {
+                    "numerator": 1,
+                    "denominator": 2
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "inadmissible-discriminator",
+      "evidence": {
+        "scope_id": "scope-inadmissible-discriminator",
+        "configuration_id": "configuration-inadmissible-discriminator",
+        "admissibility_status": "admissible",
+        "admissibility_receipt_id": "synthetic-observation-admission-inadmissible-discriminator",
+        "observation_law": {
+          "outcomes": [
+            {
+              "outcome": "captured",
+              "probability": {
+                "numerator": 1,
+                "denominator": 2
+              }
+            },
+            {
+              "outcome": "not_captured",
+              "probability": {
+                "numerator": 1,
+                "denominator": 2
+              }
+            }
+          ]
+        }
+      },
+      "worlds": [
+        {
+          "world_id": "world-left",
+          "parameter_signature": {
+            "latent_state": "left"
+          },
+          "observation_law": {
+            "outcomes": [
+              {
+                "outcome": "captured",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 2
+                }
+              },
+              {
+                "outcome": "not_captured",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 2
+                }
+              }
+            ]
+          },
+          "decision_class": "HOLD"
+        },
+        {
+          "world_id": "world-right",
+          "parameter_signature": {
+            "latent_state": "right"
+          },
+          "observation_law": {
+            "outcomes": [
+              {
+                "outcome": "captured",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 2
+                }
+              },
+              {
+                "outcome": "not_captured",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 2
+                }
+              }
+            ]
+          },
+          "decision_class": "PROCEED"
+        }
+      ],
+      "probes": [
+        {
+          "probe_id": "unsafe-but-discriminating",
+          "admissibility_status": "inadmissible",
+          "admissibility_receipt_id": "synthetic-admissibility-receipt-denied",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 1,
+            "elapsed_millis": 1
+          },
+          "world_outcome_laws": {
+            "world-left": {
+              "outcomes": [
+                {
+                  "outcome": "left",
+                  "probability": {
+                    "numerator": 1,
+                    "denominator": 1
+                  }
+                }
+              ]
+            },
+            "world-right": {
+              "outcomes": [
+                {
+                  "outcome": "right",
+                  "probability": {
+                    "numerator": 1,
+                    "denominator": 1
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "action-realization-confounding",
+      "evidence": {
+        "scope_id": "scope-action-realization-confounding",
+        "configuration_id": "configuration-action-realization-confounding",
+        "admissibility_status": "admissible",
+        "admissibility_receipt_id": "synthetic-observation-admission-action-realization-confounding",
+        "observation_law": {
+          "outcomes": [
+            {
+              "outcome": "captured",
+              "probability": {
+                "numerator": 1,
+                "denominator": 2
+              }
+            },
+            {
+              "outcome": "not_captured",
+              "probability": {
+                "numerator": 1,
+                "denominator": 2
+              }
+            }
+          ]
+        }
+      },
+      "worlds": [
+        {
+          "world_id": "command-realized-as-intended",
+          "parameter_signature": {
+            "command": "high",
+            "realized_stimulus": "high"
+          },
+          "observation_law": {
+            "outcomes": [
+              {
+                "outcome": "captured",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 2
+                }
+              },
+              {
+                "outcome": "not_captured",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 2
+                }
+              }
+            ]
+          },
+          "decision_class": "HOLD"
+        },
+        {
+          "world_id": "command-not-realized",
+          "parameter_signature": {
+            "command": "high",
+            "realized_stimulus": "low"
+          },
+          "observation_law": {
+            "outcomes": [
+              {
+                "outcome": "captured",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 2
+                }
+              },
+              {
+                "outcome": "not_captured",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 2
+                }
+              }
+            ]
+          },
+          "decision_class": "PROCEED"
+        }
+      ],
+      "probes": [
+        {
+          "probe_id": "command-without-independent-readback",
+          "admissibility_status": "admissible",
+          "admissibility_receipt_id": "synthetic-admissibility-receipt-command-only",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 50,
+            "elapsed_millis": 100
+          },
+          "world_outcome_laws": {
+            "command-realized-as-intended": {
+              "outcomes": [
+                {
+                  "outcome": "captured",
+                  "probability": {
+                    "numerator": 1,
+                    "denominator": 2
+                  }
+                },
+                {
+                  "outcome": "not_captured",
+                  "probability": {
+                    "numerator": 1,
+                    "denominator": 2
+                  }
+                }
+              ]
+            },
+            "command-not-realized": {
+              "outcomes": [
+                {
+                  "outcome": "captured",
+                  "probability": {
+                    "numerator": 1,
+                    "denominator": 2
+                  }
+                },
+                {
+                  "outcome": "not_captured",
+                  "probability": {
+                    "numerator": 1,
+                    "denominator": 2
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "out-of-domain-observation",
+      "evidence": {
+        "scope_id": "scope-out-of-domain-observation",
+        "configuration_id": "configuration-out-of-domain-observation",
+        "admissibility_status": "admissible",
+        "admissibility_receipt_id": "synthetic-observation-admission-out-of-domain-observation",
+        "observation_law": {
+          "outcomes": [
+            {
+              "outcome": "unmodeled-observation",
+              "probability": {
+                "numerator": 1,
+                "denominator": 1
+              }
+            }
+          ]
+        }
+      },
+      "worlds": [
+        {
+          "world_id": "candidate-a",
+          "parameter_signature": {
+            "state": "a"
+          },
+          "observation_law": {
+            "outcomes": [
+              {
+                "outcome": "known-a",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 1
+                }
+              }
+            ]
+          },
+          "decision_class": "HOLD"
+        },
+        {
+          "world_id": "candidate-b",
+          "parameter_signature": {
+            "state": "b"
+          },
+          "observation_law": {
+            "outcomes": [
+              {
+                "outcome": "known-b",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 1
+                }
+              }
+            ]
+          },
+          "decision_class": "PROCEED"
+        }
+      ],
+      "probes": []
+    },
+    {
+      "case_id": "evidence-indeterminate",
+      "evidence": {
+        "scope_id": "scope-evidence-indeterminate",
+        "configuration_id": "configuration-evidence-indeterminate",
+        "admissibility_status": "indeterminate",
+        "admissibility_receipt_id": null,
+        "observation_law": {
+          "outcomes": [
+            {
+              "outcome": "captured",
+              "probability": {
+                "numerator": 1,
+                "denominator": 2
+              }
+            },
+            {
+              "outcome": "not_captured",
+              "probability": {
+                "numerator": 1,
+                "denominator": 2
+              }
+            }
+          ]
+        }
+      },
+      "worlds": [
+        {
+          "world_id": "candidate-a",
+          "parameter_signature": {
+            "state": "a"
+          },
+          "observation_law": {
+            "outcomes": [
+              {
+                "outcome": "captured",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 2
+                }
+              },
+              {
+                "outcome": "not_captured",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 2
+                }
+              }
+            ]
+          },
+          "decision_class": "HOLD"
+        },
+        {
+          "world_id": "candidate-b",
+          "parameter_signature": {
+            "state": "b"
+          },
+          "observation_law": {
+            "outcomes": [
+              {
+                "outcome": "captured",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 2
+                }
+              },
+              {
+                "outcome": "not_captured",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 2
+                }
+              }
+            ]
+          },
+          "decision_class": "PROCEED"
+        }
+      ],
+      "probes": []
+    },
+    {
+      "case_id": "single-compatible-world",
+      "evidence": {
+        "scope_id": "scope-single-compatible-world",
+        "configuration_id": "configuration-single-compatible-world",
+        "admissibility_status": "admissible",
+        "admissibility_receipt_id": "synthetic-observation-admission-single-compatible-world",
+        "observation_law": {
+          "outcomes": [
+            {
+              "outcome": "captured",
+              "probability": {
+                "numerator": 1,
+                "denominator": 2
+              }
+            },
+            {
+              "outcome": "not_captured",
+              "probability": {
+                "numerator": 1,
+                "denominator": 2
+              }
+            }
+          ]
+        }
+      },
+      "worlds": [
+        {
+          "world_id": "only-compatible-world",
+          "parameter_signature": {
+            "physical_rate": "4",
+            "capture_probability": "1/2"
+          },
+          "observation_law": {
+            "outcomes": [
+              {
+                "outcome": "captured",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 2
+                }
+              },
+              {
+                "outcome": "not_captured",
+                "probability": {
+                  "numerator": 1,
+                  "denominator": 2
+                }
+              }
+            ]
+          },
+          "decision_class": "PROCEED"
+        }
+      ],
+      "probes": []
+    }
+  ]
+}

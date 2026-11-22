@@ -1,0 +1,287 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/orbital-decision-identifiability-receipt-v0.1.json",
+  "title": "Orbital decision identifiability receipt v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "receipt_schema",
+    "source_commit",
+    "corpus_sha256",
+    "result",
+    "evidence_class",
+    "claim_ceiling",
+    "summary",
+    "cases",
+    "physical_qualification_granted",
+    "authority_granted"
+  ],
+  "properties": {
+    "receipt_schema": {
+      "const": "luminous.orbital-decision-identifiability.receipt.v0.1"
+    },
+    "source_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "corpus_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "result": {
+      "const": "pass"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "exact-finite-world-decision-set-algebra-only"
+    },
+    "summary": {
+      "$ref": "#/$defs/summary"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/case_result"
+      }
+    },
+    "physical_qualification_granted": {
+      "const": false
+    },
+    "authority_granted": {
+      "const": false
+    }
+  },
+  "$defs": {
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_count",
+        "decision_identified_cases",
+        "parameter_unidentified_decision_identified_cases",
+        "decision_not_identified_cases",
+        "model_incompatible_cases",
+        "evidence_indeterminate_cases",
+        "resolving_probe_selected_cases",
+        "no_admissible_probe_cases"
+      ],
+      "properties": {
+        "case_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "decision_identified_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "parameter_unidentified_decision_identified_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "decision_not_identified_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "model_incompatible_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidence_indeterminate_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "resolving_probe_selected_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "no_admissible_probe_cases": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "cost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference_trials",
+        "exposure_micro_units",
+        "elapsed_millis"
+      ],
+      "properties": {
+        "reference_trials": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "exposure_micro_units": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "elapsed_millis": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "probe_rank": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rank",
+        "probe_id",
+        "worst_case_decision_class_count",
+        "worst_case_compatible_world_count",
+        "cost"
+      ],
+      "properties": {
+        "rank": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "probe_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "worst_case_decision_class_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "worst_case_compatible_world_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "cost": {
+          "$ref": "#/$defs/cost"
+        }
+      }
+    },
+    "probe_selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "selected_probe_id",
+        "selected_worst_case_decision_class_count",
+        "admissible_probe_count",
+        "excluded_probe_ids",
+        "ranked_admissible_probes"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "not_evaluated",
+            "not_required_decision_already_identified",
+            "no_admissible_probe",
+            "selected_resolving_probe",
+            "selected_best_available_non_resolving_probe"
+          ]
+        },
+        "selected_probe_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "selected_worst_case_decision_class_count": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "admissible_probe_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "excluded_probe_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "ranked_admissible_probes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/probe_rank"
+          }
+        }
+      }
+    },
+    "case_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "disposition",
+        "evidence_scope_id",
+        "compatible_world_ids",
+        "compatible_world_count",
+        "decision_classes",
+        "parameter_identified",
+        "probe_selection"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "disposition": {
+          "enum": [
+            "DECISION_IDENTIFIED",
+            "PARAMETERS_UNIDENTIFIED_DECISION_IDENTIFIED",
+            "DECISION_NOT_IDENTIFIED",
+            "IDENTIFIED_SET_EMPTY_MODEL_INCOMPATIBLE",
+            "EVIDENCE_INDETERMINATE"
+          ]
+        },
+        "evidence_scope_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "compatible_world_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "compatible_world_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "decision_classes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "parameter_identified": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "probe_selection": {
+          "$ref": "#/$defs/probe_selection"
+        }
+      }
+    }
+  }
+}
