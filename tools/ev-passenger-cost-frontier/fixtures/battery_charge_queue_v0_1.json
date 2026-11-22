@@ -115,11 +115,6 @@
     {
       "charger_id": "charger-1",
       "configuration_digest": "charger-config-1",
-      "max_power_w": 4000,
-      "supported_pack_configuration_digests": [
-        "cfg-a",
-        "cfg-b"
-      ],
       "availability_evidence": {
         "asset_id": "charger-1",
         "configuration_digest": "charger-config-1",
@@ -130,15 +125,29 @@
         "observed_at_unix_ms": 1795219199000,
         "valid_from_unix_ms": 1795219190000,
         "valid_until_unix_ms": 1795229200000
+      },
+      "capability": {
+        "evidence": {
+          "asset_id": "charger-1",
+          "configuration_digest": "charger-config-1",
+          "producer_id": "urn:synthetic:producer:charge-queue",
+          "method_id": "urn:synthetic:method:charger-1-availability",
+          "evidence_reference": "urn:synthetic:evidence:charger-1-availability-capability",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795229200000
+        },
+        "max_power_w": 4000,
+        "supported_pack_configuration_digests": [
+          "cfg-a",
+          "cfg-b"
+        ]
       }
     },
     {
       "charger_id": "charger-2",
       "configuration_digest": "charger-config-2",
-      "max_power_w": 3000,
-      "supported_pack_configuration_digests": [
-        "cfg-a"
-      ],
       "availability_evidence": {
         "asset_id": "charger-2",
         "configuration_digest": "charger-config-2",
@@ -149,104 +158,133 @@
         "observed_at_unix_ms": 1795219199000,
         "valid_from_unix_ms": 1795219190000,
         "valid_until_unix_ms": 1795229200000
+      },
+      "capability": {
+        "evidence": {
+          "asset_id": "charger-2",
+          "configuration_digest": "charger-config-2",
+          "producer_id": "urn:synthetic:producer:charge-queue",
+          "method_id": "urn:synthetic:method:charger-2-availability",
+          "evidence_reference": "urn:synthetic:evidence:charger-2-availability-capability",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795229200000
+        },
+        "max_power_w": 3000,
+        "supported_pack_configuration_digests": [
+          "cfg-a"
+        ]
       }
     }
   ],
   "grid_slots": [
     {
       "slot": 0,
-      "import_cap_w": 8000,
-      "non_charging_site_load_w": 1000,
       "evidence": {
-        "asset_id": "site-1",
-        "configuration_digest": "urn:synthetic:site-config:1",
-        "producer_id": "urn:synthetic:producer:charge-queue",
-        "method_id": "urn:synthetic:method:grid-slot-0",
-        "evidence_reference": "urn:synthetic:evidence:grid-slot-0",
-        "evidence_class": "synthetic",
-        "observed_at_unix_ms": 1795219199000,
-        "valid_from_unix_ms": 1795219190000,
-        "valid_until_unix_ms": 1795220100000
+        "evidence": {
+          "asset_id": "site-1",
+          "configuration_digest": "urn:synthetic:site-config:1",
+          "producer_id": "urn:synthetic:producer:charge-queue",
+          "method_id": "urn:synthetic:method:grid-slot-0",
+          "evidence_reference": "urn:synthetic:evidence:grid-slot-0",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795220100000
+        },
+        "import_cap_w": 8000,
+        "non_charging_site_load_w": 1000
       }
     },
     {
       "slot": 1,
-      "import_cap_w": 8000,
-      "non_charging_site_load_w": 1000,
       "evidence": {
-        "asset_id": "site-1",
-        "configuration_digest": "urn:synthetic:site-config:1",
-        "producer_id": "urn:synthetic:producer:charge-queue",
-        "method_id": "urn:synthetic:method:grid-slot-1",
-        "evidence_reference": "urn:synthetic:evidence:grid-slot-1",
-        "evidence_class": "synthetic",
-        "observed_at_unix_ms": 1795219199000,
-        "valid_from_unix_ms": 1795219190000,
-        "valid_until_unix_ms": 1795221000000
+        "evidence": {
+          "asset_id": "site-1",
+          "configuration_digest": "urn:synthetic:site-config:1",
+          "producer_id": "urn:synthetic:producer:charge-queue",
+          "method_id": "urn:synthetic:method:grid-slot-1",
+          "evidence_reference": "urn:synthetic:evidence:grid-slot-1",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795221000000
+        },
+        "import_cap_w": 8000,
+        "non_charging_site_load_w": 1000
       }
     },
     {
       "slot": 2,
-      "import_cap_w": 8000,
-      "non_charging_site_load_w": 1000,
       "evidence": {
-        "asset_id": "site-1",
-        "configuration_digest": "urn:synthetic:site-config:1",
-        "producer_id": "urn:synthetic:producer:charge-queue",
-        "method_id": "urn:synthetic:method:grid-slot-2",
-        "evidence_reference": "urn:synthetic:evidence:grid-slot-2",
-        "evidence_class": "synthetic",
-        "observed_at_unix_ms": 1795219199000,
-        "valid_from_unix_ms": 1795219190000,
-        "valid_until_unix_ms": 1795221900000
+        "evidence": {
+          "asset_id": "site-1",
+          "configuration_digest": "urn:synthetic:site-config:1",
+          "producer_id": "urn:synthetic:producer:charge-queue",
+          "method_id": "urn:synthetic:method:grid-slot-2",
+          "evidence_reference": "urn:synthetic:evidence:grid-slot-2",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795221900000
+        },
+        "import_cap_w": 8000,
+        "non_charging_site_load_w": 1000
       }
     },
     {
       "slot": 3,
-      "import_cap_w": 8000,
-      "non_charging_site_load_w": 1000,
       "evidence": {
-        "asset_id": "site-1",
-        "configuration_digest": "urn:synthetic:site-config:1",
-        "producer_id": "urn:synthetic:producer:charge-queue",
-        "method_id": "urn:synthetic:method:grid-slot-3",
-        "evidence_reference": "urn:synthetic:evidence:grid-slot-3",
-        "evidence_class": "synthetic",
-        "observed_at_unix_ms": 1795219199000,
-        "valid_from_unix_ms": 1795219190000,
-        "valid_until_unix_ms": 1795222800000
+        "evidence": {
+          "asset_id": "site-1",
+          "configuration_digest": "urn:synthetic:site-config:1",
+          "producer_id": "urn:synthetic:producer:charge-queue",
+          "method_id": "urn:synthetic:method:grid-slot-3",
+          "evidence_reference": "urn:synthetic:evidence:grid-slot-3",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795222800000
+        },
+        "import_cap_w": 8000,
+        "non_charging_site_load_w": 1000
       }
     },
     {
       "slot": 4,
-      "import_cap_w": 8000,
-      "non_charging_site_load_w": 1000,
       "evidence": {
-        "asset_id": "site-1",
-        "configuration_digest": "urn:synthetic:site-config:1",
-        "producer_id": "urn:synthetic:producer:charge-queue",
-        "method_id": "urn:synthetic:method:grid-slot-4",
-        "evidence_reference": "urn:synthetic:evidence:grid-slot-4",
-        "evidence_class": "synthetic",
-        "observed_at_unix_ms": 1795219199000,
-        "valid_from_unix_ms": 1795219190000,
-        "valid_until_unix_ms": 1795223700000
+        "evidence": {
+          "asset_id": "site-1",
+          "configuration_digest": "urn:synthetic:site-config:1",
+          "producer_id": "urn:synthetic:producer:charge-queue",
+          "method_id": "urn:synthetic:method:grid-slot-4",
+          "evidence_reference": "urn:synthetic:evidence:grid-slot-4",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795223700000
+        },
+        "import_cap_w": 8000,
+        "non_charging_site_load_w": 1000
       }
     },
     {
       "slot": 5,
-      "import_cap_w": 8000,
-      "non_charging_site_load_w": 1000,
       "evidence": {
-        "asset_id": "site-1",
-        "configuration_digest": "urn:synthetic:site-config:1",
-        "producer_id": "urn:synthetic:producer:charge-queue",
-        "method_id": "urn:synthetic:method:grid-slot-5",
-        "evidence_reference": "urn:synthetic:evidence:grid-slot-5",
-        "evidence_class": "synthetic",
-        "observed_at_unix_ms": 1795219199000,
-        "valid_from_unix_ms": 1795219190000,
-        "valid_until_unix_ms": 1795224600000
+        "evidence": {
+          "asset_id": "site-1",
+          "configuration_digest": "urn:synthetic:site-config:1",
+          "producer_id": "urn:synthetic:producer:charge-queue",
+          "method_id": "urn:synthetic:method:grid-slot-5",
+          "evidence_reference": "urn:synthetic:evidence:grid-slot-5",
+          "evidence_class": "synthetic",
+          "observed_at_unix_ms": 1795219199000,
+          "valid_from_unix_ms": 1795219190000,
+          "valid_until_unix_ms": 1795224600000
+        },
+        "import_cap_w": 8000,
+        "non_charging_site_load_w": 1000
       }
     }
   ],
