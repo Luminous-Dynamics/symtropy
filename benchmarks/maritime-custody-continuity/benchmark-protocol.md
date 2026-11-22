@@ -130,3 +130,13 @@ The input events and their raw source-local timestamps are never modified. Ordin
 `evaluate_with_synthetic_handoff_correlations` remains a separately named P0 path for dimensionless frozen fixtures. It uses strictly increasing fixture ticks and must not be used to claim real chronology. The pair-level `evaluate_with_paired_handoff_time_evidence` helper validates only an individual release/acceptance pair; it is not a replacement for the whole-chain P1 API.
 
 Production adapters must pass only time bindings for effective visible actual revisions, after source event-time semantics and clock bounds have been qualified by the existing #1930/#1955/Mycelix adapter owners. Calibration references remain unauthenticated by this crate.
+
+## API boundary clarification
+
+The low-level `apply_handoff_correlations` utility validates exact event identity and physical handoff fields only; it deliberately does not compare raw event timestamps. The `apply_qualified_handoff_correlations` helper is a pair-level diagnostic over one exact release/acceptance pair and is not a complete custody evaluator.
+
+Only these evaluator entry points make a chain-level claim:
+- `evaluate_with_synthetic_handoff_correlations`: P0 frozen synthetic ticks, with a strict release-tick-before-acceptance-tick check;
+- `evaluate_with_handoff_correlations`: P1 whole-chain path; requires qualified time bindings for every effective actual event on each box, proves pairwise strict order, assigns private ordinal ticks on a clone, applies exact correlation receipts, and then runs custody replay.
+
+Do not use the low-level correlation utility or pair-level diagnostic as evidence that a complete real custody chain is temporally qualified.
