@@ -1345,6 +1345,8 @@ mod tests {
                             | OwnerEvidenceDomain::PhysicalOutcome
                             | OwnerEvidenceDomain::MissionResolution
                             | OwnerEvidenceDomain::Persistence
+                            | OwnerEvidenceDomain::ControllerQueue
+                            | OwnerEvidenceDomain::DownstreamExecutionGraph
                             | OwnerEvidenceDomain::RecoveryAuthority
                     ) {
                         OwnerEvidenceStatus::NotApplicable
