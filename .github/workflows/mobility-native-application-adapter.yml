@@ -34,6 +34,18 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.96.0
         with:
           components: rustfmt, clippy
+      - name: Validate public application conformance corpus and schema JSON
+        run: |
+          jq empty research/mobility-native-application-adapter/application_cases_v0_1.json
+          jq empty research/mobility-native-application-adapter/application_cases.schema.json
+          jq -e '
+            .version == "0.1"
+            and (.cases | length >= 12)
+            and ([.cases[].case_id] | length == (unique | length))
+            and ([.cases[] | select(.class == "positive")] | length >= 1)
+            and ([.cases[] | select(.class == "negative" and .native_sink_calls == 0)] | length >= 1)
+            and ([.cases[] | select(.class == "outcome" and .pending_mutation == true)] | length >= 1)
+          ' research/mobility-native-application-adapter/application_cases_v0_1.json
       - name: Format source and export canonical bytes for exact-head commit
         run: |
           cargo fmt --manifest-path research/mobility-native-application-adapter/Cargo.toml
