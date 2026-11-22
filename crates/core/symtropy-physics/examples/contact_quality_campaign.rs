@@ -42,7 +42,7 @@ fn make_world(body_count: usize, stacked: bool) -> PhysicsWorld<3> {
     let plane = RigidBody::<3>::static_body(
         BodyHandle(0),
         Point::origin(),
-        Box::new(HalfSpace::<3>::new(SVector::new(0.0, 1.0, 0.0), 0.0)),
+        Box::new(HalfSpace::<3>::new(SVector::<f64, 3>::new(0.0, 1.0, 0.0), 0.0)),
     );
     world.add_body(plane);
 
@@ -56,7 +56,7 @@ fn make_world(body_count: usize, stacked: bool) -> PhysicsWorld<3> {
         };
         let handle = world.add_sphere(position, 0.5, 1.0);
         let body = world.body_mut(handle).expect("new body handle is valid");
-        body.linear_velocity = SVector::new(0.0, -0.5, 0.0);
+        body.linear_velocity = SVector::<f64, 3>::new(0.0, -0.5, 0.0);
         body.friction = 0.5;
         body.restitution = 0.0;
     }
