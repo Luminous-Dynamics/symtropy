@@ -116,6 +116,18 @@ Count all work required to achieve the result: mode discovery, fitting, low-fide
 
 Support independent implementations of direct Monte Carlo, FORM/SORM, cross-entropy, subset simulation / sequential Monte Carlo, defensive and constrained Gaussian mixtures, geometry-informed proposals, residual correction, and CVIS. Select the estimator based on the declared event and its validated domain, not on a single leaderboard score.
 
+
+### G. From proposal diagnostics to an independent residual-mass certificate
+
+Add a separate verifier that bounds the probability mass remaining outside discovered event modes / local boundary charts. ESS, repeated-seed agreement, and stable estimates are valuable diagnostics, but none proves that a narrow disconnected mode was not missed.
+
+For a Gaussian nominal model, whiten to X = mu + L Z with Z standard normal. Restrict to a finite cube [-b,b]^d and bound its complement conservatively by 2 d Phi(-b). Partition the cube into disjoint cells. An independent interval enclosure of the event function may exclude a cell only when it proves the event impossible throughout that cell. Every unresolved cell contributes its conservative Gaussian box mass to an upper bound.
+
+The desired result is a residual upper bound U_uncovered, not a binary completeness assertion. Where a positive lower bound P_estimate_lower is available, relative coverage may be qualified only if U_uncovered <= epsilon_relative * P_estimate_lower. If P_estimate_lower is zero, only an absolute unresolved-mass claim is available; otherwise abstain.
+
+This becomes a distinct child workstream: [#6766 — RARE-EVENT-RESIDUAL-MASS-CERTIFICATE-001](https://github.com/Luminous-Dynamics/symtropy/issues/6766). Its first B0 target is a static, low-dimensional Gaussian collision event. Extending it to trajectory-space events requires validated interval enclosures over both state cells and time, not sampled trajectories misrepresented as bounds.
+
+The log-domain Gaussian tail/interval implementation in PR #6748 is useful numerical infrastructure but is not a rigorously outward-rounded probability enclosure and must not be labelled a certificate.
 ## 4. Mathematical and assurance contracts
 
 Let p(x) be the declared nominal density and A the exact event definition. For a frozen proposal q(x) with support wherever p(x) times the event indicator is nonzero:
@@ -192,6 +204,27 @@ For each comparison, freeze:
 - precision, tolerance, confidence interval method and output units.
 
 NASA CARA's CDM examples require care: its data README notes that CDM TCA can be rounded to the nearest millisecond and the states may need adjustment to actual TCA; the CARA multi-step wrapper performs relevant corrections. Its README also documents small output differences across MATLAB, BLAS/LAPACK, MKL and operating-system environments. Freeze the comparison environment and use a documented tolerance, not silent numerical pass/fail judgments.
+
+## Operational boundary and industry-facing evaluation
+
+A rare-event estimator is only one part of conjunction safety operations. Keep the stages separate:
+
+1. **Screening:** discover candidate close approaches from ephemerides / catalogues.
+2. **Risk assessment:** estimate collision likelihood, quantify its uncertainty, and assess consequences.
+3. **Mitigation:** an accountable operator evaluates feasible actions, approval, execution timing, and secondary conjunction risk.
+
+NASA explicitly distinguishes a CDM / screening alert from a collision warning: screening identifies proximity; a subsequent risk-assessment step is needed. NASA also describes risk as likelihood combined with consequence. This engine owns only the qualified probability-evidence contribution; it does not decide whether to manoeuvre.
+
+NASA CARA published updated screening volumes implemented since March 2026, designed to capture 99% of conjunctions with Pc greater than 1e-4 under the stated orbit-regime screening design. Treat that as an **upstream screening-capture benchmark**, not a claim about the accuracy or calibration of any Pc estimator. Measure screening recall separately from Pc error, and never let a high-quality Pc estimate compensate for a missed candidate event.
+
+ISO 23705:2026 (published June 2026) provides an international workflow and technical requirements for identifying, evaluating, and avoiding collisions among orbiting objects. Its scope spans data requirements, probability / consequence techniques, operator thresholds, and collision-avoidance manoeuvres. It also addresses cumulative survival and secondary collision risk. Use it as an interoperability and process benchmark: preserve epoch/time scale, reference frame, state/ephemeris, covariance, force-model / prediction metadata, object characteristics, operational status, and intended decision threshold. The standard's post-manoeuvre risk target and avoidance requirements belong to the responsible operator's approval process; they are not claims or authority granted by this research engine.
+
+The benchmark therefore needs three distinct scorecards:
+- **Screening capture:** candidate-event recall by orbit regime and declared screening volume.
+- **Probability estimation:** matched event semantics, accuracy / interval coverage / model sensitivity / cost.
+- **Decision evidence:** whether the probability and consequence packet supplies enough traceable information for a human/operator's declared policy, including secondary events. No autonomous CAM selection is in scope.
+
+Useful primary references: [NASA Step 1 screening](https://www.nasa.gov/cara/step-1-conjunction-event-prediction/), [NASA Step 2 risk assessment](https://www.nasa.gov/cara/step-2-close-approach-risk-assessment/), [NASA unique conjunction events and March 2026 screening-volume update](https://www.nasa.gov/cara/unique-conjunction-events/), and [ISO 23705:2026](https://www.iso.org/standard/87556.html).
 
 ## 7. External benchmark corpus
 
