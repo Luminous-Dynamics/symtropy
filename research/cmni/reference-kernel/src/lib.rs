@@ -94,8 +94,8 @@ pub use blind_attribution::{
 
 mod common_cause_covariance;
 pub use common_cause_covariance::{
-    assemble_joint_experiment_covariance, ExperimentNoiseModel, JointExperimentCovariance,
-    SharedUncertaintyContribution,
+    assemble_joint_experiment_covariance, ExperimentNoiseModel, InterSourceDependenceQualification,
+    JointExperimentCovariance, SharedUncertaintyContribution,
 };
 
 mod nuisance_identifiability;
