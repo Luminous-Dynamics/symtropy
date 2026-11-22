@@ -1042,7 +1042,9 @@ impl RuntimeProjectionRecording {
                     }
                 }
                 "disputed" => {
-                    if independent || physical_outcome_observer.status != OwnerEvidenceStatus::Disputed {
+                    if independent
+                        || physical_outcome_observer.status != OwnerEvidenceStatus::Disputed
+                    {
                         return Err(ProjectionError::ObserverQuorumMismatch);
                     }
                 }
