@@ -6,10 +6,12 @@ on:
       - research/mobility-rrvr-trace-minimizer-v0-1
     paths:
       - "research/mobility-rrvr-trace/**"
+      - "research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla"
       - ".github/workflows/mobility-rrvr-trace.yml"
   pull_request:
     paths:
       - "research/mobility-rrvr-trace/**"
+      - "research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla"
       - ".github/workflows/mobility-rrvr-trace.yml"
   workflow_dispatch:
 
@@ -40,6 +42,25 @@ jobs:
               and ([$cases[] | select(.expected == "nondeterministic")] | length >= 1)
               and all($cases[]; .native_sink_calls == 0 and .authority_capabilities == [])
           ' research/mobility-rrvr-trace/fixtures/trace_minimizer_cases_v0_1.json
+      - name: Check pinned TLA action-to-event coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          MODEL="research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla"
+          MAP="research/mobility-rrvr-trace/model_action_event_mapping_v0_1.tsv"
+          map_count=$(grep -cv '^#' "$MAP")
+          next_action_count=$(awk '
+            /^Next ==/ { in_next=1; next }
+            /^Spec ==/ { in_next=0 }
+            in_next && index($0, "\\/") > 0 { count++ }
+            END { print count + 0 }
+          ' "$MODEL")
+          test "$map_count" -eq "$next_action_count"
+          while IFS='|' read -r action event_kind; do
+            [[ -z "$action" || "$action" == \\#* ]] && continue
+            grep -Fq "$action ==" "$MODEL"
+            grep -Fq "$event_kind," research/mobility-rrvr-trace/src/lib.rs
+          done < "$MAP"
       - name: Check formatting
         run: cargo fmt --manifest-path research/mobility-rrvr-trace/Cargo.toml -- --check
       - name: Run trace minimization tests
