@@ -297,73 +297,102 @@ pub fn analyze_pod_trend(case: &PodTrendCase) -> Result<PodTrendResult, String> 
     let log_time_ratio = (case.late_anchor.normalized_time_fraction
         / case.early_anchor.normalized_time_fraction)
         .ln();
-    let gamma_min = if late_lower > 0.0 && early_upper > 0.0 {
-        (late_lower / early_upper).ln() / log_time_ratio.max(0.0)
+    let gamma_min = if late_lower > 0.0 {
+        ((late_lower / early_upper).ln() / log_time_ratio).max(0.0)
     } else {
         0.0
     };
 
-    if early_lower > 0.0 && late_upper > 0.0 {
-        let raw_gamma_max = (late_upper / early_lower).ln() / log_time_ratio;
-        if raw_gamma_max < 0.0 || raw_gamma_max < gamma_min {
-            return Ok(PodTrendResult {
-                case_id: case.case_id.clone(),
-                status: PodTrendStatus::ModelIncompatible,
-                early_pod: Some(early_pod),
-                late_pod: Some(late_pod),
-                gamma_min: None,
-                gamma_max: None,
-                physical_beta_lower_open_if_used: true,
-                familywise_alpha: case.familywise_alpha,
-                anchor_alpha_allocation,
-                expected_result_matched: case.expected_status == PodTrendStatus::ModelIncompatible,
-                blockers: vec![
-                    "POD confidence regions are incompatible with a nondecreasing power-law detection model".to_owned(),
-                ],
-            });
-        }
-        let expected_match = case.expected_status == PodTrendStatus::Bounded
-            && (gamma_min - case.expected_gamma_min).abs() <= 1.0e-8
-            && case.expected_gamma_max.is_some_and(|expected| {
-                (raw_gamma_max - expected).abs() <= 1.0e-8
-            });
+    // p0 must remain <= 1. For each anchor with a positive lower POD
+    // confidence limit and normalized time x < 1, feasibility requires
+    // lower_POD <= x^gamma, giving gamma <= ln(lower_POD)/ln(x).
+    let p0_gamma_caps = [
+        (early_lower, case.early_anchor.normalized_time_fraction),
+        (late_lower, case.late_anchor.normalized_time_fraction),
+    ]
+    .into_iter()
+    .filter_map(|(lower, time)| {
+        (lower > 0.0 && time < 1.0).then_some(lower.ln() / time.ln())
+    })
+    .collect::<Vec<_>>();
+    let p0_gamma_cap = p0_gamma_caps.into_iter().reduce(f64::min);
+
+    let ratio_gamma_max = if early_lower > 0.0 && late_upper > 0.0 {
+        Some((late_upper / early_lower).ln() / log_time_ratio)
+    } else {
+        None
+    };
+    let gamma_max = match (ratio_gamma_max, p0_gamma_cap) {
+        (Some(ratio), Some(cap)) => Some(ratio.min(cap)),
+        (Some(ratio), None) => Some(ratio),
+        (None, Some(cap)) => Some(cap),
+        (None, None) => None,
+    };
+
+    if gamma_max.is_some_and(|upper| upper < gamma_min || upper < 0.0) {
         return Ok(PodTrendResult {
             case_id: case.case_id.clone(),
-            status: PodTrendStatus::Bounded,
+            status: PodTrendStatus::ModelIncompatible,
             early_pod: Some(early_pod),
             late_pod: Some(late_pod),
             gamma_min: Some(gamma_min),
-            gamma_max: Some(raw_gamma_max),
-            physical_beta_lower_open_if_used: false,
+            gamma_max,
+            physical_beta_lower_open_if_used: true,
             familywise_alpha: case.familywise_alpha,
             anchor_alpha_allocation,
-            expected_result_matched: expected_match,
+            expected_result_matched: case.expected_status == PodTrendStatus::ModelIncompatible,
             blockers: vec![
-                "gamma bound is conditional on the two-anchor power-law POD model".to_owned(),
-                "POD bounds apply only to the exact matched event/configuration stratum".to_owned(),
+                "POD confidence regions are incompatible with p0<=1 and a nondecreasing power-law detection model".to_owned(),
             ],
         });
     }
 
-    let expected_match = case.expected_status == PodTrendStatus::Unbounded
-        && (gamma_min - case.expected_gamma_min).abs() <= 1.0e-8
-        && case.expected_gamma_max.is_none();
-    Ok(PodTrendResult {
-        case_id: case.case_id.clone(),
-        status: PodTrendStatus::Unbounded,
-        early_pod: Some(early_pod),
-        late_pod: Some(late_pod),
-        gamma_min: Some(gamma_min),
-        gamma_max: None,
-        physical_beta_lower_open_if_used: true,
-        familywise_alpha: case.familywise_alpha,
-        anchor_alpha_allocation,
-        expected_result_matched: expected_match,
-        blockers: vec![
-            "lower-time POD confidence interval includes zero; no finite upper gamma bound".to_owned(),
-            "physical beta lower endpoint remains open without a finite gamma upper bound".to_owned(),
-        ],
-    })
+    match gamma_max {
+        Some(upper) => {
+            let expected_match = case.expected_status == PodTrendStatus::Bounded
+                && (gamma_min - case.expected_gamma_min).abs() <= 1.0e-8
+                && case.expected_gamma_max.is_some_and(|expected| {
+                    (upper - expected).abs() <= 1.0e-8
+                });
+            Ok(PodTrendResult {
+                case_id: case.case_id.clone(),
+                status: PodTrendStatus::Bounded,
+                early_pod: Some(early_pod),
+                late_pod: Some(late_pod),
+                gamma_min: Some(gamma_min),
+                gamma_max: Some(upper),
+                physical_beta_lower_open_if_used: false,
+                familywise_alpha: case.familywise_alpha,
+                anchor_alpha_allocation,
+                expected_result_matched: expected_match,
+                blockers: vec![
+                    "gamma bounds are conditional on the two-anchor power-law POD model and p0<=1".to_owned(),
+                    "POD bounds apply only to the exact matched event/configuration stratum".to_owned(),
+                ],
+            })
+        }
+        None => {
+            let expected_match = case.expected_status == PodTrendStatus::Unbounded
+                && (gamma_min - case.expected_gamma_min).abs() <= 1.0e-8
+                && case.expected_gamma_max.is_none();
+            Ok(PodTrendResult {
+                case_id: case.case_id.clone(),
+                status: PodTrendStatus::Unbounded,
+                early_pod: Some(early_pod),
+                late_pod: Some(late_pod),
+                gamma_min: Some(gamma_min),
+                gamma_max: None,
+                physical_beta_lower_open_if_used: true,
+                familywise_alpha: case.familywise_alpha,
+                anchor_alpha_allocation,
+                expected_result_matched: expected_match,
+                blockers: vec![
+                    "POD confidence evidence does not impose a finite gamma upper bound".to_owned(),
+                    "physical beta lower endpoint remains open without a finite gamma upper bound".to_owned(),
+                ],
+            })
+        }
+    }
 }
 
 #[cfg(test)]
