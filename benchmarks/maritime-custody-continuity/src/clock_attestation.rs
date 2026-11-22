@@ -727,7 +727,9 @@ pub fn attest_clock_for_event(
         );
     };
 
-    if observation.last_sync_ticks > event_time {
+    if observation.last_sync_ticks > observation.observation_time_ticks
+        || observation.last_sync_ticks > event_time
+    {
         return ClockAttestationDecision::rejected(
             ClockAttestationReason::SyncEvidenceAfterEvent,
         );
@@ -1038,6 +1040,64 @@ mod tests {
             &policy(),
             1_000,
         )
+    }
+
+    #[test]
+    fn accepted_attestation_converts_to_proof_grade_source_bound_time_evidence() {
+        let decision = evaluate(&calibration_fixture(), &observation_fixture());
+        let evidence = decision.to_time_evidence().unwrap();
+        assert_eq!(
+            evidence.event_id(),
+            "5:WMS_A:31:urn:uuid:custody-event-1000:4"
+        );
+        assert_eq!(evidence.time_basis_id(), "UTC(ZA)");
+        assert_eq!(evidence.interval().earliest(), 976);
+        assert_eq!(evidence.interval().latest(), 1_024);
+        assert_eq!(
+            evidence.bound_kind(),
+            crate::temporal_order::TimeBoundKind::QualifiedEnclosure
+        );
+        assert_eq!(
+            evidence.clock_qualification().unwrap().clock_id,
+            "PTP-GM-01"
+        );
+    }
+
+    #[test]
+    fn unknown_or_rejected_attestation_cannot_create_proof_grade_evidence() {
+        let mut calibration = calibration_fixture();
+        calibration.measurement_uncertainty_bound_ticks = None;
+        let unknown = evaluate(&calibration, &observation_fixture());
+        assert_eq!(
+            unknown.to_time_evidence(),
+            Err(ClockEvidenceConversionError::DecisionNotAccepted)
+        );
+
+        let mut calibration = calibration_fixture();
+        calibration.artifact_evidence.verifier.signature_status = VerifierStatus::Invalid;
+        let rejected = evaluate(&calibration, &observation_fixture());
+        assert_eq!(
+            rejected.to_time_evidence(),
+            Err(ClockEvidenceConversionError::DecisionNotAccepted)
+        );
+    }
+
+    #[test]
+    fn observation_must_be_captured_before_and_close_to_the_event() {
+        let mut observation = observation_fixture();
+        observation.observation_time_ticks = 1_001;
+        assert_eq!(
+            evaluate(&calibration_fixture(), &observation).reason,
+            Some(ClockAttestationReason::ClockObservationAfterEvent)
+        );
+
+        let mut observation = observation_fixture();
+        observation.observation_time_ticks = 900;
+        observation.maximum_observation_age_ticks = Some(20);
+        assert_eq!(
+            evaluate(&calibration_fixture(), &observation).reason,
+            Some(ClockAttestationReason::ClockObservationTooOld)
+        );
     }
 
     #[test]
