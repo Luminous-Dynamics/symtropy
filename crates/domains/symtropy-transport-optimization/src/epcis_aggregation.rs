@@ -10,8 +10,6 @@
 //! instance identities), and DELETE with no child list is an explicit
 //! delete-all operation for the named parent.
 
-use std::collections::BTreeSet;
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum AggregationAction {
     Add,
@@ -22,9 +20,11 @@ pub enum AggregationAction {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QuantityElement {
     pub object_class_id: String,
-    /// Preserve the original EPCIS decimal lexeme exactly; do not use f64.
-    pub quantity_decimal: String,
-    pub unit_of_measure: String,
+    /// Preserve the original EPCIS xsd:double lexeme exactly; do not round-trip through f64.
+    /// None represents an unspecified/unknown quantity.
+    pub quantity_lexeme: Option<String>,
+    /// None is required when quantity_lexeme is None; when present this is a UOM code lexeme.
+    pub unit_of_measure: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -108,42 +108,62 @@ pub enum AggregationSemanticError {
     InvalidChildIdentity(String),
     DuplicateChildIdentity(String),
     InvalidQuantityElement(String),
-    DuplicateQuantityElement {
-        object_class_id: String,
-        unit_of_measure: String,
-    },
 }
 
 fn valid_identifier(value: &str) -> bool {
     !value.is_empty() && value.trim() == value
 }
 
-fn valid_positive_decimal(value: &str) -> bool {
-    if value.is_empty() || value.trim() != value || value.starts_with('-') {
+fn valid_positive_xsd_double(value: &str) -> bool {
+    !value.is_empty()
+        && value.trim() == value
+        && value
+            .parse::<f64>()
+            .is_ok_and(|number| number.is_finite() && number > 0.0)
+}
+
+/// A QuantityElement without a UOM denotes a count and therefore needs an
+/// exact positive integer value. Work on the source lexeme so large integer
+/// counts are not rounded through binary floating-point arithmetic.
+fn valid_positive_integer_lexeme(value: &str) -> bool {
+    if !valid_positive_xsd_double(value) {
         return false;
     }
 
-    let value = value.strip_prefix('+').unwrap_or(value);
-    if value.is_empty() {
-        return false;
-    }
-
-    let mut dot_seen = false;
-    let mut digit_seen = false;
-    let mut nonzero_seen = false;
-
-    for byte in value.bytes() {
-        match byte {
-            b'0'..=b'9' => {
-                digit_seen = true;
-                nonzero_seen |= byte != b'0';
-            }
-            b'.' if !dot_seen => dot_seen = true,
-            _ => return false,
+    let (mantissa, exponent) = match value.find(['e', 'E']) {
+        Some(index) => {
+            let Ok(exponent) = value[index + 1..].parse::<i64>() else {
+                return false;
+            };
+            (&value[..index], exponent)
         }
+        None => (value, 0),
+    };
+    let mantissa = mantissa.strip_prefix('+').unwrap_or(mantissa);
+    let (whole, fractional) = mantissa.split_once('.').unwrap_or((mantissa, ""));
+    let digits = format!("{whole}{fractional}");
+    let decimal_places = fractional.len() as i64 - exponent;
+
+    if decimal_places <= 0 {
+        return true;
+    }
+    if decimal_places > digits.len() as i64 {
+        return false;
     }
 
-    digit_seen && nonzero_seen
+    digits[digits.len() - decimal_places as usize..]
+        .bytes()
+        .all(|digit| digit == b'0')
+}
+
+/// EPCIS uses the 2- or 3-character Common Code form for physical-measure
+/// units. Code-list membership and status are qualified by the pinned
+/// vocabulary profile, not guessed here.
+fn valid_uom_lexeme(value: &str) -> bool {
+    matches!(value.len(), 2 | 3)
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_uppercase() || byte.is_ascii_digit())
 }
 
 /// EPCIS 2.0.1 eventTimeZoneOffset lexical form: +/-HH:MM, bounded by 14:00.
@@ -183,23 +203,26 @@ fn validate_child_epcs(child_epcs: &[String]) -> Result<(), AggregationSemanticE
 }
 
 fn validate_quantities(quantities: &[QuantityElement]) -> Result<(), AggregationSemanticError> {
-    let mut seen = BTreeSet::new();
     for item in quantities {
-        if !valid_identifier(&item.object_class_id)
-            || !valid_positive_decimal(&item.quantity_decimal)
-            || !valid_identifier(&item.unit_of_measure)
-        {
+        let quantity_is_valid = match (
+            item.quantity_lexeme.as_deref(),
+            item.unit_of_measure.as_deref(),
+        ) {
+            // EPCIS permits an unspecified quantity only when no UOM is given.
+            (None, None) => true,
+            (None, Some(_)) => false,
+            // Without a UOM, the value denotes an integer count.
+            (Some(quantity), None) => valid_positive_integer_lexeme(quantity),
+            // With a UOM, the value denotes a positive physical measure.
+            (Some(quantity), Some(uom)) => {
+                valid_positive_xsd_double(quantity) && valid_uom_lexeme(uom)
+            }
+        };
+
+        if !valid_identifier(&item.object_class_id) || !quantity_is_valid {
             return Err(AggregationSemanticError::InvalidQuantityElement(
                 item.object_class_id.clone(),
             ));
-        }
-
-        let key = (item.object_class_id.as_str(), item.unit_of_measure.as_str());
-        if !seen.insert(key) {
-            return Err(AggregationSemanticError::DuplicateQuantityElement {
-                object_class_id: item.object_class_id.clone(),
-                unit_of_measure: item.unit_of_measure.clone(),
-            });
         }
     }
     Ok(())
@@ -325,13 +348,29 @@ mod tests {
 
     fn quantity(
         object_class_id: &str,
-        quantity_decimal: &str,
+        quantity_lexeme: &str,
         unit_of_measure: &str,
     ) -> QuantityElement {
         QuantityElement {
             object_class_id: object_class_id.to_string(),
-            quantity_decimal: quantity_decimal.to_string(),
-            unit_of_measure: unit_of_measure.to_string(),
+            quantity_lexeme: Some(quantity_lexeme.to_string()),
+            unit_of_measure: Some(unit_of_measure.to_string()),
+        }
+    }
+
+    fn count_quantity(object_class_id: &str, quantity_lexeme: &str) -> QuantityElement {
+        QuantityElement {
+            object_class_id: object_class_id.to_string(),
+            quantity_lexeme: Some(quantity_lexeme.to_string()),
+            unit_of_measure: None,
+        }
+    }
+
+    fn unknown_quantity(object_class_id: &str) -> QuantityElement {
+        QuantityElement {
+            object_class_id: object_class_id.to_string(),
+            quantity_lexeme: None,
+            unit_of_measure: None,
         }
     }
 
@@ -355,7 +394,7 @@ mod tests {
     #[test]
     fn add_preserves_class_quantity_without_fabricating_instance_ids() {
         let mut input = event(AggregationAction::Add);
-        input.child_quantity_list = vec![quantity("urn:epc:class:lgtin:milk", "12.50", "EA")];
+        input.child_quantity_list = vec![count_quantity("urn:epc:class:lgtin:milk", "12")];
         let output = normalize_aggregation_event(&input).unwrap();
 
         match output.effect {
@@ -367,7 +406,7 @@ mod tests {
                 assert!(child_epcs.is_empty());
                 assert_eq!(
                     child_quantity_list,
-                    vec![quantity("urn:epc:class:lgtin:milk", "12.50", "EA")]
+                    vec![count_quantity("urn:epc:class:lgtin:milk", "12")]
                 );
             }
             other => panic!("unexpected effect: {other:?}"),
@@ -378,7 +417,7 @@ mod tests {
     fn add_preserves_both_instance_and_class_level_lists() {
         let mut input = event(AggregationAction::Add);
         input.child_epcs = vec!["urn:epc:id:sscc:pallet-1".to_string()];
-        input.child_quantity_list = vec![quantity("urn:epc:class:carton", "3", "EA")];
+        input.child_quantity_list = vec![count_quantity("urn:epc:class:carton", "3")];
         let output = normalize_aggregation_event(&input).unwrap();
 
         assert!(matches!(
@@ -549,7 +588,7 @@ mod tests {
 
     #[test]
     fn quantity_decimal_is_exact_and_must_be_positive() {
-        for invalid in ["0", "0.000", "-1", "1e3", " 2 ", "."] {
+        for invalid in ["0", "0.000", "-1", "NaN", "INF", "1e309", " 2 ", "."] {
             let mut input = event(AggregationAction::Add);
             input.child_quantity_list = vec![quantity("class-a", invalid, "EA")];
             assert!(matches!(
@@ -559,25 +598,27 @@ mod tests {
         }
 
         let mut input = event(AggregationAction::Add);
-        input.child_quantity_list = vec![quantity("class-a", "0.1250", "EA")];
+        input.child_quantity_list = vec![quantity("class-a", "0.1250", "KGM")];
         let output = normalize_aggregation_event(&input).unwrap();
         assert!(matches!(
             output.effect,
             AggregationEffect::Add { child_quantity_list, .. }
-                if child_quantity_list[0].quantity_decimal == "0.1250"
+                if child_quantity_list[0].quantity_lexeme.as_deref() == Some("0.1250")
         ));
     }
 
     #[test]
-    fn duplicate_class_quantity_key_is_rejected() {
+    fn repeated_class_quantity_entries_are_preserved_without_aggregation() {
         let mut input = event(AggregationAction::Add);
         input.child_quantity_list = vec![
-            quantity("class-a", "2", "EA"),
-            quantity("class-a", "3", "EA"),
+            count_quantity("class-a", "2"),
+            count_quantity("class-a", "3"),
         ];
+        let output = normalize_aggregation_event(&input).unwrap();
         assert!(matches!(
-            normalize_aggregation_event(&input),
-            Err(AggregationSemanticError::DuplicateQuantityElement { .. })
+            output.effect,
+            AggregationEffect::Add { child_quantity_list, .. }
+                if child_quantity_list == vec![count_quantity("class-a", "2"), count_quantity("class-a", "3")]
         ));
     }
 
@@ -647,7 +688,7 @@ mod tests {
 
     #[test]
     fn blank_or_padded_unit_of_measure_is_not_normalized() {
-        for unit in ["", " EA", "EA "] {
+        for unit in ["", " KGM", "KGM ", "ea", "KGMX"] {
             let mut input = event(AggregationAction::Add);
             input.child_quantity_list = vec![quantity("class-a", "2", unit)];
             assert!(matches!(
