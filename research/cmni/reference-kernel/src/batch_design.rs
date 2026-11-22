@@ -33,6 +33,9 @@ pub struct BatchPortfolioScore {
     pub a_optimal_trace_reduction: f64,
     /// Log-determinant reduction in the caller's declared parameter coordinates.
     pub d_optimal_logdet_reduction: f64,
+    /// Exact linear-Gaussian expected information gain, in nats.
+    /// Equals one half of the D-optimal log-determinant reduction.
+    pub linear_gaussian_expected_information_gain_nats: f64,
     /// False means unknown common causes may still be absent from the covariance.
     pub lineage_coverage_complete: bool,
     pub shared_source_ids: Vec<String>,
@@ -191,7 +194,12 @@ pub fn enumerate_batch_portfolios(
         let posterior_trace = trace(&posterior_covariance)?;
         let a_optimal_trace_reduction = prior_trace - posterior_trace;
         let d_optimal_logdet_reduction = prior_logdet - posterior_logdet;
-        if !a_optimal_trace_reduction.is_finite() || !d_optimal_logdet_reduction.is_finite() {
+        let linear_gaussian_expected_information_gain_nats =
+            0.5 * d_optimal_logdet_reduction;
+        if !a_optimal_trace_reduction.is_finite()
+            || !d_optimal_logdet_reduction.is_finite()
+            || !linear_gaussian_expected_information_gain_nats.is_finite()
+        {
             return Err(ModelError::InvalidParameter(
                 "batch_portfolio_utility_nonfinite",
             ));
@@ -207,6 +215,7 @@ pub fn enumerate_batch_portfolios(
             posterior_covariance,
             a_optimal_trace_reduction,
             d_optimal_logdet_reduction,
+            linear_gaussian_expected_information_gain_nats,
             lineage_coverage_complete: joint.lineage_coverage_complete,
             shared_source_ids: joint.shared_source_ids,
         });
@@ -532,12 +541,24 @@ mod tests {
         assert!((shared.posterior_covariance[1][1] - 1.0).abs() < 1.0e-12);
         assert!((shared.a_optimal_trace_reduction - 20.0 / 201.0).abs() < 1.0e-12);
         assert!((shared.d_optimal_logdet_reduction - (201.0_f64 / 181.0).ln()).abs() < 1.0e-12);
+        assert!(
+            (shared.linear_gaussian_expected_information_gain_nats
+                - 0.5 * (201.0_f64 / 181.0).ln())
+                .abs()
+                < 1.0e-12
+        );
         let complementary = &result.portfolios[0];
         assert!((complementary.posterior_covariance[0][0] - 91.0 / 101.0).abs() < 1.0e-12);
         assert!((complementary.posterior_covariance[1][1] - 20.0 / 21.0).abs() < 1.0e-12);
         assert!((complementary.a_optimal_trace_reduction - 311.0 / 2121.0).abs() < 1.0e-12);
         assert!(
             (complementary.d_optimal_logdet_reduction - (2121.0_f64 / 1820.0).ln()).abs() < 1.0e-12
+        );
+        assert!(
+            (complementary.linear_gaussian_expected_information_gain_nats
+                - 0.5 * (2121.0_f64 / 1820.0).ln())
+                .abs()
+                < 1.0e-12
         );
     }
 
