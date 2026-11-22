@@ -11,8 +11,11 @@ A part enters the corpus only when it has an identifiable owner/use case and an 
 
 ## Current explicit seed records
 
-1. `FAN-PACKAGING-SPACER-001`: a non-functional packaging/transport spacer candidate. It has been described in #6735 but is not admitted. Its exact CAD, dimensions, packaging loads, material, annual demand, print time and transportation test are not established.
-2. `FAN-MFG-ALIGNMENT-JIG-001`: a manufacturing alignment fixture candidate. It is not admitted. Its reference surfaces, drawing, tolerances, fixture repeatability, loads, material and verification method are not established. It must not be used as an unqualified measurement standard.
+1. `FAN-PRODUCTION-WORKHOLDING-JIG-001`: a candidate assembly/workholding fixture for the guarded low-voltage DC fan pilot defined by [APPLIANCE-QUAL-001 #1805](https://github.com/Luminous-Dynamics/symtropy/issues/1805). #1805 explicitly includes assembly fixtures, jigs, gauges and test adapters in the first-cell work. The exact fixture design, held components, datum scheme, tolerance, material, force/torque, demand and verification are not yet released. It is not admitted and must not be used to assert product alignment or safety without its own acceptance method.
+2. `FAN-PACKAGING-SPACER-001`: a non-functional packaging/transport spacer candidate described in #6735. It is not admitted. Its exact CAD, dimensions, packaging loads, material, annual demand, print time and transportation test are not established.
+3. `FAN-MFG-ALIGNMENT-JIG-001`: a manufacturing alignment fixture candidate. It is not admitted. Its reference surfaces, drawing, tolerances, fixture repeatability, loads, material and verification method are not established. It must not be used as an unqualified measurement standard.
+
+The first FDM workload should be selected from product-owner-released manufacturing aids, not guessed appliance replacement components. The fan pilot's functional acceptance (airflow, power, sound, vibration, thermal, safety, repair and endurance) remains owned by #1805; printer geometric qualification and machine capability remain owned by Symthaea #12533/#7960/#7961/#7998. A printed fixture that helps assemble or test a product does not qualify the product.
 
 Other catalogue entries should be added only when the exact product/task is identified. The intake file includes empty slots; those are not demands.
 
@@ -34,7 +37,7 @@ For every actual candidate, capture:
 - baseline price/quote source/date, lead time and full cost assumptions;
 - record confidence, source URL/file and unresolved questions.
 
-A service-ticket count is not automatically annual demand: note observation period, appliance population, duplicate returns and censored/unknown failures. Separate actual measured demand from a forecast or scenario.
+A service-ticket count is not automatically annual demand: note observation period, appliance population, duplicate returns and censored/unknown failures. Separate actual measured demand from a forecast or scenario. For the fan pilot, distinguish production demand for assembly aids/test fixtures from the appliance's own repair/spare-parts demand.
 
 ## Build-volume analysis
 
