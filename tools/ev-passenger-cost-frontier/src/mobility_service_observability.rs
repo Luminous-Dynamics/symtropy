@@ -421,11 +421,6 @@ fn duration_statistics(mut samples: Vec<u64>) -> DurationStatistics {
     }
 }
 
-fn increment(value: &mut usize) -> Option<()> {
-    *value = value.checked_add(1)?;
-    Some(())
-}
-
 fn energy_boundary_matches_asset(boundary: EnergyBoundary, kind: ServiceAssetKind) -> bool {
     matches!(
         (boundary, kind),
@@ -1091,53 +1086,72 @@ pub fn evaluate_service_observability(
         match item.outcome {
             GridServiceOutcome::Delivered => {
                 grid_delivered += 1;
-                let (Some(delivered), Some(response), Some(end), Some(meter_evidence)) = (
+                if let (Some(delivered), Some(response), Some(end), Some(meter_evidence)) = (
                     item.metered_delivered_energy_wh,
                     item.response_at_unix_ms,
                     item.ended_at_unix_ms,
                     item.meter_evidence.as_ref(),
-                ) else {
+                ) {
+                    if delivered > item.requested_energy_wh
+                        || !evidence_valid(
+                            meter_evidence,
+                            &item.site_id,
+                            &item.site_configuration_digest,
+                            response,
+                            end,
+                            input.decision_cutoff_unix_ms,
+                        )
+                    {
+                        add_error(&mut errors, format!("grid_meter_evidence_or_delivery_invalid:{}", item.event_id));
+                    }
+                    grid_metered_count += 1;
+                    grid_delivered_wh = match grid_delivered_wh.checked_add(delivered) {
+                        Some(total) => total,
+                        None => {
+                            add_error(&mut errors, "grid_delivered_energy_overflow");
+                            grid_delivered_wh
+                        }
+                    };
+                    grid_response_durations.push(response - item.started_at_unix_ms);
+                    grid_sustain_durations.push(end - response);
+                } else {
                     add_error(&mut errors, format!("delivered_grid_service_missing_meter_or_timing:{}", item.event_id));
                     grid_unmeasured_count += 1;
                     missing_observation_count += 1;
-                    continue;
-                };
-                if delivered > item.requested_energy_wh
-                    || !evidence_valid(
-                        meter_evidence,
-                        &item.site_id,
-                        &item.site_configuration_digest,
-                        response,
-                        end,
-                        input.decision_cutoff_unix_ms,
-                    )
-                    || !matches!(
-                        meter_evidence.evidence_class,
-                        EvidenceClass::Measured | EvidenceClass::IndependentTest | EvidenceClass::Synthetic
-                    )
-                {
-                    add_error(&mut errors, format!("grid_meter_evidence_or_delivery_invalid:{}", item.event_id));
                 }
-                grid_metered_count += 1;
-                grid_delivered_wh = match grid_delivered_wh.checked_add(delivered) {
-                    Some(total) => total,
-                    None => {
-                        add_error(&mut errors, "grid_delivered_energy_overflow");
-                        grid_delivered_wh
-                    }
-                };
-                grid_response_durations.push(response - item.started_at_unix_ms);
-                grid_sustain_durations.push(end - response);
             }
             GridServiceOutcome::Failed => {
                 grid_failed += 1;
-                if item.metered_delivered_energy_wh.is_some() != item.meter_evidence.is_some() {
-                    add_error(&mut errors, format!("failed_grid_meter_evidence_pair_invalid:{}", item.event_id));
-                }
-                if item.metered_delivered_energy_wh.is_some() {
-                    grid_unmeasured_count = grid_unmeasured_count.saturating_add(0);
-                } else {
-                    grid_unmeasured_count += 1;
+                match (item.metered_delivered_energy_wh, item.meter_evidence.as_ref()) {
+                    (Some(delivered), Some(meter_evidence)) => {
+                        let response = item.response_at_unix_ms.unwrap_or(item.started_at_unix_ms);
+                        let end = item.ended_at_unix_ms.unwrap_or(response);
+                        if delivered > item.requested_energy_wh
+                            || !evidence_valid(
+                                meter_evidence,
+                                &item.site_id,
+                                &item.site_configuration_digest,
+                                response,
+                                end,
+                                input.decision_cutoff_unix_ms,
+                            )
+                        {
+                            add_error(&mut errors, format!("failed_grid_partial_meter_evidence_invalid:{}", item.event_id));
+                        }
+                        grid_metered_count += 1;
+                        grid_delivered_wh = match grid_delivered_wh.checked_add(delivered) {
+                            Some(total) => total,
+                            None => {
+                                add_error(&mut errors, "grid_delivered_energy_overflow");
+                                grid_delivered_wh
+                            }
+                        };
+                    }
+                    (None, None) => {
+                        grid_unmeasured_count += 1;
+                        missing_observation_count += 1;
+                    }
+                    _ => add_error(&mut errors, format!("failed_grid_meter_evidence_pair_invalid:{}", item.event_id)),
                 }
             }
             GridServiceOutcome::Cancelled => {
