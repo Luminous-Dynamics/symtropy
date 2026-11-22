@@ -431,6 +431,206 @@ pub fn apply_qualified_handoff_correlations(
         .map_err(QualifiedCorrelationError::Correlation)
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum QualifiedTimelineError {
+    Correlation(CorrelationError),
+    MissingEventTimeBinding(SourceEventRef),
+    DuplicateEventTimeBinding(SourceEventRef),
+    UnexpectedEventTimeBinding(SourceEventRef),
+    EventTimeRevisionMismatch(SourceEventRef),
+    EventTimeEvidenceIdMismatch(SourceEventRef),
+    EventTimeNotQualified(SourceEventRef),
+    OrderNotProven {
+        box_id: String,
+        first_event: SourceEventRef,
+        second_event: SourceEventRef,
+        relation: TemporalRelation,
+    },
+    OrdinalOverflow,
+}
+
+#[derive(Clone, Debug)]
+struct EffectiveActualEventGroup {
+    source_event: SourceEventRef,
+    revision: u32,
+    event_indices: Vec<usize>,
+}
+
+/// Reconstruct the complete custody-event timeline from qualified event-time
+/// enclosures. Every effective ACTUAL event requires an exact time binding,
+/// and every pair of actual events for the same box must be strictly ordered.
+/// Only after this proof is established are internal ordinal ticks assigned
+/// to a cloned event tape for the existing custody state machine.
+pub fn qualify_custody_event_timeline(
+    events: &[CustodyEvent],
+    time_bindings: &[EventTimeBinding],
+    as_of: i64,
+) -> Result<Vec<CustodyEvent>, QualifiedTimelineError> {
+    let mut by_source_key: BTreeMap<SourceEventRef, Vec<usize>> = BTreeMap::new();
+    for (index, event) in events.iter().enumerate() {
+        if event.published_at <= as_of {
+            by_source_key
+                .entry(SourceEventRef::new(
+                    event.source_id.clone(),
+                    event.source_event_id.clone(),
+                ))
+                .or_default()
+                .push(index);
+        }
+    }
+
+    let mut effective_actual_groups = Vec::new();
+    for (source_event, indices) in by_source_key {
+        let latest_revision = indices
+            .iter()
+            .map(|index| events[*index].revision)
+            .max()
+            .unwrap_or_default();
+        let latest_indices: Vec<usize> = indices
+            .into_iter()
+            .filter(|index| events[*index].revision == latest_revision)
+            .collect();
+        let first = latest_indices[0];
+        if latest_indices
+            .iter()
+            .any(|index| events[*index] != events[first])
+        {
+            return Err(QualifiedTimelineError::Correlation(
+                CorrelationError::ConflictingEventRevision {
+                    source_key: source_event,
+                    revision: latest_revision,
+                },
+            ));
+        }
+
+        let event = &events[first];
+        if event.voided || event.classification == Classification::Planned {
+            continue;
+        }
+        effective_actual_groups.push(EffectiveActualEventGroup {
+            source_event,
+            revision: latest_revision,
+            event_indices: latest_indices,
+        });
+    }
+
+    let mut bindings_by_key = BTreeMap::new();
+    for binding in time_bindings {
+        if bindings_by_key
+            .insert(binding.source_event.clone(), binding)
+            .is_some()
+        {
+            return Err(QualifiedTimelineError::DuplicateEventTimeBinding(
+                binding.source_event.clone(),
+            ));
+        }
+    }
+
+    let mut consumed_bindings = BTreeSet::new();
+    let mut events_by_box: BTreeMap<String, Vec<(SourceEventRef, &TimeEvidence, Vec<usize>)>> =
+        BTreeMap::new();
+
+    for group in &effective_actual_groups {
+        let binding = bindings_by_key
+            .get(&group.source_event)
+            .ok_or_else(|| {
+                QualifiedTimelineError::MissingEventTimeBinding(group.source_event.clone())
+            })?;
+
+        if binding.revision != group.revision {
+            return Err(QualifiedTimelineError::EventTimeRevisionMismatch(
+                group.source_event.clone(),
+            ));
+        }
+        if binding.evidence.event_id()
+            != event_time_evidence_id(&group.source_event, group.revision)
+        {
+            return Err(QualifiedTimelineError::EventTimeEvidenceIdMismatch(
+                group.source_event.clone(),
+            ));
+        }
+        if binding.evidence.bound_kind()
+            != super::temporal_order::TimeBoundKind::QualifiedEnclosure
+        {
+            return Err(QualifiedTimelineError::EventTimeNotQualified(
+                group.source_event.clone(),
+            ));
+        }
+        consumed_bindings.insert(group.source_event.clone());
+
+        let box_id = &events[group.event_indices[0]].box_id;
+        events_by_box.entry(box_id.clone()).or_default().push((
+            group.source_event.clone(),
+            &binding.evidence,
+            group.event_indices.clone(),
+        ));
+    }
+
+    for source_event in bindings_by_key.keys() {
+        if !consumed_bindings.contains(source_event) {
+            return Err(QualifiedTimelineError::UnexpectedEventTimeBinding(
+                source_event.clone(),
+            ));
+        }
+    }
+
+    let mut ordinal_by_index: BTreeMap<usize, i64> = BTreeMap::new();
+    for (box_id, mut box_events) in events_by_box {
+        for first_index in 0..box_events.len() {
+            for second_index in (first_index + 1)..box_events.len() {
+                let (first_ref, first_time, _) = &box_events[first_index];
+                let (second_ref, second_time, _) = &box_events[second_index];
+                let relation = compare_time_evidence(first_time, second_time);
+                if !matches!(
+                    relation,
+                    TemporalRelation::ProvenBefore | TemporalRelation::ProvenAfter
+                ) {
+                    return Err(QualifiedTimelineError::OrderNotProven {
+                        box_id: box_id.clone(),
+                        first_event: first_ref.clone(),
+                        second_event: second_ref.clone(),
+                        relation,
+                    });
+                }
+            }
+        }
+
+        box_events.sort_by_key(|(_, evidence, _)| evidence.interval().earliest());
+        for (ordinal, (_, _, event_indices)) in box_events.into_iter().enumerate() {
+            let ordinal =
+                i64::try_from(ordinal).map_err(|_| QualifiedTimelineError::OrdinalOverflow)?;
+            for index in event_indices {
+                ordinal_by_index.insert(index, ordinal);
+            }
+        }
+    }
+
+    let mut ordered_events = events.to_vec();
+    for (index, ordinal) in ordinal_by_index {
+        ordered_events[index].event_time = ordinal;
+    }
+    Ok(ordered_events)
+}
+
+/// General P1 custody evaluation. Every effective ACTUAL event in each
+/// box's chain must have qualified clock evidence and a pairwise strict order.
+/// Exact source-local handoff IDs can then be reconciled through explicit
+/// correlation receipts. The original input event tape is never mutated.
+pub fn evaluate_with_handoff_correlations(
+    expectations: &[crate::CustodyExpectation],
+    events: &[CustodyEvent],
+    time_bindings: &[EventTimeBinding],
+    receipts: &[HandoffCorrelationReceipt],
+    as_of: i64,
+) -> Result<EvaluationReport, QualifiedTimelineError> {
+    let ordered_events = qualify_custody_event_timeline(events, time_bindings, as_of)?;
+    let canonicalized = apply_handoff_correlations(&ordered_events, receipts, as_of)
+        .map_err(QualifiedTimelineError::Correlation)?;
+    evaluate(expectations, &canonicalized, as_of)
+        .map_err(CorrelationError::Evaluation)
+        .map_err(QualifiedTimelineError::Correlation)
+}
+
 /// P0 synthetic evaluator. Event-time ticks are dimensionless fixture values;
 /// this path is not a proof-grade cross-source chronology qualification.
 pub fn evaluate_with_synthetic_handoff_correlations(
@@ -443,9 +643,10 @@ pub fn evaluate_with_synthetic_handoff_correlations(
     evaluate(expectations, &canonicalized, as_of).map_err(CorrelationError::Evaluation)
 }
 
-/// P1 evaluator. Each exact release/acceptance event pair must carry
-/// proof-grade interval evidence establishing strict release-before-acceptance.
-pub fn evaluate_with_handoff_correlations(
+/// P1 pair-level diagnostic. This proves each correlated release precedes
+/// its paired acceptance, but does not prove a total order for every event in
+/// the box's complete custody chain.
+pub fn evaluate_with_paired_handoff_time_evidence(
     expectations: &[crate::CustodyExpectation],
     events: &[CustodyEvent],
     receipts: &[QualifiedHandoffCorrelationReceipt],
@@ -603,8 +804,153 @@ mod tests {
             .clone();
         let qualified = qualified_receipt(&release, &accept, 100, 110, 2);
 
-        let report =
-            evaluate_with_handoff_correlations(&expectations, &events, &[qualified], 200).unwrap();
+        let report = evaluate_with_paired_handoff_time_evidence(
+            &expectations,
+            &events,
+            &[qualified],
+            200,
+        )
+        .unwrap();
+        assert_eq!(report.complete_chains(), 1);
+        assert_eq!(report.incomplete_box_ids.len(), 1);
+    }
+
+    fn qualified_timeline_bindings(events: &[CustodyEvent], as_of: i64) -> Vec<EventTimeBinding> {
+        events
+            .iter()
+            .filter(|event| {
+                event.published_at <= as_of
+                    && event.classification == Classification::Actual
+                    && !event.voided
+            })
+            .map(|event| {
+                let event_ref =
+                    SourceEventRef::new(event.source_id.clone(), event.source_event_id.clone());
+                qualified_time_binding(
+                    &event_ref,
+                    event.revision,
+                    event.event_time,
+                    0,
+                )
+            })
+            .collect()
+    }
+
+    #[test]
+    fn general_custody_evaluator_requires_a_qualified_total_order_per_box() {
+        let (expectations, events) = fixtures();
+        let time_bindings = qualified_timeline_bindings(&events, 200);
+        let report = evaluate_with_handoff_correlations(
+            &expectations,
+            &events,
+            &time_bindings,
+            &[],
+            200,
+        )
+        .unwrap();
+
+        assert_eq!(report.complete_chains(), 1);
+        assert_eq!(report.incomplete_box_ids.len(), 1);
+    }
+
+    #[test]
+    fn general_custody_evaluator_refuses_missing_event_time_binding() {
+        let (expectations, events) = fixtures();
+        let mut time_bindings = qualified_timeline_bindings(&events, 200);
+        time_bindings.pop();
+
+        assert!(matches!(
+            evaluate_with_handoff_correlations(
+                &expectations,
+                &events,
+                &time_bindings,
+                &[],
+                200
+            ),
+            Err(QualifiedTimelineError::MissingEventTimeBinding(_))
+        ));
+    }
+
+    #[test]
+    fn general_custody_evaluator_refuses_overlapping_times_anywhere_in_box_chain() {
+        let (expectations, events) = fixtures();
+        let mut time_bindings = qualified_timeline_bindings(&events, 200);
+        let release = SourceEventRef::new("SRC_DGT", "B1-R1");
+        let accept = SourceEventRef::new("SRC_FEEDER", "B1-A1");
+        let release_binding = time_bindings
+            .iter_mut()
+            .find(|binding| binding.source_event == release)
+            .unwrap();
+        let profile = super::super::temporal_order::ClockBoundProfile::new(
+            super::super::temporal_order::ClockBoundProfileSpec {
+                clock_id: "OVERLAP-CLOCK".to_string(),
+                profile_id: "OVERLAP-PROFILE".to_string(),
+                time_basis_id: "UTC_NS_TEST_V1".to_string(),
+                calibration_evidence_id: "OVERLAP-CAL".to_string(),
+                synchronization_method: "SYNTHETIC_REFERENCE".to_string(),
+                sync_state: super::super::temporal_order::ClockSyncState::Locked,
+                calibrated_at: -10_000,
+                valid_until: 10_000,
+                max_offset_error_ticks: Some(10),
+                max_holdover_drift_ticks: Some(0),
+                max_capture_path_ticks: Some(0),
+                max_rounding_error_ticks: Some(0),
+            },
+        )
+        .unwrap();
+        release_binding.evidence = profile
+            .qualify_event(
+                event_time_evidence_id(&release, 1),
+                20,
+            )
+            .unwrap();
+
+        assert!(matches!(
+            evaluate_with_handoff_correlations(
+                &expectations,
+                &events,
+                &time_bindings,
+                &[],
+                200
+            ),
+            Err(QualifiedTimelineError::OrderNotProven {
+                relation: TemporalRelation::UnresolvedOverlap,
+                ..
+            })
+        ));
+        assert!(time_bindings.iter().any(|binding| binding.source_event == accept));
+    }
+
+    #[test]
+    fn qualified_timeline_then_exact_correlation_reconstructs_complete_chain() {
+        let (expectations, mut events) = fixtures();
+        let release = events
+            .iter()
+            .find(|event| event.source_event_id == "B1-R1")
+            .unwrap()
+            .clone();
+        let mut accept = events
+            .iter()
+            .find(|event| event.source_event_id == "B1-A1")
+            .unwrap()
+            .clone();
+        accept.handoff_id = "FEEDER-LOCAL-77".to_string();
+        for event in &mut events {
+            if event.source_event_id == "B1-A1" {
+                event.handoff_id = "FEEDER-LOCAL-77".to_string();
+            }
+        }
+        let time_bindings = qualified_timeline_bindings(&events, 200);
+        let correlation = receipt(&release, &accept);
+        let report = evaluate_with_handoff_correlations(
+            &expectations,
+            &events,
+            &time_bindings,
+            &[correlation],
+            200,
+        )
+        .unwrap();
+
         assert_eq!(report.complete_chains(), 1);
         assert_eq!(report.incomplete_box_ids.len(), 1);
     }
