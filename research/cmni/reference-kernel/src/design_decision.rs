@@ -103,9 +103,7 @@ pub fn certify_maximum_utility(
     let mut seen = std::collections::BTreeSet::new();
     let mut family_receipt: Option<(&str, f64)> = None;
     for interval in intervals {
-        if interval.portfolio_id.trim().is_empty()
-            || !seen.insert(interval.portfolio_id.as_str())
-        {
+        if interval.portfolio_id.trim().is_empty() || !seen.insert(interval.portfolio_id.as_str()) {
             return Err(ModelError::InvalidParameter(
                 "utility_interval_portfolio_ids_must_be_nonempty_and_unique",
             ));
@@ -309,8 +307,7 @@ mod tests {
     fn mismatched_family_receipts_do_not_certify() {
         let mut a = anytime("A", 0.8, 0.9);
         if let UtilityBoundEvidence::AnytimeValidFamilywise {
-            family_receipt_id,
-            ..
+            family_receipt_id, ..
         } = &mut a.evidence
         {
             *family_receipt_id = "family:A-only".to_owned();
