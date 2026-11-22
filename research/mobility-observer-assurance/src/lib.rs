@@ -740,8 +740,7 @@ mod tests {
     #[test]
     fn failed_component_invalidates_every_node_in_its_failure_domain() {
         let mut input = packet();
-        input.components[4].failure_domain_id =
-            input.components[1].failure_domain_id.clone();
+        input.components[4].failure_domain_id = input.components[1].failure_domain_id.clone();
         input.scenarios.push(FaultScenario {
             scenario_id: "power-domain-a-fails".to_owned(),
             failed_component_ids: vec!["power-a".to_owned()],
