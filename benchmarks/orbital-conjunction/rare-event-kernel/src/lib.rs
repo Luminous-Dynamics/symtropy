@@ -47,14 +47,14 @@ pub use trajectory::{
     TrajectoryContactClassification, TrajectoryContactReport, classify_polynomial_contact,
 };
 
-pub use first_contact::{
-    FirstContactDisposition, FirstContactIsolationConfig, FirstContactIsolationReport,
-    isolate_polynomial_first_contact,
-};
 pub use coverage::{
     CellSide, CoverageCell, CoverageMassUpperBound, CoverageSplit, Interval,
     affine_box_image_bounds, affine_box_norm_lower_bound, affine_cell_excludes_collision_ball,
     standard_normal_box_probability_upper_bound, standard_normal_cube_tail_probability_upper_bound,
+};
+pub use first_contact::{
+    FirstContactDisposition, FirstContactIsolationConfig, FirstContactIsolationReport,
+    isolate_polynomial_first_contact,
 };
 
 /// Errors returned by the analytic probability kernels.
