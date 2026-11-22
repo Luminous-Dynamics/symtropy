@@ -31,6 +31,9 @@ pub mod stats;
 pub use stats::{WeightedEventAccumulator, WeightedEventSummary};
 
 pub use coverage::{
+    CellSide,
+    CoverageCell,
+    CoverageSplit,
     Interval,
     affine_box_image_bounds,
     affine_box_norm_lower_bound,
