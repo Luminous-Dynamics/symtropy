@@ -161,6 +161,26 @@ jobs:
                     )
                   )
                 )
+                and (($fixture.packs[0].state_evidence | keys | sort) == ["evidence", "value"])
+                and all($fixture.packs[];
+                  (.state_evidence.value == "available"
+                    or .state_evidence.value == "installed"
+                    or .state_evidence.value == "reserved"
+                    or .state_evidence.value == "depleted"
+                    or .state_evidence.value == "charging"
+                    or .state_evidence.value == "cooling"
+                    or .state_evidence.value == "inspection"
+                    or .state_evidence.value == "quarantined"
+                    or .state_evidence.value == "in_transit"
+                    or .state_evidence.value == "retired"
+                    or .state_evidence.value == "unknown")
+                  and ((.usable_energy | keys | sort) == ["conservative_lower_bound", "evidence"])
+                  and ((.peak_power | keys | sort) == ["conservative_lower_bound", "evidence"])
+                  and ((.thermal | keys | sort) == ["conservative_upper_bound_c", "evidence", "qualified_max_temperature_c"])
+                  and (.usable_energy.conservative_lower_bound >= 0)
+                  and (.peak_power.conservative_lower_bound >= 0)
+                  and (.thermal.conservative_upper_bound_c <= .thermal.qualified_max_temperature_c)
+                )
                 and all($fixture.missions[]; (keys | sort) == $mission_required)
               )
           ' tools/ev-passenger-cost-frontier/fixtures/battery_service_network_v0_1.json
