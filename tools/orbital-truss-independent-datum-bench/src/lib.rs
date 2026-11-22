@@ -323,7 +323,10 @@ mod tests {
         assert_eq!(a.disposition, Disposition::Qualified);
         assert_eq!(b.disposition, Disposition::Qualified);
         assert!((a.rotation_radians.unwrap()-b.rotation_radians.unwrap()).abs() < 1e-12);
-        for i in 0..2 { assert!((a.translation_m.unwrap()[i]-b.translation_m.unwrap()[i]).abs() < 1e-12); }
+        let ta = a.translation_m.unwrap();
+        let tb = b.translation_m.unwrap();
+        assert!((ta[0]-tb[0]).abs() < 1e-12);
+        assert!((ta[1]-tb[1]).abs() < 1e-12);
     }
     #[test]
     fn article_derived_datum_network_never_qualifies() {
