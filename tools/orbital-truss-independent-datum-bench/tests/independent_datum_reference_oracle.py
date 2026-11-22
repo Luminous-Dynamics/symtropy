@@ -99,7 +99,7 @@ def evaluate(case):
     if control_span < case["minimum_span_m"]:
         reasons.append("CONTROL_NETWORK_SPAN_BELOW_MINIMUM")
     if triangle_area < case["minimum_triangle_area_m2"]:
-        reasons.append("CONTROL_NETWORK_NEAR_DEGENERATE")
+        reasons.append("CONTROL_NETWORK_SPATIAL_FOOTPRINT_BELOW_MINIMUM")
 
     pose = fit(controls)
     if pose is None:
