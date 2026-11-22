@@ -402,12 +402,14 @@ fn is_better_d(candidate: &DesignScore, incumbent: &DesignScore) -> bool {
 }
 
 fn is_better_e(candidate: &DesignScore, incumbent: &DesignScore) -> bool {
-    candidate
-        .minimum_information_eigenvalue
-        .total_cmp(&incumbent.minimum_information_eigenvalue)
+    // Maximizing the smallest singular value is exactly equivalent to
+    // maximizing the smallest information eigenvalue, while avoiding
+    // underflow from squaring an extremely small but rank-resolvable value.
+    candidate.singular_values[1]
+        .total_cmp(&incumbent.singular_values[1])
         .is_gt()
-        || (candidate.minimum_information_eigenvalue
-            .total_cmp(&incumbent.minimum_information_eigenvalue)
+        || (candidate.singular_values[1]
+            .total_cmp(&incumbent.singular_values[1])
             .is_eq()
             && candidate.candidate_indices < incumbent.candidate_indices)
 }
