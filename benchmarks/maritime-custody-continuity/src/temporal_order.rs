@@ -34,9 +34,9 @@ impl TimeInterval {
 
 /// Whether the caller supplies a qualified enclosure or an estimate only.
 ///
-/// QualifiedEnclosure is an upstream claim. This module checks order
-/// conditional on that claim; it does not verify the clock calibration,
-/// traceability or physical event-time measurement that justifies it.
+/// QualifiedEnclosure can only be produced through a ClockBoundProfile in
+/// this crate. The profile carries declared evidence provenance, but this
+/// module does not independently authenticate or audit that evidence.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TimeBoundKind {
     QualifiedEnclosure,
@@ -283,7 +283,7 @@ impl ClockBoundProfile {
             interval,
             qualification,
         )
-        .map_err(|_| ClockBoundError::IntervalOverflow)
+        .map_err(ClockBoundError::InvalidTimeEvidence)
     }
 
     pub fn maximum_total_error_ticks(&self) -> u64 {
