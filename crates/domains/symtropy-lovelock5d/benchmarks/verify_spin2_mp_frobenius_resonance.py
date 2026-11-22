@@ -147,6 +147,38 @@ def main() -> None:
     if not zero(add(residue_source, scale(F(8, 3), u_col))):
         raise AssertionError("g0 is not -(8/3)u")
 
+    # Exact horizon-adapted coordinates: three regular coordinates and one
+    # singular-mode coordinate. Columns of T are eigenvectors of A0.
+    transform = [
+        [F(1), F(0), F(0), F(0)],
+        [F(0), F(1), F(0), F(1)],
+        [F(0), F(0), F(1), F(0)],
+        [F(0), F(0), F(6), F(3)],
+    ]
+    inverse_transform = [
+        [F(1), F(0), F(0), F(0)],
+        [F(0), F(1), F(2), -F(1, 3)],
+        [F(0), F(0), F(1), F(0)],
+        [F(0), F(0), -F(2), F(1, 3)],
+    ]
+    diagonal_residue = matmul(matmul(inverse_transform, a0), transform)
+    expected_diagonal = [
+        [F(0), F(0), F(0), F(0)],
+        [F(0), F(0), F(0), F(0)],
+        [F(0), F(0), F(0), F(0)],
+        [F(0), F(0), F(0), F(-1)],
+    ]
+    if diagonal_residue != expected_diagonal:
+        raise AssertionError("horizon-adapted basis failed to diagonalize A0")
+    if rank(transform) != 4:
+        raise AssertionError("horizon-adapted basis is not invertible")
+    if matmul(inverse_transform, transform) != identity(4):
+        raise AssertionError("horizon-adapted inverse transform is incorrect")
+    transformed_source = matmul(inverse_transform, residue_source)
+    expected_transformed_source = [[F(0)], [F(0)], [F(0)], [-F(8, 3)]]
+    if transformed_source != expected_transformed_source:
+        raise AssertionError("transformed inhomogeneous source changed")
+
     result = {
         "schema_version": 1,
         "artifact_kind": "5d_egb_spin2_mp_frobenius_resonance_reduction",
@@ -170,6 +202,27 @@ def main() -> None:
             "P_zero_equals_I_plus_A0": render_matrix(zero_projector),
             "ranks": {"P_minus": 1, "P_zero": 3},
             "orthogonal_idempotent_decomposition": True,
+        },
+        "horizon_adapted_basis": {
+            "definition": "U = T * U_tilde",
+            "T_columns": render_matrix(transform),
+            "T_inverse": render_matrix(inverse_transform),
+            "transformed_residue": render_matrix(diagonal_residue),
+            "transformed_source": render_vector([row[0] for row in transformed_source]),
+            "transformed_state": [
+                "Bhat2",
+                "Bhat2_prime + 2*Hhat2 - Hhat2_prime/3",
+                "Hhat2",
+                "Hhat2_prime/3 - 2*Hhat2",
+            ],
+            "regular_coordinate_count": 3,
+            "singular_coordinate": "Hhat2_prime/3 - 2*Hhat2",
+            "inhomogeneous_horizon_value_of_singular_coordinate": "-8/3",
+            "fixed_Bhat2_horizon_data": "U_tilde(0)=(0, Bhat2_prime(1)+8/3, Hhat2(1), -8/3)",
+            "free_horizon_parameters_after_Bhat2_1_zero": [
+                "Bhat2_prime(1)", "Hhat2(1)"
+            ],
+            "diagonalization_exact": True,
         },
         "analytic_branch": {
             "series": "U(y)=sum_(n>=0) u_n y^n",
