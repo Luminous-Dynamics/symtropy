@@ -38,3 +38,7 @@ path = "src/bin/mission_risk_budget_demo.rs"
 [[bin]]
 name = "temporal_alignment_demo"
 path = "src/bin/temporal_alignment_demo.rs"
+
+[[bin]]
+name = "ds_twr_integrity_demo"
+path = "src/bin/ds_twr_integrity_demo.rs"
