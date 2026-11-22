@@ -496,8 +496,8 @@ mod tests {
         let summary =
             validate_dataset_admission(&schema(), &manifest, "research_noncommercial")
                 .unwrap();
-        assert_eq!(summary.record_count, 7);
-        assert_eq!(summary.candidate_count, 7);
+        assert_eq!(summary.record_count, 8);
+        assert_eq!(summary.candidate_count, 8);
         assert_eq!(summary.admitted_count, 0);
         assert_eq!(summary.partial_ground_truth_count, 4);
     }
@@ -529,9 +529,9 @@ mod tests {
             "research_noncommercial",
         )
         .unwrap();
-        assert_eq!(summary.record_count, 7);
+        assert_eq!(summary.record_count, 8);
         assert_eq!(summary.admitted_count, 0);
-        assert_eq!(summary.candidate_count, 7);
+        assert_eq!(summary.candidate_count, 8);
     }
 
     #[test]
@@ -558,10 +558,10 @@ mod tests {
 
         let research = validate_dataset_admission(&schema(), &manifest, "research_noncommercial").unwrap();
         let commercial = validate_dataset_admission(&schema(), &manifest, "commercial").unwrap();
-        assert_eq!(research.record_count, 7);
-        assert_eq!(research.candidate_count, 7);
+        assert_eq!(research.record_count, 8);
+        assert_eq!(research.candidate_count, 8);
         assert_eq!(research.admitted_count, 0);
-        assert_eq!(commercial.candidate_count, 7);
+        assert_eq!(commercial.candidate_count, 8);
         assert_eq!(commercial.admitted_count, 0);
     }
     #[test]
@@ -613,7 +613,7 @@ mod tests {
         let summary =
             validate_dataset_admission(&schema(), &manifest, "research_noncommercial").unwrap();
         assert_eq!(summary.admitted_count, 1);
-        assert_eq!(summary.candidate_count, 6);
+        assert_eq!(summary.candidate_count, 7);
     }
 
     #[test]
