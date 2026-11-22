@@ -34,7 +34,7 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all --check
 
-      - name: Run locked offline adapter tests
+      - name: Run locked adapter tests
         run: cargo test --locked -p symtropy-transport-optimization
 
       - name: Run strict adapter Clippy
