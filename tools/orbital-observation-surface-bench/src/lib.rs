@@ -107,7 +107,7 @@ pub struct ScenarioReport {
 pub struct Summary {
     pub scenario_count: usize,
     pub channel_count: usize,
-    pub latent_event_count: usize,
+    pub channel_event_opportunity_count: usize,
     pub detected_event_count: usize,
     pub shared_common_cause_misses: usize,
     pub channel_outage_misses: usize,
@@ -150,8 +150,8 @@ impl SplitMix64 {
     }
 
     fn uniform_open(&mut self) -> f64 {
-        let numerator = (self.next_u64() >> 11) + 1;
-        numerator as f64 / ((1_u64 << 53) + 1) as f64
+        let numerator = (self.next_u64() >> 12) + 1;
+        numerator as f64 / ((1_u64 << 52) + 1) as f64
     }
 }
 
@@ -239,9 +239,13 @@ fn validate_scenario(
         if channel.channel_id.trim().is_empty()
             || !channel_ids.insert(channel.channel_id.as_str())
             || !channel.logit_intercept.is_finite()
+            || channel.logit_intercept.abs() > 10_000.0
             || !channel.time_slope.is_finite()
+            || channel.time_slope.abs() > 10_000.0
             || !channel.log_amplitude_slope.is_finite()
+            || channel.log_amplitude_slope.abs() > 10_000.0
             || !channel.log_duration_slope.is_finite()
+            || channel.log_duration_slope.abs() > 10_000.0
             || !channel.fixed_dead_time.is_finite()
             || channel.fixed_dead_time < 0.0
             || channel.fixed_dead_time > 1.0
@@ -366,7 +370,7 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
     let mut summary = Summary {
         scenario_count: 0,
         channel_count: 0,
-        latent_event_count: 0,
+        channel_event_opportunity_count: 0,
         detected_event_count: 0,
         shared_common_cause_misses: 0,
         channel_outage_misses: 0,
@@ -388,7 +392,7 @@ pub fn evaluate(corpus: &Corpus) -> Result<Report, String> {
         for channel in &scenario.channels {
             let result = simulate_channel(scenario, channel)?;
             summary.channel_count += 1;
-            summary.latent_event_count += result.latent_event_count;
+            summary.channel_event_opportunity_count += result.latent_event_count;
             summary.detected_event_count += result.detected_event_count;
             summary.shared_common_cause_misses += result.miss_counts.shared_common_cause;
             summary.channel_outage_misses += result.miss_counts.channel_outage;
