@@ -18,11 +18,15 @@ use crate::KernelError;
 /// Return a conservative upper bound on the standard-normal probability
 /// mass of a finite axis-aligned box.
 ///
-/// The d-dimensional standard-normal density is at most (1/2)^d because
-/// (2*pi)^(-1/2) < 1/2. Therefore the box mass is bounded by its volume
-/// multiplied by (1/2)^d. Widths and products are rounded upward. The bound
-/// is intentionally simple and can be loose; it is suitable for conservative
-/// residual-mass accounting, not for precise integration.
+/// For each axis interval, let a be its minimum absolute coordinate. Its
+/// standard-normal density is bounded by 0.4 / (1 + a^2/2): the normalizer
+/// (2*pi)^(-1/2) is below 0.4, and exp(t) >= 1+t. Independence makes the
+/// product of these axis-wise density ceilings a joint density ceiling;
+/// multiplying it by the box volume bounds the cell mass. The rational
+/// constant 0.4 is deliberately above the exact standard-normal peak.
+/// Widths, denominators and products are widened conservatively. This bound
+/// is still intentionally loose and is for residual-mass accounting, not
+/// precise integration or a machine-verified probability enclosure.
 pub fn standard_normal_box_probability_upper_bound(
     lower: &[f64],
     upper: &[f64],
@@ -46,9 +50,27 @@ pub fn standard_normal_box_probability_upper_bound(
             return Ok(1.0);
         }
         let width_upper = next_up(width);
-        let density_factor_upper = next_up(probability_upper * 0.5);
+
+        let closest_to_zero = if *axis_lower <= 0.0 && *axis_upper >= 0.0 {
+            0.0
+        } else {
+            axis_lower.abs().min(axis_upper.abs())
+        };
+        let half_square = 0.5 * closest_to_zero * closest_to_zero;
+        // Overflow only loses the local tightening; the global 0.4 ceiling
+        // remains valid and keeps the result conservative.
+        let half_square_lower = if half_square.is_finite() {
+            next_down(half_square).max(0.0)
+        } else {
+            0.0
+        };
+        let denominator_lower = next_down(1.0 + half_square_lower).max(1.0);
+        let axis_density_upper = next_up(0.4 / denominator_lower);
+        let density_factor_upper = next_up(probability_upper * axis_density_upper);
         let next_upper = next_up(density_factor_upper * width_upper);
         if !width_upper.is_finite()
+            || !denominator_lower.is_finite()
+            || !axis_density_upper.is_finite()
             || !density_factor_upper.is_finite()
             || !next_upper.is_finite()
             || next_upper >= 1.0
@@ -719,10 +741,18 @@ mod tests {
 
     #[test]
     fn standard_normal_box_density_volume_bound_is_conservative() {
-        let upper =
-            standard_normal_box_probability_upper_bound(&[0.0], &[0.1]).unwrap();
-        assert!(upper > 0.05);
-        assert!(upper < 0.051);
+        let upper = standard_normal_box_probability_upper_bound(&[0.0], &[0.1]).unwrap();
+        assert!(upper > 0.0399);
+        assert!(upper < 0.0401);
+    }
+
+    #[test]
+    fn standard_normal_box_mass_bound_tightens_away_from_zero() {
+        let central =
+            standard_normal_box_probability_upper_bound(&[-0.5], &[0.5]).unwrap();
+        let tail = standard_normal_box_probability_upper_bound(&[3.0], &[4.0]).unwrap();
+        assert!(tail < central);
+        assert!(tail < 0.08);
     }
 
     #[test]
