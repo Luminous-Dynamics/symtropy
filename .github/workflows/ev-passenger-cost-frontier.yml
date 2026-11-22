@@ -132,6 +132,52 @@ jobs:
           jq empty tools/ev-passenger-cost-frontier/fixtures/battery_pack_state_journal_v0_1.json
           jq empty tools/ev-passenger-cost-frontier/schemas/battery_resource_occupancy_v0_1.schema.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/battery_resource_occupancy_v0_1.json
+          jq -e --slurpfile schema tools/ev-passenger-cost-frontier/schemas/battery_pack_state_journal_v0_1.schema.json '
+            . as $journal
+            | ($schema[0].required | sort) as $root_required
+            | ($schema[0]["$defs"].event.required | sort) as $event_required
+            | ($schema[0]["$defs"].evidenceEnvelope.required | sort) as $evidence_required
+            | (($journal | keys | sort) == $root_required)
+            and (($journal.initial_state | keys | sort) == ["evidence", "value"])
+            and (($journal.initial_state.evidence | keys | sort) == $evidence_required)
+            and ($journal.initial_state.evidence.asset_id == $journal.pack_id)
+            and ($journal.initial_state.evidence.configuration_digest == $journal.configuration_digest)
+            and ($journal.initial_state.evidence.observed_at_unix_ms <= $journal.replay_cutoff_unix_ms)
+            and ($journal.initial_state.evidence.valid_from_unix_ms <= $journal.initial_state.evidence.observed_at_unix_ms)
+            and ($journal.initial_state.evidence.valid_until_unix_ms >= $journal.initial_state.evidence.observed_at_unix_ms)
+            and all($journal.events[];
+              . as $event
+              | (($event | keys | sort) == $event_required)
+              and (($event.evidence | keys | sort) == $evidence_required)
+              and ($event.evidence.asset_id == $journal.pack_id)
+              and ($event.evidence.configuration_digest == $journal.configuration_digest)
+              and ($event.evidence.observed_at_unix_ms <= $event.event_time_unix_ms)
+              and ($event.event_time_unix_ms <= $journal.replay_cutoff_unix_ms)
+              and ($event.evidence.valid_from_unix_ms <= $event.event_time_unix_ms)
+              and ($event.evidence.valid_until_unix_ms >= $event.event_time_unix_ms)
+            )
+          ' tools/ev-passenger-cost-frontier/fixtures/battery_pack_state_journal_v0_1.json
+          jq -e --slurpfile schema tools/ev-passenger-cost-frontier/schemas/battery_resource_occupancy_v0_1.schema.json '
+            . as $schedule
+            | ($schema[0].required | sort) as $root_required
+            | ($schema[0]["$defs"].interval.required | sort) as $interval_required
+            | ($schema[0]["$defs"].evidenceEnvelope.required | sort) as $evidence_required
+            | (($schedule | keys | sort) == $root_required)
+            and all($schedule.intervals[];
+              . as $interval
+              | (($interval | keys | sort) == $interval_required)
+              and (($interval.evidence | keys | sort) == $evidence_required)
+              and ($interval.end_unix_ms > $interval.start_unix_ms)
+              and ($interval.resource_id == $interval.evidence.asset_id)
+              and ($interval.resource_configuration_digest == $interval.evidence.configuration_digest)
+              and ($interval.evidence.observed_at_unix_ms <= $schedule.decision_time_unix_ms)
+              and ($interval.evidence.observed_at_unix_ms >= $interval.evidence.valid_from_unix_ms)
+              and ($interval.evidence.observed_at_unix_ms <= $interval.evidence.valid_until_unix_ms)
+              and ($interval.evidence.valid_from_unix_ms <= $interval.start_unix_ms)
+              and ($interval.evidence.valid_until_unix_ms >= ($interval.end_unix_ms - 1))
+              and ($interval.evidence.evidence_class == "synthetic")
+            )
+          ' tools/ev-passenger-cost-frontier/fixtures/battery_resource_occupancy_v0_1.json
           jq -e --slurpfile schema tools/ev-passenger-cost-frontier/schemas/battery_service_network_v0_1.schema.json '
             . as $fixture
             | ($schema[0]["$defs"].pack.required | sort) as $pack_required
@@ -196,6 +242,7 @@ jobs:
               )
           ' tools/ev-passenger-cost-frontier/fixtures/battery_service_network_v0_1.json
           jq -e '
+            . as $journal
             .pack_id == "journal-pack"
             and .configuration_digest == "urn:synthetic:configuration:journal-pack"
             and .replay_cutoff_unix_ms == 1795219200000 + 5000
@@ -206,7 +253,7 @@ jobs:
             and (.events[2].disposition == "reconciled" and .events[2].proposed_to_state == "installed")
             and (.events[0].sequence == 1 and .events[1].sequence == 2 and .events[2].sequence == 3)
             and (.events[0].event_time_unix_ms < .events[1].event_time_unix_ms and .events[1].event_time_unix_ms < .events[2].event_time_unix_ms)
-            and all(.events[]; .event_time_unix_ms <= .replay_cutoff_unix_ms)
+            and all($journal.events[]; .event_time_unix_ms <= $journal.replay_cutoff_unix_ms)
             and (.events[2].evidence.evidence_class == "independent_test")
           ' tools/ev-passenger-cost-frontier/fixtures/battery_pack_state_journal_v0_1.json
           cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin battery_pack_journal_screen -- \
