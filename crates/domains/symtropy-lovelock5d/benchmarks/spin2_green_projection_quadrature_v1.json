@@ -1,0 +1,51 @@
+{
+  "acceptance": {
+    "C_B_reconstructed_from_C_H": true,
+    "all_C_B_errors_below_1e_minus_25": true,
+    "all_C_H_errors_below_1e_minus_25": true,
+    "independent_of_SymPy_and_action_row_fixture": true
+  },
+  "artifact_kind": "spin2_green_projection_independent_quadrature",
+  "claim_ceiling": "Independent numerical evaluation of the Green integral and its B-amplitude reconstruction only; not an action-row replay, finite-lambda BVP, interval enclosure, or existence theorem.",
+  "environment": {
+    "arithmetic": "arbitrary-precision numerical quadrature",
+    "mpmath": "1.3.0",
+    "python": "3.13.5"
+  },
+  "method": "mpmath tanh-sinh quadrature after s=1-t^2 endpoint regularization",
+  "precision_runs": [
+    {
+      "C_B_absolute_error": "1.2627381e-40",
+      "C_B_exact": "-0.7392088021787172376689819997523",
+      "C_B_numeric": "-0.7392088021787172376689819997523",
+      "C_H_absolute_error": "3.6734198e-40",
+      "C_H_exact": "7.7823735934638482869930540007431",
+      "C_H_numeric": "7.7823735934638482869930540007431",
+      "dps": 40,
+      "integral": "-3.8911867967319241434965270003715"
+    },
+    {
+      "C_B_absolute_error": "4.7968096e-47",
+      "C_B_exact": "-0.7392088021787172376689819997523022706273988144815813",
+      "C_B_numeric": "-0.7392088021787172376689819997523022706273988145295493",
+      "C_H_absolute_error": "1.4390429e-46",
+      "C_H_exact": "7.782373593463848286993054000743093188117803556555256",
+      "C_H_numeric": "7.782373593463848286993054000743093188117803556411352",
+      "dps": 60,
+      "integral": "-3.891186796731924143496527000371546594058901778205676"
+    },
+    {
+      "C_B_absolute_error": "2.5820487e-47",
+      "C_B_exact": "-0.7392088021787172376689819997523022706273988144815813",
+      "C_B_numeric": "-0.7392088021787172376689819997523022706273988145074017",
+      "C_H_absolute_error": "7.746146e-47",
+      "C_H_exact": "7.782373593463848286993054000743093188117803556555256",
+      "C_H_numeric": "7.782373593463848286993054000743093188117803556477795",
+      "dps": 80,
+      "integral": "-3.89118679673192414349652700037154659405890177823889739092884635647878116"
+    }
+  ],
+  "schema_version": 1,
+  "source_sha256": "3d1d30e290c3bffa410075fbce84659081be2e3073225c24490f584fc297d88c",
+  "status": "independent_mpmath_quadrature_pass"
+}
