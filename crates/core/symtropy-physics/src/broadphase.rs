@@ -861,5 +861,4 @@ mod tests {
         );
         assert_eq!(incremental, find_pairs(&bodies));
     }
-
 }
