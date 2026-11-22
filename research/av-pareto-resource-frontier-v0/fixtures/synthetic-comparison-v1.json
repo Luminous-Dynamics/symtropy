@@ -1,0 +1,368 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-pareto-resource-frontier-v0",
+  "comparison": {
+    "comparison_id": "synthetic-av-policy-frontier-v1",
+    "comparison_mode": "policy_only",
+    "measurement_class": "synthetic",
+    "match_identity": {
+      "protocol_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "cohort_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "model_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "runtime_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "hardware_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "input_envelope_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+    },
+    "metric_manifest": [
+      {
+        "metric_id": "safe_accuracy",
+        "unit": "fraction",
+        "direction": "maximize",
+        "kind": "quality",
+        "tolerance": 0
+      },
+      {
+        "metric_id": "response_window_rate",
+        "unit": "fraction",
+        "direction": "maximize",
+        "kind": "quality",
+        "tolerance": 0
+      },
+      {
+        "metric_id": "silence_compliance",
+        "unit": "fraction",
+        "direction": "maximize",
+        "kind": "quality",
+        "tolerance": 0
+      },
+      {
+        "metric_id": "decision_regret",
+        "unit": "loss_units",
+        "direction": "minimize",
+        "kind": "quality",
+        "tolerance": 0
+      },
+      {
+        "metric_id": "p95_latency_ms",
+        "unit": "ms",
+        "direction": "minimize",
+        "kind": "resource",
+        "tolerance": 0
+      },
+      {
+        "metric_id": "energy_joules",
+        "unit": "J",
+        "direction": "minimize",
+        "kind": "resource",
+        "tolerance": 0
+      },
+      {
+        "metric_id": "audio_bytes",
+        "unit": "bytes",
+        "direction": "minimize",
+        "kind": "resource",
+        "tolerance": 0
+      },
+      {
+        "metric_id": "video_frames",
+        "unit": "frames",
+        "direction": "minimize",
+        "kind": "resource",
+        "tolerance": 0
+      }
+    ],
+    "hard_constraints": [
+      {
+        "metric_id": "safe_accuracy",
+        "op": "min",
+        "value": 0.8
+      },
+      {
+        "metric_id": "p95_latency_ms",
+        "op": "max",
+        "value": 1000
+      },
+      {
+        "metric_id": "energy_joules",
+        "op": "max",
+        "value": 12
+      }
+    ],
+    "budget_slices": [
+      {
+        "slice_id": "battery-small",
+        "constraints": [
+          {
+            "metric_id": "energy_joules",
+            "op": "max",
+            "value": 6
+          }
+        ]
+      },
+      {
+        "slice_id": "latency-critical",
+        "constraints": [
+          {
+            "metric_id": "p95_latency_ms",
+            "op": "max",
+            "value": 300
+          }
+        ]
+      }
+    ]
+  },
+  "runs": [
+    {
+      "run_id": "run-always-on",
+      "policy_id": "always-on-full",
+      "policy_source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "match_identity": {
+        "protocol_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "cohort_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "model_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "runtime_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "hardware_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "input_envelope_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+      },
+      "metrics": [
+        {
+          "metric_id": "safe_accuracy",
+          "value": 0.99,
+          "unit": "fraction",
+          "status": "SYNTHETIC"
+        },
+        {
+          "metric_id": "response_window_rate",
+          "value": 0.97,
+          "unit": "fraction",
+          "status": "SYNTHETIC"
+        },
+        {
+          "metric_id": "silence_compliance",
+          "value": 0.9,
+          "unit": "fraction",
+          "status": "SYNTHETIC"
+        },
+        {
+          "metric_id": "decision_regret",
+          "value": 0.01,
+          "unit": "loss_units",
+          "status": "SYNTHETIC"
+        },
+        {
+          "metric_id": "p95_latency_ms",
+          "value": 900,
+          "unit": "ms",
+          "status": "SYNTHETIC"
+        },
+        {
+          "metric_id": "energy_joules",
+          "value": 13,
+          "unit": "J",
+          "status": "SYNTHETIC"
+        },
+        {
+          "metric_id": "audio_bytes",
+          "value": 100000,
+          "unit": "bytes",
+          "status": "SYNTHETIC"
+        },
+        {
+          "metric_id": "video_frames",
+          "value": 100,
+          "unit": "frames",
+          "status": "SYNTHETIC"
+        }
+      ]
+    },
+    {
+      "run_id": "run-adaptive",
+      "policy_id": "adaptive-evsi",
+      "policy_source_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "match_identity": {
+        "protocol_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "cohort_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "model_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "runtime_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "hardware_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "input_envelope_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+      },
+      "metrics": [
+        {
+          "metric_id": "safe_accuracy",
+          "value": 0.95,
+          "unit": "fraction",
+          "status": "SYNTHETIC"
+        },
+        {
+          "metric_id": "response_window_rate",
+          "value": 0.94,
+          "unit": "fraction",
+          "status": "SYNTHETIC"
+        },
+        {
+          "metric_id": "silence_compliance",
+          "value": 0.95,
+          "unit": "fraction",
+          "status": "SYNTHETIC"
+        },
+        {
+          "metric_id": "decision_regret",
+          "value": 0.05,
+          "unit": "loss_units",
+          "status": "SYNTHETIC"
+        },
+        {
+          "metric_id": "p95_latency_ms",
+          "value": 500,
+          "unit": "ms",
+          "status": "SYNTHETIC"
+        },
+        {
+          "metric_id": "energy_joules",
+          "value": 6,
+          "unit": "J",
+          "status": "SYNTHETIC"
+        },
+        {
+          "metric_id": "audio_bytes",
+          "value": 30000,
+          "unit": "bytes",
+          "status": "SYNTHETIC"
+        },
+        {
+          "metric_id": "video_frames",
+          "value": 30,
+          "unit": "frames",
+          "status": "SYNTHETIC"
+        }
+      ]
+    },
+    {
+      "run_id": "run-minimal",
+      "policy_id": "minimal-early-stop",
+      "policy_source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "match_identity": {
+        "protocol_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "cohort_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "model_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "runtime_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "hardware_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "input_envelope_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+      },
+      "metrics": [
+        {
+          "metric_id": "safe_accuracy",
+          "value": 0.9,
+          "unit": "fraction",
+          "status": "SYNTHETIC"
+        },
+        {
+          "metric_id": "response_window_rate",
+          "value": 0.9,
+          "unit": "fraction",
+          "status": "SYNTHETIC"
+        },
+        {
+          "metric_id": "silence_compliance",
+          "value": 0.99,
+          "unit": "fraction",
+          "status": "SYNTHETIC"
+        },
+        {
+          "metric_id": "decision_regret",
+          "value": 0.1,
+          "unit": "loss_units",
+          "status": "SYNTHETIC"
+        },
+        {
+          "metric_id": "p95_latency_ms",
+          "value": 250,
+          "unit": "ms",
+          "status": "SYNTHETIC"
+        },
+        {
+          "metric_id": "energy_joules",
+          "value": 3,
+          "unit": "J",
+          "status": "SYNTHETIC"
+        },
+        {
+          "metric_id": "audio_bytes",
+          "value": 10000,
+          "unit": "bytes",
+          "status": "SYNTHETIC"
+        },
+        {
+          "metric_id": "video_frames",
+          "value": 10,
+          "unit": "frames",
+          "status": "SYNTHETIC"
+        }
+      ]
+    },
+    {
+      "run_id": "run-dominated",
+      "policy_id": "weak-adaptive",
+      "policy_source_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "match_identity": {
+        "protocol_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "cohort_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "model_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "runtime_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "hardware_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "input_envelope_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+      },
+      "metrics": [
+        {
+          "metric_id": "safe_accuracy",
+          "value": 0.88,
+          "unit": "fraction",
+          "status": "SYNTHETIC"
+        },
+        {
+          "metric_id": "response_window_rate",
+          "value": 0.85,
+          "unit": "fraction",
+          "status": "SYNTHETIC"
+        },
+        {
+          "metric_id": "silence_compliance",
+          "value": 0.9,
+          "unit": "fraction",
+          "status": "SYNTHETIC"
+        },
+        {
+          "metric_id": "decision_regret",
+          "value": 0.12,
+          "unit": "loss_units",
+          "status": "SYNTHETIC"
+        },
+        {
+          "metric_id": "p95_latency_ms",
+          "value": 700,
+          "unit": "ms",
+          "status": "SYNTHETIC"
+        },
+        {
+          "metric_id": "energy_joules",
+          "value": 8,
+          "unit": "J",
+          "status": "SYNTHETIC"
+        },
+        {
+          "metric_id": "audio_bytes",
+          "value": 50000,
+          "unit": "bytes",
+          "status": "SYNTHETIC"
+        },
+        {
+          "metric_id": "video_frames",
+          "value": 50,
+          "unit": "frames",
+          "status": "SYNTHETIC"
+        }
+      ]
+    }
+  ]
+}
