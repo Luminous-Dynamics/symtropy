@@ -239,9 +239,8 @@
       "required": [
         "charger_id",
         "configuration_digest",
-        "max_power_w",
-        "supported_pack_configuration_digests",
-        "availability_evidence"
+        "availability_evidence",
+        "capability"
       ],
       "properties": {
         "charger_id": {
@@ -251,6 +250,44 @@
         "configuration_digest": {
           "type": "string",
           "minLength": 1
+        },
+        "availability_evidence": {
+          "$ref": "#/$defs/evidenceEnvelope"
+        },
+        "capability": {
+          "$ref": "#/$defs/chargerCapability"
+        }
+      }
+    },
+    "gridSlot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slot",
+        "evidence"
+      ],
+      "properties": {
+        "slot": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7
+        },
+        "evidence": {
+          "$ref": "#/$defs/gridCapacity"
+        }
+      }
+    },
+    "chargerCapability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence",
+        "max_power_w",
+        "supported_pack_configuration_digests"
+      ],
+      "properties": {
+        "evidence": {
+          "$ref": "#/$defs/evidenceEnvelope"
         },
         "max_power_w": {
           "type": "integer",
@@ -265,26 +302,20 @@
             "type": "string",
             "minLength": 1
           }
-        },
-        "availability_evidence": {
-          "$ref": "#/$defs/evidenceEnvelope"
         }
       }
     },
-    "gridSlot": {
+    "gridCapacity": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "slot",
+        "evidence",
         "import_cap_w",
-        "non_charging_site_load_w",
-        "evidence"
+        "non_charging_site_load_w"
       ],
       "properties": {
-        "slot": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 7
+        "evidence": {
+          "$ref": "#/$defs/evidenceEnvelope"
         },
         "import_cap_w": {
           "type": "integer",
@@ -295,9 +326,6 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 100000000
-        },
-        "evidence": {
-          "$ref": "#/$defs/evidenceEnvelope"
         }
       }
     }
