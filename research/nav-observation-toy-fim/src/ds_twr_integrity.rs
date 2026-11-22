@@ -42,11 +42,29 @@ pub struct DsTwrRangeInterval {
     pub time_of_flight_upper_bound_s: f64,
 }
 
+/// A qualified bound on nonnegative excess path length for an NLOS range.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct PositiveNlosBiasBound {
+    pub minimum_bias_m: f64,
+    pub maximum_bias_m: f64,
+}
+
+/// Possible true range after accounting for a separate positive NLOS-bias interval.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct BiasCorrectedRangeInterval {
+    pub nominal_corrected_range_m: f64,
+    pub lower_bound_m: f64,
+    pub upper_bound_m: f64,
+    pub applied_bias_lower_bound_m: f64,
+    pub applied_bias_upper_bound_m: f64,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum DsTwrRangeError {
     NonFiniteOrNegativeInput,
     DurationIntervalNotStrictlyPositive(&'static str),
     NonPhysicalRangeInterval,
+    InvalidNlosBiasBound,
     NonFiniteOutput,
 }
 
@@ -56,6 +74,7 @@ impl fmt::Display for DsTwrRangeError {
             Self::NonFiniteOrNegativeInput => write!(f, "DS-TWR duration centres must be finite and positive and error bounds finite and nonnegative"),
             Self::DurationIntervalNotStrictlyPositive(name) => write!(f, "DS-TWR duration interval must remain strictly positive: {name}"),
             Self::NonPhysicalRangeInterval => write!(f, "DS-TWR time-of-flight interval contains no physically admissible nonnegative range"),
+            Self::InvalidNlosBiasBound => write!(f, "positive NLOS bias interval must be finite, nonnegative and ordered"),
             Self::NonFiniteOutput => write!(f, "DS-TWR interval arithmetic produced a non-finite result"),
         }
     }
@@ -155,6 +174,66 @@ pub fn ds_twr_range_interval(
     Ok(output)
 }
 
+/// Convert an observed range interval into a possible true-range interval
+/// using an explicit, nonnegative NLOS excess-path bias bound.
+///
+/// Measurement model: observed_range = true_range + bias, with bias in
+/// [minimum_bias_m, maximum_bias_m]. Therefore true_range is bounded by
+/// [observed.lower - bias.upper, observed.upper - bias.lower], intersected
+/// with the physical range domain [0, +infinity).
+///
+/// This is not an NLOS classifier or bias estimator. The caller must obtain
+/// and qualify the bias interval using independent calibration/validation
+/// evidence. Do not use this positive-only model for unclassified errors that
+/// may be negative.
+pub fn correct_positive_nlos_bias_interval(
+    observed: DsTwrRangeInterval,
+    bias: PositiveNlosBiasBound,
+) -> Result<BiasCorrectedRangeInterval, DsTwrRangeError> {
+    if !bias.minimum_bias_m.is_finite()
+        || !bias.maximum_bias_m.is_finite()
+        || bias.minimum_bias_m < 0.0
+        || bias.maximum_bias_m < bias.minimum_bias_m
+    {
+        return Err(DsTwrRangeError::InvalidNlosBiasBound);
+    }
+    let observed_values = [
+        observed.nominal_range_m,
+        observed.lower_bound_m,
+        observed.upper_bound_m,
+    ];
+    if !observed_values.iter().all(|value| value.is_finite() && *value >= 0.0)
+        || observed.lower_bound_m > observed.upper_bound_m
+    {
+        return Err(DsTwrRangeError::NonFiniteOutput);
+    }
+    let lower = (observed.lower_bound_m - bias.maximum_bias_m).max(0.0);
+    let upper = observed.upper_bound_m - bias.minimum_bias_m;
+    if !upper.is_finite() || upper < 0.0 || lower > upper {
+        return Err(DsTwrRangeError::NonPhysicalRangeInterval);
+    }
+    let nominal = (observed.nominal_range_m
+        - 0.5 * (bias.minimum_bias_m + bias.maximum_bias_m))
+        .clamp(lower, upper);
+    let result = BiasCorrectedRangeInterval {
+        nominal_corrected_range_m: nominal,
+        lower_bound_m: lower,
+        upper_bound_m: upper,
+        applied_bias_lower_bound_m: bias.minimum_bias_m,
+        applied_bias_upper_bound_m: bias.maximum_bias_m,
+    };
+    if ![
+        result.nominal_corrected_range_m,
+        result.lower_bound_m,
+        result.upper_bound_m,
+    ]
+    .iter()
+    .all(|value| value.is_finite() && *value >= 0.0)
+    {
+        return Err(DsTwrRangeError::NonFiniteOutput);
+    }
+    Ok(result)
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -207,6 +286,46 @@ mod tests {
         assert!(result.clock_ratio_upper >= result.clock_ratio_nominal);
     }
 
+    #[test]
+    fn positive_nlos_bias_bound_widens_true_range_to_the_near_side() {
+        let observed = ds_twr_range_interval(input(1.0e-9)).unwrap();
+        let corrected = correct_positive_nlos_bias_interval(
+            observed,
+            PositiveNlosBiasBound { minimum_bias_m: 0.0, maximum_bias_m: 2.0 },
+        ).unwrap();
+        assert!((corrected.lower_bound_m - (observed.lower_bound_m - 2.0).max(0.0)).abs() < 1.0e-12);
+        assert_eq!(corrected.upper_bound_m, observed.upper_bound_m);
+        assert!(corrected.lower_bound_m <= corrected.nominal_corrected_range_m);
+        assert!(corrected.nominal_corrected_range_m <= corrected.upper_bound_m);
+    }
+
+    #[test]
+    fn known_minimum_nlos_bias_shifts_both_true_range_bounds() {
+        let observed = ds_twr_range_interval(input(0.0)).unwrap();
+        let corrected = correct_positive_nlos_bias_interval(
+            observed,
+            PositiveNlosBiasBound { minimum_bias_m: 0.5, maximum_bias_m: 1.0 },
+        ).unwrap();
+        assert!((corrected.lower_bound_m - 28.9792458).abs() < 1.0e-8);
+        assert!((corrected.upper_bound_m - 29.4792458).abs() < 1.0e-8);
+    }
+
+    #[test]
+    fn invalid_or_nonphysical_nlos_bias_intervals_fail_closed() {
+        let observed = ds_twr_range_interval(input(0.0)).unwrap();
+        assert_eq!(
+            correct_positive_nlos_bias_interval(observed, PositiveNlosBiasBound { minimum_bias_m: -0.1, maximum_bias_m: 1.0 }),
+            Err(DsTwrRangeError::InvalidNlosBiasBound)
+        );
+        assert_eq!(
+            correct_positive_nlos_bias_interval(observed, PositiveNlosBiasBound { minimum_bias_m: 2.0, maximum_bias_m: 1.0 }),
+            Err(DsTwrRangeError::InvalidNlosBiasBound)
+        );
+        assert_eq!(
+            correct_positive_nlos_bias_interval(observed, PositiveNlosBiasBound { minimum_bias_m: 50.0, maximum_bias_m: 60.0 }),
+            Err(DsTwrRangeError::NonPhysicalRangeInterval)
+        );
+    }
     #[test]
     fn duration_interval_touching_zero_fails_closed() {
         let mut bad = input(0.0);
