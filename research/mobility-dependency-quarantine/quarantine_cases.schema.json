@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/mobility-dependency-quarantine-cases-v0.1.schema.json",
+  "title": "Mobility dependency quarantine cases v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "cases"],
+  "properties": {
+    "version": {"const": "0.1"},
+    "cases": {
+      "type": "array",
+      "minItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["case_id", "scenario", "expected"],
+        "properties": {
+          "case_id": {"type": "string", "minLength": 1},
+          "scenario": {"type": "string", "minLength": 1},
+          "expected": {"enum": ["ComponentQuarantine", "GlobalHold", "NoUnresolvedEffects"]}
+        }
+      }
+    }
+  }
+}
