@@ -173,7 +173,7 @@ function simulateChannel(scenario, channel) {
 
     return {
       event_id: event.event_id,
-      pod_probability: probability,
+      conditional_classifier_probability: probability,
       detected: missReason === null,
       miss_reason: missReason
     };
