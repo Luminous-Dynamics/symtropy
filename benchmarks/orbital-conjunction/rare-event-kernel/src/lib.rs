@@ -172,10 +172,6 @@ impl fmt::Display for KernelError {
             Self::InvalidSphereQuadratureTolerance => {
                 "sphere quadrature tolerances must be finite, nonnegative and not both zero"
             }
-            Self::ZeroSphereIntegrand => "sphere integrand is zero at every quadrature node",
-            Self::InvalidSphereQuadratureTolerance => {
-                "sphere quadrature tolerances must be finite, nonnegative and not both zero"
-            }
         };
         f.write_str(message)
     }
