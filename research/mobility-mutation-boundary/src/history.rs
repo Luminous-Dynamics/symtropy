@@ -7,9 +7,9 @@
 //! instrumentation returns Incomplete, never Pass.
 
 use super::{
-    ActionTicket, AuthorityBinding, LiveAuthoritySnapshot, QualifiedMonotonicInstant,
-    ReceiptDisposition, Rejection, QualifiedOutcomeResolution, ResolutionDisposition,
-    RecoveryPermitReference,
+    ActionTicket, LiveAuthoritySnapshot, QualifiedMonotonicInstant,
+    QualifiedOutcomeResolution, ReceiptDisposition, RecoveryPermitReference, Rejection,
+    ResolutionDisposition,
 };
 use std::collections::BTreeSet;
 
@@ -161,10 +161,7 @@ fn expected_ticket_rejection(
     None
 }
 
-fn apply_observed_operation(
-    state: &SpecState,
-    operation: &HistoryOperation,
-) -> Transition {
+fn apply_observed_operation(state: &SpecState, operation: &HistoryOperation) -> Transition {
     let observed = match operation.observed.as_ref() {
         Some(observed) => observed,
         None => return Transition::Invalid,
@@ -191,14 +188,12 @@ fn apply_observed_operation(
         (
             HistoryOperationKind::Apply { ticket, now },
             HistoryObservedResult::Rejected(observed_rejection),
-        ) => {
-            match expected_ticket_rejection(state, ticket, now) {
-                Some(expected_rejection) if &expected_rejection == observed_rejection => {
-                    Transition::Valid(state.clone())
-                }
-                _ => Transition::Invalid,
+        ) => match expected_ticket_rejection(state, ticket, now) {
+            Some(expected_rejection) if &expected_rejection == observed_rejection => {
+                Transition::Valid(state.clone())
             }
-        }
+            _ => Transition::Invalid,
+        },
         (
             HistoryOperationKind::Apply { ticket, now },
             HistoryObservedResult::Applied {
@@ -228,9 +223,7 @@ fn apply_observed_operation(
             match disposition {
                 ReceiptDisposition::AcceptedByNativeController
                 | ReceiptDisposition::RejectedNoEffect
-                | ReceiptDisposition::ReconciliationRequired => {
-                    Transition::Valid(next_state)
-                }
+                | ReceiptDisposition::ReconciliationRequired => Transition::Valid(next_state),
             }
         }
         (
@@ -246,7 +239,8 @@ fn apply_observed_operation(
                 return Transition::Invalid;
             }
             if *resolution == QualifiedOutcomeResolution::Unknown {
-                if next_snapshot.is_some() || recovery_permit.is_some()
+                if next_snapshot.is_some()
+                    || recovery_permit.is_some()
                     || *disposition != ResolutionDisposition::HoldRetained
                 {
                     return Transition::Invalid;
@@ -282,8 +276,10 @@ fn apply_observed_operation(
                         || permit.failed_attempt_key != *attempt_key
                         || permit.authority_epoch != state.live.binding.controller_epoch
                         || permit.plan_digest == [0; 32]
-                    || permit.plan_digest != next.binding.commitment
-                        || state.consumed_recovery_permit_ids.contains(&permit.permit_id)
+                        || permit.plan_digest != next.binding.commitment
+                        || state
+                            .consumed_recovery_permit_ids
+                            .contains(&permit.permit_id)
                     {
                         return Transition::Invalid;
                     }
@@ -335,9 +331,7 @@ fn validate_history(history: &OperationHistory) -> Result<(), IncompleteReason> 
         if operation.invoked_at >= responded_at {
             return Err(IncompleteReason::InvalidEventInterval);
         }
-        if !event_indices.insert(operation.invoked_at)
-            || !event_indices.insert(responded_at)
-        {
+        if !event_indices.insert(operation.invoked_at) || !event_indices.insert(responded_at) {
             return Err(IncompleteReason::DuplicateEventIndex);
         }
     }
@@ -415,10 +409,7 @@ fn search(
 /// A PASS is existential: one legal sequential ordering suffices. A FAIL is
 /// returned only after every admissible ordering within the declared bound
 /// has been ruled out. Truncated traces and exhausted searches are INCOMPLETE.
-pub fn check_history(
-    history: &OperationHistory,
-    search_budget: usize,
-) -> HistoryCheckResult {
+pub fn check_history(history: &OperationHistory, search_budget: usize) -> HistoryCheckResult {
     if let Err(reason) = validate_history(history) {
         return HistoryCheckResult::Incomplete {
             reason,
@@ -481,6 +472,7 @@ pub fn check_history(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::AuthorityBinding;
 
     fn binding(commitment_byte: u8, epoch: u64) -> AuthorityBinding {
         AuthorityBinding {
@@ -516,7 +508,11 @@ mod tests {
         }
     }
 
-    fn applied(seq: u64, b: &AuthorityBinding, disposition: ReceiptDisposition) -> HistoryObservedResult {
+    fn applied(
+        seq: u64,
+        b: &AuthorityBinding,
+        disposition: ReceiptDisposition,
+    ) -> HistoryObservedResult {
         HistoryObservedResult::Applied {
             disposition,
             application_sequence: seq,
@@ -571,7 +567,9 @@ mod tests {
         };
 
         match check_history(&history, DEFAULT_SEARCH_BUDGET) {
-            HistoryCheckResult::Linearizable { sequential_order, .. } => {
+            HistoryCheckResult::Linearizable {
+                sequential_order, ..
+            } => {
                 assert_eq!(sequential_order, vec!["apply-1", "revoke"]);
             }
             other => panic!("expected legal apply-before-revoke order, got {other:?}"),
@@ -601,7 +599,11 @@ mod tests {
                         ticket: ticket("ticket-1", "attempt-1", 1, 1),
                         now: now(20),
                     },
-                    applied(1, &binding(1, 1), ReceiptDisposition::AcceptedByNativeController),
+                    applied(
+                        1,
+                        &binding(1, 1),
+                        ReceiptDisposition::AcceptedByNativeController,
+                    ),
                 ),
             ],
         };
@@ -627,7 +629,11 @@ mod tests {
                         ticket: ticket("global-ticket", "attempt-1", 1, 1),
                         now: now(20),
                     },
-                    applied(1, &first_binding, ReceiptDisposition::AcceptedByNativeController),
+                    applied(
+                        1,
+                        &first_binding,
+                        ReceiptDisposition::AcceptedByNativeController,
+                    ),
                 ),
                 op(
                     "advance-attempt",
@@ -646,7 +652,11 @@ mod tests {
                         ticket: ticket("global-ticket", "attempt-2", 2, 2),
                         now: now(30),
                     },
-                    applied(2, &binding(2, 2), ReceiptDisposition::AcceptedByNativeController),
+                    applied(
+                        2,
+                        &binding(2, 2),
+                        ReceiptDisposition::AcceptedByNativeController,
+                    ),
                 ),
             ],
         };
@@ -938,7 +948,11 @@ mod tests {
                         ticket: ticket("ticket-2", "attempt-2", 2, 2),
                         now: now(30),
                     },
-                    applied(2, &new_binding, ReceiptDisposition::AcceptedByNativeController),
+                    applied(
+                        2,
+                        &new_binding,
+                        ReceiptDisposition::AcceptedByNativeController,
+                    ),
                 ),
             ],
         };
@@ -1110,5 +1124,4 @@ mod tests {
             HistoryCheckResult::NonLinearizable { .. }
         ));
     }
-
 }
