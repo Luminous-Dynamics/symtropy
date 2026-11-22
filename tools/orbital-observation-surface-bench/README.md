@@ -13,7 +13,7 @@ This crate provides a Rust-first, source-pinned synthetic event-observation simu
 - channel-specific outage windows;
 - a separate seeded Poisson false-positive stream per channel;
 - deterministic independent random streams for each channel's detection and false positives;
-- source-pinned receipt, frozen scenario input and an independently implemented JavaScript oracle.
+- source-pinned audit receipt plus a declassified timestamp-only estimator-input stream, frozen scenario input and an independently implemented JavaScript oracle.
 
 Dead time is triggered by any latent event that reaches the detector front end, even if the downstream classifier returns a stochastic miss. Events arriving during dead time do not extend it (non-paralyzable rule). Events during declared shared or channel outages do not reach the detector state machine. False positives are modelled as a separate downstream point process and do not themselves trigger front-end dead time. These are explicit simulator assumptions, not universal sensor laws.
 
@@ -27,14 +27,17 @@ From the repository root:
 cargo fmt --manifest-path tools/orbital-observation-surface-bench/Cargo.toml -- --check
 cargo test --locked --manifest-path tools/orbital-observation-surface-bench/Cargo.toml --all-targets
 cargo clippy --locked --manifest-path tools/orbital-observation-surface-bench/Cargo.toml --all-targets -- -D warnings
+mkdir -p artifacts
 cargo run --locked --manifest-path tools/orbital-observation-surface-bench/Cargo.toml -- \
   tools/orbital-observation-surface-bench/fixtures/v0.1/observation-surface-cases.json \
-  --source-commit <40-character-git-sha>
+  --source-commit <40-character-git-sha> \
+  --observations-output artifacts/observations-v0.1.json \
+  > artifacts/observation-surface-receipt-v0.1.json
 node tools/orbital-observation-surface-bench/tests/reference_oracle.mjs \
   tools/orbital-observation-surface-bench/fixtures/v0.1/observation-surface-cases.json
 ~~~
 
-The workflow also compares the Rust receipt to the independent JavaScript oracle at event level, including exact event decisions and missed-event reasons, while comparing floating-point outputs within a tight tolerance.
+Each run emits two deliberately separate outputs. The source-pinned receipt includes simulation ground truth and audit counters. The `observations-v0.1.json` artifact is the estimator input: it contains only channel identifiers, configuration identifiers and the sorted timestamps that the simulated channels actually emitted. It contains no latent event IDs, miss reasons, classifier probabilities or false-positive labels. Baseline estimators must consume this observation-only artifact, never the audit-bearing receipt. Both artifacts carry the source-commit and corpus digests; the receipt binds the exact observation bytes with SHA-256.\n\nThe workflow validates the frozen input, receipt and observation stream against the repository's JSON Schema subset, then compares Rust and independent JavaScript outputs at event level. False-positive timestamp generation can differ by tiny floating-point rounding between Rust and JS, so the comparison uses a tight numerical tolerance.
 
 ## What this does not do
 
@@ -44,7 +47,7 @@ The workflow also compares the Rust receipt to the independent JavaScript oracle
 - It does not authenticate reference measurements, randomization, channel independence, hardware configuration or chain of custody.
 - It does not grant qualification, flight readiness or mission authority.
 
-Those are explicit future comparator / implementation gates tracked in [#6752](https://github.com/Luminous-Dynamics/symtropy/issues/6752).
+Those are explicit future comparator / implementation gates tracked in [#6752](https://github.com/Luminous-Dynamics/symtropy/issues/6752). The current export is timestamp-only; future marked-estimator tracks must add an observation-realistic mark model for both true and false reports rather than leaking latent truth marks.
 
 ## Research direction
 
