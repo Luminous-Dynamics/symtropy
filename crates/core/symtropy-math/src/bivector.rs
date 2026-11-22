@@ -430,6 +430,45 @@ mod tests {
             "non-axis-aligned pose/point velocity mismatch"
         );
     }
+    #[test]
+    fn rotor_point_velocity_matches_left_composed_pose_at_arbitrary_orientation() {
+        use crate::rotor::Rotor;
+
+        let mut angular_rate = Bivector::<3>::zero();
+        angular_rate.set(0, 1, 0.43);
+        angular_rate.set(0, 2, -0.71);
+        angular_rate.set(1, 2, 0.26);
+
+        let initial_generator = Bivector::<3>::from_wedge(
+            &SVector::from([0.3, -0.8, 0.2]),
+            &SVector::from([-0.5, 0.4, 1.0]),
+        );
+        let initial_pose = Rotor::<3>::from_bivector(&initial_generator);
+        let local_point = SVector::from([0.7, -1.1, 0.4]);
+        let world_offset = initial_pose.rotate_vector(&local_point);
+        let predicted = angular_rate.point_velocity_at_offset(&world_offset);
+
+        let measure_error = |dt: f64| {
+            // The production integrator left-composes the incremental rotor:
+            // q_next = exp(-B*dt) * q_current.
+            let delta = Rotor::from_bivector(&angular_rate.scale(dt));
+            let next_pose = delta.compose(&initial_pose);
+            let moved_world = next_pose.rotate_vector(&local_point);
+            let finite_difference = (moved_world - world_offset) / dt;
+            (finite_difference - predicted).norm()
+        };
+
+        let coarse_error = measure_error(2.0e-5);
+        let fine_error = measure_error(1.0e-5);
+        assert!(
+            coarse_error < 1.0e-4,
+            "world-frame point-velocity error too large: {coarse_error:e}"
+        );
+        assert!(
+            fine_error < coarse_error * 0.6,
+            "left-composed pose differential did not converge: coarse={coarse_error:e}, fine={fine_error:e}"
+        );
+    }
 }
 
 #[cfg(test)]
