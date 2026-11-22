@@ -465,15 +465,15 @@ mod tests {
         let summary =
             validate_dataset_admission(&schema(), &candidates(), "research_noncommercial")
                 .unwrap();
-        assert_eq!(summary.record_count, 7);
-        assert_eq!(summary.candidate_count, 7);
+        assert_eq!(summary.record_count, 8);
+        assert_eq!(summary.candidate_count, 8);
         assert_eq!(summary.admitted_count, 0);
         assert_eq!(summary.quarantined_count, 0);
         assert!(summary.unknown_time_count >= 3);
         assert!(summary.unknown_frame_count >= 3);
-        assert_eq!(summary.partial_ground_truth_count, 4);
+        assert_eq!(summary.partial_ground_truth_count, 5);
         assert_eq!(summary.clock_state_truth_not_provided_count, 1);
-        assert_eq!(summary.clock_state_truth_unknown_count, 6);
+        assert_eq!(summary.clock_state_truth_unknown_count, 7);
     }
 
     #[test]
