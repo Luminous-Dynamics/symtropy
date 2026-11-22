@@ -230,8 +230,7 @@ pub fn fit_sparse_bayesian_correlated_log_bias(
             map_model_probability = *probability;
             map_feature_mask = mask;
             map_parameter_mean.fill(0.0);
-            map_parameter_mean[..fixed_count]
-                .copy_from_slice(&fit.parameter_mean[..fixed_count]);
+            map_parameter_mean[..fixed_count].copy_from_slice(&fit.parameter_mean[..fixed_count]);
             for (local, feature) in fit.active_bias_features.iter().enumerate() {
                 map_parameter_mean[fixed_count + *feature] =
                     fit.parameter_mean[fixed_count + local];
@@ -344,7 +343,12 @@ fn fit_gaussian_subset(
         row[index] += fixed_precision;
         prior_log_determinant += 2.0 * fixed_sd.ln();
     }
-    for (index, row) in hessian.iter_mut().enumerate().skip(fixed_count).take(active_count) {
+    for (index, row) in hessian
+        .iter_mut()
+        .enumerate()
+        .skip(fixed_count)
+        .take(active_count)
+    {
         row[index] += bias_precision;
         prior_log_determinant += 2.0 * bias_sd.ln();
     }
@@ -492,9 +496,7 @@ fn inverse_from_cholesky(lower: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, ModelError
         .map(|(row_index, row)| {
             row.iter()
                 .enumerate()
-                .map(|(column_index, value)| {
-                    0.5 * (value + inverse[column_index][row_index])
-                })
+                .map(|(column_index, value)| 0.5 * (value + inverse[column_index][row_index]))
                 .collect()
         })
         .collect();

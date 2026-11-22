@@ -224,11 +224,7 @@ fn symmetric_eigenvalues(matrix: &[Vec<f64>]) -> Result<Vec<f64>, ModelError> {
             .map(|(index, row)| {
                 let ip = row[p];
                 let iq = row[q];
-                (
-                    index,
-                    cosine * ip - sine * iq,
-                    sine * ip + cosine * iq,
-                )
+                (index, cosine * ip - sine * iq, sine * ip + cosine * iq)
             })
             .collect();
         for (index, new_ip, new_iq) in rotated_rows {

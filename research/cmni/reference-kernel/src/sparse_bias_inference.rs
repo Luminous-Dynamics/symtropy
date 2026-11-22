@@ -530,9 +530,7 @@ fn inverse_from_cholesky(lower: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, ModelError
         .map(|(row_index, row)| {
             row.iter()
                 .enumerate()
-                .map(|(column_index, value)| {
-                    0.5 * (value + inverse[column_index][row_index])
-                })
+                .map(|(column_index, value)| 0.5 * (value + inverse[column_index][row_index]))
                 .collect()
         })
         .collect();

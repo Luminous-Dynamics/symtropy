@@ -194,8 +194,7 @@ pub fn enumerate_batch_portfolios(
         let posterior_trace = trace(&posterior_covariance)?;
         let a_optimal_trace_reduction = prior_trace - posterior_trace;
         let d_optimal_logdet_reduction = prior_logdet - posterior_logdet;
-        let linear_gaussian_expected_information_gain_nats =
-            0.5 * d_optimal_logdet_reduction;
+        let linear_gaussian_expected_information_gain_nats = 0.5 * d_optimal_logdet_reduction;
         if !a_optimal_trace_reduction.is_finite()
             || !d_optimal_logdet_reduction.is_finite()
             || !linear_gaussian_expected_information_gain_nats.is_finite()
@@ -544,7 +543,7 @@ mod tests {
         assert!(
             (shared.linear_gaussian_expected_information_gain_nats
                 - 0.5 * (201.0_f64 / 181.0).ln())
-                .abs()
+            .abs()
                 < 1.0e-12
         );
         let complementary = &result.portfolios[0];
@@ -557,7 +556,7 @@ mod tests {
         assert!(
             (complementary.linear_gaussian_expected_information_gain_nats
                 - 0.5 * (2121.0_f64 / 1820.0).ln())
-                .abs()
+            .abs()
                 < 1.0e-12
         );
     }

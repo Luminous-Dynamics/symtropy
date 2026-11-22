@@ -124,9 +124,7 @@ pub fn profile_nuisance_fisher_information(
         .map(|(row_index, row)| {
             row.iter()
                 .enumerate()
-                .map(|(column_index, value)| {
-                    0.5 * (value + profiled[column_index][row_index])
-                })
+                .map(|(column_index, value)| 0.5 * (value + profiled[column_index][row_index]))
                 .collect()
         })
         .collect();
