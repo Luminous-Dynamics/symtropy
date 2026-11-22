@@ -79,6 +79,8 @@ The objective evaluator returns total cost and analytic gradients for the 2D pos
 
 Finite-difference tests compare analytic position and bias gradients against objective perturbations. Other tests exercise the alpha=0 and near-zero robust-loss limits, projection bounds, invalid states and arithmetic overflow.
 
+The current BCTR consumer contract additionally validates that each anchor ID maps to one immutable surveyed coordinate within the local window and that each (anchor, channel) pair maps to exactly one structural-bias state. Repeated observations may share that state across time, but two channels or anchors cannot silently share one bias variable. Structural bias is constrained to the configured [0, b_max] interval, and each trajectory point is constrained to the declared spatial box.
+
 This is **not yet the full HBR-PGD reproduction**. It does not create overlapping windows, choose window overlap, implement the paper's curvature/trace-based fusion, derive the initial geometric trajectory, reconstruct the complete feature and split protocol, or implement the authors' exact stopping/line-search details. The objective and gradient are a numerical reference to build and compare; no RMSE, runtime or physical performance result is claimed.
 
 ## What is not yet implemented
