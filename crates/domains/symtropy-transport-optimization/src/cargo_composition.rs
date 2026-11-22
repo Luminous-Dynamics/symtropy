@@ -1340,12 +1340,14 @@ mod tests {
             parent_module_id: "OTHER".to_string(),
             child_module_id: "PALLET".to_string(),
         }));
-        assert!(report.failures.contains_key(
-            &CompositionFailure::AmbiguousEventTime {
-                event_time: 20,
-                module_id: "PALLET".to_string(),
-            }
-        ));
+        assert!(
+            report
+                .failures
+                .contains_key(&CompositionFailure::AmbiguousEventTime {
+                    event_time: 20,
+                    module_id: "PALLET".to_string(),
+                })
+        );
         assert!(!report.is_qualified());
     }
 
