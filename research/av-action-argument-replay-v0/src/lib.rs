@@ -68,18 +68,18 @@ pub struct SourceIntervalV1 {
     pub end_ns: u64,
 }
 
-/// Normalized region of interest.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+/// Normalized region of interest encoded as integer basis points.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct NormalizedRoiV1 {
-    /// Left coordinate in [0,1].
-    pub x: f64,
-    /// Top coordinate in [0,1].
-    pub y: f64,
-    /// Width in normalized coordinates.
-    pub width: f64,
-    /// Height in normalized coordinates.
-    pub height: f64,
+    /// Left coordinate in basis points (0..=10,000).
+    pub x_bp: u32,
+    /// Top coordinate in basis points (0..=10,000).
+    pub y_bp: u32,
+    /// Width in basis points.
+    pub width_bp: u32,
+    /// Height in basis points.
+    pub height_bp: u32,
 }
 
 /// Pixel-space region of interest with its source image dimensions.
@@ -450,8 +450,10 @@ pub struct ActionParameterForecastV1 {
 pub fn manifest_sha256(
     manifest: &ActionParameterManifestV1,
 ) -> Result<String, ActionArgumentError> {
-    let encoded = serde_json::to_vec(manifest)
+    let canonical_value = serde_json::to_value(manifest)
         .map_err(|error| ActionArgumentError::new(format!("manifest serialization failed: {error}")))?;
+    let encoded = serde_json::to_vec(&canonical_value)
+        .map_err(|error| ActionArgumentError::new(format!("canonical manifest encoding failed: {error}")))?;
     Ok(hex_sha256(&encoded))
 }
 
@@ -461,6 +463,17 @@ pub fn validate_manifest(
 ) -> Result<String, ActionArgumentError> {
     validate_manifest_fields(manifest)?;
     manifest_sha256(manifest)
+}
+
+#[derive(Serialize)]
+struct ForecastDigestMaterialV1<'a> {
+    episode_id: &'a str,
+    turn_id: u64,
+    transcript_head_sha256: &'a str,
+    eligible_action_ids: Vec<String>,
+    action_manifests: Vec<(String, String)>,
+    selected_action_id: &'a str,
+    selected_manifest_sha256: Option<&'a str>,
 }
 
 /// Validate every forecasted manifest, require one unique entry per action ID,
@@ -562,8 +575,27 @@ pub fn validate_forecast(
             ));
         }
     }
-    let encoded = serde_json::to_vec(forecast)
+    let mut eligible_ids: Vec<String> = forecast.eligible_action_ids.clone();
+    eligible_ids.sort();
+    let mut manifest_entries: Vec<(String, String)> = forecast
+        .actions
+        .iter()
+        .map(|entry| (entry.action_id.clone(), entry.manifest_sha256.to_ascii_lowercase()))
+        .collect();
+    manifest_entries.sort_by(|left, right| left.0.cmp(&right.0));
+    let material = ForecastDigestMaterialV1 {
+        episode_id: &forecast.episode_id,
+        turn_id: forecast.turn_id,
+        transcript_head_sha256: &forecast.transcript_head_sha256,
+        eligible_action_ids: eligible_ids,
+        action_manifests: manifest_entries,
+        selected_action_id: &forecast.selected_action_id,
+        selected_manifest_sha256: forecast.selected_manifest_sha256.as_deref(),
+    };
+    let canonical_value = serde_json::to_value(&material)
         .map_err(|error| ActionArgumentError::new(format!("forecast serialization failed: {error}")))?;
+    let encoded = serde_json::to_vec(&canonical_value)
+        .map_err(|error| ActionArgumentError::new(format!("canonical forecast encoding failed: {error}")))?;
     Ok(hex_sha256(&encoded))
 }
 
@@ -784,14 +816,10 @@ fn validate_manifest_fields(
 fn validate_roi(roi: &RegionOfInterestV1) -> Result<(), ActionArgumentError> {
     match roi {
         RegionOfInterestV1::Normalized(region) => {
-            let values = [region.x, region.y, region.width, region.height];
-            if values.iter().any(|value| !value.is_finite())
-                || region.x < 0.0
-                || region.y < 0.0
-                || region.width <= 0.0
-                || region.height <= 0.0
-                || region.x + region.width > 1.0
-                || region.y + region.height > 1.0
+            if region.width_bp == 0
+                || region.height_bp == 0
+                || region.x_bp.checked_add(region.width_bp).is_none_or(|end| end > 10_000)
+                || region.y_bp.checked_add(region.height_bp).is_none_or(|end| end > 10_000)
             {
                 return Err(ActionArgumentError::new(
                     "normalized ROI must be a positive rectangle inside [0,1]",
@@ -1168,10 +1196,10 @@ mod tests {
             unreachable!();
         };
         parameters.roi = Some(RegionOfInterestV1::Normalized(NormalizedRoiV1 {
-            x: 0.2,
-            y: 0.2,
-            width: 0.5,
-            height: 0.4,
+            x_bp: 2_000,
+            y_bp: 2_000,
+            width_bp: 5_000,
+            height_bp: 4_000,
         }));
         assert_ne!(validate_manifest(&first).unwrap(), validate_manifest(&second).unwrap());
     }
@@ -1235,10 +1263,10 @@ mod tests {
             unreachable!();
         };
         parameters.roi = Some(RegionOfInterestV1::Normalized(NormalizedRoiV1 {
-            x: 0.8,
-            y: 0.2,
-            width: 0.4,
-            height: 0.4,
+            x_bp: 8_000,
+            y_bp: 2_000,
+            width_bp: 4_000,
+            height_bp: 4_000,
         }));
         assert!(validate_manifest(&manifest).is_err());
     }
@@ -1431,10 +1459,10 @@ mod tests {
                 },
             ],
             delivered_roi: Some(RegionOfInterestV1::Normalized(NormalizedRoiV1 {
-                x: 0.1,
-                y: 0.2,
-                width: 0.5,
-                height: 0.4,
+                x_bp: 1_000,
+                y_bp: 2_000,
+                width_bp: 5_000,
+                height_bp: 4_000,
             })),
             delivered_output_resolution: Some(OutputResolutionV1 { width: 640, height: 360 }),
             delivered_crop_policy_sha256: Some(digest("crop-policy")),
@@ -1748,10 +1776,10 @@ mod tests {
                 },
             ],
             delivered_roi: Some(RegionOfInterestV1::Normalized(NormalizedRoiV1 {
-                x: 0.2,
-                y: 0.2,
-                width: 0.5,
-                height: 0.4,
+                x_bp: 2_000,
+                y_bp: 2_000,
+                width_bp: 5_000,
+                height_bp: 4_000,
             })),
             delivered_output_resolution: Some(OutputResolutionV1 { width: 640, height: 360 }),
             delivered_crop_policy_sha256: Some(digest("crop-policy")),
