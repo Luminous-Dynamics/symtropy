@@ -20,7 +20,7 @@ Every entry below is a **discovery lead**. A website description is a supplier-d
 | [PWS Engineering](https://pws-engineering.com/) — Roodepoort | CNC milling, turning, routing, surface grinding, general engineering and light fabrication; website describes one-off and small-batch work | Precision faces, plates, router-cut panels/fixtures, machined prototype parts | Actual machine capabilities and calibration, dimensional capability, materials, tolerances, quote and capacity |
 | [Faltec Engineering](https://faltec.co.za/) — Jet Park, Boksburg | CNC turning, vertical/horizontal milling, fabrication and managed specialist processes; website describes first-off/in-process/final inspection, calibrated measuring equipment, material/batch records | Precision shafts, brackets, small machined components where first-off inspection and traceability matter | Exact operation scope, inspection report format, accreditation scope if any, material certs, tolerances, subcontracted steps and quote |
 | [Talon Works](https://talonworks.co.za/) — Gauteng | Publicly describes FDM printing, CNC milling, laser cutting, CAD/CAM, prototype and custom machine build/upgrade services | Prototype comparison, initial FDM outsourcing, fixture prototypes, possible design-for-manufacture feedback | Exact address/site, printer and material list, process control, machine models, sample results, rights/data terms, quote |
-| [Taito 3D Printing](https://taito.co.za/) — Braamfontein, Johannesburg | Structured business search result describes FDM printing and product development/CAD | Local FDM bureau comparator for simple low-risk artifacts | Confirm exact machine/material/process capability and current operating details directly; no website technical qualification reviewed in this pass |
+| [Taito 3D Printing](https://www.taito3d.co.za/) — Braamfontein, Johannesburg | Structured business search result describes FDM printing and product development/CAD | Local FDM bureau comparator for simple low-risk artifacts | Confirm exact machine/material/process capability and current operating details directly; no website technical qualification reviewed in this pass |
 
 ## Material and extrusion discovery
 
@@ -36,8 +36,10 @@ The first machine may use standard aluminium profiles, but profile family, alloy
 - [Wispeco Aluminium](https://www.wispeco.co.za/) — Alrode, Alberton: extrusion manufacturer/supplier lead; confirm exact standard profiles, alloy/temper, dimensional tolerances, straightness, minimum order and cut-to-length offer.
 - [RF Metals](https://rfmetals.co.za/) — Johannesburg South: profile stockist/custom profile development lead; confirm whether required structural T-slot system and compatible joining hardware are available.
 - [Aluminium Alloys](https://aluminiumalloys.co.za/) — Spartan, Kempton Park: aluminium supply/processing lead; confirm section/product range, stock state and certification.
+- [Aluminium Alloys contact details](https://aluminiumalloys.co.za/policies/contact-information) list its Johannesburg branch at 28 Grader Road, Spartan Ext 16, Kempton Park.
+- Wispeco's manufacturing page describes Gauteng-based extrusion presses, 1xxx/6xxx-series alloys, and industrial/architectural extrusion products; it does **not** establish that a compatible machine T-slot profile is in stock.
 
-Do not assume window/door architectural sections are equivalent to 20-series T-slot or other structural machine profiles.
+Do not assume window/door architectural sections are equivalent to 20-series T-slot or other structural machine profiles. RF Metals was removed from this initial public shortlist because its exact company site/profile and relevant product scope were not sufficiently verified in this research pass.
 
 ## Supplier qualification packet
 
