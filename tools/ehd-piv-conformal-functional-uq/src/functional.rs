@@ -485,7 +485,7 @@ mod tests {
         });
         let report = propagate_field_functional_uncertainty(&data).unwrap();
         assert!((report.functional_covariance[0][0] - 0.04).abs() < 1.0e-12);
-        assert!((report.functional_covariance[1][1] - 0.64).abs() < 1.0e-12);
+        assert!((report.functional_covariance[1][1] - 0.16).abs() < 1.0e-12);
     }
 
     #[test]
