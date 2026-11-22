@@ -15,7 +15,8 @@
 //! this factorized likelihood interface is not applicable.
 
 use crate::decision_value::{
-    InformationAcquisitionKind, InformationAcquisitionOption, InformationSourceQualification,
+    recommend_finite_decision_step, InformationAcquisitionKind, InformationAcquisitionOption,
+    InformationAcquisitionPolicy, InformationSourceQualification,
 };
 use crate::ModelError;
 
@@ -542,6 +543,29 @@ mod tests {
         );
         assert!((one_step.expected_net_utility - 0.55).abs() < 1.0e-12);
         assert!((three_step.expected_net_utility - 0.676).abs() < 1.0e-12);
+
+        let myopic_evsi = recommend_finite_decision_step(
+            &actions(),
+            &[0.5, 0.5],
+            &[vec![1.0, -1.0], vec![-1.0, 1.0]],
+            0.0,
+            &[options[0].clone()],
+            InformationAcquisitionPolicy {
+                remaining_budget: 0.15,
+                cost_to_utility_rate: 1.0,
+                minimum_net_benefit: 0.0,
+            },
+        )
+        .expect("one-step finite EVSI baseline");
+        match myopic_evsi {
+            crate::decision_value::FiniteDecisionRecommendation::AcquireInformation {
+                expected_net_benefit_of_sampling,
+                ..
+            } => assert!(
+                (one_step.expected_net_utility - expected_net_benefit_of_sampling).abs() < 1.0e-12
+            ),
+            other => panic!("expected myopic information acquisition, got {other:?}"),
+        }
         assert_eq!(count_acquisitions_on_longest_path(&one_step.root), 1);
         assert_eq!(count_acquisitions_on_longest_path(&three_step.root), 3);
         assert!(three_step.nodes_expanded > one_step.nodes_expanded);
