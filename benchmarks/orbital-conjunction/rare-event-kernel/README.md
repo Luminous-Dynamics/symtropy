@@ -14,6 +14,7 @@ This crate is a research kernel, not an operational collision-probability produc
 - A Gaussian cube-tail union-bound primitive for probability bookkeeping.
 - Outward-rounded interval enclosures for affine images of finite axis-aligned cells.
 - A conservative norm lower bound and static collision-ball cell-exclusion predicate.
+- Deterministic longest-axis cell subdivision with stable child split paths.
 - Dense-grid adversarial tests checking sampled affine images remain inside the interval enclosure and sampled norms remain above the reported lower bound.
 - Streaming log-domain weighted event sums, contribution ESS, plug-in relative standard error, and a clearly labelled normal-approximation interval diagnostic.
 - Full normalized Gaussian-mixture log density using log-sum-exp.
@@ -40,5 +41,6 @@ The package has its own Cargo workspace and does not require the full Symtropy/B
 - The Gaussian half-space function is an analytic fixture, not a disk/ellipsoid collision integral or trajectory first-contact solver.
 - The log-tail, box-mass and cube-tail routines are floating-point numerical kernels, not formally verified outward-rounded probability bounds; they cannot be used as an independent residual-mass certificate without additional enclosure work.
 - The affine-cell module widens basic IEEE-754 operations by one adjacent representable value and fails closed on overflow. Its grid tests are useful negative controls, not a formal proof of the arithmetic implementation. It covers finite affine maps only; it is not a validated nonlinear ODE enclosure, nor a complete residual-mass certificate.
+- The cell splitter uses a deterministic longest-axis rule. Shared closed faces are covered by both children; they have zero measure only for a nondegenerate continuous Gaussian and still remain relevant to geometric tangency tests.
 - The weighted indicator primitive does not construct confidence intervals or establish finite-sample coverage.
 - The proposal density must be the complete mixture density, including all defensive components.
