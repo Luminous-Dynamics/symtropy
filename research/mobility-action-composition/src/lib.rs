@@ -119,6 +119,8 @@ pub struct QualifiedBatch {
     /// These actions are eligible as one concurrent batch under this profile.
     /// This is not actuator authority and does not replace each action's
     /// native application-boundary check.
+    pub profile_id: String,
+    pub policy_digest: Digest,
     pub actions: Vec<ActionRef>,
     pub shared_context: SharedContext,
     pub capacity_peaks: Vec<CapacityPeak>,
@@ -142,6 +144,7 @@ pub enum BatchBlock {
     DuplicateStateAccess { action_id: String, key: String },
     InvalidInterval { action_id: String },
     EmptyResourceId { action_id: String },
+    ActionCapacityExceeded { action_id: String, resource: String, amount: u64, capacity: u64 },
     EmptyOwnerFamily,
     DuplicateRequiredOwnerFamily,
     MissingOwnerCheck { left: String, right: String, owner: String },
@@ -303,10 +306,17 @@ fn validate_footprints(
                 || !is_nonzero_digest(&claim.capacity_profile_digest)
                 || claim.amount == 0
                 || claim.capacity == 0
-                || claim.amount > claim.capacity
             {
                 return Err(BatchBlock::InvalidInterval {
                     action_id: action.action_id.clone(),
+                });
+            }
+            if claim.amount > claim.capacity {
+                return Err(BatchBlock::ActionCapacityExceeded {
+                    action_id: action.action_id.clone(),
+                    resource: claim.resource_id.clone(),
+                    amount: claim.amount,
+                    capacity: claim.capacity,
                 });
             }
         }
@@ -578,6 +588,8 @@ pub fn qualify_concurrent_batch(
     actions.sort();
 
     Ok(QualifiedBatch {
+        profile_id: profile.profile_id.clone(),
+        policy_digest: profile.policy_digest,
         actions,
         shared_context,
         capacity_peaks,
