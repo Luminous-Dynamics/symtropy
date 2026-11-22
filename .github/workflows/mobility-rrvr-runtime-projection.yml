@@ -34,9 +34,11 @@ jobs:
           SCHEMA="research/mobility-rrvr-runtime-trace/schemas/runtime_projection_v0_1.schema.json"
           INIT="research/mobility-rrvr-runtime-trace/fixtures/runtime_projection_init_v0_1.json"
           TRACE_FIXTURE="research/mobility-rrvr-runtime-trace/fixtures/runtime_projection_reservation_acceptance_v0_1.json"
+          RECOVERY_FIXTURE="research/mobility-rrvr-runtime-trace/fixtures/runtime_projection_no_effect_recovery_v0_1.json"
           jq empty "$SCHEMA"
           jq empty "$INIT"
           jq empty "$TRACE_FIXTURE"
+          jq empty "$RECOVERY_FIXTURE"
           jq -e '
             .version == "0.1"
             and (.snapshots | length == 4)
@@ -50,6 +52,28 @@ jobs:
             and .snapshots[3].state_s.commandPending == true
             and .snapshots[3].state_s.commandOwnerAttempt == "attempt-1"
           ' "$TRACE_FIXTURE"
+          jq -e '
+            .version == "0.1"
+            and (.snapshots | length == 17)
+            and all(.snapshots[]; (.state_s | keys | length == 43))
+            and all(.snapshots[]; (.owner_evidence | length == 10))
+            and .snapshots[4].model_action == "OldDeviceDoesNotApply"
+            and .snapshots[7].model_action == "AcknowledgeStoreNoCommit"
+            and .snapshots[10].model_action == "FenceControllerQueue"
+            and .snapshots[11].model_action == "FenceDownstreamExecution"
+            and .snapshots[12].model_action == "ObserveOldEffect"
+            and .snapshots[14].model_action == "IssueRecoveryPermit"
+            and .snapshots[15].model_action == "CreateFreshTicket"
+            and .snapshots[16].model_action == "NativeAcceptRecovery"
+            and .snapshots[-1].state_s.recoveryPermit == "consumed"
+            and .snapshots[-1].state_s.permitUseCount == 1
+            and .snapshots[-1].state_s.downstreamFenceBootEpoch == 0
+            and .snapshots[-1].state_s.admittedDownstreamFence == true
+            and .snapshots[-1].state_s.commandOwnerAttempt == "attempt-2"
+            and ([.snapshots[-1].owner_evidence[]
+                  | select(.domain == "physical_outcome_observer_quorum" or .domain == "downstream_observer_quorum")
+                  | .status] | all(. == "quorum_qualified"))
+          ' "$RECOVERY_FIXTURE"
 
       - name: Compare Rust and JSON Schema fields with pinned TLA Init
         shell: bash
@@ -120,6 +144,49 @@ jobs:
           (
             cd "$RUNNER_TEMP/rrvr-runtime-projection"
             sha256sum input-recording.json runtime-trace.ndjson provenance-sidecar.json manifest.json > SHA256SUMS
+          )
+
+      - name: Emit full no-effect recovery projection
+        shell: bash
+        run: |
+          set -euo pipefail
+          FIXTURE="research/mobility-rrvr-runtime-trace/fixtures/runtime_projection_no_effect_recovery_v0_1.json"
+          TRACE="$RUNNER_TEMP/rrvr-runtime-projection/no-effect-recovery-trace.ndjson"
+          SIDECAR="$RUNNER_TEMP/rrvr-runtime-projection/no-effect-recovery-sidecar.json"
+          MANIFEST="$RUNNER_TEMP/rrvr-runtime-projection/no-effect-recovery-manifest.json"
+          cargo run --locked \
+            --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml \
+            --bin rrvr_runtime_project -- "$FIXTURE" "$TRACE" "$SIDECAR" > "$MANIFEST"
+          jq -e '
+            .projection_validation == "passed"
+            and .tla_conformance == "not_run"
+            and .snapshot_count == 17
+          ' "$MANIFEST"
+          test "$(wc -l < "$TRACE" | tr -d ' ')" -eq 17
+          jq -e -s '
+            length == 17
+            and .[12].event == "ObserveOldEffect"
+            and .[14].event == "IssueRecoveryPermit"
+            and .[15].event == "CreateFreshTicket"
+            and .[16].event == "NativeAcceptRecovery"
+            and .[16].state.s.recoveryPermit == "consumed"
+            and .[16].state.s.permitUseCount == 1
+            and .[16].state.s.downstreamFenceBootEpoch == 0
+            and .[16].state.s.admittedDownstreamFence == true
+          ' "$TRACE"
+          jq -e '
+            .snapshots | length == 17
+            and (.[16].owner_evidence | length == 10)
+            and ([.[16].owner_evidence[]
+                  | select(.domain == "physical_outcome_observer_quorum" or .domain == "downstream_observer_quorum")
+                  | .status] | all(. == "quorum_qualified"))
+          ' "$SIDECAR"
+          cp "$FIXTURE" "$RUNNER_TEMP/rrvr-runtime-projection/no-effect-recovery-recording.json"
+          (
+            cd "$RUNNER_TEMP/rrvr-runtime-projection"
+            sha256sum no-effect-recovery-recording.json no-effect-recovery-trace.ndjson \
+              no-effect-recovery-sidecar.json no-effect-recovery-manifest.json \
+              >> SHA256SUMS
           )
 
       - name: Upload projection conformance package
