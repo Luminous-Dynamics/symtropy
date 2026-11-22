@@ -205,6 +205,7 @@ pub enum ProjectionError {
     IndeterminatePersistenceRecovery, FreshTicketBindingMismatch, InitialStateMismatch,
     DuplicatePhysicalEffectObserved, ObserverQuorumMismatch, DuplicateObserverClaim,
     EvidenceScopeMismatch, ObserverQuorumMalformed, ObserverClaimsShareCommonCause,
+    OwnerEvidenceStatusMismatch,
 }
 
 fn nonempty(value: &str) -> bool { !value.trim().is_empty() }
@@ -597,6 +598,68 @@ impl RuntimeProjectionRecording {
                 || process_scope.subject_boot_epoch!=state_boot || process_scope.subject_controller_epoch!=state_controller
             { return Err(ProjectionError::EvidenceScopeMismatch); }
 
+            let state_persist=str_field(&s.state_s,"persistStatus")?;
+            let state_old_outcome=str_field(&s.state_s,"oldPhysicalOutcome")?;
+            let state_mission=str_field(&s.state_s,"missionResolution")?;
+            let state_permit=str_field(&s.state_s,"recoveryPermit")?;
+            let state_boot=u64_field(&s.state_s,"bootEpoch")?;
+            let state_queue_fence=u64_field(&s.state_s,"queueFenceBootEpoch")?;
+            let state_downstream_fence=u64_field(&s.state_s,"downstreamFenceBootEpoch")?;
+            let state_m1=bool_field(&s.state_s,"m1Current")?;
+            let state_m2=bool_field(&s.state_s,"m2Current")?;
+
+            let persistence_status=owner_evidence_by_domain(s,OwnerEvidenceDomain::Persistence)?.status;
+            if state_persist=="committed" && persistence_status!=OwnerEvidenceStatus::Confirmed {
+                return Err(ProjectionError::OwnerEvidenceStatusMismatch);
+            }
+            if matches!(state_persist,"in_flight"|"indeterminate_commit")
+                && !matches!(persistence_status,OwnerEvidenceStatus::Unknown|OwnerEvidenceStatus::InsufficientEvidence)
+            {
+                return Err(ProjectionError::OwnerEvidenceStatusMismatch);
+            }
+            if state_permit!="absent" && persistence_status!=OwnerEvidenceStatus::Confirmed {
+                return Err(ProjectionError::OwnerEvidenceStatusMismatch);
+            }
+
+            let physical_status=owner_evidence_by_domain(s,OwnerEvidenceDomain::PhysicalOutcome)?.status;
+            if state_old_outcome=="none" && physical_status!=OwnerEvidenceStatus::NotApplicable {
+                return Err(ProjectionError::OwnerEvidenceStatusMismatch);
+            }
+            if state_old_outcome!="none" && physical_status!=OwnerEvidenceStatus::Confirmed {
+                return Err(ProjectionError::OwnerEvidenceStatusMismatch);
+            }
+
+            let mission_status=owner_evidence_by_domain(s,OwnerEvidenceDomain::MissionResolution)?.status;
+            if state_mission=="none" && mission_status!=OwnerEvidenceStatus::NotApplicable {
+                return Err(ProjectionError::OwnerEvidenceStatusMismatch);
+            }
+            if state_mission!="none" && mission_status!=OwnerEvidenceStatus::Confirmed {
+                return Err(ProjectionError::OwnerEvidenceStatusMismatch);
+            }
+
+            let controller_status=owner_evidence_by_domain(s,OwnerEvidenceDomain::ControllerQueue)?.status;
+            if state_queue_fence==state_boot && controller_status!=OwnerEvidenceStatus::Confirmed {
+                return Err(ProjectionError::OwnerEvidenceStatusMismatch);
+            }
+            let graph_status=owner_evidence_by_domain(s,OwnerEvidenceDomain::DownstreamExecutionGraph)?.status;
+            if state_downstream_fence==state_boot && graph_status!=OwnerEvidenceStatus::Confirmed {
+                return Err(ProjectionError::OwnerEvidenceStatusMismatch);
+            }
+            let applicability_status=owner_evidence_by_domain(s,OwnerEvidenceDomain::ActionApplicability)?.status;
+            if state_m1 && state_m2 && applicability_status!=OwnerEvidenceStatus::Current {
+                return Err(ProjectionError::OwnerEvidenceStatusMismatch);
+            }
+            if (!state_m1 || !state_m2) && applicability_status!=OwnerEvidenceStatus::Refuted {
+                return Err(ProjectionError::OwnerEvidenceStatusMismatch);
+            }
+            let authority_status=owner_evidence_by_domain(s,OwnerEvidenceDomain::RecoveryAuthority)?.status;
+            if state_permit=="absent" && !matches!(authority_status,OwnerEvidenceStatus::NotApplicable|OwnerEvidenceStatus::Current) {
+                return Err(ProjectionError::OwnerEvidenceStatusMismatch);
+            }
+            if state_permit!="absent" && authority_status!=OwnerEvidenceStatus::Confirmed {
+                return Err(ProjectionError::OwnerEvidenceStatusMismatch);
+            }
+
             let no_effect_observer=owner_evidence_by_domain(s,OwnerEvidenceDomain::NoEffectObserverQuorum)?;
             let downstream_observer=owner_evidence_by_domain(s,OwnerEvidenceDomain::DownstreamObserverQuorum)?;
             if let (Some(a),Some(b))=(no_effect_observer.claim_id.as_deref(),downstream_observer.claim_id.as_deref()) {
@@ -783,7 +846,7 @@ mod tests {
                 owner_revision:format!("revision-{index}"),
                 evidence_id:format!("evidence-{index}"),
                 status:if matches!(domain,OwnerEvidenceDomain::NoEffectObserverQuorum|OwnerEvidenceDomain::DownstreamObserverQuorum
-                    |OwnerEvidenceDomain::PhysicalOutcome|OwnerEvidenceDomain::MissionResolution) {
+                    |OwnerEvidenceDomain::PhysicalOutcome|OwnerEvidenceDomain::MissionResolution|OwnerEvidenceDomain::Persistence|OwnerEvidenceDomain::RecoveryAuthority) {
                     OwnerEvidenceStatus::NotApplicable
                 } else { OwnerEvidenceStatus::Current },
                 claim_id:None,
