@@ -211,7 +211,8 @@
       "configuration_digest": "sha256:channel-a-v01",
       "max_input_power_lower_bound_w": 1500,
       "compatible_resource_ids": [
-        "ess-01"
+        "ess-01",
+        "ess-02"
       ],
       "evidence": {
         "asset_id": "channel-a",
