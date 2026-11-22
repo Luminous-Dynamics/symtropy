@@ -193,18 +193,61 @@ def _rank_report(
             "unresolved": unresolved_membership,
         }
 
-    shortcut_set = {
-        (item["better"], item["worse"]) for item in shortcut_certified
-    }
     exact_set = {
         (item["better"], item["worse"]) for item in certified
+    }
+    tier_cache: dict[int, int] = {}
+    tier_visiting: set[int] = set()
+
+    def tier_for(model: int) -> int:
+        if model in tier_cache:
+            return tier_cache[model]
+        if model in tier_visiting:
+            raise RankEvaluationError("certified dominance graph contains a cycle")
+        tier_visiting.add(model)
+        better_models = [
+            left for left, right in exact_set if right == model
+        ]
+        tier = 1 + max(
+            (tier_for(better) for better in better_models),
+            default=0,
+        )
+        tier_visiting.remove(model)
+        tier_cache[model] = tier
+        return tier
+
+    tiers_by_model = {
+        arm: tier_for(model_index) for model_index, arm in enumerate(arms)
+    }
+    tier_groups: dict[int, list[str]] = {}
+    for arm, tier in tiers_by_model.items():
+        tier_groups.setdefault(tier, []).append(arm)
+
+    rank_bounds = {}
+    for model, arm in enumerate(arms):
+        better_count = sum((left, model) in exact_set for left in range(model_count))
+        worse_count = sum((model, right) in exact_set for right in range(model_count))
+        rank_bounds[arm] = {
+            "lower": 1 + better_count,
+            "upper": model_count - worse_count,
+        }
+
+    shortcut_set = {
+        (item["better"], item["worse"]) for item in shortcut_certified
     }
     return {
         "surviving_weak_order_count": len(surviving),
         "certified_dominances": certified,
         "unresolved_pairs": unresolved,
         "rank_sets": rendered_rank_sets,
+        "rank_bounds_from_dominances": rank_bounds,
         "top_k": top_k,
+        "tiers": {
+            "by_arm": tiers_by_model,
+            "groups": {
+                str(tier): group for tier, group in sorted(tier_groups.items())
+            },
+        },
         "shortcut_dominances": shortcut_certified,
         "shortcut_is_subset_of_exact": shortcut_set.issubset(exact_set),
     }
@@ -228,6 +271,8 @@ def evaluate_document(document: dict[str, Any]) -> dict[str, Any]:
     arms = document.get("arms")
     if not isinstance(arms, list) or len(arms) < 2:
         raise RankEvaluationError("arms must contain at least two model IDs")
+    if len(arms) > 8:
+        raise RankEvaluationError("exact weak-order reference supports at most eight arms")
     if any(not isinstance(arm, str) or not arm for arm in arms):
         raise RankEvaluationError("arm IDs must be non-empty strings")
     if len(set(arms)) != len(arms):
@@ -261,6 +306,10 @@ def evaluate_document(document: dict[str, Any]) -> dict[str, Any]:
         raise RankEvaluationError("episode_ids must be sorted canonically")
     if not isinstance(episode_order, list) or len(episode_order) != len(episode_ids):
         raise RankEvaluationError("episode_order must contain every episode exactly once")
+    if any(not isinstance(item, str) or not item for item in episode_order):
+        raise RankEvaluationError("episode_order entries must be non-empty strings")
+    if len(set(episode_order)) != len(episode_order):
+        raise RankEvaluationError("episode_order must not contain duplicate IDs")
     if set(episode_order) != set(episode_ids):
         raise RankEvaluationError("episode_order must be a permutation of episode_ids")
     if not isinstance(seed_commitment, str) or len(seed_commitment) != 64:
