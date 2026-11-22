@@ -19,7 +19,7 @@
           "valid_from_unix_ms": 1795219190000,
           "valid_until_unix_ms": 1795219210000
         },
-        "value": 2000
+        "conservative_lower_bound": 2000
       },
       "peak_power": {
         "evidence": {
@@ -33,7 +33,7 @@
           "valid_from_unix_ms": 1795219190000,
           "valid_until_unix_ms": 1795219210000
         },
-        "value": 2000
+        "conservative_lower_bound": 2000
       },
       "thermal": {
         "evidence": {
@@ -47,8 +47,8 @@
           "valid_from_unix_ms": 1795219190000,
           "valid_until_unix_ms": 1795219210000
         },
-        "pack_temperature_c": 25,
-        "qualified_max_temperature_c": 60
+        "qualified_max_temperature_c": 60,
+        "conservative_upper_bound_c": 25
       },
       "identity_verification": {
         "evidence": {
@@ -123,7 +123,7 @@
           "valid_from_unix_ms": 1795219190000,
           "valid_until_unix_ms": 1795219210000
         },
-        "value": 1500
+        "conservative_lower_bound": 1500
       },
       "peak_power": {
         "evidence": {
@@ -137,7 +137,7 @@
           "valid_from_unix_ms": 1795219190000,
           "valid_until_unix_ms": 1795219210000
         },
-        "value": 1500
+        "conservative_lower_bound": 1500
       },
       "thermal": {
         "evidence": {
@@ -151,8 +151,8 @@
           "valid_from_unix_ms": 1795219190000,
           "valid_until_unix_ms": 1795219210000
         },
-        "pack_temperature_c": 26,
-        "qualified_max_temperature_c": 55
+        "qualified_max_temperature_c": 55,
+        "conservative_upper_bound_c": 26
       },
       "identity_verification": {
         "evidence": {
@@ -227,7 +227,7 @@
           "valid_from_unix_ms": 1795219190000,
           "valid_until_unix_ms": 1795219210000
         },
-        "value": 1200
+        "conservative_lower_bound": 1200
       },
       "peak_power": {
         "evidence": {
@@ -241,7 +241,7 @@
           "valid_from_unix_ms": 1795219190000,
           "valid_until_unix_ms": 1795219210000
         },
-        "value": 1800
+        "conservative_lower_bound": 1800
       },
       "thermal": {
         "evidence": {
@@ -255,8 +255,8 @@
           "valid_from_unix_ms": 1795219190000,
           "valid_until_unix_ms": 1795219210000
         },
-        "pack_temperature_c": 24,
-        "qualified_max_temperature_c": 58
+        "qualified_max_temperature_c": 58,
+        "conservative_upper_bound_c": 24
       },
       "identity_verification": {
         "evidence": {
@@ -331,7 +331,7 @@
           "valid_from_unix_ms": 1795219190000,
           "valid_until_unix_ms": 1795219210000
         },
-        "value": 2500
+        "conservative_lower_bound": 2500
       },
       "peak_power": {
         "evidence": {
@@ -345,7 +345,7 @@
           "valid_from_unix_ms": 1795219190000,
           "valid_until_unix_ms": 1795219210000
         },
-        "value": 2500
+        "conservative_lower_bound": 2500
       },
       "thermal": {
         "evidence": {
@@ -359,8 +359,8 @@
           "valid_from_unix_ms": 1795219190000,
           "valid_until_unix_ms": 1795219210000
         },
-        "pack_temperature_c": 25,
-        "qualified_max_temperature_c": 60
+        "qualified_max_temperature_c": 60,
+        "conservative_upper_bound_c": 25
       },
       "identity_verification": {
         "evidence": {
