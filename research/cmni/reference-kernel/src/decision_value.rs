@@ -63,6 +63,17 @@ pub enum DecisionAbstentionReason {
     NoQualifiedPositiveValueInformation,
 }
 
+/// Resource and stopping policy for a finite information decision.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct InformationAcquisitionPolicy {
+    /// Hard remaining resource budget in the option cost unit.
+    pub remaining_budget: f64,
+    /// Utility units charged per unit resource cost.
+    pub cost_to_utility_rate: f64,
+    /// Minimum net utility required before acquiring information.
+    pub minimum_net_benefit: f64,
+}
+
 /// Recommended next step under the finite decision model.
 #[derive(Debug, Clone, PartialEq)]
 pub enum FiniteDecisionRecommendation {
@@ -120,10 +131,13 @@ pub fn recommend_finite_decision_step(
     action_utilities: &[Vec<f64>],
     abstention_utility: f64,
     information_options: &[InformationAcquisitionOption],
-    remaining_budget: f64,
-    cost_to_utility_rate: f64,
-    minimum_net_benefit: f64,
+    acquisition_policy: InformationAcquisitionPolicy,
 ) -> Result<FiniteDecisionRecommendation, ModelError> {
+    let InformationAcquisitionPolicy {
+        remaining_budget,
+        cost_to_utility_rate,
+        minimum_net_benefit,
+    } = acquisition_policy;
     let state_count = state_probabilities.len();
     let action_count = action_ids.len();
     if state_count == 0
@@ -409,6 +423,22 @@ mod tests {
         vec!["intervene".to_owned(), "hold".to_owned()]
     }
 
+    fn recommend_for_test(
+        state_probabilities: &[f64],
+        action_utilities: &[Vec<f64>],
+        abstention_utility: f64,
+        information_options: &[InformationAcquisitionOption],
+        acquisition_policy: InformationAcquisitionPolicy,
+    ) -> Result<FiniteDecisionRecommendation, ModelError> {
+        recommend_for_test(
+            state_probabilities,
+            action_utilities,
+            abstention_utility,
+            information_options,
+            acquisition_policy,
+        )
+    }
+
     fn options(
         id: &str,
         kind: InformationAcquisitionKind,
@@ -434,15 +464,16 @@ mod tests {
             2.0,
             vec![vec![0.9, 0.1], vec![0.2, 0.8]],
         );
-        let result = recommend_finite_decision_step(
-            &actions(),
+        let result = recommend_for_test(
             &[0.5, 0.5],
             &[vec![100.0, -30.0], vec![0.0, 0.0]],
             0.0,
             &[option],
-            2.0,
-            1.0,
-            0.0,
+            InformationAcquisitionPolicy {
+                remaining_budget: 2.0,
+                cost_to_utility_rate: 1.0,
+                minimum_net_benefit: 0.0,
+            },
         )
         .expect("EVSI recommendation");
         match result {
@@ -478,15 +509,16 @@ mod tests {
             1.0,
             vec![vec![0.9, 0.1], vec![0.2, 0.8]],
         );
-        let result = recommend_finite_decision_step(
-            &actions(),
+        let result = recommend_for_test(
             &[0.5, 0.5],
             &[vec![100.0, -30.0], vec![0.0, 0.0]],
             0.0,
             &[expensive_perfect, cheap_partial],
-            14.0,
-            1.0,
-            0.0,
+            InformationAcquisitionPolicy {
+                remaining_budget: 14.0,
+                cost_to_utility_rate: 1.0,
+                minimum_net_benefit: 0.0,
+            },
         )
         .expect("cost-aware comparison");
         assert!(matches!(
@@ -504,15 +536,16 @@ mod tests {
             8.0,
             vec![vec![0.9, 0.1], vec![0.2, 0.8]],
         );
-        let result = recommend_finite_decision_step(
-            &actions(),
+        let result = recommend_for_test(
             &[0.5, 0.5],
             &[vec![100.0, -30.0], vec![0.0, 0.0]],
             0.0,
             &[option],
-            8.0,
-            1.0,
-            0.0,
+            InformationAcquisitionPolicy {
+                remaining_budget: 8.0,
+                cost_to_utility_rate: 1.0,
+                minimum_net_benefit: 0.0,
+            },
         )
         .expect("select current action");
         assert!(matches!(
@@ -530,15 +563,16 @@ mod tests {
             1.0,
             vec![vec![0.6, 0.4], vec![0.4, 0.6]],
         );
-        let result = recommend_finite_decision_step(
-            &actions(),
+        let result = recommend_for_test(
             &[0.5, 0.5],
             &[vec![1.0, -1.0], vec![0.0, 0.0]],
             0.1,
             &[option],
-            1.0,
-            1.0,
-            0.0,
+            InformationAcquisitionPolicy {
+                remaining_budget: 1.0,
+                cost_to_utility_rate: 1.0,
+                minimum_net_benefit: 0.0,
+            },
         )
         .expect("abstention");
         assert!(matches!(
@@ -556,15 +590,16 @@ mod tests {
             vec![vec![0.99, 0.01], vec![0.01, 0.99]],
         );
         option.source_qualification = InformationSourceQualification::Unqualified;
-        let result = recommend_finite_decision_step(
-            &actions(),
+        let result = recommend_for_test(
             &[0.5, 0.5],
             &[vec![1.0, -1.0], vec![0.0, 0.0]],
             0.1,
             &[option],
-            1.0,
-            1.0,
-            0.0,
+            InformationAcquisitionPolicy {
+                remaining_budget: 1.0,
+                cost_to_utility_rate: 1.0,
+                minimum_net_benefit: 0.0,
+            },
         )
         .expect("unqualified evidence ignored");
         assert_eq!(
@@ -589,15 +624,16 @@ mod tests {
             vec![vec![0.4, 0.4], vec![0.5, 0.5]],
         );
         assert_eq!(
-            recommend_finite_decision_step(
-                &actions(),
+            recommend_for_test(
                 &[0.5, 0.5],
                 &[vec![1.0, -1.0], vec![0.0, 0.0]],
                 0.0,
                 &[bad],
-                1.0,
-                1.0,
-                0.0,
+                InformationAcquisitionPolicy {
+                    remaining_budget: 1.0,
+                    cost_to_utility_rate: 1.0,
+                    minimum_net_benefit: 0.0,
+                },
             ),
             Err(ModelError::InvalidParameter(
                 "information_option_likelihood_row_must_sum_to_one"
@@ -608,15 +644,16 @@ mod tests {
     #[test]
     fn malformed_probabilities_budgets_and_duplicate_options_fail_closed() {
         assert_eq!(
-            recommend_finite_decision_step(
-                &actions(),
+            recommend_for_test(
                 &[0.0, 0.0],
                 &[vec![1.0, 1.0], vec![0.0, 0.0]],
                 0.0,
                 &[],
-                1.0,
-                1.0,
-                0.0,
+                InformationAcquisitionPolicy {
+                    remaining_budget: 1.0,
+                    cost_to_utility_rate: 1.0,
+                    minimum_net_benefit: 0.0,
+                },
             ),
             Err(ModelError::NonPositiveValue("decision_probability_sum"))
         );
@@ -627,15 +664,16 @@ mod tests {
             vec![vec![0.5, 0.5], vec![0.5, 0.5]],
         );
         assert_eq!(
-            recommend_finite_decision_step(
-                &actions(),
+            recommend_for_test(
                 &[0.5, 0.5],
                 &[vec![1.0, -1.0], vec![0.0, 0.0]],
                 0.0,
                 &[option.clone(), option],
-                1.0,
-                1.0,
-                0.0,
+                InformationAcquisitionPolicy {
+                    remaining_budget: 1.0,
+                    cost_to_utility_rate: 1.0,
+                    minimum_net_benefit: 0.0,
+                },
             ),
             Err(ModelError::InvalidParameter(
                 "information_option_ids_must_be_nonempty_and_unique"
@@ -651,8 +689,7 @@ mod tests {
             0.0,
             vec![vec![1.0, 0.0], vec![0.0, 1.0]],
         );
-        let result = recommend_finite_decision_step(
-            &actions(),
+        let result = recommend_for_test(
             &[0.5, 0.5],
             &[vec![100.0, -30.0], vec![0.0, 0.0]],
             0.0,
