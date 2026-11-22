@@ -1,0 +1,26 @@
+name: AV evidence certificate evaluator
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/av-evidence-certificate.yml"
+      - "tools/av-evidence-certificate/**"
+      - "schemas/workload-v1.schema.json"
+      - "schemas/submission-v1.schema.json"
+      - "schemas/truth-v1.schema.json"
+      - "research/av-evidence-certificate-v0/**"
+
+permissions:
+  contents: read
+
+jobs:
+  exact-head:
+    name: Exact-head evidence certificate contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run evidence certificate evaluator tests
+        run: python3 -m unittest discover -s tools/av-evidence-certificate -p "test_*.py" -v
