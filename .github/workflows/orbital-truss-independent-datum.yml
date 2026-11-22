@@ -22,6 +22,8 @@ jobs:
   verify:
     name: Datum-network fit, withheld checks and independent oracle
     runs-on: ubuntu-latest
+    env:
+      SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.96.1
@@ -52,8 +54,8 @@ jobs:
         run: cargo clippy --locked --manifest-path tools/orbital-truss-independent-datum-bench/Cargo.toml --all-targets -- -D warnings
       - name: Deterministic receipt replay
         run: |
-          cargo run --quiet --locked --manifest-path tools/orbital-truss-independent-datum-bench/Cargo.toml -- docs/research/orbital-truss/fixtures/independent-datum-v0_1.json "$GITHUB_SHA" > /tmp/datum-a.json
-          cargo run --quiet --locked --manifest-path tools/orbital-truss-independent-datum-bench/Cargo.toml -- docs/research/orbital-truss/fixtures/independent-datum-v0_1.json "$GITHUB_SHA" > /tmp/datum-b.json
+          cargo run --quiet --locked --manifest-path tools/orbital-truss-independent-datum-bench/Cargo.toml -- docs/research/orbital-truss/fixtures/independent-datum-v0_1.json "$SOURCE_COMMIT" > /tmp/datum-a.json
+          cargo run --quiet --locked --manifest-path tools/orbital-truss-independent-datum-bench/Cargo.toml -- docs/research/orbital-truss/fixtures/independent-datum-v0_1.json "$SOURCE_COMMIT" > /tmp/datum-b.json
           cmp /tmp/datum-a.json /tmp/datum-b.json
           jq -e '
             .case_count == 14 and .declared_matches == 14 and .declared_mismatches == 0 and
@@ -111,7 +113,8 @@ jobs:
           oracle_bytes = Path("/tmp/datum-oracle.json").read_bytes()
           rust = json.loads(rust_bytes)
           manifest = {
-              "source_commit": os.environ["GITHUB_SHA"],
+              "source_commit": os.environ["SOURCE_COMMIT"],
+              "workflow_event_commit": os.environ["GITHUB_SHA"],
               "workflow_run_id": int(os.environ["GITHUB_RUN_ID"]),
               "run_attempt": int(os.environ["GITHUB_RUN_ATTEMPT"]),
               "benchmark_id": rust["benchmark_id"],
@@ -130,7 +133,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: orbital-truss-independent-datum-${{ github.sha }}
+          name: orbital-truss-independent-datum-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
             /tmp/datum-a.json
             /tmp/datum-oracle.json
