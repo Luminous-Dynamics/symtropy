@@ -38,7 +38,7 @@ for (let i = 0; i < oracle.scenarios.length; i++) {
       assert.equal(a.event_id, e.event_id);
       assert.equal(a.detected, e.detected);
       assert.equal(a.miss_reason, e.miss_reason);
-      close(a.pod_probability, e.pod_probability);
+      close(a.conditional_classifier_probability, e.conditional_classifier_probability);
     }
   }
 }
