@@ -78,6 +78,7 @@ pub enum HbrBctrError {
     InvalidAnchorPosition(u64),
     InconsistentAnchorSurvey(u32),
     InconsistentBiasGroupIdentity(usize),
+    AnchorChannelSplitAcrossBiasGroups { anchor_id: u32, channel_id: u8 },
     InvalidRange(u64),
     InvalidQualityParameter(u64),
     CoincidentPositionAndAnchor(u64),
@@ -103,6 +104,7 @@ impl fmt::Display for HbrBctrError {
             Self::InvalidAnchorPosition(id) => write!(f, "measurement {id} has a non-finite anchor position"),
             Self::InconsistentAnchorSurvey(id) => write!(f, "anchor {id} has inconsistent surveyed coordinates across observations"),
             Self::InconsistentBiasGroupIdentity(index) => write!(f, "bias group {index} maps to more than one anchor/channel identity"),
+            Self::AnchorChannelSplitAcrossBiasGroups { anchor_id, channel_id } => write!(f, "anchor/channel pair ({anchor_id}, {channel_id}) maps to multiple structural-bias states"),
             Self::InvalidRange(id) => write!(f, "measurement {id} has an invalid measured range"),
             Self::InvalidQualityParameter(id) => write!(f, "measurement {id} has invalid frozen HBR quality parameters"),
             Self::CoincidentPositionAndAnchor(id) => write!(f, "measurement {id} position coincides with its anchor; range gradient is undefined"),
@@ -136,7 +138,12 @@ pub fn evaluate_hbr_bctr_window_2d(
     }
 
     for (index, position) in state.positions_m.iter().enumerate() {
-        if !position.iter().all(|value| value.is_finite()) {
+        if !position.iter().all(|value| value.is_finite())
+            || (0..2).any(|axis| {
+                position[axis] < config.position_min_m[axis]
+                    || position[axis] > config.position_max_m[axis]
+            })
+        {
             return Err(HbrBctrError::InvalidStatePosition(index));
         }
     }
@@ -149,6 +156,7 @@ pub fn evaluate_hbr_bctr_window_2d(
     let mut measurement_ids = BTreeSet::new();
     let mut anchor_positions = BTreeMap::<u32, [f64; 2]>::new();
     let mut bias_group_identities = BTreeMap::<usize, (u32, u8)>::new();
+    let mut anchor_channel_bias_groups = BTreeMap::<(u32, u8), usize>::new();
     let mut objective = 0.0_f64;
     let mut position_gradient = vec![[0.0; 2]; time_steps];
     let mut structural_bias_gradient = vec![0.0; expected_bias_count];
@@ -202,6 +210,16 @@ pub fn evaluate_hbr_bctr_window_2d(
                 return Err(HbrBctrError::InconsistentBiasGroupIdentity(
                     observation.bias_group_index,
                 ));
+            }
+        }
+        if let Some(previous_group_index) =
+            anchor_channel_bias_groups.insert(anchor_channel_identity, observation.bias_group_index)
+        {
+            if previous_group_index != observation.bias_group_index {
+                return Err(HbrBctrError::AnchorChannelSplitAcrossBiasGroups {
+                    anchor_id: observation.anchor_id,
+                    channel_id: observation.channel_id,
+                });
             }
         }
         if !observation.measured_range_m.is_finite() || observation.measured_range_m < 0.0 {
@@ -673,6 +691,27 @@ mod tests {
         let updated = hbr_bctr_projected_step_2d(&current, &before, cfg).unwrap();
         let after = evaluate_hbr_bctr_window_2d(&updated, &observations, cfg).unwrap();
         assert!(after.objective < before.objective);
+    }
+
+    #[test]
+    fn one_anchor_channel_cannot_be_split_across_multiple_bias_states() {
+        let current = HbrBctrState2d {
+            positions_m: vec![[1.0, 0.0], [1.1, 0.0]],
+            structural_bias_m: vec![0.1, 0.1, 0.1, 0.1],
+        };
+        let mut second = observation(2, 1, 1.6);
+        second.bias_group_index = 1;
+        assert_eq!(
+            evaluate_hbr_bctr_window_2d(
+                &current,
+                &[observation(1, 0, 1.5), second],
+                HbrBctrConfig2d { group_count: 2, ..config() }
+            ),
+            Err(HbrBctrError::AnchorChannelSplitAcrossBiasGroups {
+                anchor_id: 1,
+                channel_id: 5
+            })
+        );
     }
 
     #[test]
