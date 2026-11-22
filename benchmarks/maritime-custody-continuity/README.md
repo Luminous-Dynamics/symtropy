@@ -41,13 +41,13 @@ cargo clippy --offline --locked --all-targets -- -D warnings
 The package also exposes a standalone, conservative event-time comparison primitive:
 
 - each event has a closed interval in a declared normalized time basis;
-- disjoint intervals produce a proof-grade order only when both bounds are marked as qualified enclosures;
+- disjoint intervals produce a proof-grade order only when both bounds were derived from explicit clock profiles with calibration provenance, active validity windows and complete error budgets;
 - disjoint estimate-only or mixed-quality bounds produce an estimated order, never a proof-grade order;
 - touching or overlapping intervals remain unresolved; identical singleton times are not a simultaneity certificate;
 - differing time-basis identifiers are incomparable;
 - pairwise reports are deterministic under input permutation and do not manufacture a total order.
 
-The primitive assumes the caller has normalized timestamps and qualified the enclosures. It does not validate clock synchronization, source timestamp semantics, the accuracy of a clock bound, or UTC/TAI conversion. The P0 custody state-machine evaluator still uses its exact synthetic ticks; interval-order integration into the custody transitions is a subsequent P1 step.
+The clock-profile constructor requires clock/device ID, source profile/version, time-basis ID, calibration-evidence reference, synchronization method/state, calibration validity window, and explicit maximum offset, holdover-drift, capture-path and rounding errors. Unknown error components, alarmed/unknown clock states, out-of-window timestamps and arithmetic overflow fail closed. It sums the declared worst-case components rather than assuming statistical independence. The calibration reference is still opaque: this code does not authenticate the issuer or independently verify the calibration artifact, and the caller remains responsible for timestamp normalization and the soundness of each bound. The P0 custody state-machine evaluator still uses its exact synthetic ticks; interval-order integration into the custody transitions is a subsequent P1 step.
 
 Reuse the existing maritime timestamp owners (#1930/#1955/#1650) for source parsing, profile semantics and decision-time applicability. The interval-order concept is also related to the generic hybrid event-order work in [#3410](https://github.com/Luminous-Dynamics/symtropy/issues/3410) and the exact-rational interval reference in [#4113](https://github.com/Luminous-Dynamics/symtropy/issues/4113); this crate does not duplicate their continuous-simulation or exact-rational arithmetic scope.
 
