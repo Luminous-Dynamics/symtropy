@@ -1,11 +1,13 @@
 # Mobility Downstream Fence Contract v0.1
 
-Dependency-free Rust reference contract for checking per-layer evidence across a declared command-holding path.
+Dependency-free Rust reference contract for checking per-layer evidence across a declared command-holding execution graph, including fan-out and multiple terminal actuator branches.
 
 ## Scope
 
 The contract checks:
-- one exact receipt per declared command-holding layer;
+- explicit single ingress, complete declared terminal set and acyclic forwarding-edge inventory;
+- graph reachability from the ingress, including fan-out and multiple actuator branches;
+- one exact receipt per declared command-holding node;
 - unique layer identity and contiguous path order;
 - exact stack, inventory, layer, logical-effect and old-attempt bindings;
 - old/new boot and controller epoch bindings;
@@ -24,7 +26,7 @@ cargo clippy --manifest-path research/mobility-downstream-fence/Cargo.toml --all
 
 ## Non-claims
 
-The result is only `AllDeclaredLayersHaveCurrentQuiescenceEvidence` for the exact inventory and supplied receipt packet. It is not:
+The result is only `AllDeclaredLayersHaveCurrentQuiescenceEvidence` for the exact declared graph and supplied receipt packet. It is not:
 - proof that inventory enumeration is complete;
 - cryptographic authentication of any receipt or commitment;
 - proof of actual cancellation linearizability or device/firmware behavior;
